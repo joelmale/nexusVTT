@@ -59,7 +59,7 @@ jobs:
           echo "postgres_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/postgres:$VERSION" >> $GITHUB_OUTPUT
 
       - name: Build and push frontend
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/frontend.Dockerfile
@@ -75,7 +75,7 @@ jobs:
             COMMIT_SHA=${{ github.sha }}
 
       - name: Build and push backend
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/backend.Dockerfile
@@ -90,7 +90,7 @@ jobs:
             COMMIT_SHA=${{ github.sha }}
 
       - name: Build and push postgres
-        uses: docker/build-push-action@v5
+        uses: docker/build-push-action@v6
         with:
           context: .
           file: docker/postgres.Dockerfile
