@@ -2074,8 +2074,8 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
         {renderPreview()}
         {renderPolygonPreview()}
         {renderSelectionBox()}
-        {/* eslint-disable-next-line react-hooks/refs */}
         {/* Grid alignment needs ref for viewport calculations during render */}
+        {/* eslint-disable-next-line react-hooks/refs -- Grid alignment needs viewport dimensions */}
         {renderGridAlignmentHelpers()}
       </g>
     </g>

@@ -1,142 +1,152 @@
-import React, { Component, ErrorInfo, ReactNode } from 'react';
+import React from 'react';
 
-interface Props {
-  children: ReactNode;
-  fallback?: ReactNode;
-  onError?: (error: Error, errorInfo: ErrorInfo) => void;
+interface ErrorLogEntry {
+  name?: string;
+  message: string;
+  stack?: string;
+  timestamp: string;
+  location?: string;
+  userAgent?: string;
+  componentStack?: string;
 }
 
-interface State {
+const errorLog: ErrorLogEntry[] = [];
+
+const formatErrorReport = (entries: ErrorLogEntry[]) => {
+  return [
+    `Nexus VTT Error Report`,
+    `Generated: ${new Date().toISOString()}`,
+    '',
+    ...entries.flatMap((entry, index) => [
+      `--- Error ${index + 1} ---`,
+      `Name: ${entry.name || 'Unknown'}`,
+      `Message: ${entry.message}`,
+      `Timestamp: ${entry.timestamp}`,
+      `URL: ${entry.location || 'Unknown'}`,
+      `User Agent: ${entry.userAgent || 'Unknown'}`,
+      entry.stack ? `Stack:\n${entry.stack}` : 'Stack: (none)',
+      entry.componentStack
+        ? `Component Stack:\n${entry.componentStack}`
+        : 'Component Stack: (none)',
+      '',
+    ]),
+  ].join('\n');
+};
+
+export interface ErrorBoundaryProps {
+  name?: string;
+  children: React.ReactNode;
+  onReset?: () => void;
+}
+
+interface ErrorBoundaryState {
   hasError: boolean;
   error?: Error;
 }
 
-export class ErrorBoundary extends Component<Props, State> {
-  constructor(props: Props) {
-    super(props);
-    this.state = { hasError: false };
-  }
+export class ErrorBoundary extends React.Component<
+  ErrorBoundaryProps,
+  ErrorBoundaryState
+> {
+  state: ErrorBoundaryState = { hasError: false };
 
-  static getDerivedStateFromError(error: Error): State {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, error };
   }
 
-  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
-    console.error('❌ ErrorBoundary caught an error:', error, errorInfo);
-
-    // Call optional error handler
-    if (this.props.onError) {
-      this.props.onError(error, errorInfo);
-    }
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    errorLog.push({
+      name: this.props.name,
+      message: error.message,
+      stack: error.stack,
+      timestamp: new Date().toISOString(),
+      location: typeof window !== 'undefined' ? window.location.href : undefined,
+      userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
+      componentStack: info.componentStack,
+    });
+    console.error('UI error boundary caught:', {
+      name: this.props.name,
+      error,
+      info,
+    });
   }
 
-  render() {
-    if (this.state.hasError) {
-      if (this.props.fallback) {
-        return this.props.fallback;
-      }
+  handleReset = () => {
+    this.setState({ hasError: false, error: undefined });
+    if (this.props.onReset) {
+      this.props.onReset();
+    }
+  };
 
-      return (
-        <div className="error-boundary glass-panel error">
-          <div className="error-content">
-            <span className="error-icon">⚠️</span>
-            <h3>Something went wrong</h3>
-            <p>An error occurred while rendering this component.</p>
-            {process.env.NODE_ENV === 'development' && this.state.error && (
-              <details className="error-details">
-                <summary>Error Details</summary>
-                <pre>{this.state.error.message}</pre>
-                <pre>{this.state.error.stack}</pre>
-              </details>
-            )}
+  render() {
+    if (!this.state.hasError) {
+      return this.props.children;
+    }
+
+    return (
+      <div className="error-boundary">
+        <div className="error-boundary__content">
+          <div className="error-boundary__title">
+            {this.props.name ? `${this.props.name} crashed` : 'Panel crashed'}
+          </div>
+          <div className="error-boundary__message">
+            Try reloading this panel. If it keeps happening, check the console
+            logs.
+          </div>
+          <div className="error-boundary__actions">
             <button
-              className="btn btn-primary"
-              onClick={() =>
-                this.setState({ hasError: false, error: undefined })
-              }
+              type="button"
+              className="glass-button small"
+              onClick={this.handleReset}
             >
-              Try Again
+              Retry
+            </button>
+            <button
+              type="button"
+              className="glass-button small secondary"
+              onClick={() => {
+                const content = formatErrorReport(errorLog);
+                const blob = new Blob([content], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const link = document.createElement('a');
+                link.href = url;
+                link.download = `nexus-error-report-${new Date()
+                  .toISOString()
+                  .replace(/[:.]/g, '-')}.txt`;
+                document.body.appendChild(link);
+                link.click();
+                link.remove();
+                URL.revokeObjectURL(url);
+              }}
+            >
+              Download report
             </button>
           </div>
         </div>
-      );
-    }
-
-    return this.props.children;
+      </div>
+    );
   }
 }
 
-// Specialized error boundary for scene operations
-export const SceneErrorBoundary: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => (
-  <ErrorBoundary
-    children={children}
-    fallback={
-      <div className="scene-error-boundary glass-panel error">
-        <div className="error-content">
-          <span className="error-icon">🎭</span>
-          <h3>Scene Error</h3>
-          <p>The scene encountered an error and couldn't be displayed.</p>
-          <p>
-            Please try refreshing the page or contact support if the problem
-            persists.
-          </p>
-        </div>
-      </div>
-    }
-    onError={(error, errorInfo) => {
-      console.error('🎭 Scene operation error:', error, errorInfo);
-      // Could send to error reporting service here
-    }}
-  />
+type SimpleBoundaryProps = {
+  children: React.ReactNode;
+  onReset?: () => void;
+};
+
+export const CanvasErrorBoundary = ({ children, onReset }: SimpleBoundaryProps) => (
+  <ErrorBoundary name="Canvas" onReset={onReset}>
+    {children}
+  </ErrorBoundary>
 );
 
-// Specialized error boundary for canvas operations
-export const CanvasErrorBoundary: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => (
-  <ErrorBoundary
-    children={children}
-    fallback={
-      <div className="canvas-error-boundary glass-panel error">
-        <div className="error-content">
-          <span className="error-icon">🎨</span>
-          <h3>Canvas Error</h3>
-          <p>The scene canvas encountered an error and couldn't be rendered.</p>
-          <p>
-            This might be due to corrupted scene data or browser compatibility
-            issues.
-          </p>
-        </div>
-      </div>
-    }
-    onError={(error, errorInfo) => {
-      console.error('🎨 Canvas rendering error:', error, errorInfo);
-      // Could send to error reporting service here
-    }}
-  />
+export const TokenErrorBoundary = ({ children, onReset }: SimpleBoundaryProps) => (
+  <ErrorBoundary name="Tokens" onReset={onReset}>
+    {children}
+  </ErrorBoundary>
 );
 
-// Specialized error boundary for token operations
-export const TokenErrorBoundary: React.FC<{ children: ReactNode }> = ({
-  children,
-}) => (
-  <ErrorBoundary
-    children={children}
-    fallback={
-      <div className="token-error-boundary glass-panel error">
-        <div className="error-content">
-          <span className="error-icon">⚔️</span>
-          <h3>Token Error</h3>
-          <p>An error occurred while managing tokens.</p>
-          <p>Some tokens may not display correctly.</p>
-        </div>
-      </div>
-    }
-    onError={(error, errorInfo) => {
-      console.error('⚔️ Token operation error:', error, errorInfo);
-      // Could send to error reporting service here
-    }}
-  />
+export const SceneErrorBoundary = ({ children, onReset }: SimpleBoundaryProps) => (
+  <ErrorBoundary name="Scene" onReset={onReset}>
+    {children}
+  </ErrorBoundary>
 );

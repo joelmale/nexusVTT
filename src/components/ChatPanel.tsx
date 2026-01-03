@@ -84,12 +84,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   }
 
   // Parse markdown and mentions
-  let content = message.content;
+  let content = parseMarkdown(message.content);
   if (session?.players) {
     const { html } = parseMentions(content, session.players);
     content = html;
   }
-  content = parseMarkdown(content);
 
   // System and announcement messages should not have own/other styling
   const shouldApplyOwnership =
@@ -138,6 +137,10 @@ export const ChatPanel: React.FC = () => {
     return saved ? parseInt(saved, 10) : 400;
   });
   const [isResizing, setIsResizing] = useState(false);
+  const [showHelp, setShowHelp] = useState(false);
+  const [helpCommandFilter, setHelpCommandFilter] = useState<string | null>(
+    null,
+  );
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -148,6 +151,30 @@ export const ChatPanel: React.FC = () => {
     useGameStore();
 
   const isHost = useIsHost();
+
+  const helpItems = useMemo(() => {
+    const items = [
+      { command: 'roll', usage: '/roll 2d20+5', label: 'Roll dice' },
+      { command: 'whisper', usage: '/w Name message', label: 'Whisper' },
+      { command: 'me', usage: '/me waves', label: 'Emote action' },
+      { command: 'ooc', usage: '/ooc message', label: 'Out of character' },
+      { command: 'help', usage: '/help', label: 'Show commands' },
+    ];
+
+    if (isHost) {
+      items.push({
+        command: 'clear',
+        usage: '/clear',
+        label: 'Clear chat (DM)',
+      });
+    }
+
+    if (!helpCommandFilter) return items;
+
+    return items.filter(
+      (item) => item.command.toLowerCase() === helpCommandFilter.toLowerCase(),
+    );
+  }, [helpCommandFilter, isHost]);
 
   // Register all commands on mount
   useEffect(() => {
@@ -291,13 +318,8 @@ export const ChatPanel: React.FC = () => {
         if (result.message?.startsWith('help:')) {
           // Show help
           const commandName = result.message.replace('help:', '');
-          const helpText =
-            commandName === 'all'
-              ? chatCommandParser.getHelp()
-              : chatCommandParser.getHelp(commandName);
-
-          // Send help as system message
-          sendChatMessage(helpText, 'system');
+          setHelpCommandFilter(commandName === 'all' ? null : commandName);
+          setShowHelp(true);
         } else if (result.message === 'Chat cleared' && isHost) {
           // Clear chat
           clearChat();
@@ -617,6 +639,29 @@ export const ChatPanel: React.FC = () => {
             </button>
           )}
         </div>
+
+        {showHelp && (
+          <div className="chat-panel__help">
+            <div className="chat-panel__help-header">
+              <span>Command cheat sheet</span>
+              <button
+                className="chat-panel__help-close"
+                onClick={() => setShowHelp(false)}
+                type="button"
+              >
+                Hide
+              </button>
+            </div>
+            <div className="chat-panel__help-items">
+              {helpItems.map((item) => (
+                <div key={item.command} className="chat-panel__help-item">
+                  <span className="chat-panel__help-command">{item.usage}</span>
+                  <span className="chat-panel__help-label">{item.label}</span>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* Unread Count Badge */}
         {chat.unreadCount > 0 && (

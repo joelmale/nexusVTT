@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useTransition } from 'react';
 import { useDiceRolls, useIsHost, useGameStore } from '@/stores/gameStore';
-import { formatDiceRoll, createDiceRoll } from '@/utils/dice';
+import { createDiceRoll, formatDiceRoll } from '@/utils/dice';
 import { webSocketService } from '@/utils/websocket';
 import { diceSounds } from '@/utils/diceSounds';
 import { initializeTheme } from '@/utils/themeManager';
@@ -138,9 +138,22 @@ export const DiceRoller: React.FC = () => {
 
     // Non-urgent operations: chat messages and broadcasting
     startRollTransition(() => {
+      const breakdown = `[${roll.results.join(', ')}]${roll.modifier ? ` ${roll.modifier > 0 ? '+' : ''}${roll.modifier}` : ''} = ${roll.total}`;
+      const diceData = {
+        expression: roll.expression,
+        results: roll.results,
+        total: roll.total,
+        breakdown,
+        modifier: roll.modifier,
+        diceType: roll.pools.length === 1 ? roll.pools[0].sides : undefined,
+        diceCount: roll.pools.length === 1 ? roll.pools[0].count : undefined,
+        isCrit: roll.crit === 'success',
+        isCritFail: roll.crit === 'failure',
+        rollType: rollMode === 'none' ? 'normal' : rollMode,
+      };
+
       // Send chat message about the roll
-      const rollMessage = `🎲 ${user.name} rolled ${formatDiceRoll(roll)}`;
-      sendChatMessage(rollMessage, 'system');
+      sendChatMessage(`rolled ${roll.expression}`, 'dice-roll', undefined, diceData);
 
       // Broadcast to other players (if connected)
       if (webSocketService.isConnected()) {

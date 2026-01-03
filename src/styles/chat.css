@@ -127,12 +127,17 @@ div.chat-panel div.chat-panel__messages {
   overflow-y: auto !important;
   overflow-x: hidden !important;
   padding: var(--spacing-4) !important;
-  border-radius: 12px !important;
-  background: #FFFFFF !important;
-  border: 2px solid #D1D1D6 !important;
+  border-radius: 16px !important;
+  background: linear-gradient(160deg, rgba(12, 16, 28, 0.82), rgba(22, 32, 48, 0.6)) !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
   margin-bottom: 0 !important;
   flex-shrink: 0 !important;
-  box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06), 0 1px 0 rgba(255, 255, 255, 0.5) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.1),
+    0 10px 30px rgba(8, 12, 22, 0.35) !important;
+  display: flex !important;
+  flex-direction: column !important;
+  gap: var(--spacing-3) !important;
 }
 
 /* Clearfix for floated message bubbles */
@@ -215,16 +220,19 @@ div.chat-panel div.chat-panel__messages {
 .chat-panel .chat-panel__message,
 .context-panel .chat-panel__message,
 div.chat-panel div.chat-panel__message {
-  max-width: 75% !important;
-  margin-bottom: var(--spacing-3) !important;
-  padding: 10px 14px !important;
+  max-width: 78% !important;
+  padding: 12px 14px !important;
   border-radius: 18px !important;
   word-wrap: break-word !important;
   transition: all var(--transition-normal) !important;
   position: relative !important;
-  clear: both !important;
-  font-size: 15px !important;
-  line-height: 1.4 !important;
+  font-size: 14px !important;
+  line-height: 1.45 !important;
+  backdrop-filter: blur(10px) !important;
+  border: 1px solid rgba(255, 255, 255, 0.08) !important;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.18),
+    0 6px 14px rgba(8, 12, 22, 0.28) !important;
 }
 
 /* Other people's messages - left aligned, gray (iPhone style) */
@@ -233,12 +241,10 @@ div.chat-panel div.chat-panel__message {
 .context-panel .chat-panel__message--other,
 .theme-solid .chat-panel .chat-panel__message--other,
 div.chat-panel div.chat-panel__message--other {
-  float: left !important;
-  background: #E5E5EA !important;
-  color: #000000 !important;
-  border-bottom-left-radius: 4px !important;
-  border: none !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
+  align-self: flex-start !important;
+  background: linear-gradient(135deg, rgba(44, 57, 78, 0.9), rgba(28, 38, 58, 0.9)) !important;
+  color: rgba(248, 250, 252, 0.92) !important;
+  border-bottom-left-radius: 8px !important;
 }
 
 /* Own messages - right aligned, blue (iPhone style) */
@@ -247,12 +253,10 @@ div.chat-panel div.chat-panel__message--other {
 .context-panel .chat-panel__message--own,
 .theme-solid .chat-panel .chat-panel__message--own,
 div.chat-panel div.chat-panel__message--own {
-  float: right !important;
-  background: #007AFF !important;
-  color: white !important;
-  border-bottom-right-radius: 4px !important;
-  border: none !important;
-  box-shadow: 0 1px 3px rgba(0, 122, 255, 0.3) !important;
+  align-self: flex-end !important;
+  background: linear-gradient(135deg, rgba(79, 70, 229, 0.95), rgba(45, 97, 210, 0.95)) !important;
+  color: rgba(248, 250, 252, 0.98) !important;
+  border-bottom-right-radius: 8px !important;
 }
 
 .chat-panel .chat-panel__message--own .chat-panel__message-author,
@@ -272,16 +276,14 @@ div.chat-panel div.chat-panel__message--own {
 .theme-solid .chat-panel .chat-panel__message.dm-announcement,
 div.chat-panel div.chat-panel__message.system,
 div.chat-panel div.chat-panel__message.dm-announcement {
-  float: none !important;
-  margin-left: auto !important;
-  margin-right: auto !important;
+  align-self: center !important;
   max-width: 90% !important;
   text-align: center !important;
-  background: #F2F2F7 !important;
-  color: #8E8E93 !important;
-  border: none !important;
-  border-radius: 16px !important;
-  font-size: 13px !important;
+  background: rgba(30, 41, 59, 0.65) !important;
+  color: rgba(226, 232, 240, 0.8) !important;
+  border: 1px solid rgba(148, 163, 184, 0.2) !important;
+  border-radius: 14px !important;
+  font-size: 12px !important;
   padding: 8px 12px !important;
   box-shadow: none !important;
 }
@@ -291,9 +293,9 @@ div.chat-panel div.chat-panel__message.dm-announcement {
 .context-panel .chat-panel__message.dm-announcement,
 .theme-solid .chat-panel .chat-panel__message.dm-announcement,
 div.chat-panel div.chat-panel__message.dm-announcement {
-  background: #FFE5CC !important;
-  color: #FF9500 !important;
-  font-weight: 500 !important;
+  background: linear-gradient(135deg, rgba(251, 191, 36, 0.22), rgba(248, 113, 113, 0.18)) !important;
+  color: #fbbf24 !important;
+  font-weight: 600 !important;
 }
 
 
@@ -304,9 +306,9 @@ div.chat-panel div.chat-panel__message.dm-announcement {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin-bottom: 4px;
-  font-size: 12px;
-  opacity: 0.7;
+  margin-bottom: 6px;
+  font-size: 11px;
+  opacity: 0.75;
 }
 
 .chat-panel__message-author {
@@ -321,6 +323,26 @@ div.chat-panel div.chat-panel__message.dm-announcement {
 
 .chat-panel__message-content {
   line-height: 1.4;
+}
+
+.chat-panel__message.dice-roll {
+  background: linear-gradient(135deg, rgba(20, 83, 45, 0.7), rgba(16, 185, 129, 0.25)) !important;
+  border: 1px solid rgba(110, 231, 183, 0.3) !important;
+}
+
+.chat-panel__message.whisper {
+  background: linear-gradient(135deg, rgba(88, 28, 135, 0.7), rgba(139, 92, 246, 0.25)) !important;
+  border: 1px solid rgba(196, 181, 253, 0.35) !important;
+}
+
+.chat-panel__message.ooc {
+  background: linear-gradient(135deg, rgba(30, 41, 59, 0.75), rgba(59, 130, 246, 0.2)) !important;
+  border: 1px solid rgba(147, 197, 253, 0.3) !important;
+}
+
+.chat-panel__message.emote {
+  background: linear-gradient(135deg, rgba(67, 20, 7, 0.7), rgba(251, 146, 60, 0.25)) !important;
+  border: 1px solid rgba(253, 186, 116, 0.35) !important;
 }
 
 /* Dice roll styling within messages */
@@ -436,6 +458,65 @@ div.chat-panel div.chat-panel__message.dm-announcement {
   cursor: not-allowed;
 }
 
+/* ========================================================================== HELP CHEAT SHEET ========================================================================== */
+
+.chat-panel__help {
+  margin-top: var(--spacing-2);
+  padding: var(--spacing-3);
+  border-radius: 12px;
+  background: rgba(15, 23, 42, 0.5);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.06);
+}
+
+.chat-panel__help-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8rem;
+  color: rgba(226, 232, 240, 0.8);
+  margin-bottom: var(--spacing-2);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.chat-panel__help-close {
+  background: rgba(148, 163, 184, 0.15);
+  border: 1px solid rgba(148, 163, 184, 0.2);
+  color: rgba(226, 232, 240, 0.9);
+  border-radius: 999px;
+  padding: 2px 10px;
+  font-size: 0.7rem;
+  cursor: pointer;
+}
+
+.chat-panel__help-items {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: var(--spacing-2);
+}
+
+.chat-panel__help-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 10px;
+  border-radius: 10px;
+  background: rgba(30, 41, 59, 0.6);
+  border: 1px solid rgba(148, 163, 184, 0.15);
+}
+
+.chat-panel__help-command {
+  font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
+  font-size: 0.8rem;
+  color: #34d399;
+}
+
+.chat-panel__help-label {
+  font-size: 0.75rem;
+  color: rgba(226, 232, 240, 0.7);
+}
+
 .chat-panel__unread-badge {
   position: absolute;
   top: -8px;
@@ -511,9 +592,9 @@ div.chat-panel div.chat-panel__message.dm-announcement {
 .context-panel .dice-roll-message,
 div.chat-panel div.dice-roll-message {
   padding: var(--spacing-2) var(--spacing-3) !important;
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05)) !important;
-  border-left: 3px solid var(--color-primary, #8b5cf6) !important;
-  border-radius: 8px !important;
+  background: rgba(15, 23, 42, 0.35) !important;
+  border: 1px solid rgba(110, 231, 183, 0.2) !important;
+  border-radius: 12px !important;
   margin: var(--spacing-1) 0 !important;
 }
 
@@ -526,27 +607,34 @@ div.chat-panel div.dice-roll-message {
 }
 
 .dice-expression {
-  color: var(--glass-text, #333);
+  color: rgba(226, 232, 240, 0.95);
   font-weight: var(--font-medium, 500);
 }
 
 .dice-expression strong {
-  color: var(--color-primary, #8b5cf6);
+  color: #34d399;
   font-weight: var(--font-bold, 700);
+}
+
+.dice-roll-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
 }
 
 .dice-reroll-btn {
   padding: 2px 8px;
-  background: rgba(139, 92, 246, 0.1);
-  border: 1px solid rgba(139, 92, 246, 0.3);
-  border-radius: 4px;
+  background: rgba(52, 211, 153, 0.15);
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  border-radius: 6px;
   cursor: pointer;
   font-size: 14px;
   transition: all 0.2s;
+  color: rgba(226, 232, 240, 0.9);
 }
 
 .dice-reroll-btn:hover {
-  background: rgba(139, 92, 246, 0.2);
+  background: rgba(52, 211, 153, 0.28);
   transform: rotate(180deg);
 }
 
@@ -571,12 +659,13 @@ div.chat-panel div.dice-roll-message {
   min-width: 32px;
   height: 32px;
   padding: 0 8px;
-  background: white;
-  border: 2px solid #ddd;
+  background: rgba(148, 163, 184, 0.12);
+  border: 1px solid rgba(148, 163, 184, 0.35);
   border-radius: 6px;
   font-weight: var(--font-bold, 700);
   font-size: var(--text-sm, 0.875rem);
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+  color: rgba(226, 232, 240, 0.9);
+  box-shadow: 0 2px 6px rgba(8, 12, 22, 0.35);
 }
 
 .die-result.crit-success {
@@ -597,32 +686,84 @@ div.chat-panel div.dice-roll-message {
 
 .dice-modifier {
   font-weight: var(--font-semibold, 600);
-  color: var(--glass-text-muted, #666);
+  color: rgba(226, 232, 240, 0.7);
   font-size: var(--text-base, 1rem);
 }
 
-.dice-equals {
-  color: var(--glass-text-muted, #999);
-  font-weight: var(--font-medium, 500);
-}
-
-.dice-total {
-  font-size: var(--text-lg, 1.125rem);
+.dice-total-badge {
+  min-width: 34px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 999px;
+  background: rgba(52, 211, 153, 0.2);
+  color: #34d399;
   font-weight: var(--font-bold, 700);
-  color: var(--color-primary, #8b5cf6);
-  padding: 4px 12px;
-  background: rgba(139, 92, 246, 0.1);
-  border-radius: 6px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(52, 211, 153, 0.35);
+  font-size: 0.9rem;
 }
 
-.dice-total.crit-success {
-  color: #ffa500;
-  background: rgba(255, 215, 0, 0.2);
+.dice-total-badge.crit-success {
+  color: #fbbf24;
+  border-color: rgba(251, 191, 36, 0.45);
+  background: rgba(251, 191, 36, 0.2);
 }
 
-.dice-total.crit-failure {
-  color: #cc0000;
-  background: rgba(255, 0, 0, 0.1);
+.dice-total-badge.crit-failure {
+  color: #f87171;
+  border-color: rgba(248, 113, 113, 0.4);
+  background: rgba(248, 113, 113, 0.2);
+}
+
+.dice-equation {
+  margin-top: 8px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+  font-size: 0.85rem;
+  color: rgba(226, 232, 240, 0.8);
+}
+
+.dice-equation-label {
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 0.7rem;
+  color: rgba(148, 163, 184, 0.8);
+}
+
+.dice-equation-values {
+  font-weight: 600;
+  color: rgba(226, 232, 240, 0.95);
+}
+
+.dice-equation-modifier {
+  color: rgba(226, 232, 240, 0.8);
+}
+
+.dice-equation-equals {
+  color: rgba(148, 163, 184, 0.9);
+}
+
+.dice-equation-total {
+  font-weight: 700;
+  color: #34d399;
+}
+
+.dice-equation-total.crit-success {
+  color: #fbbf24;
+}
+
+.dice-equation-total.crit-failure {
+  color: #f87171;
+}
+
+.chat-panel__message.dice-roll.chat-panel__message--own,
+.chat-panel__message.dice-roll.chat-panel__message--other {
+  background: linear-gradient(135deg, rgba(5, 46, 22, 0.75), rgba(16, 185, 129, 0.25)) !important;
+  border: 1px solid rgba(110, 231, 183, 0.35) !important;
 }
 
 .dice-crit-indicator,
@@ -690,33 +831,33 @@ div.chat-panel div.dice-roll-message {
 
 .chat-panel .chat-panel__message.emote,
 .theme-solid .chat-panel .chat-panel__message.emote {
-  background: #F5EBFF !important;
-  color: #7C3AED !important;
+  background: linear-gradient(135deg, rgba(124, 58, 237, 0.35), rgba(56, 189, 248, 0.2)) !important;
+  color: rgba(224, 231, 255, 0.95) !important;
   font-style: italic;
-  border: none !important;
-  box-shadow: 0 1px 2px rgba(124, 58, 237, 0.15);
+  border: 1px solid rgba(196, 181, 253, 0.25) !important;
+  box-shadow: 0 6px 12px rgba(15, 23, 42, 0.25);
 }
 
 .chat-panel .chat-panel__message.emote .chat-panel__message-content::before {
   content: '*';
   margin-right: 4px;
-  color: #7C3AED;
+  color: rgba(196, 181, 253, 0.8);
   opacity: 0.7;
 }
 
 .chat-panel .chat-panel__message.emote .chat-panel__message-content::after {
   content: '*';
   margin-left: 4px;
-  color: #7C3AED;
+  color: rgba(196, 181, 253, 0.8);
   opacity: 0.7;
 }
 
 .chat-panel .chat-panel__message.ooc,
 .theme-solid .chat-panel .chat-panel__message.ooc {
-  background: #F2F2F7 !important;
-  color: #636366 !important;
-  border: none !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.75), rgba(71, 85, 105, 0.35)) !important;
+  color: rgba(226, 232, 240, 0.85) !important;
+  border: 1px solid rgba(148, 163, 184, 0.25) !important;
+  box-shadow: 0 6px 12px rgba(15, 23, 42, 0.25);
 }
 
 .chat-panel .chat-panel__message.ooc .chat-panel__message-header::before {
@@ -724,10 +865,10 @@ div.chat-panel div.dice-roll-message {
   margin-right: 6px;
   font-size: 11px;
   padding: 2px 6px;
-  background: rgba(99, 99, 102, 0.15);
+  background: rgba(148, 163, 184, 0.2);
   border-radius: 8px;
   font-weight: 600;
-  color: #636366;
+  color: rgba(226, 232, 240, 0.8);
 }
 
 /* ========================================================================== MARKDOWN & MENTION STYLES ========================================================================== */
@@ -817,4 +958,3 @@ div.chat-panel div.dice-roll-message {
   color: var(--glass-text-muted, #6b7280);
   margin-top: 2px;
 }
-

@@ -39,6 +39,9 @@ export const DiceRollMessage: React.FC<DiceRollMessageProps> = ({
   onReroll,
 }) => {
   const { expression, results, total, modifier, isCrit, isCritFail } = diceData;
+  const modifierText =
+    modifier !== 0 ? ` ${modifier > 0 ? '+' : ''}${modifier}` : '';
+  const resultsText = results.join(' + ');
 
   return (
     <div className="dice-roll-message">
@@ -47,16 +50,24 @@ export const DiceRollMessage: React.FC<DiceRollMessageProps> = ({
         <span className="dice-expression">
           🎲 {userName} rolled <strong>{expression}</strong>
         </span>
-        {onReroll && (
-          <button
-            className="dice-reroll-btn"
-            onClick={onReroll}
-            title="Roll again"
-            type="button"
+        <div className="dice-roll-actions">
+          <span
+            className={`dice-total-badge ${isCrit ? 'crit-success' : ''} ${isCritFail ? 'crit-failure' : ''}`}
+            title="Roll total"
           >
-            ↻
-          </button>
-        )}
+            {total}
+          </span>
+          {onReroll && (
+            <button
+              className="dice-reroll-btn"
+              onClick={onReroll}
+              title="Roll again"
+              type="button"
+            >
+              ↻
+            </button>
+          )}
+        </div>
       </div>
 
       {/* Dice results breakdown */}
@@ -78,11 +89,17 @@ export const DiceRollMessage: React.FC<DiceRollMessageProps> = ({
             {modifier}
           </span>
         )}
+      </div>
 
-        <span className="dice-equals">=</span>
-
+      <div className="dice-equation">
+        <span className="dice-equation-label">Results</span>
+        <span className="dice-equation-values">{resultsText}</span>
+        {modifier !== 0 && (
+          <span className="dice-equation-modifier">{modifierText}</span>
+        )}
+        <span className="dice-equation-equals">=</span>
         <span
-          className={`dice-total ${isCrit ? 'crit-success' : ''} ${isCritFail ? 'crit-failure' : ''}`}
+          className={`dice-equation-total ${isCrit ? 'crit-success' : ''} ${isCritFail ? 'crit-failure' : ''}`}
         >
           {total}
         </span>

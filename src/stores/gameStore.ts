@@ -3872,31 +3872,17 @@ export const useServerRoomCode = () => {
 export const useSelectedPlacedToken = () =>
   useGameStore((state) => {
     const { scenes, activeSceneId, selectedObjectIds } = state.sceneState;
-    console.log('🔍 useSelectedPlacedToken computing:', {
-      selectedObjectIds,
-      selectedCount: selectedObjectIds.length,
-      activeSceneId,
-    });
-
     if (selectedObjectIds.length !== 1) {
-      console.log('❌ useSelectedPlacedToken: not exactly one selected');
       return null;
     }
 
     const scene = scenes.find((s) => s.id === activeSceneId);
     if (!scene) {
-      console.log('❌ useSelectedPlacedToken: scene not found');
       return null;
     }
 
     const selectedId = selectedObjectIds[0];
     const token = scene.placedTokens?.find((t) => t.id === selectedId) || null;
-    console.log('🔍 useSelectedPlacedToken result:', {
-      selectedId,
-      foundToken: !!token,
-      tokenId: token?.id,
-      totalTokens: scene.placedTokens?.length || 0,
-    });
     return token;
   });
 
@@ -3904,30 +3890,16 @@ export const useSelectedPlacedToken = () =>
 export const useSelectedPlacedProp = () =>
   useGameStore((state) => {
     const { scenes, activeSceneId, selectedObjectIds } = state.sceneState;
-    console.log('🔍 useSelectedPlacedProp computing:', {
-      selectedObjectIds,
-      selectedCount: selectedObjectIds.length,
-      activeSceneId,
-    });
-
     if (selectedObjectIds.length !== 1) {
-      console.log('❌ useSelectedPlacedProp: not exactly one selected');
       return null;
     }
 
     const scene = scenes.find((s) => s.id === activeSceneId);
     if (!scene) {
-      console.log('❌ useSelectedPlacedProp: scene not found');
       return null;
     }
 
     const selectedId = selectedObjectIds[0];
     const prop = scene.placedProps?.find((p) => p.id === selectedId) || null;
-    console.log('🔍 useSelectedPlacedProp result:', {
-      selectedId,
-      foundProp: !!prop,
-      propId: prop?.id,
-      totalProps: scene.placedProps?.length || 0,
-    });
     return prop;
   });
