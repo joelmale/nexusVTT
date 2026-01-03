@@ -42,7 +42,6 @@
 @import './initiative-tracker.css' layer(components);
 @import './assets.css' layer(components);
 @import './asset-browser.css' layer(components);
-@import './chat.css' layer(components);
 /* Administrative components */
 @import './offline-preparation.css' layer(components);
 @import './welcome-page.css' layer(components);
@@ -54,3 +53,6 @@
 
 /* 6. THEMES */
 @import './theme-solid.css' layer(themes);
+
+/* 7. CHAT (after themes to override) */
+@import './chat.css' layer(themes);
