@@ -1514,6 +1514,22 @@ class NexusServer {
         console.warn(`⚠️ Failed to lookup user ${userIdFromQuery}:`, error);
       }
     }
+
+    // Ensure user exists in database (critical for foreign key constraints)
+    // For guest users, create them in the database if they don't exist
+    if (userType === 'Guest' || userType === 'Anonymous') {
+      try {
+        const existingUser = await this.db.getUserById(uuid);
+        if (!existingUser) {
+          console.log(`🔧 Creating missing database record for user: ${uuid} (${displayName})`);
+          await this.db.createGuestUser(displayName, uuid);
+          console.log(`✅ Guest user created in database: ${uuid}`);
+        }
+      } catch (error) {
+        console.warn(`⚠️ Failed to ensure user exists in database:`, error);
+      }
+    }
+
     console.log(`📡 New connection: ${uuid} (${userType} as ${displayName})`);
 
     const connection: Connection = {
@@ -1951,6 +1967,7 @@ class NexusServer {
       this.updateRoomGameState(
         connection.room,
         message.data as unknown as GameState,
+        fromUuid, // Exclude sender from broadcast to prevent duplicates
       );
     }
 
@@ -2111,11 +2128,13 @@ class NexusServer {
    * @private
    * @param {string} roomCode - Join code of the room
    * @param {Partial<GameState>} gameStateUpdate - Partial game state to merge
+   * @param {string} [senderUuid] - Optional UUID of the sender to exclude from broadcast
    * @returns {Promise<void>}
    */
   private async updateRoomGameState(
     roomCode: string,
     gameStateUpdate: Partial<GameState>,
+    senderUuid?: string,
   ): Promise<void> {
     const room = this.rooms.get(roomCode);
     if (!room) return;
@@ -2157,6 +2176,7 @@ class NexusServer {
     room.previousGameState = JSON.parse(JSON.stringify(room.gameState));
 
     // Broadcast patch if there are changes (80% size reduction)
+    // Exclude sender to prevent duplicate application (sender already applied optimistically)
     if (patch.length > 0) {
       this.broadcastToRoom(roomCode, {
         type: 'game-state-patch',
@@ -2165,10 +2185,10 @@ class NexusServer {
           version: room.stateVersion,
         },
         timestamp: Date.now(),
-      });
+      }, senderUuid);
 
       console.log(
-        `📡 Broadcasting game state patch v${room.stateVersion} to room ${roomCode} (${patch.length} operations)`
+        `📡 Broadcasting game state patch v${room.stateVersion} to room ${roomCode} (${patch.length} operations)${senderUuid ? ` [excluding sender ${senderUuid}]` : ''}`
       );
     }
 

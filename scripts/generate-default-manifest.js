@@ -34,10 +34,17 @@ const SIZE_PATTERNS = {
 };
 
 const MAP_CATEGORY_PATTERNS = {
-  dungeon: /(dungeon|cave|crypt|tomb|ruins|ancient|den|lair|underground)/i,
-  indoor: /(tavern|inn|house|castle|temple|shop|interior|room|hall)/i,
-  outdoor: /(forest|field|camp|wilderness|road|path|clearing|hillside|lakeside|seaside|beach|shore|ocean|sea|river|swamp|jungle|woodland|astral)/i,
-  urban: /(city|town|street|alley|square|marketplace|dock)/i,
+  // Underground, confined, dangerous locations (checked first for specificity)
+  dungeon: /(dungeon|cave|cavern|grotto|crypt|tomb|catacombs|mine|mines|sewer|sewers|underground|undervault|vault|chamber|lair|den|cells|torture|prison)/i,
+
+  // Buildings and fully enclosed structures (checked second)
+  indoor: /(tavern|inn|house|manor|temple|shrine|church|cathedral|shop|store|guild|workshop|library|armory|barracks|winery|brewery|warehouse|jail|hall)/i,
+
+  // Settlements, military installations, city features (checked third)
+  urban: /(city|town|village|street|alley|avenue|boulevard|square|plaza|marketplace|market|dock|docks|wharf|port|harbor|arena|amphitheater|stadium|fort|fortress|castle|courtyard|battlements|walls|gates|tower|citadel|carnival|fair|festival|canal)/i,
+
+  // Natural and open areas (checked last, also serves as fallback via default)
+  outdoor: /(forest|woods|woodland|jungle|grove|glade|field|meadow|plains|grassland|tundra|desert|mountain|mountains|hill|hills|cliff|cliffside|valley|canyon|camp|encampment|wilderness|clearing|path|trail|road|beach|shore|coast|seaside|ocean|sea|bay|cove|reef|river|stream|creek|waterfall|lake|lakeside|pond|billabong|swamp|marsh|bog|wetland|island|astral|bridge|pass|park|observatory|ruins|ancient)/i,
 };
 
 /**
@@ -79,14 +86,41 @@ function parseTokenName(filename) {
   };
 }
 
+// Common noise words to filter from tags
+const COMMON_NOISE_WORDS = new Set([
+  'the',
+  'and',
+  'base',
+  'map',
+  'day',
+  'night',
+  'top',
+  'bottom',
+  'dpi',
+  'vtt',
+  'free',
+  'empty',
+  'open',
+  'clear',
+  'main',
+  'spring',
+  'summer',
+  'fall',
+  'winter',
+  'blue',
+  'red',
+  'green',
+  'star',
+]);
+
 /**
  * Extract map metadata from filename
  */
 function parseMapName(filename) {
   const nameWithoutExt = path.basename(filename, path.extname(filename));
 
-  // Extract dimensions if present (e.g., "44x32")
-  const dimensionMatch = nameWithoutExt.match(/(\d+)x(\d+)/);
+  // Extract dimensions if present (e.g., "44x32" or "[50x65]")
+  const dimensionMatch = nameWithoutExt.match(/\[?(\d+)x(\d+)\]?/);
   const gridSize = dimensionMatch
     ? {
         width: parseInt(dimensionMatch[1]),
@@ -103,17 +137,34 @@ function parseMapName(filename) {
     }
   }
 
-  // Extract tags
+  // Extract tags with improved filtering
   const tags = nameWithoutExt
     .toLowerCase()
     .split(/[\s_-]+/)
-    .filter((tag) => tag.length > 2 && !/^\d+x\d+$/.test(tag));
+    .filter((tag) => {
+      // Remove grid dimensions (e.g., "44x32")
+      if (/^\d+x\d+$/.test(tag)) return false;
+
+      // Remove standalone numbers (e.g., "10", "21")
+      if (/^\d+$/.test(tag)) return false;
+
+      // Remove very short tags, but allow tags with numbers like "dos2"
+      if (tag.length <= 2 && !/\d/.test(tag)) return false;
+
+      // Remove common noise words
+      if (COMMON_NOISE_WORDS.has(tag)) return false;
+
+      // Remove single letters followed by numbers in brackets (e.g., "1" from "[25x25](1)")
+      if (tag.length === 1) return false;
+
+      return true;
+    });
 
   return {
     name: nameWithoutExt.replace(/_/g, ' ').replace(/ - /g, ' - '),
     category,
     gridSize,
-    tags: [...new Set(tags)],
+    tags: [...new Set(tags)], // Remove duplicates
   };
 }
 

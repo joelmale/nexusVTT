@@ -113,6 +113,12 @@ export const LinearWelcomePage: React.FC = () => {
         return;
       }
 
+      // Skip auto-recovery if we just completed OAuth login
+      if (localStorage.getItem('nexus-auth-complete')) {
+        console.log('🔐 Skipping auto-recovery - OAuth just completed');
+        return;
+      }
+
       if (session?.roomCode) {
         console.log(
           '🔄 Found existing session, navigating to game:',

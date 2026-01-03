@@ -377,13 +377,17 @@ export class DatabaseService {
    * @param {string} name - Guest user's display name
    * @returns {Promise<UserRecord>} The newly created guest user record
    */
-  async createGuestUser(name: string): Promise<UserRecord> {
-    const result = await this.pool.query<UserRecord>(
-      `INSERT INTO users (email, name, "displayName", bio, "avatarUrl", provider, preferences, "isActive", "lastLogin")
-       VALUES (NULL, $1, $1, NULL, NULL, 'guest', '{}'::jsonb, TRUE, NOW())
-       RETURNING *`,
-      [name],
-    );
+  async createGuestUser(name: string, userId?: string): Promise<UserRecord> {
+    const query = userId
+      ? `INSERT INTO users (id, email, name, "displayName", bio, "avatarUrl", provider, preferences, "isActive", "lastLogin")
+         VALUES ($1, NULL, $2, $2, NULL, NULL, 'guest', '{}'::jsonb, TRUE, NOW())
+         RETURNING *`
+      : `INSERT INTO users (email, name, "displayName", bio, "avatarUrl", provider, preferences, "isActive", "lastLogin")
+         VALUES (NULL, $1, $1, NULL, NULL, 'guest', '{}'::jsonb, TRUE, NOW())
+         RETURNING *`;
+
+    const params = userId ? [userId, name] : [name];
+    const result = await this.pool.query<UserRecord>(query, params);
 
     return result.rows[0];
   }

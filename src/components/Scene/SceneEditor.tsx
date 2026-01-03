@@ -206,6 +206,23 @@ export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
         scale: 1.0,
       });
 
+      // Auto-set grid size based on map dimensions if available
+      if (map.gridSize && map.gridSize.width > 0 && map.gridSize.height > 0) {
+        // Calculate grid cell size in pixels
+        // Use the smaller dimension to ensure the grid fits properly
+        const gridCellSizeX = finalWidth / map.gridSize.width;
+        const gridCellSizeY = finalHeight / map.gridSize.height;
+        const calculatedGridSize = Math.round(Math.min(gridCellSizeX, gridCellSizeY));
+
+        console.log(`📐 Auto-setting grid size based on map dimensions: ${map.gridSize.width}×${map.gridSize.height} → ${calculatedGridSize}px per cell`);
+
+        setFormData((prev) => ({
+          ...prev,
+          gridSize: calculatedGridSize,
+          gridEnabled: !isGeneratedDungeon, // Keep disabled for generated dungeons
+        }));
+      }
+
       setIsUploading(false);
       setShowBaseMapBrowser(false);
     } catch (error) {
