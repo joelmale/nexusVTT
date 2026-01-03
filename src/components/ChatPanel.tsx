@@ -91,9 +91,14 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
   }
   content = parseMarkdown(content);
 
+  // System and announcement messages should not have own/other styling
+  const shouldApplyOwnership =
+    message.messageType !== 'system' &&
+    message.messageType !== 'dm-announcement';
+
   return (
     <div
-      className={`chat-panel__message ${isOwnMessage ? 'chat-panel__message--own' : 'chat-panel__message--other'} ${message.messageType}`}
+      className={`chat-panel__message ${shouldApplyOwnership && isOwnMessage ? 'chat-panel__message--own' : ''} ${shouldApplyOwnership && !isOwnMessage ? 'chat-panel__message--other' : ''} ${message.messageType}`}
     >
       <div className="chat-panel__message-header">
         <span className="chat-panel__message-author">{message.userName}</span>
