@@ -128,9 +128,16 @@ export const ChatPanel: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [messageTypeFilter, setMessageTypeFilter] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
+  const [messagesHeight, setMessagesHeight] = useState(() => {
+    const saved = localStorage.getItem('chat-messages-height');
+    return saved ? parseInt(saved, 10) : 400;
+  });
+  const [isResizing, setIsResizing] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const resizeStartYRef = useRef<number>(0);
+  const resizeStartHeightRef = useRef<number>(0);
 
   const { chat, user, session, sendChatMessage, clearChat, setTyping, markChatAsRead } =
     useGameStore();
@@ -388,6 +395,41 @@ export const ChatPanel: React.FC = () => {
 
   const hasActiveFilters = searchQuery.trim() !== '' || messageTypeFilter.length > 0;
 
+  // Handle resize drag
+  const handleResizeStart = useCallback((e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizing(true);
+    resizeStartYRef.current = e.clientY;
+    resizeStartHeightRef.current = messagesHeight;
+  }, [messagesHeight]);
+
+  const handleResizeMove = useCallback((e: MouseEvent) => {
+    if (!isResizing) return;
+
+    const deltaY = e.clientY - resizeStartYRef.current;
+    const newHeight = Math.max(150, Math.min(800, resizeStartHeightRef.current + deltaY));
+    setMessagesHeight(newHeight);
+  }, [isResizing]);
+
+  const handleResizeEnd = useCallback(() => {
+    if (isResizing) {
+      setIsResizing(false);
+      localStorage.setItem('chat-messages-height', messagesHeight.toString());
+    }
+  }, [isResizing, messagesHeight]);
+
+  // Add/remove resize event listeners
+  useEffect(() => {
+    if (isResizing) {
+      document.addEventListener('mousemove', handleResizeMove);
+      document.addEventListener('mouseup', handleResizeEnd);
+      return () => {
+        document.removeEventListener('mousemove', handleResizeMove);
+        document.removeEventListener('mouseup', handleResizeEnd);
+      };
+    }
+  }, [isResizing, handleResizeMove, handleResizeEnd]);
+
   return (
     <div className="chat-panel">
       <div className="panel-section">
@@ -453,7 +495,10 @@ export const ChatPanel: React.FC = () => {
         )}
 
         {/* Messages Area */}
-        <div className="chat-panel__messages">
+        <div
+          className="chat-panel__messages"
+          style={{ height: `${messagesHeight}px` }}
+        >
           {visibleMessages.length === 0 ? (
             <div className="chat-panel__empty">
               <p>No messages yet. Start the conversation!</p>
@@ -476,6 +521,15 @@ export const ChatPanel: React.FC = () => {
             ))
           )}
           <div ref={messagesEndRef} />
+        </div>
+
+        {/* Resize Handle */}
+        <div
+          className={`chat-panel__resize-handle ${isResizing ? 'resizing' : ''}`}
+          onMouseDown={handleResizeStart}
+          title="Drag to resize messages area"
+        >
+          <div className="resize-handle-bar" />
         </div>
 
         {/* Typing Indicators */}

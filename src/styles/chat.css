@@ -120,15 +120,16 @@
 /* ========================================================================== MESSAGES SECTION ========================================================================== */
 
 .chat-panel__messages {
-  height: 60%;
   overflow-y: auto;
+  overflow-x: hidden;
   padding: var(--spacing-4);
   border-radius: 12px;
   background: var(--glass-surface);
   backdrop-filter: var(--glass-blur);
   -webkit-backdrop-filter: var(--glass-blur);
   border: 1px solid var(--glass-border);
-  margin-bottom: var(--spacing-3);
+  margin-bottom: 0;
+  flex-shrink: 0;
 }
 
 /* Clearfix for floated message bubbles */
@@ -138,7 +139,48 @@
   clear: both;
 }
 
+/* ========================================================================== RESIZE HANDLE ========================================================================== */
 
+.chat-panel__resize-handle {
+  height: 8px;
+  cursor: ns-resize;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: var(--spacing-2) 0;
+  position: relative;
+  user-select: none;
+  transition: background-color 0.2s;
+}
+
+.chat-panel__resize-handle:hover {
+  background-color: rgba(139, 92, 246, 0.1);
+}
+
+.chat-panel__resize-handle.resizing {
+  background-color: rgba(139, 92, 246, 0.2);
+}
+
+.resize-handle-bar {
+  width: 60px;
+  height: 3px;
+  background: var(--glass-border, #e5e7eb);
+  border-radius: 2px;
+  transition: all 0.2s;
+}
+
+.chat-panel__resize-handle:hover .resize-handle-bar {
+  background: var(--color-primary, #8b5cf6);
+  width: 80px;
+  height: 4px;
+}
+
+.chat-panel__resize-handle.resizing .resize-handle-bar {
+  background: var(--color-primary, #8b5cf6);
+  width: 100px;
+  height: 4px;
+  box-shadow: 0 0 8px rgba(139, 92, 246, 0.4);
+}
 
 /* ========================================================================== MESSAGE STYLES ========================================================================== */
 
