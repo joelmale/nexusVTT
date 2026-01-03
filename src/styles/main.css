@@ -54,5 +54,5 @@
 /* 6. THEMES */
 @import './theme-solid.css' layer(themes);
 
-/* 7. CHAT (after themes to override) */
-@import './chat.css' layer(themes);
+/* 7. CHAT STYLES (outside layers for maximum priority) */
+@import './chat.css';
