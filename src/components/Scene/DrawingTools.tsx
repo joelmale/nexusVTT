@@ -90,6 +90,16 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
     lastPoint: Point;
   } | null>(null);
 
+  // Grid alignment states
+  const [gridAlignPoints, setGridAlignPoints] = useState<Point[]>([]);
+  const [gridAlignMode, setGridAlignMode] = useState<
+    'waiting-first' | 'waiting-second' | 'fine-tuning' | null
+  >(null);
+  const [fineTuningOffset, setFineTuningOffset] = useState<{
+    x: number;
+    y: number;
+  } | null>(null);
+
   const user = useUser();
   const activeScene = useActiveScene();
   const roomCode = useServerRoomCode();
@@ -253,6 +263,20 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
       setActiveTool('select');
     }
   }, [activeTool, handleCopy, handleCut, handlePaste]);
+
+  // Initialize grid alignment mode when tool is activated
+  useEffect(() => {
+    if (activeTool === 'grid-align') {
+      setGridAlignMode('waiting-first');
+      setGridAlignPoints([]);
+      setFineTuningOffset(null);
+    } else {
+      // Clean up when switching away from grid-align tool
+      setGridAlignMode(null);
+      setGridAlignPoints([]);
+      setFineTuningOffset(null);
+    }
+  }, [activeTool]);
 
   // Get drawings that intersect with a point (for eraser and selection)
   const getDrawingsAtPoint = useCallback(
@@ -758,7 +782,6 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
           });
         },
         'grid-align': () => {
-          // Set the clicked point as the new grid origin
           if (!activeScene) return;
 
           if (!activeScene.gridSettings?.enabled) {
@@ -768,54 +791,118 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
             return;
           }
 
-          // Calculate grid offset - we want the clicked point to be a grid intersection
-          // So we find the remainder when dividing by grid size
-          const gridSize = activeScene.gridSettings?.size || 50;
-          const offsetX = point.x % gridSize;
-          const offsetY = point.y % gridSize;
+          // Two-point alignment mode
+          if (gridAlignMode === 'waiting-first') {
+            // First click - mark the first corner
+            setGridAlignPoints([point]);
+            setGridAlignMode('waiting-second');
 
-          // Update scene grid settings
-          updateScene(activeScene.id, {
-            gridSettings: {
+            // Show notification
+            const notification = document.createElement('div');
+            notification.textContent =
+              '📍 First point marked. Click the opposite corner of a grid square.';
+            notification.style.cssText = `
+              position: fixed;
+              top: 20px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: rgba(0, 188, 212, 0.9);
+              color: white;
+              padding: 12px 24px;
+              border-radius: 8px;
+              font-weight: bold;
+              z-index: 10000;
+              pointer-events: none;
+            `;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 3000);
+          } else if (gridAlignMode === 'waiting-second' && gridAlignPoints.length === 1) {
+            // Second click - calculate grid size and offset
+            const firstPoint = gridAlignPoints[0];
+            const secondPoint = point;
+
+            // Ask user how many grid squares are between the two points
+            const numSquares = prompt(
+              'How many grid squares are between these two points?\n(Enter 1 if these are adjacent corners, 2 if there is one square between them, etc.)',
+              '1',
+            );
+
+            if (!numSquares || isNaN(parseInt(numSquares))) {
+              // Cancel alignment
+              setGridAlignMode('waiting-first');
+              setGridAlignPoints([]);
+              return;
+            }
+
+            const squares = parseInt(numSquares);
+            if (squares <= 0) {
+              alert('Please enter a positive number of grid squares.');
+              return;
+            }
+
+            // Calculate distance between points
+            const dx = secondPoint.x - firstPoint.x;
+            const dy = secondPoint.y - firstPoint.y;
+            const distanceX = Math.abs(dx);
+            const distanceY = Math.abs(dy);
+
+            // Calculate grid size (use the larger dimension)
+            const calculatedGridSize = Math.max(distanceX, distanceY) / squares;
+
+            // Calculate offset - make first point a grid intersection
+            const offsetX = firstPoint.x % calculatedGridSize;
+            const offsetY = firstPoint.y % calculatedGridSize;
+
+            // Update scene grid settings
+            const newGridSettings = {
               ...activeScene.gridSettings,
+              size: Math.round(calculatedGridSize),
               offsetX,
               offsetY,
-            },
-          });
+            };
 
-          // Sync the update
-          webSocketService.sendEvent({
-            type: 'scene/update',
-            data: {
-              sceneId: activeScene.id,
-              updates: {
-                gridSettings: {
-                  ...activeScene.gridSettings,
-                  offsetX,
-                  offsetY,
+            updateScene(activeScene.id, {
+              gridSettings: newGridSettings,
+            });
+
+            // Sync the update
+            webSocketService.sendEvent({
+              type: 'scene/update',
+              data: {
+                sceneId: activeScene.id,
+                updates: {
+                  gridSettings: newGridSettings,
                 },
               },
-            },
-          });
+            });
 
-          // Show visual feedback
-          const notification = document.createElement('div');
-          notification.textContent = '✓ Grid aligned to this point';
-          notification.style.cssText = `
-            position: fixed;
-            top: 20px;
-            left: 50%;
-            transform: translateX(-50%);
-            background: rgba(0, 188, 212, 0.9);
-            color: white;
-            padding: 12px 24px;
-            border-radius: 8px;
-            font-weight: bold;
-            z-index: 10000;
-            pointer-events: none;
-          `;
-          document.body.appendChild(notification);
-          setTimeout(() => notification.remove(), 2000);
+            // Enter fine-tuning mode
+            setFineTuningOffset({ x: offsetX, y: offsetY });
+            setGridAlignMode('fine-tuning');
+
+            // Show notification
+            const notification = document.createElement('div');
+            notification.innerHTML = `
+              ✓ Grid aligned! Size: ${Math.round(calculatedGridSize)}px<br/>
+              <small>Use arrow keys to fine-tune. Press Enter to finish, Escape to cancel.</small>
+            `;
+            notification.style.cssText = `
+              position: fixed;
+              top: 20px;
+              left: 50%;
+              transform: translateX(-50%);
+              background: rgba(0, 188, 212, 0.9);
+              color: white;
+              padding: 12px 24px;
+              border-radius: 8px;
+              font-weight: bold;
+              z-index: 10000;
+              pointer-events: none;
+              text-align: center;
+            `;
+            document.body.appendChild(notification);
+            setTimeout(() => notification.remove(), 5000);
+          }
         },
       };
 
@@ -847,6 +934,8 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
       updateDrawing,
       updateScene,
       roomCode,
+      gridAlignMode,
+      gridAlignPoints,
     ],
   );
 
@@ -923,6 +1012,10 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
           setCurrentPoint(point);
         },
         'mask-create': () => {
+          setCurrentPoint(point);
+        },
+        'grid-align': () => {
+          // Track mouse position for preview line
           setCurrentPoint(point);
         },
       };
@@ -1321,6 +1414,149 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
     roomCode,
   ]);
 
+  // Handle arrow key fine-tuning for grid alignment
+  React.useEffect(() => {
+    if (gridAlignMode !== 'fine-tuning' || !activeScene || !fineTuningOffset) {
+      return;
+    }
+
+    const handleFineTuningKeyDown = (e: KeyboardEvent) => {
+      const gridSize = activeScene.gridSettings?.size || 50;
+      let newOffsetX = fineTuningOffset.x;
+      let newOffsetY = fineTuningOffset.y;
+      let handled = false;
+
+      switch (e.key) {
+        case 'ArrowLeft': {
+          newOffsetX = (newOffsetX - 1 + gridSize) % gridSize;
+          handled = true;
+          break;
+        }
+        case 'ArrowRight': {
+          newOffsetX = (newOffsetX + 1) % gridSize;
+          handled = true;
+          break;
+        }
+        case 'ArrowUp': {
+          newOffsetY = (newOffsetY - 1 + gridSize) % gridSize;
+          handled = true;
+          break;
+        }
+        case 'ArrowDown': {
+          newOffsetY = (newOffsetY + 1) % gridSize;
+          handled = true;
+          break;
+        }
+        case 'Enter': {
+          // Confirm and exit fine-tuning mode
+          setGridAlignMode(null);
+          setGridAlignPoints([]);
+          setFineTuningOffset(null);
+          useGameStore.getState().setActiveTool('select');
+
+          const confirmNotification = document.createElement('div');
+          confirmNotification.textContent = '✓ Grid alignment confirmed!';
+          confirmNotification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(76, 175, 80, 0.9);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 10000;
+            pointer-events: none;
+          `;
+          document.body.appendChild(confirmNotification);
+          setTimeout(() => confirmNotification.remove(), 2000);
+          handled = true;
+          break;
+        }
+        case 'Escape': {
+          // Cancel and revert changes
+          if (activeScene.gridSettings) {
+            const revertedSettings = {
+              ...activeScene.gridSettings,
+              offsetX: gridAlignPoints[0]?.x % gridSize || 0,
+              offsetY: gridAlignPoints[0]?.y % gridSize || 0,
+            };
+            updateScene(activeScene.id, { gridSettings: revertedSettings });
+            webSocketService.sendEvent({
+              type: 'scene/update',
+              data: {
+                sceneId: activeScene.id,
+                updates: { gridSettings: revertedSettings },
+              },
+            });
+          }
+          setGridAlignMode(null);
+          setGridAlignPoints([]);
+          setFineTuningOffset(null);
+          useGameStore.getState().setActiveTool('select');
+
+          const cancelNotification = document.createElement('div');
+          cancelNotification.textContent = '✗ Grid alignment cancelled';
+          cancelNotification.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: rgba(244, 67, 54, 0.9);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-weight: bold;
+            z-index: 10000;
+            pointer-events: none;
+          `;
+          document.body.appendChild(cancelNotification);
+          setTimeout(() => cancelNotification.remove(), 2000);
+          handled = true;
+          break;
+        }
+      }
+
+      if (handled) {
+        e.preventDefault();
+
+        // Update offset if arrow key was pressed
+        if (
+          e.key.startsWith('Arrow') &&
+          (newOffsetX !== fineTuningOffset.x || newOffsetY !== fineTuningOffset.y)
+        ) {
+          setFineTuningOffset({ x: newOffsetX, y: newOffsetY });
+
+          // Apply the change immediately
+          const newGridSettings = {
+            ...activeScene.gridSettings,
+            offsetX: newOffsetX,
+            offsetY: newOffsetY,
+          };
+
+          updateScene(activeScene.id, { gridSettings: newGridSettings });
+          webSocketService.sendEvent({
+            type: 'scene/update',
+            data: {
+              sceneId: activeScene.id,
+              updates: { gridSettings: newGridSettings },
+            },
+          });
+        }
+      }
+    };
+
+    window.addEventListener('keydown', handleFineTuningKeyDown);
+    return () => window.removeEventListener('keydown', handleFineTuningKeyDown);
+  }, [
+    gridAlignMode,
+    activeScene,
+    fineTuningOffset,
+    gridAlignPoints,
+    updateScene,
+  ]);
+
   if (activeTool === 'pan') {
     return null;
   }
@@ -1641,6 +1877,169 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
     );
   };
 
+  // Render grid alignment helpers
+  const renderGridAlignmentHelpers = () => {
+    if (activeTool !== 'grid-align' || !activeScene?.gridSettings?.enabled) {
+      return null;
+    }
+
+    const gridSize = activeScene.gridSettings.size || 50;
+    const offsetX = fineTuningOffset?.x ?? activeScene.gridSettings.offsetX ?? 0;
+    const offsetY = fineTuningOffset?.y ?? activeScene.gridSettings.offsetY ?? 0;
+
+    // Calculate visible grid intersections based on current viewport
+    // Use fallback values if ref not yet initialized
+    const worldWidth = (svgRef.current?.clientWidth || 800) / camera.zoom;
+    const worldHeight = (svgRef.current?.clientHeight || 600) / camera.zoom;
+    const worldLeft = camera.x - worldWidth / 2;
+    const worldTop = camera.y - worldHeight / 2;
+    const worldRight = camera.x + worldWidth / 2;
+    const worldBottom = camera.y + worldHeight / 2;
+
+    // Calculate grid intersection points in viewport
+    const gridIntersections: Point[] = [];
+    const gridLeft = Math.floor((worldLeft - offsetX) / gridSize) * gridSize + offsetX;
+    const gridTop = Math.floor((worldTop - offsetY) / gridSize) * gridSize + offsetY;
+    const gridRight = Math.ceil((worldRight - offsetX) / gridSize) * gridSize + offsetX;
+    const gridBottom = Math.ceil((worldBottom - offsetY) / gridSize) * gridSize + offsetY;
+
+    // Limit the number of crosshairs to avoid performance issues
+    const maxCrosshairs = 100;
+    let count = 0;
+
+    for (let x = gridLeft; x <= gridRight && count < maxCrosshairs; x += gridSize) {
+      for (let y = gridTop; y <= gridBottom && count < maxCrosshairs; y += gridSize) {
+        gridIntersections.push({ x, y });
+        count++;
+      }
+    }
+
+    const crosshairSize = 8 / camera.zoom;
+    const markerSize = 10 / camera.zoom;
+
+    return (
+      <>
+        {/* Render crosshairs at grid intersections (only when waiting for click) */}
+        {(gridAlignMode === 'waiting-first' || gridAlignMode === 'waiting-second') &&
+          gridIntersections.map((point, index) => (
+            <g key={`crosshair-${index}`} opacity={0.4}>
+              {/* Horizontal line */}
+              <line
+                x1={point.x - crosshairSize}
+                y1={point.y}
+                x2={point.x + crosshairSize}
+                y2={point.y}
+                stroke="#00bcd4"
+                strokeWidth={1 / camera.zoom}
+                pointerEvents="none"
+              />
+              {/* Vertical line */}
+              <line
+                x1={point.x}
+                y1={point.y - crosshairSize}
+                x2={point.x}
+                y2={point.y + crosshairSize}
+                stroke="#00bcd4"
+                strokeWidth={1 / camera.zoom}
+                pointerEvents="none"
+              />
+            </g>
+          ))}
+
+        {/* Render markers for clicked points */}
+        {gridAlignPoints.map((point, index) => (
+          <g key={`marker-${index}`}>
+            {/* Outer circle */}
+            <circle
+              cx={point.x}
+              cy={point.y}
+              r={markerSize}
+              fill="rgba(0, 188, 212, 0.3)"
+              stroke="#00bcd4"
+              strokeWidth={2 / camera.zoom}
+              pointerEvents="none"
+            />
+            {/* Inner circle */}
+            <circle
+              cx={point.x}
+              cy={point.y}
+              r={markerSize / 3}
+              fill="#00bcd4"
+              pointerEvents="none"
+            />
+            {/* Label */}
+            <text
+              x={point.x}
+              y={point.y - markerSize - 5 / camera.zoom}
+              fill="#00bcd4"
+              fontSize={12 / camera.zoom}
+              fontWeight="bold"
+              textAnchor="middle"
+              pointerEvents="none"
+              style={{
+                textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
+              }}
+            >
+              Point {index + 1}
+            </text>
+          </g>
+        ))}
+
+        {/* Render preview line between two points */}
+        {gridAlignMode === 'waiting-second' &&
+          gridAlignPoints.length === 1 &&
+          currentPoint && (
+            <>
+              <line
+                x1={gridAlignPoints[0].x}
+                y1={gridAlignPoints[0].y}
+                x2={currentPoint.x}
+                y2={currentPoint.y}
+                stroke="#00bcd4"
+                strokeWidth={2 / camera.zoom}
+                strokeDasharray="5,5"
+                pointerEvents="none"
+              />
+              {/* Distance label */}
+              <text
+                x={(gridAlignPoints[0].x + currentPoint.x) / 2}
+                y={(gridAlignPoints[0].y + currentPoint.y) / 2 - 10 / camera.zoom}
+                fill="#00bcd4"
+                fontSize={12 / camera.zoom}
+                fontWeight="bold"
+                textAnchor="middle"
+                pointerEvents="none"
+                style={{
+                  textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
+                }}
+              >
+                {distance(gridAlignPoints[0], currentPoint).toFixed(0)}px
+              </text>
+            </>
+          )}
+
+        {/* Fine-tuning mode indicator */}
+        {gridAlignMode === 'fine-tuning' && (
+          <text
+            x={camera.x}
+            y={camera.y - worldHeight / 2 + 30 / camera.zoom}
+            fill="#4CAF50"
+            fontSize={16 / camera.zoom}
+            fontWeight="bold"
+            textAnchor="middle"
+            pointerEvents="none"
+            style={{
+              textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(76,175,80,0.5)',
+            }}
+          >
+            ⌨️ Fine-Tuning Mode - Use arrow keys to adjust (Enter to confirm, Esc to
+            cancel)
+          </text>
+        )}
+      </>
+    );
+  };
+
   const shouldRenderInteractionLayer = !['pan' as const, 'move' as const].includes(activeTool as 'pan' | 'move');
 
   return (
@@ -1675,6 +2074,9 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
         {renderPreview()}
         {renderPolygonPreview()}
         {renderSelectionBox()}
+        {/* eslint-disable-next-line react-hooks/refs */}
+        {/* Grid alignment needs ref for viewport calculations during render */}
+        {renderGridAlignmentHelpers()}
       </g>
     </g>
   );
