@@ -120,15 +120,18 @@
 /* ========================================================================== MESSAGES SECTION ========================================================================== */
 
 .chat-panel__messages,
-.theme-solid .chat-panel__messages {
-  overflow-y: auto;
-  overflow-x: hidden;
-  padding: var(--spacing-4);
-  border-radius: 12px;
+.chat-panel .chat-panel__messages,
+.context-panel .chat-panel__messages,
+.theme-solid .chat-panel__messages,
+div.chat-panel div.chat-panel__messages {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  padding: var(--spacing-4) !important;
+  border-radius: 12px !important;
   background: #FFFFFF !important;
   border: 2px solid #D1D1D6 !important;
-  margin-bottom: 0;
-  flex-shrink: 0;
+  margin-bottom: 0 !important;
+  flex-shrink: 0 !important;
   box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.06), 0 1px 0 rgba(255, 255, 255, 0.5) !important;
 }
 
@@ -208,39 +211,48 @@
 
 /* ========================================================================== MESSAGE STYLES ========================================================================== */
 
-.chat-panel__message {
-  max-width: 75%;
-  margin-bottom: var(--spacing-3);
-  padding: 10px 14px;
-  border-radius: 18px;
-  word-wrap: break-word;
-  transition: all var(--transition-normal);
-  position: relative;
-  clear: both;
-  font-size: 15px;
-  line-height: 1.4;
+.chat-panel__message,
+.chat-panel .chat-panel__message,
+.context-panel .chat-panel__message,
+div.chat-panel div.chat-panel__message {
+  max-width: 75% !important;
+  margin-bottom: var(--spacing-3) !important;
+  padding: 10px 14px !important;
+  border-radius: 18px !important;
+  word-wrap: break-word !important;
+  transition: all var(--transition-normal) !important;
+  position: relative !important;
+  clear: both !important;
+  font-size: 15px !important;
+  line-height: 1.4 !important;
 }
 
 /* Other people's messages - left aligned, gray (iPhone style) */
+.chat-panel__message--other,
 .chat-panel .chat-panel__message--other,
-.theme-solid .chat-panel .chat-panel__message--other {
-  float: left;
+.context-panel .chat-panel__message--other,
+.theme-solid .chat-panel .chat-panel__message--other,
+div.chat-panel div.chat-panel__message--other {
+  float: left !important;
   background: #E5E5EA !important;
   color: #000000 !important;
-  border-bottom-left-radius: 4px;
+  border-bottom-left-radius: 4px !important;
   border: none !important;
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.1) !important;
 }
 
 /* Own messages - right aligned, blue (iPhone style) */
+.chat-panel__message--own,
 .chat-panel .chat-panel__message--own,
-.theme-solid .chat-panel .chat-panel__message--own {
-  float: right;
+.context-panel .chat-panel__message--own,
+.theme-solid .chat-panel .chat-panel__message--own,
+div.chat-panel div.chat-panel__message--own {
+  float: right !important;
   background: #007AFF !important;
   color: white !important;
-  border-bottom-right-radius: 4px;
+  border-bottom-right-radius: 4px !important;
   border: none !important;
-  box-shadow: 0 1px 3px rgba(0, 122, 255, 0.3);
+  box-shadow: 0 1px 3px rgba(0, 122, 255, 0.3) !important;
 }
 
 .chat-panel .chat-panel__message--own .chat-panel__message-author,
@@ -250,29 +262,38 @@
 }
 
 /* System messages - centered, special styling (iPhone style) */
+.chat-panel__message.system,
 .chat-panel .chat-panel__message.system,
+.context-panel .chat-panel__message.system,
+.chat-panel__message.dm-announcement,
 .chat-panel .chat-panel__message.dm-announcement,
+.context-panel .chat-panel__message.dm-announcement,
 .theme-solid .chat-panel .chat-panel__message.system,
-.theme-solid .chat-panel .chat-panel__message.dm-announcement {
+.theme-solid .chat-panel .chat-panel__message.dm-announcement,
+div.chat-panel div.chat-panel__message.system,
+div.chat-panel div.chat-panel__message.dm-announcement {
   float: none !important;
-  margin-left: auto;
-  margin-right: auto;
-  max-width: 90%;
-  text-align: center;
+  margin-left: auto !important;
+  margin-right: auto !important;
+  max-width: 90% !important;
+  text-align: center !important;
   background: #F2F2F7 !important;
   color: #8E8E93 !important;
   border: none !important;
-  border-radius: 16px;
-  font-size: 13px;
-  padding: 8px 12px;
+  border-radius: 16px !important;
+  font-size: 13px !important;
+  padding: 8px 12px !important;
   box-shadow: none !important;
 }
 
+.chat-panel__message.dm-announcement,
 .chat-panel .chat-panel__message.dm-announcement,
-.theme-solid .chat-panel .chat-panel__message.dm-announcement {
+.context-panel .chat-panel__message.dm-announcement,
+.theme-solid .chat-panel .chat-panel__message.dm-announcement,
+div.chat-panel div.chat-panel__message.dm-announcement {
   background: #FFE5CC !important;
   color: #FF9500 !important;
-  font-weight: 500;
+  font-weight: 500 !important;
 }
 
 
@@ -485,12 +506,15 @@
 
 /* ========================================================================== DICE ROLL MESSAGE STYLES ========================================================================== */
 
-.dice-roll-message {
-  padding: var(--spacing-2) var(--spacing-3);
-  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05));
-  border-left: 3px solid var(--color-primary, #8b5cf6);
-  border-radius: 8px;
-  margin: var(--spacing-1) 0;
+.dice-roll-message,
+.chat-panel .dice-roll-message,
+.context-panel .dice-roll-message,
+div.chat-panel div.dice-roll-message {
+  padding: var(--spacing-2) var(--spacing-3) !important;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05)) !important;
+  border-left: 3px solid var(--color-primary, #8b5cf6) !important;
+  border-radius: 8px !important;
+  margin: var(--spacing-1) 0 !important;
 }
 
 .dice-roll-header {
