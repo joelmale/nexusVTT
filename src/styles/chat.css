@@ -16,6 +16,107 @@
   overflow: hidden;
 }
 
+/* ========================================================================== SEARCH AND FILTER BAR ========================================================================== */
+
+.chat-panel__search-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-2);
+  padding: 0 var(--spacing-1);
+}
+
+.chat-panel__search-input {
+  flex: 1;
+  padding: var(--spacing-2) var(--spacing-3);
+  border: 1px solid var(--glass-border, #e5e7eb);
+  border-radius: var(--border-radius, 8px);
+  background: var(--glass-surface, white);
+  font-size: var(--text-sm, 0.875rem);
+  transition: all var(--transition-fast, 0.15s);
+}
+
+.chat-panel__search-input:focus {
+  outline: none;
+  border-color: var(--color-primary, #8b5cf6);
+  box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.1);
+}
+
+.chat-panel__filter-toggle {
+  padding: var(--spacing-2);
+  background: var(--glass-surface, white);
+  border: 1px solid var(--glass-border, #e5e7eb);
+  border-radius: var(--border-radius, 8px);
+  cursor: pointer;
+  font-size: var(--text-base, 1rem);
+  transition: all var(--transition-fast, 0.15s);
+}
+
+.chat-panel__filter-toggle:hover {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: var(--color-primary, #8b5cf6);
+}
+
+.chat-panel__filter-toggle.active {
+  background: var(--color-primary, #8b5cf6);
+  border-color: var(--color-primary, #8b5cf6);
+  transform: scale(1.05);
+}
+
+.chat-panel__clear-filters {
+  padding: var(--spacing-2);
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.3);
+  border-radius: var(--border-radius, 8px);
+  color: #dc2626;
+  cursor: pointer;
+  font-size: var(--text-base, 1rem);
+  font-weight: var(--font-bold, 700);
+  transition: all var(--transition-fast, 0.15s);
+}
+
+.chat-panel__clear-filters:hover {
+  background: rgba(239, 68, 68, 0.2);
+  transform: scale(1.05);
+}
+
+.chat-panel__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-2);
+  padding: var(--spacing-2);
+  background: var(--glass-surface, white);
+  border-radius: var(--border-radius, 8px);
+  border: 1px solid var(--glass-border, #e5e7eb);
+}
+
+.chat-filter-chip {
+  padding: 4px 10px;
+  background: rgba(139, 92, 246, 0.05);
+  border: 1px solid rgba(139, 92, 246, 0.2);
+  border-radius: 16px;
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--font-medium, 500);
+  color: var(--glass-text, #333);
+  cursor: pointer;
+  transition: all var(--transition-fast, 0.15s);
+  white-space: nowrap;
+}
+
+.chat-filter-chip:hover {
+  background: rgba(139, 92, 246, 0.1);
+  border-color: rgba(139, 92, 246, 0.4);
+  transform: translateY(-1px);
+}
+
+.chat-filter-chip.active {
+  background: var(--color-primary, #8b5cf6);
+  border-color: var(--color-primary, #8b5cf6);
+  color: white;
+  box-shadow: 0 2px 4px rgba(139, 92, 246, 0.3);
+}
+
 /* ========================================================================== MESSAGES SECTION ========================================================================== */
 
 .chat-panel__messages {
@@ -214,5 +315,308 @@
   align-items: center;
   gap: var(--spacing-2);
   margin-bottom: var(--spacing-2);
+}
+
+/* ========================================================================== DICE ROLL MESSAGE STYLES ========================================================================== */
+
+.dice-roll-message {
+  padding: var(--spacing-2) var(--spacing-3);
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1), rgba(124, 58, 237, 0.05));
+  border-left: 3px solid var(--color-primary, #8b5cf6);
+  border-radius: 8px;
+  margin: var(--spacing-1) 0;
+}
+
+.dice-roll-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: var(--spacing-2);
+  font-size: var(--text-sm, 0.875rem);
+}
+
+.dice-expression {
+  color: var(--glass-text, #333);
+  font-weight: var(--font-medium, 500);
+}
+
+.dice-expression strong {
+  color: var(--color-primary, #8b5cf6);
+  font-weight: var(--font-bold, 700);
+}
+
+.dice-reroll-btn {
+  padding: 2px 8px;
+  background: rgba(139, 92, 246, 0.1);
+  border: 1px solid rgba(139, 92, 246, 0.3);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.2s;
+}
+
+.dice-reroll-btn:hover {
+  background: rgba(139, 92, 246, 0.2);
+  transform: rotate(180deg);
+}
+
+.dice-results {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex-wrap: wrap;
+  font-size: var(--text-base, 1rem);
+}
+
+.dice-pool {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.die-result {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  height: 32px;
+  padding: 0 8px;
+  background: white;
+  border: 2px solid #ddd;
+  border-radius: 6px;
+  font-weight: var(--font-bold, 700);
+  font-size: var(--text-sm, 0.875rem);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.die-result.crit-success {
+  background: linear-gradient(135deg, #ffd700, #ffed4e);
+  border-color: #ffa500;
+  color: #000;
+  box-shadow: 0 0 12px rgba(255, 215, 0, 0.6);
+  animation: pulse-crit 1s ease-in-out;
+}
+
+.die-result.crit-failure {
+  background: linear-gradient(135deg, #ff4444, #cc0000);
+  border-color: #990000;
+  color: white;
+  box-shadow: 0 0 12px rgba(255, 0, 0, 0.6);
+  animation: shake 0.5s ease-in-out;
+}
+
+.dice-modifier {
+  font-weight: var(--font-semibold, 600);
+  color: var(--glass-text-muted, #666);
+  font-size: var(--text-base, 1rem);
+}
+
+.dice-equals {
+  color: var(--glass-text-muted, #999);
+  font-weight: var(--font-medium, 500);
+}
+
+.dice-total {
+  font-size: var(--text-lg, 1.125rem);
+  font-weight: var(--font-bold, 700);
+  color: var(--color-primary, #8b5cf6);
+  padding: 4px 12px;
+  background: rgba(139, 92, 246, 0.1);
+  border-radius: 6px;
+}
+
+.dice-total.crit-success {
+  color: #ffa500;
+  background: rgba(255, 215, 0, 0.2);
+}
+
+.dice-total.crit-failure {
+  color: #cc0000;
+  background: rgba(255, 0, 0, 0.1);
+}
+
+.dice-crit-indicator,
+.dice-crit-fail-indicator {
+  margin-top: var(--spacing-2);
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: 4px;
+  font-size: var(--text-xs, 0.75rem);
+  font-weight: var(--font-semibold, 600);
+  text-align: center;
+}
+
+.dice-crit-indicator {
+  background: rgba(255, 215, 0, 0.2);
+  color: #ffa500;
+  border: 1px solid rgba(255, 165, 0, 0.3);
+}
+
+.dice-crit-fail-indicator {
+  background: rgba(255, 0, 0, 0.1);
+  color: #cc0000;
+  border: 1px solid rgba(204, 0, 0, 0.3);
+}
+
+@keyframes pulse-crit {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes shake {
+  0%, 100% {
+    transform: translateX(0);
+  }
+  25% {
+    transform: translateX(-4px);
+  }
+  75% {
+    transform: translateX(4px);
+  }
+}
+
+/* Compact mode for small panels */
+@media (max-width: 400px) {
+  .dice-roll-message {
+    padding: var(--spacing-1) var(--spacing-2);
+  }
+
+  .die-result {
+    min-width: 28px;
+    height: 28px;
+    font-size: 0.75rem;
+  }
+
+  .dice-total {
+    font-size: 1rem;
+    padding: 2px 8px;
+  }
+}
+
+/* ========================================================================== EMOTE & OOC MESSAGE STYLES ========================================================================== */
+
+.chat-panel__message.emote {
+  background: linear-gradient(135deg, rgba(168, 85, 247, 0.08), rgba(147, 51, 234, 0.04));
+  border-left: 3px solid rgba(168, 85, 247, 0.4);
+  font-style: italic;
+}
+
+.chat-panel__message.emote .chat-panel__message-content::before {
+  content: '*';
+  margin-right: 4px;
+  color: rgba(168, 85, 247, 0.6);
+}
+
+.chat-panel__message.emote .chat-panel__message-content::after {
+  content: '*';
+  margin-left: 4px;
+  color: rgba(168, 85, 247, 0.6);
+}
+
+.chat-panel__message.ooc {
+  background: linear-gradient(135deg, rgba(107, 114, 128, 0.08), rgba(75, 85, 99, 0.04));
+  border-left: 3px solid rgba(107, 114, 128, 0.4);
+  opacity: 0.9;
+}
+
+.chat-panel__message.ooc .chat-panel__message-header::before {
+  content: '(OOC)';
+  margin-right: 6px;
+  font-size: var(--text-xs, 0.75rem);
+  padding: 2px 6px;
+  background: rgba(107, 114, 128, 0.2);
+  border-radius: 4px;
+  font-weight: var(--font-semibold, 600);
+}
+
+/* ========================================================================== MARKDOWN & MENTION STYLES ========================================================================== */
+
+.chat-panel__message-content strong {
+  font-weight: var(--font-bold, 700);
+}
+
+.chat-panel__message-content em {
+  font-style: italic;
+}
+
+.chat-panel__message-content code {
+  padding: 2px 6px;
+  background: rgba(0, 0, 0, 0.05);
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
+
+.chat-panel__message-content blockquote {
+  border-left: 3px solid rgba(139, 92, 246, 0.3);
+  padding-left: var(--spacing-2);
+  margin: var(--spacing-1) 0;
+  font-style: italic;
+  opacity: 0.9;
+}
+
+.chat-panel__message-content a {
+  color: var(--color-primary, #8b5cf6);
+  text-decoration: underline;
+}
+
+.chat-panel__message-content a:hover {
+  text-decoration: none;
+}
+
+.mention {
+  color: var(--color-primary, #8b5cf6);
+  background: rgba(139, 92, 246, 0.1);
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-weight: var(--font-semibold, 600);
+  cursor: pointer;
+}
+
+.mention:hover {
+  background: rgba(139, 92, 246, 0.2);
+}
+
+/* ========================================================================== COMMAND AUTOCOMPLETE ========================================================================== */
+
+.chat-command-autocomplete {
+  position: absolute;
+  bottom: 100%;
+  left: 0;
+  right: 0;
+  background: var(--glass-surface, white);
+  border: 1px solid var(--glass-border, #e5e7eb);
+  border-radius: 8px 8px 0 0;
+  box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.1);
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 100;
+}
+
+.autocomplete-command {
+  padding: var(--spacing-2) var(--spacing-3);
+  cursor: pointer;
+  transition: background 0.15s;
+  border-bottom: 1px solid var(--glass-border, #f3f4f6);
+}
+
+.autocomplete-command:hover,
+.autocomplete-command.active {
+  background: rgba(139, 92, 246, 0.1);
+}
+
+.autocomplete-command-name {
+  font-weight: var(--font-semibold, 600);
+  color: var(--color-primary, #8b5cf6);
+  font-size: var(--text-sm, 0.875rem);
+}
+
+.autocomplete-command-description {
+  font-size: var(--text-xs, 0.75rem);
+  color: var(--glass-text-muted, #6b7280);
+  margin-top: 2px;
 }
 

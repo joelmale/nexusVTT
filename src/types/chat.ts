@@ -70,7 +70,7 @@ export interface ChatCommandContext {
     type: 'host' | 'player' | 'spectator';
   };
   session: {
-    id: string;
+    roomCode: string;
     players: Player[];
   } | null;
   isHost: boolean;

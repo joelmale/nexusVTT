@@ -240,8 +240,20 @@ interface GameStore extends GameState {
   // Chat Actions
   sendChatMessage: (
     content: string,
-    messageType?: 'text' | 'dm-announcement' | 'whisper' | 'system',
+    messageType?: 'text' | 'dm-announcement' | 'whisper' | 'system' | 'dice-roll' | 'emote' | 'ooc' | 'combat-action',
     recipientId?: string,
+    diceData?: {
+      expression: string;
+      results: number[];
+      total: number;
+      breakdown: string;
+      modifier: number;
+      diceType?: number;
+      diceCount?: number;
+      isCrit?: boolean;
+      isCritFail?: boolean;
+      rollType?: 'normal' | 'advantage' | 'disadvantage';
+    },
   ) => void;
   addChatMessage: (message: ChatMessage['data']) => void;
   setTyping: (isTyping: boolean) => void;
@@ -3517,7 +3529,7 @@ export const useGameStore = create<GameStore>()(
       },
 
       // Chat Actions
-      sendChatMessage: (content, messageType = 'text', recipientId) => {
+      sendChatMessage: (content, messageType = 'text', recipientId, diceData) => {
         const state = get();
         if (!state.user.name || !state.session) return;
 
@@ -3529,6 +3541,7 @@ export const useGameStore = create<GameStore>()(
           messageType,
           recipientId,
           timestamp: Date.now(),
+          ...(diceData && { diceData }),
         };
 
         // Add to local state immediately for optimistic UI

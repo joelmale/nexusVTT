@@ -1,20 +1,30 @@
 /**
- * Chat Panel Component
+ * Enhanced Chat Panel Component
  *
- * Real-time chat interface for players and DMs.
- * Supports text messages, system announcements, and private whispers.
+ * Real-time chat interface with command support, markdown, and dice rolls
  */
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useGameStore, useIsHost } from '@/stores/gameStore';
+import { chatCommandParser } from '@/utils/chatCommands';
+import { allCommands } from '@/utils/chatCommandHandlers';
+import { parseMarkdown, parseMentions } from '@/utils/markdownParser';
+import { DiceRollMessage } from './DiceRollMessage';
 import type { ChatMessage as ChatMessageType } from '@/types/game';
 
 interface ChatMessageProps {
   message: ChatMessageType['data'];
   isOwnMessage: boolean;
+  onReroll?: () => void;
 }
 
-const ChatMessage: React.FC<ChatMessageProps> = ({ message, isOwnMessage }) => {
+const ChatMessage: React.FC<ChatMessageProps> = ({
+  message,
+  isOwnMessage,
+  onReroll,
+}) => {
+  const session = useGameStore((state) => state.session);
+
   const formatTimestamp = (timestamp: number) => {
     return new Date(timestamp).toLocaleTimeString([], {
       hour: '2-digit',
@@ -30,6 +40,12 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isOwnMessage }) => {
         return '👑';
       case 'whisper':
         return '🕵️';
+      case 'dice-roll':
+        return '🎲';
+      case 'emote':
+        return '🎭';
+      case 'ooc':
+        return '💬';
       default:
         return '';
     }
@@ -43,10 +59,37 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isOwnMessage }) => {
         return 'DM Announcement';
       case 'whisper':
         return 'Whisper';
+      case 'dice-roll':
+        return 'Roll';
+      case 'emote':
+        return 'Emote';
+      case 'ooc':
+        return 'OOC';
       default:
         return '';
     }
   };
+
+  // Render dice roll messages differently
+  if (message.messageType === 'dice-roll' && message.diceData) {
+    return (
+      <div className="chat-panel__message dice-roll">
+        <DiceRollMessage
+          userName={message.userName}
+          diceData={message.diceData}
+          onReroll={onReroll}
+        />
+      </div>
+    );
+  }
+
+  // Parse markdown and mentions
+  let content = message.content;
+  if (session?.players) {
+    const { html } = parseMentions(content, session.players);
+    content = html;
+  }
+  content = parseMarkdown(content);
 
   return (
     <div
@@ -66,10 +109,12 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isOwnMessage }) => {
       </div>
       <div
         className="chat-panel__message-content"
-        dangerouslySetInnerHTML={{ __html: message.content }}
+        dangerouslySetInnerHTML={{ __html: content }}
       />
       {message.messageType === 'whisper' && message.recipientId && (
-        <div className="chat-panel__message-recipient">To: {message.recipientId}</div>
+        <div className="chat-panel__message-recipient">
+          To: {session?.players.find((p) => p.id === message.recipientId)?.name}
+        </div>
       )}
     </div>
   );
@@ -78,18 +123,27 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ message, isOwnMessage }) => {
 export const ChatPanel: React.FC = () => {
   const [messageInput, setMessageInput] = useState('');
   const [isTyping, setIsTyping] = useState(false);
-  const [messageType, setMessageType] = useState<'text' | 'whisper'>('text');
-  const [selectedRecipient, setSelectedRecipient] = useState<string>('');
+  const [autocompleteIndex, setAutocompleteIndex] = useState(0);
+  const [autocompleteHidden, setAutocompleteHidden] = useState(false);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [messageTypeFilter, setMessageTypeFilter] = useState<string[]>([]);
+  const [showFilters, setShowFilters] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  const { chat, user, session, sendChatMessage, setTyping, markChatAsRead } =
+  const { chat, user, session, sendChatMessage, clearChat, setTyping, markChatAsRead } =
     useGameStore();
 
   const isHost = useIsHost();
 
+  // Register all commands on mount
+  useEffect(() => {
+    chatCommandParser.registerAll(allCommands);
+  }, []);
+
   // Filter messages based on visibility rules
-  const visibleMessages = chat.messages.filter((message) => {
+  let visibleMessages = chat.messages.filter((message) => {
     // Always show system messages and DM announcements
     if (
       message.messageType === 'system' ||
@@ -99,7 +153,12 @@ export const ChatPanel: React.FC = () => {
     }
 
     // Show public messages to everyone
-    if (message.messageType === 'text') {
+    if (
+      message.messageType === 'text' ||
+      message.messageType === 'dice-roll' ||
+      message.messageType === 'emote' ||
+      message.messageType === 'ooc'
+    ) {
       return true;
     }
 
@@ -115,6 +174,23 @@ export const ChatPanel: React.FC = () => {
     return true;
   });
 
+  // Apply search filter
+  if (searchQuery.trim()) {
+    const query = searchQuery.toLowerCase();
+    visibleMessages = visibleMessages.filter(
+      (message) =>
+        message.content.toLowerCase().includes(query) ||
+        message.userName.toLowerCase().includes(query),
+    );
+  }
+
+  // Apply message type filter
+  if (messageTypeFilter.length > 0) {
+    visibleMessages = visibleMessages.filter((message) =>
+      messageTypeFilter.includes(message.messageType),
+    );
+  }
+
   // Auto-scroll to bottom when new messages arrive
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -125,9 +201,36 @@ export const ChatPanel: React.FC = () => {
     markChatAsRead();
   }, [markChatAsRead]);
 
+  // Handle command autocomplete (computed value)
+  const autocompleteData = useMemo(() => {
+    if (messageInput.startsWith('/')) {
+      const commands = chatCommandParser.autocomplete(messageInput);
+      return { commands, show: commands.length > 0 };
+    }
+    return { commands: [], show: false };
+  }, [messageInput]);
+
+  const autocompleteCommands = autocompleteData.commands;
+  const showAutocomplete = autocompleteData.show && !autocompleteHidden;
+
   // Handle typing indicator
-  const handleInputChange = (value: string) => {
+  const handleInputChange = useCallback((value: string) => {
     setMessageInput(value);
+    // Reset autocomplete hidden state when user types
+    setAutocompleteHidden(false);
+    // Reset index when showing autocomplete
+    if (value.startsWith('/')) {
+      setAutocompleteIndex(0);
+    }
+
+    // Don't show typing for commands
+    if (value.startsWith('/')) {
+      if (isTyping) {
+        setIsTyping(false);
+        setTyping(false);
+      }
+      return;
+    }
 
     // Send typing indicator
     if (!isTyping && value.trim()) {
@@ -151,51 +254,212 @@ export const ChatPanel: React.FC = () => {
         clearTimeout(typingTimeoutRef.current);
       }
     }
-  };
+  }, [isTyping, setTyping]);
 
-  const handleSendMessage = () => {
-    if (!messageInput.trim() || !session) return;
-    if (messageType === 'whisper' && !selectedRecipient) return;
+  const handleSendMessage = useCallback(async () => {
+    if (!messageInput.trim()) return;
 
-    sendChatMessage(
-      messageInput.trim(),
-      messageType,
-      messageType === 'whisper' ? selectedRecipient : undefined,
-    );
+    const trimmed = messageInput.trim();
+
+    // Check if it's a command
+    if (trimmed.startsWith('/')) {
+      const context = {
+        user: {
+          id: user.id,
+          name: user.name,
+          type: user.type,
+        },
+        session,
+        isHost,
+      };
+
+      const result = await chatCommandParser.parse(trimmed, context);
+
+      if (result) {
+        if (result.message?.startsWith('help:')) {
+          // Show help
+          const commandName = result.message.replace('help:', '');
+          const helpText =
+            commandName === 'all'
+              ? chatCommandParser.getHelp()
+              : chatCommandParser.getHelp(commandName);
+
+          // Send help as system message
+          sendChatMessage(helpText, 'system');
+        } else if (result.message === 'Chat cleared' && isHost) {
+          // Clear chat
+          clearChat();
+        } else if (result.messageOverride) {
+          // Send the command's message
+          sendChatMessage(
+            result.messageOverride.content,
+            result.messageOverride.messageType,
+            result.messageOverride.recipientId,
+            result.messageOverride.diceData,
+          );
+        } else if (!result.success && result.message) {
+          // Show error
+          sendChatMessage(result.message, 'system');
+        }
+
+        // Clear input
+        setMessageInput('');
+        setIsTyping(false);
+        setTyping(false);
+        if (typingTimeoutRef.current) {
+          clearTimeout(typingTimeoutRef.current);
+        }
+        return;
+      }
+    }
+
+    // Regular message
+    sendChatMessage(trimmed, 'text');
     setMessageInput('');
-    setSelectedRecipient('');
     setIsTyping(false);
     setTyping(false);
 
     if (typingTimeoutRef.current) {
       clearTimeout(typingTimeoutRef.current);
     }
-  };
+  }, [messageInput, user, session, isHost, sendChatMessage, clearChat, setTyping]);
 
-  const handleKeyPress = (e: React.KeyboardEvent) => {
+  const handleKeyPress = useCallback((e: React.KeyboardEvent) => {
+    // Handle autocomplete navigation
+    if (showAutocomplete && autocompleteCommands.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setAutocompleteIndex((prev) =>
+          Math.min(prev + 1, autocompleteCommands.length - 1),
+        );
+        return;
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setAutocompleteIndex((prev) => Math.max(prev - 1, 0));
+        return;
+      } else if (e.key === 'Tab') {
+        e.preventDefault();
+        const selected = autocompleteCommands[autocompleteIndex];
+        if (selected) {
+          setMessageInput(`/${selected.command} `);
+          setAutocompleteHidden(true);
+        }
+        return;
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        setAutocompleteHidden(true);
+        return;
+      }
+    }
+
+    // Send message on Enter (without Shift)
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       handleSendMessage();
     }
-  };
+  }, [showAutocomplete, autocompleteCommands, autocompleteIndex, handleSendMessage]);
 
-  const handleSendDMAnnouncement = () => {
-    if (!messageInput.trim() || !session || !isHost) return;
+  const handleReroll = useCallback((expression: string) => {
+    setMessageInput(`/roll ${expression}`);
+    // Auto-submit the reroll
+    setTimeout(() => handleSendMessage(), 100);
+  }, [handleSendMessage]);
 
-    sendChatMessage(messageInput.trim(), 'dm-announcement');
-    setMessageInput('');
-  };
+  const selectAutocompleteCommand = useCallback((index: number) => {
+    const selected = autocompleteCommands[index];
+    if (selected) {
+      setMessageInput(`/${selected.command} `);
+      setAutocompleteHidden(true);
+      inputRef.current?.focus();
+    }
+  }, [autocompleteCommands]);
+
+  const toggleMessageTypeFilter = useCallback((type: string) => {
+    setMessageTypeFilter((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
+    );
+  }, []);
+
+  const clearFilters = useCallback(() => {
+    setSearchQuery('');
+    setMessageTypeFilter([]);
+    setShowFilters(false);
+  }, []);
+
+  const hasActiveFilters = searchQuery.trim() !== '' || messageTypeFilter.length > 0;
 
   return (
     <div className="chat-panel">
       <div className="panel-section">
         <h3>Chat</h3>
 
+        {/* Search and Filter Bar */}
+        <div className="chat-panel__search-bar">
+          <input
+            type="text"
+            className="chat-panel__search-input"
+            placeholder="Search messages..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+          />
+          <button
+            className={`chat-panel__filter-toggle ${showFilters ? 'active' : ''}`}
+            onClick={() => setShowFilters(!showFilters)}
+            title="Filter message types"
+            type="button"
+          >
+            🔍
+          </button>
+          {hasActiveFilters && (
+            <button
+              className="chat-panel__clear-filters"
+              onClick={clearFilters}
+              title="Clear filters"
+              type="button"
+            >
+              ✕
+            </button>
+          )}
+        </div>
+
+        {/* Filter Options */}
+        {showFilters && (
+          <div className="chat-panel__filters">
+            {['text', 'dice-roll', 'emote', 'ooc', 'whisper', 'dm-announcement', 'system'].map(
+              (type) => (
+                <button
+                  key={type}
+                  className={`chat-filter-chip ${messageTypeFilter.includes(type) ? 'active' : ''}`}
+                  onClick={() => toggleMessageTypeFilter(type)}
+                  type="button"
+                >
+                  {type === 'dice-roll'
+                    ? '🎲 Rolls'
+                    : type === 'emote'
+                      ? '🎭 Emotes'
+                      : type === 'ooc'
+                        ? '💬 OOC'
+                        : type === 'whisper'
+                          ? '🕵️ Whispers'
+                          : type === 'dm-announcement'
+                            ? '👑 DM'
+                            : type === 'system'
+                              ? '📢 System'
+                              : '💭 Text'}
+                </button>
+              ),
+            )}
+          </div>
+        )}
+
         {/* Messages Area */}
         <div className="chat-panel__messages">
           {visibleMessages.length === 0 ? (
             <div className="chat-panel__empty">
               <p>No messages yet. Start the conversation!</p>
+              <p style={{ fontSize: '0.8em', opacity: 0.7, marginTop: '0.5em' }}>
+                Type <code>/help</code> for available commands
+              </p>
             </div>
           ) : (
             visibleMessages.map((message) => (
@@ -203,6 +467,11 @@ export const ChatPanel: React.FC = () => {
                 key={message.id}
                 message={message}
                 isOwnMessage={message.userId === user.id}
+                onReroll={
+                  message.diceData
+                    ? () => handleReroll(message.diceData!.expression)
+                    : undefined
+                }
               />
             ))
           )}
@@ -221,68 +490,53 @@ export const ChatPanel: React.FC = () => {
         )}
 
         {/* Message Input */}
-        <div className="chat-panel__input-section">
-          {/* Message Type Selector */}
-          <div className="chat-panel__type-selector">
-            <select
-              value={messageType}
-              onChange={(e) => {
-                setMessageType(e.target.value as 'text' | 'whisper');
-                if (e.target.value === 'text') {
-                  setSelectedRecipient('');
-                }
-              }}
-              className="chat-panel__type-select"
-            >
-              <option value="text">Public</option>
-              <option value="whisper">Whisper</option>
-            </select>
-
-            {messageType === 'whisper' && session && (
-              <select
-                value={selectedRecipient}
-                onChange={(e) => setSelectedRecipient(e.target.value)}
-                className="chat-panel__recipient-select"
-              >
-                <option value="">Select recipient...</option>
-                {session.players
-                  .filter((player) => player.id !== user.id) // Don't include self
-                  .map((player) => (
-                    <option key={player.id} value={player.id}>
-                      {player.name}
-                    </option>
-                  ))}
-              </select>
-            )}
-          </div>
+        <div className="chat-panel__input-section" style={{ position: 'relative' }}>
+          {/* Command Autocomplete */}
+          {showAutocomplete && autocompleteCommands.length > 0 && (
+            <div className="chat-command-autocomplete">
+              {autocompleteCommands.map((cmd, index) => (
+                <div
+                  key={cmd.command}
+                  className={`autocomplete-command ${index === autocompleteIndex ? 'active' : ''}`}
+                  onClick={() => selectAutocompleteCommand(index)}
+                  onMouseEnter={() => setAutocompleteIndex(index)}
+                >
+                  <div className="autocomplete-command-name">
+                    /{cmd.command}
+                    {cmd.aliases.length > 0 && (
+                      <span style={{ opacity: 0.6, fontSize: '0.9em' }}>
+                        {' '}
+                        ({cmd.aliases.map((a) => `/${a}`).join(', ')})
+                      </span>
+                    )}
+                  </div>
+                  <div className="autocomplete-command-description">
+                    {cmd.description}
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="chat-panel__input-container">
             <textarea
+              ref={inputRef}
               className="chat-panel__input"
-              placeholder={
-                messageType === 'whisper'
-                  ? selectedRecipient
-                    ? `Whisper to ${session?.players.find((p) => p.id === selectedRecipient)?.name}...`
-                    : 'Select a recipient first...'
-                  : 'Type a message...'
-              }
+              placeholder="Type a message or /help for commands..."
               value={messageInput}
               onChange={(e) => handleInputChange(e.target.value)}
               onKeyDown={handleKeyPress}
               rows={1}
               maxLength={500}
-              disabled={messageType === 'whisper' && !selectedRecipient}
             />
             <button
               className="chat-panel__send-btn"
               onClick={handleSendMessage}
-              disabled={
-                !messageInput.trim() ||
-                (messageType === 'whisper' && !selectedRecipient)
-              }
+              disabled={!messageInput.trim()}
               title="Send message (Enter)"
+              type="button"
             >
-              {messageType === 'whisper' ? '🕵️' : '📤'}
+              📤
             </button>
           </div>
 
@@ -290,9 +544,15 @@ export const ChatPanel: React.FC = () => {
           {isHost && (
             <button
               className="chat-panel__announcement-btn"
-              onClick={handleSendDMAnnouncement}
+              onClick={() => {
+                if (messageInput.trim()) {
+                  sendChatMessage(messageInput.trim(), 'dm-announcement');
+                  setMessageInput('');
+                }
+              }}
               disabled={!messageInput.trim()}
               title="Send DM Announcement"
+              type="button"
             >
               👑 Announce
             </button>
