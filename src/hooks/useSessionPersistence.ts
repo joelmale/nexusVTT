@@ -112,6 +112,20 @@ export function useSessionPersistence(
       recoveryAttempted = true;
 
       try {
+        const authCompleteFlag = localStorage.getItem('nexus-auth-complete');
+        const urlParams = new URLSearchParams(window.location.search);
+        const isOAuthRedirect =
+          urlParams.has('code') ||
+          urlParams.has('state') ||
+          window.location.pathname.includes('/auth/');
+
+        if (authCompleteFlag || isOAuthRedirect) {
+          console.log(
+            '🔐 Skipping auto-recovery during OAuth authentication flow',
+          );
+          return;
+        }
+
         // Check for URL-based reconnection first
         const reconnectionData =
           sessionPersistenceService.checkForReconnection();

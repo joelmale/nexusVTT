@@ -196,6 +196,27 @@ body::before {
   flex-wrap: nowrap;
 }
 
+.player-bar .player-actions {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+}
+
+.header-player-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
 .player-indicator {
   /* Positioning & Layout */
   display: flex;

@@ -289,26 +289,15 @@ class WebSocketService extends EventTarget {
         // Handle specific error cases
         if (message.data.message === 'Room not found') {
           console.log('🗑️ Room not found - clearing stored session data');
-          // Import synchronously since sessionPersistenceService is already available
-          import('@/services/sessionPersistence')
-            .then(({ sessionPersistenceService }) => {
-              sessionPersistenceService.clearAll();
-              // Reset the game store to initial state
-              gameStore.reset();
-              toast.error('Session Expired', {
-                description:
-                  'Your previous session has expired. Creating a new room.',
-              });
-            })
-            .catch((error) => {
-              console.error('Failed to clear session data:', error);
-              // Still reset the game store even if clearing fails
-              gameStore.reset();
-              toast.error('Session Expired', {
-                description:
-                  'Your previous session has expired. Creating a new room.',
-              });
-            });
+          try {
+            gameStore.resetSessionForExpiredRoom();
+          } catch (error) {
+            console.error('Failed to reset session state:', error);
+          }
+          toast.error('Session Expired', {
+            description:
+              'Your previous session has expired. Creating a new room.',
+          });
         } else if (
           message.data.code === 409 &&
           message.data.message.includes('version conflict')

@@ -470,7 +470,8 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
 
   const handleTokenMove = useCallback(
     (tokenId: string, deltaX: number, deltaY: number) => {
-      const tokens = placedTokens;
+      // Get fresh token position from store to avoid dependency on placedTokens
+      const tokens = useGameStore.getState().getSceneTokens(scene.id);
       const token = tokens.find((t) => t.id === tokenId);
       if (!token) return;
 
@@ -480,14 +481,15 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
       // Optimistic update - move locally first, then send to server
       moveTokenOptimistic(scene.id, tokenId, { x: newX, y: newY });
     },
-    [scene.id, camera.zoom, placedTokens, moveTokenOptimistic],
+    [scene.id, camera.zoom, moveTokenOptimistic],
   );
 
   const handleTokenMoveEnd = useCallback(
     (tokenId: string) => {
       // Apply grid snapping when drag ends
       if (safeGridSettings.snapToGrid && safeGridSettings.size > 0) {
-        const tokens = placedTokens;
+        // Get fresh token position from store to avoid dependency on placedTokens
+        const tokens = useGameStore.getState().getSceneTokens(scene.id);
         const token = tokens.find((t) => t.id === tokenId);
         if (!token) return;
 
@@ -502,7 +504,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
         }
       }
     },
-    [scene.id, safeGridSettings, placedTokens, moveTokenOptimistic],
+    [scene.id, safeGridSettings, moveTokenOptimistic],
   );
 
   // Prop handlers (mirror token handlers)
@@ -976,6 +978,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                 setSelection={setSelection}
                 clearSelection={clearSelection}
                 placedTokens={placedTokens}
+                placedProps={placedProps}
               />
 
               {/* Selection overlay */}

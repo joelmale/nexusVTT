@@ -1,11 +1,11 @@
-import React, { useCallback, useState, useEffect } from 'react';
+import React, { useCallback, useState, useEffect, useRef } from 'react';
 import {
   type Point,
   type Drawing,
   type DrawingStyle,
   type DrawingTool,
 } from '@/types/drawing';
-import type { Camera, PlacedToken } from '@/types/game';
+import type { Camera, PlacedToken, PlacedProp } from '@/types/game';
 // tokenStore no longer used - selection managed by gameStore
 import {
   useUser,
@@ -56,6 +56,7 @@ interface DrawingToolsProps {
   setSelection: (ids: string[]) => void;
   clearSelection: () => void;
   placedTokens: PlacedToken[];
+  placedProps: PlacedProp[];
 }
 
 const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
@@ -69,6 +70,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
   setSelection,
   clearSelection,
   placedTokens,
+  placedProps,
 }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<Point | null>(null);
@@ -82,12 +84,23 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
     start: Point;
     end: Point;
   } | null>(null);
+  const dragEntityRef = useRef<{
+    type: 'token' | 'prop';
+    id: string;
+    lastPoint: Point;
+  } | null>(null);
 
   const user = useUser();
   const activeScene = useActiveScene();
   const roomCode = useServerRoomCode();
   const { createDrawing, deleteDrawing, updateDrawing } = useDrawingActions();
   const updateScene = useGameStore((state) => state.updateScene);
+  const moveTokenOptimistic = useGameStore(
+    (state) => state.moveTokenOptimistic,
+  );
+  const movePropOptimistic = useGameStore((state) => state.movePropOptimistic);
+  const getSceneTokens = useGameStore((state) => state.getSceneTokens);
+  const getSceneProps = useGameStore((state) => state.getSceneProps);
 
   const isHost = user.type === 'host';
 
@@ -365,6 +378,35 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
     },
     [placedTokens, _gridSize],
   );
+  const getPropsAtPoint = useCallback(
+    (point: Point, radius: number = 5): string[] => {
+      const intersectedProps: string[] = [];
+      placedProps.forEach((prop) => {
+        const propWidth = (prop.width || 1) * _gridSize * prop.scale;
+        const propHeight = (prop.height || 1) * _gridSize * prop.scale;
+        const topLeft = {
+          x: prop.x - propWidth / 2,
+          y: prop.y - propHeight / 2,
+        };
+        if (
+          isPointInRectangle(
+            point,
+            {
+              x: topLeft.x,
+              y: topLeft.y,
+              width: propWidth,
+              height: propHeight,
+            },
+            radius,
+          )
+        ) {
+          intersectedProps.push(prop.id);
+        }
+      });
+      return intersectedProps;
+    },
+    [placedProps, _gridSize],
+  );
 
   // Get drawings in selection box
   const getDrawingsInSelection = useCallback(
@@ -482,10 +524,14 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
         select: (event) => {
           const drawingsAtPoint = getDrawingsAtPoint(point, 25);
           const tokensAtPoint = getTokensAtPoint(point, 5);
+          const propsAtPoint = getPropsAtPoint(point, 5);
           const isMultiSelectModifier =
             event.shiftKey || event.metaKey || event.ctrlKey;
 
-          const objectToSelect = drawingsAtPoint[0] || tokensAtPoint[0];
+          const objectToSelect =
+            drawingsAtPoint[0] || tokensAtPoint[0] || propsAtPoint[0];
+          const tokenId = tokensAtPoint[0];
+          const propId = propsAtPoint[0];
 
           if (objectToSelect) {
             if (isMultiSelectModifier) {
@@ -496,6 +542,36 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
             } else {
               // Single selection - gameStore will show toolbar if it's a token
               setSelection([objectToSelect]);
+            }
+
+            if (activeScene && tokenId && tokenId === objectToSelect) {
+              const token = placedTokens.find((t) => t.id === tokenId);
+              const canEditToken =
+                isHost || (token && token.placedBy === user.id);
+              const canDrag =
+                !isMultiSelectModifier ||
+                selectedObjectIds.includes(tokenId);
+              if (canEditToken && canDrag) {
+                dragEntityRef.current = {
+                  type: 'token',
+                  id: tokenId,
+                  lastPoint: point,
+                };
+              }
+            } else if (activeScene && propId && propId === objectToSelect) {
+              const prop = placedProps.find((p) => p.id === propId);
+              const canEditProp =
+                isHost || (prop && prop.placedBy === user.id);
+              const canDrag =
+                !isMultiSelectModifier ||
+                selectedObjectIds.includes(propId);
+              if (canEditProp && canDrag) {
+                dragEntityRef.current = {
+                  type: 'prop',
+                  id: propId,
+                  lastPoint: point,
+                };
+              }
             }
           } else {
             // Clicking on empty space
@@ -751,17 +827,21 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
     [
       activeTool,
       screenToScene,
+      isHost,
       selectedObjectIds,
       setSelection,
       clearSelection,
       getDrawingsAtPoint,
       getTokensAtPoint,
+      getPropsAtPoint,
       deleteAndSyncDrawing,
       eraserRadius,
       activeScene,
       createAndSyncDrawing,
       deleteDrawing,
       drawingStyle,
+      placedProps,
+      placedTokens,
       user.id,
       user.name,
       updateDrawing,
@@ -778,6 +858,36 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
       // Disable snap for smooth drawing - only snap if Ctrl/Cmd key is held
       const shouldSnap = e.ctrlKey || e.metaKey;
       const point = screenToScene(e.clientX, e.clientY, shouldSnap);
+
+      const dragEntity = dragEntityRef.current;
+      if (dragEntity && activeScene) {
+        const dx = point.x - dragEntity.lastPoint.x;
+        const dy = point.y - dragEntity.lastPoint.y;
+        if (dragEntity.type === 'token') {
+          const token = getSceneTokens(activeScene.id).find(
+            (item) => item.id === dragEntity.id,
+          );
+          if (token) {
+            moveTokenOptimistic(activeScene.id, dragEntity.id, {
+              x: token.x + dx,
+              y: token.y + dy,
+            });
+          }
+        } else {
+          const prop = getSceneProps(activeScene.id).find(
+            (item) => item.id === dragEntity.id,
+          );
+          if (prop) {
+            movePropOptimistic(activeScene.id, dragEntity.id, {
+              x: prop.x + dx,
+              y: prop.y + dy,
+            });
+          }
+        }
+        dragEntityRef.current = { ...dragEntity, lastPoint: point };
+        e.stopPropagation();
+        return;
+      }
 
       // Measure tool - update measurement line
       if (activeTool === 'measure' && isDrawing && startPoint) {
@@ -832,6 +942,11 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
       getDrawingsAtPoint,
       deleteAndSyncDrawing,
       eraserRadius,
+      activeScene,
+      getSceneTokens,
+      getSceneProps,
+      moveTokenOptimistic,
+      movePropOptimistic,
     ],
   );
 
@@ -841,6 +956,45 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
       // Disable snap for smooth drawing - only snap if Ctrl/Cmd key is held
       const shouldSnap = e.ctrlKey || e.metaKey;
       const endPoint = screenToScene(e.clientX, e.clientY, shouldSnap);
+
+      const dragEntity = dragEntityRef.current;
+      if (dragEntity && activeScene) {
+        if (shouldSnapToGrid && _gridSize > 0) {
+          if (dragEntity.type === 'token') {
+            const token = getSceneTokens(activeScene.id).find(
+              (item) => item.id === dragEntity.id,
+            );
+            if (token) {
+              const snappedX = Math.round(token.x / _gridSize) * _gridSize;
+              const snappedY = Math.round(token.y / _gridSize) * _gridSize;
+              if (snappedX !== token.x || snappedY !== token.y) {
+                moveTokenOptimistic(activeScene.id, dragEntity.id, {
+                  x: snappedX,
+                  y: snappedY,
+                });
+              }
+            }
+          } else {
+            const prop = getSceneProps(activeScene.id).find(
+              (item) => item.id === dragEntity.id,
+            );
+            if (prop) {
+              const snappedX = Math.round(prop.x / _gridSize) * _gridSize;
+              const snappedY = Math.round(prop.y / _gridSize) * _gridSize;
+              if (snappedX !== prop.x || snappedY !== prop.y) {
+                movePropOptimistic(activeScene.id, dragEntity.id, {
+                  x: snappedX,
+                  y: snappedY,
+                });
+              }
+            }
+          }
+        }
+        dragEntityRef.current = null;
+        setIsDrawing(false);
+        e.stopPropagation();
+        return;
+      }
 
       switch (activeTool) {
         case 'select': {
@@ -864,8 +1018,17 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                   token.y <= maxY,
               )
               .map((token) => token.id);
+            const propIds = placedProps
+              .filter(
+                (prop) =>
+                  prop.x >= minX &&
+                  prop.x <= maxX &&
+                  prop.y >= minY &&
+                  prop.y <= maxY,
+              )
+              .map((prop) => prop.id);
 
-            setSelection([...drawingIds, ...tokenIds]);
+            setSelection([...drawingIds, ...tokenIds, ...propIds]);
             setSelectionBox(null);
           }
           setIsDrawing(false);
@@ -988,11 +1151,19 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
       getDrawingsInSelection,
       setSelection,
       drawingStyle,
+      placedProps,
       placedTokens,
       user.id,
       createAndSyncDrawing,
       pencilPath,
       roomCode,
+      _gridSize,
+      shouldSnapToGrid,
+      activeScene,
+      getSceneTokens,
+      getSceneProps,
+      moveTokenOptimistic,
+      movePropOptimistic,
     ],
   );
 

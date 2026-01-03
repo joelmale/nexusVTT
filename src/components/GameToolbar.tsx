@@ -27,7 +27,6 @@ import {
   Square,
   Target,
   Triangle,
-  Users,
   Wand2,
   ZoomIn,
   ZoomOut,
@@ -149,12 +148,6 @@ export const GameToolbar: React.FC = () => {
         id: 'entities',
         label: 'Tokens & Props',
         tools: [
-          {
-            id: 'tokens',
-            icon: <Users size={18} />,
-            label: 'Tokens',
-            tooltip: 'Place and manage tokens',
-          },
           {
             id: 'props',
             icon: <Box size={18} />,

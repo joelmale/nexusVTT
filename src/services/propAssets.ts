@@ -440,9 +440,18 @@ class PropAssetManager {
   /**
    * Generate a placeholder image for a prop
    */
-  private generatePlaceholderPropImage(name: string): string {
-    // Return SVG data URL with prop name initial
-    const initial = name.charAt(0).toUpperCase();
+  private getPlaceholderInitials(label: string): string {
+    const trimmed = label.trim();
+    if (!trimmed) return 'P';
+    const words = trimmed.split(/\s+/);
+    if (words.length === 1) {
+      return words[0].slice(0, 2).toUpperCase();
+    }
+    return `${words[0][0]}${words[1][0]}`.toUpperCase();
+  }
+
+  private pickPlaceholderColor(label: string, color?: string): string {
+    if (color) return color;
     const colors = [
       '#8b7355', // brown
       '#a0522d', // sienna
@@ -450,15 +459,24 @@ class PropAssetManager {
       '#cd853f', // peru
       '#daa520', // goldenrod
       '#b8860b', // darkgoldenrod
+      '#4A9EFF', // blue
+      '#2ECC71', // green
+      '#E67E22', // orange
+      '#9B59B6', // purple
     ];
-    const color = colors[name.length % colors.length];
+    return colors[label.length % colors.length];
+  }
+
+  private generatePlaceholderPropImage(label: string, color?: string): string {
+    const initials = this.getPlaceholderInitials(label);
+    const chosenColor = this.pickPlaceholderColor(label, color);
 
     const svg = `
       <svg xmlns="http://www.w3.org/2000/svg" width="100" height="100">
-        <rect width="100" height="100" fill="${color}"/>
+        <rect width="100" height="100" fill="${chosenColor}"/>
         <text x="50" y="50" font-size="48" font-weight="bold"
               text-anchor="middle" dominant-baseline="central" fill="white">
-          ${initial}
+          ${initials}
         </text>
       </svg>
     `;
@@ -466,18 +484,35 @@ class PropAssetManager {
     return `data:image/svg+xml;base64,${btoa(svg)}`;
   }
 
+  generatePlaceholderImage(label: string, color?: string): string {
+    return this.generatePlaceholderPropImage(label, color);
+  }
+
   /**
    * Get all props from all libraries
    */
   getAllProps(): Prop[] {
-    return this.propLibraries.flatMap((lib) => lib.props);
+    const merged = new Map<string, Prop>();
+    const defaultLibraries = this.propLibraries.filter((lib) => lib.isDefault);
+    const customLibraries = this.propLibraries.filter((lib) => !lib.isDefault);
+
+    defaultLibraries.forEach((library) => {
+      library.props.forEach((prop) => merged.set(prop.id, prop));
+    });
+    customLibraries.forEach((library) => {
+      library.props.forEach((prop) => merged.set(prop.id, prop));
+    });
+
+    return Array.from(merged.values());
   }
 
   /**
    * Get prop by ID
    */
   getPropById(id: string): Prop | null {
-    for (const library of this.propLibraries) {
+    const customLibraries = this.propLibraries.filter((lib) => !lib.isDefault);
+    const defaultLibraries = this.propLibraries.filter((lib) => lib.isDefault);
+    for (const library of [...customLibraries, ...defaultLibraries]) {
       const prop = library.props.find((p) => p.id === id);
       if (prop) return prop;
     }
@@ -513,6 +548,10 @@ class PropAssetManager {
   ): Promise<Prop> {
     const newProp: Prop = {
       ...prop,
+      image:
+        prop.image && prop.image.trim().length > 0
+          ? prop.image
+          : this.generatePlaceholderPropImage(prop.name),
       id: `custom-prop-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
       createdAt: Date.now(),
       updatedAt: Date.now(),
@@ -561,6 +600,64 @@ class PropAssetManager {
       }
     }
     throw new Error(`Prop not found: ${id}`);
+  }
+
+  /**
+   * Update a prop, creating a custom override when modifying default libraries.
+   */
+  async updatePropWithOverride(id: string, updates: Partial<Prop>): Promise<void> {
+    const customLibraries = this.propLibraries.filter((lib) => !lib.isDefault);
+    for (const library of customLibraries) {
+      const propIndex = library.props.findIndex((p) => p.id === id);
+      if (propIndex !== -1) {
+        library.props[propIndex] = {
+          ...library.props[propIndex],
+          ...updates,
+          updatedAt: Date.now(),
+        };
+        await this.saveLibrariesToStorage();
+        console.log('Updated custom prop:', id);
+        return;
+      }
+    }
+
+    const defaultProp = this.getPropById(id);
+    if (!defaultProp) {
+      throw new Error(`Prop not found: ${id}`);
+    }
+
+    const override: Prop = {
+      ...defaultProp,
+      ...updates,
+      isCustom: true,
+      updatedAt: Date.now(),
+    };
+
+    let customLibrary = this.propLibraries.find(
+      (lib) => lib.id === 'custom-props',
+    );
+    if (!customLibrary) {
+      customLibrary = {
+        id: 'custom-props',
+        name: 'Custom Props',
+        description: 'User-created props',
+        isDefault: false,
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        props: [],
+      };
+      this.propLibraries.push(customLibrary);
+    }
+
+    const existingIndex = customLibrary.props.findIndex((p) => p.id === id);
+    if (existingIndex !== -1) {
+      customLibrary.props[existingIndex] = override;
+    } else {
+      customLibrary.props.push(override);
+    }
+
+    await this.saveLibrariesToStorage();
+    console.log('Created custom override for prop:', id);
   }
 
   /**
@@ -665,7 +762,18 @@ export function usePropAssets() {
   const [, forceUpdate] = React.useReducer((x) => x + 1, 0);
 
   React.useEffect(() => {
-    propAssetManager.initialize();
+    let isMounted = true;
+    const init = async () => {
+      await propAssetManager.initialize();
+      await propAssetManager.refreshCustomLibraries();
+      if (isMounted) {
+        forceUpdate();
+      }
+    };
+    init();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   return {
@@ -682,12 +790,14 @@ export function usePropAssets() {
       return result;
     },
     updateProp: async (id: string, updates: Partial<Prop>) => {
-      await propAssetManager.updateProp(id, updates);
+      await propAssetManager.updatePropWithOverride(id, updates);
       forceUpdate();
     },
     deleteProp: async (id: string) => {
       await propAssetManager.deleteProp(id);
       forceUpdate();
     },
+    generatePlaceholderImage: (label: string, color?: string) =>
+      propAssetManager.generatePlaceholderImage(label, color),
   };
 }

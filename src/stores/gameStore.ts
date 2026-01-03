@@ -77,6 +77,7 @@ interface GameStore extends GameState {
   setActiveTab: (tab: TabType) => void;
   applyEvent: (event: GameEvent) => void;
   reset: () => void;
+  resetSessionForExpiredRoom: () => void;
 
   // Auth Actions
   login: (user: User) => void;
@@ -337,6 +338,7 @@ const SESSION_STORAGE_KEY = 'nexus-active-session';
 interface PersistedSession {
   userName: string;
   userType: 'player' | 'host';
+  userId: string; // Store user ID to preserve identity on reconnect
   roomCode: string;
   gameConfig?: GameConfig;
   timestamp: number;
@@ -347,6 +349,7 @@ const saveSessionToStorage = (state: GameStore): void => {
     const session: PersistedSession = {
       userName: state.user.name,
       userType: state.user.type,
+      userId: state.user.id, // Save user ID to preserve host identity
       roomCode: state.session.roomCode,
       gameConfig: state.gameConfig,
       timestamp: Date.now(),
@@ -386,7 +389,7 @@ const loadSessionFromStorage = (): Partial<GameStore> | null => {
       user: {
         name: session.userName,
         type: session.userType,
-        id: getBrowserId(),
+        id: session.userId || getBrowserId(), // Use stored userId to preserve host identity
         color: 'blue',
         connected: false,
       },
@@ -1367,6 +1370,25 @@ export const useGameStore = create<GameStore>()(
             id: getBrowserId(), // Use stable browser ID
           },
         }));
+      },
+      resetSessionForExpiredRoom: () => {
+        const shouldPreserveUser = get().isAuthenticated;
+
+        set((state) => {
+          state.session = null;
+          state.connection = initialState.connection;
+          if (shouldPreserveUser) {
+            state.user.connected = false;
+          } else {
+            state.user = {
+              ...initialState.user,
+              id: getBrowserId(),
+            };
+          }
+        });
+
+        clearSessionFromStorage();
+        sessionPersistenceService.clearAll();
       },
 
       // App Flow Actions (from appFlowStore)
@@ -3173,7 +3195,7 @@ export const useGameStore = create<GameStore>()(
               recoveryData = {
                 session: {
                   roomCode: activeSession.roomCode,
-                  userId: getBrowserId(),
+                  userId: activeSession.userId || getBrowserId(), // Use stored userId to preserve host identity
                   userType: activeSession.userType,
                   userName: activeSession.userName,
                   lastActivity: activeSession.timestamp,

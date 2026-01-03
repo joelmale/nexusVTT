@@ -1,6 +1,8 @@
 import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import { usePropAssets } from '@/services/propAssets';
 import type { Prop, PropCategory } from '@/types/prop';
+import { useIsHost } from '@/stores/gameStore';
+import { PropCreationPanel } from './PropCreationPanel';
 
 interface PropPanelProps {
   onPropSelect?: (prop: Prop) => void;
@@ -21,8 +23,11 @@ const CATEGORIES: { value: PropCategory | 'all'; label: string; icon: string }[]
 
 export const PropPanel: React.FC<PropPanelProps> = ({ onPropSelect }) => {
   const { getAllProps } = usePropAssets();
+  const isHost = useIsHost();
   const [searchQuery, setSearchQuery] = useState('');
   const deferredSearchQuery = useDeferredValue(searchQuery);
+  const [isCreationOpen, setIsCreationOpen] = useState(false);
+  const [editingProp, setEditingProp] = useState<Prop | null>(null);
 
   const [activeCategory, setActiveCategory] = useState<PropCategory | 'all'>(() => {
     const saved = localStorage.getItem('propPanel.activeCategory');
@@ -94,9 +99,32 @@ export const PropPanel: React.FC<PropPanelProps> = ({ onPropSelect }) => {
     <div className="prop-panel" style={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
       {/* Header */}
       <div style={{ padding: '1rem', borderBottom: '1px solid var(--border-color, #444)' }}>
-        <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', color: 'var(--text-primary)' }}>
-          🎭 Props
-        </h2>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <h2 style={{ margin: '0 0 1rem 0', fontSize: '1.25rem', color: 'var(--text-primary)' }}>
+            🎭 Props
+          </h2>
+          {isHost && (
+            <button
+              onClick={() => {
+                setEditingProp(null);
+                setIsCreationOpen(true);
+              }}
+              style={{
+                padding: '0.4rem 0.75rem',
+                borderRadius: '6px',
+                border: '1px solid var(--border-color, #444)',
+                background: 'var(--color-primary, #4A9EFF)',
+                color: '#fff',
+                cursor: 'pointer',
+                fontSize: '0.8rem',
+                fontWeight: 600,
+                marginBottom: '0.5rem',
+              }}
+            >
+              + Add Prop
+            </button>
+          )}
+        </div>
 
         {/* Search */}
         <input
@@ -196,6 +224,7 @@ export const PropPanel: React.FC<PropPanelProps> = ({ onPropSelect }) => {
                 flexDirection: 'column',
                 alignItems: 'center',
                 gap: '0.5rem',
+                position: 'relative',
               }}
               onMouseEnter={(e) => {
                 e.currentTarget.style.borderColor = 'var(--color-primary, #4A9EFF)';
@@ -206,6 +235,31 @@ export const PropPanel: React.FC<PropPanelProps> = ({ onPropSelect }) => {
                 e.currentTarget.style.transform = 'translateY(0)';
               }}
             >
+              {isHost && (
+                <button
+                  onMouseDown={(e) => e.stopPropagation()}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setEditingProp(prop);
+                    setIsCreationOpen(true);
+                  }}
+                  style={{
+                    position: 'absolute',
+                    top: '6px',
+                    right: '6px',
+                    padding: '4px 6px',
+                    borderRadius: '6px',
+                    border: '1px solid var(--border-color, #444)',
+                    background: 'var(--bg-tertiary, #1a1a1a)',
+                    color: 'var(--text-primary, #fff)',
+                    cursor: 'pointer',
+                    fontSize: '0.65rem',
+                  }}
+                  aria-label={`Edit ${prop.name}`}
+                >
+                  Edit
+                </button>
+              )}
               <img
                 src={prop.image}
                 alt={prop.name}
@@ -252,6 +306,21 @@ export const PropPanel: React.FC<PropPanelProps> = ({ onPropSelect }) => {
       }}>
         {filteredProps.length} prop{filteredProps.length !== 1 ? 's' : ''} • Drag to canvas to place
       </div>
+
+      {isHost && isCreationOpen && (
+        <PropCreationPanel
+          isOpen={isCreationOpen}
+          initialData={editingProp || undefined}
+          onClose={() => {
+            setIsCreationOpen(false);
+            setEditingProp(null);
+          }}
+          onPropSaved={() => {
+            setIsCreationOpen(false);
+            setEditingProp(null);
+          }}
+        />
+      )}
     </div>
   );
 };

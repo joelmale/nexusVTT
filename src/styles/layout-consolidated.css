@@ -67,6 +67,9 @@
 
 .header-left {
   flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
 }
 
 .header-center {
@@ -1061,6 +1064,20 @@
   align-items: center;
   gap: var(--spacing-2);
   flex-shrink: 0;
+}
+
+.player-bar .player-actions {
+  flex-direction: row;
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.header-player-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .host-badge {

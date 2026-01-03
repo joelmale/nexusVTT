@@ -11,10 +11,7 @@ import { tokenAssetManager } from '@/services/tokenAssets';
 import { propAssetManager } from '@/services/propAssets';
 
 export const PlayerBar: React.FC = () => {
-  const { session, user, sceneState, gameConfig, replaceScenesFromBackup } =
-    useGameStore();
-  const [isSaving, setIsSaving] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const { session, user } = useGameStore();
 
   if (!session) return null;
 
@@ -22,7 +19,43 @@ export const PlayerBar: React.FC = () => {
   const otherPlayers = (session.players ?? []).filter(
     (player) => player.id !== user.id,
   );
-  const isHost = user.type === 'host';
+
+  return (
+    <div className="player-bar">
+      <div className="connected-players">
+        {currentPlayer && (
+          <div key={currentPlayer.id} className="player-indicator current-user">
+            <span className="player-avatar">
+              {currentPlayer.name[0].toUpperCase()}
+            </span>
+            <span className="player-name">{currentPlayer.name}</span>
+            {currentPlayer.type === 'host' && (
+              <span className="host-badge">DM</span>
+            )}
+          </div>
+        )}
+
+        {otherPlayers.map((player) => (
+          <div key={player.id} className="player-indicator">
+            <span className="player-avatar">
+              {player.name[0].toUpperCase()}
+            </span>
+            <span className="player-name">{player.name}</span>
+            {player.type === 'host' && <span className="host-badge">DM</span>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export const PlayerActions: React.FC = () => {
+  const { session, user, sceneState, gameConfig, replaceScenesFromBackup } =
+    useGameStore();
+  const [isSaving, setIsSaving] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+
+  if (!session || user.type !== 'host') return null;
 
   const persistCampaignScenes = async (scenes: unknown[]) => {
     if (!session.campaignId) return;
@@ -40,7 +73,7 @@ export const PlayerBar: React.FC = () => {
   };
 
   const handleSave = async () => {
-    if (!isHost || isSaving) return;
+    if (isSaving) return;
     setIsSaving(true);
     try {
       const backup = buildCampaignBackup({
@@ -53,7 +86,10 @@ export const PlayerBar: React.FC = () => {
         },
       });
 
-      downloadCampaignBackup(backup, buildCampaignBackupFilename(gameConfig?.name));
+      downloadCampaignBackup(
+        backup,
+        buildCampaignBackupFilename(gameConfig?.name),
+      );
       await persistCampaignScenes(backup.scenes);
       console.log('💾 Campaign backup exported');
     } catch (error) {
@@ -65,7 +101,7 @@ export const PlayerBar: React.FC = () => {
   };
 
   const handleLoad = async () => {
-    if (!isHost || isLoading) return;
+    if (isLoading) return;
 
     const input = document.createElement('input');
     input.type = 'file';
@@ -105,53 +141,25 @@ export const PlayerBar: React.FC = () => {
   };
 
   return (
-    <div className="player-bar">
-      <div className="connected-players">
-        {currentPlayer && (
-          <div key={currentPlayer.id} className="player-indicator current-user">
-            <span className="player-avatar">
-              {currentPlayer.name[0].toUpperCase()}
-            </span>
-            <span className="player-name">{currentPlayer.name}</span>
-            {currentPlayer.type === 'host' && (
-              <span className="host-badge">DM</span>
-            )}
-          </div>
-        )}
-
-        {isHost && (
-          <div className="player-actions">
-            <button
-              type="button"
-              className="glass-button small"
-              onClick={handleSave}
-              disabled={isSaving}
-              title="Save and download a campaign backup"
-            >
-              {isSaving ? 'Saving...' : '💾 Save'}
-            </button>
-            <button
-              type="button"
-              className="glass-button small secondary"
-              onClick={handleLoad}
-              disabled={isLoading}
-              title="Load a campaign backup"
-            >
-              {isLoading ? 'Loading...' : '📂 Load'}
-            </button>
-          </div>
-        )}
-
-        {otherPlayers.map((player) => (
-          <div key={player.id} className="player-indicator">
-            <span className="player-avatar">
-              {player.name[0].toUpperCase()}
-            </span>
-            <span className="player-name">{player.name}</span>
-            {player.type === 'host' && <span className="host-badge">DM</span>}
-          </div>
-        ))}
-      </div>
+    <div className="header-player-actions">
+      <button
+        type="button"
+        className="glass-button small"
+        onClick={handleSave}
+        disabled={isSaving}
+        title="Save and download a campaign backup"
+      >
+        {isSaving ? 'Saving...' : '💾 Save'}
+      </button>
+      <button
+        type="button"
+        className="glass-button small secondary"
+        onClick={handleLoad}
+        disabled={isLoading}
+        title="Load a campaign backup"
+      >
+        {isLoading ? 'Loading...' : '📂 Load'}
+      </button>
     </div>
   );
 };

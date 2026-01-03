@@ -22,7 +22,7 @@ import {
 import { SceneCanvas } from './Scene/SceneCanvas';
 import { SceneTabs } from './Scene/SceneTabs';
 import { GameToolbar } from './GameToolbar';
-import { PlayerBar } from './PlayerBar';
+import { PlayerBar, PlayerActions } from './PlayerBar';
 import { ContextPanel } from './ContextPanel';
 
 // Lazy load heavy panels
@@ -283,6 +283,7 @@ export const GameUI: React.FC = () => {
       <div className="layout-header">
         <div className="header-left">
           <PlayerBar />
+          <PlayerActions />
         </div>
 
         <div className="header-right">
