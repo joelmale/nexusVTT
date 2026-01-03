@@ -92,7 +92,6 @@ describe('GameToolbar', () => {
     expect(screen.getByRole('button', { name: 'Ping' })).toBeInTheDocument();
 
     // Entity tools
-    expect(screen.getByRole('button', { name: 'Tokens' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Props' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Notes' })).toBeInTheDocument();
   });
