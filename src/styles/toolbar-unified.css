@@ -91,26 +91,183 @@
 }
 
 /* ==========================================================================
-   MAIN TOOLBAR CONTAINER (Modify this existing rule)
+   MAIN TOOLBAR CONTAINER
    ========================================================================== */
 .game-toolbar {
-  display: grid;
-  grid-template-rows: auto auto;
-  gap: 4px;
-  padding: 4px;
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
   background-color: var(--glass-surface-strong);
   backdrop-filter: var(--glass-blur-strong);
   -webkit-backdrop-filter: var(--glass-blur-strong);
   border: 1px solid var(--glass-border);
-  border-radius: 8px;
+  border-radius: 10px;
   pointer-events: auto;
   align-self: center;
 }
 
-.toolbar-row {
+.game-toolbar.vertical {
+  flex-direction: row;
+  max-height: 80vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.game-toolbar.vertical .toolbar-section {
+  flex-direction: column;
+}
+
+.game-toolbar.vertical .toolbar-group {
+  flex-direction: column;
+}
+
+.game-toolbar.vertical .toolbar-group-separator {
+  width: 100%;
+  height: 1px;
+  margin: 6px 0;
+}
+
+/* Drag Handle */
+.toolbar-drag-handle {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: grab;
+  color: rgba(255, 255, 255, 0.3);
+  border-right: 1px solid rgba(255, 255, 255, 0.1);
+  transition: all 0.2s ease;
+}
+
+.toolbar-drag-handle:hover {
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.6);
+}
+
+.toolbar-drag-handle:active {
+  cursor: grabbing;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.game-toolbar.horizontal {
+  padding-left: 28px;
+}
+
+.game-toolbar.vertical .toolbar-drag-handle {
+  left: 0;
+  right: 0;
+  top: 0;
+  bottom: auto;
+  width: auto;
+  height: 20px;
+  border-right: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.game-toolbar.vertical {
+  padding-left: 6px;
+  padding-top: 28px;
+}
+
+/* Orientation Toggle */
+.toolbar-orientation-toggle {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 4px;
+  color: rgba(255, 255, 255, 0.5);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.toolbar-orientation-toggle:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.8);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+/* Toolbar Sections */
+.toolbar-section {
+  display: flex;
+  flex-direction: row;
+  gap: 6px;
+  align-items: center;
+}
+
+.toolbar-section.main-tools {
+  justify-content: flex-start;
+}
+
+.toolbar-section.spell-tools {
+  justify-content: space-between;
+}
+
+/* Toolbar Groups */
+.toolbar-group {
   display: flex;
   flex-direction: row;
   gap: 4px;
+  align-items: center;
+}
+
+.toolbar-group.zoom-controls {
+  margin-left: auto;
+}
+
+/* Spell Effects Grid - 3 columns x 2 rows */
+.toolbar-group.spell-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 40px);
+  grid-template-rows: repeat(2, 40px);
+  gap: 4px;
+}
+
+.game-toolbar.vertical .toolbar-group.spell-grid {
+  grid-template-columns: repeat(2, 40px);
+  grid-template-rows: repeat(3, 40px);
+}
+
+/* Group Separators */
+.toolbar-group-separator {
+  width: 1px;
+  height: 32px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 255, 255, 0.25) 20%,
+    rgba(255, 255, 255, 0.25) 80%,
+    transparent
+  );
+  margin: 0 8px;
+  align-self: center;
+}
+
+/* Smaller separator for within sections */
+.toolbar-separator {
+  width: 1px;
+  height: 32px;
+  background: linear-gradient(
+    to bottom,
+    transparent,
+    rgba(255, 255, 255, 0.12) 20%,
+    rgba(255, 255, 255, 0.12) 80%,
+    transparent
+  );
+  margin: 0 4px;
+  align-self: center;
 }
 
 /* ==========================================================================
@@ -160,26 +317,48 @@
 }
 
 .toolbar-btn.active {
-  background: linear-gradient(135deg, var(--color-primary), rgba(var(--color-primary-rgb, 0, 188, 212), 0.8));
-  border: 2px solid var(--color-primary);
+  background: linear-gradient(
+    135deg,
+    rgba(0, 188, 212, 0.95),
+    rgba(0, 150, 170, 0.95)
+  );
+  border: 2px solid rgba(0, 188, 212, 0.8);
   color: white;
   box-shadow:
-    inset 0 1px 2px rgba(255, 255, 255, 0.3),
-    0 0 0 2px rgba(var(--color-primary-rgb, 0, 188, 212), 0.2),
-    0 4px 12px rgba(var(--color-primary-rgb, 0, 188, 212), 0.4);
-  transform: translateY(0);
+    inset 0 2px 4px rgba(255, 255, 255, 0.25),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.2),
+    0 0 0 3px rgba(0, 188, 212, 0.25),
+    0 0 16px rgba(0, 188, 212, 0.6),
+    0 4px 12px rgba(0, 0, 0, 0.4);
+  transform: scale(1.02);
   font-weight: 600;
-  animation: activePulse 2s ease-in-out infinite;
+  animation: activePulse 3s ease-in-out infinite;
+  position: relative;
+}
+
+.toolbar-btn.active::before {
+  content: '';
+  position: absolute;
+  inset: -2px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, transparent, rgba(0, 188, 212, 0.3));
+  pointer-events: none;
 }
 
 .toolbar-btn.active:hover {
-  background: linear-gradient(135deg, var(--color-primary), rgba(var(--color-primary-rgb, 0, 188, 212), 0.9));
-  transform: translateY(-1px);
+  background: linear-gradient(
+    135deg,
+    rgba(0, 200, 225, 1),
+    rgba(0, 160, 180, 1)
+  );
+  transform: translateY(-1px) scale(1.05);
   box-shadow:
-    inset 0 1px 2px rgba(255, 255, 255, 0.4),
-    0 0 0 2px rgba(var(--color-primary-rgb, 0, 188, 212), 0.3),
-    0 6px 16px rgba(var(--color-primary-rgb, 0, 188, 212), 0.5);
-  animation: none; /* Stop pulse animation on hover */
+    inset 0 2px 4px rgba(255, 255, 255, 0.3),
+    inset 0 -2px 4px rgba(0, 0, 0, 0.15),
+    0 0 0 3px rgba(0, 188, 212, 0.4),
+    0 0 20px rgba(0, 188, 212, 0.8),
+    0 6px 16px rgba(0, 0, 0, 0.5);
+  animation: none;
 }
 
 .toolbar-btn.disabled {
@@ -509,15 +688,19 @@
 @keyframes activePulse {
   0%, 100% {
     box-shadow:
-      inset 0 1px 2px rgba(255, 255, 255, 0.3),
-      0 0 0 2px rgba(var(--color-primary-rgb, 0, 188, 212), 0.2),
-      0 4px 12px rgba(var(--color-primary-rgb, 0, 188, 212), 0.4);
+      inset 0 2px 4px rgba(255, 255, 255, 0.25),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.2),
+      0 0 0 3px rgba(0, 188, 212, 0.25),
+      0 0 16px rgba(0, 188, 212, 0.6),
+      0 4px 12px rgba(0, 0, 0, 0.4);
   }
   50% {
     box-shadow:
-      inset 0 1px 2px rgba(255, 255, 255, 0.3),
-      0 0 0 3px rgba(var(--color-primary-rgb, 0, 188, 212), 0.4),
-      0 4px 16px rgba(var(--color-primary-rgb, 0, 188, 212), 0.6);
+      inset 0 2px 4px rgba(255, 255, 255, 0.25),
+      inset 0 -2px 4px rgba(0, 0, 0, 0.2),
+      0 0 0 4px rgba(0, 188, 212, 0.35),
+      0 0 24px rgba(0, 188, 212, 0.8),
+      0 4px 16px rgba(0, 0, 0, 0.4);
   }
 }
 

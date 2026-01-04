@@ -12,9 +12,7 @@ import {
   useActiveTool,
 } from '@/stores/gameStore';
 import {
-  Box,
   Circle,
-  Compass,
   Eraser,
   Grid3x3,
   Hand,
@@ -24,13 +22,18 @@ import {
   MousePointer2,
   Pencil,
   Ruler,
-  Sparkles,
   Square,
   Target,
   Triangle,
-  Wand2,
   ZoomIn,
   ZoomOut,
+  Disc,
+  Play,
+  Flame,
+  Maximize2,
+  Drama,
+  Divide,
+  GripVertical,
 } from 'lucide-react';
 
 interface ToolbarItem {
@@ -50,6 +53,25 @@ interface ToolbarGroup {
   tools: ToolbarItem[];
 }
 
+const NoteIcon: React.FC = () => (
+  <svg
+    aria-hidden="true"
+    width="18"
+    height="18"
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="M14 2H7a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V7z" />
+    <path d="M14 2v5h5" />
+    <path d="M8 16l2.5-.5L17 9l-2.5-2.5L8 13z" />
+    <path d="M13.5 6.5L16 9" />
+  </svg>
+);
+
 export const GameToolbar: React.FC = () => {
   const activeTool = useActiveTool();
   const isHost = useIsHost();
@@ -57,6 +79,7 @@ export const GameToolbar: React.FC = () => {
   const camera = useCamera();
   const toolbarRef = useRef<HTMLDivElement>(null);
   const [hoveredTool, setHoveredTool] = useState<ToolbarItem | null>(null);
+  const [isVertical, setIsVertical] = useState(false);
 
   const handleZoomIn = useCallback(
     () => updateCamera({ zoom: Math.min(5.0, camera.zoom * 1.2) }),
@@ -150,16 +173,58 @@ export const GameToolbar: React.FC = () => {
         label: 'Tokens & Props',
         tools: [
           {
-            id: 'props',
-            icon: <Box size={18} />,
-            label: 'Props',
-            tooltip: 'Place and edit props',
-          },
-          {
             id: 'note',
-            icon: <Compass size={18} />,
+            icon: <NoteIcon />,
             label: 'Notes',
             tooltip: 'Add notes/markers',
+          },
+        ],
+      },
+      {
+        id: 'spells',
+        label: 'Spell Effects',
+        tools: [
+          {
+            id: 'spell-circle',
+            icon: <Flame size={18} />,
+            label: 'Sphere',
+            tooltip: 'Sphere AOE (Fireball, Silence, Darkness)',
+          },
+          {
+            id: 'spell-ring',
+            icon: <Disc size={18} />,
+            label: 'Ring',
+            tooltip: 'Ring AOE (Auras, Wards)',
+          },
+          {
+            id: 'spell-cone',
+            icon: <Triangle size={18} />,
+            label: 'Cone',
+            tooltip: 'Cone AOE (Burning Hands, Cone of Cold)',
+          },
+        ],
+      },
+      {
+        id: 'spells-2',
+        label: 'Spell Effects (cont)',
+        tools: [
+          {
+            id: 'spell-line',
+            icon: <Minus size={18} />,
+            label: 'Line',
+            tooltip: 'Line AOE (Lightning Bolt, Wall of Fire)',
+          },
+          {
+            id: 'spell-square',
+            icon: <Square size={18} />,
+            label: 'Cube',
+            tooltip: 'Cube AOE (Web, Grease, Cloudkill)',
+          },
+          {
+            id: 'spell-triangle',
+            icon: <Play size={18} />,
+            label: 'Wedge',
+            tooltip: 'Wedge AOE (Alternative cone)',
           },
         ],
       },
@@ -167,42 +232,61 @@ export const GameToolbar: React.FC = () => {
     [],
   );
 
-  const dmToolGroup: ToolbarGroup | null = useMemo(
+  const dmMaskGroup: ToolbarGroup | null = useMemo(
     () =>
       isHost
         ? {
-            id: 'dm',
-            label: 'DM Tools',
+            id: 'dm-mask',
+            label: 'Fog of War',
             tools: [
               {
                 id: 'mask-create',
-                icon: <Sparkles size={18} />,
+                icon: <Drama size={18} />,
                 label: 'Create Mask',
+                tooltip: 'Draw fog of war mask',
               },
               {
                 id: 'mask-toggle',
-                icon: <Wand2 size={18} />,
+                icon: <Divide size={18} />,
                 label: 'Toggle Mask',
+                tooltip: 'Toggle mask visibility',
               },
               {
                 id: 'mask-remove',
                 icon: <Eraser size={18} />,
                 label: 'Remove Mask',
+                tooltip: 'Erase fog of war',
               },
               {
                 id: 'mask-show',
                 icon: <Eye size={18} />,
                 label: 'Reveal Scene',
+                tooltip: 'Reveal entire scene to players',
               },
               {
                 id: 'mask-hide',
                 icon: <EyeOff size={18} />,
                 label: 'Hide Scene',
+                tooltip: 'Hide entire scene from players',
               },
+            ],
+          }
+        : null,
+    [isHost],
+  );
+
+  const dmUtilityGroup: ToolbarGroup | null = useMemo(
+    () =>
+      isHost
+        ? {
+            id: 'dm-utility',
+            label: 'DM Utilities',
+            tools: [
               {
                 id: 'grid-align',
                 icon: <Grid3x3 size={18} />,
                 label: 'Grid Alignment',
+                tooltip: 'Align grid to map',
               },
             ],
           }
@@ -251,7 +335,8 @@ export const GameToolbar: React.FC = () => {
       const key = e.key.toUpperCase();
       const allTools = [
         ...toolGroups.flatMap((g) => g.tools),
-        ...(dmToolGroup ? dmToolGroup.tools : []),
+        ...(dmMaskGroup ? dmMaskGroup.tools : []),
+        ...(dmUtilityGroup ? dmUtilityGroup.tools : []),
       ];
       const tool = allTools.find(
         (t) =>
@@ -268,7 +353,7 @@ export const GameToolbar: React.FC = () => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveTool, toolGroups, dmToolGroup]);
+  }, [setActiveTool, toolGroups, dmMaskGroup, dmUtilityGroup]);
 
   const renderToolButton = (tool: ToolbarItem) => {
     return (
@@ -312,17 +397,80 @@ export const GameToolbar: React.FC = () => {
 
       <div
         ref={toolbarRef}
-        className="game-toolbar"
+        className={`game-toolbar ${isVertical ? 'vertical' : 'horizontal'}`}
         role="toolbar"
         onMouseLeave={() => setHoveredTool(null)}
       >
-        <div className="toolbar-row">
-          {toolGroups.flatMap((g) => g.tools).map(renderToolButton)}
+        {/* Drag Handle */}
+        <div className="toolbar-drag-handle" title="Drag to reposition">
+          <GripVertical size={16} />
         </div>
-        <div className="toolbar-row">
-          {isHost && dmToolGroup && dmToolGroup.tools.map(renderToolButton)}
-          {cameraControls.map(renderToolButton)}
+
+        {/* Main Tool Groups */}
+        <div className="toolbar-section main-tools">
+          {/* Navigation Tools */}
+          <div className="toolbar-group">
+            {toolGroups[0].tools.map(renderToolButton)}
+          </div>
+
+          <div className="toolbar-group-separator" />
+
+          {/* Drawing Tools */}
+          <div className="toolbar-group">
+            {toolGroups[1].tools.map(renderToolButton)}
+          </div>
+
+          <div className="toolbar-group-separator" />
+
+          {/* Entity & Props Tools */}
+          <div className="toolbar-group">
+            {toolGroups[2].tools.map(renderToolButton)}
+          </div>
         </div>
+
+        {/* Spell Effects Grid */}
+        <div className="toolbar-section spell-tools">
+          <div className="toolbar-group spell-grid">
+            {toolGroups[3].tools.map(renderToolButton)}
+            {toolGroups[4].tools.map(renderToolButton)}
+          </div>
+
+          {/* DM Mask Tools */}
+          {isHost && dmMaskGroup && (
+            <>
+              <div className="toolbar-group-separator" />
+              <div className="toolbar-group dm-tools">
+                {dmMaskGroup.tools.map(renderToolButton)}
+              </div>
+            </>
+          )}
+
+          {/* DM Utility Tools */}
+          {isHost && dmUtilityGroup && (
+            <>
+              <div className="toolbar-group-separator" />
+              <div className="toolbar-group dm-tools">
+                {dmUtilityGroup.tools.map(renderToolButton)}
+              </div>
+            </>
+          )}
+
+          {/* Zoom Controls - Right Aligned */}
+          <div className="toolbar-group-separator" />
+          <div className="toolbar-group zoom-controls">
+            {cameraControls.map(renderToolButton)}
+          </div>
+        </div>
+
+        {/* Vertical Toggle */}
+        <button
+          className="toolbar-orientation-toggle"
+          onClick={() => setIsVertical(!isVertical)}
+          title={isVertical ? 'Switch to horizontal' : 'Switch to vertical'}
+          aria-label="Toggle toolbar orientation"
+        >
+          <Maximize2 size={14} />
+        </button>
       </div>
     </>
   );

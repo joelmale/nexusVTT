@@ -1,0 +1,271 @@
+/**
+ * Spell Overlay Animations
+ *
+ * Provides CSS animations for spell effect overlays.
+ * Features subtle, ambient animations that enhance visual appeal without being distracting.
+ *
+ * Animation types:
+ * - Opacity pulsing (3 speeds: slow, medium, fast)
+ * - Texture panning (for organic movement)
+ * - Edge shimmer (for lightning/radiant effects)
+ * - Element-specific combinations
+ */
+
+/* ==================== PULSE ANIMATIONS ==================== */
+/* Gentle opacity pulsing for ambient "alive" feel */
+
+@keyframes spell-pulse-slow {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.92;
+  }
+}
+
+@keyframes spell-pulse-medium {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.85;
+  }
+}
+
+@keyframes spell-pulse-fast {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+/* ==================== TEXTURE PANNING ANIMATIONS ==================== */
+/* Slow movement of texture patterns for organic feel */
+
+@keyframes spell-texture-pan-slow {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(100px, 100px);
+  }
+}
+
+@keyframes spell-texture-pan-medium {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(80px, 80px);
+  }
+}
+
+@keyframes spell-texture-pan-fast {
+  0% {
+    transform: translate(0, 0);
+  }
+  100% {
+    transform: translate(60px, 60px);
+  }
+}
+
+/* ==================== SHIMMER ANIMATIONS ==================== */
+/* Brightness variations for lightning/radiant effects */
+
+@keyframes spell-shimmer {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.3);
+  }
+}
+
+@keyframes spell-shimmer-intense {
+  0%,
+  100% {
+    filter: brightness(1);
+  }
+  50% {
+    filter: brightness(1.5);
+  }
+}
+
+/* ==================== GLOW PULSE ANIMATIONS ==================== */
+/* Pulsing glow effect using drop-shadow */
+
+@keyframes spell-glow-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px currentColor);
+  }
+  50% {
+    filter: drop-shadow(0 0 8px currentColor);
+  }
+}
+
+@keyframes spell-glow-pulse-intense {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 6px currentColor);
+  }
+  50% {
+    filter: drop-shadow(0 0 12px currentColor);
+  }
+}
+
+/* ==================== BASE SPELL OVERLAY STYLES ==================== */
+
+.spell-overlay {
+  /* Ensure overlays render smoothly */
+  transform-origin: center;
+  will-change: opacity, transform, filter;
+
+  /* Smooth transitions for hover/selection states */
+  transition:
+    opacity 0.3s ease,
+    filter 0.3s ease;
+}
+
+/* ==================== PULSE SPEED CLASSES ==================== */
+
+.spell-overlay.pulse-slow {
+  animation: spell-pulse-slow 5s ease-in-out infinite;
+}
+
+.spell-overlay.pulse-medium {
+  animation: spell-pulse-medium 3s ease-in-out infinite;
+}
+
+.spell-overlay.pulse-fast {
+  animation: spell-pulse-fast 2s ease-in-out infinite;
+}
+
+/* ==================== TEXTURE PANNING CLASSES ==================== */
+
+.spell-overlay.texture-pan-slow {
+  animation: spell-texture-pan-slow 50s linear infinite;
+}
+
+.spell-overlay.texture-pan-medium {
+  animation: spell-texture-pan-medium 40s linear infinite;
+}
+
+.spell-overlay.texture-pan-fast {
+  animation: spell-texture-pan-fast 30s linear infinite;
+}
+
+/* ==================== ELEMENT-SPECIFIC ANIMATION COMBOS ==================== */
+
+/* Fire: Fast pulse only (texture panning removed to prevent drifting) */
+.spell-overlay.element-fire {
+  animation: spell-pulse-fast 2s ease-in-out infinite;
+}
+
+/* Cold: Slow pulse (gentle, calm) */
+.spell-overlay.element-cold {
+  animation: spell-pulse-slow 5s ease-in-out infinite;
+}
+
+/* Lightning: Fast pulse + intense shimmer */
+.spell-overlay.element-lightning {
+  animation:
+    spell-pulse-fast 1.5s ease-in-out infinite,
+    spell-shimmer-intense 1s ease-in-out infinite;
+}
+
+/* Poison: Medium pulse only (texture panning removed to prevent drifting) */
+.spell-overlay.element-poison {
+  animation: spell-pulse-medium 3.5s ease-in-out infinite;
+}
+
+/* Acid: Medium pulse only (texture panning removed to prevent drifting) */
+.spell-overlay.element-acid {
+  animation: spell-pulse-medium 3s ease-in-out infinite;
+}
+
+/* Necrotic: Slow pulse (ominous, heavy) */
+.spell-overlay.element-necrotic {
+  animation: spell-pulse-slow 6s ease-in-out infinite;
+}
+
+/* Radiant: Medium pulse + shimmer (bright, holy) */
+.spell-overlay.element-radiant {
+  animation:
+    spell-pulse-medium 2.5s ease-in-out infinite,
+    spell-shimmer 2s ease-in-out infinite;
+}
+
+/* Psychic: Medium pulse (pulsing mind energy) */
+.spell-overlay.element-psychic {
+  animation: spell-pulse-medium 3.5s ease-in-out infinite;
+}
+
+/* Arcane: Medium pulse only (texture panning removed to prevent drifting) */
+.spell-overlay.element-arcane {
+  animation: spell-pulse-medium 4s ease-in-out infinite;
+}
+
+/* Force: Medium pulse (raw magical energy) */
+.spell-overlay.element-force {
+  animation: spell-pulse-medium 3s ease-in-out infinite;
+}
+
+/* Thunder: Fast pulse (booming, powerful) */
+.spell-overlay.element-thunder {
+  animation: spell-pulse-fast 2.5s ease-in-out infinite;
+}
+
+/* ==================== INTERACTION STATES ==================== */
+
+/* Hover state (when using select tool) */
+.spell-overlay:hover {
+  opacity: 1 !important;
+  filter: brightness(1.2);
+  cursor: pointer;
+}
+
+/* Selected state */
+.spell-overlay.selected {
+  opacity: 1 !important;
+  filter: brightness(1.3) drop-shadow(0 0 8px rgba(255, 255, 255, 0.8));
+}
+
+/* Preview state (while drawing) */
+.spell-overlay.preview {
+  opacity: 0.5;
+  pointer-events: none;
+  animation: spell-pulse-medium 1.5s ease-in-out infinite;
+}
+
+/* ==================== PERFORMANCE OPTIMIZATIONS ==================== */
+
+/* Reduce animations on low-performance devices */
+@media (prefers-reduced-motion: reduce) {
+  .spell-overlay {
+    animation: none !important;
+  }
+
+  .spell-overlay:not(:hover):not(.selected) {
+    transition: none;
+  }
+}
+
+/* Pause animations when off-screen (browser optimization hint) */
+.spell-overlay {
+  contain: layout style paint;
+}
+
+/* ==================== Z-INDEX MANAGEMENT ==================== */
+
+/* Ensure spell overlays layer correctly */
+.spell-overlay-layer {
+  position: relative;
+  z-index: 10; /* Above background/grid, below tokens */
+}

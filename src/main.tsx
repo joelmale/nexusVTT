@@ -28,6 +28,8 @@ const AdminPage = React.lazy(() =>
 import './styles/critical-bundle.css';
 import './styles/utilities.css';
 import './styles/accessibility.css';
+import './styles/spell-overlays.css';
+import './styles/spell-overlay-properties.css';
 import {
   logCSSLoadingReport,
   getCSSLoadStats,
