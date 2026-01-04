@@ -82,7 +82,10 @@ export const SceneTabs: React.FC<SceneTabsProps> = React.memo(
       createScene(defaultScene);
     };
 
-    const handleDeleteScene = (sceneId: string, e: React.MouseEvent) => {
+    const handleDeleteScene = (
+      sceneId: string,
+      e: React.SyntheticEvent<Element>,
+    ) => {
       e.stopPropagation();
       if (
         scenes.length > 1 &&
