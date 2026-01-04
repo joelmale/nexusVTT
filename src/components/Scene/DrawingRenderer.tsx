@@ -1,6 +1,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useActiveScene } from '@/stores/gameStore';
 import type { Drawing, BaseDrawing } from '@/types/drawing';
+import { ELEMENT_THEMES } from '@/types/drawing';
 import type { Camera } from '@/types/game';
 
 interface DrawingRendererProps {
@@ -106,7 +107,32 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
     const isSelected = selectedObjectIds.includes(drawing.id);
 
     // Make drawings interactive only during select tool
-    const isInteractive = activeTool === 'select' && onDrawingClick;
+    const isInteractive = activeTool === 'select' && !!onDrawingClick;
+
+    // Debug logging for spell overlays
+    const isSpellOverlay = drawing.type.startsWith('spell-');
+    if (isSpellOverlay) {
+      console.log('🔮 Rendering spell overlay:', {
+        id: drawing.id,
+        type: drawing.type,
+        activeTool,
+        isInteractive,
+        hasOnDrawingClick: !!onDrawingClick,
+        isSelected,
+      });
+    }
+
+    const handleClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+      console.log('🎨 Drawing clicked:', drawing.id, drawing.type, {
+        target: e.target,
+        currentTarget: e.currentTarget,
+        isInteractive,
+      });
+      if (onDrawingClick) {
+        onDrawingClick(drawing.id, e);
+      }
+    };
 
     const commonProps = {
       fill: style.fillColor,
@@ -117,10 +143,9 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       className: `drawing drawing-${drawing.type} ${drawing.layer}${isSelected ? ' selected' : ''}`,
       'data-drawing-id': drawing.id,
       'data-created-by': drawing.createdBy,
-      onClick: isInteractive ? (e: React.MouseEvent) => {
-        e.stopPropagation();
-        console.log('🎨 Drawing clicked:', drawing.id);
-        onDrawingClick(drawing.id, e);
+      onClick: isInteractive ? handleClick : undefined,
+      onPointerDown: isInteractive ? (_event: React.PointerEvent) => {
+        console.log('👆 Pointer down on spell overlay:', drawing.id, drawing.type);
       } : undefined,
       style: {
         pointerEvents: isInteractive ? ('auto' as const) : ('none' as const),
@@ -272,6 +297,483 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
           />
         );
 
+      // Spell overlay effects
+      case 'spell-circle': {
+        const elementType = ('elementType' in drawing.style ? drawing.style.elementType : 'arcane') as keyof typeof ELEMENT_THEMES;
+        const theme = ELEMENT_THEMES[elementType];
+        const animationsEnabled = (drawing.style as any).animationsEnabled !== false;
+        const animationClass = animationsEnabled
+          ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
+          : `spell-overlay element-${elementType}`;
+        const roundCounter = (drawing.style as any).roundCounter || 0;
+        const spellName = (drawing.style as any).spellName || '';
+
+        return (
+          <g key={drawing.id} className={animationClass}>
+            {/* Feathered edge gradient */}
+            <circle
+              cx={drawing.center.x}
+              cy={drawing.center.y}
+              r={drawing.radius}
+              fill={`url(#spell-edge-${elementType})`}
+              filter={`url(#spell-filter-${elementType})`}
+              stroke={style.strokeColor}
+              strokeWidth={strokeWidth}
+              className={commonProps.className}
+              onClick={commonProps.onClick}
+              style={commonProps.style}
+            />
+            {/* Texture overlay */}
+            <circle
+              cx={drawing.center.x}
+              cy={drawing.center.y}
+              r={drawing.radius}
+              fill={`url(#spell-${elementType}-texture)`}
+              opacity={theme.opacity}
+              pointerEvents="none"
+            />
+            {/* Round counter badge */}
+            {roundCounter > 0 && (
+              <g className="spell-round-counter">
+                <circle
+                  cx={drawing.center.x}
+                  cy={drawing.center.y}
+                  r={20}
+                  fill="rgba(0, 0, 0, 0.8)"
+                  stroke="white"
+                  strokeWidth={2}
+                />
+                <text
+                  x={drawing.center.x}
+                  y={drawing.center.y}
+                  fill="white"
+                  fontSize={18}
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  pointerEvents="none"
+                >
+                  {roundCounter}
+                </text>
+              </g>
+            )}
+            {/* Spell name label */}
+            {spellName && (
+              <text
+                x={drawing.center.x}
+                y={drawing.center.y - drawing.radius - 10}
+                fill="white"
+                fontSize={14}
+                fontWeight="600"
+                textAnchor="middle"
+                pointerEvents="none"
+                style={{
+                  textShadow: '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+                }}
+              >
+                {spellName}
+              </text>
+            )}
+          </g>
+        );
+      }
+
+      case 'spell-ring': {
+        const elementType = ('elementType' in drawing.style ? drawing.style.elementType : 'arcane') as keyof typeof ELEMENT_THEMES;
+        const theme = ELEMENT_THEMES[elementType];
+        const animationsEnabled = (drawing.style as any).animationsEnabled !== false;
+        const animationClass = animationsEnabled
+          ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
+          : `spell-overlay element-${elementType}`;
+        const roundCounter = (drawing.style as any).roundCounter || 0;
+        const spellName = (drawing.style as any).spellName || '';
+        const pathData = createRingPath(
+          drawing.center,
+          drawing.outerRadius,
+          drawing.innerRadius,
+        );
+
+        return (
+          <g key={drawing.id} className={animationClass}>
+            <path
+              d={pathData}
+              fill={`url(#spell-edge-${elementType})`}
+              filter={`url(#spell-filter-${elementType})`}
+              stroke={style.strokeColor}
+              strokeWidth={strokeWidth}
+              className={commonProps.className}
+              onClick={commonProps.onClick}
+              style={commonProps.style}
+            />
+            <path
+              d={pathData}
+              fill={`url(#spell-${elementType}-texture)`}
+              opacity={theme.opacity}
+              pointerEvents="none"
+            />
+            {roundCounter > 0 && (
+              <g className="spell-round-counter">
+                <circle
+                  cx={drawing.center.x}
+                  cy={drawing.center.y}
+                  r={20}
+                  fill="rgba(0, 0, 0, 0.8)"
+                  stroke="white"
+                  strokeWidth={2}
+                />
+                <text
+                  x={drawing.center.x}
+                  y={drawing.center.y}
+                  fill="white"
+                  fontSize={18}
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  pointerEvents="none"
+                >
+                  {roundCounter}
+                </text>
+              </g>
+            )}
+            {spellName && (
+              <text
+                x={drawing.center.x}
+                y={drawing.center.y - drawing.outerRadius - 10}
+                fill="white"
+                fontSize={14}
+                fontWeight="600"
+                textAnchor="middle"
+                pointerEvents="none"
+                style={{
+                  textShadow: '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+                }}
+              >
+                {spellName}
+              </text>
+            )}
+          </g>
+        );
+      }
+
+      case 'spell-cone': {
+        const elementType = ('elementType' in drawing.style ? drawing.style.elementType : 'arcane') as keyof typeof ELEMENT_THEMES;
+        const theme = ELEMENT_THEMES[elementType];
+        const animationsEnabled = (drawing.style as any).animationsEnabled !== false;
+        const animationClass = animationsEnabled
+          ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
+          : `spell-overlay element-${elementType}`;
+        const roundCounter = (drawing.style as any).roundCounter || 0;
+        const spellName = (drawing.style as any).spellName || '';
+        const conePath = calculateConePath(
+          drawing.origin,
+          drawing.direction,
+          drawing.length,
+          drawing.angle,
+        );
+
+        return (
+          <g key={drawing.id} className={animationClass}>
+            <path
+              d={conePath}
+              fill={`url(#spell-edge-${elementType})`}
+              filter={`url(#spell-filter-${elementType})`}
+              stroke={style.strokeColor}
+              strokeWidth={strokeWidth}
+              className={commonProps.className}
+              onClick={commonProps.onClick}
+              style={commonProps.style}
+            />
+            <path
+              d={conePath}
+              fill={`url(#spell-${elementType}-texture)`}
+              opacity={theme.opacity}
+              pointerEvents="none"
+            />
+            {roundCounter > 0 && (
+              <g className="spell-round-counter">
+                <circle
+                  cx={drawing.origin.x}
+                  cy={drawing.origin.y}
+                  r={20}
+                  fill="rgba(0, 0, 0, 0.8)"
+                  stroke="white"
+                  strokeWidth={2}
+                />
+                <text
+                  x={drawing.origin.x}
+                  y={drawing.origin.y}
+                  fill="white"
+                  fontSize={18}
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  pointerEvents="none"
+                >
+                  {roundCounter}
+                </text>
+              </g>
+            )}
+            {spellName && (
+              <text
+                x={drawing.origin.x}
+                y={drawing.origin.y - 35}
+                fill="white"
+                fontSize={14}
+                fontWeight="600"
+                textAnchor="middle"
+                pointerEvents="none"
+                style={{
+                  textShadow: '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+                }}
+              >
+                {spellName}
+              </text>
+            )}
+          </g>
+        );
+      }
+
+      case 'spell-line': {
+        const elementType = ('elementType' in drawing.style ? drawing.style.elementType : 'arcane') as keyof typeof ELEMENT_THEMES;
+        const theme = ELEMENT_THEMES[elementType];
+        const animationsEnabled = (drawing.style as any).animationsEnabled !== false;
+        const animationClass = animationsEnabled
+          ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
+          : `spell-overlay element-${elementType}`;
+        const roundCounter = (drawing.style as any).roundCounter || 0;
+        const spellName = (drawing.style as any).spellName || '';
+        const rectPath = createLineRectangle(drawing.start, drawing.end, drawing.width);
+        const midX = (drawing.start.x + drawing.end.x) / 2;
+        const midY = (drawing.start.y + drawing.end.y) / 2;
+
+        return (
+          <g key={drawing.id} className={animationClass}>
+            <path
+              d={rectPath}
+              fill={`url(#spell-edge-${elementType})`}
+              filter={`url(#spell-filter-${elementType})`}
+              stroke={style.strokeColor}
+              strokeWidth={strokeWidth}
+              className={commonProps.className}
+              onClick={commonProps.onClick}
+              style={commonProps.style}
+            />
+            <path
+              d={rectPath}
+              fill={`url(#spell-${elementType}-texture)`}
+              opacity={theme.opacity}
+              pointerEvents="none"
+            />
+            {roundCounter > 0 && (
+              <g className="spell-round-counter">
+                <circle
+                  cx={midX}
+                  cy={midY}
+                  r={20}
+                  fill="rgba(0, 0, 0, 0.8)"
+                  stroke="white"
+                  strokeWidth={2}
+                />
+                <text
+                  x={midX}
+                  y={midY}
+                  fill="white"
+                  fontSize={18}
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  pointerEvents="none"
+                >
+                  {roundCounter}
+                </text>
+              </g>
+            )}
+            {spellName && (
+              <text
+                x={midX}
+                y={midY - 35}
+                fill="white"
+                fontSize={14}
+                fontWeight="600"
+                textAnchor="middle"
+                pointerEvents="none"
+                style={{
+                  textShadow: '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+                }}
+              >
+                {spellName}
+              </text>
+            )}
+          </g>
+        );
+      }
+
+      case 'spell-square': {
+        const elementType = ('elementType' in drawing.style ? drawing.style.elementType : 'arcane') as keyof typeof ELEMENT_THEMES;
+        const theme = ELEMENT_THEMES[elementType];
+        const animationsEnabled = (drawing.style as any).animationsEnabled !== false;
+        const animationClass = animationsEnabled
+          ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
+          : `spell-overlay element-${elementType}`;
+        const roundCounter = (drawing.style as any).roundCounter || 0;
+        const spellName = (drawing.style as any).spellName || '';
+        const halfSize = drawing.size / 2;
+        const rotation = drawing.rotation || 0;
+
+        return (
+          <g key={drawing.id} className={animationClass}>
+            <rect
+              x={drawing.origin.x - halfSize}
+              y={drawing.origin.y - halfSize}
+              width={drawing.size}
+              height={drawing.size}
+              transform={`rotate(${rotation} ${drawing.origin.x} ${drawing.origin.y})`}
+              fill={`url(#spell-edge-${elementType})`}
+              filter={`url(#spell-filter-${elementType})`}
+              stroke={style.strokeColor}
+              strokeWidth={strokeWidth}
+              className={commonProps.className}
+              onClick={commonProps.onClick}
+              style={commonProps.style}
+            />
+            <rect
+              x={drawing.origin.x - halfSize}
+              y={drawing.origin.y - halfSize}
+              width={drawing.size}
+              height={drawing.size}
+              transform={`rotate(${rotation} ${drawing.origin.x} ${drawing.origin.y})`}
+              fill={`url(#spell-${elementType}-texture)`}
+              opacity={theme.opacity}
+              pointerEvents="none"
+            />
+            {roundCounter > 0 && (
+              <g className="spell-round-counter">
+                <circle
+                  cx={drawing.origin.x}
+                  cy={drawing.origin.y}
+                  r={20}
+                  fill="rgba(0, 0, 0, 0.8)"
+                  stroke="white"
+                  strokeWidth={2}
+                />
+                <text
+                  x={drawing.origin.x}
+                  y={drawing.origin.y}
+                  fill="white"
+                  fontSize={18}
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  pointerEvents="none"
+                >
+                  {roundCounter}
+                </text>
+              </g>
+            )}
+            {spellName && (
+              <text
+                x={drawing.origin.x}
+                y={drawing.origin.y - halfSize - 10}
+                fill="white"
+                fontSize={14}
+                fontWeight="600"
+                textAnchor="middle"
+                pointerEvents="none"
+                style={{
+                  textShadow: '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+                }}
+              >
+                {spellName}
+              </text>
+            )}
+          </g>
+        );
+      }
+
+      case 'spell-triangle': {
+        const elementType = ('elementType' in drawing.style ? drawing.style.elementType : 'arcane') as keyof typeof ELEMENT_THEMES;
+        const theme = ELEMENT_THEMES[elementType];
+        const animationsEnabled = (drawing.style as any).animationsEnabled !== false;
+        const animationClass = animationsEnabled
+          ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
+          : `spell-overlay element-${elementType}`;
+        const roundCounter = (drawing.style as any).roundCounter || 0;
+        const spellName = (drawing.style as any).spellName || '';
+        const trianglePath = calculateTrianglePath(
+          drawing.origin,
+          drawing.direction,
+          drawing.length,
+          drawing.width,
+        );
+
+        return (
+          <g key={drawing.id} className={animationClass}>
+            <path
+              d={trianglePath}
+              fill={`url(#spell-edge-${elementType})`}
+              filter={`url(#spell-filter-${elementType})`}
+              stroke={style.strokeColor}
+              strokeWidth={strokeWidth}
+              className={commonProps.className}
+              onClick={commonProps.onClick}
+              style={commonProps.style}
+            />
+            <path
+              d={trianglePath}
+              fill={`url(#spell-${elementType}-texture)`}
+              opacity={theme.opacity}
+              pointerEvents="none"
+            />
+            {roundCounter > 0 && (
+              <g className="spell-round-counter">
+                <circle
+                  cx={drawing.origin.x}
+                  cy={drawing.origin.y}
+                  r={20}
+                  fill="rgba(0, 0, 0, 0.8)"
+                  stroke="white"
+                  strokeWidth={2}
+                />
+                <text
+                  x={drawing.origin.x}
+                  y={drawing.origin.y}
+                  fill="white"
+                  fontSize={18}
+                  fontWeight="bold"
+                  textAnchor="middle"
+                  dominantBaseline="central"
+                  pointerEvents="none"
+                >
+                  {roundCounter}
+                </text>
+              </g>
+            )}
+            {spellName && (
+              <text
+                x={drawing.origin.x}
+                y={drawing.origin.y - 35}
+                fill="white"
+                fontSize={14}
+                fontWeight="600"
+                textAnchor="middle"
+                pointerEvents="none"
+                style={{
+                  textShadow: '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
+                  filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
+                }}
+              >
+                {spellName}
+              </text>
+            )}
+          </g>
+        );
+      }
+
       case 'fog-of-war': {
         if (drawing.area.length < 3) return null;
         const pathData = `M ${drawing.area.map((p) => `${p.x} ${p.y}`).join(' L ')} Z`;
@@ -362,6 +864,103 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
         className={`${props.className} aoe-effect`}
       />
     );
+  };
+
+  // Helper functions for spell overlay path calculations
+
+  const createRingPath = (
+    center: { x: number; y: number },
+    outerRadius: number,
+    innerRadius: number,
+  ): string => {
+    // Create a donut shape using SVG path with arc commands
+    // Outer circle (clockwise) then inner circle (counter-clockwise) for hole
+    return `
+      M ${center.x - outerRadius} ${center.y}
+      A ${outerRadius} ${outerRadius} 0 1 1 ${center.x + outerRadius} ${center.y}
+      A ${outerRadius} ${outerRadius} 0 1 1 ${center.x - outerRadius} ${center.y}
+      M ${center.x - innerRadius} ${center.y}
+      A ${innerRadius} ${innerRadius} 0 1 0 ${center.x + innerRadius} ${center.y}
+      A ${innerRadius} ${innerRadius} 0 1 0 ${center.x - innerRadius} ${center.y}
+      Z
+    `;
+  };
+
+  const calculateConePath = (
+    origin: { x: number; y: number },
+    direction: number,
+    length: number,
+    angle: number,
+  ): string => {
+    // Calculate cone path similar to existing cone rendering
+    const angleRad = (direction * Math.PI) / 180;
+    const coneAngleRad = (angle * Math.PI) / 180;
+
+    const leftX = origin.x + Math.cos(angleRad - coneAngleRad / 2) * length;
+    const leftY = origin.y + Math.sin(angleRad - coneAngleRad / 2) * length;
+
+    const rightX = origin.x + Math.cos(angleRad + coneAngleRad / 2) * length;
+    const rightY = origin.y + Math.sin(angleRad + coneAngleRad / 2) * length;
+
+    // Create arc at the end of the cone for smooth edge
+    return `M ${origin.x} ${origin.y} L ${leftX} ${leftY} A ${length} ${length} 0 0 1 ${rightX} ${rightY} Z`;
+  };
+
+  const createLineRectangle = (
+    start: { x: number; y: number },
+    end: { x: number; y: number },
+    width: number,
+  ): string => {
+    // Calculate angle and perpendicular offset for width
+    const angle = Math.atan2(end.y - start.y, end.x - start.x);
+    const halfWidth = width / 2;
+    const cos = Math.cos(angle + Math.PI / 2);
+    const sin = Math.sin(angle + Math.PI / 2);
+
+    // Calculate four corners of the rectangle
+    const p1 = { x: start.x + cos * halfWidth, y: start.y + sin * halfWidth };
+    const p2 = { x: start.x - cos * halfWidth, y: start.y - sin * halfWidth };
+    const p3 = { x: end.x - cos * halfWidth, y: end.y - sin * halfWidth };
+    const p4 = { x: end.x + cos * halfWidth, y: end.y + sin * halfWidth };
+
+    // Create rectangle path
+    return `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} L ${p3.x} ${p3.y} L ${p4.x} ${p4.y} Z`;
+  };
+
+  const calculateTrianglePath = (
+    origin: { x: number; y: number },
+    direction: number,
+    length: number,
+    width: number,
+  ): string => {
+    // Convert direction to radians
+    const angleRad = (direction * Math.PI) / 180;
+
+    // Calculate apex (origin is the apex)
+    const apex = origin;
+
+    // Calculate base center point
+    const baseCenterX = origin.x + Math.cos(angleRad) * length;
+    const baseCenterY = origin.y + Math.sin(angleRad) * length;
+
+    // Calculate base left and right points (perpendicular to direction)
+    const halfWidth = width / 2;
+    const perpAngle = angleRad + Math.PI / 2;
+    const cos = Math.cos(perpAngle);
+    const sin = Math.sin(perpAngle);
+
+    const baseLeft = {
+      x: baseCenterX + cos * halfWidth,
+      y: baseCenterY + sin * halfWidth,
+    };
+
+    const baseRight = {
+      x: baseCenterX - cos * halfWidth,
+      y: baseCenterY - sin * halfWidth,
+    };
+
+    // Create triangle path
+    return `M ${apex.x} ${apex.y} L ${baseLeft.x} ${baseLeft.y} L ${baseRight.x} ${baseRight.y} Z`;
   };
 
   if (visibleDrawings.length === 0) {

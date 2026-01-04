@@ -22,7 +22,15 @@ export type DrawingTool =
   | 'fog-of-war' // Fog of war areas
   | 'dynamic-lighting' // Light sources
   | 'vision-blocking' // Vision blocking walls
-  | 'dm-notes'; // DM-only annotations
+  | 'dm-notes' // DM-only annotations
+
+  // Spell overlay effects (transparent, animated AOE visualizations)
+  | 'spell-circle' // Sphere AOE with element theming
+  | 'spell-ring' // Ring/donut AOE with transparent center
+  | 'spell-cone' // Directional cone with element effects
+  | 'spell-line' // Long rectangle for line spells
+  | 'spell-square' // Grid-aligned square for cube spells
+  | 'spell-triangle'; // Alternative cone/wedge shape
 
 // Measurement tools
 export type MeasurementTool = 'measure';
@@ -61,6 +69,132 @@ export const defaultDrawingStyle: DrawingStyle = {
   visibleToPlayers: true,
   dmNotesOnly: false,
 };
+
+// Spell overlay element types
+export type ElementType =
+  | 'fire'
+  | 'cold'
+  | 'lightning'
+  | 'poison'
+  | 'acid'
+  | 'necrotic'
+  | 'radiant'
+  | 'psychic'
+  | 'arcane'
+  | 'force'
+  | 'thunder';
+
+// Element theme configuration
+export interface ElementTheme {
+  baseColor: string; // Primary fill color
+  edgeGlow: string; // Bright edge accent color
+  opacity: number; // Default opacity (0-1)
+  blendMode: 'normal' | 'additive' | 'multiply' | 'screen'; // SVG blend mode
+  animationSpeed: 'slow' | 'medium' | 'fast'; // Pulse animation speed
+  pulseIntensity: number; // How much to pulse (0-1)
+}
+
+// Element theme presets
+export const ELEMENT_THEMES: Record<ElementType, ElementTheme> = {
+  fire: {
+    baseColor: '#FF6A00',
+    edgeGlow: '#FFD28A',
+    opacity: 0.25,
+    blendMode: 'additive',
+    animationSpeed: 'fast',
+    pulseIntensity: 0.15,
+  },
+  cold: {
+    baseColor: '#00D4FF',
+    edgeGlow: '#B3F0FF',
+    opacity: 0.3,
+    blendMode: 'screen',
+    animationSpeed: 'slow',
+    pulseIntensity: 0.08,
+  },
+  lightning: {
+    baseColor: '#FFE600',
+    edgeGlow: '#FFFFFF',
+    opacity: 0.35,
+    blendMode: 'additive',
+    animationSpeed: 'fast',
+    pulseIntensity: 0.2,
+  },
+  poison: {
+    baseColor: '#00FF41',
+    edgeGlow: '#7FFF9E',
+    opacity: 0.28,
+    blendMode: 'multiply',
+    animationSpeed: 'medium',
+    pulseIntensity: 0.12,
+  },
+  acid: {
+    baseColor: '#ADFF2F',
+    edgeGlow: '#E0FF80',
+    opacity: 0.3,
+    blendMode: 'normal',
+    animationSpeed: 'medium',
+    pulseIntensity: 0.1,
+  },
+  necrotic: {
+    baseColor: '#9400D3',
+    edgeGlow: '#1A0033',
+    opacity: 0.35,
+    blendMode: 'multiply',
+    animationSpeed: 'slow',
+    pulseIntensity: 0.15,
+  },
+  radiant: {
+    baseColor: '#FFD700',
+    edgeGlow: '#FFFFFF',
+    opacity: 0.25,
+    blendMode: 'additive',
+    animationSpeed: 'medium',
+    pulseIntensity: 0.18,
+  },
+  psychic: {
+    baseColor: '#FF00FF',
+    edgeGlow: '#FFB3FF',
+    opacity: 0.3,
+    blendMode: 'screen',
+    animationSpeed: 'medium',
+    pulseIntensity: 0.14,
+  },
+  arcane: {
+    baseColor: '#4169E1',
+    edgeGlow: '#B0C4DE',
+    opacity: 0.28,
+    blendMode: 'normal',
+    animationSpeed: 'medium',
+    pulseIntensity: 0.1,
+  },
+  force: {
+    baseColor: '#8B00FF',
+    edgeGlow: '#D8BFD8',
+    opacity: 0.32,
+    blendMode: 'additive',
+    animationSpeed: 'medium',
+    pulseIntensity: 0.12,
+  },
+  thunder: {
+    baseColor: '#4682B4',
+    edgeGlow: '#B0E0E6',
+    opacity: 0.3,
+    blendMode: 'normal',
+    animationSpeed: 'fast',
+    pulseIntensity: 0.16,
+  },
+};
+
+// Spell overlay specific style properties
+export interface SpellOverlayStyle extends DrawingStyle {
+  elementType: ElementType; // Element theme to use
+  edgeGlow: string; // Bright edge accent (from element theme)
+  blendMode: 'normal' | 'additive' | 'multiply' | 'screen'; // SVG blend mode
+  animationSpeed: 'slow' | 'medium' | 'fast'; // Pulse animation speed
+  pulseIntensity: number; // How much to pulse opacity (0-1)
+  gridSnap: boolean; // Whether to snap to grid when placing
+}
 
 // Drawing shape data structures
 export interface Point {
@@ -192,6 +326,52 @@ export interface PingDrawing extends BaseDrawing {
   duration: number; // How long to show in ms (default 3000)
 }
 
+// Spell overlay drawing types (transparent, animated AOE effects)
+export interface SpellCircleDrawing extends BaseDrawing {
+  type: 'spell-circle';
+  center: Point;
+  radius: number; // In pixels (converted from feet based on grid)
+  rotation?: number; // Degrees (for future rotation support)
+}
+
+export interface SpellRingDrawing extends BaseDrawing {
+  type: 'spell-ring';
+  center: Point;
+  outerRadius: number; // Outer radius in pixels
+  innerRadius: number; // Inner radius in pixels (creates donut effect)
+  rotation?: number; // Degrees
+}
+
+export interface SpellConeDrawing extends BaseDrawing {
+  type: 'spell-cone';
+  origin: Point; // Point of origin for the cone
+  direction: number; // Angle in degrees (0 = right, 90 = down, etc.)
+  length: number; // Length in pixels
+  angle: number; // Cone spread angle in degrees (typically 90°)
+}
+
+export interface SpellLineDrawing extends BaseDrawing {
+  type: 'spell-line';
+  start: Point;
+  end: Point;
+  width: number; // Width in pixels (typically 5ft converted)
+}
+
+export interface SpellSquareDrawing extends BaseDrawing {
+  type: 'spell-square';
+  origin: Point; // Center of the square
+  size: number; // Side length in pixels
+  rotation?: number; // Degrees
+}
+
+export interface SpellTriangleDrawing extends BaseDrawing {
+  type: 'spell-triangle';
+  origin: Point; // Apex of the triangle
+  direction: number; // Direction triangle points (degrees)
+  length: number; // Length from apex to base
+  width: number; // Width of the base
+}
+
 // Union type for all drawing types
 export type Drawing =
   | LineDrawing
@@ -209,7 +389,13 @@ export type Drawing =
   | DynamicLightDrawing
   | VisionBlockDrawing
   | DMNotesDrawing
-  | PingDrawing;
+  | PingDrawing
+  | SpellCircleDrawing
+  | SpellRingDrawing
+  | SpellConeDrawing
+  | SpellLineDrawing
+  | SpellSquareDrawing
+  | SpellTriangleDrawing;
 
 // Measurement data
 export interface Measurement {

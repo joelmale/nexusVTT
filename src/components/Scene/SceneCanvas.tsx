@@ -18,6 +18,7 @@ import {
   useUser,
   usePlacedTokens,
   usePlacedProps,
+  useDrawingActions,
 } from '@/stores/gameStore';
 import { SceneGrid } from './SceneGrid';
 import { SceneBackground } from './SceneBackground';
@@ -26,6 +27,8 @@ import { RemoteCursors } from './RemoteCursors';
 import { DrawingRenderer } from './DrawingRenderer';
 import { SelectionOverlay } from './SelectionOverlay';
 import { DrawingPropertiesPanel } from './DrawingPropertiesPanel';
+import { SpellOverlayPropertiesPanel } from './SpellOverlayPropertiesPanel';
+import { SpellOverlayPatterns } from './SpellOverlayPatterns';
 import { TokenDropZone } from './TokenDropZone';
 import { TokenRenderer } from './TokenRenderer';
 import { PropRenderer } from './PropRenderer';
@@ -74,6 +77,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   const selectedPlacedToken = useSelectedPlacedToken();
   const selectedPlacedProp = useSelectedPlacedProp();
   const { selectedObjectIds } = useSceneState();
+  const { updateDrawing } = useDrawingActions();
 
   // Debug logging for selected token
   React.useEffect(() => {
@@ -150,6 +154,19 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     });
     return filtered;
   }, [selectedObjectIds, drawings]);
+
+  // Filter for spell overlay drawings specifically
+  const selectedSpellOverlay = useMemo(() => {
+    if (selectedDrawingIds.length !== 1) return null;
+    const drawing = drawings.find((d) => d.id === selectedDrawingIds[0]);
+    if (!drawing) return null;
+
+    const spellTypes = ['spell-circle', 'spell-ring', 'spell-cone', 'spell-line', 'spell-square', 'spell-triangle'];
+    if (spellTypes.includes(drawing.type)) {
+      return drawing as any; // Cast to spell overlay type
+    }
+    return null;
+  }, [selectedDrawingIds, drawings]);
 
   // Update viewport size when container resizes
   useEffect(() => {
@@ -383,6 +400,25 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   const handleClosePropertiesPanel = useCallback(() => {
     clearSelection();
   }, [clearSelection]);
+
+  const handleUpdateSpellOverlay = useCallback(
+    (updates: any) => {
+      if (!selectedSpellOverlay) return;
+      updateDrawing(scene.id, selectedSpellOverlay.id, updates);
+
+      // Sync the update via WebSocket
+      webSocketService.sendEvent({
+        type: 'event',
+        data: {
+          name: 'drawing/update',
+          sceneId: scene.id,
+          drawingId: selectedSpellOverlay.id,
+          updates,
+        },
+      });
+    },
+    [selectedSpellOverlay, scene.id, updateDrawing],
+  );
 
   const handleDrawingClick = useCallback(
     (drawingId: string, event: React.MouseEvent) => {
@@ -805,8 +841,18 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   return (
     <CanvasErrorBoundary>
       <div className="scene-canvas-container">
-        {/* Drawing Properties Panel */}
-        {selectedDrawingIds.length > 0 && (
+        {/* Spell Overlay Properties Panel */}
+        {selectedSpellOverlay && (
+          <SpellOverlayPropertiesPanel
+            drawing={selectedSpellOverlay}
+            onUpdate={handleUpdateSpellOverlay}
+            onClose={handleClosePropertiesPanel}
+            gridSize={safeGridSettings.size}
+          />
+        )}
+
+        {/* Drawing Properties Panel (for non-spell overlays) */}
+        {selectedDrawingIds.length > 0 && !selectedSpellOverlay && (
           <DrawingPropertiesPanel
             selectedDrawingIds={selectedDrawingIds}
             sceneId={scene.id}
@@ -871,6 +917,9 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                 <stop offset="50%" stopColor="#FFD700" stopOpacity="0.2" />
                 <stop offset="100%" stopColor="#FFD700" stopOpacity="0" />
               </radialGradient>
+
+              {/* Spell overlay patterns, gradients, and filters */}
+              <SpellOverlayPatterns />
             </defs>
 
             <g className="scene-content" transform={transform}>

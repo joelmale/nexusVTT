@@ -277,15 +277,21 @@ export const SceneTabs: React.FC<SceneTabsProps> = React.memo(
 
               {/* Delete button for DM only */}
               {isHost && scenes.length > 1 && (
-                <span>
-                  <button
-                    className="delete-scene"
-                    onClick={(e) => handleDeleteScene(scene.id, e)}
-                    title="Delete scene"
-                    type="button"
-                  >
-                    ×
-                  </button>
+                <span
+                  className="delete-scene"
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => handleDeleteScene(scene.id, e)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleDeleteScene(scene.id, e);
+                    }
+                  }}
+                  title="Delete scene"
+                  aria-label="Delete scene"
+                >
+                  ×
                 </span>
               )}
 
