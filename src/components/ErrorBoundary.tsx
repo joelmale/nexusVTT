@@ -37,6 +37,7 @@ export interface ErrorBoundaryProps {
   name?: string;
   children: React.ReactNode;
   onReset?: () => void;
+  fallback?: React.ReactNode;
 }
 
 interface ErrorBoundaryState {
@@ -62,7 +63,7 @@ export class ErrorBoundary extends React.Component<
       timestamp: new Date().toISOString(),
       location: typeof window !== 'undefined' ? window.location.href : undefined,
       userAgent: typeof navigator !== 'undefined' ? navigator.userAgent : undefined,
-      componentStack: info.componentStack,
+      componentStack: info.componentStack ?? undefined,
     });
     console.error('UI error boundary caught:', {
       name: this.props.name,
@@ -81,6 +82,10 @@ export class ErrorBoundary extends React.Component<
   render() {
     if (!this.state.hasError) {
       return this.props.children;
+    }
+
+    if (this.props.fallback) {
+      return <>{this.props.fallback}</>;
     }
 
     return (

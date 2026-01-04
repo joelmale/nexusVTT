@@ -139,6 +139,8 @@ export const DiceRoller: React.FC = () => {
     // Non-urgent operations: chat messages and broadcasting
     startRollTransition(() => {
       const breakdown = `[${roll.results.join(', ')}]${roll.modifier ? ` ${roll.modifier > 0 ? '+' : ''}${roll.modifier}` : ''} = ${roll.total}`;
+      const rollType: 'normal' | 'advantage' | 'disadvantage' =
+        rollMode === 'none' ? 'normal' : rollMode;
       const diceData = {
         expression: roll.expression,
         results: roll.results,
@@ -149,7 +151,7 @@ export const DiceRoller: React.FC = () => {
         diceCount: roll.pools.length === 1 ? roll.pools[0].count : undefined,
         isCrit: roll.crit === 'success',
         isCritFail: roll.crit === 'failure',
-        rollType: rollMode === 'none' ? 'normal' : rollMode,
+        rollType,
       };
 
       // Send chat message about the roll
