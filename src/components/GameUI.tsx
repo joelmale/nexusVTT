@@ -24,6 +24,7 @@ import { SceneTabs } from './Scene/SceneTabs';
 import { GameToolbar } from './GameToolbar';
 import { PlayerBar, PlayerActions } from './PlayerBar';
 import { ContextPanel } from './ContextPanel';
+import { ErrorBoundary } from './ErrorBoundary';
 
 // Lazy load heavy panels
 const GeneratorPanel = React.lazy(() =>
@@ -335,49 +336,51 @@ export const GameUI: React.FC = () => {
       </div>
 
       {/* Main Game Canvas with Scene Tabs */}
-      <div className="layout-scene">
-        {/* Browser-Style Scene Tab Bar */}
-        <div className="scene-tab-bar">
-          <SceneTabs scenes={scenes} activeSceneId={activeScene?.id || ''} />
-        </div>
+      <ErrorBoundary name="Main Canvas" key={activeScene?.id || 'no-scene'}>
+        <div className="layout-scene">
+          {/* Browser-Style Scene Tab Bar */}
+          <div className="scene-tab-bar">
+            <SceneTabs scenes={scenes} activeSceneId={activeScene?.id || ''} />
+          </div>
 
-        {/* Scene Content */}
-        <div className="scene-content scene-content-relative">
-          {activeScene ? (
-            <SceneCanvas scene={activeScene} />
-          ) : (
-            <div className="empty-scene-state">
-              <div className="empty-scene-content">
-                <h3>🎲 Ready to Create Your First Scene</h3>
-                <p>
-                  Use the Scene panel on the right to create and configure your
-                  first scene.
-                </p>
+          {/* Scene Content */}
+          <div className="scene-content scene-content-relative">
+            {activeScene ? (
+              <SceneCanvas scene={activeScene} />
+            ) : (
+              <div className="empty-scene-state">
+                <div className="empty-scene-content">
+                  <h3>🎲 Ready to Create Your First Scene</h3>
+                  <p>
+                    Use the Scene panel on the right to create and configure
+                    your first scene.
+                  </p>
+                </div>
               </div>
-            </div>
-          )}
+            )}
 
-          {/* 3D Dice Box - only render when dice panel is active */}
-          {activePanel === 'dice' && (
+            {/* 3D Dice Box - only render when dice panel is active */}
+            {activePanel === 'dice' && (
+              <Suspense
+                fallback={<div className="dice-loading">Loading 3D dice...</div>}
+              >
+                <DiceBox3D />
+              </Suspense>
+            )}
+          </div>
+
+          {/* Floating Toolbar */}
+          <div className="layout-toolbar">
             <Suspense
-              fallback={<div className="dice-loading">Loading 3D dice...</div>}
+              fallback={
+                <div className="toolbar-skeleton">Loading toolbar...</div>
+              }
             >
-              <DiceBox3D />
+              <GameToolbar />
             </Suspense>
-          )}
+          </div>
         </div>
-
-        {/* Floating Toolbar */}
-        <div className="layout-toolbar">
-          <Suspense
-            fallback={
-              <div className="toolbar-skeleton">Loading toolbar...</div>
-            }
-          >
-            <GameToolbar />
-          </Suspense>
-        </div>
-      </div>
+      </ErrorBoundary>
 
       {/* Resizable Context Panel */}
       <div
@@ -414,15 +417,17 @@ export const GameUI: React.FC = () => {
             ✕
           </button>
           <div className="generator-overlay-content">
-            <Suspense
-              fallback={
-                <div className="panel-skeleton">Loading generator...</div>
-              }
-            >
-              <GeneratorPanel
-                onSwitchToScenes={() => setActivePanel('scene')}
-              />
-            </Suspense>
+            <ErrorBoundary name="Generator Panel">
+              <Suspense
+                fallback={
+                  <div className="panel-skeleton">Loading generator...</div>
+                }
+              >
+                <GeneratorPanel
+                  onSwitchToScenes={() => setActivePanel('scene')}
+                />
+              </Suspense>
+            </ErrorBoundary>
           </div>
         </div>
       )}

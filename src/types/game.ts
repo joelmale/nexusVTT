@@ -293,9 +293,41 @@ export interface ChatMessage extends BaseMessage {
     userId: string;
     userName: string;
     content: string;
-    messageType: 'text' | 'system' | 'dm-announcement' | 'whisper';
+    messageType:
+      | 'text'
+      | 'system'
+      | 'dm-announcement'
+      | 'whisper'
+      | 'dice-roll'
+      | 'emote'
+      | 'ooc'
+      | 'combat-action';
     recipientId?: string; // For whispers
     timestamp: number;
+
+    // Extended fields for enhanced chat
+    diceData?: {
+      expression: string;
+      results: number[];
+      total: number;
+      breakdown: string;
+      modifier: number;
+      diceType?: number;
+      diceCount?: number;
+      isCrit?: boolean;
+      isCritFail?: boolean;
+      rollType?: 'normal' | 'advantage' | 'disadvantage';
+    };
+    characterId?: string;
+    characterName?: string;
+    mentionedUserIds?: string[];
+    reactions?: Array<{
+      emoji: string;
+      userIds: string[];
+      count: number;
+    }>;
+    isEdited?: boolean;
+    editedAt?: number;
   };
 }
 

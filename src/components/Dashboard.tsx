@@ -771,13 +771,6 @@ export const Dashboard: React.FC = () => {
                   Create Campaign
                 </button>
                 <button
-                  onClick={() => navigate('/lobby')}
-                  className="action-btn glass-button secondary"
-                >
-                  <span>🏠</span>
-                  Back to Lobby
-                </button>
-                <button
                   onClick={handleCreateCharacter}
                   className="action-btn glass-button secondary"
                   disabled={charactersLoading}
@@ -796,6 +789,15 @@ export const Dashboard: React.FC = () => {
             </div>
           </div>
           <div className="hero-stats">
+            <div className="dashboard-lobby-action">
+              <button
+                onClick={() => navigate('/lobby')}
+                className="dashboard-lobby-button dashboard-lobby-button--3d glass-button secondary"
+              >
+                <span>🏠</span>
+                Return to Lobby
+              </button>
+            </div>
             <div className="stat-card glass-panel">
               <p className="stat-label">Campaigns</p>
               <p className="stat-value">{campaigns.length}</p>

@@ -10,6 +10,8 @@ import { TokenPanel } from './Tokens/TokenPanel';
 import { PropPanel } from './Props/PropPanel';
 import { ChatPanel } from './ChatPanel';
 import { DocumentsPanel } from './DocumentsPanel';
+import { loadChatStyles } from '@/utils/cssLoader';
+import { ErrorBoundary } from './ErrorBoundary';
 
 interface ContextPanelProps {
   activePanel:
@@ -80,6 +82,14 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   // Track the last reported width to prevent infinite loops
   const lastReportedWidthRef = useRef<number>(0);
 
+  useEffect(() => {
+    if (activePanel === 'chat') {
+      loadChatStyles('ContextPanel').catch((error) => {
+        console.warn('Failed to load chat styles:', error);
+      });
+    }
+  }, [activePanel]);
+
   // Simple approach: Set fixed widths per panel type
   useEffect(() => {
     if (!expanded) return;
@@ -94,7 +104,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       dice: 300, // Optimized for dice controls
       documents: 380, // Document library and search
       sounds: 320,
-      chat: 350,
+      chat: 800,
       lobby: 320, // Player management panel
       settings: 400,
     };
@@ -123,21 +133,23 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
             data-testid="panel-body"
             style={{ overflowY: 'auto' }}
           >
-            {activePanel === 'tokens' && <TokenPanel />}
-            {activePanel === 'scene' && <ScenePanel scene={currentScene} />}
-            {activePanel === 'props' && <PropPanel />}
-            {activePanel === 'generator' && (
-              <div style={{ padding: '2rem', textAlign: 'center' }}>
-                <p>Generator is now full-screen →</p>
-              </div>
-            )}
-            {activePanel === 'initiative' && <InitiativeTracker />}
-            {activePanel === 'dice' && <DiceRoller />}
-            {activePanel === 'documents' && <DocumentsPanel />}
-            {activePanel === 'sounds' && <Placeholder title="Sound Effects" />}
-            {activePanel === 'chat' && <ChatPanel />}
-            {activePanel === 'lobby' && <LobbyPanel />}
-            {activePanel === 'settings' && <Settings />}
+            <ErrorBoundary key={activePanel} name="Context Panel">
+              {activePanel === 'tokens' && <TokenPanel />}
+              {activePanel === 'scene' && <ScenePanel scene={currentScene} />}
+              {activePanel === 'props' && <PropPanel />}
+              {activePanel === 'generator' && (
+                <div style={{ padding: '2rem', textAlign: 'center' }}>
+                  <p>Generator is now full-screen →</p>
+                </div>
+              )}
+              {activePanel === 'initiative' && <InitiativeTracker />}
+              {activePanel === 'dice' && <DiceRoller />}
+              {activePanel === 'documents' && <DocumentsPanel />}
+              {activePanel === 'sounds' && <Placeholder title="Sound Effects" />}
+              {activePanel === 'chat' && <ChatPanel />}
+              {activePanel === 'lobby' && <LobbyPanel />}
+              {activePanel === 'settings' && <Settings />}
+            </ErrorBoundary>
           </div>
         </div>
       )}

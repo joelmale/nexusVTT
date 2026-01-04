@@ -16,6 +16,7 @@ import {
   Circle,
   Compass,
   Eraser,
+  Grid3x3,
   Hand,
   Eye,
   EyeOff,
@@ -200,7 +201,7 @@ export const GameToolbar: React.FC = () => {
               },
               {
                 id: 'grid-align',
-                icon: <Compass size={18} />,
+                icon: <Grid3x3 size={18} />,
                 label: 'Grid Alignment',
               },
             ],

@@ -240,8 +240,20 @@ interface GameStore extends GameState {
   // Chat Actions
   sendChatMessage: (
     content: string,
-    messageType?: 'text' | 'dm-announcement' | 'whisper' | 'system',
+    messageType?: 'text' | 'dm-announcement' | 'whisper' | 'system' | 'dice-roll' | 'emote' | 'ooc' | 'combat-action',
     recipientId?: string,
+    diceData?: {
+      expression: string;
+      results: number[];
+      total: number;
+      breakdown: string;
+      modifier: number;
+      diceType?: number;
+      diceCount?: number;
+      isCrit?: boolean;
+      isCritFail?: boolean;
+      rollType?: 'normal' | 'advantage' | 'disadvantage';
+    },
   ) => void;
   addChatMessage: (message: ChatMessage['data']) => void;
   setTyping: (isTyping: boolean) => void;
@@ -3517,7 +3529,7 @@ export const useGameStore = create<GameStore>()(
       },
 
       // Chat Actions
-      sendChatMessage: (content, messageType = 'text', recipientId) => {
+      sendChatMessage: (content, messageType = 'text', recipientId, diceData) => {
         const state = get();
         if (!state.user.name || !state.session) return;
 
@@ -3529,6 +3541,7 @@ export const useGameStore = create<GameStore>()(
           messageType,
           recipientId,
           timestamp: Date.now(),
+          ...(diceData && { diceData }),
         };
 
         // Add to local state immediately for optimistic UI
@@ -3859,31 +3872,17 @@ export const useServerRoomCode = () => {
 export const useSelectedPlacedToken = () =>
   useGameStore((state) => {
     const { scenes, activeSceneId, selectedObjectIds } = state.sceneState;
-    console.log('🔍 useSelectedPlacedToken computing:', {
-      selectedObjectIds,
-      selectedCount: selectedObjectIds.length,
-      activeSceneId,
-    });
-
     if (selectedObjectIds.length !== 1) {
-      console.log('❌ useSelectedPlacedToken: not exactly one selected');
       return null;
     }
 
     const scene = scenes.find((s) => s.id === activeSceneId);
     if (!scene) {
-      console.log('❌ useSelectedPlacedToken: scene not found');
       return null;
     }
 
     const selectedId = selectedObjectIds[0];
     const token = scene.placedTokens?.find((t) => t.id === selectedId) || null;
-    console.log('🔍 useSelectedPlacedToken result:', {
-      selectedId,
-      foundToken: !!token,
-      tokenId: token?.id,
-      totalTokens: scene.placedTokens?.length || 0,
-    });
     return token;
   });
 
@@ -3891,30 +3890,16 @@ export const useSelectedPlacedToken = () =>
 export const useSelectedPlacedProp = () =>
   useGameStore((state) => {
     const { scenes, activeSceneId, selectedObjectIds } = state.sceneState;
-    console.log('🔍 useSelectedPlacedProp computing:', {
-      selectedObjectIds,
-      selectedCount: selectedObjectIds.length,
-      activeSceneId,
-    });
-
     if (selectedObjectIds.length !== 1) {
-      console.log('❌ useSelectedPlacedProp: not exactly one selected');
       return null;
     }
 
     const scene = scenes.find((s) => s.id === activeSceneId);
     if (!scene) {
-      console.log('❌ useSelectedPlacedProp: scene not found');
       return null;
     }
 
     const selectedId = selectedObjectIds[0];
     const prop = scene.placedProps?.find((p) => p.id === selectedId) || null;
-    console.log('🔍 useSelectedPlacedProp result:', {
-      selectedId,
-      foundProp: !!prop,
-      propId: prop?.id,
-      totalProps: scene.placedProps?.length || 0,
-    });
     return prop;
   });
