@@ -161,7 +161,7 @@ export const GameToolbar: React.FC = () => {
             shortcut: 'C',
           },
           {
-            id: 'erase',
+            id: 'eraser',
             icon: <Eraser size={18} />,
             label: 'Erase',
             shortcut: 'E',

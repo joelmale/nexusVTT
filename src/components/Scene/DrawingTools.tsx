@@ -117,6 +117,8 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
   const movePropOptimistic = useGameStore((state) => state.movePropOptimistic);
   const getSceneTokens = useGameStore((state) => state.getSceneTokens);
   const getSceneProps = useGameStore((state) => state.getSceneProps);
+  const deleteToken = useGameStore((state) => state.deleteToken);
+  const deleteProp = useGameStore((state) => state.deleteProp);
 
   const isHost = user.type === 'host';
 
@@ -539,6 +541,47 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
     [placedProps, _gridSize],
   );
 
+  const eraseEntitiesAtPoint = useCallback(
+    (point: Point) => {
+      if (!activeScene) return;
+
+      const drawingsToErase = getDrawingsAtPoint(point, eraserRadius);
+      drawingsToErase.forEach((id) => deleteAndSyncDrawing(id));
+
+      const tokensToErase = getTokensAtPoint(point, eraserRadius);
+      tokensToErase.forEach((tokenId) => {
+        const token = placedTokens.find((t) => t.id === tokenId);
+        const canEditToken = isHost || (token && token.placedBy === user.id);
+        if (canEditToken) {
+          deleteToken(activeScene.id, tokenId);
+        }
+      });
+
+      const propsToErase = getPropsAtPoint(point, eraserRadius);
+      propsToErase.forEach((propId) => {
+        const prop = placedProps.find((p) => p.id === propId);
+        const canEditProp = isHost || (prop && prop.placedBy === user.id);
+        if (canEditProp) {
+          deleteProp(activeScene.id, propId);
+        }
+      });
+    },
+    [
+      activeScene,
+      deleteAndSyncDrawing,
+      deleteProp,
+      deleteToken,
+      eraserRadius,
+      getDrawingsAtPoint,
+      getPropsAtPoint,
+      getTokensAtPoint,
+      isHost,
+      placedProps,
+      placedTokens,
+      user.id,
+    ],
+  );
+
   // Get drawings in selection box
   const getDrawingsInSelection = useCallback(
     (start: Point, end: Point): string[] => {
@@ -841,8 +884,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
         },
         eraser: () => {
           setIsErasing(true);
-          const drawingsToErase = getDrawingsAtPoint(point, eraserRadius);
-          drawingsToErase.forEach((id) => deleteAndSyncDrawing(id));
+          eraseEntitiesAtPoint(point);
           setStartPoint(point);
         },
         polygon: () => {
@@ -1128,8 +1170,8 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
       getDrawingsAtPoint,
       getTokensAtPoint,
       getPropsAtPoint,
+      eraseEntitiesAtPoint,
       deleteAndSyncDrawing,
-      eraserRadius,
       activeScene,
       createAndSyncDrawing,
       deleteDrawing,
@@ -1206,8 +1248,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
         },
         eraser: () => {
           if (isErasing) {
-            const drawingsToErase = getDrawingsAtPoint(point, eraserRadius);
-            drawingsToErase.forEach((id) => deleteAndSyncDrawing(id));
+            eraseEntitiesAtPoint(point);
           }
         },
         pencil: () => {
@@ -1239,9 +1280,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
       startPoint,
       isErasing,
       selectionBox,
-      getDrawingsAtPoint,
-      deleteAndSyncDrawing,
-      eraserRadius,
+      eraseEntitiesAtPoint,
       activeScene,
       getSceneTokens,
       getSceneProps,
