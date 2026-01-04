@@ -6,6 +6,7 @@ import type {
   SpellOverlayStyle,
 } from '@/types/drawing';
 
+
 interface SpellOverlayPropertiesPanelProps {
   drawing: SpellOverlayDrawing;
   onUpdate: (updates: Partial<SpellOverlayDrawing>) => void;
