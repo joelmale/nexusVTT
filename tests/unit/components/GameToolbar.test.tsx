@@ -102,7 +102,10 @@ describe('GameToolbar', () => {
 
     // Drawing tools
     expect(screen.getByRole('button', { name: 'Draw' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Line' })).toBeInTheDocument();
+    const lineButtons = screen.getAllByRole('button', { name: 'Line' });
+    expect(
+      lineButtons.some((button) => button.getAttribute('data-id') === 'line'),
+    ).toBe(true);
     expect(screen.getByRole('button', { name: 'Rectangle' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Circle' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cone / AOE' })).toBeInTheDocument();
