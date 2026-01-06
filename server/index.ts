@@ -1492,10 +1492,11 @@ class NexusServer {
     const url = new URL(req.url!, 'ws://localhost');
     const params = url.searchParams;
     const userIdFromQuery = params.get('userId');
+    const userNameFromQuery = params.get('userName');
 
     // Priority: authenticated user > guest user > query param > new UUID
     let uuid = user?.id || guestUser?.id || userIdFromQuery || uuidv4();
-    let displayName = user?.name || guestUser?.name || 'Guest';
+    let displayName = user?.name || guestUser?.name || userNameFromQuery || 'Guest';
     let userType = user ? 'Authenticated' : guestUser ? 'Guest' : 'Anonymous';
 
     // If we have a userId from query params but no authenticated user, try to look up the user
@@ -1535,6 +1536,10 @@ class NexusServer {
     const connection: Connection = {
       id: uuid,
       ws: ws,
+      user: {
+        name: displayName,
+        type: 'player', // Will be updated to 'host' in handleHostConnection if needed
+      },
       consecutiveMisses: 0,
       connectionQuality: 'excellent',
     };
@@ -1551,7 +1556,7 @@ class NexusServer {
     if (host) {
       await this.handleHostConnection(connection, host, campaignId);
     } else if (reconnect) {
-      await this.handleHostReconnection(connection, reconnect);
+      await this.handleHostReconnection(connection, reconnect, campaignId);
     } else if (join) {
       await this.handleJoinConnection(connection, join);
     } else {
@@ -1594,49 +1599,89 @@ class NexusServer {
     campaignId?: string | null,
   ): Promise<void> {
     try {
-      // Generate a room code if not provided
-      const roomCode = hostRoomCode || this.generateRoomCode();
+      const normalizedHostCode = hostRoomCode?.toUpperCase();
+      let preferredRoomCode = normalizedHostCode;
 
-      // Check if room code already exists
-      if (this.rooms.has(roomCode)) {
-        this.sendError(connection, 'Room already exists');
-        return;
-      }
-
-      let usedCampaignId;
+      let usedCampaignId: string;
       let campaignScenes: unknown[] = [];
 
       if (campaignId) {
-        // Use existing campaign (authenticated user selected it)
         console.log(`🗂️ Using existing campaign: ${campaignId}`);
         usedCampaignId = campaignId;
 
-        // Load campaign data
         const campaign = await this.db.getCampaignById(campaignId);
-        if (campaign && campaign.scenes) {
-          campaignScenes = Array.isArray(campaign.scenes)
-            ? campaign.scenes
-            : [];
-          console.log(
-            `📚 Loaded ${campaignScenes.length} scenes from campaign`,
-          );
+        if (campaign) {
+          if (!preferredRoomCode && campaign.lastRoomCode) {
+            preferredRoomCode = campaign.lastRoomCode.toUpperCase();
+          }
+          if (campaign.scenes) {
+            campaignScenes = Array.isArray(campaign.scenes)
+              ? campaign.scenes
+              : [];
+            console.log(
+              `📚 Loaded ${campaignScenes.length} scenes from campaign`,
+            );
+          }
         }
       } else {
-        // Create a default campaign for guest DM
         console.log(`🗂️ Creating new campaign for guest DM`);
         const campaign = await this.db.createCampaign(
           connection.id,
-          `Campaign ${roomCode}`,
+          `Campaign ${preferredRoomCode || 'Session'}`,
           'Auto-created campaign for quick session',
         );
         usedCampaignId = campaign.id;
       }
 
-      // Create session linked to campaign
-      const { sessionId, joinCode } = await this.db.createSession(
-        usedCampaignId,
-        connection.id,
-      );
+      if (preferredRoomCode && this.rooms.has(preferredRoomCode)) {
+        preferredRoomCode = undefined;
+      }
+
+      let sessionId = '';
+      let joinCode = '';
+
+      if (preferredRoomCode) {
+        const existingSession =
+          await this.db.getSessionByJoinCode(preferredRoomCode);
+        if (existingSession) {
+          if (existingSession.campaignId === usedCampaignId) {
+            const activated = await this.db.activateSessionByJoinCode(
+              preferredRoomCode,
+              connection.id,
+            );
+            if (!activated) {
+              this.sendError(connection, 'Failed to reactivate session');
+              return;
+            }
+            sessionId = activated.id;
+            joinCode = activated.joinCode;
+          } else {
+            preferredRoomCode = undefined;
+          }
+        } else {
+          const created = await this.db.createSessionWithJoinCode(
+            usedCampaignId,
+            connection.id,
+            preferredRoomCode,
+          );
+          sessionId = created.sessionId;
+          joinCode = created.joinCode;
+        }
+      }
+
+      if (!preferredRoomCode) {
+        const created = await this.db.createSession(
+          usedCampaignId,
+          connection.id,
+        );
+        sessionId = created.sessionId;
+        joinCode = created.joinCode;
+      }
+
+      await this.db.updateCampaign(usedCampaignId, {
+        lastRoomCode: joinCode,
+        lastRoomCodeUpdatedAt: new Date(),
+      });
 
       // Create in-memory room state for real-time operations
       const room: Room = {
@@ -1648,6 +1693,7 @@ class NexusServer {
         created: Date.now(),
         lastActivity: Date.now(),
         status: 'active',
+        dmConnected: true,
         stateVersion: 0, // Initialize state version for delta updates
         entityVersions: new Map(),
       };
@@ -1669,6 +1715,7 @@ class NexusServer {
           uuid: connection.id,
           hostId: connection.id,
           coHostIds: Array.from(room.coHosts),
+          dmConnected: room.dmConnected,
           players: [
             {
               id: connection.id,
@@ -1695,22 +1742,64 @@ class NexusServer {
   private async handleHostReconnection(
     connection: Connection,
     roomCode: string,
+    campaignId?: string | null,
   ) {
-    const room = this.rooms.get(roomCode);
+    const normalizedRoomCode = roomCode.toUpperCase();
+    let room = this.rooms.get(normalizedRoomCode);
+
+    if (!room) {
+      const session = await this.db.getSessionByJoinCode(normalizedRoomCode);
+      if (session) {
+        if (campaignId && session.campaignId !== campaignId) {
+          this.sendError(connection, 'Room code belongs to another campaign');
+          return;
+        }
+        await this.db.activateSessionByJoinCode(
+          normalizedRoomCode,
+          connection.id,
+        );
+        room = await this.recoverRoomFromSession(normalizedRoomCode);
+      } else if (campaignId) {
+        const campaign = await this.db.getCampaignById(campaignId);
+        if (!campaign || campaign.lastRoomCode?.toUpperCase() !== normalizedRoomCode) {
+          this.sendError(connection, 'Room not found');
+          return;
+        }
+        const created = await this.db.createSessionWithJoinCode(
+          campaignId,
+          connection.id,
+          normalizedRoomCode,
+        );
+        room = {
+          code: created.joinCode,
+          host: connection.id,
+          coHosts: new Set(),
+          players: new Set([connection.id]),
+          connections: new Map(),
+          created: Date.now(),
+          lastActivity: Date.now(),
+          status: 'active',
+          dmConnected: true,
+          hibernationTimer: undefined,
+          gameState: undefined,
+          previousGameState: undefined,
+          stateVersion: 0,
+          entityVersions: new Map(),
+        };
+        this.rooms.set(created.joinCode, room);
+      }
+    }
 
     if (!room) {
       this.sendError(connection, 'Room not found');
       return;
     }
 
-    if (room.status === 'abandoned') {
-      this.sendError(connection, 'Room has been abandoned');
-      return;
-    }
-
     // Reactivate hibernated room and restore host
     if (room.status === 'hibernating') {
-      console.log(`🔄 Host reconnecting to hibernated room: ${roomCode}`);
+      console.log(
+        `🔄 Host reconnecting to hibernated room: ${normalizedRoomCode}`,
+      );
 
       room.status = 'active';
       room.lastActivity = Date.now();
@@ -1724,7 +1813,7 @@ class NexusServer {
       // Load game state from database if not in memory
       if (!room.gameState) {
         try {
-          const session = await this.db.getSessionByJoinCode(roomCode);
+          const session = await this.db.getSessionByJoinCode(normalizedRoomCode);
           if (session?.gameState) {
             room.gameState = session.gameState as GameState;
             console.log(
@@ -1739,16 +1828,39 @@ class NexusServer {
         }
       }
     } else {
-      console.log(`🔄 Host reconnecting to active room: ${roomCode}`);
+      console.log(
+        `🔄 Host reconnecting to active room: ${normalizedRoomCode}`,
+      );
     }
 
     // Set up host connection
     room.host = connection.id;
+    room.dmConnected = true;
     room.players.add(connection.id);
     room.connections.set(connection.id, connection.ws);
     room.lastActivity = Date.now();
-    connection.room = roomCode;
+    connection.room = normalizedRoomCode;
     connection.user = { name: 'Host', type: 'host' };
+
+    if (campaignId) {
+      try {
+        await this.db.updateCampaign(campaignId, {
+          lastRoomCode: normalizedRoomCode,
+          lastRoomCodeUpdatedAt: new Date(),
+        });
+      } catch (error) {
+        console.error('Failed to update campaign room code:', error);
+      }
+    }
+
+    try {
+      const session = await this.db.getSessionByJoinCode(normalizedRoomCode);
+      if (session) {
+        await this.db.addPlayerToSession(connection.id, session.id);
+      }
+    } catch (error) {
+      console.error('Failed to update host connection in database:', error);
+    }
 
     // Send reconnection confirmation
     console.log(
@@ -1762,19 +1874,20 @@ class NexusServer {
       type: 'event',
       data: {
         name: 'session/reconnected',
-        roomCode,
-        room: roomCode,
+        roomCode: normalizedRoomCode,
+        room: normalizedRoomCode,
         uuid: connection.id,
         hostId: room.host,
         roomStatus: room.status,
         gameState: room.gameState,
+        dmConnected: room.dmConnected,
       },
       timestamp: Date.now(),
     });
 
     // Notify all players about host reconnection
     this.broadcastToRoom(
-      roomCode,
+      normalizedRoomCode,
       {
         type: 'event',
         data: {
@@ -1786,7 +1899,22 @@ class NexusServer {
       connection.id,
     );
 
-    console.log(`🏠 Host reconnected to room ${roomCode}: ${connection.id}`);
+    this.broadcastToRoom(
+      normalizedRoomCode,
+      {
+        type: 'event',
+        data: {
+          name: 'session/dm-status',
+          dmConnected: true,
+        },
+        timestamp: Date.now(),
+      },
+      connection.id,
+    );
+
+    console.log(
+      `🏠 Host reconnected to room ${normalizedRoomCode}: ${connection.id}`,
+    );
   }
 
   /**
@@ -1802,6 +1930,7 @@ class NexusServer {
     roomCode: string,
   ): Promise<void> {
     let room = this.rooms.get(roomCode);
+    let sessionRecord: SessionRecord | null = null;
 
     if (!room) {
       const recoveredRoom = await this.recoverRoomFromSession(roomCode);
@@ -1833,9 +1962,9 @@ class NexusServer {
 
     // Add player to database session
     try {
-      const session = await this.db.getSessionByJoinCode(roomCode);
-      if (session) {
-        await this.db.addPlayerToSession(connection.id, session.id);
+      sessionRecord = await this.db.getSessionByJoinCode(roomCode);
+      if (sessionRecord) {
+        await this.db.addPlayerToSession(connection.id, sessionRecord.id);
       }
     } catch (error) {
       console.error('Failed to add player to session in database:', error);
@@ -1853,6 +1982,8 @@ class NexusServer {
         coHostIds: Array.from(room.coHosts),
         roomStatus: room.status,
         gameState: room.gameState,
+        campaignId: sessionRecord?.campaignId,
+        dmConnected: room.dmConnected,
         players: Array.from(room.players).map((playerId) => {
           const conn = this.connections.get(playerId);
           return {
@@ -1881,6 +2012,14 @@ class NexusServer {
         data: {
           name: 'session/join',
           uuid: connection.id,
+          player: {
+            id: connection.id,
+            name: connection.user?.name || 'Player',
+            type: 'player',
+            color: 'blue',
+            connected: true,
+            canEditScenes: false,
+          },
         },
         timestamp: Date.now(),
       },
@@ -1918,6 +2057,44 @@ class NexusServer {
     if (!room) return;
 
     room.lastActivity = Date.now();
+
+    if (message.type === 'event' && connection.user?.type !== 'host') {
+      const eventName = (message.data as { name?: string })?.name;
+      const restrictedEvents = new Set([
+        'game-state-update',
+        'scene/create',
+        'scene/update',
+        'scene/delete',
+        'scene/reorder',
+        'scene/change',
+        'drawing/create',
+        'drawing/update',
+        'drawing/delete',
+        'drawing/clear',
+        'token/place',
+        'token/update',
+        'token/delete',
+        'prop/place',
+        'prop/update',
+        'prop/delete',
+        'host/transfer',
+        'host/add-cohost',
+        'host/remove-cohost',
+      ]);
+
+      if (!room.dmConnected && eventName && restrictedEvents.has(eventName)) {
+        this.sendMessage(connection, {
+          type: 'error',
+          data: {
+            message:
+              'Host is offline; this action is temporarily restricted.',
+            code: 403,
+          },
+          timestamp: Date.now(),
+        });
+        return;
+      }
+    }
 
     if (
       message.type === 'event' &&
@@ -2308,65 +2485,35 @@ class NexusServer {
 
     // Handle host disconnection
     if (room.host === uuid) {
-      console.log(
-        `👑 Host left room ${connection.room}, attempting automatic transfer`,
-      );
-      const newHost = this.selectNewHost(room, uuid);
+      console.log(`👑 Host left room ${connection.room}, entering DM offline mode`);
 
-      if (newHost && session) {
-        // Transfer host to another player
-        room.host = newHost;
-        room.coHosts.delete(uuid);
+      room.dmConnected = false;
+      room.players.delete(uuid);
+      room.connections.delete(uuid);
+      room.lastActivity = Date.now();
 
-        try {
-          await this.db.transferPrimaryHost(session.id, newHost);
-        } catch (error) {
-          console.error('Failed to transfer host in database:', error);
-        }
+      this.hibernateRoom(connection.room);
 
-        const newHostConnection = this.connections.get(newHost);
-        if (newHostConnection) {
-          newHostConnection.user = {
-            name: newHostConnection.user?.name || 'Host',
-            type: 'host',
-          };
-        }
+      this.broadcastToRoom(connection.room, {
+        type: 'event',
+        data: {
+          name: 'session/hibernated',
+          message:
+            'Host disconnected. Room is still available while players remain connected.',
+          reconnectWindow: this.HIBERNATION_TIMEOUT,
+          dmConnected: false,
+        },
+        timestamp: Date.now(),
+      });
 
-        console.log(
-          `👑 Host transferred to: ${newHost} in room ${connection.room}`,
-        );
-
-        this.broadcastToRoom(connection.room, {
-          type: 'event',
-          data: {
-            name: 'session/host-changed',
-            newHostId: newHost,
-            reason: 'host-disconnected',
-            message:
-              'The host has disconnected. Host privileges have been transferred.',
-          },
-          timestamp: Date.now(),
-        });
-
-        room.lastActivity = Date.now();
-      } else {
-        // No suitable replacement - hibernate the room
-        console.log(
-          `🏠 No suitable host found, hibernating room: ${connection.room}`,
-        );
-        this.hibernateRoom(connection.room);
-
-        this.broadcastToRoom(connection.room, {
-          type: 'event',
-          data: {
-            name: 'session/hibernated',
-            message:
-              'Host disconnected and no players available to take over. Room will remain available for 72 hours.',
-            reconnectWindow: this.HIBERNATION_TIMEOUT,
-          },
-          timestamp: Date.now(),
-        });
-      }
+      this.broadcastToRoom(connection.room, {
+        type: 'event',
+        data: {
+          name: 'session/dm-status',
+          dmConnected: false,
+        },
+        timestamp: Date.now(),
+      });
     } else {
       // Regular player disconnection
       console.log(`👋 Player left room ${connection.room}: ${uuid}`);
@@ -2379,6 +2526,10 @@ class NexusServer {
         data: { name: 'session/leave', uuid },
         timestamp: Date.now(),
       });
+
+      if (!room.dmConnected && room.players.size === 0) {
+        this.hibernateRoom(connection.room);
+      }
     }
 
     this.connections.delete(uuid);
@@ -2418,13 +2569,17 @@ class NexusServer {
       clearTimeout(room.hibernationTimer);
     }
 
-    // Set timer to abandon room after hibernation timeout
-    room.hibernationTimer = setTimeout(() => {
-      this.abandonRoom(roomCode);
-    }, this.HIBERNATION_TIMEOUT);
+    // Only schedule abandonment if no players are connected
+    if (room.players.size === 0) {
+      room.hibernationTimer = setTimeout(() => {
+        this.abandonRoom(roomCode);
+      }, this.HIBERNATION_TIMEOUT);
+    } else {
+      room.hibernationTimer = undefined;
+    }
 
     console.log(
-      `😴 Room ${roomCode} hibernated, will be abandoned in ${this.HIBERNATION_TIMEOUT / 1000}s`,
+      `😴 Room ${roomCode} hibernated${room.players.size === 0 ? `, will be abandoned in ${this.HIBERNATION_TIMEOUT / 1000}s` : ', waiting for host reconnect'}`,
     );
   }
 
@@ -2491,6 +2646,9 @@ class NexusServer {
       return false;
     }
     if (room.status === 'hibernating') {
+      if (!room.dmConnected) {
+        return true;
+      }
       console.log(`🔄 Reactivating hibernated room: ${roomCode}`);
       room.status = 'active';
       room.lastActivity = Date.now();
@@ -2529,13 +2687,14 @@ class NexusServer {
         code: session.joinCode,
         host: session.primaryHostId,
         coHosts: new Set<string>(),
-        players: new Set<string>([session.primaryHostId]),
+        players: new Set<string>(),
         connections: new Map(),
         created: session.createdAt
           ? new Date(session.createdAt).getTime()
           : Date.now(),
         lastActivity: Date.now(),
         status: session.status === 'hibernating' ? 'hibernating' : 'active',
+        dmConnected: false,
         hibernationTimer: undefined,
         gameState: session.gameState as GameState,
         previousGameState: undefined,

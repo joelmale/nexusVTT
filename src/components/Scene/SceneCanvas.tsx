@@ -129,6 +129,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   const [isPanning, setIsPanning] = useState(false);
   const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
   const [viewportSize, setViewportSize] = useState({ width: 800, height: 600 });
+  const [assetsReady, setAssetsReady] = useState(false);
   const [drawingStyle] = useState<DrawingStyle>({
     fillColor: '#ff0000',
     fillOpacity: 0.5,
@@ -180,6 +181,30 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     updateViewportSize();
     window.addEventListener('resize', updateViewportSize);
     return () => window.removeEventListener('resize', updateViewportSize);
+  }, []);
+
+  useEffect(() => {
+    let isMounted = true;
+    const initializeAssets = async () => {
+      try {
+        await tokenAssetManager.initialize();
+        await tokenAssetManager.refreshCustomizations();
+        await propAssetManager.initialize();
+        await propAssetManager.refreshCustomLibraries();
+      } catch (error) {
+        console.warn('Failed to initialize scene assets:', error);
+      } finally {
+        if (isMounted) {
+          setAssetsReady(true);
+        }
+      }
+    };
+
+    initializeAssets();
+
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
   // WebSocket event handling for incoming drawings and camera sync
@@ -953,7 +978,8 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
               {/* Tokens layer */}
               <TokenErrorBoundary>
                 <g id="tokens-layer">
-                  {placedTokens.map((placedToken) => {
+                  {assetsReady &&
+                    placedTokens.map((placedToken) => {
                     const token = tokenAssetManager.getTokenById(
                       placedToken.tokenId,
                     );
@@ -982,7 +1008,8 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
               {/* Props layer */}
               <TokenErrorBoundary>
                 <g id="props-layer">
-                  {placedProps.map((placedProp) => {
+                  {assetsReady &&
+                    placedProps.map((placedProp) => {
                     const prop = propAssetManager.getPropById(
                       placedProp.propId,
                     );

@@ -22,6 +22,7 @@ import type {
   Drawing,
   PlacedToken,
   PlacedProp,
+  Token,
   ChatMessage,
   ChatUserTypingEvent,
   VoiceChannel,
@@ -177,6 +178,12 @@ interface GameStore extends GameState {
   deleteToken: (sceneId: string, tokenId: string) => void;
   getSceneTokens: (sceneId: string) => PlacedToken[];
   getVisibleTokens: (sceneId: string, isHost: boolean) => PlacedToken[];
+  autoPlaceCharacterToken: (characterId: string, sceneId: string) => Promise<void>;
+  autoPlacePlayerToken: (
+    playerName: string,
+    imageUrl?: string,
+    sceneId?: string,
+  ) => Promise<void>;
 
   // Optimistic Update Actions
   moveTokenOptimistic: (
@@ -403,8 +410,9 @@ const loadSessionFromStorage = (): Partial<GameStore> | null => {
         type: session.userType,
         id: session.userId || getBrowserId(), // Use stored userId to preserve host identity
         color: 'blue',
-        connected: false,
-      },
+      connected: false,
+      isSpectator: false,
+    },
       gameConfig: session.gameConfig,
       // Session will be restored with roomCode via attemptSessionRecovery
     };
@@ -446,7 +454,7 @@ const initialState: GameState & {
     camera: {
       x: 0,
       y: 0,
-      zoom: 1.0,
+      zoom: 0.25,
     },
     followDM: true,
     activeTool: 'select' as const,
@@ -614,6 +622,27 @@ const eventHandlers: Record<string, EventHandler> = {
         state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
       }
     }
+  },
+  'token/add-custom': (_state, data) => {
+    const eventData = data as { token?: Token };
+    if (!eventData.token) return;
+    const token = eventData.token; // Capture token in closure
+    void (async () => {
+      const { tokenAssetManager } = await import('@/services/tokenAssets');
+      await tokenAssetManager.initialize();
+      if (tokenAssetManager.getTokenById(token.id)) return;
+
+      const libraries = tokenAssetManager.getLibraries();
+      let targetLibrary = libraries.find((lib) => lib.name === 'Custom Tokens');
+      if (!targetLibrary) {
+        targetLibrary = tokenAssetManager.createCustomLibrary(
+          'Custom Tokens',
+          'User-created custom tokens',
+        );
+      }
+
+      tokenAssetManager.addCustomTokenWithId(targetLibrary.id, token);
+    })();
   },
   'token/move': (state, data) => {
     const eventData = data as TokenMoveEvent['data'];
@@ -875,11 +904,14 @@ const eventHandlers: Record<string, EventHandler> = {
     console.log('Creating session with data:', data);
     const eventData = data as SessionCreatedEvent['data'] & {
       campaignScenes?: unknown[];
+      campaignId?: string;
+      dmConnected?: boolean;
     };
     state.session = {
       roomCode: eventData.roomCode,
       hostId: state.user.id,
       coHostIds: [],
+      campaignId: eventData.campaignId,
       players: [
         {
           ...state.user,
@@ -888,6 +920,7 @@ const eventHandlers: Record<string, EventHandler> = {
         },
       ],
       status: 'connected',
+      dmConnected: eventData.dmConnected ?? true,
     };
     state.user.type = 'host';
     state.user.connected = true;
@@ -953,13 +986,16 @@ const eventHandlers: Record<string, EventHandler> = {
         scenes?: unknown[];
         activeSceneId?: string | null;
       };
+      dmConnected?: boolean;
     };
     state.session = {
       roomCode: eventData.roomCode,
       hostId: eventData.hostId,
       coHostIds: eventData.coHostIds || [],
+      campaignId: eventData.campaignId,
       players: eventData.players || [{ ...state.user, connected: true }],
       status: 'connected',
+      dmConnected: eventData.dmConnected ?? true,
     };
     // Determine user type based on host/co-host status
     if (eventData.hostId === state.user.id) {
@@ -984,6 +1020,51 @@ const eventHandlers: Record<string, EventHandler> = {
 
     console.log('Session joined:', state.session);
   },
+  'session/join': (state, data) => {
+    // Another player has joined the session - update our player list
+    const eventData = data as {
+      uuid: string;
+      player?: {
+        id: string;
+        name: string;
+        type: 'player' | 'host';
+        color: string;
+        connected: boolean;
+        canEditScenes: boolean;
+      };
+    };
+    console.log('Player joined session:', eventData.uuid, eventData.player);
+
+    if (!state.session) {
+      console.warn('Received session/join but no active session');
+      return;
+    }
+
+    // Check if player is already in the list (de-dupe)
+    const existingPlayer = state.session.players.find((p) => p.id === eventData.uuid);
+    if (existingPlayer) {
+      console.log('Player already in session, updating connection status');
+      existingPlayer.connected = true;
+      // Update name if provided
+      if (eventData.player?.name) {
+        existingPlayer.name = eventData.player.name;
+      }
+      return;
+    }
+
+    // Add the new player to the session
+    const newPlayer = eventData.player || {
+      id: eventData.uuid,
+      name: 'Player',
+      type: 'player' as const,
+      color: 'blue',
+      connected: true,
+      canEditScenes: false,
+    };
+    state.session.players.push(newPlayer);
+
+    console.log('✅ Player added to session:', newPlayer.name, 'Total players:', state.session.players.length);
+  },
   'session/reconnected': (state, data) => {
     console.log('Reconnecting to session with data:', data);
     const eventData = data as {
@@ -993,6 +1074,7 @@ const eventHandlers: Record<string, EventHandler> = {
         scenes?: Scene[];
         activeSceneId?: string | null;
       };
+      dmConnected?: boolean;
     };
 
     // Update session data if provided
@@ -1009,11 +1091,13 @@ const eventHandlers: Record<string, EventHandler> = {
             },
           ],
           status: 'connected',
+          dmConnected: eventData.dmConnected ?? true,
         };
       } else {
         state.session.roomCode = eventData.roomCode;
         state.session.hostId = eventData.hostId || state.session.hostId;
         state.session.status = 'connected';
+        state.session.dmConnected = eventData.dmConnected ?? true;
       }
     }
 
@@ -1039,6 +1123,32 @@ const eventHandlers: Record<string, EventHandler> = {
     }
 
     console.log('Session reconnected:', state.session);
+  },
+  'session/host-reconnected': (state, data) => {
+    // Host has reconnected to the session
+    const eventData = data as { uuid: string };
+    console.log('Host reconnected to session:', eventData.uuid);
+
+    if (!state.session) {
+      console.warn('Received session/host-reconnected but no active session');
+      return;
+    }
+
+    // Update host connection status in player list
+    const hostPlayer = state.session.players.find((p) => p.id === eventData.uuid);
+    if (hostPlayer) {
+      hostPlayer.connected = true;
+      console.log('✅ Host reconnection status updated');
+    }
+
+    // Ensure session status is connected
+    state.session.status = 'connected';
+  },
+  'session/dm-status': (state, data) => {
+    const eventData = data as { dmConnected: boolean };
+    if (state.session) {
+      state.session.dmConnected = eventData.dmConnected;
+    }
   },
   'session/host-changed': (state, data) => {
     const eventData = data as HostChangedEvent['data'];
@@ -1138,7 +1248,7 @@ const eventHandlers: Record<string, EventHandler> = {
       );
       if (sceneExists) {
         state.sceneState.activeSceneId = eventData.sceneId;
-        state.sceneState.camera = { x: 0, y: 0, zoom: 1.0 };
+        state.sceneState.camera = { x: 0, y: 0, zoom: 0.25 };
       }
     }
   },
@@ -1234,6 +1344,147 @@ const eventHandlers: Record<string, EventHandler> = {
       if (existingUserIndex >= 0) {
         state.chat.typingUsers.splice(existingUserIndex, 1);
       }
+    }
+  },
+
+  // Combat Integration Events
+  'combat/sync-hp': (state, data) => {
+    // Handle remote HP sync from peers
+    void import('@/services/characterSyncService')
+      .then(({ characterSyncService }) => {
+        characterSyncService.handleRemoteSync(data as {
+          sourceClientId: string;
+          characterId?: string;
+          tokenId?: string;
+          initiativeEntryId?: string;
+          stats: {
+            currentHP: number;
+            tempHP?: number;
+            maxHP?: number;
+            armorClass?: number;
+          };
+        });
+      })
+      .catch((error) => {
+        console.warn('Failed to load characterSyncService:', error);
+      });
+  },
+
+  'combat/add-character': (state, data) => {
+    const eventData = data as {
+      sourceClientId: string;
+      characterId?: string;
+      tokenId?: string;
+      entry: {
+        name: string;
+        currentHP: number;
+        maxHP: number;
+        tempHP: number;
+        armorClass: number;
+        initiative: number;
+        initiativeModifier: number;
+        dexterityModifier: number;
+        type: 'player' | 'npc' | 'monster';
+      };
+    };
+
+    const userId = state.user.id;
+
+    // Ignore events from self
+    if (eventData.sourceClientId === userId) return;
+
+    // Add to initiative with snapshot data
+    void import('@/stores/initiativeStore')
+      .then(({ useInitiativeStore }) => {
+        const { addEntry } = useInitiativeStore.getState();
+        addEntry({
+          ...eventData.entry,
+          id: crypto.randomUUID(),
+          characterId: eventData.characterId, // May not exist locally
+          tokenId: eventData.tokenId,
+          playerId:
+            eventData.entry.type === 'player'
+              ? eventData.characterId
+              : undefined,
+          conditions: [],
+          isActive: false,
+          isReady: false,
+          isDelayed: false,
+          notes: '',
+          deathSaves: { successes: 0, failures: 0 },
+        });
+
+        console.log(
+          '⚔️ Added character to combat from peer:',
+          eventData.entry.name,
+        );
+      })
+      .catch((error) => {
+        console.warn('Failed to load initiative store:', error);
+      });
+  },
+
+  'character/bind-to-token': (state, data) => {
+    const eventData = data as {
+      sourceClientId: string;
+      characterId: string;
+      tokenId: string;
+      sceneId: string;
+    };
+
+    // Ignore events from self
+    if (eventData.sourceClientId === state.user.id) return;
+
+    const scene = state.sceneState.scenes.find((s) => s.id === eventData.sceneId);
+    if (!scene) return;
+
+    const token = scene.placedTokens?.find((t) => t.id === eventData.tokenId);
+    if (token) {
+      token.characterId = eventData.characterId;
+      token.updatedAt = Date.now();
+      console.log('🔗 Bound character to token (remote):', eventData.characterId, eventData.tokenId);
+    }
+  },
+
+  // Camera sync for players following DM
+  'camera/update': (state, data) => {
+    const eventData = data as {
+      sceneId: string;
+      camera: {
+        x?: number;
+        y?: number;
+        zoom?: number;
+      };
+    };
+
+    // Only apply camera updates to the active scene
+    if (eventData.sceneId === state.sceneState.activeSceneId) {
+      if (eventData.camera.x !== undefined) {
+        state.sceneState.camera.x = eventData.camera.x;
+      }
+      if (eventData.camera.y !== undefined) {
+        state.sceneState.camera.y = eventData.camera.y;
+      }
+      if (eventData.camera.zoom !== undefined) {
+        state.sceneState.camera.zoom = eventData.camera.zoom;
+      }
+    }
+  },
+
+  // Full game state synchronization from server/host
+  'game-state-update': (state, data) => {
+    const eventData = data as {
+      scenes?: Scene[];
+      activeSceneId?: string | null;
+    };
+
+    if (eventData.scenes) {
+      state.sceneState.scenes = eventData.scenes;
+      console.log('🎮 Updated scenes from game-state-update:', eventData.scenes.length);
+    }
+
+    if (eventData.activeSceneId !== undefined) {
+      state.sceneState.activeSceneId = eventData.activeSceneId;
     }
   },
 };
@@ -1427,12 +1678,19 @@ export const useGameStore = create<GameStore>()(
             character?.name,
           );
 
+          // Get current user info to pass to server
+          const { user } = get();
+
           // Connect to WebSocket (player mode)
-          await webSocketService.connect(roomCode, 'player');
+          await webSocketService.connect(
+            roomCode,
+            'player',
+            undefined, // campaignId
+            user.id,   // userId
+            user.name, // userName
+          );
 
           // Wait for session/joined event from server
-          const session = await webSocketService.waitForSessionJoined();
-
           console.log('✅ Joined room:', roomCode);
 
           // Update state
@@ -1446,23 +1704,9 @@ export const useGameStore = create<GameStore>()(
           // Save session to localStorage for refresh recovery
           saveSessionToStorage(get());
 
-          // Update session
-          const { user } = get();
-          get().setSession({
-            roomCode,
-            hostId: session.hostId,
-            players: [
-              {
-                ...user,
-                id: user.id || '',
-                canEditScenes: false,
-                connected: true,
-                type: 'player',
-                color: user.color || 'blue',
-              },
-            ],
-            status: 'connected',
-          });
+          // NOTE: Session state is already set by the session/joined event handler
+          // which includes the correct players list from the server.
+          // We don't need to call setSession here as it would overwrite that data.
 
           // Load room-specific scenes and drawings from storage
           try {
@@ -1522,6 +1766,14 @@ export const useGameStore = create<GameStore>()(
               c.id === character.id ? { ...c, lastUsed: Date.now() } : c,
             );
             localStorage.setItem('nexus-characters', JSON.stringify(updated));
+
+            // Auto-place token for character (deferred to allow scene load)
+            setTimeout(() => {
+              const activeSceneId = get().sceneState.activeSceneId;
+              if (activeSceneId) {
+                get().autoPlaceCharacterToken(character.id, activeSceneId);
+              }
+            }, 500);
           }
 
           return roomCode;
@@ -1565,11 +1817,15 @@ export const useGameStore = create<GameStore>()(
 
           // Connect to WebSocket (host mode) - server will generate room code
           // Pass campaign ID if provided in config
+          const { user } = get();
+          const preferredRoomCode = config.preferredRoomCode?.toUpperCase();
           await webSocketService.connect(
-            undefined,
+            preferredRoomCode,
             'host',
             config.campaignId,
-            get().user.id,
+            user.id,
+            user.name,
+            preferredRoomCode ? 'host' : undefined,
           );
 
           // Wait for session/created event from server
@@ -2075,7 +2331,7 @@ export const useGameStore = create<GameStore>()(
           state.sceneState.scenes = scenes;
           state.sceneState.activeSceneId =
             activeSceneId || scenes[0]?.id || null;
-          state.sceneState.camera = { x: 0, y: 0, zoom: 1.0 };
+          state.sceneState.camera = { x: 0, y: 0, zoom: 0.25 };
         });
 
         await Promise.all(
@@ -2099,7 +2355,7 @@ export const useGameStore = create<GameStore>()(
             state.sceneState.camera = {
               x: 0,
               y: 0,
-              zoom: 1.0,
+              zoom: 0.25,
             };
           }
         });
@@ -2578,6 +2834,183 @@ export const useGameStore = create<GameStore>()(
 
           return true;
         });
+      },
+
+      autoPlaceCharacterToken: async (characterId, sceneId) => {
+        const { user, session, sceneState } = get();
+        const { useCharacterStore } = await import('@/stores/characterStore');
+        const character = useCharacterStore.getState().getCharacter(characterId);
+
+        if (!character || !session) {
+          console.log('🎭 Cannot auto-place: missing character or session');
+          return;
+        }
+
+        const scene = sceneState.scenes.find((s) => s.id === sceneId);
+        if (!scene) {
+          console.log('🎭 Cannot auto-place: scene not found');
+          return;
+        }
+
+        // Check if token already exists for this character (de-dupe)
+        const existingToken = scene.placedTokens?.find(
+          (t) => t.characterId === characterId,
+        );
+        if (existingToken) {
+          console.log('🎭 Token already exists for character:', character.name);
+          return;
+        }
+
+        // Spawn point (center or defined spawn)
+        const spawnPoint = {
+          x: (scene.backgroundImage?.width || 1000) / 2,
+          y: (scene.backgroundImage?.height || 1000) / 2,
+        };
+
+        // Get default token
+        const { tokenAssetManager } = await import('@/services/tokenAssets');
+        const tokenTemplate = await tokenAssetManager.getDefaultTokenForCharacter(
+          character,
+        );
+
+        // Create placed token with character binding
+        const { createPlacedToken } = await import('@/types/token');
+        const placedToken = createPlacedToken(
+          tokenTemplate,
+          spawnPoint,
+          sceneId,
+          session.roomCode,
+          user.id,
+          {
+            nameOverride: character.name,
+            characterId: character.id,
+            currentStats: {
+              hp: character.hitPoints.current,
+              ac: character.armorClass,
+            },
+            visibleToPlayers: true,
+          },
+        );
+
+        // Place token (synchronously updates state)
+        get().placeToken(sceneId, placedToken);
+
+        // Broadcast binding event (so peers can link if they have character)
+        const { webSocketService } = await import('@/utils/websocket');
+        webSocketService.sendEvent({
+          type: 'event',
+          data: {
+            name: 'character/bind-to-token',
+            sourceClientId: user.id,
+            characterId: character.id,
+            tokenId: placedToken.id,
+            sceneId,
+          },
+        });
+
+        console.log('🎭 Auto-placed token for character:', character.name);
+      },
+
+      autoPlacePlayerToken: async (playerName, imageUrl, sceneIdOverride) => {
+        const { user, session, sceneState } = get();
+
+        if (!session) {
+          console.log('🎭 Cannot auto-place: missing session');
+          return;
+        }
+
+        const sceneId = sceneIdOverride || sceneState.activeSceneId;
+        if (!sceneId) {
+          console.log('🎭 Cannot auto-place: missing active scene');
+          return;
+        }
+
+        const scene = sceneState.scenes.find((s) => s.id === sceneId);
+        if (!scene) {
+          console.log('🎭 Cannot auto-place: scene not found');
+          return;
+        }
+
+        const existingToken = scene.placedTokens?.find(
+          (token) =>
+            token.placedBy === user.id &&
+            token.nameOverride?.toLowerCase() === playerName.toLowerCase(),
+        );
+        if (existingToken) {
+          console.log('🎭 Token already exists for player:', playerName);
+          return;
+        }
+
+        const spawnPoint = {
+          x: (scene.backgroundImage?.width || 1000) / 2,
+          y: (scene.backgroundImage?.height || 1000) / 2,
+        };
+
+        const { tokenAssetManager } = await import('@/services/tokenAssets');
+        await tokenAssetManager.initialize();
+
+        const tokenImage =
+          imageUrl || tokenAssetManager.createPlaceholderTokenImage(playerName);
+
+        const { createToken, createPlacedToken } = await import('@/types/token');
+        const baseToken = createToken({
+          name: playerName,
+          image: tokenImage,
+          thumbnailImage: tokenImage,
+          size: 'medium',
+          category: 'pc',
+          tags: ['player'],
+          isCustom: true,
+        });
+
+        const libraries = tokenAssetManager.getLibraries();
+        let targetLibrary = libraries.find(
+          (lib) => lib.name === 'Custom Tokens',
+        );
+        if (!targetLibrary) {
+          targetLibrary = tokenAssetManager.createCustomLibrary(
+            'Custom Tokens',
+            'User-created custom tokens',
+          );
+        }
+
+        const token = tokenAssetManager.addCustomTokenWithId(
+          targetLibrary.id,
+          baseToken,
+        );
+
+        const placedToken = createPlacedToken(
+          token,
+          spawnPoint,
+          sceneId,
+          session.roomCode,
+          user.id,
+          {
+            nameOverride: playerName,
+            visibleToPlayers: true,
+          },
+        );
+
+        get().placeToken(sceneId, placedToken);
+
+        const { webSocketService } = await import('@/utils/websocket');
+        webSocketService.sendEvent({
+          type: 'event',
+          data: {
+            name: 'token/add-custom',
+            token,
+          },
+        });
+
+        webSocketService.sendEvent({
+          type: 'token/place',
+          data: {
+            sceneId,
+            token: placedToken,
+          },
+        });
+
+        console.log('🎭 Auto-placed token for player:', playerName);
       },
 
       // Optimistic Update Actions

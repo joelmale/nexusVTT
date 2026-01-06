@@ -15,6 +15,7 @@ export interface User {
   preferences?: Record<string, unknown>;
   isActive?: boolean;
   type: 'host' | 'player';
+  isSpectator?: boolean;
   color: string;
   connected: boolean;
 }
@@ -31,6 +32,7 @@ export interface Session {
   // Use the more specific Player type which includes permissions
   players: Player[];
   status: 'connecting' | 'connected' | 'disconnected';
+  dmConnected?: boolean;
 }
 
 export interface DicePool {
@@ -92,6 +94,7 @@ export interface GameConfig {
   campaignType: 'campaign' | 'oneshot';
   maxPlayers: number;
   campaignId?: string; // Optional campaign ID for linking session to existing campaign
+  preferredRoomCode?: string;
 }
 
 export interface ChatState {
@@ -500,6 +503,13 @@ export interface TokenPlaceEvent extends GameEvent {
   };
 }
 
+export interface TokenCustomAddEvent extends GameEvent {
+  type: 'token/add-custom';
+  data: {
+    token: Token;
+  };
+}
+
 export interface TokenMoveEvent extends GameEvent {
   type: 'token/move';
   data: {
@@ -712,5 +722,53 @@ export interface RemoveCoHostEvent extends GameEvent {
   type: 'host/remove-cohost';
   data: {
     targetUserId: string;
+  };
+}
+
+// Combat Integration Events
+export interface CombatAddCharacterEvent extends GameEvent {
+  type: 'combat/add-character';
+  data: {
+    sourceClientId: string; // Bounce prevention
+    characterId?: string; // Optional - may not exist on peers
+    tokenId?: string;
+    // Stat snapshot - shared even if character doesn't exist locally
+    entry: {
+      name: string;
+      currentHP: number;
+      maxHP: number;
+      tempHP: number;
+      armorClass: number;
+      initiative: number;
+      initiativeModifier: number;
+      dexterityModifier: number;
+      type: 'player' | 'npc' | 'monster';
+    };
+  };
+}
+
+export interface CombatSyncHPEvent extends GameEvent {
+  type: 'combat/sync-hp';
+  data: {
+    sourceClientId: string; // Bounce prevention
+    characterId?: string; // Optional
+    tokenId?: string;
+    initiativeEntryId?: string;
+    stats: {
+      currentHP: number;
+      tempHP?: number;
+      maxHP?: number;
+      armorClass?: number;
+    };
+  };
+}
+
+export interface CharacterBindTokenEvent extends GameEvent {
+  type: 'character/bind-to-token';
+  data: {
+    sourceClientId: string;
+    characterId: string;
+    tokenId: string;
+    sceneId: string;
   };
 }

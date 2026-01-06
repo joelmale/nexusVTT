@@ -83,6 +83,10 @@ interface CampaignRecord {
   dmId: string;
   /** JSONB data containing scenes and campaign details */
   scenes: unknown;
+  /** Last room code used for this campaign */
+  lastRoomCode: string | null;
+  /** Timestamp when lastRoomCode was updated */
+  lastRoomCodeUpdatedAt: Date | null;
   /** Timestamp when campaign was created */
   createdAt: Date;
   /** Timestamp when campaign was last updated */
@@ -670,7 +674,13 @@ export class DatabaseService {
     campaignId: string,
     updates: Partial<CampaignRecord>,
   ): Promise<void> {
-    const allowedFields = ['name', 'description', 'scenes'];
+    const allowedFields = [
+      'name',
+      'description',
+      'scenes',
+      'lastRoomCode',
+      'lastRoomCodeUpdatedAt',
+    ];
     const updateFields: string[] = [];
     const values: unknown[] = [];
     let paramIndex = 1;
@@ -969,6 +979,87 @@ export class DatabaseService {
     } finally {
       client.release();
     }
+  }
+
+  /**
+   * Creates a new game session with a specific join code
+   * @param {string} campaignId - Campaign UUID this session belongs to
+   * @param {string} hostId - User ID of the primary host/DM
+   * @param {string} joinCode - Specific join code to use
+   * @returns {Promise<{ sessionId: string; joinCode: string }>} Session details
+   */
+  async createSessionWithJoinCode(
+    campaignId: string,
+    hostId: string,
+    joinCode: string,
+  ): Promise<{ sessionId: string; joinCode: string }> {
+    const client = await this.pool.connect();
+
+    try {
+      await client.query('BEGIN');
+
+      const existing = await client.query(
+        'SELECT 1 FROM sessions WHERE "joinCode" = $1',
+        [joinCode],
+      );
+      if (existing.rows.length > 0) {
+        throw new Error(`Join code already exists: ${joinCode}`);
+      }
+
+      const sessionId = uuidv4();
+
+      await client.query(
+        `INSERT INTO sessions (id, "joinCode", "campaignId", "primaryHostId", "gameState")
+         VALUES ($1, $2, $3, $4, '{}'::jsonb)`,
+        [sessionId, joinCode, campaignId, hostId],
+      );
+
+      await client.query(
+        `INSERT INTO hosts (id, "userId", "sessionId", "isPrimary", permissions)
+         VALUES (uuid_generate_v4(), $1, $2, true, '{}'::jsonb)`,
+        [hostId, sessionId],
+      );
+
+      await client.query(
+        `INSERT INTO players (id, "userId", "sessionId", "isConnected")
+         VALUES (uuid_generate_v4(), $1, $2, true)`,
+        [hostId, sessionId],
+      );
+
+      await client.query('COMMIT');
+
+      console.log(
+        `🗄️ Session created with custom code: ${joinCode} (${sessionId}) by host ${hostId}`,
+      );
+
+      return { sessionId, joinCode };
+    } catch (error) {
+      await client.query('ROLLBACK');
+      console.error('Failed to create session with custom code:', error);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Reactivates an existing session by join code and ensures host membership
+   * @param {string} joinCode - The short join code (e.g., "ABC1")
+   * @param {string} hostId - User ID of the primary host/DM
+   * @returns {Promise<SessionRecord | null>} Updated session record or null if not found
+   */
+  async activateSessionByJoinCode(
+    joinCode: string,
+    hostId: string,
+  ): Promise<SessionRecord | null> {
+    const session = await this.getSessionByJoinCode(joinCode);
+    if (!session) return null;
+
+    await this.updateSessionStatus(session.id, 'active');
+    await this.transferPrimaryHost(session.id, hostId);
+    await this.addPlayerToSession(hostId, session.id);
+
+    return this.getSessionByJoinCode(joinCode);
   }
 
   /**
