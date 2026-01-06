@@ -100,7 +100,7 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
   >({
     type: 'INITIATIVE_CARD',
     item: () => {
-      return { id: entry.id, index };
+      return { id: entry.id, index, type: 'INITIATIVE_CARD' };
     },
     collect: (monitor: DragSourceMonitor<DragItem, void>) => ({
       isDragging: monitor.isDragging(),

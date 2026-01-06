@@ -16,6 +16,10 @@ class CharacterSyncService {
   syncStats(_source: SyncSource, _update: StatUpdate): void {
     // No-op placeholder to keep unit tests and optional sync hooks stable.
   }
+
+  handleRemoteSync(update: StatUpdate): void {
+    this.syncStats('character', update);
+  }
 }
 
 export const characterSyncService = new CharacterSyncService();
