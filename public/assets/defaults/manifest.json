@@ -1,9 +1,9 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-01-02T16:22:03.427Z",
-  "totalAssets": 67,
+  "generatedAt": "2026-01-06T02:59:57.454Z",
+  "totalAssets": 66,
   "tokens": {
-    "count": 12,
+    "count": 11,
     "items": [
       {
         "id": "default-token-1",
@@ -15,9 +15,9 @@
           "dragonborn",
           "paladin"
         ],
-        "path": "/assets/defaults/tokens/DragonbornPaladin.png",
+        "path": "/assets/defaults/tokens/DragonbornPaladin.webp",
         "thumbnail": "/assets/defaults/tokens/thumbnails/DragonbornPaladin.thumb.jpg",
-        "format": "png",
+        "format": "webp",
         "isDefault": true
       },
       {
@@ -30,9 +30,9 @@
           "dwaf",
           "wizard"
         ],
-        "path": "/assets/defaults/tokens/DwafWizard.png",
+        "path": "/assets/defaults/tokens/DwafWizard.webp",
         "thumbnail": "/assets/defaults/tokens/thumbnails/DwafWizard.thumb.jpg",
-        "format": "png",
+        "format": "webp",
         "isDefault": true
       },
       {
@@ -45,9 +45,9 @@
           "elven",
           "rouge"
         ],
-        "path": "/assets/defaults/tokens/ElvenRouge.png",
+        "path": "/assets/defaults/tokens/ElvenRouge.webp",
         "thumbnail": "/assets/defaults/tokens/thumbnails/ElvenRouge.thumb.jpg",
-        "format": "png",
+        "format": "webp",
         "isDefault": true
       },
       {
@@ -60,9 +60,9 @@
           "elven",
           "wizard"
         ],
-        "path": "/assets/defaults/tokens/ElvenWizard.png",
+        "path": "/assets/defaults/tokens/ElvenWizard.webp",
         "thumbnail": "/assets/defaults/tokens/thumbnails/ElvenWizard.thumb.jpg",
-        "format": "png",
+        "format": "webp",
         "isDefault": true
       },
       {
@@ -77,9 +77,9 @@
           "ranger",
           "winter"
         ],
-        "path": "/assets/defaults/tokens/FemaleHumanRangerWinter.png",
+        "path": "/assets/defaults/tokens/FemaleHumanRangerWinter.webp",
         "thumbnail": "/assets/defaults/tokens/thumbnails/FemaleHumanRangerWinter.thumb.jpg",
-        "format": "png",
+        "format": "webp",
         "isDefault": true
       },
       {
@@ -92,9 +92,9 @@
           "gnome",
           "artificer"
         ],
-        "path": "/assets/defaults/tokens/GnomeArtificer.png",
+        "path": "/assets/defaults/tokens/GnomeArtificer.webp",
         "thumbnail": "/assets/defaults/tokens/thumbnails/GnomeArtificer.thumb.jpg",
-        "format": "png",
+        "format": "webp",
         "isDefault": true
       },
       {
@@ -108,9 +108,9 @@
           "orc",
           "artificer"
         ],
-        "path": "/assets/defaults/tokens/HalfOrcArtificer.png",
+        "path": "/assets/defaults/tokens/HalfOrcArtificer.webp",
         "thumbnail": "/assets/defaults/tokens/thumbnails/HalfOrcArtificer.thumb.jpg",
-        "format": "png",
+        "format": "webp",
         "isDefault": true
       },
       {
@@ -123,29 +123,13 @@
           "halfling",
           "ranger"
         ],
-        "path": "/assets/defaults/tokens/HalflingRanger.png",
+        "path": "/assets/defaults/tokens/HalflingRanger.webp",
         "thumbnail": "/assets/defaults/tokens/thumbnails/HalflingRanger.thumb.jpg",
-        "format": "png",
+        "format": "webp",
         "isDefault": true
       },
       {
         "id": "default-token-9",
-        "type": "token",
-        "name": "Human Female Ranger",
-        "category": "pc",
-        "size": "medium",
-        "tags": [
-          "human",
-          "female",
-          "ranger"
-        ],
-        "path": "/assets/defaults/tokens/HumanFemaleRanger.png",
-        "thumbnail": "/assets/defaults/tokens/thumbnails/HumanFemaleRanger.thumb.jpg",
-        "format": "png",
-        "isDefault": true
-      },
-      {
-        "id": "default-token-10",
         "type": "token",
         "name": "Orc Paladin",
         "category": "pc",
@@ -154,13 +138,13 @@
           "orc",
           "paladin"
         ],
-        "path": "/assets/defaults/tokens/OrcPaladin.png",
+        "path": "/assets/defaults/tokens/OrcPaladin.webp",
         "thumbnail": "/assets/defaults/tokens/thumbnails/OrcPaladin.thumb.jpg",
-        "format": "png",
+        "format": "webp",
         "isDefault": true
       },
       {
-        "id": "default-token-11",
+        "id": "default-token-10",
         "type": "token",
         "name": "Soldier",
         "category": "npc",
@@ -168,13 +152,13 @@
         "tags": [
           "soldier"
         ],
-        "path": "/assets/defaults/tokens/Soldier.png",
+        "path": "/assets/defaults/tokens/Soldier.webp",
         "thumbnail": "/assets/defaults/tokens/thumbnails/Soldier.thumb.jpg",
-        "format": "png",
+        "format": "webp",
         "isDefault": true
       },
       {
-        "id": "default-token-12",
+        "id": "default-token-11",
         "type": "token",
         "name": "Teifling Cleric",
         "category": "pc",
@@ -183,9 +167,9 @@
           "teifling",
           "cleric"
         ],
-        "path": "/assets/defaults/tokens/TeiflingCleric.png",
+        "path": "/assets/defaults/tokens/TeiflingCleric.webp",
         "thumbnail": "/assets/defaults/tokens/thumbnails/TeiflingCleric.thumb.jpg",
-        "format": "png",
+        "format": "webp",
         "isDefault": true
       }
     ]

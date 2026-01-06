@@ -7,6 +7,7 @@ import {
   getEffectiveTokenAura,
   type TokenSize
 } from '@/types/token';
+import { webSocketService } from '@/utils/websocket';
 
 interface OptionsPanelProps {
   tokenId?: string; // Not currently used, kept for interface compatibility
@@ -29,7 +30,7 @@ const AURA_OPTIONS = ['None', 'Frightened', 'Charmed', 'Poisoned', 'Custom'];
 export const OptionsPanel: React.FC<OptionsPanelProps> = () => {
   const placedToken = useSelectedPlacedToken();
   const activeScene = useActiveScene();
-  const { updateToken } = useGameStore();
+  const { updateToken, deleteToken, clearSelection } = useGameStore();
 
   if (!placedToken || !activeScene) return null;
 
@@ -87,6 +88,22 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = () => {
   const currentSizeOption = SIZE_OPTIONS.find(
     (option) => option.size === effectiveSize,
   );
+
+  const handleDelete = () => {
+    if (window.confirm('Are you sure you want to delete this token?')) {
+      deleteToken(activeScene.id, placedToken.id);
+      clearSelection();
+
+      // Broadcast deletion
+      webSocketService.sendEvent({
+        type: 'token/delete',
+        data: {
+          sceneId: activeScene.id,
+          tokenId: placedToken.id,
+        },
+      });
+    }
+  };
 
   return (
     <div className="token-toolbar-panel options-panel">
@@ -155,6 +172,33 @@ export const OptionsPanel: React.FC<OptionsPanelProps> = () => {
             title="Next aura"
           >
             ›
+          </button>
+        </div>
+
+        {/* Delete Token Row */}
+        <div className="token-option-row" style={{ marginTop: '12px', borderTop: '1px solid var(--glass-border)', paddingTop: '12px' }}>
+          <button
+            className="token-option-btn danger"
+            onClick={handleDelete}
+            title="Delete Token"
+            style={{
+              width: '100%',
+              padding: '8px',
+              backgroundColor: 'rgba(220, 38, 38, 0.1)',
+              color: 'var(--color-danger, #dc2626)',
+              border: '1px solid rgba(220, 38, 38, 0.3)',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: '8px',
+              fontSize: '14px',
+              fontWeight: '500'
+            }}
+          >
+            <span>🗑️</span>
+            <span>Delete Token</span>
           </button>
         </div>
       </div>

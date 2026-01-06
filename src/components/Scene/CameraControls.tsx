@@ -26,7 +26,7 @@ export const CameraControls: React.FC<CameraControlsProps> = ({
 
   const handleResetView = () => {
     if (!canControl) return;
-    onCameraUpdate({ x: 0, y: 0, zoom: 1.0 });
+    onCameraUpdate({ x: 0, y: 0, zoom: 0.25 });
   };
 
   const handleFitToScreen = () => {

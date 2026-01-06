@@ -1,4 +1,5 @@
 import { create } from 'zustand';
+import { persist } from 'zustand/middleware';
 import { immer } from 'zustand/middleware/immer';
 import type {
   InitiativeState,
@@ -8,6 +9,7 @@ import type {
   CombatRound,
 } from '@/types/initiative';
 import { createInitiativeEntry } from '@/types/initiative';
+import { characterSyncService } from '@/services/characterSyncService';
 
 interface InitiativeStore extends InitiativeState {
   // Core Combat Actions
@@ -94,8 +96,9 @@ const initialState: InitiativeState = {
 };
 
 export const useInitiativeStore = create<InitiativeStore>()(
-  immer((set, get) => ({
-    ...initialState,
+  persist(
+    immer((set, get) => ({
+      ...initialState,
 
     // Core Combat Actions
     startCombat: () =>
@@ -350,7 +353,8 @@ export const useInitiativeStore = create<InitiativeStore>()(
       }),
 
     // HP Management
-    applyDamage: (entryId, damage, damageType = 'untyped') =>
+    applyDamage: (entryId, damage, damageType = 'untyped') => {
+      // Update state synchronously
       set((state) => {
         const entry = state.entries.find((e) => e.id === entryId);
         if (entry) {
@@ -373,9 +377,25 @@ export const useInitiativeStore = create<InitiativeStore>()(
             amount: damage,
           });
         }
-      }),
+      });
 
-    applyHealing: (entryId, healing) =>
+      // AFTER state update: trigger sync
+      const entry = get().entries.find((e) => e.id === entryId);
+      if (entry) {
+        characterSyncService.syncStats('initiative', {
+          initiativeEntryId: entryId,
+          characterId: entry.characterId,
+          tokenId: entry.tokenId,
+          stats: {
+            currentHP: entry.currentHP,
+            tempHP: entry.tempHP,
+          },
+        });
+      }
+    },
+
+    applyHealing: (entryId, healing) => {
+      // Update state synchronously
       set((state) => {
         const entry = state.entries.find((e) => e.id === entryId);
         if (entry) {
@@ -390,15 +410,44 @@ export const useInitiativeStore = create<InitiativeStore>()(
             amount: actualHealing,
           });
         }
-      }),
+      });
 
-    setHP: (entryId, hp) =>
+      // AFTER state update: trigger sync
+      const entry = get().entries.find((e) => e.id === entryId);
+      if (entry) {
+        characterSyncService.syncStats('initiative', {
+          initiativeEntryId: entryId,
+          characterId: entry.characterId,
+          tokenId: entry.tokenId,
+          stats: {
+            currentHP: entry.currentHP,
+          },
+        });
+      }
+    },
+
+    setHP: (entryId, hp) => {
+      // Update state synchronously
       set((state) => {
         const entry = state.entries.find((e) => e.id === entryId);
         if (entry) {
           entry.currentHP = Math.max(0, Math.min(entry.maxHP, hp));
         }
-      }),
+      });
+
+      // AFTER state update: trigger sync
+      const entry = get().entries.find((e) => e.id === entryId);
+      if (entry) {
+        characterSyncService.syncStats('initiative', {
+          initiativeEntryId: entryId,
+          characterId: entry.characterId,
+          tokenId: entry.tokenId,
+          stats: {
+            currentHP: entry.currentHP,
+          },
+        });
+      }
+    },
 
     setMaxHP: (entryId, maxHP) =>
       set((state) => {
@@ -409,13 +458,28 @@ export const useInitiativeStore = create<InitiativeStore>()(
         }
       }),
 
-    addTempHP: (entryId, tempHP) =>
+    addTempHP: (entryId, tempHP) => {
+      // Update state synchronously
       set((state) => {
         const entry = state.entries.find((e) => e.id === entryId);
         if (entry) {
           entry.tempHP = Math.max(entry.tempHP, tempHP); // Temp HP doesn't stack
         }
-      }),
+      });
+
+      // AFTER state update: trigger sync
+      const entry = get().entries.find((e) => e.id === entryId);
+      if (entry) {
+        characterSyncService.syncStats('initiative', {
+          initiativeEntryId: entryId,
+          characterId: entry.characterId,
+          tokenId: entry.tokenId,
+          stats: {
+            tempHP: entry.tempHP,
+          },
+        });
+      }
+    },
 
     // Condition Management
     addCondition: (entryId, condition) =>
@@ -586,6 +650,10 @@ export const useInitiativeStore = create<InitiativeStore>()(
       return state.history[state.history.length - 1];
     },
   })),
+    {
+      name: 'nexus-initiative-tracker',
+    },
+  ),
 );
 
 // Helper hooks for common operations
@@ -611,6 +679,7 @@ export const useInitiativeActions = () => {
     addEntry: store.addEntry,
     removeEntry: store.removeEntry,
     updateEntry: store.updateEntry,
+    reorderEntries: store.reorderEntries,
     applyDamage: store.applyDamage,
     applyHealing: store.applyHealing,
     addCondition: store.addCondition,

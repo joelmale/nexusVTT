@@ -1610,18 +1610,20 @@ class NexusServer {
         usedCampaignId = campaignId;
 
         const campaign = await this.db.getCampaignById(campaignId);
-        if (campaign) {
-          if (!preferredRoomCode && campaign.lastRoomCode) {
-            preferredRoomCode = campaign.lastRoomCode.toUpperCase();
-          }
-          if (campaign.scenes) {
-            campaignScenes = Array.isArray(campaign.scenes)
-              ? campaign.scenes
-              : [];
-            console.log(
-              `📚 Loaded ${campaignScenes.length} scenes from campaign`,
-            );
-          }
+        if (!campaign) {
+          this.sendError(connection, 'Campaign not found');
+          return;
+        }
+        if (!preferredRoomCode && campaign.lastRoomCode) {
+          preferredRoomCode = campaign.lastRoomCode.toUpperCase();
+        }
+        if (campaign.scenes) {
+          campaignScenes = Array.isArray(campaign.scenes)
+            ? campaign.scenes
+            : [];
+          console.log(
+            `📚 Loaded ${campaignScenes.length} scenes from campaign`,
+          );
         }
       } else {
         console.log(`🗂️ Creating new campaign for guest DM`);
@@ -1678,10 +1680,14 @@ class NexusServer {
         joinCode = created.joinCode;
       }
 
-      await this.db.updateCampaign(usedCampaignId, {
-        lastRoomCode: joinCode,
-        lastRoomCodeUpdatedAt: new Date(),
-      });
+      try {
+        await this.db.updateCampaign(usedCampaignId, {
+          lastRoomCode: joinCode,
+          lastRoomCodeUpdatedAt: new Date(),
+        });
+      } catch (error) {
+        console.warn('Failed to update campaign room code:', error);
+      }
 
       // Create in-memory room state for real-time operations
       const room: Room = {

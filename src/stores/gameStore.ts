@@ -1399,7 +1399,6 @@ const eventHandlers: Record<string, EventHandler> = {
         const { addEntry } = useInitiativeStore.getState();
         addEntry({
           ...eventData.entry,
-          id: crypto.randomUUID(),
           characterId: eventData.characterId, // May not exist locally
           tokenId: eventData.tokenId,
           playerId:

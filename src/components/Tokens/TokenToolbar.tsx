@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useGameStore, useSelectedPlacedToken, useActiveScene } from '@/stores/gameStore';
+import { useCharacterStore } from '@/stores/characterStore';
+import { useInitiativeStore } from '@/stores/initiativeStore';
+import type { InitiativeEntry } from '@/types/initiative';
 import { TextPanel } from './toolbar-panels/TextPanel';
 import { OptionsPanel } from './toolbar-panels/OptionsPanel';
 import { ConditionsPanel } from './toolbar-panels/ConditionsPanel';
@@ -58,6 +61,83 @@ export const TokenToolbar: React.FC<TokenToolbarProps> = ({ position }) => {
 
   const handleClosePanel = () => {
     setActiveToolbarTool(null);
+  };
+
+  const handleAddToCombat = async () => {
+    const { user } = useGameStore.getState();
+    const { getCharacter } = useCharacterStore.getState();
+    const { addEntry } = useInitiativeStore.getState();
+    const { tokenAssetManager } = await import('@/services/tokenAssets');
+
+    if (!selectedPlacedToken) return;
+
+    let entryName = 'Unknown Token';
+    let entryData: Omit<InitiativeEntry, 'id'> = {
+      name: entryName,
+      currentHP: 10,
+      maxHP: 10,
+      tempHP: 0,
+      armorClass: 10,
+      initiative: 0,
+      initiativeModifier: 0,
+      dexterityModifier: 0,
+      type: 'monster' as const,
+      tokenId: selectedPlacedToken.id,
+      conditions: [],
+      isActive: false,
+      isReady: false,
+      isDelayed: false,
+      notes: '',
+      deathSaves: { successes: 0, failures: 0 },
+    };
+
+    // Check if token has character binding
+    if (selectedPlacedToken.characterId) {
+      // PC token: pull character stats
+      const character = getCharacter(selectedPlacedToken.characterId);
+      if (character) {
+        entryName = character.name;
+        entryData = {
+          ...entryData,
+          name: character.name,
+          currentHP: character.hitPoints.current,
+          maxHP: character.hitPoints.maximum,
+          tempHP: character.hitPoints.temporary,
+          armorClass: character.armorClass,
+          initiative: character.initiative || 0,
+          initiativeModifier: character.initiative || 0,
+          dexterityModifier: character.abilities.dexterity.modifier,
+          type: 'player' as const,
+          characterId: character.id,
+          playerId: character.playerId,
+        };
+      }
+    } else {
+      // NPC/Monster: use token name and nameOverride
+      const baseToken = tokenAssetManager.getTokenById(selectedPlacedToken.tokenId);
+      entryName = selectedPlacedToken.nameOverride || baseToken?.name || 'Unknown Token';
+      entryData = {
+        ...entryData,
+        name: entryName,
+      };
+    }
+
+    // Add to local initiative
+    addEntry(entryData);
+
+    // Broadcast to peers
+    const { webSocketService } = await import('@/utils/websocket');
+    webSocketService.sendEvent({
+      type: 'event',
+      data: {
+        name: 'combat/add-entry',
+        sourceClientId: user.id,
+        tokenId: selectedPlacedToken.id,
+        entry: entryData,
+      },
+    });
+
+    console.log('⚔️ Added to combat:', entryName);
   };
 
   const renderSubPanel = () => {
@@ -121,6 +201,14 @@ export const TokenToolbar: React.FC<TokenToolbarProps> = ({ position }) => {
             title="Toggle Initiative"
           >
             <span className="token-toolbar-icon">⏳</span>
+          </button>
+
+          <button
+            className="token-toolbar-btn"
+            onClick={handleAddToCombat}
+            title="Add to Combat"
+          >
+            <span className="token-toolbar-icon">⚔️</span>
           </button>
 
           <button

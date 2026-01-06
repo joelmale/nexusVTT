@@ -25,6 +25,7 @@ export interface InitiativeEntry {
   isDelayed: boolean; // has delayed their turn
   tokenId?: string; // reference to map token if placed
   playerId?: string; // reference to player if PC
+  characterId?: string; // Links to Character.id
   notes: string;
   // Death saves for 5e
   deathSaves: {

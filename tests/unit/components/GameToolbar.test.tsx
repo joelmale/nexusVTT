@@ -77,7 +77,7 @@ describe('GameToolbar', () => {
 
     const zoomResetButton = screen.getByRole('button', { name: '100%' });
     fireEvent.click(zoomResetButton);
-    expect(updateCamera).toHaveBeenCalledWith({ x: 0, y: 0, zoom: 1.0 });
+    expect(updateCamera).toHaveBeenCalledWith({ x: 0, y: 0, zoom: 0.25 });
   });
 
   it('should render the toolbar with all the basic tools', () => {

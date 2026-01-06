@@ -403,8 +403,18 @@
 }
 
 .glass-button:disabled {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
+  background: linear-gradient(
+    135deg,
+    rgba(100, 100, 100, 0.3) 0%,
+    rgba(80, 80, 80, 0.3) 50%,
+    rgba(90, 90, 90, 0.3) 100%
+  ) !important;
+  border-color: rgba(100, 100, 100, 0.3) !important;
+  color: rgba(255, 255, 255, 0.4) !important;
+  transform: none !important;
+  box-shadow: none !important;
 }
 
 .glass-button.primary {
@@ -752,6 +762,12 @@
 
 .player-setup .form-row {
   gap: 1rem;
+}
+
+.player-setup .button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
 .player-setup .empty-state {

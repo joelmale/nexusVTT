@@ -262,7 +262,7 @@ class WebSocketService extends EventTarget {
               userType: 'player',
               userName: user.name,
               userId: user.id,
-              campaignId: session.campaignId,
+              campaignId: session?.campaignId,
             };
             try {
               localStorage.setItem(

@@ -57,6 +57,7 @@ export interface Token {
 export interface PlacedToken {
   id: string;
   tokenId: string; // Reference to the base Token
+  characterId?: string; // Links to Character.id from characterStore
   sceneId: string;
   roomCode: string; // Links token to specific game room
   x: number;

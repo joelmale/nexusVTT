@@ -12,9 +12,9 @@
   box-shadow: var(--shadow-glass-lg);
   z-index: 2; /* Below scene canvas (z-index: 1) but above background */
   min-width: 280px;
-  max-width: 320px;
+  max-width: 500px; /* Increased to fit all buttons including trash */
   animation: slideIn var(--duration-300) ease-out;
-  overflow: hidden;
+  overflow: visible; /* Changed from hidden to show all buttons */
   pointer-events: none; /* Allow mouse events to pass through to tokens below */
 }
 
