@@ -3710,6 +3710,9 @@ export const useGameStore = create<GameStore>()(
           await webSocketService.connect(
             recoveryData.session.roomCode,
             recoveryData.session.userType,
+            get().gameConfig?.campaignId,
+            recoveryData.session.userId,
+            recoveryData.session.userName,
           );
 
           // If we're the host and have game state, send it to the server

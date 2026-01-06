@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 
@@ -22,8 +22,9 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireUser = false,
   requireSession = false,
 }) => {
-  const { user, session } = useGameStore();
+  const { user, session, isRecovering, attemptSessionRecovery } = useGameStore();
   const navigate = useNavigate();
+  const [recoveryChecked, setRecoveryChecked] = useState(false);
 
   useEffect(() => {
     if (requireUser && !user.name) {
@@ -31,11 +32,27 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
       navigate('/lobby');
     }
 
-    if (requireSession && !session) {
+    if (requireSession && !session && !isRecovering && !recoveryChecked) {
+      void attemptSessionRecovery().finally(() => {
+        setRecoveryChecked(true);
+      });
+      return;
+    }
+
+    if (requireSession && !session && recoveryChecked && !isRecovering) {
       console.warn('Session required - redirecting to lobby');
       navigate('/lobby');
     }
-  }, [user, session, navigate, requireUser, requireSession]);
+  }, [
+    user,
+    session,
+    isRecovering,
+    recoveryChecked,
+    attemptSessionRecovery,
+    navigate,
+    requireUser,
+    requireSession,
+  ]);
 
   if (requireUser && !user.name) return null;
   if (requireSession && !session) return null;

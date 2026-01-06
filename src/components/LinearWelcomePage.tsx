@@ -99,7 +99,7 @@ export const LinearWelcomePage: React.FC = () => {
 
   // Mark auth as complete after OAuth
   React.useEffect(() => {
-    if (isAuthenticated && !localStorage.getItem('nexus-auth-complete')) {
+    if (isAuthenticated && isOAuthRedirect && !localStorage.getItem('nexus-auth-complete')) {
       // Clear any stale session data when user authenticates via OAuth
       console.log('🔐 OAuth complete - clearing stale session data');
       localStorage.removeItem('nexus-active-session');
