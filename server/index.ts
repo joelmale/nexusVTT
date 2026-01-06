@@ -2682,11 +2682,13 @@ class NexusServer {
    * or when a player hit a different instance). This is a best-effort recovery;
    * host connections are not restored here.
    */
-  private async recoverRoomFromSession(roomCode: string): Promise<Room | null> {
+  private async recoverRoomFromSession(
+    roomCode: string,
+  ): Promise<Room | undefined> {
     try {
       const session = await this.db.getSessionByJoinCode(roomCode);
       if (!session || session.status === 'abandoned') {
-        return null;
+        return undefined;
       }
 
       const recoveredRoom: Room = {
@@ -2715,7 +2717,7 @@ class NexusServer {
       return recoveredRoom;
     } catch (error) {
       console.error(`Failed to recover room ${roomCode} from session:`, error);
-      return null;
+      return undefined;
     }
   }
 
