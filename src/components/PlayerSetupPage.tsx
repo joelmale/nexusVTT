@@ -44,7 +44,7 @@ const convertCharacterToPlayerCharacter = (
 };
 
 export const PlayerSetupPage: React.FC = () => {
-  const { user, joinRoomWithCode } = useGameStore();
+  const { user, joinRoomWithCode, autoPlacePlayerToken, setUser } = useGameStore();
   const navigate = useNavigate();
 
   const { characters, deleteCharacter } = useCharacters();
@@ -54,10 +54,14 @@ export const PlayerSetupPage: React.FC = () => {
   );
   const [popupCharacter, setPopupCharacter] = useState<Character | null>(null);
   const [roomCode, setRoomCode] = useState('');
+  const [playerName, setPlayerName] = useState(user.name || '');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const [showQuickEntry, setShowQuickEntry] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
+  const [joinMode, setJoinMode] = useState<'player' | 'spectator'>('player');
+  const [playerTokenImage, setPlayerTokenImage] = useState<string | null>(null);
+  const [playerTokenFileName, setPlayerTokenFileName] = useState('');
 
   // Filter characters for the current user
   const userCharacters = characters.filter((c) => c.playerId === user.id);
@@ -71,14 +75,33 @@ export const PlayerSetupPage: React.FC = () => {
       return;
     }
 
+    if (!playerName.trim()) {
+      setError('Please enter your name');
+      return;
+    }
+
     setLoading(true);
     setError('');
 
     try {
-      const playerCharacter = selectedCharacter
+      // Set user name before joining
+      setUser({ name: playerName.trim(), isSpectator: joinMode === 'spectator' });
+
+      const playerCharacter = joinMode === 'player' && selectedCharacter
         ? convertCharacterToPlayerCharacter(selectedCharacter)
         : undefined;
-      const joinedRoomCode = await joinRoomWithCode(roomCode.trim().toUpperCase(), playerCharacter);
+      const joinedRoomCode = await joinRoomWithCode(
+        roomCode.trim().toUpperCase(),
+        playerCharacter,
+      );
+      if (joinMode === 'player' && !selectedCharacter) {
+        setTimeout(() => {
+          autoPlacePlayerToken(
+            playerName.trim(),
+            playerTokenImage || undefined,
+          );
+        }, 500);
+      }
       navigate(`/lobby/game/${joinedRoomCode}`);
     } catch (err) {
       const message =
@@ -142,6 +165,24 @@ export const PlayerSetupPage: React.FC = () => {
       )[0];
       setSelectedCharacterId(latestCharacter.id);
     }
+  };
+
+  const handlePlayerTokenUpload = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload a valid image file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setPlayerTokenImage(reader.result as string);
+      setPlayerTokenFileName(file.name);
+    };
+    reader.readAsDataURL(file);
   };
 
   const handleOpenCharacterForge = () => {
@@ -397,6 +438,77 @@ export const PlayerSetupPage: React.FC = () => {
             <div className="join-form">
               <div className="form-row">
                 <div className="input-group">
+                  <label>Join As</label>
+                  <div className="button-group">
+                    <button
+                      type="button"
+                      className={`glass-button ${joinMode === 'player' ? 'primary' : 'secondary'}`}
+                      onClick={() => setJoinMode('player')}
+                    >
+                      🎮 Player
+                    </button>
+                    <button
+                      type="button"
+                      className={`glass-button ${joinMode === 'spectator' ? 'primary' : 'secondary'}`}
+                      onClick={() => setJoinMode('spectator')}
+                    >
+                      👁️ Spectator
+                    </button>
+                  </div>
+                </div>
+              </div>
+
+              {joinMode === 'player' && !selectedCharacter && (
+                <div className="form-row">
+                  <div className="input-group">
+                    <label htmlFor="player-token-upload">Token Image (Optional)</label>
+                    <div className="glass-input-wrapper">
+                      <input
+                        id="player-token-upload"
+                        type="file"
+                        accept="image/*"
+                        onChange={handlePlayerTokenUpload}
+                        disabled={loading}
+                      />
+                    </div>
+                    <small style={{ opacity: 0.7 }}>
+                      We’ll create a default token with your name if you skip this.
+                    </small>
+                    {playerTokenImage && (
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
+                        <img
+                          src={playerTokenImage}
+                          alt="Player token preview"
+                          style={{ width: '48px', height: '48px', borderRadius: '50%' }}
+                        />
+                        <span style={{ opacity: 0.8 }}>{playerTokenFileName}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              )}
+
+              <div className="form-row">
+                <div className="input-group">
+                  <label htmlFor="playerName">Your Name</label>
+                  <div className="glass-input-wrapper">
+                    <span className="input-icon">👤</span>
+                    <input
+                      id="playerName"
+                      type="text"
+                      value={playerName}
+                      onChange={(e) => setPlayerName(e.target.value)}
+                      placeholder="Enter your name"
+                      maxLength={30}
+                      className="glass-input"
+                      disabled={loading}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="form-row">
+                <div className="input-group">
                   <label htmlFor="roomCode">Room Code</label>
                   <div className="glass-input-wrapper">
                     <span className="input-icon">🗝️</span>
@@ -417,7 +529,7 @@ export const PlayerSetupPage: React.FC = () => {
 
                 <button
                   onClick={handleJoinGame}
-                  disabled={!roomCode.trim() || loading}
+                  disabled={!roomCode.trim() || !playerName.trim() || loading}
                   className="glass-button primary join-btn"
                 >
                   {loading ? (

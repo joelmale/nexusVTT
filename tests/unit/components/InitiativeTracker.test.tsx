@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { DndProvider } from 'react-dnd';
+import { HTML5Backend } from 'react-dnd-html5-backend';
 import { InitiativeTracker } from '../../../src/components/InitiativeTracker';
 import { useInitiativeStore, useInitiative, useInitiativeActions } from '../../../src/stores/initiativeStore';
 
@@ -11,6 +13,8 @@ vi.mock('../../../src/stores/initiativeStore', () => ({
 }));
 
 describe('InitiativeTracker', () => {
+  const renderWithDnd = (ui: React.ReactElement) =>
+    render(<DndProvider backend={HTML5Backend}>{ui}</DndProvider>);
   const mockStore = {
     isActive: false,
     isPaused: false,
@@ -67,15 +71,15 @@ describe('InitiativeTracker', () => {
   });
 
   it('renders initiative tracker header', () => {
-    render(<InitiativeTracker />);
+    renderWithDnd(<InitiativeTracker />);
 
-    expect(screen.getByText('Initiative Tracker')).toBeInTheDocument();
+    expect(screen.getByText('⚔️ Initiative')).toBeInTheDocument();
   });
 
   it('shows start combat button when not active', () => {
-    render(<InitiativeTracker />);
+    renderWithDnd(<InitiativeTracker />);
 
-    const startButton = screen.getByText('⚔️ Start Combat');
+    const startButton = screen.getByText('▶️ Start Combat');
     expect(startButton).toBeInTheDocument();
     expect(startButton).toBeDisabled(); // No entries added yet
   });
@@ -113,7 +117,7 @@ describe('InitiativeTracker', () => {
       combatLog: [],
     });
 
-    render(<InitiativeTracker />);
+    renderWithDnd(<InitiativeTracker />);
 
     expect(screen.getByText('Round 3')).toBeInTheDocument();
     expect(screen.getByTitle('Previous Turn')).toBeInTheDocument();
@@ -122,17 +126,17 @@ describe('InitiativeTracker', () => {
   });
 
   it('handles adding new entry', async () => {
-    render(<InitiativeTracker />);
+    renderWithDnd(<InitiativeTracker />);
 
-    const nameInput = screen.getByPlaceholderText('Character name');
-    const addButton = screen.getByText('➕ Add');
+    const nameInput = screen.getByPlaceholderText('Name');
+    const addButton = screen.getByText('Add');
 
     fireEvent.change(nameInput, { target: { value: 'Test Fighter' } });
     fireEvent.click(addButton);
 
     expect(mockStore.addEntry).toHaveBeenCalledWith({
       name: 'Test Fighter',
-      type: 'player',
+      type: 'monster',
       initiative: 10,
       maxHP: 10,
       currentHP: 10,
@@ -150,9 +154,9 @@ describe('InitiativeTracker', () => {
   });
 
   it('handles adding entry on Enter key press', () => {
-    render(<InitiativeTracker />);
+    renderWithDnd(<InitiativeTracker />);
 
-    const nameInput = screen.getByPlaceholderText('Character name');
+    const nameInput = screen.getByPlaceholderText('Name');
 
     fireEvent.change(nameInput, { target: { value: 'Test Fighter' } });
     fireEvent.keyDown(nameInput, { key: 'Enter', code: 'Enter' });
@@ -209,13 +213,17 @@ describe('InitiativeTracker', () => {
       combatLog: [],
     });
 
-    render(<InitiativeTracker />);
+    renderWithDnd(<InitiativeTracker />);
 
     expect(screen.getByDisplayValue('Fighter')).toBeInTheDocument();
     expect(screen.getByDisplayValue('Goblin')).toBeInTheDocument();
     expect(screen.getAllByDisplayValue('20')[0]).toBeInTheDocument(); // Initiative
     const goblinInitiative = screen.getAllByDisplayValue('15');
-    expect(goblinInitiative.find(input => input.classList.contains('initiative-input'))).toBeInTheDocument(); // Initiative
+    expect(
+      goblinInitiative.some((input) =>
+        input.classList.contains('initiative-number-input')
+      )
+    ).toBe(true); // Initiative
   });
 
   it('shows current turn indicator when combat is active', () => {
@@ -250,9 +258,10 @@ describe('InitiativeTracker', () => {
       combatLog: [],
     });
 
-    render(<InitiativeTracker />);
+    renderWithDnd(<InitiativeTracker />);
 
-    expect(screen.getByText("Fighter's Turn")).toBeInTheDocument();
+    expect(screen.getByText('Fighter')).toBeInTheDocument();
+    expect(screen.getByText("It's their turn!")).toBeInTheDocument();
   });
 
   it('handles combat control buttons', () => {
@@ -287,7 +296,7 @@ describe('InitiativeTracker', () => {
       combatLog: [],
     });
 
-    render(<InitiativeTracker />);
+    renderWithDnd(<InitiativeTracker />);
 
     const nextTurnButton = screen.getByTitle('Next Turn');
     const prevTurnButton = screen.getByTitle('Previous Turn');
@@ -334,7 +343,7 @@ describe('InitiativeTracker', () => {
       combatLog: [],
     });
 
-    render(<InitiativeTracker />);
+    renderWithDnd(<InitiativeTracker />);
 
     const rollAllButton = screen.getByText('🎲 Roll All');
     fireEvent.click(rollAllButton);
@@ -343,10 +352,10 @@ describe('InitiativeTracker', () => {
   });
 
   it('handles settings changes', () => {
-    render(<InitiativeTracker />);
+    renderWithDnd(<InitiativeTracker />);
 
     const showHPCheckbox = screen.getByLabelText('Show HP');
-    const autoSortCheckbox = screen.getByLabelText('Auto Sort');
+    const autoSortCheckbox = screen.getByLabelText('Auto-Sort');
 
     fireEvent.click(showHPCheckbox);
     expect(mockStore.updateSettings).toHaveBeenCalledWith({ showPlayerHP: false });
@@ -356,23 +365,23 @@ describe('InitiativeTracker', () => {
   });
 
   it('shows empty state when no entries', () => {
-    render(<InitiativeTracker />);
+    renderWithDnd(<InitiativeTracker />);
 
-    expect(screen.getByText('No combatants added yet.')).toBeInTheDocument();
-    expect(screen.getByText('Add players, NPCs, and monsters to begin combat.')).toBeInTheDocument();
+    expect(screen.getByText('No combatants yet')).toBeInTheDocument();
+    expect(screen.getByText('Add players, NPCs, or monsters above')).toBeInTheDocument();
   });
 
   it('allows changing entry type and initiative when adding', () => {
-    render(<InitiativeTracker />);
+    renderWithDnd(<InitiativeTracker />);
 
-    const typeSelect = screen.getByDisplayValue('Player');
+    const typeSelect = screen.getByDisplayValue('👹 Monster');
     const initiativeInput = screen.getByDisplayValue('10');
 
     fireEvent.change(typeSelect, { target: { value: 'monster' } });
     fireEvent.change(initiativeInput, { target: { value: '18' } });
 
-    const nameInput = screen.getByPlaceholderText('Character name');
-    const addButton = screen.getByText('➕ Add');
+    const nameInput = screen.getByPlaceholderText('Name');
+    const addButton = screen.getByText('Add');
 
     fireEvent.change(nameInput, { target: { value: 'Dragon' } });
     fireEvent.click(addButton);

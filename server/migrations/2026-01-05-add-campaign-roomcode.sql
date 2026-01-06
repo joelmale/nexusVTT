@@ -1,0 +1,3 @@
+ALTER TABLE campaigns
+  ADD COLUMN IF NOT EXISTS "lastRoomCode" VARCHAR(10),
+  ADD COLUMN IF NOT EXISTS "lastRoomCodeUpdatedAt" TIMESTAMPTZ;

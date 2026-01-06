@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useDrag } from 'react-dnd';
+import { getEmptyImage } from 'react-dnd-html5-backend';
 import type { Token } from '@/types/token';
 
 interface DraggableTokenProps {
@@ -38,19 +39,25 @@ export const DraggableToken: React.FC<DraggableTokenProps> = ({
     [token],
   );
 
+  // Hide the default drag preview and create custom one
+  useEffect(() => {
+    // Use empty image for the default preview (hides the dragged element)
+    preview(getEmptyImage(), { captureDraggingState: true });
+  }, [preview]);
+
   // Create custom drag preview - show token image at appropriate size
   useEffect(() => {
-    // Token size mapping (1 square = 60px by default)
+    // Token size mapping (1 square = 60px by default, reduced to 1/4 size for drag preview)
     const sizeMap: Record<string, number> = {
-      tiny: 30,
-      small: 45,
-      medium: 60,
-      large: 120,
-      huge: 180,
-      gargantuan: 240,
+      tiny: 8,
+      small: 11,
+      medium: 15,
+      large: 30,
+      huge: 45,
+      gargantuan: 60,
     };
 
-    const pixelSize = sizeMap[token.size] || 60;
+    const pixelSize = sizeMap[token.size] || 15;
 
     // Create an image element as drag preview
     const img = new Image();
@@ -58,8 +65,8 @@ export const DraggableToken: React.FC<DraggableTokenProps> = ({
     img.width = pixelSize;
     img.height = pixelSize;
     img.style.borderRadius = '50%';
-    img.style.border = '3px solid rgba(74, 158, 255, 0.8)';
-    img.style.boxShadow = '0 4px 12px rgba(0, 0, 0, 0.5)';
+    img.style.border = '2px solid rgba(74, 158, 255, 0.8)';
+    img.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.5)';
 
     // Wait for image to load before setting as preview
     img.onload = () => {

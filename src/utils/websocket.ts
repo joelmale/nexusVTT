@@ -15,6 +15,14 @@ import { useGameStore } from '@/stores/gameStore';
 import { toast } from 'sonner';
 import { applyPatch, Operation } from 'fast-json-patch';
 
+interface ConnectionContext {
+  roomCode: string;
+  userType: 'host' | 'player';
+  userName: string;
+  userId: string;
+  campaignId?: string;
+}
+
 class WebSocketService extends EventTarget {
   private ws: WebSocket | null = null;
   private reconnectAttempts = 0;
@@ -24,6 +32,9 @@ class WebSocketService extends EventTarget {
   private connectionPromise: Promise<void> | null = null;
   private lastSessionCreatedEvent: SessionCreatedEvent['data'] | null = null;
   private lastSessionJoinedEvent: SessionJoinedEvent['data'] | null = null;
+
+  // Connection context for reconnection
+  private connectionContext: ConnectionContext | null = null;
 
   // Heartbeat and connection quality monitoring
   private heartbeatTimer: NodeJS.Timeout | null = null;
@@ -44,6 +55,8 @@ class WebSocketService extends EventTarget {
     userType?: 'host' | 'player',
     campaignId?: string,
     userId?: string,
+    userName?: string,
+    connectionMode?: 'host' | 'reconnect',
   ): string {
     const envUrl = import.meta.env.VITE_WS_URL;
     const wsHost =
@@ -55,7 +68,11 @@ class WebSocketService extends EventTarget {
     const params = new URLSearchParams();
     if (roomCode) {
       if (userType === 'host') {
-        params.set('reconnect', roomCode);
+        if (connectionMode === 'host') {
+          params.set('host', roomCode);
+        } else {
+          params.set('reconnect', roomCode);
+        }
       } else {
         params.set('join', roomCode);
       }
@@ -65,6 +82,9 @@ class WebSocketService extends EventTarget {
       if (userId) {
         params.set('userId', userId);
       }
+    }
+    if (userName) {
+      params.set('userName', userName);
     }
 
     const queryString = params.toString();
@@ -96,6 +116,8 @@ class WebSocketService extends EventTarget {
     userType?: 'host' | 'player',
     campaignId?: string,
     userId?: string,
+    userName?: string,
+    connectionMode?: 'host' | 'reconnect',
   ): Promise<void> {
     // Prevent multiple simultaneous connection attempts
     if (this.connectionPromise) {
@@ -104,11 +126,30 @@ class WebSocketService extends EventTarget {
 
     this.connectionPromise = (async () => {
       try {
+        // Store connection context for reconnection (if we have enough info)
+        if (roomCode && userType && userId && userName) {
+          this.connectionContext = {
+            roomCode,
+            userType,
+            userName,
+            userId,
+            campaignId,
+          };
+          // Persist to localStorage for page refresh recovery
+          try {
+            localStorage.setItem('nexus-connection-context', JSON.stringify(this.connectionContext));
+          } catch (error) {
+            console.warn('Failed to save connection context:', error);
+          }
+        }
+
         const url = this.getWebSocketUrl(
           roomCode,
           userType,
           campaignId,
           userId,
+          userName,
+          connectionMode,
         );
         console.log(`🔌 Attempting WebSocket connection to ${url}...`);
         this.ws = await this.attemptConnection(url, 'primary');
@@ -190,9 +231,48 @@ class WebSocketService extends EventTarget {
           this.lastSessionCreatedEvent = {
             roomCode: message.data.roomCode as string,
           };
+          const { user } = useGameStore.getState();
+          if (user?.id && user?.name) {
+            this.connectionContext = {
+              roomCode: message.data.roomCode as string,
+              userType: 'host',
+              userName: user.name,
+              userId: user.id,
+              campaignId: message.data.campaignId as string | undefined,
+            };
+            try {
+              localStorage.setItem(
+                'nexus-connection-context',
+                JSON.stringify(this.connectionContext),
+              );
+            } catch (error) {
+              console.warn('Failed to save connection context:', error);
+            }
+          }
         } else if (message.data.name === 'session/joined') {
           this.lastSessionJoinedEvent =
             message.data as unknown as SessionJoinedEvent['data'];
+          const { user, session } = useGameStore.getState();
+          const joinedRoomCode =
+            session?.roomCode ||
+            (message.data as unknown as { roomCode?: string })?.roomCode;
+          if (user?.id && user?.name && joinedRoomCode) {
+            this.connectionContext = {
+              roomCode: joinedRoomCode,
+              userType: 'player',
+              userName: user.name,
+              userId: user.id,
+              campaignId: session?.campaignId,
+            };
+            try {
+              localStorage.setItem(
+                'nexus-connection-context',
+                JSON.stringify(this.connectionContext),
+              );
+            } catch (error) {
+              console.warn('Failed to save connection context:', error);
+            }
+          }
         }
 
         const gameEvent: GameEvent = {
@@ -337,20 +417,98 @@ class WebSocketService extends EventTarget {
         this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
 
       console.log(
-        `Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts})`,
+        `🔄 Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
       );
 
+      // Show reconnecting toast
+      toast.loading('Reconnecting to server...', {
+        id: 'reconnect-toast',
+        duration: delay + 5000,
+      });
+
       setTimeout(() => {
-        const session = useGameStore.getState().session;
-        if (session) {
-          this.connect(session.roomCode).catch((error) => {
-            console.error('Reconnection failed:', error);
+        // Try to load connection context from memory or localStorage
+        let context = this.connectionContext;
+        if (!context) {
+          try {
+            const saved = localStorage.getItem('nexus-connection-context');
+            if (saved) {
+              context = JSON.parse(saved) as ConnectionContext;
+              this.connectionContext = context;
+            }
+          } catch (error) {
+            console.warn('Failed to load connection context:', error);
+          }
+        }
+
+        // Use connection context if available, otherwise fall back to session
+        if (context) {
+          console.log(`🔄 Reconnecting with context:`, {
+            roomCode: context.roomCode,
+            userType: context.userType,
+            userName: context.userName,
           });
+          this.connect(
+            context.roomCode,
+            context.userType,
+            context.campaignId,
+            context.userId,
+            context.userName,
+          )
+            .then(() => {
+              toast.success('Reconnected to server!', {
+                id: 'reconnect-toast',
+              });
+            })
+            .catch((error) => {
+              console.error('Reconnection failed:', error);
+              toast.error('Reconnection failed', {
+                id: 'reconnect-toast',
+                description: 'Retrying...',
+              });
+            });
+        } else {
+          // Fallback to session-based reconnection (old behavior)
+          const session = useGameStore.getState().session;
+          const user = useGameStore.getState().user;
+          if (session && user) {
+            console.log(`🔄 Reconnecting with session fallback:`, {
+              roomCode: session.roomCode,
+              userType: user.type,
+            });
+            this.connect(
+              session.roomCode,
+              user.type as 'host' | 'player',
+              undefined,
+              user.id,
+              user.name,
+            )
+              .then(() => {
+                toast.success('Reconnected to server!', {
+                  id: 'reconnect-toast',
+                });
+              })
+              .catch((error) => {
+                console.error('Reconnection failed:', error);
+                toast.error('Reconnection failed', {
+                  id: 'reconnect-toast',
+                  description: 'Retrying...',
+                });
+              });
+          } else {
+            console.warn('⚠️ No connection context or session available for reconnection');
+          }
         }
       }, delay);
     } else {
-      console.error('Max reconnection attempts reached');
-      useGameStore.getState().setSession(null);
+      console.error('❌ Max reconnection attempts reached');
+      toast.error('Connection Lost', {
+        id: 'reconnect-toast',
+        description: 'Unable to reconnect. Please refresh the page.',
+      });
+
+      // Don't automatically kick to lobby - let user decide
+      // useGameStore.getState().setSession(null);
 
       // Reset for potential future connections
       this.reconnectAttempts = 0;
@@ -634,6 +792,14 @@ class WebSocketService extends EventTarget {
     this.reconnectAttempts = 0;
     this.messageQueue = [];
     this.connectionPromise = null;
+
+    // Clear connection context on manual disconnect
+    this.connectionContext = null;
+    try {
+      localStorage.removeItem('nexus-connection-context');
+    } catch (error) {
+      console.warn('Failed to clear connection context:', error);
+    }
   }
 
   /**

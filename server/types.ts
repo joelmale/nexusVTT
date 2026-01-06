@@ -18,6 +18,7 @@ export interface Room {
   created: number;
   lastActivity: number;
   status: 'active' | 'hibernating' | 'abandoned';
+  dmConnected: boolean;
   hibernationTimer?: NodeJS.Timeout;
   gameState?: GameState;
   previousGameState?: GameState; // For delta generation

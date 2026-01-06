@@ -613,10 +613,47 @@
 .quick-join-form {
   /* Positioning & Layout */
   display: flex;
-  align-items: end;
+  flex-direction: column;
 
   /* Box Model */
   gap: 0.75rem;
+}
+
+.quick-join-controls {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.quick-join-mode {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.quick-join-row {
+  display: flex;
+  align-items: end;
+  gap: 0.75rem;
+}
+
+.quick-join-token {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.quick-join-token-preview {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.quick-join-token-preview img {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  object-fit: cover;
 }
 
 .room-input {

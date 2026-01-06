@@ -29,6 +29,7 @@ export const LinearWelcomePage: React.FC = () => {
     dev_quickDM,
     dev_quickPlayer,
     isAuthenticated,
+    autoPlacePlayerToken,
     session,
     attemptSessionRecovery,
     login,
@@ -52,6 +53,13 @@ export const LinearWelcomePage: React.FC = () => {
     }
   };
   const [roomCode, setRoomCode] = useState('');
+  const [quickJoinMode, setQuickJoinMode] = useState<'player' | 'spectator'>(
+    'player',
+  );
+  const [quickJoinTokenImage, setQuickJoinTokenImage] = useState<string | null>(
+    null,
+  );
+  const [quickJoinTokenFileName, setQuickJoinTokenFileName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const hasCustomLogo = useAssetExists('/assets/logos/nexus-logo.svg');
@@ -91,7 +99,7 @@ export const LinearWelcomePage: React.FC = () => {
 
   // Mark auth as complete after OAuth
   React.useEffect(() => {
-    if (isAuthenticated && !localStorage.getItem('nexus-auth-complete')) {
+    if (isAuthenticated && isOAuthRedirect && !localStorage.getItem('nexus-auth-complete')) {
       // Clear any stale session data when user authenticates via OAuth
       console.log('🔐 OAuth complete - clearing stale session data');
       localStorage.removeItem('nexus-active-session');
@@ -368,13 +376,29 @@ export const LinearWelcomePage: React.FC = () => {
 
         const guestUser = await response.json();
         console.log('Guest user created:', guestUser);
-        setUser({ ...guestUser, type: 'player' });
+        setUser({
+          ...guestUser,
+          type: 'player',
+          isSpectator: quickJoinMode === 'spectator',
+        });
       } else {
-        setUser({ name: playerName.trim(), type: 'player' });
+        setUser({
+          name: playerName.trim(),
+          type: 'player',
+          isSpectator: quickJoinMode === 'spectator',
+        });
       }
       const joinedRoomCode = await joinRoomWithCode(
         roomCode.trim().toUpperCase(),
       );
+      if (quickJoinMode === 'player') {
+        setTimeout(() => {
+          autoPlacePlayerToken(
+            playerName.trim(),
+            quickJoinTokenImage || undefined,
+          );
+        }, 500);
+      }
       navigate(`/lobby/game/${joinedRoomCode}`);
     } catch (err) {
       const message =
@@ -386,6 +410,24 @@ export const LinearWelcomePage: React.FC = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleQuickJoinTokenUpload = (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) {
+      setError('Please upload a valid image file');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = () => {
+      setQuickJoinTokenImage(reader.result as string);
+      setQuickJoinTokenFileName(file.name);
+    };
+    reader.readAsDataURL(file);
   };
 
   /**
@@ -802,46 +844,93 @@ export const LinearWelcomePage: React.FC = () => {
                         Character Setup
                       </button>
 
-                      <div className="quick-join-section">
-                        <div className="divider-small">
-                          <span>or</span>
-                        </div>
-                        <div className="quick-join-form">
-                          <div className="glass-input-wrapper room-input">
-                            <span className="input-icon">🗝️</span>
-                            <input
-                              type="text"
-                              value={roomCode}
-                              onChange={(e) =>
-                                setRoomCode(e.target.value.toUpperCase())
-                              }
-                              placeholder="Room Code"
-                              maxLength={4}
-                              className="glass-input room-code-input"
-                              disabled={loading}
-                            />
+                        <div className="quick-join-section">
+                          <div className="divider-small">
+                            <span>or</span>
                           </div>
-                          <button
-                            onClick={handleQuickJoin}
-                            disabled={
-                              !playerName.trim() || !roomCode.trim() || loading
-                            }
-                            className="action-btn glass-button primary"
-                          >
-                            {loading ? (
-                              <>
-                                <span className="loading-spinner"></span>
-                                Joining...
-                              </>
-                            ) : (
-                              <>
-                                <span>🚀</span>
-                                Quick Join
-                              </>
-                            )}
-                          </button>
+                          <div className="quick-join-form">
+                            <div className="quick-join-controls">
+                              <div className="quick-join-mode">
+                                <button
+                                  type="button"
+                                  className={`glass-button ${quickJoinMode === 'player' ? 'primary' : 'secondary'}`}
+                                  onClick={() => setQuickJoinMode('player')}
+                                >
+                                  🎮 Player
+                                </button>
+                                <button
+                                  type="button"
+                                  className={`glass-button ${quickJoinMode === 'spectator' ? 'primary' : 'secondary'}`}
+                                  onClick={() => setQuickJoinMode('spectator')}
+                                >
+                                  👁️ Spectator
+                                </button>
+                              </div>
+                              {quickJoinMode === 'player' && (
+                                <div className="quick-join-token">
+                                  <label htmlFor="quick-join-token-upload">
+                                    Token image (optional)
+                                  </label>
+                                  <input
+                                    id="quick-join-token-upload"
+                                    type="file"
+                                    accept="image/*"
+                                    onChange={handleQuickJoinTokenUpload}
+                                    disabled={loading}
+                                  />
+                                  <small>
+                                    We’ll create a default token with your name if you
+                                    skip this.
+                                  </small>
+                                  {quickJoinTokenImage && (
+                                    <div className="quick-join-token-preview">
+                                      <img
+                                        src={quickJoinTokenImage}
+                                        alt="Token preview"
+                                      />
+                                      <span>{quickJoinTokenFileName}</span>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                            <div className="quick-join-row">
+                              <div className="glass-input-wrapper room-input">
+                                <span className="input-icon">🗝️</span>
+                                <input
+                                  type="text"
+                                  value={roomCode}
+                                  onChange={(e) =>
+                                    setRoomCode(e.target.value.toUpperCase())
+                                  }
+                                  placeholder="Room Code"
+                                  maxLength={4}
+                                  className="glass-input room-code-input"
+                                  disabled={loading}
+                                />
+                              </div>
+                              <button
+                                onClick={handleQuickJoin}
+                                disabled={
+                                  !playerName.trim() || !roomCode.trim() || loading
+                                }
+                                className="action-btn glass-button primary"
+                              >
+                                {loading ? (
+                                  <>
+                                    <span className="loading-spinner"></span>
+                                    Joining...
+                                  </>
+                                ) : (
+                                  <>
+                                    <span>🚀</span>
+                                    Quick Join
+                                  </>
+                                )}
+                              </button>
+                            </div>
+                          </div>
                         </div>
-                      </div>
                     </div>
                   )}
                 </div>

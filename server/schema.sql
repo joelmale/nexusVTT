@@ -27,6 +27,8 @@ CREATE TABLE IF NOT EXISTS campaigns (
     description TEXT,
     "dmId" UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
     scenes JSONB,
+    "lastRoomCode" VARCHAR(10),
+    "lastRoomCodeUpdatedAt" TIMESTAMPTZ,
     "createdAt" TIMESTAMPTZ DEFAULT NOW(),
     "updatedAt" TIMESTAMPTZ DEFAULT NOW()
 );

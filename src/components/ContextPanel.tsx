@@ -10,7 +10,8 @@ import { TokenPanel } from './Tokens/TokenPanel';
 import { PropPanel } from './Props/PropPanel';
 import { ChatPanel } from './ChatPanel';
 import { DocumentsPanel } from './DocumentsPanel';
-import { loadChatStyles } from '@/utils/cssLoader';
+import { CharacterPanel } from './CharacterPanel';
+import { loadChatStyles, loadInitiativeStyles } from '@/utils/cssLoader';
 import { ErrorBoundary } from './ErrorBoundary';
 
 interface ContextPanelProps {
@@ -25,7 +26,8 @@ interface ContextPanelProps {
     | 'settings'
     | 'chat'
     | 'sounds'
-    | 'documents';
+    | 'documents'
+    | 'characters';
   onPanelChange: (
     panel:
       | 'tokens'
@@ -38,7 +40,8 @@ interface ContextPanelProps {
       | 'settings'
       | 'chat'
       | 'sounds'
-      | 'documents',
+      | 'documents'
+      | 'characters',
   ) => void;
   expanded: boolean;
   onToggleExpanded: () => void;
@@ -70,6 +73,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
     { id: 'tokens' as const, icon: '👤', label: 'Tokens' },
     { id: 'scene' as const, icon: '🖼', label: 'Scene' },
     { id: 'props' as const, icon: '📦', label: 'Props' },
+    { id: 'characters' as const, icon: '👥', label: 'Characters' },
     { id: 'initiative' as const, icon: '⏱', label: 'Initiative' },
     { id: 'dice' as const, icon: '🎲', label: 'Dice' },
     { id: 'documents' as const, icon: '📚', label: 'Documents' },
@@ -88,6 +92,11 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
         console.warn('Failed to load chat styles:', error);
       });
     }
+    if (activePanel === 'initiative') {
+      loadInitiativeStyles('ContextPanel').catch((error) => {
+        console.warn('Failed to load initiative styles:', error);
+      });
+    }
   }, [activePanel]);
 
   // Simple approach: Set fixed widths per panel type
@@ -99,6 +108,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       tokens: 320,
       scene: 400,
       props: 350,
+      characters: 380, // Character panel with cards
       generator: 500, // Wide panel for dungeon generator
       initiative: 450, // Increased for complex combat interface
       dice: 300, // Optimized for dice controls
@@ -137,6 +147,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
               {activePanel === 'tokens' && <TokenPanel />}
               {activePanel === 'scene' && <ScenePanel scene={currentScene} />}
               {activePanel === 'props' && <PropPanel />}
+              {activePanel === 'characters' && <CharacterPanel />}
               {activePanel === 'generator' && (
                 <div style={{ padding: '2rem', textAlign: 'center' }}>
                   <p>Generator is now full-screen →</p>

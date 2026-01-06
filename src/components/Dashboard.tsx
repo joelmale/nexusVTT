@@ -6,8 +6,11 @@ import { useCharacterStore } from '@/stores/characterStore';
 import type { Scene } from '@/types/game';
 import { CharacterManager } from './CharacterManager';
 import { CharacterImportModal } from './CharacterImportModal';
+import { CharacterSelectionModal } from './CharacterSelectionModal';
 import { useCharacterCreationLauncher } from '@/hooks';
 import { DocumentLibrary } from './DocumentLibrary';
+import type { Character } from '@/types/character';
+import type { PlayerCharacter } from '@/types/game';
 import {
   applyCampaignBackupAssets,
   buildCampaignBackup,
@@ -86,6 +89,30 @@ const normalizeForHash = (value: unknown): unknown => {
 const characterHash = (value: unknown): string =>
   stableStringify(normalizeForHash(value));
 
+// Convert Character to PlayerCharacter for gameStore compatibility
+const convertCharacterToPlayerCharacter = (
+  character: Character,
+): PlayerCharacter => {
+  return {
+    id: character.id,
+    name: character.name,
+    race: character.race.name,
+    class: character.classes[0]?.name || '',
+    background: character.background.name,
+    level: character.level,
+    stats: {
+      strength: character.abilities.strength.score,
+      dexterity: character.abilities.dexterity.score,
+      constitution: character.abilities.constitution.score,
+      intelligence: character.abilities.intelligence.score,
+      wisdom: character.abilities.wisdom.score,
+      charisma: character.abilities.charisma.score,
+    },
+    createdAt: character.createdAt,
+    playerId: character.playerId,
+  };
+};
+
 /**
  * Campaign data structure from API
  * @interface Campaign
@@ -101,6 +128,10 @@ interface Campaign {
   dmId: string;
   /** Campaign scenes data (JSONB) */
   scenes: unknown;
+  /** Last room code used for this campaign */
+  lastRoomCode?: string | null;
+  /** Timestamp when last room code was updated */
+  lastRoomCodeUpdatedAt?: string | null;
   /** Timestamp when campaign was created */
   createdAt: string;
   /** Timestamp when campaign was last updated */
@@ -168,6 +199,8 @@ export const Dashboard: React.FC = () => {
   const [joiningGame, setJoiningGame] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importMessage, setImportMessage] = useState<string | null>(null);
+  const [showCharacterSelectionModal, setShowCharacterSelectionModal] = useState(false);
+  const [joiningCampaign, setJoiningCampaign] = useState<Campaign | null>(null);
   const syncInFlightRef = React.useRef(false);
   const lastSyncKeyRef = React.useRef<string | null>(null);
 
@@ -538,11 +571,13 @@ export const Dashboard: React.FC = () => {
    * @param {string} campaignId - Campaign ID to start session with
    */
   const handleStartSession = async (campaignId: string) => {
+    // DMs don't need character selection - they're hosting the game
     try {
       setStartingSession(campaignId);
       setError(null);
 
       console.log(`🎮 Starting session for campaign: ${campaignId}`);
+      const campaign = campaigns.find((item) => item.id === campaignId);
 
       // Create game room with campaign ID
       const gameConfig = {
@@ -552,6 +587,7 @@ export const Dashboard: React.FC = () => {
         campaignType: 'campaign' as const,
         maxPlayers: 6,
         campaignId,
+        preferredRoomCode: campaign?.lastRoomCode || undefined,
       };
 
       const roomCode = await createGameRoom(gameConfig);
@@ -570,30 +606,116 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const handleCharacterSelected = async (
+    character: Character | null,
+    joinAsSpectator: boolean,
+  ) => {
+    if (!joiningCampaign) return;
+
+    try {
+      setShowCharacterSelectionModal(false);
+      setStartingSession(joiningCampaign.id);
+      setError(null);
+
+      console.log(`🎮 Starting session for campaign: ${joiningCampaign.id}`);
+      if (character) {
+        console.log(`🎭 Joining with character: ${character.name}`);
+      } else if (joinAsSpectator) {
+        console.log(`👁️ Joining as spectator`);
+      }
+
+      // Create game room with campaign ID
+      const gameConfig = {
+        name: 'Quick Session',
+        description: 'Session started from dashboard',
+        estimatedTime: '2-4 hours',
+        campaignType: 'campaign' as const,
+        maxPlayers: 6,
+        campaignId: joiningCampaign.id,
+        preferredRoomCode: joiningCampaign.lastRoomCode || undefined,
+      };
+
+      const roomCode = await createGameRoom(gameConfig);
+
+      // If joining with a character, auto-place their token
+      if (character) {
+        // Auto-place token will be handled by the game store's auto-placement logic after room is created
+        // We'll defer this to after the room is created and we have an active scene
+        setTimeout(() => {
+          const { autoPlaceCharacterToken } = useGameStore.getState();
+          const { sceneState } = useGameStore.getState();
+          if (sceneState.activeSceneId) {
+            autoPlaceCharacterToken(character.id, sceneState.activeSceneId);
+          }
+        }, 1000);
+      }
+
+      // Navigate to game view
+      console.log(
+        '✅ Session started successfully, navigating to game room:',
+        roomCode,
+      );
+      navigate(`/lobby/game/${roomCode}`);
+    } catch (err) {
+      console.error('Error starting session:', err);
+      setError(err instanceof Error ? err.message : 'Failed to start session');
+    } finally {
+      setStartingSession(null);
+      setJoiningCampaign(null);
+    }
+  };
+
   /**
-   * Handles joining an existing game with a room code
+   * Handles room code entry - shows character selection modal
    */
-  const handleJoinGame = async () => {
+  const handleJoinGame = () => {
     if (!joinRoomCode.trim()) {
       setError('Please enter a room code');
       return;
     }
 
+    // Close room code modal and show character selection
+    setShowJoinGameModal(false);
+    setShowCharacterSelectionModal(true);
+    // joiningCampaign will be null for room code joins
+  };
+
+  /**
+   * Handles joining with selected character after room code entry
+   */
+  const handleJoinGameWithCharacter = async (
+    character: Character | null,
+    joinAsSpectator: boolean,
+  ) => {
+    if (!joinRoomCode.trim()) {
+      setError('Room code is missing');
+      return;
+    }
+
     try {
       setJoiningGame(true);
+      setShowCharacterSelectionModal(false);
       setError(null);
 
       console.log(`🎮 Joining game with room code: ${joinRoomCode}`);
+      if (character) {
+        console.log(`🎭 Joining with character: ${character.name}`);
+      } else if (joinAsSpectator) {
+        console.log(`👁️ Joining as spectator`);
+      }
+
+      const playerCharacter = character
+        ? convertCharacterToPlayerCharacter(character)
+        : undefined;
 
       // Join the room - this will connect via WebSocket
-      await joinRoomWithCode(joinRoomCode.trim().toUpperCase());
+      await joinRoomWithCode(joinRoomCode.trim().toUpperCase(), playerCharacter);
 
       // Navigate to game view
       console.log('✅ Joined game successfully, navigating to game room');
       navigate(`/lobby/game/${joinRoomCode.trim().toUpperCase()}`);
 
-      // Close modal and reset
-      setShowJoinGameModal(false);
+      // Reset
       setJoinRoomCode('');
     } catch (err) {
       console.error('Error joining game:', err);
@@ -1259,6 +1381,26 @@ export const Dashboard: React.FC = () => {
           </div>
         )}
       </div>
+
+      {/* Character Selection Modal */}
+      <CharacterSelectionModal
+        isOpen={showCharacterSelectionModal}
+        onClose={() => {
+          setShowCharacterSelectionModal(false);
+          setJoiningCampaign(null);
+          // If closing during room code join, restore the join modal
+          if (!joiningCampaign && joinRoomCode.trim()) {
+            setShowJoinGameModal(true);
+          }
+        }}
+        onSelect={
+          joiningCampaign
+            ? handleCharacterSelected
+            : handleJoinGameWithCharacter
+        }
+        campaignId={joiningCampaign?.id}
+        campaignName={joiningCampaign?.name || (joinRoomCode.trim() ? `Room ${joinRoomCode.trim().toUpperCase()}` : undefined)}
+      />
 
       {/* Character Import Modal */}
       <CharacterImportModal

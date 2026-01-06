@@ -330,6 +330,13 @@ class TokenAssetManager {
   }
 
   /**
+   * Create a placeholder token image (colored circle with initials)
+   */
+  createPlaceholderTokenImage(name: string): string {
+    return this.generatePlaceholderTokenImage(name);
+  }
+
+  /**
    * Get all available token libraries
    */
   getLibraries(): TokenLibrary[] {
@@ -374,6 +381,47 @@ class TokenAssetManager {
       if (token) return token;
     }
     return null;
+  }
+
+  /**
+   * Get default token for a character
+   * Tries to match character class, falls back to generic PC token
+   */
+  async getDefaultTokenForCharacter(character: {
+    name: string;
+    classes: Array<{ name: string }>;
+  }): Promise<Token> {
+    const className = character.classes[0]?.name.toLowerCase() || '';
+    const pcTokens = this.getTokensByCategory('pc');
+
+    // Priority: class match > generic PC token
+    let token = pcTokens.find((t) =>
+      t.name.toLowerCase().includes(className),
+    );
+
+    if (!token) {
+      // Try to find any generic PC token
+      token = pcTokens[0] || this.createDefaultPCToken();
+    }
+
+    return token;
+  }
+
+  /**
+   * Create default PC token (fallback)
+   */
+  private createDefaultPCToken(): Token {
+    return {
+      id: `token-pc-default-${Date.now()}`,
+      name: 'Character',
+      image: this.generatePlaceholderTokenImage('PC'),
+      size: 'medium',
+      category: 'pc',
+      tags: ['player', 'character'],
+      isCustom: false,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
   }
 
   /**
@@ -475,6 +523,37 @@ class TokenAssetManager {
     library.updatedAt = Date.now();
 
     // Persist customizations to localStorage
+    this.saveCustomizations();
+
+    console.log(
+      `Added custom token "${newToken.name}" to library "${library.name}"`,
+    );
+    return newToken;
+  }
+
+  /**
+   * Add a custom token with a pre-defined ID
+   */
+  addCustomTokenWithId(libraryId: string, token: Token): Token {
+    const library = this.tokenLibraries.find((lib) => lib.id === libraryId);
+    if (!library) {
+      throw new Error(`Library not found: ${libraryId}`);
+    }
+
+    if (library.tokens.some((existing) => existing.id === token.id)) {
+      return token;
+    }
+
+    const newToken: Token = {
+      ...token,
+      isCustom: true,
+      createdAt: token.createdAt || Date.now(),
+      updatedAt: Date.now(),
+    };
+
+    library.tokens.push(newToken);
+    library.updatedAt = Date.now();
+
     this.saveCustomizations();
 
     console.log(

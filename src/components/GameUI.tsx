@@ -63,6 +63,7 @@ export const GameUI: React.FC = () => {
     | 'lobby'
     | 'settings'
     | 'documents'
+    | 'characters'
   >(isHost ? 'scene' : 'lobby');
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [collapsedWidth] = useState(8); // Width when collapsed (just the resize handle)
@@ -200,12 +201,13 @@ export const GameUI: React.FC = () => {
 
   const panels = [
     { id: 'tokens' as const, icon: '👤', label: 'Tokens' },
-    { id: 'scene' as const, icon: '🖼', label: 'Scene' },
-    ...(isHost ? [{ id: 'props' as const, icon: '📦', label: 'Props' }] : []),
+    ...(isHost ? [{ id: 'scene' as const, icon: '🖼', label: 'Scene' }] : []),
+    { id: 'props' as const, icon: '📦', label: 'Props' },
     ...(isHost
       ? [{ id: 'generator' as const, icon: '🗺️', label: 'Generator' }]
       : []),
     { id: 'initiative' as const, icon: '⏱', label: 'Initiative' },
+    { id: 'characters' as const, icon: '👥', label: 'Characters' },
     { id: 'dice' as const, icon: '🎲', label: 'Dice' },
     { id: 'documents' as const, icon: '📚', label: 'Documents' },
     { id: 'chat' as const, icon: '💬', label: 'Chat' },
