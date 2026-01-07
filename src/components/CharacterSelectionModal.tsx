@@ -10,6 +10,7 @@ interface CharacterSelectionModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSelect: (character: Character | null, joinAsSpectator: boolean) => void;
+  availableCharacters?: Character[];
   campaignId?: string;
   campaignName?: string;
 }
@@ -18,17 +19,22 @@ export const CharacterSelectionModal: React.FC<CharacterSelectionModalProps> = (
   isOpen,
   onClose,
   onSelect,
+  availableCharacters,
   campaignId,
   campaignName,
 }) => {
   const { user } = useGameStore();
-  const { characters } = useCharacterStore();
+  const { characters: storeCharacters } = useCharacterStore();
   const { startCharacterCreation, LauncherComponent } = useCharacterCreationLauncher();
 
   // Filter characters for current user
+  const effectiveCharacters = useMemo(
+    () => availableCharacters ?? storeCharacters,
+    [availableCharacters, storeCharacters],
+  );
   const userCharacters = useMemo(() => {
-    return characters.filter((c) => c.playerId === user.id);
-  }, [characters, user.id]);
+    return effectiveCharacters.filter((c) => c.playerId === user.id);
+  }, [effectiveCharacters, user.id]);
 
   // Get last-used character for this campaign from localStorage
   const getLastUsedCharacter = (): string | null => {

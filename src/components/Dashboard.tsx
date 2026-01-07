@@ -10,6 +10,7 @@ import { CharacterSelectionModal } from './CharacterSelectionModal';
 import { useCharacterCreationLauncher } from '@/hooks';
 import { DocumentLibrary } from './DocumentLibrary';
 import type { Character } from '@/types/character';
+import { CHARACTER_CLASSES, createEmptyCharacter } from '@/types/character';
 import type { PlayerCharacter } from '@/types/game';
 import {
   applyCampaignBackupAssets,
@@ -88,6 +89,73 @@ const normalizeForHash = (value: unknown): unknown => {
 
 const characterHash = (value: unknown): string =>
   stableStringify(normalizeForHash(value));
+
+const isFullCharacterPayload = (value: unknown): value is Character => {
+  if (!value || typeof value !== 'object') return false;
+  const record = value as Record<string, unknown>;
+  const race = record.race as Record<string, unknown> | undefined;
+  const hitPoints = record.hitPoints as Record<string, unknown> | undefined;
+
+  return (
+    typeof record.name === 'string' &&
+    typeof record.level === 'number' &&
+    Array.isArray(record.classes) &&
+    !!race &&
+    typeof race.name === 'string' &&
+    !!hitPoints &&
+    typeof hitPoints.maximum === 'number'
+  );
+};
+
+const buildCharacterFromRecord = (
+  record: CharacterRecord,
+  fallbackPlayerId: string,
+): Character | null => {
+  const normalized = normalizeCharacterPayload(record.data);
+  if (!normalized || typeof normalized !== 'object') {
+    return null;
+  }
+
+  if (isFullCharacterPayload(normalized)) {
+    const createdAt = Number.isFinite(normalized.createdAt)
+      ? normalized.createdAt
+      : Date.parse(record.createdAt);
+    const updatedAt = Number.isFinite(normalized.updatedAt)
+      ? normalized.updatedAt
+      : Date.parse(record.updatedAt);
+
+    return {
+      ...normalized,
+      id: normalized.id || record.id,
+      name: normalized.name || record.name,
+      playerId: normalized.playerId || record.ownerId || fallbackPlayerId,
+      createdAt: Number.isFinite(createdAt) ? createdAt : Date.now(),
+      updatedAt: Number.isFinite(updatedAt) ? updatedAt : Date.now(),
+    };
+  }
+
+  const data = normalized as Record<string, unknown>;
+  const base = createEmptyCharacter(record.ownerId || fallbackPlayerId);
+  const level = typeof data.level === 'number' ? data.level : base.level;
+  const raceName = typeof data.race === 'string' ? data.race : base.race.name;
+  const className = typeof data.class === 'string' ? data.class : '';
+  const hitDie =
+    CHARACTER_CLASSES.find((entry) => entry.name === className)?.hitDie ?? 'd8';
+  const createdAt = Date.parse(record.createdAt);
+  const updatedAt = Date.parse(record.updatedAt);
+
+  return {
+    ...base,
+    id: record.id,
+    name: record.name,
+    playerId: record.ownerId || base.playerId,
+    level,
+    race: { ...base.race, name: raceName },
+    classes: className ? [{ name: className, level, hitDie }] : base.classes,
+    createdAt: Number.isFinite(createdAt) ? createdAt : base.createdAt,
+    updatedAt: Number.isFinite(updatedAt) ? updatedAt : base.updatedAt,
+  };
+};
 
 // Convert Character to PlayerCharacter for gameStore compatibility
 const convertCharacterToPlayerCharacter = (
@@ -748,6 +816,12 @@ export const Dashboard: React.FC = () => {
 
   const recentCharacters = uniqueCharacters;
 
+  const selectableCharacters = React.useMemo(() => {
+    return characters
+      .map((record) => buildCharacterFromRecord(record, user.id))
+      .filter((character): character is Character => !!character);
+  }, [characters, user.id]);
+
   // Show loading while checking authentication
   if (authChecking) {
     return (
@@ -1398,6 +1472,7 @@ export const Dashboard: React.FC = () => {
             ? handleCharacterSelected
             : handleJoinGameWithCharacter
         }
+        availableCharacters={selectableCharacters}
         campaignId={joiningCampaign?.id}
         campaignName={joiningCampaign?.name || (joinRoomCode.trim() ? `Room ${joinRoomCode.trim().toUpperCase()}` : undefined)}
       />
