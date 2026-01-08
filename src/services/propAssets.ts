@@ -509,7 +509,7 @@ class PropAssetManager {
   /**
    * Get prop by ID
    */
-  getPropById(id: string): Prop | null {
+  getPropById(id: string): Prop {
     const customLibraries = this.propLibraries.filter((lib) => !lib.isDefault);
     const defaultLibraries = this.propLibraries.filter((lib) => lib.isDefault);
     for (const library of [...customLibraries, ...defaultLibraries]) {
