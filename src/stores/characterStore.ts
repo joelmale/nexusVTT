@@ -9,6 +9,7 @@ import type {
   Equipment,
   CharacterImportSource,
   CharacterExportFormat,
+  SkillMap,
 } from '@/types/character';
 import type { PlayerCharacter } from '@/types/game';
 import { useInitiativeStore } from '@/stores/initiativeStore';
@@ -17,7 +18,6 @@ import {
   createEmptyCharacter,
   calculateAbilityModifier,
   calculateProficiencyBonus,
-  calculatePassivePerception,
   STANDARD_SKILLS,
 } from '@/types/character';
 
@@ -71,23 +71,19 @@ interface CharacterStore extends CharacterState {
     proficient: boolean,
     expertise?: boolean,
   ) => void;
-  updateSavingThrowProficiency: (
-    characterId: string,
-    ability: keyof AbilityScores,
-    proficient: boolean,
-  ) => void;
+  updateSavingThrowProficiency?: never;
   recalculateStats: (characterId: string) => void;
 
   // Equipment Management
   addEquipment: (characterId: string, equipment: Omit<Equipment, 'id'>) => void;
   updateEquipment: (
     characterId: string,
-    equipmentId: string,
+    equipmentSlug: string,
     updates: Partial<Equipment>,
   ) => void;
-  removeEquipment: (characterId: string, equipmentId: string) => void;
-  equipItem: (characterId: string, equipmentId: string) => void;
-  unequipItem: (characterId: string, equipmentId: string) => void;
+  removeEquipment: (characterId: string, equipmentSlug: string) => void;
+  equipItem: (characterId: string, equipmentSlug: string) => void;
+  unequipItem: (characterId: string, equipmentSlug: string) => void;
 
   // Combat Integration
   addCharacterToCombat: (characterId: string) => void;
@@ -232,6 +228,7 @@ export const useCharacterStore = create<CharacterStore>()(
       const { getHitDieForClass, estimateHP } = await import(
         '@/utils/characterHelpers'
       );
+      const baseCharacter = createEmptyCharacter(playerId);
 
       const characterId = crypto.randomUUID();
       const now = Date.now();
@@ -245,100 +242,40 @@ export const useCharacterStore = create<CharacterStore>()(
         playerId,
         name: data.name,
         level: data.level,
+        race: data.race || 'Unknown',
+        species: data.race || 'Unknown',
+        class: data.class,
+        background: data.background || 'Adventurer',
         alignment: 'Neutral',
-
-        // Basic race info
-        race: {
-          name: data.race || 'Unknown',
-          subrace: undefined,
-          size: 'medium',
-          speed: 30,
-          traits: [],
-          abilityScoreIncrease: {},
-          languages: [],
-          proficiencies: [],
-        },
-
-        // Class info
-        classes: [
-          {
-            name: data.class,
-            level: data.level,
-            hitDie: `d${hitDie}`,
-            subclass: undefined,
-          },
-        ],
-
-        // Background
-        background: {
-          name: data.background || 'Adventurer',
-          feature: 'Wanderer: Placeholder background feature',
-          skillProficiencies: [],
-          languages: [],
-          equipment: [],
-          personalityTraits: [],
-          ideals: [],
-          bonds: [],
-          flaws: [],
-        },
-
-        // Standard ability scores (10 = 0 modifier, +0 saving throw)
-        abilities: {
-          strength: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
-          dexterity: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
-          constitution: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
-          intelligence: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
-          wisdom: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
-          charisma: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
-        },
-
-        // Calculate HP based on class and level
-        hitPoints: {
-          maximum: hp,
-          current: hp,
-          temporary: 0,
-        },
-
-        hitDice: {
-          total: data.level,
-          remaining: data.level,
-        },
-
-        // Unarmored AC (10 + dex modifier = 10)
-        armorClass: 10,
-        initiative: 0,
-        speed: 30,
-        proficiencyBonus: 2,
-        passivePerception: 10,
-
-        // Proficiencies
-        skills: [],
-        languageProficiencies: [],
-        toolProficiencies: [],
-        weaponProficiencies: [],
-        armorProficiencies: [],
-
-        // Empty arrays for detailed features
-        equipment: [],
-        spells: [],
-        features: [],
-        attacks: [],
-
-        // Personality
-        personalityTraits: [],
-        ideals: [],
-        bonds: [],
-        flaws: [],
-
-        // Other
+        edition: '2014',
         inspiration: false,
+        proficiencyBonus: baseCharacter.proficiencyBonus || 2,
+        armorClass: 10,
+        hitPoints: hp,
+        maxHitPoints: hp,
+        temporaryHitPoints: 0,
+        hitDice: {
+          current: data.level,
+          max: data.level,
+          dieType: hitDie,
+        },
+        speed: 30,
+        initiative: 0,
+        abilities: {
+          STR: { score: 10, modifier: 0 },
+          DEX: { score: 10, modifier: 0 },
+          CON: { score: 10, modifier: 0 },
+          INT: { score: 10, modifier: 0 },
+          WIS: { score: 10, modifier: 0 },
+          CHA: { score: 10, modifier: 0 },
+        },
+        skills: baseCharacter.skills,
+        languages: baseCharacter.languages,
+        inventory: [],
+        currency: { cp: 0, sp: 0, gp: 0, pp: 0 },
         experiencePoints: 0,
-        notes: '',
-
-        // Metadata
-        createdAt: now,
-        updatedAt: now,
-        version: '1.0',
+        createdAt: new Date(now).toISOString(),
+        updatedAt: new Date(now).toISOString(),
       };
 
       // Add to store
@@ -355,7 +292,7 @@ export const useCharacterStore = create<CharacterStore>()(
         const character = state.characters.find((c) => c.id === characterId);
         if (character) {
           Object.assign(character, updates);
-          character.updatedAt = Date.now();
+          character.updatedAt = new Date().toISOString();
 
           // Recalculate dependent stats if ability scores changed
           if (updates.abilities) {
@@ -391,7 +328,9 @@ export const useCharacterStore = create<CharacterStore>()(
     },
 
     getCharactersByPlayer: (playerId) => {
-      return get().characters.filter((c) => c.playerId === playerId);
+      return get().characters.filter(
+        (c) => !c.playerId || c.playerId === playerId,
+      );
     },
 
     // Character Stats Calculation
@@ -402,7 +341,7 @@ export const useCharacterStore = create<CharacterStore>()(
           character.abilities[ability].score = Math.max(1, Math.min(30, score));
           character.abilities[ability].modifier =
             calculateAbilityModifier(score);
-          character.updatedAt = Date.now();
+          character.updatedAt = new Date().toISOString();
         }
       }),
 
@@ -415,21 +354,15 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         const character = state.characters.find((c) => c.id === characterId);
         if (character && character.skills) {
-          const skill = character.skills.find((s) => s.name === skillName);
-          if (skill) {
-            skill.proficient = proficient;
-            skill.expertise = expertise && proficient; // Can't have expertise without proficiency
-            character.updatedAt = Date.now();
-          }
-        }
-      }),
-
-    updateSavingThrowProficiency: (characterId, ability, proficient) =>
-      set((state) => {
-        const character = state.characters.find((c) => c.id === characterId);
-        if (character && character.abilities) {
-          character.abilities[ability].proficient = proficient;
-          character.updatedAt = Date.now();
+          const skill = character.skills[skillName] || {
+            value: 0,
+            proficient: false,
+          };
+          skill.proficient = proficient;
+          skill.expertise = expertise && proficient;
+          character.skills[skillName] = skill;
+          character.updatedAt = new Date().toISOString();
+          get().recalculateStats(characterId);
         }
       }),
 
@@ -443,37 +376,28 @@ export const useCharacterStore = create<CharacterStore>()(
         );
         character.proficiencyBonus = proficiencyBonus;
 
-        // Recalculate ability modifiers and saving throws
-        Object.entries(character.abilities).forEach(
-          ([_abilityName, ability]) => {
-            ability.modifier = calculateAbilityModifier(ability.score);
-            ability.savingThrow =
-              ability.modifier + (ability.proficient ? proficiencyBonus : 0);
-          },
-        );
+        Object.values(character.abilities).forEach((ability) => {
+          ability.modifier = calculateAbilityModifier(ability.score);
+        });
 
-        // Recalculate skills
         if (character.skills) {
-          character.skills.forEach((skill) => {
-            const abilityModifier =
-              character.abilities![skill.ability].modifier;
+          Object.entries(character.skills).forEach(([skillName, skill]) => {
+            const abilityKey = STANDARD_SKILLS.find(
+              (entry) => entry.name === skillName,
+            )?.ability;
+            const abilityModifier = abilityKey
+              ? character.abilities[abilityKey].modifier
+              : 0;
             const profBonus = skill.proficient ? proficiencyBonus : 0;
             const expertiseBonus = skill.expertise ? proficiencyBonus : 0;
-            skill.modifier = abilityModifier + profBonus + expertiseBonus;
+            skill.value = abilityModifier + profBonus + expertiseBonus;
+            character.skills[skillName] = skill;
           });
         }
 
-        // Recalculate passive perception
-        character.passivePerception = calculatePassivePerception(
-          character.abilities,
-          character.skills || [],
-          proficiencyBonus,
-        );
+        character.initiative = character.abilities.DEX?.modifier ?? 0;
 
-        // Recalculate initiative (Dex modifier)
-        character.initiative = character.abilities.dexterity.modifier;
-
-        character.updatedAt = Date.now();
+        character.updatedAt = new Date().toISOString();
       }),
 
     // Equipment Management
@@ -481,65 +405,81 @@ export const useCharacterStore = create<CharacterStore>()(
       set((state) => {
         const character = state.characters.find((c) => c.id === characterId);
         if (character) {
-          const equipment = { ...equipmentData, id: crypto.randomUUID() };
-          character.equipment = character.equipment || [];
-          character.equipment.push(equipment);
-          character.updatedAt = Date.now();
+          const equipmentSlug = equipmentData.name
+            .toLowerCase()
+            .replace(/\s+/g, '-');
+          character.inventory = character.inventory || [];
+          character.inventory.push({
+            equipmentSlug,
+            equipped: equipmentData.equipped,
+            quantity: equipmentData.quantity,
+          });
+          character.updatedAt = new Date().toISOString();
         }
       }),
 
-    updateEquipment: (characterId, equipmentId, updates) =>
+    updateEquipment: (characterId, equipmentSlug, updates) =>
       set((state) => {
         const character = state.characters.find((c) => c.id === characterId);
-        if (character && character.equipment) {
-          const equipment = character.equipment.find(
-            (e) => e.id === equipmentId,
+        if (character && character.inventory) {
+          const equipment = character.inventory.find(
+            (e) => e.equipmentSlug === equipmentSlug,
           );
           if (equipment) {
-            Object.assign(equipment, updates);
-            character.updatedAt = Date.now();
+            if (updates.name) {
+              equipment.equipmentSlug = updates.name
+                .toLowerCase()
+                .replace(/\s+/g, '-');
+            }
+            if (typeof updates.quantity === 'number') {
+              equipment.quantity = updates.quantity;
+            }
+            if (typeof updates.equipped === 'boolean') {
+              equipment.equipped = updates.equipped;
+            }
+            character.updatedAt = new Date().toISOString();
           }
         }
       }),
 
-    removeEquipment: (characterId, equipmentId) =>
+    removeEquipment: (characterId, equipmentSlug) =>
       set((state) => {
         const character = state.characters.find((c) => c.id === characterId);
-        if (character && character.equipment) {
-          const index = character.equipment.findIndex(
-            (e) => e.id === equipmentId,
+        if (character && character.inventory) {
+          const index = character.inventory.findIndex(
+            (e) => e.equipmentSlug === equipmentSlug,
           );
           if (index !== -1) {
-            character.equipment.splice(index, 1);
-            character.updatedAt = Date.now();
+            character.inventory.splice(index, 1);
+            character.updatedAt = new Date().toISOString();
           }
         }
       }),
 
-    equipItem: (characterId, equipmentId) =>
+    equipItem: (characterId, equipmentSlug) =>
       set((state) => {
         const character = state.characters.find((c) => c.id === characterId);
-        if (character && character.equipment) {
-          const equipment = character.equipment.find(
-            (e) => e.id === equipmentId,
+        if (character && character.inventory) {
+          const equipment = character.inventory.find(
+            (e) => e.equipmentSlug === equipmentSlug,
           );
           if (equipment) {
             equipment.equipped = true;
-            character.updatedAt = Date.now();
+            character.updatedAt = new Date().toISOString();
           }
         }
       }),
 
-    unequipItem: (characterId, equipmentId) =>
+    unequipItem: (characterId, equipmentSlug) =>
       set((state) => {
         const character = state.characters.find((c) => c.id === characterId);
-        if (character && character.equipment) {
-          const equipment = character.equipment.find(
-            (e) => e.id === equipmentId,
+        if (character && character.inventory) {
+          const equipment = character.inventory.find(
+            (e) => e.equipmentSlug === equipmentSlug,
           );
           if (equipment) {
             equipment.equipped = false;
-            character.updatedAt = Date.now();
+            character.updatedAt = new Date().toISOString();
           }
         }
       }),
@@ -555,9 +495,9 @@ export const useCharacterStore = create<CharacterStore>()(
           name: character.name,
           type: 'player',
           initiative: character.initiative || 0,
-          maxHP: character.hitPoints?.maximum || 1,
-          currentHP: character.hitPoints?.current || 1,
-          tempHP: character.hitPoints?.temporary || 0,
+          maxHP: character.maxHitPoints || character.hitPoints || 1,
+          currentHP: character.hitPoints || 1,
+          tempHP: character.temporaryHitPoints || 0,
           armorClass: character.armorClass || 10,
           conditions: [],
           isActive: false,
@@ -566,7 +506,7 @@ export const useCharacterStore = create<CharacterStore>()(
           notes: '',
           deathSaves: { successes: 0, failures: 0 },
           initiativeModifier: character.initiative || 0,
-          dexterityModifier: character.abilities?.dexterity?.modifier || 0,
+          dexterityModifier: character.abilities?.DEX?.modifier || 0,
           playerId: character.playerId,
         });
       }
@@ -588,13 +528,11 @@ export const useCharacterStore = create<CharacterStore>()(
     updateCharacterHP: (characterId, current, temporary = 0) =>
       set((state) => {
         const character = state.characters.find((c) => c.id === characterId);
-        if (character && character.hitPoints) {
-          character.hitPoints.current = Math.max(
-            0,
-            Math.min(character.hitPoints.maximum, current),
-          );
-          character.hitPoints.temporary = Math.max(0, temporary);
-          character.updatedAt = Date.now();
+        if (character) {
+          const maxHP = character.maxHitPoints ?? current;
+          character.hitPoints = Math.max(0, Math.min(maxHP, current));
+          character.temporaryHitPoints = Math.max(0, temporary);
+          character.updatedAt = new Date().toISOString();
         }
       }),
 
@@ -643,24 +581,27 @@ export const useCharacterStore = create<CharacterStore>()(
         // This is the original, "frozen" character object from the state
         const baseCharacter = creationState.character as Character;
 
-        // Prepare the final skills array. If the base character has no skills,
-        // create the default list. Otherwise, use the existing one.
-        const finalSkills =
-          !baseCharacter.skills || baseCharacter.skills.length === 0
-            ? STANDARD_SKILLS.map((skill) => ({
-                ...skill,
-                proficient: false,
-                expertise: false,
-                modifier: baseCharacter.abilities![skill.ability].modifier,
-              }))
-            : baseCharacter.skills;
+        const finalSkills: SkillMap = {};
+        const shouldBuildDefaults =
+          !baseCharacter.skills || Object.keys(baseCharacter.skills).length === 0;
+
+        if (shouldBuildDefaults) {
+          STANDARD_SKILLS.forEach((skill) => {
+            finalSkills[skill.name] = {
+              proficient: false,
+              value: baseCharacter.abilities![skill.ability].modifier,
+            };
+          });
+        } else {
+          Object.assign(finalSkills, baseCharacter.skills);
+        }
 
         // Assemble a completely NEW character object with all the final properties
         const completedCharacter = {
           ...baseCharacter, // Copy all original properties
           id: baseCharacter.id || crypto.randomUUID(), // Add or overwrite properties
-          createdAt: Date.now(),
-          updatedAt: Date.now(),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
           skills: finalSkills, // Add the prepared skills array
         };
 
@@ -686,21 +627,19 @@ export const useCharacterStore = create<CharacterStore>()(
           const characterForStorage: PlayerCharacter = {
             id: completedCharacter.id,
             name: completedCharacter.name,
-            race: completedCharacter.race?.name || '',
-            class: completedCharacter.classes?.[0]?.name || '',
-            background: completedCharacter.background?.name || '',
+            race: completedCharacter.race || '',
+            class: completedCharacter.class || '',
+            background: completedCharacter.background || '',
             level: completedCharacter.level,
             stats: {
-              strength: completedCharacter.abilities?.strength?.score || 10,
-              dexterity: completedCharacter.abilities?.dexterity?.score || 10,
-              constitution:
-                completedCharacter.abilities?.constitution?.score || 10,
-              intelligence:
-                completedCharacter.abilities?.intelligence?.score || 10,
-              wisdom: completedCharacter.abilities?.wisdom?.score || 10,
-              charisma: completedCharacter.abilities?.charisma?.score || 10,
+              strength: completedCharacter.abilities?.STR?.score || 10,
+              dexterity: completedCharacter.abilities?.DEX?.score || 10,
+              constitution: completedCharacter.abilities?.CON?.score || 10,
+              intelligence: completedCharacter.abilities?.INT?.score || 10,
+              wisdom: completedCharacter.abilities?.WIS?.score || 10,
+              charisma: completedCharacter.abilities?.CHA?.score || 10,
             },
-            createdAt: completedCharacter.createdAt,
+            createdAt: Date.parse(completedCharacter.createdAt || '') || Date.now(),
             playerId: storage['getBrowserId'](), // Use browser ID as player ID for storage
           };
 
@@ -825,8 +764,13 @@ export const useCharacterStore = create<CharacterStore>()(
     // Import/Export
     importCharacter: async (source, data) => {
       const { characterImportService } = await import('@/services/characterImport');
+      const { user } = useGameStore.getState();
 
-      const result = await characterImportService.importFromData(data, source);
+      const result = await characterImportService.importFromData(
+        data,
+        source,
+        user.id,
+      );
 
       if (!result.success) {
         throw new Error(result.error || 'Import failed');
@@ -837,7 +781,10 @@ export const useCharacterStore = create<CharacterStore>()(
       }
 
       // Add the imported character to the store
-      const character = result.character as Character;
+      const character = {
+        ...(result.character as Character),
+        playerId: (result.character as Character).playerId || user.id,
+      };
       set((state) => {
         state.characters.push(character);
       });
@@ -847,16 +794,22 @@ export const useCharacterStore = create<CharacterStore>()(
 
     importCharactersFromFiles: async (files) => {
       const { characterImportService } = await import('@/services/characterImport');
+      const { user, isAuthenticated } = useGameStore.getState();
 
-      const batchResult = await characterImportService.importFromFiles(files);
+      const batchResult = await characterImportService.importFromFiles(
+        files,
+        user.id,
+      );
 
       const errors: string[] = [];
-      const { isAuthenticated } = useGameStore.getState();
 
       // Process successful imports
       for (const result of batchResult.results) {
         if (result.success && result.character) {
-          const character = result.character as Character;
+          const character = {
+            ...(result.character as Character),
+            playerId: (result.character as Character).playerId || user.id,
+          };
 
           // Add to store
           set((state) => {

@@ -13,7 +13,6 @@ import {
   getAvailableBackgrounds,
   getAvailableAlignments,
 } from '@/utils/characterGenerator';
-import { getDataManager } from '@/utils/dataManager';
 import type { Character, AbilityScores } from '@/types/character';
 
 interface CharacterCreationWizardProps {
@@ -54,14 +53,14 @@ const CoreConceptStep: React.FC<WizardStepProps> = ({
     updateCharacter({
       name: randomChar.name,
       race: randomChar.race,
-      classes: randomChar.classes,
+      class: randomChar.class,
       background: randomChar.background,
       alignment: randomChar.alignment,
     });
   };
 
   const handleRandomizeName = () => {
-    const newName = randomizeName(character.race?.name);
+    const newName = randomizeName(character.race);
     updateCharacter({ name: newName });
   };
 
@@ -72,7 +71,7 @@ const CoreConceptStep: React.FC<WizardStepProps> = ({
 
   const handleRandomizeClass = () => {
     const newClass = randomizeClass();
-    updateCharacter({ classes: [newClass] });
+    updateCharacter({ class: newClass });
   };
 
   const handleRandomizeBackground = () => {
@@ -127,13 +126,11 @@ const CoreConceptStep: React.FC<WizardStepProps> = ({
           <div className="input-with-dice">
             <select
               id="character-race"
-              value={character.race?.name || ''}
+              value={character.race || ''}
               onChange={(e) => {
                 const raceName = e.target.value;
                 if (raceName) {
-                  const selectedRace = randomizeRace();
-                  selectedRace.name = raceName;
-                  updateCharacter({ race: selectedRace });
+                  updateCharacter({ race: raceName });
                 }
               }}
               className="form-select"
@@ -161,13 +158,11 @@ const CoreConceptStep: React.FC<WizardStepProps> = ({
           <div className="input-with-dice">
             <select
               id="character-class"
-              value={character.classes?.[0]?.name || ''}
+              value={character.class || ''}
               onChange={(e) => {
                 const className = e.target.value;
                 if (className) {
-                  const selectedClass = randomizeClass();
-                  selectedClass.name = className;
-                  updateCharacter({ classes: [selectedClass] });
+                  updateCharacter({ class: className });
                 }
               }}
               className="form-select"
@@ -195,13 +190,11 @@ const CoreConceptStep: React.FC<WizardStepProps> = ({
           <div className="input-with-dice">
             <select
               id="character-background"
-              value={character.background?.name || ''}
+              value={character.background || ''}
               onChange={(e) => {
                 const backgroundName = e.target.value;
                 if (backgroundName) {
-                  const selectedBackground = randomizeBackground();
-                  selectedBackground.name = backgroundName;
-                  updateCharacter({ background: selectedBackground });
+                  updateCharacter({ background: backgroundName });
                 }
               }}
               className="form-select"
@@ -294,7 +287,7 @@ const AbilityScoresStep: React.FC<WizardStepProps> = ({
 
   const handleStandardArray = () => {
     const standardScores = [15, 14, 13, 12, 10, 8];
-    const abilityNames: (keyof AbilityScores)[] = ['strength', 'dexterity', 'constitution', 'intelligence', 'wisdom', 'charisma'];
+    const abilityNames: (keyof AbilityScores)[] = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
     const calculateModifier = (score: number) => Math.floor((score - 10) / 2);
 
     const newAbilities: AbilityScores = {} as AbilityScores;
@@ -303,7 +296,6 @@ const AbilityScoresStep: React.FC<WizardStepProps> = ({
       newAbilities[ability] = {
         score,
         modifier: calculateModifier(score),
-        savingThrow: calculateModifier(score),
       };
     });
 
@@ -313,12 +305,12 @@ const AbilityScoresStep: React.FC<WizardStepProps> = ({
   const handlePointBuy = () => {
     // Point buy starts with all 8s, player spends 27 points
     const newAbilities: AbilityScores = {
-      strength: { score: 8, modifier: -1, savingThrow: -1 },
-      dexterity: { score: 8, modifier: -1, savingThrow: -1 },
-      constitution: { score: 8, modifier: -1, savingThrow: -1 },
-      intelligence: { score: 8, modifier: -1, savingThrow: -1 },
-      wisdom: { score: 8, modifier: -1, savingThrow: -1 },
-      charisma: { score: 8, modifier: -1, savingThrow: -1 },
+      STR: { score: 8, modifier: -1 },
+      DEX: { score: 8, modifier: -1 },
+      CON: { score: 8, modifier: -1 },
+      INT: { score: 8, modifier: -1 },
+      WIS: { score: 8, modifier: -1 },
+      CHA: { score: 8, modifier: -1 },
     };
 
     updateCharacter({ abilities: newAbilities });
@@ -366,7 +358,6 @@ const AbilityScoresStep: React.FC<WizardStepProps> = ({
         ...character.abilities[ability],
         score,
         modifier: newModifier,
-        savingThrow: newModifier,
       },
     };
 
@@ -422,7 +413,14 @@ const AbilityScoresStep: React.FC<WizardStepProps> = ({
         {Object.entries(abilities).map(([abilityName, abilityData]) => (
           <div key={abilityName} className="ability-score-group">
             <label className="ability-label">
-              {abilityName.charAt(0).toUpperCase() + abilityName.slice(1)}
+              {{
+                STR: 'Strength',
+                DEX: 'Dexterity',
+                CON: 'Constitution',
+                INT: 'Intelligence',
+                WIS: 'Wisdom',
+                CHA: 'Charisma',
+              }[abilityName] || abilityName}
             </label>
             <div className="ability-input-container">
               <input
@@ -511,15 +509,13 @@ const DetailsStep: React.FC<WizardStepProps> = ({
             <input
               type="number"
               id="hit-points"
-              value={character.hitPoints?.maximum || 1}
+              value={character.maxHitPoints || character.hitPoints || 1}
               onChange={(e) => {
                 const maxHP = parseInt(e.target.value) || 1;
                 updateCharacter({
-                  hitPoints: {
-                    maximum: maxHP,
-                    current: maxHP,
-                    temporary: 0,
-                  },
+                  hitPoints: maxHP,
+                  maxHitPoints: maxHP,
+                  temporaryHitPoints: 0,
                 });
               }}
               min="1"
@@ -551,12 +547,13 @@ const DetailsStep: React.FC<WizardStepProps> = ({
             <label htmlFor="personality-traits">Personality Traits</label>
             <textarea
               id="personality-traits"
-              value={character.personalityTraits?.join('\n') || ''}
+              value={character.featuresAndTraits?.personality || ''}
               onChange={(e) =>
                 updateCharacter({
-                  personalityTraits: e.target.value
-                    .split('\n')
-                    .filter((t) => t.trim()),
+                  featuresAndTraits: {
+                    ...(character.featuresAndTraits || {}),
+                    personality: e.target.value,
+                  },
                 })
               }
               placeholder="Describe your character's personality traits..."
@@ -569,10 +566,13 @@ const DetailsStep: React.FC<WizardStepProps> = ({
             <label htmlFor="ideals">Ideals</label>
             <textarea
               id="ideals"
-              value={character.ideals?.join('\n') || ''}
+              value={character.featuresAndTraits?.ideals || ''}
               onChange={(e) =>
                 updateCharacter({
-                  ideals: e.target.value.split('\n').filter((t) => t.trim()),
+                  featuresAndTraits: {
+                    ...(character.featuresAndTraits || {}),
+                    ideals: e.target.value,
+                  },
                 })
               }
               placeholder="What drives your character..."
@@ -585,10 +585,13 @@ const DetailsStep: React.FC<WizardStepProps> = ({
             <label htmlFor="bonds">Bonds</label>
             <textarea
               id="bonds"
-              value={character.bonds?.join('\n') || ''}
+              value={character.featuresAndTraits?.bonds || ''}
               onChange={(e) =>
                 updateCharacter({
-                  bonds: e.target.value.split('\n').filter((t) => t.trim()),
+                  featuresAndTraits: {
+                    ...(character.featuresAndTraits || {}),
+                    bonds: e.target.value,
+                  },
                 })
               }
               placeholder="Important connections and relationships..."
@@ -601,10 +604,13 @@ const DetailsStep: React.FC<WizardStepProps> = ({
             <label htmlFor="flaws">Flaws</label>
             <textarea
               id="flaws"
-              value={character.flaws?.join('\n') || ''}
+              value={character.featuresAndTraits?.flaws || ''}
               onChange={(e) =>
                 updateCharacter({
-                  flaws: e.target.value.split('\n').filter((t) => t.trim()),
+                  featuresAndTraits: {
+                    ...(character.featuresAndTraits || {}),
+                    flaws: e.target.value,
+                  },
                 })
               }
               placeholder="Character weaknesses or vices..."
@@ -632,8 +638,6 @@ const ProficienciesStep: React.FC<WizardStepProps> = ({
   isLastStep: _isLastStep,
   playerId: _playerId,
 }) => {
-  const dataManager = getDataManager();
-
   // D&D 5e Standard Languages
   const DND_LANGUAGES = [
     'Common',
@@ -654,10 +658,8 @@ const ProficienciesStep: React.FC<WizardStepProps> = ({
     'Deep Speech',
   ];
 
-  const tools = dataManager.getTools();
-
   const handleLanguageToggle = (language: string) => {
-    const currentLanguages = character.languageProficiencies || ['Common'];
+    const currentLanguages = character.languages || ['Common'];
     const newLanguages = currentLanguages.includes(language)
       ? currentLanguages.filter((l) => l !== language)
       : [...currentLanguages, language];
@@ -667,40 +669,10 @@ const ProficienciesStep: React.FC<WizardStepProps> = ({
       newLanguages.unshift('Common');
     }
 
-    updateCharacter({ languageProficiencies: newLanguages });
+    updateCharacter({ languages: newLanguages });
   };
 
-  const handleToolToggle = (toolId: string) => {
-    const currentTools = character.toolProficiencies || [];
-    const newTools = currentTools.includes(toolId)
-      ? currentTools.filter((t) => t !== toolId)
-      : [...currentTools, toolId];
-
-    updateCharacter({ toolProficiencies: newTools });
-  };
-
-  const handleWeaponProficiencyToggle = (proficiency: string) => {
-    const currentProficiencies = character.weaponProficiencies || [];
-    const newProficiencies = currentProficiencies.includes(proficiency)
-      ? currentProficiencies.filter((p) => p !== proficiency)
-      : [...currentProficiencies, proficiency];
-
-    updateCharacter({ weaponProficiencies: newProficiencies });
-  };
-
-  const handleArmorProficiencyToggle = (proficiency: string) => {
-    const currentProficiencies = character.armorProficiencies || [];
-    const newProficiencies = currentProficiencies.includes(proficiency)
-      ? currentProficiencies.filter((p) => p !== proficiency)
-      : [...currentProficiencies, proficiency];
-
-    updateCharacter({ armorProficiencies: newProficiencies });
-  };
-
-  const currentLanguages = character.languageProficiencies || ['Common'];
-  const currentTools = character.toolProficiencies || [];
-  const currentWeaponProficiencies = character.weaponProficiencies || [];
-  const currentArmorProficiencies = character.armorProficiencies || [];
+  const currentLanguages = character.languages || ['Common'];
 
   return (
     <div className="wizard-step proficiencies-step">
@@ -731,67 +703,7 @@ const ProficienciesStep: React.FC<WizardStepProps> = ({
           </div>
         </div>
 
-        {/* Tool Proficiencies */}
-        <div className="form-section">
-          <h3>Tool Proficiencies</h3>
-          <p className="form-help">
-            Select tools your character is proficient with.
-          </p>
-          <div className="proficiency-grid">
-            {tools.map((tool) => (
-              <label key={tool.id} className="proficiency-item">
-                <input
-                  type="checkbox"
-                  checked={currentTools.includes(tool.name)}
-                  onChange={() => handleToolToggle(tool.name)}
-                />
-                <span className="proficiency-label">{tool.name}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Weapon Proficiencies */}
-        <div className="form-section">
-          <h3>Weapon Proficiencies</h3>
-          <p className="form-help">
-            Select weapon categories your character is proficient with.
-          </p>
-          <div className="proficiency-grid">
-            {['Simple Weapons', 'Martial Weapons'].map((proficiency) => (
-              <label key={proficiency} className="proficiency-item">
-                <input
-                  type="checkbox"
-                  checked={currentWeaponProficiencies.includes(proficiency)}
-                  onChange={() => handleWeaponProficiencyToggle(proficiency)}
-                />
-                <span className="proficiency-label">{proficiency}</span>
-              </label>
-            ))}
-          </div>
-        </div>
-
-        {/* Armor Proficiencies */}
-        <div className="form-section">
-          <h3>Armor Proficiencies</h3>
-          <p className="form-help">
-            Select armor categories your character is proficient with.
-          </p>
-          <div className="proficiency-grid">
-            {['Light Armor', 'Medium Armor', 'Heavy Armor', 'Shields'].map(
-              (proficiency) => (
-                <label key={proficiency} className="proficiency-item">
-                  <input
-                    type="checkbox"
-                    checked={currentArmorProficiencies.includes(proficiency)}
-                    onChange={() => handleArmorProficiencyToggle(proficiency)}
-                  />
-                  <span className="proficiency-label">{proficiency}</span>
-                </label>
-              ),
-            )}
-          </div>
-        </div>
+        {/* Tool/Armor/Weapon proficiencies are managed by imports for now. */}
       </div>
     </div>
   );
@@ -826,17 +738,16 @@ const EquipmentFeaturesStep: React.FC<WizardStepProps> = ({
             background choices.
           </p>
           <div className="equipment-list">
-            {character.equipment?.length ? (
-              character.equipment.map((item, index) => (
+            {character.inventory?.length ? (
+              character.inventory.map((item, index) => (
                 <div key={index} className="equipment-item">
-                  <span className="equipment-name">{item.name}</span>
+                  <span className="equipment-name">{item.equipmentSlug}</span>
                   <span className="equipment-quantity">×{item.quantity}</span>
                 </div>
               ))
             ) : (
               <p className="no-equipment">
-                No equipment assigned yet. Complete class and background
-                selection first.
+                No inventory items assigned yet.
               </p>
             )}
           </div>
@@ -846,8 +757,8 @@ const EquipmentFeaturesStep: React.FC<WizardStepProps> = ({
         <div className="form-section">
           <h3>Racial Features</h3>
           <div className="features-list">
-            {character.race?.traits?.length ? (
-              character.race.traits.map((trait, index) => (
+            {character.featuresAndTraits?.racialTraits?.length ? (
+              character.featuresAndTraits.racialTraits.map((trait, index) => (
                 <div key={index} className="feature-item">
                   <span className="feature-name">{trait}</span>
                 </div>
@@ -862,13 +773,10 @@ const EquipmentFeaturesStep: React.FC<WizardStepProps> = ({
         <div className="form-section">
           <h3>Class Features</h3>
           <div className="features-list">
-            {character.features?.length ? (
-              character.features.map((feature, index) => (
+            {character.featuresAndTraits?.classFeatures?.length ? (
+              character.featuresAndTraits.classFeatures.map((feature, index) => (
                 <div key={index} className="feature-item">
-                  <span className="feature-name">{feature.name}</span>
-                  <span className="feature-description">
-                    {feature.description}
-                  </span>
+                  <span className="feature-name">{feature}</span>
                 </div>
               ))
             ) : (
@@ -881,12 +789,11 @@ const EquipmentFeaturesStep: React.FC<WizardStepProps> = ({
         <div className="form-section">
           <h3>Attacks</h3>
           <div className="attacks-list">
-            {character.attacks?.length ? (
-              character.attacks.map((attack, index) => (
+            {character.equippedWeapons?.length ? (
+              character.equippedWeapons.map((attack, index) => (
                 <div key={index} className="attack-item">
-                  <span className="attack-name">{attack.name}</span>
-                  <span className="attack-details">
-                    {attack.damage.dice} {attack.damage.type} • {attack.range}
+                  <span className="attack-name">
+                    {attack.weaponSlug || 'Equipped weapon'}
                   </span>
                 </div>
               ))
@@ -915,7 +822,7 @@ const FinalDetailsStep: React.FC<WizardStepProps> = ({
   playerId: _playerId,
 }) => {
   // Check if character is a spellcaster
-  const isSpellcaster = character.classes?.[0]?.spellcasting?.type !== 'none';
+  const isSpellcaster = !!character.spellcasting;
 
   return (
     <div className="wizard-step final-details-step">
@@ -988,21 +895,6 @@ const FinalDetailsStep: React.FC<WizardStepProps> = ({
           </div>
         </div>
 
-        {/* Notes */}
-        <div className="form-section">
-          <h3>Character Notes</h3>
-          <div className="form-group">
-            <label htmlFor="character-notes">Additional Notes</label>
-            <textarea
-              id="character-notes"
-              value={character.notes || ''}
-              onChange={(e) => updateCharacter({ notes: e.target.value })}
-              placeholder="Any additional notes about your character..."
-              className="form-textarea"
-              rows={4}
-            />
-          </div>
-        </div>
       </div>
     </div>
   );
@@ -1046,14 +938,14 @@ export const CharacterCreationWizard: React.FC<
     // Check all required fields are filled
     return !!(
       character.name?.trim() &&
-      character.race?.name &&
-      character.classes?.[0]?.name &&
-      character.abilities?.strength?.score &&
-      character.abilities?.dexterity?.score &&
-      character.abilities?.constitution?.score &&
-      character.abilities?.intelligence?.score &&
-      character.abilities?.wisdom?.score &&
-      character.abilities?.charisma?.score
+      character.race &&
+      character.class &&
+      character.abilities?.STR?.score &&
+      character.abilities?.DEX?.score &&
+      character.abilities?.CON?.score &&
+      character.abilities?.INT?.score &&
+      character.abilities?.WIS?.score &&
+      character.abilities?.CHA?.score
     );
   }, [currentStep, totalSteps, creationState?.character]);
 
@@ -1132,8 +1024,8 @@ export const CharacterCreationWizard: React.FC<
       case 1:
         return !!(
           character.name &&
-          character.race?.name &&
-          character.classes?.[0]?.name
+          character.race &&
+          character.class
         );
       case 2:
         return !!character.abilities;
@@ -1296,16 +1188,16 @@ export const CharacterCreationWizard: React.FC<
                   {character.name || 'Unnamed Character'}
                 </h2>
                 <div className="character-identity">
-                  <span className="race">{character.race?.name || 'Race'}</span>
+                  <span className="race">{character.race || 'Race'}</span>
                   <span className="separator">•</span>
                   <span className="class">
-                    {character.classes?.[0]?.name || 'Class'}
+                    {character.class || 'Class'}
                   </span>
                   <span className="separator">•</span>
                   <span className="level">Level {character.level || 1}</span>
                 </div>
                 <div className="character-background">
-                  {character.background?.name || 'Background'}
+                  {character.background || 'Background'}
                 </div>
               </div>
             </div>
@@ -1323,11 +1215,7 @@ export const CharacterCreationWizard: React.FC<
                 <div className="stat-block">
                   <div className="stat-block-header">Hit Points</div>
                   <div className="stat-block-value">
-                    {typeof character.hitPoints === 'object'
-                      ? character.hitPoints?.maximum ||
-                        character.hitPoints?.current ||
-                        8
-                      : character.hitPoints || 8}
+                    {character.maxHitPoints || character.hitPoints || 8}
                   </div>
                 </div>
 
@@ -1344,29 +1232,17 @@ export const CharacterCreationWizard: React.FC<
             <div className="ability-scores-preview">
               <h3>Ability Scores</h3>
               <div className="abilities-grid">
-                {[
-                  'strength',
-                  'dexterity',
-                  'constitution',
-                  'intelligence',
-                  'wisdom',
-                  'charisma',
-                ].map((ability) => {
+                {['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'].map((ability) => {
                   const abilityData =
                     character.abilities?.[ability as keyof AbilityScores];
-                  const score =
-                    typeof abilityData === 'object'
-                      ? abilityData?.score
-                      : abilityData || 10;
+                  const score = abilityData?.score ?? 10;
                   const modifier =
-                    typeof abilityData === 'object'
-                      ? abilityData?.modifier || 0
-                      : Math.floor((score - 10) / 2);
+                    abilityData?.modifier ?? Math.floor((score - 10) / 2);
 
                   return (
                     <div key={ability} className="ability-score">
                       <div className="ability-name">
-                        {ability.slice(0, 3).toUpperCase()}
+                        {ability}
                       </div>
                       <div className="ability-value">{score}</div>
                       <div className="ability-scores-preview__modifier">

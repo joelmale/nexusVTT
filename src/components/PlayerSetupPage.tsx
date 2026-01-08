@@ -22,24 +22,29 @@ import '@/styles/character-sheet-parchment.css';
 // Convert Character to PlayerCharacter for gameStore compatibility
 const convertCharacterToPlayerCharacter = (
   character: Character,
+  fallbackPlayerId: string,
 ): PlayerCharacter => {
+  const createdAt =
+    typeof character.createdAt === 'string'
+      ? Date.parse(character.createdAt)
+      : Date.now();
   return {
     id: character.id,
     name: character.name,
-    race: character.race.name,
-    class: character.classes[0]?.name || '',
-    background: character.background.name,
+    race: character.race || character.species || '',
+    class: character.class || '',
+    background: character.background || '',
     level: character.level,
     stats: {
-      strength: character.abilities.strength.score,
-      dexterity: character.abilities.dexterity.score,
-      constitution: character.abilities.constitution.score,
-      intelligence: character.abilities.intelligence.score,
-      wisdom: character.abilities.wisdom.score,
-      charisma: character.abilities.charisma.score,
+      strength: character.abilities.STR.score,
+      dexterity: character.abilities.DEX.score,
+      constitution: character.abilities.CON.score,
+      intelligence: character.abilities.INT.score,
+      wisdom: character.abilities.WIS.score,
+      charisma: character.abilities.CHA.score,
     },
-    createdAt: character.createdAt,
-    playerId: character.playerId,
+    createdAt: Number.isFinite(createdAt) ? createdAt : Date.now(),
+    playerId: character.playerId || fallbackPlayerId,
   };
 };
 
@@ -64,7 +69,9 @@ export const PlayerSetupPage: React.FC = () => {
   const [playerTokenFileName, setPlayerTokenFileName] = useState('');
 
   // Filter characters for the current user
-  const userCharacters = characters.filter((c) => c.playerId === user.id);
+  const userCharacters = characters.filter(
+    (c) => !c.playerId || c.playerId === user.id,
+  );
   const selectedCharacter = userCharacters.find(
     (c) => c.id === selectedCharacterId,
   );
@@ -88,7 +95,7 @@ export const PlayerSetupPage: React.FC = () => {
       setUser({ name: playerName.trim(), isSpectator: joinMode === 'spectator' });
 
       const playerCharacter = joinMode === 'player' && selectedCharacter
-        ? convertCharacterToPlayerCharacter(selectedCharacter)
+        ? convertCharacterToPlayerCharacter(selectedCharacter, user.id)
         : undefined;
       const joinedRoomCode = await joinRoomWithCode(
         roomCode.trim().toUpperCase(),
@@ -160,9 +167,15 @@ export const PlayerSetupPage: React.FC = () => {
     );
     // Auto-select the first imported character if there's only one
     if (result.successful === 1 && characters.length > 0) {
-      const latestCharacter = characters.sort(
-        (a, b) => b.createdAt - a.createdAt,
-      )[0];
+      const latestCharacter = characters
+        .slice()
+        .sort((a, b) => {
+          const aDate =
+            typeof a.createdAt === 'string' ? Date.parse(a.createdAt) : 0;
+          const bDate =
+            typeof b.createdAt === 'string' ? Date.parse(b.createdAt) : 0;
+          return bDate - aDate;
+        })[0];
       setSelectedCharacterId(latestCharacter.id);
     }
   };
@@ -247,9 +260,17 @@ export const PlayerSetupPage: React.FC = () => {
             ) : (
               <div className="character-grid">
                 {userCharacters
-                  .sort(
-                    (a: Character, b: Character) => b.updatedAt - a.updatedAt,
-                  )
+                  .sort((a: Character, b: Character) => {
+                    const aDate =
+                      typeof a.updatedAt === 'string'
+                        ? Date.parse(a.updatedAt)
+                        : 0;
+                    const bDate =
+                      typeof b.updatedAt === 'string'
+                        ? Date.parse(b.updatedAt)
+                        : 0;
+                    return bDate - aDate;
+                  })
                   .map((character: Character) => (
                     <div
                       key={character.id}
@@ -261,17 +282,17 @@ export const PlayerSetupPage: React.FC = () => {
                       <div className="character-info">
                         <h3>{character.name}</h3>
                         <p>
-                          Level {character.level} {character.race.name}
-                          {character.race.subrace &&
-                            ` (${character.race.subrace})`}{' '}
-                          {character.classes[0]?.name}
-                        </p>
-                        <p className="character-background">
-                          {character.background.name}
-                        </p>
+                        Level {character.level} {character.race || character.species}{' '}
+                        {character.class || 'Adventurer'}
+                      </p>
+                      <p className="character-background">
+                        {character.background || 'Unknown'}
+                      </p>
                         <p className="last-used">
                           Created:{' '}
-                          {new Date(character.createdAt).toLocaleDateString()}
+                          {character.createdAt
+                            ? new Date(character.createdAt).toLocaleDateString()
+                            : 'Unknown'}
                         </p>
                       </div>
 
@@ -551,10 +572,8 @@ export const PlayerSetupPage: React.FC = () => {
                   <p>
                     <strong>Joining as:</strong> {selectedCharacter.name}
                     (Level {selectedCharacter.level}{' '}
-                    {selectedCharacter.race.name}
-                    {selectedCharacter.race.subrace &&
-                      ` (${selectedCharacter.race.subrace})`}{' '}
-                    {selectedCharacter.classes[0]?.name})
+                    {selectedCharacter.race || selectedCharacter.species}{' '}
+                    {selectedCharacter.class || 'Adventurer'})
                   </p>
                 </div>
               )}

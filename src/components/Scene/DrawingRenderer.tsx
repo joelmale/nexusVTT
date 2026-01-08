@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useActiveScene } from '@/stores/gameStore';
-import type { Drawing, BaseDrawing } from '@/types/drawing';
+import type { Drawing, BaseDrawing, SpellOverlayStyle } from '@/types/drawing';
 import { ELEMENT_THEMES } from '@/types/drawing';
 import type { Camera } from '@/types/game';
 
@@ -85,6 +85,17 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
   onDrawingClick,
 }) => {
   const activeScene = useActiveScene();
+  const getSpellOverlayMeta = (style: SpellOverlayStyle) => {
+    const elementType = style.elementType ?? 'arcane';
+    const theme = ELEMENT_THEMES[elementType];
+    return {
+      elementType,
+      theme,
+      animationsEnabled: style.animationsEnabled !== false,
+      roundCounter: style.roundCounter ?? 0,
+      spellName: style.spellName ?? '',
+    };
+  };
 
   const drawings = useMemo(() => {
     if (!activeScene || activeScene.id !== sceneId) return [];
@@ -299,14 +310,11 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
 
       // Spell overlay effects
       case 'spell-circle': {
-        const elementType = ('elementType' in drawing.style ? drawing.style.elementType : 'arcane') as keyof typeof ELEMENT_THEMES;
-        const theme = ELEMENT_THEMES[elementType];
-        const animationsEnabled = (drawing.style as any).animationsEnabled !== false;
+        const { elementType, theme, animationsEnabled, roundCounter, spellName } =
+          getSpellOverlayMeta(drawing.style);
         const animationClass = animationsEnabled
           ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
           : `spell-overlay element-${elementType}`;
-        const roundCounter = (drawing.style as any).roundCounter || 0;
-        const spellName = (drawing.style as any).spellName || '';
 
         return (
           <g key={drawing.id} className={animationClass}>
@@ -380,14 +388,11 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       }
 
       case 'spell-ring': {
-        const elementType = ('elementType' in drawing.style ? drawing.style.elementType : 'arcane') as keyof typeof ELEMENT_THEMES;
-        const theme = ELEMENT_THEMES[elementType];
-        const animationsEnabled = (drawing.style as any).animationsEnabled !== false;
+        const { elementType, theme, animationsEnabled, roundCounter, spellName } =
+          getSpellOverlayMeta(drawing.style);
         const animationClass = animationsEnabled
           ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
           : `spell-overlay element-${elementType}`;
-        const roundCounter = (drawing.style as any).roundCounter || 0;
-        const spellName = (drawing.style as any).spellName || '';
         const pathData = createRingPath(
           drawing.center,
           drawing.outerRadius,
@@ -458,14 +463,11 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       }
 
       case 'spell-cone': {
-        const elementType = ('elementType' in drawing.style ? drawing.style.elementType : 'arcane') as keyof typeof ELEMENT_THEMES;
-        const theme = ELEMENT_THEMES[elementType];
-        const animationsEnabled = (drawing.style as any).animationsEnabled !== false;
+        const { elementType, theme, animationsEnabled, roundCounter, spellName } =
+          getSpellOverlayMeta(drawing.style);
         const animationClass = animationsEnabled
           ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
           : `spell-overlay element-${elementType}`;
-        const roundCounter = (drawing.style as any).roundCounter || 0;
-        const spellName = (drawing.style as any).spellName || '';
         const conePath = calculateConePath(
           drawing.origin,
           drawing.direction,
@@ -537,14 +539,11 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       }
 
       case 'spell-line': {
-        const elementType = ('elementType' in drawing.style ? drawing.style.elementType : 'arcane') as keyof typeof ELEMENT_THEMES;
-        const theme = ELEMENT_THEMES[elementType];
-        const animationsEnabled = (drawing.style as any).animationsEnabled !== false;
+        const { elementType, theme, animationsEnabled, roundCounter, spellName } =
+          getSpellOverlayMeta(drawing.style);
         const animationClass = animationsEnabled
           ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
           : `spell-overlay element-${elementType}`;
-        const roundCounter = (drawing.style as any).roundCounter || 0;
-        const spellName = (drawing.style as any).spellName || '';
         const rectPath = createLineRectangle(drawing.start, drawing.end, drawing.width);
         const midX = (drawing.start.x + drawing.end.x) / 2;
         const midY = (drawing.start.y + drawing.end.y) / 2;
@@ -613,14 +612,11 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       }
 
       case 'spell-square': {
-        const elementType = ('elementType' in drawing.style ? drawing.style.elementType : 'arcane') as keyof typeof ELEMENT_THEMES;
-        const theme = ELEMENT_THEMES[elementType];
-        const animationsEnabled = (drawing.style as any).animationsEnabled !== false;
+        const { elementType, theme, animationsEnabled, roundCounter, spellName } =
+          getSpellOverlayMeta(drawing.style);
         const animationClass = animationsEnabled
           ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
           : `spell-overlay element-${elementType}`;
-        const roundCounter = (drawing.style as any).roundCounter || 0;
-        const spellName = (drawing.style as any).spellName || '';
         const halfSize = drawing.size / 2;
         const rotation = drawing.rotation || 0;
 
@@ -696,14 +692,11 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       }
 
       case 'spell-triangle': {
-        const elementType = ('elementType' in drawing.style ? drawing.style.elementType : 'arcane') as keyof typeof ELEMENT_THEMES;
-        const theme = ELEMENT_THEMES[elementType];
-        const animationsEnabled = (drawing.style as any).animationsEnabled !== false;
+        const { elementType, theme, animationsEnabled, roundCounter, spellName } =
+          getSpellOverlayMeta(drawing.style);
         const animationClass = animationsEnabled
           ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
           : `spell-overlay element-${elementType}`;
-        const roundCounter = (drawing.style as any).roundCounter || 0;
-        const spellName = (drawing.style as any).spellName || '';
         const trianglePath = calculateTrianglePath(
           drawing.origin,
           drawing.direction,

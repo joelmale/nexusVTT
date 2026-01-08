@@ -2,21 +2,9 @@ import React, { useState } from 'react';
 import { X, RotateCw, Eye, EyeOff, Sparkles } from 'lucide-react';
 import { ELEMENT_THEMES, ElementType } from '@/types/drawing';
 import type {
-  SpellCircleDrawing,
-  SpellRingDrawing,
-  SpellConeDrawing,
-  SpellLineDrawing,
-  SpellSquareDrawing,
-  SpellTriangleDrawing,
+  SpellOverlayDrawing,
+  SpellOverlayStyle,
 } from '@/types/drawing';
-
-type SpellOverlayDrawing =
-  | SpellCircleDrawing
-  | SpellRingDrawing
-  | SpellConeDrawing
-  | SpellLineDrawing
-  | SpellSquareDrawing
-  | SpellTriangleDrawing;
 
 interface SpellOverlayPropertiesPanelProps {
   drawing: SpellOverlayDrawing;
@@ -28,17 +16,16 @@ interface SpellOverlayPropertiesPanelProps {
 export const SpellOverlayPropertiesPanel: React.FC<
   SpellOverlayPropertiesPanelProps
 > = ({ drawing, onUpdate, onClose, gridSize }) => {
-  const elementType = ((drawing.style as any).elementType ||
-    'arcane') as keyof typeof ELEMENT_THEMES;
+  const elementType: ElementType = drawing.style.elementType ?? 'arcane';
 
   const [spellName, setSpellName] = useState(
-    (drawing.style as any).spellName || '',
+    drawing.style.spellName || '',
   );
   const [roundCounter, setRoundCounter] = useState(
-    (drawing.style as any).roundCounter || 0,
+    drawing.style.roundCounter || 0,
   );
   const [maxRounds, setMaxRounds] = useState(
-    (drawing.style as any).maxRounds || 10,
+    drawing.style.maxRounds || 10,
   );
   const [opacity, setOpacity] = useState(
     drawing.style.fillOpacity !== undefined
@@ -52,9 +39,9 @@ export const SpellOverlayPropertiesPanel: React.FC<
     drawing.style.visibleToPlayers !== false,
   );
   const [animationsEnabled, setAnimationsEnabled] = useState(
-    (drawing.style as any).animationsEnabled !== false,
+    drawing.style.animationsEnabled !== false,
   );
-  const [notes, setNotes] = useState((drawing.style as any).notes || '');
+  const [notes, setNotes] = useState(drawing.style.notes || '');
 
   // Get size in feet for display
   const getSizeInFeet = () => {
@@ -81,15 +68,16 @@ export const SpellOverlayPropertiesPanel: React.FC<
 
   const handleElementChange = (newElement: ElementType) => {
     const theme = ELEMENT_THEMES[newElement];
+    const updatedStyle: SpellOverlayStyle = {
+      ...drawing.style,
+      elementType: newElement,
+      edgeGlow: theme.edgeGlow,
+      blendMode: theme.blendMode,
+      animationSpeed: theme.animationSpeed,
+      pulseIntensity: theme.pulseIntensity,
+    };
     onUpdate({
-      style: {
-        ...drawing.style,
-        elementType: newElement,
-        edgeGlow: theme.edgeGlow,
-        blendMode: theme.blendMode,
-        animationSpeed: theme.animationSpeed,
-        pulseIntensity: theme.pulseIntensity,
-      } as any,
+      style: updatedStyle,
     });
   };
 
@@ -99,7 +87,7 @@ export const SpellOverlayPropertiesPanel: React.FC<
       style: {
         ...drawing.style,
         fillOpacity: newOpacity,
-      } as any,
+      },
     });
   };
 
@@ -108,7 +96,7 @@ export const SpellOverlayPropertiesPanel: React.FC<
     if ('rotation' in drawing) {
       onUpdate({
         rotation: newRotation,
-      } as any);
+      });
     }
   };
 
@@ -118,7 +106,7 @@ export const SpellOverlayPropertiesPanel: React.FC<
       style: {
         ...drawing.style,
         roundCounter: newCounter,
-      } as any,
+      },
     });
   };
 
@@ -128,7 +116,7 @@ export const SpellOverlayPropertiesPanel: React.FC<
       style: {
         ...drawing.style,
         spellName: newName,
-      } as any,
+      },
     });
   };
 
@@ -138,7 +126,7 @@ export const SpellOverlayPropertiesPanel: React.FC<
       style: {
         ...drawing.style,
         notes: newNotes,
-      } as any,
+      },
     });
   };
 
@@ -149,9 +137,9 @@ export const SpellOverlayPropertiesPanel: React.FC<
       style: {
         ...drawing.style,
         visibleToPlayers: newVisibility,
-      } as any,
+      },
       layer: newVisibility ? 'effects' : 'dm-only',
-    } as any);
+    });
   };
 
   const handleAnimationsToggle = () => {
@@ -161,7 +149,7 @@ export const SpellOverlayPropertiesPanel: React.FC<
       style: {
         ...drawing.style,
         animationsEnabled: newAnimations,
-      } as any,
+      },
     });
   };
 

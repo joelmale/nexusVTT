@@ -2884,7 +2884,7 @@ export const useGameStore = create<GameStore>()(
             nameOverride: character.name,
             characterId: character.id,
             currentStats: {
-              hp: character.hitPoints.current,
+              hp: character.hitPoints,
               ac: character.armorClass,
             },
             visibleToPlayers: true,

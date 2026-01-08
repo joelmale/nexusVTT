@@ -34,83 +34,35 @@ describe('CharacterStore', () => {
         playerId,
         name: `Test Character ${idCounter}`,
         level: 1,
-        race: {
-          name: 'Human',
-          subrace: '',
-          traits: [],
-          abilityScoreIncrease: {},
-          languages: [],
-          proficiencies: [],
-        },
-        classes: [{ name: 'Fighter', level: 1, hitDie: 'd10' }],
-        background: {
-          name: 'Soldier',
-          skillProficiencies: [],
-          languages: [],
-          equipment: [],
-          feature: '',
-        },
+        race: 'Human',
+        class: 'Fighter',
+        background: 'Soldier',
         abilities: {
-          strength: { score: 10, modifier: 0, savingThrow: 0 },
-          dexterity: { score: 10, modifier: 0, savingThrow: 0 },
-          constitution: { score: 10, modifier: 0, savingThrow: 0 },
-          intelligence: { score: 10, modifier: 0, savingThrow: 0 },
-          wisdom: { score: 10, modifier: 0, savingThrow: 0 },
-          charisma: { score: 10, modifier: 0, savingThrow: 0 },
+          STR: { score: 10, modifier: 0 },
+          DEX: { score: 10, modifier: 0 },
+          CON: { score: 10, modifier: 0 },
+          INT: { score: 10, modifier: 0 },
+          WIS: { score: 10, modifier: 0 },
+          CHA: { score: 10, modifier: 0 },
         },
-        skills: [
-          {
-            name: 'Athletics',
-            ability: 'strength',
-            proficient: false,
-            expertise: false,
-            modifier: 0,
-          },
-          {
-            name: 'Acrobatics',
-            ability: 'dexterity',
-            proficient: false,
-            expertise: false,
-            modifier: 0,
-          },
-          {
-            name: 'Perception',
-            ability: 'wisdom',
-            proficient: false,
-            expertise: false,
-            modifier: 0,
-          },
-          {
-            name: 'Stealth',
-            ability: 'dexterity',
-            proficient: false,
-            expertise: false,
-            modifier: 0,
-          },
-        ],
-        hitPoints: { maximum: 10, current: 10, temporary: 0 },
+        skills: {
+          Athletics: { proficient: false, expertise: false, value: 0 },
+          Acrobatics: { proficient: false, expertise: false, value: 0 },
+          Perception: { proficient: false, expertise: false, value: 0 },
+          Stealth: { proficient: false, expertise: false, value: 0 },
+        },
+        hitPoints: 10,
+        maxHitPoints: 10,
+        temporaryHitPoints: 0,
         armorClass: 10,
         proficiencyBonus: 2,
-        passivePerception: 10,
-        equipment: [],
-        spells: [],
-        features: [],
-        attacks: [],
-        languageProficiencies: ['Common'],
-        toolProficiencies: [],
-        weaponProficiencies: [],
-        armorProficiencies: [],
-        personalityTraits: [],
-        ideals: [],
-        bonds: [],
-        flaws: [],
-        notes: '',
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-        version: '1.0',
+        inventory: [],
+        languages: ['Common'],
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
         alignment: 'Neutral',
         experiencePoints: 0,
-        hitDice: { total: 1, remaining: 1 },
+        hitDice: { current: 1, max: 1, dieType: 10 },
         inspiration: false,
       }),
     );
@@ -164,9 +116,13 @@ describe('CharacterStore', () => {
       const character = useCharacterStore.getState().getCharacter(characterId!);
       expect(character?.name).toBe('Updated Name');
       expect(character?.level).toBe(2);
-      expect(character?.updatedAt).toBeGreaterThanOrEqual(
-        character?.createdAt || 0,
-      );
+      const createdAt = character?.createdAt
+        ? Date.parse(character.createdAt)
+        : 0;
+      const updatedAt = character?.updatedAt
+        ? Date.parse(character.updatedAt)
+        : 0;
+      expect(updatedAt).toBeGreaterThanOrEqual(createdAt);
     });
 
     it('should delete a character', () => {
@@ -253,12 +209,12 @@ describe('CharacterStore', () => {
       act(() => {
         useCharacterStore
           .getState()
-          .updateAbilityScore(characterId, 'strength', 16);
+          .updateAbilityScore(characterId, 'STR', 16);
       });
 
       const character = useCharacterStore.getState().getCharacter(characterId);
-      expect(character?.abilities.strength.score).toBe(16);
-      expect(character?.abilities.strength.modifier).toBe(
+      expect(character?.abilities.STR.score).toBe(16);
+      expect(character?.abilities.STR.modifier).toBe(
         calculateAbilityModifier(16),
       );
     });
@@ -271,9 +227,7 @@ describe('CharacterStore', () => {
       });
 
       const character = useCharacterStore.getState().getCharacter(characterId);
-      const athleticsSkill = character?.skills.find(
-        (s) => s.name === 'Athletics',
-      );
+      const athleticsSkill = character?.skills?.Athletics;
       expect(athleticsSkill?.proficient).toBe(true);
       expect(athleticsSkill?.expertise).toBe(false);
     });
@@ -286,30 +240,19 @@ describe('CharacterStore', () => {
       });
 
       const character = useCharacterStore.getState().getCharacter(characterId);
-      const stealthSkill = character?.skills.find((s) => s.name === 'Stealth');
+      const stealthSkill = character?.skills?.Stealth;
       expect(stealthSkill?.proficient).toBe(true);
       expect(stealthSkill?.expertise).toBe(true);
-    });
-
-    it('should update saving throw proficiency', () => {
-      act(() => {
-        useCharacterStore
-          .getState()
-          .updateSavingThrowProficiency(characterId, 'constitution', true);
-      });
-
-      const character = useCharacterStore.getState().getCharacter(characterId);
-      expect(character?.abilities.constitution.proficient).toBe(true);
     });
 
     it('should recalculate all stats correctly', () => {
       act(() => {
         useCharacterStore
           .getState()
-          .updateAbilityScore(characterId, 'strength', 16);
+          .updateAbilityScore(characterId, 'STR', 16);
         useCharacterStore
           .getState()
-          .updateAbilityScore(characterId, 'dexterity', 14);
+          .updateAbilityScore(characterId, 'DEX', 14);
         useCharacterStore
           .getState()
           .updateSkillProficiency(characterId, 'Athletics', true);
@@ -320,13 +263,11 @@ describe('CharacterStore', () => {
       });
 
       const character = useCharacterStore.getState().getCharacter(characterId);
-      expect(character?.abilities.strength.modifier).toBe(3);
-      expect(character?.abilities.dexterity.modifier).toBe(2);
+      expect(character?.abilities.STR.modifier).toBe(3);
+      expect(character?.abilities.DEX.modifier).toBe(2);
 
-      const athleticsSkill = character?.skills.find(
-        (s) => s.name === 'Athletics',
-      );
-      expect(athleticsSkill?.modifier).toBe(3 + 2); // STR modifier + proficiency bonus
+      const athleticsSkill = character?.skills?.Athletics;
+      expect(athleticsSkill?.value).toBe(3 + 2); // STR modifier + proficiency bonus
     });
   });
 
@@ -357,9 +298,9 @@ describe('CharacterStore', () => {
       });
 
       const character = useCharacterStore.getState().getCharacter(characterId);
-      expect(character?.equipment).toHaveLength(1);
-      expect(character?.equipment[0].name).toBe('Longsword');
-      expect(character?.equipment[0].equipped).toBe(false);
+      expect(character?.inventory).toHaveLength(1);
+      expect(character?.inventory?.[0].equipmentSlug).toBe('longsword');
+      expect(character?.inventory?.[0].equipped).toBe(false);
     });
 
     it('should update existing equipment', () => {
@@ -376,7 +317,7 @@ describe('CharacterStore', () => {
         useCharacterStore.getState().addEquipment(characterId, equipment);
       });
       const character = useCharacterStore.getState().getCharacter(characterId);
-      const equipmentId = character?.equipment[0]?.id;
+      const equipmentId = character?.inventory?.[0]?.equipmentSlug;
 
       if (!equipmentId) throw new Error('Equipment not found');
 
@@ -389,7 +330,7 @@ describe('CharacterStore', () => {
       const updatedCharacter = useCharacterStore
         .getState()
         .getCharacter(characterId);
-      expect(updatedCharacter?.equipment[0].equipped).toBe(true);
+      expect(updatedCharacter?.inventory?.[0].equipped).toBe(true);
     });
 
     it('should remove equipment from character', () => {
@@ -406,7 +347,7 @@ describe('CharacterStore', () => {
         useCharacterStore.getState().addEquipment(characterId, equipment);
       });
       const character = useCharacterStore.getState().getCharacter(characterId);
-      const equipmentId = character?.equipment[0]?.id;
+      const equipmentId = character?.inventory?.[0]?.equipmentSlug;
 
       if (!equipmentId) throw new Error('Equipment not found');
 
@@ -417,7 +358,7 @@ describe('CharacterStore', () => {
       const updatedCharacter = useCharacterStore
         .getState()
         .getCharacter(characterId);
-      expect(updatedCharacter?.equipment).toHaveLength(0);
+      expect(updatedCharacter?.inventory).toHaveLength(0);
     });
 
     it('should equip and unequip items', () => {
@@ -434,7 +375,7 @@ describe('CharacterStore', () => {
         useCharacterStore.getState().addEquipment(characterId, equipment);
       });
       const character = useCharacterStore.getState().getCharacter(characterId);
-      const equipmentId = character?.equipment[0]?.id;
+      const equipmentId = character?.inventory?.[0]?.equipmentSlug;
 
       if (!equipmentId) throw new Error('Equipment not found');
 
@@ -444,13 +385,13 @@ describe('CharacterStore', () => {
       let updatedCharacter = useCharacterStore
         .getState()
         .getCharacter(characterId);
-      expect(updatedCharacter?.equipment[0].equipped).toBe(true);
+      expect(updatedCharacter?.inventory?.[0].equipped).toBe(true);
 
       act(() => {
         useCharacterStore.getState().unequipItem(characterId, equipmentId);
       });
       updatedCharacter = useCharacterStore.getState().getCharacter(characterId);
-      expect(updatedCharacter?.equipment[0].equipped).toBe(false);
+      expect(updatedCharacter?.inventory?.[0].equipped).toBe(false);
     });
   });
 
@@ -478,7 +419,7 @@ describe('CharacterStore', () => {
       const updates = {
         character: {
           name: 'Test Character',
-          race: { name: 'Elf' },
+          race: 'Elf',
         },
       };
 
@@ -488,7 +429,7 @@ describe('CharacterStore', () => {
 
       const { creationState } = useCharacterStore.getState();
       expect(creationState?.character?.name).toBe('Test Character');
-      expect(creationState?.character?.race?.name).toBe('Elf');
+      expect(creationState?.character?.race).toBe('Elf');
     });
 
     it('should navigate through creation steps', () => {
@@ -540,7 +481,7 @@ describe('CharacterStore', () => {
       expect(useCharacterStore.getState().creationState?.step).toBe(totalSteps);
     });
 
-    it('should complete character creation and add to characters list', () => {
+    it('should complete character creation and add to characters list', async () => {
       const playerId = 'player-123';
       act(() => {
         useCharacterStore.getState().startCharacterCreation(playerId, 'manual');
@@ -550,27 +491,26 @@ describe('CharacterStore', () => {
         useCharacterStore.getState().updateCreationState({
           character: {
             name: 'Test Character',
-            race: { name: 'Human' },
-            classes: [{ name: 'Fighter', level: 1 }],
+            race: 'Human',
+            class: 'Fighter',
             abilities: {
-              strength: { score: 10, modifier: 0, savingThrow: 0 },
-              dexterity: { score: 10, modifier: 0, savingThrow: 0 },
-              constitution: { score: 10, modifier: 0, savingThrow: 0 },
-              intelligence: { score: 10, modifier: 0, savingThrow: 0 },
-              wisdom: { score: 10, modifier: 0, savingThrow: 0 },
-              charisma: { score: 10, modifier: 0, savingThrow: 0 },
+              STR: { score: 10, modifier: 0 },
+              DEX: { score: 10, modifier: 0 },
+              CON: { score: 10, modifier: 0 },
+              INT: { score: 10, modifier: 0 },
+              WIS: { score: 10, modifier: 0 },
+              CHA: { score: 10, modifier: 0 },
             },
           },
         });
       });
 
-      let characterId: string | undefined;
-      act(() => {
-        characterId = useCharacterStore.getState().completeCharacterCreation();
-      });
+      const result = await useCharacterStore
+        .getState()
+        .completeCharacterCreation();
 
       const { characters, creationState } = useCharacterStore.getState();
-      expect(characterId).toBeDefined();
+      expect(result?.id).toBeDefined();
       expect(characters).toHaveLength(1);
       expect(creationState).toBeNull();
       expect(characters[0].name).toBe('Test Character');
@@ -611,8 +551,8 @@ describe('CharacterStore', () => {
       });
 
       const character = useCharacterStore.getState().getCharacter(characterId);
-      expect(character?.hitPoints.current).toBe(8);
-      expect(character?.hitPoints.temporary).toBe(2);
+      expect(character?.hitPoints).toBe(8);
+      expect(character?.temporaryHitPoints).toBe(2);
     });
 
     it('should update character HP without temporary HP', () => {
@@ -621,8 +561,8 @@ describe('CharacterStore', () => {
       });
 
       const character = useCharacterStore.getState().getCharacter(characterId);
-      expect(character?.hitPoints.current).toBe(5);
-      expect(character?.hitPoints.temporary).toBe(0);
+      expect(character?.hitPoints).toBe(5);
+      expect(character?.temporaryHitPoints).toBe(0);
     });
   });
 
@@ -672,7 +612,7 @@ describe('CharacterStore', () => {
         expect(() => {
           useCharacterStore
             .getState()
-            .updateAbilityScore('non-existent', 'strength', 16);
+            .updateAbilityScore('non-existent', 'STR', 16);
         }).not.toThrow();
       });
 

@@ -389,9 +389,9 @@ class TokenAssetManager {
    */
   async getDefaultTokenForCharacter(character: {
     name: string;
-    classes: Array<{ name: string }>;
+    class?: string;
   }): Promise<Token> {
-    const className = character.classes[0]?.name.toLowerCase() || '';
+    const className = character.class?.toLowerCase() || '';
     const pcTokens = this.getTokensByCategory('pc');
 
     // Priority: class match > generic PC token

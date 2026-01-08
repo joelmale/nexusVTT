@@ -21,12 +21,13 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   // Calculate HP percentage for color coding
-  const hpPercent = (character.hitPoints.current / character.hitPoints.maximum) * 100;
+  const maxHP = character.maxHitPoints ?? character.hitPoints ?? 1;
+  const hpPercent = (character.hitPoints / maxHP) * 100;
   const hpBarColor =
     hpPercent > 50 ? '#10b981' : hpPercent > 25 ? '#f59e0b' : '#ef4444';
 
   // Get class initial for portrait
-  const classInitial = character.classes[0]?.name.charAt(0).toUpperCase() || '?';
+  const classInitial = character.class?.charAt(0).toUpperCase() || '?';
 
   const handleFocusToken = () => {
     if (!token) return;
@@ -52,13 +53,13 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
     // Create stat snapshot
     const entry = {
       name: character.name,
-      currentHP: character.hitPoints.current,
-      maxHP: character.hitPoints.maximum,
-      tempHP: character.hitPoints.temporary,
-      armorClass: character.armorClass,
+      currentHP: character.hitPoints,
+      maxHP: character.maxHitPoints ?? character.hitPoints,
+      tempHP: character.temporaryHitPoints || 0,
+      armorClass: character.armorClass ?? 10,
       initiative: character.initiative || 0,
       initiativeModifier: character.initiative || 0,
-      dexterityModifier: character.abilities.dexterity.modifier,
+      dexterityModifier: character.abilities.DEX.modifier,
       type: 'player' as const,
       characterId: character.id,
       tokenId: token?.id,
@@ -131,7 +132,7 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
 
         <div className="character-details">
           <span className="character-class">
-            {character.classes.map((c) => c.name).join(' / ')} {character.level}
+            {character.class || 'Adventurer'} {character.level}
           </span>
         </div>
 
@@ -139,12 +140,17 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
         <div className="hp-bar-container">
           <div className="hp-labels">
             <span className="hp-current">
-              {character.hitPoints.current}
-              {character.hitPoints.temporary > 0 && (
-                <span className="hp-temp"> +{character.hitPoints.temporary}</span>
+              {character.hitPoints}
+              {(character.temporaryHitPoints || 0) > 0 && (
+                <span className="hp-temp">
+                  {' '}
+                  +{character.temporaryHitPoints}
+                </span>
               )}
             </span>
-            <span className="hp-max">/ {character.hitPoints.maximum}</span>
+            <span className="hp-max">
+              / {character.maxHitPoints ?? character.hitPoints}
+            </span>
           </div>
           <div className="hp-bar">
             <div

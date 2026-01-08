@@ -50,6 +50,7 @@ import type {
   DrawingTool,
   DrawingStyle,
   MeasurementTool,
+  SpellOverlayDrawing,
 } from '@/types/drawing';
 
 interface SceneCanvasProps {
@@ -162,9 +163,16 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     const drawing = drawings.find((d) => d.id === selectedDrawingIds[0]);
     if (!drawing) return null;
 
-    const spellTypes = ['spell-circle', 'spell-ring', 'spell-cone', 'spell-line', 'spell-square', 'spell-triangle'];
+    const spellTypes = [
+      'spell-circle',
+      'spell-ring',
+      'spell-cone',
+      'spell-line',
+      'spell-square',
+      'spell-triangle',
+    ];
     if (spellTypes.includes(drawing.type)) {
-      return drawing as any; // Cast to spell overlay type
+      return drawing as SpellOverlayDrawing;
     }
     return null;
   }, [selectedDrawingIds, drawings]);
@@ -427,7 +435,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   }, [clearSelection]);
 
   const handleUpdateSpellOverlay = useCallback(
-    (updates: any) => {
+    (updates: Partial<SpellOverlayDrawing>) => {
       if (!selectedSpellOverlay) return;
       updateDrawing(scene.id, selectedSpellOverlay.id, updates);
 
@@ -980,28 +988,30 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                 <g id="tokens-layer">
                   {assetsReady &&
                     placedTokens.map((placedToken) => {
-                    const token = tokenAssetManager.getTokenById(
-                      placedToken.tokenId,
-                    );
-                    if (!token) return null;
+                      const token = tokenAssetManager.getTokenById(
+                        placedToken.tokenId,
+                      );
+                      if (!token) return null;
 
-                    // Filter by visibility
-                    if (!isHost && !placedToken.visibleToPlayers) return null;
+                      // Filter by visibility
+                      if (!isHost && !placedToken.visibleToPlayers) return null;
 
-                    return (
-                      <TokenRenderer
-                        key={placedToken.id}
-                        placedToken={placedToken}
-                        token={token}
-                        gridSize={safeGridSettings.size}
-                        isSelected={selectedObjectIds.includes(placedToken.id)}
-                        onSelect={handleTokenSelect}
-                        onMove={handleTokenMove}
-                        onMoveEnd={handleTokenMoveEnd}
-                        canEdit={isHost || placedToken.placedBy === user.id}
-                      />
-                    );
-                  })}
+                      return (
+                        <TokenRenderer
+                          key={placedToken.id}
+                          placedToken={placedToken}
+                          token={token}
+                          gridSize={safeGridSettings.size}
+                          isSelected={selectedObjectIds.includes(
+                            placedToken.id,
+                          )}
+                          onSelect={handleTokenSelect}
+                          onMove={handleTokenMove}
+                          onMoveEnd={handleTokenMoveEnd}
+                          canEdit={isHost || placedToken.placedBy === user.id}
+                        />
+                      );
+                    })}
                 </g>
               </TokenErrorBoundary>
 
@@ -1010,35 +1020,29 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                 <g id="props-layer">
                   {assetsReady &&
                     placedProps.map((placedProp) => {
-                    const prop = propAssetManager.getPropById(
-                      placedProp.propId,
-                    );
-                    if (!prop) {
-                      console.warn(
-                        '🎭 Props: Prop not found:',
+                      const prop = propAssetManager.getPropById(
                         placedProp.propId,
                       );
-                      return null;
-                    }
+                      // PropAssetManager now returns a placeholder for missing props, so this check is no longer needed
 
-                    // Filter by visibility
-                    if (!isHost && !placedProp.visibleToPlayers) return null;
+                      // Filter by visibility
+                      if (!isHost && !placedProp.visibleToPlayers) return null;
 
-                    return (
-                      <PropRenderer
-                        key={placedProp.id}
-                        placedProp={placedProp}
-                        prop={prop}
-                        gridSize={safeGridSettings.size}
-                        isSelected={selectedObjectIds.includes(placedProp.id)}
-                        onSelect={handlePropSelect}
-                        onMove={handlePropMove}
-                        onMoveEnd={handlePropMoveEnd}
-                        canEdit={isHost || placedProp.placedBy === user.id}
-                        sceneId={scene.id}
-                      />
-                    );
-                  })}
+                      return (
+                        <PropRenderer
+                          key={placedProp.id}
+                          placedProp={placedProp}
+                          prop={prop}
+                          gridSize={safeGridSettings.size}
+                          isSelected={selectedObjectIds.includes(placedProp.id)}
+                          onSelect={handlePropSelect}
+                          onMove={handlePropMove}
+                          onMoveEnd={handlePropMoveEnd}
+                          canEdit={isHost || placedProp.placedBy === user.id}
+                          sceneId={scene.id}
+                        />
+                      );
+                    })}
                 </g>
               </TokenErrorBoundary>
 
