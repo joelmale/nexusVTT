@@ -216,9 +216,7 @@ class NexusServer {
 
   private readonly ASSETS_PATH =
     process.env.ASSETS_PATH || path.join(__dirname, '../static-assets/assets');
-  private readonly CORS_ORIGINS: string[] = (
-    process.env.CORS_ORIGIN || ''
-  )
+  private readonly CORS_ORIGINS: string[] = (process.env.CORS_ORIGIN || '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
@@ -269,7 +267,9 @@ class NexusServer {
           if (!origin) return callback(null, true);
           if (allowedOrigins.includes(origin)) return callback(null, true);
           return callback(
-            new Error(`CORS blocked for origin: ${origin} (allowed: ${allowedOrigins.join(', ')})`),
+            new Error(
+              `CORS blocked for origin: ${origin} (allowed: ${allowedOrigins.join(', ')})`,
+            ),
             false,
           );
         },
@@ -1201,7 +1201,12 @@ class NexusServer {
 
         // Create custom tokens directory if it doesn't exist
         // Save to ASSETS_PATH/assets/tokens/custom to match the static serve path
-        const customTokensDir = path.join(this.ASSETS_PATH, 'assets', 'tokens', 'custom');
+        const customTokensDir = path.join(
+          this.ASSETS_PATH,
+          'assets',
+          'tokens',
+          'custom',
+        );
         if (!fs.existsSync(customTokensDir)) {
           fs.mkdirSync(customTokensDir, { recursive: true });
         }
@@ -1496,7 +1501,8 @@ class NexusServer {
 
     // Priority: authenticated user > guest user > query param > new UUID
     let uuid = user?.id || guestUser?.id || userIdFromQuery || uuidv4();
-    let displayName = user?.name || guestUser?.name || userNameFromQuery || 'Guest';
+    let displayName =
+      user?.name || guestUser?.name || userNameFromQuery || 'Guest';
     let userType = user ? 'Authenticated' : guestUser ? 'Guest' : 'Anonymous';
 
     // If we have a userId from query params but no authenticated user, try to look up the user
@@ -1522,7 +1528,9 @@ class NexusServer {
       try {
         const existingUser = await this.db.getUserById(uuid);
         if (!existingUser) {
-          console.log(`🔧 Creating missing database record for user: ${uuid} (${displayName})`);
+          console.log(
+            `🔧 Creating missing database record for user: ${uuid} (${displayName})`,
+          );
           await this.db.createGuestUser(displayName, uuid);
           console.log(`✅ Guest user created in database: ${uuid}`);
         }
@@ -1725,7 +1733,7 @@ class NexusServer {
           players: [
             {
               id: connection.id,
-              name: connection.user?.name || 'Host',
+              name: connection.user!.name || 'Host',
               type: 'host',
               color: 'blue',
               connected: true,
@@ -1767,7 +1775,10 @@ class NexusServer {
         room = await this.recoverRoomFromSession(normalizedRoomCode);
       } else if (campaignId) {
         const campaign = await this.db.getCampaignById(campaignId);
-        if (!campaign || campaign.lastRoomCode?.toUpperCase() !== normalizedRoomCode) {
+        if (
+          !campaign ||
+          campaign.lastRoomCode?.toUpperCase() !== normalizedRoomCode
+        ) {
           this.sendError(connection, 'Room not found');
           return;
         }
@@ -1819,7 +1830,8 @@ class NexusServer {
       // Load game state from database if not in memory
       if (!room.gameState) {
         try {
-          const session = await this.db.getSessionByJoinCode(normalizedRoomCode);
+          const session =
+            await this.db.getSessionByJoinCode(normalizedRoomCode);
           if (session?.gameState) {
             room.gameState = session.gameState as GameState;
             console.log(
@@ -1834,9 +1846,7 @@ class NexusServer {
         }
       }
     } else {
-      console.log(
-        `🔄 Host reconnecting to active room: ${normalizedRoomCode}`,
-      );
+      console.log(`🔄 Host reconnecting to active room: ${normalizedRoomCode}`);
     }
 
     // Set up host connection
@@ -2020,7 +2030,7 @@ class NexusServer {
           uuid: connection.id,
           player: {
             id: connection.id,
-            name: connection.user?.name || 'Player',
+            name: connection.user!.name || 'Player',
             type: 'player',
             color: 'blue',
             connected: true,
@@ -2064,7 +2074,7 @@ class NexusServer {
 
     room.lastActivity = Date.now();
 
-    if (message.type === 'event' && connection.user?.type !== 'host') {
+    if (message.type === 'event' && connection.user!.type !== 'host') {
       const eventName = (message.data as { name?: string })?.name;
       const restrictedEvents = new Set([
         'game-state-update',
@@ -2092,8 +2102,7 @@ class NexusServer {
         this.sendMessage(connection, {
           type: 'error',
           data: {
-            message:
-              'Host is offline; this action is temporarily restricted.',
+            message: 'Host is offline; this action is temporarily restricted.',
             code: 403,
           },
           timestamp: Date.now(),
@@ -2277,8 +2286,8 @@ class NexusServer {
       );
       return;
     }
-    const userName = connection.user?.name || 'Unknown Player';
-    const isHost = connection.user?.type === 'host';
+    const userName = connection.user!.name || 'Unknown Player';
+    const isHost = connection.user!.type === 'host';
     const roll = createServerDiceRoll(data.expression, fromUuid, userName, {
       isPrivate: isHost && data.isPrivate,
       advantage: data.advantage,
@@ -2333,7 +2342,8 @@ class NexusServer {
     }
 
     // Store previous state for delta generation
-    const previousState = room.previousGameState || JSON.parse(JSON.stringify(room.gameState));
+    const previousState =
+      room.previousGameState || JSON.parse(JSON.stringify(room.gameState));
 
     // Merge partial updates into existing state
     if (gameStateUpdate.scenes) {
@@ -2361,17 +2371,21 @@ class NexusServer {
     // Broadcast patch if there are changes (80% size reduction)
     // Exclude sender to prevent duplicate application (sender already applied optimistically)
     if (patch.length > 0) {
-      this.broadcastToRoom(roomCode, {
-        type: 'game-state-patch',
-        data: {
-          patch,
-          version: room.stateVersion,
+      this.broadcastToRoom(
+        roomCode,
+        {
+          type: 'game-state-patch',
+          data: {
+            patch,
+            version: room.stateVersion,
+          },
+          timestamp: Date.now(),
         },
-        timestamp: Date.now(),
-      }, senderUuid);
+        senderUuid,
+      );
 
       console.log(
-        `📡 Broadcasting game state patch v${room.stateVersion} to room ${roomCode} (${patch.length} operations)${senderUuid ? ` [excluding sender ${senderUuid}]` : ''}`
+        `📡 Broadcasting game state patch v${room.stateVersion} to room ${roomCode} (${patch.length} operations)${senderUuid ? ` [excluding sender ${senderUuid}]` : ''}`,
       );
     }
 
@@ -2491,7 +2505,9 @@ class NexusServer {
 
     // Handle host disconnection
     if (room.host === uuid) {
-      console.log(`👑 Host left room ${connection.room}, entering DM offline mode`);
+      console.log(
+        `👑 Host left room ${connection.room}, entering DM offline mode`,
+      );
 
       room.dmConnected = false;
       room.players.delete(uuid);
@@ -2971,10 +2987,7 @@ class NexusServer {
       }
       await this.handleDisconnect(connection.id);
     } catch (error) {
-      console.error(
-        `Failed to forcefully disconnect ${connection.id}:`,
-        error,
-      );
+      console.error(`Failed to forcefully disconnect ${connection.id}:`, error);
     }
   }
 
