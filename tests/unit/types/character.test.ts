@@ -67,45 +67,36 @@ describe('Character Utility Functions', () => {
 
   describe('calculatePassivePerception', () => {
     const mockAbilities: AbilityScores = {
-      strength: { score: 10, modifier: 0, savingThrow: 0 },
-      dexterity: { score: 10, modifier: 0, savingThrow: 0 },
-      constitution: { score: 10, modifier: 0, savingThrow: 0 },
-      intelligence: { score: 10, modifier: 0, savingThrow: 0 },
-      wisdom: { score: 14, modifier: 2, savingThrow: 2 },
-      charisma: { score: 10, modifier: 0, savingThrow: 0 },
+      STR: { score: 10, modifier: 0 },
+      DEX: { score: 10, modifier: 0 },
+      CON: { score: 10, modifier: 0 },
+      INT: { score: 10, modifier: 0 },
+      WIS: { score: 14, modifier: 2 },
+      CHA: { score: 10, modifier: 0 },
     };
 
     it('should calculate passive perception without proficiency', () => {
-      const skills = STANDARD_SKILLS.map(skill => ({
-        ...skill,
-        proficient: false,
-        expertise: false,
-        modifier: skill.ability === 'wisdom' ? 2 : 0,
-      }));
+      const skills = {
+        Perception: { proficient: false, expertise: false, value: 2 },
+      };
 
       const passivePerception = calculatePassivePerception(mockAbilities, skills, 2);
       expect(passivePerception).toBe(12); // 10 + wisdom modifier (2)
     });
 
     it('should calculate passive perception with proficiency', () => {
-      const skills = STANDARD_SKILLS.map(skill => ({
-        ...skill,
-        proficient: skill.name === 'Perception',
-        expertise: false,
-        modifier: skill.ability === 'wisdom' ? (skill.name === 'Perception' ? 4 : 2) : 0,
-      }));
+      const skills = {
+        Perception: { proficient: true, expertise: false, value: 4 },
+      };
 
       const passivePerception = calculatePassivePerception(mockAbilities, skills, 2);
       expect(passivePerception).toBe(14); // 10 + wisdom modifier (2) + proficiency (2)
     });
 
     it('should calculate passive perception with expertise', () => {
-      const skills = STANDARD_SKILLS.map(skill => ({
-        ...skill,
-        proficient: skill.name === 'Perception',
-        expertise: skill.name === 'Perception',
-        modifier: skill.ability === 'wisdom' ? (skill.name === 'Perception' ? 6 : 2) : 0,
-      }));
+      const skills = {
+        Perception: { proficient: true, expertise: true, value: 6 },
+      };
 
       const passivePerception = calculatePassivePerception(mockAbilities, skills, 2);
       expect(passivePerception).toBe(16); // 10 + wisdom modifier (2) + double proficiency (4)
@@ -114,15 +105,12 @@ describe('Character Utility Functions', () => {
     it('should handle high wisdom scores', () => {
       const highWisdomAbilities: AbilityScores = {
         ...mockAbilities,
-        wisdom: { score: 20, modifier: 5, savingThrow: 5 },
+        WIS: { score: 20, modifier: 5 },
       };
 
-      const skills = STANDARD_SKILLS.map(skill => ({
-        ...skill,
-        proficient: skill.name === 'Perception',
-        expertise: true,
-        modifier: skill.ability === 'wisdom' ? (skill.name === 'Perception' ? 11 : 5) : 0,
-      }));
+      const skills = {
+        Perception: { proficient: true, expertise: true, value: 11 },
+      };
 
       const passivePerception = calculatePassivePerception(highWisdomAbilities, skills, 3);
       expect(passivePerception).toBe(21); // 10 + wisdom modifier (5) + double proficiency (6)
@@ -137,46 +125,44 @@ describe('Character Utility Functions', () => {
       expect(character.playerId).toBe(playerId);
       expect(character.name).toBe('');
       expect(character.level).toBe(1);
-      expect(character.hitPoints.maximum).toBe(1);
-      expect(character.hitPoints.current).toBe(1);
-      expect(character.hitPoints.temporary).toBe(0);
+      expect(character.hitPoints).toBe(1);
+      expect(character.maxHitPoints).toBe(1);
+      expect(character.temporaryHitPoints).toBe(0);
       expect(character.armorClass).toBe(10);
       expect(character.proficiencyBonus).toBe(2);
-      expect(character.passivePerception).toBe(10);
     });
 
     it('should create character with proper ability scores', () => {
       const playerId = 'player-123';
       const character = createEmptyCharacter(playerId);
 
-      expect(character.abilities.strength.score).toBe(10);
-      expect(character.abilities.strength.modifier).toBe(0);
-      expect(character.abilities.dexterity.score).toBe(10);
-      expect(character.abilities.dexterity.modifier).toBe(0);
-      expect(character.abilities.constitution.score).toBe(10);
-      expect(character.abilities.constitution.modifier).toBe(0);
-      expect(character.abilities.intelligence.score).toBe(10);
-      expect(character.abilities.intelligence.modifier).toBe(0);
-      expect(character.abilities.wisdom.score).toBe(10);
-      expect(character.abilities.wisdom.modifier).toBe(0);
-      expect(character.abilities.charisma.score).toBe(10);
-      expect(character.abilities.charisma.modifier).toBe(0);
+      expect(character.abilities.STR.score).toBe(10);
+      expect(character.abilities.STR.modifier).toBe(0);
+      expect(character.abilities.DEX.score).toBe(10);
+      expect(character.abilities.DEX.modifier).toBe(0);
+      expect(character.abilities.CON.score).toBe(10);
+      expect(character.abilities.CON.modifier).toBe(0);
+      expect(character.abilities.INT.score).toBe(10);
+      expect(character.abilities.INT.modifier).toBe(0);
+      expect(character.abilities.WIS.score).toBe(10);
+      expect(character.abilities.WIS.modifier).toBe(0);
+      expect(character.abilities.CHA.score).toBe(10);
+      expect(character.abilities.CHA.modifier).toBe(0);
     });
 
     it('should create character with all standard skills', () => {
       const playerId = 'player-123';
       const character = createEmptyCharacter(playerId);
 
-      expect(character.skills).toHaveLength(STANDARD_SKILLS.length);
+      expect(Object.keys(character.skills)).toHaveLength(STANDARD_SKILLS.length);
 
       // Check that all standard skills are present
       STANDARD_SKILLS.forEach(standardSkill => {
-        const characterSkill = character.skills.find(s => s.name === standardSkill.name);
+        const characterSkill = character.skills[standardSkill.name];
         expect(characterSkill).toBeDefined();
-        expect(characterSkill?.ability).toBe(standardSkill.ability);
         expect(characterSkill?.proficient).toBe(false);
-        expect(characterSkill?.expertise).toBe(false);
-        expect(characterSkill?.modifier).toBe(0);
+        expect(characterSkill?.expertise).toBeUndefined();
+        expect(characterSkill?.value).toBe(0);
       });
     });
 
@@ -184,10 +170,7 @@ describe('Character Utility Functions', () => {
       const playerId = 'player-123';
       const character = createEmptyCharacter(playerId);
 
-      expect(character.equipment).toEqual([]);
-      expect(character.spells).toEqual([]);
-      expect(character.features).toEqual([]);
-      expect(character.classes).toEqual([]);
+      expect(character.inventory).toBeUndefined();
     });
 
     it('should create character with valid timestamps', () => {
@@ -196,9 +179,12 @@ describe('Character Utility Functions', () => {
       const character = createEmptyCharacter(playerId);
       const afterCreation = Date.now();
 
-      expect(character.createdAt).toBeGreaterThanOrEqual(beforeCreation);
-      expect(character.createdAt).toBeLessThanOrEqual(afterCreation);
-      expect(character.updatedAt).toBe(character.createdAt);
+      const createdAt = Date.parse(character.createdAt || '');
+      const updatedAt = Date.parse(character.updatedAt || '');
+
+      expect(createdAt).toBeGreaterThanOrEqual(beforeCreation);
+      expect(createdAt).toBeLessThanOrEqual(afterCreation);
+      expect(updatedAt).toBe(createdAt);
     });
 
     it('should create character with unique ID', () => {
@@ -215,14 +201,7 @@ describe('Character Utility Functions', () => {
       const playerId = 'player-123';
       const character = createEmptyCharacter(playerId);
 
-      expect(character.personalityTraits).toBeDefined();
-      expect(character.ideals).toBeDefined();
-      expect(character.bonds).toBeDefined();
-      expect(character.flaws).toBeDefined();
-      expect(character.personalityTraits).toEqual([]);
-      expect(character.ideals).toEqual([]);
-      expect(character.bonds).toEqual([]);
-      expect(character.flaws).toEqual([]);
+      expect(character.featuresAndTraits).toBeUndefined();
     });
   });
 
@@ -245,24 +224,24 @@ describe('Character Utility Functions', () => {
 
     it('should map skills to correct abilities', () => {
       const skillAbilityMap = {
-        'Acrobatics': 'dexterity',
-        'Animal Handling': 'wisdom',
-        'Arcana': 'intelligence',
-        'Athletics': 'strength',
-        'Deception': 'charisma',
-        'History': 'intelligence',
-        'Insight': 'wisdom',
-        'Intimidation': 'charisma',
-        'Investigation': 'intelligence',
-        'Medicine': 'wisdom',
-        'Nature': 'intelligence',
-        'Perception': 'wisdom',
-        'Performance': 'charisma',
-        'Persuasion': 'charisma',
-        'Religion': 'intelligence',
-        'Sleight of Hand': 'dexterity',
-        'Stealth': 'dexterity',
-        'Survival': 'wisdom'
+        'Acrobatics': 'DEX',
+        'Animal Handling': 'WIS',
+        'Arcana': 'INT',
+        'Athletics': 'STR',
+        'Deception': 'CHA',
+        'History': 'INT',
+        'Insight': 'WIS',
+        'Intimidation': 'CHA',
+        'Investigation': 'INT',
+        'Medicine': 'WIS',
+        'Nature': 'INT',
+        'Perception': 'WIS',
+        'Performance': 'CHA',
+        'Persuasion': 'CHA',
+        'Religion': 'INT',
+        'Sleight of Hand': 'DEX',
+        'Stealth': 'DEX',
+        'Survival': 'WIS'
       };
 
       Object.entries(skillAbilityMap).forEach(([skillName, expectedAbility]) => {

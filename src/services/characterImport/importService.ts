@@ -4,6 +4,7 @@
  */
 
 import type { Character } from '@/types/character';
+import { normalizeCharacter } from '@/utils/characterNormalization';
 import type { ForgeCharacter, ImportResult, BatchImportResult } from './forgeTypes';
 import { ForgeCharacterAdapter } from './forgeAdapter';
 
@@ -156,7 +157,10 @@ export class CharacterImportService {
       // Try Forge adapter first
       if (this.forgeAdapter.validate(data)) {
         const forgeChar = data as ForgeCharacter;
-        const character = this.forgeAdapter.transform(forgeChar, playerId);
+        const character = normalizeCharacter(
+          this.forgeAdapter.transform(forgeChar, playerId),
+          { playerId },
+        );
         const metadata = this.forgeAdapter.generateMetadata(forgeChar, sourceName);
 
         // Check for potential compatibility issues
@@ -182,9 +186,12 @@ export class CharacterImportService {
 
       // Fallback: Check if it's already in NexusVTT format
       if (this.isNexusVTTFormat(data)) {
+        const normalizedCharacter = normalizeCharacter(data as Character, {
+          playerId,
+        });
         return {
           success: true,
-          character: data as Character,
+          character: normalizedCharacter,
           metadata: {
             sourceType: 'generic',
             sourceVersion: 'unknown',
@@ -220,17 +227,24 @@ export class CharacterImportService {
 
     const char = data as Record<string, unknown>;
 
-    // Check for NexusVTT-specific structure
+    const abilities = char.abilities as Record<string, unknown> | undefined;
+    const hasAbilities =
+      !!abilities &&
+      typeof abilities === 'object' &&
+      abilities !== null &&
+      typeof (abilities.STR as { score?: unknown } | undefined)?.score ===
+        'number';
+
     return (
-      'playerId' in char &&
-      'abilities' in char &&
-      typeof char.abilities === 'object' &&
-      char.abilities !== null &&
-      'strength' in char.abilities &&  // NexusVTT uses full names
-      'race' in char &&
-      typeof char.race === 'object'
+      hasAbilities &&
+      typeof char.name === 'string' &&
+      typeof char.level === 'number' &&
+      typeof char.hitPoints === 'number'
     );
   }
+
+  // Normalization is handled by utils/characterNormalization.
+
 
   private normalizeImportPayload(data: unknown): unknown {
     if (Array.isArray(data)) {

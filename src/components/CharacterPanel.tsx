@@ -20,7 +20,9 @@ export const CharacterPanel: React.FC = () => {
   const sessionCharacters = useMemo(() => {
     if (!session) return [];
     const playerIds = session.players.map((p) => p.id);
-    return characters.filter((c) => playerIds.includes(c.playerId));
+    return characters.filter(
+      (c) => c.playerId && playerIds.includes(c.playerId),
+    );
   }, [characters, session]);
 
   // Enrich with token/initiative data

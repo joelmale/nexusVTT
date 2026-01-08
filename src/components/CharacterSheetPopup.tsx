@@ -44,11 +44,20 @@ export const CharacterSheetPopup: React.FC<CharacterSheetPopupProps> = ({
   // Get proficiency bonus
   const profBonus = Math.ceil(character.level / 4) + 1;
 
-  // Get proficient skills
-  const proficientSkills = character.skills.filter((skill) => skill.proficient);
-
-  // Get cantrips
-  const cantrips = character.spells.filter((spell) => spell.level === 0);
+  const skillEntries = Object.entries(character.skills || {});
+  const proficientSkills = skillEntries.filter(([, skill]) => skill.proficient);
+  const spellcasting = character.spellcasting;
+  const cantrips = spellcasting?.cantripsKnown || [];
+  const initiativeValue =
+    character.initiative ?? character.abilities.DEX?.modifier ?? 0;
+  const inventoryItems = character.inventory || [];
+  const featureItems = [
+    ...(character.featuresAndTraits?.classFeatures || []),
+    ...(character.featuresAndTraits?.racialTraits || []),
+    ...(character.featuresAndTraits?.backgroundFeatures || []).map(
+      (feature) => feature.name,
+    ),
+  ];
 
   return (
     <>
@@ -82,12 +91,11 @@ export const CharacterSheetPopup: React.FC<CharacterSheetPopupProps> = ({
             {character.name}
           </h1>
           <div className="character-subtitle">
-            {character.race.name}
-            {character.race.subrace && ` (${character.race.subrace})`}
+            {character.race || character.species || 'Unknown'}
             {' • '}
-            {character.classes[0]?.name} {character.level}
+            {character.class || 'Adventurer'} {character.level}
             {' • '}
-            {character.background.name}
+            {character.background || 'Unknown'}
           </div>
           <div className="character-alignment">{character.alignment}</div>
         </header>
@@ -130,14 +138,14 @@ export const CharacterSheetPopup: React.FC<CharacterSheetPopupProps> = ({
               <div className="combat-stat">
                 <span className="stat-label">HP</span>
                 <span className="stat-value">
-                  {character.hitPoints.current}/{character.hitPoints.maximum}
+                  {character.hitPoints}/{character.maxHitPoints ?? character.hitPoints}
                 </span>
               </div>
               <div className="combat-stat">
                 <span className="stat-label">Initiative</span>
                 <span className="stat-value">
-                  {character.initiative >= 0 ? '+' : ''}
-                  {character.initiative}
+                  {initiativeValue >= 0 ? '+' : ''}
+                  {initiativeValue}
                 </span>
               </div>
               <div className="combat-stat">
@@ -154,11 +162,11 @@ export const CharacterSheetPopup: React.FC<CharacterSheetPopupProps> = ({
             </h2>
             <div className="skills-list">
               {proficientSkills.slice(0, 6).map((skill) => (
-                <div key={skill.name} className="skill-item">
-                  <span className="skill-name">{skill.name}</span>
+                <div key={skill[0]} className="skill-item">
+                  <span className="skill-name">{skill[0]}</span>
                   <span className="skill-modifier">
-                    {skill.modifier >= 0 ? '+' : ''}
-                    {skill.modifier}
+                    {skill[1].value >= 0 ? '+' : ''}
+                    {skill[1].value}
                   </span>
                 </div>
               ))}
@@ -172,24 +180,25 @@ export const CharacterSheetPopup: React.FC<CharacterSheetPopupProps> = ({
         </div>
 
         {/* Spells Section (if applicable) */}
-        {character.spellcasting && (
+        {spellcasting && (
           <section className="character-section spells-section">
             <h2 className="section-header">Spells</h2>
             <div className="spells-content">
               <div className="spell-info">
                 <span>Cantrips: {cantrips.length}</span>
-                <span>Spell Save DC: {character.spellcasting.spellSaveDC}</span>
+                <span>Spell Save DC: {spellcasting.spellSaveDC}</span>
                 <span>
                   Spell Attack:{' '}
-                  {character.spellcasting.spellAttackBonus >= 0 ? '+' : ''}
-                  {character.spellcasting.spellAttackBonus}
+                  {spellcasting.spellAttackBonus >= 0 ? '+' : ''}
+                  {spellcasting.spellAttackBonus}
                 </span>
               </div>
-              {character.spellcasting.spellSlots.length > 0 && (
+              {spellcasting.spellSlots.length > 0 && (
                 <div className="spell-slots">
-                  {character.spellcasting.spellSlots.map((slot) => (
-                    <span key={slot.level} className="spell-slot">
-                      {slot.level}: {slot.used}/{slot.total}
+                  {spellcasting.spellSlots.map((slot, index) => (
+                    <span key={index} className="spell-slot">
+                      {index}:{' '}
+                      {spellcasting.usedSpellSlots?.[index] ?? 0}/{slot}
                     </span>
                   ))}
                 </div>
@@ -202,15 +211,15 @@ export const CharacterSheetPopup: React.FC<CharacterSheetPopupProps> = ({
         <section className="character-section equipment-section">
           <h2 className="section-header">Equipment</h2>
           <div className="equipment-list">
-            {character.equipment.slice(0, 8).map((item) => (
-              <span key={item.id} className="equipment-item">
-                {item.name}
+            {inventoryItems.slice(0, 8).map((item) => (
+              <span key={item.equipmentSlug} className="equipment-item">
+                {item.equipmentSlug}
                 {item.quantity > 1 && ` (${item.quantity})`}
               </span>
             ))}
-            {character.equipment.length > 8 && (
+            {inventoryItems.length > 8 && (
               <span className="equipment-item more-items">
-                +{character.equipment.length - 8} more...
+                +{inventoryItems.length - 8} more...
               </span>
             )}
           </div>
@@ -220,14 +229,14 @@ export const CharacterSheetPopup: React.FC<CharacterSheetPopupProps> = ({
         <section className="character-section features-section">
           <h2 className="section-header">Features & Traits</h2>
           <div className="features-list">
-            {character.features.slice(0, 4).map((feature) => (
-              <span key={feature.id} className="feature-item">
-                {feature.name}
+            {featureItems.slice(0, 4).map((feature) => (
+              <span key={feature} className="feature-item">
+                {feature}
               </span>
             ))}
-            {character.features.length > 4 && (
+            {featureItems.length > 4 && (
               <span className="feature-item more-features">
-                +{character.features.length - 4} more...
+                +{featureItems.length - 4} more...
               </span>
             )}
           </div>

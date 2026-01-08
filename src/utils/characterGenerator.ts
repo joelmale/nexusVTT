@@ -71,42 +71,12 @@ export function generateAbilityScores(): AbilityScores {
   const charisma = roll4d6DropLowest();
 
   return {
-    strength: {
-      score: strength,
-      modifier: calculateModifier(strength),
-      savingThrow: calculateModifier(strength),
-      proficient: false,
-    },
-    dexterity: {
-      score: dexterity,
-      modifier: calculateModifier(dexterity),
-      savingThrow: calculateModifier(dexterity),
-      proficient: false,
-    },
-    constitution: {
-      score: constitution,
-      modifier: calculateModifier(constitution),
-      savingThrow: calculateModifier(constitution),
-      proficient: false,
-    },
-    intelligence: {
-      score: intelligence,
-      modifier: calculateModifier(intelligence),
-      savingThrow: calculateModifier(intelligence),
-      proficient: false,
-    },
-    wisdom: {
-      score: wisdom,
-      modifier: calculateModifier(wisdom),
-      savingThrow: calculateModifier(wisdom),
-      proficient: false,
-    },
-    charisma: {
-      score: charisma,
-      modifier: calculateModifier(charisma),
-      savingThrow: calculateModifier(charisma),
-      proficient: false,
-    },
+    STR: { score: strength, modifier: calculateModifier(strength) },
+    DEX: { score: dexterity, modifier: calculateModifier(dexterity) },
+    CON: { score: constitution, modifier: calculateModifier(constitution) },
+    INT: { score: intelligence, modifier: calculateModifier(intelligence) },
+    WIS: { score: wisdom, modifier: calculateModifier(wisdom) },
+    CHA: { score: charisma, modifier: calculateModifier(charisma) },
   };
 }
 
@@ -118,12 +88,12 @@ export function generatePointBuyAbilities(): AbilityScores {
   const pointsToDistribute = 27;
   const baseScore = 8;
   const abilities = [
-    'strength',
-    'dexterity',
-    'constitution',
-    'intelligence',
-    'wisdom',
-    'charisma',
+    'STR',
+    'DEX',
+    'CON',
+    'INT',
+    'WIS',
+    'CHA',
   ] as const;
 
   const scores: Record<string, number> = {};
@@ -154,42 +124,12 @@ export function generatePointBuyAbilities(): AbilityScores {
   const calculateModifier = (score: number) => Math.floor((score - 10) / 2);
 
   return {
-    strength: {
-      score: scores.strength,
-      modifier: calculateModifier(scores.strength),
-      savingThrow: calculateModifier(scores.strength),
-      proficient: false,
-    },
-    dexterity: {
-      score: scores.dexterity,
-      modifier: calculateModifier(scores.dexterity),
-      savingThrow: calculateModifier(scores.dexterity),
-      proficient: false,
-    },
-    constitution: {
-      score: scores.constitution,
-      modifier: calculateModifier(scores.constitution),
-      savingThrow: calculateModifier(scores.constitution),
-      proficient: false,
-    },
-    intelligence: {
-      score: scores.intelligence,
-      modifier: calculateModifier(scores.intelligence),
-      savingThrow: calculateModifier(scores.intelligence),
-      proficient: false,
-    },
-    wisdom: {
-      score: scores.wisdom,
-      modifier: calculateModifier(scores.wisdom),
-      savingThrow: calculateModifier(scores.wisdom),
-      proficient: false,
-    },
-    charisma: {
-      score: scores.charisma,
-      modifier: calculateModifier(scores.charisma),
-      savingThrow: calculateModifier(scores.charisma),
-      proficient: false,
-    },
+    STR: { score: scores.STR, modifier: calculateModifier(scores.STR) },
+    DEX: { score: scores.DEX, modifier: calculateModifier(scores.DEX) },
+    CON: { score: scores.CON, modifier: calculateModifier(scores.CON) },
+    INT: { score: scores.INT, modifier: calculateModifier(scores.INT) },
+    WIS: { score: scores.WIS, modifier: calculateModifier(scores.WIS) },
+    CHA: { score: scores.CHA, modifier: calculateModifier(scores.CHA) },
   };
 }
 
@@ -561,14 +501,7 @@ export function generateRandomCharacter(playerId: string): Partial<Character> {
           : characterClass.hitDie === 'd10'
             ? 10
             : 12,
-    ) + abilities.constitution.modifier;
-
-  // Generate proficiencies based on class
-  const weaponProficiencies = getWeaponProficienciesForClass(
-    characterClass.name,
-  );
-  const armorProficiencies = getArmorProficienciesForClass(characterClass.name);
-  const toolProficiencies = getToolProficienciesForBackground(background.name);
+    ) + abilities.CON.modifier;
 
   // Generate additional languages (1-2 extra beyond racial)
   const additionalLanguages = generateAdditionalLanguages(race.languages);
@@ -579,137 +512,40 @@ export function generateRandomCharacter(playerId: string): Partial<Character> {
     background.name,
   );
 
-  // Generate features
-  const features = generateRacialFeatures(race);
-
   return {
     id: crypto.randomUUID(),
     playerId,
     name,
-    race,
-    classes: [characterClass],
-    background,
+    race: race.name,
+    species: race.name,
+    class: characterClass.name,
+    background: background.name,
     alignment,
     level: 1,
     abilities,
-    hitPoints: {
-      maximum: hitPointMaximum,
-      current: hitPointMaximum,
-      temporary: 0,
-    },
+    hitPoints: hitPointMaximum,
+    maxHitPoints: hitPointMaximum,
+    temporaryHitPoints: 0,
     hitDice: {
-      total: 1,
-      remaining: 1,
+      current: 1,
+      max: 1,
+      dieType: parseInt(characterClass.hitDie.replace('d', ''), 10) || 8,
     },
-    armorClass: 10 + abilities.dexterity.modifier,
-    initiative: abilities.dexterity.modifier,
+    armorClass: 10 + abilities.DEX.modifier,
+    initiative: abilities.DEX.modifier,
     speed: 30,
     proficiencyBonus,
-    passivePerception: 10 + abilities.wisdom.modifier,
-    languageProficiencies: [...race.languages, ...additionalLanguages],
-    toolProficiencies,
-    weaponProficiencies,
-    armorProficiencies,
-    features,
-    attacks: [],
-    equipment,
-    spells: [],
-    personalityTraits: [],
-    ideals: [],
-    bonds: [],
-    flaws: [],
-    inspiration: false,
-    experiencePoints: 0,
-    notes: '',
-    createdAt: Date.now(),
-    updatedAt: Date.now(),
-    version: '1.0',
+    skills: {},
+    languages: [...race.languages, ...additionalLanguages],
+    inventory: equipment.map((item) => ({
+      equipmentSlug: item.name.toLowerCase().replace(/\s+/g, '-'),
+      equipped: item.equipped,
+      quantity: item.quantity,
+    })),
+    currency: { cp: 0, sp: 0, gp: 0, pp: 0 },
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
   };
-}
-
-// =============================================================================
-// PROFICIENCY GENERATION HELPERS
-// =============================================================================
-
-/**
- * Get weapon proficiencies for a character class
- */
-function getWeaponProficienciesForClass(className: string): string[] {
-  const proficiencies: Record<string, string[]> = {
-    Barbarian: ['Simple Weapons', 'Martial Weapons'],
-    Bard: [
-      'Simple Weapons',
-      'Hand Crossbows',
-      'Longswords',
-      'Rapiers',
-      'Shortswords',
-    ],
-    Cleric: ['Simple Weapons'],
-    Druid: ['Simple Weapons'],
-    Fighter: ['Simple Weapons', 'Martial Weapons'],
-    Monk: ['Simple Weapons', 'Shortswords'],
-    Paladin: ['Simple Weapons', 'Martial Weapons'],
-    Ranger: ['Simple Weapons', 'Martial Weapons'],
-    Rogue: [
-      'Simple Weapons',
-      'Hand Crossbows',
-      'Longswords',
-      'Rapiers',
-      'Shortswords',
-    ],
-    Sorcerer: [
-      'Daggers',
-      'Darts',
-      'Slings',
-      'Quarterstaffs',
-      'Light Crossbows',
-    ],
-    Warlock: ['Simple Weapons'],
-    Wizard: ['Daggers', 'Darts', 'Slings', 'Quarterstaffs', 'Light Crossbows'],
-  };
-  return proficiencies[className] || ['Simple Weapons'];
-}
-
-/**
- * Get armor proficiencies for a character class
- */
-function getArmorProficienciesForClass(className: string): string[] {
-  const proficiencies: Record<string, string[]> = {
-    Barbarian: ['Light Armor', 'Medium Armor', 'Shields'],
-    Bard: ['Light Armor'],
-    Cleric: ['Light Armor', 'Medium Armor', 'Shields'],
-    Druid: ['Light Armor', 'Medium Armor', 'Shields'], // non-metal
-    Fighter: ['Light Armor', 'Medium Armor', 'Heavy Armor', 'Shields'],
-    Monk: [],
-    Paladin: ['Light Armor', 'Medium Armor', 'Heavy Armor', 'Shields'],
-    Ranger: ['Light Armor', 'Medium Armor', 'Shields'],
-    Rogue: ['Light Armor'],
-    Sorcerer: [],
-    Warlock: ['Light Armor'],
-    Wizard: [],
-  };
-  return proficiencies[className] || [];
-}
-
-/**
- * Get tool proficiencies for a background
- */
-function getToolProficienciesForBackground(backgroundName: string): string[] {
-  const proficiencies: Record<string, string[]> = {
-    Acolyte: [],
-    Criminal: ["Thieves' Tools"],
-    'Folk Hero': ["One type of artisan's tools", 'Vehicles (land)'],
-    Noble: ['One gaming set of your choice'],
-    Sage: [],
-    Soldier: ['One gaming set of your choice', 'Vehicles (land)'],
-    Charlatan: ["One type of artisan's tools", 'Disguise Kit', 'Forgery Kit'],
-    Entertainer: ['One musical instrument of your choice', 'Disguise Kit'],
-    'Guild Artisan': ["One type of artisan's tools"],
-    Hermit: [],
-    Outlander: ['One musical instrument of your choice'],
-    Sailor: ["Navigator's Tools", 'Vehicles (water)'],
-  };
-  return proficiencies[backgroundName] || [];
 }
 
 /**
@@ -748,16 +584,6 @@ function generateAdditionalLanguages(existingLanguages: string[]): string[] {
   }
 
   return additionalLanguages;
-}
-
-/**
- * Generate starting equipment based on class and background
- */
-interface Feature {
-  id: string;
-  name: string;
-  source: string;
-  description: string;
 }
 
 /**
@@ -856,27 +682,6 @@ function generateStartingEquipment(
   return equipment;
 }
 
-/**
- * Generate racial features
- */
-function generateRacialFeatures(race: CharacterRace): Feature[] {
-  const features: Feature[] = [];
-
-  // Add basic racial traits
-  if (race.traits) {
-    race.traits.forEach((trait: string) => {
-      features.push({
-        id: `racial-${trait.toLowerCase().replace(/\s+/g, '-')}`,
-        name: trait,
-        source: 'race',
-        description: `${trait} racial trait.`,
-      });
-    });
-  }
-
-  return features;
-}
-
 // =============================================================================
 // INDIVIDUAL FIELD RANDOMIZERS
 // =============================================================================
@@ -891,22 +696,22 @@ export function randomizeName(currentRace?: string): string {
 /**
  * Randomize just the race field
  */
-export function randomizeRace(): CharacterRace {
-  return getRandomRace();
+export function randomizeRace(): string {
+  return getRandomRace().name;
 }
 
 /**
  * Randomize just the class field
  */
-export function randomizeClass(): CharacterClass {
-  return getRandomClass();
+export function randomizeClass(): string {
+  return getRandomClass().name;
 }
 
 /**
  * Randomize just the background field
  */
-export function randomizeBackground(): CharacterBackground {
-  return getRandomBackground();
+export function randomizeBackground(): string {
+  return getRandomBackground().name;
 }
 
 /**

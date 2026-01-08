@@ -225,20 +225,23 @@ class WebSocketService extends EventTarget {
         // Session events will be handled by the gameStore's applyEvent method
 
         if (
-          message.data.name === 'session/created' &&
+          (message.data.name === 'session/created' ||
+            message.data.name === 'session/reconnected') &&
           'roomCode' in message.data
         ) {
           this.lastSessionCreatedEvent = {
             roomCode: message.data.roomCode as string,
           };
-          const { user } = useGameStore.getState();
+          const { user, session } = useGameStore.getState();
           if (user?.id && user?.name) {
             this.connectionContext = {
               roomCode: message.data.roomCode as string,
               userType: 'host',
               userName: user.name,
               userId: user.id,
-              campaignId: message.data.campaignId as string | undefined,
+              campaignId:
+                (message.data.campaignId as string | undefined) ||
+                session?.campaignId,
             };
             try {
               localStorage.setItem(
@@ -596,7 +599,8 @@ class WebSocketService extends EventTarget {
 
       const handler = (event: Event) => {
         const customEvent = event as CustomEvent;
-        if (customEvent.detail?.data?.name === 'session/created') {
+        const eventName = customEvent.detail?.data?.name;
+        if (eventName === 'session/created' || eventName === 'session/reconnected') {
           clearTimeout(timeout);
           this.removeEventListener('message', handler);
           resolve(customEvent.detail.data);

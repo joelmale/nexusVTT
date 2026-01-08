@@ -1644,7 +1644,15 @@ class NexusServer {
       }
 
       if (preferredRoomCode && this.rooms.has(preferredRoomCode)) {
-        preferredRoomCode = undefined;
+        console.log(
+          `🔄 Reusing active room code ${preferredRoomCode} for campaign ${usedCampaignId}`,
+        );
+        await this.handleHostReconnection(
+          connection,
+          preferredRoomCode,
+          campaignId,
+        );
+        return;
       }
 
       let sessionId = '';
@@ -1714,7 +1722,7 @@ class NexusServer {
 
       this.rooms.set(joinCode, room);
       connection.room = joinCode;
-      connection.user = { name: 'Host', type: 'host' };
+      connection.user.type = 'host'; // Preserve the user's actual name from OAuth/guest login
 
       // Send session created confirmation to client
       this.sendMessage(connection, {

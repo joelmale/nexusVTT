@@ -11,16 +11,19 @@ vi.mock('@/stores/characterStore', () => ({
 }));
 
 // Mock the character types
-vi.mock('@/types/character', () => ({
-  createEmptyCharacter: vi.fn(),
-  calculateAbilityModifier: (score: number) => Math.floor((score - 10) / 2),
-  calculateProficiencyBonus: (level: number) => Math.ceil(level / 4) + 1,
-  STANDARD_SKILLS: [
-    { name: 'Athletics', ability: 'strength' },
-    { name: 'Acrobatics', ability: 'dexterity' },
-    { name: 'Perception', ability: 'wisdom' },
-  ],
-}));
+vi.mock('@/types/character', async () => {
+  const actual = await vi.importActual<typeof import('@/types/character')>(
+    '@/types/character',
+  );
+  return {
+    ...actual,
+    STANDARD_SKILLS: [
+      { name: 'Athletics', ability: 'STR' },
+      { name: 'Acrobatics', ability: 'DEX' },
+      { name: 'Perception', ability: 'WIS' },
+    ],
+  };
+});
 
 describe('CharacterSheet', () => {
   const mockCharacter: Character = {
@@ -28,86 +31,49 @@ describe('CharacterSheet', () => {
     playerId: 'player-123',
     name: 'Test Character',
     level: 5,
-    race: {
-      name: 'Human',
-      subrace: 'Variant',
-      traits: ['Extra Language', 'Extra Skill'],
-      abilityScoreIncrease: { strength: 1, dexterity: 1 },
-      languages: ['Common', 'Elvish'],
-      proficiencies: ['Light Armor', 'Shortswords'],
-    },
-    classes: [
-      {
-        name: 'Fighter',
-        level: 5,
-        hitDie: 'd10',
-        features: ['Fighting Style', 'Second Wind', 'Action Surge'],
-      },
-    ],
-    background: {
-      name: 'Soldier',
-      skillProficiencies: ['Athletics', 'Intimidation'],
-      languages: ['Common', 'Orc'],
-      equipment: ['Insignia of rank', 'Deck of cards'],
-      feature: 'Military Rank',
-    },
+    race: 'Human',
+    class: 'Fighter',
+    background: 'Soldier',
     abilities: {
-      strength: { score: 16, modifier: 3, savingThrow: 3, proficient: false },
-      dexterity: { score: 14, modifier: 2, savingThrow: 2, proficient: false },
-      constitution: { score: 15, modifier: 2, savingThrow: 2, proficient: false },
-      intelligence: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
-      wisdom: { score: 13, modifier: 1, savingThrow: 1, proficient: false },
-      charisma: { score: 12, modifier: 1, savingThrow: 1, proficient: false },
+      STR: { score: 16, modifier: 3 },
+      DEX: { score: 14, modifier: 2 },
+      CON: { score: 15, modifier: 2 },
+      INT: { score: 10, modifier: 0 },
+      WIS: { score: 13, modifier: 1 },
+      CHA: { score: 12, modifier: 1 },
     },
-    skills: [
-      { name: 'Athletics', ability: 'strength', proficient: true, expertise: false, modifier: 6 },
-      { name: 'Acrobatics', ability: 'dexterity', proficient: false, expertise: false, modifier: 2 },
-      { name: 'Perception', ability: 'wisdom', proficient: true, expertise: true, modifier: 7 },
-    ],
-    hitPoints: { maximum: 47, current: 35, temporary: 5 },
+    skills: {
+      Athletics: { proficient: true, value: 6 },
+      Acrobatics: { proficient: false, value: 2 },
+      Perception: { proficient: true, expertise: true, value: 7 },
+    },
+    hitPoints: 35,
+    maxHitPoints: 47,
+    temporaryHitPoints: 5,
     armorClass: 18,
     initiative: 2,
     speed: 30,
     proficiencyBonus: 3,
-    passivePerception: 17,
-    equipment: [
+    inventory: [
       {
-        id: 'eq-1',
-        name: 'Plate Armor',
-        type: 'armor',
-        weight: 65,
-        cost: { amount: 1500, currency: 'gp' },
+        equipmentSlug: 'Plate Armor',
         equipped: true,
         quantity: 1,
       },
       {
-        id: 'eq-2',
-        name: 'Longsword',
-        type: 'weapon',
-        weight: 3,
-        cost: { amount: 15, currency: 'gp' },
-        properties: ['versatile'],
+        equipmentSlug: 'Longsword',
         equipped: true,
         quantity: 1,
       },
     ],
-    spells: [],
-    features: [
-      {
-        id: 'feat-1',
-        name: 'Second Wind',
-        description: 'Regain 1d10 + 5 hit points as a bonus action.',
-        type: 'class',
-        uses: { current: 1, maximum: 1, rechargesOn: 'short rest' },
-      },
-    ],
-    personalityTraits: ['I face problems head-on.'],
-    ideals: ['Honor is more important than gold.'],
-    bonds: ['I would die for my unit.'],
-    flaws: ['I have trouble trusting new allies.'],
-    notes: 'A veteran soldier with a strong sense of duty.',
-    createdAt: Date.now() - 86400000, // 1 day ago
-    updatedAt: Date.now(),
+    featuresAndTraits: {
+      personality: 'I face problems head-on.',
+      ideals: 'Honor is more important than gold.',
+      bonds: 'I would die for my unit.',
+      flaws: 'I have trouble trusting new allies.',
+    },
+    createdAt: new Date(Date.now() - 86400000).toISOString(), // 1 day ago
+    updatedAt: new Date().toISOString(),
   };
 
   const mockStoreActions = {
@@ -228,7 +194,7 @@ describe('CharacterSheet', () => {
 
       expect(mockStoreActions.updateAbilityScore).toHaveBeenCalledWith(
         'char-123',
-        'strength',
+        'STR',
         18
       );
     });
@@ -276,7 +242,7 @@ describe('CharacterSheet', () => {
       const equipButton = screen.getAllByText('Unequip')[0]; // First equipped item
       fireEvent.click(equipButton);
 
-      expect(mockStoreActions.unequipItem).toHaveBeenCalledWith('char-123', 'eq-1');
+      expect(mockStoreActions.unequipItem).toHaveBeenCalledWith('char-123', 'Plate Armor');
     });
 
     it('should allow removing equipment', () => {
@@ -287,7 +253,7 @@ describe('CharacterSheet', () => {
       const removeButtons = screen.getAllByText('❌');
       fireEvent.click(removeButtons[0]);
 
-      expect(mockStoreActions.removeEquipment).toHaveBeenCalledWith('char-123', 'eq-1');
+      expect(mockStoreActions.removeEquipment).toHaveBeenCalledWith('char-123', 'Plate Armor');
     });
   });
 
@@ -303,24 +269,19 @@ describe('CharacterSheet', () => {
       expect(screen.getByDisplayValue(/I have trouble trusting new allies./)).toBeInTheDocument();
     });
 
-    it('should display character notes', () => {
+    it('should allow editing personality traits when not readonly', () => {
       render(<CharacterSheet character={mockCharacter} />);
 
       fireEvent.click(screen.getByText(/Notes/));
 
-      expect(screen.getByDisplayValue('A veteran soldier with a strong sense of duty.')).toBeInTheDocument();
-    });
-
-    it('should allow editing notes when not readonly', () => {
-      render(<CharacterSheet character={mockCharacter} />);
-
-      fireEvent.click(screen.getByText(/Notes/));
-
-      const notesTextarea = screen.getByDisplayValue('A veteran soldier with a strong sense of duty.');
-      fireEvent.change(notesTextarea, { target: { value: 'Updated notes' } });
+      const traitsTextarea = screen.getByDisplayValue(/I face problems head-on./);
+      fireEvent.change(traitsTextarea, { target: { value: 'Updated traits' } });
 
       expect(mockStoreActions.updateCharacter).toHaveBeenCalledWith('char-123', {
-        notes: 'Updated notes'
+        featuresAndTraits: {
+          ...mockCharacter.featuresAndTraits,
+          personality: 'Updated traits',
+        },
       });
     });
   });
@@ -364,17 +325,22 @@ describe('CharacterSheet', () => {
       const incompleteCharacter = {
         id: 'incomplete',
         name: 'Incomplete',
-        hitPoints: { current: 10, maximum: 10, temporary: 0 },
+        level: 1,
+        hitPoints: 10,
+        maxHitPoints: 10,
+        temporaryHitPoints: 0,
+        armorClass: 10,
+        speed: 30,
         abilities: { 
-          strength: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
-          dexterity: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
-          constitution: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
-          intelligence: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
-          wisdom: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
-          charisma: { score: 10, modifier: 0, savingThrow: 0, proficient: false },
+          STR: { score: 10, modifier: 0 },
+          DEX: { score: 10, modifier: 0 },
+          CON: { score: 10, modifier: 0 },
+          INT: { score: 10, modifier: 0 },
+          WIS: { score: 10, modifier: 0 },
+          CHA: { score: 10, modifier: 0 },
         },
-        skills: [],
-        equipment: [],
+        skills: {},
+        inventory: [],
       } as Character;
 
       expect(() => {

@@ -24,19 +24,64 @@ export const CharacterImportModal: React.FC<CharacterImportModalProps> = ({
   onImportComplete,
 }) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [totalCharacters, setTotalCharacters] = useState<number>(0);
   const [importing, setImporting] = useState(false);
   const [result, setResult] = useState<ImportSummary | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const importCharactersFromFiles = useCharacterStore((state) => state.importCharactersFromFiles);
+  const importCharactersFromFiles = useCharacterStore(
+    (state) => state.importCharactersFromFiles,
+  );
+
+  const countCharactersInFiles = async (files: File[]): Promise<number> => {
+    let total = 0;
+    for (const file of files) {
+      try {
+        const text = await file.text();
+        const data = JSON.parse(text);
+        const normalized = normalizeImportPayload(data);
+        if (Array.isArray(normalized)) {
+          total += normalized.length;
+        } else {
+          total += 1;
+        }
+      } catch {
+        // If parsing fails, assume 1 character per file as fallback
+        total += 1;
+      }
+    }
+    return total;
+  };
+
+  const normalizeImportPayload = (data: unknown): unknown => {
+    if (Array.isArray(data)) {
+      return data;
+    }
+
+    if (data && typeof data === 'object') {
+      const record = data as Record<string, unknown>;
+      if (Array.isArray(record.characters)) {
+        return record.characters;
+      }
+    }
+
+    return data;
+  };
 
   if (!isOpen) return null;
 
-  const handleFileSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
+  const handleFileSelect = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
     const files = event.target.files;
     if (files) {
-      setSelectedFiles(Array.from(files));
+      const fileArray = Array.from(files);
+      setSelectedFiles(fileArray);
       setResult(null); // Clear previous results
+
+      // Count total characters
+      const count = await countCharactersInFiles(fileArray);
+      setTotalCharacters(count);
     }
   };
 
@@ -67,7 +112,7 @@ export const CharacterImportModal: React.FC<CharacterImportModalProps> = ({
     } catch (error) {
       setResult({
         successful: 0,
-        failed: selectedFiles.length,
+        failed: totalCharacters,
         errors: [error instanceof Error ? error.message : 'Import failed'],
       });
     } finally {
@@ -102,8 +147,8 @@ export const CharacterImportModal: React.FC<CharacterImportModalProps> = ({
           <div className="import-section">
             <h3>Select Character Files</h3>
             <p className="import-instructions">
-              Choose one or more JSON character files to import.
-              Supported formats: 5e Character Forge, NexusVTT JSON
+              Choose one or more JSON character files to import. Supported
+              formats: 5e Character Forge, NexusVTT JSON
             </p>
 
             <input
@@ -126,7 +171,10 @@ export const CharacterImportModal: React.FC<CharacterImportModalProps> = ({
 
               {selectedFiles.length > 0 && (
                 <div className="selected-files">
-                  <h4>Selected Files ({selectedFiles.length}):</h4>
+                  <h4>
+                    Selected Files ({selectedFiles.length}) - {totalCharacters}{' '}
+                    Character{totalCharacters !== 1 ? 's' : ''}:
+                  </h4>
                   <ul>
                     {selectedFiles.map((file, index) => (
                       <li key={index}>
@@ -149,15 +197,19 @@ export const CharacterImportModal: React.FC<CharacterImportModalProps> = ({
                 e.preventDefault();
                 e.stopPropagation();
               }}
-              onDrop={(e) => {
+              onDrop={async (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                const files = Array.from(e.dataTransfer.files).filter(
-                  (file) => file.name.endsWith('.json')
+                const files = Array.from(e.dataTransfer.files).filter((file) =>
+                  file.name.endsWith('.json'),
                 );
                 if (files.length > 0) {
                   setSelectedFiles(files);
                   setResult(null);
+
+                  // Count total characters
+                  const count = await countCharactersInFiles(files);
+                  setTotalCharacters(count);
                 }
               }}
             >
@@ -170,19 +222,23 @@ export const CharacterImportModal: React.FC<CharacterImportModalProps> = ({
 
           {/* Import Results */}
           {result && (
-            <div className={`import-results ${result.failed > 0 ? 'has-errors' : 'success'}`}>
+            <div
+              className={`import-results ${result.failed > 0 ? 'has-errors' : 'success'}`}
+            >
               <h3>Import Results</h3>
 
               {result.successful > 0 && (
                 <div className="success-message">
-                  ✅ Successfully imported {result.successful} character{result.successful !== 1 ? 's' : ''}
+                  ✅ Successfully imported {result.successful} character
+                  {result.successful !== 1 ? 's' : ''}
                 </div>
               )}
 
               {result.failed > 0 && (
                 <div className="error-section">
                   <div className="error-summary">
-                    ❌ Failed to import {result.failed} character{result.failed !== 1 ? 's' : ''}
+                    ❌ Failed to import {result.failed} character
+                    {result.failed !== 1 ? 's' : ''}
                   </div>
 
                   {result.errors.length > 0 && (
@@ -213,7 +269,7 @@ export const CharacterImportModal: React.FC<CharacterImportModalProps> = ({
           <button
             className="btn btn-primary"
             onClick={handleImport}
-            disabled={selectedFiles.length === 0 || importing}
+            disabled={totalCharacters === 0 || importing}
           >
             {importing ? (
               <>
@@ -221,7 +277,7 @@ export const CharacterImportModal: React.FC<CharacterImportModalProps> = ({
                 Importing...
               </>
             ) : (
-              `Import ${selectedFiles.length} Character${selectedFiles.length !== 1 ? 's' : ''}`
+              `Import ${totalCharacters} Character${totalCharacters !== 1 ? 's' : ''}`
             )}
           </button>
         </div>

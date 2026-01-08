@@ -280,30 +280,6 @@ export const LobbyPanel: React.FC = () => {
           Leave Room
         </button>
       </div>
-
-      {/* Instructions */}
-      <div className="lobby-panel__section glass-panel info">
-        <h4>📖 How to Use</h4>
-        <ul className="lobby-panel__instructions-list">
-          {isHost ? (
-            <>
-              <li>
-                🎨 Prepare your game offline (create scenes, tokens, etc.)
-              </li>
-              <li>🌐 Click "Start Online Game" when ready to go live</li>
-              <li>📤 Share the room code or URL with your players</li>
-              <li>👥 Players will appear in the party list when they join</li>
-            </>
-          ) : (
-            <>
-              <li>🎮 You can explore the game offline first</li>
-              <li>🔑 Enter the room code from your DM</li>
-              <li>🌐 Click "Join Online Game" to sync with the session</li>
-              <li>✨ Online mode enables real-time updates</li>
-            </>
-          )}
-        </ul>
-      </div>
     </div>
   );
 };
