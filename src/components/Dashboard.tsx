@@ -10,7 +10,7 @@ import { CharacterSelectionModal } from './CharacterSelectionModal';
 import { useCharacterCreationLauncher } from '@/hooks';
 import { DocumentLibrary } from './DocumentLibrary';
 import type { Character } from '@/types/character';
-import { CHARACTER_CLASSES, createEmptyCharacter } from '@/types/character';
+import { createEmptyCharacter } from '@/types/character';
 import type { PlayerCharacter } from '@/types/game';
 import {
   applyCampaignBackupAssets,
@@ -21,6 +21,7 @@ import {
 } from '@/services/campaignBackup';
 import { tokenAssetManager } from '@/services/tokenAssets';
 import { propAssetManager } from '@/services/propAssets';
+import { normalizeCharacter } from '@/utils/characterNormalization';
 import '@/styles/dashboard.css';
 
 const stableStringify = (value: unknown): string => {
@@ -93,19 +94,19 @@ const characterHash = (value: unknown): string =>
 const isFullCharacterPayload = (value: unknown): value is Character => {
   if (!value || typeof value !== 'object') return false;
   const record = value as Record<string, unknown>;
-  const race = record.race as Record<string, unknown> | undefined;
-  const hitPoints = record.hitPoints as Record<string, unknown> | undefined;
+  const abilities = record.abilities as Record<string, unknown> | undefined;
 
   return (
     typeof record.name === 'string' &&
     typeof record.level === 'number' &&
-    Array.isArray(record.classes) &&
-    !!race &&
-    typeof race.name === 'string' &&
-    !!hitPoints &&
-    typeof hitPoints.maximum === 'number'
+    typeof record.class === 'string' &&
+    typeof record.race === 'string' &&
+    typeof record.hitPoints === 'number' &&
+    !!abilities &&
+    typeof (abilities.STR as { score?: unknown } | undefined)?.score === 'number'
   );
 };
+
 
 const buildCharacterFromRecord = (
   record: CharacterRecord,
@@ -117,67 +118,81 @@ const buildCharacterFromRecord = (
   }
 
   if (isFullCharacterPayload(normalized)) {
-    const createdAt = Number.isFinite(normalized.createdAt)
-      ? normalized.createdAt
-      : Date.parse(record.createdAt);
-    const updatedAt = Number.isFinite(normalized.updatedAt)
-      ? normalized.updatedAt
-      : Date.parse(record.updatedAt);
-
-    return {
-      ...normalized,
-      id: normalized.id || record.id,
-      name: normalized.name || record.name,
-      playerId: normalized.playerId || record.ownerId || fallbackPlayerId,
-      createdAt: Number.isFinite(createdAt) ? createdAt : Date.now(),
-      updatedAt: Number.isFinite(updatedAt) ? updatedAt : Date.now(),
+    const now = new Date().toISOString();
+    const playerId = record.ownerId || fallbackPlayerId;
+    const base = createEmptyCharacter(playerId);
+    const mergedInput: Character = {
+      ...base,
+      ...(normalized as Character),
+      id: (normalized as Character).id || record.id,
+      name: (normalized as Character).name || record.name,
+      playerId:
+        (normalized as Character).playerId || record.ownerId || fallbackPlayerId,
+      createdAt:
+        (normalized as Character).createdAt ||
+        record.createdAt ||
+        base.createdAt,
+      updatedAt:
+        (normalized as Character).updatedAt ||
+        record.updatedAt ||
+        base.updatedAt,
     };
+
+    return normalizeCharacter(mergedInput, { playerId, baseCharacter: base, now });
   }
 
   const data = normalized as Record<string, unknown>;
   const base = createEmptyCharacter(record.ownerId || fallbackPlayerId);
   const level = typeof data.level === 'number' ? data.level : base.level;
-  const raceName = typeof data.race === 'string' ? data.race : base.race.name;
+  const raceName =
+    typeof data.race === 'string' ? data.race : base.race || '';
   const className = typeof data.class === 'string' ? data.class : '';
-  const hitDie =
-    CHARACTER_CLASSES.find((entry) => entry.name === className)?.hitDie ?? 'd8';
-  const createdAt = Date.parse(record.createdAt);
-  const updatedAt = Date.parse(record.updatedAt);
-
-  return {
+  const fallbackInput: Character = {
     ...base,
     id: record.id,
     name: record.name,
     playerId: record.ownerId || base.playerId,
     level,
-    race: { ...base.race, name: raceName },
-    classes: className ? [{ name: className, level, hitDie }] : base.classes,
-    createdAt: Number.isFinite(createdAt) ? createdAt : base.createdAt,
-    updatedAt: Number.isFinite(updatedAt) ? updatedAt : base.updatedAt,
+    race: raceName,
+    species: raceName || base.species,
+    class: className,
+    background:
+      typeof data.background === 'string' ? data.background : base.background,
+    createdAt: record.createdAt || base.createdAt,
+    updatedAt: record.updatedAt || base.updatedAt,
   };
+
+  return normalizeCharacter(fallbackInput, {
+    playerId: fallbackInput.playerId,
+    baseCharacter: base,
+  });
 };
 
 // Convert Character to PlayerCharacter for gameStore compatibility
 const convertCharacterToPlayerCharacter = (
   character: Character,
 ): PlayerCharacter => {
+  const createdAt =
+    typeof character.createdAt === 'string'
+      ? Date.parse(character.createdAt)
+      : Date.now();
   return {
     id: character.id,
     name: character.name,
-    race: character.race.name,
-    class: character.classes[0]?.name || '',
-    background: character.background.name,
+    race: character.race || character.species || '',
+    class: character.class || '',
+    background: character.background || '',
     level: character.level,
     stats: {
-      strength: character.abilities.strength.score,
-      dexterity: character.abilities.dexterity.score,
-      constitution: character.abilities.constitution.score,
-      intelligence: character.abilities.intelligence.score,
-      wisdom: character.abilities.wisdom.score,
-      charisma: character.abilities.charisma.score,
+      strength: character.abilities.STR.score,
+      dexterity: character.abilities.DEX.score,
+      constitution: character.abilities.CON.score,
+      intelligence: character.abilities.INT.score,
+      wisdom: character.abilities.WIS.score,
+      charisma: character.abilities.CHA.score,
     },
-    createdAt: character.createdAt,
-    playerId: character.playerId,
+    createdAt: Number.isFinite(createdAt) ? createdAt : Date.now(),
+    playerId: character.playerId || '',
   };
 };
 
@@ -659,6 +674,17 @@ export const Dashboard: React.FC = () => {
       };
 
       const roomCode = await createGameRoom(gameConfig);
+      setCampaigns((prev) =>
+        prev.map((item) =>
+          item.id === campaignId
+            ? {
+                ...item,
+                lastRoomCode: roomCode,
+                lastRoomCodeUpdatedAt: new Date().toISOString(),
+              }
+            : item,
+        ),
+      );
 
       // Navigate to game view
       console.log(
@@ -704,6 +730,17 @@ export const Dashboard: React.FC = () => {
       };
 
       const roomCode = await createGameRoom(gameConfig);
+      setCampaigns((prev) =>
+        prev.map((item) =>
+          item.id === joiningCampaign.id
+            ? {
+                ...item,
+                lastRoomCode: roomCode,
+                lastRoomCodeUpdatedAt: new Date().toISOString(),
+              }
+            : item,
+        ),
+      );
 
       // If joining with a character, auto-place their token
       if (character) {

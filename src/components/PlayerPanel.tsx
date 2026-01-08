@@ -22,7 +22,9 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
   onToggleDM,
 }) => {
   const { characters } = useCharacters();
-  const playerCharacters = characters.filter((c) => c.playerId === player.id);
+  const playerCharacters = characters.filter(
+    (c) => !c.playerId || c.playerId === player.id,
+  );
 
   return (
     <div
@@ -60,11 +62,11 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
             <div key={character.id} className="character-summary">
               <span className="character-name">{character.name}</span>
               <span className="character-details">
-                Level {character.level} {character.race?.name}{' '}
-                {character.classes?.[0]?.name}
+                Level {character.level} {character.race || character.species}{' '}
+                {character.class || 'Adventurer'}
               </span>
               <span className="character-hp">
-                {character.hitPoints.current}/{character.hitPoints.maximum} HP
+                {character.hitPoints}/{character.maxHitPoints ?? character.hitPoints} HP
               </span>
             </div>
           ))}
@@ -122,7 +124,7 @@ export const PlayerPanel: React.FC = () => {
 
   // Filter characters for the current user
   const myCharacters = currentUserId
-    ? characters.filter((c) => c.playerId === currentUserId)
+    ? characters.filter((c) => !c.playerId || c.playerId === currentUserId)
     : [];
   const effectiveMyCharacters = myCharacters;
 
@@ -176,9 +178,9 @@ export const PlayerPanel: React.FC = () => {
         name: character.name,
         type: 'player' as const,
         initiative: character.initiative || 0,
-        maxHP: character.hitPoints?.maximum || 1,
-        currentHP: character.hitPoints?.current || 1,
-        tempHP: character.hitPoints?.temporary || 0,
+        maxHP: character.maxHitPoints ?? character.hitPoints ?? 1,
+        currentHP: character.hitPoints || 1,
+        tempHP: character.temporaryHitPoints || 0,
         armorClass: character.armorClass || 10,
         conditions: [],
         isActive: false,
@@ -186,8 +188,8 @@ export const PlayerPanel: React.FC = () => {
         isDelayed: false,
         notes: '',
         deathSaves: { successes: 0, failures: 0 },
-        initiativeModifier: character.abilities?.dexterity?.modifier || 0,
-        dexterityModifier: character.abilities?.dexterity?.modifier || 0,
+        initiativeModifier: character.abilities?.DEX?.modifier || 0,
+        dexterityModifier: character.abilities?.DEX?.modifier || 0,
         playerId: character.playerId,
       });
     });
@@ -268,17 +270,17 @@ export const PlayerPanel: React.FC = () => {
                 onClick={() => handleViewCharacter(character.id)}
               >
                 <div className="character-avatar">
-                  {character.classes?.[0]?.name?.charAt(0) || '?'}
+                  {character.class?.charAt(0) || '?'}
                 </div>
                 <div className="character-info">
                   <div className="character-name">{character.name}</div>
                   <div className="character-details">
-                    Level {character.level} {character.race?.name}{' '}
-                    {character.classes?.[0]?.name}
+                    Level {character.level} {character.race || character.species}{' '}
+                    {character.class || 'Adventurer'}
                   </div>
                   <div className="character-stats">
-                    HP: {character.hitPoints.current}/
-                    {character.hitPoints.maximum} | AC: {character.armorClass}
+                    HP: {character.hitPoints}/
+                    {character.maxHitPoints ?? character.hitPoints} | AC: {character.armorClass}
                   </div>
                 </div>
                 <div className="character-actions">

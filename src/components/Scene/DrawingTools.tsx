@@ -5,6 +5,7 @@ import {
   type DrawingStyle,
   type DrawingTool,
   type ElementType,
+  type SpellOverlayStyle,
   ELEMENT_THEMES,
 } from '@/types/drawing';
 import type { Camera, PlacedToken, PlacedProp } from '@/types/game';
@@ -1185,6 +1186,8 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
       roomCode,
       gridAlignMode,
       gridAlignPoints,
+      _gridSize,
+      spellGridSnap,
     ],
   );
 
@@ -1450,20 +1453,21 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
             'spell-circle': () => {
               const radius = distance(startPoint, endPoint);
               const theme = ELEMENT_THEMES[spellElementType];
+              const spellStyle: SpellOverlayStyle = {
+                ...drawingStyle,
+                elementType: spellElementType,
+                edgeGlow: theme.edgeGlow,
+                blendMode: theme.blendMode,
+                animationSpeed: theme.animationSpeed,
+                pulseIntensity: theme.pulseIntensity,
+                gridSnap: spellGridSnap,
+              };
               return {
                 ...baseDrawing,
                 type: 'spell-circle',
                 center: startPoint,
                 radius,
-                style: {
-                  ...drawingStyle,
-                  elementType: spellElementType,
-                  edgeGlow: theme.edgeGlow,
-                  blendMode: theme.blendMode,
-                  animationSpeed: theme.animationSpeed,
-                  pulseIntensity: theme.pulseIntensity,
-                  gridSnap: spellGridSnap,
-                } as any,
+                style: spellStyle,
               };
             },
             'spell-ring': () => {
@@ -1473,21 +1477,22 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
               const thickness = Math.max(15, Math.min(60, 15 + outerRadius * 0.1));
               const innerRadius = Math.max(0, outerRadius - thickness);
               const theme = ELEMENT_THEMES[spellElementType];
+              const spellStyle: SpellOverlayStyle = {
+                ...drawingStyle,
+                elementType: spellElementType,
+                edgeGlow: theme.edgeGlow,
+                blendMode: theme.blendMode,
+                animationSpeed: theme.animationSpeed,
+                pulseIntensity: theme.pulseIntensity,
+                gridSnap: spellGridSnap,
+              };
               return {
                 ...baseDrawing,
                 type: 'spell-ring',
                 center: startPoint,
                 outerRadius,
                 innerRadius,
-                style: {
-                  ...drawingStyle,
-                  elementType: spellElementType,
-                  edgeGlow: theme.edgeGlow,
-                  blendMode: theme.blendMode,
-                  animationSpeed: theme.animationSpeed,
-                  pulseIntensity: theme.pulseIntensity,
-                  gridSnap: spellGridSnap,
-                } as any,
+                style: spellStyle,
               };
             },
             'spell-cone': () => {
@@ -1500,6 +1505,15 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                   180) /
                 Math.PI;
               const theme = ELEMENT_THEMES[spellElementType];
+              const spellStyle: SpellOverlayStyle = {
+                ...drawingStyle,
+                elementType: spellElementType,
+                edgeGlow: theme.edgeGlow,
+                blendMode: theme.blendMode,
+                animationSpeed: theme.animationSpeed,
+                pulseIntensity: theme.pulseIntensity,
+                gridSnap: spellGridSnap,
+              };
               return {
                 ...baseDrawing,
                 type: 'spell-cone',
@@ -1507,56 +1521,50 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                 direction,
                 length,
                 angle: 90, // Standard 90-degree cone
-                style: {
-                  ...drawingStyle,
-                  elementType: spellElementType,
-                  edgeGlow: theme.edgeGlow,
-                  blendMode: theme.blendMode,
-                  animationSpeed: theme.animationSpeed,
-                  pulseIntensity: theme.pulseIntensity,
-                  gridSnap: spellGridSnap,
-                } as any,
+                style: spellStyle,
               };
             },
             'spell-line': () => {
               const theme = ELEMENT_THEMES[spellElementType];
               // Default width of 5ft (approximately 1 grid square)
               const width = _gridSize || 50;
+              const spellStyle: SpellOverlayStyle = {
+                ...drawingStyle,
+                elementType: spellElementType,
+                edgeGlow: theme.edgeGlow,
+                blendMode: theme.blendMode,
+                animationSpeed: theme.animationSpeed,
+                pulseIntensity: theme.pulseIntensity,
+                gridSnap: spellGridSnap,
+              };
               return {
                 ...baseDrawing,
                 type: 'spell-line',
                 start: startPoint,
                 end: endPoint,
                 width,
-                style: {
-                  ...drawingStyle,
-                  elementType: spellElementType,
-                  edgeGlow: theme.edgeGlow,
-                  blendMode: theme.blendMode,
-                  animationSpeed: theme.animationSpeed,
-                  pulseIntensity: theme.pulseIntensity,
-                  gridSnap: spellGridSnap,
-                } as any,
+                style: spellStyle,
               };
             },
             'spell-square': () => {
               const size = distance(startPoint, endPoint);
               const theme = ELEMENT_THEMES[spellElementType];
+              const spellStyle: SpellOverlayStyle = {
+                ...drawingStyle,
+                elementType: spellElementType,
+                edgeGlow: theme.edgeGlow,
+                blendMode: theme.blendMode,
+                animationSpeed: theme.animationSpeed,
+                pulseIntensity: theme.pulseIntensity,
+                gridSnap: spellGridSnap,
+              };
               return {
                 ...baseDrawing,
                 type: 'spell-square',
                 origin: startPoint,
                 size,
                 rotation: 0,
-                style: {
-                  ...drawingStyle,
-                  elementType: spellElementType,
-                  edgeGlow: theme.edgeGlow,
-                  blendMode: theme.blendMode,
-                  animationSpeed: theme.animationSpeed,
-                  pulseIntensity: theme.pulseIntensity,
-                  gridSnap: spellGridSnap,
-                } as any,
+                style: spellStyle,
               };
             },
             'spell-triangle': () => {
@@ -1570,6 +1578,15 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                 Math.PI;
               const width = length * 0.8; // Base width is 80% of length
               const theme = ELEMENT_THEMES[spellElementType];
+              const spellStyle: SpellOverlayStyle = {
+                ...drawingStyle,
+                elementType: spellElementType,
+                edgeGlow: theme.edgeGlow,
+                blendMode: theme.blendMode,
+                animationSpeed: theme.animationSpeed,
+                pulseIntensity: theme.pulseIntensity,
+                gridSnap: spellGridSnap,
+              };
               return {
                 ...baseDrawing,
                 type: 'spell-triangle',
@@ -1577,15 +1594,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                 direction,
                 length,
                 width,
-                style: {
-                  ...drawingStyle,
-                  elementType: spellElementType,
-                  edgeGlow: theme.edgeGlow,
-                  blendMode: theme.blendMode,
-                  animationSpeed: theme.animationSpeed,
-                  pulseIntensity: theme.pulseIntensity,
-                  gridSnap: spellGridSnap,
-                } as any,
+                style: spellStyle,
               };
             },
           };
@@ -1645,6 +1654,8 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
       roomCode,
       _gridSize,
       shouldSnapToGrid,
+      spellElementType,
+      spellGridSnap,
       activeScene,
       getSceneTokens,
       getSceneProps,

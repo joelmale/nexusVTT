@@ -188,12 +188,17 @@ export const ELEMENT_THEMES: Record<ElementType, ElementTheme> = {
 
 // Spell overlay specific style properties
 export interface SpellOverlayStyle extends DrawingStyle {
-  elementType: ElementType; // Element theme to use
-  edgeGlow: string; // Bright edge accent (from element theme)
-  blendMode: 'normal' | 'additive' | 'multiply' | 'screen'; // SVG blend mode
-  animationSpeed: 'slow' | 'medium' | 'fast'; // Pulse animation speed
-  pulseIntensity: number; // How much to pulse opacity (0-1)
-  gridSnap: boolean; // Whether to snap to grid when placing
+  elementType?: ElementType; // Element theme to use
+  edgeGlow?: string; // Bright edge accent (from element theme)
+  blendMode?: 'normal' | 'additive' | 'multiply' | 'screen'; // SVG blend mode
+  animationSpeed?: 'slow' | 'medium' | 'fast'; // Pulse animation speed
+  pulseIntensity?: number; // How much to pulse opacity (0-1)
+  gridSnap?: boolean; // Whether to snap to grid when placing
+  spellName?: string;
+  roundCounter?: number;
+  maxRounds?: number;
+  animationsEnabled?: boolean;
+  notes?: string;
 }
 
 // Drawing shape data structures
@@ -329,6 +334,7 @@ export interface PingDrawing extends BaseDrawing {
 // Spell overlay drawing types (transparent, animated AOE effects)
 export interface SpellCircleDrawing extends BaseDrawing {
   type: 'spell-circle';
+  style: SpellOverlayStyle;
   center: Point;
   radius: number; // In pixels (converted from feet based on grid)
   rotation?: number; // Degrees (for future rotation support)
@@ -336,6 +342,7 @@ export interface SpellCircleDrawing extends BaseDrawing {
 
 export interface SpellRingDrawing extends BaseDrawing {
   type: 'spell-ring';
+  style: SpellOverlayStyle;
   center: Point;
   outerRadius: number; // Outer radius in pixels
   innerRadius: number; // Inner radius in pixels (creates donut effect)
@@ -344,6 +351,7 @@ export interface SpellRingDrawing extends BaseDrawing {
 
 export interface SpellConeDrawing extends BaseDrawing {
   type: 'spell-cone';
+  style: SpellOverlayStyle;
   origin: Point; // Point of origin for the cone
   direction: number; // Angle in degrees (0 = right, 90 = down, etc.)
   length: number; // Length in pixels
@@ -352,6 +360,7 @@ export interface SpellConeDrawing extends BaseDrawing {
 
 export interface SpellLineDrawing extends BaseDrawing {
   type: 'spell-line';
+  style: SpellOverlayStyle;
   start: Point;
   end: Point;
   width: number; // Width in pixels (typically 5ft converted)
@@ -359,6 +368,7 @@ export interface SpellLineDrawing extends BaseDrawing {
 
 export interface SpellSquareDrawing extends BaseDrawing {
   type: 'spell-square';
+  style: SpellOverlayStyle;
   origin: Point; // Center of the square
   size: number; // Side length in pixels
   rotation?: number; // Degrees
@@ -366,11 +376,20 @@ export interface SpellSquareDrawing extends BaseDrawing {
 
 export interface SpellTriangleDrawing extends BaseDrawing {
   type: 'spell-triangle';
+  style: SpellOverlayStyle;
   origin: Point; // Apex of the triangle
   direction: number; // Direction triangle points (degrees)
   length: number; // Length from apex to base
   width: number; // Width of the base
 }
+
+export type SpellOverlayDrawing =
+  | SpellCircleDrawing
+  | SpellRingDrawing
+  | SpellConeDrawing
+  | SpellLineDrawing
+  | SpellSquareDrawing
+  | SpellTriangleDrawing;
 
 // Union type for all drawing types
 export type Drawing =
@@ -390,12 +409,7 @@ export type Drawing =
   | VisionBlockDrawing
   | DMNotesDrawing
   | PingDrawing
-  | SpellCircleDrawing
-  | SpellRingDrawing
-  | SpellConeDrawing
-  | SpellLineDrawing
-  | SpellSquareDrawing
-  | SpellTriangleDrawing;
+  | SpellOverlayDrawing;
 
 // Measurement data
 export interface Measurement {

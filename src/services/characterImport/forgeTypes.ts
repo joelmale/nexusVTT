@@ -47,6 +47,7 @@ export interface ForgeCharacter {
   // Basic Info
   id: string;
   name: string;
+  race?: string;
   species: string;
   selectedSpeciesVariant?: string;
   class: string;
@@ -60,6 +61,7 @@ export interface ForgeCharacter {
   armorClass: number;
   hitPoints: number;
   maxHitPoints: number;
+  temporaryHitPoints?: number;
   hitDice: {
     current: number;
     max: number;
@@ -118,6 +120,10 @@ export interface ForgeCharacter {
     speciesTraits?: string[];
     backgroundFeatures?: Array<{ name: string; description: string }>;
   };
+  srdFeatures?: {
+    classFeatures?: string[];
+    subclassFeatures?: string[];
+  };
 
   // Spellcasting
   spellcasting?: {
@@ -142,12 +148,26 @@ export interface ForgeCharacter {
     gp: number;
     pp: number;
   };
+  equippedWeapons?: Array<{
+    weaponSlug?: string;
+    equipped?: boolean;
+    quantity?: number;
+  }>;
 
   // Character Advancement
   subclass?: string | null;
   experiencePoints?: number;
   selectedFeats?: string[];
+  feats?: string[];
   inspiration?: boolean;
+  resources?: unknown[];
+  deathSaves?: {
+    successes: number;
+    failures: number;
+  };
+  conditions?: string[];
+  createdAt?: string;
+  updatedAt?: string;
 
   // Export metadata (added in Phase 2)
   _export?: {

@@ -110,7 +110,7 @@ export const LinearWelcomePage: React.FC = () => {
         localStorage.removeItem('nexus-auth-complete');
       }, 5000);
     }
-  }, [isAuthenticated]);
+  }, [isAuthenticated, isOAuthRedirect]);
 
   // Auto-navigate to game if session exists, or attempt recovery if needed
   React.useEffect(() => {

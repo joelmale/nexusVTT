@@ -516,7 +516,26 @@ class PropAssetManager {
       const prop = library.props.find((p) => p.id === id);
       if (prop) return prop;
     }
-    return null;
+    // Return placeholder for missing props to avoid errors and reduce warnings
+    return this.getPlaceholderProp(id);
+  }
+
+  /**
+   * Get a placeholder prop for missing assets
+   */
+  private getPlaceholderProp(id: string): Prop {
+    return {
+      id,
+      name: 'Missing Prop',
+      image: '', // Empty image will show as broken or placeholder
+      size: 'medium' as const,
+      category: 'other' as const,
+      tags: ['missing'],
+      isCustom: false,
+      isPublic: true,
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+    };
   }
 
   /**
@@ -605,7 +624,10 @@ class PropAssetManager {
   /**
    * Update a prop, creating a custom override when modifying default libraries.
    */
-  async updatePropWithOverride(id: string, updates: Partial<Prop>): Promise<void> {
+  async updatePropWithOverride(
+    id: string,
+    updates: Partial<Prop>,
+  ): Promise<void> {
     const customLibraries = this.propLibraries.filter((lib) => !lib.isDefault);
     for (const library of customLibraries) {
       const propIndex = library.props.findIndex((p) => p.id === id);

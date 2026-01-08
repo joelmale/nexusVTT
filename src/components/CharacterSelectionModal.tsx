@@ -33,7 +33,7 @@ export const CharacterSelectionModal: React.FC<CharacterSelectionModalProps> = (
     [availableCharacters, storeCharacters],
   );
   const userCharacters = useMemo(() => {
-    return effectiveCharacters.filter((c) => c.playerId === user.id);
+    return effectiveCharacters.filter((c) => !c.playerId || c.playerId === user.id);
   }, [effectiveCharacters, user.id]);
 
   // Get last-used character for this campaign from localStorage
@@ -148,7 +148,7 @@ export const CharacterSelectionModal: React.FC<CharacterSelectionModalProps> = (
             ) : (
               <div className="characters-list">
                 {userCharacters.map((character) => {
-                  const primaryClass = character.classes[0];
+                  const primaryClass = character.class || 'Adventurer';
                   const isSelected = selectedCharacterId === character.id && !joinAsSpectator;
 
                   return (
@@ -173,18 +173,19 @@ export const CharacterSelectionModal: React.FC<CharacterSelectionModalProps> = (
                       </div>
 
                       <div className="character-portrait">
-                        {primaryClass?.name.charAt(0) || '?'}
+                        {primaryClass.charAt(0) || '?'}
                       </div>
 
                       <div className="character-info">
                         <div className="character-name">{character.name}</div>
                         <div className="character-details">
-                          Level {character.level} {character.race.name}
-                          {character.race.subrace && ` (${character.race.subrace})`}{' '}
-                          {primaryClass?.name || 'Adventurer'}
+                          Level {character.level} {character.race || character.species || 'Unknown'}{' '}
+                          {primaryClass}
                         </div>
                         <div className="character-stats">
-                          <span title="Hit Points">❤️ {character.hitPoints.current}/{character.hitPoints.maximum}</span>
+                          <span title="Hit Points">
+                            ❤️ {character.hitPoints}/{character.maxHitPoints ?? character.hitPoints}
+                          </span>
                           <span title="Armor Class">🛡️ {character.armorClass}</span>
                         </div>
                       </div>
