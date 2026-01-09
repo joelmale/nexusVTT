@@ -1192,11 +1192,14 @@ const eventHandlers: Record<string, EventHandler> = {
   'session/leave': (state, data) => {
     const eventData = data as { uuid: string };
     if (state.session) {
-      // Remove the leaving player from the session
-      state.session.players = state.session.players.filter(
-        (player) => player.id !== eventData.uuid,
+      // Update the leaving player's connection status
+      const playerIndex = state.session.players.findIndex(
+        (player) => player.id === eventData.uuid,
       );
-      console.log(`👋 Player left session: ${eventData.uuid}`);
+      if (playerIndex >= 0) {
+        state.session.players[playerIndex].connected = false;
+        console.log(`👋 Player disconnected: ${eventData.uuid}`);
+      }
     }
   },
   'session/cohost-added': (state, data) => {
