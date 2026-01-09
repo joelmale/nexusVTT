@@ -17,14 +17,16 @@ A lightweight, modern virtual tabletop for web browsers.
 
 ## Quick Start
 
-Prereqs: Node 18+, npm, Docker Desktop.
+Prereqs: Node 20.19.0+, npm 10.0.0+, Docker Desktop.
 
 ```bash
 npm install
 npm run start:all
 ```
 
-Frontend: http://localhost:5173  
+This starts all services including PostgreSQL in Docker containers.
+
+Frontend: http://localhost:5173
 Backend: http://localhost:5001
 
 ## Routes
@@ -36,6 +38,7 @@ Backend: http://localhost:5001
 ## Common Commands
 
 ```bash
+npm run start:all    # full development stack (Docker + services)
 npm run dev          # frontend only
 npm run server:dev   # backend only
 npm run build:all    # production builds
