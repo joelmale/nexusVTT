@@ -20,7 +20,7 @@
   background: rgba(0, 0, 0, 0.7);
   -webkit-backdrop-filter: blur(2px);
   backdrop-filter: blur(2px);
-  z-index: 1000;
+  z-index: 10100;
   animation: fadeIn 0.3s ease-out;
 }
 
@@ -29,7 +29,7 @@
   top: 50%;
   left: 50%;
   transform: translate(-50%, -50%);
-  z-index: 1001;
+  z-index: 10101;
 
   /* Parchment Dimensions */
   width: 95vw;
@@ -115,7 +115,7 @@
     inset 0 2px 4px rgba(255, 255, 255, 0.2);
   cursor: pointer;
   transition: all 0.2s ease;
-  z-index: 1002;
+  z-index: 10102;
   font-size: 24px;
   color: #2f1b14;
   font-weight: bold;
