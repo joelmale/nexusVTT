@@ -1722,7 +1722,7 @@ class NexusServer {
 
       this.rooms.set(joinCode, room);
       connection.room = joinCode;
-      connection.user.type = 'host'; // Preserve the user's actual name from OAuth/guest login
+      connection.user!.type = 'host'; // Preserve the user's actual name from OAuth/guest login
 
       // Send session created confirmation to client
       this.sendMessage(connection, {
