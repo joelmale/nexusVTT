@@ -86,7 +86,7 @@
     "transit-js": "^0.8.874",
     "uuid": "^13.0.0",
     "ws": "^8.18.3",
-    "zustand": "^5.0.9"
+    "zustand": "^5.0.10"
   },
   "devDependencies": {
     "@eslint/config-array": "^0.23.0",
@@ -108,7 +108,7 @@
     "@types/transit-js": "^0.8.3",
     "@types/ws": "^8.18.1",
     "@vitejs/plugin-react": "^5.1.2",
-    "@vitest/coverage-v8": "^4.0.16",
+    "@vitest/coverage-v8": "^4.0.17",
     "@vitest/ui": "^4.0.15",
     "concurrently": "^9.2.1",
     "eslint": "^9.39.2",
@@ -117,8 +117,8 @@
     "fake-indexeddb": "^6.2.5",
     "glob": "^13.0.0",
     "globals": "^17.0.0",
-    "hermes-estree": "^0.33.1",
-    "hermes-parser": "^0.33.1",
+    "hermes-estree": "^0.33.3",
+    "hermes-parser": "^0.33.3",
     "husky": "^9.1.7",
     "jsdom": "^27.4.0",
     "lint-staged": "^16.2.7",
