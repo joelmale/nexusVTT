@@ -192,5 +192,21 @@ describeDatabase('DatabaseService Integration Tests', () => {
       expect(hosts.length).toBe(1);
       expect(hosts.some(h => h.userId === player1Id)).toBe(false);
     });
+
+    it('should verify campaign authorization correctly', async () => {
+      // Host should be authorized (as DM)
+      let authorized = await dbService.isUserAuthorizedForCampaign(testHostId, testCampaignId);
+      expect(authorized).toBe(true);
+
+      // Random user should NOT be authorized
+      const randomUser = await dbService.createGuestUser('Random User');
+      authorized = await dbService.isUserAuthorizedForCampaign(randomUser.id, testCampaignId);
+      expect(authorized).toBe(false);
+
+      // Once added to the session as a player, they should be authorized
+      await dbService.addPlayerToSession(randomUser.id, sessionId);
+      authorized = await dbService.isUserAuthorizedForCampaign(randomUser.id, testCampaignId);
+      expect(authorized).toBe(true);
+    });
   });
 });
