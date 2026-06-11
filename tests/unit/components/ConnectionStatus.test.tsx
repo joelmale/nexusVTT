@@ -1,10 +1,10 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import ConnectionStatus from '../../../src/components/ConnectionStatus';
-import { webSocketService } from '../../../src/utils/websocket';
+import { webSocketService } from '../../../src/services/websocket';
 
 // Mock the webSocketService
-vi.mock('../../../src/utils/websocket', () => ({
+vi.mock('../../../src/services/websocket', () => ({
   webSocketService: {
     isConnected: vi.fn(),
     getConnectionQuality: vi.fn(),

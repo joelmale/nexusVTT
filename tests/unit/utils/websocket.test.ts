@@ -6,7 +6,7 @@ import {
   beforeEach,
   afterEach,
 } from 'vitest';
-import { webSocketService } from '../../../src/utils/websocket';
+import { webSocketService } from '../../../src/services/websocket';
 
 type MockWebSocket = {
   addEventListener: ReturnType<typeof vi.fn>;

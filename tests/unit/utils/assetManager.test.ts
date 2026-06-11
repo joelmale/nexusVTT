@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest';
-import { AssetManager } from '@/utils/assetManager';
+import { AssetManager } from '@/services/assetManager';
 
 // Mock fetch
 global.fetch = vi.fn();

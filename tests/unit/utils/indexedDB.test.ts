@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { dungeonMapIndexedDB } from '../../../src/utils/indexedDB';
-import type { DungeonMapDB, GameStateDB } from '../../../src/utils/indexedDB';
+import { dungeonMapIndexedDB } from '../../../src/services/indexedDB';
+import type { DungeonMapDB, GameStateDB } from '../../../src/services/indexedDB';
 
 describe.skip('IndexedDB', () => {
   beforeEach(async () => {
