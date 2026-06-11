@@ -178,7 +178,10 @@ interface GameStore extends GameState {
   deleteToken: (sceneId: string, tokenId: string) => void;
   getSceneTokens: (sceneId: string) => PlacedToken[];
   getVisibleTokens: (sceneId: string, isHost: boolean) => PlacedToken[];
-  autoPlaceCharacterToken: (characterId: string, sceneId: string) => Promise<void>;
+  autoPlaceCharacterToken: (
+    characterId: string,
+    sceneId: string,
+  ) => Promise<void>;
   autoPlacePlayerToken: (
     playerName: string,
     imageUrl?: string,
@@ -247,7 +250,15 @@ interface GameStore extends GameState {
   // Chat Actions
   sendChatMessage: (
     content: string,
-    messageType?: 'text' | 'dm-announcement' | 'whisper' | 'system' | 'dice-roll' | 'emote' | 'ooc' | 'combat-action',
+    messageType?:
+      | 'text'
+      | 'dm-announcement'
+      | 'whisper'
+      | 'system'
+      | 'dice-roll'
+      | 'emote'
+      | 'ooc'
+      | 'combat-action',
     recipientId?: string,
     diceData?: {
       expression: string;
@@ -410,9 +421,9 @@ const loadSessionFromStorage = (): Partial<GameStore> | null => {
         type: session.userType,
         id: session.userId || getBrowserId(), // Use stored userId to preserve host identity
         color: 'blue',
-      connected: false,
-      isSpectator: false,
-    },
+        connected: false,
+        isSpectator: false,
+      },
       gameConfig: session.gameConfig,
       // Session will be restored with roomCode via attemptSessionRecovery
     };
@@ -1041,7 +1052,9 @@ const eventHandlers: Record<string, EventHandler> = {
     }
 
     // Check if player is already in the list (de-dupe)
-    const existingPlayer = state.session.players.find((p) => p.id === eventData.uuid);
+    const existingPlayer = state.session.players.find(
+      (p) => p.id === eventData.uuid,
+    );
     if (existingPlayer) {
       console.log('Player already in session, updating connection status');
       existingPlayer.connected = true;
@@ -1063,7 +1076,12 @@ const eventHandlers: Record<string, EventHandler> = {
     };
     state.session.players.push(newPlayer);
 
-    console.log('✅ Player added to session:', newPlayer.name, 'Total players:', state.session.players.length);
+    console.log(
+      '✅ Player added to session:',
+      newPlayer.name,
+      'Total players:',
+      state.session.players.length,
+    );
   },
   'session/reconnected': (state, data) => {
     console.log('Reconnecting to session with data:', data);
@@ -1135,7 +1153,9 @@ const eventHandlers: Record<string, EventHandler> = {
     }
 
     // Update host connection status in player list
-    const hostPlayer = state.session.players.find((p) => p.id === eventData.uuid);
+    const hostPlayer = state.session.players.find(
+      (p) => p.id === eventData.uuid,
+    );
     if (hostPlayer) {
       hostPlayer.connected = true;
       console.log('✅ Host reconnection status updated');
@@ -1167,6 +1187,19 @@ const eventHandlers: Record<string, EventHandler> = {
       console.log(
         `👑 Host changed: ${eventData.oldHostId} -> ${eventData.newHostId} (${eventData.reason})`,
       );
+    }
+  },
+  'session/leave': (state, data) => {
+    const eventData = data as { uuid: string };
+    if (state.session) {
+      // Update the leaving player's connection status
+      const playerIndex = state.session.players.findIndex(
+        (player) => player.id === eventData.uuid,
+      );
+      if (playerIndex >= 0) {
+        state.session.players[playerIndex].connected = false;
+        console.log(`👋 Player disconnected: ${eventData.uuid}`);
+      }
     }
   },
   'session/cohost-added': (state, data) => {
@@ -1352,18 +1385,20 @@ const eventHandlers: Record<string, EventHandler> = {
     // Handle remote HP sync from peers
     void import('@/services/characterSyncService')
       .then(({ characterSyncService }) => {
-        characterSyncService.handleRemoteSync(data as {
-          sourceClientId: string;
-          characterId?: string;
-          tokenId?: string;
-          initiativeEntryId?: string;
-          stats: {
-            currentHP: number;
-            tempHP?: number;
-            maxHP?: number;
-            armorClass?: number;
-          };
-        });
+        characterSyncService.handleRemoteSync(
+          data as {
+            sourceClientId: string;
+            characterId?: string;
+            tokenId?: string;
+            initiativeEntryId?: string;
+            stats: {
+              currentHP: number;
+              tempHP?: number;
+              maxHP?: number;
+              armorClass?: number;
+            };
+          },
+        );
       })
       .catch((error) => {
         console.warn('Failed to load characterSyncService:', error);
@@ -1434,14 +1469,20 @@ const eventHandlers: Record<string, EventHandler> = {
     // Ignore events from self
     if (eventData.sourceClientId === state.user.id) return;
 
-    const scene = state.sceneState.scenes.find((s) => s.id === eventData.sceneId);
+    const scene = state.sceneState.scenes.find(
+      (s) => s.id === eventData.sceneId,
+    );
     if (!scene) return;
 
     const token = scene.placedTokens?.find((t) => t.id === eventData.tokenId);
     if (token) {
       token.characterId = eventData.characterId;
       token.updatedAt = Date.now();
-      console.log('🔗 Bound character to token (remote):', eventData.characterId, eventData.tokenId);
+      console.log(
+        '🔗 Bound character to token (remote):',
+        eventData.characterId,
+        eventData.tokenId,
+      );
     }
   },
 
@@ -1479,7 +1520,10 @@ const eventHandlers: Record<string, EventHandler> = {
 
     if (eventData.scenes) {
       state.sceneState.scenes = eventData.scenes;
-      console.log('🎮 Updated scenes from game-state-update:', eventData.scenes.length);
+      console.log(
+        '🎮 Updated scenes from game-state-update:',
+        eventData.scenes.length,
+      );
     }
 
     if (eventData.activeSceneId !== undefined) {
@@ -1685,7 +1729,7 @@ export const useGameStore = create<GameStore>()(
             roomCode,
             'player',
             undefined, // campaignId
-            user.id,   // userId
+            user.id, // userId
             user.name, // userName
           );
 
@@ -2838,7 +2882,9 @@ export const useGameStore = create<GameStore>()(
       autoPlaceCharacterToken: async (characterId, sceneId) => {
         const { user, session, sceneState } = get();
         const { useCharacterStore } = await import('@/stores/characterStore');
-        const character = useCharacterStore.getState().getCharacter(characterId);
+        const character = useCharacterStore
+          .getState()
+          .getCharacter(characterId);
 
         if (!character || !session) {
           console.log('🎭 Cannot auto-place: missing character or session');
@@ -2868,9 +2914,8 @@ export const useGameStore = create<GameStore>()(
 
         // Get default token
         const { tokenAssetManager } = await import('@/services/tokenAssets');
-        const tokenTemplate = await tokenAssetManager.getDefaultTokenForCharacter(
-          character,
-        );
+        const tokenTemplate =
+          await tokenAssetManager.getDefaultTokenForCharacter(character);
 
         // Create placed token with character binding
         const { createPlacedToken } = await import('@/types/token');
@@ -2951,7 +2996,8 @@ export const useGameStore = create<GameStore>()(
         const tokenImage =
           imageUrl || tokenAssetManager.createPlaceholderTokenImage(playerName);
 
-        const { createToken, createPlacedToken } = await import('@/types/token');
+        const { createToken, createPlacedToken } =
+          await import('@/types/token');
         const baseToken = createToken({
           name: playerName,
           image: tokenImage,
@@ -3964,7 +4010,12 @@ export const useGameStore = create<GameStore>()(
       },
 
       // Chat Actions
-      sendChatMessage: (content, messageType = 'text', recipientId, diceData) => {
+      sendChatMessage: (
+        content,
+        messageType = 'text',
+        recipientId,
+        diceData,
+      ) => {
         const state = get();
         if (!state.user.name || !state.session) return;
 
