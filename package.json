@@ -85,8 +85,8 @@
     "three": "^0.182.0",
     "transit-js": "^0.8.874",
     "uuid": "^13.0.0",
-    "ws": "^8.18.3",
-    "zustand": "^5.0.12"
+    "ws": "^8.19.0",
+    "zustand": "^5.0.9"
   },
   "devDependencies": {
     "@eslint/config-array": "^0.23.3",
