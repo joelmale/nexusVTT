@@ -4,12 +4,19 @@ import { ELEMENT_THEMES, ElementType } from '@/types/drawing';
 import type {
   SpellOverlayDrawing,
   SpellOverlayStyle,
+  BaseDrawing,
 } from '@/types/drawing';
 
 
+type SpellOverlayUpdate = {
+  style?: SpellOverlayStyle;
+  rotation?: number;
+  layer?: BaseDrawing['layer'];
+};
+
 interface SpellOverlayPropertiesPanelProps {
   drawing: SpellOverlayDrawing;
-  onUpdate: (updates: Partial<SpellOverlayDrawing>) => void;
+  onUpdate: (updates: SpellOverlayUpdate) => void;
   onClose: () => void;
   gridSize: number;
 }
@@ -17,17 +24,11 @@ interface SpellOverlayPropertiesPanelProps {
 export const SpellOverlayPropertiesPanel: React.FC<
   SpellOverlayPropertiesPanelProps
 > = ({ drawing, onUpdate, onClose, gridSize }) => {
-  const elementType: ElementType = drawing.style.elementType ?? 'arcane';
+  const elementType = drawing.style.elementType;
 
-  const [spellName, setSpellName] = useState(
-    drawing.style.spellName || '',
-  );
-  const [roundCounter, setRoundCounter] = useState(
-    drawing.style.roundCounter || 0,
-  );
-  const [maxRounds, setMaxRounds] = useState(
-    drawing.style.maxRounds || 10,
-  );
+  const [spellName, setSpellName] = useState(drawing.style.spellName ?? '');
+  const [roundCounter, setRoundCounter] = useState(drawing.style.roundCounter ?? 0);
+  const [maxRounds, setMaxRounds] = useState(drawing.style.maxRounds ?? 10);
   const [opacity, setOpacity] = useState(
     drawing.style.fillOpacity !== undefined
       ? drawing.style.fillOpacity
@@ -42,7 +43,7 @@ export const SpellOverlayPropertiesPanel: React.FC<
   const [animationsEnabled, setAnimationsEnabled] = useState(
     drawing.style.animationsEnabled !== false,
   );
-  const [notes, setNotes] = useState(drawing.style.notes || '');
+  const [notes, setNotes] = useState(drawing.style.notes ?? '');
 
   // Get size in feet for display
   const getSizeInFeet = () => {
@@ -85,49 +86,35 @@ export const SpellOverlayPropertiesPanel: React.FC<
   const handleOpacityChange = (newOpacity: number) => {
     setOpacity(newOpacity);
     onUpdate({
-      style: {
-        ...drawing.style,
-        fillOpacity: newOpacity,
-      },
+      style: { ...drawing.style, fillOpacity: newOpacity },
     });
   };
 
   const handleRotationChange = (newRotation: number) => {
     setRotation(newRotation);
     if ('rotation' in drawing) {
-      onUpdate({
-        rotation: newRotation,
-      });
+      onUpdate({ rotation: newRotation });
     }
   };
 
   const handleRoundCounterChange = (newCounter: number) => {
     setRoundCounter(newCounter);
     onUpdate({
-      style: {
-        ...drawing.style,
-        roundCounter: newCounter,
-      },
+      style: { ...drawing.style, roundCounter: newCounter },
     });
   };
 
   const handleSpellNameChange = (newName: string) => {
     setSpellName(newName);
     onUpdate({
-      style: {
-        ...drawing.style,
-        spellName: newName,
-      },
+      style: { ...drawing.style, spellName: newName },
     });
   };
 
   const handleNotesChange = (newNotes: string) => {
     setNotes(newNotes);
     onUpdate({
-      style: {
-        ...drawing.style,
-        notes: newNotes,
-      },
+      style: { ...drawing.style, notes: newNotes },
     });
   };
 
@@ -135,10 +122,7 @@ export const SpellOverlayPropertiesPanel: React.FC<
     const newVisibility = !visibleToPlayers;
     setVisibleToPlayers(newVisibility);
     onUpdate({
-      style: {
-        ...drawing.style,
-        visibleToPlayers: newVisibility,
-      },
+      style: { ...drawing.style, visibleToPlayers: newVisibility },
       layer: newVisibility ? 'effects' : 'dm-only',
     });
   };
@@ -147,10 +131,7 @@ export const SpellOverlayPropertiesPanel: React.FC<
     const newAnimations = !animationsEnabled;
     setAnimationsEnabled(newAnimations);
     onUpdate({
-      style: {
-        ...drawing.style,
-        animationsEnabled: newAnimations,
-      },
+      style: { ...drawing.style, animationsEnabled: newAnimations },
     });
   };
 

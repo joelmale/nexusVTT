@@ -102,13 +102,18 @@ describe('GameToolbar', () => {
 
     // Drawing tools
     expect(screen.getByRole('button', { name: 'Draw' })).toBeInTheDocument();
-    const lineButtons = screen.getAllByRole('button', { name: 'Line' });
-    expect(
-      lineButtons.some((button) => button.getAttribute('data-id') === 'line'),
-    ).toBe(true);
+    // 'Line' appears in both drawing tools and spell tools
+    expect(screen.getAllByRole('button', { name: 'Line' })).toHaveLength(2);
     expect(screen.getByRole('button', { name: 'Rectangle' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Circle' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Cone / AOE' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Erase' })).toBeInTheDocument();
+
+    // Spell tools (all 6 in a single group)
+    expect(screen.getByRole('button', { name: 'Sphere' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Ring' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cone' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cube' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Wedge' })).toBeInTheDocument();
   });
 });

@@ -33,7 +33,6 @@ import {
   Maximize2,
   Drama,
   Divide,
-  GripVertical,
 } from 'lucide-react';
 
 interface ToolbarItem {
@@ -202,12 +201,6 @@ export const GameToolbar: React.FC = () => {
             label: 'Cone',
             tooltip: 'Cone AOE (Burning Hands, Cone of Cold)',
           },
-        ],
-      },
-      {
-        id: 'spells-2',
-        label: 'Spell Effects (cont)',
-        tools: [
           {
             id: 'spell-line',
             icon: <Minus size={18} />,
@@ -401,11 +394,6 @@ export const GameToolbar: React.FC = () => {
         role="toolbar"
         onMouseLeave={() => setHoveredTool(null)}
       >
-        {/* Drag Handle */}
-        <div className="toolbar-drag-handle" title="Drag to reposition">
-          <GripVertical size={16} />
-        </div>
-
         {/* Main Tool Groups */}
         <div className="toolbar-section main-tools">
           {/* Navigation Tools */}
@@ -432,7 +420,6 @@ export const GameToolbar: React.FC = () => {
         <div className="toolbar-section spell-tools">
           <div className="toolbar-group spell-grid">
             {toolGroups[3].tools.map(renderToolButton)}
-            {toolGroups[4].tools.map(renderToolButton)}
           </div>
 
           {/* DM Mask Tools */}

@@ -188,17 +188,17 @@ export const ELEMENT_THEMES: Record<ElementType, ElementTheme> = {
 
 // Spell overlay specific style properties
 export interface SpellOverlayStyle extends DrawingStyle {
-  elementType?: ElementType; // Element theme to use
-  edgeGlow?: string; // Bright edge accent (from element theme)
-  blendMode?: 'normal' | 'additive' | 'multiply' | 'screen'; // SVG blend mode
-  animationSpeed?: 'slow' | 'medium' | 'fast'; // Pulse animation speed
-  pulseIntensity?: number; // How much to pulse opacity (0-1)
-  gridSnap?: boolean; // Whether to snap to grid when placing
-  spellName?: string;
-  roundCounter?: number;
-  maxRounds?: number;
-  animationsEnabled?: boolean;
-  notes?: string;
+  elementType: ElementType; // Element theme to use
+  edgeGlow: string; // Bright edge accent (from element theme)
+  blendMode: 'normal' | 'additive' | 'multiply' | 'screen'; // SVG blend mode
+  animationSpeed: 'slow' | 'medium' | 'fast'; // Pulse animation speed
+  pulseIntensity: number; // How much to pulse opacity (0-1)
+  gridSnap: boolean; // Whether to snap to grid when placing
+  spellName?: string; // Optional label shown on the overlay
+  roundCounter?: number; // Current round count for duration tracking
+  maxRounds?: number; // Maximum rounds before expiry
+  animationsEnabled?: boolean; // Whether CSS pulse animations are active
+  notes?: string; // DM notes attached to this overlay
 }
 
 // Drawing shape data structures
