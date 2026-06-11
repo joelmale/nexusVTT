@@ -108,6 +108,7 @@ const isFullCharacterPayload = (value: unknown): value is Character => {
   );
 };
 
+
 const buildCharacterFromRecord = (
   record: CharacterRecord,
   fallbackPlayerId: string,

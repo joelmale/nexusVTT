@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { webSocketService } from '@/utils/websocket';
+import { webSocketService } from '@/services/websocket';
 
 describe('webSocketService join handling', () => {
   beforeEach(() => {

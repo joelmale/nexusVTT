@@ -64,4 +64,28 @@ describe('characterNormalization', () => {
     expect(normalized.createdAt).toBe(NOW);
     expect(normalized.updatedAt).toBe(NOW);
   });
+
+  it('preserves savingThrowProficiencies from input', () => {
+    const base = createEmptyCharacter('player-1');
+    const input = {
+      ...base,
+      savingThrowProficiencies: {
+        STR: true, DEX: false, CON: false,
+        INT: false, WIS: false, CHA: false,
+      },
+    };
+
+    const normalized = normalizeCharacter(input, { playerId: 'player-1', now: NOW });
+    expect(normalized.savingThrowProficiencies?.STR).toBe(true);
+    expect(normalized.savingThrowProficiencies?.DEX).toBe(false);
+  });
+
+  it('defaults savingThrowProficiencies to all false when absent', () => {
+    const base = createEmptyCharacter('player-1');
+    const inputWithout = { ...base, savingThrowProficiencies: undefined };
+
+    const normalized = normalizeCharacter(inputWithout as typeof base, { playerId: 'player-1', now: NOW });
+    expect(normalized.savingThrowProficiencies?.STR).toBe(false);
+    expect(normalized.savingThrowProficiencies?.CHA).toBe(false);
+  });
 });

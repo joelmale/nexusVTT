@@ -3,6 +3,9 @@ import { useCharacterStore } from '@/stores/characterStore';
 import { calculatePassivePerception } from '@/types/character';
 import type { Character, AbilityKey } from '@/types/character';
 
+const formatSlug = (slug: string): string =>
+  slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+
 interface CharacterSheetProps {
   character: Character;
   readonly?: boolean;
@@ -21,8 +24,12 @@ const AbilityScore: React.FC<AbilityScoreProps> = ({
   character,
   readonly,
 }) => {
-  const { updateAbilityScore } = useCharacterStore();
+  const { updateAbilityScore, updateSavingThrowProficiency } = useCharacterStore();
   const abilityData = character.abilities[ability];
+  const profBonus = character.proficiencyBonus ?? 2;
+  const isProficient = character.savingThrowProficiencies?.[ability] ?? false;
+  const saveValue = abilityData.modifier + (isProficient ? profBonus : 0);
+  const saveDisplay = `${saveValue >= 0 ? '+' : ''}${saveValue}`;
 
   return (
     <div className="ability-score">
@@ -51,7 +58,18 @@ const AbilityScore: React.FC<AbilityScoreProps> = ({
       </div>
 
       <div className="saving-throw">
-        <label className="save-label">Modifier</label>
+        <input
+          type="checkbox"
+          checked={isProficient}
+          onChange={(e) =>
+            !readonly &&
+            updateSavingThrowProficiency(character.id, ability, e.target.checked)
+          }
+          disabled={readonly}
+          aria-label={`${name} saving throw proficiency`}
+        />
+        <span className="save-value">{saveDisplay}</span>
+        <label className="save-label">Save</label>
       </div>
     </div>
   );
@@ -192,7 +210,7 @@ const EquipmentList: React.FC<{ character: Character; readonly?: boolean }> = ({
             <div className="equipment-info">
               <input
                 type="text"
-                value={item.equipmentSlug}
+                value={item.name || formatSlug(item.equipmentSlug)}
                 onChange={(e) =>
                   !readonly &&
                   updateEquipment(character.id, item.equipmentSlug, {
@@ -202,7 +220,9 @@ const EquipmentList: React.FC<{ character: Character; readonly?: boolean }> = ({
                 className="equipment-name"
                 readOnly={readonly}
               />
-              <span className="equipment-type">inventory</span>
+              <span className="equipment-type">
+                {item.equipped ? 'equipped' : 'unequipped'}
+              </span>
               <input
                 type="number"
                 value={item.quantity}
@@ -662,6 +682,23 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({
                   />
                 </div>
               </div>
+            </div>
+
+            <div className="notes-section">
+              <h4>Notes</h4>
+              <textarea
+                value={character.featuresAndTraits?.notes || ''}
+                onChange={(e) =>
+                  handleBasicInfoChange('featuresAndTraits', {
+                    ...(character.featuresAndTraits || {}),
+                    notes: e.target.value,
+                  })
+                }
+                rows={6}
+                className="notes-input"
+                placeholder="Campaign notes, character backstory, reminders..."
+                readOnly={readonly}
+              />
             </div>
           </div>
         )}
