@@ -8,7 +8,7 @@
  * - Import/export character data
  */
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { useCharacters } from '@/stores/characterStore';
@@ -49,7 +49,8 @@ const convertCharacterToPlayerCharacter = (
 };
 
 export const PlayerSetupPage: React.FC = () => {
-  const { user, joinRoomWithCode, autoPlacePlayerToken, setUser } = useGameStore();
+  const { user, joinRoomWithCode, autoPlacePlayerToken, setUser } =
+    useGameStore();
   const navigate = useNavigate();
 
   const { characters, deleteCharacter } = useCharacters();
@@ -76,6 +77,13 @@ export const PlayerSetupPage: React.FC = () => {
     (c) => c.id === selectedCharacterId,
   );
 
+  // Update player name when character is selected
+  useEffect(() => {
+    if (selectedCharacter) {
+      setPlayerName(selectedCharacter.name);
+    }
+  }, [selectedCharacter]);
+
   const handleJoinGame = async () => {
     if (!roomCode.trim() || roomCode.trim().length !== 4) {
       setError('Please enter a valid 4-character room code');
@@ -92,11 +100,15 @@ export const PlayerSetupPage: React.FC = () => {
 
     try {
       // Set user name before joining
-      setUser({ name: playerName.trim(), isSpectator: joinMode === 'spectator' });
+      setUser({
+        name: playerName.trim(),
+        isSpectator: joinMode === 'spectator',
+      });
 
-      const playerCharacter = joinMode === 'player' && selectedCharacter
-        ? convertCharacterToPlayerCharacter(selectedCharacter, user.id)
-        : undefined;
+      const playerCharacter =
+        joinMode === 'player' && selectedCharacter
+          ? convertCharacterToPlayerCharacter(selectedCharacter, user.id)
+          : undefined;
       const joinedRoomCode = await joinRoomWithCode(
         roomCode.trim().toUpperCase(),
         playerCharacter,
@@ -167,15 +179,13 @@ export const PlayerSetupPage: React.FC = () => {
     );
     // Auto-select the first imported character if there's only one
     if (result.successful === 1 && characters.length > 0) {
-      const latestCharacter = characters
-        .slice()
-        .sort((a, b) => {
-          const aDate =
-            typeof a.createdAt === 'string' ? Date.parse(a.createdAt) : 0;
-          const bDate =
-            typeof b.createdAt === 'string' ? Date.parse(b.createdAt) : 0;
-          return bDate - aDate;
-        })[0];
+      const latestCharacter = characters.slice().sort((a, b) => {
+        const aDate =
+          typeof a.createdAt === 'string' ? Date.parse(a.createdAt) : 0;
+        const bDate =
+          typeof b.createdAt === 'string' ? Date.parse(b.createdAt) : 0;
+        return bDate - aDate;
+      })[0];
       setSelectedCharacterId(latestCharacter.id);
     }
   };
@@ -282,12 +292,13 @@ export const PlayerSetupPage: React.FC = () => {
                       <div className="character-info">
                         <h3>{character.name}</h3>
                         <p>
-                        Level {character.level} {character.race || character.species}{' '}
-                        {character.class || 'Adventurer'}
-                      </p>
-                      <p className="character-background">
-                        {character.background || 'Unknown'}
-                      </p>
+                          Level {character.level}{' '}
+                          {character.race || character.species}{' '}
+                          {character.class || 'Adventurer'}
+                        </p>
+                        <p className="character-background">
+                          {character.background || 'Unknown'}
+                        </p>
                         <p className="last-used">
                           Created:{' '}
                           {character.createdAt
@@ -367,7 +378,9 @@ export const PlayerSetupPage: React.FC = () => {
                 }}
               >
                 <div style={{ fontSize: '2rem' }}>⚡</div>
-                <h3 style={{ margin: 0, fontSize: '1rem', color: '#ffffff' }}>Quick Entry</h3>
+                <h3 style={{ margin: 0, fontSize: '1rem', color: '#ffffff' }}>
+                  Quick Entry
+                </h3>
                 <p
                   style={{
                     margin: 0,
@@ -379,10 +392,16 @@ export const PlayerSetupPage: React.FC = () => {
                 >
                   I have basic character info
                 </p>
-                <button onClick={handleQuickEntry} className="glass-button primary" style={{ width: '100%' }}>
+                <button
+                  onClick={handleQuickEntry}
+                  className="glass-button primary"
+                  style={{ width: '100%' }}
+                >
                   Enter Info
                 </button>
-                <small style={{ opacity: 0.6, color: '#ffffff' }}>⏱️ 30 seconds</small>
+                <small style={{ opacity: 0.6, color: '#ffffff' }}>
+                  ⏱️ 30 seconds
+                </small>
               </div>
 
               <div
@@ -396,7 +415,9 @@ export const PlayerSetupPage: React.FC = () => {
                 }}
               >
                 <div style={{ fontSize: '2rem' }}>📥</div>
-                <h3 style={{ margin: 0, fontSize: '1rem', color: '#ffffff' }}>Import JSON</h3>
+                <h3 style={{ margin: 0, fontSize: '1rem', color: '#ffffff' }}>
+                  Import JSON
+                </h3>
                 <p
                   style={{
                     margin: 0,
@@ -415,7 +436,9 @@ export const PlayerSetupPage: React.FC = () => {
                 >
                   Upload File
                 </button>
-                <small style={{ opacity: 0.6, color: '#ffffff' }}>⏱️ 2 minutes</small>
+                <small style={{ opacity: 0.6, color: '#ffffff' }}>
+                  ⏱️ 2 minutes
+                </small>
               </div>
 
               <div
@@ -429,7 +452,9 @@ export const PlayerSetupPage: React.FC = () => {
                 }}
               >
                 <div style={{ fontSize: '2rem' }}>✨</div>
-                <h3 style={{ margin: 0, fontSize: '1rem', color: '#ffffff' }}>Character Forge</h3>
+                <h3 style={{ margin: 0, fontSize: '1rem', color: '#ffffff' }}>
+                  Character Forge
+                </h3>
                 <p
                   style={{
                     margin: 0,
@@ -448,7 +473,9 @@ export const PlayerSetupPage: React.FC = () => {
                 >
                   Open Forge ↗
                 </button>
-                <small style={{ opacity: 0.6, color: '#ffffff' }}>⏱️ 15+ minutes</small>
+                <small style={{ opacity: 0.6, color: '#ffffff' }}>
+                  ⏱️ 15+ minutes
+                </small>
               </div>
             </div>
           </div>
@@ -482,7 +509,9 @@ export const PlayerSetupPage: React.FC = () => {
               {joinMode === 'player' && !selectedCharacter && (
                 <div className="form-row">
                   <div className="input-group">
-                    <label htmlFor="player-token-upload">Token Image (Optional)</label>
+                    <label htmlFor="player-token-upload">
+                      Token Image (Optional)
+                    </label>
                     <div className="glass-input-wrapper">
                       <input
                         id="player-token-upload"
@@ -493,16 +522,30 @@ export const PlayerSetupPage: React.FC = () => {
                       />
                     </div>
                     <small style={{ opacity: 0.7 }}>
-                      We’ll create a default token with your name if you skip this.
+                      We’ll create a default token with your name if you skip
+                      this.
                     </small>
                     {playerTokenImage && (
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', marginTop: '0.5rem' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '0.75rem',
+                          marginTop: '0.5rem',
+                        }}
+                      >
                         <img
                           src={playerTokenImage}
                           alt="Player token preview"
-                          style={{ width: '48px', height: '48px', borderRadius: '50%' }}
+                          style={{
+                            width: '48px',
+                            height: '48px',
+                            borderRadius: '50%',
+                          }}
                         />
-                        <span style={{ opacity: 0.8 }}>{playerTokenFileName}</span>
+                        <span style={{ opacity: 0.8 }}>
+                          {playerTokenFileName}
+                        </span>
                       </div>
                     )}
                   </div>

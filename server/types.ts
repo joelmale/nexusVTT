@@ -40,6 +40,7 @@ export interface Connection {
   pendingPing?: string;
   consecutiveMisses: number;
   connectionQuality: 'excellent' | 'good' | 'poor' | 'critical';
+  maliciousAttemptsCount?: number; // Tracks anti-tamper security violations
 }
 
 export interface BaseServerMessage {

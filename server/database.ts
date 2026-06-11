@@ -665,6 +665,44 @@ export class DatabaseService {
   }
 
   /**
+   * Checks if a user is authorized for a campaign (DM or player/co-host in a session)
+   * @param {string} userId - User UUID
+   * @param {string} campaignId - Campaign UUID
+   * @returns {Promise<boolean>} True if authorized
+   */
+  async isUserAuthorizedForCampaign(
+    userId: string,
+    campaignId: string,
+  ): Promise<boolean> {
+    try {
+      // First check if the user is the DM
+      const campaign = await this.getCampaignById(campaignId);
+      if (!campaign) {
+        return false;
+      }
+      if (campaign.dmId === userId) {
+        return true;
+      }
+
+      // Check if the user is a player or host in any active/hibernating session for this campaign
+      const result = await this.pool.query(
+        `SELECT 1 FROM sessions s
+         LEFT JOIN players p ON s.id = p."sessionId"
+         LEFT JOIN hosts h ON s.id = h."sessionId"
+         WHERE s."campaignId" = $1 AND (p."userId" = $2 OR h."userId" = $2 OR s."primaryHostId" = $2)
+         LIMIT 1`,
+        [campaignId, userId],
+      );
+
+      return result.rowCount !== null && result.rowCount > 0;
+    } catch (error) {
+      console.error('Error checking campaign authorization:', error);
+      return false;
+    }
+  }
+
+
+  /**
    * Updates campaign details
    * @param {string} campaignId - Campaign UUID to update
    * @param {Partial<CampaignRecord>} updates - Fields to update

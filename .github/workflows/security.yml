@@ -1,9 +1,8 @@
 name: Security Scan
 
 on:
-  schedule:
-    - cron: '0 3 * * 0' # Weekly at 3 AM UTC on Sunday
-  workflow_dispatch:
+  push:
+    branches: [master]
 
 jobs:
   codeql:
