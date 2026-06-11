@@ -921,6 +921,17 @@ class NexusServer {
         const campaignId = req.params.id;
         const updates = req.body;
 
+        const user = req.user as { id: string };
+        const campaign = await this.db.getCampaignById(campaignId);
+        if (!campaign) {
+          return res.status(404).json({ error: 'Campaign not found' });
+        }
+        if (campaign.dmId !== user.id) {
+          return res
+            .status(403)
+            .json({ error: 'Access denied: not campaign owner' });
+        }
+
         // Validate updates
         if (updates.name !== undefined) {
           if (
@@ -1244,6 +1255,7 @@ class NexusServer {
     const documentRoutes = createDocumentRoutes(
       this.documentClient,
       this.documentsEnabled,
+      this.db,
     );
     this.app.use('/api', documentRoutes);
     if (this.documentsEnabled) {
@@ -1501,24 +1513,26 @@ class NexusServer {
 
     // Priority: authenticated user > guest user > query param > new UUID
     let uuid = user?.id || guestUser?.id || userIdFromQuery || uuidv4();
-    let displayName =
+    const displayName =
       user?.name || guestUser?.name || userNameFromQuery || 'Guest';
     let userType = user ? 'Authenticated' : guestUser ? 'Guest' : 'Anonymous';
 
-    // If we have a userId from query params but no authenticated user, try to look up the user
-    if (userIdFromQuery && !user && !guestUser) {
+    // To prevent identity spoofing, verify that if a userId is claimed via query param
+    // but the connection is anonymous (no active session cookie), it does not clash
+    // with an existing user in the database.
+    if (!user && !guestUser && userIdFromQuery) {
       try {
-        const dbUser = await this.db.getUserById(userIdFromQuery);
-        if (dbUser) {
-          uuid = dbUser.id;
-          displayName = dbUser.name;
-          userType = 'Authenticated';
-          console.log(
-            `✅ Found authenticated user from query param: ${dbUser.name}`,
+        const existingUser = await this.db.getUserById(userIdFromQuery);
+        if (existingUser) {
+          // Deny impersonation: generate a new UUID and treat as Anonymous
+          console.warn(
+            `⚠️ Security warning: Connection from anonymous client attempted to claim existing user ID ${userIdFromQuery}. Generating a new guest identity.`,
           );
+          uuid = uuidv4();
+          userType = 'Anonymous';
         }
       } catch (error) {
-        console.warn(`⚠️ Failed to lookup user ${userIdFromQuery}:`, error);
+        console.warn(`Failed to verify userIdFromQuery:`, error);
       }
     }
 
@@ -2082,31 +2096,73 @@ class NexusServer {
 
     room.lastActivity = Date.now();
 
-    if (message.type === 'event' && connection.user!.type !== 'host') {
+    if (message.type === 'event') {
       const eventName = (message.data as { name?: string })?.name;
-      const restrictedEvents = new Set([
+      const isSenderHost =
+        room.host === connection.id || room.coHosts.has(connection.id);
+
+      const dmOnlyActions = new Set([
         'game-state-update',
         'scene/create',
         'scene/update',
         'scene/delete',
         'scene/reorder',
         'scene/change',
-        'drawing/create',
-        'drawing/update',
-        'drawing/delete',
-        'drawing/clear',
-        'token/place',
-        'token/update',
-        'token/delete',
-        'prop/place',
-        'prop/update',
-        'prop/delete',
         'host/transfer',
         'host/add-cohost',
         'host/remove-cohost',
+        'drawing/clear',
+        'session/kickPlayer',
+        'session/updatePermissions',
       ]);
 
-      if (!room.dmConnected && eventName && restrictedEvents.has(eventName)) {
+      const dmOfflineRestrictedActions = new Set([
+        'drawing/create',
+        'drawing/update',
+        'drawing/delete',
+        'token/place',
+        'token/update',
+        'token/delete',
+        'token/move',
+        'prop/place',
+        'prop/update',
+        'prop/delete',
+        'prop/move',
+        'prop/interact',
+      ]);
+
+      // Enforce DM-Only actions: Only host or co-host can perform
+      if (eventName && dmOnlyActions.has(eventName) && !isSenderHost) {
+        connection.maliciousAttemptsCount = (connection.maliciousAttemptsCount || 0) + 1;
+        console.warn(
+          `⚠️ Security violation: Unauthorized user ${connection.id} attempted DM-Only action "${eventName}" (Attempt ${connection.maliciousAttemptsCount}/3)`,
+        );
+
+        this.sendMessage(connection, {
+          type: 'error',
+          data: {
+            message: 'Access denied: Host privilege required.',
+            code: 403,
+          },
+          timestamp: Date.now(),
+        });
+
+        if (connection.maliciousAttemptsCount >= 3) {
+          console.error(
+            `🔌 Anti-tamper: Terminating connection for user ${connection.id} due to repeated security violations.`,
+          );
+          connection.ws.terminate();
+        }
+        return;
+      }
+
+      // Enforce DM-Offline restrictions: Players cannot perform when DM is offline
+      if (
+        eventName &&
+        dmOfflineRestrictedActions.has(eventName) &&
+        !isSenderHost &&
+        !room.dmConnected
+      ) {
         this.sendMessage(connection, {
           type: 'error',
           data: {
