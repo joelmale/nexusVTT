@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useActiveScene } from '@/stores/gameStore';
-import type { Drawing, BaseDrawing, SpellOverlayStyle } from '@/types/drawing';
+import type { Drawing, BaseDrawing } from '@/types/drawing';
 import { ELEMENT_THEMES } from '@/types/drawing';
 import type { Camera } from '@/types/game';
 
@@ -85,18 +85,6 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
   onDrawingClick,
 }) => {
   const activeScene = useActiveScene();
-  const getSpellOverlayMeta = (style: SpellOverlayStyle) => {
-    const elementType = style.elementType ?? 'arcane';
-    const theme = ELEMENT_THEMES[elementType];
-    return {
-      elementType,
-      theme,
-      animationsEnabled: style.animationsEnabled !== false,
-      roundCounter: style.roundCounter ?? 0,
-      spellName: style.spellName ?? '',
-    };
-  };
-
   const drawings = useMemo(() => {
     if (!activeScene || activeScene.id !== sceneId) return [];
     return activeScene.drawings || [];

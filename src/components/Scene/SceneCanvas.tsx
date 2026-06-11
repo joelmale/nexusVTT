@@ -58,6 +58,8 @@ interface SceneCanvasProps {
   scene: Scene;
 }
 
+const SPELL_TYPES = new Set(['spell-circle', 'spell-ring', 'spell-cone', 'spell-line', 'spell-square', 'spell-triangle']);
+
 const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   // Actions from store (don't cause rerenders)
   const {
@@ -154,8 +156,6 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     const drawingIds = new Set(drawings.map((d) => d.id));
     return selectedObjectIds.filter((id) => drawingIds.has(id));
   }, [selectedObjectIds, drawings]);
-
-  const SPELL_TYPES = new Set(['spell-circle', 'spell-ring', 'spell-cone', 'spell-line', 'spell-square', 'spell-triangle']);
 
   // Filter for spell overlay drawings specifically
   const selectedSpellOverlay = useMemo(() => {
