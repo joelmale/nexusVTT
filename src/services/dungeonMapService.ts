@@ -5,7 +5,7 @@
  */
 
 import { type BaseMap } from './baseMapAssets';
-import { dungeonMapIndexedDB, type StorageStats } from '../utils/indexedDB';
+import { dungeonMapIndexedDB, type StorageStats } from './indexedDB';
 
 export interface GeneratedDungeonMap {
   id: string;

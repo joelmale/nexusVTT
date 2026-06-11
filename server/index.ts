@@ -216,9 +216,7 @@ class NexusServer {
 
   private readonly ASSETS_PATH =
     process.env.ASSETS_PATH || path.join(__dirname, '../static-assets/assets');
-  private readonly CORS_ORIGINS: string[] = (
-    process.env.CORS_ORIGIN || ''
-  )
+  private readonly CORS_ORIGINS: string[] = (process.env.CORS_ORIGIN || '')
     .split(',')
     .map((origin) => origin.trim())
     .filter(Boolean);
@@ -269,7 +267,9 @@ class NexusServer {
           if (!origin) return callback(null, true);
           if (allowedOrigins.includes(origin)) return callback(null, true);
           return callback(
-            new Error(`CORS blocked for origin: ${origin} (allowed: ${allowedOrigins.join(', ')})`),
+            new Error(
+              `CORS blocked for origin: ${origin} (allowed: ${allowedOrigins.join(', ')})`,
+            ),
             false,
           );
         },
@@ -921,6 +921,17 @@ class NexusServer {
         const campaignId = req.params.id;
         const updates = req.body;
 
+        const user = req.user as { id: string };
+        const campaign = await this.db.getCampaignById(campaignId);
+        if (!campaign) {
+          return res.status(404).json({ error: 'Campaign not found' });
+        }
+        if (campaign.dmId !== user.id) {
+          return res
+            .status(403)
+            .json({ error: 'Access denied: not campaign owner' });
+        }
+
         // Validate updates
         if (updates.name !== undefined) {
           if (
@@ -1201,7 +1212,12 @@ class NexusServer {
 
         // Create custom tokens directory if it doesn't exist
         // Save to ASSETS_PATH/assets/tokens/custom to match the static serve path
-        const customTokensDir = path.join(this.ASSETS_PATH, 'assets', 'tokens', 'custom');
+        const customTokensDir = path.join(
+          this.ASSETS_PATH,
+          'assets',
+          'tokens',
+          'custom',
+        );
         if (!fs.existsSync(customTokensDir)) {
           fs.mkdirSync(customTokensDir, { recursive: true });
         }
@@ -1239,6 +1255,7 @@ class NexusServer {
     const documentRoutes = createDocumentRoutes(
       this.documentClient,
       this.documentsEnabled,
+      this.db,
     );
     this.app.use('/api', documentRoutes);
     if (this.documentsEnabled) {
@@ -1496,23 +1513,26 @@ class NexusServer {
 
     // Priority: authenticated user > guest user > query param > new UUID
     let uuid = user?.id || guestUser?.id || userIdFromQuery || uuidv4();
-    let displayName = user?.name || guestUser?.name || userNameFromQuery || 'Guest';
+    const displayName =
+      user?.name || guestUser?.name || userNameFromQuery || 'Guest';
     let userType = user ? 'Authenticated' : guestUser ? 'Guest' : 'Anonymous';
 
-    // If we have a userId from query params but no authenticated user, try to look up the user
-    if (userIdFromQuery && !user && !guestUser) {
+    // To prevent identity spoofing, verify that if a userId is claimed via query param
+    // but the connection is anonymous (no active session cookie), it does not clash
+    // with an existing user in the database.
+    if (!user && !guestUser && userIdFromQuery) {
       try {
-        const dbUser = await this.db.getUserById(userIdFromQuery);
-        if (dbUser) {
-          uuid = dbUser.id;
-          displayName = dbUser.name;
-          userType = 'Authenticated';
-          console.log(
-            `✅ Found authenticated user from query param: ${dbUser.name}`,
+        const existingUser = await this.db.getUserById(userIdFromQuery);
+        if (existingUser) {
+          // Deny impersonation: generate a new UUID and treat as Anonymous
+          console.warn(
+            `⚠️ Security warning: Connection from anonymous client attempted to claim existing user ID ${userIdFromQuery}. Generating a new guest identity.`,
           );
+          uuid = uuidv4();
+          userType = 'Anonymous';
         }
       } catch (error) {
-        console.warn(`⚠️ Failed to lookup user ${userIdFromQuery}:`, error);
+        console.warn(`Failed to verify userIdFromQuery:`, error);
       }
     }
 
@@ -1522,7 +1542,9 @@ class NexusServer {
       try {
         const existingUser = await this.db.getUserById(uuid);
         if (!existingUser) {
-          console.log(`🔧 Creating missing database record for user: ${uuid} (${displayName})`);
+          console.log(
+            `🔧 Creating missing database record for user: ${uuid} (${displayName})`,
+          );
           await this.db.createGuestUser(displayName, uuid);
           console.log(`✅ Guest user created in database: ${uuid}`);
         }
@@ -1714,7 +1736,7 @@ class NexusServer {
 
       this.rooms.set(joinCode, room);
       connection.room = joinCode;
-      connection.user.type = 'host'; // Preserve the user's actual name from OAuth/guest login
+      connection.user!.type = 'host'; // Preserve the user's actual name from OAuth/guest login
 
       // Send session created confirmation to client
       this.sendMessage(connection, {
@@ -1733,7 +1755,7 @@ class NexusServer {
           players: [
             {
               id: connection.id,
-              name: connection.user?.name || 'Host',
+              name: connection.user!.name || 'Host',
               type: 'host',
               color: 'blue',
               connected: true,
@@ -1775,7 +1797,10 @@ class NexusServer {
         room = await this.recoverRoomFromSession(normalizedRoomCode);
       } else if (campaignId) {
         const campaign = await this.db.getCampaignById(campaignId);
-        if (!campaign || campaign.lastRoomCode?.toUpperCase() !== normalizedRoomCode) {
+        if (
+          !campaign ||
+          campaign.lastRoomCode?.toUpperCase() !== normalizedRoomCode
+        ) {
           this.sendError(connection, 'Room not found');
           return;
         }
@@ -1827,7 +1852,8 @@ class NexusServer {
       // Load game state from database if not in memory
       if (!room.gameState) {
         try {
-          const session = await this.db.getSessionByJoinCode(normalizedRoomCode);
+          const session =
+            await this.db.getSessionByJoinCode(normalizedRoomCode);
           if (session?.gameState) {
             room.gameState = session.gameState as GameState;
             console.log(
@@ -1842,9 +1868,7 @@ class NexusServer {
         }
       }
     } else {
-      console.log(
-        `🔄 Host reconnecting to active room: ${normalizedRoomCode}`,
-      );
+      console.log(`🔄 Host reconnecting to active room: ${normalizedRoomCode}`);
     }
 
     // Set up host connection
@@ -2028,7 +2052,7 @@ class NexusServer {
           uuid: connection.id,
           player: {
             id: connection.id,
-            name: connection.user?.name || 'Player',
+            name: connection.user!.name || 'Player',
             type: 'player',
             color: 'blue',
             connected: true,
@@ -2072,36 +2096,77 @@ class NexusServer {
 
     room.lastActivity = Date.now();
 
-    if (message.type === 'event' && connection.user?.type !== 'host') {
+    if (message.type === 'event') {
       const eventName = (message.data as { name?: string })?.name;
-      const restrictedEvents = new Set([
+      const isSenderHost =
+        room.host === connection.id || room.coHosts.has(connection.id);
+
+      const dmOnlyActions = new Set([
         'game-state-update',
         'scene/create',
         'scene/update',
         'scene/delete',
         'scene/reorder',
         'scene/change',
-        'drawing/create',
-        'drawing/update',
-        'drawing/delete',
-        'drawing/clear',
-        'token/place',
-        'token/update',
-        'token/delete',
-        'prop/place',
-        'prop/update',
-        'prop/delete',
         'host/transfer',
         'host/add-cohost',
         'host/remove-cohost',
+        'drawing/clear',
+        'session/kickPlayer',
+        'session/updatePermissions',
       ]);
 
-      if (!room.dmConnected && eventName && restrictedEvents.has(eventName)) {
+      const dmOfflineRestrictedActions = new Set([
+        'drawing/create',
+        'drawing/update',
+        'drawing/delete',
+        'token/place',
+        'token/update',
+        'token/delete',
+        'token/move',
+        'prop/place',
+        'prop/update',
+        'prop/delete',
+        'prop/move',
+        'prop/interact',
+      ]);
+
+      // Enforce DM-Only actions: Only host or co-host can perform
+      if (eventName && dmOnlyActions.has(eventName) && !isSenderHost) {
+        connection.maliciousAttemptsCount = (connection.maliciousAttemptsCount || 0) + 1;
+        console.warn(
+          `⚠️ Security violation: Unauthorized user ${connection.id} attempted DM-Only action "${eventName}" (Attempt ${connection.maliciousAttemptsCount}/3)`,
+        );
+
         this.sendMessage(connection, {
           type: 'error',
           data: {
-            message:
-              'Host is offline; this action is temporarily restricted.',
+            message: 'Access denied: Host privilege required.',
+            code: 403,
+          },
+          timestamp: Date.now(),
+        });
+
+        if (connection.maliciousAttemptsCount >= 3) {
+          console.error(
+            `🔌 Anti-tamper: Terminating connection for user ${connection.id} due to repeated security violations.`,
+          );
+          connection.ws.terminate();
+        }
+        return;
+      }
+
+      // Enforce DM-Offline restrictions: Players cannot perform when DM is offline
+      if (
+        eventName &&
+        dmOfflineRestrictedActions.has(eventName) &&
+        !isSenderHost &&
+        !room.dmConnected
+      ) {
+        this.sendMessage(connection, {
+          type: 'error',
+          data: {
+            message: 'Host is offline; this action is temporarily restricted.',
             code: 403,
           },
           timestamp: Date.now(),
@@ -2285,8 +2350,8 @@ class NexusServer {
       );
       return;
     }
-    const userName = connection.user?.name || 'Unknown Player';
-    const isHost = connection.user?.type === 'host';
+    const userName = connection.user!.name || 'Unknown Player';
+    const isHost = connection.user!.type === 'host';
     const roll = createServerDiceRoll(data.expression, fromUuid, userName, {
       isPrivate: isHost && data.isPrivate,
       advantage: data.advantage,
@@ -2341,7 +2406,8 @@ class NexusServer {
     }
 
     // Store previous state for delta generation
-    const previousState = room.previousGameState || JSON.parse(JSON.stringify(room.gameState));
+    const previousState =
+      room.previousGameState || JSON.parse(JSON.stringify(room.gameState));
 
     // Merge partial updates into existing state
     if (gameStateUpdate.scenes) {
@@ -2369,17 +2435,21 @@ class NexusServer {
     // Broadcast patch if there are changes (80% size reduction)
     // Exclude sender to prevent duplicate application (sender already applied optimistically)
     if (patch.length > 0) {
-      this.broadcastToRoom(roomCode, {
-        type: 'game-state-patch',
-        data: {
-          patch,
-          version: room.stateVersion,
+      this.broadcastToRoom(
+        roomCode,
+        {
+          type: 'game-state-patch',
+          data: {
+            patch,
+            version: room.stateVersion,
+          },
+          timestamp: Date.now(),
         },
-        timestamp: Date.now(),
-      }, senderUuid);
+        senderUuid,
+      );
 
       console.log(
-        `📡 Broadcasting game state patch v${room.stateVersion} to room ${roomCode} (${patch.length} operations)${senderUuid ? ` [excluding sender ${senderUuid}]` : ''}`
+        `📡 Broadcasting game state patch v${room.stateVersion} to room ${roomCode} (${patch.length} operations)${senderUuid ? ` [excluding sender ${senderUuid}]` : ''}`,
       );
     }
 
@@ -2499,7 +2569,9 @@ class NexusServer {
 
     // Handle host disconnection
     if (room.host === uuid) {
-      console.log(`👑 Host left room ${connection.room}, entering DM offline mode`);
+      console.log(
+        `👑 Host left room ${connection.room}, entering DM offline mode`,
+      );
 
       room.dmConnected = false;
       room.players.delete(uuid);
@@ -2979,10 +3051,7 @@ class NexusServer {
       }
       await this.handleDisconnect(connection.id);
     } catch (error) {
-      console.error(
-        `Failed to forcefully disconnect ${connection.id}:`,
-        error,
-      );
+      console.error(`Failed to forcefully disconnect ${connection.id}:`, error);
     }
   }
 

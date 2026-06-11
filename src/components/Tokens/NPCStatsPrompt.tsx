@@ -53,7 +53,7 @@ export const NPCStatsPrompt: React.FC<NPCStatsPromptProps> = ({
     addEntry(entry);
 
     // Broadcast stat snapshot to peers
-    const { webSocketService } = await import('@/utils/websocket');
+    const { webSocketService } = await import('@/services/websocket');
     webSocketService.sendEvent({
       type: 'event',
       data: {

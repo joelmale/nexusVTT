@@ -103,7 +103,8 @@ const isFullCharacterPayload = (value: unknown): value is Character => {
     typeof record.race === 'string' &&
     typeof record.hitPoints === 'number' &&
     !!abilities &&
-    typeof (abilities.STR as { score?: unknown } | undefined)?.score === 'number'
+    typeof (abilities.STR as { score?: unknown } | undefined)?.score ===
+      'number'
   );
 };
 
@@ -127,7 +128,9 @@ const buildCharacterFromRecord = (
       id: (normalized as Character).id || record.id,
       name: (normalized as Character).name || record.name,
       playerId:
-        (normalized as Character).playerId || record.ownerId || fallbackPlayerId,
+        (normalized as Character).playerId ||
+        record.ownerId ||
+        fallbackPlayerId,
       createdAt:
         (normalized as Character).createdAt ||
         record.createdAt ||
@@ -138,14 +141,17 @@ const buildCharacterFromRecord = (
         base.updatedAt,
     };
 
-    return normalizeCharacter(mergedInput, { playerId, baseCharacter: base, now });
+    return normalizeCharacter(mergedInput, {
+      playerId,
+      baseCharacter: base,
+      now,
+    });
   }
 
   const data = normalized as Record<string, unknown>;
   const base = createEmptyCharacter(record.ownerId || fallbackPlayerId);
   const level = typeof data.level === 'number' ? data.level : base.level;
-  const raceName =
-    typeof data.race === 'string' ? data.race : base.race || '';
+  const raceName = typeof data.race === 'string' ? data.race : base.race || '';
   const className = typeof data.class === 'string' ? data.class : '';
   const fallbackInput: Character = {
     ...base,
@@ -251,10 +257,12 @@ interface CharacterRecord {
  */
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, createGameRoom, joinRoomWithCode } =
+  const { user, isAuthenticated, createGameRoom, joinRoomWithCode, setUser } =
     useGameStore();
   const localCharacters = useCharacterStore((state) => state.characters);
-  const clearLocalCharacters = useCharacterStore((state) => state.clearCharacters);
+  const clearLocalCharacters = useCharacterStore(
+    (state) => state.clearCharacters,
+  );
   const { startCharacterCreation, LauncherComponent } =
     useCharacterCreationLauncher();
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -282,7 +290,8 @@ export const Dashboard: React.FC = () => {
   const [joiningGame, setJoiningGame] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const [importMessage, setImportMessage] = useState<string | null>(null);
-  const [showCharacterSelectionModal, setShowCharacterSelectionModal] = useState(false);
+  const [showCharacterSelectionModal, setShowCharacterSelectionModal] =
+    useState(false);
   const [joiningCampaign, setJoiningCampaign] = useState<Campaign | null>(null);
   const syncInFlightRef = React.useRef(false);
   const lastSyncKeyRef = React.useRef<string | null>(null);
@@ -451,8 +460,13 @@ export const Dashboard: React.FC = () => {
   /**
    * Handles import completion from the modal
    */
-  const handleImportComplete = async (result: { successful: number; failed: number }) => {
-    console.log(`✅ Import complete: ${result.successful} successful, ${result.failed} failed`);
+  const handleImportComplete = async (result: {
+    successful: number;
+    failed: number;
+  }) => {
+    console.log(
+      `✅ Import complete: ${result.successful} successful, ${result.failed} failed`,
+    );
 
     // Refresh the characters list from the API
     try {
@@ -465,7 +479,9 @@ export const Dashboard: React.FC = () => {
         setCharacters(data);
       }
 
-      setImportMessage(`Imported ${result.successful} character${result.successful !== 1 ? 's' : ''} successfully.`);
+      setImportMessage(
+        `Imported ${result.successful} character${result.successful !== 1 ? 's' : ''} successfully.`,
+      );
 
       // Clear message after 5 seconds
       setTimeout(() => setImportMessage(null), 5000);
@@ -475,7 +491,11 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleClearAllCharacters = async () => {
-    if (!confirm('This will delete all characters in your account and local cache. Continue?')) {
+    if (
+      !confirm(
+        'This will delete all characters in your account and local cache. Continue?',
+      )
+    ) {
       return;
     }
 
@@ -513,7 +533,9 @@ export const Dashboard: React.FC = () => {
     return null;
   };
 
-  const getCharacterClassLabel = (character: CharacterRecord): string | null => {
+  const getCharacterClassLabel = (
+    character: CharacterRecord,
+  ): string | null => {
     const classValue = character.data?.class;
     if (classValue) {
       if (typeof classValue === 'string') return classValue;
@@ -531,7 +553,9 @@ export const Dashboard: React.FC = () => {
     return null;
   };
 
-  const getCharacterLevelLabel = (character: CharacterRecord): number | null => {
+  const getCharacterLevelLabel = (
+    character: CharacterRecord,
+  ): number | null => {
     const levelValue = character.data?.level;
     if (typeof levelValue === 'number') return levelValue;
     return null;
@@ -582,10 +606,7 @@ export const Dashboard: React.FC = () => {
             );
           }
         } catch (error) {
-          console.warn(
-            `Failed to sync character ${character.name}:`,
-            error,
-          );
+          console.warn(`Failed to sync character ${character.name}:`, error);
         }
       }
 
@@ -805,6 +826,8 @@ export const Dashboard: React.FC = () => {
       console.log(`🎮 Joining game with room code: ${joinRoomCode}`);
       if (character) {
         console.log(`🎭 Joining with character: ${character.name}`);
+        // Update user name to character name
+        setUser({ name: character.name });
       } else if (joinAsSpectator) {
         console.log(`👁️ Joining as spectator`);
       }
@@ -814,7 +837,10 @@ export const Dashboard: React.FC = () => {
         : undefined;
 
       // Join the room - this will connect via WebSocket
-      await joinRoomWithCode(joinRoomCode.trim().toUpperCase(), playerCharacter);
+      await joinRoomWithCode(
+        joinRoomCode.trim().toUpperCase(),
+        playerCharacter,
+      );
 
       // Navigate to game view
       console.log('✅ Joined game successfully, navigating to game room');
@@ -830,13 +856,9 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const recentCampaigns = [...campaigns]
-    .sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-    )
-    ;
-
+  const recentCampaigns = [...campaigns].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+  );
   const uniqueCharacters = React.useMemo(() => {
     const seen = new Set<string>();
     const ordered = [...characters].sort(
@@ -941,15 +963,12 @@ export const Dashboard: React.FC = () => {
         await propAssetManager.initialize();
         await propAssetManager.refreshCustomLibraries();
 
-        const response = await fetch(
-          `/api/campaigns/${selectedCampaign.id}`,
-          {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            credentials: 'include',
-            body: JSON.stringify({ scenes: backup.scenes }),
-          },
-        );
+        const response = await fetch(`/api/campaigns/${selectedCampaign.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ scenes: backup.scenes }),
+        });
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
@@ -1122,7 +1141,9 @@ export const Dashboard: React.FC = () => {
                               <span>Backup</span>
                             </label>
                             <span className="pill">
-                              {new Date(campaign.updatedAt).toLocaleDateString()}
+                              {new Date(
+                                campaign.updatedAt,
+                              ).toLocaleDateString()}
                             </span>
                           </div>
                         </div>
@@ -1153,32 +1174,32 @@ export const Dashboard: React.FC = () => {
 
             {/* Recent Characters */}
             <div className="dashboard-section">
-                <div className="section-header document-section-header">
-                  <h2>Recent Characters</h2>
-                  <div className="section-actions">
-                    <button
-                      onClick={handleOpenImportModal}
-                      className="action-btn glass-button primary"
-                      disabled={charactersLoading}
-                      title="Import characters from 5e Character Forge or other sources"
-                    >
-                      <span>📥</span>
-                      Import
-                    </button>
-                    <button
-                      onClick={handleClearAllCharacters}
-                      className="action-btn glass-button danger"
-                      disabled={charactersLoading || characters.length === 0}
-                      title="Delete all characters"
-                    >
-                      <span>🗑️</span>
-                      Clear All
-                    </button>
-                    <button
-                      onClick={handleCreateCharacter}
-                      className="action-btn glass-button primary"
-                      disabled={charactersLoading}
-                    >
+              <div className="section-header document-section-header">
+                <h2>Recent Characters</h2>
+                <div className="section-actions">
+                  <button
+                    onClick={handleOpenImportModal}
+                    className="action-btn glass-button primary"
+                    disabled={charactersLoading}
+                    title="Import characters from 5e Character Forge or other sources"
+                  >
+                    <span>📥</span>
+                    Import
+                  </button>
+                  <button
+                    onClick={handleClearAllCharacters}
+                    className="action-btn glass-button danger"
+                    disabled={charactersLoading || characters.length === 0}
+                    title="Delete all characters"
+                  >
+                    <span>🗑️</span>
+                    Clear All
+                  </button>
+                  <button
+                    onClick={handleCreateCharacter}
+                    className="action-btn glass-button primary"
+                    disabled={charactersLoading}
+                  >
                     <span>➕</span>
                     New Character
                   </button>
@@ -1198,18 +1219,18 @@ export const Dashboard: React.FC = () => {
                       {importMessage}
                     </div>
                   )}
-                <div className="empty-state glass-panel">
-                  <div className="empty-state-icon">⚔️</div>
-                  <h3>No characters yet</h3>
-                  <p>Create your first character to start adventuring!</p>
-                  <button
-                    onClick={handleCreateCharacter}
-                    className="action-btn glass-button primary"
-                  >
-                    <span>➕</span>
-                    Create Character
-                  </button>
-                </div>
+                  <div className="empty-state glass-panel">
+                    <div className="empty-state-icon">⚔️</div>
+                    <h3>No characters yet</h3>
+                    <p>Create your first character to start adventuring!</p>
+                    <button
+                      onClick={handleCreateCharacter}
+                      className="action-btn glass-button primary"
+                    >
+                      <span>➕</span>
+                      Create Character
+                    </button>
+                  </div>
                 </>
               ) : (
                 <div className="glass-panel dashboard-card-panel">
@@ -1236,7 +1257,9 @@ export const Dashboard: React.FC = () => {
                             <span>{getCharacterClassLabel(character)}</span>
                           )}
                           {getCharacterLevelLabel(character) !== null && (
-                            <span>Level {getCharacterLevelLabel(character)}</span>
+                            <span>
+                              Level {getCharacterLevelLabel(character)}
+                            </span>
                           )}
                         </div>
                         <div className="card-actions">
@@ -1511,7 +1534,12 @@ export const Dashboard: React.FC = () => {
         }
         availableCharacters={selectableCharacters}
         campaignId={joiningCampaign?.id}
-        campaignName={joiningCampaign?.name || (joinRoomCode.trim() ? `Room ${joinRoomCode.trim().toUpperCase()}` : undefined)}
+        campaignName={
+          joiningCampaign?.name ||
+          (joinRoomCode.trim()
+            ? `Room ${joinRoomCode.trim().toUpperCase()}`
+            : undefined)
+        }
       />
 
       {/* Character Import Modal */}

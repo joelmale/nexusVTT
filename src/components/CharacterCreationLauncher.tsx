@@ -13,8 +13,8 @@ import {
   loadCharacterWizardStyles,
   loadThemeStyles,
   preloadOnUserIntent,
-} from '@/utils/cssLoader';
-import { getCurrentTheme } from '@/utils/themeManager';
+} from '@/services/cssLoader';
+import { getCurrentTheme } from '@/services/themeManager';
 
 // Context for sharing character creation launcher across components
 

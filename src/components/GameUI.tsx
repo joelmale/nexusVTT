@@ -76,7 +76,7 @@ export const GameUI: React.FC = () => {
 
   // Apply theme based on glassmorphism setting using theme manager
   useEffect(() => {
-    import('@/utils/themeManager').then(({ switchTheme }) => {
+    import('@/services/themeManager').then(({ switchTheme }) => {
       const targetTheme = settings.enableGlassmorphism ? 'glass' : 'solid';
       switchTheme(targetTheme);
     });

@@ -7,7 +7,7 @@ import {
   getEffectiveTokenAura,
   type TokenSize
 } from '@/types/token';
-import { webSocketService } from '@/utils/websocket';
+import { webSocketService } from '@/services/websocket';
 
 interface OptionsPanelProps {
   tokenId?: string; // Not currently used, kept for interface compatibility

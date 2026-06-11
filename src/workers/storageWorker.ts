@@ -6,7 +6,7 @@
  */
 
 import { expose } from 'comlink';
-import type { DungeonMapDB, GameStateDB, StorageStats } from '../utils/indexedDB';
+import type { DungeonMapDB, GameStateDB, StorageStats } from '../services/indexedDB';
 
 class StorageWorkerAPI {
   private db: IDBDatabase | null = null;

@@ -11,7 +11,7 @@ import { PropPanel } from './Props/PropPanel';
 import { ChatPanel } from './ChatPanel';
 import { DocumentsPanel } from './DocumentsPanel';
 import { CharacterPanel } from './CharacterPanel';
-import { loadChatStyles, loadInitiativeStyles } from '@/utils/cssLoader';
+import { loadChatStyles, loadInitiativeStyles } from '@/services/cssLoader';
 import { ErrorBoundary } from './ErrorBoundary';
 
 interface ContextPanelProps {

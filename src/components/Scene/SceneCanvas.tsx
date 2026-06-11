@@ -35,7 +35,7 @@ import { PropRenderer } from './PropRenderer';
 import { TokenToolbar } from '../Tokens/TokenToolbar';
 import { PropToolbar } from '../Props/PropToolbar';
 import { CanvasErrorBoundary, TokenErrorBoundary } from '../ErrorBoundary';
-import { webSocketService } from '@/utils/websocket';
+import { webSocketService } from '@/services/websocket';
 import { tokenAssetManager } from '@/services/tokenAssets';
 import { propAssetManager } from '@/services/propAssets';
 import { createPlacedToken, getTokenPixelSize } from '@/types/token';

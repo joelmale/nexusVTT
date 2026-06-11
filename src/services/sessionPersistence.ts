@@ -8,7 +8,7 @@
  * Uses IndexedDB for game state (unlimited storage) and localStorage for session metadata (small)
  */
 
-import { dungeonMapIndexedDB } from '@/utils/indexedDB';
+import { dungeonMapIndexedDB } from '@/services/indexedDB';
 
 export interface PersistedSession {
   roomCode: string;

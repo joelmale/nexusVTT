@@ -126,7 +126,7 @@ export const TokenToolbar: React.FC<TokenToolbarProps> = ({ position }) => {
     addEntry(entryData);
 
     // Broadcast to peers
-    const { webSocketService } = await import('@/utils/websocket');
+    const { webSocketService } = await import('@/services/websocket');
     webSocketService.sendEvent({
       type: 'event',
       data: {
