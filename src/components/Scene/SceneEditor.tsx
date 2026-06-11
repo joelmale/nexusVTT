@@ -3,7 +3,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { useSceneImages, sceneUtils } from '@/utils/sceneUtils';
 import { AssetBrowser } from '@/components/AssetBrowser';
 import { BaseMapBrowser } from './BaseMapBrowser';
-import { assetManager, type AssetMetadata } from '@/utils/assetManager';
+import { assetManager, type AssetMetadata } from '@/services/assetManager';
 import { ErrorBoundary } from '../ErrorBoundary';
 import type { BaseMap } from '@/services/baseMapAssets';
 import type { Scene } from '@/types/game';

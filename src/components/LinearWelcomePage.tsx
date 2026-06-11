@@ -13,7 +13,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { NexusLogo } from './Assets';
 import { useAssetExists } from '@/utils/assets';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.png';
-import { preloadOnUserIntent } from '@/utils/cssLoader';
+import { preloadOnUserIntent } from '@/services/cssLoader';
 
 interface Campaign {
   id: string;

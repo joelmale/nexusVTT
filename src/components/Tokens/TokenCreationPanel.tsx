@@ -6,8 +6,8 @@ import type {
   TokenStats,
 } from '@/types/token';
 import { tokenAssetManager } from '@/services/tokenAssets';
-import { assetManager } from '@/utils/assetManager';
-import type { AssetMetadata } from '@/utils/assetManager';
+import { assetManager } from '@/services/assetManager';
+import type { AssetMetadata } from '@/services/assetManager';
 
 interface TokenCreationPanelProps {
   isOpen: boolean;

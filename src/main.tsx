@@ -34,8 +34,8 @@ import {
   logCSSLoadingReport,
   getCSSLoadStats,
   getCSSQueueStatus,
-} from './utils/cssLoader';
-import { initializeTheme } from './utils/themeManager';
+} from './services/cssLoader';
+import { initializeTheme } from './services/themeManager';
 import { propAssetManager } from './services/propAssets';
 
 // Load non-critical assets after initial render for better performance
