@@ -16,7 +16,7 @@ declare global {
 }
 
 import { loadThemeStyles } from './cssLoader';
-import { applyColorScheme } from './colorSchemes';
+import { applyColorScheme } from '../utils/colorSchemes';
 
 export type ThemeType = 'glass' | 'solid';
 

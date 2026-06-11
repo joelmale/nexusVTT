@@ -1,6 +1,6 @@
 import React, { useState, useCallback } from 'react';
 import { useActiveScene, useDrawingActions } from '@/stores/gameStore';
-import { webSocketService } from '@/utils/websocket';
+import { webSocketService } from '@/services/websocket';
 import type { Camera } from '@/types/game';
 import type { Drawing, Point } from '@/types/drawing';
 

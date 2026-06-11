@@ -2,7 +2,7 @@ import React, { useCallback } from 'react';
 import type { PlacedToken, Token } from '@/types/token';
 import type { Camera } from '@/types/game';
 import { useUser, useActiveScene, useServerRoomCode } from '@/stores/gameStore';
-import { webSocketService } from '@/utils/websocket';
+import { webSocketService } from '@/services/websocket';
 import { pixelToHex, hexToPixel } from '@/utils/hexMath';
 
 interface TokenPlacementProps {

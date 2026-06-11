@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useActiveScene, useDrawingActions } from '@/stores/gameStore';
-import { webSocketService } from '@/utils/websocket';
+import { webSocketService } from '@/services/websocket';
 import type { DrawingStyle } from '@/types/drawing';
 
 interface DrawingPropertiesPanelProps {

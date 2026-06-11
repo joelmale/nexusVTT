@@ -17,7 +17,7 @@ import {
   useGameStore,
   useServerRoomCode,
 } from '@/stores/gameStore';
-import { webSocketService } from '@/utils/websocket';
+import { webSocketService } from '@/services/websocket';
 import { clipboardService } from '@/services/clipboardService';
 import {
   distance,

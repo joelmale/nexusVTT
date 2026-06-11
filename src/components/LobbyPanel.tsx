@@ -13,7 +13,7 @@ import {
   useServerRoomCode,
   useIsConnected,
 } from '@/stores/gameStore';
-import { webSocketService } from '@/utils/websocket';
+import { webSocketService } from '@/services/websocket';
 import type { Player } from '@/types/game';
 
 interface PlayerCardProps {

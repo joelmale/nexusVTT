@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { webSocketService } from '@/utils/websocket';
+import { webSocketService } from '@/services/websocket';
 import { useGameStore } from '@/stores/gameStore';
 
 interface ConnectionQuality {

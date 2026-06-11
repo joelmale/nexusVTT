@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { assetManager, type AssetMetadata } from '@/utils/assetManager';
+import { assetManager, type AssetMetadata } from '@/services/assetManager';
 
 interface AssetBrowserProps {
   onAssetSelect?: (asset: AssetMetadata) => void;

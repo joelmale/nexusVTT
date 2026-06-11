@@ -1,9 +1,9 @@
 import React, { useState, useRef, useEffect, useTransition } from 'react';
 import { useDiceRolls, useIsHost, useGameStore } from '@/stores/gameStore';
 import { createDiceRoll, formatDiceRoll } from '@/utils/dice';
-import { webSocketService } from '@/utils/websocket';
-import { diceSounds } from '@/utils/diceSounds';
-import { initializeTheme } from '@/utils/themeManager';
+import { webSocketService } from '@/services/websocket';
+import { diceSounds } from '@/services/diceSounds';
+import { initializeTheme } from '@/services/themeManager';
 import '@/styles/dice.css';
 
 /**

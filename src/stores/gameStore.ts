@@ -1712,7 +1712,7 @@ export const useGameStore = create<GameStore>()(
       ): Promise<string> => {
         try {
           // Import webSocketService
-          const { webSocketService } = await import('@/utils/websocket');
+          const { webSocketService } = await import('@/services/websocket');
 
           console.log(
             '🎮 Joining room:',
@@ -1854,7 +1854,7 @@ export const useGameStore = create<GameStore>()(
           }
 
           // Import webSocketService
-          const { webSocketService } = await import('@/utils/websocket');
+          const { webSocketService } = await import('@/services/websocket');
 
           console.log('🎮 Creating game room with WebSocket connection');
 
@@ -1914,7 +1914,7 @@ export const useGameStore = create<GameStore>()(
             get().loadSessionState();
 
             // Send the restored state to the server
-            const { webSocketService } = await import('@/utils/websocket');
+            const { webSocketService } = await import('@/services/websocket');
             if (webSocketService.isConnected()) {
               console.log('📤 Sending restored state to server');
               webSocketService.sendGameStateUpdate({
@@ -1952,7 +1952,7 @@ export const useGameStore = create<GameStore>()(
           });
 
           // Import webSocketService
-          const { webSocketService } = await import('@/utils/websocket');
+          const { webSocketService } = await import('@/services/websocket');
 
           // Disconnect WebSocket
           webSocketService.disconnect();
@@ -2432,7 +2432,7 @@ export const useGameStore = create<GameStore>()(
         // Send game state update to server for PostgreSQL persistence
         (async () => {
           try {
-            const { webSocketService } = await import('@/utils/websocket');
+            const { webSocketService } = await import('@/services/websocket');
 
             // Serialize scenes to plain objects (remove circular references)
             const scenes = JSON.parse(JSON.stringify(state.sceneState.scenes));
@@ -2844,7 +2844,7 @@ export const useGameStore = create<GameStore>()(
 
         // Broadcast deletion via WebSocket
         (async () => {
-          const { webSocketService } = await import('@/utils/websocket');
+          const { webSocketService } = await import('@/services/websocket');
           webSocketService.sendEvent({
             type: 'token/delete',
             data: {
@@ -2940,7 +2940,7 @@ export const useGameStore = create<GameStore>()(
         get().placeToken(sceneId, placedToken);
 
         // Broadcast binding event (so peers can link if they have character)
-        const { webSocketService } = await import('@/utils/websocket');
+        const { webSocketService } = await import('@/services/websocket');
         webSocketService.sendEvent({
           type: 'event',
           data: {
@@ -3038,7 +3038,7 @@ export const useGameStore = create<GameStore>()(
 
         get().placeToken(sceneId, placedToken);
 
-        const { webSocketService } = await import('@/utils/websocket');
+        const { webSocketService } = await import('@/services/websocket');
         webSocketService.sendEvent({
           type: 'event',
           data: {
@@ -3087,7 +3087,7 @@ export const useGameStore = create<GameStore>()(
         get().incrementEntityVersion(tokenId);
 
         // Send to server with updateId and version for tracking
-        import('@/utils/websocket').then(({ webSocketService }) => {
+        import('@/services/websocket').then(({ webSocketService }) => {
           webSocketService.sendEvent({
             type: 'token/move',
             data: {
@@ -3324,7 +3324,7 @@ export const useGameStore = create<GameStore>()(
         });
 
         // Send to server
-        import('@/utils/websocket').then(({ webSocketService }) => {
+        import('@/services/websocket').then(({ webSocketService }) => {
           webSocketService.sendEvent({
             type: 'prop/interact',
             data: {
@@ -3395,7 +3395,7 @@ export const useGameStore = create<GameStore>()(
         get().incrementEntityVersion(propId);
 
         // Send to server with updateId and version for tracking
-        import('@/utils/websocket').then(({ webSocketService }) => {
+        import('@/services/websocket').then(({ webSocketService }) => {
           webSocketService.sendEvent({
             type: 'prop/move',
             data: {
@@ -3446,7 +3446,7 @@ export const useGameStore = create<GameStore>()(
         get().incrementEntityVersion(propId);
 
         // Send to server with updateId and version for tracking
-        import('@/utils/websocket').then(({ webSocketService }) => {
+        import('@/services/websocket').then(({ webSocketService }) => {
           webSocketService.sendEvent({
             type: 'prop/update',
             data: {
@@ -3599,7 +3599,7 @@ export const useGameStore = create<GameStore>()(
           state.session
         ) {
           try {
-            import('@/utils/websocket').then(({ webSocketService }) => {
+            import('@/services/websocket').then(({ webSocketService }) => {
               if (webSocketService.isConnected()) {
                 webSocketService.sendGameStateUpdate({
                   sceneState: state.sceneState,
@@ -3745,7 +3745,7 @@ export const useGameStore = create<GameStore>()(
           });
 
           // Import webSocketService here to avoid circular dependencies
-          const { webSocketService } = await import('@/utils/websocket');
+          const { webSocketService } = await import('@/services/websocket');
 
           // Attempt to reconnect to the WebSocket session
           console.log(
@@ -4043,7 +4043,7 @@ export const useGameStore = create<GameStore>()(
         // Send via WebSocket if connected
         if (state.user.connected) {
           try {
-            import('@/utils/websocket').then(({ webSocketService }) => {
+            import('@/services/websocket').then(({ webSocketService }) => {
               webSocketService.sendChatMessage(message);
             });
           } catch (error) {
@@ -4086,7 +4086,7 @@ export const useGameStore = create<GameStore>()(
         if (!state.user.name || !state.session || !state.user.connected) return;
 
         try {
-          import('@/utils/websocket').then(({ webSocketService }) => {
+          import('@/services/websocket').then(({ webSocketService }) => {
             webSocketService.sendEvent({
               type: 'chat/typing',
               data: {
@@ -4236,7 +4236,7 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
-        import('@/utils/websocket').then(({ webSocketService }) => {
+        import('@/services/websocket').then(({ webSocketService }) => {
           webSocketService.sendEvent({
             type: 'host/transfer',
             data: { targetUserId },
@@ -4251,7 +4251,7 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
-        import('@/utils/websocket').then(({ webSocketService }) => {
+        import('@/services/websocket').then(({ webSocketService }) => {
           webSocketService.sendEvent({
             type: 'host/add-cohost',
             data: { targetUserId },
@@ -4266,7 +4266,7 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
-        import('@/utils/websocket').then(({ webSocketService }) => {
+        import('@/services/websocket').then(({ webSocketService }) => {
           webSocketService.sendEvent({
             type: 'host/remove-cohost',
             data: { targetUserId },

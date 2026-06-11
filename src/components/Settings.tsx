@@ -1,7 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 // import { useNavigate } from 'react-router-dom'; // Not used yet
 import { useGameStore, useSettings, useColorScheme } from '@/stores/gameStore';
-import { switchTheme } from '@/utils/themeManager';
+import { switchTheme } from '@/services/themeManager';
 import {
   defaultColorSchemes,
   generateRandomColorScheme,

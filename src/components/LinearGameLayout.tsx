@@ -47,7 +47,7 @@ export const LinearGameLayout: React.FC = () => {
             console.log('🔄 Recovering session from localStorage:', roomCode);
 
             // Reconnect to WebSocket with room code
-            const { webSocketService } = await import('@/utils/websocket');
+            const { webSocketService } = await import('@/services/websocket');
             await webSocketService.connect(roomCode, user.type);
 
             setIsRecovering(false);

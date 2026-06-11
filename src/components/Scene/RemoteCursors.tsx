@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { webSocketService } from '@/utils/websocket';
+import { webSocketService } from '@/services/websocket';
 import { useGameStore } from '@/stores/gameStore';
 
 interface RemoteCursor {

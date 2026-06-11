@@ -7,7 +7,7 @@
 
 import { wrap, Remote } from 'comlink';
 import type { StorageWorkerAPI } from '../workers/storageWorker';
-import type { DungeonMapDB, GameStateDB, StorageStats } from '../utils/indexedDB';
+import type { DungeonMapDB, GameStateDB, StorageStats } from './indexedDB';
 
 class StorageWorkerClient {
   private worker: Worker | null = null;

@@ -6,8 +6,7 @@
 
 import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react';
 import { useGameStore, useIsHost } from '@/stores/gameStore';
-import { chatCommandParser } from '@/utils/chatCommands';
-import { allCommands } from '@/utils/chatCommandHandlers';
+import { chatCommandParser, allCommands } from '@/services/chatCommands';
 import { parseMarkdown, parseMentions } from '@/utils/markdownParser';
 import { DiceRollMessage } from './DiceRollMessage';
 import type { ChatMessage as ChatMessageType } from '@/types/game';

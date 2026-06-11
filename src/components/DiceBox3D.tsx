@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
 import DiceBox from '@3d-dice/dice-box';
 import { useGameStore, useSettings } from '@/stores/gameStore';
-import { diceSounds } from '@/utils/diceSounds';
+import { diceSounds } from '@/services/diceSounds';
 
 export const DiceBox3D: React.FC = () => {
   const diceBoxRef = useRef<DiceBox | null>(null);
