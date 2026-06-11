@@ -56,6 +56,10 @@ describe('CharacterStore', () => {
         temporaryHitPoints: 0,
         armorClass: 10,
         proficiencyBonus: 2,
+        savingThrowProficiencies: {
+          STR: false, DEX: false, CON: false,
+          INT: false, WIS: false, CHA: false,
+        },
         inventory: [],
         languages: ['Common'],
         createdAt: new Date().toISOString(),
@@ -245,6 +249,18 @@ describe('CharacterStore', () => {
       expect(stealthSkill?.expertise).toBe(true);
     });
 
+    it('should update saving throw proficiency', () => {
+      act(() => {
+        useCharacterStore
+          .getState()
+          .updateSavingThrowProficiency(characterId, 'STR', true);
+      });
+
+      const character = useCharacterStore.getState().getCharacter(characterId);
+      expect(character?.savingThrowProficiencies?.STR).toBe(true);
+      expect(character?.savingThrowProficiencies?.DEX).toBe(false);
+    });
+
     it('should recalculate all stats correctly', () => {
       act(() => {
         useCharacterStore
@@ -300,6 +316,7 @@ describe('CharacterStore', () => {
       const character = useCharacterStore.getState().getCharacter(characterId);
       expect(character?.inventory).toHaveLength(1);
       expect(character?.inventory?.[0].equipmentSlug).toBe('longsword');
+      expect(character?.inventory?.[0].name).toBe('Longsword');
       expect(character?.inventory?.[0].equipped).toBe(false);
     });
 

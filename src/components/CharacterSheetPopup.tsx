@@ -197,7 +197,7 @@ export const CharacterSheetPopup: React.FC<CharacterSheetPopupProps> = ({
                 <div className="spell-slots">
                   {spellcasting.spellSlots.map((slot, index) => (
                     <span key={index} className="spell-slot">
-                      {index}:{' '}
+                      {index + 1}:{' '}
                       {spellcasting.usedSpellSlots?.[index] ?? 0}/{slot}
                     </span>
                   ))}
@@ -213,7 +213,7 @@ export const CharacterSheetPopup: React.FC<CharacterSheetPopupProps> = ({
           <div className="equipment-list">
             {inventoryItems.slice(0, 8).map((item) => (
               <span key={item.equipmentSlug} className="equipment-item">
-                {item.equipmentSlug}
+                {item.name || item.equipmentSlug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase())}
                 {item.quantity > 1 && ` (${item.quantity})`}
               </span>
             ))}

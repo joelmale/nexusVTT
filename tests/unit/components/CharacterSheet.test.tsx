@@ -54,14 +54,20 @@ describe('CharacterSheet', () => {
     initiative: 2,
     speed: 30,
     proficiencyBonus: 3,
+    savingThrowProficiencies: {
+      STR: false, DEX: false, CON: false,
+      INT: false, WIS: false, CHA: false,
+    },
     inventory: [
       {
-        equipmentSlug: 'Plate Armor',
+        equipmentSlug: 'plate-armor',
+        name: 'Plate Armor',
         equipped: true,
         quantity: 1,
       },
       {
-        equipmentSlug: 'Longsword',
+        equipmentSlug: 'longsword',
+        name: 'Longsword',
         equipped: true,
         quantity: 1,
       },
@@ -186,6 +192,30 @@ describe('CharacterSheet', () => {
       expect(screen.getByLabelText('Temp HP')).toHaveValue(5);
     });
 
+    it('should display saving throw checkboxes for each ability', () => {
+      render(<CharacterSheet character={mockCharacter} />);
+
+      const saveCheckboxes = screen.getAllByRole('checkbox', {
+        name: /saving throw proficiency/i,
+      });
+      expect(saveCheckboxes).toHaveLength(6);
+    });
+
+    it('should call updateSavingThrowProficiency when save checkbox toggled', () => {
+      render(<CharacterSheet character={mockCharacter} />);
+
+      const saveCheckboxes = screen.getAllByRole('checkbox', {
+        name: /saving throw proficiency/i,
+      });
+      fireEvent.click(saveCheckboxes[0]); // STR
+
+      expect(mockStoreActions.updateSavingThrowProficiency).toHaveBeenCalledWith(
+        'char-123',
+        'STR',
+        true,
+      );
+    });
+
     it('should allow editing ability scores when not readonly', () => {
       render(<CharacterSheet character={mockCharacter} />);
 
@@ -242,7 +272,7 @@ describe('CharacterSheet', () => {
       const equipButton = screen.getAllByText('Unequip')[0]; // First equipped item
       fireEvent.click(equipButton);
 
-      expect(mockStoreActions.unequipItem).toHaveBeenCalledWith('char-123', 'Plate Armor');
+      expect(mockStoreActions.unequipItem).toHaveBeenCalledWith('char-123', 'plate-armor');
     });
 
     it('should allow removing equipment', () => {
@@ -253,7 +283,7 @@ describe('CharacterSheet', () => {
       const removeButtons = screen.getAllByText('❌');
       fireEvent.click(removeButtons[0]);
 
-      expect(mockStoreActions.removeEquipment).toHaveBeenCalledWith('char-123', 'Plate Armor');
+      expect(mockStoreActions.removeEquipment).toHaveBeenCalledWith('char-123', 'plate-armor');
     });
   });
 
@@ -267,6 +297,23 @@ describe('CharacterSheet', () => {
       expect(screen.getByDisplayValue(/Honor is more important than gold./)).toBeInTheDocument();
       expect(screen.getByDisplayValue(/I would die for my unit./)).toBeInTheDocument();
       expect(screen.getByDisplayValue(/I have trouble trusting new allies./)).toBeInTheDocument();
+    });
+
+    it('should display the notes textarea', () => {
+      const characterWithNotes: Character = {
+        ...mockCharacter,
+        featuresAndTraits: {
+          ...mockCharacter.featuresAndTraits,
+          notes: 'Important campaign notes here.',
+        },
+      };
+
+      render(<CharacterSheet character={characterWithNotes} />);
+      fireEvent.click(screen.getByText(/Notes/));
+
+      expect(
+        screen.getByDisplayValue('Important campaign notes here.'),
+      ).toBeInTheDocument();
     });
 
     it('should allow editing personality traits when not readonly', () => {

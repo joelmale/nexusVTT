@@ -1,4 +1,4 @@
-import type { AbilityScores, Character, SkillMap } from '@/types/character';
+import type { AbilityKey, AbilityScores, Character, SkillMap } from '@/types/character';
 import {
   calculateAbilityModifier,
   calculateProficiencyBonus,
@@ -68,6 +68,12 @@ export const normalizeCharacter = (
     });
   }
 
+  const ABILITY_KEYS: AbilityKey[] = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
+  const normalizedSavingThrows = {} as Record<AbilityKey, boolean>;
+  ABILITY_KEYS.forEach((key) => {
+    normalizedSavingThrows[key] = input.savingThrowProficiencies?.[key] ?? false;
+  });
+
   const proficiencyBonus =
     typeof input.proficiencyBonus === 'number'
       ? input.proficiencyBonus
@@ -89,6 +95,7 @@ export const normalizeCharacter = (
     background: input.background ?? base.background,
     abilities: normalizedAbilities,
     skills: normalizedSkills,
+    savingThrowProficiencies: normalizedSavingThrows,
     proficiencyBonus,
     hitPoints: input.hitPoints ?? input.maxHitPoints ?? base.hitPoints,
     maxHitPoints: input.maxHitPoints ?? input.hitPoints ?? base.maxHitPoints,

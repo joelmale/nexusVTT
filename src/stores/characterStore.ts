@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
 import type {
+  AbilityKey,
   Character,
   CharacterCreationState,
   Mob,
@@ -71,7 +72,11 @@ interface CharacterStore extends CharacterState {
     proficient: boolean,
     expertise?: boolean,
   ) => void;
-  updateSavingThrowProficiency?: never;
+  updateSavingThrowProficiency: (
+    characterId: string,
+    ability: AbilityKey,
+    proficient: boolean,
+  ) => void;
   recalculateStats: (characterId: string) => void;
 
   // Equipment Management
@@ -79,7 +84,7 @@ interface CharacterStore extends CharacterState {
   updateEquipment: (
     characterId: string,
     equipmentSlug: string,
-    updates: Partial<Equipment>,
+    updates: { name?: string; quantity?: number; equipped?: boolean },
   ) => void;
   removeEquipment: (characterId: string, equipmentSlug: string) => void;
   equipItem: (characterId: string, equipmentSlug: string) => void;
@@ -366,6 +371,21 @@ export const useCharacterStore = create<CharacterStore>()(
         }
       }),
 
+    updateSavingThrowProficiency: (characterId, ability, proficient) =>
+      set((state) => {
+        const character = state.characters.find((c) => c.id === characterId);
+        if (character) {
+          if (!character.savingThrowProficiencies) {
+            character.savingThrowProficiencies = {
+              STR: false, DEX: false, CON: false,
+              INT: false, WIS: false, CHA: false,
+            };
+          }
+          character.savingThrowProficiencies[ability] = proficient;
+          character.updatedAt = new Date().toISOString();
+        }
+      }),
+
     recalculateStats: (characterId) =>
       set((state) => {
         const character = state.characters.find((c) => c.id === characterId);
@@ -411,6 +431,7 @@ export const useCharacterStore = create<CharacterStore>()(
           character.inventory = character.inventory || [];
           character.inventory.push({
             equipmentSlug,
+            name: equipmentData.name,
             equipped: equipmentData.equipped,
             quantity: equipmentData.quantity,
           });
@@ -426,7 +447,8 @@ export const useCharacterStore = create<CharacterStore>()(
             (e) => e.equipmentSlug === equipmentSlug,
           );
           if (equipment) {
-            if (updates.name) {
+            if (updates.name !== undefined) {
+              equipment.name = updates.name;
               equipment.equipmentSlug = updates.name
                 .toLowerCase()
                 .replace(/\s+/g, '-');

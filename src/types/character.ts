@@ -109,6 +109,7 @@ export interface Spellcasting {
 
 export interface InventoryItem {
   equipmentSlug: string;
+  name?: string;
   equipped?: boolean;
   quantity: number;
 }
@@ -243,6 +244,7 @@ export interface Character {
   initiative?: number;
   abilities: AbilityScores;
   skills: SkillMap;
+  savingThrowProficiencies?: Record<AbilityKey, boolean>;
   languages?: string[];
   featuresAndTraits?: {
     personality?: string;
@@ -252,6 +254,7 @@ export interface Character {
     classFeatures?: string[];
     racialTraits?: string[];
     backgroundFeatures?: Array<{ name: string; description: string }>;
+    notes?: string;
   };
   selectedFeats?: string[];
   feats?: string[];
@@ -444,6 +447,7 @@ export function createEmptyCharacter(playerId: string): Character {
     initiative: 0,
     abilities,
     skills,
+    savingThrowProficiencies: { STR: false, DEX: false, CON: false, INT: false, WIS: false, CHA: false },
     languages: ['Common'],
     createdAt: new Date().toISOString(),
     updatedAt: new Date().toISOString(),
