@@ -69,9 +69,18 @@
   height: 4px;
   background: rgba(255, 255, 255, 0.6);
   border-radius: 50%;
-  animation: float 6s infinite ease-in-out;
   box-shadow: 0 0 6px rgba(255, 255, 255, 0.3);
-  will-change: transform, opacity;
+}
+
+/* Continuous animation forces the display compositor to produce frames
+   forever, even when the page is idle. Only enable it when the user
+   hasn't requested reduced motion, and keep it compositor-only
+   (transform/opacity + will-change). */
+@media (prefers-reduced-motion: no-preference) {
+  .particle {
+    animation: float 6s infinite ease-in-out;
+    will-change: transform, opacity;
+  }
 }
 
 .particle:nth-child(1)  { left:  8%; top: 15%; animation-delay: 0s;    animation-duration: 6s;   }
@@ -160,21 +169,14 @@
   margin-bottom: 1rem;
 }
 
+/* IMPORTANT: never add `animation` to this element while it has a `filter`.
+   Animating a filtered element cannot be GPU-composited (kAffectedByFilter) —
+   it falls back to main-thread paint at 60fps and re-rasterizes the blur
+   every frame, which saturated the display compositor system-wide. */
 .logo-icon {
   font-size: 4rem;
   margin-bottom: 1rem;
   filter: drop-shadow(0 4px 8px rgba(0, 0, 0, 0.3));
-  animation: logoFloat 3s ease-in-out infinite;
-}
-
-@keyframes logoFloat {
-  0%,
-  100% {
-    transform: translateY(0px);
-  }
-  50% {
-    transform: translateY(-8px);
-  }
 }
 
 .brand-title {
