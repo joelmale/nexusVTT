@@ -32,8 +32,12 @@ RUN chown -R nodejs:nodejs /app
 # Switch to non-root user
 USER nodejs
 
+# Default port — must match the server default (index.ts) and the health check below.
+# Override with PORT env var in docker-compose / Dockhand environment.
+ENV PORT=5001
+
 # Expose WebSocket port
-EXPOSE 5000
+EXPOSE 5001
 
 # Health check
 # start-period must cover the postgres+redis wait loop before npm starts (~30-60s)
