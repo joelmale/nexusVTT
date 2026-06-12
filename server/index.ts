@@ -65,6 +65,7 @@ import {
   createServerDiceRoll,
   DiceRollRequest,
 } from './diceRoller.js';
+import { sanitizeLog } from './sanitizeLog.js';
 
 interface SessionUser {
   id: string;
@@ -1229,8 +1230,14 @@ class NexusServer {
 
         // Generate filename from tokenId
         const sanitizedName = name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const filename = `${sanitizedName}_${tokenId}.png`;
+        const sanitizedId = String(tokenId).replace(/[^a-z0-9]/gi, '_');
+        const filename = `${sanitizedName}_${sanitizedId}.png`;
         const filepath = path.join(customTokensDir, filename);
+
+        // Reject if resolved path escapes the tokens directory
+        if (!filepath.startsWith(path.resolve(customTokensDir) + path.sep)) {
+          return res.status(400).json({ error: 'Invalid token path' });
+        }
 
         // Write the file
         fs.writeFileSync(filepath, buffer);
@@ -1238,7 +1245,7 @@ class NexusServer {
         // Return the server path
         const serverPath = `/assets/tokens/custom/${filename}`;
 
-        console.log(`💾 Saved custom token: ${serverPath}`);
+        console.log(`💾 Saved custom token: ${sanitizeLog(serverPath)}`);
         res.json({
           success: true,
           path: serverPath,
@@ -1347,7 +1354,7 @@ class NexusServer {
       if (!this.manifest) {
         return res.status(503).json({ error: 'Manifest not loaded' });
       }
-      const query = req.query.q as string;
+      const query = String(req.query.q ?? '');
       if (!query || query.length < 2) {
         return res
           .status(400)

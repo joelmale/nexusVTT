@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
+import { sanitizeLog } from './sanitizeLog.js';
 import { v4 as uuidv4 } from 'uuid';
 
 /**
@@ -747,7 +748,7 @@ export class DatabaseService {
       values,
     );
 
-    console.log(`🗄️ Campaign updated: ${campaignId}`);
+    console.log(`🗄️ Campaign updated: ${sanitizeLog(campaignId)}`);
   }
 
   /**
@@ -876,7 +877,7 @@ export class DatabaseService {
       values,
     );
 
-    console.log(`🗄️ Character updated: ${characterId}`);
+    console.log(`🗄️ Character updated: ${sanitizeLog(characterId)}`);
   }
 
   /**
@@ -889,7 +890,7 @@ export class DatabaseService {
       characterId,
     ]);
 
-    console.log(`🗄️ Character deleted: ${characterId}`);
+    console.log(`🗄️ Character deleted: ${sanitizeLog(characterId)}`);
   }
 
   /**

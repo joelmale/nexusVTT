@@ -56,12 +56,12 @@ class TokenAssetManager {
                 ...library.tokens[tokenIndex],
                 ...customToken,
               };
-              console.log(`Applied saved customization for token: ${customToken.name}`);
+              console.log(`Applied saved customization for token: ${String(customToken.name).replace(/[\r\n\t]/g, ' ').slice(0, 200)}`);
               break;
             }
           }
         } catch (error) {
-          console.warn(`Failed to apply customization for token ${customToken.id}:`, error);
+          console.warn(`Failed to apply customization for token ${String(customToken.id).replace(/[\r\n\t]/g, ' ').slice(0, 200)}:`, error);
         }
       }
     } catch (error) {

@@ -2,6 +2,7 @@ import React, { useState, useMemo, useEffect, useDeferredValue } from 'react';
 import { usePropAssets } from '@/services/propAssets';
 import type { Prop, PropCategory } from '@/types/prop';
 import { useIsHost } from '@/stores/gameStore';
+import { safeImageUrl } from '@/utils/safeUrl';
 import { PropCreationPanel } from './PropCreationPanel';
 
 interface PropPanelProps {
@@ -261,7 +262,7 @@ export const PropPanel: React.FC<PropPanelProps> = ({ onPropSelect }) => {
                 </button>
               )}
               <img
-                src={prop.image}
+                src={safeImageUrl(prop.image)}
                 alt={prop.name}
                 loading="lazy"
                 style={{

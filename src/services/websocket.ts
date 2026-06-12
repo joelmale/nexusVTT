@@ -15,6 +15,9 @@ import { useGameStore } from '@/stores/gameStore';
 import { toast } from 'sonner';
 import { applyPatch, Operation } from 'fast-json-patch';
 
+const sanitizeLog = (value: unknown): string =>
+  String(value).replace(/[\r\n\t]/g, ' ').slice(0, 200);
+
 interface ConnectionContext {
   roomCode: string;
   userType: 'host' | 'player';
@@ -171,7 +174,7 @@ class WebSocketService extends EventTarget {
             const message: WebSocketMessage = JSON.parse(event.data);
             console.log(
               '🔌 [CLIENT] Raw WebSocket message received:',
-              event.data,
+              sanitizeLog(event.data),
             );
             this.handleMessage(message);
           } catch (error) {
@@ -212,7 +215,7 @@ class WebSocketService extends EventTarget {
   }
 
   private handleMessage(message: WebSocketMessage) {
-    console.log('📨 Received WebSocket message:', message.type, message.data);
+    console.log('📨 Received WebSocket message:', sanitizeLog(message.type), message.data);
     const gameStore = useGameStore.getState();
 
     // Emit custom event for components to listen to
@@ -220,7 +223,7 @@ class WebSocketService extends EventTarget {
 
     switch (message.type) {
       case 'event': {
-        console.log('🎯 Processing event:', message.data.name, message.data);
+        console.log('🎯 Processing event:', sanitizeLog(message.data.name), message.data);
 
         // Session events will be handled by the gameStore's applyEvent method
 
@@ -323,7 +326,7 @@ class WebSocketService extends EventTarget {
           const { patch, version } = message.data;
 
           console.log(
-            `📦 Applying game state patch v${version} (${patch.length} operations)`,
+            `📦 Applying game state patch v${sanitizeLog(version)} (${patch.length} operations)`,
           );
 
           // Get current game state
@@ -354,7 +357,7 @@ class WebSocketService extends EventTarget {
               }
             });
 
-            console.log(`✅ Game state patch v${version} applied successfully`);
+            console.log(`✅ Game state patch v${sanitizeLog(version)} applied successfully`);
           }
         } catch (error) {
           console.error('❌ Failed to apply game state patch:', error);
@@ -367,7 +370,7 @@ class WebSocketService extends EventTarget {
       }
 
       case 'error':
-        console.error('Server error:', message.data.message);
+        console.error('Server error:', sanitizeLog(message.data.message));
 
         // Handle specific error cases
         if (message.data.message === 'Room not found') {

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import type { Prop, PropCategory, PropSize } from '@/types/prop';
 import { usePropAssets } from '@/services/propAssets';
+import { safeImageUrl } from '@/utils/safeUrl';
 
 interface PropCreationPanelProps {
   isOpen: boolean;
@@ -581,7 +582,7 @@ export const PropCreationPanel: React.FC<PropCreationPanelProps> = ({
 
             <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
               <img
-                src={previewImage}
+                src={safeImageUrl(previewImage)}
                 alt="Prop preview"
                 style={{
                   width: '90px',

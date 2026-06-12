@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { PlacedProp, Prop } from '@/types/prop';
 import { useActiveTool, useIsHost, useGameStore } from '@/stores/gameStore';
+import { safeImageUrl } from '@/utils/safeUrl';
 import { ContainerModal } from '../Props/ContainerModal';
 
 interface PropRendererProps {
@@ -204,7 +205,7 @@ export const PropRenderer: React.FC<PropRendererProps> = React.memo(
 
         {/* Prop Image */}
         <image
-          href={prop.image}
+          href={safeImageUrl(prop.image)}
           x={-propWidth / 2}
           y={-propHeight / 2}
           width={propWidth}
