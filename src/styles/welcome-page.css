@@ -102,30 +102,27 @@
   box-shadow: 0 0 14px rgba(255, 215, 128, 0.25);
 }
 
-/* Account Modal */
-.account-overlay {
-  position: fixed;
-  inset: 0;
+/* Account Modal — native <dialog> */
+dialog.account-dialog {
+  padding: 0;
+  border: none;
+  border-radius: 16px;
+  background: transparent;
+  max-width: min(520px, 92vw);
+  max-height: 90vh;
+  overflow-y: auto;
+}
+
+dialog.account-dialog::backdrop {
   background: rgba(0, 0, 0, 0.55);
-  z-index: 30;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  padding: 1.5rem;
 }
 
 .account-dropdown {
-  position: relative;
   width: min(520px, 92vw);
   padding: 1rem;
   background: rgba(20, 24, 40, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 16px;
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-10px);
-  transition: opacity 0.2s ease, transform 0.2s ease, visibility 0.2s ease;
-  pointer-events: none;
   box-shadow: 0 16px 40px rgba(0, 0, 0, 0.35);
 }
 
@@ -138,13 +135,6 @@
   flex-direction: column;
   gap: 0.5rem;
   padding: 0 0.75rem 0.75rem;
-}
-
-.account-dropdown.open {
-  opacity: 1;
-  visibility: visible;
-  transform: translateY(0);
-  pointer-events: auto;
 }
 
 .account-dropdown-header {

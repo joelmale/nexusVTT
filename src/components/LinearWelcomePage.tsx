@@ -109,6 +109,8 @@ export const LinearWelcomePage: React.FC = () => {
   const [showAccountModal, setShowAccountModal] = useState(false);
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const emailInputRef = React.useRef<HTMLInputElement | null>(null);
+  const accountModalDialogRef = useRef<HTMLDialogElement>(null);
+  const accountMenuDialogRef = useRef<HTMLDialogElement>(null);
   const buildVersion = import.meta.env.VITE_BUILD_VERSION ?? 'dev';
 
   // Detect if we're returning from OAuth (check for common OAuth params)
@@ -312,23 +314,26 @@ export const LinearWelcomePage: React.FC = () => {
     }
   };
 
-  // Focus email on modal open and close on Escape
   React.useEffect(() => {
-    if (showAccountModal && emailInputRef.current) {
-      emailInputRef.current.focus();
-    }
-
-    const handleKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        setShowAccountModal(false);
-      }
-    };
-
+    const dialog = accountModalDialogRef.current;
+    if (!dialog) return;
     if (showAccountModal) {
-      window.addEventListener('keydown', handleKey);
+      if (!dialog.open) dialog.showModal();
+      emailInputRef.current?.focus();
+    } else {
+      if (dialog.open) dialog.close();
     }
-    return () => window.removeEventListener('keydown', handleKey);
   }, [showAccountModal]);
+
+  React.useEffect(() => {
+    const dialog = accountMenuDialogRef.current;
+    if (!dialog) return;
+    if (showAccountMenu && isAuthenticated) {
+      if (!dialog.open) dialog.showModal();
+    } else {
+      if (dialog.open) dialog.close();
+    }
+  }, [showAccountMenu, isAuthenticated]);
 
   /**
    * Handles quick join - creates guest user and joins room directly
@@ -511,18 +516,17 @@ export const LinearWelcomePage: React.FC = () => {
             </button>
           </div>
 
-          {showAccountMenu && isAuthenticated && (
-            <div
-              className="account-overlay"
-              role="presentation"
-              onClick={() => setShowAccountMenu(false)}
-            >
+          <dialog
+            ref={accountMenuDialogRef}
+            className="account-dialog"
+            aria-labelledby="account-menu-title"
+            onCancel={() => setShowAccountMenu(false)}
+            onClick={(e) => {
+              if (e.target === accountMenuDialogRef.current) setShowAccountMenu(false);
+            }}
+          >
               <div
-                className="account-dropdown glass-panel open compact"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="account-menu-title"
-                onClick={(e) => e.stopPropagation()}
+                className="account-dropdown glass-panel compact"
               >
                 <div className="account-dropdown-header">
                   <div className="title-row">
@@ -564,22 +568,18 @@ export const LinearWelcomePage: React.FC = () => {
                   </button>
                 </div>
               </div>
-            </div>
-          )}
+          </dialog>
 
-          {showAccountModal && (
-            <div
-              className="account-overlay"
-              role="presentation"
-              onClick={() => setShowAccountModal(false)}
-            >
-              <div
-                className="account-dropdown glass-panel open"
-                role="dialog"
-                aria-modal="true"
-                aria-labelledby="account-modal-title"
-                onClick={(e) => e.stopPropagation()}
-              >
+          <dialog
+            ref={accountModalDialogRef}
+            className="account-dialog"
+            aria-labelledby="account-modal-title"
+            onCancel={() => setShowAccountModal(false)}
+            onClick={(e) => {
+              if (e.target === accountModalDialogRef.current) setShowAccountModal(false);
+            }}
+          >
+              <div className="account-dropdown glass-panel">
                 <div className="account-dropdown-header">
                   <div className="title-row">
                     <span className="dropdown-title" id="account-modal-title">
@@ -705,8 +705,7 @@ export const LinearWelcomePage: React.FC = () => {
                   </span>
                 </div>
               </div>
-            </div>
-          )}
+          </dialog>
 
           {/* Brand Section */}
           <div className="brand-section">
