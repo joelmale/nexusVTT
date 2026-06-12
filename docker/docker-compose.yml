@@ -130,7 +130,6 @@ services:
     environment:
       - NODE_ENV=production
       - PORT=5000
-      - FORCE_HTTPS=false
       - DATABASE_URL=${DATABASE_URL}
       - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
       - JWT_SECRET=${JWT_SECRET}

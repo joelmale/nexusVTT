@@ -293,13 +293,18 @@ class NexusServer {
       resave: false,
       saveUninitialized: false,
       cookie: {
+        // Secure flag is independent of FORCE_HTTPS (which only controls HTTP→HTTPS
+        // redirect). Behind a TLS-terminating proxy (Cloudflare/Traefik), the public
+        // site is always HTTPS so cookies must be Secure regardless of whether the
+        // backend itself redirects HTTP. FORCE_HTTPS=false disables redirect loops;
+        // SECURE_COOKIES=false is the separate override for non-TLS environments.
         secure:
           process.env.NODE_ENV === 'production' &&
-          process.env.FORCE_HTTPS !== 'false',
+          process.env.SECURE_COOKIES !== 'false',
         httpOnly: true,
         sameSite: 'lax',
         path: '/',
-        maxAge: 1000 * 60 * 60 * 72, // 72 hours (as requested)
+        maxAge: 1000 * 60 * 60 * 72, // 72 hours
       },
     });
 
