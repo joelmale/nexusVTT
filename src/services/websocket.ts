@@ -416,8 +416,12 @@ class WebSocketService extends EventTarget {
   private handleReconnect() {
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
-      const delay =
+      const baseDelay =
         this.reconnectDelay * Math.pow(2, this.reconnectAttempts - 1);
+      // ±20% jitter prevents thundering herd when many clients reconnect
+      // simultaneously after a server restart
+      const jitter = baseDelay * 0.2 * (Math.random() * 2 - 1);
+      const delay = Math.round(baseDelay + jitter);
 
       console.log(
         `🔄 Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,

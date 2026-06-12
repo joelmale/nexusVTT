@@ -113,8 +113,12 @@ services:
       dockerfile: docker/backend.Dockerfile
     command: >
       sh -c "
-        until nc -z postgres 5432; do
+        until pg_isready -h postgres -U ${POSTGRES_USER:-nexus}; do
           echo '⏳ Waiting for postgres...';
+          sleep 2;
+        done;
+        until redis-cli -h redis -a ${REDIS_PASSWORD} ping 2>/dev/null | grep -q PONG; do
+          echo '⏳ Waiting for redis...';
           sleep 2;
         done;
         npm run server:start

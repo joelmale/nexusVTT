@@ -187,6 +187,9 @@ export class DatabaseService {
     this.pool = new Pool({
       connectionString: config.connectionString,
       ssl: config.ssl ? { rejectUnauthorized: false } : undefined,
+      max: 20,
+      connectionTimeoutMillis: 5000,
+      idleTimeoutMillis: 30000,
     });
 
     // Handle unexpected database pool errors
@@ -1424,6 +1427,15 @@ export class DatabaseService {
   async close(): Promise<void> {
     await this.pool.end();
     console.log('🗄️ Database connection pool closed');
+  }
+
+  async healthCheck(): Promise<void> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('SELECT 1');
+    } finally {
+      client.release();
+    }
   }
 
   /**

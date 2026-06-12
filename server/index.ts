@@ -1268,24 +1268,31 @@ class NexusServer {
   }
 
   private setupHealthRoutes(): void {
-    this.app.get('/health', (req, res) => {
-      // In production behind nginx proxy, use relative /ws path
-      // In development, use localhost:port for direct connection
+    this.app.get('/health', async (req, res) => {
       const wsUrl =
         process.env.NODE_ENV === 'production'
           ? '/ws'
           : `ws://localhost:${this.port}`;
 
-      res.json({
-        status: 'ok',
-        version: '1.0.0',
-        port: this.port,
-        wsUrl,
-        rooms: this.rooms.size,
-        connections: this.connections.size,
-        assetsLoaded: this.manifest?.totalAssets || 0,
-        uptime: process.uptime(),
-      });
+      try {
+        await this.db.healthCheck();
+        res.json({
+          status: 'ok',
+          version: '1.0.0',
+          port: this.port,
+          wsUrl,
+          rooms: this.rooms.size,
+          connections: this.connections.size,
+          assetsLoaded: this.manifest?.totalAssets || 0,
+          uptime: process.uptime(),
+        });
+      } catch {
+        res.status(503).json({
+          status: 'error',
+          reason: 'database unavailable',
+          uptime: process.uptime(),
+        });
+      }
     });
 
     this.app.get('/', (req, res) => {

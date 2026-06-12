@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
 import { CharacterCreationProvider } from './CharacterCreationLauncher';
@@ -17,9 +17,14 @@ export const Providers: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
   const checkAuth = useGameStore((state) => state.checkAuth);
+  const didCheckAuth = useRef(false);
 
-  // Initialize authentication state on app load
+  // Initialize authentication state on app load — run once only.
+  // checkAuth is a Zustand action whose reference changes on store mutations,
+  // so we guard with a ref rather than depending on the function identity.
   useEffect(() => {
+    if (didCheckAuth.current) return;
+    didCheckAuth.current = true;
     checkAuth();
   }, [checkAuth]);
 

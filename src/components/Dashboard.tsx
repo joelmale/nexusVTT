@@ -295,6 +295,10 @@ export const Dashboard: React.FC = () => {
   const [joiningCampaign, setJoiningCampaign] = useState<Campaign | null>(null);
   const syncInFlightRef = React.useRef(false);
   const lastSyncKeyRef = React.useRef<string | null>(null);
+  const charactersRef = React.useRef(characters);
+  React.useEffect(() => {
+    charactersRef.current = characters;
+  }, [characters]);
 
   // Check authentication and redirect if not authenticated
   useEffect(() => {
@@ -565,14 +569,18 @@ export const Dashboard: React.FC = () => {
     if (!isAuthenticated || charactersLoading) return;
     if (syncInFlightRef.current) return;
 
-    const syncKey = `${localCharacters.length}:${characters.length}`;
+    // Read via ref so `characters` doesn't need to be a callback dependency —
+    // including it would cause the callback to recreate after every GET refresh,
+    // re-triggering this effect and creating a sync loop.
+    const currentCharacters = charactersRef.current;
+    const syncKey = `${localCharacters.length}:${currentCharacters.length}`;
     if (lastSyncKeyRef.current === syncKey) return;
     lastSyncKeyRef.current = syncKey;
 
     syncInFlightRef.current = true;
     try {
       const serverHashes = new Set(
-        characters
+        currentCharacters
           .map((character) => characterHash(character.data ?? {}))
           .filter((hash) => hash.length > 0),
       );
@@ -620,7 +628,7 @@ export const Dashboard: React.FC = () => {
     } finally {
       syncInFlightRef.current = false;
     }
-  }, [isAuthenticated, charactersLoading, localCharacters, characters]);
+  }, [isAuthenticated, charactersLoading, localCharacters]);
 
   useEffect(() => {
     syncLocalCharactersToServer();

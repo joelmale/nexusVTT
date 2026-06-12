@@ -6,7 +6,7 @@ FROM node:25-alpine
 WORKDIR /app
 
 # Install dumb-init for proper signal handling and netcat for readiness checks
-RUN apk add --no-cache dumb-init curl netcat-openbsd
+RUN apk add --no-cache dumb-init curl netcat-openbsd postgresql-client
 
 # Copy package files
 COPY package*.json ./
