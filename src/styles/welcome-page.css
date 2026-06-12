@@ -519,12 +519,20 @@
   flex-direction: column;
   gap: 1rem;
   text-align: left;
+  border: none;
+  padding: 0;
+  margin: 0;
+  min-width: 0;
 }
 
-.role-selection label {
+.role-selection > legend {
   font-size: 1rem;
   font-weight: 600;
   color: rgba(255, 255, 255, 0.9);
+  padding: 0;
+  margin-bottom: 0;
+  float: left;
+  width: 100%;
 }
 
 .role-cards {

@@ -757,15 +757,22 @@ export const LinearWelcomePage: React.FC = () => {
             </div>
 
             {/* Role Selection */}
-            <div className="role-selection">
-              <label>Choose Your Adventure</label>
+            <fieldset className="role-selection">
+              <legend>Choose Your Adventure</legend>
               <div className="role-cards">
                 {/* Player Options */}
                 <div className="role-card-group">
-                  <div
+                  <label
                     className={`role-card glass-panel ${selectedRole === 'player' ? 'selected' : ''}`}
-                    onClick={() => handleRoleSelection('player')}
                   >
+                    <input
+                      type="radio"
+                      name="role"
+                      value="player"
+                      checked={selectedRole === 'player'}
+                      onChange={() => handleRoleSelection('player')}
+                      className="sr-only"
+                    />
                     <div className="role-icon">⚔️</div>
                     <div className="role-info">
                       <h3>Player</h3>
@@ -774,7 +781,7 @@ export const LinearWelcomePage: React.FC = () => {
                     <div className="selection-indicator">
                       {selectedRole === 'player' && <span>✓</span>}
                     </div>
-                  </div>
+                  </label>
 
                   {/* Player Action Buttons */}
                   {selectedRole === 'player' && (
@@ -928,10 +935,17 @@ export const LinearWelcomePage: React.FC = () => {
 
                 {/* DM Options */}
                 <div className="role-card-group">
-                  <div
+                  <label
                     className={`role-card glass-panel ${selectedRole === 'dm' ? 'selected' : ''}`}
-                    onClick={() => handleRoleSelection('dm')}
                   >
+                    <input
+                      type="radio"
+                      name="role"
+                      value="dm"
+                      checked={selectedRole === 'dm'}
+                      onChange={() => handleRoleSelection('dm')}
+                      className="sr-only"
+                    />
                     <div className="role-icon">👑</div>
                     <div className="role-info">
                       <h3>Dungeon Master</h3>
@@ -940,7 +954,7 @@ export const LinearWelcomePage: React.FC = () => {
                     <div className="selection-indicator">
                       {selectedRole === 'dm' && <span>✓</span>}
                     </div>
-                  </div>
+                  </label>
 
                   {/* DM Action Button */}
                   {selectedRole === 'dm' && (
@@ -1004,7 +1018,7 @@ export const LinearWelcomePage: React.FC = () => {
                   )}
                 </div>
               </div>
-            </div>
+            </fieldset>
           </form>
 
           {/* Development Tools - Only show in development */}
