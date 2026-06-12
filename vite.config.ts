@@ -21,7 +21,7 @@ export default defineConfig(({ command, mode }) => {
         }),
       VitePWA({
         registerType: 'autoUpdate',
-        includeAssets: ['nexus-icon.svg', 'assets/icons/*.png'],
+        includeAssets: ['nexus-icon.svg'],
         manifest: {
           name: 'Nexus VTT - Virtual Tabletop',
           short_name: 'Nexus VTT',
@@ -51,20 +51,56 @@ export default defineConfig(({ command, mode }) => {
           ],
         },
         workbox: {
-          globPatterns: ['**/*.{js,css,html,ico,svg,woff,woff2}'],
-          // Increase file size limit to 5MB for large generator files
-          maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
-          // Exclude very large files that don't need precaching
+          // Only precache the critical shell: HTML entry point, CSS, and small icons.
+          // Large JS chunks (dice-box, pdf viewer, game UI, offscreen workers), fonts,
+          // and large images are cached on first use via runtimeCaching instead.
+          // This prevents the ~4-6MB IndexedDB write storm that crawls the machine on first visit.
+          globPatterns: ['**/*.{html,css,ico}'],
+          maximumFileSizeToCacheInBytes: 2 * 1024 * 1024,
           globIgnores: [
             '**/world-map-generator/**',
             '**/one-page-dungeon/**',
             '**/dwellings-generator/**',
             '**/city-generator/**',
             '**/cave-generator/**',
-            '**/DnDTeamPosing*.png',
-            '**/defaults/*.png',
           ],
           runtimeCaching: [
+            // JS chunks — cache after first load (lazy, not upfront)
+            {
+              urlPattern: /\.js$/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'js-chunks-cache',
+                expiration: {
+                  maxEntries: 60,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                },
+              },
+            },
+            // Self-hosted fonts (woff/woff2 served from origin)
+            {
+              urlPattern: /\.(woff2?|ttf|otf)$/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'fonts-cache',
+                expiration: {
+                  maxEntries: 30,
+                  maxAgeSeconds: 60 * 60 * 24 * 365, // 1 year
+                },
+              },
+            },
+            // SVG and large images — cache after first use
+            {
+              urlPattern: /\.(svg|png|jpg|webp)$/i,
+              handler: 'CacheFirst',
+              options: {
+                cacheName: 'images-cache',
+                expiration: {
+                  maxEntries: 50,
+                  maxAgeSeconds: 60 * 60 * 24 * 30, // 30 days
+                },
+              },
+            },
             {
               urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
               handler: 'CacheFirst',
