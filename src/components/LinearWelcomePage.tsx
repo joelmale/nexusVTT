@@ -7,7 +7,7 @@
  * - DM role for game creation
  */
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -43,7 +43,29 @@ export const LinearWelcomePage: React.FC = () => {
   const login = useGameStore((s) => s.login);
   const logout = useGameStore((s) => s.logout);
   const navigate = useNavigate();
-  const [playerName, setPlayerName] = useState('');
+  // Uncontrolled inputs — avoids re-rendering the entire page on every keystroke.
+  // We only track a cheap boolean so submit buttons can stay disabled when empty.
+  const playerNameRef = useRef<HTMLInputElement>(null);
+  const roomCodeRef = useRef<HTMLInputElement>(null);
+  const [playerNameEmpty, setPlayerNameEmpty] = useState(true);
+  const [roomCodeEmpty, setRoomCodeEmpty] = useState(true);
+  const playerName = { trim: () => playerNameRef.current?.value.trim() ?? '' };
+  const roomCode = { trim: () => roomCodeRef.current?.value.trim() ?? '' };
+  const handlePlayerNameChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const empty = !e.target.value.trim();
+      if (empty !== playerNameEmpty) setPlayerNameEmpty(empty);
+    },
+    [playerNameEmpty],
+  );
+  const handleRoomCodeChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      e.target.value = e.target.value.toUpperCase();
+      const empty = !e.target.value.trim();
+      if (empty !== roomCodeEmpty) setRoomCodeEmpty(empty);
+    },
+    [roomCodeEmpty],
+  );
   const [selectedRole, setSelectedRole] = useState<'player' | 'dm' | null>(
     null,
   );
@@ -58,7 +80,6 @@ export const LinearWelcomePage: React.FC = () => {
       preloadOnUserIntent('scene-editing');
     }
   };
-  const [roomCode, setRoomCode] = useState('');
   const [quickJoinMode, setQuickJoinMode] = useState<'player' | 'spectator'>(
     'player',
   );
@@ -726,8 +747,9 @@ export const LinearWelcomePage: React.FC = () => {
                 <input
                   id="adventurerName"
                   type="text"
-                  value={playerName}
-                  onChange={(e) => setPlayerName(e.target.value)}
+                  ref={playerNameRef}
+                  defaultValue=""
+                  onChange={handlePlayerNameChange}
                   placeholder="Your adventurer name"
                   className="glass-input"
                   disabled={loading}
@@ -809,7 +831,7 @@ export const LinearWelcomePage: React.FC = () => {
 
                       <button
                         onClick={handlePlayerSetup}
-                        disabled={!playerName.trim() || loading}
+                        disabled={playerNameEmpty || loading}
                         className="action-btn glass-button primary"
                       >
                         <span>🎭</span>
@@ -871,10 +893,9 @@ export const LinearWelcomePage: React.FC = () => {
                                 <span className="input-icon">🗝️</span>
                                 <input
                                   type="text"
-                                  value={roomCode}
-                                  onChange={(e) =>
-                                    setRoomCode(e.target.value.toUpperCase())
-                                  }
+                                  ref={roomCodeRef}
+                                  defaultValue=""
+                                  onChange={handleRoomCodeChange}
                                   placeholder="Room Code"
                                   maxLength={4}
                                   className="glass-input room-code-input"
@@ -883,9 +904,7 @@ export const LinearWelcomePage: React.FC = () => {
                               </div>
                               <button
                                 onClick={handleQuickJoin}
-                                disabled={
-                                  !playerName.trim() || !roomCode.trim() || loading
-                                }
+                                disabled={playerNameEmpty || roomCodeEmpty || loading}
                                 className="action-btn glass-button primary"
                               >
                                 {loading ? (
@@ -972,7 +991,7 @@ export const LinearWelcomePage: React.FC = () => {
                       <button
                         onClick={handleDMSetup}
                         disabled={
-                          !playerName.trim() ||
+                          playerNameEmpty ||
                           loading ||
                           (isAuthenticated && !selectedCampaign)
                         }
