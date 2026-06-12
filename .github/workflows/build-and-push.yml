@@ -48,12 +48,14 @@ jobs:
         id: meta
         run: |
           # Generate version tag
+          SHORT_SHA=${GITHUB_SHA::7}
           if [[ $GITHUB_REF == refs/tags/v* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
           else
-            VERSION=$(date +%Y%m%d)-${GITHUB_SHA::7}
+            VERSION=$(date +%Y%m%d)-${SHORT_SHA}
           fi
           echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           echo "frontend_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:$VERSION" >> $GITHUB_OUTPUT
           echo "backend_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:$VERSION" >> $GITHUB_OUTPUT
           echo "postgres_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/postgres:$VERSION" >> $GITHUB_OUTPUT
@@ -72,7 +74,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=frontend-homelab
           build-args: |
             VERSION=${{ steps.meta.outputs.version }}
-            COMMIT_SHA=${{ github.sha }}
+            COMMIT_SHA=${{ steps.meta.outputs.short_sha }}
 
       - name: Build and push backend
         uses: docker/build-push-action@v7

@@ -39,8 +39,8 @@ RUN npm ci
 # Copy source code
 COPY . .
 
-# Expose build version to Vite
-ENV VITE_BUILD_VERSION=$VERSION
+# Short commit SHA → lobby build badge matches the GitHub commit.
+ENV VITE_BUILD_VERSION=$COMMIT_SHA
 
 # Build the application
 RUN npm run build
