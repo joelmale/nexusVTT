@@ -12,7 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { NexusLogo } from './Assets';
 import { useAssetExists } from '@/utils/assets';
-import DnDTeamBackground from '@/assets/DnDTeamPosing.png';
+import DnDTeamBackground from '@/assets/DnDTeamPosing.webp';
 import { preloadOnUserIntent } from '@/services/cssLoader';
 
 interface Campaign {

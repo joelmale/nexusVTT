@@ -51,6 +51,11 @@ export default defineConfig(({ command, mode }) => {
           ],
         },
         workbox: {
+          // Take control of all clients immediately on SW update — without this,
+          // the old SW stays active until every tab of the site is closed, causing
+          // a 20-30s freeze while the old (large) pre-cache list is validated.
+          skipWaiting: true,
+          clientsClaim: true,
           // Only precache the critical shell: HTML entry point, CSS, and small icons.
           // Large JS chunks (dice-box, pdf viewer, game UI, offscreen workers), fonts,
           // and large images are cached on first use via runtimeCaching instead.
