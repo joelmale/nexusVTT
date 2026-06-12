@@ -39,6 +39,33 @@ jobs:
         with:
           category: '/language:javascript-typescript'
 
+  filesystem-scan:
+    name: Trivy Filesystem Scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Run Trivy filesystem scanner
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'sarif'
+          output: 'trivy-fs.sarif'
+          severity: 'CRITICAL,HIGH,MEDIUM'
+          skip-dirs: 'public,node_modules/.cache'
+
+      - name: Upload Trivy filesystem results to GitHub Security
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('trivy-fs.sarif') != ''
+        with:
+          sarif_file: 'trivy-fs.sarif'
+          category: 'trivy-fs-scan'
+
   container-scan:
     name: Container Security Scan
     runs-on: ubuntu-latest
@@ -78,6 +105,7 @@ jobs:
         if: always() && hashFiles('trivy-${{ matrix.image }}.sarif') != ''
         with:
           sarif_file: 'trivy-${{ matrix.image }}.sarif'
+          category: 'trivy-container-${{ matrix.image }}'
 
       - name: Run Grype vulnerability scanner
         uses: anchore/scan-action@v7
