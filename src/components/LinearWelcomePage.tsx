@@ -7,9 +7,10 @@
  * - DM role for game creation
  */
 
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
+import { useShallow } from 'zustand/react/shallow';
 import { NexusLogo } from './Assets';
 import { useAssetExists } from '@/utils/assets';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.webp';
@@ -23,19 +24,24 @@ interface Campaign {
 }
 
 export const LinearWelcomePage: React.FC = () => {
-  const {
-    setUser,
-    joinRoomWithCode,
-    dev_quickDM,
-    dev_quickPlayer,
-    isAuthenticated,
-    autoPlacePlayerToken,
-    session,
-    attemptSessionRecovery,
-    login,
-    logout,
-    user,
-  } = useGameStore();
+  // Select only what we need — prevents re-renders on unrelated store changes.
+  // State values that actually affect this page's output:
+  const { isAuthenticated, session, user } = useGameStore(
+    useShallow((s) => ({
+      isAuthenticated: s.isAuthenticated,
+      session: s.session,
+      user: s.user,
+    })),
+  );
+  // Actions are stable references; pulling them separately avoids the
+  // shallow-compare overhead on every render.
+  const setUser = useGameStore((s) => s.setUser);
+  const joinRoomWithCode = useGameStore((s) => s.joinRoomWithCode);
+  const dev_quickDM = useGameStore((s) => s.dev_quickDM);
+  const dev_quickPlayer = useGameStore((s) => s.dev_quickPlayer);
+  const autoPlacePlayerToken = useGameStore((s) => s.autoPlacePlayerToken);
+  const login = useGameStore((s) => s.login);
+  const logout = useGameStore((s) => s.logout);
   const navigate = useNavigate();
   const [playerName, setPlayerName] = useState('');
   const [selectedRole, setSelectedRole] = useState<'player' | 'dm' | null>(
@@ -85,6 +91,18 @@ export const LinearWelcomePage: React.FC = () => {
   const emailInputRef = React.useRef<HTMLInputElement | null>(null);
   const buildVersion = import.meta.env.VITE_BUILD_VERSION ?? 'dev';
 
+  // Computed once — prevents particles from jumping to new random positions on every re-render.
+  const particleStyles = useMemo(
+    () =>
+      Array.from({ length: 15 }).map(() => ({
+        left: `${Math.random() * 100}%`,
+        top: `${Math.random() * 100}%`,
+        animationDelay: `${Math.random() * 4}s`,
+        animationDuration: `${4 + Math.random() * 4}s`,
+      })),
+    [],
+  );
+
   // Detect if we're returning from OAuth (check for common OAuth params)
   const isOAuthRedirect = React.useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -113,54 +131,17 @@ export const LinearWelcomePage: React.FC = () => {
   }, [isAuthenticated, isOAuthRedirect]);
 
   // Auto-navigate to game if session exists, or attempt recovery if needed
+  // Navigate to game once session recovery (handled by Providers/useSessionPersistence)
+  // sets a roomCode in the store. We do NOT attempt recovery here — that would duplicate
+  // the attempt already made by useSessionPersistence and trigger a second WS reconnect loop.
   React.useEffect(() => {
-    const recoverAndNavigate = async () => {
-      // Skip auto-recovery if we're in the middle of OAuth flow
-      if (isOAuthRedirect) {
-        console.log('🔐 Skipping auto-recovery during OAuth redirect');
-        return;
-      }
-
-      // Skip auto-recovery if we just completed OAuth login
-      if (localStorage.getItem('nexus-auth-complete')) {
-        console.log('🔐 Skipping auto-recovery - OAuth just completed');
-        return;
-      }
-
-      if (session?.roomCode) {
-        console.log(
-          '🔄 Found existing session, navigating to game:',
-          session.roomCode,
-        );
-        navigate(`/lobby/game/${session.roomCode}`);
-        return;
-      }
-
-      // Check if we have stored session data that needs recovery
-      const stored = localStorage.getItem('nexus-active-session');
-      if (stored) {
-        try {
-          const parsed = JSON.parse(stored);
-          if (parsed.roomCode) {
-            console.log(
-              '🔄 Attempting session recovery for room:',
-              parsed.roomCode,
-            );
-            const recovered = await attemptSessionRecovery();
-            if (recovered) {
-              console.log(
-                '✅ Session recovered, navigation will happen on next render',
-              );
-            }
-          }
-        } catch (error) {
-          console.error('Failed to recover session from localStorage:', error);
-        }
-      }
-    };
-
-    recoverAndNavigate();
-  }, [session, navigate, attemptSessionRecovery, isOAuthRedirect]);
+    if (isOAuthRedirect) return;
+    if (localStorage.getItem('nexus-auth-complete')) return;
+    if (session?.roomCode) {
+      console.log('🔄 Found existing session, navigating to game:', session.roomCode);
+      navigate(`/lobby/game/${session.roomCode}`);
+    }
+  }, [session?.roomCode, navigate, isOAuthRedirect]);
 
   /**
    * Fetch user's campaigns when DM role is selected and user is authenticated
@@ -491,17 +472,8 @@ export const LinearWelcomePage: React.FC = () => {
         <img src={DnDTeamBackground} alt="D&D Adventure Party" />
         <div className="background-overlay"></div>
         <div className="background-particles">
-          {Array.from({ length: 15 }).map((_, i) => (
-            <div
-              key={i}
-              className="particle"
-              style={{
-                left: `${Math.random() * 100}%`,
-                top: `${Math.random() * 100}%`,
-                animationDelay: `${Math.random() * 4}s`,
-                animationDuration: `${4 + Math.random() * 4}s`,
-              }}
-            ></div>
+          {particleStyles.map((style, i) => (
+            <div key={i} className="particle" style={style}></div>
           ))}
         </div>
       </div>
