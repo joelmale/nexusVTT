@@ -340,6 +340,11 @@ export function preloadCSS(
     // Skip if already loaded or preloaded
     if (loadedStyles.has(path)) return;
 
+    // In production, CSS is bundled by Vite into /assets/css/[name]-[hash].css.
+    // The source path /src/styles/ doesn't exist, so preload hints are a no-op.
+    // Vite already handles optimal delivery of bundled CSS — skip here.
+    if (import.meta.env.PROD) return;
+
     try {
       const link = document.createElement('link');
       link.rel = 'preload';
