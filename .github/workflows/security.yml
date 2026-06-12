@@ -3,6 +3,8 @@ name: Security Scan
 on:
   push:
     branches: [master]
+  release:
+    types: [published]
 
 jobs:
   codeql:
@@ -113,3 +115,92 @@ jobs:
           image: nexus-vtt/${{ matrix.image }}:scan
           fail-build: false
           severity-cutoff: high
+
+  sbom:
+    name: Generate CycloneDX SBOMs
+    runs-on: ubuntu-latest
+    # SBOMs are generated on every master push and on releases.
+    # To consume them for vulnerability tracking, upload to Dependency-Track
+    # (https://dependencytrack.org) — it ingests CycloneDX JSON natively and
+    # shows a dashboard of CVEs over time per project component.
+    permissions:
+      contents: write   # needed to attach SBOMs to GitHub releases
+      packages: read
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      # ── Filesystem SBOM (npm dependencies) ──────────────────────────────
+      - name: Generate filesystem SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: 'fs'
+          scan-ref: '.'
+          format: 'cyclonedx'
+          output: 'sbom-filesystem.cdx.json'
+          skip-dirs: 'public,node_modules/.cache'
+
+      - name: Upload filesystem SBOM as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-filesystem-${{ github.sha }}
+          path: sbom-filesystem.cdx.json
+          retention-days: 90
+
+      # ── Container SBOMs (OS packages + app deps inside each image) ───────
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build frontend image for SBOM
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/frontend.Dockerfile
+          target: production
+          push: false
+          load: true
+          tags: nexus-vtt/frontend:sbom
+
+      - name: Build backend image for SBOM
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/backend.Dockerfile
+          push: false
+          load: true
+          tags: nexus-vtt/backend:sbom
+
+      - name: Generate frontend container SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: 'image'
+          image-ref: 'nexus-vtt/frontend:sbom'
+          format: 'cyclonedx'
+          output: 'sbom-frontend.cdx.json'
+
+      - name: Generate backend container SBOM (CycloneDX)
+        uses: aquasecurity/trivy-action@0.35.0
+        with:
+          scan-type: 'image'
+          image-ref: 'nexus-vtt/backend:sbom'
+          format: 'cyclonedx'
+          output: 'sbom-backend.cdx.json'
+
+      - name: Upload container SBOMs as artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: sbom-containers-${{ github.sha }}
+          path: |
+            sbom-frontend.cdx.json
+            sbom-backend.cdx.json
+          retention-days: 90
+
+      # ── Attach SBOMs to GitHub release (versioned audit trail) ───────────
+      - name: Attach SBOMs to release
+        if: github.event_name == 'release'
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            sbom-filesystem.cdx.json
+            sbom-frontend.cdx.json
+            sbom-backend.cdx.json
