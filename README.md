@@ -199,10 +199,38 @@ docker stack deploy -c docker/docker-compose.yml nexus
 
 ### Configuration
 
-- Environment variables in `.env`
-- SSL certificates via Nginx Proxy Manager
-- Health checks and monitoring
-- NFS storage for data persistence
+Copy `.env.example` to `.env` and fill in the values before starting. The full reference is in that file; the table below covers the variables you must set for a production deployment.
+
+#### Required environment variables
+
+| Variable | Description | Example |
+|---|---|---|
+| `DATABASE_URL` | PostgreSQL connection string | `postgresql://nexus:pass@localhost:5432/nexus` |
+| `POSTGRES_PASSWORD` | Postgres superuser password (used by the postgres container) | `change-me` |
+| `REDIS_PASSWORD` | Redis auth password | `change-me` |
+| `JWT_SECRET` | Signs JWT tokens — use a long random string | `openssl rand -hex 64` |
+| `SESSION_SECRET` | Signs session cookies — use a long random string | `openssl rand -hex 64` |
+| `GOOGLE_CLIENT_ID` | Google OAuth 2.0 client ID | `xxx.apps.googleusercontent.com` |
+| `GOOGLE_CLIENT_SECRET` | Google OAuth 2.0 client secret | — |
+| `GOOGLE_CALLBACK_URL` | Absolute HTTPS URL registered in Google Cloud Console | `https://app.nexusvtt.com/auth/google/callback` |
+| `DISCORD_CLIENT_ID` | Discord application client ID | — |
+| `DISCORD_CLIENT_SECRET` | Discord application client secret | — |
+| `DISCORD_CALLBACK_URL` | Absolute HTTPS URL registered in your Discord application | `https://app.nexusvtt.com/auth/discord/callback` |
+
+#### Optional / deployment variables
+
+| Variable | Default | Description |
+|---|---|---|
+| `SECURE_COOKIES` | `true` (production) | Set to `false` only in non-TLS local environments. Controls the `Secure` flag on session cookies. **Note:** `FORCE_HTTPS` no longer exists — it was removed as it only accidentally disabled this flag. |
+| `IMAGE_PREFIX` | `ghcr.io/joelmale/nexusvtt` | Container registry prefix used by docker-compose |
+| `VERSION` | `latest` | Image tag to deploy. CI automatically pushes `latest` and a date+SHA tag on every master merge. Pin to a specific tag (e.g. `20260611-63d0651`) for reproducible deploys. |
+| `POSTGRES_USER` | `nexus` | Postgres username |
+| `POSTGRES_DB` | `nexus` | Postgres database name |
+| `CORS_ORIGIN` | `http://localhost:5173` | Comma-separated list of allowed CORS origins |
+
+#### Proxy / SSL notes
+
+nginx only terminates HTTP internally (port 80). TLS is terminated by the outer reverse proxy (Traefik, Cloudflare, etc.), which must forward `X-Forwarded-Proto: https` — nginx passes this through unchanged to the backend. The backend is configured with `trust proxy: 1` so `req.protocol` and session cookie security are derived from that header, not the internal connection.
 
 ### Infrastructure
 
