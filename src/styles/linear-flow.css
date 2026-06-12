@@ -169,8 +169,6 @@
   /* Visuals */
   border-radius: 16px;
   background: rgba(255, 255, 255, 0.05);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
 
   /* Animation & Misc */
   transition: all 0.3s ease;
@@ -331,8 +329,6 @@
   border: 2px solid rgba(255, 255, 255, 0.6);
   border-radius: 4px;
   background: rgba(255, 255, 255, 0.1);
-  -webkit-backdrop-filter: blur(4px);
-  backdrop-filter: blur(4px);
 
   /* Positioning */
   cursor: pointer;
@@ -434,8 +430,6 @@
   /* Visuals */
   border-radius: 8px;
   background: rgba(255, 255, 255, 0.1);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
 
   /* Typography */
   color: white;
@@ -886,8 +880,6 @@
 
   /* Visuals */
   background: rgba(255, 255, 255, 0.05);
-  -webkit-backdrop-filter: blur(10px);
-  backdrop-filter: blur(10px);
 }
 
 .room-info h2 {
