@@ -1,177 +1,82 @@
-version: '3.8'
-
-# Production Docker Compose for Docker Swarm
-# Deploy with: docker stack deploy -c docker/docker-compose.yml nexusvtt
-
 services:
-  # PostgreSQL Database
-  # NOTE: Before deploying, create the NFS mount directory:
-  #   mkdir -p /mnt/docker-nas-vol1/nexusvtt/postgres
-  #   chmod 700 /mnt/docker-nas-vol1/nexusvtt/postgres
   postgres:
     image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexusvtt}/postgres:${VERSION:-latest}
-    build:
-      context: .
-      dockerfile: docker/postgres.Dockerfile
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nexus}
       POSTGRES_USER: ${POSTGRES_USER:-nexus}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-      # PostgreSQL data stored on NFS share (mounted on all swarm nodes)
-      - /mnt/docker-nas-vol1/nexusvtt/postgres:/var/lib/postgresql/data
+      - postgres-data:/var/lib/postgresql/data
     networks:
-      - homelab-net
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          # IMPORTANT: Keep postgres on manager node for consistent NFS access
-          - node.role == manager
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
+      - nexus-internal
+    restart: unless-stopped
     healthcheck:
       test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-nexus}']
       interval: 10s
       timeout: 5s
       retries: 5
 
-  # Redis for sessions and pub/sub
-  # NOTE: Before deploying, create the NFS mount directory:
-  #   mkdir -p /mnt/docker-nas-vol1/nexusvtt/redis
-  #   chmod 700 /mnt/docker-nas-vol1/nexusvtt/redis
   redis:
     image: redis:7-alpine
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
-      # Redis data stored on NFS share (mounted on all swarm nodes)
-      - /mnt/docker-nas-vol1/nexusvtt/redis:/data
+      - redis-data:/data
     networks:
-      - homelab-net
-    deploy:
-      mode: replicated
-      replicas: 1
-      placement:
-        constraints:
-          # IMPORTANT: Keep redis on manager node for consistent NFS access
-          - node.role == manager
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
+      - nexus-internal
+    restart: unless-stopped
     healthcheck:
-      test: ['CMD', 'redis-cli', '--raw', 'incr', 'ping']
+      test: ['CMD', 'redis-cli', '--no-auth-warning', '-a', '${REDIS_PASSWORD}', 'ping']
       interval: 10s
       timeout: 3s
       retries: 5
 
-  # Frontend - React SPA with Nginx
-  frontend:
-    image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexusvtt}/frontend:${VERSION:-latest}
-    build:
-      context: .
-      dockerfile: docker/frontend.Dockerfile
-    networks:
-      - homelab-net
-    environment:
-      - NODE_ENV=production
-    deploy:
-      mode: replicated
-      replicas: 2
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: stop-first
-        failure_action: rollback
-      rollback_config:
-        parallelism: 1
-        delay: 5s
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-      resources:
-        limits:
-          cpus: '0.5'
-          memory: 512M
-        reservations:
-          cpus: '0.1'
-          memory: 128M
-      endpoint_mode: vip
-    depends_on:
-      - backend
-
-  # Backend - Express + WebSocket Server
   backend:
     image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexusvtt}/backend:${VERSION:-latest}
-    build:
-      context: .
-      dockerfile: docker/backend.Dockerfile
-    command: >
-      sh -c "
-        until pg_isready -h postgres -U ${POSTGRES_USER:-nexus}; do
-          echo '⏳ Waiting for postgres...';
-          sleep 2;
-        done;
-        until redis-cli -h redis -a ${REDIS_PASSWORD} ping 2>/dev/null | grep -q PONG; do
-          echo '⏳ Waiting for redis...';
-          sleep 2;
-        done;
-        npm run server:start
-      "
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      PORT: 5000
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      SESSION_SECRET: ${SESSION_SECRET}
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
+      DISCORD_CALLBACK_URL: ${DISCORD_CALLBACK_URL}
     networks:
-      homelab-net:
-        aliases:
-          - nexusvtt-backend
+      - nexus-internal
+    restart: unless-stopped
+
+  frontend:
+    image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexusvtt}/frontend:${VERSION:-latest}
+    depends_on:
+      - backend
     environment:
       - NODE_ENV=production
-      - PORT=5000
-      - DATABASE_URL=${DATABASE_URL}
-      - REDIS_URL=redis://:${REDIS_PASSWORD}@redis:6379
-      - JWT_SECRET=${JWT_SECRET}
-      - SESSION_SECRET=${SESSION_SECRET}
-      - CORS_ORIGIN=https://app.nexusvtt.com,https://nexusvtt.com
-      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
-      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
-      - GOOGLE_CALLBACK_URL=${GOOGLE_CALLBACK_URL}
-      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
-      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
-      - DISCORD_CALLBACK_URL=${DISCORD_CALLBACK_URL}
-    deploy:
-      mode: replicated
-      replicas: 3
-      update_config:
-        parallelism: 1
-        delay: 10s
-        order: stop-first
-        failure_action: rollback
-      rollback_config:
-        parallelism: 1
-        delay: 5s
-      restart_policy:
-        condition: on-failure
-        delay: 5s
-        max_attempts: 3
-      resources:
-        limits:
-          cpus: '1.0'
-          memory: 1G
-        reservations:
-          cpus: '0.25'
-          memory: 256M
-      endpoint_mode: vip
-    depends_on:
-      - postgres
-      - redis
+    networks:
+      - nexus-internal
+      - proxy
+    restart: unless-stopped
+
+volumes:
+  postgres-data:
+  redis-data:
 
 networks:
-  homelab-net:
-    external: true
+  # Internal network — only containers in this stack can communicate on it
+  nexus-internal:
 
-# Note: No named volumes needed - using direct NFS mounts instead
-# PostgreSQL: /mnt/docker-nas-vol1/nexusvtt/postgres
-# Redis: /mnt/docker-nas-vol1/nexusvtt/redis
+  # External network shared with your reverse proxy (Nginx Proxy Manager, Traefik, etc.)
+  # Set PROXY_NETWORK in your .env to match your reverse proxy's network name.
+  proxy:
+    external: true
+    name: ${PROXY_NETWORK:-homelab-net}
