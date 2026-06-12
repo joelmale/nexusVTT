@@ -7,7 +7,7 @@
  * - DM role for game creation
  */
 
-import React, { useState, useMemo, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { useShallow } from 'zustand/react/shallow';
@@ -110,18 +110,6 @@ export const LinearWelcomePage: React.FC = () => {
   const [showAccountMenu, setShowAccountMenu] = useState(false);
   const emailInputRef = React.useRef<HTMLInputElement | null>(null);
   const buildVersion = import.meta.env.VITE_BUILD_VERSION ?? 'dev';
-
-  // Computed once — prevents particles from jumping to new random positions on every re-render.
-  const particleStyles = useMemo(
-    () =>
-      Array.from({ length: 15 }).map(() => ({
-        left: `${Math.random() * 100}%`,
-        top: `${Math.random() * 100}%`,
-        animationDelay: `${Math.random() * 4}s`,
-        animationDuration: `${4 + Math.random() * 4}s`,
-      })),
-    [],
-  );
 
   // Detect if we're returning from OAuth (check for common OAuth params)
   const isOAuthRedirect = React.useMemo(() => {
@@ -492,8 +480,8 @@ export const LinearWelcomePage: React.FC = () => {
         <img src={DnDTeamBackground} alt="D&D Adventure Party" />
         <div className="background-overlay"></div>
         <div className="background-particles" aria-hidden="true">
-          {particleStyles.map((style, i) => (
-            <div key={i} className="particle" style={style}></div>
+          {Array.from({ length: 15 }, (_, i) => (
+            <div key={i} className="particle"></div>
           ))}
         </div>
       </div>

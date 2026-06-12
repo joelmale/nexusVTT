@@ -403,15 +403,6 @@
   pointer-events: none;
 }
 
-.particle {
-  position: absolute;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.4);
-  animation: float 8s infinite ease-in-out;
-}
-
 /* ========================================================================== BRAND SECTION ========================================================================== */
 
 .brand-section {
