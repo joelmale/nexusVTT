@@ -5,339 +5,360 @@ Last reviewed: 2026-06-11
 
 ---
 
-## Alert Breakdown
+## Out of Scope
 
-The headline number is large because it conflates four distinct categories:
+All files under `public/` are vendored third-party generator scripts
+(`world-map-generator`, `one-page-dungeon`, `city-generator`,
+`dwellings-generator`, `cave-generator`). These will not be modified —
+patching them risks breaking the generators and upstream updates would
+clobber any local changes. Alerts in these files are accepted as vendor
+risk.
+
+**Suppressed alert categories (public/):**
+- 26 × `js/remote-property-injection`
+- 5 × `js/code-injection`
+- 5 × `js/missing-origin-check`
+
+---
+
+## True Alert Breakdown
 
 | Category | Count | Urgency |
 |---|---|---|
-| Code-quality / dead-code (non-security) | ~897 | Low — tech debt |
-| Genuine security issues in app code | ~100 | High — fix these |
-| OS-level CVEs in Docker base images | ~60 | Medium — base image bump |
-| Third-party bundled generator scripts | ~36 | Assess — vendor code |
-
-The phases below work through these in priority order.
+| Code quality / dead code (non-security) | ~897 | Low — tech debt |
+| Security issues in app code | ~70 | Phased below |
+| OS-level CVEs in Docker base images | ~60 | Medium — base image rebuild |
+| Vendored `public/` generators (out of scope) | ~36 | Accepted / skip |
 
 ---
 
-## Phase 1 — Critical app-code security (do this sprint)
+## Phase 1 — Fix now (low breaking-change risk, real security impact)
 
-These are real vulnerabilities in code we own and can fix today.
+These fixes are safe to ship without broad frontend/API changes.
 
-### 1.1 XSS via `dangerouslySetInnerHTML` — 4 alerts HIGH
+---
+
+### 1.1 Unvalidated URL in `src` / `href` attributes — 4 alerts HIGH
+**Breaking change risk: LOW** (with the right allowlist)
 
 **Files:**
-- `src/components/Scene/PropRenderer.tsx:207`
-- `src/components/Props/PropCreationPanel.tsx:584`
-- `src/components/Props/PropPanel.tsx:264`
-- `src/components/Generator/GeneratorPanel.tsx:595`
+- `src/components/Scene/PropRenderer.tsx:207` — SVG `<image href={prop.image}>`
+- `src/components/Props/PropPanel.tsx:264` — `<img src={prop.image}>`
+- `src/components/Props/PropCreationPanel.tsx:584` — `<img src={previewImage}>`
+- `src/components/Generator/GeneratorPanel.tsx:595` — `<img src={generatedMap}>`
 
-User-supplied content is being injected into the DOM without sanitisation. An attacker who can set a prop name/description can run arbitrary JavaScript in any player's session.
+The scanner flags user-controlled values flowing into URL attributes without
+scheme validation. A `javascript:` URL in a prop image field could execute
+code in the DM's browser.
 
-**Fix:** Replace `dangerouslySetInnerHTML` with a sanitise-then-set pattern using the `DOMPurify` library (already a common React pattern). For any field that does not need HTML at all, use plain text nodes instead.
+The `GeneratorPanel` hit is a false positive — `generatedMap` is a data URL
+produced internally by the app, not user input. It can be dismissed.
 
-```bash
-npm install dompurify
-npm install --save-dev @types/dompurify
-```
-
-```ts
-import DOMPurify from 'dompurify';
-// Replace: dangerouslySetInnerHTML={{ __html: userContent }}
-// With:    dangerouslySetInnerHTML={{ __html: DOMPurify.sanitize(userContent) }}
-// Or:      <span>{userContent}</span>  // if HTML is not needed at all
-```
-
----
-
-### 1.2 Unvalidated URL redirect — 4 alerts HIGH
-
-**Files:** same 4 files as 1.1 (co-located with XSS hits)
-
-A user-controlled value is used as an `href` or `src` without validating the scheme. Allows `javascript:` URLs and open redirects.
-
-**Fix:** Validate scheme before use.
+For the prop image fields, the existing assets are `https://` URLs or
+relative paths from the asset library. A safe-URL helper must allow all
+three valid schemes to avoid regressions:
 
 ```ts
-function safeUrl(url: string): string {
+// src/utils/safeUrl.ts
+const ALLOWED_SCHEMES = ['https:', 'http:', 'data:'];
+
+export function safeImageUrl(url: string | undefined): string {
+  if (!url) return '';
+  // Relative paths (start with / or .) are always safe
+  if (url.startsWith('/') || url.startsWith('.') || url.startsWith('blob:')) return url;
   try {
-    const parsed = new URL(url, window.location.origin);
-    if (!['http:', 'https:'].includes(parsed.protocol)) return '';
-    return parsed.href;
+    const { protocol } = new URL(url);
+    return ALLOWED_SCHEMES.includes(protocol) ? url : '';
   } catch {
-    return '';
+    return ''; // malformed URL — drop it
   }
 }
 ```
 
+Replace bare `src={prop.image}` and `href={prop.image}` with
+`src={safeImageUrl(prop.image)}` in the three prop components.
+
 ---
 
-### 1.3 Path injection in asset serving — 1 alert HIGH
+### 1.2 Path injection in custom token upload — 1 alert HIGH
+**Breaking change risk: LOW**
 
 **File:** `server/index.ts:1236`
 
-A user-supplied value is used to construct a filesystem path without sanitisation. Could allow directory traversal (e.g. `../../etc/passwd`).
-
-**Fix:** Resolve the path and assert it stays within the intended assets root.
+`tokenId` (user-supplied) and `name` are used to build a file path. The
+existing code already sanitises `name` with `/[^a-z0-9]/gi → '_'`, so
+path traversal via the name is blocked. However `tokenId` is not sanitised
+before being appended to the filename. Add an explicit path-bounds check as
+defence-in-depth:
 
 ```ts
 import path from 'path';
 
-const ASSETS_ROOT = path.resolve('./static-assets/assets');
+const TOKENS_ROOT = path.resolve(customTokensDir);
+const filepath = path.join(TOKENS_ROOT, filename);
 
-function safeAssetPath(userInput: string): string {
-  const resolved = path.resolve(ASSETS_ROOT, userInput);
-  if (!resolved.startsWith(ASSETS_ROOT + path.sep)) {
-    throw new Error('Path traversal attempt rejected');
-  }
-  return resolved;
+// Reject if the resolved path escapes the tokens directory
+if (!filepath.startsWith(TOKENS_ROOT + path.sep)) {
+  return res.status(400).json({ error: 'Invalid token path' });
 }
 ```
 
+This is additive — no existing behaviour changes for valid inputs.
+
 ---
 
-### 1.4 Missing CSRF protection — 1 alert HIGH
+### 1.3 Log injection — 16 alerts MEDIUM
+**Breaking change risk: VERY LOW**
 
-**File:** `server/index.ts:290`
+**File:** `src/services/websocket.ts` (primary)
 
-State-mutating routes (POST/PUT/DELETE) have no CSRF token validation. A malicious third-party page could trigger requests on behalf of a logged-in user.
+User-controlled values (room codes, usernames, error messages) are
+interpolated directly into `console.log`. In production log aggregation
+pipelines, a crafted value containing `\n` can inject fake log lines.
 
-**Fix:** Add `csurf` middleware (or its modern equivalent `csrf-csrf`) to all non-GET routes. The session is already cookie-based so double-submit or synchronised-token patterns both apply.
+Fix: strip newlines from any external-origin value before logging.
 
+```ts
+const sanitizeLog = (s: unknown): string =>
+  String(s).replace(/[\r\n\t]/g, ' ').slice(0, 200);
+```
+
+Apply `sanitizeLog()` around any variable that originates from WebSocket
+messages, URL params, or user input in log statements. This has zero impact
+on runtime behaviour — only on what gets written to logs.
+
+---
+
+### 1.4 Insecure randomness — audit result: mostly false positives
+**Breaking change risk: N/A for most; LOW for the one real case**
+
+The scanner flags 9 uses of `Math.random()`. On inspection, most are
+genuinely not security-sensitive:
+
+| Location | Use | Risk |
+|---|---|---|
+| `websocket.ts:423` | Jitter on reconnect delay | None — delay randomisation |
+| `gameStore.ts:3912–3965` | NPC ability scores, random names/race/class | None — game flavour |
+| `LinearWelcomePage.tsx:499–502` | CSS animation positions and durations | None — cosmetic |
+| `sessionPersistence.ts:109,111,370` | Session cookie data construction | Needs verification |
+
+The only case that may matter is `sessionPersistence.ts` — if
+`Math.random()` is used to generate a browser ID or session nonce, replace
+it with `crypto.randomUUID()`. If it is used only for expiry timestamps or
+UI values, no change is needed.
+
+Verify with: `sed -n '105,120p' src/services/sessionPersistence.ts`
+
+**Action:** Dismiss the gameStore, websocket jitter, and LinearWelcomePage
+alerts as false positives. Audit sessionPersistence and replace any
+security-token generation with `crypto.randomUUID()`.
+
+---
+
+### 1.5 User-controlled security bypass in `documents.ts` — likely false positive
+**Breaking change risk: N/A**
+
+**File:** `server/routes/documents.ts` (7 alerts)
+
+The scanner flagged access-control checks as potentially bypassable. On
+inspection, `documents.ts` uses a `getUserId(req)` helper that correctly
+reads from `req.user` (passport session) or `req.session.guestUser` — never
+from `req.body` or `req.params`. The `userId` flowing into `hasDocumentAccess()`
+comes from the session, not user input.
+
+**Action:** Verify by grepping for any route that reads an identity or
+ownership field from `req.body`:
 ```bash
-npm install csrf-csrf
+grep -n "req\.body\.\(userId\|ownerId\|id\)" server/routes/documents.ts
 ```
+If nothing is found, dismiss these alerts as false positives in GitHub's
+code scanning UI (mark as "Used in tests" or "False positive").
 
-```ts
-import { doubleCsrf } from 'csrf-csrf';
-const { generateToken, doubleCsrfProtection } = doubleCsrf({ getSecret: () => process.env.SESSION_SECRET! });
-app.use(doubleCsrfProtection);  // applies to POST/PUT/DELETE automatically
-// Expose token to client via: app.get('/api/csrf-token', (req, res) => res.json({ token: generateToken(req, res) }))
-```
+The 6 alerts in `server/index.ts` for the same rule should be audited
+similarly — look for any `req.body` value that flows into a permission check.
 
 ---
 
-### 1.5 Insecure randomness used for security tokens — 9 alerts HIGH
-
-**Files:**
-- `src/services/websocket.ts:118,119,456` — connection/update IDs
-- `src/stores/gameStore.ts:3688,3690` — room/session codes
-- `src/components/LinearWelcomePage.tsx:89` — likely a nonce or ID
-- `src/services/sessionPersistence.ts:109,111,370` — persistence keys
-
-`Math.random()` is not cryptographically secure. Any value used as a token, nonce, or secret must use `crypto.randomUUID()` or `crypto.getRandomValues()`.
-
-**Fix:** Replace `Math.random()`-based ID generation:
-
-```ts
-// Instead of: Math.random().toString(36).substr(2, 9)
-// Use:        crypto.randomUUID()                 (browser + Node 19+)
-// Or:         crypto.getRandomValues(new Uint8Array(16))  (typed array)
-```
-
-Note: the jitter fix we added to `websocket.ts` this session intentionally uses `Math.random()` for randomising a delay — that is not security-sensitive and does not need changing.
+## Phase 2 — Next sprint (moderate change, needs testing)
 
 ---
-
-### 1.6 User-controlled security bypass — 13 alerts HIGH
-
-**Files:**
-- `server/routes/documents.ts` — 7 alerts
-- `server/index.ts` — 6 alerts
-
-User-supplied values flow into access-control checks without validation, allowing bypasses. Examples: a user passes their own `userId` in a request body and the server uses it without comparing to `req.user.id`.
-
-**Fix:** Never trust client-supplied identity. Always derive the acting user from the verified session:
-
-```ts
-// Wrong:
-const userId = req.body.userId;
-if (document.ownerId === userId) { /* grant access */ }
-
-// Right:
-const userId = req.user!.id;  // always from passport session
-if (document.ownerId === userId) { /* grant access */ }
-```
-
-Audit every route in `documents.ts` and `index.ts` for any identity or permission field sourced from `req.body`, `req.query`, or `req.params` rather than `req.user`.
-
----
-
-## Phase 2 — High security issues (next sprint)
 
 ### 2.1 Missing rate limiting — 28 alerts HIGH
+**Breaking change risk: MEDIUM**
 
-**Files:** `server/index.ts` (20 alerts), `server/routes/documents.ts` (8 alerts)
+**Files:** `server/index.ts` (20), `server/routes/documents.ts` (8)
 
-No route has rate limiting. Auth endpoints are particularly exposed — brute-force login, guest user creation spam, and dice-roll flooding are all possible.
-
-**Fix:** Apply `express-rate-limit` at three levels.
+No API or auth endpoint has rate limiting. With 3 backend replicas, rate
+limits must be stored in Redis (not in-process) or each replica would enforce
+limits independently, allowing 3× the intended rate.
 
 ```bash
-npm install express-rate-limit
+npm install express-rate-limit rate-limit-redis
 ```
 
 ```ts
 import rateLimit from 'express-rate-limit';
+import RedisStore from 'rate-limit-redis';
+import { createClient } from 'redis';
 
-// Strict: auth endpoints
-const authLimiter = rateLimit({ windowMs: 15 * 60 * 1000, max: 20, standardHeaders: true });
+const redisClient = createClient({ url: process.env.REDIS_URL });
+
+// Auth endpoints — strict
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 20,
+  standardHeaders: true,
+  store: new RedisStore({ sendCommand: (...args) => redisClient.sendCommand(args) }),
+});
 app.use('/auth', authLimiter);
 
-// Moderate: API
-const apiLimiter = rateLimit({ windowMs: 60 * 1000, max: 120 });
-app.use('/api', apiLimiter);
-
-// Loose: static/health
-const generalLimiter = rateLimit({ windowMs: 60 * 1000, max: 300 });
-app.use('/', generalLimiter);
-```
-
-Consider storing rate-limit state in Redis (via `rate-limit-redis`) so limits work correctly across the 3 backend replicas.
-
----
-
-### 2.2 Missing WebSocket origin check — 5 alerts HIGH
-
-**Files:** `public/world-map-generator/Perilous.js`, `public/one-page-dungeon/Dungeon.js`, `public/city-generator/mfcg.js`, `public/dwellings-generator/Dwellings.js`, `public/cave-generator/Cave.js`
-
-These bundled generator scripts use `postMessage` without validating the `event.origin`. A malicious page in another tab could send commands to the generators.
-
-**Fix:** All `postMessage` listeners in these files need an origin check:
-
-```js
-window.addEventListener('message', (event) => {
-  if (event.origin !== window.location.origin) return; // add this guard
-  // ... existing handler
+// API — moderate (start generous, tighten after observing traffic)
+const apiLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 200,  // 200 req/min per IP — adjust after observing real usage
+  store: new RedisStore({ ... }),
 });
+app.use('/api', apiLimiter);
 ```
 
-Since these are vendored/third-party files, note the version and check if upstream has patched this before modifying locally.
+**Caution:** The character sync on Dashboard and the campaign load on
+startup can generate bursts of API calls. Start with a conservative limit
+(200/min) and monitor before tightening. The `/api/characters` endpoint in
+particular fires on mount — set a generous limit initially.
 
 ---
 
-### 2.3 Log injection — 16 alerts MEDIUM
+### 2.2 Missing CSRF protection — 1 alert HIGH
+**Breaking change risk: HIGH — do not ship without frontend changes**
 
-**File:** `src/services/websocket.ts` (10 alerts), other files
+**File:** `server/index.ts:290`
 
-User-controlled data (e.g. room codes, usernames) is interpolated directly into `console.log` calls. In environments where logs are forwarded to a SIEM, this can poison log entries or inject fake log lines.
+State-mutating routes lack CSRF token validation. This is a real gap but
+the fix touches both the server and every POST/PUT/DELETE call in the
+frontend.
 
-**Fix:** Sanitise values logged from external sources by stripping newlines:
+**Implementation path (do in this order):**
 
-```ts
-const safe = (s: unknown) => String(s).replace(/[\r\n]/g, ' ');
-console.log(`User ${safe(username)} joined room ${safe(roomCode)}`);
-```
+1. Add `csrf-csrf` to server:
+   ```bash
+   npm install csrf-csrf
+   ```
+2. Expose a CSRF token endpoint:
+   ```ts
+   app.get('/api/csrf-token', (req, res) => res.json({ token: generateToken(req, res) }));
+   ```
+3. Exclude OAuth callback routes and WebSocket upgrade from CSRF middleware.
+4. Update the frontend: fetch the token on app load and include it as
+   `X-CSRF-Token` header in all `fetch()` calls that mutate state.
+5. Test the full OAuth flow before deploying — the callback redirect from
+   Google/Discord does not include a CSRF token and must be whitelisted.
 
----
-
-### 2.4 Tainted format string — 1 alert HIGH
-
-**File:** `src/services/tokenAssets.ts`
-
-A user-controlled string reaches a formatting function that may interpret format specifiers.
-
-**Fix:** Review `tokenAssets.ts` and ensure user-supplied asset names/paths are treated as data, not format strings. Never pass user input as the first argument to functions that support `%s`/`%d` style formatting.
-
----
-
-### 2.5 ReDoS (polynomial regex) — 1 alert HIGH
-
-**File:** `server/index.ts`
-
-A regular expression applied to user-supplied input has polynomial worst-case matching behaviour. A crafted string can stall the event loop.
-
-**Fix:** Audit the flagged regex, test it against ReDoS checkers (e.g. [vuln-regex-detector](https://github.com/davisjam/vuln-regex-detector)), and rewrite to linear complexity — often by removing nested quantifiers or using a string search instead.
+**Risk if skipped:** An attacker with knowledge of the API can perform
+CSRF attacks against logged-in users. In a VTT context this is limited —
+an attacker would need the victim to visit a malicious page while logged
+in, and the damage is limited to game data. Prioritise behind the
+rate-limiting fix.
 
 ---
 
 ## Phase 3 — Docker base image CVEs (next fortnight)
 
-About 60 alerts are OS-level CVEs (OpenSSL, libxml2) duplicated across the `frontend`, `backend`, and `postgres` images. The scanner reports each CVE per image, inflating the count.
+~60 alerts are OS-level CVEs duplicated across the three container images.
+The same CVE appears 4 times (once per image × 2 replicas in some cases).
 
-**Distinct CVEs:**
-- `CVE-2026-45447` — OpenSSL heap use-after-free (HIGH)
-- `CVE-2026-6732` — libxml2 DoS (HIGH, frontend image only)
-- `CVE-2026-45445`, `CVE-2026-42764` — OpenSSL AES/QUIC issues (MEDIUM)
-- 10+ further OpenSSL low/medium issues
+**Distinct vulnerabilities requiring action:**
 
-**Fix:** Pin base images to a patched Alpine version. The current `node:25-alpine` and `nginx:alpine` will pick up fixes when Alpine pushes updated OpenSSL/libxml2 packages — simply rebuilding with `--no-cache` is often enough after an upstream patch lands.
+| CVE | Severity | Component | Fix |
+|---|---|---|---|
+| CVE-2026-45447 | HIGH | OpenSSL — heap UAF in PKCS7_verify | Rebuild with patched Alpine |
+| CVE-2026-6732 | HIGH | libxml2 DoS (frontend image only) | Rebuild nginx:alpine after upstream patch |
+| CVE-2026-45445 | MEDIUM | OpenSSL AES-OCB | Rebuild with patched Alpine |
+| CVE-2026-42764 | MEDIUM | OpenSSL QUIC null-deref | Rebuild with patched Alpine |
+| CVE-2026-34182/3 | MEDIUM | OpenSSL CMS/QUIC | Rebuild with patched Alpine |
 
-```dockerfile
-# backend.Dockerfile / frontend.Dockerfile
-FROM node:25-alpine   # bump to node:25-alpine3.22 or latest patched tag
+**Fix:** Rebuilding the images after Alpine patches are available resolves
+all of these. Add `--no-cache` to CI build to ensure latest OS packages:
+
+```yaml
+# .github/workflows/build-and-push.yml
+- uses: docker/build-push-action@v7
+  with:
+    no-cache: true   # always pull latest Alpine packages
 ```
 
-```bash
-# Rebuild without cache to pull latest Alpine packages
-docker build --no-cache -f docker/backend.Dockerfile .
+Add a monthly scheduled CI job to rebuild images even without code changes:
+
+```yaml
+on:
+  schedule:
+    - cron: '0 3 1 * *'  # 1st of each month at 03:00 UTC
 ```
 
-Add a scheduled monthly CI job that rebuilds images to catch OS-level patches automatically.
-
-**Also:** `picomatch CVE-2026-33671` is in `npm`'s own bundled dependencies (`/usr/local/lib/node_modules/npm/...`), not in the project's `node_modules`. It will be fixed by upgrading the Node.js base image.
+**Note:** `picomatch CVE-2026-33671` and the `brace-expansion` CVEs are in
+npm's own bundled tooling (`/usr/local/lib/node_modules/npm/...`), not in
+the project's `node_modules`. These are fixed by upgrading the Node.js base
+image version.
 
 ---
 
-## Phase 4 — Bundled generator script issues (assess & decide)
+## Phase 4 — Code quality / tech debt (~897 alerts, ongoing)
 
-26 `js/remote-property-injection` and 5 `js/code-injection` alerts are in vendored third-party files:
-
-- `public/world-map-generator/Perilous.js`
-- `public/one-page-dungeon/Dungeon.js`
-- `public/city-generator/mfcg.js`
-- `public/dwellings-generator/Dwellings.js`
-- `public/cave-generator/Cave.js`
-
-These are open-source map/dungeon generators bundled as static files. They run in the browser, not on the server, and are loaded in sandboxed iframes.
-
-**Options (pick one):**
-
-| Option | Effort | Risk reduction |
-|---|---|---|
-| Add `sandbox` attribute to iframes loading these | Low | High — browser enforces isolation |
-| Fork and patch each generator | High | Full control |
-| Add CodeQL `.github/codeql-config.yml` ignore for `public/` | Low | Suppresses noise, doesn't fix |
-| Replace with actively maintained equivalents | Very high | Best long term |
-
-**Recommended:** Start with the iframe `sandbox` attribute (if not already present), then file issues upstream on the generators. Suppressing the alerts in CodeQL config without mitigation is not recommended.
-
----
-
-## Phase 5 — Code quality / tech debt (~897 alerts)
-
-These are not security vulnerabilities but indicate code quality issues that make the codebase harder to maintain and can mask real bugs.
+These are not security vulnerabilities. They indicate dead code, unreachable
+branches, and TypeScript type mismatches that make the codebase harder to
+maintain.
 
 | Rule | Count | What it means |
 |---|---|---|
-| `js/comparison-between-incompatible-types` | 519 | Comparing values that can never match (e.g. `string === number`) — usually dead branches or incorrect type assumptions |
+| `js/comparison-between-incompatible-types` | 519 | Value compared to something it can never equal |
 | `js/useless-comparison-test` | 140 | Condition always true or always false |
 | `js/useless-assignment-to-local` | 105 | Variable written but never read |
-| `js/use-before-declaration` | 88 | Variable used before its `let`/`const` declaration (hoisting issue) |
-| `js/trivial-conditional` | 50 | `if (true)` / `if (false)` style dead code |
+| `js/use-before-declaration` | 88 | Variable used before its `let`/`const` |
+| `js/trivial-conditional` | 50 | Dead `if (true)` / `if (false)` |
 | `js/redundant-assignment` | 35 | Value overwritten before being read |
 
-**Approach:** Do not attempt to fix all 897 at once. Instead:
-1. Enable the ESLint rules that overlap (`no-unused-vars`, `no-constant-condition`, `@typescript-eslint/no-unnecessary-condition`) — many will auto-fix
-2. Run `npm run lint -- --fix` after enabling rules
-3. Review remaining hits file-by-file during normal feature work
+**Important:** The 519 `js/comparison-between-incompatible-types` count is
+almost certainly inflated. CodeQL's JS engine generates false positives at
+scale on TypeScript projects when the build step is not run before analysis.
+Check `.github/workflows/security.yml` — if CodeQL's `autobuild` step does
+not compile TypeScript first, add:
 
-The `js/comparison-between-incompatible-types` count of 519 is suspiciously large for a TypeScript project. This likely indicates the CodeQL scan is running without full TypeScript type information. Check `.github/workflows/security.yml` — if the build step isn't compiling TypeScript before CodeQL analysis, the scanner falls back to JS-mode and generates false positives. Running `npm run build` before the CodeQL `autobuild` step will dramatically reduce this category.
+```yaml
+- run: npm run build   # compile TS so CodeQL has full type information
+  before:             # add before the CodeQL analyze step
+```
+
+This single change is likely to reduce the total alert count by 300–400.
+
+**Approach for the remainder:** do not batch-fix these. Enable the
+overlapping ESLint rules and let them surface during normal feature work:
+
+```json
+// .eslintrc (additions)
+"no-unused-vars": "warn",
+"no-constant-condition": "warn",
+"@typescript-eslint/no-unnecessary-condition": "warn"
+```
 
 ---
 
 ## Recommended Execution Order
 
 ```
-Week 1:  Phase 1 (XSS, CSRF, path injection, insecure random, auth bypass)
-Week 2:  Phase 2 (rate limiting, origin checks, log injection)
-Week 3:  Phase 3 (base image rebuild) + Phase 4 assessment
-Ongoing: Phase 5 during regular sprint work
+Week 1:  Phase 1 — URL validation, path bounds check, log sanitisation,
+         insecure-random audit, false-positive dismissals
+         Also: add TypeScript build step to CodeQL workflow (Phase 4 pre-req)
+
+Week 2:  Phase 2.1 — Rate limiting (with Redis store)
+
+Week 3:  Phase 2.2 — CSRF (requires coordinated frontend + server change)
+
+Ongoing: Phase 3 — rebuild images monthly via scheduled CI
+         Phase 4 — tackle during regular sprint work
 ```
 
-## Tracking Progress
+---
 
-Run the following to get a live count of open alerts by severity:
+## Live Alert Count
 
 ```bash
 gh api repos/joelmale/nexusVTT/code-scanning/alerts \
