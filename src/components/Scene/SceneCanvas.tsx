@@ -29,6 +29,7 @@ import { SelectionOverlay } from './SelectionOverlay';
 import { DrawingPropertiesPanel } from './DrawingPropertiesPanel';
 import { SpellOverlayPropertiesPanel } from './SpellOverlayPropertiesPanel';
 import { SpellOverlayPatterns } from './SpellOverlayPatterns';
+import { type ElementType, ELEMENT_THEMES } from '@/types/drawing';
 import { TokenDropZone } from './TokenDropZone';
 import { TokenRenderer } from './TokenRenderer';
 import { PropRenderer } from './PropRenderer';
@@ -56,6 +57,8 @@ import type {
 interface SceneCanvasProps {
   scene: Scene;
 }
+
+const SPELL_TYPES = new Set(['spell-circle', 'spell-ring', 'spell-cone', 'spell-line', 'spell-square', 'spell-triangle']);
 
 const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   // Actions from store (don't cause rerenders)
@@ -144,37 +147,22 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     dndSpellLevel: 1,
   });
 
+  const [spellElementType, setSpellElementType] = useState<ElementType>('arcane');
+  const [spellGridSnap, setSpellGridSnap] = useState(true);
+
   const drawings = useSceneDrawings(scene.id);
 
   const selectedDrawingIds = useMemo(() => {
     const drawingIds = new Set(drawings.map((d) => d.id));
-    const filtered = selectedObjectIds.filter((id) => drawingIds.has(id));
-    console.log('🎨 SceneCanvas selectedDrawingIds:', {
-      selectedObjectIds,
-      drawingIds: Array.from(drawingIds),
-      filtered,
-    });
-    return filtered;
+    return selectedObjectIds.filter((id) => drawingIds.has(id));
   }, [selectedObjectIds, drawings]);
 
   // Filter for spell overlay drawings specifically
   const selectedSpellOverlay = useMemo(() => {
     if (selectedDrawingIds.length !== 1) return null;
     const drawing = drawings.find((d) => d.id === selectedDrawingIds[0]);
-    if (!drawing) return null;
-
-    const spellTypes = [
-      'spell-circle',
-      'spell-ring',
-      'spell-cone',
-      'spell-line',
-      'spell-square',
-      'spell-triangle',
-    ];
-    if (spellTypes.includes(drawing.type)) {
-      return drawing as SpellOverlayDrawing;
-    }
-    return null;
+    if (!drawing || !SPELL_TYPES.has(drawing.type)) return null;
+    return drawing as SpellOverlayDrawing;
   }, [selectedDrawingIds, drawings]);
 
   // Update viewport size when container resizes
@@ -455,11 +443,6 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
 
   const handleDrawingClick = useCallback(
     (drawingId: string, event: React.MouseEvent) => {
-      console.log('🎨 handleDrawingClick:', {
-        drawingId,
-        shiftKey: event.shiftKey,
-      });
-
       if (event.shiftKey || event.metaKey || event.ctrlKey) {
         // Multi-select: toggle this drawing in selection
         if (selectedObjectIds.includes(drawingId)) {
@@ -1059,6 +1042,8 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                 clearSelection={clearSelection}
                 placedTokens={placedTokens}
                 placedProps={placedProps}
+                spellElementType={spellElementType}
+                spellGridSnap={spellGridSnap}
               />
 
               {/* Selection overlay */}
@@ -1118,6 +1103,70 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
             >
               📦 Drop prop here
             </div>
+          </div>
+        )}
+
+        {/* Spell element picker — shown when a spell tool is active */}
+        {activeTool && activeTool.startsWith('spell-') && (
+          <div
+            style={{
+              position: 'absolute',
+              bottom: '1rem',
+              left: '50%',
+              transform: 'translateX(-50%)',
+              display: 'flex',
+              gap: '6px',
+              padding: '6px 10px',
+              background: 'var(--surface-secondary, rgba(0,0,0,0.75))',
+              borderRadius: '8px',
+              border: '1px solid var(--border-primary, rgba(255,255,255,0.15))',
+              boxShadow: 'var(--shadow-lg)',
+              zIndex: 100,
+              alignItems: 'center',
+            }}
+          >
+            {(Object.keys(ELEMENT_THEMES) as ElementType[]).map((el) => {
+              const theme = ELEMENT_THEMES[el];
+              const isActive = spellElementType === el;
+              return (
+                <button
+                  key={el}
+                  title={el.charAt(0).toUpperCase() + el.slice(1)}
+                  onClick={() => setSpellElementType(el)}
+                  style={{
+                    width: 28,
+                    height: 28,
+                    borderRadius: '50%',
+                    border: isActive ? '2px solid white' : '2px solid transparent',
+                    background: theme.baseColor,
+                    cursor: 'pointer',
+                    outline: isActive ? `0 0 0 2px ${theme.edgeGlow}` : 'none',
+                    boxShadow: isActive ? `0 0 8px ${theme.edgeGlow}` : 'none',
+                    padding: 0,
+                    flexShrink: 0,
+                  }}
+                  aria-pressed={isActive}
+                  aria-label={`${el} element`}
+                />
+              );
+            })}
+            <div
+              style={{
+                width: 1,
+                height: 20,
+                background: 'var(--border-primary, rgba(255,255,255,0.2))',
+                margin: '0 4px',
+              }}
+            />
+            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-secondary, #aaa)', cursor: 'pointer', userSelect: 'none' }}>
+              <input
+                type="checkbox"
+                checked={spellGridSnap}
+                onChange={(e) => setSpellGridSnap(e.target.checked)}
+                style={{ cursor: 'pointer' }}
+              />
+              Snap
+            </label>
           </div>
         )}
 

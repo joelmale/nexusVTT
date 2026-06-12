@@ -30,6 +30,18 @@ import {
 import { tokenAssetManager } from '@/services/tokenAssets';
 import { getTokenPixelSize } from '@/types/token';
 
+const rotatePoint = (target: Point, origin: Point, angleDeg: number): Point => {
+  const angleRad = (angleDeg * Math.PI) / 180;
+  const cos = Math.cos(angleRad);
+  const sin = Math.sin(angleRad);
+  const dx = target.x - origin.x;
+  const dy = target.y - origin.y;
+  return {
+    x: origin.x + dx * cos - dy * sin,
+    y: origin.y + dx * sin + dy * cos,
+  };
+};
+
 interface DrawingToolsProps {
   activeTool:
     | DrawingTool
@@ -60,6 +72,8 @@ interface DrawingToolsProps {
   clearSelection: () => void;
   placedTokens: PlacedToken[];
   placedProps: PlacedProp[];
+  spellElementType: ElementType;
+  spellGridSnap: boolean;
 }
 
 const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
@@ -74,6 +88,8 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
   clearSelection,
   placedTokens,
   placedProps,
+  spellElementType,
+  spellGridSnap,
 }) => {
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<Point | null>(null);
@@ -102,10 +118,6 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
     x: number;
     y: number;
   } | null>(null);
-
-  // Spell overlay states
-  const [spellElementType] = useState<ElementType>('arcane');
-  const [spellGridSnap] = useState(true);
 
   const user = useUser();
   const activeScene = useActiveScene();
@@ -293,21 +305,6 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
       if (!activeScene) return [];
 
       const intersectedDrawings: string[] = [];
-      const rotatePoint = (
-        target: Point,
-        origin: Point,
-        angleDeg: number,
-      ): Point => {
-        const angleRad = (angleDeg * Math.PI) / 180;
-        const cos = Math.cos(angleRad);
-        const sin = Math.sin(angleRad);
-        const dx = target.x - origin.x;
-        const dy = target.y - origin.y;
-        return {
-          x: origin.x + dx * cos - dy * sin,
-          y: origin.y + dx * sin + dy * cos,
-        };
-      };
 
       activeScene.drawings.forEach((drawing) => {
         // Filter: non-hosts can only select their own drawings
@@ -1462,18 +1459,10 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                 pulseIntensity: theme.pulseIntensity,
                 gridSnap: spellGridSnap,
               };
-              return {
-                ...baseDrawing,
-                type: 'spell-circle',
-                center: startPoint,
-                radius,
-                style: spellStyle,
-              };
+              return { ...baseDrawing, type: 'spell-circle', center: startPoint, radius, style: spellStyle };
             },
             'spell-ring': () => {
               const outerRadius = distance(startPoint, endPoint);
-              // Ring thickness stays fairly constant, only growing slightly with size
-              // Base thickness of 15px + small scaling (10% of radius), capped at 60px
               const thickness = Math.max(15, Math.min(60, 15 + outerRadius * 0.1));
               const innerRadius = Math.max(0, outerRadius - thickness);
               const theme = ELEMENT_THEMES[spellElementType];
@@ -1486,24 +1475,12 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                 pulseIntensity: theme.pulseIntensity,
                 gridSnap: spellGridSnap,
               };
-              return {
-                ...baseDrawing,
-                type: 'spell-ring',
-                center: startPoint,
-                outerRadius,
-                innerRadius,
-                style: spellStyle,
-              };
+              return { ...baseDrawing, type: 'spell-ring', center: startPoint, outerRadius, innerRadius, style: spellStyle };
             },
             'spell-cone': () => {
               const length = distance(startPoint, endPoint);
               const direction =
-                (Math.atan2(
-                  endPoint.y - startPoint.y,
-                  endPoint.x - startPoint.x,
-                ) *
-                  180) /
-                Math.PI;
+                (Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x) * 180) / Math.PI;
               const theme = ELEMENT_THEMES[spellElementType];
               const spellStyle: SpellOverlayStyle = {
                 ...drawingStyle,
@@ -1514,19 +1491,10 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                 pulseIntensity: theme.pulseIntensity,
                 gridSnap: spellGridSnap,
               };
-              return {
-                ...baseDrawing,
-                type: 'spell-cone',
-                origin: startPoint,
-                direction,
-                length,
-                angle: 90, // Standard 90-degree cone
-                style: spellStyle,
-              };
+              return { ...baseDrawing, type: 'spell-cone', origin: startPoint, direction, length, angle: 90, style: spellStyle };
             },
             'spell-line': () => {
               const theme = ELEMENT_THEMES[spellElementType];
-              // Default width of 5ft (approximately 1 grid square)
               const width = _gridSize || 50;
               const spellStyle: SpellOverlayStyle = {
                 ...drawingStyle,
@@ -1537,14 +1505,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                 pulseIntensity: theme.pulseIntensity,
                 gridSnap: spellGridSnap,
               };
-              return {
-                ...baseDrawing,
-                type: 'spell-line',
-                start: startPoint,
-                end: endPoint,
-                width,
-                style: spellStyle,
-              };
+              return { ...baseDrawing, type: 'spell-line', start: startPoint, end: endPoint, width, style: spellStyle };
             },
             'spell-square': () => {
               const size = distance(startPoint, endPoint);
@@ -1558,25 +1519,13 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                 pulseIntensity: theme.pulseIntensity,
                 gridSnap: spellGridSnap,
               };
-              return {
-                ...baseDrawing,
-                type: 'spell-square',
-                origin: startPoint,
-                size,
-                rotation: 0,
-                style: spellStyle,
-              };
+              return { ...baseDrawing, type: 'spell-square', origin: startPoint, size, rotation: 0, style: spellStyle };
             },
             'spell-triangle': () => {
               const length = distance(startPoint, endPoint);
               const direction =
-                (Math.atan2(
-                  endPoint.y - startPoint.y,
-                  endPoint.x - startPoint.x,
-                ) *
-                  180) /
-                Math.PI;
-              const width = length * 0.8; // Base width is 80% of length
+                (Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x) * 180) / Math.PI;
+              const width = length * 0.8;
               const theme = ELEMENT_THEMES[spellElementType];
               const spellStyle: SpellOverlayStyle = {
                 ...drawingStyle,
@@ -1587,15 +1536,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                 pulseIntensity: theme.pulseIntensity,
                 gridSnap: spellGridSnap,
               };
-              return {
-                ...baseDrawing,
-                type: 'spell-triangle',
-                origin: startPoint,
-                direction,
-                length,
-                width,
-                style: spellStyle,
-              };
+              return { ...baseDrawing, type: 'spell-triangle', origin: startPoint, direction, length, width, style: spellStyle };
             },
           };
 

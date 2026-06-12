@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useActiveScene } from '@/stores/gameStore';
-import type { Drawing, BaseDrawing, SpellOverlayStyle } from '@/types/drawing';
+import type { Drawing, BaseDrawing } from '@/types/drawing';
 import { ELEMENT_THEMES } from '@/types/drawing';
 import type { Camera } from '@/types/game';
 
@@ -85,18 +85,6 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
   onDrawingClick,
 }) => {
   const activeScene = useActiveScene();
-  const getSpellOverlayMeta = (style: SpellOverlayStyle) => {
-    const elementType = style.elementType ?? 'arcane';
-    const theme = ELEMENT_THEMES[elementType];
-    return {
-      elementType,
-      theme,
-      animationsEnabled: style.animationsEnabled !== false,
-      roundCounter: style.roundCounter ?? 0,
-      spellName: style.spellName ?? '',
-    };
-  };
-
   const drawings = useMemo(() => {
     if (!activeScene || activeScene.id !== sceneId) return [];
     return activeScene.drawings || [];
@@ -120,26 +108,8 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
     // Make drawings interactive only during select tool
     const isInteractive = activeTool === 'select' && !!onDrawingClick;
 
-    // Debug logging for spell overlays
-    const isSpellOverlay = drawing.type.startsWith('spell-');
-    if (isSpellOverlay) {
-      console.log('🔮 Rendering spell overlay:', {
-        id: drawing.id,
-        type: drawing.type,
-        activeTool,
-        isInteractive,
-        hasOnDrawingClick: !!onDrawingClick,
-        isSelected,
-      });
-    }
-
     const handleClick = (e: React.MouseEvent) => {
       e.stopPropagation();
-      console.log('🎨 Drawing clicked:', drawing.id, drawing.type, {
-        target: e.target,
-        currentTarget: e.currentTarget,
-        isInteractive,
-      });
       if (onDrawingClick) {
         onDrawingClick(drawing.id, e);
       }
@@ -155,9 +125,6 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       'data-drawing-id': drawing.id,
       'data-created-by': drawing.createdBy,
       onClick: isInteractive ? handleClick : undefined,
-      onPointerDown: isInteractive ? (_event: React.PointerEvent) => {
-        console.log('👆 Pointer down on spell overlay:', drawing.id, drawing.type);
-      } : undefined,
       style: {
         pointerEvents: isInteractive ? ('auto' as const) : ('none' as const),
         cursor: isInteractive ? 'pointer' : 'default',
@@ -310,14 +277,18 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
 
       // Spell overlay effects
       case 'spell-circle': {
-        const { elementType, theme, animationsEnabled, roundCounter, spellName } =
-          getSpellOverlayMeta(drawing.style);
+        const elementType = drawing.style.elementType;
+        const theme = ELEMENT_THEMES[elementType];
+        const animationsEnabled = drawing.style.animationsEnabled !== false;
         const animationClass = animationsEnabled
           ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
           : `spell-overlay element-${elementType}`;
+        const roundCounter = drawing.style.roundCounter ?? 0;
+        const spellName = drawing.style.spellName ?? '';
+        const blendStyle = theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
 
         return (
-          <g key={drawing.id} className={animationClass}>
+          <g key={drawing.id} className={animationClass} style={{ mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'] }}>
             {/* Feathered edge gradient */}
             <circle
               cx={drawing.center.x}
@@ -388,11 +359,15 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       }
 
       case 'spell-ring': {
-        const { elementType, theme, animationsEnabled, roundCounter, spellName } =
-          getSpellOverlayMeta(drawing.style);
+        const elementType = drawing.style.elementType;
+        const theme = ELEMENT_THEMES[elementType];
+        const animationsEnabled = drawing.style.animationsEnabled !== false;
         const animationClass = animationsEnabled
           ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
           : `spell-overlay element-${elementType}`;
+        const roundCounter = drawing.style.roundCounter ?? 0;
+        const spellName = drawing.style.spellName ?? '';
+        const blendStyle = theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
         const pathData = createRingPath(
           drawing.center,
           drawing.outerRadius,
@@ -400,7 +375,7 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
         );
 
         return (
-          <g key={drawing.id} className={animationClass}>
+          <g key={drawing.id} className={animationClass} style={{ mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'] }}>
             <path
               d={pathData}
               fill={`url(#spell-edge-${elementType})`}
@@ -463,11 +438,15 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       }
 
       case 'spell-cone': {
-        const { elementType, theme, animationsEnabled, roundCounter, spellName } =
-          getSpellOverlayMeta(drawing.style);
+        const elementType = drawing.style.elementType;
+        const theme = ELEMENT_THEMES[elementType];
+        const animationsEnabled = drawing.style.animationsEnabled !== false;
         const animationClass = animationsEnabled
           ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
           : `spell-overlay element-${elementType}`;
+        const roundCounter = drawing.style.roundCounter ?? 0;
+        const spellName = drawing.style.spellName ?? '';
+        const blendStyle = theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
         const conePath = calculateConePath(
           drawing.origin,
           drawing.direction,
@@ -476,7 +455,7 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
         );
 
         return (
-          <g key={drawing.id} className={animationClass}>
+          <g key={drawing.id} className={animationClass} style={{ mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'] }}>
             <path
               d={conePath}
               fill={`url(#spell-edge-${elementType})`}
@@ -539,17 +518,21 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       }
 
       case 'spell-line': {
-        const { elementType, theme, animationsEnabled, roundCounter, spellName } =
-          getSpellOverlayMeta(drawing.style);
+        const elementType = drawing.style.elementType;
+        const theme = ELEMENT_THEMES[elementType];
+        const animationsEnabled = drawing.style.animationsEnabled !== false;
         const animationClass = animationsEnabled
           ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
           : `spell-overlay element-${elementType}`;
+        const roundCounter = drawing.style.roundCounter ?? 0;
+        const spellName = drawing.style.spellName ?? '';
+        const blendStyle = theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
         const rectPath = createLineRectangle(drawing.start, drawing.end, drawing.width);
         const midX = (drawing.start.x + drawing.end.x) / 2;
         const midY = (drawing.start.y + drawing.end.y) / 2;
 
         return (
-          <g key={drawing.id} className={animationClass}>
+          <g key={drawing.id} className={animationClass} style={{ mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'] }}>
             <path
               d={rectPath}
               fill={`url(#spell-edge-${elementType})`}
@@ -612,16 +595,20 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       }
 
       case 'spell-square': {
-        const { elementType, theme, animationsEnabled, roundCounter, spellName } =
-          getSpellOverlayMeta(drawing.style);
+        const elementType = drawing.style.elementType;
+        const theme = ELEMENT_THEMES[elementType];
+        const animationsEnabled = drawing.style.animationsEnabled !== false;
         const animationClass = animationsEnabled
           ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
           : `spell-overlay element-${elementType}`;
+        const roundCounter = drawing.style.roundCounter ?? 0;
+        const spellName = drawing.style.spellName ?? '';
+        const blendStyle = theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
         const halfSize = drawing.size / 2;
         const rotation = drawing.rotation || 0;
 
         return (
-          <g key={drawing.id} className={animationClass}>
+          <g key={drawing.id} className={animationClass} style={{ mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'] }}>
             <rect
               x={drawing.origin.x - halfSize}
               y={drawing.origin.y - halfSize}
@@ -692,11 +679,15 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
       }
 
       case 'spell-triangle': {
-        const { elementType, theme, animationsEnabled, roundCounter, spellName } =
-          getSpellOverlayMeta(drawing.style);
+        const elementType = drawing.style.elementType;
+        const theme = ELEMENT_THEMES[elementType];
+        const animationsEnabled = drawing.style.animationsEnabled !== false;
         const animationClass = animationsEnabled
           ? `spell-overlay element-${elementType} pulse-${theme.animationSpeed}`
           : `spell-overlay element-${elementType}`;
+        const roundCounter = drawing.style.roundCounter ?? 0;
+        const spellName = drawing.style.spellName ?? '';
+        const blendStyle = theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
         const trianglePath = calculateTrianglePath(
           drawing.origin,
           drawing.direction,
@@ -705,7 +696,7 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
         );
 
         return (
-          <g key={drawing.id} className={animationClass}>
+          <g key={drawing.id} className={animationClass} style={{ mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'] }}>
             <path
               d={trianglePath}
               fill={`url(#spell-edge-${elementType})`}
