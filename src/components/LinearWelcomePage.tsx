@@ -60,7 +60,6 @@ export const LinearWelcomePage: React.FC = () => {
   );
   const handleRoomCodeChange = useCallback(
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      e.target.value = e.target.value.toUpperCase();
       const empty = !e.target.value.trim();
       if (empty !== roomCodeEmpty) setRoomCodeEmpty(empty);
     },
@@ -744,7 +743,14 @@ export const LinearWelcomePage: React.FC = () => {
           </div>
 
           {/* Name Input */}
-          <div className="form-section">
+          <form
+            className="form-section"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (selectedRole === 'player') handleQuickJoin();
+              else if (selectedRole === 'dm') handleDMSetup();
+            }}
+          >
             <div className="input-group">
               <label htmlFor="adventurerName">Enter Your Name</label>
               <div className="glass-input-wrapper">
@@ -835,6 +841,7 @@ export const LinearWelcomePage: React.FC = () => {
                       )}
 
                       <button
+                        type="button"
                         onClick={handlePlayerSetup}
                         disabled={playerNameEmpty || loading}
                         className="action-btn glass-button primary"
@@ -908,7 +915,7 @@ export const LinearWelcomePage: React.FC = () => {
                                 />
                               </div>
                               <button
-                                onClick={handleQuickJoin}
+                                type="submit"
                                 disabled={playerNameEmpty || roomCodeEmpty || loading}
                                 className="action-btn glass-button primary"
                               >
@@ -994,7 +1001,7 @@ export const LinearWelcomePage: React.FC = () => {
                       )}
 
                       <button
-                        onClick={handleDMSetup}
+                        type="submit"
                         disabled={
                           playerNameEmpty ||
                           loading ||
@@ -1010,7 +1017,7 @@ export const LinearWelcomePage: React.FC = () => {
                 </div>
               </div>
             </div>
-          </div>
+          </form>
 
           {/* Development Tools - Only show in development */}
           {process.env.NODE_ENV === 'development' && (
