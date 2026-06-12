@@ -233,6 +233,15 @@ class NexusServer {
   private heartbeatTimer: NodeJS.Timeout | null = null;
 
   constructor(port: number) {
+    if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
+      console.error('❌ SESSION_SECRET must be set in production');
+      process.exit(1);
+    }
+    if (process.env.NODE_ENV === 'production' && !process.env.JWT_SECRET) {
+      console.error('❌ JWT_SECRET must be set in production');
+      process.exit(1);
+    }
+
     this.port = port;
     this.db = createDatabaseService();
 
@@ -407,8 +416,9 @@ class NexusServer {
           return res.status(400).json({ error: 'Email is required' });
         }
         const normalizedEmail = email.toLowerCase().trim();
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(normalizedEmail)) {
+        const atIdx = normalizedEmail.indexOf('@');
+        const dotIdx = normalizedEmail.lastIndexOf('.');
+        if (atIdx < 1 || dotIdx <= atIdx + 1 || dotIdx >= normalizedEmail.length - 1) {
           return res.status(400).json({ error: 'Invalid email format' });
         }
 
