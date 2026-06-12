@@ -171,7 +171,7 @@
   background: rgba(255, 255, 255, 0.05);
 
   /* Animation & Misc */
-  transition: all 0.3s ease;
+  transition: border-color 0.3s ease, background 0.3s ease, transform 0.3s ease;
 }
 
 .character-card:hover {
@@ -332,7 +332,7 @@
 
   /* Positioning */
   cursor: pointer;
-  transition: all 0.2s ease;
+  transition: border-color 0.2s ease, background 0.2s ease, transform 0.2s ease;
 
   /* Position within selection-indicator */
   position: relative;
@@ -438,7 +438,7 @@
 
   /* Animation & Misc */
   resize: vertical;
-  transition: all 0.3s ease;
+  transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
 }
 
 .glass-textarea::placeholder {
@@ -674,7 +674,7 @@
   font-weight: 600;
 
   /* Animation & Misc */
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
 }
 
 .player-actions,
@@ -737,7 +737,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease, border-color 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease;
   min-width: 140px;
 }
 
@@ -1073,19 +1073,6 @@
 }
 .loading-dots span:nth-child(2) {
   animation-delay: -0.16s;
-}
-
-@keyframes loading-bounce {
-  0%,
-  80%,
-  100% {
-    transform: scale(0);
-    opacity: 0.5;
-  }
-  40% {
-    transform: scale(1);
-    opacity: 1;
-  }
 }
 
 /* ========================================================================== EMPTY SCENE STATE ========================================================================== */

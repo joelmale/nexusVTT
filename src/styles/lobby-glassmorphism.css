@@ -226,7 +226,7 @@
   border-radius: 12px;
   color: white;
   font-size: 1rem;
-  transition: all 0.3s ease;
+  transition: border-color 0.3s ease, background 0.3s ease, box-shadow 0.3s ease;
 }
 
 .glass-input::placeholder {
@@ -368,7 +368,7 @@
   font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: background 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s cubic-bezier(0.4, 0, 0.2, 1), transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1);
   text-decoration: none;
 }
 
@@ -393,7 +393,7 @@
 
 .glass-button:active:not(:disabled) {
   transform: translateY(-1px) scale(1.01);
-  transition: all 0.1s ease;
+  transition: transform 0.1s ease;
 }
 
 .glass-button:disabled {
@@ -409,6 +409,11 @@
   color: rgba(255, 255, 255, 0.4) !important;
   transform: none !important;
   box-shadow: none !important;
+}
+
+.glass-button:focus-visible {
+  outline: 2px solid rgba(99, 102, 241, 0.9);
+  outline-offset: 3px;
 }
 
 .glass-button.primary {
@@ -616,7 +621,7 @@
   border: 1px solid rgba(255, 255, 255, 0.1);
   border-radius: 12px;
   padding: 1rem;
-  transition: all 0.3s ease;
+  transition: background 0.3s ease;
 }
 
 .player-card:hover {
@@ -681,18 +686,6 @@
 }
 
 /* Desktop/Tablet optimized lobby - Animations optimized for larger screens */
-
-/* Enhanced glass effects for high-end devices */
-@media (min-width: 1200px) and (-webkit-min-device-pixel-ratio: 2) {
-  .glass-panel {
-  }
-
-  .glass-input {
-  }
-
-  .glass-button {
-  }
-}
 
 /* High contrast mode support */
 @media (prefers-contrast: high) {

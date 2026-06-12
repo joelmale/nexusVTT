@@ -492,7 +492,7 @@ export const LinearWelcomePage: React.FC = () => {
       <div className="welcome-background">
         <img src={DnDTeamBackground} alt="D&D Adventure Party" />
         <div className="background-overlay"></div>
-        <div className="background-particles">
+        <div className="background-particles" aria-hidden="true">
           {particleStyles.map((style, i) => (
             <div key={i} className="particle" style={style}></div>
           ))}
@@ -508,7 +508,8 @@ export const LinearWelcomePage: React.FC = () => {
           <div className="account-menu">
             <button
               className={`account-bubble glass-panel ${isAuthenticated ? 'logged-in' : ''}`}
-              title={isAuthenticated ? 'Account menu' : 'Login with OAuth'}
+              aria-label={isAuthenticated ? 'Account menu' : 'Login with OAuth'}
+              aria-expanded={isAuthenticated ? showAccountMenu : undefined}
               onClick={() =>
                 isAuthenticated
                   ? setShowAccountMenu((prev) => !prev)
@@ -673,12 +674,14 @@ export const LinearWelcomePage: React.FC = () => {
                         ? 'Sign In'
                         : 'Create Account'}
                   </button>
-                  {authError && (
-                    <div className="feedback error-message compact">
-                      <span className="feedback-icon">⚠️</span>
-                      {authError}
-                    </div>
-                  )}
+                  <div aria-live="polite" aria-atomic="true">
+                    {authError && (
+                      <div className="feedback error-message compact">
+                        <span className="feedback-icon">⚠️</span>
+                        {authError}
+                      </div>
+                    )}
+                  </div>
                   {authSuccess && (
                     <div className="feedback success-message compact">
                       <span className="feedback-icon">✅</span>
@@ -731,12 +734,14 @@ export const LinearWelcomePage: React.FC = () => {
             <p className="brand-tagline">Your gateway to epic adventures</p>
           </div>
 
-          {error && (
-            <div className="error-message glass-panel error">
-              <span className="error-icon">⚠️</span>
-              {error}
-            </div>
-          )}
+          <div aria-live="polite" aria-atomic="true">
+            {error && (
+              <div className="error-message glass-panel error">
+                <span className="error-icon">⚠️</span>
+                {error}
+              </div>
+            )}
+          </div>
 
           {/* Name Input */}
           <div className="form-section">
