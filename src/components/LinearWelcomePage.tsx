@@ -709,9 +709,16 @@ export const LinearWelcomePage: React.FC = () => {
               </div>
           </dialog>
 
+          {/* Brand Logo - Upper Left */}
+          <div className="brand-logo-left">
+            <span className="brand-logo-icon">🎲</span>
+          </div>
+
           {/* Brand Section */}
           <div className="brand-section">
-            <img alt="Nexus VTT" className="h-16 welcome-logo" src="/assets/logos/nexus-logo.png" />
+            <div className="brand-logo">
+              <h1 className="brand-title">Nexus VTT</h1>
+            </div>
             <p className="brand-tagline">Your gateway to epic adventures</p>
           </div>
 
