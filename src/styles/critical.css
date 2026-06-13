@@ -71,7 +71,8 @@ body::before {
     );
 
   /* Animation & Misc */
-  animation: float 20s ease-in-out infinite;
+  /* Disabled infinite float animation to allow backdrop-filter blurs to be cached efficiently and prevent GPU drag */
+  /* animation: float 20s ease-in-out infinite; */
 }
 
 @keyframes float {
