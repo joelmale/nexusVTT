@@ -12,7 +12,7 @@ import type {
 import type { WebSocketCustomEvent } from '@/types/events';
 import type { ChatMessage } from '@/types/game';
 import { useGameStore } from '@/stores/gameStore';
-import { toast } from 'sonner';
+import { toast } from '@/utils/notifications';
 import { applyPatch, Operation } from 'fast-json-patch';
 
 const sanitizeLog = (value: unknown): string =>

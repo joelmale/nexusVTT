@@ -4054,7 +4054,7 @@ export const useGameStore = create<GameStore>()(
 
               // Show toast for DM announcements
               if (message.messageType === 'dm-announcement') {
-                import('sonner').then(({ toast }) => {
+                import('@/utils/notifications').then(({ toast }) => {
                   toast.success(`👑 ${message.userName}: ${message.content}`, {
                     duration: 5000,
                     description: 'DM Announcement',

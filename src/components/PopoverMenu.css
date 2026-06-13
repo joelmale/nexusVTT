@@ -1,0 +1,73 @@
+
+.popover-menu-container {
+  display: inline-block;
+  position: relative;
+}
+
+.popover-trigger {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  border-radius: var(--radius-md, 8px);
+  transition: var(--transition-base, all 0.2s ease-in-out);
+}
+
+.popover-trigger:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px var(--color-primary, #6366f1);
+}
+
+.popover-content {
+  /* Reset default browser popover styles */
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  overflow: visible;
+  
+  /* Positioning and Animation */
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.15s ease-out, transform 0.15s ease-out, display 0.15s ease-out allow-discrete;
+}
+
+/* Native Popover pseudo-class for open state */
+.popover-content:popover-open {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* Starting style for the "allow-discrete" transition */
+@starting-style {
+  .popover-content:popover-open {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+}
+
+/* Fallback for browsers that don't support @starting-style yet */
+.popover-content:not(:popover-open) {
+  opacity: 0;
+  transform: translateY(-8px);
+}
+
+.popover-content::backdrop {
+  background: transparent;
+}
+
+/* Glass panel style for the inner menu */
+.popover-inner {
+  margin-top: 8px;
+  background: var(--bg-glass, rgba(30, 41, 59, 0.7));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--border-glass, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: var(--shadow-xl, 0 20px 25px -5px rgba(0, 0, 0, 0.1));
+  padding: 8px;
+  color: var(--text-primary, #ffffff);
+  min-width: 160px;
+}

@@ -3,13 +3,10 @@
   position: relative;
   display: inline-flex; /* Use inline-flex to keep button size */
   justify-content: center;
+  anchor-name: --tooltip-anchor;
 }
 
 .tooltip-box {
-  position: absolute;
-  bottom: 110%; /* Position above the button */
-  left: 50%;
-  transform: translateX(-50%);
   background-color: var(--background-primary, #2c2c2c);
   color: var(--text-primary, #ffffff);
   padding: 8px 12px;
@@ -20,18 +17,47 @@
   white-space: pre-wrap; /* Allow newlines */
   text-align: center;
   z-index: var(--z-tooltip, 50);
-  pointer-events: none;
-  opacity: 0;
-  visibility: hidden;
-  transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out;
   width: max-content;
   max-width: 250px;
+  
+  /* Reset for popover usage */
+  margin: 0;
+  border: none;
+  
+  /* Positioning - Fallback for non-popover or non-anchor browsers */
+  position: absolute;
+  bottom: 110%;
+  left: 50%;
+  transform: translateX(-50%);
+  
+  /* Modern CSS Anchor Positioning */
+  position-anchor: --tooltip-anchor;
+  bottom: anchor(top);
+  left: anchor(center);
+  transform: translateX(-50%) translateY(-8px);
+  
+  /* Transition */
+  opacity: 0;
+  visibility: hidden;
+  transition: opacity 0.2s ease-in-out, visibility 0.2s ease-in-out, display 0.2s ease-in-out allow-discrete;
 }
 
-.tooltip-container:hover .tooltip-box {
+/* State when used as a native popover */
+.tooltip-box:popover-open {
   opacity: 1;
   visibility: visible;
-  transition-delay: 0.4s; /* Add a small delay before showing */
+}
+
+@starting-style {
+  .tooltip-box:popover-open {
+    opacity: 0;
+  }
+}
+
+.tooltip-container:hover .tooltip-box:not([popover]) {
+  opacity: 1;
+  visibility: visible;
+  transition-delay: 0.4s;
 }
 
 .tooltip-box .shortcut {

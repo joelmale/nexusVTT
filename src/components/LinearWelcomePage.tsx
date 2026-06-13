@@ -10,6 +10,7 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
+import { PopoverMenu } from './PopoverMenu';
 import { useShallow } from 'zustand/react/shallow';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.webp';
 import { preloadOnUserIntent } from '@/services/cssLoader';
@@ -103,11 +104,7 @@ export const LinearWelcomePage: React.FC = () => {
   const [authLoading, setAuthLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
-  const [showAccountModal, setShowAccountModal] = useState(false);
-  const [showAccountMenu, setShowAccountMenu] = useState(false);
   const emailInputRef = React.useRef<HTMLInputElement | null>(null);
-  const accountModalDialogRef = useRef<HTMLDialogElement>(null);
-  const accountMenuDialogRef = useRef<HTMLDialogElement>(null);
   const buildVersion = import.meta.env.VITE_BUILD_VERSION ?? 'dev';
 
   // Detect if we're returning from OAuth (check for common OAuth params)
@@ -301,7 +298,6 @@ export const LinearWelcomePage: React.FC = () => {
           ? 'Account created. You are signed in.'
           : 'Signed in successfully.',
       );
-      setShowAccountModal(false);
       navigate('/dashboard');
     } catch (err) {
       console.error('Local auth failed:', err);
@@ -310,27 +306,6 @@ export const LinearWelcomePage: React.FC = () => {
       setAuthLoading(false);
     }
   };
-
-  React.useEffect(() => {
-    const dialog = accountModalDialogRef.current;
-    if (!dialog) return;
-    if (showAccountModal) {
-      if (!dialog.open) dialog.showModal();
-      emailInputRef.current?.focus();
-    } else {
-      if (dialog.open) dialog.close();
-    }
-  }, [showAccountModal]);
-
-  React.useEffect(() => {
-    const dialog = accountMenuDialogRef.current;
-    if (!dialog) return;
-    if (showAccountMenu && isAuthenticated) {
-      if (!dialog.open) dialog.showModal();
-    } else {
-      if (dialog.open) dialog.close();
-    }
-  }, [showAccountMenu, isAuthenticated]);
 
   /**
    * Handles quick join - creates guest user and joins room directly
@@ -500,214 +475,165 @@ export const LinearWelcomePage: React.FC = () => {
           </div>
           {/* Account Menu - Upper Right */}
           <div className="account-menu">
-            <button
-              className={`account-bubble glass-panel ${isAuthenticated ? 'logged-in' : ''}`}
-              aria-label={isAuthenticated ? 'Account menu' : 'Login with OAuth'}
-              aria-expanded={isAuthenticated ? showAccountMenu : undefined}
-              onClick={() =>
-                isAuthenticated
-                  ? setShowAccountMenu((prev) => !prev)
-                  : setShowAccountModal(true)
+            <PopoverMenu
+              trigger={
+                <span className="account-icon">
+                  {isAuthenticated
+                    ? (user.name || user.displayName || 'User')[0]?.toUpperCase()
+                    : '👤'}
+                </span>
               }
+              triggerClassName={`account-bubble glass-panel ${isAuthenticated ? 'logged-in' : ''}`}
             >
-              <span className="account-icon">
-                {isAuthenticated
-                  ? (user.name || user.displayName || 'User')[0]?.toUpperCase()
-                  : '👤'}
-              </span>
-            </button>
-          </div>
-
-          <dialog
-            ref={accountMenuDialogRef}
-            className="account-dialog"
-            aria-labelledby="account-menu-title"
-            onCancel={() => setShowAccountMenu(false)}
-            onClick={(e) => {
-              if (e.target === accountMenuDialogRef.current) setShowAccountMenu(false);
-            }}
-          >
-              <div
-                className="account-dropdown glass-panel compact"
-              >
-                <div className="account-dropdown-header">
-                  <div className="title-row">
-                    <span className="dropdown-title" id="account-menu-title">
-                      Signed in
-                    </span>
-                    <div className="title-note">
-                      {user.displayName || user.name || 'Adventurer'}
-                    </div>
-                  </div>
-                  <button
-                    className="account-close"
-                    onClick={() => setShowAccountMenu(false)}
-                    aria-label="Close account menu"
-                  >
-                    ×
-                  </button>
-                </div>
-
-                <div className="account-menu-actions">
-                  <button
-                    className="account-option wide"
-                    onClick={() => {
-                      setShowAccountMenu(false);
-                      navigate('/dashboard');
-                    }}
-                  >
-                    <span className="option-text">Go to dashboard</span>
-                  </button>
-                  <button
-                    className="account-option wide"
-                    onClick={async () => {
-                      await logout();
-                      setShowAccountMenu(false);
-                      navigate('/lobby');
-                    }}
-                  >
-                    <span className="option-text">Log out</span>
-                  </button>
-                </div>
-              </div>
-          </dialog>
-
-          <dialog
-            ref={accountModalDialogRef}
-            className="account-dialog"
-            aria-labelledby="account-modal-title"
-            onCancel={() => setShowAccountModal(false)}
-            onClick={(e) => {
-              if (e.target === accountModalDialogRef.current) setShowAccountModal(false);
-            }}
-          >
               <div className="account-dropdown glass-panel">
                 <div className="account-dropdown-header">
                   <div className="title-row">
-                    <span className="dropdown-title" id="account-modal-title">
-                      {authMode === 'signin' ? 'Sign In' : 'Create Account'}
+                    <span className="dropdown-title">
+                      {isAuthenticated
+                        ? 'Signed in'
+                        : authMode === 'signin'
+                          ? 'Sign In'
+                          : 'Create Account'}
                     </span>
                     <div className="title-note">
-                      {authMode === 'signin'
-                        ? 'Use your Nexus account'
-                        : 'Create a Nexus account'}
+                      {isAuthenticated
+                        ? user.displayName || user.name || 'Adventurer'
+                        : authMode === 'signin'
+                          ? 'Use your Nexus account'
+                          : 'Create a Nexus account'}
                     </div>
                   </div>
-                  <button
-                    className="account-close"
-                    onClick={() => setShowAccountModal(false)}
-                    aria-label="Close account modal"
-                  >
-                    ×
-                  </button>
                 </div>
 
-                <div className="account-form">
-                  <label className="account-label" htmlFor="account-email">
-                    Email
-                  </label>
-                  <input
-                    id="account-email"
-                    ref={emailInputRef}
-                    type="email"
-                    className="glass-input"
-                    placeholder="you@example.com"
-                    value={authEmail}
-                    onChange={(e) => setAuthEmail(e.target.value)}
-                    disabled={authLoading}
-                  />
-
-                  {authMode === 'signup' && (
-                    <>
-                      <label className="account-label" htmlFor="account-display-name">
-                        Display name (optional)
+                {isAuthenticated ? (
+                  <div className="account-menu-actions">
+                    <button
+                      className="account-option wide"
+                      onClick={() => navigate('/dashboard')}
+                    >
+                      <span className="option-text">Go to dashboard</span>
+                    </button>
+                    <button
+                      className="account-option wide"
+                      onClick={async () => {
+                        await logout();
+                        navigate('/lobby');
+                      }}
+                    >
+                      <span className="option-text">Log out</span>
+                    </button>
+                  </div>
+                ) : (
+                  <>
+                    <div className="account-form">
+                      <label className="account-label" htmlFor="account-email">
+                        Email
                       </label>
                       <input
-                        id="account-display-name"
-                        type="text"
+                        id="account-email"
+                        ref={emailInputRef}
+                        type="email"
                         className="glass-input"
-                        placeholder="Your name in Nexus"
-                        value={authDisplayName}
-                        onChange={(e) => setAuthDisplayName(e.target.value)}
+                        placeholder="you@example.com"
+                        value={authEmail}
+                        onChange={(e) => setAuthEmail(e.target.value)}
                         disabled={authLoading}
                       />
-                    </>
-                  )}
 
-                  <label className="account-label" htmlFor="account-password">
-                    Password
-                  </label>
-                  <input
-                    id="account-password"
-                    type="password"
-                    className="glass-input"
-                    placeholder="Enter your password"
-                    value={authPassword}
-                    onChange={(e) => setAuthPassword(e.target.value)}
-                    disabled={authLoading}
-                  />
-                  {authMode === 'signup' && (
-                    <div className="helper-text">
-                      Use 8+ characters. We hash everything client-to-server.
-                    </div>
-                  )}
+                      {authMode === 'signup' && (
+                        <>
+                          <label className="account-label" htmlFor="account-display-name">
+                            Display name (optional)
+                          </label>
+                          <input
+                            id="account-display-name"
+                            type="text"
+                            className="glass-input"
+                            placeholder="Your name in Nexus"
+                            value={authDisplayName}
+                            onChange={(e) => setAuthDisplayName(e.target.value)}
+                            disabled={authLoading}
+                          />
+                        </>
+                      )}
 
-                  <button
-                    className="action-btn glass-button primary"
-                    disabled={!authEmail || !authPassword || authLoading}
-                    onClick={() => handleLocalAuth(authMode)}
-                  >
-                    {authLoading
-                      ? 'Please wait...'
-                      : authMode === 'signin'
-                        ? 'Sign In'
-                        : 'Create Account'}
-                  </button>
-                  <div aria-live="polite" aria-atomic="true">
-                    {authError && (
-                      <div className="feedback error-message compact">
-                        <span className="feedback-icon">⚠️</span>
-                        {authError}
+                      <label className="account-label" htmlFor="account-password">
+                        Password
+                      </label>
+                      <input
+                        id="account-password"
+                        type="password"
+                        className="glass-input"
+                        placeholder="Enter your password"
+                        value={authPassword}
+                        onChange={(e) => setAuthPassword(e.target.value)}
+                        disabled={authLoading}
+                      />
+                      {authMode === 'signup' && (
+                        <div className="helper-text">
+                          Use 8+ characters. We hash everything client-to-server.
+                        </div>
+                      )}
+
+                      <button
+                        className="action-btn glass-button primary"
+                        disabled={!authEmail || !authPassword || authLoading}
+                        onClick={() => handleLocalAuth(authMode)}
+                      >
+                        {authLoading
+                          ? 'Please wait...'
+                          : authMode === 'signin'
+                            ? 'Sign In'
+                            : 'Create Account'}
+                      </button>
+                      <div aria-live="polite" aria-atomic="true">
+                        {authError && (
+                          <div className="feedback error-message compact">
+                            <span className="feedback-icon">⚠️</span>
+                            {authError}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                  {authSuccess && (
-                    <div className="feedback success-message compact">
-                      <span className="feedback-icon">✅</span>
-                      {authSuccess}
+                      {authSuccess && (
+                        <div className="feedback success-message compact">
+                          <span className="feedback-icon">✅</span>
+                          {authSuccess}
+                        </div>
+                      )}
+                      <button
+                        className="account-text-toggle"
+                        onClick={() =>
+                          setAuthMode(authMode === 'signin' ? 'signup' : 'signin')
+                        }
+                      >
+                        {authMode === 'signin'
+                          ? "Don't have an account? Create one"
+                          : 'Have an account? Sign in'}
+                      </button>
                     </div>
-                  )}
-                  <button
-                    className="account-text-toggle"
-                    onClick={() =>
-                      setAuthMode(authMode === 'signin' ? 'signup' : 'signin')
-                    }
-                  >
-                    {authMode === 'signin'
-                      ? "Don't have an account? Create one"
-                      : 'Have an account? Sign in'}
-                  </button>
-                </div>
 
-                <div className="account-divider">or continue with</div>
+                    <div className="account-divider">or continue with</div>
 
-                <div className="oauth-block">
-                  <a href="/auth/google" className="account-option wide">
-                    <span className="option-icon google-icon">G</span>
-                    <span className="option-text">Google</span>
-                  </a>
-                  <a href="/auth/discord" className="account-option wide">
-                    <span className="option-icon discord-icon">D</span>
-                    <span className="option-text">Discord</span>
-                  </a>
-                </div>
+                    <div className="oauth-block">
+                      <a href="/auth/google" className="account-option wide">
+                        <span className="option-icon google-icon">G</span>
+                        <span className="option-text">Google</span>
+                      </a>
+                      <a href="/auth/discord" className="account-option wide">
+                        <span className="option-icon discord-icon">D</span>
+                        <span className="option-text">Discord</span>
+                      </a>
+                    </div>
+                  </>
+                )}
                 <div className="account-dropdown-footer">
                   <span className="dropdown-hint">
                     Accounts sync characters & campaigns. Guests can migrate later.
                   </span>
                 </div>
               </div>
-          </dialog>
+            </PopoverMenu>
+          </div>
 
           {/* Brand Logo - Upper Left */}
           <div className="brand-logo-left">

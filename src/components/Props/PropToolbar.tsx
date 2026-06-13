@@ -1,7 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { useGameStore, useActiveScene } from '@/stores/gameStore';
 import { propAssetManager } from '@/services/propAssets';
 import type { PlacedProp } from '@/types/prop';
+import { PopoverMenu } from '../PopoverMenu';
 import './PropToolbar.css';
 
 interface PropToolbarProps {
@@ -13,7 +14,6 @@ export const PropToolbar: React.FC<PropToolbarProps> = ({ position, placedProp }
   const activeScene = useActiveScene();
   const { updateProp, deleteProp, clearSelection, interactWithProp } = useGameStore();
 
-  const [activeToolbarTool, setActiveToolbarTool] = useState<string | null>(null);
   const toolbarRef = useRef<HTMLDivElement>(null);
 
   // Get prop definition
@@ -48,10 +48,6 @@ export const PropToolbar: React.FC<PropToolbarProps> = ({ position, placedProp }
   if (!activeScene || !prop) {
     return null;
   }
-
-  const handleToolClick = (tool: string) => {
-    setActiveToolbarTool(activeToolbarTool === tool ? null : tool);
-  };
 
   const handleRemoveProp = () => {
     if (window.confirm('Are you sure you want to remove this prop?')) {
@@ -224,24 +220,28 @@ export const PropToolbar: React.FC<PropToolbarProps> = ({ position, placedProp }
       <div className="prop-toolbar-main">
         {/* Primary Tools */}
         <div className="prop-toolbar-primary">
-          <button
-            className={`prop-toolbar-btn ${activeToolbarTool === 'options' ? 'active' : ''}`}
-            onClick={() => handleToolClick('options')}
-            title="Prop Options"
+          <PopoverMenu
+            trigger={
+              <span className="prop-toolbar-icon">⚙️</span>
+            }
+            triggerClassName="prop-toolbar-btn"
+            contentClassName="prop-toolbar-popover"
           >
-            <span className="prop-toolbar-icon">⚙️</span>
-          </button>
+            {renderOptionsPanel()}
+          </PopoverMenu>
 
           {isInteractive && (
-            <button
-              className={`prop-toolbar-btn ${activeToolbarTool === 'interactive' ? 'active' : ''}`}
-              onClick={() => handleToolClick('interactive')}
-              title="Interactive State"
+            <PopoverMenu
+              trigger={
+                <span className="prop-toolbar-icon">
+                  {currentState === 'locked' ? '🔒' : currentState === 'open' ? '🔓' : '🚪'}
+                </span>
+              }
+              triggerClassName="prop-toolbar-btn"
+              contentClassName="prop-toolbar-popover"
             >
-              <span className="prop-toolbar-icon">
-                {currentState === 'locked' ? '🔒' : currentState === 'open' ? '🔓' : '🚪'}
-              </span>
-            </button>
+              {renderInteractivePanel()}
+            </PopoverMenu>
           )}
 
           <button
@@ -279,10 +279,6 @@ export const PropToolbar: React.FC<PropToolbarProps> = ({ position, placedProp }
           </button>
         </div>
       </div>
-
-      {/* Sub Panels */}
-      {activeToolbarTool === 'options' && renderOptionsPanel()}
-      {activeToolbarTool === 'interactive' && renderInteractivePanel()}
     </div>
   );
 };
