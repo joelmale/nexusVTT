@@ -9,6 +9,7 @@ import { useCharacterCreationLauncher } from '@/hooks';
 import { DocumentLibrary } from './DocumentLibrary';
 import { createEmptyCharacter, type Character } from '@/types/character';
 import { normalizeCharacter } from '@/utils/characterNormalization';
+import type { PlayerCharacter } from '@/types/game';
 import '@/styles/dashboard.css';
 
 // Direct Lucide Path Imports (GEMINI.md Foundation Rule)
@@ -21,6 +22,7 @@ import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
 import Play from 'lucide-react/dist/esm/icons/play';
 import Edit2 from 'lucide-react/dist/esm/icons/edit-2';
 import Home from 'lucide-react/dist/esm/icons/home';
+import Plus from 'lucide-react/dist/esm/icons/plus';
 import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 import AlertTriangle from 'lucide-react/dist/esm/icons/alert-triangle';
 
@@ -175,8 +177,8 @@ export const Dashboard: React.FC = () => {
     setShowCharacterSelectionModal(true);
   };
 
-  const handleCharacterSelected = async (char: Character | null) => {
-    if (!joiningCampaign || !char) return;
+  const handleCharacterSelected = async (char: Character | null, joinAsSpectator: boolean) => {
+    if (!joiningCampaign || (!char && !joinAsSpectator)) return;
     const { joinRoomWithCode: joinWithCode } = useGameStore.getState();
     try {
       const response = await fetch(`/api/campaigns/${joiningCampaign.id}/start`, {
@@ -185,7 +187,9 @@ export const Dashboard: React.FC = () => {
       });
       if (!response.ok) throw new Error();
       const { roomCode } = await response.json();
-      await joinWithCode(roomCode);
+      
+      const playerChar: PlayerCharacter | undefined = char ? convertCharacterToPlayerCharacter(char) : undefined;
+      await joinWithCode(roomCode, playerChar);
       navigate('/game');
     } catch {
       setError('Ritual failed.');
@@ -288,7 +292,7 @@ export const Dashboard: React.FC = () => {
     const level = typeof data.level === 'number' ? data.level : base.level;
     const raceName = typeof data.race === 'string' ? data.race : (base.race || '');
     const className = typeof data.class === 'string' ? data.class : '';
-    const input = {
+    const input: any = {
       ...base,
       id: record.id,
       name: record.name,
@@ -303,6 +307,28 @@ export const Dashboard: React.FC = () => {
     };
     return normalizeCharacter(input, { playerId: input.playerId, baseCharacter: base });
   }
+
+  const convertCharacterToPlayerCharacter = (character: Character): PlayerCharacter => {
+    const createdAt = typeof character.createdAt === 'string' ? Date.parse(character.createdAt) : Date.now();
+    return {
+      id: character.id,
+      name: character.name,
+      race: character.race || character.species || '',
+      class: character.class || '',
+      background: character.background || '',
+      level: character.level,
+      stats: {
+        strength: character.abilities.STR.score,
+        dexterity: character.abilities.DEX.score,
+        constitution: character.abilities.CON.score,
+        intelligence: character.abilities.INT.score,
+        wisdom: character.abilities.WIS.score,
+        charisma: character.abilities.CHA.score,
+      },
+      createdAt: Number.isFinite(createdAt) ? createdAt : Date.now(),
+      playerId: character.playerId || '',
+    };
+  };
 
   if (authChecking) {
     return (
@@ -354,13 +380,13 @@ export const Dashboard: React.FC = () => {
             <SectionHeading title="Recent Campaigns" />
             <div className="flex gap-2 mb-4">
               <button onClick={handleImportCampaignBackup} className="flex items-center gap-1.5 text-[10px] uppercase font-bold bg-vtt-iron-700 text-vtt-parchment/80 border border-vtt-iron-700 px-3 py-1.5 rounded shadow-sm hover:text-vtt-parchment transition-colors"><Download className="w-3 h-3 text-vtt-bronze" /> Import Backup</button>
-              <button onClick={() => setShowNewCampaignModal(true)} className="flex items-center gap-1.5 text-[10px] uppercase font-bold bg-vtt-iron-700 text-vtt-parchment/80 border border-vtt-iron-700 px-3 py-1.5 rounded shadow-sm hover:text-vtt-parchment transition-colors"><span>➕</span> New Campaign</button>
+              <button onClick={() => setShowNewCampaignModal(true)} className="flex items-center gap-1.5 text-[10px] uppercase font-bold bg-vtt-iron-700 text-vtt-parchment/80 border border-vtt-iron-700 px-3 py-1.5 rounded shadow-sm hover:text-vtt-parchment transition-colors"><Plus className="w-3 h-3" /> New Campaign</button>
             </div>
 
             {loading ? <GridSkeleton count={4} /> : campaigns.length === 0 ? <EmptyState icon={<Shield className="w-12 h-12" />} title="The realm lies fallow..." desc="Forge your first campaign." /> : (
               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 px-1">
                 {recentCampaigns.map((camp) => (
-                  <article key={camp.id} className="flex flex-col bg-vtt-parchment border border-[#c1ae92] rounded shadow-[0_6px_16px_rgba(0,0,0,0.7)] text-vtt-parchment-text p-4 h-full relative overflow-hidden transition-all hover:-translate-y-1">
+                  <article key={camp.id} className="flex flex-col bg-vtt-parchment border border-[#c1ae92] rounded shadow-[0_6px_16px_rgba(0,0,0,0.7)] text-vtt-parchment-text p-4 h-full relative overflow-hidden transition-all hover:-translate-y-1 hover:shadow-vtt-amber-glow/20">
                     <div className="relative z-10 flex-1">
                       <h4 className="text-[16px] font-bold leading-tight uppercase tracking-tight border-b border-[#d2c0a4] pb-2 mb-3 truncate">{camp.name}</h4>
                       <p className="text-[11px] leading-relaxed font-medium italic opacity-80 min-h-[3.5em]">{camp.description || 'An untold story...'}</p>
@@ -380,7 +406,7 @@ export const Dashboard: React.FC = () => {
           <section>
             <SectionHeading title="Recent Characters" />
             <div className="flex gap-2 mb-4">
-              <button onClick={handleCreateCharacter} className="flex items-center gap-1.5 text-[10px] uppercase font-bold bg-vtt-iron-700 text-vtt-parchment/80 border border-vtt-iron-700 px-3 py-1.5 rounded shadow-sm hover:text-vtt-parchment transition-colors"><span>➕</span> New Hero</button>
+              <button onClick={handleCreateCharacter} className="flex items-center gap-1.5 text-[10px] uppercase font-bold bg-vtt-iron-700 text-vtt-parchment/80 border border-vtt-iron-700 px-3 py-1.5 rounded shadow-sm hover:text-vtt-parchment transition-colors"><Plus className="w-3 h-3" /> New Hero</button>
             </div>
 
             {charactersLoading ? <GridSkeleton count={8} /> : characters.length === 0 ? <EmptyState icon={<Shield className="w-12 h-12" />} title="No heroes answered..." desc="Forge your hero." /> : (
