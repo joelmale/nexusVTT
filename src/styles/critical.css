@@ -320,18 +320,26 @@ body::before {
    THEME SPECIFIC OVERRIDES (Critical)
    ========================================================================== */
 
-.solid-theme body {
+.solid-theme body,
+.theme-solid body,
+body.solid-theme,
+body.theme-solid {
   /* Visuals */
   background: var(--bg-primary);
 }
 
-.solid-theme body::before {
+.solid-theme body::before,
+.theme-solid body::before,
+body.solid-theme::before,
+body.theme-solid::before {
   /* Positioning & Layout */
   display: none;
 }
 
 .solid-theme .glass-panel,
-.solid-theme .glass-button {
+.theme-solid .glass-panel,
+.solid-theme .glass-button,
+.theme-solid .glass-button {
   /* Visuals */
   -webkit-backdrop-filter: none;
   backdrop-filter: none;

@@ -17,6 +17,7 @@ export const NexusLogo: React.FC<LogoProps> = ({
   size = 'md',
   className = '',
 }) => {
+  const [failed, setFailed] = React.useState(false);
   const sizeClasses = {
     sm: 'h-6',
     md: 'h-8',
@@ -26,15 +27,29 @@ export const NexusLogo: React.FC<LogoProps> = ({
 
   const logoSrc = `/assets/logos/nexus-logo${variant !== 'default' ? `-${variant}` : ''}.svg`;
 
+  if (failed) {
+    return (
+      <div className="brand-logo">
+        <div className="logo-icon">🎲</div>
+        <h1 className="brand-title">Nexus VTT</h1>
+      </div>
+    );
+  }
+
   return (
     <img
       src={logoSrc}
       alt="Nexus VTT"
       className={`${sizeClasses[size]} ${className}`}
       onError={(e) => {
-        // Fallback to PNG if SVG fails
         const target = e.target as HTMLImageElement;
-        target.src = logoSrc.replace('.svg', '.png');
+        if (target.src.endsWith('.svg')) {
+          // Fallback to PNG if SVG fails
+          target.src = logoSrc.replace('.svg', '.png');
+        } else {
+          // If PNG also fails, render the text fallback
+          setFailed(true);
+        }
       }}
     />
   );

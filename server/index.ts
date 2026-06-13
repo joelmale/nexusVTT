@@ -580,9 +580,16 @@ class NexusServer {
         res.redirect('/');
       });
     });
-    this.app.get('/auth/me', (req, res) => {
+    this.app.get('/auth/me', async (req, res) => {
       if (req.isAuthenticated()) {
-        res.json(req.user);
+        try {
+          const user = req.user as { id: string };
+          const profile = await this.db.getUserProfile(user.id);
+          res.json(profile || req.user);
+        } catch (error) {
+          console.error('Failed to fetch user profile for /auth/me:', error);
+          res.json(req.user);
+        }
       } else {
         res.status(401).json({ message: 'Not authenticated' });
       }

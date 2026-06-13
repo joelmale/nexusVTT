@@ -11,6 +11,7 @@ import {
   useCamera,
   useActiveTool,
 } from '@/stores/gameStore';
+import '@/styles/toolbar-unified.css';
 import {
   Circle,
   Eraser,

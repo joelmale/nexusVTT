@@ -7,6 +7,21 @@
     <title>Nexus VTT - Virtual Tabletop</title>
     <meta name="description" content="A lightweight, modern virtual tabletop for browser-based RPG sessions" />
 
+    <!-- Preload Critical LCP Background Image -->
+    <link rel="preload" as="image" href="/src/assets/DnDTeamPosing.webp" fetchpriority="high" type="image/webp" />
+
+    <!-- Theme Pre-warming Script (Prevents flash of unstyled content / layout shift) -->
+    <script>
+      (function() {
+        try {
+          const theme = localStorage.getItem('nexus-theme') || 'solid';
+          if (theme === 'solid') {
+            document.documentElement.classList.add('theme-solid', 'solid-theme');
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <!-- PWA Meta Tags -->
     <meta name="theme-color" content="#6366f1" />
     <link rel="apple-touch-icon" href="/assets/icons/nexus-icon-192.png" />
@@ -20,7 +35,25 @@
     <meta property="og:image" content="/assets/images/og-image.png" />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root">
+      <!-- Static Loading Skeleton (Renders instantly while JS bundle loads) -->
+      <div class="welcome-page">
+        <div class="welcome-background">
+          <div class="background-overlay"></div>
+        </div>
+        <div class="welcome-content">
+          <div class="welcome-panel glass-panel">
+            <div class="brand-section">
+              <img alt="Nexus VTT" class="h-16 welcome-logo" src="/assets/logos/nexus-logo.png">
+              <p class="brand-tagline">Your gateway to epic adventures</p>
+            </div>
+            <div style="height: 200px; display: flex; align-items: center; justify-content: center;">
+              <div class="loading-spinner"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
     <div id="portal-root"></div>
 
     <script type="module" src="/src/main.tsx"></script>

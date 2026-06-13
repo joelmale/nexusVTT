@@ -10,11 +10,23 @@ import { Toaster } from 'sonner';
 import { Providers } from './components/Providers';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LinearWelcomePage } from './components/LinearWelcomePage';
-import { PlayerSetupPage } from './components/PlayerSetupPage';
-import { DMSetupPage } from './components/DMSetupPage';
-import { LinearGameLayout } from './components/LinearGameLayout';
 
 // Lazy load heavy components
+const PlayerSetupPage = React.lazy(() =>
+  import('./components/PlayerSetupPage').then((module) => ({
+    default: module.PlayerSetupPage,
+  })),
+);
+const DMSetupPage = React.lazy(() =>
+  import('./components/DMSetupPage').then((module) => ({
+    default: module.DMSetupPage,
+  })),
+);
+const LinearGameLayout = React.lazy(() =>
+  import('./components/LinearGameLayout').then((module) => ({
+    default: module.LinearGameLayout,
+  })),
+);
 const Dashboard = React.lazy(() =>
   import('./components/Dashboard').then((module) => ({
     default: module.Dashboard,
@@ -25,9 +37,7 @@ const AdminPage = React.lazy(() =>
     default: module.AdminPage,
   })),
 );
-import './styles/critical-bundle.css';
-import './styles/utilities.css';
-import './styles/accessibility.css';
+import './styles/main.css';
 import './styles/spell-overlays.css';
 import './styles/spell-overlay-properties.css';
 import {
@@ -64,13 +74,41 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
 
           {/* Lobby routes - linear flow for creating/joining games */}
           <Route path="/lobby" element={<LinearWelcomePage />} />
-          <Route path="/lobby/player-setup" element={<PlayerSetupPage />} />
-          <Route path="/lobby/dm-setup" element={<DMSetupPage />} />
+          <Route
+            path="/lobby/player-setup"
+            element={
+              <Suspense
+                fallback={
+                  <div className="loading-spinner">Loading setup...</div>
+                }
+              >
+                <PlayerSetupPage />
+              </Suspense>
+            }
+          />
+          <Route
+            path="/lobby/dm-setup"
+            element={
+              <Suspense
+                fallback={
+                  <div className="loading-spinner">Loading setup...</div>
+                }
+              >
+                <DMSetupPage />
+              </Suspense>
+            }
+          />
           <Route
             path="/lobby/game/:roomCode"
             element={
               <ProtectedRoute requireUser requireSession>
-                <LinearGameLayout />
+                <Suspense
+                  fallback={
+                    <div className="loading-spinner">Loading game...</div>
+                  }
+                >
+                  <LinearGameLayout />
+                </Suspense>
               </ProtectedRoute>
             }
           />

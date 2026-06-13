@@ -38,7 +38,7 @@ const THEME_CONFIGS: Record<ThemeType, ThemeConfig> = {
     },
   },
   solid: {
-    className: 'solid-theme',
+    className: 'solid-theme theme-solid',
     cssFile: 'theme-solid.css',
     variables: {
       // Solid theme overrides are handled in CSS
@@ -49,7 +49,7 @@ const THEME_CONFIGS: Record<ThemeType, ThemeConfig> = {
 /**
  * Current active theme
  */
-let currentTheme: ThemeType = 'solid';
+let currentTheme: ThemeType | null = null;
 
 /**
  * Preload theme styles for instant switching
@@ -123,7 +123,7 @@ export async function switchTheme(theme: ThemeType): Promise<void> {
  * Get current theme
  */
 export function getCurrentTheme(): ThemeType {
-  return currentTheme;
+  return currentTheme || 'solid';
 }
 
 /**
@@ -175,7 +175,7 @@ export function measureThemeSwitch(): () => void {
     // Report to analytics if available
     if (typeof window.gtag !== 'undefined') {
       window.gtag('event', 'theme_switch', {
-        theme: currentTheme,
+        theme: currentTheme || 'solid',
         duration: Math.round(duration),
       });
     }

@@ -5,8 +5,20 @@
  * Non-critical styles are loaded only when needed.
  */
 
-// Cache for loaded styles to prevent duplicate imports
-const loadedStyles = new Set<string>();
+// Cache for loaded styles to prevent duplicate imports.
+// On client browser, pre-fill with any stylesheets already present in the DOM.
+const loadedStyles = new Set<string>(
+  typeof document !== 'undefined'
+    ? Array.from(document.querySelectorAll('link[rel="stylesheet"]'))
+        .map((link) => {
+          const href = link.getAttribute('href');
+          if (!href) return '';
+          const parts = href.split('/');
+          return parts[parts.length - 1].split('?')[0];
+        })
+        .filter(Boolean)
+    : []
+);
 
 // Performance monitoring and logging
 interface CSSLoadMetrics {
@@ -175,6 +187,11 @@ export function loadCSS(
     priority?: 'critical' | 'high' | 'normal' | 'low';
   } = {},
 ): Promise<void> {
+  // In production, all CSS is bundled into main.css. Dynamic style loading is not required.
+  if (import.meta.env.PROD) {
+    return Promise.resolve();
+  }
+
   return new Promise((resolve, reject) => {
     // Skip if already loaded
     if (loadedStyles.has(cssPath)) {

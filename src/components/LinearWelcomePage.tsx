@@ -11,8 +11,6 @@ import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { useShallow } from 'zustand/react/shallow';
-import { NexusLogo } from './Assets';
-import { useAssetExists } from '@/utils/assets';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.webp';
 import { preloadOnUserIntent } from '@/services/cssLoader';
 
@@ -88,7 +86,6 @@ export const LinearWelcomePage: React.FC = () => {
   const [quickJoinTokenFileName, setQuickJoinTokenFileName] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const hasCustomLogo = useAssetExists('/assets/logos/nexus-logo.svg');
 
   // Campaign selection state
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
@@ -482,7 +479,12 @@ export const LinearWelcomePage: React.FC = () => {
   return (
     <div className="welcome-page">
       <div className="welcome-background">
-        <img src={DnDTeamBackground} alt="D&D Adventure Party" />
+        <img
+          src={DnDTeamBackground}
+          alt="D&D Adventure Party"
+          fetchPriority="high"
+          decoding="async"
+        />
         <div className="background-overlay"></div>
         <div className="background-particles" aria-hidden="true">
           {Array.from({ length: 15 }, (_, i) => (
@@ -709,14 +711,7 @@ export const LinearWelcomePage: React.FC = () => {
 
           {/* Brand Section */}
           <div className="brand-section">
-            {hasCustomLogo ? (
-              <NexusLogo size="xl" className="welcome-logo" />
-            ) : (
-              <div className="brand-logo">
-                <div className="logo-icon">🎲</div>
-                <h1 className="brand-title">Nexus VTT</h1>
-              </div>
-            )}
+            <img alt="Nexus VTT" className="h-16 welcome-logo" src="/assets/logos/nexus-logo.png" />
             <p className="brand-tagline">Your gateway to epic adventures</p>
           </div>
 

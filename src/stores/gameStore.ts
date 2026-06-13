@@ -1567,33 +1567,18 @@ export const useGameStore = create<GameStore>()(
             credentials: 'include',
           });
           if (response.ok) {
-            const authUser = await response.json();
-
-            // Try to hydrate with full profile details
-            try {
-              const profileResponse = await fetch('/api/users/profile', {
-                credentials: 'include',
+            const contentType = response.headers.get('content-type');
+            if (contentType && contentType.includes('application/json')) {
+              const profile = await response.json();
+              get().login({
+                ...profile,
+                name: profile.displayName || profile.name,
+                displayName: profile.displayName || profile.name,
               });
-              if (profileResponse.ok) {
-                const profile = await profileResponse.json();
-                get().login({
-                  ...authUser,
-                  ...profile,
-                  name: profile.displayName || profile.name || authUser.name,
-                  displayName: profile.displayName || profile.name,
-                  email: profile.email ?? authUser.email,
-                  provider: profile.provider ?? authUser.provider,
-                });
-                return;
-              }
-            } catch (profileError) {
-              console.warn(
-                'Profile hydrate failed, using auth user only',
-                profileError,
-              );
+            } else {
+              console.warn('Auth check returned non-JSON response');
+              set({ isAuthenticated: false });
             }
-
-            get().login(authUser);
           } else {
             set({ isAuthenticated: false });
           }

@@ -24,8 +24,6 @@
 @import './layout-consolidated.css' layer(layouts);
 
 /* 4. CRITICAL COMPONENTS - Always-visible UI elements */
-@import './toolbar-unified.css' layer(critical-components);
-@import './settings-optimized.css' layer(critical-components);
 @import './welcome-page.css' layer(critical-components);
 @import './linear-flow.css' layer(critical-components);
 

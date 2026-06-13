@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 // import { useNavigate } from 'react-router-dom'; // Not used yet
 import { useGameStore, useSettings, useColorScheme } from '@/stores/gameStore';
 import { switchTheme } from '@/services/themeManager';
+import '@/styles/settings-optimized.css';
 import {
   defaultColorSchemes,
   generateRandomColorScheme,
