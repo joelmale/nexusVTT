@@ -45,6 +45,12 @@ import type {
 // Shared types
 import type { AssetManifest } from '../shared/types.js';
 
+// Sockets
+import { SocketManager } from './socket/SocketManager.js';
+import { ChatHandler } from './socket/handlers/ChatHandler.js';
+import { SceneHandler } from './socket/handlers/SceneHandler.js';
+import { DiceHandler } from './socket/handlers/DiceHandler.js';
+
 // Services
 import {
   DatabaseService,
@@ -207,6 +213,7 @@ class NexusServer {
   private rooms = new Map<string, Room>();
   private connections = new Map<string, Connection>();
   private wss: WebSocketServer;
+  private socketManager: SocketManager;
   private port: number;
   private app: express.Application;
   private httpServer: ReturnType<typeof express.application.listen>;
@@ -333,6 +340,12 @@ class NexusServer {
     });
 
     this.wss = new WebSocketServer({ noServer: true });
+    this.socketManager = new SocketManager(this.wss, this.db);
+
+    // Register event handlers
+    new ChatHandler(this.socketManager, this.db);
+    new SceneHandler(this.socketManager, this.db);
+    new DiceHandler(this.socketManager, this.db);
 
     this.httpServer.on(
       'upgrade',
@@ -1311,7 +1324,7 @@ class NexusServer {
           port: this.port,
           wsUrl,
           rooms: this.rooms.size,
-          connections: this.connections.size,
+          connections: this.socketManager.connections.size,
           assetsLoaded: this.manifest?.totalAssets || 0,
           uptime: process.uptime(),
         });
@@ -1337,7 +1350,7 @@ class NexusServer {
         port: this.port,
         wsUrl,
         rooms: this.rooms.size,
-        connections: this.connections.size,
+        connections: this.socketManager.connections.size,
       });
     });
   }
@@ -1591,20 +1604,7 @@ class NexusServer {
 
     console.log(`📡 New connection: ${uuid} (${userType} as ${displayName})`);
 
-    const connection: Connection = {
-      id: uuid,
-      ws: ws,
-      user: {
-        name: displayName,
-        type: 'player', // Will be updated to 'host' in handleHostConnection if needed
-      },
-      consecutiveMisses: 0,
-      connectionQuality: 'excellent',
-    };
-
-    this.connections.set(uuid, connection);
-
-    this.startHeartbeatForConnection(connection);
+    const connection = this.socketManager.addConnection(ws, displayName, uuid);
 
     const host = params.get('host');
     const join = params.get('join')?.toUpperCase();
@@ -1620,25 +1620,6 @@ class NexusServer {
     } else {
       await this.handleDefaultConnection(connection, campaignId);
     }
-
-    ws.on('message', (data) => {
-      try {
-        const message = JSON.parse(data.toString()) as ServerMessage;
-        this.routeMessage(uuid, message);
-      } catch (error) {
-        console.error('Failed to parse message:', error);
-      }
-    });
-
-    ws.on('close', () => {
-      console.log(`📡 Connection closed: ${uuid}`);
-      this.handleDisconnect(uuid);
-    });
-
-    ws.on('error', (error) => {
-      console.error(`WebSocket error for ${uuid}:`, error);
-      this.handleDisconnect(uuid);
-    });
   }
 
   /**
@@ -2059,7 +2040,7 @@ class NexusServer {
         campaignId: sessionRecord?.campaignId,
         dmConnected: room.dmConnected,
         players: Array.from(room.players).map((playerId) => {
-          const conn = this.connections.get(playerId);
+          const conn = this.socketManager.connections.get(playerId);
           return {
             id: playerId,
             name: conn?.user?.name || 'Unknown',
@@ -2124,7 +2105,7 @@ class NexusServer {
       return;
     }
 
-    const connection = this.connections.get(fromUuid);
+    const connection = this.socketManager.connections.get(fromUuid);
     if (!connection?.room) return;
 
     const room = this.rooms.get(connection.room);
@@ -2328,7 +2309,7 @@ class NexusServer {
     }
 
     if (message.dst) {
-      const targetConnection = this.connections.get(message.dst);
+      const targetConnection = this.socketManager.connections.get(message.dst);
       if (targetConnection && room.connections.has(message.dst)) {
         this.sendMessage(targetConnection, {
           ...message,
@@ -2529,7 +2510,7 @@ class NexusServer {
 
     room.connections.forEach((ws, uuid) => {
       if (uuid !== excludeUuid) {
-        const connection = this.connections.get(uuid);
+        const connection = this.socketManager.connections.get(uuid);
         if (connection) {
           this.sendMessage(connection, message);
         }
@@ -2574,15 +2555,15 @@ class NexusServer {
    * @returns {Promise<void>}
    */
   private async handleDisconnect(uuid: string): Promise<void> {
-    const connection = this.connections.get(uuid);
+    const connection = this.socketManager.connections.get(uuid);
     if (!connection?.room) {
-      this.connections.delete(uuid);
+      this.socketManager.connections.delete(uuid);
       return;
     }
 
     const room = this.rooms.get(connection.room);
     if (!room) {
-      this.connections.delete(uuid);
+      this.socketManager.connections.delete(uuid);
       return;
     }
 
@@ -2654,10 +2635,10 @@ class NexusServer {
       }
     }
 
-    this.connections.delete(uuid);
+    this.socketManager.connections.delete(uuid);
 
     // Stop heartbeat if no connections remain
-    if (this.connections.size === 0) {
+    if (this.socketManager.connections.size === 0) {
       this.stopHeartbeat();
     }
   }
@@ -2736,7 +2717,7 @@ class NexusServer {
     // Close all remaining connections
     room.connections.forEach((ws, connUuid) => {
       ws.close();
-      this.connections.delete(connUuid);
+      this.socketManager.connections.delete(connUuid);
     });
 
     // Remove room from memory
@@ -2873,8 +2854,8 @@ class NexusServer {
     const oldHost = room.host;
     room.host = targetUserId;
     room.coHosts.delete(targetUserId);
-    const oldHostConnection = this.connections.get(oldHost);
-    const newHostConnection = this.connections.get(targetUserId);
+    const oldHostConnection = this.socketManager.connections.get(oldHost);
+    const newHostConnection = this.socketManager.connections.get(targetUserId);
     if (oldHostConnection) {
       oldHostConnection.user = {
         name: oldHostConnection.user?.name || 'Player',
@@ -2923,7 +2904,7 @@ class NexusServer {
       return;
     }
     room.coHosts.add(targetUserId);
-    const targetConnection = this.connections.get(targetUserId);
+    const targetConnection = this.socketManager.connections.get(targetUserId);
     if (targetConnection) {
       targetConnection.user = {
         name: targetConnection.user?.name || 'Co-Host',
@@ -2958,7 +2939,7 @@ class NexusServer {
       return;
     }
     room.coHosts.delete(targetUserId);
-    const targetConnection = this.connections.get(targetUserId);
+    const targetConnection = this.socketManager.connections.get(targetUserId);
     if (targetConnection) {
       targetConnection.user = {
         name: targetConnection.user?.name || 'Player',
@@ -2993,7 +2974,7 @@ class NexusServer {
     if (this.heartbeatTimer) return;
     console.log('💓 Starting heartbeat mechanism');
     this.heartbeatTimer = setInterval(() => {
-      this.connections.forEach((connection) => {
+      this.socketManager.connections.forEach((connection) => {
         this.sendHeartbeatPing(connection);
       });
     }, this.HEARTBEAT_INTERVAL);
@@ -3008,7 +2989,7 @@ class NexusServer {
   }
 
   private startHeartbeatForConnection(_connection: Connection) {
-    if (this.connections.size === 1) {
+    if (this.socketManager.connections.size === 1) {
       this.startHeartbeat();
     }
   }
@@ -3030,7 +3011,7 @@ class NexusServer {
   }
 
   private handleHeartbeatPong(fromUuid: string, pongId: string) {
-    const connection = this.connections.get(fromUuid);
+    const connection = this.socketManager.connections.get(fromUuid);
     if (!connection || connection.pendingPing !== pongId) return;
     const responseTime = Date.now() - (connection.lastPing || 0);
     connection.lastPong = Date.now();
@@ -3040,7 +3021,7 @@ class NexusServer {
   }
 
   private handleMissedPong(uuid: string) {
-    const connection = this.connections.get(uuid);
+    const connection = this.socketManager.connections.get(uuid);
     if (!connection) return;
     connection.consecutiveMisses += 1;
     connection.pendingPing = undefined;
@@ -3099,11 +3080,11 @@ class NexusServer {
         clearTimeout(room.hibernationTimer);
       }
     });
-    this.connections.forEach((connection) => {
+    this.socketManager.connections.forEach((connection) => {
       connection.ws.close();
     });
     this.rooms.clear();
-    this.connections.clear();
+    this.socketManager.connections.clear();
     try {
       await this.db.close();
       console.log('✅ Database closed');
@@ -3130,7 +3111,7 @@ class NexusServer {
       activeRooms,
       hibernatingRooms,
       totalRooms: this.rooms.size,
-      totalConnections: this.connections.size,
+      totalConnections: this.socketManager.connections.size,
       serverPort: this.port,
       rooms: Array.from(this.rooms.entries()).map(([code, room]) => ({
         code,

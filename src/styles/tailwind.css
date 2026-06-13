@@ -1,59 +1,117 @@
 /*
- * tailwind.css  –  NexusVTT Tailwind CSS Entry Point
+ * tailwind.css  –  NexusVTT Tailwind v4 Entry Point
  * ─────────────────────────────────────────────────────────────────────────────
- * This file is imported AFTER main.css so Tailwind utilities layer on top of
- * the existing native CSS without overriding design tokens or legacy components.
+ * Tailwind v4 uses CSS-first configuration.
+ * • @import "tailwindcss"   → injects all Tailwind layers
+ * • @theme                  → maps design tokens to Tailwind's theme system
+ * • @layer components       → custom component classes
+ * • @supports               → graceful degradation for Safari / low-end hw
  *
- * Hybrid strategy:
- *   • Legacy components  → keep using native CSS classes unchanged.
- *   • New components     → use Tailwind JIT utilities (prefixed or scoped).
- *
- * @supports gates ensure graceful degradation on Safari and low-end hardware.
+ * This file is imported AFTER main.css so Tailwind utilities overlay the
+ * existing native CSS without overriding design tokens or legacy components.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
-/* 1. Tailwind layers -------------------------------------------------------- */
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+/* 1. Pull in all Tailwind v4 layers ---------------------------------------- */
+@import "tailwindcss";
 
-/* 2. @supports gates ─ graceful degradation ─────────────────────────────── */
+/* 2. Map design tokens into Tailwind's theme system ------------------------- */
+@theme {
+  /* ── Colors ────────────────────────────────────────────────────────────── */
+  --color-color-primary:         var(--color-primary);
+  --color-color-primary-hover:   var(--color-primary-hover);
+  --color-color-primary-active:  var(--color-primary-active);
+  --color-color-secondary:       var(--color-secondary);
+  --color-color-secondary-hover: var(--color-secondary-hover);
+  --color-color-accent:          var(--color-accent);
+  --color-color-accent-hover:    var(--color-accent-hover);
+  --color-color-success:         var(--color-success);
+  --color-color-warning:         var(--color-warning);
+  --color-color-error:           var(--color-error);
+  --color-color-info:            var(--color-info);
+
+  /* Surface / text (resolved per active theme) */
+  --color-surface-primary:       var(--surface-primary);
+  --color-surface-secondary:     var(--surface-secondary);
+  --color-surface-hover:         var(--surface-hover);
+  --color-text-primary:          var(--text-primary);
+  --color-text-secondary:        var(--text-secondary);
+  --color-text-muted:            var(--text-muted);
+  --color-text-strong:           var(--text-strong);
+  --color-bg-surface:            var(--bg-surface);
+  --color-bg-panel:              var(--bg-panel);
+  --color-bg-modal:              var(--bg-modal);
+
+  /* Glass tokens */
+  --color-glass-surface:         var(--glass-surface);
+  --color-glass-border:          var(--glass-border);
+  --color-glass-text:            var(--glass-text);
+  --color-glass-text-muted:      var(--glass-text-muted);
+
+  /* Border tokens */
+  --color-border-primary:        var(--border-primary);
+  --color-border-secondary:      var(--border-secondary);
+  --color-border-subtle:         var(--border-subtle);
+
+  /* ── Spacing ───────────────────────────────────────────────────────────── */
+  --spacing-token-xs:  var(--spacing-xs);
+  --spacing-token-sm:  var(--spacing-sm);
+  --spacing-token-md:  var(--spacing-md);
+  --spacing-token-lg:  var(--spacing-lg);
+  --spacing-token-xl:  var(--spacing-xl);
+  --spacing-token-2xl: var(--spacing-2xl);
+  --spacing-token-3xl: var(--spacing-3xl);
+
+  /* ── Border radius ─────────────────────────────────────────────────────── */
+  --radius-token:    var(--border-radius);
+  --radius-token-lg: var(--border-radius-lg);
+  --radius-token-xl: var(--border-radius-xl);
+
+  /* ── Shadows ───────────────────────────────────────────────────────────── */
+  --shadow-glass:    var(--shadow-glass);
+  --shadow-glass-lg: var(--shadow-glass-lg);
+  --shadow-glass-xl: var(--shadow-glass-xl);
+  --shadow-token-sm: var(--shadow-sm);
+  --shadow-token:    var(--shadow-default);
+  --shadow-token-md: var(--shadow-md);
+  --shadow-token-lg: var(--shadow-lg);
+  --shadow-token-xl: var(--shadow-xl);
+
+  /* ── Font families ─────────────────────────────────────────────────────── */
+  --font-sans:  var(--font-sans);
+  --font-serif: var(--font-serif);
+  --font-mono:  var(--font-mono);
+
+  /* ── Transitions ───────────────────────────────────────────────────────── */
+  --ease-out-token:    var(--ease-out);
+  --ease-in-out-token: var(--ease-in-out);
+}
+
+/* 3. @supports gates – graceful degradation --------------------------------- */
 
 /*
- * backdrop-filter is unsupported on some WebKit/Safari versions and on
- * low-end Android hardware.  Fall back to a solid semi-transparent surface.
+ * backdrop-filter unsupported on some WebKit/Safari & low-end Android.
+ * Fall back to a solid semi-transparent surface.
  */
 @supports not (backdrop-filter: blur(1px)) {
-  /* Tailwind utility overrides */
-  .backdrop-blur-glass,
-  .backdrop-blur-glass-sm,
-  .backdrop-blur-glass-lg,
+  .tw-glass,
   [class*='backdrop-blur'] {
     backdrop-filter: none !important;
-    /* Use a slightly opaque solid background as a fallback */
     background-color: rgba(15, 17, 30, 0.92) !important;
   }
 }
 
 /*
- * CSS gap on flex containers is unsupported in Safari < 14.1.
- * Fall back to margin-based spacing for flex-gap utilities used in new components.
+ * CSS gap on flex containers: Safari < 14.1 fallback.
  */
 @supports not (gap: 1px) {
-  .flex.gap-md > * + * {
-    margin-left: var(--spacing-md);
-  }
-  .flex.gap-sm > * + * {
-    margin-left: var(--spacing-sm);
-  }
-  .flex.gap-lg > * + * {
-    margin-left: var(--spacing-lg);
-  }
+  .flex.gap-token-md > * + * { margin-left: var(--spacing-md); }
+  .flex.gap-token-sm > * + * { margin-left: var(--spacing-sm); }
+  .flex.gap-token-lg > * + * { margin-left: var(--spacing-lg); }
 }
 
 /*
- * CSS Grid with named template areas is extremely well-supported, but we
- * provide a single-column flex fallback for completeness.
+ * CSS Grid fallback (extremely old browsers only).
  */
 @supports not (display: grid) {
   .dashboard-tw-grid {
@@ -63,38 +121,18 @@
   }
 }
 
-/*
- * CSS custom properties (variables) are used by Tailwind token mappings.
- * This block is only needed for truly ancient browsers; modern ones support vars.
- */
-@supports not (color: var(--color-primary)) {
-  /* Hard-code the primary colour for extremely old browsers */
-  :root {
-    --color-primary: #6366f1;
-    --color-secondary: #a855f7;
-    --text-primary: rgba(255, 255, 255, 0.9);
-    --bg-primary: #1e293b;
-    --surface-primary: rgba(255, 255, 255, 0.1);
-    --border-primary: rgba(255, 255, 255, 0.2);
-    --spacing-sm: 0.5rem;
-    --spacing-md: 1rem;
-    --spacing-lg: 1.5rem;
-    --border-radius: 0.75rem;
-  }
-}
-
-/* 3. Tailwind component layer additions (new Dashboard only) ─────────────── */
+/* 4. Component classes (@layer components) ---------------------------------- */
 @layer components {
   /*
-   * .tw-glass  –  A Tailwind-managed glass card that follows the active theme.
-   * Used exclusively in the Tailwind Dashboard feature; legacy components are
-   * NOT touched.
+   * .tw-glass – token-aware glass card.
+   * Used exclusively in new Tailwind-powered components.
    */
   .tw-glass {
     background-color: var(--surface-primary);
     border: 1px solid var(--border-primary);
     border-radius: var(--border-radius);
     box-shadow: var(--shadow-glass);
+    color: var(--text-primary);
 
     @supports (backdrop-filter: blur(1px)) {
       backdrop-filter: blur(20px);
@@ -103,7 +141,7 @@
   }
 
   /*
-   * .tw-btn-primary  –  Primary action button following brand colour tokens.
+   * .tw-btn-primary – primary action button.
    */
   .tw-btn-primary {
     display: inline-flex;
@@ -122,11 +160,12 @@
       transform var(--transition-fast);
     cursor: pointer;
     border: none;
+    line-height: 1;
   }
 
   .tw-btn-primary:hover {
     background-color: var(--color-primary-hover);
-    box-shadow: var(--shadow-primary);
+    box-shadow: 0 4px 12px rgba(var(--color-primary-rgb), 0.4);
     transform: translateY(-1px);
   }
 
@@ -135,12 +174,16 @@
     transform: translateY(0);
   }
 
+  .tw-btn-primary:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    transform: none;
+  }
+
   /*
-   * Reduced-motion override  –  respects the user's OS preference as well as
-   * the store's reducedMotion setting (applied via [data-reduced-motion]).
+   * Reduced-motion overrides.
    */
-  @media (prefers-reduced-motion: reduce),
-    (update: slow) {
+  @media (prefers-reduced-motion: reduce), (update: slow) {
     .tw-btn-primary,
     .tw-glass {
       transition: none !important;

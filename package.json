@@ -91,6 +91,7 @@
   "devDependencies": {
     "@eslint/config-array": "^0.23.3",
     "@eslint/js": "^9.39.2",
+    "@tailwindcss/vite": "^4.3.1",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/compression": "^1.8.1",
