@@ -361,14 +361,12 @@ export const GameUI: React.FC = () => {
               </div>
             )}
 
-            {/* 3D Dice Box - only render when dice panel is active */}
-            {activePanel === 'dice' && (
-              <Suspense
-                fallback={<div className="dice-loading">Loading 3D dice...</div>}
-              >
-                <DiceBox3D />
-              </Suspense>
-            )}
+            {/* 3D Dice Box */}
+            <Suspense
+              fallback={<div className="dice-loading">Loading 3D dice...</div>}
+            >
+              <DiceBox3D />
+            </Suspense>
           </div>
 
           {/* Floating Toolbar */}

@@ -165,7 +165,7 @@ export const DiceBox3D: React.FC = () => {
 
   // Handle new dice rolls
   useEffect(() => {
-    if (!isInitialized || !diceBoxRef.current || diceRolls.length === 0) {
+    if (diceRolls.length === 0) {
       return;
     }
 
@@ -175,6 +175,26 @@ export const DiceBox3D: React.FC = () => {
     );
 
     if (unprocessedRolls.length === 0) {
+      return;
+    }
+
+    // Play sounds even if animations are disabled
+    if (!settings.enableAnimations) {
+      if (settings.enableSounds && settings.diceRollSounds) {
+        unprocessedRolls.forEach((roll) => {
+          let diceCount = 0;
+          roll.pools.forEach((pool) => {
+            diceCount += pool.results.length + (pool.advResults?.length || 0);
+          });
+          diceSounds.playRollSound(diceCount);
+        });
+      }
+      // Mark all as processed
+      unprocessedRolls.forEach((roll) => processedRollIdsRef.current.add(roll.id));
+      return;
+    }
+
+    if (!isInitialized || !diceBoxRef.current) {
       return;
     }
 
@@ -230,7 +250,9 @@ export const DiceBox3D: React.FC = () => {
         }
 
         // Play sound immediately when dice start rolling
-        diceSounds.playRollSound(values.length);
+        if (settings.enableSounds && settings.diceRollSounds) {
+          diceSounds.playRollSound(values.length);
+        }
 
         diceBoxRef.current
           .roll(notations, { values })
