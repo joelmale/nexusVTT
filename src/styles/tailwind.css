@@ -1,0 +1,156 @@
+/*
+ * tailwind.css  –  NexusVTT Tailwind CSS Entry Point
+ * ─────────────────────────────────────────────────────────────────────────────
+ * This file is imported AFTER main.css so Tailwind utilities layer on top of
+ * the existing native CSS without overriding design tokens or legacy components.
+ *
+ * Hybrid strategy:
+ *   • Legacy components  → keep using native CSS classes unchanged.
+ *   • New components     → use Tailwind JIT utilities (prefixed or scoped).
+ *
+ * @supports gates ensure graceful degradation on Safari and low-end hardware.
+ * ─────────────────────────────────────────────────────────────────────────────
+ */
+
+/* 1. Tailwind layers -------------------------------------------------------- */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 2. @supports gates ─ graceful degradation ─────────────────────────────── */
+
+/*
+ * backdrop-filter is unsupported on some WebKit/Safari versions and on
+ * low-end Android hardware.  Fall back to a solid semi-transparent surface.
+ */
+@supports not (backdrop-filter: blur(1px)) {
+  /* Tailwind utility overrides */
+  .backdrop-blur-glass,
+  .backdrop-blur-glass-sm,
+  .backdrop-blur-glass-lg,
+  [class*='backdrop-blur'] {
+    backdrop-filter: none !important;
+    /* Use a slightly opaque solid background as a fallback */
+    background-color: rgba(15, 17, 30, 0.92) !important;
+  }
+}
+
+/*
+ * CSS gap on flex containers is unsupported in Safari < 14.1.
+ * Fall back to margin-based spacing for flex-gap utilities used in new components.
+ */
+@supports not (gap: 1px) {
+  .flex.gap-md > * + * {
+    margin-left: var(--spacing-md);
+  }
+  .flex.gap-sm > * + * {
+    margin-left: var(--spacing-sm);
+  }
+  .flex.gap-lg > * + * {
+    margin-left: var(--spacing-lg);
+  }
+}
+
+/*
+ * CSS Grid with named template areas is extremely well-supported, but we
+ * provide a single-column flex fallback for completeness.
+ */
+@supports not (display: grid) {
+  .dashboard-tw-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-md);
+  }
+}
+
+/*
+ * CSS custom properties (variables) are used by Tailwind token mappings.
+ * This block is only needed for truly ancient browsers; modern ones support vars.
+ */
+@supports not (color: var(--color-primary)) {
+  /* Hard-code the primary colour for extremely old browsers */
+  :root {
+    --color-primary: #6366f1;
+    --color-secondary: #a855f7;
+    --text-primary: rgba(255, 255, 255, 0.9);
+    --bg-primary: #1e293b;
+    --surface-primary: rgba(255, 255, 255, 0.1);
+    --border-primary: rgba(255, 255, 255, 0.2);
+    --spacing-sm: 0.5rem;
+    --spacing-md: 1rem;
+    --spacing-lg: 1.5rem;
+    --border-radius: 0.75rem;
+  }
+}
+
+/* 3. Tailwind component layer additions (new Dashboard only) ─────────────── */
+@layer components {
+  /*
+   * .tw-glass  –  A Tailwind-managed glass card that follows the active theme.
+   * Used exclusively in the Tailwind Dashboard feature; legacy components are
+   * NOT touched.
+   */
+  .tw-glass {
+    background-color: var(--surface-primary);
+    border: 1px solid var(--border-primary);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-glass);
+
+    @supports (backdrop-filter: blur(1px)) {
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+    }
+  }
+
+  /*
+   * .tw-btn-primary  –  Primary action button following brand colour tokens.
+   */
+  .tw-btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-sm);
+    padding: var(--spacing-sm) var(--spacing-md);
+    background-color: var(--color-primary);
+    color: #fff;
+    border-radius: var(--border-radius);
+    font-weight: var(--font-semibold);
+    font-size: var(--text-sm);
+    transition:
+      background-color var(--transition-fast),
+      box-shadow var(--transition-fast),
+      transform var(--transition-fast);
+    cursor: pointer;
+    border: none;
+  }
+
+  .tw-btn-primary:hover {
+    background-color: var(--color-primary-hover);
+    box-shadow: var(--shadow-primary);
+    transform: translateY(-1px);
+  }
+
+  .tw-btn-primary:active {
+    background-color: var(--color-primary-active);
+    transform: translateY(0);
+  }
+
+  /*
+   * Reduced-motion override  –  respects the user's OS preference as well as
+   * the store's reducedMotion setting (applied via [data-reduced-motion]).
+   */
+  @media (prefers-reduced-motion: reduce),
+    (update: slow) {
+    .tw-btn-primary,
+    .tw-glass {
+      transition: none !important;
+      animation: none !important;
+    }
+  }
+
+  [data-reduced-motion='true'] .tw-btn-primary,
+  [data-reduced-motion='true'] .tw-glass {
+    transition: none !important;
+    animation: none !important;
+  }
+}

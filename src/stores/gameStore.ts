@@ -160,6 +160,7 @@ interface GameStore extends GameState {
   updateSettings: (settings: Partial<UserSettings>) => void;
   setColorScheme: (colorScheme: ColorScheme) => void;
   setEnableGlassmorphism: (enabled: boolean) => void;
+  setEnableTailwindDashboard: (enabled: boolean) => void;
   resetSettings: () => void;
 
   // Token Actions
@@ -513,6 +514,7 @@ const initialState: GameState & {
 
     // Experimental Settings
     floatingToolbar: false, // Default to docked toolbar
+    enableTailwindDashboard: false, // Default to legacy dashboard
   },
 
   // Chat State
@@ -2725,6 +2727,12 @@ export const useGameStore = create<GameStore>()(
       setEnableGlassmorphism: (enabled) => {
         set((state) => {
           state.settings.enableGlassmorphism = enabled;
+        });
+      },
+
+      setEnableTailwindDashboard: (enabled) => {
+        set((state) => {
+          state.settings.enableTailwindDashboard = enabled;
         });
       },
 

@@ -38,6 +38,7 @@ const AdminPage = React.lazy(() =>
   })),
 );
 import './styles/main.css';
+import './styles/tailwind.css'; // Tailwind layer – loaded after main.css for correct cascade order
 import './styles/spell-overlays.css';
 import './styles/spell-overlay-properties.css';
 import {

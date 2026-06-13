@@ -1,7 +1,7 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, lazy, Suspense } from 'react';
 import { createPortal } from 'react-dom';
 import { useNavigate } from 'react-router-dom';
-import { useGameStore } from '@/stores/gameStore';
+import { useGameStore, useSettings } from '@/stores/gameStore';
 import { CharacterManager } from './CharacterManager';
 import { CharacterImportModal } from './CharacterImportModal';
 import { CharacterSelectionModal } from './CharacterSelectionModal';
@@ -11,6 +11,11 @@ import { createEmptyCharacter, type Character } from '@/types/character';
 import { normalizeCharacter } from '@/utils/characterNormalization';
 import type { PlayerCharacter } from '@/types/game';
 import '@/styles/dashboard.css';
+
+// Lazy-load the Tailwind Dashboard only when the feature flag is on
+const DashboardTailwind = lazy(() =>
+  import('./DashboardTailwind').then((mod) => ({ default: mod.DashboardTailwind })),
+);
 
 // Direct Lucide Path Imports (GEMINI.md Foundation Rule)
 import Shield from 'lucide-react/dist/esm/icons/shield';
@@ -54,13 +59,15 @@ interface CharacterRecord {
 }
 
 /**
- * High-Density Immersive VTT Dashboard
+ * High-Density Immersive VTT Dashboard (legacy implementation)
+ * Renamed to DashboardLegacy so the exported Dashboard can act as a
+ * hook-safe feature-flag switcher (Rules of Hooks requirement).
  */
-export const Dashboard: React.FC = () => {
+const DashboardLegacy: React.FC = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated, joinRoomWithCode } = useGameStore();
   const { startCharacterCreation, LauncherComponent } = useCharacterCreationLauncher();
-  
+
   // Database States
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [characters, setCharacters] = useState<CharacterRecord[]>([]);
@@ -496,3 +503,23 @@ const Modal: React.FC<{ onClose: () => void, title: string, children: React.Reac
     </div>
   </div>
 );
+
+/**
+ * Feature-flag switcher. This is the component exported to routes.
+ * It reads the settings flag and delegates to either the Tailwind
+ * redesign or the legacy implementation. No hooks are called after
+ * a conditional return here, so it is Rules-of-Hooks compliant.
+ */
+export const Dashboard: React.FC = () => {
+  const settings = useSettings();
+
+  if (settings.enableTailwindDashboard) {
+    return (
+      <Suspense fallback={<div className="loading-spinner">Loading dashboard...</div>}>
+        <DashboardTailwind />
+      </Suspense>
+    );
+  }
+
+  return <DashboardLegacy />;
+};

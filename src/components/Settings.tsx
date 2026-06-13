@@ -234,6 +234,7 @@ export const Settings: React.FC = () => {
     updateSettings,
     setColorScheme,
     setEnableGlassmorphism,
+    setEnableTailwindDashboard,
     resetSettings,
   } = useGameStore();
   const settings = useSettings();
@@ -323,6 +324,24 @@ export const Settings: React.FC = () => {
                   setEnableGlassmorphism(enabled);
                   // Immediately switch theme for better UX
                   await switchTheme(enabled ? 'glass' : 'solid');
+                  setHasUnsavedChanges(true);
+                }}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </SettingItem>
+
+          <SettingItem
+            label="Tailwind Dashboard (Beta)"
+            description="Enable the redesigned dashboard powered by Tailwind CSS utilities"
+          >
+            <label className="setting-toggle">
+              <input
+                id="setting-tailwind-dashboard"
+                type="checkbox"
+                checked={!!settings.enableTailwindDashboard}
+                onChange={(e) => {
+                  setEnableTailwindDashboard(e.target.checked);
                   setHasUnsavedChanges(true);
                 }}
               />
