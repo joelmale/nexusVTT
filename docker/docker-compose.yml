@@ -52,6 +52,8 @@ services:
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
       DISCORD_CALLBACK_URL: ${DISCORD_CALLBACK_URL}
+    volumes:
+      - nexus-assets:/app/static-assets/assets
     networks:
       - nexus-internal
     restart: unless-stopped
@@ -62,6 +64,8 @@ services:
       - backend
     environment:
       - NODE_ENV=production
+    volumes:
+      - nexus-assets:/usr/share/nginx/html/assets:ro
     networks:
       - nexus-internal
       - proxy
@@ -70,6 +74,7 @@ services:
 volumes:
   postgres-data:
   redis-data:
+  nexus-assets:
 
 networks:
   # Internal network — only containers in this stack can communicate on it

@@ -36,15 +36,20 @@ export const PropPanel: React.FC<PropPanelProps> = ({ onPropSelect }) => {
       return saved as PropCategory | 'all';
     }
     return 'all';
-  });
+    });
 
-  const allProps = getAllProps();
+    const [visibleCount, setVisibleCount] = useState(40);
+    const ITEMS_PER_PAGE = 40;
 
-  useEffect(() => {
+    const allProps = getAllProps();
+
+    useEffect(() => {
     localStorage.setItem('propPanel.activeCategory', activeCategory);
-  }, [activeCategory]);
+    // Reset visible count when category or search changes
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setVisibleCount(ITEMS_PER_PAGE);
+    }, [activeCategory, deferredSearchQuery]);
 
-  // Category counts
   const categoryCounts = useMemo(() => {
     const counts: Record<PropCategory | 'all', number> = {
       all: allProps.length,
@@ -89,6 +94,10 @@ export const PropPanel: React.FC<PropPanelProps> = ({ onPropSelect }) => {
 
     return props;
   }, [allProps, activeCategory, deferredSearchQuery]);
+
+  const visibleProps = useMemo(() => {
+    return filteredProps.slice(0, visibleCount);
+  }, [filteredProps, visibleCount]);
 
   const handlePropClick = (prop: Prop) => {
     if (onPropSelect) {
@@ -195,7 +204,7 @@ export const PropPanel: React.FC<PropPanelProps> = ({ onPropSelect }) => {
         gap: '1rem',
         alignContent: 'start'
       }}>
-        {filteredProps.length === 0 ? (
+        {visibleProps.length === 0 ? (
           <div style={{
             gridColumn: '1 / -1',
             padding: '2rem',
@@ -205,94 +214,115 @@ export const PropPanel: React.FC<PropPanelProps> = ({ onPropSelect }) => {
             {searchQuery ? `No props found matching "${searchQuery}"` : 'No props available'}
           </div>
         ) : (
-          filteredProps.map((prop) => (
-            <div
-              key={prop.id}
-              draggable
-              onDragStart={(e) => {
-                e.dataTransfer.setData('application/prop', JSON.stringify(prop));
-                e.dataTransfer.effectAllowed = 'copy';
-              }}
-              onClick={() => handlePropClick(prop)}
-              style={{
-                padding: '0.75rem',
-                border: '2px solid var(--border-color, #444)',
-                borderRadius: '8px',
-                background: 'var(--bg-secondary, #2a2a2a)',
-                cursor: 'grab',
-                transition: 'all 0.2s',
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: '0.5rem',
-                position: 'relative',
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.borderColor = 'var(--color-primary, #4A9EFF)';
-                e.currentTarget.style.transform = 'translateY(-2px)';
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.borderColor = 'var(--border-color, #444)';
-                e.currentTarget.style.transform = 'translateY(0)';
-              }}
-            >
-              {isHost && (
-                <button
-                  onMouseDown={(e) => e.stopPropagation()}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    setEditingProp(prop);
-                    setIsCreationOpen(true);
-                  }}
-                  style={{
-                    position: 'absolute',
-                    top: '6px',
-                    right: '6px',
-                    padding: '4px 6px',
-                    borderRadius: '6px',
-                    border: '1px solid var(--border-color, #444)',
-                    background: 'var(--bg-tertiary, #1a1a1a)',
-                    color: 'var(--text-primary, #fff)',
-                    cursor: 'pointer',
-                    fontSize: '0.65rem',
-                  }}
-                  aria-label={`Edit ${prop.name}`}
-                >
-                  Edit
-                </button>
-              )}
-              <img
-                src={safeImageUrl(prop.image)}
-                alt={prop.name}
-                loading="lazy"
-                style={{
-                  width: '80px',
-                  height: '80px',
-                  objectFit: 'contain',
-                  borderRadius: '4px',
-                  background: '#1a1a1a',
+          <>
+            {visibleProps.map((prop) => (
+              <div
+                key={prop.id}
+                draggable
+                onDragStart={(e) => {
+                  e.dataTransfer.setData('application/prop', JSON.stringify(prop));
+                  e.dataTransfer.effectAllowed = 'copy';
                 }}
-              />
-              <div style={{
-                fontSize: '0.75rem',
-                color: 'var(--text-primary, #fff)',
-                textAlign: 'center',
-                lineHeight: '1.2',
-                wordBreak: 'break-word',
-              }}>
-                {prop.name}
-              </div>
-              {prop.size && (
+                onClick={() => handlePropClick(prop)}
+                style={{
+                  padding: '0.75rem',
+                  border: '2px solid var(--border-color, #444)',
+                  borderRadius: '8px',
+                  background: 'var(--bg-secondary, #2a2a2a)',
+                  cursor: 'grab',
+                  transition: 'all 0.2s',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  alignItems: 'center',
+                  gap: '0.5rem',
+                  position: 'relative',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--color-primary, #4A9EFF)';
+                  e.currentTarget.style.transform = 'translateY(-2px)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.borderColor = 'var(--border-color, #444)';
+                  e.currentTarget.style.transform = 'translateY(0)';
+                }}
+              >
+                {isHost && (
+                  <button
+                    onMouseDown={(e) => e.stopPropagation()}
+                    onClick={(e) => {
+                      e.stopPropagation();
+                      setEditingProp(prop);
+                      setIsCreationOpen(true);
+                    }}
+                    style={{
+                      position: 'absolute',
+                      top: '6px',
+                      right: '6px',
+                      padding: '4px 6px',
+                      borderRadius: '6px',
+                      border: '1px solid var(--border-color, #444)',
+                      background: 'var(--bg-tertiary, #1a1a1a)',
+                      color: 'var(--text-primary, #fff)',
+                      cursor: 'pointer',
+                      fontSize: '0.65rem',
+                    }}
+                    aria-label={`Edit ${prop.name}`}
+                  >
+                    Edit
+                  </button>
+                )}
+                <img
+                  src={safeImageUrl(prop.image)}
+                  alt={prop.name}
+                  loading="lazy"
+                  style={{
+                    width: '80px',
+                    height: '80px',
+                    objectFit: 'contain',
+                    borderRadius: '4px',
+                    background: '#1a1a1a',
+                  }}
+                />
                 <div style={{
-                  fontSize: '0.625rem',
-                  color: 'var(--text-secondary, #888)',
-                  textTransform: 'uppercase',
+                  fontSize: '0.75rem',
+                  color: 'var(--text-primary, #fff)',
+                  textAlign: 'center',
+                  lineHeight: '1.2',
+                  wordBreak: 'break-word',
                 }}>
-                  {prop.size}
+                  {prop.name}
                 </div>
-              )}
-            </div>
-          ))
+                {prop.size && (
+                  <div style={{
+                    fontSize: '0.625rem',
+                    color: 'var(--text-secondary, #888)',
+                    textTransform: 'uppercase',
+                  }}>
+                    {prop.size}
+                  </div>
+                )}
+              </div>
+            ))}
+            {visibleCount < filteredProps.length && (
+              <button
+                onClick={() => setVisibleCount(prev => prev + ITEMS_PER_PAGE)}
+                style={{
+                  gridColumn: '1 / -1',
+                  padding: '1rem',
+                  marginTop: '1rem',
+                  background: 'var(--bg-secondary, #2a2a2a)',
+                  border: '1px solid var(--border-color, #444)',
+                  borderRadius: '6px',
+                  color: 'var(--color-primary, #4A9EFF)',
+                  cursor: 'pointer',
+                  fontWeight: 600,
+                  marginBottom: '2rem'
+                }}
+              >
+                Load More...
+              </button>
+            )}
+          </>
         )}
       </div>
 
