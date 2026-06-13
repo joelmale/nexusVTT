@@ -77,10 +77,22 @@
   --shadow-token-lg: var(--shadow-lg);
   --shadow-token-xl: var(--shadow-xl);
 
+  /* VTT theme tokens */
+  --color-vtt-iron-900:          var(--vtt-iron-900);
+  --color-vtt-iron-800:          var(--vtt-iron-800);
+  --color-vtt-iron-700:          var(--vtt-iron-700);
+  --color-vtt-parchment:         var(--vtt-parchment);
+  --color-vtt-parchment-alt:     var(--vtt-parchment-alt);
+  --color-vtt-parchment-text:    var(--vtt-parchment-text);
+  --color-vtt-bronze:            var(--vtt-bronze);
+  --color-vtt-amber-glow:        var(--vtt-amber-glow);
+
   /* ── Font families ─────────────────────────────────────────────────────── */
   --font-sans:  var(--font-sans);
   --font-serif: var(--font-serif);
   --font-mono:  var(--font-mono);
+  --font-fantasy: 'Cinzel Decorative', var(--font-serif);
+  --font-interface: var(--font-sans);
 
   /* ── Transitions ───────────────────────────────────────────────────────── */
   --ease-out-token:    var(--ease-out);

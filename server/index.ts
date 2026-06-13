@@ -72,6 +72,7 @@ import {
   DiceRollRequest,
 } from './diceRoller.js';
 import { sanitizeLog } from './sanitizeLog.js';
+import { generateRandomCampaign, generateRandomCharacter } from './utils/mockGenerator.js';
 
 interface SessionUser {
   id: string;
@@ -883,6 +884,49 @@ class NexusServer {
         res.status(401).json({ message: 'Not a guest user' });
       }
     });
+
+    /**
+     * POST /api/dev/populate-mock-data
+     * Dev-only endpoint to populate mock campaigns and characters
+     */
+    if (process.env.NODE_ENV !== 'production') {
+      this.app.post('/api/dev/populate-mock-data', async (req, res) => {
+        try {
+          if (!req.isAuthenticated()) {
+            return res.status(401).json({ error: 'Authentication required' });
+          }
+
+          const user = req.user as { id: string };
+          
+          console.log(`🛠️ Dev seeding requested for user: ${user.id}`);
+          
+          // Seed 3 campaigns
+          const createdCampaigns = [];
+          for (let i = 0; i < 3; i++) {
+            const campData = generateRandomCampaign(user.id);
+            const campaign = await this.db.createCampaign(user.id, campData.name, campData.description);
+            createdCampaigns.push(campaign);
+          }
+          
+          // Seed 4 characters
+          const createdCharacters = [];
+          for (let i = 0; i < 4; i++) {
+            const charData = generateRandomCharacter(user.id);
+            const character = await this.db.createCharacter(user.id, charData.name, charData.data);
+            createdCharacters.push(character);
+          }
+          
+          res.json({
+            success: true,
+            campaigns: createdCampaigns,
+            characters: createdCharacters
+          });
+        } catch (error) {
+          console.error('Failed to populate mock data:', error);
+          res.status(500).json({ error: 'Failed to populate mock data' });
+        }
+      });
+    }
 
     // ============================================================================
     // CAMPAIGN ROUTES

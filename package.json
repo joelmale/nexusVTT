@@ -25,6 +25,7 @@
     "db:reset": "docker compose -f docker/docker-compose.dev.yml down -v && docker compose -f docker/docker-compose.dev.yml up -d postgres-dev",
     "db:logs": "docker compose -f docker/docker-compose.dev.yml logs -f postgres-dev",
     "db:shell": "docker compose -f docker/docker-compose.dev.yml exec postgres-dev psql -U nexus -d nexus",
+    "db:seed": "tsx scripts/seedDevData.ts",
     "docker:dev": "docker-compose -f docker/docker-compose.dev.yml up",
     "docker:dev:build": "docker-compose -f docker/docker-compose.dev.yml up --build",
     "docker:dev:down": "docker-compose -f docker/docker-compose.dev.yml down",
