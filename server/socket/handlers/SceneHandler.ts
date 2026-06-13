@@ -1,5 +1,5 @@
 import { BaseHandler } from './BaseHandler.js';
-import { ServerEventMessage } from '../../types.js';
+import { ServerEventMessage, Connection, Room } from '../../types.js';
 
 export class SceneHandler extends BaseHandler {
   setupListeners(): void {
@@ -18,7 +18,7 @@ export class SceneHandler extends BaseHandler {
     });
   }
 
-  private handleSceneEvent(event: string, connection: any, room: any, message: ServerEventMessage) {
+  private handleSceneEvent(event: string, connection: Connection, room: Room, message: ServerEventMessage) {
     // Logic from index.ts would go here
     // For now, just broadcast to others
     this.socketManager.broadcastToRoom(room.code, message, connection.id);

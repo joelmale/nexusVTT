@@ -1,5 +1,5 @@
 import { BaseHandler } from './BaseHandler.js';
-import { ServerEventMessage } from '../../types.js';
+import { ServerEventMessage, Connection, Room } from '../../types.js';
 
 export class DiceHandler extends BaseHandler {
   setupListeners(): void {
@@ -8,7 +8,7 @@ export class DiceHandler extends BaseHandler {
     });
   }
 
-  private async handleDiceRollRequest(connection: any, room: any, _message: ServerEventMessage) {
+  private async handleDiceRollRequest(connection: Connection, room: Room, _message: ServerEventMessage) {
     // This would call the dice roller service
     console.log(`🎲 Dice roll request in ${room.code} from ${connection.id}`);
     // Logic from index.ts would go here

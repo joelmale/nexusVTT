@@ -6,7 +6,12 @@ import { UserRepository } from './repositories/UserRepository.js';
 import { CampaignRepository } from './repositories/CampaignRepository.js';
 import { CharacterRepository } from './repositories/CharacterRepository.js';
 import { SessionRepository } from './repositories/SessionRepository.js';
-import { DatabaseConfig } from './repositories/base.js';
+import {
+  DatabaseConfig,
+  OAuthProfile,
+  CampaignRecord,
+  CharacterRecord,
+} from './repositories/base.js';
 
 export class DatabaseService {
   private pool: Pool;
@@ -98,13 +103,16 @@ export class DatabaseService {
 
   async getUserById(id: string) { return this.users.getUserById(id); }
   async getUserByEmail(email: string) { return this.users.getUserByEmail(email); }
-  async findOrCreateUserByOAuth(profile: any) { return this.users.findOrCreateUserByOAuth(profile); }
+  async findOrCreateUserByOAuth(profile: OAuthProfile) { return this.users.findOrCreateUserByOAuth(profile); }
   async createLocalUser(email: string, pass: string, name?: string) { return this.users.createLocalUser(email, pass, name); }
   async createGuestUser(name: string, id?: string) { return this.users.createGuestUser(name, id); }
   async getUserProfile(id: string) { return this.users.getUserProfile(id); }
-  async updateUserProfile(id: string, updates: any) { return this.users.updateUserProfile(id, updates); }
+  async updateUserProfile(
+    id: string,
+    updates: { displayName?: string | null; bio?: string | null; avatarUrl?: string | null },
+  ) { return this.users.updateUserProfile(id, updates); }
   async getUserPreferences(id: string) { return this.users.getUserPreferences(id); }
-  async updateUserPreferences(id: string, prefs: any) { return this.users.updateUserPreferences(id, prefs); }
+  async updateUserPreferences(id: string, prefs: Record<string, unknown>) { return this.users.updateUserPreferences(id, prefs); }
   async deactivateUser(id: string) { return this.users.deactivateUser(id); }
   async validateLocalLogin(email: string, pass: string) { return this.users.validateLocalLogin(email, pass); }
 
@@ -112,14 +120,14 @@ export class DatabaseService {
   async getCampaignsByUser(id: string) { return this.campaigns.getCampaignsByUser(id); }
   async getCampaignById(id: string) { return this.campaigns.getCampaignById(id); }
   async isUserAuthorizedForCampaign(userId: string, campId: string) { return this.campaigns.isUserAuthorizedForCampaign(userId, campId); }
-  async updateCampaign(id: string, updates: any) { return this.campaigns.updateCampaign(id, updates); }
-  async saveCampaignScenes(id: string, scenes: any[]) { return this.campaigns.saveCampaignScenes(id, scenes); }
+  async updateCampaign(id: string, updates: Partial<CampaignRecord>) { return this.campaigns.updateCampaign(id, updates); }
+  async saveCampaignScenes(id: string, scenes: unknown[]) { return this.campaigns.saveCampaignScenes(id, scenes); }
   async getCampaignScenes(id: string) { return this.campaigns.getCampaignScenes(id); }
 
-  async createCharacter(ownerId: string, name: string, data: any) { return this.characters.createCharacter(ownerId, name, data); }
+  async createCharacter(ownerId: string, name: string, data: unknown) { return this.characters.createCharacter(ownerId, name, data); }
   async getCharactersByUser(id: string) { return this.characters.getCharactersByUser(id); }
   async getCharacterById(id: string) { return this.characters.getCharacterById(id); }
-  async updateCharacter(id: string, updates: any) { return this.characters.updateCharacter(id, updates); }
+  async updateCharacter(id: string, updates: Partial<CharacterRecord>) { return this.characters.updateCharacter(id, updates); }
   async deleteCharacter(id: string) { return this.characters.deleteCharacter(id); }
   async deleteCharactersByUser(id: string) { return this.characters.deleteCharactersByUser(id); }
   async deleteCharactersByIds(ids: string[]) { return this.characters.deleteCharactersByIds(ids); }
@@ -129,9 +137,12 @@ export class DatabaseService {
   async activateSessionByJoinCode(code: string, hostId: string) { return this.sessions.activateSessionByJoinCode(code, hostId); }
   async getSessionByJoinCode(code: string) { return this.sessions.getSessionByJoinCode(code); }
   async getCampaignIdByJoinCode(code: string) { return this.sessions.getCampaignIdByJoinCode(code); }
-  async updateSessionStatus(id: string, status: any) { return this.sessions.updateSessionStatus(id, status); }
-  async saveGameState(id: string, state: any) { return this.sessions.saveGameState(id, state); }
-  async saveGameStateByJoinCode(code: string, state: any) { return this.sessions.saveGameStateByJoinCode(code, state); }
+  async updateSessionStatus(
+    id: string,
+    status: 'active' | 'hibernating' | 'abandoned',
+  ) { return this.sessions.updateSessionStatus(id, status); }
+  async saveGameState(id: string, state: unknown) { return this.sessions.saveGameState(id, state); }
+  async saveGameStateByJoinCode(code: string, state: unknown) { return this.sessions.saveGameStateByJoinCode(code, state); }
   async getGameStateByJoinCode(code: string) { return this.sessions.getGameStateByJoinCode(code); }
   async deleteSession(id: string) { return this.sessions.deleteSession(id); }
 
@@ -141,7 +152,7 @@ export class DatabaseService {
   async updatePlayerConnection(uId: string, sId: string, conn: boolean) { return this.sessions.updatePlayerConnection(uId, sId, conn); }
   async getPlayersBySession(sId: string) { return this.sessions.getPlayersBySession(sId); }
 
-  async addCoHost(uId: string, sId: string, perms?: any) { return this.sessions.addCoHost(uId, sId, perms); }
+  async addCoHost(uId: string, sId: string, perms?: unknown) { return this.sessions.addCoHost(uId, sId, perms); }
   async removeCoHost(uId: string, sId: string) { return this.sessions.removeCoHost(uId, sId); }
   async transferPrimaryHost(sId: string, hId: string) { return this.sessions.transferPrimaryHost(sId, hId); }
   async getHostsBySession(sId: string) { return this.sessions.getHostsBySession(sId); }

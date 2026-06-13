@@ -161,7 +161,16 @@ export default defineConfig(({ command, mode }) => {
             },
           ],
           navigateFallback: '/index.html',
-          navigateFallbackDenylist: [/^\/api/, /^\/auth/, /^\/ws/],
+          navigateFallbackDenylist: [
+            /^\/api/,
+            /^\/auth/,
+            /^\/ws/,
+            /^\/cave-generator/,
+            /^\/city-generator/,
+            /^\/dwellings-generator/,
+            /^\/one-page-dungeon/,
+            /^\/world-map-generator/,
+          ],
         },
         devOptions: {
           enabled: false, // Disable in dev mode to avoid conflicts

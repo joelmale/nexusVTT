@@ -1,5 +1,5 @@
 import { BaseHandler } from './BaseHandler.js';
-import { ServerChatMessage } from '../../types.js';
+import { ServerChatMessage, Connection, Room } from '../../types.js';
 
 export class ChatHandler extends BaseHandler {
   setupListeners(): void {
@@ -8,7 +8,7 @@ export class ChatHandler extends BaseHandler {
     });
   }
 
-  private handleChatMessage(connection: any, room: any, message: ServerChatMessage) {
+  private handleChatMessage(connection: Connection, room: Room, message: ServerChatMessage) {
     // Broadcast to everyone in the room
     this.socketManager.broadcastToRoom(room.code, message);
     console.log(`💬 Chat in ${room.code} from ${connection.id}: ${message.data.content}`);

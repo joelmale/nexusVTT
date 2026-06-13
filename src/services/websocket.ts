@@ -14,6 +14,7 @@ import type { ChatMessage } from '@/types/game';
 import { useGameStore } from '@/stores/gameStore';
 import { toast } from '@/utils/notifications';
 import { applyPatch, Operation } from 'fast-json-patch';
+import { encode, decode } from '@msgpack/msgpack';
 
 const sanitizeLog = (value: unknown): string =>
   String(value).replace(/[\r\n\t]/g, ' ').slice(0, 200);
@@ -156,6 +157,7 @@ class WebSocketService extends EventTarget {
         );
         console.log(`🔌 Attempting WebSocket connection to ${url}...`);
         this.ws = await this.attemptConnection(url, 'primary');
+        this.ws.binaryType = 'arraybuffer';
 
         console.log('WebSocket connected successfully');
         this.reconnectAttempts = 0;
@@ -171,17 +173,17 @@ class WebSocketService extends EventTarget {
         // Set up message handlers
         this.ws.onmessage = (event) => {
           try {
-            const message: WebSocketMessage = JSON.parse(event.data);
-            console.log(
-              '🔌 [CLIENT] Raw WebSocket message received:',
-              sanitizeLog(event.data),
-            );
+            let message: WebSocketMessage;
+            if (event.data instanceof ArrayBuffer) {
+              message = decode(new Uint8Array(event.data)) as WebSocketMessage;
+            } else {
+              message = JSON.parse(event.data);
+            }
             this.handleMessage(message);
           } catch (error) {
             console.error(
               '🔌 [CLIENT] Failed to parse WebSocket message:',
               error,
-              event.data,
             );
           }
         };
@@ -660,15 +662,19 @@ class WebSocketService extends EventTarget {
   private sendMessage(
     message: Omit<WebSocketMessage, 'src'> & { src: string },
   ) {
-    const messageStr = JSON.stringify(message);
+    const useMessagePack = import.meta.env.VITE_USE_MESSAGEPACK === 'true';
+    const payload = useMessagePack ? encode(message) : JSON.stringify(message);
 
     if (this.ws?.readyState === WebSocket.OPEN) {
-      this.ws.send(messageStr);
+      this.ws.send(payload);
       console.log('✅ Message sent successfully');
     } else {
       // Queue message for when connection is restored
       console.log('⏳ WebSocket not ready, queueing message');
-      this.messageQueue.push(messageStr);
+      // For binary compatibility, we always queue the original message object or a string
+      // and encode it just-in-time when sending from the queue.
+      // But for simplicity in this PR, we'll just queue the string/binary.
+      this.messageQueue.push(payload as any);
 
       // Limit queue size to prevent memory issues
       if (this.messageQueue.length > 50) {

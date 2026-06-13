@@ -210,8 +210,6 @@ const dedupeCharacters = (characters: CharacterRecord[]) => {
 };
 
 class NexusServer {
-  private rooms = new Map<string, Room>();
-  private connections = new Map<string, Connection>();
   private wss: WebSocketServer;
   private socketManager: SocketManager;
   private port: number;
@@ -1323,7 +1321,7 @@ class NexusServer {
           version: '1.0.0',
           port: this.port,
           wsUrl,
-          rooms: this.rooms.size,
+          rooms: this.socketManager.rooms.size,
           connections: this.socketManager.connections.size,
           assetsLoaded: this.manifest?.totalAssets || 0,
           uptime: process.uptime(),
@@ -1349,7 +1347,7 @@ class NexusServer {
         status: 'ok',
         port: this.port,
         wsUrl,
-        rooms: this.rooms.size,
+        rooms: this.socketManager.rooms.size,
         connections: this.socketManager.connections.size,
       });
     });
@@ -1674,7 +1672,7 @@ class NexusServer {
         usedCampaignId = campaign.id;
       }
 
-      if (preferredRoomCode && this.rooms.has(preferredRoomCode)) {
+      if (preferredRoomCode && this.socketManager.rooms.has(preferredRoomCode)) {
         console.log(
           `🔄 Reusing active room code ${preferredRoomCode} for campaign ${usedCampaignId}`,
         );
@@ -1751,7 +1749,7 @@ class NexusServer {
         entityVersions: new Map(),
       };
 
-      this.rooms.set(joinCode, room);
+      this.socketManager.rooms.set(joinCode, room);
       connection.room = joinCode;
       connection.user!.type = 'host'; // Preserve the user's actual name from OAuth/guest login
 
@@ -1798,7 +1796,7 @@ class NexusServer {
     campaignId?: string | null,
   ) {
     const normalizedRoomCode = roomCode.toUpperCase();
-    let room = this.rooms.get(normalizedRoomCode);
+    let room = this.socketManager.rooms.get(normalizedRoomCode);
 
     if (!room) {
       const session = await this.db.getSessionByJoinCode(normalizedRoomCode);
@@ -1842,7 +1840,7 @@ class NexusServer {
           stateVersion: 0,
           entityVersions: new Map(),
         };
-        this.rooms.set(created.joinCode, room);
+        this.socketManager.rooms.set(created.joinCode, room);
       }
     }
 
@@ -1984,7 +1982,7 @@ class NexusServer {
     connection: Connection,
     roomCode: string,
   ): Promise<void> {
-    let room = this.rooms.get(roomCode);
+    let room = this.socketManager.rooms.get(roomCode);
     let sessionRecord: SessionRecord | null = null;
 
     if (!room) {
@@ -2108,7 +2106,7 @@ class NexusServer {
     const connection = this.socketManager.connections.get(fromUuid);
     if (!connection?.room) return;
 
-    const room = this.rooms.get(connection.room);
+    const room = this.socketManager.rooms.get(connection.room);
     if (!room) return;
 
     room.lastActivity = Date.now();
@@ -2336,7 +2334,7 @@ class NexusServer {
     message: ServerChatMessage,
   ) {
     if (!connection.room) return;
-    const room = this.rooms.get(connection.room);
+    const room = this.socketManager.rooms.get(connection.room);
     if (!room) return;
     const content = message.data?.content || '';
     console.log(
@@ -2409,7 +2407,7 @@ class NexusServer {
     gameStateUpdate: Partial<GameState>,
     senderUuid?: string,
   ): Promise<void> {
-    const room = this.rooms.get(roomCode);
+    const room = this.socketManager.rooms.get(roomCode);
     if (!room) return;
 
     // Initialize game state if it doesn't exist
@@ -2505,7 +2503,7 @@ class NexusServer {
     message: ServerMessage,
     excludeUuid?: string,
   ): void {
-    const room = this.rooms.get(roomCode);
+    const room = this.socketManager.rooms.get(roomCode);
     if (!room) return;
 
     room.connections.forEach((ws, uuid) => {
@@ -2561,7 +2559,7 @@ class NexusServer {
       return;
     }
 
-    const room = this.rooms.get(connection.room);
+    const room = this.socketManager.rooms.get(connection.room);
     if (!room) {
       this.socketManager.connections.delete(uuid);
       return;
@@ -2651,7 +2649,7 @@ class NexusServer {
    * @returns {Promise<void>}
    */
   private async hibernateRoom(roomCode: string): Promise<void> {
-    const room = this.rooms.get(roomCode);
+    const room = this.socketManager.rooms.get(roomCode);
     if (!room || room.status === 'hibernating') return;
 
     room.status = 'hibernating';
@@ -2694,7 +2692,7 @@ class NexusServer {
    * @returns {Promise<void>}
    */
   private async abandonRoom(roomCode: string): Promise<void> {
-    const room = this.rooms.get(roomCode);
+    const room = this.socketManager.rooms.get(roomCode);
     if (!room) return;
 
     console.log(`🗑️ Abandoning room: ${roomCode}`);
@@ -2721,7 +2719,7 @@ class NexusServer {
     });
 
     // Remove room from memory
-    this.rooms.delete(roomCode);
+    this.socketManager.rooms.delete(roomCode);
 
     // Schedule database cleanup after abandonment timeout
     setTimeout(async () => {
@@ -2743,7 +2741,7 @@ class NexusServer {
     roomCode: string,
     _connection: Connection,
   ): boolean {
-    const room = this.rooms.get(roomCode);
+    const room = this.socketManager.rooms.get(roomCode);
     if (!room) return false;
     if (room.status === 'abandoned') {
       return false;
@@ -2807,7 +2805,7 @@ class NexusServer {
         entityVersions: new Map(),
       };
 
-      this.rooms.set(roomCode, recoveredRoom);
+      this.socketManager.rooms.set(roomCode, recoveredRoom);
       console.log(
         `🔄 Recovered room ${roomCode} from session; status: ${recoveredRoom.status}`,
       );
@@ -2966,7 +2964,7 @@ class NexusServer {
       for (let i = 0; i < 4; i++) {
         result += chars.charAt(Math.floor(Math.random() * chars.length));
       }
-    } while (this.rooms.has(result));
+    } while (this.socketManager.rooms.has(result));
     return result;
   }
 
@@ -3075,7 +3073,7 @@ class NexusServer {
   public async shutdown() {
     console.log('🛑 Shutting down Nexus server...');
     this.stopHeartbeat();
-    this.rooms.forEach((room) => {
+    this.socketManager.rooms.forEach((room) => {
       if (room.hibernationTimer) {
         clearTimeout(room.hibernationTimer);
       }
@@ -3083,7 +3081,7 @@ class NexusServer {
     this.socketManager.connections.forEach((connection) => {
       connection.ws.close();
     });
-    this.rooms.clear();
+    this.socketManager.rooms.clear();
     this.socketManager.connections.clear();
     try {
       await this.db.close();
@@ -3101,19 +3099,19 @@ class NexusServer {
   }
 
   public getStats() {
-    const activeRooms = Array.from(this.rooms.values()).filter(
+    const activeRooms = Array.from(this.socketManager.rooms.values()).filter(
       (r) => r.status === 'active',
     ).length;
-    const hibernatingRooms = Array.from(this.rooms.values()).filter(
+    const hibernatingRooms = Array.from(this.socketManager.rooms.values()).filter(
       (r) => r.status === 'hibernating',
     ).length;
     return {
       activeRooms,
       hibernatingRooms,
-      totalRooms: this.rooms.size,
+      totalRooms: this.socketManager.rooms.size,
       totalConnections: this.socketManager.connections.size,
       serverPort: this.port,
-      rooms: Array.from(this.rooms.entries()).map(([code, room]) => ({
+      rooms: Array.from(this.socketManager.rooms.entries()).map(([code, room]) => ({
         code,
         playerCount: room.players.size,
         connectionCount: room.connections.size,
