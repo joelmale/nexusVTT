@@ -690,6 +690,36 @@
   .lg\:text-2xl { font-size: var(--text-2xl); }
 }
 
+@media (min-width: 1280px) {
+  .xl\:grid-cols-4 { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  .xl\:col-span-1 { grid-column: span 1 / span 1; }
+  .xl\:col-span-2 { grid-column: span 2 / span 2; }
+  .xl\:col-span-3 { grid-column: span 3 / span 3; }
+  .xl\:col-span-full { grid-column: 1 / -1; }
+}
+
+/* =============================================================================
+   VTT THEMATIC UTILITIES
+   ============================================================================= */
+
+.bg-vtt-iron-900 { background-color: var(--vtt-iron-900); }
+.bg-vtt-iron-800 { background-color: var(--vtt-iron-800); }
+.bg-vtt-parchment { background-color: var(--vtt-parchment); }
+.bg-vtt-parchment-alt { background-color: var(--vtt-parchment-alt); }
+
+.text-vtt-parchment { color: var(--vtt-parchment); }
+.text-vtt-parchment-text { color: var(--vtt-parchment-text); }
+.text-vtt-bronze { color: var(--vtt-bronze); }
+.text-vtt-amber-glow { color: var(--vtt-amber-glow); }
+
+.border-vtt-iron-700 { border-color: var(--vtt-iron-700); }
+.border-vtt-bronze { border-color: var(--vtt-bronze); }
+
+.font-fantasy { font-family: 'Cinzel Decorative', var(--font-serif); }
+.font-interface { font-family: var(--font-sans); }
+
+.shadow-vtt-amber-glow { box-shadow: 0 0 15px rgba(217, 119, 6, 0.4); }
+
 /* =============================================================================
    GLASS EFFECT UTILITIES
    ============================================================================= */

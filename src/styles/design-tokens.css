@@ -91,6 +91,27 @@
   --blue-800: #1e40af;
   --blue-900: #1e3a8a;
 
+  /* VTT Thematic Colors */
+  --vtt-iron-900: #1c1e22;
+  --vtt-iron-800: #252a31;
+  --vtt-iron-700: #3a3e46;
+  
+  --vtt-parchment: #f1e6d3;
+  --vtt-parchment-alt: #e1d2b8;
+  --vtt-parchment-text: #362b21;
+  
+  --vtt-bronze: #8c6b4a;
+  --vtt-bronze-light: #b89a7a;
+  --vtt-bronze-dark: #593d25;
+  
+  --vtt-amber-glow: #d97706;
+
+  /* Global Selection Highlight */
+  ::selection {
+    background-color: var(--vtt-amber-glow);
+    color: white;
+  }
+
   /* Neutral Colors - Gray & Slate */
   --gray-50: #f9fafb;
   --gray-100: #f3f4f6;
