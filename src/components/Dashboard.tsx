@@ -13,16 +13,12 @@ import type { PlayerCharacter } from '@/types/game';
 import '@/styles/dashboard.css';
 
 // Direct Lucide Path Imports (GEMINI.md Foundation Rule)
-import Sword from 'lucide-react/dist/esm/icons/sword';
 import Shield from 'lucide-react/dist/esm/icons/shield';
-import Map from 'lucide-react/dist/esm/icons/map';
 import Download from 'lucide-react/dist/esm/icons/download';
-import Upload from 'lucide-react/dist/esm/icons/upload';
 import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
 import Play from 'lucide-react/dist/esm/icons/play';
 import Edit2 from 'lucide-react/dist/esm/icons/edit-2';
 import Home from 'lucide-react/dist/esm/icons/home';
-import Plus from 'lucide-react/dist/esm/icons/plus';
 import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 import AlertTriangle from 'lucide-react/dist/esm/icons/alert-triangle';
 
@@ -359,15 +355,15 @@ export const Dashboard: React.FC = () => {
 
       <div className="w-full bg-gradient-to-b from-[#947656] via-[#7d5d3e] to-[#593d25] border-y border-[#b89a7a] px-6 py-2 flex justify-between items-center shadow-2xl relative z-20">
         <div className="flex items-center gap-6">
-          <button onClick={handleCreateCharacter} className="flex items-center gap-2 text-white hover:text-vtt-parchment text-sm font-bold transition-colors drop-shadow-lg" disabled={charactersLoading}><Sword className="w-4 h-4" /> Create Character</button>
+          <button onClick={handleCreateCharacter} className="flex items-center gap-2 text-white hover:text-vtt-parchment text-sm font-bold transition-colors drop-shadow-lg" disabled={charactersLoading}>⚔️ Create Character</button>
           <div className="w-px h-5 bg-black/30" />
-          <button onClick={() => setShowJoinGameModal(true)} className="flex items-center gap-2 text-white hover:text-vtt-parchment text-sm font-bold transition-colors drop-shadow-lg"><Map className="w-4 h-4" /> Join Game</button>
+          <button onClick={() => setShowJoinGameModal(true)} className="flex items-center gap-2 text-white hover:text-vtt-parchment text-sm font-bold transition-colors drop-shadow-lg">🗺️ Join Game</button>
         </div>
         <div className="flex items-center gap-4">
-          <button onClick={() => setShowImportModal(true)} className="flex items-center gap-1.5 text-white hover:text-vtt-parchment text-[12px] font-bold transition-colors"><Download className="w-3.5 h-3.5" /> Import</button>
-          <button onClick={handleExportCampaignBackup} disabled={campaignBackupExporting} className="flex items-center gap-1.5 text-white hover:text-vtt-parchment text-[12px] font-bold transition-colors disabled:opacity-30"><Upload className="w-3.5 h-3.5" /> {campaignBackupExporting ? 'Exporting...' : 'Export'}</button>
+          <button onClick={() => setShowImportModal(true)} className="flex items-center gap-1.5 text-white hover:text-vtt-parchment text-[12px] font-bold transition-colors">📥 Import</button>
+          <button onClick={handleExportCampaignBackup} disabled={campaignBackupExporting} className="flex items-center gap-1.5 text-white hover:text-vtt-parchment text-[12px] font-bold transition-colors disabled:opacity-30">📤 {campaignBackupExporting ? 'Exporting...' : 'Export'}</button>
           <div className="w-px h-5 bg-black/30" />
-          <button onClick={handleClearAllCharacters} className="flex items-center gap-1.5 text-white hover:text-red-400 text-[12px] font-bold transition-colors"><Trash2 className="w-3.5 h-3.5" /> Clear All ▾</button>
+          <button onClick={handleClearAllCharacters} className="flex items-center gap-1.5 text-white hover:text-red-400 text-[12px] font-bold transition-colors">🗑️ Clear All ▾</button>
         </div>
       </div>
 
@@ -380,7 +376,7 @@ export const Dashboard: React.FC = () => {
             <SectionHeading title="Recent Campaigns" />
             <div className="flex gap-2 mb-4">
               <button onClick={handleImportCampaignBackup} className="flex items-center gap-1.5 text-[10px] uppercase font-bold bg-vtt-iron-700 text-vtt-parchment/80 border border-vtt-iron-700 px-3 py-1.5 rounded shadow-sm hover:text-vtt-parchment transition-colors"><Download className="w-3 h-3 text-vtt-bronze" /> Import Backup</button>
-              <button onClick={() => setShowNewCampaignModal(true)} className="flex items-center gap-1.5 text-[10px] uppercase font-bold bg-vtt-iron-700 text-vtt-parchment/80 border border-vtt-iron-700 px-3 py-1.5 rounded shadow-sm hover:text-vtt-parchment transition-colors"><Plus className="w-3 h-3" /> New Campaign</button>
+              <button onClick={() => setShowNewCampaignModal(true)} className="flex items-center gap-1.5 text-[10px] uppercase font-bold bg-vtt-iron-700 text-vtt-parchment/80 border border-vtt-iron-700 px-3 py-1.5 rounded shadow-sm hover:text-vtt-parchment transition-colors">➕ New Campaign</button>
             </div>
 
             {loading ? <GridSkeleton count={4} /> : campaigns.length === 0 ? <EmptyState icon={<Shield className="w-12 h-12" />} title="The realm lies fallow..." desc="Forge your first campaign." /> : (
@@ -406,7 +402,7 @@ export const Dashboard: React.FC = () => {
           <section>
             <SectionHeading title="Recent Characters" />
             <div className="flex gap-2 mb-4">
-              <button onClick={handleCreateCharacter} className="flex items-center gap-1.5 text-[10px] uppercase font-bold bg-vtt-iron-700 text-vtt-parchment/80 border border-vtt-iron-700 px-3 py-1.5 rounded shadow-sm hover:text-vtt-parchment transition-colors"><Plus className="w-3 h-3" /> New Hero</button>
+              <button onClick={handleCreateCharacter} className="flex items-center gap-1.5 text-[10px] uppercase font-bold bg-vtt-iron-700 text-vtt-parchment/80 border border-vtt-iron-700 px-3 py-1.5 rounded shadow-sm hover:text-vtt-parchment transition-colors">➕ New Hero</button>
             </div>
 
             {charactersLoading ? <GridSkeleton count={8} /> : characters.length === 0 ? <EmptyState icon={<Shield className="w-12 h-12" />} title="No heroes answered..." desc="Forge your hero." /> : (
@@ -452,7 +448,7 @@ export const Dashboard: React.FC = () => {
       )}
 
       {showCharacterModal && editingCharacter && (
-        <CharacterManager character={buildCharacterFromRecordInternal(editingCharacter, user.id)} onClose={() => { setShowCharacterModal(false); setEditingCharacter(undefined); }} onSave={(char) => handleSaveCharacter({ ...editingCharacter, name: char.name, data: { ...editingCharacter.data, race: (char as any).race, class: (char as any).class, level: (char as any).level } })} />
+        <CharacterManager character={editingCharacter as any} onClose={() => { setShowCharacterModal(false); setEditingCharacter(undefined); }} onSave={(char: any) => handleSaveCharacter({ ...editingCharacter, name: char.name, data: { ...editingCharacter.data, race: char.race, class: char.class, level: char.level } })} />
       )}
 
       {showImportModal && (
