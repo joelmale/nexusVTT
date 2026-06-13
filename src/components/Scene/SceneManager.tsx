@@ -28,6 +28,7 @@ export const SceneManager: React.FC = () => {
       user.id,
     );
     const newScene = createScene(defaultScene);
+    setActiveScene(newScene.id);
     setEditingScene(newScene);
     setIsEditorOpen(true);
   };

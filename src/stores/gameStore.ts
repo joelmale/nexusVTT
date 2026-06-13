@@ -363,6 +363,27 @@ const getBrowserId = (): string => {
   return newId;
 };
 
+// Settings persistence helpers
+const SETTINGS_STORAGE_KEY = 'nexus-settings';
+
+const saveSettingsToStorage = (settings: UserSettings): void => {
+  try {
+    localStorage.setItem(SETTINGS_STORAGE_KEY, JSON.stringify(settings));
+  } catch (error) {
+    console.error('Failed to save settings to storage:', error);
+  }
+};
+
+const loadSettingsFromStorage = (): Partial<UserSettings> | null => {
+  try {
+    const stored = localStorage.getItem(SETTINGS_STORAGE_KEY);
+    return stored ? JSON.parse(stored) : null;
+  } catch (error) {
+    console.error('Failed to load settings from storage:', error);
+    return null;
+  }
+};
+
 // Session persistence helpers
 const SESSION_STORAGE_KEY = 'nexus-active-session';
 
@@ -514,7 +535,9 @@ const initialState: GameState & {
 
     // Experimental Settings
     floatingToolbar: false, // Default to docked toolbar
-    enableTailwindDashboard: false, // Default to legacy dashboard
+    enableTailwindDashboard: true, // Default to redesigned dashboard!
+
+    ...loadSettingsFromStorage(),
   },
 
   // Chat State
@@ -2713,12 +2736,14 @@ export const useGameStore = create<GameStore>()(
             get().toggleMockData(!!settingsUpdate.useMockData);
           }
           Object.assign(state.settings, settingsUpdate);
+          saveSettingsToStorage(state.settings);
         });
       },
 
       setColorScheme: (colorScheme) => {
         set((state) => {
           state.settings.colorScheme = colorScheme;
+          saveSettingsToStorage(state.settings);
         });
         // Apply the color scheme to CSS custom properties
         applyColorScheme(colorScheme);
@@ -2727,12 +2752,14 @@ export const useGameStore = create<GameStore>()(
       setEnableGlassmorphism: (enabled) => {
         set((state) => {
           state.settings.enableGlassmorphism = enabled;
+          saveSettingsToStorage(state.settings);
         });
       },
 
       setEnableTailwindDashboard: (enabled) => {
         set((state) => {
           state.settings.enableTailwindDashboard = enabled;
+          saveSettingsToStorage(state.settings);
         });
       },
 

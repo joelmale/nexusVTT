@@ -140,7 +140,7 @@ describe('Scene Interaction Integration Tests', () => {
       addDrawing: mockAddDrawing,
       updateToken: mockUpdateToken,
       updateCamera: vi.fn(),
-      createScene: vi.fn(),
+      createScene: vi.fn().mockImplementation((scene) => ({ ...scene, id: 'new-scene-id' })),
       setActiveScene: vi.fn(),
     });
   });

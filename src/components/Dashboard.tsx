@@ -65,7 +65,7 @@ interface CharacterRecord {
  */
 const DashboardLegacy: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, joinRoomWithCode } = useGameStore();
+  const { user, isAuthenticated, joinRoomWithCode, setEnableTailwindDashboard } = useGameStore();
   const { startCharacterCreation, LauncherComponent } = useCharacterCreationLauncher();
 
   // Database States
@@ -349,6 +349,7 @@ const DashboardLegacy: React.FC = () => {
           Welcome, {user.name || user.displayName || 'Adventurer'}!
         </h1>
         <div className="flex items-center gap-6">
+          <button onClick={() => setEnableTailwindDashboard(true)} className="flex items-center gap-2 text-[13px] font-bold tracking-wide text-vtt-parchment/60 hover:text-vtt-parchment transition-colors bg-vtt-iron-800 border border-vtt-iron-700 px-4 py-1.5 rounded-sm shadow-md">✨ Try Redesigned Dashboard</button>
           <button onClick={() => navigate('/lobby')} className="flex items-center gap-2 text-[13px] font-bold tracking-wide text-vtt-parchment/60 hover:text-vtt-parchment transition-colors bg-vtt-iron-800 border border-vtt-iron-700 px-4 py-1.5 rounded-sm shadow-md"><Home className="w-4 h-4 text-vtt-bronze" /> Return to Lobby</button>
           <div className="flex items-center gap-3 bg-vtt-iron-800 border border-vtt-iron-700 px-4 py-2 rounded shadow-inner">
             <Shield className="w-8 h-8 text-vtt-bronze" strokeWidth={1.5} />

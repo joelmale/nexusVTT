@@ -79,7 +79,8 @@ export const SceneTabs: React.FC<SceneTabsProps> = React.memo(
         `Scene ${sceneNumber}`,
         session?.hostId || 'unknown',
       );
-      createScene(defaultScene);
+      const newScene = createScene(defaultScene);
+      setActiveScene(newScene.id);
     };
 
     const handleDeleteScene = (

@@ -24,6 +24,7 @@ import Swords from 'lucide-react/dist/esm/icons/swords';
 import Users from 'lucide-react/dist/esm/icons/users';
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
+import Layout from 'lucide-react/dist/esm/icons/layout';
 
 interface Campaign {
   id: string;
@@ -129,7 +130,7 @@ const CharacterBadge: React.FC<CharacterBadgeProps> = ({ character }) => (
 
 export const DashboardTailwind: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, joinRoomWithCode } = useGameStore();
+  const { user, isAuthenticated, joinRoomWithCode, setEnableTailwindDashboard } = useGameStore();
   const settings = useSettings();
   const { startCharacterCreation, LauncherComponent } = useCharacterCreationLauncher();
 
@@ -254,6 +255,14 @@ export const DashboardTailwind: React.FC = () => {
             aria-label="Go to lobby"
           >
             <Home size={18} className="text-text-secondary" />
+          </button>
+          <button
+            onClick={() => setEnableTailwindDashboard(false)}
+            className="tw-glass p-2 rounded-token cursor-pointer hover:bg-surface-hover transition-colors duration-fast"
+            title="Switch to Legacy Dashboard"
+            aria-label="Switch to Legacy Dashboard"
+          >
+            <Layout size={18} className="text-text-secondary" />
           </button>
           <button
             onClick={() => navigate('/lobby')}

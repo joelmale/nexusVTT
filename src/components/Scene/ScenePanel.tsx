@@ -6,13 +6,14 @@ import { BaseMapBrowser } from './BaseMapBrowser';
 import { ErrorBoundary } from '../ErrorBoundary';
 import type { BaseMap } from '@/services/baseMapAssets';
 import { dungeonMapService } from '@/services/dungeonMapService';
+import { sceneUtils } from '@/utils/sceneUtils';
 
 interface ScenePanelProps {
   scene?: Scene;
 }
 
 export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
-  const { updateScene, createScene, deleteScene, clearDrawings, deleteToken } =
+  const { updateScene, createScene, deleteScene, clearDrawings, deleteToken, setActiveScene } =
     useGameStore();
   const isHost = useIsHost();
   const [editingName, setEditingName] = useState(false);
@@ -90,7 +91,7 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
             enabled: true,
             size: 50,
             color: '#ffffff',
-            opacity: 0.3,
+            opacity: 0.1,
             snapToGrid: true,
             showToPlayers: true,
           },
@@ -132,33 +133,11 @@ export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
             </p>
             <button
               onClick={() => {
-                const defaultScene = {
-                  name: `Scene 1`,
-                  description: `A new scene for the adventure`,
-                  visibility: 'private' as const,
-                  isEditable: true,
-                  createdBy: 'host',
-                  gridSettings: {
-                    enabled: true,
-                    size: 50,
-                    color: '#ffffff',
-                    opacity: 0.3,
-                    snapToGrid: true,
-                    showToPlayers: true,
-                  },
-                  lightingSettings: {
-                    enabled: false,
-                    globalIllumination: true,
-                    ambientLight: 0.5,
-                    darkness: 0,
-                  },
-                  drawings: [],
-                  placedTokens: [],
-                  placedProps: [],
-                  isActive: false,
-                  playerCount: 0,
-                };
-                createScene(defaultScene);
+                const defaultScene = sceneUtils.createDefaultScene('Scene 1', 'host');
+                defaultScene.visibility = 'private';
+                defaultScene.description = 'A new scene for the adventure';
+                const newScene = createScene(defaultScene);
+                setActiveScene(newScene.id);
               }}
               className="create-scene-button"
             >

@@ -17,11 +17,12 @@ vi.mock('@/components/Scene/SceneCanvas', () => ({ SceneCanvas: () => <div>Scene
 vi.mock('@/components/Scene/SceneEditor', () => ({ SceneEditor: () => <div>Scene Editor</div> }));
 
 describe('SceneManager', () => {
-  const createScene = vi.fn();
+  const createScene = vi.fn().mockImplementation((scene) => ({ ...scene, id: 'new-scene-id' }));
   const setActiveScene = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
+    createScene.mockImplementation((scene) => ({ ...scene, id: 'new-scene-id' }));
     (useGameStore as vi.Mock).mockReturnValue({ createScene, setActiveScene });
     (useUser as vi.Mock).mockReturnValue({ id: 'user-1', name: 'Test User' });
     // Default mock for SceneList
