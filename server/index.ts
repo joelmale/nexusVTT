@@ -281,6 +281,13 @@ class NexusServer {
           // Allow same-origin or non-browser requests (like server-to-server)
           if (!origin) return callback(null, true);
           if (allowedOrigins.includes(origin)) return callback(null, true);
+
+          // Allow any localhost origin in non-production environments
+          if (process.env.NODE_ENV !== 'production') {
+            const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+            if (isLocalhost) return callback(null, true);
+          }
+
           return callback(
             new Error(
               `CORS blocked for origin: ${origin} (allowed: ${allowedOrigins.join(', ')})`,

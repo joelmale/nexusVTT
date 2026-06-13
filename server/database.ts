@@ -12,6 +12,7 @@ import {
   CampaignRecord,
   CharacterRecord,
 } from './repositories/base.js';
+export { SessionRecord } from './repositories/base.js';
 
 export class DatabaseService {
   private pool: Pool;

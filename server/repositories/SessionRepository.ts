@@ -1,5 +1,5 @@
 import { v4 as uuidv4 } from 'uuid';
-import { BaseRepository, SessionRecord, PlayerRecord, HostRecord } from './base.js';
+import { BaseRepository, SessionRecord, PlayerRecord, HostRecord, CharacterRecord } from './base.js';
 
 export class SessionRepository extends BaseRepository {
   private async generateUniqueJoinCode(): Promise<string> {
@@ -320,5 +320,40 @@ export class SessionRepository extends BaseRepository {
     );
 
     return result.rows;
+  }
+
+  async activateSessionByJoinCode(
+    joinCode: string,
+    hostId: string,
+  ): Promise<SessionRecord | null> {
+    const session = await this.getSessionByJoinCode(joinCode);
+    if (!session) return null;
+
+    await this.updateSessionStatus(session.id, 'active');
+    await this.transferPrimaryHost(session.id, hostId);
+    await this.addPlayerToSession(hostId, session.id);
+
+    return this.getSessionByJoinCode(joinCode);
+  }
+
+  async getPlayerCharacter(
+    userId: string,
+    sessionId: string,
+  ): Promise<CharacterRecord | null> {
+    const playerResult = await this.pool.query<PlayerRecord>(
+      'SELECT "characterId" FROM players WHERE "userId" = $1 AND "sessionId" = $2',
+      [userId, sessionId],
+    );
+
+    if (!playerResult.rows[0] || !playerResult.rows[0].characterId) {
+      return null;
+    }
+
+    const charResult = await this.pool.query<CharacterRecord>(
+      'SELECT * FROM characters WHERE id = $1',
+      [playerResult.rows[0].characterId],
+    );
+
+    return charResult.rows[0] || null;
   }
 }

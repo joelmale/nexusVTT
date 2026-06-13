@@ -1,5 +1,5 @@
 import { BaseRepository, UserRecord, OAuthProfile } from './base.js';
-import { hashPassword } from '../utils/auth.js';
+import { hashPassword, verifyPassword } from '../utils/auth.js';
 
 export class UserRepository extends BaseRepository {
   async getUserById(id: string): Promise<UserRecord | null> {
@@ -163,5 +163,70 @@ export class UserRepository extends BaseRepository {
       values,
     );
     return result.rows[0];
+  }
+
+  async getUserPreferences(userId: string): Promise<Record<string, unknown>> {
+    const result = await this.pool.query<{ preferences: Record<string, unknown> | null }>(
+      'SELECT preferences FROM users WHERE id = $1',
+      [userId],
+    );
+    return result.rows[0]?.preferences || {};
+  }
+
+  async updateUserPreferences(
+    userId: string,
+    preferences: Record<string, unknown>,
+  ): Promise<Record<string, unknown>> {
+    const result = await this.pool.query<{ preferences: Record<string, unknown> }>(
+      `UPDATE users
+       SET preferences = $2,
+           "updatedAt" = NOW()
+       WHERE id = $1
+       RETURNING preferences`,
+      [userId, preferences],
+    );
+    return result.rows[0].preferences;
+  }
+
+  async deactivateUser(userId: string): Promise<void> {
+    await this.pool.query(
+      'UPDATE users SET "isActive" = FALSE, "updatedAt" = NOW() WHERE id = $1',
+      [userId],
+    );
+  }
+
+  async validateLocalLogin(
+    email: string,
+    password: string,
+  ): Promise<UserRecord | null> {
+    const user = await this.getUserByEmail(email);
+    if (
+      !user ||
+      user.provider !== 'local' ||
+      !user.passwordHash ||
+      !user.passwordSalt ||
+      !user.passwordIterations ||
+      user.isActive === false
+    ) {
+      return null;
+    }
+
+    const isValid = verifyPassword(
+      password,
+      user.passwordHash,
+      user.passwordSalt,
+      user.passwordIterations,
+    );
+    if (!isValid) {
+      return null;
+    }
+
+    // Update last login timestamp
+    await this.pool.query(
+      'UPDATE users SET "lastLogin" = NOW(), "updatedAt" = NOW() WHERE id = $1',
+      [user.id],
+    );
+
+    return user;
   }
 }
