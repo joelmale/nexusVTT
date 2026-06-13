@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useDrag } from 'react-dnd';
-import { getEmptyImage } from 'react-dnd-html5-backend';
 import type { Token } from '@/types/token';
 
 interface DraggableTokenProps {
@@ -39,41 +38,67 @@ export const DraggableToken: React.FC<DraggableTokenProps> = ({
     [token],
   );
 
-  // Hide the default drag preview and create custom one
+  // Create custom drag preview - show token image at appropriate size using Canvas scaling
   useEffect(() => {
-    // Use empty image for the default preview (hides the dragged element)
-    preview(getEmptyImage(), { captureDraggingState: true });
-  }, [preview]);
-
-  // Create custom drag preview - show token image at appropriate size
-  useEffect(() => {
-    // Token size mapping (1 square = 60px by default, reduced to 1/4 size for drag preview)
+    // Token size mapping based on grid squares (1 square = 60px)
     const sizeMap: Record<string, number> = {
-      tiny: 8,
-      small: 11,
-      medium: 15,
-      large: 30,
-      huge: 45,
-      gargantuan: 60,
+      tiny: 40,
+      small: 60,
+      medium: 60,
+      large: 120,
+      huge: 180,
+      gargantuan: 240,
     };
 
-    const pixelSize = sizeMap[token.size] || 15;
+    const pixelSize = sizeMap[token.size] || 60;
 
-    // Create an image element as drag preview
+    // Create an image element
     const img = new Image();
+    img.crossOrigin = 'anonymous'; // Prevent tainted canvas issues for remote URLs
     img.src = token.thumbnailImage || token.image;
-    img.width = pixelSize;
-    img.height = pixelSize;
-    img.style.borderRadius = '50%';
-    img.style.border = '2px solid rgba(74, 158, 255, 0.8)';
-    img.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.5)';
 
-    // Wait for image to load before setting as preview
     img.onload = () => {
-      preview(img, {
-        anchorX: pixelSize / 2,
-        anchorY: pixelSize / 2,
-      });
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = pixelSize;
+        canvas.height = pixelSize;
+        const ctx = canvas.getContext('2d');
+
+        if (ctx) {
+          ctx.clearRect(0, 0, pixelSize, pixelSize);
+
+          // Clip to circle for clean VTT token look
+          ctx.beginPath();
+          ctx.arc(pixelSize / 2, pixelSize / 2, pixelSize / 2 - 2, 0, Math.PI * 2);
+          ctx.closePath();
+          ctx.clip();
+
+          // Draw image
+          ctx.drawImage(img, 0, 0, pixelSize, pixelSize);
+
+          // Draw nice token border outline
+          ctx.strokeStyle = 'rgba(74, 158, 255, 0.9)';
+          ctx.lineWidth = Math.max(2, Math.floor(pixelSize / 30));
+          ctx.stroke();
+
+          // Render canvas to data URL to create stable intrinsic size preview image
+          const previewImg = new Image();
+          previewImg.src = canvas.toDataURL('image/png');
+          previewImg.onload = () => {
+            preview(previewImg, {
+              anchorX: pixelSize / 2,
+              anchorY: pixelSize / 2,
+            });
+          };
+        }
+      } catch (error) {
+        console.warn('Failed to draw custom token drag preview canvas:', error);
+        // Fallback: use raw image if canvas is tainted / throws
+        preview(img, {
+          anchorX: pixelSize / 2,
+          anchorY: pixelSize / 2,
+        });
+      }
     };
 
     // Fallback if image fails to load
