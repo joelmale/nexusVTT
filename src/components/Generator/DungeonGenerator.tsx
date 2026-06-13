@@ -1,6 +1,8 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useRef, useState, useMemo } from 'react';
+import { useProceduralGeneration } from '@/hooks/useProceduralGeneration';
 
 interface DungeonGeneratorProps {
+  // Retained callback for legacy compatibility; now also receives generated payload directly.
   onMapGenerated: (
     imageData: string,
     format?: 'webp' | 'png',
@@ -11,34 +13,51 @@ interface DungeonGeneratorProps {
 export const DungeonGenerator: React.FC<DungeonGeneratorProps> = ({
   onMapGenerated,
 }) => {
+  // Existing iframe handling (kept for backward compatibility)
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [isLoading, setIsLoading] = useState(true);
 
+  // New worker‑based generation hook
+  const { isGenerating, generatedData, error, triggerGeneration } = useProceduralGeneration();
+
+  // Example configuration – can be derived from UI or props later
+  const defaultConfig = useMemo(() => ({
+    seed: 'default-seed',
+    width: 100,
+    height: 100,
+    grammarPreset: 'cave',
+    themeStyle: 'dark',
+  }), []);
+
+  // Trigger generation on component mount (or replace with UI button as needed)
+  useEffect(() => {
+    triggerGeneration('cave', defaultConfig);
+  }, [triggerGeneration, defaultConfig]);
+
+  // Forward generated image data to legacy callback if needed
+  useEffect(() => {
+    if (generatedData) {
+      // Convert the grid/rooms to an image placeholder (for demo we just stringify)
+      const imageData = JSON.stringify(generatedData);
+      onMapGenerated(imageData, 'png');
+    }
+  }, [generatedData, onMapGenerated]);
+
   useEffect(() => {
     const handleMessage = (event: MessageEvent) => {
-      // Debug: Log all messages for troubleshooting
       console.log('DungeonGenerator received message:', event.data);
-
-      // Validate origin for security (allow same origin or data URI)
       if (event.origin !== window.location.origin && event.origin !== 'null') {
         console.log('Message rejected due to origin:', event.origin);
         return;
       }
-
-      // Handle PNG/WebP generation from dungeon generator
       if (event.data.type === 'DUNGEON_PNG_GENERATED') {
-        console.log('Processing DUNGEON_PNG_GENERATED message');
         const { imageData, format = 'png', originalSize } = event.data.data;
         onMapGenerated(imageData, format, originalSize);
       }
-
-      // Legacy support
       if (event.data.type === 'DUNGEON_MAP_GENERATED') {
-        console.log('Processing DUNGEON_MAP_GENERATED message (legacy)');
         onMapGenerated(event.data.data.imageData, 'png');
       }
     };
-
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, [onMapGenerated]);
@@ -53,6 +72,17 @@ export const DungeonGenerator: React.FC<DungeonGeneratorProps> = ({
         <div className="generator-loading">
           <div className="spinner"></div>
           <p>Loading dungeon generator...</p>
+        </div>
+      )}
+      {isGenerating && (
+        <div className="generator-loading">
+          <div className="spinner"></div>
+          <p>Generating map in background...</p>
+        </div>
+      )}
+      {error && (
+        <div className="generator-error">
+          <p>Error: {error}</p>
         </div>
       )}
       <iframe
