@@ -154,7 +154,7 @@ export const sceneUtils = {
         type: 'square',
         size: 50,
         color: '#ffffff',
-        opacity: 0.3,
+        opacity: 0.1,
         snapToGrid: true,
         showToPlayers: true,
       },

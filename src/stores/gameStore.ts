@@ -466,7 +466,7 @@ const initialState: GameState & {
     camera: {
       x: 0,
       y: 0,
-      zoom: 0.25,
+      zoom: 0.54,
     },
     followDM: true,
     activeTool: 'select' as const,
@@ -969,7 +969,7 @@ const eventHandlers: Record<string, EventHandler> = {
           type: 'square',
           size: 50,
           color: '#ffffff',
-          opacity: 0.3,
+          opacity: 0.1,
           snapToGrid: true,
           showToPlayers: true,
         },
@@ -1283,7 +1283,7 @@ const eventHandlers: Record<string, EventHandler> = {
       );
       if (sceneExists) {
         state.sceneState.activeSceneId = eventData.sceneId;
-        state.sceneState.camera = { x: 0, y: 0, zoom: 0.25 };
+        state.sceneState.camera = { x: 0, y: 0, zoom: 0.54 };
       }
     }
   },
@@ -2361,7 +2361,7 @@ export const useGameStore = create<GameStore>()(
           state.sceneState.scenes = scenes;
           state.sceneState.activeSceneId =
             activeSceneId || scenes[0]?.id || null;
-          state.sceneState.camera = { x: 0, y: 0, zoom: 0.25 };
+          state.sceneState.camera = { x: 0, y: 0, zoom: 0.54 };
         });
 
         await Promise.all(
@@ -2385,7 +2385,7 @@ export const useGameStore = create<GameStore>()(
             state.sceneState.camera = {
               x: 0,
               y: 0,
-              zoom: 0.25,
+              zoom: 0.54,
             };
           }
         });

@@ -90,7 +90,7 @@ export const GameToolbar: React.FC = () => {
     [camera.zoom, updateCamera],
   );
   const handleZoomReset = useCallback(
-    () => updateCamera({ x: 0, y: 0, zoom: 0.25 }),
+    () => updateCamera({ x: 0, y: 0, zoom: 0.54 }),
     [updateCamera],
   );
 
