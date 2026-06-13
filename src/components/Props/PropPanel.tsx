@@ -36,20 +36,21 @@ export const PropPanel: React.FC<PropPanelProps> = ({ onPropSelect }) => {
       return saved as PropCategory | 'all';
     }
     return 'all';
-    });
+  });
 
-    const [visibleCount, setVisibleCount] = useState(40);
-    const ITEMS_PER_PAGE = 40;
+  const [visibleCount, setVisibleCount] = useState(40);
+  const ITEMS_PER_PAGE = 40;
 
-    const allProps = getAllProps();
+  const allProps = getAllProps();
 
-    useEffect(() => {
+  useEffect(() => {
     localStorage.setItem('propPanel.activeCategory', activeCategory);
     // Reset visible count when category or search changes
     // eslint-disable-next-line react-hooks/set-state-in-effect
     setVisibleCount(ITEMS_PER_PAGE);
-    }, [activeCategory, deferredSearchQuery]);
+  }, [activeCategory, deferredSearchQuery]);
 
+  // Category counts
   const categoryCounts = useMemo(() => {
     const counts: Record<PropCategory | 'all', number> = {
       all: allProps.length,
