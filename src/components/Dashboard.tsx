@@ -34,6 +34,7 @@ import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 import Search from 'lucide-react/dist/esm/icons/search';
 import Filter from 'lucide-react/dist/esm/icons/filter';
 import PlayCircle from 'lucide-react/dist/esm/icons/play-circle';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 
 interface Campaign {
   id: string;
@@ -64,6 +65,32 @@ function timeAgo(iso: string): string {
   return `${Math.floor(diff / 86400)}d ago`;
 }
 
+// Cumulative D&D 5e XP required to reach each level (index 0 = level 1).
+const DND5E_XP_THRESHOLDS = [
+  0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000,
+  120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000,
+];
+
+/**
+ * Derives a level-progress bar for a character. If the character has real XP
+ * data we show progress toward the next level; otherwise we fall back to its
+ * position along the 1→20 journey so the bar is always meaningful.
+ */
+function levelProgress(char: CharacterRecord): { pct: number; label: string } {
+  const level = Math.min(Math.max(char.data.level ?? 1, 1), 20);
+  const rawXp = char.data.xp;
+  const xp = typeof rawXp === 'number' ? rawXp : null;
+
+  if (xp !== null && level < 20) {
+    const cur = DND5E_XP_THRESHOLDS[level - 1];
+    const next = DND5E_XP_THRESHOLDS[level];
+    const pct = Math.min(100, Math.max(0, ((xp - cur) / (next - cur)) * 100));
+    return { pct, label: `${xp.toLocaleString()} XP` };
+  }
+
+  return { pct: (level / 20) * 100, label: `Level ${level} / 20` };
+}
+
 // ─── Sub-components ───────────────────────────────────────────────────────────
 
 interface CampaignCardProps {
@@ -92,14 +119,14 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPlay }) => (
     </div>
 
     {/* Action Bar - Darker Parchment Strip */}
-    <div className="bg-vtt-bronze/10 px-4 py-2.5 flex items-center justify-between border-t border-vtt-bronze/20 mt-auto">
-      
-      <div className="flex items-center gap-4">
-        <button className="flex items-center gap-1.5 text-xs font-bold text-vtt-parchment-text/80 hover:text-vtt-amber-glow transition-colors cursor-pointer focus-visible:outline-none">
+    <div className="bg-vtt-bronze/10 px-3 py-2.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-t border-vtt-bronze/20 mt-auto">
+
+      <div className="flex items-center gap-3 min-w-0">
+        <button className="flex items-center gap-1 text-xs font-bold text-vtt-parchment-text/80 hover:text-vtt-amber-glow transition-colors cursor-pointer focus-visible:outline-none flex-shrink-0 whitespace-nowrap">
           <Pencil size={12} className="flex-shrink-0" />
           <span>Edit</span>
         </button>
-        <button className="flex items-center gap-1.5 text-xs font-bold text-vtt-parchment-text/80 hover:text-red-700 transition-colors cursor-pointer focus-visible:outline-none">
+        <button className="flex items-center gap-1 text-xs font-bold text-vtt-parchment-text/80 hover:text-red-700 transition-colors cursor-pointer focus-visible:outline-none flex-shrink-0 whitespace-nowrap">
           <Trash2 size={12} className="flex-shrink-0" />
           <span>Delete</span>
         </button>
@@ -107,12 +134,12 @@ const CampaignCard: React.FC<CampaignCardProps> = ({ campaign, onPlay }) => (
 
       <button
         onClick={() => onPlay(campaign)}
-        className="flex items-center gap-1.5 text-xs font-bold text-vtt-parchment-text hover:text-vtt-amber-glow transition-colors cursor-pointer focus-visible:outline-none"
+        className="flex items-center gap-1 text-xs font-bold text-vtt-parchment-text hover:text-vtt-amber-glow transition-colors cursor-pointer focus-visible:outline-none flex-shrink-0 whitespace-nowrap"
       >
         <PlayCircle size={12} className="flex-shrink-0" />
         <span>Play</span>
       </button>
-      
+
     </div>
   </div>
 );
@@ -140,20 +167,20 @@ const CharacterBadge: React.FC<CharacterBadgeProps> = ({ character, onStartSessi
       </p>
     </div>
     {/* Action Bar - Darker Parchment Strip */}
-    <div className="bg-vtt-bronze/10 px-4 py-2.5 flex items-center justify-between border-t border-vtt-bronze/20 mt-auto">
-      
+    <div className="bg-vtt-bronze/10 px-3 py-2.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-t border-vtt-bronze/20 mt-auto">
+
       {/* Left side: Edit and Trashcan */}
-      <div className="flex items-center gap-4">
-        <button 
+      <div className="flex items-center gap-3 min-w-0">
+        <button
           onClick={() => onEdit(character)}
-          className="flex items-center gap-1.5 text-xs font-bold text-vtt-parchment-text/80 hover:text-vtt-amber-glow transition-colors cursor-pointer focus-visible:outline-none"
+          className="flex items-center gap-1 text-xs font-bold text-vtt-parchment-text/80 hover:text-vtt-amber-glow transition-colors cursor-pointer focus-visible:outline-none flex-shrink-0 whitespace-nowrap"
         >
           <Pencil size={12} className="flex-shrink-0" />
           <span>Edit</span>
         </button>
-        <button 
+        <button
           onClick={() => onDelete(character)}
-          className="flex items-center gap-1.5 text-xs font-bold text-vtt-parchment-text/80 hover:text-red-700 transition-colors cursor-pointer focus-visible:outline-none"
+          className="flex items-center gap-1 text-xs font-bold text-vtt-parchment-text/80 hover:text-red-700 transition-colors cursor-pointer focus-visible:outline-none flex-shrink-0 whitespace-nowrap"
           title="Delete"
         >
           <Trash2 size={12} className="flex-shrink-0" />
@@ -162,14 +189,109 @@ const CharacterBadge: React.FC<CharacterBadgeProps> = ({ character, onStartSessi
       </div>
 
       {/* Right side: Start Session */}
-      <button 
+      <button
         onClick={() => onStartSession(character)}
-        className="flex items-center gap-1.5 text-xs font-bold text-vtt-parchment-text hover:text-vtt-amber-glow transition-colors cursor-pointer focus-visible:outline-none"
+        className="flex items-center gap-1 text-xs font-bold text-vtt-parchment-text hover:text-vtt-amber-glow transition-colors cursor-pointer focus-visible:outline-none flex-shrink-0 whitespace-nowrap"
       >
         <PlayCircle size={12} className="flex-shrink-0" />
         <span>Start Session</span>
       </button>
-      
+
+    </div>
+  </div>
+);
+
+// ── Dual-stacked character card (XP progress variant) ─────────────────────────
+
+interface CharacterStackEntryProps {
+  character: CharacterRecord;
+  onStartSession: (char: CharacterRecord) => void;
+}
+
+/** A single character row inside a stacked card: name, subtitle, XP bar. */
+const CharacterStackEntry: React.FC<CharacterStackEntryProps> = ({ character, onStartSession }) => {
+  const { pct, label } = levelProgress(character);
+  return (
+    <button
+      type="button"
+      onClick={() => onStartSession(character)}
+      className="group/entry block w-full text-left min-w-0 cursor-pointer focus-visible:outline-none"
+      title={`Start session with ${character.name}`}
+    >
+      <h4 className="font-fantasy text-base font-bold tracking-tight truncate text-vtt-parchment-text group-hover/entry:text-vtt-amber-glow transition-colors">
+        {character.name}
+      </h4>
+      <p className="text-[11px] text-vtt-parchment-text/80 truncate capitalize">
+        lvl {character.data.level ?? 1} {character.data.class || 'Unknown'}, {character.data.race || 'Unknown'}
+      </p>
+      {/* XP / level progress bar */}
+      <div className="mt-1.5 flex items-center gap-2">
+        <div className="relative h-1.5 flex-1 min-w-0 rounded-full bg-vtt-bronze/15 overflow-hidden">
+          <div
+            className="absolute inset-y-0 left-0 rounded-full bg-gradient-to-r from-vtt-bronze to-vtt-amber-glow"
+            style={{ width: `${pct}%` }}
+          />
+        </div>
+        <span className="text-[9px] font-semibold text-vtt-parchment-text/55 flex-shrink-0 whitespace-nowrap tabular-nums">
+          {label}
+        </span>
+      </div>
+    </button>
+  );
+};
+
+interface CharacterStackCardProps {
+  primary: CharacterRecord;
+  secondary?: CharacterRecord;
+  onStartSession: (char: CharacterRecord) => void;
+  onEdit: (char: CharacterRecord) => void;
+  onDelete: (char: CharacterRecord) => void;
+}
+
+const CharacterStackCard: React.FC<CharacterStackCardProps> = ({
+  primary,
+  secondary,
+  onStartSession,
+  onEdit,
+  onDelete,
+}) => (
+  <div className="bg-vtt-parchment text-vtt-parchment-text border border-vtt-bronze/30 rounded-sm shadow-md flex flex-col justify-between hover:shadow-vtt-amber-glow hover:border-vtt-amber-glow transition-all duration-300 font-interface overflow-hidden min-w-0">
+    <div className="p-4 flex flex-col gap-3">
+      <CharacterStackEntry character={primary} onStartSession={onStartSession} />
+      {secondary && (
+        <>
+          <div className="h-px bg-vtt-bronze/20" />
+          <CharacterStackEntry character={secondary} onStartSession={onStartSession} />
+        </>
+      )}
+    </div>
+
+    {/* Shared action bar — operates on the primary character */}
+    <div className="bg-vtt-bronze/10 px-3 py-2.5 flex flex-wrap items-center justify-between gap-x-2 gap-y-1.5 border-t border-vtt-bronze/20 mt-auto">
+      <div className="flex items-center gap-3 min-w-0">
+        <button
+          onClick={() => onEdit(primary)}
+          className="flex items-center gap-1 text-xs font-bold text-vtt-parchment-text/80 hover:text-vtt-amber-glow transition-colors cursor-pointer focus-visible:outline-none flex-shrink-0 whitespace-nowrap"
+        >
+          <Pencil size={12} className="flex-shrink-0" />
+          <span>Edit</span>
+        </button>
+        <button
+          onClick={() => onDelete(primary)}
+          className="flex items-center gap-1 text-xs font-bold text-vtt-parchment-text/80 hover:text-red-700 transition-colors cursor-pointer focus-visible:outline-none flex-shrink-0 whitespace-nowrap"
+          title="Delete"
+        >
+          <Trash2 size={12} className="flex-shrink-0" />
+          <span>Delete</span>
+        </button>
+      </div>
+      <button
+        onClick={() => onStartSession(primary)}
+        className="flex items-center gap-1 text-xs font-bold text-vtt-parchment-text hover:text-vtt-amber-glow transition-colors cursor-pointer focus-visible:outline-none flex-shrink-0 whitespace-nowrap"
+      >
+        <PlayCircle size={12} className="flex-shrink-0" />
+        <span>Start Session</span>
+      </button>
     </div>
   </div>
 );
@@ -307,7 +429,15 @@ export const Dashboard: React.FC = () => {
 
   const recentChars = [...characters]
     .sort((a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime())
-    .slice(0, 6);
+    .slice(0, 12);
+
+  // First row = simple cards; the remainder is shown as dual-stacked XP cards.
+  const simpleChars = recentChars.slice(0, 4);
+  const stackedChars = recentChars.slice(4);
+  const stackedPairs: Array<[CharacterRecord, CharacterRecord?]> = [];
+  for (let i = 0; i < stackedChars.length; i += 2) {
+    stackedPairs.push([stackedChars[i], stackedChars[i + 1]]);
+  }
 
   if (authChecking) {
     return (
@@ -401,31 +531,36 @@ export const Dashboard: React.FC = () => {
         </div>
       </header>
 
-      <section className="flex flex-wrap items-center justify-between bg-vtt-iron-800 border-b border-vtt-bronze/30 p-2 rounded-sm mb-6 gap-2">
-        <div className="flex items-center gap-2">
+      {/* ── Action toolbar — single engraved bronze strip ─────────────── */}
+      <section className="flex flex-wrap items-center justify-between gap-y-2 mb-6 px-2 py-1.5 rounded-md border border-vtt-bronze-dark bg-gradient-to-b from-vtt-bronze/40 via-vtt-bronze/25 to-vtt-bronze/15 shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_-2px_5px_rgba(0,0,0,0.35),0_2px_6px_rgba(0,0,0,0.25)]">
+        <div className="flex items-center">
           <button
             onClick={handleCreateCharacter}
-            className="flex items-center justify-center gap-2.5 px-4 py-2 bg-vtt-bronze/20 hover:bg-vtt-bronze/40 border border-vtt-bronze/40 rounded text-sm font-semibold text-vtt-parchment transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded text-sm font-semibold text-vtt-parchment hover:text-vtt-amber-glow hover:bg-vtt-bronze/30 transition-colors cursor-pointer focus-visible:outline-none whitespace-nowrap"
           >
-            <Sword className="w-4 h-4" /> Create Character
+            <Sword className="w-4 h-4 flex-shrink-0" /> Create Character
           </button>
+          <div className="h-6 w-px bg-vtt-bronze-dark/60 mx-1.5" aria-hidden="true" />
           <button
             onClick={() => setSessionModalOpen(true)}
-            className="flex items-center justify-center gap-2.5 px-4 py-2 bg-vtt-bronze/20 hover:bg-vtt-bronze/40 border border-vtt-bronze/40 rounded text-sm font-semibold text-vtt-parchment transition-colors"
+            className="flex items-center gap-2 px-3 py-1.5 rounded text-sm font-semibold text-vtt-parchment hover:text-vtt-amber-glow hover:bg-vtt-bronze/30 transition-colors cursor-pointer focus-visible:outline-none whitespace-nowrap"
           >
-            <Map className="w-4 h-4" /> Join Game
+            <Map className="w-4 h-4 flex-shrink-0" /> Join Game
           </button>
         </div>
 
-        <div className="flex items-center gap-2">
-          <button className="flex items-center justify-center gap-2.5 px-4 py-2 bg-vtt-bronze/20 hover:bg-vtt-bronze/40 border border-vtt-bronze/40 rounded text-sm font-semibold text-vtt-parchment transition-colors">
-            <Download className="w-4 h-4" /> Import
+        <div className="flex items-center">
+          <button className="flex items-center gap-2 px-3 py-1.5 rounded text-sm font-semibold text-vtt-parchment hover:text-vtt-amber-glow hover:bg-vtt-bronze/30 transition-colors cursor-pointer focus-visible:outline-none whitespace-nowrap">
+            <Download className="w-4 h-4 flex-shrink-0" /> Import
           </button>
-          <button className="flex items-center justify-center gap-2.5 px-4 py-2 bg-vtt-bronze/20 hover:bg-vtt-bronze/40 border border-vtt-bronze/40 rounded text-sm font-semibold text-vtt-parchment transition-colors">
-            <Upload className="w-4 h-4" /> Export
+          <div className="h-6 w-px bg-vtt-bronze-dark/60 mx-1.5" aria-hidden="true" />
+          <button className="flex items-center gap-2 px-3 py-1.5 rounded text-sm font-semibold text-vtt-parchment hover:text-vtt-amber-glow hover:bg-vtt-bronze/30 transition-colors cursor-pointer focus-visible:outline-none whitespace-nowrap">
+            <Upload className="w-4 h-4 flex-shrink-0" /> Export
           </button>
-          <button className="flex items-center justify-center gap-2.5 px-4 py-2 bg-vtt-bronze/20 hover:bg-vtt-bronze/40 border border-vtt-bronze/40 rounded text-sm font-semibold text-vtt-parchment transition-colors">
-            <Trash2 className="w-4 h-4" /> Clear All
+          <div className="h-6 w-px bg-vtt-bronze-dark/60 mx-1.5" aria-hidden="true" />
+          <button className="flex items-center gap-1.5 px-3 py-1.5 rounded text-sm font-semibold text-vtt-parchment hover:text-red-300 hover:bg-vtt-bronze/30 transition-colors cursor-pointer focus-visible:outline-none whitespace-nowrap">
+            <Trash2 className="w-4 h-4 flex-shrink-0" /> Clear All
+            <ChevronDown className="w-3.5 h-3.5 flex-shrink-0 opacity-70" />
           </button>
         </div>
       </section>
@@ -433,8 +568,9 @@ export const Dashboard: React.FC = () => {
       {/* ── Main grid layout ─────────────────────────────────────────── */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
 
-        {/* Left column (3/4) */}
-        <div className="lg:col-span-3 flex flex-col gap-6">
+        {/* Left column (3/4) — min-w-0 stops the cards from forcing the
+            track wider than 3/4 and overlapping the sidebar */}
+        <div className="lg:col-span-3 min-w-0 flex flex-col gap-6">
 
 
 
@@ -500,23 +636,42 @@ export const Dashboard: React.FC = () => {
                 <p className="text-sm">No characters yet</p>
               </div>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
-                {recentChars.map((c) => (
-                  <CharacterBadge
-                    key={c.id}
-                    character={c}
-                    onStartSession={handleStartSession}
-                    onEdit={handleEditCharacter}
-                    onDelete={handleDeleteCharacter}
-                  />
-                ))}
+              <div className="flex flex-col gap-4">
+                {/* Row 1 — simple character cards */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                  {simpleChars.map((c) => (
+                    <CharacterBadge
+                      key={c.id}
+                      character={c}
+                      onStartSession={handleStartSession}
+                      onEdit={handleEditCharacter}
+                      onDelete={handleDeleteCharacter}
+                    />
+                  ))}
+                </div>
+
+                {/* Row 2+ — dual-stacked XP-progress cards */}
+                {stackedPairs.length > 0 && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4">
+                    {stackedPairs.map(([primary, secondary]) => (
+                      <CharacterStackCard
+                        key={primary.id}
+                        primary={primary}
+                        secondary={secondary}
+                        onStartSession={handleStartSession}
+                        onEdit={handleEditCharacter}
+                        onDelete={handleDeleteCharacter}
+                      />
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </section>
         </div>
 
         {/* Right column (1/4) - Document Library Sidebar */}
-        <div className="lg:col-span-1 flex flex-col gap-6">
+        <div className="lg:col-span-1 min-w-0 flex flex-col gap-6">
           <section className="bg-vtt-iron-800 border border-vtt-iron-700 rounded-sm p-4 shadow-md flex flex-col gap-4">
             <div className="flex items-center justify-between mb-6 border-b border-vtt-iron-700 pb-4">
               <h2 className="font-fantasy text-xl font-bold italic tracking-wide text-vtt-bronze flex items-center gap-2">
