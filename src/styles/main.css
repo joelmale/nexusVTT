@@ -46,6 +46,7 @@
 @import './offline-preparation.css' layer(components);
 @import './welcome-page.css' layer(components);
 @import './linear-flow.css' layer(components);
+@import './error-boundary.css' layer(components);
 
 /* 5. UTILITIES */
 @import './utilities.css' layer(utilities);
