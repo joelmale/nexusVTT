@@ -95,7 +95,7 @@ export const RemoteCursors: React.FC<RemoteCursorsProps> = ({ sceneId }) => {
             transform: 'translate(-50%, -50%)', // Center the cursor on the position
           }}
         >
-          <div className="cursor-pointer" />
+          <div className="remote-cursor-arrow" />
           <div className="cursor-label">{cursor.userName}</div>
         </div>
       ))}

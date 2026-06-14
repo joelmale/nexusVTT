@@ -2003,7 +2003,10 @@
   animation: cursor-fade-in 0.2s ease-out;
 }
 
-.cursor-pointer {
+/* Remote-player cursor arrow. NOTE: must NOT be named `.cursor-pointer` —
+   that collides with Tailwind's cursor-pointer utility and its width:0/height:0
+   triangle trick collapses every Tailwind button using cursor-pointer. */
+.remote-cursor-arrow {
   width: 0;
   height: 0;
   border-left: 6px solid transparent;
