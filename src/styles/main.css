@@ -49,7 +49,8 @@
 @import './error-boundary.css' layer(components);
 
 /* 5. UTILITIES */
-@import './utilities.css' layer(utilities);
+/* utilities.css retired — Tailwind regenerates all utility classes from usage.
+   See Phase B of the utilities.css retirement. */
 @import './accessibility.css' layer(utilities);
 
 /* 6. THEMES */
