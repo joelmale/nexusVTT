@@ -515,6 +515,12 @@ export const LinearWelcomePage: React.FC = () => {
                     </button>
                     <button
                       className="account-option wide"
+                      onClick={() => navigate('/dashboard-new')}
+                    >
+                      <span className="option-text">Go to new dashboard</span>
+                    </button>
+                    <button
+                      className="account-option wide"
                       onClick={async () => {
                         await logout();
                         navigate('/lobby');

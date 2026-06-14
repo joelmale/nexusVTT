@@ -32,6 +32,11 @@ const Dashboard = React.lazy(() =>
     default: module.Dashboard,
   })),
 );
+const DashboardNew = React.lazy(() =>
+  import('./components/DashboardNew').then((module) => ({
+    default: module.DashboardNew,
+  })),
+);
 const AdminPage = React.lazy(() =>
   import('./components/AdminPage').then((module) => ({
     default: module.AdminPage,
@@ -124,6 +129,20 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
                 }
               >
                 <Dashboard />
+              </Suspense>
+            }
+          />
+
+          {/* New dashboard (redesign preview) */}
+          <Route
+            path="/dashboard-new"
+            element={
+              <Suspense
+                fallback={
+                  <div className="loading-spinner">Loading dashboard...</div>
+                }
+              >
+                <DashboardNew />
               </Suspense>
             }
           />
