@@ -494,9 +494,10 @@ export const loadAdminStyles = (caller?: string) =>
   ]);
 
 // Utility styles (loaded after initial render)
+// Note: utilities.css was retired — Tailwind regenerates utility classes from
+// usage, so only accessibility.css remains here.
 export const loadUtilityStyles = (caller?: string) =>
   Promise.all([
-    loadCSSWithFallback('utilities.css', { caller, priority: 'low' }),
     loadCSSWithFallback('accessibility.css', { caller, priority: 'low' }),
   ]);
 
