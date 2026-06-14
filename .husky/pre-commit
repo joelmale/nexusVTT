@@ -5,6 +5,9 @@ echo "🔍 Running layout validation..."
 # Run CSS layout validation
 node scripts/validate-layout-css.js
 
+# Fail if any component CSS redefines a Tailwind utility class
+node scripts/check-tailwind-collisions.js
+
 # Run existing lint-staged tasks
 npx lint-staged
 
