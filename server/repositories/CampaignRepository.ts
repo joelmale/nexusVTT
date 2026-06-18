@@ -102,6 +102,12 @@ export class CampaignRepository extends BaseRepository {
     console.log(`🗄️ Campaign updated: ${sanitizeLog(campaignId)}`);
   }
 
+  async deleteCampaign(campaignId: string): Promise<void> {
+    await this.pool.query('DELETE FROM campaigns WHERE id = $1', [campaignId]);
+
+    console.log(`🗄️ Campaign deleted: ${sanitizeLog(campaignId)}`);
+  }
+
   async saveCampaignScenes(
     campaignId: string,
     scenes: unknown[],

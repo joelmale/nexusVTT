@@ -54,13 +54,12 @@ interface ApiCharacter {
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, joinRoomWithCode } = useGameStore();
+  const { user, isAuthenticated, authChecked, joinRoomWithCode } = useGameStore();
   const { startCharacterCreation, LauncherComponent } = useCharacterCreationLauncher();
 
   const [campaigns, setCampaigns] = useState<ApiCampaign[]>([]);
   const [characters, setCharacters] = useState<ApiCharacter[]>([]);
   const [loading, setLoading] = useState(true);
-  const [authChecking, setAuthChecking] = useState(true);
 
   // Session Modal State
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
@@ -69,14 +68,12 @@ export const Dashboard: React.FC = () => {
   const [sessionJoining, setSessionJoining] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
 
-  // Auth guard
+  // Auth guard — wait for the initial /auth/me probe to resolve before deciding.
+  // Redirect only when auth is confirmed resolved AND the user is not signed in,
+  // so a slow auth check can never bounce an authenticated user to the lobby.
   useEffect(() => {
-    const t = setTimeout(() => {
-      setAuthChecking(false);
-      if (!isAuthenticated) navigate('/lobby');
-    }, 1000);
-    return () => clearTimeout(t);
-  }, [isAuthenticated, navigate]);
+    if (authChecked && !isAuthenticated) navigate('/lobby');
+  }, [authChecked, isAuthenticated, navigate]);
 
   const fetchDashboardData = async () => {
     try {
@@ -176,6 +173,9 @@ export const Dashboard: React.FC = () => {
         });
         if (res.ok) {
           await fetchDashboardData();
+        } else {
+          const body = await res.json().catch(() => ({}));
+          alert(body.error || `Failed to delete campaign (HTTP ${res.status})`);
         }
       } catch {
         alert('Failed to delete campaign');
@@ -226,30 +226,70 @@ export const Dashboard: React.FC = () => {
     updatedAt: c.updatedAt,
   }));
 
+  // Characters arrive in several historical shapes: wizard-created and
+  // dashboard-facing records use lowercase `stats` + `hp`/`mana`/`xp`, while
+  // test-generated / sheet-style records use `abilities` (STR/DEX…) + `hitPoints`.
+  // Normalize defensively so every record renders regardless of origin.
+  const DEFAULT_STATS = {
+    strength: 10,
+    dexterity: 10,
+    constitution: 10,
+    intelligence: 10,
+    wisdom: 10,
+    charisma: 10,
+  };
+  const ABILITY_TO_STAT: Record<string, keyof typeof DEFAULT_STATS> = {
+    STR: 'strength',
+    DEX: 'dexterity',
+    CON: 'constitution',
+    INT: 'intelligence',
+    WIS: 'wisdom',
+    CHA: 'charisma',
+  };
+
+  const deriveStats = (data: ApiCharacter['data']) => {
+    if (data.stats) return data.stats;
+    const abilities = data.abilities as
+      | Record<string, { score?: number }>
+      | undefined;
+    if (abilities) {
+      const out = { ...DEFAULT_STATS };
+      for (const [abbr, statKey] of Object.entries(ABILITY_TO_STAT)) {
+        const score = abilities[abbr]?.score;
+        if (typeof score === 'number') out[statKey] = score;
+      }
+      return out;
+    }
+    return DEFAULT_STATS;
+  };
+
+  const deriveHp = (data: ApiCharacter['data']) => {
+    if (data.hp) return data.hp;
+    const max = data.maxHitPoints as number | undefined;
+    const current = data.hitPoints as number | undefined;
+    if (typeof max === 'number') {
+      return { current: typeof current === 'number' ? current : max, max };
+    }
+    return undefined;
+  };
+
   const mappedCharacters: LayoutCharacter[] = characters.map((c) => {
-    const stats = c.data.stats || {
-      strength: 10,
-      dexterity: 10,
-      constitution: 10,
-      intelligence: 10,
-      wisdom: 10,
-      charisma: 10,
-    };
+    const data = c.data || ({} as ApiCharacter['data']);
     return {
       id: c.id,
       name: c.name,
-      level: c.data.level ?? 1,
-      klass: c.data.class || 'Adventurer',
-      race: c.data.race || 'Human',
-      xp: c.data.xp,
-      hp: c.data.hp,
-      mana: c.data.mana,
-      stats,
+      level: data.level ?? 1,
+      klass: data.class || 'Adventurer',
+      race: data.race || 'Human',
+      xp: data.xp,
+      hp: deriveHp(data),
+      mana: data.mana,
+      stats: deriveStats(data),
       updatedAt: c.updatedAt,
     };
   });
 
-  if (authChecking) {
+  if (!authChecked) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-[#121417] text-[#f1e6d3]">
         <div className="bg-[#252a31] border border-[#8c6b4a]/30 p-8 text-[#cbd5e1]/80 animate-pulse font-serif rounded-sm shadow-md">
@@ -266,6 +306,7 @@ export const Dashboard: React.FC = () => {
         campaigns={mappedCampaigns}
         characters={mappedCharacters}
         loading={loading}
+        onBack={() => navigate('/lobby')}
         onCreateCharacter={handleCreateCharacter}
         onJoinGame={handleJoinGame}
         onImport={() => alert('Importing JSON sheets...')}

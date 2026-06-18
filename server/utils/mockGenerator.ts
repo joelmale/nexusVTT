@@ -176,18 +176,46 @@ export function generateRandomCharacter(ownerId: string): Omit<CharacterRecord, 
     }
   }
 
+  // ── Canonical dashboard / PlayerCharacter-facing fields ──────────────────────
+  // The character sheet uses `abilities` (STR/DEX…) + `hitPoints`, but the
+  // dashboard and PlayerCharacter type read lowercase `stats` + `hp`/`mana`/`xp`.
+  // Emit BOTH so generated heroes render fully everywhere without a separate
+  // adapter, and so this stays a solid basis for a real character generator.
+  const stats = {
+    strength: abilities['STR']?.score ?? 10,
+    dexterity: abilities['DEX']?.score ?? 10,
+    constitution: abilities['CON']?.score ?? 10,
+    intelligence: abilities['INT']?.score ?? 10,
+    wisdom: abilities['WIS']?.score ?? 10,
+    charisma: abilities['CHA']?.score ?? 10,
+  };
+
+  // 5e XP thresholds by level (index = level). Covers the generated 1–5 range.
+  const XP_BY_LEVEL = [0, 0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000];
+  const xp = XP_BY_LEVEL[level] ?? 0;
+
+  // Spellcasters get a simple mana pool; martials get none.
+  const SPELLCASTERS = ['Wizard', 'Sorcerer', 'Cleric', 'Druid', 'Bard', 'Warlock', 'Paladin', 'Ranger'];
+  const maxMana = SPELLCASTERS.includes(charClass.name) ? level * 4 : 0;
+
   const characterData = {
     race,
     class: charClass.name,
     level,
+    xp,
     alignment,
     background,
     inspiration: false,
     proficiencyBonus,
     armorClass: 10 + (abilities['DEX']?.modifier ?? 0),
+    // Sheet-style HP
     hitPoints: maxHitPoints,
     maxHitPoints,
     temporaryHitPoints: 0,
+    // Dashboard-style HP / mana / stats
+    hp: { current: maxHitPoints, max: maxHitPoints },
+    mana: { current: maxMana, max: maxMana },
+    stats,
     hitDice: {
       current: level,
       max: level,

@@ -10,6 +10,7 @@ import { Toaster } from 'sonner';
 import { Providers } from './components/Providers';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LinearWelcomePage } from './components/LinearWelcomePage';
+import { LoadingScreen } from './components/LoadingScreen';
 
 // Lazy load heavy components
 const PlayerSetupPage = React.lazy(() =>
@@ -30,11 +31,6 @@ const LinearGameLayout = React.lazy(() =>
 const Dashboard = React.lazy(() =>
   import('./components/Dashboard').then((module) => ({
     default: module.Dashboard,
-  })),
-);
-const DashboardNew = React.lazy(() =>
-  import('./components/DashboardNew').then((module) => ({
-    default: module.DashboardNew,
   })),
 );
 const AdminPage = React.lazy(() =>
@@ -83,11 +79,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route
             path="/lobby/player-setup"
             element={
-              <Suspense
-                fallback={
-                  <div className="loading-spinner">Loading setup...</div>
-                }
-              >
+              <Suspense fallback={<LoadingScreen message="Loading setup…" />}>
                 <PlayerSetupPage />
               </Suspense>
             }
@@ -95,11 +87,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route
             path="/lobby/dm-setup"
             element={
-              <Suspense
-                fallback={
-                  <div className="loading-spinner">Loading setup...</div>
-                }
-              >
+              <Suspense fallback={<LoadingScreen message="Loading setup…" />}>
                 <DMSetupPage />
               </Suspense>
             }
@@ -108,11 +96,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             path="/lobby/game/:roomCode"
             element={
               <ProtectedRoute requireUser requireSession>
-                <Suspense
-                  fallback={
-                    <div className="loading-spinner">Loading game...</div>
-                  }
-                >
+                <Suspense fallback={<LoadingScreen message="Loading game…" />}>
                   <LinearGameLayout />
                 </Suspense>
               </ProtectedRoute>
@@ -123,26 +107,8 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           <Route
             path="/dashboard"
             element={
-              <Suspense
-                fallback={
-                  <div className="loading-spinner">Loading dashboard...</div>
-                }
-              >
+              <Suspense fallback={<LoadingScreen message="Loading dashboard…" />}>
                 <Dashboard />
-              </Suspense>
-            }
-          />
-
-          {/* New dashboard (redesign preview) */}
-          <Route
-            path="/dashboard-new"
-            element={
-              <Suspense
-                fallback={
-                  <div className="loading-spinner">Loading dashboard...</div>
-                }
-              >
-                <DashboardNew />
               </Suspense>
             }
           />
@@ -152,11 +118,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
             <Route
               path="/admin"
               element={
-                <Suspense
-                  fallback={
-                    <div className="loading-spinner">Loading admin...</div>
-                  }
-                >
+                <Suspense fallback={<LoadingScreen message="Loading admin…" />}>
                   <AdminPage />
                 </Suspense>
               }

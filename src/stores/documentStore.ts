@@ -11,7 +11,12 @@
 
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { documentService, type Document, type DocumentType, type SearchResult, type QuickSearchResult } from '@/services/documentService';
+import { documentService, type Document, type DocumentType, type SearchResult, type QuickSearchResult, type AskSearchCitation } from '@/services/documentService';
+import {
+  documentWebSocketClient,
+} from '@/services/documentWebSocketClient';
+import { webSocketService } from '@/services/websocket';
+import { useGameStore } from '@/stores/gameStore';
 
 /**
  * Document upload progress
@@ -52,7 +57,12 @@ export interface DocumentStoreState {
   // Currently viewed document
   currentDocument: Document | null;
   currentDocumentContent: string | null;
+  currentPage: number;
   isLoadingDocument: boolean;
+
+  // Structured entities cache
+  structuredEntities: Record<string, any[]>;
+  isLoadingStructuredData: boolean;
 
   // Search
   searchResults: SearchResult[];
@@ -61,8 +71,24 @@ export interface DocumentStoreState {
   isSearching: boolean;
   searchError: string | null;
 
+  // Grounded Ask Q&A
+  askQuestion: string;
+  askAnswer: string | null;
+  askCitations: AskSearchCitation[];
+  isAsking: boolean;
+  askError: string | null;
+
   // Upload
   uploadQueue: UploadProgress[];
+
+  // Document sync
+  documentSessionId: string | null;
+  documentSyncDocumentId: string | null;
+  isPresenter: boolean;
+  isPresentationMode: boolean;
+  syncScrollRatio: number | null;
+  syncZoomScale: number | null;
+  documentSyncError: string | null;
 
   // Actions
   loadDocuments: (force?: boolean) => Promise<void>;
@@ -73,7 +99,11 @@ export interface DocumentStoreState {
   quickSearch: (query: string, campaign?: string) => Promise<void>;
   clearSearch: () => void;
 
-  openDocument: (documentId: string) => Promise<void>;
+  // Q&A actions
+  askCodexQuestion: (question: string, filters?: { type?: DocumentType; campaigns?: string[]; tags?: string[] }) => Promise<void>;
+  clearAsk: () => void;
+
+  openDocument: (documentId: string, initialPage?: number) => Promise<void>;
   closeDocument: () => void;
 
   uploadDocument: (file: File, metadata: {
@@ -87,6 +117,26 @@ export interface DocumentStoreState {
 
   updateDocument: (documentId: string, updates: Partial<Document>) => Promise<void>;
   deleteDocument: (documentId: string) => Promise<void>;
+
+  setCurrentPage: (page: number) => void;
+  loadStructuredDataForDocument: (documentId: string) => Promise<void>;
+
+  // Document sync actions
+  connectDocumentSync: (documentId: string) => Promise<void>;
+  joinDocumentSyncSession: (
+    documentId: string,
+    sessionId: string,
+    presenterId: string,
+  ) => Promise<void>;
+  disconnectDocumentSync: () => void;
+  setPresentationMode: (enabled: boolean) => void;
+  sendPageSync: (page: number) => void;
+  sendScrollSync: (position: number) => void;
+  sendZoomSync: (zoom: number) => void;
+  handleIncomingSyncMessage: (
+    type: 'page:changed' | 'scroll:synced' | 'zoom:synced',
+    data: { page?: number; position?: number; zoom?: number },
+  ) => void;
 
   reset: () => void;
 }
@@ -111,9 +161,15 @@ const initialState = {
   documentsAvailable: true,
   documentsUnavailableReason: null,
 
+  // Currently viewed document
   currentDocument: null,
   currentDocumentContent: null,
+  currentPage: 1,
   isLoadingDocument: false,
+
+  // Structured entities cache
+  structuredEntities: {},
+  isLoadingStructuredData: false,
 
   searchResults: [],
   quickSearchResults: [],
@@ -121,14 +177,97 @@ const initialState = {
   isSearching: false,
   searchError: null,
 
+  // Q&A Initial state
+  askQuestion: '',
+  askAnswer: null,
+  askCitations: [],
+  isAsking: false,
+  askError: null,
+
   uploadQueue: [],
+
+  // Document sync
+  documentSessionId: null,
+  documentSyncDocumentId: null,
+  isPresenter: false,
+  isPresentationMode: false,
+  syncScrollRatio: null,
+  syncZoomScale: null,
+  documentSyncError: null,
 };
+
+const clampSyncRatio = (position: number): number => Math.min(Math.max(position, 0), 1);
 
 /**
  * Document store
  */
 export const useDocumentStore = create<DocumentStoreState>()(
-  immer((set, get) => ({
+  immer((set, get) => {
+    let documentSyncUnsubscribers: Array<() => void> = [];
+
+    const clearDocumentSyncSubscriptions = () => {
+      documentSyncUnsubscribers.forEach((unsubscribe) => unsubscribe());
+      documentSyncUnsubscribers = [];
+    };
+
+    const ensureDocumentSyncSubscriptions = () => {
+      if (documentSyncUnsubscribers.length > 0) {
+        return;
+      }
+
+      documentSyncUnsubscribers = [
+        documentWebSocketClient.subscribe('session:created', (session) => {
+          const { user } = useGameStore.getState();
+          documentWebSocketClient.joinSession(session.sessionId, user.id, true);
+
+          set((state) => {
+            state.documentSessionId = session.sessionId;
+            state.documentSyncDocumentId = session.documentId;
+            state.isPresenter = true;
+            state.documentSyncError = null;
+          });
+
+          webSocketService.sendEvent({
+            type: 'document/sync-session',
+            data: {
+              documentId: session.documentId,
+              sessionId: session.sessionId,
+              presenterId: session.presenter,
+            },
+          });
+        }),
+        documentWebSocketClient.subscribe('session:joined', ({ session }) => {
+          if (!session) {
+            return;
+          }
+
+          set((state) => {
+            state.documentSessionId = session.sessionId;
+            state.documentSyncDocumentId = session.documentId;
+            state.currentPage = session.currentPage;
+            state.syncScrollRatio = session.scrollPosition;
+            state.syncZoomScale = session.zoom;
+            state.documentSyncError = null;
+          });
+        }),
+        documentWebSocketClient.subscribe('page:changed', ({ page }) => {
+          get().handleIncomingSyncMessage('page:changed', { page });
+        }),
+        documentWebSocketClient.subscribe('scroll:synced', ({ position }) => {
+          get().handleIncomingSyncMessage('scroll:synced', { position });
+        }),
+        documentWebSocketClient.subscribe('zoom:synced', ({ zoom }) => {
+          get().handleIncomingSyncMessage('zoom:synced', { zoom });
+        }),
+        documentWebSocketClient.subscribe('error', ({ message, error }) => {
+          set((state) => {
+            state.documentSyncError = error ? `${message}: ${error}` : message;
+          });
+        }),
+      ];
+    };
+
+    return {
     ...initialState,
 
     /**
@@ -312,11 +451,69 @@ export const useDocumentStore = create<DocumentStoreState>()(
     },
 
     /**
+     * Ask the Codex a natural language question (Grounded RAG Q&A)
+     */
+    askCodexQuestion: async (question: string, filters?: { type?: DocumentType; campaigns?: string[]; tags?: string[] }) => {
+      set((state) => {
+        state.isAsking = true;
+        state.askError = null;
+        state.askQuestion = question;
+        state.askAnswer = null;
+        state.askCitations = [];
+      });
+
+      try {
+        const { documentsAvailable, documentsUnavailableReason } = get();
+        if (!documentsAvailable && documentsUnavailableReason) {
+          throw new Error(documentsUnavailableReason);
+        }
+
+        const response = await documentService.ask(question, filters);
+
+        set((state) => {
+          state.askAnswer = response.answer;
+          state.askCitations = response.citations;
+          state.isAsking = false;
+        });
+      } catch (error) {
+        console.error('Ask Q&A search failed:', error);
+        set((state) => {
+          const message = error instanceof Error ? error.message : 'Ask Q&A search failed';
+          state.askError = message;
+          if (
+            message.includes('Document service unavailable') ||
+            message.toLowerCase().includes('fetch failed') ||
+            message.includes('ECONNREFUSED') ||
+            message.includes('Request failed: 503')
+          ) {
+            state.documentsAvailable = false;
+            state.documentsUnavailableReason = message;
+          }
+          state.isAsking = false;
+        });
+      }
+    },
+
+    /**
+     * Clear active Ask Q&A query and results
+     */
+    clearAsk: () => {
+      set((state) => {
+        state.askQuestion = '';
+        state.askAnswer = null;
+        state.askCitations = [];
+        state.askError = null;
+        state.isAsking = false;
+      });
+    },
+
+    /**
      * Open a document for viewing
      */
-    openDocument: async (documentId: string) => {
+    openDocument: async (documentId: string, initialPage = 1) => {
       set((state) => {
         state.isLoadingDocument = true;
+        state.currentPage = initialPage;
       });
 
       try {
@@ -331,6 +528,7 @@ export const useDocumentStore = create<DocumentStoreState>()(
         set((state) => {
           state.currentDocument = document;
           state.currentDocumentContent = contentUrl;
+          state.currentPage = initialPage;
           state.isLoadingDocument = false;
         });
       } catch (error) {
@@ -503,12 +701,204 @@ export const useDocumentStore = create<DocumentStoreState>()(
         throw error;
       }
     },
+    setCurrentPage: (page: number) => {
+      set((state) => {
+        state.currentPage = page;
+      });
+    },
+
+    loadStructuredDataForDocument: async (documentId: string) => {
+      if (get().structuredEntities[documentId]) {
+        return;
+      }
+
+      set((state) => {
+        state.isLoadingStructuredData = true;
+      });
+
+      try {
+        const data = await documentService.getDocumentStructuredData(documentId);
+        set((state) => {
+          state.structuredEntities[documentId] = data;
+          state.isLoadingStructuredData = false;
+        });
+      } catch (error) {
+        console.error(`Failed to load structured data for document ${documentId}:`, error);
+        set((state) => {
+          state.isLoadingStructuredData = false;
+        });
+      }
+    },
+
+    connectDocumentSync: async (documentId: string) => {
+      const { user, session } = useGameStore.getState();
+      if (!session?.roomCode || !user.id) {
+        set((state) => {
+          state.documentSyncError = 'Game session required for document sync';
+        });
+        return;
+      }
+
+      const currentState = get();
+      if (
+        currentState.documentSessionId &&
+        currentState.documentSyncDocumentId === documentId &&
+        currentState.isPresenter
+      ) {
+        return;
+      }
+
+      if (
+        currentState.documentSessionId &&
+        currentState.documentSyncDocumentId !== documentId
+      ) {
+        get().disconnectDocumentSync();
+      }
+
+      ensureDocumentSyncSubscriptions();
+
+      try {
+        const token = await documentService.getWsToken();
+        await documentWebSocketClient.connect(token);
+
+        set((state) => {
+          state.documentSyncDocumentId = documentId;
+          state.isPresenter = user.type === 'host';
+          state.documentSyncError = null;
+        });
+
+        if (user.type === 'host') {
+          documentWebSocketClient.createSession(
+            documentId,
+            session.campaignId || session.roomCode,
+            session.roomCode,
+            user.id,
+            {
+              syncPage: true,
+              syncScroll: true,
+              syncHighlight: true,
+              syncZoom: true,
+            },
+          );
+        }
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Failed to connect document sync';
+        set((state) => {
+          state.documentSyncError = message;
+        });
+      }
+    },
+
+    joinDocumentSyncSession: async (
+      documentId: string,
+      sessionId: string,
+      presenterId: string,
+    ) => {
+      const { user } = useGameStore.getState();
+      if (!user.id || user.id === presenterId) {
+        return;
+      }
+
+      ensureDocumentSyncSubscriptions();
+
+      try {
+        if (get().currentDocument?.id !== documentId) {
+          await get().openDocument(documentId);
+        }
+
+        const token = await documentService.getWsToken();
+        await documentWebSocketClient.connect(token);
+        documentWebSocketClient.joinSession(sessionId, user.id);
+
+        set((state) => {
+          state.documentSessionId = sessionId;
+          state.documentSyncDocumentId = documentId;
+          state.isPresenter = false;
+          state.isPresentationMode = false;
+          state.documentSyncError = null;
+        });
+      } catch (error) {
+        const message =
+          error instanceof Error ? error.message : 'Failed to join document sync';
+        set((state) => {
+          state.documentSyncError = message;
+        });
+      }
+    },
+
+    disconnectDocumentSync: () => {
+      documentWebSocketClient.disconnect();
+      clearDocumentSyncSubscriptions();
+      set((state) => {
+        state.documentSessionId = null;
+        state.documentSyncDocumentId = null;
+        state.isPresenter = false;
+        state.isPresentationMode = false;
+        state.syncScrollRatio = null;
+        state.syncZoomScale = null;
+        state.documentSyncError = null;
+      });
+    },
+
+    setPresentationMode: (enabled: boolean) => {
+      const { documentSessionId, isPresenter } = get();
+      set((state) => {
+        state.isPresentationMode = enabled;
+      });
+
+      if (documentSessionId && isPresenter) {
+        documentWebSocketClient.updateSettings({
+          syncPage: enabled,
+          syncScroll: enabled,
+          syncZoom: enabled,
+        });
+      }
+    },
+
+    sendPageSync: (page: number) => {
+      const { isPresenter, isPresentationMode, documentSessionId } = get();
+      if (documentSessionId && isPresenter && isPresentationMode) {
+        documentWebSocketClient.syncPage(page);
+      }
+    },
+
+    sendScrollSync: (position: number) => {
+      const { isPresenter, isPresentationMode, documentSessionId } = get();
+      if (documentSessionId && isPresenter && isPresentationMode) {
+        documentWebSocketClient.syncScroll(clampSyncRatio(position));
+      }
+    },
+
+    sendZoomSync: (zoom: number) => {
+      const { isPresenter, isPresentationMode, documentSessionId } = get();
+      if (documentSessionId && isPresenter && isPresentationMode) {
+        documentWebSocketClient.syncZoom(zoom);
+      }
+    },
+
+    handleIncomingSyncMessage: (type, data) => {
+      set((state) => {
+        if (type === 'page:changed' && typeof data.page === 'number') {
+          state.currentPage = data.page;
+        }
+        if (type === 'scroll:synced' && typeof data.position === 'number') {
+          state.syncScrollRatio = clampSyncRatio(data.position);
+        }
+        if (type === 'zoom:synced' && typeof data.zoom === 'number') {
+          state.syncZoomScale = data.zoom;
+        }
+      });
+    },
 
     /**
      * Reset store to initial state
      */
     reset: () => {
+      documentWebSocketClient.disconnect();
+      clearDocumentSyncSubscriptions();
       set(initialState);
     },
-  }))
+  };
+  })
 );

@@ -1,21 +1,20 @@
 import React from 'react';
 import { render, screen } from '@testing-library/react';
 import { describe, it, expect, vi } from 'vitest';
-import { DashboardTailwind } from '@/components/DashboardTailwind';
-import { useGameStore, useSettings } from '@/stores/gameStore';
+import { Dashboard } from '@/components/Dashboard';
+import { useGameStore } from '@/stores/gameStore';
 
 // Mock react-router-dom
 vi.mock('react-router-dom', () => ({
   useNavigate: () => vi.fn(),
 }));
 
-// Mock game store and settings
+// Mock game store
 vi.mock('@/stores/gameStore', () => ({
   useGameStore: vi.fn(),
-  useSettings: vi.fn(),
 }));
 
-// Mock hook
+// Mock launcher hook
 vi.mock('@/hooks', () => ({
   useCharacterCreationLauncher: vi.fn(() => ({
     startCharacterCreation: vi.fn(),
@@ -27,19 +26,14 @@ vi.mock('@/hooks', () => ({
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
 
-describe('DashboardTailwind', () => {
-  it('renders the VTT Dashboard elements correctly', async () => {
+describe('Dashboard', () => {
+  it('renders the VTT Gothic/Fantasy Dashboard elements correctly', async () => {
     // Arrange mocks
     vi.mocked(useGameStore).mockReturnValue({
       user: { id: 'user-1', name: 'Adventurer Joel' },
       isAuthenticated: true,
+      authChecked: true,
       joinRoomWithCode: vi.fn(),
-      setEnableTailwindDashboard: vi.fn(),
-    });
-
-    vi.mocked(useSettings).mockReturnValue({
-      reducedMotion: false,
-      enableTailwindDashboard: true,
     });
 
     // Mock fetch responses for campaigns and characters
@@ -64,15 +58,15 @@ describe('DashboardTailwind', () => {
     });
 
     // Act
-    render(<DashboardTailwind />);
+    vi.useFakeTimers();
+    render(<Dashboard />);
+    vi.runAllTimers();
 
-    // Assert key layout elements are in the document (allowing up to 2 seconds for the 1-second auth check timeout to resolve)
-    expect(await screen.findByText('NexusVTT', {}, { timeout: 2000 })).toBeInTheDocument();
-    expect(await screen.findByText('Beta')).toBeInTheDocument();
-    expect(await screen.findByText('Quick Join')).toBeInTheDocument();
-    expect(await screen.findByText('Recent Campaigns')).toBeInTheDocument();
-    expect(await screen.findByText('Recent Characters')).toBeInTheDocument();
+    // Assert key layout elements are in the document
+    vi.useRealTimers();
+    expect(await screen.findByText('Adventurer Joel', { exact: false })).toBeInTheDocument();
     expect(await screen.findByText('Document Library')).toBeInTheDocument();
-    expect(await screen.findByText('Offline Mode Active')).toBeInTheDocument();
+    expect(await screen.findByText('Lost Mine of Phandelver')).toBeInTheDocument();
+    expect(await screen.findByText('Gimli')).toBeInTheDocument();
   });
 });

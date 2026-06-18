@@ -5,7 +5,9 @@ import { ActionBar } from '../organisms/ActionBar';
 import { CampaignGrid } from '../organisms/CampaignGrid';
 import { CharacterGrid } from '../organisms/CharacterGrid';
 import { DocumentSidebar } from '../organisms/DocumentSidebar';
-import { DiceRoller } from '../molecules/DiceRoller';
+// DiceRoller is intentionally not rendered on the dashboard, but kept as a
+// reusable component: src/components/Dashboard/molecules/DiceRoller.tsx
+import { DocumentViewer } from '@/components/DocumentViewer';
 
 interface DashboardLayoutProps {
   userName: string;
@@ -13,6 +15,7 @@ interface DashboardLayoutProps {
   characters: CharacterRecord[];
   loading?: boolean;
 
+  onBack?: () => void;
   onCreateCharacter?: () => void;
   onJoinGame?: () => void;
   onImport?: () => void;
@@ -37,6 +40,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   characters,
   loading = false,
 
+  onBack,
   onCreateCharacter,
   onJoinGame,
   onImport,
@@ -86,6 +90,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         userName={userName}
         campaignCount={campaigns.length}
         characterCount={characters.length}
+        onBack={onBack}
         className="relative z-10"
       />
 
@@ -124,8 +129,6 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             loading={loading}
           />
 
-          {/* Dice Roller Component */}
-          <DiceRoller className="mt-2" />
         </div>
 
         {/* Right Column (1/4 width) */}
@@ -133,6 +136,9 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
           <DocumentSidebar />
         </div>
       </div>
+
+      {/* Document Viewer Modal Overlay */}
+      <DocumentViewer />
 
       {/* Glowing Ember Particle Container at the bottom */}
       <div className="absolute inset-x-0 bottom-0 h-64 pointer-events-none overflow-hidden select-none z-0">

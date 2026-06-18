@@ -7,6 +7,7 @@ import React, { useEffect, useState, Suspense } from 'react';
 import { useDocumentStore } from '@/stores/documentStore';
 import { useGameStore } from '@/stores/gameStore';
 import { DocumentType } from '@/services/documentService';
+import { EntityStatCard } from './Dashboard/molecules/EntityStatCard';
 
 // Lazy load DocumentViewer (includes PDF.js)
 const DocumentViewer = React.lazy(() =>
@@ -25,6 +26,7 @@ const DOCUMENT_TYPE_ICONS: Record<DocumentType, string> = {
   map: '🗺️',
   character_sheet: '⚔️',
   homebrew: '🔮',
+  srd_content: '🔮',
 };
 
 export const DocumentsPanel: React.FC = () => {
@@ -38,11 +40,14 @@ export const DocumentsPanel: React.FC = () => {
     quickSearch,
     clearSearch,
     openDocument,
+    structuredEntities,
+    loadStructuredDataForDocument,
   } = useDocumentStore();
 
   const { session } = useGameStore();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<DocumentType | ''>('');
+  const [expandedDocumentId, setExpandedDocumentId] = useState<string | null>(null);
 
   // Load documents for current campaign on mount
   useEffect(() => {
@@ -75,12 +80,67 @@ export const DocumentsPanel: React.FC = () => {
     setFilters({ type: type || undefined });
   };
 
+  // Map raw 5e SRD entity structure to the format EntityStatCard expects
+  const mapSrdEntity = (type: string, rawData: any) => {
+    if (!rawData) return null;
+    if (type === 'spell') {
+      return {
+        name: rawData.name || '',
+        level: rawData.level !== undefined ? rawData.level : '',
+        school: rawData.school?.name || rawData.school || '',
+        castingTime: rawData.casting_time || '',
+        range: rawData.range || '',
+        components: Array.isArray(rawData.components) ? rawData.components.join(', ') : rawData.components || '',
+        duration: rawData.duration || '',
+        description: Array.isArray(rawData.desc) ? rawData.desc.join('\n') : rawData.desc || '',
+      };
+    }
+    if (type === 'monster') {
+      return {
+        name: rawData.name || '',
+        size: rawData.size || '',
+        type: rawData.type || '',
+        alignment: rawData.alignment || '',
+        ac: rawData.armor_class?.[0]?.value || rawData.armor_class || 10,
+        hp: rawData.hit_points || 0,
+        speed: typeof rawData.speed === 'object'
+          ? Object.entries(rawData.speed).map(([k, v]) => `${k} ${v}`).join(', ')
+          : rawData.speed || '',
+        cr: rawData.challenge_rating !== undefined ? rawData.challenge_rating : '',
+        stats: {
+          strength: rawData.strength || 10,
+          dexterity: rawData.dexterity || 10,
+          constitution: rawData.constitution || 10,
+          intelligence: rawData.intelligence || 10,
+          wisdom: rawData.wisdom || 10,
+          charisma: rawData.charisma || 10,
+        },
+        description: rawData.special_abilities
+          ? rawData.special_abilities.map((a: any) => `**${a.name}.** ${a.desc}`).join('\n\n')
+          : '',
+      };
+    }
+    return rawData;
+  };
+
   /**
    * Handle document click
    */
   const handleDocumentClick = async (documentId: string) => {
     try {
-      await openDocument(documentId);
+      const doc = documents.find(d => d?.id === documentId) || 
+                  quickSearchResults.find(r => r.documentId === documentId);
+      
+      if (doc?.type === 'srd_content') {
+        if (expandedDocumentId === documentId) {
+          setExpandedDocumentId(null);
+        } else {
+          setExpandedDocumentId(documentId);
+          loadStructuredDataForDocument(documentId);
+        }
+      } else {
+        await openDocument(documentId);
+      }
     } catch (error) {
       console.error('Failed to open document:', error);
     }
@@ -152,21 +212,49 @@ export const DocumentsPanel: React.FC = () => {
             <span>Quick Results</span>
             <span className="result-count">{quickSearchResults.length}</span>
           </div>
-          {quickSearchResults.map((result) => (
-            <div
-              key={result.documentId}
-              className="quick-result-item"
-              onClick={() => handleDocumentClick(result.documentId)}
-            >
-              <div className="result-icon">{DOCUMENT_TYPE_ICONS[result.type]}</div>
-              <div className="result-content">
-                <div className="result-title">{result.title}</div>
-                {result.snippet && (
-                  <div className="result-snippet">{result.snippet}</div>
+          {quickSearchResults.map((result) => {
+            const isExpanded = expandedDocumentId === result.documentId;
+            return (
+              <div key={result.documentId} className="flex flex-col w-full">
+                <div
+                  className={`quick-result-item ${isExpanded ? 'active bg-[#1c1e22] border-l-2 border-amber-500' : ''}`}
+                  onClick={() => handleDocumentClick(result.documentId)}
+                >
+                  <div className="result-icon">{DOCUMENT_TYPE_ICONS[result.type]}</div>
+                  <div className="result-content">
+                    <div className="result-title">{result.title}</div>
+                    {result.snippet && (
+                      <div className="result-snippet">{result.snippet}</div>
+                    )}
+                  </div>
+                </div>
+                {isExpanded && (
+                  <div className="p-2.5 border-t border-[#8c6b4a]/20 bg-[#1c1e22]/50 w-full overflow-hidden">
+                    {(() => {
+                      const entities = structuredEntities[result.documentId] || [];
+                      const relevant = entities.find(e => e.type === 'spell' || e.type === 'monster');
+                      
+                      if (relevant) {
+                        const mapped = mapSrdEntity(relevant.type, relevant.data);
+                        return (
+                          <EntityStatCard 
+                            type={relevant.type as 'spell' | 'monster'}
+                            data={mapped}
+                            className="w-full !max-w-full"
+                          />
+                        );
+                      }
+                      return (
+                        <div className="text-[10px] font-serif italic text-amber-500 animate-pulse p-2">
+                          Reading archives transcripts...
+                        </div>
+                      );
+                    })()}
+                  </div>
                 )}
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
 
@@ -190,35 +278,63 @@ export const DocumentsPanel: React.FC = () => {
             </p>
           </div>
         ) : (
-          displayDocuments.map((document) => (
-            <div
-              key={document!.id}
-              className="document-list-item"
-              onClick={() => handleDocumentClick(document!.id)}
-            >
-              <div className="document-icon">
-                {DOCUMENT_TYPE_ICONS[document!.type]}
-              </div>
-              <div className="document-info">
-                <div className="document-title">{document!.title}</div>
-                {document!.description && (
-                  <div className="document-desc">{document!.description}</div>
-                )}
-                {document!.tags.length > 0 && (
-                  <div className="document-tags-compact">
-                    {document!.tags.slice(0, 2).map((tag) => (
-                      <span key={tag} className="tag-compact">
-                        {tag}
-                      </span>
-                    ))}
-                    {document!.tags.length > 2 && (
-                      <span className="tag-compact">+{document!.tags.length - 2}</span>
+          displayDocuments.map((document) => {
+            const isExpanded = expandedDocumentId === document!.id;
+            return (
+              <div key={document!.id} className="flex flex-col w-full">
+                <div
+                  className={`document-list-item ${isExpanded ? 'active bg-[#1c1e22] border-l-2 border-amber-500' : ''}`}
+                  onClick={() => handleDocumentClick(document!.id)}
+                >
+                  <div className="document-icon">
+                    {DOCUMENT_TYPE_ICONS[document!.type]}
+                  </div>
+                  <div className="document-info">
+                    <div className="document-title">{document!.title}</div>
+                    {document!.description && (
+                      <div className="document-desc">{document!.description}</div>
                     )}
+                    {document!.tags.length > 0 && (
+                      <div className="document-tags-compact">
+                        {document!.tags.slice(0, 2).map((tag) => (
+                          <span key={tag} className="tag-compact">
+                            {tag}
+                          </span>
+                        ))}
+                        {document!.tags.length > 2 && (
+                          <span className="tag-compact">+{document!.tags.length - 2}</span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                </div>
+                {isExpanded && (
+                  <div className="p-2.5 border-t border-[#8c6b4a]/20 bg-[#1c1e22]/50 w-full overflow-hidden">
+                    {(() => {
+                      const entities = structuredEntities[document!.id] || [];
+                      const relevant = entities.find(e => e.type === 'spell' || e.type === 'monster');
+                      
+                      if (relevant) {
+                        const mapped = mapSrdEntity(relevant.type, relevant.data);
+                        return (
+                          <EntityStatCard 
+                            type={relevant.type as 'spell' | 'monster'}
+                            data={mapped}
+                            className="w-full !max-w-full"
+                          />
+                        );
+                      }
+                      return (
+                        <div className="text-[10px] font-serif italic text-amber-500 animate-pulse p-2">
+                          Reading archives transcripts...
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
 

@@ -18,6 +18,7 @@ const DOCUMENT_TYPE_LABELS: Record<DocumentType, string> = {
   map: '🗺️ Map',
   character_sheet: '⚔️ Character Sheet',
   homebrew: '🔮 Homebrew',
+  srd_content: '🔮 SRD Content',
 };
 
 /**
@@ -30,6 +31,7 @@ const DOCUMENT_TYPE_ICONS: Record<DocumentType, string> = {
   map: '🗺️',
   character_sheet: '⚔️',
   homebrew: '🔮',
+  srd_content: '🔮',
 };
 
 export const DocumentLibrary: React.FC = () => {

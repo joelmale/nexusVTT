@@ -3,11 +3,13 @@ import { GothicHeader } from '../atoms/Typography';
 import { StatsBadge } from '../molecules/StatsBadge';
 import Shield from 'lucide-react/dist/esm/icons/shield';
 import Sword from 'lucide-react/dist/esm/icons/sword';
+import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
 
 interface HeaderProps {
   userName: string;
   campaignCount: number;
   characterCount: number;
+  onBack?: () => void;
   className?: string;
 }
 
@@ -15,6 +17,7 @@ export const Header: React.FC<HeaderProps> = ({
   userName,
   campaignCount,
   characterCount,
+  onBack,
   className = '',
 }) => {
   return (
@@ -28,6 +31,28 @@ export const Header: React.FC<HeaderProps> = ({
     >
       {/* Welcome Message (Left) */}
       <div className="flex items-center gap-3">
+        {onBack && (
+          <button
+            onClick={onBack}
+            className="
+              group flex items-center gap-1.5 mr-2
+              px-3 py-1.5 rounded-sm
+              text-amber-400 text-[11px] font-sans tracking-wide uppercase font-bold
+              bg-[#1a1d23] border border-[#8c6b4a]/50
+              shadow-[0_3px_0_0_#5a3e28,0_4px_8px_rgba(0,0,0,0.4)]
+              hover:shadow-[0_1px_0_0_#5a3e28,0_2px_4px_rgba(0,0,0,0.4)]
+              hover:translate-y-[2px]
+              active:shadow-none active:translate-y-[3px]
+              transition-all duration-100
+            "
+          >
+            <ChevronLeft
+              size={13}
+              className="transition-transform duration-100 group-hover:-translate-x-0.5"
+            />
+            Lobby
+          </button>
+        )}
         <div className="w-1.5 h-8 bg-amber-600 rounded-sm shadow-vtt-amber-glow" />
         <div>
           <GothicHeader level={1} variant="cinzel" className="!text-[#f1e6d3] text-2xl tracking-wide">

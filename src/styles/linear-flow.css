@@ -302,8 +302,8 @@
 .selection-indicator {
   /* Positioning & Layout */
   position: absolute;
-  top: 1rem;
-  left: 1rem;
+  top: 0.85rem;
+  right: 0.85rem;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -312,9 +312,15 @@
   width: 24px;
   height: 24px;
 
-  /* Animation & Misc */
+  /* Animation & Misc — hidden until the card is actually selected */
+  opacity: 0;
+  transform: scale(0.6);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.role-card.selected .selection-indicator {
   opacity: 1;
-  transition: opacity 0.3s ease;
+  transform: scale(1);
 }
 
 .character-select-checkbox {
@@ -561,6 +567,14 @@
 
   /* Box Model */
   gap: 0.75rem;
+}
+
+.quick-join-heading {
+  margin: 0;
+  text-align: left;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.92);
 }
 
 .divider-small {
@@ -1128,22 +1142,30 @@
   align-items: center;
   width: 80%;
   margin-top: 2rem;
-  padding: 1.5rem;
-  border: 1px solid rgba(255, 193, 7, 0.3);
+  margin-left: auto;
+  margin-right: auto;
+  padding: 1rem 1.25rem;
+  border: 1px dashed rgba(255, 255, 255, 0.12);
 
-  /* Visuals */
-  background: rgba(255, 193, 7, 0.1);
+  /* Visuals — muted so it never competes with the primary flow */
+  background: rgba(255, 255, 255, 0.03);
   border-radius: 12px;
+  opacity: 0.7;
+  transition: opacity 0.25s ease;
+}
+
+.dev-tools:hover {
+  opacity: 1;
 }
 
 .dev-divider {
   /* Box Model */
   border: none;
   height: 1px;
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.85rem 0;
 
   /* Visuals */
-  background: rgba(255, 193, 7, 0.3);
+  background: rgba(255, 255, 255, 0.1);
 }
 
 .dev-title {
@@ -1151,21 +1173,23 @@
   text-align: center;
 
   /* Box Model */
-  margin: 0 0 1rem 0;
+  margin: 0 0 0.85rem 0;
 
   /* Typography */
-  color: rgba(255, 193, 7, 0.9);
-  font-size: 1rem;
+  color: rgba(255, 255, 255, 0.45);
+  font-size: 0.8rem;
   font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
 }
 
 .dev-buttons {
   /* Positioning & Layout */
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  grid-template-columns: repeat(3, 1fr);
 
   /* Box Model */
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .dev-btn {

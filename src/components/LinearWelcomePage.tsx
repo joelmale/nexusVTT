@@ -477,10 +477,17 @@ export const LinearWelcomePage: React.FC = () => {
           <div className="account-menu">
             <PopoverMenu
               trigger={
-                <span className="account-icon">
-                  {isAuthenticated
-                    ? (user.name || user.displayName || 'User')[0]?.toUpperCase()
-                    : '👤'}
+                <span className="account-trigger">
+                  <span className="account-avatar">
+                    {isAuthenticated
+                      ? (user.name || user.displayName || 'User')[0]?.toUpperCase()
+                      : '👤'}
+                  </span>
+                  <span className="account-trigger-label">
+                    {isAuthenticated
+                      ? user.displayName || user.name || 'Account'
+                      : 'Sign In'}
+                  </span>
                 </span>
               }
               triggerClassName={`account-bubble glass-panel ${isAuthenticated ? 'logged-in' : ''}`}
@@ -512,12 +519,6 @@ export const LinearWelcomePage: React.FC = () => {
                       onClick={() => navigate('/dashboard')}
                     >
                       <span className="option-text">Go to dashboard</span>
-                    </button>
-                    <button
-                      className="account-option wide"
-                      onClick={() => navigate('/dashboard-new')}
-                    >
-                      <span className="option-text">Go to new dashboard</span>
                     </button>
                     <button
                       className="account-option wide"
@@ -685,8 +686,12 @@ export const LinearWelcomePage: React.FC = () => {
                   placeholder="Your adventurer name"
                   className="glass-input"
                   disabled={loading}
+                  aria-describedby="adventurerName-hint"
                 />
               </div>
+              <span id="adventurerName-hint" className="input-hint">
+                Your display name for this session — no account needed to play.
+              </span>
             </div>
 
             {/* Role Selection */}
@@ -719,69 +724,11 @@ export const LinearWelcomePage: React.FC = () => {
                   {/* Player Action Buttons */}
                   {selectedRole === 'player' && (
                     <div className="player-actions">
-                      {/* Character Selection for Authenticated Users */}
-                      {isAuthenticated && (
-                        <div className="campaign-selection">
-                          <label
-                            htmlFor="character-select"
-                            className="campaign-label"
-                          >
-                            Select Character (Optional)
-                          </label>
-                          {charactersLoading ? (
-                            <div className="loading-state">
-                              <span className="loading-spinner"></span>
-                              Loading characters...
-                            </div>
-                          ) : characters.length > 0 ? (
-                            <select
-                              id="character-select"
-                              value={selectedCharacter}
-                              onChange={(e) =>
-                                setSelectedCharacter(e.target.value)
-                              }
-                              className="glass-input campaign-dropdown"
-                              disabled={loading}
-                            >
-                              <option value="">
-                                -- Select a character or create new --
-                              </option>
-                              {characters.map((character) => (
-                                <option key={character.id} value={character.id}>
-                                  {character.name}
-                                  {character.data?.class
-                                    ? ` (${character.data.class})`
-                                    : ''}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
-                            <p className="no-campaigns-hint">
-                              No saved characters yet. You can create one from
-                              the{' '}
-                              <a href="/dashboard" className="dashboard-link">
-                                dashboard
-                              </a>{' '}
-                              or continue as a new character.
-                            </p>
-                          )}
-                        </div>
-                      )}
-
-                      <button
-                        type="button"
-                        onClick={handlePlayerSetup}
-                        disabled={playerNameEmpty || loading}
-                        className="action-btn glass-button primary"
-                      >
-                        <span>🎭</span>
-                        Character Setup
-                      </button>
-
+                      {/* Quick Join — primary path for invited players */}
                         <div className="quick-join-section">
-                          <div className="divider-small">
-                            <span>or</span>
-                          </div>
+                          <h4 className="quick-join-heading">
+                            🗝️ Have a room code?
+                          </h4>
                           <div className="quick-join-form">
                             <div className="quick-join-controls">
                               <div className="quick-join-mode">
@@ -862,6 +809,69 @@ export const LinearWelcomePage: React.FC = () => {
                             </div>
                           </div>
                         </div>
+
+                      <div className="divider-small">
+                        <span>or start fresh</span>
+                      </div>
+
+                      {/* Character Selection for Authenticated Users */}
+                      {isAuthenticated && (
+                        <div className="campaign-selection">
+                          <label
+                            htmlFor="character-select"
+                            className="campaign-label"
+                          >
+                            Select Character (Optional)
+                          </label>
+                          {charactersLoading ? (
+                            <div className="loading-state">
+                              <span className="loading-spinner"></span>
+                              Loading characters...
+                            </div>
+                          ) : characters.length > 0 ? (
+                            <select
+                              id="character-select"
+                              value={selectedCharacter}
+                              onChange={(e) =>
+                                setSelectedCharacter(e.target.value)
+                              }
+                              className="glass-input campaign-dropdown"
+                              disabled={loading}
+                            >
+                              <option value="">
+                                -- Select a character or create new --
+                              </option>
+                              {characters.map((character) => (
+                                <option key={character.id} value={character.id}>
+                                  {character.name}
+                                  {character.data?.class
+                                    ? ` (${character.data.class})`
+                                    : ''}
+                                </option>
+                              ))}
+                            </select>
+                          ) : (
+                            <p className="no-campaigns-hint">
+                              No saved characters yet. You can create one from
+                              the{' '}
+                              <a href="/dashboard" className="dashboard-link">
+                                dashboard
+                              </a>{' '}
+                              or continue as a new character.
+                            </p>
+                          )}
+                        </div>
+                      )}
+
+                      <button
+                        type="button"
+                        onClick={handlePlayerSetup}
+                        disabled={playerNameEmpty || loading}
+                        className="action-btn glass-button primary"
+                      >
+                        <span>🎭</span>
+                        Character Setup
+                      </button>
                     </div>
                   )}
                 </div>

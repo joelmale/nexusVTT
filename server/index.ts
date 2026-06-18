@@ -50,6 +50,7 @@ import { SocketManager } from './socket/SocketManager.js';
 import { ChatHandler } from './socket/handlers/ChatHandler.js';
 import { SceneHandler } from './socket/handlers/SceneHandler.js';
 import { DiceHandler } from './socket/handlers/DiceHandler.js';
+import { DocumentSyncHandler } from './socket/handlers/DocumentSyncHandler.js';
 
 // Services
 import {
@@ -352,6 +353,7 @@ class NexusServer {
     new ChatHandler(this.socketManager, this.db);
     new SceneHandler(this.socketManager, this.db);
     new DiceHandler(this.socketManager, this.db);
+    new DocumentSyncHandler(this.socketManager, this.db);
 
     this.httpServer.on(
       'upgrade',
@@ -897,29 +899,60 @@ class NexusServer {
           }
 
           const user = req.user as { id: string };
-          
-          console.log(`🛠️ Dev seeding requested for user: ${user.id}`);
-          
-          // Seed 3 campaigns
+
+          // Configurable counts (default 3 campaigns / 4 characters), clamped to
+          // a sane range so a bad request can't ask for thousands of inserts.
+          const clamp = (v: unknown, def: number) =>
+            Math.min(Math.max(Math.floor(Number(v) || def), 0), 25);
+          const campaignCount = clamp(req.body?.campaigns, 3);
+          const characterCount = clamp(req.body?.characters, 4);
+
+          console.log(
+            `🛠️ Dev seeding requested for user ${user.id}: ${campaignCount} campaigns, ${characterCount} characters`,
+          );
+
+          // Each insert is isolated so one failure can't abort the whole batch;
+          // we report partial success instead of 500-ing everything.
           const createdCampaigns = [];
-          for (let i = 0; i < 3; i++) {
-            const campData = generateRandomCampaign(user.id);
-            const campaign = await this.db.createCampaign(user.id, campData.name, campData.description);
-            createdCampaigns.push(campaign);
-          }
-          
-          // Seed 4 characters
           const createdCharacters = [];
-          for (let i = 0; i < 4; i++) {
-            const charData = generateRandomCharacter(user.id);
-            const character = await this.db.createCharacter(user.id, charData.name, charData.data);
-            createdCharacters.push(character);
+          const errors: string[] = [];
+
+          for (let i = 0; i < campaignCount; i++) {
+            try {
+              const campData = generateRandomCampaign(user.id);
+              const campaign = await this.db.createCampaign(
+                user.id,
+                campData.name,
+                campData.description ?? undefined,
+              );
+              createdCampaigns.push(campaign);
+            } catch (err) {
+              console.error(`Seed campaign ${i} failed:`, err);
+              errors.push(`campaign ${i}: ${(err as Error).message}`);
+            }
           }
-          
+
+          for (let i = 0; i < characterCount; i++) {
+            try {
+              const charData = generateRandomCharacter(user.id);
+              const character = await this.db.createCharacter(
+                user.id,
+                charData.name,
+                charData.data,
+              );
+              createdCharacters.push(character);
+            } catch (err) {
+              console.error(`Seed character ${i} failed:`, err);
+              errors.push(`character ${i}: ${(err as Error).message}`);
+            }
+          }
+
           res.json({
-            success: true,
+            success: errors.length === 0,
             campaigns: createdCampaigns,
-            characters: createdCharacters
+            characters: createdCharacters,
+            requested: { campaigns: campaignCount, characters: characterCount },
+            errors,
           });
         } catch (error) {
           console.error('Failed to populate mock data:', error);
@@ -1048,6 +1081,41 @@ class NexusServer {
       } catch (error) {
         console.error('Failed to update campaign:', error);
         res.status(500).json({ error: 'Failed to update campaign' });
+      }
+    });
+
+    /**
+     * DELETE /api/campaigns/:id
+     * Deletes a campaign (and cascades to its sessions via ON DELETE CASCADE)
+     * Requires authentication and ownership
+     */
+    this.app.delete('/api/campaigns/:id', async (req, res) => {
+      try {
+        if (!req.isAuthenticated()) {
+          return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        const campaignId = req.params.id;
+
+        // Verify ownership
+        const campaign = await this.db.getCampaignById(campaignId);
+        if (!campaign) {
+          return res.status(404).json({ error: 'Campaign not found' });
+        }
+
+        const user = req.user as { id: string };
+        if (campaign.dmId !== user.id) {
+          return res
+            .status(403)
+            .json({ error: 'Access denied: not campaign owner' });
+        }
+
+        await this.db.deleteCampaign(campaignId);
+
+        res.json({ success: true, message: 'Campaign deleted successfully' });
+      } catch (error) {
+        console.error('Failed to delete campaign:', error);
+        res.status(500).json({ error: 'Failed to delete campaign' });
       }
     });
 

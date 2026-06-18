@@ -5,24 +5,65 @@
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useDocumentStore } from '@/stores/documentStore';
+import { useGameStore } from '@/stores/gameStore';
+import { webSocketService } from '@/services/websocket';
+import { StatusBadge } from '@/components/Dashboard/atoms/StatusBadge';
 
 import { PDFDocumentProxy } from 'pdfjs-dist';
 
+interface VttDocumentSyncMessage {
+  type: string;
+  data?: {
+    name?: string;
+    documentId?: unknown;
+    sessionId?: unknown;
+    presenterId?: unknown;
+  };
+}
+
 export const DocumentViewer: React.FC = () => {
-  const { currentDocument, currentDocumentContent, isLoadingDocument, closeDocument } =
-    useDocumentStore();
-  const [page, setPage] = useState(1);
+  const {
+    currentDocument,
+    currentDocumentContent,
+    isLoadingDocument,
+    closeDocument,
+    currentPage,
+    setCurrentPage,
+    documentSessionId,
+    isPresenter,
+    isPresentationMode,
+    syncScrollRatio,
+    syncZoomScale,
+    documentSyncError,
+    connectDocumentSync,
+    joinDocumentSyncSession,
+    disconnectDocumentSync,
+    setPresentationMode,
+    sendPageSync,
+    sendScrollSync,
+    sendZoomSync,
+  } = useDocumentStore();
+  const { user, session } = useGameStore();
+  const isHost = user.type === 'host';
   const [totalPages, setTotalPages] = useState(0);
   const [scale, setScale] = useState(1.0);
   const [error, setError] = useState<string | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const contentRef = useRef<HTMLDivElement>(null);
   const pdfDocRef = useRef<PDFDocumentProxy | null>(null);
+  const scrollThrottleRef = useRef<number | null>(null);
+  const lastSyncedPageRef = useRef<number | null>(null);
+
+  const handleCloseDocument = useCallback(() => {
+    disconnectDocumentSync();
+    closeDocument();
+  }, [closeDocument, disconnectDocumentSync]);
 
   // Close on Escape key
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        closeDocument();
+        handleCloseDocument();
       }
     };
 
@@ -30,7 +71,45 @@ export const DocumentViewer: React.FC = () => {
       window.addEventListener('keydown', handleKeyDown);
       return () => window.removeEventListener('keydown', handleKeyDown);
     }
-  }, [currentDocument, closeDocument]);
+  }, [currentDocument, handleCloseDocument]);
+
+  useEffect(() => {
+    const handleVttMessage = (event: Event) => {
+      const message = (event as CustomEvent<VttDocumentSyncMessage>).detail;
+      const data = message?.data;
+      if (
+        user.type === 'host' ||
+        data?.name !== 'document/sync-session' ||
+        typeof data.documentId !== 'string' ||
+        typeof data.sessionId !== 'string' ||
+        typeof data.presenterId !== 'string'
+      ) {
+        return;
+      }
+
+      void joinDocumentSyncSession(data.documentId, data.sessionId, data.presenterId);
+    };
+
+    webSocketService.addEventListener('message', handleVttMessage);
+    return () => webSocketService.removeEventListener('message', handleVttMessage);
+  }, [joinDocumentSyncSession, user.type]);
+
+  useEffect(() => {
+    if (!currentDocument?.id || !isHost || !session?.roomCode) {
+      return;
+    }
+
+    void connectDocumentSync(currentDocument.id);
+  }, [connectDocumentSync, currentDocument?.id, isHost, session?.roomCode]);
+
+  useEffect(() => {
+    return () => {
+      if (scrollThrottleRef.current !== null) {
+        window.clearTimeout(scrollThrottleRef.current);
+      }
+      disconnectDocumentSync();
+    };
+  }, [disconnectDocumentSync]);
 
   /**
    * Render a PDF page
@@ -78,7 +157,6 @@ export const DocumentViewer: React.FC = () => {
         const pdf = await loadingTask.promise;
         pdfDocRef.current = pdf;
         setTotalPages(pdf.numPages);
-        setPage(1);
         // First page will be rendered by the page change useEffect
       } catch (err) {
         console.error('Failed to load PDF:', err);
@@ -95,17 +173,70 @@ export const DocumentViewer: React.FC = () => {
 
   // Render page when page number or scale changes
   useEffect(() => {
-    if (pdfDocRef.current && page > 0 && page <= totalPages) {
-      renderPage(pdfDocRef.current, page);
+    if (pdfDocRef.current && currentPage > 0 && currentPage <= totalPages) {
+      renderPage(pdfDocRef.current, currentPage);
     }
-  }, [page, scale, totalPages, renderPage]);
+  }, [currentPage, scale, totalPages, renderPage]);
+
+  useEffect(() => {
+    if (!isPresenter || !isPresentationMode || currentPage === lastSyncedPageRef.current) {
+      return;
+    }
+
+    lastSyncedPageRef.current = currentPage;
+    sendPageSync(currentPage);
+  }, [currentPage, isPresentationMode, isPresenter, sendPageSync]);
+
+  useEffect(() => {
+    if (isPresenter || syncZoomScale === null || syncZoomScale === scale) {
+      return;
+    }
+
+    setScale(Math.min(Math.max(syncZoomScale, 0.5), 3.0));
+  }, [isPresenter, scale, syncZoomScale]);
+
+  useEffect(() => {
+    if (isPresenter || syncScrollRatio === null) {
+      return;
+    }
+
+    const content = contentRef.current;
+    if (!content) {
+      return;
+    }
+
+    const maxScrollTop = Math.max(content.scrollHeight - content.clientHeight, 0);
+    content.scrollTop = maxScrollTop * syncScrollRatio;
+  }, [currentPage, isPresenter, syncScrollRatio, scale]);
+
+  const handleViewerScroll = useCallback(() => {
+    if (!isPresenter || !isPresentationMode) {
+      return;
+    }
+
+    if (scrollThrottleRef.current !== null) {
+      return;
+    }
+
+    scrollThrottleRef.current = window.setTimeout(() => {
+      scrollThrottleRef.current = null;
+      const content = contentRef.current;
+      if (!content) {
+        return;
+      }
+
+      const maxScrollTop = Math.max(content.scrollHeight - content.clientHeight, 0);
+      const ratio = maxScrollTop > 0 ? content.scrollTop / maxScrollTop : 0;
+      sendScrollSync(ratio);
+    }, 50);
+  }, [isPresentationMode, isPresenter, sendScrollSync]);
 
   /**
    * Navigate to previous page
    */
   const handlePrevPage = () => {
-    if (page > 1) {
-      setPage(page - 1);
+    if (currentPage > 1) {
+      setCurrentPage(currentPage - 1);
     }
   };
 
@@ -113,8 +244,8 @@ export const DocumentViewer: React.FC = () => {
    * Navigate to next page
    */
   const handleNextPage = () => {
-    if (page < totalPages) {
-      setPage(page + 1);
+    if (currentPage < totalPages) {
+      setCurrentPage(currentPage + 1);
     }
   };
 
@@ -122,14 +253,18 @@ export const DocumentViewer: React.FC = () => {
    * Zoom in
    */
   const handleZoomIn = () => {
-    setScale(Math.min(scale + 0.25, 3.0));
+    const nextScale = Math.min(scale + 0.25, 3.0);
+    setScale(nextScale);
+    sendZoomSync(nextScale);
   };
 
   /**
    * Zoom out
    */
   const handleZoomOut = () => {
-    setScale(Math.max(scale - 0.25, 0.5));
+    const nextScale = Math.max(scale - 0.25, 0.5);
+    setScale(nextScale);
+    sendZoomSync(nextScale);
   };
 
   /**
@@ -137,6 +272,7 @@ export const DocumentViewer: React.FC = () => {
    */
   const handleZoomReset = () => {
     setScale(1.0);
+    sendZoomSync(1.0);
   };
 
   if (!currentDocument) {
@@ -144,7 +280,7 @@ export const DocumentViewer: React.FC = () => {
   }
 
   return (
-    <div className="document-viewer-overlay" onClick={closeDocument}>
+    <div className="document-viewer-overlay" onClick={handleCloseDocument}>
       <div className="document-viewer glass-panel" onClick={(e) => e.stopPropagation()}>
         {/* Header */}
         <div className="document-viewer-header">
@@ -154,7 +290,7 @@ export const DocumentViewer: React.FC = () => {
               <p className="document-viewer-description">{currentDocument.description}</p>
             )}
           </div>
-          <button className="document-viewer-close" onClick={closeDocument} aria-label="Close">
+          <button className="document-viewer-close" onClick={handleCloseDocument} aria-label="Close">
             ✕
           </button>
         </div>
@@ -166,18 +302,18 @@ export const DocumentViewer: React.FC = () => {
             <div className="toolbar-group">
               <button
                 onClick={handlePrevPage}
-                disabled={page <= 1}
+                disabled={currentPage <= 1}
                 className="toolbar-btn"
                 aria-label="Previous page"
               >
                 ←
               </button>
               <span className="page-indicator">
-                Page {page} of {totalPages}
+                Page {currentPage} of {totalPages}
               </span>
               <button
                 onClick={handleNextPage}
-                disabled={page >= totalPages}
+                disabled={currentPage >= totalPages}
                 className="toolbar-btn"
                 aria-label="Next page"
               >
@@ -199,6 +335,32 @@ export const DocumentViewer: React.FC = () => {
               </button>
             </div>
 
+            {/* GM presentation sync */}
+            {isHost && (
+              <div className="toolbar-group">
+                <button
+                  onClick={() => setPresentationMode(!isPresentationMode)}
+                  className={`toolbar-btn ${isPresentationMode ? 'active' : ''}`}
+                  aria-pressed={isPresentationMode}
+                  disabled={!documentSessionId}
+                >
+                  {isPresentationMode ? 'Presentation Mode' : 'Sync View to Players'}
+                </button>
+              </div>
+            )}
+
+            {!isHost && documentSessionId && (
+              <div className="toolbar-group">
+                <StatusBadge status="success">Synced with Presenter</StatusBadge>
+              </div>
+            )}
+
+            {documentSyncError && (
+              <div className="toolbar-group">
+                <StatusBadge status="warning">{documentSyncError}</StatusBadge>
+              </div>
+            )}
+
             {/* Download */}
             <div className="toolbar-group">
               <a
@@ -214,7 +376,11 @@ export const DocumentViewer: React.FC = () => {
         )}
 
         {/* Content */}
-        <div className="document-viewer-content">
+        <div
+          ref={contentRef}
+          className="document-viewer-content"
+          onScroll={handleViewerScroll}
+        >
           {isLoadingDocument ? (
             <div className="loading-state">
               <span className="loading-spinner"></span>

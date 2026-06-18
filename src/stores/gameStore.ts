@@ -71,6 +71,9 @@ interface PendingUpdate {
 
 interface GameStore extends GameState {
   isAuthenticated: boolean;
+  /** True once the initial /auth/me check has resolved (regardless of outcome).
+   *  Lets guards distinguish "auth still loading" from "confirmed signed out". */
+  authChecked: boolean;
   // Core Actions
   setUser: (user: Partial<User>) => void;
   setSession: (session: Session | null) => void;
@@ -464,6 +467,7 @@ const initialState: GameState & {
   gameConfig?: GameConfig;
   selectedCharacter?: PlayerCharacter;
   isAuthenticated: boolean;
+  authChecked: boolean;
 } = {
   // App Flow State (from appFlowStore)
   gameConfig: undefined,
@@ -471,6 +475,7 @@ const initialState: GameState & {
 
   // Game State
   isAuthenticated: false,
+  authChecked: false,
   user: {
     id: getBrowserId(),
     name: '',
@@ -1610,6 +1615,10 @@ export const useGameStore = create<GameStore>()(
         } catch (error) {
           console.error('Auth check failed', error);
           set({ isAuthenticated: false });
+        } finally {
+          // Mark the initial auth probe as complete so route guards can stop
+          // waiting and make a decision based on the real result.
+          set({ authChecked: true });
         }
       },
 

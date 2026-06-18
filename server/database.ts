@@ -122,6 +122,7 @@ export class DatabaseService {
   async getCampaignById(id: string) { return this.campaigns.getCampaignById(id); }
   async isUserAuthorizedForCampaign(userId: string, campId: string) { return this.campaigns.isUserAuthorizedForCampaign(userId, campId); }
   async updateCampaign(id: string, updates: Partial<CampaignRecord>) { return this.campaigns.updateCampaign(id, updates); }
+  async deleteCampaign(id: string) { return this.campaigns.deleteCampaign(id); }
   async saveCampaignScenes(id: string, scenes: unknown[]) { return this.campaigns.saveCampaignScenes(id, scenes); }
   async getCampaignScenes(id: string) { return this.campaigns.getCampaignScenes(id); }
 

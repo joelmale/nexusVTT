@@ -15,7 +15,8 @@ export type DocumentType =
   | 'handout'
   | 'map'
   | 'character_sheet'
-  | 'homebrew';
+  | 'homebrew'
+  | 'srd_content';
 
 /**
  * Document format
@@ -157,6 +158,46 @@ export interface QuickSearchResult {
 export interface QuickSearchResponse {
   query: string;
   results: QuickSearchResult[];
+}
+
+export interface SemanticSearchResult {
+  chunkId: string;
+  documentId: string;
+  document: {
+    id: string;
+    title: string;
+    type: string;
+  };
+  pageStart: number;
+  pageEnd: number;
+  contentSnippet: string;
+  score: number;
+}
+
+export interface SemanticSearchResponse {
+  query: string;
+  total: number;
+  provider: string;
+  results: SemanticSearchResult[];
+}
+
+export interface AskSearchCitation {
+  sourceIndex: number;
+  documentId: string;
+  title: string;
+  pageStart: number;
+  pageEnd: number;
+  chunkId: string;
+  confidence: number;
+}
+
+export interface AskSearchResponse {
+  question: string;
+  answer: string;
+  confidence: number;
+  citations: AskSearchCitation[];
+  snippets: string[];
+  followups: string[];
 }
 
 /**
@@ -349,10 +390,91 @@ export class DocumentServiceClient {
   }
 
   /**
+   * Hybrid semantic search over document chunks
+   * @param params - Search parameters
+   */
+  async semanticSearch(params: SearchParams & { topK?: number }): Promise<SemanticSearchResponse> {
+    const queryParams = new URLSearchParams();
+
+    queryParams.append('query', params.query);
+    if (params.type) queryParams.append('type', params.type);
+    if (params.campaigns) queryParams.append('campaigns', params.campaigns.join(','));
+    if (params.tags) queryParams.append('tags', params.tags.join(','));
+    if (params.topK !== undefined) queryParams.append('topK', params.topK.toString());
+
+    return this.request<SemanticSearchResponse>(`/api/search/semantic?${queryParams.toString()}`);
+  }
+
+  /**
+   * Grounded Ask Q&A search using retrieved document chunks
+   * @param question - Natural language question
+   * @param filters - Optional filters (type, campaigns, tags, topK)
+   */
+  async ask(
+    question: string,
+    filters?: { type?: DocumentType; campaigns?: string[]; tags?: string[]; topK?: number }
+  ): Promise<AskSearchResponse> {
+    return this.request<AskSearchResponse>('/api/search/ask', {
+      method: 'POST',
+      body: JSON.stringify({
+        question,
+        ...filters,
+      }),
+    });
+  }
+
+  /**
    * Health check for the document service
    */
   async healthCheck(): Promise<{ status: string; database: string }> {
     return this.request<{ status: string; database: string }>('/health');
+  }
+
+  /**
+   * Get all structured data for a document
+   */
+  async getDocumentStructuredData(
+    documentId: string,
+    params?: { type?: string; name?: string }
+  ): Promise<any[]> {
+    const queryParams = new URLSearchParams();
+    if (params?.type) queryParams.append('type', params.type);
+    if (params?.name) queryParams.append('name', params.name);
+    const query = queryParams.toString();
+    const endpoint = query
+      ? `/api/documents/${documentId}/structured-data?${query}`
+      : `/api/documents/${documentId}/structured-data`;
+    return this.request<any[]>(endpoint);
+  }
+
+  /**
+   * Get specific structured data entry by ID
+   */
+  async getStructuredDataById(id: string): Promise<any> {
+    return this.request<any>(`/api/structured-data/${id}`);
+  }
+
+  /**
+   * List structured data with filtering
+   */
+  async listStructuredData(params?: {
+    documentId?: string;
+    type?: string;
+    name?: string;
+    search?: string;
+    limit?: string;
+    offset?: string;
+  }): Promise<any[]> {
+    const queryParams = new URLSearchParams();
+    if (params?.documentId) queryParams.append('documentId', params.documentId);
+    if (params?.type) queryParams.append('type', params.type);
+    if (params?.name) queryParams.append('name', params.name);
+    if (params?.search) queryParams.append('search', params.search);
+    if (params?.limit) queryParams.append('limit', params.limit);
+    if (params?.offset) queryParams.append('offset', params.offset);
+    const query = queryParams.toString();
+    const endpoint = query ? `/api/structured-data?${query}` : '/api/structured-data';
+    return this.request<any[]>(endpoint);
   }
 }
 

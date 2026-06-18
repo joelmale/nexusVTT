@@ -84,39 +84,37 @@ export const CampaignCard: React.FC<CampaignCardProps> = ({
       </div>
 
       {/* Bottom Section: Actions */}
-      <div className="flex flex-col gap-2 border-t border-[#8c6b4a]/20 pt-3">
+      <div className="flex justify-between items-center border-t border-[#8c6b4a]/20 pt-3 px-1">
+        {onEdit && (
+          <Button
+            variant="ghost"
+            onClick={() => onEdit(campaign)}
+            icon={<Pencil size={11} />}
+            className="!px-2 !py-0.5 text-[10px] !text-[#362b21]/50 hover:!text-amber-700 font-bold"
+          >
+            Edit
+          </Button>
+        )}
         {onPlay && (
           <Button
             variant="bronze"
             onClick={() => onPlay(campaign)}
             icon={<Play size={12} className="fill-current" />}
-            className="w-full !py-1.5 text-xs"
+            className="!py-1 !px-3 text-xs"
           >
-            Play Game
+            Play
           </Button>
         )}
-        <div className="flex justify-between items-center px-1">
-          {onEdit && (
-            <Button
-              variant="ghost"
-              onClick={() => onEdit(campaign)}
-              icon={<Pencil size={11} />}
-              className="!px-2 !py-0.5 text-[10px] !text-[#362b21] hover:!text-amber-700 font-bold"
-            >
-              Edit
-            </Button>
-          )}
-          {onDelete && (
-            <Button
-              variant="ghost"
-              onClick={() => onDelete(campaign)}
-              icon={<Trash2 size={11} />}
-              className="!px-2 !py-0.5 text-[10px] !text-[#7f1d1d] hover:!text-red-600 font-bold"
-            >
-              Delete
-            </Button>
-          )}
-        </div>
+        {onDelete && (
+          <Button
+            variant="ghost"
+            onClick={() => onDelete(campaign)}
+            icon={<Trash2 size={11} />}
+            className="!px-2 !py-0.5 text-[10px] !text-[#7f1d1d] hover:!text-red-600 font-bold"
+          >
+            Delete
+          </Button>
+        )}
       </div>
     </article>
   );
