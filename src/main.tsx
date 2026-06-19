@@ -11,6 +11,7 @@ import { Providers } from './components/Providers';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { LinearWelcomePage } from './components/LinearWelcomePage';
 import { LoadingScreen } from './components/LoadingScreen';
+import { RouteErrorBoundary } from './components/RouteErrorBoundary';
 
 // Lazy load heavy components
 const PlayerSetupPage = React.lazy(() =>
@@ -70,6 +71,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <BrowserRouter>
       <Providers>
+        <RouteErrorBoundary>
         <Routes>
           {/* Root redirect */}
           <Route path="/" element={<Navigate to="/lobby" replace />} />
@@ -128,6 +130,7 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
           {/* Fallback - redirect unknown routes to lobby */}
           <Route path="*" element={<Navigate to="/lobby" replace />} />
         </Routes>
+        </RouteErrorBoundary>
       </Providers>
       <Toaster />
     </BrowserRouter>

@@ -183,6 +183,27 @@ export const Dashboard: React.FC = () => {
     }
   };
 
+  const handleCreateCampaign = async () => {
+    const name = prompt('Name your new campaign:')?.trim();
+    if (!name) return;
+    try {
+      const res = await fetch('/api/campaigns', {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name }),
+      });
+      if (res.ok) {
+        await fetchDashboardData();
+      } else {
+        const body = await res.json().catch(() => ({}));
+        alert(body.error || `Failed to create campaign (HTTP ${res.status})`);
+      }
+    } catch {
+      alert('Failed to create campaign');
+    }
+  };
+
   const handleCreateCharacter = () => {
     startCharacterCreation(
       user.id,
@@ -313,6 +334,7 @@ export const Dashboard: React.FC = () => {
         onExport={() => alert('Exporting sheets...')}
         onClearAll={handleClearAll}
         onPlayCampaign={handlePlayCampaign}
+        onCreateCampaign={handleCreateCampaign}
         onEditCampaign={handleEditCampaign}
         onDeleteCampaign={handleDeleteCampaign}
         onStartCharacterSession={handleStartSession}
