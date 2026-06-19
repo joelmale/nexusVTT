@@ -68,6 +68,13 @@ export const Dashboard: React.FC = () => {
   const [sessionJoining, setSessionJoining] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
 
+  // Create Campaign Modal State
+  const [campaignModalOpen, setCampaignModalOpen] = useState(false);
+  const [campaignName, setCampaignName] = useState('');
+  const [campaignDescription, setCampaignDescription] = useState('');
+  const [campaignCreating, setCampaignCreating] = useState(false);
+  const [campaignError, setCampaignError] = useState<string | null>(null);
+
   // Auth guard — wait for the initial /auth/me probe to resolve before deciding.
   // Redirect only when auth is confirmed resolved AND the user is not signed in,
   // so a slow auth check can never bounce an authenticated user to the lobby.
@@ -183,24 +190,42 @@ export const Dashboard: React.FC = () => {
     }
   };
 
-  const handleCreateCampaign = async () => {
-    const name = prompt('Name your new campaign:')?.trim();
-    if (!name) return;
+  const handleCreateCampaign = () => {
+    setCampaignName('');
+    setCampaignDescription('');
+    setCampaignError(null);
+    setCampaignModalOpen(true);
+  };
+
+  const handleCampaignSubmit = async () => {
+    const name = campaignName.trim();
+    if (!name) {
+      setCampaignError('Campaign name is required.');
+      return;
+    }
+    setCampaignCreating(true);
+    setCampaignError(null);
     try {
       const res = await fetch('/api/campaigns', {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name }),
+        body: JSON.stringify({
+          name,
+          description: campaignDescription.trim() || undefined,
+        }),
       });
       if (res.ok) {
+        setCampaignModalOpen(false);
         await fetchDashboardData();
       } else {
         const body = await res.json().catch(() => ({}));
-        alert(body.error || `Failed to create campaign (HTTP ${res.status})`);
+        setCampaignError(body.error || `Failed to create campaign (HTTP ${res.status})`);
       }
     } catch {
-      alert('Failed to create campaign');
+      setCampaignError('Failed to create campaign');
+    } finally {
+      setCampaignCreating(false);
     }
   };
 
@@ -408,6 +433,90 @@ export const Dashboard: React.FC = () => {
                 disabled={sessionJoining || !sessionRoomCode.trim()}
               >
                 {sessionJoining ? 'Joining…' : 'Enter Lobby'}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Create Campaign Modal */}
+      {campaignModalOpen && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 animate-fade-in">
+          <div className="
+            relative bg-[#252a31] border-4 border-double border-[#8c6b4a]/60
+            rounded-sm p-6 w-full max-w-sm shadow-2xl font-sans text-[#f1e6d3]
+          "
+          >
+            {/* Parchment background overlay inside modal */}
+            <div
+              className="absolute inset-0 opacity-[0.02] pointer-events-none mix-blend-overlay"
+              style={{
+                backgroundImage: `url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E")`,
+              }}
+            />
+
+            <GothicHeader level={3} variant="medieval" className="mb-4 border-b border-[#8c6b4a]/30 pb-2">
+              New Campaign
+            </GothicHeader>
+
+            <p className="text-xs text-[#cbd5e1]/80 mb-4 font-serif italic">
+              Name your campaign to begin chronicling a new adventure.
+            </p>
+
+            <label className="block text-[10px] uppercase font-bold tracking-widest text-amber-500 mb-1">
+              Campaign Name
+            </label>
+            <input
+              type="text"
+              placeholder="The Lost Mine of Phandelver"
+              value={campaignName}
+              maxLength={255}
+              onChange={(e) => setCampaignName(e.target.value)}
+              onKeyDown={(e) => e.key === 'Enter' && handleCampaignSubmit()}
+              className="
+                w-full px-3 py-2 rounded-sm text-[#f1e6d3] placeholder:text-[#cbd5e1]/30
+                bg-[#1c1e22] border border-[#8c6b4a]/40 outline-none
+                focus:border-[#d97706] focus:shadow-vtt-amber-glow
+                transition-all duration-200 text-sm mb-4
+              "
+              autoFocus
+            />
+
+            <label className="block text-[10px] uppercase font-bold tracking-widest text-amber-500 mb-1">
+              Description <span className="text-[#cbd5e1]/40 normal-case font-normal">(optional)</span>
+            </label>
+            <textarea
+              placeholder="A short summary of the adventure ahead…"
+              value={campaignDescription}
+              rows={3}
+              onChange={(e) => setCampaignDescription(e.target.value)}
+              className="
+                w-full px-3 py-2 rounded-sm text-[#f1e6d3] placeholder:text-[#cbd5e1]/30
+                bg-[#1c1e22] border border-[#8c6b4a]/40 outline-none resize-none
+                focus:border-[#d97706] focus:shadow-vtt-amber-glow
+                transition-all duration-200 text-sm font-serif mb-4
+              "
+            />
+
+            {campaignError && <p className="text-red-500 text-xs mb-4 font-medium">{campaignError}</p>}
+
+            <div className="flex justify-end gap-3 border-t border-[#8c6b4a]/20 pt-3 mt-2">
+              <Button
+                variant="ghost"
+                onClick={() => {
+                  setCampaignModalOpen(false);
+                  setCampaignError(null);
+                }}
+                className="!text-[#cbd5e1]/60 hover:!text-[#f1e6d3]"
+              >
+                Cancel
+              </Button>
+              <Button
+                variant="bronze"
+                onClick={handleCampaignSubmit}
+                disabled={campaignCreating || !campaignName.trim()}
+              >
+                {campaignCreating ? 'Creating…' : 'Create Campaign'}
               </Button>
             </div>
           </div>
