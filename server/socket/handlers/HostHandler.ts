@@ -32,21 +32,9 @@ export class HostHandler extends BaseHandler {
     return room.host === connection.id;
   }
 
-  private isHostOrCoHost(connection: Connection, room: Room): boolean {
-    return room.host === connection.id || room.coHosts.has(connection.id);
-  }
-
   private getTargetUserId(message: ServerEventMessage): string | null {
     const target = message.data.targetUserId;
     return typeof target === 'string' && target.length > 0 ? target : null;
-  }
-
-  private sendError(connection: Connection, msg: string): void {
-    this.socketManager.sendMessage(connection, {
-      type: 'error',
-      data: { message: msg, code: 403 },
-      timestamp: Date.now(),
-    });
   }
 
   private handleAddCoHost(
@@ -55,12 +43,12 @@ export class HostHandler extends BaseHandler {
     message: ServerEventMessage,
   ): void {
     if (!this.isPrimaryHost(connection, room)) {
-      this.sendError(connection, 'Only the host can grant DM privileges');
+      this.sendError(connection, 'Only the host can grant DM privileges', 403);
       return;
     }
     const targetUserId = this.getTargetUserId(message);
     if (!targetUserId || !room.players.has(targetUserId)) {
-      this.sendError(connection, 'Invalid target user for co-host addition');
+      this.sendError(connection, 'Invalid target user for co-host addition', 403);
       return;
     }
     if (targetUserId === room.host || room.coHosts.has(targetUserId)) {
@@ -91,12 +79,12 @@ export class HostHandler extends BaseHandler {
     message: ServerEventMessage,
   ): void {
     if (!this.isPrimaryHost(connection, room)) {
-      this.sendError(connection, 'Only the host can revoke DM privileges');
+      this.sendError(connection, 'Only the host can revoke DM privileges', 403);
       return;
     }
     const targetUserId = this.getTargetUserId(message);
     if (!targetUserId || !room.coHosts.has(targetUserId)) {
-      this.sendError(connection, 'Invalid target user for co-host removal');
+      this.sendError(connection, 'Invalid target user for co-host removal', 403);
       return;
     }
 
@@ -123,21 +111,21 @@ export class HostHandler extends BaseHandler {
     room: Room,
     message: ServerEventMessage,
   ): void {
-    if (!this.isHostOrCoHost(connection, room)) {
-      this.sendError(connection, 'Host privileges required to kick players');
+    if (!this.isHost(connection, room)) {
+      this.sendError(connection, 'Host privileges required to kick players', 403);
       return;
     }
     const targetUserId = this.getTargetUserId(message);
     if (!targetUserId || !room.players.has(targetUserId)) {
-      this.sendError(connection, 'Invalid target user for kick');
+      this.sendError(connection, 'Invalid target user for kick', 403);
       return;
     }
     if (targetUserId === room.host) {
-      this.sendError(connection, 'The host cannot be kicked');
+      this.sendError(connection, 'The host cannot be kicked', 403);
       return;
     }
     if (targetUserId === connection.id) {
-      this.sendError(connection, 'You cannot kick yourself');
+      this.sendError(connection, 'You cannot kick yourself', 403);
       return;
     }
 

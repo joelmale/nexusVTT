@@ -1,5 +1,6 @@
 import type { WebSocket } from 'ws';
 import type { ServerDiceRoll } from './diceRoller.js';
+import type { StateHash, JsonPatch, ResyncReason } from '../shared/sync/contracts.js';
 
 export interface GameState {
   scenes: unknown[];
@@ -24,6 +25,9 @@ export interface Room {
   previousGameState?: GameState; // For delta generation
   stateVersion: number; // State version counter for patches
   entityVersions: Map<string, number>;
+  // Content-hash of the current room.gameState under SyncableGameState shape.
+  // Anchors the delta-sync token chain. null until first commit.
+  syncToken: StateHash | null;
 }
 
 export interface Connection {
@@ -101,8 +105,40 @@ export interface ServerGameStatePatchMessage extends BaseServerMessage {
   data: {
     patch: unknown[]; // JSON Patch operations
     version: number; // State version
+    // Delta-sync chain anchors (added by the content-hash-chained sync). The
+    // legacy client reads only patch/version; these are additive and ignored
+    // by older handlers.
+    baseToken?: StateHash | null;
+    newToken?: StateHash;
   };
 }
+
+/**
+ * Server→sender ack confirming a committed upload and its new token.
+ * NEW message type; the legacy client ignores unknown types.
+ */
+export interface ServerSyncAckMessage extends BaseServerMessage {
+  type: 'game-state-ack';
+  data: {
+    token: StateHash;
+    version: number;
+  };
+}
+
+/**
+ * Server→sender directive to resend a full snapshot after a chain break.
+ * NEW message type; the legacy client ignores unknown types.
+ */
+export interface ServerResyncRequiredMessage extends BaseServerMessage {
+  type: 'game-state-resync-required';
+  data: {
+    serverToken: StateHash | null;
+    reason: ResyncReason;
+  };
+}
+
+// Re-export shared sync aliases for server-internal use.
+export type { StateHash, JsonPatch, ResyncReason };
 
 // Union type for all possible server messages
 export type ServerMessage =
@@ -112,4 +148,6 @@ export type ServerMessage =
   | ServerHeartbeatMessage
   | ServerUpdateConfirmationMessage
   | ServerChatMessage
-  | ServerGameStatePatchMessage;
+  | ServerGameStatePatchMessage
+  | ServerSyncAckMessage
+  | ServerResyncRequiredMessage;

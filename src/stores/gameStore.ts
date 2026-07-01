@@ -66,6 +66,9 @@ import { getLinearFlowStorage } from '@/services/linearFlowStorage';
 // other inside runtime functions, so the import cycle is safe (live bindings).
 import { useCharacterStore } from '@/stores/characterStore';
 import { useInitiativeStore } from '@/stores/initiativeStore';
+// Content-hash-chained delta-sync engine. Cycle-safe: gameStateSync only reads
+// this module's exports (useGameStore, buildInitiativeSnapshot) inside functions.
+import { gameStateSyncEngine } from '@/services/gameStateSync';
 
 interface PendingUpdate {
   id: string;
@@ -81,7 +84,7 @@ interface PendingUpdate {
  * IndexedDB and the server. Used by the session save and restore-rebroadcast
  * flows.
  */
-function buildInitiativeSnapshot(): InitiativeState {
+export function buildInitiativeSnapshot(): InitiativeState {
   const s = useInitiativeStore.getState();
   return {
     isActive: s.isActive,
@@ -1979,15 +1982,13 @@ export const useGameStore = create<GameStore>()(
             // re-broadcast the restored state to the server below.
             await get().loadSessionState();
 
-            // Send the restored state to the server
+            // Send the restored state to the server. The delta-sync engine
+            // rebuilds the snapshot from the (now-hydrated) live stores; flag
+            // OFF keeps this a byte-identical legacy full send.
             const { webSocketService } = await import('@/services/websocket');
             if (webSocketService.isConnected()) {
               console.log('📤 Sending restored state to server');
-              webSocketService.sendGameStateUpdate({
-                sceneState: get().sceneState,
-                characters: useCharacterStore.getState().characters,
-                initiative: buildInitiativeSnapshot(),
-              });
+              gameStateSyncEngine.schedule();
             }
           } else {
             console.log('ℹ️ No game state to restore, starting fresh');
@@ -2495,29 +2496,14 @@ export const useGameStore = create<GameStore>()(
           return;
         }
 
-        // Send game state update to server for PostgreSQL persistence
-        (async () => {
-          try {
-            const { webSocketService } = await import('@/services/websocket');
-
-            // Serialize scenes to plain objects (remove circular references)
-            const scenes = JSON.parse(JSON.stringify(state.sceneState.scenes));
-
-            webSocketService.sendEvent({
-              type: 'game-state-update',
-              data: {
-                scenes,
-                activeSceneId: state.sceneState.activeSceneId,
-              },
-            });
-
-            console.log(
-              `💾 Synced ${scenes.length} scenes to server for campaign persistence`,
-            );
-          } catch (error) {
-            console.error('Failed to sync game state to server:', error);
-          }
-        })();
+        // Route through the content-hash-chained delta-sync engine. With the
+        // delta-sync flag OFF this sends the exact same legacy untagged full
+        // snapshot as before; with it ON it sends tagged-full/patch uploads.
+        try {
+          gameStateSyncEngine.schedule();
+        } catch (error) {
+          console.error('Failed to sync game state to server:', error);
+        }
       },
 
       // Selection Actions
@@ -3675,22 +3661,17 @@ export const useGameStore = create<GameStore>()(
             console.error('Failed to save game state:', error);
           });
 
-        // Also send game state to server if connected and user is host
+        // Also send game state to server if connected and user is host.
+        // Routes through the delta-sync engine: flag OFF → byte-identical legacy
+        // full snapshot (the engine's sendLegacy calls sendGameStateUpdate with
+        // the same live scenes/characters/initiative); flag ON → tagged upload.
         if (
           state.user.type === 'host' &&
           state.user.connected &&
           state.session
         ) {
           try {
-            import('@/services/websocket').then(({ webSocketService }) => {
-              if (webSocketService.isConnected()) {
-                webSocketService.sendGameStateUpdate({
-                  sceneState: state.sceneState,
-                  characters,
-                  initiative: initiativeSnapshot,
-                });
-              }
-            });
+            gameStateSyncEngine.schedule();
           } catch (error) {
             console.error('Failed to send game state update:', error);
           }
@@ -3877,25 +3858,17 @@ export const useGameStore = create<GameStore>()(
             recoveryData.session.userName,
           );
 
-          // If we're the host and have game state, send it to the server
+          // If we're the host and have game state, send it to the server.
+          // loadSessionState() above already rehydrated the character/initiative
+          // stores and scenes, so the delta-sync engine rebuilds the same
+          // snapshot from live state. Flag OFF → byte-identical legacy full send.
           if (
             recoveryData.session.userType === 'host' &&
             recoveryData.gameState &&
             recoveryData.gameState.scenes.length > 0
           ) {
             console.log('📤 Sending restored game state to server');
-            webSocketService.sendGameStateUpdate({
-              sceneState: {
-                scenes: recoveryData.gameState.scenes as Scene[],
-                activeSceneId: recoveryData.gameState.activeSceneId,
-              },
-              characters: (recoveryData.gameState.characters ||
-                []) as unknown[],
-              initiative: (recoveryData.gameState.initiative || {}) as Record<
-                string,
-                unknown
-              >,
-            });
+            gameStateSyncEngine.schedule();
           }
 
           console.log(

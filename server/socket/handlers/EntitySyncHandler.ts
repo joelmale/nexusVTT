@@ -97,16 +97,7 @@ export class EntitySyncHandler extends BaseHandler {
       room.host === connection.id || room.coHosts.has(connection.id);
 
     // --- Authority: host-only mutations ---
-    if (DM_ONLY_EVENTS.has(name) && !isSenderHost) {
-      connection.maliciousAttemptsCount =
-        (connection.maliciousAttemptsCount || 0) + 1;
-      console.warn(
-        `⚠️ Unauthorized "${name}" from ${connection.id} in ${room.code} (attempt ${connection.maliciousAttemptsCount}/3)`,
-      );
-      this.sendError(connection, 'Access denied: Host privilege required.', 403);
-      if (connection.maliciousAttemptsCount >= 3) {
-        connection.ws.terminate();
-      }
+    if (DM_ONLY_EVENTS.has(name) && !this.enforceHostOnly(connection, room, name)) {
       return;
     }
 
@@ -174,13 +165,5 @@ export class EntitySyncHandler extends BaseHandler {
     }
 
     this.socketManager.broadcastToRoom(room.code, relayed, connection.id);
-  }
-
-  private sendError(connection: Connection, message: string, code: number): void {
-    this.socketManager.sendMessage(connection, {
-      type: 'error',
-      data: { message, code },
-      timestamp: Date.now(),
-    });
   }
 }
