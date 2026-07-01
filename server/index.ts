@@ -51,6 +51,8 @@ import { ChatHandler } from './socket/handlers/ChatHandler.js';
 import { SceneHandler } from './socket/handlers/SceneHandler.js';
 import { DiceHandler } from './socket/handlers/DiceHandler.js';
 import { DocumentSyncHandler } from './socket/handlers/DocumentSyncHandler.js';
+import { HostHandler } from './socket/handlers/HostHandler.js';
+import { EntitySyncHandler } from './socket/handlers/EntitySyncHandler.js';
 
 // Services
 import {
@@ -354,6 +356,29 @@ class NexusServer {
     new SceneHandler(this.socketManager, this.db);
     new DiceHandler(this.socketManager, this.db);
     new DocumentSyncHandler(this.socketManager, this.db);
+    new HostHandler(this.socketManager, this.db);
+    new EntitySyncHandler(this.socketManager, this.db);
+
+    // Persist + broadcast host game-state snapshots. This lives here (rather
+    // than in a handler) because it reuses updateRoomGameState, which owns the
+    // authoritative room.gameState, JSON-patch delta generation, and DB
+    // persistence. Only the host may drive canonical game state.
+    this.socketManager.on(
+      'event:game-state-update',
+      ({ connection, room, message }) => {
+        const isSenderHost =
+          room.host === connection.id || room.coHosts.has(connection.id);
+        if (!isSenderHost) {
+          this.sendError(connection, 'Access denied: Host privilege required.');
+          return;
+        }
+        void this.updateRoomGameState(
+          room.code,
+          message.data as unknown as GameState,
+          connection.id, // exclude sender from the patch broadcast
+        );
+      },
+    );
 
     this.httpServer.on(
       'upgrade',
@@ -1028,7 +1053,7 @@ class NexusServer {
      * PUT /api/campaigns/:id
      * Updates a campaign
      * Requires authentication and ownership
-     * Body: { name?: string, description?: string, scenes?: any }
+     * Body: { name?: string, description?: string, scenes?: unknown }
      */
     this.app.put('/api/campaigns/:id', async (req, res) => {
       try {

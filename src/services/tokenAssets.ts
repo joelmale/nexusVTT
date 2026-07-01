@@ -1,5 +1,20 @@
 import React from 'react';
-import type { Token, TokenLibrary, TokenCategory } from '@/types/token';
+import type { Token, TokenLibrary, TokenCategory, TokenSize } from '@/types/token';
+
+/** Shape of a single token entry in the bundled asset manifest. */
+interface ManifestTokenItem {
+  id: string;
+  name: string;
+  path: string;
+  size: TokenSize;
+  category: TokenCategory;
+  tags?: string[];
+}
+
+/** Minimal shape of the token asset manifest we read from. */
+interface TokenManifest {
+  tokens?: { items?: ManifestTokenItem[] };
+}
 
 /**
  * Token Asset Manager handles loading, caching, and organizing token assets
@@ -112,21 +127,22 @@ class TokenAssetManager {
         return this.createFallbackLibraries();
       }
 
-      const manifest = await response.json();
+      const manifest = (await response.json()) as TokenManifest;
 
       // Convert manifest tokens to Token objects
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const defaultTokens: Token[] = manifest.tokens.items.map((item: any) => ({
-        id: item.id,
-        name: item.name,
-        image: item.path,
-        size: item.size,
-        category: item.category,
-        tags: item.tags,
-        isCustom: false,
-        createdAt: Date.now(),
-        updatedAt: Date.now(),
-      }));
+      const defaultTokens: Token[] = (manifest.tokens?.items ?? []).map(
+        (item: ManifestTokenItem) => ({
+          id: item.id,
+          name: item.name,
+          image: item.path,
+          size: item.size,
+          category: item.category,
+          tags: item.tags,
+          isCustom: false,
+          createdAt: Date.now(),
+          updatedAt: Date.now(),
+        }),
+      );
 
       return [
         {

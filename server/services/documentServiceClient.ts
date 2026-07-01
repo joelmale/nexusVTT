@@ -201,6 +201,29 @@ export interface AskSearchResponse {
 }
 
 /**
+ * Raw 5e SRD entity payload (spell, monster, item, etc.). Shape varies by
+ * entity type, so fields are loose; the index signature carries the rest.
+ */
+export interface SrdEntityData {
+  name?: string;
+  type?: string;
+  [key: string]: unknown;
+}
+
+/**
+ * A structured data entry extracted from a document (a spell, monster, item…).
+ */
+export interface StructuredEntity {
+  // Structured entries are persisted DB rows, so they always carry an id and a
+  // parent document reference.
+  id: string;
+  documentId: string;
+  type: string;
+  name?: string;
+  data: SrdEntityData;
+}
+
+/**
  * Configuration for DocumentServiceClient
  */
 export interface DocumentServiceConfig {
@@ -436,7 +459,7 @@ export class DocumentServiceClient {
   async getDocumentStructuredData(
     documentId: string,
     params?: { type?: string; name?: string }
-  ): Promise<any[]> {
+  ): Promise<StructuredEntity[]> {
     const queryParams = new URLSearchParams();
     if (params?.type) queryParams.append('type', params.type);
     if (params?.name) queryParams.append('name', params.name);
@@ -444,14 +467,14 @@ export class DocumentServiceClient {
     const endpoint = query
       ? `/api/documents/${documentId}/structured-data?${query}`
       : `/api/documents/${documentId}/structured-data`;
-    return this.request<any[]>(endpoint);
+    return this.request<StructuredEntity[]>(endpoint);
   }
 
   /**
    * Get specific structured data entry by ID
    */
-  async getStructuredDataById(id: string): Promise<any> {
-    return this.request<any>(`/api/structured-data/${id}`);
+  async getStructuredDataById(id: string): Promise<StructuredEntity> {
+    return this.request<StructuredEntity>(`/api/structured-data/${id}`);
   }
 
   /**
@@ -464,7 +487,7 @@ export class DocumentServiceClient {
     search?: string;
     limit?: string;
     offset?: string;
-  }): Promise<any[]> {
+  }): Promise<StructuredEntity[]> {
     const queryParams = new URLSearchParams();
     if (params?.documentId) queryParams.append('documentId', params.documentId);
     if (params?.type) queryParams.append('type', params.type);
@@ -474,7 +497,7 @@ export class DocumentServiceClient {
     if (params?.offset) queryParams.append('offset', params.offset);
     const query = queryParams.toString();
     const endpoint = query ? `/api/structured-data?${query}` : '/api/structured-data';
-    return this.request<any[]>(endpoint);
+    return this.request<StructuredEntity[]>(endpoint);
   }
 }
 

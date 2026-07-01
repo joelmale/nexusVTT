@@ -11,7 +11,7 @@
 
 import { create } from 'zustand';
 import { immer } from 'zustand/middleware/immer';
-import { documentService, type Document, type DocumentType, type SearchResult, type QuickSearchResult, type AskSearchCitation } from '@/services/documentService';
+import { documentService, type Document, type DocumentType, type SearchResult, type QuickSearchResult, type AskSearchCitation, type StructuredEntity } from '@/services/documentService';
 import {
   documentWebSocketClient,
 } from '@/services/documentWebSocketClient';
@@ -61,7 +61,7 @@ export interface DocumentStoreState {
   isLoadingDocument: boolean;
 
   // Structured entities cache
-  structuredEntities: Record<string, any[]>;
+  structuredEntities: Record<string, StructuredEntity[]>;
   isLoadingStructuredData: boolean;
 
   // Search

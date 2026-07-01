@@ -32,7 +32,7 @@ class WebSocketService extends EventTarget {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
-  private messageQueue: string[] = [];
+  private messageQueue: Array<string | Uint8Array> = [];
   private connectionPromise: Promise<void> | null = null;
   private lastSessionCreatedEvent: SessionCreatedEvent['data'] | null = null;
   private lastSessionJoinedEvent: SessionJoinedEvent['data'] | null = null;
@@ -228,6 +228,22 @@ class WebSocketService extends EventTarget {
         console.log('🎯 Processing event:', sanitizeLog(message.data.name), message.data);
 
         // Session events will be handled by the gameStore's applyEvent method
+
+        // The host removed this client from the session. Tear down locally and
+        // return to the lobby without attempting to reconnect.
+        if (message.data.name === 'session/kicked') {
+          const kickMessage =
+            (message.data as { message?: string }).message ||
+            'You have been removed from the game by the host.';
+          try {
+            gameStore.resetSessionForExpiredRoom();
+          } catch (error) {
+            console.error('Failed to reset session after kick:', error);
+          }
+          this.disconnect();
+          toast.error('Removed from game', { description: kickMessage });
+          break;
+        }
 
         if (
           (message.data.name === 'session/created' ||
@@ -537,6 +553,30 @@ class WebSocketService extends EventTarget {
     });
   }
 
+  /** Host action: remove a player from the session. */
+  sendKickPlayer(targetUserId: string) {
+    this.sendEvent({
+      type: 'session/kickPlayer',
+      data: { targetUserId },
+    } as GameEvent);
+  }
+
+  /** Host action: grant a player co-host ("DM") privileges. */
+  sendAddCoHost(targetUserId: string) {
+    this.sendEvent({
+      type: 'host/add-cohost',
+      data: { targetUserId },
+    } as GameEvent);
+  }
+
+  /** Host action: revoke a player's co-host ("DM") privileges. */
+  sendRemoveCoHost(targetUserId: string) {
+    this.sendEvent({
+      type: 'host/remove-cohost',
+      data: { targetUserId },
+    } as GameEvent);
+  }
+
   sendDiceRoll(roll: DiceRoll) {
     this.sendMessage({
       type: 'dice-roll',
@@ -671,10 +711,9 @@ class WebSocketService extends EventTarget {
     } else {
       // Queue message for when connection is restored
       console.log('⏳ WebSocket not ready, queueing message');
-      // For binary compatibility, we always queue the original message object or a string
-      // and encode it just-in-time when sending from the queue.
-      // But for simplicity in this PR, we'll just queue the string/binary.
-      this.messageQueue.push(payload as any);
+      // Queue the already-encoded payload (string for JSON, Uint8Array for
+      // MessagePack); it is sent as-is when the connection is restored.
+      this.messageQueue.push(payload);
 
       // Limit queue size to prevent memory issues
       if (this.messageQueue.length > 50) {

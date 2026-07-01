@@ -52,12 +52,34 @@ export class RouteErrorBoundary extends React.Component<
       // the fresh assets still can't load for some reason.
       if (Date.now() - last > RELOAD_COOLDOWN_MS) {
         sessionStorage.setItem(RELOAD_TS_KEY, String(Date.now()));
-        window.location.reload();
+        // The usual cause is a stale service-worker-cached index.html that
+        // still points at the previous build's chunk hashes (they now 404). A
+        // plain reload just re-serves that same cached shell, so the load fails
+        // again — the "flash then blank" loop. Purge the SW + caches first so
+        // the reload fetches the fresh shell and chunks from the network.
+        void this.purgeCachesAndReload();
         return;
       }
     }
 
     console.error('Route error boundary caught:', error);
+  }
+
+  private async purgeCachesAndReload() {
+    try {
+      if ('serviceWorker' in navigator) {
+        const registrations = await navigator.serviceWorker.getRegistrations();
+        await Promise.all(registrations.map((r) => r.unregister()));
+      }
+      if ('caches' in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((key) => caches.delete(key)));
+      }
+    } catch (err) {
+      console.error('Failed to purge caches before reload:', err);
+    } finally {
+      window.location.reload();
+    }
   }
 
   handleReload = () => {

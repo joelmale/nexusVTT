@@ -55,11 +55,17 @@ import type {
   CoHostAddedEvent,
   CoHostRemovedEvent,
 } from '@/types/game';
+import type { Character } from '@/types/character';
+import type { InitiativeState } from '@/types/initiative';
 import { v4 as uuidv4 } from 'uuid';
 import { defaultColorSchemes, applyColorScheme } from '@/utils/colorSchemes';
 import { drawingPersistenceService } from '@/services/drawingPersistence';
 import { sessionPersistenceService } from '@/services/sessionPersistence';
 import { getLinearFlowStorage } from '@/services/linearFlowStorage';
+// Cross-store reads for session snapshots. Both modules only reference each
+// other inside runtime functions, so the import cycle is safe (live bindings).
+import { useCharacterStore } from '@/stores/characterStore';
+import { useInitiativeStore } from '@/stores/initiativeStore';
 
 interface PendingUpdate {
   id: string;
@@ -67,6 +73,28 @@ interface PendingUpdate {
   localState: (PlacedToken | PlacedProp) & { sceneId: string };
   timestamp: number;
   previousVersion?: number; // Store the version before optimistic update for rollback
+}
+
+/**
+ * Build a serializable snapshot of the initiative/combat state, picking only
+ * the state fields (no action methods) so it round-trips cleanly through
+ * IndexedDB and the server. Used by the session save and restore-rebroadcast
+ * flows.
+ */
+function buildInitiativeSnapshot(): InitiativeState {
+  const s = useInitiativeStore.getState();
+  return {
+    isActive: s.isActive,
+    isPaused: s.isPaused,
+    round: s.round,
+    entries: s.entries,
+    activeEntryId: s.activeEntryId,
+    history: s.history,
+    autoAdvanceTurns: s.autoAdvanceTurns,
+    showPlayerHP: s.showPlayerHP,
+    allowPlayerInitiative: s.allowPlayerInitiative,
+    sortByInitiative: s.sortByInitiative,
+  };
 }
 
 interface GameStore extends GameState {
@@ -1242,6 +1270,15 @@ const eventHandlers: Record<string, EventHandler> = {
         state.session.coHostIds.push(eventData.coHostId);
       }
 
+      // Reflect the granted DM privilege on the player entry so UI (e.g. the
+      // PlayerPanel toggle) stays in sync.
+      const player = state.session.players.find(
+        (p) => p.id === eventData.coHostId,
+      );
+      if (player) {
+        player.canEditScenes = true;
+      }
+
       // Update local user type if we became co-host
       if (eventData.coHostId === state.user.id) {
         state.user.type = 'host';
@@ -1256,6 +1293,14 @@ const eventHandlers: Record<string, EventHandler> = {
         state.session.coHostIds = state.session.coHostIds.filter(
           (id) => id !== eventData.coHostId,
         );
+      }
+
+      // Reflect the revoked DM privilege on the player entry.
+      const player = state.session.players.find(
+        (p) => p.id === eventData.coHostId,
+      );
+      if (player) {
+        player.canEditScenes = false;
       }
 
       // Update local user type if we were demoted from co-host
@@ -1930,7 +1975,9 @@ export const useGameStore = create<GameStore>()(
               },
             );
 
-            get().loadSessionState();
+            // Await so the character/initiative stores are hydrated before we
+            // re-broadcast the restored state to the server below.
+            await get().loadSessionState();
 
             // Send the restored state to the server
             const { webSocketService } = await import('@/services/websocket');
@@ -1938,8 +1985,8 @@ export const useGameStore = create<GameStore>()(
               console.log('📤 Sending restored state to server');
               webSocketService.sendGameStateUpdate({
                 sceneState: get().sceneState,
-                characters: [],
-                initiative: {},
+                characters: useCharacterStore.getState().characters,
+                initiative: buildInitiativeSnapshot(),
               });
             }
           } else {
@@ -3594,9 +3641,16 @@ export const useGameStore = create<GameStore>()(
           // consider streaming to IndexedDB with a lookup key instead of placeholder.
         }));
 
+        // Pull live data from the character and initiative stores so player
+        // characters and combat state survive refresh and round-trip through
+        // server persistence. characterStore does not self-persist, so this
+        // snapshot is the only path by which characters are recovered.
+        const characters: Character[] = useCharacterStore.getState().characters;
+        const initiativeSnapshot = buildInitiativeSnapshot();
+
         const gameStateData = {
-          characters: [], // TODO: Get from character store when integrated
-          initiative: {}, // TODO: Get from initiative store when integrated
+          characters,
+          initiative: initiativeSnapshot,
           scenes: scenesForLocalStorage,
           activeSceneId: state.sceneState.activeSceneId,
           settings: state.settings,
@@ -3632,8 +3686,8 @@ export const useGameStore = create<GameStore>()(
               if (webSocketService.isConnected()) {
                 webSocketService.sendGameStateUpdate({
                   sceneState: state.sceneState,
-                  characters: [], // TODO: Get from character store when integrated
-                  initiative: {}, // TODO: Get from initiative store when integrated
+                  characters,
+                  initiative: initiativeSnapshot,
                 });
               }
             });
@@ -3667,6 +3721,39 @@ export const useGameStore = create<GameStore>()(
               };
             }
           });
+
+          // Restore characters and initiative into their own stores. These are
+          // serialized in saveSessionState; characterStore does not self-persist,
+          // so this is the only path that recovers characters after a refresh.
+          const persistedGameState = recoveryData.gameState;
+
+          const persistedCharacters = persistedGameState.characters;
+          if (
+            Array.isArray(persistedCharacters) &&
+            persistedCharacters.length > 0
+          ) {
+            useCharacterStore.setState({
+              characters: persistedCharacters as Character[],
+            });
+            console.log(
+              `🔄 Restored ${persistedCharacters.length} characters from session state`,
+            );
+          }
+
+          const persistedInitiative = persistedGameState.initiative;
+          if (
+            persistedInitiative &&
+            typeof persistedInitiative === 'object' &&
+            !Array.isArray(persistedInitiative)
+          ) {
+            const initiativeState = persistedInitiative as Partial<InitiativeState>;
+            // Shallow-merge so the store's action methods are preserved while
+            // combat state fields are overwritten with the persisted snapshot.
+            useInitiativeStore.setState(initiativeState);
+            console.log(
+              `🔄 Restored initiative: ${initiativeState.entries?.length ?? 0} entries, round ${initiativeState.round ?? 0}`,
+            );
+          }
 
           console.log('📂 Game state restored from localStorage');
         }

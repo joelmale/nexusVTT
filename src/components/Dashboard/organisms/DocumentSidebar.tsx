@@ -13,6 +13,7 @@ import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw';
 import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
 import { ChatBubble } from '../molecules/ChatBubble';
 import { EntityStatCard } from '../molecules/EntityStatCard';
+import { mapSrdEntity } from '@/utils/srdEntity';
 
 interface DocumentSidebarProps {
   className?: string;
@@ -153,49 +154,6 @@ export const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
     } catch (err) {
       console.error('Failed to open document:', err);
     }
-  };
-
-  // Map raw 5e SRD entity structure to the format EntityStatCard expects
-  const mapSrdEntity = (type: string, rawData: any) => {
-    if (!rawData) return null;
-    if (type === 'spell') {
-      return {
-        name: rawData.name || '',
-        level: rawData.level !== undefined ? rawData.level : '',
-        school: rawData.school?.name || rawData.school || '',
-        castingTime: rawData.casting_time || '',
-        range: rawData.range || '',
-        components: Array.isArray(rawData.components) ? rawData.components.join(', ') : rawData.components || '',
-        duration: rawData.duration || '',
-        description: Array.isArray(rawData.desc) ? rawData.desc.join('\n') : rawData.desc || '',
-      };
-    }
-    if (type === 'monster') {
-      return {
-        name: rawData.name || '',
-        size: rawData.size || '',
-        type: rawData.type || '',
-        alignment: rawData.alignment || '',
-        ac: rawData.armor_class?.[0]?.value || rawData.armor_class || 10,
-        hp: rawData.hit_points || 0,
-        speed: typeof rawData.speed === 'object'
-          ? Object.entries(rawData.speed).map(([k, v]) => `${k} ${v}`).join(', ')
-          : rawData.speed || '',
-        cr: rawData.challenge_rating !== undefined ? rawData.challenge_rating : '',
-        stats: {
-          strength: rawData.strength || 10,
-          dexterity: rawData.dexterity || 10,
-          constitution: rawData.constitution || 10,
-          intelligence: rawData.intelligence || 10,
-          wisdom: rawData.wisdom || 10,
-          charisma: rawData.charisma || 10,
-        },
-        description: rawData.special_abilities
-          ? rawData.special_abilities.map((a: any) => `**${a.name}.** ${a.desc}`).join('\n\n')
-          : '',
-      };
-    }
-    return rawData;
   };
 
   // Helper to render entity cards below chat messages
@@ -571,10 +529,12 @@ export const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
               const relevant = entities.find(e => e.type === 'spell' || e.type === 'monster');
               const doc = documents.find(d => d.id === selectedEntityDocId);
               
-              if (relevant) {
-                const mapped = mapSrdEntity(relevant.type, relevant.data);
+              const mapped = relevant
+                ? mapSrdEntity(relevant.type, relevant.data)
+                : null;
+              if (relevant && mapped) {
                 return (
-                  <EntityStatCard 
+                  <EntityStatCard
                     type={relevant.type as 'spell' | 'monster'}
                     data={mapped}
                     className="w-full border-none shadow-none"
