@@ -141,7 +141,7 @@ jobs:
           skip-dirs: 'public,node_modules/.cache'
 
       - name: Upload filesystem SBOM as artifact
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-filesystem-${{ github.sha }}
           path: sbom-filesystem.cdx.json
@@ -187,7 +187,7 @@ jobs:
           output: 'sbom-backend.cdx.json'
 
       - name: Upload container SBOMs as artifacts
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: sbom-containers-${{ github.sha }}
           path: |
