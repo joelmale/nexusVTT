@@ -158,7 +158,7 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
   useEffect(() => {
     if (!isActive && prevIsActiveRef.current) {
       // Tool just became inactive, reset state
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setIsDrawing(false);
 
       setStartPoint(null);
