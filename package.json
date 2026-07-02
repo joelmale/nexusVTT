@@ -121,7 +121,7 @@
     "fake-indexeddb": "^6.2.5",
     "glob": "^13.0.6",
     "globals": "^17.6.0",
-    "hermes-estree": "^0.33.1",
+    "hermes-estree": "^0.36.1",
     "hermes-parser": "^0.33.1",
     "husky": "^9.1.7",
     "jsdom": "^27.4.0",
