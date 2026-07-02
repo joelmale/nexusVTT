@@ -12,9 +12,11 @@ import type {
 import type { WebSocketCustomEvent } from '@/types/events';
 import type { ChatMessage } from '@/types/game';
 import { useGameStore } from '@/stores/gameStore';
+import { gameStateSyncEngine } from '@/services/gameStateSync';
 import { toast } from '@/utils/notifications';
 import { applyPatch, Operation } from 'fast-json-patch';
 import { encode, decode } from '@msgpack/msgpack';
+import type { StateHash } from '../../shared/sync/contracts';
 
 const sanitizeLog = (value: unknown): string =>
   String(value).replace(/[\r\n\t]/g, ' ').slice(0, 200);
@@ -32,8 +34,11 @@ class WebSocketService extends EventTarget {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
-  private messageQueue: string[] = [];
+  private messageQueue: Array<string | Uint8Array> = [];
   private connectionPromise: Promise<void> | null = null;
+  /** Signature of the last game-state snapshot sent, for dedup. Reset on
+   *  (re)connect so a fresh session always re-baselines with a full snapshot. */
+  private lastGameStateSignature: string | null = null;
   private lastSessionCreatedEvent: SessionCreatedEvent['data'] | null = null;
   private lastSessionJoinedEvent: SessionJoinedEvent['data'] | null = null;
 
@@ -161,6 +166,12 @@ class WebSocketService extends EventTarget {
 
         console.log('WebSocket connected successfully');
         this.reconnectAttempts = 0;
+        // Re-baseline game-state dedup: the server (re)starts from its own
+        // snapshot on connect, so the next update must be a full send.
+        this.lastGameStateSignature = null;
+        // Re-baseline the delta-sync chain: on every (re)connect the server has
+        // no acked base for us, so the next upload must be a full snapshot.
+        gameStateSyncEngine.reset();
 
         // Send queued messages
         while (this.messageQueue.length > 0) {
@@ -228,6 +239,22 @@ class WebSocketService extends EventTarget {
         console.log('🎯 Processing event:', sanitizeLog(message.data.name), message.data);
 
         // Session events will be handled by the gameStore's applyEvent method
+
+        // The host removed this client from the session. Tear down locally and
+        // return to the lobby without attempting to reconnect.
+        if (message.data.name === 'session/kicked') {
+          const kickMessage =
+            (message.data as { message?: string }).message ||
+            'You have been removed from the game by the host.';
+          try {
+            gameStore.resetSessionForExpiredRoom();
+          } catch (error) {
+            console.error('Failed to reset session after kick:', error);
+          }
+          this.disconnect();
+          toast.error('Removed from game', { description: kickMessage });
+          break;
+        }
 
         if (
           (message.data.name === 'session/created' ||
@@ -368,6 +395,23 @@ class WebSocketService extends EventTarget {
             description: 'Requesting full state sync from server...',
           });
         }
+        break;
+      }
+
+      case 'game-state-ack': {
+        // Sender-only: server confirmed our commit and assigned the new
+        // authoritative token. Promote the in-flight snapshot in the engine.
+        gameStateSyncEngine.onAck({ token: message.data.token as StateHash });
+        break;
+      }
+
+      case 'game-state-resync-required': {
+        // Sender-only: the content-hash chain broke. Drop our base and
+        // re-baseline with a full snapshot on the next flush. The reason
+        // ('base-mismatch' | 'integrity-mismatch' | …) drives the dev log.
+        const reason =
+          (message.data as { reason?: string })?.reason ?? 'server';
+        gameStateSyncEngine.onResyncRequired(reason);
         break;
       }
 
@@ -537,6 +581,30 @@ class WebSocketService extends EventTarget {
     });
   }
 
+  /** Host action: remove a player from the session. */
+  sendKickPlayer(targetUserId: string) {
+    this.sendEvent({
+      type: 'session/kickPlayer',
+      data: { targetUserId },
+    } as GameEvent);
+  }
+
+  /** Host action: grant a player co-host ("DM") privileges. */
+  sendAddCoHost(targetUserId: string) {
+    this.sendEvent({
+      type: 'host/add-cohost',
+      data: { targetUserId },
+    } as GameEvent);
+  }
+
+  /** Host action: revoke a player's co-host ("DM") privileges. */
+  sendRemoveCoHost(targetUserId: string) {
+    this.sendEvent({
+      type: 'host/remove-cohost',
+      data: { targetUserId },
+    } as GameEvent);
+  }
+
   sendDiceRoll(roll: DiceRoll) {
     this.sendMessage({
       type: 'dice-roll',
@@ -562,18 +630,30 @@ class WebSocketService extends EventTarget {
     characters?: unknown[];
     initiative?: unknown;
   }) {
-    console.log('📤 Sending game state update to server:', partialState);
-
     // Server expects type: 'event' with name: 'game-state-update'
+    const payload = {
+      name: 'game-state-update',
+      scenes: partialState.sceneState?.scenes || [],
+      activeSceneId: partialState.sceneState?.activeSceneId || null,
+      characters: partialState.characters || [],
+      initiative: partialState.initiative || {},
+    };
+
+    // Dedup: this is the heaviest recurring message (a full game-state snapshot,
+    // incl. scene background images) and the autosave fires it on a timer even
+    // when nothing changed. Skip a send that is byte-identical to the previous
+    // one. The signature is reset on every (re)connection, so a fresh session
+    // always re-baselines the server with a full snapshot.
+    const signature = JSON.stringify(payload);
+    if (signature === this.lastGameStateSignature) {
+      return;
+    }
+    this.lastGameStateSignature = signature;
+
+    console.log('📤 Sending game state update to server:', partialState);
     this.sendMessage({
       type: 'event',
-      data: {
-        name: 'game-state-update',
-        scenes: partialState.sceneState?.scenes || [],
-        activeSceneId: partialState.sceneState?.activeSceneId || null,
-        characters: partialState.characters || [],
-        initiative: partialState.initiative || {},
-      },
+      data: payload,
       timestamp: Date.now(),
       src: useGameStore.getState().user.id,
     });
@@ -671,10 +751,9 @@ class WebSocketService extends EventTarget {
     } else {
       // Queue message for when connection is restored
       console.log('⏳ WebSocket not ready, queueing message');
-      // For binary compatibility, we always queue the original message object or a string
-      // and encode it just-in-time when sending from the queue.
-      // But for simplicity in this PR, we'll just queue the string/binary.
-      this.messageQueue.push(payload as any);
+      // Queue the already-encoded payload (string for JSON, Uint8Array for
+      // MessagePack); it is sent as-is when the connection is restored.
+      this.messageQueue.push(payload);
 
       // Limit queue size to prevent memory issues
       if (this.messageQueue.length > 50) {

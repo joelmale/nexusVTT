@@ -361,6 +361,22 @@ export interface UpdateConfirmationMessage extends BaseMessage {
   };
 }
 
+export interface GameStateAckMessage extends BaseMessage {
+  type: 'game-state-ack';
+  data: {
+    token: string; // New authoritative StateHash (SHA-256 hex)
+    version: number;
+  };
+}
+
+export interface GameStateResyncRequiredMessage extends BaseMessage {
+  type: 'game-state-resync-required';
+  data: {
+    serverToken: string; // Server's current authoritative StateHash
+    reason: string; // ResyncReason
+  };
+}
+
 export interface GameStatePatchMessage extends BaseMessage {
   type: 'game-state-patch';
   data: {
@@ -377,7 +393,9 @@ export type WebSocketMessage =
   | ErrorMessage
   | HeartbeatMessage
   | UpdateConfirmationMessage
-  | GameStatePatchMessage;
+  | GameStatePatchMessage
+  | GameStateAckMessage
+  | GameStateResyncRequiredMessage;
 
 // Game events
 export interface GameEvent {

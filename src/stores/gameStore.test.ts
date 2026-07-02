@@ -531,3 +531,63 @@ describe('gameStore direct actions', () => {
     expect(diceRolls[49].id).toBe('roll-48'); // The oldest roll ('roll-49') should be gone
   });
 });
+
+describe('gameStore co-host events', () => {
+  beforeEach(() => {
+    useGameStore.setState(getInitialState(), true);
+  });
+
+  const seedSessionWithPlayer = () => {
+    useGameStore.setState({
+      user: {
+        id: 'host-id',
+        name: 'Host',
+        type: 'host',
+        color: 'red',
+        connected: true,
+      },
+      session: {
+        roomCode: 'ABCD',
+        hostId: 'host-id',
+        coHostIds: [],
+        players: [
+          { id: 'host-id', name: 'Host', type: 'host', color: 'red', connected: true, canEditScenes: true },
+          { id: 'p1', name: 'Player One', type: 'player', color: 'blue', connected: true, canEditScenes: false },
+        ],
+        status: 'connected',
+      },
+    });
+  };
+
+  it('"session/cohost-added" grants the player DM edit rights and records the co-host', () => {
+    seedSessionWithPlayer();
+
+    useGameStore.getState().applyEvent({
+      type: 'session/cohost-added',
+      data: { coHostId: 'p1', message: 'promoted' },
+    });
+
+    const session = useGameStore.getState().session;
+    const player = session?.players.find((p) => p.id === 'p1');
+    expect(player?.canEditScenes).toBe(true);
+    expect(session?.coHostIds).toContain('p1');
+  });
+
+  it('"session/cohost-removed" revokes the player\'s DM edit rights', () => {
+    seedSessionWithPlayer();
+    // First promote, then demote.
+    useGameStore.getState().applyEvent({
+      type: 'session/cohost-added',
+      data: { coHostId: 'p1', message: 'promoted' },
+    });
+    useGameStore.getState().applyEvent({
+      type: 'session/cohost-removed',
+      data: { coHostId: 'p1', message: 'demoted' },
+    });
+
+    const session = useGameStore.getState().session;
+    const player = session?.players.find((p) => p.id === 'p1');
+    expect(player?.canEditScenes).toBe(false);
+    expect(session?.coHostIds ?? []).not.toContain('p1');
+  });
+});

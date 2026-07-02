@@ -14,6 +14,7 @@ import { PopoverMenu } from './PopoverMenu';
 import { useShallow } from 'zustand/react/shallow';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.webp';
 import { preloadOnUserIntent } from '@/services/cssLoader';
+import { isDevMode } from '@/utils/devMode';
 
 interface Campaign {
   id: string;
@@ -964,8 +965,8 @@ export const LinearWelcomePage: React.FC = () => {
             </fieldset>
           </form>
 
-          {/* Development Tools - Only show in development */}
-          {process.env.NODE_ENV === 'development' && (
+          {/* Development Tools - gated by the unified dev-mode flag */}
+          {isDevMode() && (
             <div className="dev-tools">
               <hr className="dev-divider" />
               <h4 className="dev-title">⚡ Development Tools</h4>

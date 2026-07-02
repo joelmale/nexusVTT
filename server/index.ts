@@ -45,12 +45,26 @@ import type {
 // Shared types
 import type { AssetManifest } from '../shared/types.js';
 
+// Delta-sync contracts + synchronous hashing (server-only)
+import type {
+  GameStateUpload,
+  SyncableGameState,
+  StateHash,
+  JsonValue,
+  JsonPatch,
+  ResyncReason,
+} from '../shared/sync/contracts.js';
+import { hashSync } from '../shared/sync/hashSync.js';
+import type { Operation } from 'fast-json-patch';
+
 // Sockets
 import { SocketManager } from './socket/SocketManager.js';
 import { ChatHandler } from './socket/handlers/ChatHandler.js';
 import { SceneHandler } from './socket/handlers/SceneHandler.js';
 import { DiceHandler } from './socket/handlers/DiceHandler.js';
 import { DocumentSyncHandler } from './socket/handlers/DocumentSyncHandler.js';
+import { HostHandler } from './socket/handlers/HostHandler.js';
+import { EntitySyncHandler } from './socket/handlers/EntitySyncHandler.js';
 
 // Services
 import {
@@ -74,6 +88,7 @@ import {
 } from './diceRoller.js';
 import { sanitizeLog } from './sanitizeLog.js';
 import { generateRandomCampaign, generateRandomCharacter } from './utils/mockGenerator.js';
+import { isDevMode } from './utils/devMode.js';
 
 interface SessionUser {
   id: string;
@@ -239,6 +254,40 @@ class NexusServer {
   private readonly MAX_CONSECUTIVE_MISSES = 3;
   private heartbeatTimer: NodeJS.Timeout | null = null;
 
+  /**
+   * Delta-sync metrics accumulator.
+   *
+   * ROLLOUT PROCEDURE:
+   * 1. Flip VITE_DELTA_SYNC=true in a canary deployment.
+   * 2. Monitor GET /api/metrics/delta-sync over 24–48 hours.
+   * 3. Healthy steady state:
+   *    - resyncRate near 0% (aside from reconnects)
+   *    - resync['integrity-mismatch'] === 0 (nonzero = canonical serialization bug → STOP, investigate)
+   *    - commits.patch > 0 (delta-sync is being used)
+   *    - patchBytesSaved > 0 (compression is working)
+   * 4. Enable by default only after a clean canary.
+   *
+   * If integrity-mismatch counter is nonzero, the client and server hashing
+   * disagree on the canonical form. This is a determinism bug and MUST be
+   * investigated before production rollout.
+   */
+  private deltaSyncMetrics: {
+    commits: { legacy: number; full: number; patch: number };
+    resync: Record<ResyncReason, number>;
+    patchBytesSaved: number;
+    totalUploads: number;
+  } = {
+    commits: { legacy: 0, full: 0, patch: 0 },
+    resync: {
+      'base-mismatch': 0,
+      'integrity-mismatch': 0,
+      'malformed-patch': 0,
+      'payload-too-large': 0,
+    },
+    patchBytesSaved: 0,
+    totalUploads: 0,
+  };
+
   constructor(port: number) {
     if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
       console.error('❌ SESSION_SECRET must be set in production');
@@ -354,6 +403,34 @@ class NexusServer {
     new SceneHandler(this.socketManager, this.db);
     new DiceHandler(this.socketManager, this.db);
     new DocumentSyncHandler(this.socketManager, this.db);
+    new HostHandler(this.socketManager, this.db);
+    new EntitySyncHandler(this.socketManager, this.db);
+
+    // Commit + broadcast host game-state uploads through the content-hash
+    // token chain. This lives here (rather than in a handler) because it owns
+    // the authoritative room.gameState/room.syncToken, JSON-patch delta
+    // generation, and DB persistence. Only the host may drive canonical state.
+    this.socketManager.on(
+      'event:game-state-update',
+      ({ connection, room, message }) => {
+        const isSenderHost =
+          room.host === connection.id || room.coHosts.has(connection.id);
+        if (!isSenderHost) {
+          this.sendError(connection, 'Access denied: Host privilege required.');
+          return;
+        }
+        this.handleGameStateUpload(room.code, connection, message.data);
+      },
+    );
+
+    // Presence: when a socket drops, run the full disconnect flow (remove the
+    // player from the room, broadcast session/leave, hibernate on host loss,
+    // persist connection status). SocketManager emits 'disconnect' with the
+    // still-live connection before deleting it, so handleDisconnect can resolve
+    // the room. Without this, players stayed "connected" in peers' lists.
+    this.socketManager.on('disconnect', ({ id }: { id: string }) => {
+      void this.handleDisconnect(id);
+    });
 
     this.httpServer.on(
       'upgrade',
@@ -889,9 +966,10 @@ class NexusServer {
 
     /**
      * POST /api/dev/populate-mock-data
-     * Dev-only endpoint to populate mock campaigns and characters
+     * Dev-only endpoint to populate mock campaigns and characters.
+     * Gated by the unified dev-mode flag (DEV_MODE, default NODE_ENV!==production).
      */
-    if (process.env.NODE_ENV !== 'production') {
+    if (isDevMode()) {
       this.app.post('/api/dev/populate-mock-data', async (req, res) => {
         try {
           if (!req.isAuthenticated()) {
@@ -1028,7 +1106,7 @@ class NexusServer {
      * PUT /api/campaigns/:id
      * Updates a campaign
      * Requires authentication and ownership
-     * Body: { name?: string, description?: string, scenes?: any }
+     * Body: { name?: string, description?: string, scenes?: unknown }
      */
     this.app.put('/api/campaigns/:id', async (req, res) => {
       try {
@@ -1411,6 +1489,34 @@ class NexusServer {
    * @returns {void}
    */
   private setupDocumentRoutes(): void {
+    // Delta-sync observability. Registered BEFORE the '/api' document-router
+    // mount below, otherwise that router's catch-all 404 shadows it.
+    this.app.get('/api/metrics/delta-sync', (req, res) => {
+      const totalResyncs = Object.values(this.deltaSyncMetrics.resync).reduce(
+        (sum, count) => sum + count,
+        0,
+      );
+      const totalCommits =
+        this.deltaSyncMetrics.commits.legacy +
+        this.deltaSyncMetrics.commits.full +
+        this.deltaSyncMetrics.commits.patch;
+      // totalUploads already counts every attempt (commits AND resyncs), so it
+      // is the correct denominator — adding totalResyncs again would understate
+      // the rate (the dangerous direction for a health signal).
+      const totalOps = this.deltaSyncMetrics.totalUploads;
+      const resyncRate = totalOps > 0 ? (totalResyncs / totalOps) * 100 : 0;
+      res.json({
+        commits: this.deltaSyncMetrics.commits,
+        totalCommits,
+        resync: this.deltaSyncMetrics.resync,
+        totalResyncs,
+        patchBytesSaved: this.deltaSyncMetrics.patchBytesSaved,
+        totalUploads: this.deltaSyncMetrics.totalUploads,
+        resyncRate: parseFloat(resyncRate.toFixed(2)),
+        timestamp: Date.now(),
+      });
+    });
+
     const documentRoutes = createDocumentRoutes(
       this.documentClient,
       this.documentsEnabled,
@@ -1866,6 +1972,7 @@ class NexusServer {
         dmConnected: true,
         stateVersion: 0, // Initialize state version for delta updates
         entityVersions: new Map(),
+        syncToken: null, // No committed state yet
       };
 
       this.socketManager.rooms.set(joinCode, room);
@@ -1958,6 +2065,7 @@ class NexusServer {
           previousGameState: undefined,
           stateVersion: 0,
           entityVersions: new Map(),
+          syncToken: null, // No committed state yet
         };
         this.socketManager.rooms.set(created.joinCode, room);
       }
@@ -2354,11 +2462,20 @@ class NexusServer {
       message.type === 'event' &&
       message.data?.name === 'game-state-update'
     ) {
-      this.updateRoomGameState(
-        connection.room,
-        message.data as unknown as GameState,
-        fromUuid, // Exclude sender from broadcast to prevent duplicates
-      );
+      // NOTE: routeMessage is legacy/unused (SocketManager.handleMessage drives
+      // the live path via the 'event:game-state-update' subscription). Kept in
+      // sync with the new content-hash commit flow for correctness.
+      const senderIsHost =
+        room.host === connection.id || room.coHosts.has(connection.id);
+      if (senderIsHost) {
+        this.handleGameStateUpload(
+          connection.room,
+          connection,
+          message.data,
+        );
+      } else {
+        this.sendError(connection, 'Access denied: Host privilege required.');
+      }
     }
 
     if (
@@ -2512,101 +2629,260 @@ class NexusServer {
     });
   }
 
+  // Hard caps guarding the critical section from oversized payloads. A trip
+  // sends a payload-too-large resync instead of touching room state.
+  private static readonly MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // 8 MiB serialized
+  private static readonly MAX_PATCH_OPS = 5000;
+
   /**
-   * Updates and persists game state for a room/session
-   * Merges partial updates into existing game state and saves to database
+   * Commits a host game-state upload through the content-hash token chain and
+   * fans it out. Accepts THREE input shapes on `data`:
+   *   - Tagged full  : data.upload = { kind: 'full',  state, newToken }
+   *   - Tagged patch : data.upload = { kind: 'patch', patch, baseToken, newToken }
+   *   - Legacy       : no data.upload; top-level { scenes, activeSceneId,
+   *                    characters, initiative } (current client format).
+   *
+   * CRITICAL SECTION: between reading room.syncToken and writing the new
+   * room.gameState + room.syncToken there is ZERO `await`. All hashing is the
+   * synchronous hashSync(); DB persistence is dispatched (fire-and-forget)
+   * strictly AFTER the token has advanced.
+   *
+   * The host gate is enforced by the caller.
    * @private
-   * @param {string} roomCode - Join code of the room
-   * @param {Partial<GameState>} gameStateUpdate - Partial game state to merge
-   * @param {string} [senderUuid] - Optional UUID of the sender to exclude from broadcast
-   * @returns {Promise<void>}
    */
-  private async updateRoomGameState(
+  private handleGameStateUpload(
     roomCode: string,
-    gameStateUpdate: Partial<GameState>,
-    senderUuid?: string,
-  ): Promise<void> {
+    sender: Connection,
+    data: unknown,
+  ): void {
     const room = this.socketManager.rooms.get(roomCode);
     if (!room) return;
 
-    // Initialize game state if it doesn't exist
-    if (!room.gameState) {
-      room.gameState = {
-        scenes: [],
-        activeSceneId: null,
-        characters: [],
-        initiative: {},
-      };
+    const upload = (data as { upload?: GameStateUpload }).upload;
+    this.deltaSyncMetrics.totalUploads++;
+
+    // ---- payload-too-large guard (before touching any state) -------------
+    if (upload) {
+      const serialized = JSON.stringify(upload);
+      if (serialized.length > NexusServer.MAX_UPLOAD_BYTES) {
+        this.sendResync(sender, room.syncToken, 'payload-too-large');
+        return;
+      }
+      if (
+        upload.kind === 'patch' &&
+        upload.patch.length > NexusServer.MAX_PATCH_OPS
+      ) {
+        this.sendResync(sender, room.syncToken, 'payload-too-large');
+        return;
+      }
+    } else {
+      // Legacy untagged snapshot: guard on the serialized top-level data.
+      const serialized = JSON.stringify(data ?? {});
+      if (serialized.length > NexusServer.MAX_UPLOAD_BYTES) {
+        this.sendResync(sender, room.syncToken, 'payload-too-large');
+        return;
+      }
     }
 
-    // Store previous state for delta generation
-    const previousState =
-      room.previousGameState || JSON.parse(JSON.stringify(room.gameState));
+    // ================== CRITICAL SECTION (no await below) =================
+    // Capture the pre-commit anchors BEFORE mutating the room.
+    const prevToken = room.syncToken;
+    const prevState: SyncableGameState = room.gameState
+      ? (jsonpatch.deepClone(room.gameState) as unknown as SyncableGameState)
+      : { scenes: [], activeSceneId: null, characters: [], initiative: {} };
 
-    // Merge partial updates into existing state
-    if (gameStateUpdate.scenes) {
-      room.gameState.scenes = gameStateUpdate.scenes;
-    }
-    if (gameStateUpdate.activeSceneId !== undefined) {
-      room.gameState.activeSceneId = gameStateUpdate.activeSceneId;
-    }
-    if (gameStateUpdate.characters) {
-      room.gameState.characters = gameStateUpdate.characters;
-    }
-    if (gameStateUpdate.initiative) {
-      room.gameState.initiative = gameStateUpdate.initiative;
+    // The committed next state + its token, resolved per input shape. A null
+    // committed marks a rejection (resync already sent) so we bail without
+    // advancing the chain.
+    let committed: SyncableGameState | null = null;
+    let committedToken: StateHash | null = null;
+    // For patch uploads we reuse the client's patch as the peer broadcast; for
+    // full/legacy we compute a delta below. undefined = compute delta.
+    let broadcastPatch: JsonPatch | undefined;
+
+    if (!upload) {
+      // --- Legacy full (trusted; client sent no token, no integrity check) --
+      const state = this.buildSyncableFromLegacy(data);
+      committed = state;
+      committedToken = hashSync(state as unknown as JsonValue);
+    } else if (upload.kind === 'full') {
+      // --- Tagged full: verify integrity against declared newToken ----------
+      if (hashSync(upload.state as unknown as JsonValue) !== upload.newToken) {
+        this.sendResync(sender, room.syncToken, 'integrity-mismatch');
+        return;
+      }
+      committed = upload.state;
+      committedToken = upload.newToken;
+    } else {
+      // --- Patch: base-match, apply, integrity-check ------------------------
+      if (upload.baseToken !== room.syncToken) {
+        this.sendResync(sender, room.syncToken, 'base-mismatch');
+        return; // no mutation
+      }
+      let candidate: SyncableGameState;
+      try {
+        const result = jsonpatch.applyPatch(
+          jsonpatch.deepClone(prevState),
+          upload.patch as Operation[],
+          /* validateOperation */ true,
+        );
+        candidate = result.newDocument as unknown as SyncableGameState;
+      } catch {
+        this.sendResync(sender, room.syncToken, 'malformed-patch');
+        return;
+      }
+      if (hashSync(candidate as unknown as JsonValue) !== upload.newToken) {
+        this.sendResync(sender, room.syncToken, 'integrity-mismatch');
+        return;
+      }
+      committed = candidate;
+      committedToken = upload.newToken;
+      broadcastPatch = upload.patch;
     }
 
-    // Generate JSON Patch for delta updates
-    const patch = jsonpatch.compare(previousState, room.gameState);
-
-    // Increment state version
+    // Commit: advance authoritative state + token + version atomically.
+    room.gameState = committed as unknown as GameState;
+    room.syncToken = committedToken;
     room.stateVersion++;
+    room.previousGameState = prevState as unknown as GameState;
+    const newToken = room.syncToken;
+    const version = room.stateVersion;
 
-    // Store current state as previous for next update
-    room.previousGameState = JSON.parse(JSON.stringify(room.gameState));
+    // Record commit branch for metrics (legacy/full/patch).
+    if (!upload) {
+      this.deltaSyncMetrics.commits.legacy++;
+    } else if (upload.kind === 'full') {
+      this.deltaSyncMetrics.commits.full++;
+    } else {
+      // upload.kind === 'patch'
+      this.deltaSyncMetrics.commits.patch++;
+      // Calculate bytes saved: max(0, fullSnapshotSize - patchSize).
+      const fullSnapshotBytes = JSON.stringify(committed).length;
+      const patchBytes = JSON.stringify(upload.patch).length;
+      this.deltaSyncMetrics.patchBytesSaved += Math.max(
+        0,
+        fullSnapshotBytes - patchBytes,
+      );
+    }
 
-    // Broadcast patch if there are changes (80% size reduction)
-    // Exclude sender to prevent duplicate application (sender already applied optimistically)
+    // Peer delta: for full/legacy commits compute prevState -> committed so
+    // peers still receive a minimal patch rather than a whole snapshot.
+    const patch: JsonPatch =
+      broadcastPatch ??
+      (jsonpatch.compare(
+        prevState as unknown as Record<string, unknown>,
+        committed as unknown as Record<string, unknown>,
+      ) as JsonPatch);
+    // =================== END CRITICAL SECTION =============================
+
+    // 1) Ack the sender (excluded from the peer broadcast) so it advances its
+    //    own chain to the committed token.
+    this.sendSyncAck(sender, newToken, version);
+
+    // 2) Broadcast the chained patch to peers, excluding the sender.
     if (patch.length > 0) {
       this.broadcastToRoom(
         roomCode,
         {
           type: 'game-state-patch',
           data: {
-            patch,
-            version: room.stateVersion,
+            patch: patch as unknown[],
+            version,
+            baseToken: prevToken,
+            newToken,
           },
           timestamp: Date.now(),
         },
-        senderUuid,
+        sender.id,
       );
-
       console.log(
-        `📡 Broadcasting game state patch v${room.stateVersion} to room ${roomCode} (${patch.length} operations)${senderUuid ? ` [excluding sender ${senderUuid}]` : ''}`,
+        `📡 Broadcasting game state patch v${version} to room ${roomCode} (${patch.length} operations) [excluding sender ${sender.id}]`,
       );
     }
 
-    // Persist to database (both session and campaign)
+    // 3) Persist off the critical path (the one `await`, fire-and-forget).
+    void this.persistRoomGameState(roomCode);
+  }
+
+  /**
+   * Builds a SyncableGameState from a legacy untagged snapshot (the current
+   * client format), tolerating missing fields. Trusted fallback: no token was
+   * supplied, so no integrity check is possible.
+   * @private
+   */
+  private buildSyncableFromLegacy(data: unknown): SyncableGameState {
+    const d = (data ?? {}) as Partial<{
+      scenes: JsonValue[];
+      activeSceneId: string | null;
+      characters: JsonValue[];
+      initiative: JsonValue;
+    }>;
+    return {
+      scenes: Array.isArray(d.scenes) ? d.scenes : [],
+      activeSceneId: d.activeSceneId ?? null,
+      characters: Array.isArray(d.characters) ? d.characters : [],
+      initiative: d.initiative ?? {},
+    };
+  }
+
+  /**
+   * Persists the room's committed game state to the database (session snapshot
+   * + campaign scenes). Runs AFTER the token chain has advanced; safe to fail.
+   * @private
+   */
+  private async persistRoomGameState(roomCode: string): Promise<void> {
+    const room = this.socketManager.rooms.get(roomCode);
+    if (!room?.gameState) return;
     try {
       const session = await this.db.getSessionByJoinCode(roomCode);
       if (session) {
-        // Save full game state to session (for active session recovery)
         await this.db.saveGameState(session.id, room.gameState);
-
-        // Save scenes to campaign (for multi-device persistence)
         if (room.gameState.scenes && session.campaignId) {
           await this.db.saveCampaignScenes(
             session.campaignId,
             room.gameState.scenes,
           );
         }
-
         console.log(`💾 Game state updated and persisted for room ${roomCode}`);
       }
     } catch (error) {
       console.error('Failed to persist game state:', error);
     }
+  }
+
+  /**
+   * Sends a game-state-ack to the sender confirming the committed token.
+   * @private
+   */
+  private sendSyncAck(
+    connection: Connection,
+    token: StateHash,
+    version: number,
+  ): void {
+    this.sendMessage(connection, {
+      type: 'game-state-ack',
+      data: { token, version },
+      timestamp: Date.now(),
+    });
+  }
+
+  /**
+   * Sends a game-state-resync-required directive to the sender after a chain
+   * break (base/integrity mismatch, malformed patch, oversized payload).
+   * Increments the resync counter for the given reason.
+   * @private
+   */
+  private sendResync(
+    connection: Connection,
+    serverToken: StateHash | null,
+    reason: ResyncReason,
+  ): void {
+    this.deltaSyncMetrics.resync[reason]++;
+    this.sendMessage(connection, {
+      type: 'game-state-resync-required',
+      data: { serverToken, reason },
+      timestamp: Date.now(),
+    });
   }
 
   /**
@@ -2683,6 +2959,16 @@ class NexusServer {
       this.socketManager.connections.delete(uuid);
       return;
     }
+
+    // Idempotency: a single socket can reach here through more than one path
+    // (e.g. a forced terminate plus the ws 'close' event it triggers). Claim
+    // this member synchronously — before any await — so an interleaved second
+    // pass bails out here instead of re-broadcasting the leave or re-hibernating.
+    if (!room.connections.has(uuid)) {
+      this.socketManager.connections.delete(uuid);
+      return;
+    }
+    room.connections.delete(uuid);
 
     // Get session from database to find sessionId
     let session: SessionRecord | null = null;
@@ -2922,6 +3208,11 @@ class NexusServer {
         previousGameState: undefined,
         stateVersion: 0,
         entityVersions: new Map(),
+        // Anchor the token chain to the persisted state so patch uploads from a
+        // reconnecting host can baseToken-match without a forced full resync.
+        syncToken: session.gameState
+          ? hashSync(session.gameState as unknown as JsonValue)
+          : null,
       };
 
       this.socketManager.rooms.set(roomCode, recoveredRoom);

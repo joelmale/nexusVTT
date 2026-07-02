@@ -33,9 +33,16 @@ export interface MonsterEntity {
   description?: string;
 }
 
+/** Generic fallback entity for anything that isn't a spell or monster. */
+export interface ItemEntity {
+  name?: string;
+  description?: string;
+  [key: string]: unknown;
+}
+
 interface EntityStatCardProps {
   type: 'spell' | 'monster' | 'item';
-  data: any; // Checked dynamically
+  data: SpellEntity | MonsterEntity | ItemEntity;
   className?: string;
 }
 
@@ -179,16 +186,17 @@ export const EntityStatCard: React.FC<EntityStatCardProps> = ({
   }
 
   // Fallback for Generic Items
+  const item = data as ItemEntity;
   return (
     <ParchmentPanel variant="ivory" className={`max-w-md ${className}`}>
       <h3 className="font-['Cinzel',serif] text-lg font-bold text-[#2C1E16]">
-        {data.name || 'Game Entity'}
+        {item.name || 'Game Entity'}
       </h3>
-      {data.description && (
+      {item.description && (
         <>
           <SectionDivider className="my-2" />
           <p className="text-xs font-serif leading-relaxed text-[#2C1E16]">
-            {data.description}
+            {item.description}
           </p>
         </>
       )}

@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useSession, useIsHost } from '@/stores/gameStore';
 import { useCharacters, useCharacterCreation } from '@/stores/characterStore';
 import { useInitiativeStore } from '@/stores/initiativeStore';
+import { webSocketService } from '@/services/websocket';
 import { CharacterSheet } from './CharacterSheet';
 import { CharacterImportModal } from './CharacterImportModal';
 import { useCharacterCreationLauncher } from '@/hooks';
@@ -131,7 +132,7 @@ export const PlayerPanel: React.FC = () => {
   const handleKickPlayer = (playerId: string) => {
     const player = players.find((p) => p.id === playerId);
     if (player && window.confirm(`Kick ${player.name} from the game?`)) {
-      // TODO: Implement kick functionality
+      webSocketService.sendKickPlayer(playerId);
     }
   };
 
@@ -143,7 +144,11 @@ export const PlayerPanel: React.FC = () => {
     if (player) {
       const action = currentPermissions ? 'Remove' : 'Grant';
       if (window.confirm(`${action} DM permissions for ${player.name}?`)) {
-        // TODO: Implement permission toggle
+        if (currentPermissions) {
+          webSocketService.sendRemoveCoHost(playerId);
+        } else {
+          webSocketService.sendAddCoHost(playerId);
+        }
       }
     }
   };

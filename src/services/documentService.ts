@@ -200,6 +200,58 @@ export interface AskSearchResponse {
 }
 
 /**
+ * A named trait/ability on a raw 5e SRD monster entity.
+ */
+export interface SrdSpecialAbility {
+  name?: string;
+  desc?: string;
+}
+
+/**
+ * Raw 5e SRD entity payload (spell, monster, item, etc.). The shape varies by
+ * entity type, so all fields are optional and consumers apply fallbacks. The
+ * index signature accommodates SRD fields we don't explicitly consume.
+ */
+export interface SrdEntityData {
+  name?: string;
+  // Spell fields
+  level?: number;
+  school?: { name?: string } | string;
+  casting_time?: string;
+  range?: string;
+  components?: string[] | string;
+  duration?: string;
+  desc?: string[] | string;
+  // Monster fields
+  size?: string;
+  type?: string;
+  alignment?: string;
+  armor_class?: Array<{ value?: number }> | number;
+  hit_points?: number;
+  speed?: Record<string, string | number> | string;
+  challenge_rating?: number;
+  strength?: number;
+  dexterity?: number;
+  constitution?: number;
+  intelligence?: number;
+  wisdom?: number;
+  charisma?: number;
+  special_abilities?: SrdSpecialAbility[];
+  [key: string]: unknown;
+}
+
+/**
+ * A structured data entry extracted from a document (a spell, monster, item…).
+ */
+export interface StructuredEntity {
+  id?: string;
+  documentId?: string;
+  type: string;
+  name?: string;
+  data: SrdEntityData;
+}
+
+/**
  * Document service class for frontend
  */
 class DocumentService {
@@ -439,7 +491,7 @@ class DocumentService {
   async getDocumentStructuredData(
     documentId: string,
     params?: { type?: string; name?: string }
-  ): Promise<any[]> {
+  ): Promise<StructuredEntity[]> {
     const queryParams = new URLSearchParams();
     if (params?.type) queryParams.append('type', params.type);
     if (params?.name) queryParams.append('name', params.name);
@@ -447,14 +499,14 @@ class DocumentService {
     const endpoint = query
       ? `/api/documents/${documentId}/structured-data?${query}`
       : `/api/documents/${documentId}/structured-data`;
-    return this.request<any[]>(endpoint);
+    return this.request<StructuredEntity[]>(endpoint);
   }
 
   /**
    * Get specific structured data entry by ID
    */
-  async getStructuredDataById(id: string): Promise<any> {
-    return this.request<any>(`/api/structured-data/${id}`);
+  async getStructuredDataById(id: string): Promise<StructuredEntity> {
+    return this.request<StructuredEntity>(`/api/structured-data/${id}`);
   }
 
   /**
@@ -467,7 +519,7 @@ class DocumentService {
     search?: string;
     limit?: string;
     offset?: string;
-  }): Promise<any[]> {
+  }): Promise<StructuredEntity[]> {
     const queryParams = new URLSearchParams();
     if (params?.documentId) queryParams.append('documentId', params.documentId);
     if (params?.type) queryParams.append('type', params.type);
@@ -477,7 +529,7 @@ class DocumentService {
     if (params?.offset) queryParams.append('offset', params.offset);
     const query = queryParams.toString();
     const endpoint = query ? `/api/structured-data?${query}` : '/api/structured-data';
-    return this.request<any[]>(endpoint);
+    return this.request<StructuredEntity[]>(endpoint);
   }
 
   /**
