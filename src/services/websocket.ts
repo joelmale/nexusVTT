@@ -407,8 +407,11 @@ class WebSocketService extends EventTarget {
 
       case 'game-state-resync-required': {
         // Sender-only: the content-hash chain broke. Drop our base and
-        // re-baseline with a full snapshot on the next flush.
-        gameStateSyncEngine.onResyncRequired();
+        // re-baseline with a full snapshot on the next flush. The reason
+        // ('base-mismatch' | 'integrity-mismatch' | …) drives the dev log.
+        const reason =
+          (message.data as { reason?: string })?.reason ?? 'server';
+        gameStateSyncEngine.onResyncRequired(reason);
         break;
       }
 

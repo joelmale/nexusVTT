@@ -88,6 +88,7 @@ import {
 } from './diceRoller.js';
 import { sanitizeLog } from './sanitizeLog.js';
 import { generateRandomCampaign, generateRandomCharacter } from './utils/mockGenerator.js';
+import { isDevMode } from './utils/devMode.js';
 
 interface SessionUser {
   id: string;
@@ -965,9 +966,10 @@ class NexusServer {
 
     /**
      * POST /api/dev/populate-mock-data
-     * Dev-only endpoint to populate mock campaigns and characters
+     * Dev-only endpoint to populate mock campaigns and characters.
+     * Gated by the unified dev-mode flag (DEV_MODE, default NODE_ENV!==production).
      */
-    if (process.env.NODE_ENV !== 'production') {
+    if (isDevMode()) {
       this.app.post('/api/dev/populate-mock-data', async (req, res) => {
         try {
           if (!req.isAuthenticated()) {

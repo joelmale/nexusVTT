@@ -12,6 +12,12 @@ interface ImportMetaEnv {
    * This flag is the rollback switch.
    */
   readonly VITE_DELTA_SYNC?: string;
+  /**
+   * Unified dev-mode switch ('true' | 'false'). Gates dev-only behaviour
+   * (delta-sync resync logging, lobby dev tools, seeding UI). When unset,
+   * falls back to import.meta.env.DEV. See src/utils/devMode.ts.
+   */
+  readonly VITE_DEV_MODE?: string;
 }
 
 interface ImportMeta {

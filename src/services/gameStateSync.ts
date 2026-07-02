@@ -2,6 +2,7 @@ import { compare } from 'fast-json-patch';
 import { useGameStore, buildInitiativeSnapshot } from '@/stores/gameStore';
 import { useCharacterStore } from '@/stores/characterStore';
 import { webSocketService } from '@/services/websocket';
+import { isDevMode } from '@/utils/devMode';
 import {
   hashState,
   type GameStateUpload,
@@ -70,6 +71,13 @@ export interface SyncEngineDeps {
   isDeltaSyncEnabled: () => boolean;
   /** Timeout (ms) after a send with no ack before we re-baseline. */
   ackTimeoutMs?: number;
+  /**
+   * Optional observer fired whenever a resync is triggered, with its cause
+   * (a server reason like 'integrity-mismatch', or 'ack-timeout'). Kept as an
+   * injected hook so the engine stays console-free and unit-testable; the app
+   * wires it to a dev-only log. Not passed in tests → no output.
+   */
+  onResync?: (reason: string) => void;
 }
 
 const DEFAULT_ACK_TIMEOUT_MS = 5000;
@@ -135,7 +143,7 @@ export class GameStateSyncEngine {
     this.ackTimer = setTimeout(() => {
       // Dropped-ack recovery: treat exactly like a resync — drop the base and
       // re-baseline with a full snapshot on the next flush.
-      this.onResyncRequired();
+      this.onResyncRequired('ack-timeout');
     }, this.ackTimeoutMs);
   }
 
@@ -235,12 +243,18 @@ export class GameStateSyncEngine {
   /**
    * Chain broke (server rejected the base) — or an ack was dropped. Drop the
    * base so the next send is a fresh full snapshot, then re-baseline.
+   *
+   * @param reason cause of the resync — a server `ResyncReason`
+   *   ('base-mismatch' | 'integrity-mismatch' | 'malformed-patch' |
+   *   'payload-too-large') or 'ack-timeout'. Forwarded to the optional
+   *   `onResync` observer for dev logging/metrics.
    */
-  onResyncRequired(): void {
+  onResyncRequired(reason = 'server'): void {
     this.inFlight = null;
     this.clearAckTimer();
     this.acknowledged = null;
     this.acknowledgedToken = null;
+    this.deps.onResync?.(reason);
     void this.flush();
   }
 
@@ -315,4 +329,15 @@ export const gameStateSyncEngine = new GameStateSyncEngine({
     },
   },
   isDeltaSyncEnabled,
+  // Dev-only live signal: a resync means the delta chain broke and we fell back
+  // to a full snapshot. In steady state this should be near-silent; a stream of
+  // 'integrity-mismatch' means client/server hashing disagrees on real data
+  // (keep delta-sync OFF and investigate canonicalStringify).
+  onResync: (reason) => {
+    if (isDevMode()) {
+      console.warn(
+        `🔄 [delta-sync] resync (${reason}) — re-baselining with a full snapshot`,
+      );
+    }
+  },
 });
