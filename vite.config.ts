@@ -210,6 +210,11 @@ export default defineConfig(({ command, mode }) => {
       sourcemap: isDev ? true : false,
       // CSS code splitting and optimization
       cssCodeSplit: true,
+      // Vite 8 minifies CSS with lightningcss by default, which is stricter than
+      // vite 7's esbuild and rejects a pre-existing dangling-combinator selector
+      // in the app CSS. Pin esbuild to preserve the prior (lenient) behavior; the
+      // invalid selector is tracked as a separate CSS cleanup follow-up.
+      cssMinify: 'esbuild',
       rollupOptions: {
         output: {
           // Separate CSS chunks for better caching with content hashing
@@ -219,31 +224,26 @@ export default defineConfig(({ command, mode }) => {
             }
             return 'assets/[name]-[hash][extname]';
           },
-          // Optimize chunk splitting for better caching
-          manualChunks: {
-            // Core React libraries
-            'vendor-react': ['react', 'react-dom'],
-            'vendor-router': ['react-router-dom'],
-
-            // State management
-            'vendor-state': ['zustand', 'immer'],
-
-            // UI libraries (only include what's actually used)
-            // Note: lucide-react removed - not used in codebase, sonner is used
-            'vendor-ui': ['sonner'],
-
-            // Heavy 3D dependencies (lazy loaded, but separate chunk when needed)
-            // Only include what's actually used: dice-box
-            'vendor-3d': ['@3d-dice/dice-box'],
-
-            // PDF viewer (lazy loaded, but separate chunk when needed)
-            'vendor-pdf': ['pdfjs-dist'],
-
-            // Utility libraries
-            'vendor-utils': ['uuid'],
-
-            // Drag and drop
-            'vendor-dnd': ['react-dnd', 'react-dnd-html5-backend'],
+          // Optimize chunk splitting for better caching.
+          // Vite 8 uses Rolldown, which expects `manualChunks` as a function
+          // (the object-map form is a Rollup-ism it no longer accepts). This
+          // reproduces the previous vendor grouping. Package matches use a
+          // trailing-slash path boundary so `react` doesn't also capture
+          // `react-dom` / `react-router-dom` / `react-dnd`.
+          manualChunks: (id) => {
+            if (!id.includes('node_modules')) return undefined;
+            const inPkg = (name: string) =>
+              id.includes(`/node_modules/${name}/`);
+            if (inPkg('react') || inPkg('react-dom')) return 'vendor-react';
+            if (inPkg('react-router-dom')) return 'vendor-router';
+            if (inPkg('zustand') || inPkg('immer')) return 'vendor-state';
+            if (inPkg('sonner')) return 'vendor-ui';
+            if (inPkg('@3d-dice/dice-box')) return 'vendor-3d';
+            if (inPkg('pdfjs-dist')) return 'vendor-pdf';
+            if (inPkg('uuid')) return 'vendor-utils';
+            if (inPkg('react-dnd') || inPkg('react-dnd-html5-backend'))
+              return 'vendor-dnd';
+            return undefined;
           },
         },
       },

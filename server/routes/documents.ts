@@ -234,7 +234,7 @@ export function createDocumentRoutes(
         return res.status(401).json({ error: 'User ID not found' });
       }
 
-      const document = await client.getDocument(req.params.id);
+      const document = await client.getDocument(String(req.params.id));
 
       // Verify authorization
       if (!(await hasDocumentAccess(userId, document))) {
@@ -272,7 +272,7 @@ export function createDocumentRoutes(
       }
 
       // Verify existence and authorization
-      const document = await client.getDocument(req.params.id);
+      const document = await client.getDocument(String(req.params.id));
       if (!(await hasDocumentAccess(userId, document))) {
         return res.status(403).json({
           error: 'Access denied: not authorized to view document',
@@ -280,7 +280,7 @@ export function createDocumentRoutes(
       }
 
       // Return the content URL for the frontend to fetch
-      const contentUrl = client.getDocumentContentUrl(req.params.id);
+      const contentUrl = client.getDocumentContentUrl(String(req.params.id));
       return res.json({ contentUrl });
     } catch (error: unknown) {
       console.error('Failed to get document content:', error);
@@ -310,7 +310,7 @@ export function createDocumentRoutes(
       }
 
       // Verify ownership
-      const document = await client.getDocument(req.params.id);
+      const document = await client.getDocument(String(req.params.id));
       if (document.uploadedBy !== userId) {
         return res.status(403).json({
           error: 'Access denied: only the owner can update this document',
@@ -333,7 +333,7 @@ export function createDocumentRoutes(
         }
       }
 
-      const updated = await client.updateDocument(req.params.id, req.body);
+      const updated = await client.updateDocument(String(req.params.id), req.body);
       return res.json(updated);
     } catch (error: unknown) {
       console.error('Failed to update document:', error);
@@ -363,14 +363,14 @@ export function createDocumentRoutes(
       }
 
       // Verify ownership
-      const document = await client.getDocument(req.params.id);
+      const document = await client.getDocument(String(req.params.id));
       if (document.uploadedBy !== userId) {
         return res.status(403).json({
           error: 'Access denied: only the owner can delete this document',
         });
       }
 
-      await client.deleteDocument(req.params.id);
+      await client.deleteDocument(String(req.params.id));
       return res.status(204).send();
     } catch (error: unknown) {
       console.error('Failed to delete document:', error);
@@ -685,7 +685,7 @@ export function createDocumentRoutes(
         return res.status(401).json({ error: 'User ID not found' });
       }
 
-      const documentId = req.params.id;
+      const documentId = String(req.params.id);
       // Authorize document access first
       const doc = await client.getDocument(documentId);
       if (!(await hasDocumentAccess(userId, doc))) {
@@ -721,7 +721,7 @@ export function createDocumentRoutes(
         return res.status(401).json({ error: 'User ID not found' });
       }
 
-      const dataId = req.params.id;
+      const dataId = String(req.params.id);
       const entry = await client.getStructuredDataById(dataId);
       
       // Authorize document access linked to the entry
