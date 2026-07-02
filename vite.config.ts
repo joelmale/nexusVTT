@@ -4,6 +4,7 @@ import path from 'path';
 import { visualizer } from 'rollup-plugin-visualizer';
 import { VitePWA } from 'vite-plugin-pwa';
 import tailwindcss from '@tailwindcss/vite';
+import federation from '@originjs/vite-plugin-federation';
 
 // https://vitejs.dev/config/
 export default defineConfig(({ command, mode }) => {
@@ -14,6 +15,13 @@ export default defineConfig(({ command, mode }) => {
     plugins: [
       tailwindcss(), // Tailwind v4 Vite plugin (must be first)
       react(),
+      federation({
+        name: 'nexus_vtt',
+        remotes: {
+          nexus_forge: 'http://localhost:3000/assets/remoteEntry.js',
+        },
+        shared: ['react', 'react-dom', 'react-router-dom']
+      }),
       isAnalyze &&
         visualizer({
           open: true,
@@ -206,6 +214,7 @@ export default defineConfig(({ command, mode }) => {
       },
     },
     build: {
+      target: 'esnext',
       // Disable source maps in production for better security and smaller bundle
       sourcemap: isDev ? true : false,
       // CSS code splitting and optimization
