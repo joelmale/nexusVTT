@@ -21,7 +21,7 @@ export const TextPanel: React.FC<TextPanelProps> = ({ onClose }) => {
     if (!initializedRef.current && placedToken) {
       const baseToken = tokenAssetManager.getTokenById(placedToken.tokenId) || undefined;
       const effectiveName = getEffectiveTokenName(placedToken, baseToken);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
+       
       setName(effectiveName);
       initializedRef.current = true;
     }
