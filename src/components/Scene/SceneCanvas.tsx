@@ -1083,7 +1083,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
               borderRadius: '8px',
               backgroundColor: 'rgba(74, 158, 255, 0.1)',
               pointerEvents: 'none',
-              zIndex: 999,
+              zIndex: 'var(--z-tool-ui)',
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
@@ -1121,7 +1121,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
               borderRadius: '8px',
               border: '1px solid var(--border-primary, rgba(255,255,255,0.15))',
               boxShadow: 'var(--shadow-lg)',
-              zIndex: 100,
+              zIndex: 'var(--z-tool-ui)',
               alignItems: 'center',
             }}
           >

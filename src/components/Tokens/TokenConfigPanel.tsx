@@ -261,7 +261,7 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
-        zIndex: 10000,
+        zIndex: 'var(--z-modal)',
       }}
       onClick={onClose}
     >

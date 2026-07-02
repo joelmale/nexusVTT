@@ -761,7 +761,7 @@
   white-space: nowrap;
   pointer-events: none;
   margin-bottom: var(--spacing-2);
-  z-index: 1000;
+  z-index: var(--z-tooltip);
 }
 
 /* Responsive scaling for docked toolbar */

@@ -10,7 +10,7 @@
   position: fixed;
   top: 0;
   left: 0;
-  z-index: 1000;
+  z-index: var(--z-panel);
   width: 100vw;
   height: 100vh;
   overflow: hidden;
@@ -778,7 +778,7 @@ dialog.account-dialog::backdrop {
   position: absolute !important;
   top: 20px !important;
   right: 20px !important;
-  z-index: 1000 !important;
+  z-index: calc(var(--z-panel) + 1) !important;
   display: flex !important;
   align-items: center !important;
   gap: 10px !important;

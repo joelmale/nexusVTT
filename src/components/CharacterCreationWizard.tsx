@@ -1085,7 +1085,7 @@ export const CharacterCreationWizard: React.FC<
         left: 0,
         width: '100vw',
         height: '100vh',
-        zIndex: 9999,
+        zIndex: 'var(--z-top-modal)',
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center'

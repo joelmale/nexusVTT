@@ -11,7 +11,7 @@ Consolidated styles for dice rolling, animation, and 3D rendering.
   left: 0;
   right: 0;
   bottom: 0;
-  z-index: 9999;
+  z-index: var(--z-dice-3d);
   pointer-events: none;
   overflow: hidden;
 }

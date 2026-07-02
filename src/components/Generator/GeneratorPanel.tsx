@@ -250,7 +250,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
             position: 'absolute',
             bottom: '10px',
             right: '10px',
-            zIndex: 1000,
+            zIndex: 'var(--z-modal)',
             background: 'rgba(0,0,0,0.8)',
             padding: '10px',
             borderRadius: '8px',

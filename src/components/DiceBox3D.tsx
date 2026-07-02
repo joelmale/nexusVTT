@@ -285,7 +285,7 @@ export const DiceBox3D: React.FC = () => {
           right: '10px',
           width: '500px',
           height: '400px',
-          zIndex: 10000,
+          zIndex: 'var(--z-dice-3d)',
           pointerEvents: 'none', // Allow clicks to pass through to canvas below
         }}
       />
@@ -300,7 +300,7 @@ export const DiceBox3D: React.FC = () => {
             padding: '1rem',
             borderRadius: '8px',
             maxWidth: '300px',
-            zIndex: 1001,
+            zIndex: 'calc(var(--z-dice-3d) + 1)',
             fontSize: '0.9rem',
           }}
         >

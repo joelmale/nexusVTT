@@ -499,7 +499,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
   padding: 1rem;
 }
 
@@ -843,7 +843,7 @@ textarea.text-input {
   bottom: 0;
   background: rgba(0, 0, 0, 0.85);
   backdrop-filter: blur(8px);
-  z-index: 10000;
+  z-index: var(--z-top-modal);
   display: flex;
   align-items: center;
   justify-content: center;

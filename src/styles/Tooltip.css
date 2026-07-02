@@ -16,7 +16,7 @@
   font-weight: 500;
   white-space: pre-wrap; /* Allow newlines */
   text-align: center;
-  z-index: var(--z-tooltip, 50);
+  z-index: var(--z-tooltip, 85);
   width: max-content;
   max-width: 250px;
   

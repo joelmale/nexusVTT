@@ -440,7 +440,7 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  z-index: 1001;
+  z-index: calc(var(--z-panel) + 1);
   background: rgba(0, 0, 0, 0.25);
   backdrop-filter: blur(4px);
   display: flex;

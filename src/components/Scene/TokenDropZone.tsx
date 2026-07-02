@@ -130,7 +130,7 @@ export const TokenDropZone: React.FC<TokenDropZoneProps> = ({
             bottom: 0,
             backgroundColor: 'rgba(var(--color-primary-rgb), 0.1)',
             pointerEvents: 'none',
-            zIndex: 999,
+            zIndex: 'var(--z-tool-ui)',
           }}
         />
       )}

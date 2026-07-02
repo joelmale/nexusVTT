@@ -86,7 +86,7 @@ export const GeneratorFloatingControls: React.FC<
         position: 'fixed',
         top: '1rem',
         left: '1rem',
-        zIndex: 1000,
+        zIndex: 'var(--z-tool-ui)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-start',

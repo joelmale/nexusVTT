@@ -389,26 +389,34 @@
      Z-INDEX SCALE
      ============================================================================= */
 
-  --z-0: 0;
-  --z-10: 10;
-  --z-20: 20;
-  --z-30: 30;
-  --z-40: 40;
-  --z-50: 50;
+  /* Single authoritative scale (ADR-0004). MIRRORED in src/utils/z-scale.ts —
+     a unit test enforces the two stay in sync. Each band reserves +/-9 for
+     local stacking via calc(var(--z-band) + n). Do not add raw z-index values. */
+  --z-background: 0;
+  --z-grid: 10;
+  --z-drawing: 20;
+  --z-token: 30;
+  --z-selection: 35;
+  --z-fog: 40;
+  --z-cursors: 50;
+  --z-tool-ui: 60;
+  --z-panel: 70;
+  --z-popover: 75;
+  --z-modal-backdrop: 79;
+  --z-modal: 80;
+  --z-tooltip: 85;
+  --z-dice-3d: 90;
+  --z-drag-ghost: 95;
+  --z-top-modal: 100;
   --z-auto: auto;
 
-  /* Semantic Z-Index */
-  --z-dropdown: var(--z-10);
-  --z-sticky: var(--z-20);
-  --z-fixed: var(--z-30);
-  --z-modal-backdrop: var(--z-40);
-  --z-modal: var(--z-50);
-  --z-popover: var(--z-50);
-  --z-tooltip: var(--z-50);
-  --z-toolbar: var(--z-30);
-  --z-panel: var(--z-20);
-  --z-overlay: var(--z-40);
-  --z-base: var(--z-0);
+  /* Legacy aliases (subsumed into the scale; do not use in new code) */
+  --z-base: var(--z-background);
+  --z-dropdown: var(--z-popover);
+  --z-sticky: var(--z-tool-ui);
+  --z-fixed: var(--z-tool-ui);
+  --z-toolbar: var(--z-tool-ui);
+  --z-overlay: var(--z-modal-backdrop);
 
   /* =============================================================================
      ANIMATION TOKENS

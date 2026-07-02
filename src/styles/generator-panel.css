@@ -17,7 +17,7 @@
   background: rgba(0, 0, 0, 0.7);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
-  z-index: 30; /* Higher than header/panel (z-20) but lower than modals */
+  z-index: var(--z-modal-backdrop);
   display: flex;
   align-items: flex-start;
   justify-content: center;
@@ -52,7 +52,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 31; /* Higher than overlay z-index of 30 */
+  z-index: var(--z-modal);
   transition: all 0.2s ease;
   backdrop-filter: blur(4px);
 }
@@ -197,7 +197,7 @@
   position: absolute;
   top: 13rem;
   right: 1rem;
-  z-index: 1000;
+  z-index: var(--z-modal);
   display: flex;
   flex-direction: column;
   gap: 0.5rem;

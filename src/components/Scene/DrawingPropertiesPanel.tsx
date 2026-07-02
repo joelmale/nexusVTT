@@ -140,7 +140,7 @@ export const DrawingPropertiesPanel: React.FC<DrawingPropertiesPanelProps> = ({
     <div
       className="fixed top-8 right-8 w-[300px] border-2 border-white/20 rounded-lg shadow-[0_8px_32px_rgba(0,0,0,0.5),0_0_0_1px_rgba(255,255,255,0.1)] backdrop-blur-md animate-[slideInRight_0.3s_ease]"
       style={{
-        zIndex: 2100,
+        zIndex: 'var(--z-panel)',
         background:
           'linear-gradient(135deg, rgba(42, 42, 62, 0.95) 0%, rgba(32, 32, 52, 0.95) 100%)',
       }}

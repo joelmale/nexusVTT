@@ -267,5 +267,5 @@
 /* Ensure spell overlays layer correctly */
 .spell-overlay-layer {
   position: relative;
-  z-index: 10; /* Above background/grid, below tokens */
+  z-index: var(--z-drawing); /* scene layer: above bg/grid, below tokens */
 }

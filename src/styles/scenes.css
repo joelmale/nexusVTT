@@ -252,7 +252,7 @@
   opacity: 0.5;
   transform: rotate(3deg);
   transition: all var(--transition-fast);
-  z-index: 100;
+  z-index: var(--z-drag-ghost);
   box-shadow: var(--shadow-lg);
 }
 
@@ -705,7 +705,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1100;
+  z-index: var(--z-modal);
   padding: 2rem;
 }
 
@@ -1035,7 +1035,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: var(--z-modal);
   padding: var(--spacing-8);
 }
 
@@ -1828,7 +1828,7 @@
   border: 1px solid var(--glass-border);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-glass-xl);
-  z-index: 1000;
+  z-index: var(--z-panel);
   animation: slideInRight 0.3s ease;
 }
 
