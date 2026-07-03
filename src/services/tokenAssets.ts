@@ -620,6 +620,80 @@ class TokenAssetManager {
     this.loadingPromises.clear();
     console.log('Token image cache cleared');
   }
+  /**
+   * Upload a custom token to the asset service
+   */
+  async uploadTokenToServer(file: File, userId: string): Promise<Token> {
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('name', file.name);
+    
+    // Note: The VTT server will inject x-nexus-auth before proxying
+    const res = await fetch(`/api/user/${userId}/upload`, {
+      method: 'POST',
+      body: formData,
+    });
+    
+    if (!res.ok) {
+      let errorMsg = 'Upload failed';
+      try {
+        const err = await res.json();
+        errorMsg = err.error || errorMsg;
+      } catch {
+        // Ignore parse error
+      }
+      throw new Error(errorMsg);
+    }
+    
+    const { asset } = await res.json();
+    const uploadedToken: Token = {
+      id: asset.id,
+      name: asset.name,
+      image: `/api/${asset.fullImage}`,
+      size: 'medium',
+      category: 'monster' as TokenCategory, // Default category
+      tags: ['custom', 'uploaded'],
+      isCustom: true,
+      createdAt: Date.now(),
+      updatedAt: Date.now()
+    };
+
+    // Add to a custom library if it exists, otherwise create one
+    let customLib = this.tokenLibraries.find(l => l.name === 'Uploaded Tokens');
+    if (!customLib) {
+      customLib = this.createCustomLibrary('Uploaded Tokens', 'User uploaded tokens');
+    }
+    
+    customLib.tokens.push(uploadedToken);
+    customLib.updatedAt = Date.now();
+    return uploadedToken;
+  }
+
+  /**
+   * Migrate legacy localStorage custom tokens to the new backend
+   */
+  async importFromLocalStorage(userId: string): Promise<void> {
+    const saved = localStorage.getItem(this.CUSTOM_TOKENS_KEY);
+    if (!saved) return;
+    const tokens: Token[] = JSON.parse(saved);
+    
+    let imported = 0;
+    for (const token of tokens) {
+      if (token.image.startsWith('data:')) {
+        try {
+          const res = await fetch(token.image);
+          const blob = await res.blob();
+          const file = new File([blob], `${token.name || 'custom'}.png`, { type: blob.type || 'image/png' });
+          await this.uploadTokenToServer(file, userId);
+          console.log(`Imported ${token.name} successfully.`);
+          imported++;
+        } catch(err) {
+          console.error(`Failed to import ${token.name}:`, err);
+        }
+      }
+    }
+    console.log(`Successfully imported ${imported} custom tokens to the server.`);
+  }
 }
 
 // Export singleton instance
@@ -652,5 +726,7 @@ export const useTokenAssets = () => {
     getLibraries: () => tokenAssetManager.getLibraries(),
     updateToken: (tokenId: string, updates: Partial<Token>) =>
       tokenAssetManager.updateToken(tokenId, updates),
+    uploadToken: (file: File, userId: string) => tokenAssetManager.uploadTokenToServer(file, userId),
+    importFromLocalStorage: (userId: string) => tokenAssetManager.importFromLocalStorage(userId),
   };
 };

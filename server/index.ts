@@ -1581,135 +1581,37 @@ class NexusServer {
   }
 
   private setupAssetRoutes() {
-    const setCacheHeaders = (
-      res: express.Response,
-      maxAge: number = this.CACHE_MAX_AGE,
-      immutable: boolean = true,
-    ) => {
-      // Longer cache for static assets with content hashes
-      const cacheDirective = immutable
-        ? `public, max-age=${maxAge}, immutable`
-        : `public, max-age=${maxAge}`;
+    const assetApiUrl = process.env.ASSET_API_URL || 'http://localhost:5001';
 
-      res.set({
-        'Cache-Control': cacheDirective,
-        Vary: 'Accept-Encoding',
-      });
-    };
-
-    this.app.get('/manifest.json', (req, res) => {
-      if (!this.manifest) {
-        return res.status(503).json({ error: 'Manifest not loaded' });
-      }
-      setCacheHeaders(res, 300);
-      res.json(this.manifest);
+    const assetProxy = createProxyMiddleware({
+      target: assetApiUrl,
+      changeOrigin: true,
+      logLevel: 'warn',
     });
 
-    this.app.get('/search', (req, res) => {
-      if (!this.manifest) {
-        return res.status(503).json({ error: 'Manifest not loaded' });
-      }
-      const query = String(req.query.q ?? '');
-      if (!query || query.length < 2) {
-        return res
-          .status(400)
-          .json({ error: 'Query must be at least 2 characters' });
-      }
-      const lowercaseQuery = query.toLowerCase();
-      const results = this.manifest.assets.filter(
-        (asset) =>
-          asset.name.toLowerCase().includes(lowercaseQuery) ||
-          asset.tags.some((tag) => tag.toLowerCase().includes(lowercaseQuery)),
-      );
-      setCacheHeaders(res, 60);
-      res.json({ query, results, total: results.length });
-    });
-
-    this.app.get('/category/:category', (req, res) => {
-      if (!this.manifest) {
-        return res.status(503).json({ error: 'Manifest not loaded' });
-      }
-      const category = req.params.category;
-      const page = parseInt(req.query.page as string) || 0;
-      const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
-      let filteredAssets = this.manifest.assets;
-      if (category !== 'all') {
-        filteredAssets = this.manifest.assets.filter(
-          (asset) => asset.category === category,
-        );
-      }
-      const start = page * limit;
-      const end = start + limit;
-      const assets = filteredAssets.slice(start, end);
-      setCacheHeaders(res, 300);
-      res.json({
-        category,
-        page,
-        limit,
-        assets,
-        hasMore: end < filteredAssets.length,
-        total: filteredAssets.length,
-      });
-    });
-
-    this.app.get('/asset/:id', (req, res) => {
-      if (!this.manifest) {
-        return res.status(503).json({ error: 'Manifest not loaded' });
-      }
-      const asset = this.manifest.assets.find((a) => a.id === req.params.id);
-      if (!asset) {
-        return res.status(404).json({ error: 'Asset not found' });
-      }
-      setCacheHeaders(res, 86400);
-      res.json(asset);
-    });
+    this.app.use('/manifest.json', assetProxy);
+    this.app.use('/search', assetProxy);
+    this.app.use('/category', assetProxy);
+    this.app.use('/asset', assetProxy);
 
     Object.values(ASSET_CATEGORIES).forEach((categoryName) => {
-      this.app.use(
-        `/${categoryName}/assets`,
-        (req, res, next) => {
-          setCacheHeaders(res);
-          next();
-        },
-        express.static(path.join(this.ASSETS_PATH, categoryName, 'assets')),
-      );
-      this.app.use(
-        `/${categoryName}/thumbnails`,
-        (req, res, next) => {
-          setCacheHeaders(res);
-          next();
-        },
-        express.static(path.join(this.ASSETS_PATH, categoryName, 'thumbnails')),
-      );
+      this.app.use(`/${categoryName}/assets`, assetProxy);
+      this.app.use(`/${categoryName}/thumbnails`, assetProxy);
+    });
+    this.app.use('/assets', assetProxy);
+    this.app.use('/thumbnails', assetProxy);
+    this.app.use('/users', assetProxy);
+
+    const userAssetProxy = createProxyMiddleware({
+      target: assetApiUrl,
+      changeOrigin: true,
+      logLevel: 'warn',
+      onProxyReq: (proxyReq: any, _req: any, _res: any) => {
+        proxyReq.setHeader('x-nexus-auth', process.env.ASSET_SERVICE_SECRET || 'dev-secret');
+      }
     });
 
-    // Serve custom tokens directory
-    this.app.use(
-      '/assets/tokens/custom',
-      (req, res, next) => {
-        setCacheHeaders(res);
-        next();
-      },
-      express.static(path.join(this.ASSETS_PATH, 'tokens', 'custom')),
-    );
-
-    this.app.use(
-      '/assets',
-      (req, res, next) => {
-        setCacheHeaders(res);
-        next();
-      },
-      express.static(path.join(this.ASSETS_PATH, 'assets')),
-    );
-
-    this.app.use(
-      '/thumbnails',
-      (req, res, next) => {
-        setCacheHeaders(res);
-        next();
-      },
-      express.static(path.join(this.ASSETS_PATH, 'thumbnails')),
-    );
+    this.app.use('/user', userAssetProxy);
 
     this.app.use((req, res, next) => {
       if (

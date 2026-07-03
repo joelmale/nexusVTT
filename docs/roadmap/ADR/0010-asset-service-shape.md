@@ -1,6 +1,6 @@
 # ADR-0010 — Asset service: standalone service vs. evolving the embedded static server
 
-Status: **Proposed — drafted 2026-07-03, awaiting Joel's decision** (reply "0010: A/B/C")
+Status: **Accepted** (Joel, 2026-07-03)
 
 ## Context (verified @ e522c00)
 The current asset server is ~120 lines embedded in `server/index.ts` (~242, 1600–1718):
@@ -40,4 +40,4 @@ express code mostly as-is into `services/asset-service/` (new package), add mani
 (sha256, source, dimensions), keep a VTT-side proxy at the old paths for one release.
 
 ## Decision
-_(pending Joel — on approval set: Status: Accepted (Joel, date), record chosen option)_
+**Option A** (Extract to a standalone service) is selected to mitigate the CI-freeze deploy risk and isolate memory/IO.

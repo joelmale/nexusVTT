@@ -27,6 +27,7 @@ import { ContextPanel } from './ContextPanel';
 import { ErrorBoundary } from './ErrorBoundary';
 import { FloatingPanel } from './FloatingPanel';
 import { useFlag } from '@/utils/featureFlags';
+import { AtlasDock } from './Atlas/AtlasDock';
 
 // Lazy load heavy panels
 const GeneratorPanel = React.lazy(() =>
@@ -484,6 +485,9 @@ export const GameUI: React.FC = () => {
           </div>
         </div>
       )}
+
+      {/* C4: Atlas Dock Component */}
+      <AtlasDock />
     </div>
   );
 };

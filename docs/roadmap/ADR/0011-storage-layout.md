@@ -1,6 +1,6 @@
 # ADR-0011 — Asset storage layout on the NAS volume
 
-Status: **Proposed — drafted 2026-07-03, awaiting Joel's decision** (reply "0011: A/B" + any quota edits)
+Status: **Accepted** (Joel, 2026-07-03)
 
 ## Context (verified @ e522c00)
 The asset service stores: base library (35 files today, in-repo `static-assets/`), TMT corpus
@@ -39,5 +39,4 @@ safety, already in the C2 brief).
 browse the NAS by hand (tell me — it's a B2 flag, not architecture).
 
 ## Decision
-_(pending Joel — on approval set: Status: Accepted (Joel, date); record mount point for
-/assets-data on the NAS + whether the browse tree is wanted)_
+**Option A** (Content-addressed store) is selected. Additionally, the optional generated browse-tree (symlink tree) capability will be implemented for reversibility and hand-browsability on the NAS.

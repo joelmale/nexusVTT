@@ -42,37 +42,38 @@ flowchart LR
   classDef gate stroke:#e11,stroke-width:3px
   classDef adr fill:#f4e8ff,stroke:#95f
   classDef done fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+  classDef ready fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
 
   subgraph LaneA["Lane 1 — Track A"]
     A1["A1 z-scale ✅"]:::done
     A2["A2 transient drag ✅"]:::done
     A3["A3 transient camera ✅"]:::done
     A4["A4 slice split ✅"]:::done
-    A5["A5 subscription surgery 🔍"]:::gate
+    A5["A5 subscription surgery 🔍▶️"]:::ready
     A6a["A6a floating panels ✅"]:::done
-    A6b["A6b header → icon dock 🔍"]:::gate
+    A6b["A6b header → icon dock 🔍▶️"]:::ready
     A6c["A6c scene pill + modals"]
-    A7["A7 token context menu (adv.)"]
-    A8a["A8a canvas ink (flag)"]
+    A7["A7 token context menu (adv.) ▶️"]:::ready
+    A8a["A8a canvas ink (flag) ▶️"]:::ready
     A8b["A8b ink cutover 🔍"]:::gate
     A9["A9 paintable fog 🔍"]:::gate
     A10["A10 cleanup + docs"]
   end
 
   subgraph LaneC["Lane 2 — Atlas"]
-    C0["C0 ADR ×3 🔍"]:::adr
-    C1["C1 service skeleton 🔍"]:::gate
-    C2["C2 user assets"]
-    C3["C3 federation hook"]
-    C4["C4 dock shell + grid"]
+    C0["C0 ADR ×3 ✅"]:::done
+    C1["C1 service skeleton ✅"]:::done
+    C2["C2 user assets ✅"]:::done
+    C3["C3 federation hook ✅"]:::done
+    C4["C4 dock shell + grid ▶️"]:::ready
     C5["C5 drag-drop (adv.)"]
     C6["C6 Base Library tab 🔍"]:::gate
   end
 
   subgraph LaneB["Lane 3 — TMT ingestion"]
-    B0["B0 acquisition (T0)"]
-    B1["B1 normalization 🔍"]:::gate
-    B2["B2 derivatives + storage"]
+    B0["B0 acquisition (T0) ✅"]:::done
+    B1["B1 normalization ✅"]:::done
+    B2["B2 derivatives + storage ▶️"]:::ready
     B3["B3 sync + serve 🔍"]:::gate
   end
 
@@ -122,15 +123,15 @@ a blocked lane never idles the program. **Critical paths:** A4→A5→A9 and C0�
 | A8b | Ink cutover | A8a | Med | 🔍 | 140k (T2 70k / T3 40k) | `SelectionOverlay.tsx`, hit-test module |
 | A9 | Paintable fog | A4, A5 | Med | 🔍 | 160k (T2 90k / T3 40k) | new fog layer + `fogSlice`, `EntitySyncHandler.ts` |
 | A10 | Cleanup + docs | A5,A6c,A7,A8b,A9 | Low | — | 80k (T1 30k / T3 30k) | dead CSS, `CLAUDE.md` |
-| C0 | Atlas ADR ×3 | — | Low | 🔍 | 100k (T1 20k / T3 60k) | `docs/roadmap/ADR/0010–0012` |
-| C1 | Asset service skeleton | C0 | Med | 🔍 | 180k (T2 100k / T3 40k) | per ADR-0010 |
-| C2 | User-asset domain | C0, C1 | Med | — | 150k (T2 90k / T3 35k) | asset service |
-| C3 | Federation hook | — | Low-Med | — | 140k (T2 80k / T3 30k) | new `src/hooks/useAtlasAssets.ts` |
+| ~~C0~~ ✅ | ~~Atlas ADR ×3~~ **done** | — | Low | ✅ | 100k (T1 20k / T3 60k) | `docs/roadmap/ADR/0010–0012` |
+| ~~C1~~ ✅ | ~~Asset service skeleton~~ **done** | C0 | Med | 🔍 | 180k (T2 100k / T3 40k) | per ADR-0010 |
+| ~~C2~~ ✅ | ~~User-asset domain~~ **done** | C0, C1 | Med | — | 150k (T2 90k / T3 35k) | asset service |
+| ~~C3~~ ✅ | ~~Federation hook~~ **done** | — | Low-Med | — | 140k (T2 80k / T3 30k) | new `src/hooks/useAtlasAssets.ts` |
 | C4 | Dock shell + grid | C3, A1 | Med | — | 150k (T2 90k / T3 30k) | new `src/components/Atlas/*` |
 | C5 | Dock→canvas DnD | C4 | Med | adv. | 130k (T2 70k / T3 40k) | `src/components/Atlas/useDockToCanvasDrag.ts` |
 | C6 | Base Library tab | C4, B3 | Low | 🔍 | 100k (T2 50k / T3 25k) | Atlas components + hook |
-| B0 | TMT acquisition | C0 | Low | — | 60k (T0 / T1 15k / T3 25k) | new `tools/tmt-ingest/*` |
-| B1 | TMT normalization | B0 | Med | 🔍 | 100k (T0 / T1 40k / T3 35k) | `tools/tmt-ingest/*` |
+| ~~B0~~ ✅ | ~~TMT acquisition~~ **done** | C0 | Low | — | 60k (T0 / T1 15k / T3 25k) | new `tools/tmt-ingest/*` |
+| ~~B1~~ ✅ | ~~TMT normalization~~ **done** | B0 | Med | 🔍 | 100k (T0 / T1 40k / T3 35k) | `tools/tmt-ingest/*` |
 | B2 | Derivatives + storage | B1, C0 | Low | — | 50k (T0 / T1 10k / T3 20k) | `tools/tmt-ingest/*`, NAS layout |
 | B3 | Sync + serve | B2, C1 | Med | 🔍 | 110k (T2 60k / T3 30k) | asset service + sync job |
 

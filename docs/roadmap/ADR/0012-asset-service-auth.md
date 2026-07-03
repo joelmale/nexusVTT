@@ -1,6 +1,6 @@
 # ADR-0012 — Auth between VTT (backend/clients) and the asset service
 
-Status: **Proposed — drafted 2026-07-03, awaiting Joel's decision** (reply "0012: as recommended" or edits)
+Status: **Accepted** (Joel, 2026-07-03)
 
 ## Context (verified @ e522c00)
 Current asset routes are fully public static serving (no auth of any kind). The service adds
@@ -34,5 +34,4 @@ explicitly not needed at 10MB-max files.
 - Signed URLs everywhere now: two mechanisms on day one; C2 gets slower to ship.
 
 ## Decision
-_(pending Joel — on approval set: Status: Accepted (Joel, date); then C1 adds the key check +
-network binding, C2 builds on the proxy path)_
+**Approved as recommended.** Reads remain public-within-deployment (served direct), and writes will be proxied through the VTT with a shared service secret.

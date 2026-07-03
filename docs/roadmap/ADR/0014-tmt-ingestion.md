@@ -1,7 +1,6 @@
 # ADR-0014 — Too Many Tokens ingestion: T0-first, release-pinned, hash-diff synced
 
-Status: **Accepted** (Joel, 2026-07-02) — source refs pending (B0)
-
+Status: **Accepted** (Joel, 2026-07-02) — source pinned to `https://github.com/IsThisMyRealName/too-many-tokens-dnd` @ `1.1.1` (B0)
 ## Context
 The Too Many Tokens library (~16k token images) becomes the Atlas base library, landing in the
 asset service (NEVER NexusCodex, per ADR-0001). Processing 16k files through model context would
@@ -21,9 +20,9 @@ cost ~13M+ tokens; deterministic scripts cost ~zero.
    on rule changes.
 
 ## Pinned source (fill at B0 — CONFIRM WITH JOEL, do not guess)
-- TMT_SOURCE_REPO: _(pending)_
-- TMT_RELEASE_TAG: _(pending)_
-- License/attribution requirement + credit placement: _(record at B0; surfaced in UI at C6)_
+- TMT_SOURCE_REPO: `https://github.com/IsThisMyRealName/too-many-tokens-dnd`
+- TMT_RELEASE_TAG: `1.1.1`
+- License/attribution requirement + credit placement: MIT License (requires attribution/copyright notice; can be surfaced unobtrusively in a Settings/About screen or UI footer at C6).
 
 ## Consequences
 - B-track budgets are tiny relative to corpus size; the pipeline is re-runnable and auditable.
