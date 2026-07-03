@@ -11,7 +11,7 @@ roadmap_version: 1
 
 | packet | status | gate | depends_on | last_commit | notes |
 |--------|--------|------|------------|-------------|-------|
-| A1  | done | **pending** | — | 47d7a55 | audit clean; 13 approved local literals + critical.css exempt (T3 ruling); Joel review gates A6a/C4 |
+| A1  | done | approved (Joel, 2026-07-03) | — | 47d7a55 | audit clean; 13 approved local literals + critical.css exempt (T3 ruling); A6a/C4 unblocked |
 | A2  | done | n/a | — | 73ff143 | one store write/gesture proven by test; profiler + two-tab smoke deferred to A5 gate evidence |
 | A3  | done | n/a | A2 | 37443fe | zero mid-gesture re-renders; NOTE: camera/update has NO server relay (pre-existing — see deferred) |
 | A4  | todo | n/a | — | — | entry point |
