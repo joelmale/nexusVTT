@@ -1,12 +1,13 @@
 import express from 'express';
+import type { Request, Response, NextFunction } from 'express';
 import cors from 'cors';
 import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
 import crypto from 'crypto';
 
-const app = express();
-const port = process.env.PORT || 5001;
+export const app = express();
+const port = process.env.PORT || 5003;
 
 // Base paths (using fallback to current project for local dev)
 const ASSETS_PATH = process.env.ASSETS_PATH || path.resolve(__dirname, '../../../static-assets');
@@ -188,6 +189,21 @@ function getDirSize(dirPath: string): number {
   return size;
 }
 
+// Auth check: rely on VTT proxy to send a specific header `x-nexus-auth: shared-secret`.
+// Runs BEFORE multer on the upload route so unauthenticated requests are
+// rejected before any file buffering occurs.
+function requireNexusAuth(req: Request, res: Response, next: NextFunction): void {
+  if (req.headers['x-nexus-auth'] !== process.env.ASSET_SERVICE_SECRET) {
+    // Drain and discard any request body instead of leaving it unconsumed:
+    // avoids the client seeing a socket reset while still streaming a large
+    // multipart body, and avoids leaving data buffered on the socket.
+    req.resume();
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+  next();
+}
+
 app.get('/user/:userId/assets', async (req, res) => {
   const userId = req.params.userId;
   if (!/^[a-zA-Z0-9-]+$/.test(userId)) return res.status(400).json({ error: 'Invalid userId' });
@@ -196,12 +212,7 @@ app.get('/user/:userId/assets', async (req, res) => {
   res.json({ assets: manifest.assets });
 });
 
-app.post('/user/:userId/upload', upload.single('file'), async (req, res) => {
-  // Auth check: rely on VTT proxy to send a specific header `x-nexus-auth: shared-secret`
-  if (req.headers['x-nexus-auth'] !== process.env.ASSET_SERVICE_SECRET) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
+app.post('/user/:userId/upload', requireNexusAuth, upload.single('file'), async (req, res) => {
   const userId = req.params.userId;
   if (!/^[a-zA-Z0-9-]+$/.test(userId)) {
     return res.status(400).json({ error: 'Invalid userId' });
@@ -249,11 +260,7 @@ app.post('/user/:userId/upload', upload.single('file'), async (req, res) => {
   res.json({ asset: newAsset });
 });
 
-app.delete('/user/:userId/asset/:assetId', async (req, res) => {
-  if (req.headers['x-nexus-auth'] !== process.env.ASSET_SERVICE_SECRET) {
-    return res.status(401).json({ error: 'Unauthorized' });
-  }
-
+app.delete('/user/:userId/asset/:assetId', requireNexusAuth, async (req, res) => {
   const { userId, assetId } = req.params;
   if (!/^[a-zA-Z0-9-]+$/.test(userId)) return res.status(400).json({ error: 'Invalid userId' });
 
@@ -284,7 +291,8 @@ app.use(
   express.static(path.join(ASSETS_PATH, 'thumbnails')),
 );
 
-app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
+// 3-arg catch-all for unmatched routes — must be registered AFTER all routes.
+app.use((req: Request, res: Response) => {
   res.status(404).json({
     error: 'Not found',
     availableEndpoints: [
@@ -294,11 +302,31 @@ app.use((err: any, req: Request, res: Response, _next: NextFunction) => {
       '/category/:name',
       '/asset/:id',
       '/assets/:filename',
-      '/thumbnails/:filename'
+      '/thumbnails/:filename',
+      '/user/:userId/assets',
+      '/user/:userId/upload',
+      '/user/:userId/asset/:assetId',
     ],
   });
 });
 
-app.listen(port, () => {
-  console.log(`Asset service listening on port ${port}`);
+// 4-arg error handler — must be registered LAST so Express recognizes it as
+// an error handler (arity matters to Express's dispatch logic).
+app.use((err: unknown, req: Request, res: Response, _next: NextFunction) => {
+  const error = err as { code?: string; message?: string } | undefined;
+
+  if (error?.code === 'LIMIT_FILE_SIZE') {
+    res.status(413).json({ error: 'File too large (5MB max per file)' });
+    return;
+  }
+
+  console.error('Asset service error:', err);
+  res.status(500).json({ error: 'Internal server error' });
 });
+
+/* istanbul ignore next -- exercised only when run as the main module */
+if (require.main === module) {
+  app.listen(port, () => {
+    console.log(`Asset service listening on port ${port}`);
+  });
+}

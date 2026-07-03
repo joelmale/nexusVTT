@@ -58,6 +58,9 @@ import type {
 import { hashSync } from '../shared/sync/hashSync.js';
 import type { Operation } from 'fast-json-patch';
 
+// Middleware
+import { assetWriteGuard } from './middleware/assetWriteGuard.js';
+
 // Sockets
 import { SocketManager } from './socket/SocketManager.js';
 import { ChatHandler } from './socket/handlers/ChatHandler.js';
@@ -1582,7 +1585,7 @@ class NexusServer {
   }
 
   private setupAssetRoutes() {
-    const assetApiUrl = process.env.ASSET_API_URL || 'http://localhost:5001';
+    const assetApiUrl = process.env.ASSET_API_URL || 'http://localhost:5003';
 
     const assetProxy = createProxyMiddleware({
       target: assetApiUrl,
@@ -1602,17 +1605,47 @@ class NexusServer {
     this.app.use('/thumbnails', assetProxy);
     this.app.use('/users', assetProxy);
 
+    // ADR-0012: the VTT authenticates the session user (assetWriteGuard) and
+    // only then forwards to the asset service with the shared secret. The
+    // asset service itself has no dev-secret fallback (see
+    // services/asset-service/src/index.ts), so a fallback here would only
+    // ever succeed against a local asset-service instance where the
+    // operator deliberately set ASSET_SERVICE_SECRET=dev-secret. It is
+    // gated to non-production and logged so it can't silently ship.
+    let assetServiceSecret = process.env.ASSET_SERVICE_SECRET;
+    if (!assetServiceSecret) {
+      if (process.env.NODE_ENV === 'production') {
+        console.error(
+          '❌ ASSET_SERVICE_SECRET is not set in production. User asset uploads/deletes will be rejected by the asset service.',
+        );
+      } else {
+        console.warn(
+          '⚠️ ASSET_SERVICE_SECRET not set — falling back to "dev-secret" for local development only.',
+        );
+        assetServiceSecret = 'dev-secret';
+      }
+    }
+
     const userAssetProxy = createProxyMiddleware({
       target: assetApiUrl,
       changeOrigin: true,
+      pathRewrite: { '^/api/user': '/user' },
       on: {
         proxyReq: (proxyReq: any, _req: any, _res: any) => {
-          proxyReq.setHeader('x-nexus-auth', process.env.ASSET_SERVICE_SECRET || 'dev-secret');
+          if (assetServiceSecret) {
+            proxyReq.setHeader('x-nexus-auth', assetServiceSecret);
+          }
         }
       }
     });
 
-    this.app.use('/user', userAssetProxy);
+    // Mounted at '/api/user' (not '/user') to match the client's existing
+    // call site (src/services/tokenAssets.ts) and to sit alongside the
+    // other /api/* routes without ambiguity vs. the public /users read
+    // mount. assetWriteGuard runs first and validates the session before
+    // the proxy injects the shared secret; pathRewrite strips the '/api'
+    // prefix so the asset service still sees /user/:userId/...
+    this.app.use('/api/user', assetWriteGuard, userAssetProxy);
 
     this.app.use((req, res, next) => {
       if (
