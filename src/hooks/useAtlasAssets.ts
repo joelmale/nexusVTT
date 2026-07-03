@@ -12,7 +12,17 @@ const adapters: AtlasSourceAdapter[] = [
   new PropsSourceAdapter()
 ];
 
-export function useAtlasAssets() {
+export interface UseAtlasAssetsOptions {
+  /**
+   * When false, no fetch is performed and no debounce timer is scheduled
+   * (ADR-0009: lazy fetch). Defaults to true for back-compat with callers
+   * that don't opt into lazy behavior (e.g. AtlasDevHarness).
+   */
+  enabled?: boolean;
+}
+
+export function useAtlasAssets(options?: UseAtlasAssetsOptions) {
+  const enabled = options?.enabled ?? true;
   const [query, setQuery] = useState('');
   const [category, setCategory] = useState('all');
   const [assets, setAssets] = useState<AtlasAsset[]>([]);
@@ -72,12 +82,14 @@ export function useAtlasAssets() {
   }, []);
 
   useEffect(() => {
+    if (!enabled) return;
+
     const handler = setTimeout(() => {
       fetchAssets(query, category);
     }, 250); // 250ms debounce
 
     return () => clearTimeout(handler);
-  }, [query, category, fetchAssets]);
+  }, [enabled, query, category, fetchAssets]);
 
   return {
     query,

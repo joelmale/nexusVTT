@@ -36,8 +36,14 @@ explicitly not needed at 10MB-max files.
 ## Decision
 **Approved as recommended.** Reads remain public-within-deployment (served direct), and writes will be proxied through the VTT with a shared service secret.
 
-> ⚠️ **Known implementation gap (2026-07-03, must-fix before upload UI ships):** the current
-> proxy (`server/index.ts` ~1605) injects the secret for ANY caller of `/user/*` without
-> validating the session user or matching them to `:userId` — the "VTT authenticates first"
-> half of this decision is not yet implemented. Implemented header is `x-nexus-auth` (not
-> `X-Asset-Service-Key`). See [reviews/S3-review-B1-B2-C2-C3-C4.md](../reviews/S3-review-B1-B2-C2-C3-C4.md) must-fix #1.
+**Amendment (Joel, 2026-07-03): uploads are for authenticated non-guest users only.**
+Guest users (provider `'guest'`) cannot upload/delete server-side assets — they keep the
+existing localStorage-only custom-token path. The VTT write guard enforces: unauthenticated
+→ 401; guest → 403 (`guest-upload-forbidden`); session user ≠ path userId → 403.
+
+> ✅ **Gap resolved (2026-07-03, S4 fix-pack):** `assetWriteGuard`
+> (`server/middleware/assetWriteGuard.ts`, mounted at `/api/user` before the proxy) now
+> enforces session auth + guest exclusion + userId match before the secret is injected.
+> Implemented header is `x-nexus-auth` (not `X-Asset-Service-Key`). Guest identity note:
+> guests never call `req.login()`, so `req.isAuthenticated()` excludes them structurally;
+> the provider check is defense-in-depth.

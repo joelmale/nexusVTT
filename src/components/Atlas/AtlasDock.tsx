@@ -6,7 +6,13 @@ type DockState = 'closed' | 'peek' | 'open';
 
 export const AtlasDock: React.FC = () => {
   const [dockState, setDockState] = useState<DockState>('closed');
-  const { query, setQuery, category, setCategory, assets, loading } = useAtlasAssets();
+  // Open-once latch (ADR-0009): once the dock has been opened, keep the
+  // fetch enabled for the rest of the component's life so closing the dock
+  // doesn't abort in-flight requests or force a refetch churn on reopen.
+  const [hasOpened, setHasOpened] = useState(false);
+  const { query, setQuery, category, setCategory, assets, loading } = useAtlasAssets({
+    enabled: hasOpened,
+  });
 
   // Handle escape key to close dock
   useEffect(() => {
@@ -18,6 +24,12 @@ export const AtlasDock: React.FC = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [dockState]);
+
+  useEffect(() => {
+    if (dockState !== 'closed' && !hasOpened) {
+      setHasOpened(true);
+    }
+  }, [dockState, hasOpened]);
 
   const toggleDock = () => {
     setDockState(prev => {

@@ -17,6 +17,20 @@ interface TokenManifest {
 }
 
 /**
+ * Thrown when the server rejects a token upload because the acting user is
+ * a guest (server/middleware/assetWriteGuard.ts returns 403
+ * 'guest-upload-forbidden'). Guests keep the existing localStorage-only
+ * custom-token path — callers should treat this as an expected no-op, not
+ * a user-facing error.
+ */
+export class GuestUploadForbiddenError extends Error {
+  constructor(message = 'Sign in to upload assets') {
+    super(message);
+    this.name = 'GuestUploadForbiddenError';
+  }
+}
+
+/**
  * Token Asset Manager handles loading, caching, and organizing token assets
  */
 class TokenAssetManager {
@@ -636,11 +650,16 @@ class TokenAssetManager {
     
     if (!res.ok) {
       let errorMsg = 'Upload failed';
+      let errorCode: string | undefined;
       try {
         const err = await res.json();
-        errorMsg = err.error || errorMsg;
+        errorCode = err.error;
+        errorMsg = err.message || err.error || errorMsg;
       } catch {
         // Ignore parse error
+      }
+      if (res.status === 403 && errorCode === 'guest-upload-forbidden') {
+        throw new GuestUploadForbiddenError(errorMsg);
       }
       throw new Error(errorMsg);
     }
@@ -676,7 +695,7 @@ class TokenAssetManager {
     const saved = localStorage.getItem(this.CUSTOM_TOKENS_KEY);
     if (!saved) return;
     const tokens: Token[] = JSON.parse(saved);
-    
+
     let imported = 0;
     for (const token of tokens) {
       if (token.image.startsWith('data:')) {
@@ -688,6 +707,11 @@ class TokenAssetManager {
           console.log(`Imported ${token.name} successfully.`);
           imported++;
         } catch(err) {
+          if (err instanceof GuestUploadForbiddenError) {
+            // Expected: guests keep the localStorage-only path. Not an error.
+            console.log(`Skipping server import of ${token.name}: guest session (localStorage path retained).`);
+            continue;
+          }
           console.error(`Failed to import ${token.name}:`, err);
         }
       }
