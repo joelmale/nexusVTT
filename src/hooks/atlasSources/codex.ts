@@ -9,26 +9,27 @@ export class CodexSourceAdapter implements AtlasSourceAdapter {
     try {
       const skip = cursor || 0;
       const limit = 20;
-      // In MVP, we might just list and filter, or use search if the API supports it
-      const result = await documentService.searchDocuments({ query, tags: [] });
+      const result = await documentService.searchDocuments({ 
+        query, 
+        tags: [],
+        from: skip,
+        size: limit
+      });
       
-      // Document service doesn't return paginated search in this stub, so we paginate locally
-      const assets = result.documents.slice(skip, skip + limit).map(doc => ({
-        id: `codex:${doc.id}`,
+      const assets = result.results.map(doc => ({
+        id: `codex:${doc.documentId}`,
         source: this.source,
-        name: doc.title,
-        thumbnailUrl: `/api/documents/${doc.id}/thumbnail`,
-        resolveFullAsset: async () => {
-          return `/api/documents/${doc.id}/content`;
-        },
-        tags: doc.tags
+        name: doc.source.title,
+        thumbnailUrl: `/api/documents/${doc.documentId}/thumbnail`,
+        resolveFullAsset: async () => `/api/documents/${doc.documentId}/content`,
+        tags: doc.source.tags
       }));
 
       this.isOffline = false;
       return {
         assets,
-        hasMore: skip + limit < result.documents.length,
-        total: result.documents.length
+        hasMore: skip + limit < result.total,
+        total: result.total
       };
     } catch (err: any) {
       if (err.message?.includes('503') || err.message?.includes('fetch')) {
