@@ -41,14 +41,15 @@ Deferred/unscheduled: token-vision fog (needs product decision; see ADR-0009).
 flowchart LR
   classDef gate stroke:#e11,stroke-width:3px
   classDef adr fill:#f4e8ff,stroke:#95f
+  classDef done fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
 
   subgraph LaneA["Lane 1 — Track A"]
-    A1["A1 z-scale 🔍"]:::gate
-    A2["A2 transient drag"]
-    A3["A3 transient camera"]
-    A4["A4 slice split"]
+    A1["A1 z-scale ✅"]:::done
+    A2["A2 transient drag ✅"]:::done
+    A3["A3 transient camera ✅"]:::done
+    A4["A4 slice split ✅"]:::done
     A5["A5 subscription surgery 🔍"]:::gate
-    A6a["A6a floating panels 🔍"]:::gate
+    A6a["A6a floating panels ✅"]:::done
     A6b["A6b header → icon dock 🔍"]:::gate
     A6c["A6c scene pill + modals"]
     A7["A7 token context menu (adv.)"]
@@ -108,12 +109,12 @@ a blocked lane never idles the program. **Critical paths:** A4→A5→A9 and C0�
 
 | ID | Packet | Depends on | Risk | Gate | Budget cap (tokens) | Key files |
 |---|---|---|---|---|---|---|
-| A1 | z-scale + codemod | — | Low | 🔍 | 80k (T0+T1 10k / T3 30k) | new `src/utils/z-scale.ts`, ~15 CSS files, 3 inline TSX |
-| A2 | Transient token drag | — | Low | — | 120k (T2 60k / T3 30k) | `src/components/Scene/TokenRenderer.tsx`, new `src/hooks/useTransientDrag.ts` |
-| A3 | Transient camera | A2 | Low | — | 100k (T2 50k / T3 25k) | `src/components/Scene/SceneCanvas.tsx`, camera ref module |
-| A4 | Store slice split | — | Med | — | 180k (T2 90k / T1 15k / T3 40k) | `src/stores/gameStore.ts` → `src/stores/scene/*` |
+| ~~A1~~ ✅ | ~~z-scale + codemod~~ **done** `47d7a55`, gate approved | — | Low | ✅ | 80k (T0+T1 10k / T3 30k) | new `src/utils/z-scale.ts`, ~15 CSS files, 3 inline TSX |
+| ~~A2~~ ✅ | ~~Transient token drag~~ **done** `73ff143` | — | Low | — | 120k (T2 60k / T3 30k) | `src/components/Scene/TokenRenderer.tsx`, new `src/hooks/useTransientDrag.ts` |
+| ~~A3~~ ✅ | ~~Transient camera~~ **done** `37443fe` | A2 | Low | — | 100k (T2 50k / T3 25k) | `src/components/Scene/SceneCanvas.tsx`, camera ref module |
+| ~~A4~~ ✅ | ~~Store slice split~~ **done** `d0891ed` (additive realization, see SESSION_STATE) | — | Med | — | 180k (T2 90k / T1 15k / T3 40k) | new `src/stores/scene/*` (gameStore.ts untouched) |
 | A5 | Subscription surgery | A4 (A3 soft) | Med | 🔍 | 160k (T2 80k / T3 50k) | `SceneCanvas.tsx` + layer components |
-| A6a | Floating panels | A1 | Med | 🔍 | 150k (T2 80k / T3 35k) | `GameUI.tsx`, `ContextPanel.tsx`, `layout-consolidated.css`, new flag util |
+| ~~A6a~~ ✅ | ~~Floating panels~~ **done** `68db393`+`19ef427`, gate approved | A1 | Med | ✅ | 150k (T2 80k / T3 35k) | `GameUI.tsx`, `layout-consolidated.css`, new flag util + first CSS Module |
 | A6b | Header → icon dock | A6a | Med | 🔍 | 130k (T2 70k / T3 30k) | `GameUI.tsx`, `PlayerBar.tsx`, new `PanelDock` module |
 | A6c | Scene pill + modal hygiene | A6b | Low | — | 100k (T2 50k / T3 25k) | `GameUI.tsx`, `generator-panel.css` |
 | A7 | Token context menu | A6a | Low-Med | adv. | 110k (T2 60k / T3 25k) | new `TokenContextMenu`, `PopoverMenu.tsx` |

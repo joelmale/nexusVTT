@@ -16,7 +16,7 @@ roadmap_version: 1
 | A3  | done | n/a | A2 | 37443fe | zero mid-gesture re-renders; NOTE: camera/update has NO server relay (pre-existing — see deferred) |
 | A4  | done | n/a | — | d0891ed | T3 ruling: realized as ADDITIVE narrow-selector modules (src/stores/scene/) — gameStore.ts diff is ZERO; isolation via Immer structural sharing, proven by sliceIsolation.test.ts; physical monolith split deferred as optional cleanup. A5 imports from stores/scene/index.ts |
 | A5  | todo | none→pending-on-done | A4 | — | A3 soft-dep; NOTE: A4's narrow hooks are additive/dormant — A5 wires them into layer components (that's where the re-render win lands) |
-| A6a | todo→done | **pending** | A1(approved) | 68db393+19ef427 | flag 'floating-panels' default OFF; first CSS Module; live-verified both states (found+fixed 1fr min-content blowout with minmax(0,1fr)); Joel review gates A6b/A7 |
+| A6a | done | approved (Joel, 2026-07-03) | A1(approved) | 68db393+19ef427 | flag 'floating-panels' default OFF; first CSS Module; live-verified both states (found+fixed 1fr min-content blowout); A6b/A7 unblocked |
 | A6b | todo | none→pending-on-done | A6a | — | |
 | A6c | todo | n/a | A6b | — | |
 | A7  | todo | advisory | A6a | — | |
