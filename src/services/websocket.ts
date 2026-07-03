@@ -135,6 +135,12 @@ class WebSocketService extends EventTarget {
 
     this.connectionPromise = (async () => {
       try {
+        // A new connection cannot reuse session confirmations from a previous
+        // one — a stale cache would let waitForSessionConfirmed() resolve for
+        // a room the server no longer knows about.
+        this.lastSessionCreatedEvent = null;
+        this.lastSessionJoinedEvent = null;
+
         // Store connection context for reconnection (if we have enough info)
         if (roomCode && userType && userId && userName) {
           this.connectionContext = {
@@ -418,17 +424,20 @@ class WebSocketService extends EventTarget {
       case 'error':
         console.error('Server error:', sanitizeLog(message.data.message));
 
-        // Handle specific error cases
-        if (message.data.message === 'Room not found') {
+        // Handle specific error cases. startsWith: the player-join path sends
+        // 'Room not found or offline - …', which must also clear state.
+        if (message.data.message?.startsWith('Room not found')) {
           console.log('🗑️ Room not found - clearing stored session data');
           try {
             gameStore.resetSessionForExpiredRoom();
           } catch (error) {
             console.error('Failed to reset session state:', error);
           }
+          // Close cleanly so handleReconnect doesn't keep retrying a room the
+          // server just told us is gone.
+          this.disconnect();
           toast.error('Session Expired', {
-            description:
-              'Your previous session has expired. Creating a new room.',
+            description: 'Your previous session has ended.',
           });
         } else if (
           message.data.code === 409 &&
@@ -736,6 +745,51 @@ class WebSocketService extends EventTarget {
 
       this.addEventListener('message', handler);
       this.addEventListener('message', errorHandler);
+    });
+  }
+
+  /**
+   * Wait until the server confirms this connection belongs to a live room
+   * (session/created, session/reconnected, or session/joined). The socket
+   * opening only proves the server is up — the room may no longer exist.
+   * Rejects on a server error message or after timeoutMs; callers should
+   * treat that as a dead room and clear recovery state.
+   */
+  waitForSessionConfirmed(timeoutMs = 10000): Promise<void> {
+    if (this.lastSessionCreatedEvent || this.lastSessionJoinedEvent) {
+      return Promise.resolve();
+    }
+
+    return new Promise((resolve, reject) => {
+      const cleanup = () => {
+        clearTimeout(timeout);
+        this.removeEventListener('message', handler);
+      };
+
+      const timeout = setTimeout(() => {
+        cleanup();
+        reject(new Error('Session confirmation timeout'));
+      }, timeoutMs);
+
+      const handler = (event: Event) => {
+        const detail = (event as CustomEvent).detail;
+        const eventName = detail?.data?.name;
+        if (
+          eventName === 'session/created' ||
+          eventName === 'session/reconnected' ||
+          eventName === 'session/joined'
+        ) {
+          cleanup();
+          resolve();
+        } else if (detail?.type === 'error') {
+          cleanup();
+          reject(
+            new Error(detail?.data?.message || 'Session confirmation failed'),
+          );
+        }
+      };
+
+      this.addEventListener('message', handler);
     });
   }
 

@@ -1762,6 +1762,13 @@ export const useGameStore = create<GameStore>()(
 
         clearSessionFromStorage();
         sessionPersistenceService.clearAll();
+        // Also drop the reconnection context, or the WebSocket auto-reconnect
+        // loop re-joins the dead room and re-creates the state just cleared.
+        try {
+          localStorage.removeItem('nexus-connection-context');
+        } catch (error) {
+          console.warn('Failed to clear connection context:', error);
+        }
       },
 
       // App Flow Actions (from appFlowStore)
@@ -3849,6 +3856,13 @@ export const useGameStore = create<GameStore>()(
             `🔌 Connecting WebSocket: roomCode=${recoveryData.session.roomCode}, userType=${recoveryData.session.userType}`,
           );
 
+          // Start listening for the server's verdict before connecting so a
+          // confirmation can't slip past between socket-open and listener
+          // setup. Rejection is handled below; the no-op catch silences the
+          // unhandled-rejection warning if connect() itself throws first.
+          const sessionConfirmed = webSocketService.waitForSessionConfirmed();
+          sessionConfirmed.catch(() => {});
+
           // Pass the userType to determine if this is a host reconnection or player join
           await webSocketService.connect(
             recoveryData.session.roomCode,
@@ -3857,6 +3871,33 @@ export const useGameStore = create<GameStore>()(
             recoveryData.session.userId,
             recoveryData.session.userName,
           );
+
+          // The socket opening only proves the server is up — the room may
+          // have been dropped (hibernation/abandonment/restart). Without this
+          // wait, recovery "succeeds" for a dead room and the app hangs on the
+          // loading screen while the stored cookie keeps recreating the loop.
+          try {
+            await sessionConfirmed;
+          } catch (confirmError) {
+            console.warn(
+              '❌ Server did not confirm the session — clearing dead recovery state:',
+              confirmError,
+            );
+            webSocketService.disconnect();
+            get().resetSessionForExpiredRoom();
+            // A 'Room not found' server error already raised its own toast in
+            // the websocket handler; only announce the silent-timeout case.
+            if (
+              confirmError instanceof Error &&
+              confirmError.message.includes('timeout')
+            ) {
+              const { toast } = await import('@/utils/notifications');
+              toast.error('Session Expired', {
+                description: 'Your previous session has ended.',
+              });
+            }
+            return false;
+          }
 
           // If we're the host and have game state, send it to the server.
           // loadSessionState() above already rehydrated the character/initiative
@@ -3879,19 +3920,9 @@ export const useGameStore = create<GameStore>()(
             get().sceneState,
           );
 
-          // Clear recovery flag
-          set((state) => {
-            state.isRecovering = false;
-          });
-
           return true;
         } catch (error) {
           console.error('❌ Session recovery failed:', error);
-
-          // Clear recovery flag
-          set((state) => {
-            state.isRecovering = false;
-          });
 
           // Only clear session data if WebSocket connection failed
           // Keep local state in case user wants to try manual reconnection
@@ -3904,6 +3935,14 @@ export const useGameStore = create<GameStore>()(
           }
 
           return false;
+        } finally {
+          // Always clear the flag here: the early `return false` paths above
+          // used to leave isRecovering=true forever, so ProtectedRoute never
+          // reached its redirect-to-lobby branch and the app hung on the
+          // loading screen.
+          set((state) => {
+            state.isRecovering = false;
+          });
         }
       },
 
