@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { useGameStore } from './gameStore';
 import type {
   GameEvent,
@@ -30,6 +30,17 @@ describe('gameStore event handlers', () => {
   });
 
   describe('Token Events', () => {
+    // The event handlers stamp updatedAt with Date.now(); fake timers let the
+    // tests advance the clock so the strict toBeGreaterThan assertions can't
+    // flake when setup and event land on the same millisecond.
+    beforeEach(() => {
+      vi.useFakeTimers();
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     it('should handle "token/place" event and add a token to a scene', () => {
       // Setup: Create an initial scene in the store
       const sceneId = uuidv4();
@@ -89,6 +100,7 @@ describe('gameStore event handlers', () => {
         type: 'token/place',
         data: { sceneId, token },
       };
+      vi.advanceTimersByTime(1);
       useGameStore.getState().applyEvent(event);
 
       // Assert: Check if the token was added correctly
@@ -165,6 +177,7 @@ describe('gameStore event handlers', () => {
           rotation: newRotation,
         },
       };
+      vi.advanceTimersByTime(1);
       useGameStore.getState().applyEvent(event);
 
       // Assert: Check if the token's position and rotation were updated
