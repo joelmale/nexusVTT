@@ -2,7 +2,7 @@
 # Update per RESUME_PROTOCOL.md §5. Append-friendly: edit only your packet's row; append log rows.
 
 last_updated: 2026-07-03
-last_verified_commit: 37443fe (branch packet/A1-A3; master remains e29131b until merge)
+last_verified_commit: 19ef427 (branch packet/A4-A6a, stacked on packet/A1-A3; master remains e29131b until merge)
 roadmap_version: 1
 
 ## Packet ledger
@@ -14,9 +14,9 @@ roadmap_version: 1
 | A1  | done | approved (Joel, 2026-07-03) | — | 47d7a55 | audit clean; 13 approved local literals + critical.css exempt (T3 ruling); A6a/C4 unblocked |
 | A2  | done | n/a | — | 73ff143 | one store write/gesture proven by test; profiler + two-tab smoke deferred to A5 gate evidence |
 | A3  | done | n/a | A2 | 37443fe | zero mid-gesture re-renders; NOTE: camera/update has NO server relay (pre-existing — see deferred) |
-| A4  | todo | n/a | — | — | entry point |
-| A5  | todo | none→pending-on-done | A4 | — | A3 soft-dep (cleaner profiling) |
-| A6a | todo | none→pending-on-done | A1 | — | introduces feature-flag util |
+| A4  | done | n/a | — | d0891ed | T3 ruling: realized as ADDITIVE narrow-selector modules (src/stores/scene/) — gameStore.ts diff is ZERO; isolation via Immer structural sharing, proven by sliceIsolation.test.ts; physical monolith split deferred as optional cleanup. A5 imports from stores/scene/index.ts |
+| A5  | todo | none→pending-on-done | A4 | — | A3 soft-dep; NOTE: A4's narrow hooks are additive/dormant — A5 wires them into layer components (that's where the re-render win lands) |
+| A6a | todo→done | **pending** | A1(approved) | 68db393+19ef427 | flag 'floating-panels' default OFF; first CSS Module; live-verified both states (found+fixed 1fr min-content blowout with minmax(0,1fr)); Joel review gates A6b/A7 |
 | A6b | todo | none→pending-on-done | A6a | — | |
 | A6c | todo | n/a | A6b | — | |
 | A7  | todo | advisory | A6a | — | |
@@ -51,6 +51,14 @@ roadmap_version: 1
   imperative write compute the same string — extract shared helper in A10.
 - PropRenderer still uses the pre-A2 mousemove drag pattern — candidate A2-style follow-up.
 - Zoom-at-cursor does not exist (zoom is center-anchored) — potential UX packet.
+- **Session recovery hangs forever** on "Loading game…" when the stored room is dead server-side;
+  recovery uses an UNDOCUMENTED `nexus-room` cookie (plus localStorage nexus-session/
+  nexus-connection-context + IndexedDB) that stuck pages re-write, making escape impossible
+  without clearing the cookie. Chip filed (task_c85a53e7). Document cookie in CLAUDE.md (A10).
+- Flaky pre-existing test: gameStore.test.ts token/move updatedAt toBeGreaterThan on
+  same-millisecond timestamps. Chip filed (task_da58aa9c).
+- vitest mockReset:true gotcha: vi.mock factory mockResolvedValue is wiped per-test; re-arm in
+  beforeEach (see sliceIsolation.test.ts / gameStore.persistence.test.ts convention).
 
 ## Known drift (codebase facts that contradict older docs — trust these, fix docs in A10)
 - CLAUDE.md §3/§11 claim canvas rendering → actually SVG master + DOM tokens (verified e29131b).
@@ -63,4 +71,5 @@ roadmap_version: 1
 | date | session | packet | outcome | spend (approx, by tier) | notes |
 |------|---------|--------|---------|--------------------------|-------|
 | 2026-07-02 | S0 | roadmap bootstrap | done | T1 ~193k (3 scouts, prior session) · T2 ~187k (3 specialists, prior session) · T3 planning + this package | Blueprint + Roadmap Package created. Ground truth pinned @ e29131b. Next: A1 / C0 / C3 (any order, parallel-safe). |
+| 2026-07-03 | S2 | A4+A6a (batched by Joel, parallel T2 builds) | done | A4: T2 109k (~under 180k cap) · A6a: T2 105k + T3 preview verification (~cap) | Branch packet/A4-A6a stacked on packet/A1-A3. A4 accepted via T3 ruling (additive, zero gameStore diff — exit criteria all met). A6a live-verified both flag states; T3 preview caught+fixed real grid blowout bug (minmax(0,1fr)). 446 tests passing. New findings: nexus-room cookie (undocumented persistence layer), dead-room recovery hang (chip filed), flaky gameStore test (chip filed). A6a gate PENDING Joel review. Next: A5 (unblocked), C0/C3; A6b/A7 blocked on A6a gate. |
 | 2026-07-03 | S1 | A1+A2+A3 (batched by Joel) | done | A1: T0+T3 inline (~within cap) · A2: T2 172k (OVER 120k cap — builder hit lint-rule fights + found/fixed 2 real bugs; work complete, no split) · A3: T2 122k (~cap) · T3 review/verify throughout | Single branch packet/A1-A3 (deviation from branch-per-packet: Joel batched; per-packet commits preserved). Drift found: scout errors (DrawingTools inline z never existed; EntitySync does NOT relay camera/*). Baseline: database.test.ts fails pre-existing (needs live PostgreSQL). A1 gate PENDING Joel review. Exit-criteria deferrals: profiler trace + two-tab smoke need running backend — folded into A5's gate evidence per T3 ruling. Next: A4 (unblocked) or C0/C3; A6a/C4 blocked on A1 gate approval. |
