@@ -588,19 +588,36 @@ Benefits:
 
 ### Session Recovery
 
+**Recovery state lives in FOUR places** (all must be cleared together — see
+`resetSessionForExpiredRoom()` in `gameStore.ts`):
+
+1. **`nexus-room` cookie** — roomCode/userId/userType/userName backup written by
+   `sessionPersistence.ts` (1 hour max-age). Fallback when localStorage is
+   empty; a session restored from the cookie keeps its original timestamp so a
+   dead session can't renew itself indefinitely.
+2. **localStorage** — `nexus-session` (sessionPersistence), `nexus-active-session`
+   (gameStore), `nexus-connection-context` (websocket auto-reconnect).
+3. **IndexedDB** — game state snapshots (scenes, characters, initiative).
+4. **Zustand store** — `session`, `connection`, `isRecovering`.
+
 **Flow on page refresh:**
 
 ```
-1. Check localStorage for 'nexus-active-session'
-2. If found and < 24 hours old:
-   - Extract room code
-   - Attempt WebSocket reconnection
-   - Server looks up session in PostgreSQL
-   - Send full game state back to client
-   - Client restores state to Zustand
-3. If session not found or expired:
-   - Redirect to lobby
-   - Clear localStorage
+1. Load session from 'nexus-session' localStorage, falling back to the
+   'nexus-room' cookie (sessionPersistenceService.loadSession()), then to
+   'nexus-active-session'
+2. If found and within the reconnect window:
+   - Attempt WebSocket reconnection (attemptSessionRecovery in gameStore)
+   - Wait for the server to confirm the room exists
+     (webSocketService.waitForSessionConfirmed(), 10s timeout) — the socket
+     opening only proves the server is up, not that the room still exists
+   - On session/reconnected|joined: server sends game state, client restores
+3. If the server replies 'Room not found…' or the confirmation times out:
+   - Clear ALL recovery state (cookie + localStorage keys + store) via
+     resetSessionForExpiredRoom(), disconnect the socket
+   - Toast "Your previous session has ended." and redirect to the lobby
+4. If no session found or expired:
+   - Redirect to lobby, clear localStorage
 ```
 
 ---

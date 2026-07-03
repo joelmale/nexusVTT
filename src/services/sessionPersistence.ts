@@ -182,8 +182,18 @@ class SessionPersistenceService {
 
         console.log(`📂 Session loaded from cookie: Room ${session.roomCode}`);
 
-        // Restore to localStorage for consistency
-        this.saveSession(session);
+        // Restore to localStorage for consistency, but WITHOUT saveSession():
+        // that would rewrite the cookie with a fresh timestamp, so a session
+        // whose room is long gone on the server would renew itself on every
+        // load and never age out of the reconnect window.
+        try {
+          localStorage.setItem(this.SESSION_KEY, JSON.stringify(session));
+        } catch (storageError) {
+          console.error(
+            'Failed to restore session to localStorage:',
+            storageError,
+          );
+        }
 
         return session;
       }
