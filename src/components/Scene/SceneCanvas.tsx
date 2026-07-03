@@ -41,6 +41,7 @@ import { tokenAssetManager } from '@/services/tokenAssets';
 import { propAssetManager } from '@/services/propAssets';
 import { createPlacedToken, getTokenPixelSize } from '@/types/token';
 import { createPlacedProp } from '@/types/prop';
+import { CameraGestureEngine } from '@/utils/cameraGestureEngine';
 import {
   useSelectedPlacedToken,
   useSelectedPlacedProp,
@@ -130,8 +131,17 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     [scene.gridSettings],
   );
   const svgRef = useRef<SVGSVGElement>(null);
+  // Plain DOM element ref for the camera-transformed `<g>` - imperative
+  // transform writes during pan/zoom gestures target this directly (A3).
+  const sceneContentRef = useRef<SVGGElement>(null);
   const [isPanning, setIsPanning] = useState(false);
-  const [lastMousePos, setLastMousePos] = useState({ x: 0, y: 0 });
+
+  // Imperative pan/zoom engine singleton for this component instance (A3),
+  // mirroring useTransientDrag's TransientDragEngine pattern: constructed
+  // once via useState's lazy initializer (not useRef - see
+  // useTransientDrag.ts for why), latest values pushed in post-render via
+  // sync() in a useEffect below.
+  const [cameraGestureEngine] = useState(() => new CameraGestureEngine());
   const [viewportSize, setViewportSize] = useState({ width: 800, height: 600 });
   const [assetsReady, setAssetsReady] = useState(false);
   const [drawingStyle] = useState<DrawingStyle>({
@@ -318,29 +328,23 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     user.id,
   ]);
 
-  // Camera controls
+  // Camera controls (A3 - transient: gestures drive cameraRef + an
+  // imperative transform write on sceneContentRef via CameraGestureEngine;
+  // the store is only written once at gesture end, via onCommit below).
+  // The engine's `sync()` effect (pushing the latest closures, including
+  // `svgSize`) lives further down, after `svgSize` is declared.
+  useEffect(() => {
+    return () => cameraGestureEngine.dispose();
+  }, [cameraGestureEngine]);
+
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
       if (activeTool !== 'pan' && activeTool !== 'select') return; // Only zoom when in pan/select mode
       if (!isHost && followDM) return; // Players can't zoom when following DM
 
-      const zoomFactor = e.deltaY > 0 ? 0.9 : 1.1;
-      const newZoom = Math.max(0.1, Math.min(5.0, camera.zoom * zoomFactor));
-
-      updateCamera({ zoom: newZoom });
-
-      // Send camera update to other players if host
-      if (isHost) {
-        webSocketService.sendEvent({
-          type: 'camera/update',
-          data: {
-            sceneId: scene.id,
-            camera: { ...camera, zoom: newZoom },
-          },
-        });
-      }
+      cameraGestureEngine.wheelZoom(e.deltaY);
     },
-    [camera, updateCamera, isHost, followDM, activeTool, scene.id],
+    [isHost, followDM, activeTool, cameraGestureEngine],
   );
 
   const handleMouseDown = useCallback(
@@ -351,7 +355,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
           if (!isHost && followDM) return; // Players can't pan when following DM
 
           setIsPanning(true);
-          setLastMousePos({ x: e.clientX, y: e.clientY });
+          cameraGestureEngine.startPan(e.clientX, e.clientY);
           e.stopPropagation();
         } else if (activeTool === 'select') {
           // Handle selection tool clicks on empty space
@@ -369,52 +373,27 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
         }
       }
     },
-    [isHost, followDM, activeTool, clearSelection],
+    [isHost, followDM, activeTool, clearSelection, cameraGestureEngine],
   );
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
       if (isPanning) {
-        const deltaX = e.clientX - lastMousePos.x;
-        const deltaY = e.clientY - lastMousePos.y;
-
-        // Apply zoom scaling to movement
-        const scaledDeltaX = deltaX / camera.zoom;
-        const scaledDeltaY = deltaY / camera.zoom;
-
-        updateCamera({
-          x: camera.x - scaledDeltaX,
-          y: camera.y - scaledDeltaY,
-        });
-
-        setLastMousePos({ x: e.clientX, y: e.clientY });
-
-        // Send camera update to other players if host
-        if (isHost) {
-          webSocketService.sendEvent({
-            type: 'camera/update',
-            data: {
-              sceneId: scene.id,
-              camera: {
-                x: camera.x - scaledDeltaX,
-                y: camera.y - scaledDeltaY,
-                zoom: camera.zoom,
-              },
-            },
-          });
-        }
+        cameraGestureEngine.movePan(e.clientX, e.clientY);
       }
     },
-    [isPanning, lastMousePos, camera, updateCamera, isHost, scene.id],
+    [isPanning, cameraGestureEngine],
   );
 
   const handleMouseUp = useCallback(() => {
     setIsPanning(false);
-  }, []);
+    cameraGestureEngine.endPan();
+  }, [cameraGestureEngine]);
 
   const handleMouseLeave = useCallback(() => {
     setIsPanning(false);
-  }, []);
+    cameraGestureEngine.endPan();
+  }, [cameraGestureEngine]);
 
   // Tokens and props are now obtained from selectors above
 
@@ -628,6 +607,39 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
       return () => (window as Window).removeEventListener('resize', updateSize);
     }
   }, [viewportSize.width, viewportSize.height]);
+
+  // Push the latest closures into the camera gesture engine after each
+  // render (never during render). `applyTransform` writes the exact same
+  // formula as the `transform` template used for declarative renders,
+  // directly to the DOM `<g>` via sceneContentRef - no React re-render.
+  useEffect(() => {
+    cameraGestureEngine.sync({
+      getStoreCamera: () => useGameStore.getState().sceneState.camera,
+      onCommit: (finalCamera) => {
+        updateCamera(finalCamera);
+      },
+      onBroadcast: (liveCamera) => {
+        if (!isHost) return; // Only the host drives Follow DM viewers.
+        webSocketService.sendEvent({
+          type: 'camera/update',
+          data: {
+            sceneId: scene.id,
+            camera: liveCamera,
+          },
+        });
+      },
+      applyTransform: (liveCamera) => {
+        const el = sceneContentRef.current;
+        if (!el) return;
+        el.setAttribute(
+          'transform',
+          `translate(${svgSize.width / 2 - liveCamera.x * liveCamera.zoom}, ${svgSize.height / 2 - liveCamera.y * liveCamera.zoom}) scale(${liveCamera.zoom})`,
+        );
+      },
+      minZoom: 0.1,
+      maxZoom: 5.0,
+    });
+  });
 
   // Handle prop drop from PropPanel
   const handlePropDrop = useCallback(
@@ -921,7 +933,11 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
               <SpellOverlayPatterns />
             </defs>
 
-            <g className="scene-content" transform={transform}>
+            <g
+              ref={sceneContentRef}
+              className="scene-content"
+              transform={transform}
+            >
               {/* Background layer */}
               {scene.backgroundImage && (
                 <SceneBackground

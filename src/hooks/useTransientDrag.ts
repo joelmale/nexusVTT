@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState } from 'react';
-import { useGameStore } from '@/stores/gameStore';
 import { sceneUtils } from '@/utils/sceneUtils';
 
 interface WorldPosition {
@@ -113,11 +112,14 @@ class TransientDragEngine {
 
   private screenToWorld(clientX: number, clientY: number, svg: SVGSVGElement) {
     const rect = svg.getBoundingClientRect();
-    const camera = useGameStore.getState().sceneState.camera;
-    return sceneUtils.screenToWorld(
+    // Use the live camera ref (A3) rather than reading the store directly:
+    // if a camera pan/zoom gesture is in progress simultaneously, this picks
+    // up the in-flight camera instead of the last-committed store value. No
+    // subscription either way - this is a one-shot read, not a re-render
+    // trigger.
+    return sceneUtils.screenToWorldLive(
       clientX - rect.left,
       clientY - rect.top,
-      camera,
       rect.width,
       rect.height,
     );
@@ -229,9 +231,12 @@ class TransientDragEngine {
  * Coordinate space: the dragged element lives inside the camera-transformed
  * `<g class="scene-content">` group (see ADR-0002), so its own transform is
  * expressed in world units, not screen pixels. We convert pointer screen
- * coordinates to world coordinates via `sceneUtils.screenToWorld`, reading
- * camera/viewport fresh on each move via `useGameStore.getState()` (no
- * subscription - subscribing would re-render on every camera change).
+ * coordinates to world coordinates via `sceneUtils.screenToWorldLive`,
+ * reading the live camera ref (`src/utils/cameraRef.ts`, A3) fresh on each
+ * move (no subscription - subscribing would re-render on every camera
+ * change). The live ref falls back to the store camera when no camera
+ * gesture is active, so this keeps working exactly as before outside of a
+ * simultaneous pan/zoom gesture.
  */
 export function useTransientDrag({
   getStartPosition,

@@ -1,5 +1,6 @@
 // Scene utilities for managing scene data and operations
 import type { Scene } from '@/types/game';
+import { cameraRef } from '@/utils/cameraRef';
 
 /**
  * IndexedDB utility for storing scene images locally
@@ -289,6 +290,28 @@ export const sceneUtils = {
     viewportWidth: number,
     viewportHeight: number,
   ): { x: number; y: number } {
+    const worldX = (screenX - viewportWidth / 2) / camera.zoom + camera.x;
+    const worldY = (screenY - viewportHeight / 2) / camera.zoom + camera.y;
+
+    return { x: worldX, y: worldY };
+  },
+
+  /**
+   * Mid-gesture variant of `screenToWorld` (ADR-0002 / A3): reads the live
+   * camera ref (`src/utils/cameraRef.ts`) instead of taking a `camera`
+   * argument, so callers inside an active pan/zoom or drag gesture see the
+   * up-to-the-frame camera rather than the last-committed store value. Same
+   * viewport-centered math as `screenToWorld`. Only for mid-gesture reads -
+   * one-shot conversions (clicks, drops, toolbar placement) must keep using
+   * `screenToWorld` with the store camera.
+   */
+  screenToWorldLive(
+    screenX: number,
+    screenY: number,
+    viewportWidth: number,
+    viewportHeight: number,
+  ): { x: number; y: number } {
+    const camera = cameraRef.get();
     const worldX = (screenX - viewportWidth / 2) / camera.zoom + camera.x;
     const worldY = (screenY - viewportHeight / 2) / camera.zoom + camera.y;
 
