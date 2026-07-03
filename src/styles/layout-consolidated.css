@@ -46,10 +46,18 @@
    FloatingPanel.module.css). Canvas rect must be invariant across all
    panel-open/closed states under this flag. */
 .game-layout[data-floating-panels] {
-  grid-template-columns: 1fr;
+  /* minmax(0, 1fr): a bare 1fr track can expand past the viewport when the
+     scene's intrinsic min-content width exceeds it (grid items default to
+     min-width auto); minmax(0,...) pins the track to the container. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-areas:
     'header'
     'scene';
+}
+
+.game-layout[data-floating-panels] .layout-scene {
+  min-width: 0;
+  min-height: 0;
 }
 
 .game-layout-empty {
