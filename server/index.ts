@@ -12,6 +12,7 @@ import express from 'express';
 import helmet from 'helmet';
 import compression from 'compression';
 import cors from 'cors';
+import { createProxyMiddleware } from 'http-proxy-middleware';
 
 // WebSocket and HTTP types
 import { WebSocketServer, WebSocket } from 'ws';
@@ -1586,7 +1587,6 @@ class NexusServer {
     const assetProxy = createProxyMiddleware({
       target: assetApiUrl,
       changeOrigin: true,
-      logLevel: 'warn',
     });
 
     this.app.use('/manifest.json', assetProxy);
@@ -1605,9 +1605,10 @@ class NexusServer {
     const userAssetProxy = createProxyMiddleware({
       target: assetApiUrl,
       changeOrigin: true,
-      logLevel: 'warn',
-      onProxyReq: (proxyReq: any, _req: any, _res: any) => {
-        proxyReq.setHeader('x-nexus-auth', process.env.ASSET_SERVICE_SECRET || 'dev-secret');
+      on: {
+        proxyReq: (proxyReq: any, _req: any, _res: any) => {
+          proxyReq.setHeader('x-nexus-auth', process.env.ASSET_SERVICE_SECRET || 'dev-secret');
+        }
       }
     });
 
