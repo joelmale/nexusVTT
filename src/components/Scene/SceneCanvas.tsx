@@ -520,41 +520,24 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     [addToSelection, setSelection],
   );
 
-  const handleTokenMove = useCallback(
-    (tokenId: string, deltaX: number, deltaY: number) => {
-      // Get fresh token position from store to avoid dependency on placedTokens
-      const tokens = useGameStore.getState().getSceneTokens(scene.id);
-      const token = tokens.find((t) => t.id === tokenId);
-      if (!token) return;
-
-      const newX = token.x + deltaX / camera.zoom;
-      const newY = token.y + deltaY / camera.zoom;
-
-      // Optimistic update - move locally first, then send to server
-      moveTokenOptimistic(scene.id, tokenId, { x: newX, y: newY });
-    },
-    [scene.id, camera.zoom, moveTokenOptimistic],
-  );
-
+  // Called exactly once per drag gesture (on pointerup) by TokenRenderer's
+  // transient drag hook, with the final world-space position already
+  // computed client-side during the gesture (no store writes mid-drag).
   const handleTokenMoveEnd = useCallback(
-    (tokenId: string) => {
-      // Apply grid snapping when drag ends
+    (tokenId: string, position: { x: number; y: number }) => {
+      let finalPosition = position;
+
+      // Apply grid snapping when drag ends (identical behavior to pre-A2)
       if (safeGridSettings.snapToGrid && safeGridSettings.size > 0) {
-        // Get fresh token position from store to avoid dependency on placedTokens
-        const tokens = useGameStore.getState().getSceneTokens(scene.id);
-        const token = tokens.find((t) => t.id === tokenId);
-        if (!token) return;
-
-        const snappedX =
-          Math.round(token.x / safeGridSettings.size) * safeGridSettings.size;
-        const snappedY =
-          Math.round(token.y / safeGridSettings.size) * safeGridSettings.size;
-
-        // Only update if position changed after snapping
-        if (snappedX !== token.x || snappedY !== token.y) {
-          moveTokenOptimistic(scene.id, tokenId, { x: snappedX, y: snappedY });
-        }
+        finalPosition = {
+          x: Math.round(position.x / safeGridSettings.size) * safeGridSettings.size,
+          y: Math.round(position.y / safeGridSettings.size) * safeGridSettings.size,
+        };
       }
+
+      // Single optimistic update - commits to store and sends versioned
+      // token/move WebSocket event exactly once for this gesture.
+      moveTokenOptimistic(scene.id, tokenId, finalPosition);
     },
     [scene.id, safeGridSettings, moveTokenOptimistic],
   );
@@ -989,7 +972,6 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                             placedToken.id,
                           )}
                           onSelect={handleTokenSelect}
-                          onMove={handleTokenMove}
                           onMoveEnd={handleTokenMoveEnd}
                           canEdit={isHost || placedToken.placedBy === user.id}
                         />

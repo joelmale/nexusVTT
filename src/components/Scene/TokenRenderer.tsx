@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import type { PlacedToken, Token } from '@/types/token';
 import { getTokenPixelSize, getEffectiveTokenName } from '@/types/token';
 import { useActiveTool } from '@/stores/gameStore';
+import { useTransientDrag } from '@/hooks/useTransientDrag';
 
 interface TokenRendererProps {
   placedToken: PlacedToken;
@@ -9,8 +10,8 @@ interface TokenRendererProps {
   gridSize: number;
   isSelected: boolean;
   onSelect: (id: string, multi: boolean) => void;
-  onMove: (id: string, deltaX: number, deltaY: number) => void;
-  onMoveEnd?: (id: string) => void;
+  /** Called exactly once, on gesture release, with the final world position. */
+  onMoveEnd: (id: string, position: { x: number; y: number }) => void;
   onRotate?: (id: string, rotation: number) => void;
   canEdit: boolean;
 }
@@ -25,13 +26,12 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
     gridSize,
     isSelected,
     onSelect,
-    onMove,
     onMoveEnd,
     canEdit,
   }) => {
     const activeTool = useActiveTool();
     const [isDragging, setIsDragging] = useState(false);
-    const dragStartRef = useRef({ x: 0, y: 0 });
+    const imageRef = useRef<SVGImageElement>(null);
 
     // Calculate token size in pixels
     const tokenSize =
@@ -53,44 +53,29 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
       }
     }, [isSelected, canEdit, activeTool, canInteract, placedToken.id, token.name]);
 
-    // Global mouse handlers for dragging
-    useEffect(() => {
-      if (!isDragging) return;
-
-      const handleMouseMove = (e: MouseEvent) => {
-        e.preventDefault();
-        const deltaX = e.clientX - dragStartRef.current.x;
-        const deltaY = e.clientY - dragStartRef.current.y;
-
-        onMove(placedToken.id, deltaX, deltaY);
-        dragStartRef.current = { x: e.clientX, y: e.clientY };
-      };
-
-      const handleMouseUp = () => {
+    // Transient drag: imperative rAF-batched `transform` writes during the
+    // gesture (no setState/store writes), exactly one commit on release.
+    const { onPointerDown: onDragPointerDown } = useTransientDrag({
+      getStartPosition: () => ({ x: placedToken.x, y: placedToken.y }),
+      rotation: placedToken.rotation,
+      disabled: !canInteract,
+      onCommit: (position) => {
         setIsDragging(false);
-        // Apply grid snapping when drag ends
-        if (onMoveEnd) {
-          onMoveEnd(placedToken.id);
+        if (imageRef.current) {
+          imageRef.current.style.opacity = '1';
         }
-      };
+        onMoveEnd(placedToken.id, position);
+      },
+    });
 
-      window.addEventListener('mousemove', handleMouseMove);
-      window.addEventListener('mouseup', handleMouseUp);
-
-      return () => {
-        window.removeEventListener('mousemove', handleMouseMove);
-        window.removeEventListener('mouseup', handleMouseUp);
-      };
-    }, [isDragging, onMove, placedToken.id, onMoveEnd]);
-
-    const handleMouseDown = (e: React.MouseEvent) => {
-      console.log('🖱️ Token mouseDown:', {
+    const handlePointerDown = (e: React.PointerEvent<SVGGElement>) => {
+      console.log('🖱️ Token pointerDown:', {
         canInteract,
         tokenId: placedToken.id,
         activeTool,
         canEdit,
         isSelected,
-        button: e.button
+        button: e.button,
       });
       if (!canInteract) {
         console.log('❌ canInteract is false, returning early');
@@ -111,7 +96,7 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
       console.log('🎯 Calling onSelect:', {
         tokenId: placedToken.id,
         isMultiSelect,
-        isSelected
+        isSelected,
       });
       onSelect(placedToken.id, isMultiSelect);
 
@@ -119,28 +104,33 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
       if (isSelected || !isMultiSelect) {
         console.log('🚀 Starting drag for token:', placedToken.id);
         setIsDragging(true);
-        dragStartRef.current = { x: e.clientX, y: e.clientY };
+        if (imageRef.current) {
+          imageRef.current.style.opacity = '0.7';
+        }
+        onDragPointerDown(e);
       }
     };
 
     return (
       <g
         transform={`translate(${placedToken.x}, ${placedToken.y}) rotate(${placedToken.rotation})`}
-        onMouseDown={handleMouseDown}
+        onPointerDown={handlePointerDown}
         style={{
           cursor: canInteract ? (isDragging ? 'grabbing' : 'grab') : 'default',
           pointerEvents: canInteract ? 'auto' : 'none',
+          touchAction: canInteract ? 'none' : undefined,
         }}
       >
         {/* Token Image */}
         <image
+          ref={imageRef}
           href={token.image}
           x={-tokenSize / 2}
           y={-tokenSize / 2}
           width={tokenSize}
           height={tokenSize}
           style={{
-            opacity: isDragging ? 0.7 : 1,
+            opacity: 1,
             filter: placedToken.isDead ? 'grayscale(100%)' : 'none',
           }}
         />
