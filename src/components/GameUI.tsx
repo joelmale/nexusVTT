@@ -25,6 +25,8 @@ import { GameToolbar } from './GameToolbar';
 import { PlayerBar, PlayerActions } from './PlayerBar';
 import { ContextPanel } from './ContextPanel';
 import { ErrorBoundary } from './ErrorBoundary';
+import { FloatingPanel } from './FloatingPanel';
+import { useFlag } from '@/utils/featureFlags';
 
 // Lazy load heavy panels
 const GeneratorPanel = React.lazy(() =>
@@ -50,6 +52,12 @@ export const GameUI: React.FC = () => {
 
   const isHost = user.type === 'host';
 
+  // A6a: floating-panels flag. OFF (default) renders the exact legacy
+  // markup/behavior below (reserved sidebar column, .layout-panel,
+  // resize handle). ON swaps to a single-column grid with ContextPanel
+  // rendered inside a portal-mounted FloatingPanel instead.
+  const floatingPanelsEnabled = useFlag('floating-panels');
+
   const [panelExpanded, setPanelExpanded] = useState(true);
   const [activePanel, setActivePanel] = useState<
     | 'tokens'
@@ -65,6 +73,27 @@ export const GameUI: React.FC = () => {
     | 'documents'
     | 'characters'
   >(isHost ? 'scene' : 'lobby');
+
+  // A6a (flag-gated only): ContextPanel's `activePanel` union has no "none"
+  // member - it always names one of the 12 panels, so the legacy sidebar
+  // always shows *something*. The floating shell needs a genuine closed
+  // state (clicking the active tab again, or Escape, closes the panel), so
+  // that's modeled here as a separate boolean rather than widening
+  // `activePanel` to `| null` - keeps the flag-off type/behavior untouched.
+  const [floatingPanelOpen, setFloatingPanelOpen] = useState(true);
+
+  const handlePanelTabSelect = useCallback(
+    (panel: typeof activePanel) => {
+      if (floatingPanelsEnabled && panel === activePanel && floatingPanelOpen) {
+        setFloatingPanelOpen(false);
+        return;
+      }
+      setActivePanel(panel);
+      setFloatingPanelOpen(true);
+    },
+    [floatingPanelsEnabled, activePanel, floatingPanelOpen],
+  );
+
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [collapsedWidth] = useState(8); // Width when collapsed (just the resize handle)
   const previousWidthRef = useRef(300); // Store the width before collapsing
@@ -281,6 +310,7 @@ export const GameUI: React.FC = () => {
       className="game-layout"
       data-panel-expanded={panelExpanded}
       data-sidebar-width={panelExpanded ? sidebarWidth : 60}
+      data-floating-panels={floatingPanelsEnabled ? true : undefined}
     >
       {/* Game Header */}
       <div className="layout-header">
@@ -300,7 +330,7 @@ export const GameUI: React.FC = () => {
                   id={`panel-radio-${panel.id}`}
                   value={panel.id}
                   checked={activePanel === panel.id}
-                  onChange={() => setActivePanel(panel.id)}
+                  onChange={() => handlePanelTabSelect(panel.id)}
                   style={{ display: 'none' }}
                 />
                 <li className="horizontal-panel-tab" role="tab">
@@ -382,30 +412,53 @@ export const GameUI: React.FC = () => {
         </div>
       </ErrorBoundary>
 
-      {/* Resizable Context Panel */}
-      <div
-        ref={sidebarRef}
-        className={`layout-panel`}
-        data-expanded={panelExpanded}
-      >
-        {/* Resize Handle */}
-        <div
-          className="sidebar-resize-handle"
-          onMouseDown={handleResizeStart}
-        />
-
-        <Suspense
-          fallback={<div className="panel-skeleton">Loading panel...</div>}
+      {/* Context Panel: legacy reserved-column sidebar (flag off, default)
+          vs. floating portal-mounted shell (flag on, A6a). */}
+      {floatingPanelsEnabled ? (
+        <FloatingPanel
+          isOpen={floatingPanelOpen}
+          onClose={() => setFloatingPanelOpen(false)}
+          label={
+            panels.find((p) => p.id === activePanel)?.label ?? 'Panel'
+          }
         >
-          <ContextPanel
-            activePanel={activePanel}
-            onPanelChange={setActivePanel}
-            expanded={panelExpanded}
-            onToggleExpanded={handleTogglePanel}
-            onContentWidthChange={handleContentWidthChange}
+          <Suspense
+            fallback={<div className="panel-skeleton">Loading panel...</div>}
+          >
+            <ContextPanel
+              activePanel={activePanel}
+              onPanelChange={setActivePanel}
+              expanded={panelExpanded}
+              onToggleExpanded={handleTogglePanel}
+              onContentWidthChange={handleContentWidthChange}
+            />
+          </Suspense>
+        </FloatingPanel>
+      ) : (
+        <div
+          ref={sidebarRef}
+          className={`layout-panel`}
+          data-expanded={panelExpanded}
+        >
+          {/* Resize Handle */}
+          <div
+            className="sidebar-resize-handle"
+            onMouseDown={handleResizeStart}
           />
-        </Suspense>
-      </div>
+
+          <Suspense
+            fallback={<div className="panel-skeleton">Loading panel...</div>}
+          >
+            <ContextPanel
+              activePanel={activePanel}
+              onPanelChange={setActivePanel}
+              expanded={panelExpanded}
+              onToggleExpanded={handleTogglePanel}
+              onContentWidthChange={handleContentWidthChange}
+            />
+          </Suspense>
+        </div>
+      )}
 
       {activePanel === 'generator' && (
         <div className="generator-overlay">

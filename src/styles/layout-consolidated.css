@@ -38,6 +38,20 @@
     'scene panel';
 }
 
+/* A6a (feature flag `floating-panels`, ADR-0007): the map owns the
+   viewport - drop the reserved sidebar column entirely. The panel column
+   from `data-panel-expanded` above is superseded whenever this attribute
+   is present (ContextPanel instead renders inside a portal-mounted
+   FloatingPanel, absolutely positioned over the scene - see
+   FloatingPanel.module.css). Canvas rect must be invariant across all
+   panel-open/closed states under this flag. */
+.game-layout[data-floating-panels] {
+  grid-template-columns: 1fr;
+  grid-template-areas:
+    'header'
+    'scene';
+}
+
 .game-layout-empty {
   height: 100vh;
   display: flex;
