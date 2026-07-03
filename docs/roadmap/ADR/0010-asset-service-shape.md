@@ -1,26 +1,43 @@
-# ADR-0010 — Asset service: evolve embedded static server vs. new standalone service
+# ADR-0010 — Asset service: standalone service vs. evolving the embedded static server
 
-Status: **Proposed — DECIDED IN PACKET C0** (do not implement against this stub)
+Status: **Proposed — drafted 2026-07-03, awaiting Joel's decision** (reply "0010: A/B/C")
 
-## Context (verified @ e29131b)
-The current "static asset server" is embedded in `server/index.ts` (~lines 242, 1600–1718):
-`ASSETS_PATH` env, `GET /manifest.json`, `GET /search`, `GET /category/:category`, express.static
-mounts. Client contract: `src/services/assetManager.ts` (`getAssetsByCategory(category,page,limit)`
-→ `{assets, hasMore}`). The Atlas backend must own base library + TMT (~16k files) + user assets.
+## Context (verified @ e522c00)
+The current asset server is ~120 lines embedded in `server/index.ts` (~242, 1600–1718):
+`ASSETS_PATH` env (default in-repo `static-assets/`), `GET /manifest.json`, `/search`,
+`/category/:category`, express.static mounts. It serves **35 files / 14MB** today. Client
+contract: `src/services/assetManager.ts` (`getAssetsByCategory(category, page, limit)` →
+`{assets, hasMore}`, `searchAssets(q)`).
+
+The Atlas backend must additionally own: the TMT library (**~16k files** — a ~450× jump),
+user uploads (unbounded growth, C2), derivatives, and hash-diff release syncs (B3).
 
 ## Options
-A. **Extract to standalone service** beside doc-api (own container/stack in dockhand; VTT
-   proxies or clients hit it directly per ADR-0012). Precedent: NexusCodex `DOC_API_URL` pattern.
-B. **Evolve in place** inside server/index.ts, extract later once endpoints stabilize.
-C. New service from scratch, greenfield code, migrate routes onto it.
 
-## Decision drivers
-Release-cadence independence · IO/memory isolation for 16k-file manifest + thumbnails ·
-dockhand operational cost of another stack (deploy quirk: CI freeze → force-recreate via UI) ·
-migration cost of 5 routes + assetManager back-compat · TMT/user-asset volume mounts (NAS).
+**A. Extract to a standalone service** (own container/stack in dockhand, beside doc-api,
+`ASSET_API_URL` env following the `DOC_API_URL` precedent).
+- ✅ Asset-library changes (TMT syncs, manifest rebuilds) never redeploy the VTT — important
+  given the CI-freeze deploy quirk (failed builds silently keep prod stale).
+- ✅ Memory/IO isolation: a 16k-entry search index and thumbnail traffic don't share the
+  websocket server's event loop.
+- ✅ NAS volume mounts on one purpose-built container.
+- ❌ One more stack to operate; 5 routes migrate; assetManager needs an env-based base URL
+  (kept back-compat via a thin VTT proxy for one release).
 
-Orchestrator lean (to validate in C0, not assume): **Option A**, keeping assetManager.ts's API
-shape via thin back-compat for one release.
+**B. Evolve in place** inside server/index.ts; extract later "when it hurts".
+- ✅ Zero operational change now.
+- ❌ Pays the migration twice; couples 16k-file serving to VTT deploys immediately (B3 lands
+  sync jobs into the game server's container); the "later" extraction lands mid-program with
+  more dependents.
+
+**C. Greenfield service, migrate routes onto it** — same as A operationally but rewrites the
+manifest/search code instead of extracting it. More effort, no additional benefit at this scale.
+
+## Orchestrator recommendation: **A**
+The 450× corpus jump and the CI-freeze deploy risk are the deciding drivers; B optimizes for
+this week, A for the remaining 12 packets. Implementation note for C1: lift the existing
+express code mostly as-is into `services/asset-service/` (new package), add manifest v2 fields
+(sha256, source, dimensions), keep a VTT-side proxy at the old paths for one release.
 
 ## Decision
-_(pending C0 — record here, set Status: Accepted (Joel, date))_
+_(pending Joel — on approval set: Status: Accepted (Joel, date), record chosen option)_

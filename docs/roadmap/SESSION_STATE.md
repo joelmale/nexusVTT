@@ -24,7 +24,7 @@ roadmap_version: 1
 | A8b | todo | none→pending-on-done | A8a | — | cutover |
 | A9  | todo | none→pending-on-done | A4, A5(approved) | — | server change: fog/* relay events |
 | A10 | todo | n/a | A5,A6c,A7,A8b,A9 | — | Track A terminal |
-| C0  | todo | none→pending-on-done | — | — | entry point; unblocks 7 packets |
+| C0  | in-progress | **pending Joel's 3 picks** | — | (drafted) | ADR-0010/0011/0012 fully drafted with recommendations (A / A / as-recommended); Joel replies with picks async → then mark Accepted, C0 done, C1/C2/B0 unblock |
 | C1  | todo | none→pending-on-done | C0(approved) | — | |
 | C2  | todo | n/a | C0(approved), C1(approved) | — | |
 | C3  | todo | n/a | — | — | entry point |

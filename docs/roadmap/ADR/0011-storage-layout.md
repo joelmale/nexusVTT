@@ -1,27 +1,43 @@
 # ADR-0011 — Asset storage layout on the NAS volume
 
-Status: **Proposed — DECIDED IN PACKET C0** (do not implement against this stub)
+Status: **Proposed — drafted 2026-07-03, awaiting Joel's decision** (reply "0011: A/B" + any quota edits)
 
-## Context
-The asset service stores: base library (current `static-assets/`), TMT corpus (~16k originals +
-WebP derivatives), user uploads (unbounded growth), and a staging/diff workspace for release
-syncs (B3). Today assets live in-repo at `static-assets/` mounted via `ASSETS_PATH` env.
+## Context (verified @ e522c00)
+The asset service stores: base library (35 files today, in-repo `static-assets/`), TMT corpus
+(~16k originals + WebP derivatives, release-synced by hash-diff), user uploads (C2), and a
+staging workspace for B3 syncs. TMT folder trees are known to contain duplicate images under
+different names/paths — dedupe matters at this scale.
 
 ## Options
-A. **Content-addressed**: `/blobs/<sha256-prefix>/<sha256>` + manifest maps ids→blobs.
-   Dedupe free, tombstones trivial, but not human-browsable on the NAS.
-B. **Category tree**: `/library/<category>/...` mirroring today's layout. Browsable, matches
-   existing express.static mounts, but rename/re-categorize churn on sync.
-C. Hybrid: content-addressed blobs + a generated human-readable symlink/index tree.
 
-## Decision drivers
-B3 hash-diff sync ergonomics · derivative keying (sha256 + spec version, B2) · NAS backup/rsync
-behavior · express.static compatibility · quota accounting for user assets (C2) ·
-who browses the NAS directly and how often (ask Joel).
+**A. Content-addressed store (recommended)**
+```
+/assets-data/
+  blobs/<sha256[0:2]>/<sha256>.<ext>          # originals, dedupe-free by construction
+  derivatives/v<specver>/<sha256[0:2]>/<sha256>.webp
+  users/<userId>/<assetId>.<ext>              # user uploads (quota accounting = du per dir)
+  staging/<release-tag>/                      # B0 acquisition + B3 diff workspace
+  manifests/manifest-v2.json                  # ids → blob paths + metadata (the only browse index)
+```
+- ✅ B3 hash-diff sync is trivial (the address IS the hash); TMT duplicates collapse for free;
+  derivative keying (sha256+specver, per B2) falls out naturally; rsync/backup-friendly
+  (append-mostly, no renames on re-categorization — taxonomy changes touch only the manifest).
+- ❌ Not human-browsable on the NAS. Mitigation: B2 can emit an optional generated symlink tree
+  (`/browse/<category>/<name> → blob`) — cosmetic, rebuildable, never authoritative.
 
-Must also decide: derivatives beside originals vs. separate `/derivatives` tree; staging area
-shape (`/staging/<release-tag>/` with current/incoming/diff); user-asset partitioning
-(`/users/<userId>/`); quota numbers for C2.
+**B. Category tree** (`/library/<category>/...`, mirroring today's layout)
+- ✅ Browsable; matches existing express.static habits.
+- ❌ Re-categorization = file moves (sync churn, backup churn); duplicates persist; hash-diff
+  needs a separate index anyway.
+
+## Quota defaults for C2 (edit freely)
+Per-user: **200 MB**, max file **10 MB**, types **png / webp / jpg**, max ~500 assets/user.
+Enforced service-side at upload; stored by generated id, never client filename (path-traversal
+safety, already in the C2 brief).
+
+## Orchestrator recommendation: **A**, with the generated browse-tree only if you actually
+browse the NAS by hand (tell me — it's a B2 flag, not architecture).
 
 ## Decision
-_(pending C0 — record here, set Status: Accepted (Joel, date))_
+_(pending Joel — on approval set: Status: Accepted (Joel, date); record mount point for
+/assets-data on the NAS + whether the browse tree is wanted)_
