@@ -2,7 +2,7 @@
 # Update per RESUME_PROTOCOL.md §5. Append-friendly: edit only your packet's row; append log rows.
 
 last_updated: 2026-07-03
-last_verified_commit: 19ef427 (branch packet/A4-A6a, stacked on packet/A1-A3; master remains e29131b until merge)
+last_verified_commit: 77cfd67 (master — all packet branches merged)
 roadmap_version: 1
 
 ## Packet ledger
@@ -25,15 +25,15 @@ roadmap_version: 1
 | A9  | todo | none→pending-on-done | A4, A5(approved) | — | server change: fog/* relay events |
 | A10 | todo | n/a | A5,A6c,A7,A8b,A9 | — | Track A terminal |
 | C0  | done | approved (Joel, 2026-07-03) | — | (drafted) | ADR-0010/0011/0012 fully updated with Joel's picks (A / A+symlinks / as-recommended); C1/C2/B0 unblocked |
-| C1  | todo | none→pending-on-done | C0(approved) | — | |
-| C2  | todo | n/a | C0(approved), C1(approved) | — | |
-| C3  | todo | n/a | — | — | entry point |
-| C4  | todo | n/a | C3, A1(approved) | — | |
+| C1  | done | approved via T3 review w/ fixes required | C0(approved) | b22691e | services/asset-service; T3 REVIEW: service fails own tsc (404-handler types) + port-5001 default collision — see reviews/S3 must-fix #3/#4 |
+| C2  | done | **BLOCKED for UI exposure** | C0(approved), C1(approved) | b22691e | upload/delete + 50MB quota; T3 REVIEW: 2 must-fix bugs — proxy injects secret w/o session validation (security), client path /api/user vs proxy /user (dead E2E) — reviews/S3 #1/#2 |
+| C3  | done | n/a | — | b22691e | useAtlasAssets + 4 adapters; T3 REVIEW: no pagination/loadMore, eager fetch violates ADR-0009 (lazy) — reviews/S3 #8 |
+| C4  | done | n/a | C3, A1(approved) | b22691e | AtlasDock CSS Modules, fixed+translateY (ADR-0007 ✓); T3 REVIEW: no virtualization (C6 entry criterion), HTML5 DnD conflicts ADR-0008 (C5 replaces), no inert/aria — reviews/S3 #6/#7/#14 |
 | C5  | todo | advisory | C4 | — | |
 | C6  | todo | none→pending-on-done | C4, B3(approved) | — | program capstone |
-| B0  | todo | n/a | C0(approved) | — | ⚠️ requires TMT repo+tag from Joel |
-| B1  | todo | none→pending-on-done | B0 | — | sample review gate |
-| B2  | todo | n/a | B1(approved), C0(approved) | — | |
+| B0  | done | n/a | C0(approved) | b22691e | source pinned: IsThisMyRealName/too-many-tokens-dnd @ 1.1.1 (recorded in ADR-0014) |
+| B1  | done | approved via T3 review | B0 | b22691e | normalize.mjs deterministic (fixed generatedAt, sorted, hash ids, 10% residue abort) + verify.mjs double-run check; sample taxonomy review waived by Joel; improvements: canonical-dup ordering, richer tags — reviews/S3 #11/#12 |
+| B2  | done | n/a | B1(approved), C0(approved) | b22691e | blobs/ + derivatives/v1/ + browse/ symlink tree per ADR-0011(+Joel's pick); idempotent; improvements: symlink batch race, failure list, withoutEnlargement — reviews/S3 #10 |
 | B3  | todo | none→pending-on-done | B2, C1(approved) | — | |
 
 ## Open T3 rulings pending
@@ -71,5 +71,6 @@ roadmap_version: 1
 | date | session | packet | outcome | spend (approx, by tier) | notes |
 |------|---------|--------|---------|--------------------------|-------|
 | 2026-07-02 | S0 | roadmap bootstrap | done | T1 ~193k (3 scouts, prior session) · T2 ~187k (3 specialists, prior session) · T3 planning + this package | Blueprint + Roadmap Package created. Ground truth pinned @ e29131b. Next: A1 / C0 / C3 (any order, parallel-safe). |
+| 2026-07-03 | S3 | B0-B2, C1-C4 (executed by JOEL solo) + T3 review | done | Joel: human execution (no model spend) · T3 review pass ~40k | Commits b22691e/ac97cd2/77cfd67 direct to master. T3 review = docs/roadmap/reviews/S3-review-B1-B2-C2-C3-C4.md: B1/B2 PASS, C1 pass-w/-fixes (service fails own tsc; port collision), C2 BLOCKED for UI exposure (secret-injection hole + dead client path), C3/C4 pass-w/-gaps (no pagination/virtualization — C6 entry criteria; HTML5 DnD → C5 replaces per ADR-0008). ADR-0010/11/12 Accepted w/ Joel's picks; 0011 quotas synced to implementation; 0012 carries known-gap note. Next: fix-pack for must-fixes #1-4, then A5 or C5. |
 | 2026-07-03 | S2 | A4+A6a (batched by Joel, parallel T2 builds) | done | A4: T2 109k (~under 180k cap) · A6a: T2 105k + T3 preview verification (~cap) | Branch packet/A4-A6a stacked on packet/A1-A3. A4 accepted via T3 ruling (additive, zero gameStore diff — exit criteria all met). A6a live-verified both flag states; T3 preview caught+fixed real grid blowout bug (minmax(0,1fr)). 446 tests passing. New findings: nexus-room cookie (undocumented persistence layer), dead-room recovery hang (chip filed), flaky gameStore test (chip filed). A6a gate PENDING Joel review. Next: A5 (unblocked), C0/C3; A6b/A7 blocked on A6a gate. |
 | 2026-07-03 | S1 | A1+A2+A3 (batched by Joel) | done | A1: T0+T3 inline (~within cap) · A2: T2 172k (OVER 120k cap — builder hit lint-rule fights + found/fixed 2 real bugs; work complete, no split) · A3: T2 122k (~cap) · T3 review/verify throughout | Single branch packet/A1-A3 (deviation from branch-per-packet: Joel batched; per-packet commits preserved). Drift found: scout errors (DrawingTools inline z never existed; EntitySync does NOT relay camera/*). Baseline: database.test.ts fails pre-existing (needs live PostgreSQL). A1 gate PENDING Joel review. Exit-criteria deferrals: profiler trace + two-tab smoke need running backend — folded into A5's gate evidence per T3 ruling. Next: A4 (unblocked) or C0/C3; A6a/C4 blocked on A1 gate approval. |

@@ -35,3 +35,9 @@ explicitly not needed at 10MB-max files.
 
 ## Decision
 **Approved as recommended.** Reads remain public-within-deployment (served direct), and writes will be proxied through the VTT with a shared service secret.
+
+> ⚠️ **Known implementation gap (2026-07-03, must-fix before upload UI ships):** the current
+> proxy (`server/index.ts` ~1605) injects the secret for ANY caller of `/user/*` without
+> validating the session user or matching them to `:userId` — the "VTT authenticates first"
+> half of this decision is not yet implemented. Implemented header is `x-nexus-auth` (not
+> `X-Asset-Service-Key`). See [reviews/S3-review-B1-B2-C2-C3-C4.md](../reviews/S3-review-B1-B2-C2-C3-C4.md) must-fix #1.

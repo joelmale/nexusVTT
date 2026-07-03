@@ -65,16 +65,16 @@ flowchart LR
     C1["C1 service skeleton ✅"]:::done
     C2["C2 user assets ✅"]:::done
     C3["C3 federation hook ✅"]:::done
-    C4["C4 dock shell + grid ▶️"]:::ready
-    C5["C5 drag-drop (adv.)"]
+    C4["C4 dock shell + grid ✅"]:::done
+    C5["C5 drag-drop (adv.) ▶️"]:::ready
     C6["C6 Base Library tab 🔍"]:::gate
   end
 
   subgraph LaneB["Lane 3 — TMT ingestion"]
     B0["B0 acquisition (T0) ✅"]:::done
     B1["B1 normalization ✅"]:::done
-    B2["B2 derivatives + storage ▶️"]:::ready
-    B3["B3 sync + serve 🔍"]:::gate
+    B2["B2 derivatives + storage ✅"]:::done
+    B3["B3 sync + serve 🔍▶️"]:::ready
   end
 
   A2 --> A3
@@ -127,12 +127,12 @@ a blocked lane never idles the program. **Critical paths:** A4→A5→A9 and C0�
 | ~~C1~~ ✅ | ~~Asset service skeleton~~ **done** | C0 | Med | 🔍 | 180k (T2 100k / T3 40k) | per ADR-0010 |
 | ~~C2~~ ✅ | ~~User-asset domain~~ **done** | C0, C1 | Med | — | 150k (T2 90k / T3 35k) | asset service |
 | ~~C3~~ ✅ | ~~Federation hook~~ **done** | — | Low-Med | — | 140k (T2 80k / T3 30k) | new `src/hooks/useAtlasAssets.ts` |
-| C4 | Dock shell + grid | C3, A1 | Med | — | 150k (T2 90k / T3 30k) | new `src/components/Atlas/*` |
+| ~~C4~~ ✅ | ~~Dock shell + grid~~ **done** `b22691e` (virtualization deferred → C6 entry criterion) | C3, A1 | Med | — | 150k (T2 90k / T3 30k) | `src/components/Atlas/*` |
 | C5 | Dock→canvas DnD | C4 | Med | adv. | 130k (T2 70k / T3 40k) | `src/components/Atlas/useDockToCanvasDrag.ts` |
 | C6 | Base Library tab | C4, B3 | Low | 🔍 | 100k (T2 50k / T3 25k) | Atlas components + hook |
 | ~~B0~~ ✅ | ~~TMT acquisition~~ **done** | C0 | Low | — | 60k (T0 / T1 15k / T3 25k) | new `tools/tmt-ingest/*` |
 | ~~B1~~ ✅ | ~~TMT normalization~~ **done** | B0 | Med | 🔍 | 100k (T0 / T1 40k / T3 35k) | `tools/tmt-ingest/*` |
-| B2 | Derivatives + storage | B1, C0 | Low | — | 50k (T0 / T1 10k / T3 20k) | `tools/tmt-ingest/*`, NAS layout |
+| ~~B2~~ ✅ | ~~Derivatives + storage~~ **done** `b22691e` (incl. browse symlink tree per Joel's 0011 pick) | B1, C0 | Low | — | 50k (T0 / T1 10k / T3 20k) | `tools/tmt-ingest/*`, NAS layout |
 | B3 | Sync + serve | B2, C1 | Med | 🔍 | 110k (T2 60k / T3 30k) | asset service + sync job |
 
 ## Packet sizing & session rules

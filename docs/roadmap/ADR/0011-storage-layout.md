@@ -30,8 +30,8 @@ different names/paths — dedupe matters at this scale.
 - ❌ Re-categorization = file moves (sync churn, backup churn); duplicates persist; hash-diff
   needs a separate index anyway.
 
-## Quota defaults for C2 (edit freely)
-Per-user: **200 MB**, max file **10 MB**, types **png / webp / jpg**, max ~500 assets/user.
+## Quota defaults for C2 (AS IMPLEMENTED in services/asset-service, 2026-07-03)
+Per-user: **50 MB**, max file **5 MB**, types **png / webp / jpg / jpeg**.
 Enforced service-side at upload; stored by generated id, never client filename (path-traversal
 safety, already in the C2 brief).
 
