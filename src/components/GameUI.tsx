@@ -26,6 +26,7 @@ import { PlayerBar, PlayerActions } from './PlayerBar';
 import { ContextPanel } from './ContextPanel';
 import { ErrorBoundary } from './ErrorBoundary';
 import { FloatingPanel } from './FloatingPanel';
+import { PanelDock } from './PanelDock';
 import { useFlag } from '@/utils/featureFlags';
 import { AtlasDock } from './Atlas/AtlasDock';
 
@@ -313,50 +314,78 @@ export const GameUI: React.FC = () => {
       data-sidebar-width={panelExpanded ? sidebarWidth : 60}
       data-floating-panels={floatingPanelsEnabled ? true : undefined}
     >
-      {/* Game Header */}
-      <div className="layout-header">
-        <div className="header-left">
-          <PlayerBar />
-          <PlayerActions />
-        </div>
-
-        <div className="header-right">
-          {/* Horizontal Panel Tabs */}
-          <ul className="horizontal-panel-tabs" role="tablist">
-            {panels.map((panel) => (
-              <React.Fragment key={panel.id}>
-                <input
-                  type="radio"
-                  name="panel"
-                  id={`panel-radio-${panel.id}`}
-                  value={panel.id}
-                  checked={activePanel === panel.id}
-                  onChange={() => handlePanelTabSelect(panel.id)}
-                  style={{ display: 'none' }}
-                />
-                <li className="horizontal-panel-tab" role="tab">
-                  <label htmlFor={`panel-radio-${panel.id}`}>
-                    <span className="panel-icon">{panel.icon}</span>
-                    <span className="panel-label">{panel.label}</span>
-                  </label>
-                </li>
-              </React.Fragment>
-            ))}
-          </ul>
-
-          {/* Collapse/Expand Toggle */}
-          <div className="horizontal-panel-toggle">
-            <button
-              type="button"
-              onClick={handleTogglePanel}
-              title={panelExpanded ? 'Collapse panel' : 'Expand panel'}
-            >
-              <span className="toggle-icon">{panelExpanded ? '»' : '«'}</span>
-            </button>
+      {/* Game Header - flag OFF only (pixel-identical to pre-A6b markup).
+          Flag ON removes this row entirely; the map gains the 60px it
+          used to cede to the header (see .game-layout[data-floating-panels]
+          in layout-consolidated.css). */}
+      {!floatingPanelsEnabled && (
+        <div className="layout-header">
+          <div className="header-left">
+            <PlayerBar />
+            <PlayerActions />
           </div>
 
-          {/* Leave Room Button */}
-          <div className="header-action">
+          <div className="header-right">
+            {/* Horizontal Panel Tabs */}
+            <ul className="horizontal-panel-tabs" role="tablist">
+              {panels.map((panel) => (
+                <React.Fragment key={panel.id}>
+                  <input
+                    type="radio"
+                    name="panel"
+                    id={`panel-radio-${panel.id}`}
+                    value={panel.id}
+                    checked={activePanel === panel.id}
+                    onChange={() => handlePanelTabSelect(panel.id)}
+                    style={{ display: 'none' }}
+                  />
+                  <li className="horizontal-panel-tab" role="tab">
+                    <label htmlFor={`panel-radio-${panel.id}`}>
+                      <span className="panel-icon">{panel.icon}</span>
+                      <span className="panel-label">{panel.label}</span>
+                    </label>
+                  </li>
+                </React.Fragment>
+              ))}
+            </ul>
+
+            {/* Collapse/Expand Toggle */}
+            <div className="horizontal-panel-toggle">
+              <button
+                type="button"
+                onClick={handleTogglePanel}
+                title={panelExpanded ? 'Collapse panel' : 'Expand panel'}
+              >
+                <span className="toggle-icon">
+                  {panelExpanded ? '»' : '«'}
+                </span>
+              </button>
+            </div>
+
+            {/* Leave Room Button */}
+            <div className="header-action">
+              <button
+                onClick={leaveRoom}
+                className="glass-button secondary small"
+                title="Leave Room"
+              >
+                🚪
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* A6b: flag ON replaces the header row with two floating clusters -
+          top-left PlayerBar (avatars/DM badges/save-load/Leave Room) and
+          top-right PanelDock (icon buttons + ConnectionStatus). The
+          FloatingPanel (rendered further below) is offset under the dock
+          so the two never overlap. */}
+      {floatingPanelsEnabled && (
+        <>
+          <div className="player-cluster-floating">
+            <PlayerBar />
+            <PlayerActions />
             <button
               onClick={leaveRoom}
               className="glass-button secondary small"
@@ -365,8 +394,15 @@ export const GameUI: React.FC = () => {
               🚪
             </button>
           </div>
-        </div>
-      </div>
+
+          <PanelDock
+            panels={panels}
+            activePanel={activePanel}
+            isOpen={floatingPanelOpen}
+            onSelect={handlePanelTabSelect}
+          />
+        </>
+      )}
 
       {/* Main Game Canvas with Scene Tabs */}
       <ErrorBoundary name="Main Canvas" key={activeScene?.id || 'no-scene'}>
