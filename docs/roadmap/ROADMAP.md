@@ -57,7 +57,7 @@ flowchart LR
     A7["A7 token context menu (adv.) ✅"]:::done
     A8a["A8a canvas ink (flag) ✅"]:::done
     A8b["A8b ink cutover 🔍▶️"]:::ready
-    A9["A9 paintable fog 🔍"]:::gate
+    A9["A9 paintable fog 🔍▶️"]:::ready
     A10["A10 cleanup + docs"]
   end
 
