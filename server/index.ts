@@ -1590,6 +1590,11 @@ class NexusServer {
     const assetProxy = createProxyMiddleware({
       target: assetApiUrl,
       changeOrigin: true,
+      // http-proxy-middleware v3+ (bumped to v4 by dependabot) forwards the
+      // Express-stripped req.url, so `app.use('/library', proxy)` would send
+      // '/' to the asset service instead of '/library'. Restore the full
+      // original path (incl. query) so every mount below forwards intact.
+      pathRewrite: (_path, req) => (req as { originalUrl?: string }).originalUrl ?? _path,
     });
 
     this.app.use('/manifest.json', assetProxy);
@@ -1604,6 +1609,13 @@ class NexusServer {
     this.app.use('/assets', assetProxy);
     this.app.use('/thumbnails', assetProxy);
     this.app.use('/users', assetProxy);
+
+    // TMT library (C6): public reads per ADR-0012, same as the routes above —
+    // no write-guard chain needed. /library-assets serves the manifest's
+    // content-addressed thumbnail/fullImage files (see
+    // services/asset-service/src/index.ts's LIBRARY_DATA_PATH static mount).
+    this.app.use('/library', assetProxy);
+    this.app.use('/library-assets', assetProxy);
 
     // ADR-0012: the VTT authenticates the session user (assetWriteGuard) and
     // only then forwards to the asset service with the shared secret. The
@@ -1629,7 +1641,15 @@ class NexusServer {
     const userAssetProxy = createProxyMiddleware({
       target: assetApiUrl,
       changeOrigin: true,
-      pathRewrite: { '^/api/user': '/user' },
+      // Same hpm v4 strip fix as assetProxy: rebuild from originalUrl (Express
+      // strips the /api/user mount prefix), then map /api/user → /user so the
+      // asset service sees /user/:userId/...  (object-form '^/api/user' would
+      // never match the already-stripped path).
+      pathRewrite: (_path, req) =>
+        ((req as { originalUrl?: string }).originalUrl ?? _path).replace(
+          /^\/api\/user/,
+          '/user',
+        ),
       on: {
         proxyReq: (proxyReq: any, _req: any, _res: any) => {
           if (assetServiceSecret) {

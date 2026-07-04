@@ -220,3 +220,32 @@
   color: #888;
   font-size: 14px;
 }
+
+.loadMoreSentinel {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 32px;
+  color: #888;
+  font-size: 12px;
+}
+
+.loadingSpinnerInline {
+  color: #aaa;
+}
+
+.attributionFooter {
+  text-align: center;
+  color: #777;
+  font-size: 11px;
+  padding: 8px 0 4px;
+}
+
+.attributionFooter a {
+  color: #4da6ff;
+  text-decoration: none;
+}
+
+.attributionFooter a:hover {
+  text-decoration: underline;
+}

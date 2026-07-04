@@ -22,6 +22,7 @@ Environment variables:
 | `PORT` | `5003` | HTTP port |
 | `ASSETS_PATH` | `<repo>/static-assets` | Root for legacy manifest/category/user-asset routes |
 | `LIBRARY_MANIFEST_PATH` | `<repo>/assets-data/manifests/manifest-v2.json` | TMT library manifest (B3 endpoints) |
+| `LIBRARY_DATA_PATH` | `<repo>/assets-data` | Root of the assets-data tree (parent of `manifests/`); serves the library's content-addressed `blobs/`/`derivatives/` files under `/library-assets` (C6). Resolved independently of `LIBRARY_MANIFEST_PATH` — set both if you relocate either piece separately. |
 | `ASSET_SERVICE_SECRET` | *(none)* | Shared secret checked against the `x-nexus-auth` request header for all write/write-ish routes |
 
 Auth model (ADR-0012): reads are public-within-deployment; writes (`POST`/`DELETE` under
@@ -174,6 +175,30 @@ in-memory index. Intended to be called after `tools/tmt-ingest/sync.mjs` writes 
 503 { "error": "source-unavailable", "message": "Library manifest not found or invalid at ..." }
 401 { "error": "Unauthorized" }
 ```
+
+### `GET /library-assets/*` (C6, new)
+
+Static file mount serving the `assets-data/` tree directly (`express.static(LIBRARY_DATA_PATH)`,
+`LIBRARY_DATA_PATH` defaulting to the parent of `LIBRARY_MANIFEST_PATH`'s default, i.e.
+`<repo>/assets-data`). The manifest's `thumbnail` and `fullImage` fields are paths relative to
+this root, so a client resolves an asset's image by concatenating:
+
+```
+GET /library-assets/<asset.thumbnail>   e.g. /library-assets/derivatives/4a/4a1b2c...webp
+GET /library-assets/<asset.fullImage>   e.g. /library-assets/blobs/4a/4a1b2c....png
+```
+
+- Cache policy: `Cache-Control: public, max-age=86400, immutable` — same
+  `setCacheHeaders(res, 86400, true)` helper used by `/asset/:id`. Safe because these paths are
+  content-addressed (hash-named); a given path's bytes never change.
+- No auth — public read, same as every other static mount in this service (`/assets`,
+  `/thumbnails`, `/users`, etc.), per ADR-0012.
+- `404` on a missing path is Express's default static-middleware fall-through (falls through to
+  this service's catch-all 404 JSON handler: `{ "error": "Not found", "availableEndpoints": [...] }`),
+  **not** a bare Express HTML 404 — because the static mount has no matching file, `express.static`
+  calls `next()`, which reaches the catch-all defined later in `index.ts`.
+- Proxied by the VTT backend (`server/index.ts` `setupAssetRoutes()`) alongside `/library`, using
+  the same plain (non-write-guarded) `assetProxy`, since both are public reads.
 
 ---
 

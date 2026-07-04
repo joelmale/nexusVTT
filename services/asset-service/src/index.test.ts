@@ -6,6 +6,7 @@ import request from 'supertest';
 
 const SECRET = 'test-secret';
 let tmpAssetsPath: string;
+let tmpLibraryDataPath: string;
 
 // ASSETS_PATH and ASSET_SERVICE_SECRET must be set BEFORE importing the app
 // module, since index.ts reads process.env at module-load time.
@@ -13,10 +14,20 @@ beforeAll(() => {
   tmpAssetsPath = fs.mkdtempSync(path.join(os.tmpdir(), 'asset-service-test-'));
   process.env.ASSETS_PATH = tmpAssetsPath;
   process.env.ASSET_SERVICE_SECRET = SECRET;
+
+  // Fixture dir for the /library-assets static mount (C6): a tiny fake
+  // derivative file at the shape the real assets-data tree uses
+  // (derivatives/<xx>/<hash>.webp), so GET /library-assets/derivatives/ab/abc.webp
+  // resolves without needing the real (large) assets-data tree in tests.
+  tmpLibraryDataPath = fs.mkdtempSync(path.join(os.tmpdir(), 'asset-service-library-data-test-'));
+  fs.mkdirSync(path.join(tmpLibraryDataPath, 'derivatives', 'ab'), { recursive: true });
+  fs.writeFileSync(path.join(tmpLibraryDataPath, 'derivatives', 'ab', 'abc.webp'), Buffer.from([0x00, 0x01, 0x02]));
+  process.env.LIBRARY_DATA_PATH = tmpLibraryDataPath;
 });
 
 afterAll(() => {
   fs.rmSync(tmpAssetsPath, { recursive: true, force: true });
+  fs.rmSync(tmpLibraryDataPath, { recursive: true, force: true });
 });
 
 // Dynamic import after env vars are set so the module picks them up.
@@ -155,6 +166,27 @@ describe('asset-service user asset routes', () => {
   describe('unmatched routes and error handling', () => {
     it('returns a JSON 404 for unknown routes', async () => {
       const res = await request(app).get('/this-route-does-not-exist');
+      expect(res.status).toBe(404);
+      expect(res.body.error).toBe('Not found');
+      expect(Array.isArray(res.body.availableEndpoints)).toBe(true);
+    });
+  });
+
+  describe('GET /library-assets (C6: static mount over LIBRARY_DATA_PATH)', () => {
+    it('serves a known fixture file with immutable cache headers', async () => {
+      const res = await request(app).get('/library-assets/derivatives/ab/abc.webp');
+      expect(res.status).toBe(200);
+      expect(res.headers['cache-control']).toBe('public, max-age=86400, immutable');
+      expect(res.body).toEqual(Buffer.from([0x00, 0x01, 0x02]));
+    });
+
+    it('falls through to the service-wide JSON 404 for a nonexistent path', async () => {
+      // express.static finds no match under LIBRARY_DATA_PATH and calls
+      // next(), which reaches this service's catch-all 404 handler further
+      // down the middleware chain (registered after all app.use/app.get
+      // routes) — so this is the same JSON shape as any other unknown route,
+      // not a bare Express HTML 404.
+      const res = await request(app).get('/library-assets/derivatives/zz/does-not-exist.webp');
       expect(res.status).toBe(404);
       expect(res.body.error).toBe('Not found');
       expect(Array.isArray(res.body.availableEndpoints)).toBe(true);

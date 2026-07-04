@@ -864,6 +864,40 @@ export const Settings: React.FC = () => {
         >
           <CampaignBackupSection />
         </SettingsSection>
+
+        {/* Credits / Attribution Section (ADR-0014) */}
+        <SettingsSection
+          title="📜 Credits"
+          description="Third-party assets used in Nexus VTT"
+        >
+          <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--text-secondary, #aaa)' }}>
+            The Atlas Library token art is provided by{' '}
+            <a
+              href="https://github.com/IsThisMyRealName/too-many-tokens-dnd"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Too Many Tokens
+            </a>
+            , licensed under the MIT License.
+          </p>
+          <p style={{ margin: '8px 0 0', fontSize: '0.8em', color: 'var(--text-secondary, #888)' }}>
+            Permission is hereby granted, free of charge, to any person obtaining a copy of this
+            software and associated documentation files, to deal in the software without
+            restriction, including without limitation the rights to use, copy, modify, merge,
+            publish, distribute, sublicense, and/or sell copies of the software, subject to the
+            inclusion of the above copyright notice and this permission notice in all copies or
+            substantial portions of the software. See the{' '}
+            <a
+              href="https://github.com/IsThisMyRealName/too-many-tokens-dnd/blob/main/LICENSE"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              full MIT License text
+            </a>{' '}
+            for details.
+          </p>
+        </SettingsSection>
       </div>
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from './AtlasDock.module.css';
 import { useAtlasAssets } from '@/hooks/useAtlasAssets';
 import { useDockToCanvasDrag } from '@/hooks/useDockToCanvasDrag';
@@ -8,15 +8,70 @@ import { Portal } from '@/components/Portal';
 
 type DockState = 'closed' | 'peek' | 'open';
 
+const TMT_ATTRIBUTION_URL = 'https://github.com/IsThisMyRealName/too-many-tokens-dnd';
+
 export const AtlasDock: React.FC = () => {
   const [dockState, setDockState] = useState<DockState>('closed');
   // Open-once latch (ADR-0009): once the dock has been opened, keep the
   // fetch enabled for the rest of the component's life so closing the dock
   // doesn't abort in-flight requests or force a refetch churn on reopen.
   const [hasOpened, setHasOpened] = useState(false);
-  const { query, setQuery, category, setCategory, assets, loading } = useAtlasAssets({
+  const {
+    query,
+    setQuery,
+    category,
+    setCategory,
+    assets,
+    loading,
+    loadingMore,
+    loadMore,
+    hasMore,
+    libraryFacets,
+  } = useAtlasAssets({
     enabled: hasOpened,
   });
+
+  const sentinelRef = useRef<HTMLDivElement | null>(null);
+  const loadMoreRef = useRef(loadMore);
+  const hasMoreRef = useRef(hasMore);
+
+  // Keep the refs in sync via effects (not during render) so the
+  // IntersectionObserver callback below always sees the latest closures
+  // without needing to re-create the observer on every render.
+  useEffect(() => {
+    loadMoreRef.current = loadMore;
+  }, [loadMore]);
+  useEffect(() => {
+    hasMoreRef.current = hasMore;
+  }, [hasMore]);
+
+  // ADR-0008: hand-rolled virtualization via content-visibility:auto cards
+  // (CSS) + an IntersectionObserver sentinel that triggers cursor pagination
+  // instead of a react-window/react-virtual dependency.
+  useEffect(() => {
+    const node = sentinelRef.current;
+    if (!node) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting && hasMoreRef.current) {
+          loadMoreRef.current();
+        }
+      },
+      { root: null, rootMargin: '400px' },
+    );
+
+    observer.observe(node);
+    return () => observer.disconnect();
+  }, [assets.length]);
+
+  // Are library results currently in view (query non-empty always includes
+  // library; category filter narrows to library-only when a facet category
+  // is selected that only the library source has). Kept simple per brief:
+  // show the credit whenever any asset in the current result set is from
+  // the library source, or the category selector is showing facet options.
+  const showLibraryCredit = assets.some(a => a.source === 'library');
+  const libraryCategoryOptions = libraryFacets.categories;
 
   const {
     isDragging,
@@ -124,7 +179,7 @@ export const AtlasDock: React.FC = () => {
               value={query}
               onChange={e => setQuery(e.target.value)}
             />
-            <select 
+            <select
               className={styles.categorySelect}
               value={category}
               onChange={e => setCategory(e.target.value)}
@@ -134,6 +189,15 @@ export const AtlasDock: React.FC = () => {
               <option value="pc">PC Tokens</option>
               <option value="monster">Monster Tokens</option>
               <option value="props">Props</option>
+              {libraryCategoryOptions.length > 0 && (
+                <optgroup label="Library">
+                  {libraryCategoryOptions.map(facet => (
+                    <option key={`library-${facet.name}`} value={facet.name}>
+                      {facet.name} ({facet.count})
+                    </option>
+                  ))}
+                </optgroup>
+              )}
             </select>
           </div>
           <button 
@@ -152,28 +216,43 @@ export const AtlasDock: React.FC = () => {
           ) : assets.length === 0 ? (
             <div className={styles.emptyState}>No assets found. Try adjusting your search.</div>
           ) : (
-            <div className={styles.assetGrid}>
-              {assets.map(asset => (
-                <div 
-                  key={asset.id} 
-                  className={styles.assetCard}
-                  style={{ touchAction: 'none' }}
-                  onPointerDown={(e) => {
-                    handlePointerDown(e, {
-                      id: asset.id,
-                      category: (asset.category === 'props' ? 'props' : 'tokens') as 'tokens' | 'props',
-                    }, asset.thumbnailUrl);
-                  }}
-                  onPointerMove={handlePointerMove}
-                  onPointerUp={handlePointerUp}
-                  onPointerCancel={handlePointerUp}
-                >
-                  <img src={asset.thumbnailUrl} alt={asset.name} className={styles.assetImage} draggable="false" />
-                  <div className={styles.assetName} title={asset.name}>{asset.name}</div>
-                  <div className={styles.assetSource}>{asset.source}</div>
+            <>
+              <div className={styles.assetGrid}>
+                {assets.map(asset => (
+                  <div
+                    key={asset.id}
+                    className={styles.assetCard}
+                    style={{ touchAction: 'none', contentVisibility: 'auto', containIntrinsicSize: '120px 156px' }}
+                    onPointerDown={(e) => {
+                      handlePointerDown(e, {
+                        id: asset.id,
+                        category: (asset.category === 'props' ? 'props' : 'tokens') as 'tokens' | 'props',
+                      }, asset.thumbnailUrl);
+                    }}
+                    onPointerMove={handlePointerMove}
+                    onPointerUp={handlePointerUp}
+                    onPointerCancel={handlePointerUp}
+                  >
+                    <img src={asset.thumbnailUrl} alt={asset.name} className={styles.assetImage} draggable="false" loading="lazy" />
+                    <div className={styles.assetName} title={asset.name}>{asset.name}</div>
+                    <div className={styles.assetSource}>{asset.source}</div>
+                  </div>
+                ))}
+              </div>
+              {/* Sentinel for IntersectionObserver-driven cursor pagination (ADR-0008) */}
+              <div ref={sentinelRef} className={styles.loadMoreSentinel} data-testid="atlas-load-more-sentinel">
+                {loadingMore && <span className={styles.loadingSpinnerInline}>Loading more…</span>}
+              </div>
+              {showLibraryCredit && (
+                <div className={styles.attributionFooter}>
+                  Token art courtesy of{' '}
+                  <a href={TMT_ATTRIBUTION_URL} target="_blank" rel="noopener noreferrer">
+                    Too Many Tokens
+                  </a>{' '}
+                  (MIT License).
                 </div>
-              ))}
-            </div>
+              )}
+            </>
           )}
         </div>
       </div>

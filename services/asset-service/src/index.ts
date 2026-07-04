@@ -40,6 +40,15 @@ function resolveLibraryManifestPath(): string {
   );
 }
 
+// Root of the assets-data tree (parent of manifests/), shared by the TMT
+// library's content-addressed blobs/derivatives. Derived independently of
+// LIBRARY_MANIFEST_PATH (rather than path.dirname'd from it) so an operator
+// can point LIBRARY_MANIFEST_PATH at an arbitrary manifest file while still
+// serving the default assets-data tree, or vice versa — matching the
+// contract doc, which documents these as two separate env vars.
+const LIBRARY_DATA_PATH =
+  process.env.LIBRARY_DATA_PATH || path.resolve(__dirname, '../../../assets-data');
+
 let libraryIndex: LibraryIndex | null = null;
 function loadLibraryIndex(): { ok: boolean; error?: string } {
   const manifestPath = resolveLibraryManifestPath();
@@ -175,6 +184,15 @@ app.use(
   '/users',
   (req, res, next) => { setCacheHeaders(res); next(); },
   express.static(path.join(ASSETS_PATH, 'users'))
+);
+
+// TMT library asset files (B3 manifest's thumbnail/fullImage paths are
+// relative to assets-data/, a different root than ASSETS_PATH above).
+// Content-addressed (hash-named) → safe to cache forever, same as /asset/:id.
+app.use(
+  '/library-assets',
+  (req, res, next) => { setCacheHeaders(res, 86400, true); next(); },
+  express.static(LIBRARY_DATA_PATH),
 );
 
 // User Asset Domain
@@ -340,6 +358,8 @@ app.use((req: Request, res: Response) => {
       '/library/facets',
       '/library/asset/:id',
       '/library/reload',
+      '/library-assets/derivatives/:xx/:hash.webp',
+      '/library-assets/blobs/:xx/:hash.:ext',
     ],
   });
 });

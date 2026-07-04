@@ -6,6 +6,19 @@ import { fileURLToPath } from 'url';
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const ASSETS_DATA_DIR = path.resolve(__dirname, '../../assets-data');
 
+// Derivative spec version (ADR-0011: derivatives/v<specver>/<xx>/<hash>.webp).
+// derivatives.mjs OWNS the derivative path, so it also stamps the matching
+// thumbnail path into manifest-v2.json — normalize.mjs is version-agnostic and
+// records an unversioned placeholder that MUST be rewritten here, or every
+// library thumbnail 404s (the served manifest path wouldn't match disk). Bump
+// this when the derivative pipeline output format changes.
+const DERIV_VERSION = 'v1';
+
+/** Versioned thumbnail path an asset's derivative is actually written to. */
+function derivativeThumbnailPath(sha256) {
+  return `derivatives/${DERIV_VERSION}/${sha256.substring(0, 2)}/${sha256}.webp`;
+}
+
 function ensureDir(dir) {
   if (!fs.existsSync(dir)) {
     fs.mkdirSync(dir, { recursive: true });
@@ -134,7 +147,7 @@ export async function deriveRelease(release, { assetsDataDir = ASSETS_DATA_DIR }
   const manifestPath = path.join(stagingDir, 'normalized-manifest.json');
 
   const blobsDir = path.join(assetsDataDir, 'blobs');
-  const derivativesDir = path.join(assetsDataDir, 'derivatives', 'v1');
+  const derivativesDir = path.join(assetsDataDir, 'derivatives', DERIV_VERSION);
   const browseDir = path.join(assetsDataDir, 'browse');
   const manifestsDir = path.join(assetsDataDir, 'manifests');
 
@@ -179,7 +192,16 @@ export async function deriveRelease(release, { assetsDataDir = ASSETS_DATA_DIR }
     fs.unlinkSync(failureListPath);
   }
 
-  // Copy manifest
+  // Stamp the versioned thumbnail path (matching where derivatives were
+  // actually written) into every asset before persisting manifest-v2.json.
+  // normalize.mjs records an unversioned `derivatives/<xx>/<hash>.webp`
+  // placeholder; the served manifest MUST point at the real on-disk location.
+  for (const asset of manifest.assets) {
+    if (asset.sha256) {
+      asset.thumbnail = derivativeThumbnailPath(asset.sha256);
+    }
+  }
+
   const destManifest = path.join(manifestsDir, 'manifest-v2.json');
   fs.writeFileSync(destManifest, JSON.stringify(manifest, null, 2));
   console.log(`Manifest written to ${destManifest}`);
