@@ -1,6 +1,8 @@
 import React, { useEffect, useRef } from 'react';
 import { Portal } from './Portal';
 import styles from './FloatingPanel.module.css';
+import { useDraggablePanel } from '@/hooks/useDraggablePanel';
+import { useUIStackStore, useStackZIndex } from '@/stores/uiStackStore';
 
 interface FloatingPanelProps {
   /** Whether the panel is currently open. Controls data-state + focus mgmt. */
@@ -35,8 +37,21 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
   label,
   children,
 }) => {
-  const panelRef = useRef<HTMLDivElement>(null);
   const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+
+  const {
+    onPointerDown,
+    isCollapsed,
+    toggleCollapsed,
+    panelRef,
+  } = useDraggablePanel({
+    id: 'floatingPanel',
+    defaultPosition: { x: window.innerWidth - 320 - 16, y: 84 },
+  });
+
+  const zIndex = useStackZIndex('floatingPanel');
+
+  const bringToFront = useUIStackStore((state) => state.bringToFront);
 
   // Capture the opener's focus when opening, and restore it on close.
   useEffect(() => {
@@ -87,8 +102,39 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
         aria-hidden={!isOpen}
         tabIndex={-1}
         inert={isOpen ? undefined : true}
+        style={{ zIndex }}
+        onPointerDownCapture={() => bringToFront('floatingPanel')}
       >
-        <div className={styles.body}>{children}</div>
+        <div 
+          className={styles.titleBar}
+          onPointerDown={onPointerDown}
+        >
+          <div className={styles.dragHandle} aria-hidden="true">⠿</div>
+          <span className={styles.titleLabel}>{label}</span>
+          <div className={styles.titleActions}>
+            <button 
+              className={styles.actionButton} 
+              onClick={(e) => { e.stopPropagation(); toggleCollapsed(); }}
+              title={isCollapsed ? "Expand panel" : "Roll up panel"}
+              aria-label={isCollapsed ? "Expand panel" : "Roll up panel"}
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              {isCollapsed ? "＋" : "−"}
+            </button>
+            <button 
+              className={styles.actionButton} 
+              onClick={(e) => { e.stopPropagation(); onClose(); }}
+              title="Close panel"
+              aria-label="Close panel"
+              onPointerDown={(e) => e.stopPropagation()}
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <div className={styles.bodyWrapper} data-collapsed={isCollapsed}>
+          <div className={styles.body}>{children}</div>
+        </div>
       </div>
     </Portal>
   );

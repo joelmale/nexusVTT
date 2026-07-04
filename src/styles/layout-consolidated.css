@@ -1055,8 +1055,8 @@
    a positioning wrapper. */
 .player-cluster-floating {
   position: fixed;
-  top: var(--spacing-4);
-  left: var(--spacing-4);
+  top: 0;
+  left: 0;
   z-index: var(--z-tool-ui);
 
   display: flex;
@@ -1070,6 +1070,47 @@
   border: 1px solid var(--border-primary);
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-glass-lg);
+  
+  transition: transform var(--transition-base), padding var(--transition-base);
+}
+
+.player-cluster-floating[data-collapsed='true'] {
+  padding: 0;
+}
+
+.player-cluster-floating .drag-handle {
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.5;
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -12px;
+  margin-top: -12px;
+  margin-bottom: -12px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.player-cluster-floating .drag-handle:active {
+  cursor: grabbing;
+}
+
+.player-cluster-floating:hover .drag-handle {
+  opacity: 1;
+}
+
+.player-cluster-floating[data-collapsed='true'] .drag-handle {
+  cursor: pointer;
+  opacity: 1;
+  margin: 0;
+  padding: var(--spacing-2);
+  min-width: 48px;
+  min-height: 48px;
+  font-size: 16px;
 }
 
 .player-bar {

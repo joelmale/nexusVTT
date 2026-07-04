@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import styles from './AtlasDock.module.css';
 import { useAtlasAssets } from '@/hooks/useAtlasAssets';
 import { useDockToCanvasDrag } from '@/hooks/useDockToCanvasDrag';
+import { useDraggablePanel } from '@/hooks/useDraggablePanel';
+import { useUIStackStore, useStackZIndex } from '@/stores/uiStackStore';
 import { Portal } from '@/components/Portal';
 
 type DockState = 'closed' | 'peek' | 'open';
@@ -25,6 +27,17 @@ export const AtlasDock: React.FC = () => {
     ghostPosition,
     overCanvas
   } = useDockToCanvasDrag();
+
+  const { panelRef: pillRef, onPointerDown: pillDragStart } = useDraggablePanel({
+    id: 'atlasPill',
+    defaultPosition: {
+      x: 20,
+      y: typeof window !== 'undefined' ? window.innerHeight - 80 : 800
+    }
+  });
+
+  const bringToFront = useUIStackStore((state) => state.bringToFront);
+  const pillZIndex = useStackZIndex('atlasDock');
 
   // Handle escape key to close dock
   useEffect(() => {
@@ -55,16 +68,43 @@ export const AtlasDock: React.FC = () => {
     styles.stateOpen;
 
   return (
-    <div className={styles.dockContainer}>
-      {dockState === 'closed' && (
-        <button 
-          className={styles.pillButton} 
-          onClick={() => setDockState('peek')}
-          title="Open Atlas Library"
+    <>
+      <Portal>
+        <div
+          ref={pillRef}
+          style={{ 
+            position: 'fixed', 
+            top: 0,
+            left: 0,
+            zIndex: pillZIndex,
+            display: dockState === 'closed' ? 'block' : 'none'
+          }}
+          className={styles.draggablePillContainer}
         >
-          <span>📚</span> Atlas
-        </button>
-      )}
+            <button 
+              className={styles.pillButton} 
+              onClick={() => {
+                setDockState('peek');
+                bringToFront('atlasDock');
+              }}
+              title="Open Atlas Library"
+            >
+              <div 
+                className={styles.dragHandle} 
+                onPointerDownCapture={(e) => {
+                  bringToFront('atlasPill');
+                  pillDragStart(e);
+                }}
+              >
+                ⠿
+              </div>
+              <span>📚</span> Atlas
+            </button>
+        </div>
+      </Portal>
+
+      <div className={styles.dockContainer}>
+
 
       <div className={`${styles.dockPanel} ${panelStateClass}`}>
         {/* Header / Controls */}
@@ -120,12 +160,8 @@ export const AtlasDock: React.FC = () => {
                   style={{ touchAction: 'none' }}
                   onPointerDown={(e) => {
                     handlePointerDown(e, {
-                      type: 'asset',
                       id: asset.id,
-                      source: asset.source,
-                      name: asset.name,
-                      category: asset.category,
-                      url: asset.thumbnailUrl
+                      category: (asset.category === 'props' ? 'props' : 'tokens') as 'tokens' | 'props',
                     }, asset.thumbnailUrl);
                   }}
                   onPointerMove={handlePointerMove}
@@ -166,5 +202,6 @@ export const AtlasDock: React.FC = () => {
         </Portal>
       )}
     </div>
+    </>
   );
 };

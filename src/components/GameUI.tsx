@@ -25,8 +25,9 @@ import { GameToolbar } from './GameToolbar';
 import { PlayerBar, PlayerActions } from './PlayerBar';
 import { ContextPanel } from './ContextPanel';
 import { ErrorBoundary } from './ErrorBoundary';
-import { FloatingPanel } from './FloatingPanel';
 import { PanelDock } from './PanelDock';
+import { PlayerClusterFloating } from './PlayerClusterFloating';
+import { FloatingPanel } from './FloatingPanel';
 import { useFlag } from '@/utils/featureFlags';
 import { AtlasDock } from './Atlas/AtlasDock';
 
@@ -383,17 +384,7 @@ export const GameUI: React.FC = () => {
           so the two never overlap. */}
       {floatingPanelsEnabled && (
         <>
-          <div className="player-cluster-floating">
-            <PlayerBar />
-            <PlayerActions />
-            <button
-              onClick={leaveRoom}
-              className="glass-button secondary small"
-              title="Leave Room"
-            >
-              🚪
-            </button>
-          </div>
+          <PlayerClusterFloating leaveRoom={leaveRoom} />
 
           <PanelDock
             panels={panels}

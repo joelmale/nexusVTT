@@ -94,7 +94,7 @@ export const useDockToCanvasDrag = (options?: UseDockToCanvasDragOptions) => {
             const placedProp = createPlacedProp(payload.id, scene.id, { x: finalX, y: finalY }, user.id);
             state.placeProp(scene.id, placedProp);
           });
-        } else if (payload.category === 'pc' || payload.category === 'monster' || payload.category === 'tokens') {
+        } else if (payload.category === 'tokens') {
           import('@/types/token').then(({ createPlacedToken }) => {
             import('@/services/tokenAssets').then(({ tokenAssetManager }) => {
               const baseToken = tokenAssetManager.getTokenById(payload.id);

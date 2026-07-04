@@ -12,6 +12,8 @@ import {
   useActiveTool,
 } from '@/stores/gameStore';
 import '@/styles/toolbar-unified.css';
+import { useDraggablePanel } from '@/hooks/useDraggablePanel';
+import { useUIStackStore, useStackZIndex } from '@/stores/uiStackStore';
 import {
   Circle,
   Eraser,
@@ -80,6 +82,19 @@ export const GameToolbar: React.FC = () => {
   const toolbarRef = useRef<HTMLDivElement>(null);
   const [hoveredTool, setHoveredTool] = useState<ToolbarItem | null>(null);
   const [isVertical, setIsVertical] = useState(false);
+
+  const {
+    onPointerDown,
+    isCollapsed,
+    toggleCollapsed,
+    panelRef,
+  } = useDraggablePanel({
+    id: 'gameToolbar',
+    defaultPosition: { x: window.innerWidth / 2 - 200, y: window.innerHeight - 80 },
+  });
+
+  const zIndex = useStackZIndex('gameToolbar');
+  const bringToFront = useUIStackStore((state) => state.bringToFront);
 
   const handleZoomIn = useCallback(
     () => updateCamera({ zoom: Math.min(5.0, camera.zoom * 1.2) }),
@@ -375,91 +390,136 @@ export const GameToolbar: React.FC = () => {
   };
 
   return (
-    <>
-      <div id="toolbar-info-banner">
-        {hoveredTool ? (
-          <>
-            <span>{hoveredTool.tooltip || hoveredTool.label}</span>
-            {hoveredTool.shortcut && (
-              <span className="shortcut">{hoveredTool.shortcut}</span>
-            )}
-          </>
-        ) : (
-          <span>Hover over a tool for information.</span>
-        )}
-      </div>
+    <div
+      ref={panelRef}
+      style={{ zIndex }}
+      onPointerDownCapture={() => bringToFront('gameToolbar')}
+      className="layout-toolbar-inner"
+    >
+      {!isCollapsed && (
+        <div id="toolbar-info-banner">
+          {hoveredTool ? (
+            <>
+              <span>{hoveredTool.tooltip || hoveredTool.label}</span>
+              {hoveredTool.shortcut && (
+                <span className="shortcut">{hoveredTool.shortcut}</span>
+              )}
+            </>
+          ) : (
+            <span>Hover over a tool for information.</span>
+          )}
+        </div>
+      )}
 
       <div
         ref={toolbarRef}
         className={`game-toolbar ${isVertical ? 'vertical' : 'horizontal'}`}
         role="toolbar"
         onMouseLeave={() => setHoveredTool(null)}
+        data-collapsed={isCollapsed ? 'true' : undefined}
       >
-        {/* Main Tool Groups */}
-        <div className="toolbar-section main-tools">
-          {/* Navigation Tools */}
-          <div className="toolbar-group">
-            {toolGroups[0].tools.map(renderToolButton)}
-          </div>
-
-          <div className="toolbar-group-separator" />
-
-          {/* Drawing Tools */}
-          <div className="toolbar-group">
-            {toolGroups[1].tools.map(renderToolButton)}
-          </div>
-
-          <div className="toolbar-group-separator" />
-
-          {/* Entity & Props Tools */}
-          <div className="toolbar-group">
-            {toolGroups[2].tools.map(renderToolButton)}
-          </div>
-        </div>
-
-        {/* Spell Effects Grid */}
-        <div className="toolbar-section spell-tools">
-          <div className="toolbar-group spell-grid">
-            {toolGroups[3].tools.map(renderToolButton)}
-          </div>
-
-          {/* DM Mask Tools */}
-          {isHost && dmMaskGroup && (
-            <>
-              <div className="toolbar-group-separator" />
-              <div className="toolbar-group dm-tools">
-                {dmMaskGroup.tools.map(renderToolButton)}
-              </div>
-            </>
-          )}
-
-          {/* DM Utility Tools */}
-          {isHost && dmUtilityGroup && (
-            <>
-              <div className="toolbar-group-separator" />
-              <div className="toolbar-group dm-tools">
-                {dmUtilityGroup.tools.map(renderToolButton)}
-              </div>
-            </>
-          )}
-
-          {/* Zoom Controls - Right Aligned */}
-          <div className="toolbar-group-separator" />
-          <div className="toolbar-group zoom-controls">
-            {cameraControls.map(renderToolButton)}
-          </div>
-        </div>
-
-        {/* Vertical Toggle */}
-        <button
-          className="toolbar-orientation-toggle"
-          onClick={() => setIsVertical(!isVertical)}
-          title={isVertical ? 'Switch to horizontal' : 'Switch to vertical'}
-          aria-label="Toggle toolbar orientation"
+        <div
+          className="toolbar-drag-handle"
+          aria-hidden="true"
+          onPointerDown={(e) => {
+            if (isCollapsed) {
+              e.stopPropagation();
+              toggleCollapsed();
+            } else {
+              onPointerDown(e);
+            }
+          }}
+          onClick={(e) => {
+            if (isCollapsed) {
+              e.stopPropagation();
+              toggleCollapsed();
+            }
+          }}
+          title={isCollapsed ? "Expand Toolbar" : "Drag Toolbar"}
         >
-          <Maximize2 size={14} />
-        </button>
+          {isCollapsed ? <Pencil size={18} /> : "⠿"}
+        </div>
+
+        {!isCollapsed && (
+          <>
+            {/* Main Tool Groups */}
+            <div className="toolbar-section main-tools">
+              {/* Navigation Tools */}
+              <div className="toolbar-group">
+                {toolGroups[0].tools.map(renderToolButton)}
+              </div>
+
+              <div className="toolbar-group-separator" />
+
+              {/* Drawing Tools */}
+              <div className="toolbar-group">
+                {toolGroups[1].tools.map(renderToolButton)}
+              </div>
+
+              <div className="toolbar-group-separator" />
+
+              {/* Entity & Props Tools */}
+              <div className="toolbar-group">
+                {toolGroups[2].tools.map(renderToolButton)}
+              </div>
+            </div>
+
+            {/* Spell Effects Grid */}
+            <div className="toolbar-section spell-tools">
+              <div className="toolbar-group spell-grid">
+                {toolGroups[3].tools.map(renderToolButton)}
+              </div>
+
+              {/* DM Mask Tools */}
+              {isHost && dmMaskGroup && (
+                <>
+                  <div className="toolbar-group-separator" />
+                  <div className="toolbar-group dm-tools">
+                    {dmMaskGroup.tools.map(renderToolButton)}
+                  </div>
+                </>
+              )}
+
+              {/* DM Utility Tools */}
+              {isHost && dmUtilityGroup && (
+                <>
+                  <div className="toolbar-group-separator" />
+                  <div className="toolbar-group dm-tools">
+                    {dmUtilityGroup.tools.map(renderToolButton)}
+                  </div>
+                </>
+              )}
+
+              {/* Zoom Controls - Right Aligned */}
+              <div className="toolbar-group-separator" />
+              <div className="toolbar-group zoom-controls">
+                {cameraControls.map(renderToolButton)}
+              </div>
+            </div>
+
+            <div className="toolbar-group-separator" />
+
+            <button
+              className="toolbar-btn"
+              onClick={() => toggleCollapsed()}
+              title="Minimize Toolbar"
+              aria-label="Minimize Toolbar"
+            >
+              <Minus size={16} />
+            </button>
+
+            {/* Vertical Toggle */}
+            <button
+              className="toolbar-orientation-toggle"
+              onClick={() => setIsVertical(!isVertical)}
+              title={isVertical ? 'Switch to horizontal' : 'Switch to vertical'}
+              aria-label="Toggle toolbar orientation"
+            >
+              <Maximize2 size={14} />
+            </button>
+          </>
+        )}
       </div>
-    </>
+    </div>
   );
 };

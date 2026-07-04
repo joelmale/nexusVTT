@@ -746,6 +746,34 @@ export const Settings: React.FC = () => {
               <span className="toggle-slider"></span>
             </label>
           </SettingItem>
+
+          <SettingItem
+            label="Restore Default Layout"
+            description="Reset all floating panels and toolbar positions"
+          >
+            <button
+              onClick={() => {
+                if (confirm('Reset all UI panel positions?')) {
+                  // Find and remove all UI related local storage keys
+                  const keysToRemove: string[] = [];
+                  for (let i = 0; i < localStorage.length; i++) {
+                    const key = localStorage.key(i);
+                    if (key?.startsWith('nexus_ui_') || key?.startsWith('nexus-ui-')) {
+                      keysToRemove.push(key);
+                    }
+                  }
+                  keysToRemove.forEach(k => localStorage.removeItem(k));
+                  
+                  // Reload window to reinitialize state
+                  window.location.reload();
+                }
+              }}
+              className="btn btn-small"
+              style={{ padding: '0.5rem 1rem' }}
+            >
+              Reset UI Layout
+            </button>
+          </SettingItem>
         </SettingsSection>
 
         {/* Developer Settings - only show in development environment */}

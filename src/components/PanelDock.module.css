@@ -8,8 +8,8 @@
 
 .dock {
   position: fixed;
-  top: var(--spacing-4);
-  right: var(--spacing-4);
+  top: 0;
+  left: 0;
 
   display: flex;
   align-items: center;
@@ -23,10 +23,54 @@
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-glass-lg);
 
-  z-index: var(--z-tool-ui);
-
   opacity: 1;
-  transition: opacity var(--transition-base);
+  transition: opacity var(--transition-base), transform var(--transition-base);
+}
+
+.dragHandle {
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.5;
+  /* 44x44px touch target area for mobile usability */
+  min-width: 44px;
+  min-height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-left: -12px;
+  margin-top: -12px;
+  margin-bottom: -12px;
+  cursor: grab;
+  touch-action: none;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.dock:hover .dragHandle {
+  opacity: 1;
+}
+
+.dock[data-collapsed='true'] {
+  padding: 0;
+}
+
+.dock[data-collapsed='true'] .iconButton,
+.dock[data-collapsed='true'] .connectionStatus {
+  display: none;
+}
+
+/* Make the drag handle act as the expand button when collapsed */
+.dock[data-collapsed='true'] .dragHandle {
+  cursor: pointer;
+  opacity: 1;
+  margin: 0;
+  padding: var(--spacing-2);
+  min-width: 48px;
+  min-height: 48px;
+  font-size: 16px;
 }
 
 .dock[data-idle='true'] {

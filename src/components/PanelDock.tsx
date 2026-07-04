@@ -3,6 +3,9 @@ import { Tooltip } from './Tooltip';
 import ConnectionStatus from './ConnectionStatus';
 import styles from './PanelDock.module.css';
 
+import { useDraggablePanel } from '@/hooks/useDraggablePanel';
+import { useUIStackStore, useStackZIndex } from '@/stores/uiStackStore';
+
 export interface PanelDockPanel<T extends string = string> {
   id: T;
   icon: string;
@@ -40,6 +43,19 @@ export function PanelDock<T extends string = string>({
   const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [focusedId, setFocusedId] = useState<T>(activePanel);
+
+  const {
+    onPointerDown,
+    isCollapsed,
+    toggleCollapsed,
+    panelRef,
+  } = useDraggablePanel({
+    id: 'panelDock',
+    defaultPosition: { x: window.innerWidth - 300, y: 16 },
+  });
+
+  const zIndex = useStackZIndex('panelDock');
+  const bringToFront = useUIStackStore((state) => state.bringToFront);
 
   const prefersReducedMotion =
     typeof window !== 'undefined' && typeof window.matchMedia === 'function'
@@ -108,13 +124,39 @@ export function PanelDock<T extends string = string>({
 
   return (
     <div
+      ref={panelRef}
       className={styles.dock}
       data-idle={idle ? 'true' : undefined}
+      data-collapsed={isCollapsed ? 'true' : undefined}
       onPointerEnter={handlePointerEnter}
       onPointerLeave={handlePointerLeave}
+      onPointerDownCapture={() => bringToFront('panelDock')}
+      style={{ zIndex }}
       role="tablist"
       aria-label="Panels"
     >
+      <div
+        className={styles.dragHandle}
+        aria-hidden="true"
+        onPointerDown={(e) => {
+          if (isCollapsed) {
+            e.stopPropagation();
+            toggleCollapsed();
+          } else {
+            onPointerDown(e);
+          }
+        }}
+        onClick={(e) => {
+          if (isCollapsed) {
+            e.stopPropagation();
+            toggleCollapsed();
+          }
+        }}
+        title={isCollapsed ? "Expand Tools" : "Drag Panel Dock"}
+      >
+        {isCollapsed ? "🛠" : "⠿"}
+      </div>
+
       {panels.map((panel, index) => {
         const isActive = panel.id === activePanel && isOpen;
         const isRovingTarget = panel.id === focusedId;
@@ -148,6 +190,19 @@ export function PanelDock<T extends string = string>({
           </Tooltip>
         );
       })}
+
+      <Tooltip text="Minimize Dock">
+        <button
+          type="button"
+          className={styles.iconButton}
+          onClick={() => toggleCollapsed()}
+          aria-label="Minimize Dock"
+          style={{ width: '24px', height: '24px', fontSize: '12px' }}
+        >
+          <span aria-hidden="true">−</span>
+        </button>
+      </Tooltip>
+
       <div className={styles.connectionStatus}>
         <ConnectionStatus showDetails={false} />
       </div>
