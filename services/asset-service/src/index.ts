@@ -13,7 +13,7 @@ const port = process.env.PORT || 5003;
 
 // Base paths (using fallback to current project for local dev)
 const ASSETS_PATH = process.env.ASSETS_PATH || path.resolve(__dirname, '../../../static-assets');
-const MANIFEST_PATH = path.join(ASSETS_PATH, 'manifest.json');
+const MANIFEST_PATH = path.join(ASSETS_PATH, 'assets', 'manifest.json');
 
 app.use(cors());
 app.use(express.json());
@@ -156,15 +156,19 @@ const ASSET_CATEGORIES = {
 };
 
 Object.values(ASSET_CATEGORIES).forEach((categoryName) => {
+  // Serve assets and thumbnails from the shared 'assets' and 'thumbnails' directories.
+  // Some categories (maps, tokens) don't have dedicated subfolders, so we fall back to the common folders.
+  const assetsDir = path.join(ASSETS_PATH, 'assets');
+  const thumbsDir = path.join(ASSETS_PATH, 'thumbnails');
   app.use(
     `/${categoryName}/assets`,
     (req, res, next) => { setCacheHeaders(res); next(); },
-    express.static(path.join(ASSETS_PATH, categoryName, 'assets')),
+    express.static(assetsDir),
   );
   app.use(
     `/${categoryName}/thumbnails`,
     (req, res, next) => { setCacheHeaders(res); next(); },
-    express.static(path.join(ASSETS_PATH, categoryName, 'thumbnails')),
+    express.static(thumbsDir),
   );
 });
 
