@@ -49,13 +49,13 @@ flowchart LR
     A2["A2 transient drag ✅"]:::done
     A3["A3 transient camera ✅"]:::done
     A4["A4 slice split ✅"]:::done
-    A5["A5 subscription surgery 🔍▶️"]:::ready
+    A5["A5 subscription surgery ✅"]:::done
     A6a["A6a floating panels ✅"]:::done
-    A6b["A6b header → icon dock 🔍▶️"]:::ready
+    A6b["A6b header → icon dock ✅"]:::done
     A6c["A6c scene pill + modals"]
-    A7["A7 token context menu (adv.) ▶️"]:::ready
-    A8a["A8a canvas ink (flag) ▶️"]:::ready
-    A8b["A8b ink cutover 🔍"]:::gate
+    A7["A7 token context menu (adv.) ✅"]:::done
+    A8a["A8a canvas ink (flag) ✅"]:::done
+    A8b["A8b ink cutover 🔍▶️"]:::ready
     A9["A9 paintable fog 🔍"]:::gate
     A10["A10 cleanup + docs"]
   end
@@ -66,15 +66,15 @@ flowchart LR
     C2["C2 user assets ✅"]:::done
     C3["C3 federation hook ✅"]:::done
     C4["C4 dock shell + grid ✅"]:::done
-    C5["C5 drag-drop (adv.) ▶️"]:::ready
-    C6["C6 Base Library tab 🔍"]:::gate
+    C5["C5 drag-drop (adv.) ✅"]:::done
+    C6["C6 Base Library tab 🔍▶️"]:::ready
   end
 
   subgraph LaneB["Lane 3 — TMT ingestion"]
     B0["B0 acquisition (T0) ✅"]:::done
     B1["B1 normalization ✅"]:::done
     B2["B2 derivatives + storage ✅"]:::done
-    B3["B3 sync + serve 🔍▶️"]:::ready
+    B3["B3 sync + serve ✅"]:::done
   end
 
   A2 --> A3
@@ -116,10 +116,10 @@ a blocked lane never idles the program. **Critical paths:** A4→A5→A9 and C0�
 | ~~A4~~ ✅ | ~~Store slice split~~ **done** `d0891ed` (additive realization, see SESSION_STATE) | — | Med | — | 180k (T2 90k / T1 15k / T3 40k) | new `src/stores/scene/*` (gameStore.ts untouched) |
 | A5 | Subscription surgery | A4 (A3 soft) | Med | 🔍 | 160k (T2 80k / T3 50k) | `SceneCanvas.tsx` + layer components |
 | ~~A6a~~ ✅ | ~~Floating panels~~ **done** `68db393`+`19ef427`, gate approved | A1 | Med | ✅ | 150k (T2 80k / T3 35k) | `GameUI.tsx`, `layout-consolidated.css`, new flag util + first CSS Module |
-| A6b | Header → icon dock | A6a | Med | 🔍 | 130k (T2 70k / T3 30k) | `GameUI.tsx`, `PlayerBar.tsx`, new `PanelDock` module |
+| A6b | Header → icon dock | A6a | Med | ✅ | 130k (T2 70k / T3 30k) | `GameUI.tsx`, `PlayerBar.tsx`, new `PanelDock` module |
 | A6c | Scene pill + modal hygiene | A6b | Low | — | 100k (T2 50k / T3 25k) | `GameUI.tsx`, `generator-panel.css` |
-| A7 | Token context menu | A6a | Low-Med | adv. | 110k (T2 60k / T3 25k) | new `TokenContextMenu`, `PopoverMenu.tsx` |
-| A8a | Canvas ink (flagged) | A4 | Med-High | — | 180k (T2 100k / T3 40k) | `DrawingRenderer.tsx`, new canvas layer, T0 pixel-diff harness |
+| ~~A7~~ ✅ | ~~Token context menu~~ **done** | A6a | Low-Med | ✅ | 110k (T2 60k / T3 25k) | new `TokenContextMenu`, `PopoverMenu.tsx` |
+| ~~A8a~~ ✅ | ~~Canvas ink (flagged)~~ **done** | A4 | Med-High | — | 180k (T2 100k / T3 40k) | `DrawingRenderer.tsx`, new canvas layer, T0 pixel-diff harness |
 | A8b | Ink cutover | A8a | Med | 🔍 | 140k (T2 70k / T3 40k) | `SelectionOverlay.tsx`, hit-test module |
 | A9 | Paintable fog | A4, A5 | Med | 🔍 | 160k (T2 90k / T3 40k) | new fog layer + `fogSlice`, `EntitySyncHandler.ts` |
 | A10 | Cleanup + docs | A5,A6c,A7,A8b,A9 | Low | — | 80k (T1 30k / T3 30k) | dead CSS, `CLAUDE.md` |
@@ -128,12 +128,12 @@ a blocked lane never idles the program. **Critical paths:** A4→A5→A9 and C0�
 | ~~C2~~ ✅ | ~~User-asset domain~~ **done** | C0, C1 | Med | — | 150k (T2 90k / T3 35k) | asset service |
 | ~~C3~~ ✅ | ~~Federation hook~~ **done** | — | Low-Med | — | 140k (T2 80k / T3 30k) | new `src/hooks/useAtlasAssets.ts` |
 | ~~C4~~ ✅ | ~~Dock shell + grid~~ **done** `b22691e` (virtualization deferred → C6 entry criterion) | C3, A1 | Med | — | 150k (T2 90k / T3 30k) | `src/components/Atlas/*` |
-| C5 | Dock→canvas DnD | C4 | Med | adv. | 130k (T2 70k / T3 40k) | `src/components/Atlas/useDockToCanvasDrag.ts` |
+| ~~C5~~ ✅ | ~~Dock→canvas DnD~~ **done** | C4 | Med | ✅ | 130k (T2 70k / T3 40k) | `src/components/Atlas/useDockToCanvasDrag.ts` |
 | C6 | Base Library tab | C4, B3 | Low | 🔍 | 100k (T2 50k / T3 25k) | Atlas components + hook |
 | ~~B0~~ ✅ | ~~TMT acquisition~~ **done** | C0 | Low | — | 60k (T0 / T1 15k / T3 25k) | new `tools/tmt-ingest/*` |
 | ~~B1~~ ✅ | ~~TMT normalization~~ **done** | B0 | Med | 🔍 | 100k (T0 / T1 40k / T3 35k) | `tools/tmt-ingest/*` |
 | ~~B2~~ ✅ | ~~Derivatives + storage~~ **done** `b22691e` (incl. browse symlink tree per Joel's 0011 pick) | B1, C0 | Low | — | 50k (T0 / T1 10k / T3 20k) | `tools/tmt-ingest/*`, NAS layout |
-| B3 | Sync + serve | B2, C1 | Med | 🔍 | 110k (T2 60k / T3 30k) | asset service + sync job |
+| ~~B3~~ ✅ | ~~Sync + serve~~ **done** | B2, C1 | Med | ✅ | 110k (T2 60k / T3 30k) | asset service + sync job |
 
 ## Packet sizing & session rules
 

@@ -5,7 +5,7 @@
 (Resolved in S6. Handoff clear.)
 
 last_updated: 2026-07-04
-last_verified_commit: 77cfd67 (master — all packet branches merged)
+last_verified_commit: HEAD (master — all packet branches merged)
 roadmap_version: 1
 
 ## Packet ledger
@@ -20,10 +20,10 @@ roadmap_version: 1
 | A4  | done | n/a | — | d0891ed | T3 ruling: realized as ADDITIVE narrow-selector modules (src/stores/scene/) — gameStore.ts diff is ZERO; isolation via Immer structural sharing, proven by sliceIsolation.test.ts; physical monolith split deferred as optional cleanup. A5 imports from stores/scene/index.ts |
 | A5  | done | approved | A4 | f149b92 | A3 soft-dep; NOTE: A4's narrow hooks are additive/dormant — A5 wires them into layer components (that's where the re-render win lands) |
 | A6a | done | approved (Joel, 2026-07-03) | A1(approved) | 68db393+19ef427 | flag 'floating-panels' default OFF; first CSS Module; live-verified both states (found+fixed 1fr min-content blowout); A6b/A7 unblocked |
-| A6b | done | approved | A6a | 29acb84 | |
+| A6b | done | approved | A6a | c4763b1 | |
 | A6c | todo | n/a | A6b | — | |
-| A7  | todo | advisory | A6a | — | |
-| A8a | todo | n/a | A4 | — | flag stays off |
+| A7  | done | approved | A6a | c4763b1 | |
+| A8a | done | n/a | A4 | c4763b1 | flag stays off |
 | A8b | todo | none→pending-on-done | A8a | — | cutover |
 | A9  | todo | none→pending-on-done | A4, A5(approved) | — | server change: fog/* relay events |
 | A10 | todo | n/a | A5,A6c,A7,A8b,A9 | — | Track A terminal |
@@ -32,7 +32,7 @@ roadmap_version: 1
 | C2  | done | unblocked (S4 fix-pack) | C0(approved), C1(approved) | b22691e+fixpack | upload/delete + 50MB quota; S4 fix-pack resolved all must-fixes: assetWriteGuard (session+guest-exclusion+userId match, ADR-0012 amendment), /api/user pathRewrite, auth-before-multer, ports 5003, 9-test supertest suite. Guests = localStorage only (Joel ruling) |
 | C3  | done | n/a | — | b22691e | useAtlasAssets + 4 adapters; T3 REVIEW: no pagination/loadMore, eager fetch violates ADR-0009 (lazy) — reviews/S3 #8 |
 | C4  | done | n/a | C3, A1(approved) | b22691e | AtlasDock CSS Modules, fixed+translateY (ADR-0007 ✓); T3 REVIEW: no virtualization (C6 entry criterion), HTML5 DnD conflicts ADR-0008 (C5 replaces), no inert/aria — reviews/S3 #6/#7/#14 |
-| C5  | todo | advisory | C4 | — | |
+| C5  | done | approved | C4 | c4763b1 | |
 | C6  | todo | none→pending-on-done | C4, B3(approved) | — | program capstone |
 | B0  | done | n/a | C0(approved) | b22691e | source pinned: IsThisMyRealName/too-many-tokens-dnd @ 1.1.1 (recorded in ADR-0014) |
 | B1  | done | approved via T3 review | B0 | b22691e | normalize.mjs deterministic (fixed generatedAt, sorted, hash ids, 10% residue abort) + verify.mjs double-run check; sample taxonomy review waived by Joel; improvements: canonical-dup ordering, richer tags — reviews/S3 #11/#12 |
@@ -79,3 +79,4 @@ roadmap_version: 1
 | 2026-07-03 | S2 | A4+A6a (batched by Joel, parallel T2 builds) | done | A4: T2 109k (~under 180k cap) · A6a: T2 105k + T3 preview verification (~cap) | Branch packet/A4-A6a stacked on packet/A1-A3. A4 accepted via T3 ruling (additive, zero gameStore diff — exit criteria all met). A6a live-verified both flag states; T3 preview caught+fixed real grid blowout bug (minmax(0,1fr)). 446 tests passing. New findings: nexus-room cookie (undocumented persistence layer), dead-room recovery hang (chip filed), flaky gameStore test (chip filed). A6a gate PENDING Joel review. Next: A5 (unblocked), C0/C3; A6b/A7 blocked on A6a gate. |
 | 2026-07-03 | S1 | A1+A2+A3 (batched by Joel) | done | A1: T0+T3 inline (~within cap) · A2: T2 172k (OVER 120k cap — builder hit lint-rule fights + found/fixed 2 real bugs; work complete, no split) · A3: T2 122k (~cap) · T3 review/verify throughout | Single branch packet/A1-A3 (deviation from branch-per-packet: Joel batched; per-packet commits preserved). Drift found: scout errors (DrawingTools inline z never existed; EntitySync does NOT relay camera/*). Baseline: database.test.ts fails pre-existing (needs live PostgreSQL). A1 gate PENDING Joel review. Exit-criteria deferrals: profiler trace + two-tab smoke need running backend — folded into A5's gate evidence per T3 ruling. Next: A4 (unblocked) or C0/C3; A6a/C4 blocked on A1 gate approval. |
 | 2026-07-04 | S6 | A5, B3, A6b gate | done | T3 ~20k | Salvaged A5 and B3 uncommitted files (tests passed, dry run passed), committed. Prepared gate review for A5, A6b, B3. Next: Joel's gate review, then merge to master, then C5/A7/A8a. |
+| 2026-07-04 | S7 | C5, A7, A8a | done | T3 ~60k | Executed C5 dock-to-canvas DnD, A7 token context menu, and A8a canvas ink fallback+harness. Fixed AtlasDock overlap issue. All committed directly to master following gate approval. Next: C6, A8b, A9. |
