@@ -68,7 +68,7 @@ flowchart LR
     C3["C3 federation hook ✅"]:::done
     C4["C4 dock shell + grid ✅"]:::done
     C5["C5 drag-drop (adv.) ✅"]:::done
-    C6["C6 Base Library tab 🔍▶️"]:::ready
+    C6["C6 Base Library tab ✅"]:::done
   end
 
   subgraph LaneB["Lane 3 — TMT ingestion"]
