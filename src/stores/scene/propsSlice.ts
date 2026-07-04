@@ -46,12 +46,16 @@ export const usePlacedPropsSlice = (sceneId: string): PlacedProp[] =>
     return scene?.placedProps || EMPTY_PROPS;
   });
 
-/** Props visible to the current user (host sees all; players filtered). */
+/** Props visible to the current user (host sees all; players filtered).
+ * useShallow: getVisibleProps filters → fresh array per call; shallow
+ * compare keeps the snapshot stable (elements retain identity via Immer). */
 export const useVisiblePropsSlice = (sceneId: string): PlacedProp[] =>
-  useGameStore((state) => {
-    const isHost = state.user.type === 'host';
-    return state.getVisibleProps(sceneId, isHost);
-  });
+  useGameStore(
+    useShallow((state) => {
+      const isHost = state.user.type === 'host';
+      return state.getVisibleProps(sceneId, isHost);
+    }),
+  );
 
 /**
  * useIdsSlice — stable list of placed-prop ids for a scene (A5), mirroring

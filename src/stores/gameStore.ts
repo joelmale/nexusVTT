@@ -4435,38 +4435,53 @@ export const useColorScheme = () =>
   useGameStore((state) => state.settings.colorScheme);
 export const useTheme = () => useGameStore((state) => state.settings.theme);
 
+// Stable empty fallbacks: a selector must never return a FRESH `[]` per
+// snapshot read — useSyncExternalStore treats an always-new reference as a
+// changed snapshot and re-renders in a loop ("The result of getSnapshot
+// should be cached"), which presents as an intermittent UI hang (seen when a
+// scene id is transiently missing during join/scene-switch). Same class of
+// bug the A5 slices fixed with EMPTY_* constants; filter-based selectors get
+// useShallow instead (elements keep identity, so shallow compare is stable).
+const STABLE_EMPTY_DRAWINGS: Drawing[] = [];
+const STABLE_EMPTY_TOKENS: PlacedToken[] = [];
+const STABLE_EMPTY_PROPS: PlacedProp[] = [];
+
 // Drawing selectors
 export const useSceneDrawings = (sceneId: string) =>
   useGameStore((state) => {
     const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
-    return scene?.drawings || [];
+    return scene?.drawings || STABLE_EMPTY_DRAWINGS;
   });
 
 export const useVisibleDrawings = (sceneId: string) =>
-  useGameStore((state) => {
-    const isHost = state.user.type === 'host';
-    return state.getVisibleDrawings(sceneId, isHost);
-  });
+  useGameStore(
+    useShallow((state) => {
+      const isHost = state.user.type === 'host';
+      return state.getVisibleDrawings(sceneId, isHost);
+    }),
+  );
 
 // Token selectors
 export const usePlacedTokens = (sceneId: string) =>
   useGameStore((state) => {
     const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
-    return scene?.placedTokens || [];
+    return scene?.placedTokens || STABLE_EMPTY_TOKENS;
   });
 
 // Prop selectors
 export const usePlacedProps = (sceneId: string) =>
   useGameStore((state) => {
     const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
-    return scene?.placedProps || [];
+    return scene?.placedProps || STABLE_EMPTY_PROPS;
   });
 
 export const useVisibleProps = (sceneId: string) =>
-  useGameStore((state) => {
-    const isHost = state.user.type === 'host';
-    return state.getVisibleProps(sceneId, isHost);
-  });
+  useGameStore(
+    useShallow((state) => {
+      const isHost = state.user.type === 'host';
+      return state.getVisibleProps(sceneId, isHost);
+    }),
+  );
 
 export const useDrawingActions = () =>
   useGameStore(

@@ -1,3 +1,4 @@
+import { useShallow } from 'zustand/react/shallow';
 import { useGameStore } from '@/stores/gameStore';
 import type { Drawing } from '@/types/game';
 
@@ -23,9 +24,13 @@ export const useSceneDrawingsSlice = (sceneId: string): Drawing[] =>
     return scene?.drawings || EMPTY_DRAWINGS;
   });
 
-/** Drawings visible to the current user (host sees all; players filtered). */
+/** Drawings visible to the current user (host sees all; players filtered).
+ * useShallow: getVisibleDrawings filters → fresh array per call; shallow
+ * compare keeps the snapshot stable (elements retain identity via Immer). */
 export const useVisibleDrawingsSlice = (sceneId: string): Drawing[] =>
-  useGameStore((state) => {
-    const isHost = state.user.type === 'host';
-    return state.getVisibleDrawings(sceneId, isHost);
-  });
+  useGameStore(
+    useShallow((state) => {
+      const isHost = state.user.type === 'host';
+      return state.getVisibleDrawings(sceneId, isHost);
+    }),
+  );
