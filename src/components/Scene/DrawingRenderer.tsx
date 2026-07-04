@@ -1,5 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
-import { useActiveScene } from '@/stores/gameStore';
+import { useSceneDrawingsSlice } from '@/stores/scene';
 import type { Drawing, BaseDrawing } from '@/types/drawing';
 import { ELEMENT_THEMES } from '@/types/drawing';
 import type { Camera } from '@/types/game';
@@ -76,7 +76,17 @@ const PingDrawing: React.FC<{
   );
 };
 
-export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
+/**
+ * Drawings layer.
+ *
+ * A5: subscribes to the narrow `useSceneDrawingsSlice` (only fires when
+ * THIS scene's drawings array identity changes) instead of the old
+ * `useActiveScene()` (which returned the whole Scene object and therefore
+ * fired on EVERY scene mutation, including token moves). Wrapped in
+ * `React.memo` so that even when SceneCanvas re-renders, this layer bails
+ * out unless one of its (stable-under-token-writes) props changed.
+ */
+const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
   sceneId,
   camera,
   isHost,
@@ -84,11 +94,7 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
   selectedObjectIds = [],
   onDrawingClick,
 }) => {
-  const activeScene = useActiveScene();
-  const drawings = useMemo(() => {
-    if (!activeScene || activeScene.id !== sceneId) return [];
-    return activeScene.drawings || [];
-  }, [activeScene, sceneId]);
+  const drawings = useSceneDrawingsSlice(sceneId);
 
   const visibleDrawings = useMemo(() => {
     return drawings.filter((drawing) => {
@@ -981,3 +987,10 @@ export const DrawingRenderer: React.FC<DrawingRendererProps> = ({
     </g>
   );
 };
+
+// Memoized (A5): bails out of parent-driven re-renders when props are
+// reference-equal, which they are across token moves (camera object,
+// selection array, and handler identities are all untouched by a token
+// position write under Immer).
+export const DrawingRenderer = React.memo(DrawingRendererComponent);
+DrawingRenderer.displayName = 'DrawingRenderer';

@@ -8,7 +8,7 @@ import {
   type SpellOverlayStyle,
   ELEMENT_THEMES,
 } from '@/types/drawing';
-import type { Camera, PlacedToken, PlacedProp } from '@/types/game';
+import type { Camera } from '@/types/game';
 // tokenStore no longer used - selection managed by gameStore
 import {
   useUser,
@@ -17,6 +17,7 @@ import {
   useGameStore,
   useServerRoomCode,
 } from '@/stores/gameStore';
+import { usePlacedTokensSlice, usePlacedPropsSlice } from '@/stores/scene';
 import { webSocketService } from '@/services/websocket';
 import { clipboardService } from '@/services/clipboardService';
 import {
@@ -70,8 +71,8 @@ interface DrawingToolsProps {
   selectedObjectIds: string[];
   setSelection: (ids: string[]) => void;
   clearSelection: () => void;
-  placedTokens: PlacedToken[];
-  placedProps: PlacedProp[];
+  /** A5: token/prop arrays are self-subscribed via scene slices now. */
+  sceneId: string;
   spellElementType: ElementType;
   spellGridSnap: boolean;
 }
@@ -86,11 +87,16 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
   selectedObjectIds,
   setSelection,
   clearSelection,
-  placedTokens,
-  placedProps,
+  sceneId,
   spellElementType,
   spellGridSnap,
 }) => {
+  // A5: subscribe to the token/prop arrays directly (identical array
+  // identities to what SceneCanvas used to prop-drill) so the orchestrator
+  // no longer needs a placedTokens/placedProps subscription of its own.
+  const placedTokens = usePlacedTokensSlice(sceneId);
+  const placedProps = usePlacedPropsSlice(sceneId);
+
   const [isDrawing, setIsDrawing] = useState(false);
   const [startPoint, setStartPoint] = useState<Point | null>(null);
   const [currentPoint, setCurrentPoint] = useState<Point | null>(null);

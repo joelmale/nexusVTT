@@ -1,13 +1,31 @@
 import React from 'react';
-import type { Scene } from '@/types/game';
+import { useSceneBackgroundImage } from '@/stores/scene';
 
 interface SceneBackgroundProps {
-  backgroundImage: NonNullable<Scene['backgroundImage']>;
   sceneId: string;
 }
 
+/**
+ * Background image layer.
+ *
+ * A5: self-subscribes to the scene's background image via the narrow
+ * `useSceneBackgroundImage` slice instead of receiving it as a prop from
+ * SceneCanvas. Renders nothing when the scene has no background (that
+ * conditional previously lived in SceneCanvas). With `React.memo` and a
+ * single stable string prop, a token move never re-renders this component:
+ * Immer keeps `scene.backgroundImage` reference-identical across token
+ * writes, so the subscription doesn't fire and the memo bails out.
+ */
 export const SceneBackground: React.FC<SceneBackgroundProps> = React.memo(
-  ({ backgroundImage, sceneId: _sceneId }) => {
+  ({ sceneId }) => {
+    const backgroundImage = useSceneBackgroundImage(sceneId);
+
+    // Handle error state (hook must run unconditionally, before the
+    // no-background early return below)
+    const [imageError, setImageError] = React.useState(false);
+
+    if (!backgroundImage) return null;
+
     const {
       url,
       width,
@@ -22,14 +40,6 @@ export const SceneBackground: React.FC<SceneBackgroundProps> = React.memo(
     const bgHeight = height || 1080;
     const bgOffsetX = offsetX || -(bgWidth * scale) / 2;
     const bgOffsetY = offsetY || -(bgHeight * scale) / 2;
-
-    // Debug log
-    React.useEffect(() => {
-      // SceneBackground rendering
-    }, [url, bgWidth, bgHeight, bgOffsetX, bgOffsetY, scale]);
-
-    // Handle error state
-    const [imageError, setImageError] = React.useState(false);
 
     const handleImageError = (
       e: React.SyntheticEvent<SVGImageElement, Event>,
@@ -82,3 +92,5 @@ export const SceneBackground: React.FC<SceneBackgroundProps> = React.memo(
     );
   },
 );
+
+SceneBackground.displayName = 'SceneBackground';

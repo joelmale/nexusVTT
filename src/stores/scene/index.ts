@@ -33,11 +33,17 @@ export {
   useTokenPosition,
   useTokenPositionInScene,
   usePlacedTokensSlice,
+  useTokenIdsSlice,
+  useTokenRenderData,
+  type TokenRenderData,
 } from './tokensSlice';
 export {
   usePropPosition,
   usePlacedPropsSlice,
   useVisiblePropsSlice,
+  usePropIdsSlice,
+  usePropRenderData,
+  type PropRenderData,
 } from './propsSlice';
 
 /**

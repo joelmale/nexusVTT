@@ -1,48 +1,60 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { PlacedProp, Prop } from '@/types/prop';
+import type { Prop } from '@/types/prop';
 import { useActiveTool, useIsHost, useGameStore } from '@/stores/gameStore';
+import { usePropRenderData } from '@/stores/scene';
+import { propAssetManager } from '@/services/propAssets';
 import { safeImageUrl } from '@/utils/safeUrl';
 import { ContainerModal } from '../Props/ContainerModal';
 
 interface PropRendererProps {
-  placedProp: PlacedProp;
-  prop: Prop;
+  placedPropId: string;
   gridSize: number;
   isSelected: boolean;
   onSelect: (id: string, multi: boolean) => void;
   onMove: (id: string, deltaX: number, deltaY: number) => void;
   onMoveEnd?: (id: string) => void;
-  canEdit: boolean;
+  currentUserId: string;
   sceneId: string;
 }
 
 /**
  * Renders a placed prop on the scene canvas
  * Follows the same interaction patterns as TokenRenderer
+ *
+ * A5: self-subscribes to its own prop record via `usePropRenderData`
+ * instead of receiving the full `PlacedProp` object as a prop, mirroring
+ * TokenRenderer's isolation guarantee. Base `Prop` asset lookup and the
+ * visibility/canEdit checks (previously in the parent's map) live here now.
  */
 export const PropRenderer: React.FC<PropRendererProps> = React.memo(
   ({
-    placedProp,
-    prop,
+    placedPropId,
     gridSize,
     isSelected,
     onSelect,
     onMove,
     onMoveEnd,
-    canEdit,
+    currentUserId,
     sceneId,
   }) => {
     const activeTool = useActiveTool();
     const isHost = useIsHost();
     const setActiveTool = useGameStore((state) => state.setActiveTool);
+    const placedProp = usePropRenderData(placedPropId);
+
+    // Resolve the base prop asset (PropAssetManager returns a placeholder
+    // for missing props, so no null check is needed - same as before A5).
+    const prop: Prop = propAssetManager.getPropById(placedProp?.propId ?? '');
+
+    const canEdit = isHost || placedProp?.placedBy === currentUserId;
     const [isDragging, setIsDragging] = useState(false);
     const [showContainerModal, setShowContainerModal] = useState(false);
     const dragStartRef = useRef({ x: 0, y: 0 });
 
     // Calculate prop size in pixels
     // Props store explicit width/height in grid cells
-    const propWidth = (placedProp.width || 1) * gridSize * placedProp.scale;
-    const propHeight = (placedProp.height || 1) * gridSize * placedProp.scale;
+    const propWidth = placedProp ? (placedProp.width || 1) * gridSize * placedProp.scale : 0;
+    const propHeight = placedProp ? (placedProp.height || 1) * gridSize * placedProp.scale : 0;
 
     // Allow interactions for hosts/owners; auto-switch to select if needed
     const canInteract = canEdit;
@@ -50,7 +62,7 @@ export const PropRenderer: React.FC<PropRendererProps> = React.memo(
     // Debug logging for selected props
     useEffect(() => {
       if (isSelected) {
-        console.log(`🎭 Props: Prop ${placedProp.id} selected:`, {
+        console.log(`🎭 Props: Prop ${placedPropId} selected:`, {
           propName: prop.name,
           canEdit,
           activeTool,
@@ -58,7 +70,7 @@ export const PropRenderer: React.FC<PropRendererProps> = React.memo(
           isSelected,
         });
       }
-    }, [isSelected, canEdit, activeTool, canInteract, placedProp.id, prop.name]);
+    }, [isSelected, canEdit, activeTool, canInteract, placedPropId, prop.name]);
 
     // Global mouse handlers for dragging
     useEffect(() => {
@@ -69,7 +81,7 @@ export const PropRenderer: React.FC<PropRendererProps> = React.memo(
         const deltaX = e.clientX - dragStartRef.current.x;
         const deltaY = e.clientY - dragStartRef.current.y;
 
-        onMove(placedProp.id, deltaX, deltaY);
+        onMove(placedPropId, deltaX, deltaY);
         dragStartRef.current = { x: e.clientX, y: e.clientY };
       };
 
@@ -77,7 +89,7 @@ export const PropRenderer: React.FC<PropRendererProps> = React.memo(
         setIsDragging(false);
         // Apply grid snapping when drag ends
         if (onMoveEnd) {
-          onMoveEnd(placedProp.id);
+          onMoveEnd(placedPropId);
         }
       };
 
@@ -88,12 +100,12 @@ export const PropRenderer: React.FC<PropRendererProps> = React.memo(
         window.removeEventListener('mousemove', handleMouseMove);
         window.removeEventListener('mouseup', handleMouseUp);
       };
-    }, [isDragging, onMove, placedProp.id, onMoveEnd]);
+    }, [isDragging, onMove, placedPropId, onMoveEnd]);
 
     const handleMouseDown = (e: React.MouseEvent) => {
       console.log('🎭 Props: Prop mouseDown:', {
         canInteract,
-        propId: placedProp.id,
+        propId: placedPropId,
         activeTool,
         canEdit,
         isSelected,
@@ -123,15 +135,15 @@ export const PropRenderer: React.FC<PropRendererProps> = React.memo(
       // Select this prop (or add to multi-select with Shift/Cmd/Ctrl)
       const isMultiSelect = e.shiftKey || e.metaKey || e.ctrlKey;
       console.log('🎯 Props: Calling onSelect:', {
-        propId: placedProp.id,
+        propId: placedPropId,
         isMultiSelect,
         isSelected,
       });
-      onSelect(placedProp.id, isMultiSelect);
+      onSelect(placedPropId, isMultiSelect);
 
       // Start dragging if already selected or just selected
       if (isSelected || !isMultiSelect) {
-        console.log('🚀 Props: Starting drag for prop:', placedProp.id);
+        console.log('🚀 Props: Starting drag for prop:', placedPropId);
         setIsDragging(true);
         dragStartRef.current = { x: e.clientX, y: e.clientY };
       }
@@ -142,9 +154,17 @@ export const PropRenderer: React.FC<PropRendererProps> = React.memo(
     if (!prop.interactive || prop.category !== 'container') return;
 
     e.stopPropagation();
-    console.log('🎭 Props: Opening container modal:', placedProp.id);
+    console.log('🎭 Props: Opening container modal:', placedPropId);
     setShowContainerModal(true);
   };
+
+    // Prop was removed from the store (deleted) between the id list and
+    // this subscription resolving - render nothing rather than crash.
+    if (!placedProp) return null;
+
+    // Visibility filter (previously in the parent's map): players don't
+    // see hidden props.
+    if (!isHost && !placedProp.visibleToPlayers) return null;
 
     // Determine prop state for visual indicators
     const currentState = placedProp.currentStats?.state || 'closed';
@@ -323,18 +343,49 @@ export const PropRenderer: React.FC<PropRendererProps> = React.memo(
         )}
       </g>
 
-      {/* Container Modal */}
+      {/* Container Modal - reads the full PlacedProp record (name, id,
+          currentStats) only while open; this is a rare, user-initiated
+          interaction, not part of the per-frame render-isolation guarantee
+          this packet targets, so a scoped full-record read here is fine. */}
       {showContainerModal && (
-        <ContainerModal
-          placedProp={placedProp}
+        <ContainerModalGate
           sceneId={sceneId}
-          onClose={() => setShowContainerModal(false)}
+          placedPropId={placedPropId}
           isHost={isHost}
+          onClose={() => setShowContainerModal(false)}
         />
       )}
     </>
     );
   },
 );
+
+/**
+ * Small indirection so the (rare) full-record subscription for
+ * ContainerModal only exists while the modal is actually mounted, instead
+ * of being held by PropRenderer on every render.
+ */
+const ContainerModalGate: React.FC<{
+  sceneId: string;
+  placedPropId: string;
+  isHost: boolean;
+  onClose: () => void;
+}> = ({ sceneId, placedPropId, isHost, onClose }) => {
+  const placedProp = useGameStore((state) => {
+    const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
+    return scene?.placedProps?.find((p) => p.id === placedPropId) ?? null;
+  });
+
+  if (!placedProp) return null;
+
+  return (
+    <ContainerModal
+      placedProp={placedProp}
+      sceneId={sceneId}
+      onClose={onClose}
+      isHost={isHost}
+    />
+  );
+};
 
 PropRenderer.displayName = 'PropRenderer';

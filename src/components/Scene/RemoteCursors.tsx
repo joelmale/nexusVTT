@@ -16,7 +16,9 @@ interface RemoteCursorsProps {
 export const RemoteCursors: React.FC<RemoteCursorsProps> = ({ sceneId }) => {
   const [cursors, setCursors] = useState<Map<string, RemoteCursor>>(new Map());
   const canvasRef = useRef<HTMLDivElement>(null);
-  const { user } = useGameStore();
+  // A5: narrow selector - the old `useGameStore()` (no selector) subscribed
+  // to the whole store and re-rendered this component on every set().
+  const user = useGameStore((state) => state.user);
 
   useEffect(() => {
     // Throttled cursor position sender

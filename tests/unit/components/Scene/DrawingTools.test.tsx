@@ -5,6 +5,9 @@ import { describe, it, expect } from 'vitest';
 
 describe('DrawingTools', () => {
   it('should render without crashing', () => {
+    // A5: DrawingTools self-subscribes to the token/prop arrays via
+    // usePlacedTokensSlice/usePlacedPropsSlice(sceneId) instead of
+    // receiving them as props.
     const { container } = render(
       <svg>
         <DrawingTools
@@ -24,7 +27,9 @@ describe('DrawingTools', () => {
           selectedObjectIds={[]}
           setSelection={() => {}}
           clearSelection={() => {}}
-          placedTokens={[]}
+          sceneId="test-scene"
+          spellElementType="arcane"
+          spellGridSnap={true}
         />
       </svg>,
     );

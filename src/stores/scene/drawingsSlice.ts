@@ -11,11 +11,16 @@ import type { Drawing } from '@/types/game';
  * token/grid/background writes.
  */
 
+// Stable fallback so the selector snapshot is referentially stable when the
+// scene doesn't exist — returning a fresh `[]` on every snapshot read makes
+// useSyncExternalStore loop (mirrors EMPTY_TOKENS in tokensSlice.ts).
+const EMPTY_DRAWINGS: Drawing[] = [];
+
 /** All drawings for a scene, regardless of visibility (host view). */
 export const useSceneDrawingsSlice = (sceneId: string): Drawing[] =>
   useGameStore((state) => {
     const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
-    return scene?.drawings || [];
+    return scene?.drawings || EMPTY_DRAWINGS;
   });
 
 /** Drawings visible to the current user (host sees all; players filtered). */

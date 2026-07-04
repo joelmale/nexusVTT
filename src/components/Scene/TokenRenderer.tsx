@@ -1,41 +1,64 @@
 import React, { useState, useEffect, useRef } from 'react';
-import type { PlacedToken, Token } from '@/types/token';
-import { getTokenPixelSize, getEffectiveTokenName } from '@/types/token';
+import type { Token } from '@/types/token';
+import { getTokenPixelSize } from '@/types/token';
 import { useActiveTool } from '@/stores/gameStore';
 import { useTransientDrag } from '@/hooks/useTransientDrag';
+import { useTokenRenderData } from '@/stores/scene';
+import { tokenAssetManager } from '@/services/tokenAssets';
 
 interface TokenRendererProps {
-  placedToken: PlacedToken;
-  token: Token;
+  placedTokenId: string;
   gridSize: number;
   isSelected: boolean;
   onSelect: (id: string, multi: boolean) => void;
   /** Called exactly once, on gesture release, with the final world position. */
   onMoveEnd: (id: string, position: { x: number; y: number }) => void;
   onRotate?: (id: string, rotation: number) => void;
-  canEdit: boolean;
+  /** Host sees hidden tokens and can edit all; used with currentUserId for canEdit. */
+  isHost: boolean;
+  currentUserId: string;
 }
 
 /**
- * Renders a placed token on the scene canvas
+ * Renders a placed token on the scene canvas.
+ *
+ * A5: self-subscribes to its own token record via `useTokenRenderData`
+ * instead of receiving the full `PlacedToken` object as a prop from the
+ * parent's `.map()`. This is the core isolation guarantee: SceneCanvas no
+ * longer holds `placedTokens` at all, so a token move only re-renders THIS
+ * component (the one whose id changed) — siblings, grid, and background are
+ * untouched. The base `Token` asset lookup and the visibility/canEdit
+ * checks (previously done in the parent's map) also live here now, since
+ * they need per-token record fields the parent no longer subscribes to.
  */
 export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
   ({
-    placedToken,
-    token,
+    placedTokenId,
     gridSize,
     isSelected,
     onSelect,
     onMoveEnd,
-    canEdit,
+    isHost,
+    currentUserId,
   }) => {
     const activeTool = useActiveTool();
+    const placedToken = useTokenRenderData(placedTokenId);
+
+    // Resolve the base token asset (synchronous in-memory lookup; the
+    // parent gates the whole layer behind `assetsReady`, same as before).
+    const token: Token | undefined = placedToken
+      ? tokenAssetManager.getTokenById(placedToken.tokenId) ?? undefined
+      : undefined;
+
+    const canEdit = isHost || placedToken?.placedBy === currentUserId;
     const [isDragging, setIsDragging] = useState(false);
     const imageRef = useRef<SVGImageElement>(null);
 
     // Calculate token size in pixels
     const tokenSize =
-      getTokenPixelSize(token.size, gridSize) * placedToken.scale;
+      placedToken && token
+        ? getTokenPixelSize(token.size, gridSize) * placedToken.scale
+        : 0;
 
     // Only handle interactions when select tool is active (select tool combines select + move)
     const canInteract = canEdit && activeTool === 'select';
@@ -43,35 +66,38 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
     // Debug logging for selected tokens
     useEffect(() => {
       if (isSelected) {
-        console.log(`🎯 Token ${placedToken.id} selected:`, {
-          tokenName: token.name,
+        console.log(`🎯 Token ${placedTokenId} selected:`, {
+          tokenName: token?.name,
           canEdit,
           activeTool,
           canInteract,
           isSelected,
         });
       }
-    }, [isSelected, canEdit, activeTool, canInteract, placedToken.id, token.name]);
+    }, [isSelected, canEdit, activeTool, canInteract, placedTokenId, token?.name]);
 
     // Transient drag: imperative rAF-batched `transform` writes during the
     // gesture (no setState/store writes), exactly one commit on release.
     const { onPointerDown: onDragPointerDown } = useTransientDrag({
-      getStartPosition: () => ({ x: placedToken.x, y: placedToken.y }),
-      rotation: placedToken.rotation,
-      disabled: !canInteract,
+      getStartPosition: () => ({
+        x: placedToken?.x ?? 0,
+        y: placedToken?.y ?? 0,
+      }),
+      rotation: placedToken?.rotation ?? 0,
+      disabled: !canInteract || !placedToken,
       onCommit: (position) => {
         setIsDragging(false);
         if (imageRef.current) {
           imageRef.current.style.opacity = '1';
         }
-        onMoveEnd(placedToken.id, position);
+        onMoveEnd(placedTokenId, position);
       },
     });
 
     const handlePointerDown = (e: React.PointerEvent<SVGGElement>) => {
       console.log('🖱️ Token pointerDown:', {
         canInteract,
-        tokenId: placedToken.id,
+        tokenId: placedTokenId,
         activeTool,
         canEdit,
         isSelected,
@@ -94,15 +120,15 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
       // Select this token (or add to multi-select with Shift/Cmd/Ctrl)
       const isMultiSelect = e.shiftKey || e.metaKey || e.ctrlKey;
       console.log('🎯 Calling onSelect:', {
-        tokenId: placedToken.id,
+        tokenId: placedTokenId,
         isMultiSelect,
         isSelected,
       });
-      onSelect(placedToken.id, isMultiSelect);
+      onSelect(placedTokenId, isMultiSelect);
 
       // Start dragging if already selected or just selected
       if (isSelected || !isMultiSelect) {
-        console.log('🚀 Starting drag for token:', placedToken.id);
+        console.log('🚀 Starting drag for token:', placedTokenId);
         setIsDragging(true);
         if (imageRef.current) {
           imageRef.current.style.opacity = '0.7';
@@ -110,6 +136,15 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
         onDragPointerDown(e);
       }
     };
+
+    // Token was removed from the store (deleted) between the id list and
+    // this subscription resolving, or the base asset is unknown - render
+    // nothing rather than crash (same behavior as the old parent-side map).
+    if (!placedToken || !token) return null;
+
+    // Visibility filter (previously in the parent's map): players don't see
+    // hidden tokens.
+    if (!isHost && !placedToken.visibleToPlayers) return null;
 
     return (
       <g
@@ -226,7 +261,7 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
 
         {/* Token label */}
         {(() => {
-          const effectiveName = getEffectiveTokenName(placedToken, token);
+          const effectiveName = placedToken.nameOverride || token.name || 'Unknown Token';
           return effectiveName ? (
             <text
               x={0}

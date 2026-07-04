@@ -5,6 +5,8 @@ import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
 import crypto from 'crypto';
+import { createLibraryRouter, buildLibraryIndex, loadManifestFromDisk } from './library';
+import type { LibraryIndex } from './library';
 
 export const app = express();
 const port = process.env.PORT || 5003;
@@ -14,6 +16,7 @@ const ASSETS_PATH = process.env.ASSETS_PATH || path.resolve(__dirname, '../../..
 const MANIFEST_PATH = path.join(ASSETS_PATH, 'manifest.json');
 
 app.use(cors());
+app.use(express.json());
 
 // Load manifest
 let manifest: any = null;
@@ -27,6 +30,29 @@ try {
 } catch (error) {
   console.error('Failed to load manifest:', error);
 }
+
+// TMT library (B3): separate manifest-v2.json produced by tools/tmt-ingest/{normalize,derivatives,sync}.mjs.
+// Loaded lazily/reloadably so a sync run doesn't require restarting the service.
+function resolveLibraryManifestPath(): string {
+  return (
+    process.env.LIBRARY_MANIFEST_PATH ||
+    path.resolve(__dirname, '../../../assets-data/manifests/manifest-v2.json')
+  );
+}
+
+let libraryIndex: LibraryIndex | null = null;
+function loadLibraryIndex(): { ok: boolean; error?: string } {
+  const manifestPath = resolveLibraryManifestPath();
+  const loaded = loadManifestFromDisk(manifestPath);
+  if (!loaded) {
+    libraryIndex = null;
+    return { ok: false, error: `Library manifest not found or invalid at ${manifestPath}` };
+  }
+  libraryIndex = buildLibraryIndex(loaded);
+  console.log(`Loaded library manifest with ${libraryIndex.manifest.totalAssets} active assets.`);
+  return { ok: true };
+}
+loadLibraryIndex();
 
 const CACHE_MAX_AGE = 86400; // 1 day default
 
@@ -204,6 +230,10 @@ function requireNexusAuth(req: Request, res: Response, next: NextFunction): void
   next();
 }
 
+// TMT library endpoints (B3) — public reads per ADR-0012; /library/reload is
+// write-ish (forces a re-read from disk) so it's gated the same way uploads are.
+app.use(createLibraryRouter(() => libraryIndex, requireNexusAuth, loadLibraryIndex));
+
 app.get('/user/:userId/assets', async (req, res) => {
   const userId = req.params.userId;
   if (!/^[a-zA-Z0-9-]+$/.test(userId)) return res.status(400).json({ error: 'Invalid userId' });
@@ -306,6 +336,10 @@ app.use((req: Request, res: Response) => {
       '/user/:userId/assets',
       '/user/:userId/upload',
       '/user/:userId/asset/:assetId',
+      '/library?cursor&limit&q&category&includeRemoved',
+      '/library/facets',
+      '/library/asset/:id',
+      '/library/reload',
     ],
   });
 });

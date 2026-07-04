@@ -60,6 +60,23 @@
               "width": { "type": "integer" },
               "height": { "type": "integer" }
             }
+          },
+          "sourcePath": {
+            "type": "string",
+            "description": "Path of the primary source file within the release archive, relative to its staging root. Used by tools/tmt-ingest/sync.mjs to diff releases."
+          },
+          "duplicatePaths": {
+            "type": "array",
+            "items": { "type": "string" },
+            "description": "Additional source paths that hashed identically to this asset and were deduped onto it."
+          },
+          "removed": {
+            "type": "boolean",
+            "description": "Tombstone flag set by sync.mjs when this asset's source file(s) are absent from a later release. The entry is kept (not deleted) so existing references (e.g. copied Token.image strings) are never broken; removed assets are excluded from library listings by default."
+          },
+          "removedInRelease": {
+            "type": "string",
+            "description": "Release tag in which this asset was first observed as removed. Only present when removed=true."
           }
         },
         "required": [

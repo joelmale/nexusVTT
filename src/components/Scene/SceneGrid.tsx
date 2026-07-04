@@ -1,19 +1,36 @@
 import React from 'react';
-import type { Scene, Camera } from '@/types/game';
+import type { Camera } from '@/types/game';
+import { useGridSettings } from '@/stores/scene';
 import { getHexesInViewport, hexToPixel, hexVertices } from '@/utils/hexMath';
 
 interface SceneGridProps {
-  scene: Scene;
   viewportSize: { width: number; height: number };
   camera: Camera;
 }
 
+/**
+ * Grid layer.
+ *
+ * A5: self-subscribes to the active scene's grid settings via the narrow
+ * `useGridSettings` slice instead of receiving the whole `Scene` object as
+ * a prop (which got a new reference on ANY scene mutation, including token
+ * moves). Combined with `React.memo` and the remaining stable props
+ * (`viewportSize` is component state in SceneCanvas; `camera` keeps its
+ * identity under Immer unless the camera itself is written), a token move
+ * never re-renders this component: the parent may re-render, but the props
+ * here stay reference-equal and the subscription output is unchanged, so
+ * React bails out.
+ */
 export const SceneGrid: React.FC<SceneGridProps> = React.memo(
-  ({ scene, viewportSize, camera }) => {
-    // Safe access to scene properties with defaults
-    const gridSettings = scene.gridSettings || {
+  ({ viewportSize, camera }) => {
+    // Narrow subscription: only fires when the active scene's gridSettings
+    // object identity changes (see stores/scene/gridSlice.ts).
+    const gridSettingsSlice = useGridSettings();
+
+    // Safe access with defaults (same defaults as before A5)
+    const gridSettings = gridSettingsSlice || {
       enabled: true,
-      type: 'square',
+      type: 'square' as const,
       size: 50,
       color: '#ffffff',
       opacity: 0.3,

@@ -6,20 +6,18 @@ import React, {
   useMemo,
   useLayoutEffect,
 } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import {
   useGameStore,
   useCamera,
   useFollowDM,
   useIsHost,
   useActiveTool,
-  useSceneState,
-  useSceneDrawings,
   useServerRoomCode,
   useUser,
-  usePlacedTokens,
-  usePlacedProps,
   useDrawingActions,
 } from '@/stores/gameStore';
+import { useGridSettings, useTokenIdsSlice, usePropIdsSlice } from '@/stores/scene';
 import { SceneGrid } from './SceneGrid';
 import { SceneBackground } from './SceneBackground';
 import { DrawingTools } from './DrawingTools';
@@ -45,6 +43,7 @@ import { CameraGestureEngine } from '@/utils/cameraGestureEngine';
 import {
   useSelectedPlacedToken,
   useSelectedPlacedProp,
+  useSceneDrawings,
 } from '@/stores/gameStore';
 import type { Scene, WebSocketMessage } from '@/types/game';
 import type { Token } from '@/types/token';
@@ -62,7 +61,11 @@ interface SceneCanvasProps {
 const SPELL_TYPES = new Set(['spell-circle', 'spell-ring', 'spell-cone', 'spell-line', 'spell-square', 'spell-triangle']);
 
 const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
-  // Actions from store (don't cause rerenders)
+  // Actions from store. A5 fix: the old `useGameStore()` call (no selector)
+  // subscribed to the ENTIRE store, so every set() — including every token
+  // move — re-rendered SceneCanvas. Action functions have stable identity
+  // (created once at store init), so a useShallow selector over them never
+  // triggers a re-render.
   const {
     updateCamera,
     placeToken,
@@ -73,25 +76,50 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     setSelection,
     addToSelection,
     clearSelection,
-  } = useGameStore();
+  } = useGameStore(
+    useShallow((state) => ({
+      updateCamera: state.updateCamera,
+      placeToken: state.placeToken,
+      moveTokenOptimistic: state.moveTokenOptimistic,
+      placeProp: state.placeProp,
+      movePropOptimistic: state.movePropOptimistic,
+      deleteProp: state.deleteProp,
+      setSelection: state.setSelection,
+      addToSelection: state.addToSelection,
+      clearSelection: state.clearSelection,
+    })),
+  );
 
-  // Specific selectors for state (cause rerenders only when relevant data changes)
+  // A5: SceneCanvas is the orchestrator - it keeps only what it structurally
+  // needs to lay out the SVG tree and drive shared handlers/overlays:
+  // - identity/auth: user, isHost, roomCode
+  // - id lists (NOT full records) for tokens/props, to key the .map() below;
+  //   each TokenRenderer/PropRenderer self-subscribes to its own record via
+  //   useTokenRenderData/usePropRenderData (stores/scene), so a position
+  //   write to token A does not change token B's, the grid's, or the
+  //   background's selector output and does not re-render this component.
+  // - selection ids + the single selected token/prop (for the toolbar
+  //   overlays, which must track selection regardless of layer isolation)
+  // - camera: declarative subscription for Follow-DM/scene-switch
+  //   reconciliation only (A3 already made pan/zoom gestures imperative -
+  //   this subscription does not fire during a drag gesture)
+  // - activeTool: drives cursor/tool-gated interaction across all layers
+  // Grid settings, background image, and the full drawings array (used only
+  // by the interior DrawingRenderer's own render, not here) are NOT
+  // subscribed at this level anymore - see SceneGrid/SceneBackground/
+  // DrawingRenderer, which each own their narrow slice now.
   const user = useUser();
-  const placedTokens = usePlacedTokens(scene.id);
-  const placedProps = usePlacedProps(scene.id);
+  const tokenIds = useTokenIdsSlice(scene.id);
+  const propIds = usePropIdsSlice(scene.id);
   const selectedPlacedToken = useSelectedPlacedToken();
   const selectedPlacedProp = useSelectedPlacedProp();
-  const { selectedObjectIds } = useSceneState();
+  // A5 fix: the old `useSceneState()` selected the whole sceneState object,
+  // whose reference changes on EVERY scene mutation (token moves included).
+  // Select just the selection array - identity preserved across token moves.
+  const selectedObjectIds = useGameStore(
+    (state) => state.sceneState.selectedObjectIds,
+  );
   const { updateDrawing } = useDrawingActions();
-
-  // Debug logging for selected token
-  React.useEffect(() => {
-    console.log('🎯 SceneCanvas selectedPlacedToken changed:', {
-      selectedPlacedToken,
-      selectedObjectIds,
-      tokensInScene: scene.placedTokens?.length || 0,
-    });
-  }, [selectedPlacedToken, selectedObjectIds, scene.placedTokens]);
   const camera = useCamera();
   const followDM = useFollowDM();
   const isHost = useIsHost();
@@ -114,13 +142,17 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
 
   const roomCode = useServerRoomCode();
 
-  // Debug log for background image
-  useEffect(() => {}, [scene.id, scene.name, scene.backgroundImage]);
-
-  // Safe access to scene properties with defaults
+  // Grid settings via the narrow store slice (A5) rather than the `scene`
+  // prop: SceneCanvas's caller (GameUI/SceneManager) passes the whole
+  // `Scene` object from `useActiveScene()`, which gets a new reference on
+  // ANY scene mutation (token move, drawing update, etc). Reading grid
+  // settings from `useGridSettings()` instead means this value only changes
+  // identity when grid settings themselves change, independent of whatever
+  // caused the parent to re-render.
+  const gridSettingsSlice = useGridSettings();
   const safeGridSettings = useMemo(
     () =>
-      scene.gridSettings || {
+      gridSettingsSlice || {
         enabled: true,
         size: 50,
         color: '#ffffff',
@@ -128,7 +160,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
         snapToGrid: true,
         showToPlayers: true,
       },
-    [scene.gridSettings],
+    [gridSettingsSlice],
   );
   const svgRef = useRef<SVGSVGElement>(null);
   // Plain DOM element ref for the camera-transformed `<g>` - imperative
@@ -257,12 +289,20 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
         return;
       }
 
+      // A5: props are looked up imperatively (getState) - this handler runs
+      // on user keystrokes, not during render, so holding a subscription to
+      // the full props array here (and re-rendering SceneCanvas on every
+      // prop write) is unnecessary.
+      const sceneProps =
+        useGameStore
+          .getState()
+          .sceneState.scenes.find((s) => s.id === scene.id)?.placedProps || [];
+
       // Delete key - delete selected props
       if ((e.key === 'Delete' || e.key === 'Backspace') && !e.repeat) {
-        const selectedPropIds = selectedObjectIds.filter((id) => {
-          const props = placedProps;
-          return props.some((p) => p.id === id);
-        });
+        const selectedPropIds = selectedObjectIds.filter((id) =>
+          sceneProps.some((p) => p.id === id),
+        );
 
         if (selectedPropIds.length > 0 && isHost) {
           e.preventDefault();
@@ -277,15 +317,13 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
 
       // D key - duplicate selected prop
       if ((e.key === 'd' || e.key === 'D') && !e.repeat && isHost) {
-        const selectedPropIds = selectedObjectIds.filter((id) => {
-          const props = placedProps;
-          return props.some((p) => p.id === id);
-        });
+        const selectedPropIds = selectedObjectIds.filter((id) =>
+          sceneProps.some((p) => p.id === id),
+        );
 
         if (selectedPropIds.length === 1) {
           e.preventDefault();
-          const props = placedProps;
-          const propToDuplicate = props.find(
+          const propToDuplicate = sceneProps.find(
             (p) => p.id === selectedPropIds[0],
           );
           if (propToDuplicate) {
@@ -321,7 +359,6 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     scene.id,
     selectedObjectIds,
     isHost,
-    placedProps,
     deleteProp,
     placeProp,
     setSelection,
@@ -441,8 +478,14 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   const handleTokenDrop = useCallback(
     (token: Token, x: number, y: number) => {
       // Check if token is exclusive and already exists in this scene
+      // (imperative read - drop handlers don't need a render subscription)
       if (token.exclusive) {
-        const alreadyPlaced = placedTokens.some(
+        const sceneTokens =
+          useGameStore
+            .getState()
+            .sceneState.scenes.find((s) => s.id === scene.id)?.placedTokens ||
+          [];
+        const alreadyPlaced = sceneTokens.some(
           (pt) => pt.tokenId === token.id,
         );
         if (alreadyPlaced) {
@@ -475,7 +518,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
         },
       });
     },
-    [scene.id, user.id, placeToken, roomCode, placedTokens],
+    [scene.id, user.id, placeToken, roomCode],
   );
 
   const handleTokenSelect = useCallback(
@@ -542,10 +585,21 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     [addToSelection, setSelection],
   );
 
+  // A5: prop lookups inside these gesture handlers read the store
+  // imperatively - they run on pointer events, not render, so SceneCanvas
+  // doesn't need (and no longer holds) a subscription to the props array.
+  const findSceneProp = useCallback(
+    (propId: string) =>
+      useGameStore
+        .getState()
+        .sceneState.scenes.find((s) => s.id === scene.id)
+        ?.placedProps?.find((p) => p.id === propId),
+    [scene.id],
+  );
+
   const handlePropMove = useCallback(
     (propId: string, deltaX: number, deltaY: number) => {
-      const props = placedProps;
-      const prop = props.find((p) => p.id === propId);
+      const prop = findSceneProp(propId);
       if (!prop) return;
 
       const newX = prop.x + deltaX / camera.zoom;
@@ -554,15 +608,14 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
       // Optimistic update - move locally first, then send to server
       movePropOptimistic(scene.id, propId, { x: newX, y: newY });
     },
-    [scene.id, camera.zoom, placedProps, movePropOptimistic],
+    [scene.id, camera.zoom, findSceneProp, movePropOptimistic],
   );
 
   const handlePropMoveEnd = useCallback(
     (propId: string) => {
       // Apply grid snapping when drag ends
       if (safeGridSettings.snapToGrid && safeGridSettings.size > 0) {
-        const props = placedProps;
-        const prop = props.find((p) => p.id === propId);
+        const prop = findSceneProp(propId);
         if (!prop) return;
 
         const snappedX =
@@ -576,7 +629,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
         }
       }
     },
-    [scene.id, safeGridSettings, placedProps, movePropOptimistic],
+    [scene.id, safeGridSettings, findSceneProp, movePropOptimistic],
   );
 
   const [isDraggingProp, setIsDraggingProp] = useState(false);
@@ -938,24 +991,16 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
               className="scene-content"
               transform={transform}
             >
-              {/* Background layer */}
-              {scene.backgroundImage && (
-                <SceneBackground
-                  backgroundImage={scene.backgroundImage}
-                  sceneId={scene.id}
-                />
-              )}
+              {/* Background layer - self-subscribes to useBackgroundImage
+                  (A5); renders nothing when the scene has no background. */}
+              <SceneBackground sceneId={scene.id} />
 
-              {/* Grid layer */}
-              {safeGridSettings.enabled && (
-                <SceneGrid
-                  scene={scene}
-                  viewportSize={viewportSize}
-                  camera={camera}
-                />
-              )}
+              {/* Grid layer - self-subscribes to useGridSettings (A5);
+                  renders nothing when the grid is disabled. */}
+              <SceneGrid viewportSize={viewportSize} camera={camera} />
 
-              {/* Drawings layer */}
+              {/* Drawings layer - self-subscribes to its drawings slice
+                  (A5); memoized, so token moves don't reach it. */}
               <DrawingRenderer
                 sceneId={scene.id}
                 camera={camera}
@@ -965,69 +1010,50 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                 onDrawingClick={handleDrawingClick}
               />
 
-              {/* Tokens layer */}
+              {/* Tokens layer - iterate the STABLE id list (A5); each
+                  TokenRenderer self-subscribes to its own record, so a move
+                  of token A re-renders only token A's component. */}
               <TokenErrorBoundary>
                 <g id="tokens-layer">
                   {assetsReady &&
-                    placedTokens.map((placedToken) => {
-                      const token = tokenAssetManager.getTokenById(
-                        placedToken.tokenId,
-                      );
-                      if (!token) return null;
-
-                      // Filter by visibility
-                      if (!isHost && !placedToken.visibleToPlayers) return null;
-
-                      return (
-                        <TokenRenderer
-                          key={placedToken.id}
-                          placedToken={placedToken}
-                          token={token}
-                          gridSize={safeGridSettings.size}
-                          isSelected={selectedObjectIds.includes(
-                            placedToken.id,
-                          )}
-                          onSelect={handleTokenSelect}
-                          onMoveEnd={handleTokenMoveEnd}
-                          canEdit={isHost || placedToken.placedBy === user.id}
-                        />
-                      );
-                    })}
+                    tokenIds.map((tokenId) => (
+                      <TokenRenderer
+                        key={tokenId}
+                        placedTokenId={tokenId}
+                        gridSize={safeGridSettings.size}
+                        isSelected={selectedObjectIds.includes(tokenId)}
+                        onSelect={handleTokenSelect}
+                        onMoveEnd={handleTokenMoveEnd}
+                        isHost={isHost}
+                        currentUserId={user.id}
+                      />
+                    ))}
                 </g>
               </TokenErrorBoundary>
 
-              {/* Props layer */}
+              {/* Props layer - same id-list pattern as tokens (A5). */}
               <TokenErrorBoundary>
                 <g id="props-layer">
                   {assetsReady &&
-                    placedProps.map((placedProp) => {
-                      const prop = propAssetManager.getPropById(
-                        placedProp.propId,
-                      );
-                      // PropAssetManager now returns a placeholder for missing props, so this check is no longer needed
-
-                      // Filter by visibility
-                      if (!isHost && !placedProp.visibleToPlayers) return null;
-
-                      return (
-                        <PropRenderer
-                          key={placedProp.id}
-                          placedProp={placedProp}
-                          prop={prop}
-                          gridSize={safeGridSettings.size}
-                          isSelected={selectedObjectIds.includes(placedProp.id)}
-                          onSelect={handlePropSelect}
-                          onMove={handlePropMove}
-                          onMoveEnd={handlePropMoveEnd}
-                          canEdit={isHost || placedProp.placedBy === user.id}
-                          sceneId={scene.id}
-                        />
-                      );
-                    })}
+                    propIds.map((propId) => (
+                      <PropRenderer
+                        key={propId}
+                        placedPropId={propId}
+                        gridSize={safeGridSettings.size}
+                        isSelected={selectedObjectIds.includes(propId)}
+                        onSelect={handlePropSelect}
+                        onMove={handlePropMove}
+                        onMoveEnd={handlePropMoveEnd}
+                        currentUserId={user.id}
+                        sceneId={scene.id}
+                      />
+                    ))}
                 </g>
               </TokenErrorBoundary>
 
-              {/* Drawing tools layer (interactive) */}
+              {/* Drawing tools layer (interactive) - self-subscribes to the
+                  token/prop arrays it needs for select-box hit testing
+                  (A5: no longer prop-drilled from here). */}
               <DrawingTools
                 activeTool={activeTool}
                 drawingStyle={drawingStyle}
@@ -1038,8 +1064,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                 selectedObjectIds={selectedObjectIds}
                 setSelection={setSelection}
                 clearSelection={clearSelection}
-                placedTokens={placedTokens}
-                placedProps={placedProps}
+                sceneId={scene.id}
                 spellElementType={spellElementType}
                 spellGridSnap={spellGridSnap}
               />

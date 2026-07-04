@@ -74,9 +74,80 @@ export const useTokenPositionInScene = (
     }),
   );
 
+// Stable fallback so the selector snapshot is referentially stable when the
+// scene (or its token array) doesn't exist — returning a fresh `[]` on
+// every snapshot read makes useSyncExternalStore loop ("The result of
+// getSnapshot should be cached").
+const EMPTY_TOKENS: PlacedToken[] = [];
+
 /** All placed tokens for a scene (array identity preserved by Immer — same as legacy usePlacedTokens). */
 export const usePlacedTokensSlice = (sceneId: string): PlacedToken[] =>
   useGameStore((state) => {
     const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
-    return scene?.placedTokens || [];
+    return scene?.placedTokens || EMPTY_TOKENS;
   });
+
+/**
+ * useTokenIdsSlice — stable list of placed-token ids for a scene, used to
+ * drive `.map()` key iteration in the orchestrator (SceneCanvas) WITHOUT
+ * subscribing to the full token records. Only changes on add/delete/reorder,
+ * not on position/rotation/etc. writes to an individual token (Immer keeps
+ * the ids the same string primitives, but the derived array itself is a new
+ * reference each render if computed naively - `useShallow` on the id array
+ * keeps this narrow: unless membership/order actually changes, this
+ * selector's consumers don't re-render on a token move).
+ */
+export const useTokenIdsSlice = (sceneId: string): string[] =>
+  useGameStore(
+    useShallow((state) => {
+      const scene = state.sceneState.scenes.find((s) => s.id === sceneId);
+      return (scene?.placedTokens || []).map((t) => t.id);
+    }),
+  );
+
+/**
+ * useTokenRenderData — subscribes to every field TokenRenderer needs to
+ * paint a single token: position/rotation (as useTokenPosition), plus scale,
+ * dead/condition/visibility/ownership flags, and the underlying token
+ * library id. Extends useTokenPosition's narrowness guarantee (isolated from
+ * grid/background/drawing writes and from OTHER tokens' writes) to cover the
+ * full prop surface TokenRenderer reads, so the per-token wrapper component
+ * can drop the `placedToken` object prop entirely and self-subscribe.
+ */
+export interface TokenRenderData {
+  x: number;
+  y: number;
+  rotation: number;
+  scale: number;
+  tokenId: string;
+  isDead?: boolean;
+  dmNotesOnly: boolean;
+  visibleToPlayers: boolean;
+  placedBy: string;
+  conditions: PlacedToken['conditions'];
+  nameOverride?: string;
+}
+
+export const useTokenRenderData = (
+  placedTokenId: string,
+): TokenRenderData | null =>
+  useGameStore(
+    useShallow((state) => {
+      const { scenes, activeSceneId } = state.sceneState;
+      const token = findToken(scenes, activeSceneId, placedTokenId);
+      if (!token) return null;
+      return {
+        x: token.x,
+        y: token.y,
+        rotation: token.rotation,
+        scale: token.scale,
+        tokenId: token.tokenId,
+        isDead: token.isDead,
+        dmNotesOnly: token.dmNotesOnly,
+        visibleToPlayers: token.visibleToPlayers,
+        placedBy: token.placedBy,
+        conditions: token.conditions,
+        nameOverride: token.nameOverride,
+      };
+    }),
+  );
