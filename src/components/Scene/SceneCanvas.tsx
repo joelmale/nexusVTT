@@ -16,8 +16,11 @@ import {
   useServerRoomCode,
   useUser,
   useDrawingActions,
+  useSelectedPlacedProp,
+  useSceneDrawings,
 } from '@/stores/gameStore';
 import { useGridSettings, useTokenIdsSlice, usePropIdsSlice } from '@/stores/scene';
+import { useFlag } from '@/utils/featureFlags';
 import { SceneGrid } from './SceneGrid';
 import { SceneBackground } from './SceneBackground';
 import { DrawingTools } from './DrawingTools';
@@ -27,24 +30,19 @@ import { SelectionOverlay } from './SelectionOverlay';
 import { DrawingPropertiesPanel } from './DrawingPropertiesPanel';
 import { SpellOverlayPropertiesPanel } from './SpellOverlayPropertiesPanel';
 import { SpellOverlayPatterns } from './SpellOverlayPatterns';
+import { CanvasInkLayer } from './CanvasInkLayer';
 import { type ElementType, ELEMENT_THEMES } from '@/types/drawing';
 import { TokenDropZone } from './TokenDropZone';
 import { TokenRenderer } from './TokenRenderer';
 import { PropRenderer } from './PropRenderer';
-import { TokenToolbar } from '../Tokens/TokenToolbar';
 import { PropToolbar } from '../Props/PropToolbar';
 import { CanvasErrorBoundary, TokenErrorBoundary } from '../ErrorBoundary';
 import { webSocketService } from '@/services/websocket';
 import { tokenAssetManager } from '@/services/tokenAssets';
 import { propAssetManager } from '@/services/propAssets';
-import { createPlacedToken, getTokenPixelSize } from '@/types/token';
+import { createPlacedToken } from '@/types/token';
 import { createPlacedProp } from '@/types/prop';
 import { CameraGestureEngine } from '@/utils/cameraGestureEngine';
-import {
-  useSelectedPlacedToken,
-  useSelectedPlacedProp,
-  useSceneDrawings,
-} from '@/stores/gameStore';
 import type { Scene, WebSocketMessage } from '@/types/game';
 import type { Token } from '@/types/token';
 import type {
@@ -111,7 +109,6 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   const user = useUser();
   const tokenIds = useTokenIdsSlice(scene.id);
   const propIds = usePropIdsSlice(scene.id);
-  const selectedPlacedToken = useSelectedPlacedToken();
   const selectedPlacedProp = useSelectedPlacedProp();
   // A5 fix: the old `useSceneState()` selected the whole sceneState object,
   // whose reference changes on EVERY scene mutation (token moves included).
@@ -174,6 +171,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   // useTransientDrag.ts for why), latest values pushed in post-render via
   // sync() in a useEffect below.
   const [cameraGestureEngine] = useState(() => new CameraGestureEngine());
+  const canvasInk = useFlag('canvas-ink');
   const [viewportSize, setViewportSize] = useState({ width: 800, height: 600 });
   const [assetsReady, setAssetsReady] = useState(false);
   const [drawingStyle] = useState<DrawingStyle>({
@@ -792,60 +790,6 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   // Calculate transform for the scene content
   const transform = `translate(${svgSize.width / 2 - camera.x * camera.zoom}, ${svgSize.height / 2 - camera.y * camera.zoom}) scale(${camera.zoom})`;
 
-  // Calculate toolbar position for selected token
-  const getToolbarPosition = useCallback(() => {
-    if (!selectedPlacedToken) return { x: 0, y: 0 };
-
-    // Calculate screen position: apply camera transform to token position
-    const screenX =
-      svgSize.width / 2 + (selectedPlacedToken.x - camera.x) * camera.zoom;
-    const screenY =
-      svgSize.height / 2 + (selectedPlacedToken.y - camera.y) * camera.zoom;
-
-    // Position toolbar above and to the right of the token
-    const tokenSize =
-      getTokenPixelSize(
-        tokenAssetManager.getTokenById(selectedPlacedToken.tokenId)?.size ||
-          'medium',
-        safeGridSettings.size,
-      ) *
-      selectedPlacedToken.scale *
-      camera.zoom;
-
-    // Estimate toolbar dimensions (approximate)
-    const toolbarWidth = 400; // Approximate width when panel is open
-    const toolbarHeight = 60; // Approximate height of main toolbar
-    const toolbarOffset = 10; // Spacing from token
-
-    // Default: right of token
-    let x = screenX + tokenSize / 2 + toolbarOffset;
-    let y = screenY - tokenSize / 2 - toolbarOffset;
-
-    // Check if toolbar would go off right edge of screen
-    if (x + toolbarWidth > svgSize.width) {
-      // Position to left of token instead
-      x = screenX - tokenSize / 2 - toolbarWidth - toolbarOffset;
-    }
-
-    // Ensure toolbar doesn't go off left edge
-    if (x < 0) {
-      x = toolbarOffset;
-    }
-
-    // Check if toolbar would go off top edge
-    if (y < 0) {
-      // Position below token instead
-      y = screenY + tokenSize / 2 + toolbarOffset;
-    }
-
-    // Check if toolbar would go off bottom edge
-    if (y + toolbarHeight > svgSize.height) {
-      y = svgSize.height - toolbarHeight - toolbarOffset;
-    }
-
-    return { x, y };
-  }, [selectedPlacedToken, camera, svgSize, safeGridSettings.size]);
-
   // Calculate toolbar position for selected prop
   const getPropToolbarPosition = useCallback(() => {
     if (!selectedPlacedProp) return { x: 0, y: 0 };
@@ -924,11 +868,6 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
           />
         )}
 
-        {/* Token Toolbar */}
-        {selectedPlacedToken && (
-          <TokenToolbar position={getToolbarPosition()} />
-        )}
-
         {/* Prop Toolbar */}
         {selectedPlacedProp && (
           <PropToolbar
@@ -945,6 +884,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
         >
           <svg
             ref={svgRef}
+            data-role="scene-canvas-root"
             className="scene-canvas"
             width="100%"
             height="100%"
@@ -998,6 +938,23 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
               {/* Grid layer - self-subscribes to useGridSettings (A5);
                   renders nothing when the grid is disabled. */}
               <SceneGrid viewportSize={viewportSize} camera={camera} />
+
+              {canvasInk && (
+                <foreignObject
+                  x={camera.x - viewportSize.width / (2 * camera.zoom)}
+                  y={camera.y - viewportSize.height / (2 * camera.zoom)}
+                  width={viewportSize.width / camera.zoom}
+                  height={viewportSize.height / camera.zoom}
+                  pointerEvents="none"
+                >
+                  <CanvasInkLayer
+                    sceneId={scene.id}
+                    camera={camera}
+                    viewportWidth={viewportSize.width}
+                    viewportHeight={viewportSize.height}
+                  />
+                </foreignObject>
+              )}
 
               {/* Drawings layer - self-subscribes to its drawings slice
                   (A5); memoized, so token moves don't reach it. */}

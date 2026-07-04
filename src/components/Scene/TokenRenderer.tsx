@@ -5,6 +5,7 @@ import { useActiveTool } from '@/stores/gameStore';
 import { useTransientDrag } from '@/hooks/useTransientDrag';
 import { useTokenRenderData } from '@/stores/scene';
 import { tokenAssetManager } from '@/services/tokenAssets';
+import { TokenContextMenu } from '../Tokens/TokenContextMenu';
 
 interface TokenRendererProps {
   placedTokenId: string;
@@ -147,8 +148,9 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
     if (!isHost && !placedToken.visibleToPlayers) return null;
 
     return (
-      <g
-        transform={`translate(${placedToken.x}, ${placedToken.y}) rotate(${placedToken.rotation})`}
+      <>
+        <g
+          transform={`translate(${placedToken.x}, ${placedToken.y}) rotate(${placedToken.rotation})`}
         onPointerDown={handlePointerDown}
         style={{
           cursor: canInteract ? (isDragging ? 'grabbing' : 'grab') : 'default',
@@ -278,7 +280,17 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
             </text>
           ) : null;
         })()}
-      </g>
+        </g>
+        {isSelected && !isDragging && (
+          <TokenContextMenu
+            tokenId={placedTokenId}
+            worldX={placedToken.x}
+            worldY={placedToken.y}
+            isDragging={isDragging}
+            onEdit={() => window.dispatchEvent(new CustomEvent('open-panel', { detail: 'tokens' }))}
+          />
+        )}
+      </>
     );
   },
 );

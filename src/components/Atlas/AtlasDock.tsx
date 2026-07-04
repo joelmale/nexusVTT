@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import styles from './AtlasDock.module.css';
 import { useAtlasAssets } from '@/hooks/useAtlasAssets';
+import { useDockToCanvasDrag } from '@/hooks/useDockToCanvasDrag';
+import { Portal } from '@/components/Portal';
 
 type DockState = 'closed' | 'peek' | 'open';
 
@@ -14,6 +16,16 @@ export const AtlasDock: React.FC = () => {
     enabled: hasOpened,
   });
 
+  const {
+    isDragging,
+    handlePointerDown,
+    handlePointerMove,
+    handlePointerUp,
+    ghostImage,
+    ghostPosition,
+    overCanvas
+  } = useDockToCanvasDrag();
+
   // Handle escape key to close dock
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -25,11 +37,9 @@ export const AtlasDock: React.FC = () => {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [dockState]);
 
-  useEffect(() => {
-    if (dockState !== 'closed' && !hasOpened) {
-      setHasOpened(true);
-    }
-  }, [dockState, hasOpened]);
+  if (dockState !== 'closed' && !hasOpened) {
+    setHasOpened(true);
+  }
 
   const toggleDock = () => {
     setDockState(prev => {
@@ -107,17 +117,20 @@ export const AtlasDock: React.FC = () => {
                 <div 
                   key={asset.id} 
                   className={styles.assetCard}
-                  draggable="true"
-                  onDragStart={(e) => {
-                    e.dataTransfer.setData('application/json', JSON.stringify({
+                  style={{ touchAction: 'none' }}
+                  onPointerDown={(e) => {
+                    handlePointerDown(e, {
                       type: 'asset',
                       id: asset.id,
                       source: asset.source,
                       name: asset.name,
                       category: asset.category,
                       url: asset.thumbnailUrl
-                    }));
+                    }, asset.thumbnailUrl);
                   }}
+                  onPointerMove={handlePointerMove}
+                  onPointerUp={handlePointerUp}
+                  onPointerCancel={handlePointerUp}
                 >
                   <img src={asset.thumbnailUrl} alt={asset.name} className={styles.assetImage} draggable="false" />
                   <div className={styles.assetName} title={asset.name}>{asset.name}</div>
@@ -128,6 +141,30 @@ export const AtlasDock: React.FC = () => {
           )}
         </div>
       </div>
+
+      {/* Drag Ghost */}
+      {isDragging && ghostPosition && ghostImage && (
+        <Portal>
+          <img
+            src={ghostImage}
+            alt="ghost"
+            style={{
+              position: 'fixed',
+              left: ghostPosition.x,
+              top: ghostPosition.y,
+              transform: 'translate(-50%, -50%)',
+              width: '64px',
+              height: '64px',
+              opacity: overCanvas ? 1 : 0.5,
+              outline: overCanvas ? '2px solid var(--color-primary)' : 'none',
+              pointerEvents: 'none',
+              zIndex: 'var(--z-drag-ghost, 95)',
+              boxShadow: '0 4px 12px rgba(0,0,0,0.5)',
+              borderRadius: '4px'
+            }}
+          />
+        </Portal>
+      )}
     </div>
   );
 };

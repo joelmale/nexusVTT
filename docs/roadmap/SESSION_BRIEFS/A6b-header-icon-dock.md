@@ -9,9 +9,9 @@ top-right floating icon dock (36px round buttons) that opens A6a's FloatingPanel
 becomes a top-left floating cluster; ConnectionStatus moves into the dock.
 
 ## Ground truth (verified @ e29131b, 2026-07-02)
-- Header markup: `src/components/GameUI.tsx:286-338` (`.layout-header`; PlayerBar left; `.header-right` holds `.horizontal-panel-tabs` at :292-314 — 12 emoji radio-tabs with `role="tablist"` — plus collapse button + ConnectionStatus).
+- Header markup: `src/components/GameUI.tsx:286-338` (`.layout-header`; PlayerBar left; `.header-right` holds `.horizontal-panel-tabs` at :292-314 — 12 emoji radio-tabs with `role="tablist"` — plus collapse button; Leave Room was a standalone header button. ConnectionStatus was never in main header).
 - Grid rows: `layout-consolidated.css` `grid-template-rows: 60px 1fr` (`--header-height: 60px`).
-- `src/components/PlayerBar.tsx`: connected player avatars, current-user highlight, DM badges, PlayerActions/Leave Room.
+- `src/components/PlayerBar.tsx`: connected player avatars, current-user highlight, DM badges, PlayerActions.
 - Existing focus-ring precedent: `.horizontal-panel-tab:focus-visible` at `layout-consolidated.css:1268` — extend this pattern to dock buttons.
 - Polish spec (ratified): hover `scale(1.05)` + `var(--surface-hover)`; `aria-pressed` on active; idle fade to ~40% opacity after 3s, restore on pointer proximity; all transitions transform/opacity via `--duration-200`.
 - New components are CSS Modules per ADR-0006. Dock z = `var(--z-tool-ui)` (60).

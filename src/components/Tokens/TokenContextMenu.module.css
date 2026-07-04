@@ -1,0 +1,77 @@
+.contextMenuWrapper {
+  position: fixed;
+  z-index: var(--z-tool-ui, 999);
+  pointer-events: auto;
+  /* Glassmorphism */
+  background: var(--glass-bg, rgba(30, 30, 30, 0.7));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  border-radius: 8px;
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  padding: 4px;
+  gap: 4px;
+  /* Animation */
+  opacity: 0;
+  transform: translateY(10px) translateX(-50%);
+  animation: menuAppear 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  /* Keep centered above the token by default */
+  transform-origin: bottom center;
+}
+
+@keyframes menuAppear {
+  to {
+    opacity: 1;
+    transform: translateY(0) translateX(-50%);
+  }
+}
+
+.actionBtn {
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-primary, #fff);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-size: 16px;
+  padding: 0;
+}
+
+.actionBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: scale(1.05);
+}
+
+.actionBtn:active {
+  transform: scale(0.95);
+}
+
+.actionBtn:focus-visible {
+  outline: 2px solid var(--color-primary, #4dabf7);
+  outline-offset: -2px;
+}
+
+.actionBtn.danger:hover {
+  background: rgba(255, 59, 48, 0.2);
+  color: #ff3b30;
+}
+
+.actionBtn.active {
+  background: rgba(77, 171, 247, 0.2);
+  color: var(--color-primary, #4dabf7);
+}
+
+.divider {
+  width: 1px;
+  height: 24px;
+  background: var(--glass-border, rgba(255, 255, 255, 0.1));
+  margin: 0 4px;
+}

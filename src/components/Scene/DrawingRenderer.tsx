@@ -1,5 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useSceneDrawingsSlice } from '@/stores/scene';
+import { useFlag } from '@/utils/featureFlags';
 import type { Drawing, BaseDrawing } from '@/types/drawing';
 import { ELEMENT_THEMES } from '@/types/drawing';
 import type { Camera } from '@/types/game';
@@ -95,6 +96,7 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
   onDrawingClick,
 }) => {
   const drawings = useSceneDrawingsSlice(sceneId);
+  const canvasInk = useFlag('canvas-ink');
 
   const visibleDrawings = useMemo(() => {
     return drawings.filter((drawing) => {
@@ -189,6 +191,8 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
             d={pencilPath}
             {...commonProps}
             fill="none"
+            stroke={canvasInk ? 'transparent' : commonProps.stroke}
+            strokeWidth={canvasInk ? Math.max(commonProps.strokeWidth as number, 15 / camera.zoom) : commonProps.strokeWidth}
             strokeLinecap="round"
             strokeLinejoin="round"
           />
