@@ -5,7 +5,10 @@ import reactRefresh from 'eslint-plugin-react-refresh'
 import tseslint from 'typescript-eslint'
 
 export default tseslint.config(
-  { ignores: ['dist', 'coverage'] },
+  // .claude holds agent worktrees (full repo copies) — linting them both
+  // explodes the file count and breaks typed-parser project resolution.
+  // services/* and tools/* are separate packages with their own configs.
+  { ignores: ['dist', 'coverage', '.claude', 'services', 'tools'] },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],
