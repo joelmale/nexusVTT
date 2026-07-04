@@ -1,6 +1,30 @@
 # SESSION_STATE — machine-parseable save file
 # Update per RESUME_PROTOCOL.md §5. Append-friendly: edit only your packet's row; append log rows.
 
+## ⚠️ ACTIVE HANDOFF (2026-07-03 — read this FIRST, then RESUME_PROTOCOL.md)
+Session S5 ended mid-flight (operator token budget). State on branch `packet/A5-A6b-B3`:
+1. **A6b: DONE + committed (29acb84).** T2-verified. Still owed: T3 visual review in browser
+   (flag ON/OFF screenshots @1280x800, emoji legibility @36px — 🗺️/⚙️/🔊 risk glyphs,
+   idle-fade contrast on glass+solid themes) → then Joel's gate. Flag: set localStorage
+   `nexus-flags` = `{"floating-panels":true}` + reload. Brief drift to fix in
+   SESSION_BRIEFS/A6b: ConnectionStatus was never in main header; Leave Room was a
+   standalone header button (both corrected in code, brief text stale).
+2. **A5: IN-PROGRESS, UNCOMMITTED partial work in tree** (src/components/Scene/**,
+   src/stores/scene/**). Builder crashed on API overload after 64 tool calls, was resumed,
+   session ended before completion. Next orchestrator: `git status` + `git diff` the A5
+   domain; if coherent, dispatch a T2 to finish from tree state (brief: A5-subscription-surgery
+   + deltas listed in S5 log row); if torn, stash/discard ONLY Scene+stores/scene files and
+   re-run the packet. Exit = render-spy tests + live profiler trace (grid/background 0 renders
+   during token drag).
+3. **B3: IN-PROGRESS, UNCOMMITTED partial work in tree** (tools/tmt-ingest/**,
+   services/asset-service/**, docs/roadmap/contracts/**). Builder never returned a handoff.
+   Same salvage procedure, scoped to those paths. Exit criteria in SESSION_BRIEFS/B3 (+ deltas:
+   no contract doc existed — B3 creates it; service exports app w/ supertest suite to extend).
+4. Uncommitted A5/B3 files are NOT broken-by-default — they may be near-complete. Assess
+   before discarding. Root `npm run type-check && npm run test` tells you tree health fast.
+5. After A5+B3 land: per-packet commits, merge branch → master (Joel tests off master),
+   then next wave C5 + A7 + A8a (collision-free only AFTER A5 is merged).
+
 last_updated: 2026-07-03
 last_verified_commit: 77cfd67 (master — all packet branches merged)
 roadmap_version: 1

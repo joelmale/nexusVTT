@@ -44,15 +44,18 @@
    is present (ContextPanel instead renders inside a portal-mounted
    FloatingPanel, absolutely positioned over the scene - see
    FloatingPanel.module.css). Canvas rect must be invariant across all
-   panel-open/closed states under this flag. */
+   panel-open/closed states under this flag.
+
+   A6b: the header row is dropped too - GameUI does not render
+   .layout-header at all under this flag, so the grid goes to a single
+   row/single column. minmax(0, 1fr) on both axes keeps the same
+   overflow-safety discipline as the A6a column fix (a bare 1fr track can
+   expand past the viewport when a child's intrinsic min-content size
+   exceeds it). */
 .game-layout[data-floating-panels] {
-  /* minmax(0, 1fr): a bare 1fr track can expand past the viewport when the
-     scene's intrinsic min-content width exceeds it (grid items default to
-     min-width auto); minmax(0,...) pins the track to the container. */
+  grid-template-rows: minmax(0, 1fr);
   grid-template-columns: minmax(0, 1fr);
-  grid-template-areas:
-    'header'
-    'scene';
+  grid-template-areas: 'scene';
 }
 
 .game-layout[data-floating-panels] .layout-scene {
@@ -1043,6 +1046,30 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: var(--z-overlay);
+}
+
+/* A6b: top-left floating cluster replacing .layout-header's .header-left
+   under the `floating-panels` flag. Same glass tokens/z-band as
+   PanelDock.module.css (.dock) so the two corner clusters read as one
+   family. PlayerBar/PlayerActions internals are unchanged - this is only
+   a positioning wrapper. */
+.player-cluster-floating {
+  position: fixed;
+  top: var(--spacing-4);
+  left: var(--spacing-4);
+  z-index: var(--z-tool-ui);
+
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  padding: var(--spacing-2);
+
+  background: var(--surface-primary);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-glass-lg);
 }
 
 .player-bar {
