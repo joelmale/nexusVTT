@@ -58,6 +58,7 @@ jobs:
         run: npm run test:unit -- --shard=${{ matrix.shard }}/3
         env:
           CI: true
+          NODE_OPTIONS: --max-old-space-size=4096
 
       - name: Upload coverage
         uses: actions/upload-artifact@v7
