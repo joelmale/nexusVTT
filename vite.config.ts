@@ -213,7 +213,13 @@ export default defineConfig(({ command, mode }) => {
         },
       },
     },
+    optimizeDeps: {
+      include: ['react-dnd', 'react-dnd-html5-backend', 'dnd-core', '@react-dnd/invariant', '@react-dnd/shallowequal'],
+    },
     build: {
+      commonjsOptions: {
+        transformMixedEsModules: true,
+      },
       target: 'esnext',
       // Disable source maps in production for better security and smaller bundle
       sourcemap: isDev ? true : false,
@@ -250,7 +256,7 @@ export default defineConfig(({ command, mode }) => {
             if (inPkg('@3d-dice/dice-box')) return 'vendor-3d';
             if (inPkg('pdfjs-dist')) return 'vendor-pdf';
             if (inPkg('uuid')) return 'vendor-utils';
-            if (inPkg('react-dnd') || inPkg('react-dnd-html5-backend'))
+            if (inPkg('react-dnd') || inPkg('react-dnd-html5-backend') || inPkg('dnd-core') || inPkg('@react-dnd'))
               return 'vendor-dnd';
             return undefined;
           },
