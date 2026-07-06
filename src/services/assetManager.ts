@@ -345,6 +345,15 @@ export class AssetManager {
   getThumbnailUrl(asset: AssetMetadata): string {
     return `${ASSET_SERVER_URL}/${asset.thumbnail}`;
   }
+
+  /**
+   * Get the full-resolution image URL. Manifest paths are relative to the
+   * asset server root, so they must be prefixed with ASSET_SERVER_URL to be
+   * loadable (a bare 'assets/x.webp' would resolve against the app origin).
+   */
+  getFullImageUrl(asset: AssetMetadata): string {
+    return `${ASSET_SERVER_URL}/${asset.fullImage}`;
+  }
 }
 
 // Export singleton instance

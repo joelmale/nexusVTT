@@ -17,8 +17,8 @@ export class MapsSourceAdapter implements AtlasSourceAdapter {
         id: `maps:${a.id}`,
         source: this.source,
         name: a.name,
-        thumbnailUrl: a.thumbnail,
-        resolveFullAsset: async () => a.fullImage,
+        thumbnailUrl: assetManager.getThumbnailUrl(a),
+        resolveFullAsset: async () => assetManager.getFullImageUrl(a),
         tags: a.tags,
         category: a.category
       }));
@@ -48,8 +48,8 @@ export class MapsSourceAdapter implements AtlasSourceAdapter {
         id: `maps:${a.id}`,
         source: this.source,
         name: a.name,
-        thumbnailUrl: a.thumbnail,
-        resolveFullAsset: async () => a.fullImage,
+        thumbnailUrl: assetManager.getThumbnailUrl(a),
+        resolveFullAsset: async () => assetManager.getFullImageUrl(a),
         tags: a.tags,
         category: a.category
       }));

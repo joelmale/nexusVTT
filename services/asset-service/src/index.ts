@@ -155,11 +155,18 @@ const ASSET_CATEGORIES = {
   UI: 'ui',
 };
 
+// Base-asset files live under ASSETS_PATH/assets/ (same dir as manifest.json),
+// and manifest paths are relative to THAT dir: thumbnail "thumbnails/x.webp" →
+// ASSETS_PATH/assets/thumbnails/x.webp, fullImage "assets/x.webp" →
+// ASSETS_PATH/assets/assets/x.webp. The static mounts must include the extra
+// 'assets/' segment or every base thumbnail/image 404s.
+const BASE_ASSETS_ROOT = path.join(ASSETS_PATH, 'assets');
+
 Object.values(ASSET_CATEGORIES).forEach((categoryName) => {
   // Serve assets and thumbnails from the shared 'assets' and 'thumbnails' directories.
   // Some categories (maps, tokens) don't have dedicated subfolders, so we fall back to the common folders.
-  const assetsDir = path.join(ASSETS_PATH, 'assets');
-  const thumbsDir = path.join(ASSETS_PATH, 'thumbnails');
+  const assetsDir = path.join(BASE_ASSETS_ROOT, 'assets');
+  const thumbsDir = path.join(BASE_ASSETS_ROOT, 'thumbnails');
   app.use(
     `/${categoryName}/assets`,
     (req, res, next) => { setCacheHeaders(res); next(); },
@@ -181,7 +188,8 @@ app.use(
 app.use(
   '/assets',
   (req, res, next) => { setCacheHeaders(res); next(); },
-  express.static(path.join(ASSETS_PATH, 'assets')),
+  // manifest fullImage "assets/x.webp" → /assets/x.webp → BASE_ASSETS_ROOT/assets/x.webp
+  express.static(path.join(BASE_ASSETS_ROOT, 'assets')),
 );
 
 app.use(
@@ -340,7 +348,8 @@ app.delete('/user/:userId/asset/:assetId', requireNexusAuth, async (req, res) =>
 app.use(
   '/thumbnails',
   (req, res, _next) => { setCacheHeaders(res); _next(); },
-  express.static(path.join(ASSETS_PATH, 'thumbnails')),
+  // manifest thumbnail "thumbnails/x.webp" → /thumbnails/x.webp → BASE_ASSETS_ROOT/thumbnails/x.webp
+  express.static(path.join(BASE_ASSETS_ROOT, 'thumbnails')),
 );
 
 // 3-arg catch-all for unmatched routes — must be registered AFTER all routes.
