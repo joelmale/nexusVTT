@@ -70,7 +70,7 @@
     "fast-json-patch": "^3.1.1",
     "helmet": "^8.1.0",
     "http-proxy-middleware": "^4.1.1",
-    "immer": "^11.1.8",
+    "immer": "^11.1.11",
     "jsonwebtoken": "^9.0.3",
     "lucide-react": "^0.562.0",
     "passport": "^0.7.0",
