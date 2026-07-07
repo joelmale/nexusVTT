@@ -1260,7 +1260,12 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                         visibility="hidden"
                         fill="none"
                         stroke="#4A9EFF"
-                        strokeWidth={FOG_BRUSH_SIZE / camera.zoom}
+                        // WORLD units, NOT / camera.zoom: this stroke previews the
+                        // exact reveal FogLayer will paint (lineWidth = brushSize in
+                        // world space). Screen-constant division belongs only to
+                        // hairline outlines like the rect marquee above (WYSIWYG bug
+                        // caught in Joel's A9 gate review).
+                        strokeWidth={FOG_BRUSH_SIZE}
                         strokeLinecap="round"
                         strokeLinejoin="round"
                         opacity={0.4}
