@@ -239,6 +239,79 @@ describe('gameStore session persistence (characters + initiative round-trip)', (
     expect(typeof initiative.addEntry).toBe('function');
   });
 
+  it('saveSessionState/loadSessionState round-trips a scene\'s fog config (A9)', async () => {
+    // Fog rides scene->gameState JSONB persistence automatically: it's just
+    // another optional field on Scene, serialized/restored the same way as
+    // gridSettings/backgroundImage/placedTokens (no fog-specific plumbing
+    // needed in saveSessionState/loadSessionState).
+    const fog: Scene['fog'] = {
+      enabled: true,
+      shapes: [
+        {
+          id: 'shape-1',
+          kind: 'reveal',
+          shape: 'rect',
+          points: [
+            { x: 0, y: 0 },
+            { x: 50, y: 50 },
+          ],
+          createdAt: Date.now(),
+        },
+      ],
+    };
+
+    useGameStore.setState((state) => ({
+      sceneState: {
+        ...state.sceneState,
+        scenes: [{ ...state.sceneState.scenes[0], fog }],
+      },
+    }));
+
+    useGameStore.getState().saveSessionState();
+
+    // --- IndexedDB snapshot includes the fog field on the scene ---
+    expect(sessionPersistenceService.saveGameState).toHaveBeenCalledTimes(1);
+    const savedPayload = vi.mocked(sessionPersistenceService.saveGameState).mock
+      .calls[0][0];
+    const savedScenes = savedPayload.scenes as Scene[];
+    expect(savedScenes[0].fog).toEqual(fog);
+
+    // --- Server snapshot also carries fog ---
+    await flushAsync();
+    const sentPayload = vi.mocked(webSocketService.sendGameStateUpdate).mock
+      .calls[0][0];
+    const sentScenes = (sentPayload.sceneState?.scenes ?? []) as Scene[];
+    expect(sentScenes[0].fog).toEqual(fog);
+
+    // --- loadSessionState restores it from the recovered snapshot ---
+    useGameStore.setState((state) => ({
+      sceneState: {
+        ...state.sceneState,
+        scenes: [{ ...state.sceneState.scenes[0], fog: undefined }],
+      },
+    }));
+
+    vi.mocked(sessionPersistenceService.getRecoveryData).mockResolvedValueOnce({
+      session: null,
+      gameState: {
+        characters: [],
+        initiative: {},
+        scenes: savedScenes,
+        activeSceneId: 'scene-1',
+        settings: {},
+        lastUpdated: Date.now(),
+        stateVersion: 1,
+      },
+      isValid: true,
+      canReconnect: false,
+    });
+
+    await useGameStore.getState().loadSessionState();
+
+    const restoredScene = useGameStore.getState().sceneState.scenes[0];
+    expect(restoredScene.fog).toEqual(fog);
+  });
+
   it('loadSessionState does not clobber existing characters when the snapshot has none (legacy payload)', async () => {
     const existing = makeCharacter();
     useCharacterStore.setState({ characters: [existing] });

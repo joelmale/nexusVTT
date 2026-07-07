@@ -31,6 +31,7 @@ import { DrawingPropertiesPanel } from './DrawingPropertiesPanel';
 import { SpellOverlayPropertiesPanel } from './SpellOverlayPropertiesPanel';
 import { SpellOverlayPatterns } from './SpellOverlayPatterns';
 import { CanvasInkLayer } from './CanvasInkLayer';
+import { FogLayer } from './FogLayer';
 import { type ElementType, ELEMENT_THEMES } from '@/types/drawing';
 import { TokenDropZone } from './TokenDropZone';
 import { TokenRenderer } from './TokenRenderer';
@@ -43,6 +44,7 @@ import { propAssetManager } from '@/services/propAssets';
 import { createPlacedToken } from '@/types/token';
 import { createPlacedProp } from '@/types/prop';
 import { CameraGestureEngine } from '@/utils/cameraGestureEngine';
+import { FogGestureEngine } from '@/utils/fogGestureEngine';
 import type { Scene, WebSocketMessage } from '@/types/game';
 import type { Token } from '@/types/token';
 import type {
@@ -57,6 +59,11 @@ interface SceneCanvasProps {
 }
 
 const SPELL_TYPES = new Set(['spell-circle', 'spell-ring', 'spell-cone', 'spell-line', 'spell-square', 'spell-triangle']);
+
+// Fixed brush stroke width (world units) for the fog-reveal brush tool (A9).
+// No size UI is specced in the brief - a single sensible default matches
+// the toolbar's other single-purpose tools (e.g. eraser's fixed radius).
+const FOG_BRUSH_SIZE = 60;
 
 const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   // Actions from store. A5 fix: the old `useGameStore()` call (no selector)
@@ -135,7 +142,9 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     | 'mask-remove'
     | 'mask-show'
     | 'mask-hide'
-    | 'grid-align';
+    | 'grid-align'
+    | 'fog-reveal-rect'
+    | 'fog-reveal-brush';
 
   const roomCode = useServerRoomCode();
 
@@ -171,6 +180,12 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   // useTransientDrag.ts for why), latest values pushed in post-render via
   // sync() in a useEffect below.
   const [cameraGestureEngine] = useState(() => new CameraGestureEngine());
+  // Imperative fog-reveal gesture engine (A9), same construction pattern as
+  // cameraGestureEngine/useTransientDrag: built once, synced post-render.
+  const [fogGestureEngine] = useState(() => new FogGestureEngine());
+  const fogPreviewRef = useRef<SVGRectElement | SVGPolylineElement | null>(
+    null,
+  );
   const canvasInk = useFlag('canvas-ink');
   const [viewportSize, setViewportSize] = useState({ width: 800, height: 600 });
   const [assetsReady, setAssetsReady] = useState(false);
@@ -371,6 +386,93 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   useEffect(() => {
     return () => cameraGestureEngine.dispose();
   }, [cameraGestureEngine]);
+
+  useEffect(() => {
+    return () => fogGestureEngine.dispose();
+  }, [fogGestureEngine]);
+
+  // Fog-reveal gesture (A9): imperative preview during the pointer gesture
+  // (rAF-batched, writes the preview <rect>/<polyline> element's attributes
+  // directly - no store writes mid-gesture), ONE addFogShape(...) commit on
+  // pointerup. Coordinates come from FogGestureEngine, which itself uses
+  // sceneUtils.screenToWorldLive (ADR-0002) - never hand-rolled math.
+  const handleFogPreview = useCallback(
+    (points: { x: number; y: number }[] | null) => {
+      const el = fogPreviewRef.current;
+      if (!el) return;
+
+      if (!points || points.length === 0) {
+        el.setAttribute('visibility', 'hidden');
+        return;
+      }
+
+      el.setAttribute('visibility', 'visible');
+
+      if (activeTool === 'fog-reveal-rect' && points.length >= 2) {
+        const [a, b] = points;
+        const x = Math.min(a.x, b.x);
+        const y = Math.min(a.y, b.y);
+        const width = Math.abs(b.x - a.x);
+        const height = Math.abs(b.y - a.y);
+        (el as unknown as SVGRectElement).setAttribute('x', String(x));
+        (el as unknown as SVGRectElement).setAttribute('y', String(y));
+        (el as unknown as SVGRectElement).setAttribute('width', String(width));
+        (el as unknown as SVGRectElement).setAttribute(
+          'height',
+          String(height),
+        );
+      } else if (activeTool === 'fog-reveal-brush') {
+        const pointsAttr = points.map((p) => `${p.x},${p.y}`).join(' ');
+        (el as unknown as SVGPolylineElement).setAttribute(
+          'points',
+          pointsAttr,
+        );
+      }
+    },
+    [activeTool],
+  );
+
+  const handleFogCommit = useCallback(
+    (points: { x: number; y: number }[]) => {
+      if (!isHost) return;
+
+      const { addFogShape } = useGameStore.getState();
+
+      if (activeTool === 'fog-reveal-rect') {
+        if (points.length < 2) return;
+        addFogShape(scene.id, {
+          id: `fog-shape-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          kind: 'reveal',
+          shape: 'rect',
+          points: [points[0], points[points.length - 1]],
+          createdAt: Date.now(),
+        });
+      } else if (activeTool === 'fog-reveal-brush') {
+        if (points.length === 0) return;
+        addFogShape(scene.id, {
+          id: `fog-shape-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          kind: 'reveal',
+          shape: 'brush',
+          points,
+          brushSize: FOG_BRUSH_SIZE,
+          createdAt: Date.now(),
+        });
+      }
+    },
+    [activeTool, isHost, scene.id],
+  );
+
+  useEffect(() => {
+    fogGestureEngine.sync({
+      kind: activeTool === 'fog-reveal-brush' ? 'brush' : 'rect',
+      brushSize: FOG_BRUSH_SIZE,
+      disabled:
+        !isHost ||
+        (activeTool !== 'fog-reveal-rect' && activeTool !== 'fog-reveal-brush'),
+      onCommit: handleFogCommit,
+      onPreview: handleFogPreview,
+    });
+  });
 
   const handleWheel = useCallback(
     (e: React.WheelEvent) => {
@@ -1008,11 +1110,47 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                 </g>
               </TokenErrorBoundary>
 
+              {/* Fog-of-war layer (A9) - Canvas 2D at var(--z-fog) (40),
+                  ABOVE tokens/props, below UI overlays/cursors. Mounted the
+                  same way as CanvasInkLayer: a <foreignObject> sized to the
+                  current viewport-in-world-units, inside the
+                  camera-transformed scene-content group so it never needs
+                  its own camera math beyond what FogLayer does internally.
+                  pointerEvents="none" here - the fog-reveal tools capture
+                  pointer events via the dedicated rect below, not this
+                  layer itself. */}
+              <foreignObject
+                x={camera.x - viewportSize.width / (2 * camera.zoom)}
+                y={camera.y - viewportSize.height / (2 * camera.zoom)}
+                width={viewportSize.width / camera.zoom}
+                height={viewportSize.height / camera.zoom}
+                pointerEvents="none"
+                style={{ zIndex: 'var(--z-fog)' } as React.CSSProperties}
+              >
+                <FogLayer
+                  sceneId={scene.id}
+                  isHost={isHost}
+                  camera={camera}
+                  viewportWidth={viewportSize.width}
+                  viewportHeight={viewportSize.height}
+                />
+              </foreignObject>
+
               {/* Drawing tools layer (interactive) - self-subscribes to the
                   token/prop arrays it needs for select-box hit testing
-                  (A5: no longer prop-drilled from here). */}
+                  (A5: no longer prop-drilled from here). The two fog-reveal
+                  tools are outside DrawingTools' own activeTool union (it
+                  has no dispatch entry for them); map them to 'pan' so
+                  DrawingTools returns null and cedes its interaction-layer
+                  <rect> to the dedicated fog capture rect below instead of
+                  double-handling pointer events on the same gesture. */}
               <DrawingTools
-                activeTool={activeTool}
+                activeTool={
+                  activeTool === 'fog-reveal-rect' ||
+                  activeTool === 'fog-reveal-brush'
+                    ? 'pan'
+                    : activeTool
+                }
                 drawingStyle={drawingStyle}
                 camera={camera}
                 _gridSize={safeGridSettings.size}
@@ -1025,6 +1163,53 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                 spellElementType={spellElementType}
                 spellGridSnap={spellGridSnap}
               />
+
+              {/* Fog-reveal tool interaction layer (A9, host only): mirrors
+                  DrawingTools' own oversized invisible capture <rect>
+                  convention so pointer routing follows the same pattern as
+                  every other drawing tool in this file. Active only while a
+                  fog-reveal tool is selected - FogGestureEngine itself is
+                  the no-op guard for non-host/non-fog-tool states. */}
+              {isHost &&
+                (activeTool === 'fog-reveal-rect' ||
+                  activeTool === 'fog-reveal-brush') && (
+                  <g className="fog-tool-layer">
+                    <rect
+                      x={-10000}
+                      y={-10000}
+                      width={20000}
+                      height={20000}
+                      fill="transparent"
+                      onPointerDown={fogGestureEngine.handlePointerDown}
+                      style={{ cursor: 'crosshair', pointerEvents: 'auto' }}
+                    />
+                    {activeTool === 'fog-reveal-rect' ? (
+                      <rect
+                        ref={fogPreviewRef as React.RefObject<SVGRectElement>}
+                        visibility="hidden"
+                        fill="rgba(74, 158, 255, 0.25)"
+                        stroke="#4A9EFF"
+                        strokeWidth={2 / camera.zoom}
+                        strokeDasharray="5,5"
+                        pointerEvents="none"
+                      />
+                    ) : (
+                      <polyline
+                        ref={
+                          fogPreviewRef as React.RefObject<SVGPolylineElement>
+                        }
+                        visibility="hidden"
+                        fill="none"
+                        stroke="#4A9EFF"
+                        strokeWidth={FOG_BRUSH_SIZE / camera.zoom}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        opacity={0.4}
+                        pointerEvents="none"
+                      />
+                    )}
+                  </g>
+                )}
 
               {/* Selection overlay */}
               <SelectionOverlay

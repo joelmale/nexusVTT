@@ -219,6 +219,85 @@ describe('EntitySyncHandler', () => {
       expect(h.broadcasts).toHaveLength(0);
       expect(sentTypes(h.sent)).toContain('error');
     });
+
+    it('denies fog/update from a non-host (malicious player) and does not broadcast', () => {
+      const h = createHarness();
+      const player = makeConnection('p1', 'player');
+      h.connections.set('p1', player);
+      const room = makeRoom('host');
+      room.players.add('p1');
+
+      h.emit('event:fog/update', {
+        connection: player,
+        room,
+        message: evt('fog/update', {
+          sceneId: 'scene-1',
+          fog: { enabled: true, shapes: [] },
+        }),
+      });
+
+      expect(h.broadcasts).toHaveLength(0);
+      expect(sentTypes(h.sent)).toContain('error');
+      expect(player.maliciousAttemptsCount).toBe(1);
+    });
+
+    it('denies fog/clear from a non-host and does not broadcast', () => {
+      const h = createHarness();
+      const player = makeConnection('p1', 'player');
+      h.connections.set('p1', player);
+      const room = makeRoom('host');
+      room.players.add('p1');
+
+      h.emit('event:fog/clear', {
+        connection: player,
+        room,
+        message: evt('fog/clear', { sceneId: 'scene-1' }),
+      });
+
+      expect(h.broadcasts).toHaveLength(0);
+      expect(sentTypes(h.sent)).toContain('error');
+    });
+
+    it('allows the host to fog/update and relays the full SceneFog to peers', () => {
+      const h = createHarness();
+      const host = makeConnection('host', 'host');
+      h.connections.set('host', host);
+      const room = makeRoom('host');
+
+      h.emit('event:fog/update', {
+        connection: host,
+        room,
+        message: evt('fog/update', {
+          sceneId: 'scene-1',
+          fog: { enabled: true, shapes: [{ id: 's1', kind: 'reveal' }] },
+        }),
+      });
+
+      expect(h.broadcasts).toHaveLength(1);
+      expect(sentTypes(h.sent)).not.toContain('error');
+      const relayed = h.broadcasts[0].message as ServerEventMessage;
+      expect(relayed.data.name).toBe('fog/update');
+      expect(
+        (relayed.data as { fog: { shapes: unknown[] } }).fog.shapes,
+      ).toHaveLength(1);
+    });
+
+    it('allows a co-host to fog/clear', () => {
+      const h = createHarness();
+      const coHost = makeConnection('c1', 'player');
+      h.connections.set('c1', coHost);
+      const room = makeRoom('host');
+      room.coHosts.add('c1');
+
+      h.emit('event:fog/clear', {
+        connection: coHost,
+        room,
+        message: evt('fog/clear', { sceneId: 'scene-1' }),
+      });
+
+      expect(h.broadcasts).toHaveLength(1);
+      expect(sentTypes(h.sent)).not.toContain('error');
+    });
   });
 
   describe('cursor + targeted delivery', () => {

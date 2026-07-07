@@ -48,6 +48,9 @@ import type {
   DrawingUpdateEvent,
   DrawingDeleteEvent,
   DrawingClearEvent,
+  FogUpdateEvent,
+  FogClearEvent,
+  SceneFog,
   DiceRollEvent,
   DiceRollResultEvent,
   ConnectionState,
@@ -55,6 +58,7 @@ import type {
   CoHostAddedEvent,
   CoHostRemovedEvent,
 } from '@/types/game';
+import type { FogShape } from '@/types/fog';
 import type { Character } from '@/types/character';
 import type { InitiativeState } from '@/types/initiative';
 import { v4 as uuidv4 } from 'uuid';
@@ -189,6 +193,13 @@ interface GameStore extends GameState {
   clearDrawings: (sceneId: string, layer?: string) => void;
   getSceneDrawings: (sceneId: string) => Drawing[];
   getVisibleDrawings: (sceneId: string, isHost: boolean) => Drawing[];
+
+  // Fog of War Actions (A9) — host-authored; optimistic-apply locally then
+  // relay the complete SceneFog via webSocketService.sendEvent (unversioned,
+  // mirrors token/place).
+  setFogEnabled: (sceneId: string, enabled: boolean) => void;
+  addFogShape: (sceneId: string, shape: FogShape) => void;
+  clearFog: (sceneId: string) => void;
 
   // Settings Actions
   updateSettings: (settings: Partial<UserSettings>) => void;
@@ -691,6 +702,37 @@ const eventHandlers: Record<string, EventHandler> = {
           state.sceneState.scenes[sceneIndex].placedTokens = [];
         }
         state.sceneState.scenes[sceneIndex].placedTokens.push(eventData.token);
+        state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+      }
+    }
+  },
+  // Fog of War (A9): remote-echo application for a peer's fog paint/toggle.
+  // Full-state replace — the payload always carries the complete SceneFog,
+  // so applying it is just an overwrite (no incremental merge needed).
+  'fog/update': (state, data) => {
+    const eventData = data as FogUpdateEvent['data'];
+    if (eventData.sceneId && eventData.fog) {
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
+      if (sceneIndex >= 0) {
+        state.sceneState.scenes[sceneIndex].fog = eventData.fog;
+        state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+      }
+    }
+  },
+  'fog/clear': (state, data) => {
+    const eventData = data as FogClearEvent['data'];
+    if (eventData.sceneId) {
+      const sceneIndex = state.sceneState.scenes.findIndex(
+        (s) => s.id === eventData.sceneId,
+      );
+      if (sceneIndex >= 0) {
+        const existing = state.sceneState.scenes[sceneIndex].fog;
+        state.sceneState.scenes[sceneIndex].fog = {
+          enabled: existing?.enabled ?? false,
+          shapes: [],
+        };
         state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
       }
     }
@@ -2771,6 +2813,87 @@ export const useGameStore = create<GameStore>()(
 
           return true;
         });
+      },
+
+      // Fog of War Actions (A9): host-authored, unversioned, full-state
+      // replace. Each action applies optimistically (mirrors moveTokenOptimistic
+      // / token-place: local Immer update first, no rollback/version tracking
+      // since these are DM-only relay events, not entity-conflict-prone), then
+      // sends the resulting complete SceneFog over the wire so peers can just
+      // overwrite their local copy. See fogSlice.ts for the read-side selector.
+      setFogEnabled: (sceneId, enabled) => {
+        let nextFog: SceneFog | undefined;
+        set((state) => {
+          const sceneIndex = state.sceneState.scenes.findIndex(
+            (s) => s.id === sceneId,
+          );
+          if (sceneIndex < 0) return;
+          const existing = state.sceneState.scenes[sceneIndex].fog;
+          nextFog = { enabled, shapes: existing?.shapes ?? [] };
+          state.sceneState.scenes[sceneIndex].fog = nextFog;
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+        });
+
+        if (!nextFog) return;
+        import('@/services/websocket').then(({ webSocketService }) => {
+          webSocketService.sendEvent({
+            type: 'fog/update',
+            data: { sceneId, fog: nextFog },
+          });
+        });
+
+        scheduleServerSync(get);
+      },
+
+      addFogShape: (sceneId, shape) => {
+        let nextFog: SceneFog | undefined;
+        set((state) => {
+          const sceneIndex = state.sceneState.scenes.findIndex(
+            (s) => s.id === sceneId,
+          );
+          if (sceneIndex < 0) return;
+          const existing = state.sceneState.scenes[sceneIndex].fog;
+          nextFog = {
+            enabled: existing?.enabled ?? true,
+            shapes: [...(existing?.shapes ?? []), shape],
+          };
+          state.sceneState.scenes[sceneIndex].fog = nextFog;
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+        });
+
+        if (!nextFog) return;
+        import('@/services/websocket').then(({ webSocketService }) => {
+          webSocketService.sendEvent({
+            type: 'fog/update',
+            data: { sceneId, fog: nextFog },
+          });
+        });
+
+        scheduleServerSync(get);
+      },
+
+      clearFog: (sceneId) => {
+        set((state) => {
+          const sceneIndex = state.sceneState.scenes.findIndex(
+            (s) => s.id === sceneId,
+          );
+          if (sceneIndex < 0) return;
+          const existing = state.sceneState.scenes[sceneIndex].fog;
+          state.sceneState.scenes[sceneIndex].fog = {
+            enabled: existing?.enabled ?? false,
+            shapes: [],
+          };
+          state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+        });
+
+        import('@/services/websocket').then(({ webSocketService }) => {
+          webSocketService.sendEvent({
+            type: 'fog/clear',
+            data: { sceneId },
+          });
+        });
+
+        scheduleServerSync(get);
       },
 
       // Settings Management Actions

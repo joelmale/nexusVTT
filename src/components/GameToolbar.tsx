@@ -36,7 +36,12 @@ import {
   Maximize2,
   Drama,
   Divide,
+  CloudFog,
+  Paintbrush,
+  Trash2,
 } from 'lucide-react';
+import { useSceneFog } from '@/stores/scene';
+import { useActiveScene } from '@/stores/gameStore';
 
 interface ToolbarItem {
   id: string;
@@ -79,6 +84,13 @@ export const GameToolbar: React.FC = () => {
   const isHost = useIsHost();
   const { updateCamera, setActiveTool } = useGameStore();
   const camera = useCamera();
+  // A9: fog group needs the active scene's id (to target the right scene's
+  // fog state) and its current SceneFog (to reflect enabled/on state on the
+  // toggle button). useSceneFog narrowly subscribes to `scene.fog` only -
+  // it does not widen this component's re-render surface beyond what
+  // useActiveScene already does.
+  const activeScene = useActiveScene();
+  const fog = useSceneFog(activeScene?.id ?? '');
   const toolbarRef = useRef<HTMLDivElement>(null);
   const [hoveredTool, setHoveredTool] = useState<ToolbarItem | null>(null);
   const [isVertical, setIsVertical] = useState(false);
@@ -303,6 +315,65 @@ export const GameToolbar: React.FC = () => {
     [isHost],
   );
 
+  // A9: paintable fog - host-only group. Distinct from the legacy
+  // 'dm-mask' group above (polygon fog-of-war drawings, ADR-0009 note:
+  // pre-existing and out of scope for this packet - left untouched). The
+  // toggle/clear buttons are actions (not tool-select); the two reveal
+  // buttons behave like every other shape tool (setActiveTool via the
+  // default onClick in renderToolButton).
+  const handleToggleFog = useCallback(() => {
+    if (!activeScene) return;
+    const { setFogEnabled } = useGameStore.getState();
+    setFogEnabled(activeScene.id, !(fog?.enabled ?? false));
+  }, [activeScene, fog?.enabled]);
+
+  const handleClearFog = useCallback(() => {
+    if (!activeScene) return;
+    if (!window.confirm('Clear all fog reveals on this scene?')) return;
+    const { clearFog } = useGameStore.getState();
+    clearFog(activeScene.id);
+  }, [activeScene]);
+
+  const dmFogGroup: ToolbarGroup | null = useMemo(
+    () =>
+      isHost
+        ? {
+            id: 'dm-fog',
+            label: 'Fog',
+            tools: [
+              {
+                id: 'fog-toggle',
+                icon: <CloudFog size={18} />,
+                label: fog?.enabled ? 'Fog: On' : 'Fog: Off',
+                tooltip: 'Toggle paintable fog of war for this scene',
+                action: handleToggleFog,
+                className: fog?.enabled ? 'active' : '',
+              },
+              {
+                id: 'fog-reveal-rect',
+                icon: <Square size={18} />,
+                label: 'Reveal Rect',
+                tooltip: 'Draw a rectangular fog reveal',
+              },
+              {
+                id: 'fog-reveal-brush',
+                icon: <Paintbrush size={18} />,
+                label: 'Reveal Brush',
+                tooltip: 'Paint a freehand fog reveal',
+              },
+              {
+                id: 'fog-clear',
+                icon: <Trash2 size={18} />,
+                label: 'Clear Fog',
+                tooltip: 'Remove all fog reveals on this scene',
+                action: handleClearFog,
+              },
+            ],
+          }
+        : null,
+    [isHost, fog?.enabled, handleToggleFog, handleClearFog],
+  );
+
   const cameraControls: ToolbarItem[] = useMemo(
     () => [
       {
@@ -346,6 +417,7 @@ export const GameToolbar: React.FC = () => {
         ...toolGroups.flatMap((g) => g.tools),
         ...(dmMaskGroup ? dmMaskGroup.tools : []),
         ...(dmUtilityGroup ? dmUtilityGroup.tools : []),
+        ...(dmFogGroup ? dmFogGroup.tools : []),
       ];
       const tool = allTools.find(
         (t) =>
@@ -356,13 +428,17 @@ export const GameToolbar: React.FC = () => {
 
       if (tool) {
         e.preventDefault();
-        setActiveTool(tool.id);
+        if (tool.action) {
+          tool.action();
+        } else {
+          setActiveTool(tool.id);
+        }
       }
     };
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveTool, toolGroups, dmMaskGroup, dmUtilityGroup]);
+  }, [setActiveTool, toolGroups, dmMaskGroup, dmUtilityGroup, dmFogGroup]);
 
   const renderToolButton = (tool: ToolbarItem) => {
     return (
@@ -486,6 +562,16 @@ export const GameToolbar: React.FC = () => {
                   <div className="toolbar-group-separator" />
                   <div className="toolbar-group dm-tools">
                     {dmUtilityGroup.tools.map(renderToolButton)}
+                  </div>
+                </>
+              )}
+
+              {/* DM Fog Tools (A9 - paintable fog, host-only) */}
+              {isHost && dmFogGroup && (
+                <>
+                  <div className="toolbar-group-separator" />
+                  <div className="toolbar-group dm-tools" data-testid="dm-fog-group">
+                    {dmFogGroup.tools.map(renderToolButton)}
                   </div>
                 </>
               )}

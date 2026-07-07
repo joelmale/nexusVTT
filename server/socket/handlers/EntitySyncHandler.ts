@@ -30,6 +30,8 @@ const RELAY_EVENTS = [
   'drawing/update',
   'drawing/delete',
   'drawing/clear',
+  'fog/update',
+  'fog/clear',
   'cursor/update',
 ] as const;
 
@@ -48,7 +50,11 @@ const VERSIONED_EVENTS = new Set<string>([
 ]);
 
 /** Mutations only the host (or a co-host) may perform. */
-const DM_ONLY_EVENTS = new Set<string>(['drawing/clear']);
+const DM_ONLY_EVENTS = new Set<string>([
+  'drawing/clear',
+  'fog/update',
+  'fog/clear',
+]);
 
 /** Player mutations that are blocked while the host is disconnected. */
 const DM_OFFLINE_RESTRICTED_EVENTS = new Set<string>([

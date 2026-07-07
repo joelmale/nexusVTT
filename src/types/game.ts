@@ -2,7 +2,9 @@
 import type { Drawing, Point } from './drawing';
 import type { PlacedToken, Token } from './token';
 import type { PlacedProp } from './prop';
+import type { SceneFog } from './fog';
 export type { PlacedToken, Token, Drawing, PlacedProp, Point };
+export type { FogShape, SceneFog } from './fog';
 
 export interface User {
   id: string;
@@ -245,6 +247,11 @@ export interface Scene {
   drawings: Drawing[];
   placedTokens: PlacedToken[];
   placedProps: PlacedProp[];
+
+  // Paintable fog of war (A9). Optional/additive: absent means "no fog
+  // configured for this scene" (equivalent to disabled). Rides the same
+  // sceneState -> gameState JSONB persistence as the rest of Scene.
+  fog?: SceneFog;
 
   // Scene state
   isActive: boolean; // Currently active scene for the room
@@ -512,6 +519,24 @@ export interface DrawingClearEvent extends GameEvent {
   data: {
     sceneId: string;
     layer?: string; // Optional: clear specific layer
+  };
+}
+
+// Fog of War Events (A9). Host-authored, relay-only, UNVERSIONED (no
+// expectedVersion/updateId — same wire shape as token/place): every mutation
+// carries the complete SceneFog so peers just overwrite local state.
+export interface FogUpdateEvent extends GameEvent {
+  type: 'fog/update';
+  data: {
+    sceneId: string;
+    fog: SceneFog;
+  };
+}
+
+export interface FogClearEvent extends GameEvent {
+  type: 'fog/clear';
+  data: {
+    sceneId: string;
   };
 }
 

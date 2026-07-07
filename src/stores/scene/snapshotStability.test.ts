@@ -10,6 +10,7 @@ import {
 import { useVisibleDrawingsSlice, useSceneDrawingsSlice } from './drawingsSlice';
 import { useVisiblePropsSlice, usePlacedPropsSlice } from './propsSlice';
 import { usePlacedTokensSlice } from './tokensSlice';
+import { useSceneFog } from './fogSlice';
 
 /**
  * Regression guard for the useSyncExternalStore snapshot-stability bug class
@@ -35,6 +36,7 @@ const hooks: Array<[string, (sceneId: string) => unknown]> = [
   ['usePlacedTokensSlice', usePlacedTokensSlice],
   ['usePlacedPropsSlice', usePlacedPropsSlice],
   ['useVisiblePropsSlice', useVisiblePropsSlice],
+  ['useSceneFog', useSceneFog],
 ];
 
 describe('selector snapshot stability (missing-scene fallback path)', () => {

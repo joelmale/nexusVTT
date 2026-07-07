@@ -1,6 +1,13 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import { GameToolbar } from '@/components/GameToolbar';
-import { useGameStore, useIsHost, useCamera, useActiveTool } from '@/stores/gameStore';
+import {
+  useGameStore,
+  useIsHost,
+  useCamera,
+  useActiveTool,
+  useActiveScene,
+} from '@/stores/gameStore';
+import { useSceneFog } from '@/stores/scene';
 import { vi } from 'vitest';
 
 // Mock the gameStore
@@ -9,11 +16,22 @@ vi.mock('@/stores/gameStore', () => ({
   useIsHost: vi.fn(),
   useCamera: vi.fn(),
   useActiveTool: vi.fn(),
+  // A9: the Fog toolbar group reads the active scene (to target the right
+  // scene's fog) and its fog config (to reflect enabled/on state).
+  useActiveScene: vi.fn(),
+}));
+
+// A9: FogLayer/GameToolbar's narrow fog selector - mocked separately from
+// gameStore since it lives in the @/stores/scene barrel (see fogSlice.ts).
+vi.mock('@/stores/scene', () => ({
+  useSceneFog: vi.fn(),
 }));
 
 describe('GameToolbar', () => {
   const setActiveTool = vi.fn();
   const updateCamera = vi.fn();
+  const setFogEnabled = vi.fn();
+  const clearFog = vi.fn();
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -21,7 +39,15 @@ describe('GameToolbar', () => {
       setActiveTool,
       updateCamera,
     });
+    (useGameStore as unknown as { getState: vi.Mock }).getState = vi
+      .fn()
+      .mockReturnValue({ setFogEnabled, clearFog });
     (useCamera as vi.Mock).mockReturnValue({ x: 0, y: 0, zoom: 1.0 });
+    (useActiveScene as vi.Mock).mockReturnValue({
+      id: 'scene-1',
+      name: 'Test Scene',
+    });
+    (useSceneFog as vi.Mock).mockReturnValue(null);
   });
 
   it('should render the toolbar with default tool selected', () => {

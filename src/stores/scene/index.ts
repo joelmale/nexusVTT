@@ -47,10 +47,8 @@ export {
 } from './propsSlice';
 
 /**
- * Reserved fog-of-war slice shape (populated in A9). Not yet backed by any
- * state — placeholder so A9 has a stable module to fill in without
- * re-touching this barrel's export list.
+ * Fog-of-war slice (A9): per-scene `{ enabled, shapes }` reveal-shape state.
+ * See fogSlice.ts's header comment for the storage-shape rationale (inline
+ * optional `Scene.fog`, not a separate keyed store).
  */
-export interface FogSliceReserved {
-  __reserved: true;
-}
+export { useSceneFog } from './fogSlice';
