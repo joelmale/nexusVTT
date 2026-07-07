@@ -1,6 +1,5 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useSceneDrawingsSlice } from '@/stores/scene';
-import { useFlag } from '@/utils/featureFlags';
 import type { Drawing, BaseDrawing } from '@/types/drawing';
 import { ELEMENT_THEMES } from '@/types/drawing';
 import type { Camera } from '@/types/game';
@@ -96,7 +95,6 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
   onDrawingClick,
 }) => {
   const drawings = useSceneDrawingsSlice(sceneId);
-  const canvasInk = useFlag('canvas-ink');
 
   const visibleDrawings = useMemo(() => {
     return drawings.filter((drawing) => {
@@ -140,64 +138,16 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
     };
 
     switch (drawing.type) {
-      case 'line':
-        return (
-          <line
-            key={drawing.id}
-            x1={drawing.start.x}
-            y1={drawing.start.y}
-            x2={drawing.end.x}
-            y2={drawing.end.y}
-            {...commonProps}
-            fill="none"
-          />
-        );
-
-      case 'rectangle':
-        return (
-          <rect
-            key={drawing.id}
-            x={drawing.x}
-            y={drawing.y}
-            width={drawing.width}
-            height={drawing.height}
-            {...commonProps}
-          />
-        );
-
-      case 'circle':
-        return (
-          <circle
-            key={drawing.id}
-            cx={drawing.center.x}
-            cy={drawing.center.y}
-            r={drawing.radius}
-            {...commonProps}
-          />
-        );
-
-      case 'polygon': {
-        if (drawing.points.length < 3) return null;
-        const pathData = `M ${drawing.points.map((p) => `${p.x} ${p.y}`).join(' L ')} Z`;
-        return <path key={drawing.id} d={pathData} {...commonProps} />;
-      }
-
-      case 'pencil': {
-        if (drawing.points.length < 2) return null;
-        const pencilPath = `M ${drawing.points.map((p) => `${p.x} ${p.y}`).join(' L ')}`;
-        return (
-          <path
-            key={drawing.id}
-            d={pencilPath}
-            {...commonProps}
-            fill="none"
-            stroke={canvasInk ? 'transparent' : commonProps.stroke}
-            strokeWidth={canvasInk ? Math.max(commonProps.strokeWidth as number, 15 / camera.zoom) : commonProps.strokeWidth}
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-        );
-      }
+      // A8b cutover: line/rectangle/circle/polygon/pencil committed strokes
+      // are now rendered EXCLUSIVELY by CanvasInkLayer (the old feature
+      // flag has been removed - CanvasInkLayer is unconditionally the only
+      // path). Their invisible-but-clickable SVG
+      // twin is gone too; clicks on these 5 types are resolved by
+      // inkHitTest.ts + SceneCanvas's handleMouseDown, not by an onClick
+      // handler on an SVG element. `isInteractive`/`handleClick`/
+      // `onDrawingClick` above remain for every OTHER drawing type below
+      // (spell overlays, AoE shapes, cone, text, ping), which are still
+      // plain SVG and still use native element clicks.
 
       case 'cone':
         return renderCone(drawing, commonProps);

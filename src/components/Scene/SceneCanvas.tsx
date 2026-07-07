@@ -20,7 +20,6 @@ import {
   useSceneDrawings,
 } from '@/stores/gameStore';
 import { useGridSettings, useTokenIdsSlice, usePropIdsSlice } from '@/stores/scene';
-import { useFlag } from '@/utils/featureFlags';
 import { SceneGrid } from './SceneGrid';
 import { SceneBackground } from './SceneBackground';
 import { DrawingTools } from './DrawingTools';
@@ -45,6 +44,8 @@ import { createPlacedToken } from '@/types/token';
 import { createPlacedProp } from '@/types/prop';
 import { CameraGestureEngine } from '@/utils/cameraGestureEngine';
 import { FogGestureEngine } from '@/utils/fogGestureEngine';
+import { sceneUtils } from '@/utils/sceneUtils';
+import { hitTestDrawings, createHitTestContext } from './inkHitTest';
 import type { Scene, WebSocketMessage } from '@/types/game';
 import type { Token } from '@/types/token';
 import type {
@@ -186,7 +187,11 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   const fogPreviewRef = useRef<SVGRectElement | SVGPolylineElement | null>(
     null,
   );
-  const canvasInk = useFlag('canvas-ink');
+  // A8b: detached (never attached to the DOM, never rendered) 2D context
+  // used purely as a Path2D geometry oracle for ink hit-testing. Built once
+  // per component instance, same construction pattern as
+  // cameraGestureEngine/fogGestureEngine above.
+  const [inkHitTestCtx] = useState(() => createHitTestContext());
   const [viewportSize, setViewportSize] = useState({ width: 800, height: 600 });
   const [assetsReady, setAssetsReady] = useState(false);
   const [drawingStyle] = useState<DrawingStyle>({
@@ -496,7 +501,44 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
           e.stopPropagation();
         } else if (activeTool === 'select') {
           // Handle selection tool clicks on empty space
-          // This only fires if nothing else (token/drawing) handled the click
+          // This only fires if nothing else (token/drawing) handled the click.
+          // A8b: committed drawing strokes (pencil/line/rectangle/circle/
+          // polygon) paint on a pointerEvents:none <canvas> (CanvasInkLayer),
+          // so native SVG hit-testing can never find them - this handler IS
+          // the "nothing else handled it" fallback for tokens/props, but for
+          // these 5 drawing types it's the ONLY path, hence the explicit ink
+          // hit-test consult below before falling through to the
+          // empty-space deselect behavior. Fog tools take precedence over
+          // selection entirely (activeTool is never 'select' while a fog
+          // tool is active - see the fog capture <rect> above, mounted only
+          // for fog-reveal-rect/brush), so no fog-precedence check is
+          // needed here.
+          const worldPoint = sceneUtils.screenToWorld(
+            e.clientX - (svgRef.current?.getBoundingClientRect().left ?? 0),
+            e.clientY - (svgRef.current?.getBoundingClientRect().top ?? 0),
+            camera,
+            viewportSize.width,
+            viewportSize.height,
+          );
+          const hitId = hitTestDrawings(
+            drawings,
+            worldPoint,
+            camera.zoom,
+            inkHitTestCtx,
+          );
+          if (hitId) {
+            if (e.shiftKey || e.metaKey || e.ctrlKey) {
+              if (selectedObjectIds.includes(hitId)) {
+                setSelection(selectedObjectIds.filter((id) => id !== hitId));
+              } else {
+                setSelection([...selectedObjectIds, hitId]);
+              }
+            } else {
+              setSelection([hitId]);
+            }
+            return;
+          }
+
           console.log('🖱️ SceneCanvas mouseDown (empty space)', {
             shiftKey: e.shiftKey,
             target: (e.target as SVGElement)?.tagName,
@@ -510,7 +552,19 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
         }
       }
     },
-    [isHost, followDM, activeTool, clearSelection, cameraGestureEngine],
+    [
+      isHost,
+      followDM,
+      activeTool,
+      clearSelection,
+      cameraGestureEngine,
+      camera,
+      viewportSize,
+      drawings,
+      selectedObjectIds,
+      setSelection,
+      inkHitTestCtx,
+    ],
   );
 
   const handleMouseMove = useCallback(
@@ -1041,22 +1095,27 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                   renders nothing when the grid is disabled. */}
               <SceneGrid viewportSize={viewportSize} camera={camera} />
 
-              {canvasInk && (
-                <foreignObject
-                  x={camera.x - viewportSize.width / (2 * camera.zoom)}
-                  y={camera.y - viewportSize.height / (2 * camera.zoom)}
-                  width={viewportSize.width / camera.zoom}
-                  height={viewportSize.height / camera.zoom}
-                  pointerEvents="none"
-                >
-                  <CanvasInkLayer
-                    sceneId={scene.id}
-                    camera={camera}
-                    viewportWidth={viewportSize.width}
-                    viewportHeight={viewportSize.height}
-                  />
-                </foreignObject>
-              )}
+              {/* A8b cutover: CanvasInkLayer is now the unconditional,
+                  sole renderer for committed pencil/line/rectangle/circle/
+                  polygon strokes (flag removed - see inkHitTest.ts for the
+                  hit-testing half of this cutover). pointerEvents="none"
+                  because clicks are resolved in JS by SceneCanvas's
+                  handleMouseDown consulting inkHitTest, not by native
+                  hit-testing on this element. */}
+              <foreignObject
+                x={camera.x - viewportSize.width / (2 * camera.zoom)}
+                y={camera.y - viewportSize.height / (2 * camera.zoom)}
+                width={viewportSize.width / camera.zoom}
+                height={viewportSize.height / camera.zoom}
+                pointerEvents="none"
+              >
+                <CanvasInkLayer
+                  sceneId={scene.id}
+                  camera={camera}
+                  viewportWidth={viewportSize.width}
+                  viewportHeight={viewportSize.height}
+                />
+              </foreignObject>
 
               {/* Drawings layer - self-subscribes to its drawings slice
                   (A5); memoized, so token moves don't reach it. */}
