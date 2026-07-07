@@ -3,12 +3,9 @@ import { describe, it, expect, vi, afterEach } from 'vitest';
 import { render, screen, cleanup, fireEvent } from '@testing-library/react';
 import { PanelDock } from './PanelDock';
 
-// ConnectionStatus pulls in webSocketService + the full gameStore; PanelDock
-// only needs to prove it renders the cluster's rightmost member, so it's
-// stubbed to a simple marker here rather than exercising its internals.
-vi.mock('./ConnectionStatus', () => ({
-  default: () => <div data-testid="connection-status-stub" />,
-}));
+// Hover-dock redesign (Joel, 2026-07-07): ConnectionStatus moved out of
+// PanelDock into PlayerClusterFloating, so this suite no longer stubs or
+// asserts it — the dock now owns only the panel tab buttons.
 
 afterEach(() => {
   cleanup();
@@ -21,7 +18,7 @@ const panels = [
 ];
 
 describe('PanelDock', () => {
-  it('renders one button per panel plus the ConnectionStatus cluster member', () => {
+  it('renders one tab button per panel', () => {
     render(
       <PanelDock
         panels={panels}
@@ -34,7 +31,6 @@ describe('PanelDock', () => {
     for (const panel of panels) {
       expect(screen.getByRole('tab', { name: panel.label })).not.toBeNull();
     }
-    expect(screen.getByTestId('connection-status-stub')).not.toBeNull();
   });
 
   it('sets aria-pressed/aria-selected only on the active+open panel', () => {

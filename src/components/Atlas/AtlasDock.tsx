@@ -150,6 +150,10 @@ export const AtlasDock: React.FC = () => {
                   bringToFront('atlasPill');
                   pillDragStart(e);
                 }}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  e.preventDefault();
+                }}
               >
                 ⠿
               </div>

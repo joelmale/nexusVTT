@@ -24,6 +24,8 @@ export interface UseDraggablePanelResult {
   isCollapsed: boolean;
   /** Toggle the collapsed state */
   toggleCollapsed: () => void;
+  /** Shift the panel's position by a delta (useful for resizing from top/left) */
+  shiftPosition: (dx: number, dy: number) => void;
   /** Ref to attach to the main panel container that gets moved */
   panelRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -110,6 +112,14 @@ export function useDraggablePanel({
     }
   }, []);
 
+  const shiftPosition = useCallback((dx: number, dy: number) => {
+    const newX = positionRef.current.x + dx;
+    const newY = positionRef.current.y + dy;
+    positionRef.current = { x: newX, y: newY };
+    applyPosition(newX, newY);
+    localStorage.setItem(`nexus-ui-${id}-pos`, JSON.stringify(positionRef.current));
+  }, [id, applyPosition]);
+
   const handlePointerDown = useCallback((e: React.PointerEvent<Element>) => {
     if (e.button !== undefined && e.button !== 0) return;
     const target = e.currentTarget as HTMLElement;
@@ -184,6 +194,7 @@ export function useDraggablePanel({
     onPointerDown: handlePointerDown,
     isCollapsed,
     toggleCollapsed,
+    shiftPosition,
     panelRef,
   };
 }

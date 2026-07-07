@@ -1,9 +1,7 @@
 /*
- * PanelDock — CSS Module (ADR-0006). Top-right floating icon cluster that
- * replaces the removed header's horizontal panel tabs under the
- * `floating-panels` flag. Consumes design tokens only; no raw colors/
- * spacing/z-index. Glass treatment mirrors FloatingPanel.module.css /
- * the legacy sidebar panel.
+ * PanelDock — CSS Module.
+ * Top-right floating panel selector that expands on hover to reveal icons.
+ * Mirrors the ScenePill interaction: compact pill → hover → full icon row.
  */
 
 .dock {
@@ -14,7 +12,7 @@
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
-  padding: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-3);
 
   background: var(--surface-primary);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -23,60 +21,114 @@
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-glass-lg);
 
-  opacity: 1;
-  transition: opacity var(--transition-base), transform var(--transition-base);
+  /* Smooth expansion */
+  max-width: 200px;
+  overflow: hidden;
+  transition:
+    max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    opacity var(--transition-base),
+    background-color 0.2s ease;
 }
 
+.dock:hover,
+.dock.expanded {
+  max-width: 900px;
+  background: var(--surface-secondary);
+}
+
+/* Needed for CSS Modules export */
+.expanded {}
+
+/* ── Drag Handle ── */
 .dragHandle {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 44px;
+  min-height: 44px;
+  margin: calc(-1 * var(--spacing-2)) 0;
+  margin-left: calc(-1 * var(--spacing-3));
+  padding: var(--spacing-2);
+
   color: var(--text-muted);
   font-size: 10px;
   line-height: 1;
   opacity: 0.5;
-  /* 44x44px touch target area for mobile usability */
-  min-width: 44px;
-  min-height: 44px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  margin-left: -12px;
-  margin-top: -12px;
-  margin-bottom: -12px;
   cursor: grab;
   touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  pointer-events: auto;
+  position: relative;
+  z-index: 10;
+  transition: opacity 0.15s ease;
 }
 
 .dragHandle:active {
   cursor: grabbing;
 }
 
-.dock:hover .dragHandle {
+.dock:hover .dragHandle,
+.dock.expanded .dragHandle {
   opacity: 1;
 }
 
-.dock[data-collapsed='true'] {
-  padding: 0;
+/* ── Compact View ── */
+.compactView {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex-shrink: 0;
+  white-space: nowrap;
+  min-width: 0;
 }
 
-.dock[data-collapsed='true'] .iconButton,
-.dock[data-collapsed='true'] .connectionStatus {
-  display: none;
+.label {
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  font-weight: 500;
+  white-space: nowrap;
 }
 
-/* Make the drag handle act as the expand button when collapsed */
-.dock[data-collapsed='true'] .dragHandle {
-  cursor: pointer;
+/* ── Separator ── */
+.separator {
+  width: 1px;
+  height: 20px;
+  background: var(--border-primary);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.dock:hover .separator,
+.dock.expanded .separator {
   opacity: 1;
-  margin: 0;
-  padding: var(--spacing-2);
-  min-width: 48px;
-  min-height: 48px;
-  font-size: 16px;
 }
 
-.dock[data-idle='true'] {
-  opacity: 0.4;
+/* ── Expanded View ── */
+.expandedView {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  opacity: 0;
+  transform: translateX(8px);
+  pointer-events: none;
+  transition:
+    opacity 0.25s ease-out 0.1s,
+    transform 0.25s ease-out 0.1s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
+.dock:hover .expandedView,
+.dock.expanded .expandedView {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* ── Icon Buttons ── */
 .iconButton {
   flex: 0 0 auto;
   display: flex;
@@ -84,7 +136,7 @@
   justify-content: center;
 
   width: var(--spacing-9); /* 36px */
-  height: var(--spacing-9); /* 36px */
+  height: var(--spacing-9);
   padding: 0;
 
   background: transparent;
@@ -120,25 +172,14 @@
   pointer-events: none;
 }
 
-.connectionStatus {
-  flex: 0 0 auto;
-  display: flex;
-  align-items: center;
-  margin-left: var(--spacing-1);
-  padding-left: var(--spacing-2);
-  border-left: 1px solid var(--border-primary);
-}
 
+/* ── Accessibility ── */
 @media (prefers-reduced-motion: reduce) {
   .dock,
   .iconButton {
     transition: none;
   }
 
-  /* Idle-fade is disabled outright under reduced motion (dock stays put);
-     PanelDock.tsx never schedules the idle timer in this case, but the
-     rule is kept as defense-in-depth against the opacity ever landing on
-     the element some other way. */
   .dock[data-idle='true'] {
     opacity: 1;
   }

@@ -2,6 +2,7 @@ import React, { useEffect, useRef } from 'react';
 import { Portal } from './Portal';
 import styles from './FloatingPanel.module.css';
 import { useDraggablePanel } from '@/hooks/useDraggablePanel';
+import { useResizablePanel } from '@/hooks/useResizablePanel';
 import { useUIStackStore, useStackZIndex } from '@/stores/uiStackStore';
 
 interface FloatingPanelProps {
@@ -15,21 +16,13 @@ interface FloatingPanelProps {
 }
 
 /**
- * Portal-mounted floating panel shell (top-right, 320px, transform/opacity
- * animated). Renders unconditionally into #portal-root so the open/close
- * transition can run - visibility is controlled entirely via the
- * `data-state` attribute in FloatingPanel.module.css, never by
- * mount/unmount. `isOpen` still gates whether content stays mounted
- * underneath (the caller may choose to unmount heavy children while closed;
- * this shell doesn't force either choice).
+ * Portal-mounted floating panel shell. Draggable via title bar, resizable
+ * by dragging edges/corners. Size and position are persisted to localStorage.
  *
  * Accessibility:
- *  - role="dialog", aria-modal="false" (this is a non-modal floating panel -
- *    it does not block interaction with the map behind it, per ADR-0007's
- *    "overlay, never reflow, never trap" posture), aria-label from `label`.
+ *  - role="dialog", aria-modal="false" (non-modal — map stays interactive).
  *  - Escape closes the panel.
- *  - Focus returns to the element that was focused immediately before the
- *    panel opened (typically the tab button that triggered it).
+ *  - Focus returns to the previously focused element on close.
  */
 export const FloatingPanel: React.FC<FloatingPanelProps> = ({
   isOpen,
@@ -43,14 +36,24 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
     onPointerDown,
     isCollapsed,
     toggleCollapsed,
+    shiftPosition,
     panelRef,
   } = useDraggablePanel({
     id: 'floatingPanel',
     defaultPosition: { x: window.innerWidth - 320 - 16, y: 84 },
   });
 
-  const zIndex = useStackZIndex('floatingPanel');
+  const { size, onResizeStart, edgeCursor } = useResizablePanel({
+    id: 'floatingPanel',
+    defaultSize: { width: 320, height: 600 },
+    minWidth: 260,
+    minHeight: 200,
+    maxWidth: 800,
+    maxHeight: 900,
+    onPositionChange: shiftPosition,
+  });
 
+  const zIndex = useStackZIndex('floatingPanel');
   const bringToFront = useUIStackStore((state) => state.bringToFront);
 
   // Capture the opener's focus when opening, and restore it on close.
@@ -61,16 +64,12 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
           ? document.activeElement
           : null;
 
-      // Move focus into the panel so Escape / keyboard users land somewhere
-      // sensible. Defer to the next tick so the panel is in the DOM with
-      // data-state="open" before we try to focus it.
       const id = window.requestAnimationFrame(() => {
         panelRef.current?.focus();
       });
       return () => window.cancelAnimationFrame(id);
     }
 
-    // Closing: restore focus to whatever was focused before opening.
     previouslyFocusedRef.current?.focus();
     previouslyFocusedRef.current = null;
     return undefined;
@@ -102,9 +101,20 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
         aria-hidden={!isOpen}
         tabIndex={-1}
         inert={isOpen ? undefined : true}
-        style={{ zIndex }}
+        style={{ zIndex, width: size.width, height: isCollapsed ? 'auto' : size.height }}
         onPointerDownCapture={() => bringToFront('floatingPanel')}
       >
+        {/* ── Resize handles (edges + corners) ── */}
+        <div className={styles.resizeLeft} style={{ cursor: edgeCursor('left') }} onPointerDown={onResizeStart('left')} />
+        <div className={styles.resizeRight} style={{ cursor: edgeCursor('right') }} onPointerDown={onResizeStart('right')} />
+        <div className={styles.resizeTop} style={{ cursor: edgeCursor('top') }} onPointerDown={onResizeStart('top')} />
+        <div className={styles.resizeBottom} style={{ cursor: edgeCursor('bottom') }} onPointerDown={onResizeStart('bottom')} />
+        <div className={styles.resizeTopLeft} style={{ cursor: edgeCursor('top-left') }} onPointerDown={onResizeStart('top-left')} />
+        <div className={styles.resizeTopRight} style={{ cursor: edgeCursor('top-right') }} onPointerDown={onResizeStart('top-right')} />
+        <div className={styles.resizeBottomLeft} style={{ cursor: edgeCursor('bottom-left') }} onPointerDown={onResizeStart('bottom-left')} />
+        <div className={styles.resizeBottomRight} style={{ cursor: edgeCursor('bottom-right') }} onPointerDown={onResizeStart('bottom-right')} />
+
+        {/* ── Title bar (drag handle) ── */}
         <div 
           className={styles.titleBar}
           onPointerDown={onPointerDown}
@@ -132,6 +142,8 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
             </button>
           </div>
         </div>
+
+        {/* ── Body ── */}
         <div className={styles.bodyWrapper} data-collapsed={isCollapsed}>
           <div className={styles.body}>{children}</div>
         </div>

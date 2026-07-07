@@ -54,9 +54,13 @@
   align-items: flex-start;
   gap: 0;
   transition: transform 0.1s linear; /* Optional, for smooth soft-snap */
+  /* Let pointer events pass through the empty wrapper space so panels
+     underneath (PlayerClusterFloating, ScenePill) remain interactive. */
+  pointer-events: none;
 }
 .layout-toolbar > * {
   flex: 0 0 auto; /* Prevent children from stretching */
+  pointer-events: auto; /* Re-enable events on actual toolbar children */
 }
 
 #toolbar-info-banner {

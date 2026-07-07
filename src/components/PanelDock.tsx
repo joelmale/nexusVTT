@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Tooltip } from './Tooltip';
-import ConnectionStatus from './ConnectionStatus';
 import styles from './PanelDock.module.css';
 
 import { useDraggablePanel } from '@/hooks/useDraggablePanel';
@@ -22,16 +21,10 @@ interface PanelDockProps<T extends string = string> {
 }
 
 /**
- * A6b: top-right floating icon dock replacing the removed header's
- * horizontal panel tabs. One 36px round button per panel, keyboard
- * navigable via roving tabindex (ArrowLeft/ArrowRight/Home/End), with
- * Tooltip-provided labels and `aria-pressed` reflecting the
- * active+open panel. ConnectionStatus is appended as the rightmost,
- * non-interactive cluster member.
+ * A6b: Top-right floating panel selector dock.
  *
- * Idle-fade: after 3s with no pointer activity over the dock, it fades to
- * ~40% opacity; pointerenter restores it immediately. Disabled entirely
- * under `prefers-reduced-motion` (the dock simply stays fully visible).
+ * Defaults to a compact pill showing "Panels" with the active panel icon.
+ * Expands on hover to reveal the full icon row.
  */
 export function PanelDock<T extends string = string>({
   panels,
@@ -39,15 +32,13 @@ export function PanelDock<T extends string = string>({
   isOpen,
   onSelect,
 }: PanelDockProps<T>) {
-  const [idle, setIdle] = useState(false);
-  const idleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const hoverTimeoutRef = useRef<number | undefined>(undefined);
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [focusedId, setFocusedId] = useState<T>(activePanel);
 
   const {
     onPointerDown,
-    isCollapsed,
-    toggleCollapsed,
     panelRef,
   } = useDraggablePanel({
     id: 'panelDock',
@@ -57,39 +48,26 @@ export function PanelDock<T extends string = string>({
   const zIndex = useStackZIndex('panelDock');
   const bringToFront = useUIStackStore((state) => state.bringToFront);
 
-  const prefersReducedMotion =
-    typeof window !== 'undefined' && typeof window.matchMedia === 'function'
-      ? (window.matchMedia('(prefers-reduced-motion: reduce)')?.matches ?? false)
-      : false;
-
-  const clearIdleTimer = useCallback(() => {
-    if (idleTimerRef.current !== null) {
-      clearTimeout(idleTimerRef.current);
-      idleTimerRef.current = null;
-    }
+  // ── Hover expand / collapse ──
+  const handleMouseEnter = useCallback(() => {
+    window.clearTimeout(hoverTimeoutRef.current);
+    setIsExpanded(true);
   }, []);
 
-  const scheduleIdle = useCallback(() => {
-    if (prefersReducedMotion) return;
-    clearIdleTimer();
-    idleTimerRef.current = setTimeout(() => setIdle(true), 3000);
-  }, [clearIdleTimer, prefersReducedMotion]);
+  const handleMouseLeave = useCallback(() => {
+    hoverTimeoutRef.current = window.setTimeout(() => {
+      setIsExpanded(false);
+    }, 400);
+  }, []);
 
   useEffect(() => {
-    scheduleIdle();
-    return clearIdleTimer;
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    return () => window.clearTimeout(hoverTimeoutRef.current);
   }, []);
 
-  const handlePointerEnter = useCallback(() => {
-    setIdle(false);
-    clearIdleTimer();
-  }, [clearIdleTimer]);
+  // ── Active panel info ──
+  const activePanelData = panels.find((p) => p.id === activePanel);
 
-  const handlePointerLeave = useCallback(() => {
-    scheduleIdle();
-  }, [scheduleIdle]);
-
+  // ── Roving tabindex ──
   const focusButton = (id: T) => {
     const el = buttonRefs.current.get(id);
     el?.focus();
@@ -125,86 +103,73 @@ export function PanelDock<T extends string = string>({
   return (
     <div
       ref={panelRef}
-      className={styles.dock}
-      data-idle={idle ? 'true' : undefined}
-      data-collapsed={isCollapsed ? 'true' : undefined}
-      onPointerEnter={handlePointerEnter}
-      onPointerLeave={handlePointerLeave}
+      className={`${styles.dock} ${isExpanded ? styles.expanded : ''}`}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
       onPointerDownCapture={() => bringToFront('panelDock')}
       style={{ zIndex }}
       role="tablist"
       aria-label="Panels"
+      aria-expanded={isExpanded}
     >
+      {/* Drag handle */}
       <div
         className={styles.dragHandle}
         aria-hidden="true"
         onPointerDown={(e) => {
-          if (isCollapsed) {
-            e.stopPropagation();
-            toggleCollapsed();
-          } else {
-            onPointerDown(e);
-          }
+          e.stopPropagation();
+          onPointerDown(e);
         }}
-        onClick={(e) => {
-          if (isCollapsed) {
-            e.stopPropagation();
-            toggleCollapsed();
-          }
-        }}
-        title={isCollapsed ? "Expand Tools" : "Drag Panel Dock"}
+        title="Drag Panel Dock"
       >
-        {isCollapsed ? "🛠" : "⠿"}
+        ⠿
       </div>
 
-      {panels.map((panel, index) => {
-        const isActive = panel.id === activePanel && isOpen;
-        const isRovingTarget = panel.id === focusedId;
+      {/* Compact view: label + active panel icon */}
+      <div className={styles.compactView}>
+        <span className={styles.label}>
+          {activePanelData?.icon || '📋'} Panels
+        </span>
+      </div>
 
-        return (
-          <Tooltip key={panel.id} text={panel.label}>
-            <button
-              ref={(el) => {
-                if (el) buttonRefs.current.set(panel.id, el);
-                else buttonRefs.current.delete(panel.id);
-              }}
-              type="button"
-              role="tab"
-              className={styles.iconButton}
-              data-active={isActive ? 'true' : undefined}
-              aria-pressed={isActive}
-              aria-selected={isActive}
-              aria-label={panel.label}
-              tabIndex={isRovingTarget ? 0 : -1}
-              onClick={() => {
-                setFocusedId(panel.id);
-                onSelect(panel.id);
-              }}
-              onFocus={() => setFocusedId(panel.id)}
-              onKeyDown={(e) => handleKeyDown(e, index)}
-            >
-              <span className={styles.icon} aria-hidden="true">
-                {panel.icon}
-              </span>
-            </button>
-          </Tooltip>
-        );
-      })}
+      {/* Separator */}
+      <div className={styles.separator} />
 
-      <Tooltip text="Minimize Dock">
-        <button
-          type="button"
-          className={styles.iconButton}
-          onClick={() => toggleCollapsed()}
-          aria-label="Minimize Dock"
-          style={{ width: '24px', height: '24px', fontSize: '12px' }}
-        >
-          <span aria-hidden="true">−</span>
-        </button>
-      </Tooltip>
+      {/* Expanded: icon buttons */}
+      <div className={styles.expandedView}>
+        {panels.map((panel, index) => {
+          const isActive = panel.id === activePanel && isOpen;
+          const isRovingTarget = panel.id === focusedId;
 
-      <div className={styles.connectionStatus}>
-        <ConnectionStatus showDetails={false} />
+          return (
+            <Tooltip key={panel.id} text={panel.label}>
+              <button
+                ref={(el) => {
+                  if (el) buttonRefs.current.set(panel.id, el);
+                  else buttonRefs.current.delete(panel.id);
+                }}
+                type="button"
+                role="tab"
+                className={styles.iconButton}
+                data-active={isActive ? 'true' : undefined}
+                aria-pressed={isActive}
+                aria-selected={isActive}
+                aria-label={panel.label}
+                tabIndex={isRovingTarget ? 0 : -1}
+                onClick={() => {
+                  setFocusedId(panel.id);
+                  onSelect(panel.id);
+                }}
+                onFocus={() => setFocusedId(panel.id)}
+                onKeyDown={(e) => handleKeyDown(e, index)}
+              >
+                <span className={styles.icon} aria-hidden="true">
+                  {panel.icon}
+                </span>
+              </button>
+            </Tooltip>
+          );
+        })}
       </div>
     </div>
   );

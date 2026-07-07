@@ -1,16 +1,14 @@
 /*
- * FloatingPanel — first CSS Module in the codebase (ADR-0006).
- * Consumes design tokens (src/styles/design-tokens.css) via var() only;
- * no raw colors/spacing/z-index. Glass look mirrors .layout-panel in
- * layout-consolidated.css (surface-primary + glass-blur + glass shadow).
+ * FloatingPanel — CSS Module.
+ * Draggable + resizable floating panel for the right-side context panel.
+ * Position via useDraggablePanel, size via useResizablePanel.
  */
 
 .panel {
   position: fixed;
   top: 0;
   left: 0;
-  width: 320px;
-  max-height: calc(100vh - var(--spacing-4) * 2);
+  /* width & height are set via inline style from useResizablePanel */
 
   display: flex;
   flex-direction: column;
@@ -38,6 +36,7 @@
   pointer-events: none;
 }
 
+/* ── Title Bar (drag target) ── */
 .titleBar {
   display: flex;
   align-items: center;
@@ -47,7 +46,8 @@
   border-bottom: 1px solid var(--border-primary);
   cursor: grab;
   user-select: none;
-  touch-action: none; /* Prevent scroll on mobile during drag */
+  touch-action: none;
+  flex-shrink: 0;
 }
 
 .titleBar:active {
@@ -59,7 +59,6 @@
   font-size: 10px;
   line-height: 1;
   opacity: 0.5;
-  /* Ensure a minimum 44x44px touch target area for mobile usability */
   min-width: 44px;
   min-height: 44px;
   display: flex;
@@ -107,13 +106,14 @@
   color: var(--text-primary);
 }
 
+/* ── Body ── */
 .bodyWrapper {
   display: flex;
   flex-direction: column;
   flex: 1 1 auto;
   overflow: hidden;
   transition: max-height var(--transition-base), opacity var(--transition-base);
-  max-height: 800px; /* arbitrary large value for expansion */
+  max-height: 2000px; /* large enough to never clip */
   opacity: 1;
 }
 
@@ -130,6 +130,83 @@
   min-height: 0;
 }
 
+/* ==========================================================================
+   RESIZE HANDLES — invisible 6px hit zones along edges and 12px on corners.
+   All positioned absolute inside the panel. The cursor is set inline by JS.
+   ========================================================================== */
+
+.resizeLeft,
+.resizeRight,
+.resizeTop,
+.resizeBottom,
+.resizeTopLeft,
+.resizeTopRight,
+.resizeBottomLeft,
+.resizeBottomRight {
+  position: absolute;
+  z-index: 5;
+  /* Let the panel stay interactive while cursor shows resize affordance */
+}
+
+/* ── Edge handles ── */
+.resizeLeft {
+  left: -3px;
+  top: 12px;
+  bottom: 12px;
+  width: 6px;
+}
+
+.resizeRight {
+  right: -3px;
+  top: 12px;
+  bottom: 12px;
+  width: 6px;
+}
+
+.resizeTop {
+  top: -3px;
+  left: 12px;
+  right: 12px;
+  height: 6px;
+}
+
+.resizeBottom {
+  bottom: -3px;
+  left: 12px;
+  right: 12px;
+  height: 6px;
+}
+
+/* ── Corner handles ── */
+.resizeTopLeft {
+  top: -3px;
+  left: -3px;
+  width: 12px;
+  height: 12px;
+}
+
+.resizeTopRight {
+  top: -3px;
+  right: -3px;
+  width: 12px;
+  height: 12px;
+}
+
+.resizeBottomLeft {
+  bottom: -3px;
+  left: -3px;
+  width: 12px;
+  height: 12px;
+}
+
+.resizeBottomRight {
+  bottom: -3px;
+  right: -3px;
+  width: 12px;
+  height: 12px;
+}
+
+/* ── Accessibility ── */
 @media (prefers-reduced-motion: reduce) {
   .panel, .bodyWrapper {
     transition: none;
