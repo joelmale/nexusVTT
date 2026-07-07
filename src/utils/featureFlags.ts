@@ -2,8 +2,8 @@
  * Minimal feature-flag utility.
  *
  * Flags are stored as a single JSON object under one localStorage key
- * (`nexus-flags`), e.g. `{"floating-panels": true}`. All flags default to
- * OFF (missing/false) unless explicitly set.
+ * (`nexus-flags`), e.g. `{"floating-panels": false}`. Defaults live in
+ * `DEFAULT_FLAGS`; explicit localStorage values always win.
  *
  * `useFlag(name)` re-renders the calling component when the flag changes -
  * either because another tab wrote to localStorage (native `storage` event,
@@ -13,6 +13,9 @@
  */
 
 const STORAGE_KEY = 'nexus-flags';
+const DEFAULT_FLAGS: Record<string, boolean> = {
+  'floating-panels': true,
+};
 
 type FlagListener = () => void;
 
@@ -42,9 +45,13 @@ function notifyListeners(): void {
   listeners.forEach((listener) => listener());
 }
 
-/** Read a flag's current value. Defaults to `false` when unset. */
+/** Read a flag's current value. Defaults come from DEFAULT_FLAGS. */
 export function isFlagEnabled(name: string): boolean {
-  return readFlags()[name] === true;
+  const flags = readFlags();
+  if (Object.prototype.hasOwnProperty.call(flags, name)) {
+    return flags[name] === true;
+  }
+  return DEFAULT_FLAGS[name] === true;
 }
 
 /** Set (or clear) a flag. Notifies same-tab and cross-tab subscribers. */

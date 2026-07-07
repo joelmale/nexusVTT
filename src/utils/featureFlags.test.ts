@@ -9,8 +9,12 @@ beforeEach(() => {
 });
 
 describe('isFlagEnabled / setFlag', () => {
-  it('defaults to false for an unset flag', () => {
-    expect(isFlagEnabled('floating-panels')).toBe(false);
+  it('defaults floating panels to true when unset', () => {
+    expect(isFlagEnabled('floating-panels')).toBe(true);
+  });
+
+  it('defaults unknown flags to false when unset', () => {
+    expect(isFlagEnabled('unknown-flag')).toBe(false);
   });
 
   it('setFlag(name, true) persists and isFlagEnabled reflects it', () => {
@@ -35,7 +39,8 @@ describe('isFlagEnabled / setFlag', () => {
 
   it('tolerates corrupt JSON in localStorage (treats as no flags set)', () => {
     localStorage.setItem(STORAGE_KEY, '{not valid json');
-    expect(isFlagEnabled('floating-panels')).toBe(false);
+    expect(isFlagEnabled('floating-panels')).toBe(true);
+    expect(isFlagEnabled('unknown-flag')).toBe(false);
   });
 
   it('multiple flags are independent', () => {
@@ -52,25 +57,25 @@ describe('useFlag', () => {
     expect(result.current).toBe(true);
   });
 
-  it('defaults to false when unset', () => {
+  it('defaults floating panels to true when unset', () => {
     const { result } = renderHook(() => useFlag('floating-panels'));
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
   });
 
   it('re-renders when setFlag is called in the same tab', () => {
     const { result } = renderHook(() => useFlag('floating-panels'));
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
 
     act(() => {
-      setFlag('floating-panels', true);
+      setFlag('floating-panels', false);
     });
 
-    expect(result.current).toBe(true);
+    expect(result.current).toBe(false);
   });
 
   it('re-renders when a cross-tab storage event fires for the flags key', () => {
     const { result } = renderHook(() => useFlag('floating-panels'));
-    expect(result.current).toBe(false);
+    expect(result.current).toBe(true);
 
     // Simulate another tab writing the flag directly to localStorage and
     // dispatching the native cross-tab `storage` event (jsdom does not do
@@ -78,14 +83,14 @@ describe('useFlag', () => {
     act(() => {
       localStorage.setItem(
         STORAGE_KEY,
-        JSON.stringify({ 'floating-panels': true }),
+          JSON.stringify({ 'floating-panels': false }),
       );
       window.dispatchEvent(
         new StorageEvent('storage', { key: STORAGE_KEY }),
       );
     });
 
-    expect(result.current).toBe(true);
+    expect(result.current).toBe(false);
   });
 
   it('two independent hook instances both react to a single setFlag call', () => {

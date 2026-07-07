@@ -57,10 +57,9 @@ export const GameUI: React.FC = () => {
 
   const isHost = user.type === 'host';
 
-  // A6a: floating-panels flag. OFF (default) renders the exact legacy
-  // markup/behavior below (reserved sidebar column, .layout-panel,
-  // resize handle). ON swaps to a single-column grid with ContextPanel
-  // rendered inside a portal-mounted FloatingPanel instead.
+  // A6a: floating-panels flag. ON by default renders a single-column grid
+  // with ContextPanel inside a portal-mounted FloatingPanel. Explicit OFF
+  // preserves the legacy reserved sidebar column and resize handle.
   const floatingPanelsEnabled = useFlag('floating-panels');
 
   const [panelExpanded, setPanelExpanded] = useState(true);
