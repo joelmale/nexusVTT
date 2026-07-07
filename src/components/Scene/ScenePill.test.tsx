@@ -1,114 +1,125 @@
 import React from 'react';
-import { describe, it, expect, afterEach, vi } from 'vitest';
-import { render, screen, cleanup, fireEvent } from '@testing-library/react';
+import { render, fireEvent, act } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ScenePill } from './ScenePill';
+import { useGameStore } from '@/stores/gameStore';
+import { drawingPersistenceService } from '@/services/drawingPersistence';
 import type { Scene } from '@/types/game';
 
-/**
- * Covers the A6c ScenePill contract:
- *  - host renders the pill (with the active scene's name)
- *  - non-host renders nothing (players never get scene control under the
- *    floating-panels flag - they follow the DM's active scene)
- *  - clicking the pill opens a popover listing scenes
- *  - clicking a scene in the popover fires the switch action
- */
-
-const mockUseIsHost = vi.fn();
-const mockSetActiveScene = vi.fn();
-const mockCreateScene = vi.fn();
-const mockDeleteScene = vi.fn();
-const mockUpdateScene = vi.fn();
-const mockReorderScenes = vi.fn();
-
-vi.mock('@/stores/gameStore', () => ({
-  useGameStore: () => ({
-    setActiveScene: mockSetActiveScene,
-    createScene: mockCreateScene,
-    deleteScene: mockDeleteScene,
-    updateScene: mockUpdateScene,
-    reorderScenes: mockReorderScenes,
-  }),
-  useSession: () => ({ hostId: 'host-1' }),
-  useIsHost: () => mockUseIsHost(),
+// Conventions per src/stores/fog.test.ts (network mocked; real store).
+vi.mock('@/services/websocket', () => ({
+  webSocketService: {
+    isConnected: vi.fn().mockReturnValue(true),
+    sendEvent: vi.fn(),
+    sendGameStateUpdate: vi.fn(),
+  },
+}));
+vi.mock('@/services/drawingPersistence', () => ({
+  drawingPersistenceService: {
+    saveScene: vi.fn().mockResolvedValue(undefined),
+    loadScene: vi.fn().mockResolvedValue(null),
+  },
 }));
 
-const scenes: Scene[] = [
-  {
-    id: 'scene-1',
-    name: 'The Tavern',
-    description: '',
-    visibility: 'public',
-    isEditable: true,
-  } as Scene,
-  {
-    id: 'scene-2',
-    name: 'The Dungeon',
-    description: '',
-    visibility: 'public',
-    isEditable: true,
-  } as Scene,
-];
+/**
+ * Tests for Joel's S13 ScenePill redesign: a hover-expanding floating scene
+ * dock (compact pill → chips + add button on hover), draggable, host-only.
+ * The expanded view is ALWAYS rendered and collapsed via CSS, so queries use
+ * scoped selectors / roles rather than assuming conditional mounting.
+ * (Replaces the A6c click-popover tests, which tested a design that was
+ * superseded in the working tree during gate review.)
+ */
+const scenesFixture = (): Scene[] =>
+  [
+    { id: 's1', name: 'The Tavern', drawings: [], placedTokens: [], placedProps: [] },
+    { id: 's2', name: 'The Dungeon', drawings: [], placedTokens: [], placedProps: [] },
+  ] as unknown as Scene[];
 
-afterEach(() => {
-  cleanup();
-  vi.clearAllMocks();
-});
+const seedStore = (userType: 'host' | 'player') => {
+  useGameStore.setState((state) => {
+    state.user.type = userType;
+    // createScene throws without an active session
+    state.session = {
+      roomCode: 'TEST',
+      hostId: 'host-1',
+      players: [],
+    } as unknown as typeof state.session;
+    state.sceneState.scenes = scenesFixture() as Scene[];
+    state.sceneState.activeSceneId = 's1';
+  });
+};
 
-describe('ScenePill', () => {
-  it('renders the pill with the active scene name for a host', () => {
-    mockUseIsHost.mockReturnValue(true);
+const renderPill = () =>
+  render(<ScenePill scenes={scenesFixture()} activeSceneId="s1" />);
 
-    render(<ScenePill scenes={scenes} activeSceneId="scene-1" />);
+describe('ScenePill (hover-expanding scene dock)', () => {
+  beforeEach(() => {
+    // vitest mockReset:true wipes factory implementations — re-arm (repo gotcha;
+    // an un-armed saveScene returns undefined and its .catch throws INSIDE
+    // createScene, aborting it between the push and setActiveScene).
+    vi.mocked(drawingPersistenceService.saveScene).mockResolvedValue(undefined);
+    localStorage.clear();
+    vi.useFakeTimers();
+  });
+  afterEach(() => {
+    vi.useRealTimers();
+  });
 
-    expect(screen.getByText('The Tavern')).not.toBeNull();
+  it('renders the compact pill with the active scene name for a host', () => {
+    seedStore('host');
+    const { container, getByRole } = renderPill();
+    expect(getByRole('region', { name: 'Scene Manager' })).toBeTruthy();
+    // Active name appears in the compact view (and again as a chip — scoped query).
+    const compact = container.querySelector('[class*="compactView"]');
+    expect(compact?.textContent).toContain('The Tavern');
+    expect(
+      getByRole('region', { name: 'Scene Manager' }).getAttribute('aria-expanded'),
+    ).toBe('false');
   });
 
   it('renders nothing for a non-host', () => {
-    mockUseIsHost.mockReturnValue(false);
-
-    const { container } = render(
-      <ScenePill scenes={scenes} activeSceneId="scene-1" />,
-    );
-
+    seedStore('player');
+    const { container } = renderPill();
     expect(container.firstChild).toBeNull();
   });
 
-  it('opens a popover listing scenes on click', () => {
-    mockUseIsHost.mockReturnValue(true);
+  it('expands on hover and collapses 400ms after mouse leave', () => {
+    seedStore('host');
+    const { getByRole } = renderPill();
+    const region = getByRole('region', { name: 'Scene Manager' });
 
-    render(<ScenePill scenes={scenes} activeSceneId="scene-1" />);
+    fireEvent.mouseEnter(region);
+    expect(region.getAttribute('aria-expanded')).toBe('true');
 
-    fireEvent.click(screen.getByRole('button', { name: /switch scene/i }));
-
-    const dialog = screen.getByRole('dialog', { name: /scene switcher/i });
-    expect(dialog).not.toBeNull();
-    expect(dialog.textContent).toContain('The Tavern');
-    expect(dialog.textContent).toContain('The Dungeon');
+    fireEvent.mouseLeave(region);
+    expect(region.getAttribute('aria-expanded')).toBe('true'); // grace period
+    act(() => {
+      vi.advanceTimersByTime(450);
+    });
+    expect(region.getAttribute('aria-expanded')).toBe('false');
   });
 
-  it('fires the switch action when a scene tab in the popover is clicked', () => {
-    mockUseIsHost.mockReturnValue(true);
+  it('switches the active scene when a chip is clicked', () => {
+    seedStore('host');
+    const { getByRole, getByTitle } = renderPill();
+    fireEvent.mouseEnter(getByRole('region', { name: 'Scene Manager' }));
 
-    render(<ScenePill scenes={scenes} activeSceneId="scene-1" />);
-
-    fireEvent.click(screen.getByRole('button', { name: /switch scene/i }));
-
-    const dungeonTab = screen.getByRole('tab', { name: /The Dungeon/i });
-    fireEvent.click(dungeonTab);
-
-    expect(mockSetActiveScene).toHaveBeenCalledWith('scene-2');
+    fireEvent.click(getByTitle('The Dungeon'));
+    expect(useGameStore.getState().sceneState.activeSceneId).toBe('s2');
   });
 
-  it('closes the popover on Escape', () => {
-    mockUseIsHost.mockReturnValue(true);
+  it('creates and activates a new scene via the + button', () => {
+    seedStore('host');
+    const { getByRole } = renderPill();
+    fireEvent.mouseEnter(getByRole('region', { name: 'Scene Manager' }));
 
-    render(<ScenePill scenes={scenes} activeSceneId="scene-1" />);
+    fireEvent.click(getByRole('button', { name: 'Create new scene' }));
 
-    fireEvent.click(screen.getByRole('button', { name: /switch scene/i }));
-    expect(screen.getByRole('dialog', { name: /scene switcher/i })).not.toBeNull();
-
-    fireEvent.keyDown(window, { key: 'Escape' });
-
-    expect(screen.queryByRole('dialog', { name: /scene switcher/i })).toBeNull();
+    const { scenes, activeSceneId } = useGameStore.getState().sceneState;
+    expect(scenes.length).toBe(3);
+    // The NEW scene (whatever id/name the store assigned it) became active.
+    const created = scenes.find((s) => s.id !== 's1' && s.id !== 's2');
+    expect(created).toBeTruthy();
+    expect(activeSceneId).toBe(created!.id);
   });
 });
