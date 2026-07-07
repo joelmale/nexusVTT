@@ -21,6 +21,8 @@ import {
 } from '@/stores/gameStore';
 import { SceneCanvas } from './Scene/SceneCanvas';
 import { SceneTabs } from './Scene/SceneTabs';
+import { ScenePill } from './Scene/ScenePill';
+import { GeneratorOverlay } from './Generator/GeneratorOverlay';
 import { GameToolbar } from './GameToolbar';
 import { PlayerBar, PlayerActions } from './PlayerBar';
 import { ContextPanel } from './ContextPanel';
@@ -96,6 +98,16 @@ export const GameUI: React.FC = () => {
     },
     [floatingPanelsEnabled, activePanel, floatingPanelOpen],
   );
+
+  // A6c: GeneratorPanel modal hygiene (always on, not flag-gated - this is a
+  // bug fix, not a layout change). Escape/focus-trap/focus-restore now live
+  // in GeneratorOverlay (see Generator/GeneratorOverlay.tsx) so they're
+  // independently testable without mounting all of GameUI.
+  const isGeneratorOpen = activePanel === 'generator';
+
+  const closeGenerator = useCallback(() => {
+    setActivePanel('scene');
+  }, []);
 
   const [sidebarWidth, setSidebarWidth] = useState(300);
   const [collapsedWidth] = useState(8); // Width when collapsed (just the resize handle)
@@ -395,13 +407,25 @@ export const GameUI: React.FC = () => {
         </>
       )}
 
+      {/* A6c: flag ON replaces the permanent scene-tab-bar row with a
+          host-only floating ScenePill (top-left, below PlayerClusterFloating)
+          that opens a popover containing the same SceneTabs UI. Players get
+          no scene strip at all under the flag - they follow the DM's active
+          scene and never had local scene-switching in practice. Flag OFF
+          renders the legacy row byte-identically. */}
+      {floatingPanelsEnabled && (
+        <ScenePill scenes={scenes} activeSceneId={activeScene?.id || ''} />
+      )}
+
       {/* Main Game Canvas with Scene Tabs */}
       <ErrorBoundary name="Main Canvas" key={activeScene?.id || 'no-scene'}>
         <div className="layout-scene">
-          {/* Browser-Style Scene Tab Bar */}
-          <div className="scene-tab-bar">
-            <SceneTabs scenes={scenes} activeSceneId={activeScene?.id || ''} />
-          </div>
+          {/* Browser-Style Scene Tab Bar (legacy, flag off only) */}
+          {!floatingPanelsEnabled && (
+            <div className="scene-tab-bar">
+              <SceneTabs scenes={scenes} activeSceneId={activeScene?.id || ''} />
+            </div>
+          )}
 
           {/* Scene Content */}
           <div className="scene-content scene-content-relative">
@@ -488,30 +512,21 @@ export const GameUI: React.FC = () => {
         </div>
       )}
 
-      {activePanel === 'generator' && (
-        <div className="generator-overlay">
-          <button
-            className="generator-overlay-close"
-            onClick={() => setActivePanel('scene')}
-            title="Close generator and return to scene"
+      <GeneratorOverlay
+        isOpen={isGeneratorOpen}
+        onClose={closeGenerator}
+        floatingPanelsEnabled={floatingPanelsEnabled}
+      >
+        <ErrorBoundary name="Generator Panel">
+          <Suspense
+            fallback={
+              <div className="panel-skeleton">Loading generator...</div>
+            }
           >
-            ✕
-          </button>
-          <div className="generator-overlay-content">
-            <ErrorBoundary name="Generator Panel">
-              <Suspense
-                fallback={
-                  <div className="panel-skeleton">Loading generator...</div>
-                }
-              >
-                <GeneratorPanel
-                  onSwitchToScenes={() => setActivePanel('scene')}
-                />
-              </Suspense>
-            </ErrorBoundary>
-          </div>
-        </div>
-      )}
+            <GeneratorPanel onSwitchToScenes={closeGenerator} />
+          </Suspense>
+        </ErrorBoundary>
+      </GeneratorOverlay>
 
       {/* C4: Atlas Dock Component */}
       <AtlasDock />

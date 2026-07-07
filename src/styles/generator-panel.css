@@ -7,7 +7,11 @@
   overflow: hidden;
 }
 
-/* Generator Overlay - Full screen overlay for generator */
+/* Generator Overlay - Full screen overlay for generator.
+   Flag off (default): carved out below the legacy header (top: header
+   height). Flag on (A6b's floating-panels - the header row no longer
+   exists): overlay covers the full viewport (inset: 0), set via the
+   data-floating-panels attribute GameUI.tsx applies to this element. */
 .generator-overlay {
   position: fixed;
   top: var(--header-height, 60px);
@@ -22,6 +26,11 @@
   align-items: flex-start;
   justify-content: center;
   padding: 2rem;
+}
+
+.generator-overlay[data-floating-panels='true'] {
+  inset: 0;
+  top: 0;
 }
 
 .generator-overlay-content {
@@ -117,7 +126,7 @@
   transform: translate(-50%, -50%);
   text-align: center;
   color: var(--text-secondary);
-  z-index: 10;
+  z-index: var(--z-panel);
 }
 
 .generator-loading .spinner {

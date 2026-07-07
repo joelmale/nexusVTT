@@ -1,0 +1,90 @@
+/*
+ * ScenePill — CSS Module (ADR-0006). Host-only floating scene switcher that
+ * replaces the permanent `.scene-tab-bar` row under the `floating-panels`
+ * flag (A6c). Consumes design tokens only; no raw colors/spacing/z-index.
+ *
+ * Positioned top-left, offset below PlayerClusterFloating's default slot
+ * (16, 16) so the two floating clusters don't overlap out of the box. Both
+ * remain independently draggable via useDraggablePanel, so this is a
+ * default-position concern only.
+ */
+
+.container {
+  position: fixed;
+  top: 84px;
+  left: 16px;
+  z-index: var(--z-tool-ui);
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  max-width: 220px;
+  padding: var(--spacing-2) var(--spacing-3);
+
+  background: var(--surface-primary);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-glass-lg);
+
+  color: var(--text-primary);
+  font-size: var(--text-sm);
+  cursor: pointer;
+
+  transition:
+    transform var(--transition-base),
+    background-color var(--transition-base);
+}
+
+.trigger:hover {
+  background: var(--surface-hover);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.icon {
+  flex: 0 0 auto;
+  line-height: 1;
+}
+
+.sceneName {
+  flex: 1 1 auto;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popover {
+  position: absolute;
+  top: calc(100% + var(--spacing-2));
+  left: 0;
+  min-width: 280px;
+  max-width: 90vw;
+
+  background: var(--surface-primary);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-glass-lg);
+  padding: var(--spacing-2);
+
+  /* SceneTabs renders its own horizontal-scrolling tab strip; inside the
+     popover it should wrap and grow vertically instead. */
+  overflow: visible;
+}
+
+.popover :global(.scene-tabs-container) {
+  flex-wrap: wrap;
+}
+
+.popover :global(.scene-tabs) {
+  flex-wrap: wrap;
+  overflow: visible;
+}
