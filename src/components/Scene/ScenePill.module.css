@@ -1,26 +1,17 @@
 /*
- * ScenePill — CSS Module (ADR-0006). Host-only floating scene switcher that
- * replaces the permanent `.scene-tab-bar` row under the `floating-panels`
- * flag (A6c). Consumes design tokens only; no raw colors/spacing/z-index.
- *
- * Positioned top-left, offset below PlayerClusterFloating's default slot
- * (16, 16) so the two floating clusters don't overlap out of the box. Both
- * remain independently draggable via useDraggablePanel, so this is a
- * default-position concern only.
+ * ScenePill — CSS Module.
+ * A premium floating dock for scene management that expands on hover.
+ * Uses hardware-accelerated transforms for position (via useDraggablePanel).
  */
 
 .container {
   position: fixed;
-  top: 84px;
-  left: 16px;
-  z-index: var(--z-tool-ui);
-}
+  top: 0;
+  left: 0;
 
-.trigger {
   display: flex;
   align-items: center;
   gap: var(--spacing-2);
-  max-width: 220px;
   padding: var(--spacing-2) var(--spacing-3);
 
   background: var(--surface-primary);
@@ -30,22 +21,69 @@
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-glass-lg);
 
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  cursor: pointer;
-
+  /* Smooth expansion via max-width on the container */
+  max-width: 260px;
+  overflow: hidden;
   transition:
-    transform var(--transition-base),
-    background-color var(--transition-base);
+    max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.2s ease;
 }
 
-.trigger:hover {
-  background: var(--surface-hover);
+.container:hover,
+.container.expanded {
+  max-width: 900px;
+  background: var(--surface-secondary);
 }
 
-.trigger:focus-visible {
-  outline: 2px solid var(--color-primary);
-  outline-offset: 2px;
+/* Needed so CSS Modules exports this class name for JS toggling */
+.expanded {}
+
+/* ── Drag Handle ── */
+.dragHandle {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  /* Make it a proper touch target (44×44 is the WCAG minimum) */
+  min-width: 44px;
+  min-height: 44px;
+  /* Pull negative margin so it doesn't add visual bulk to the pill */
+  margin: calc(-1 * var(--spacing-2)) 0;
+  margin-left: calc(-1 * var(--spacing-3));
+  padding: var(--spacing-2);
+
+  color: var(--text-muted);
+  font-size: 10px;
+  line-height: 1;
+  opacity: 0.5;
+  cursor: grab;
+  touch-action: none;
+  user-select: none;
+  -webkit-user-select: none;
+  /* Ensure pointer events always reach the handle */
+  pointer-events: auto;
+  position: relative;
+  z-index: 10;
+  transition: opacity 0.15s ease;
+}
+
+.dragHandle:active {
+  cursor: grabbing;
+}
+
+.container:hover .dragHandle,
+.container.expanded .dragHandle {
+  opacity: 1;
+}
+
+/* ── Compact View (always visible) ── */
+.compactView {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  flex-shrink: 0;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 .icon {
@@ -58,33 +96,148 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+  font-weight: 500;
 }
 
-.popover {
-  position: absolute;
-  top: calc(100% + var(--spacing-2));
-  left: 0;
-  min-width: 280px;
-  max-width: 90vw;
+/* ── Separator bar ── */
+.separator {
+  width: 1px;
+  height: 20px;
+  background: var(--border-primary);
+  flex-shrink: 0;
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
 
-  background: var(--surface-primary);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
+.container:hover .separator,
+.container.expanded .separator {
+  opacity: 1;
+}
+
+/* ── Expanded View (slides in on hover) ── */
+.expandedView {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  opacity: 0;
+  transform: translateX(-8px);
+  pointer-events: none;
+  transition:
+    opacity 0.25s ease-out 0.1s,
+    transform 0.25s ease-out 0.1s;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.container:hover .expandedView,
+.container.expanded .expandedView {
+  opacity: 1;
+  transform: translateX(0);
+  pointer-events: auto;
+}
+
+/* ── Scene tab chips inside the expanded dock ── */
+.sceneChip {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  padding: var(--spacing-1) var(--spacing-3);
+  border-radius: var(--border-radius);
   border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-glass-lg);
-  padding: var(--spacing-2);
-
-  /* SceneTabs renders its own horizontal-scrolling tab strip; inside the
-     popover it should wrap and grow vertically instead. */
-  overflow: visible;
+  background: var(--surface-primary);
+  color: var(--text-secondary);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease,
+    border-color 0.15s ease;
+  flex-shrink: 0;
 }
 
-.popover :global(.scene-tabs-container) {
-  flex-wrap: wrap;
+.sceneChip:hover {
+  background: var(--surface-hover);
+  color: var(--text-primary);
 }
 
-.popover :global(.scene-tabs) {
-  flex-wrap: wrap;
-  overflow: visible;
+.sceneChipActive {
+  composes: sceneChip;
+  background: var(--color-primary);
+  color: white;
+  border-color: var(--color-primary);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
+}
+
+.sceneChipActive:hover {
+  background: var(--color-primary);
+  color: white;
+}
+
+.deleteBtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  border: none;
+  background: none;
+  color: inherit;
+  opacity: 0;
+  font-size: 12px;
+  line-height: 1;
+  padding: 0;
+  margin-left: var(--spacing-1);
+  cursor: pointer;
+  border-radius: 50%;
+  transition: opacity 0.15s ease, background-color 0.15s ease;
+}
+
+.sceneChip:hover .deleteBtn,
+.sceneChipActive:hover .deleteBtn {
+  opacity: 0.6;
+}
+
+.deleteBtn:hover {
+  opacity: 1 !important;
+  background: rgba(255, 255, 255, 0.15);
+}
+
+/* ── Add Scene Button ── */
+.addButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px dashed var(--border-primary);
+  background: transparent;
+  color: var(--text-muted);
+  font-size: 16px;
+  line-height: 1;
+  padding: 0;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition:
+    background-color 0.2s ease,
+    border-color 0.2s ease,
+    color 0.2s ease,
+    transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.addButton:hover {
+  background: var(--color-primary);
+  border-color: var(--color-primary);
+  border-style: solid;
+  color: white;
+  transform: scale(1.15);
+  box-shadow: 0 0 12px rgba(0, 188, 212, 0.35);
+}
+
+.addButton:active {
+  transform: scale(0.95);
 }

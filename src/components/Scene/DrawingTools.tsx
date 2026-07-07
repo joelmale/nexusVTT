@@ -896,6 +896,13 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
         },
         pencil: () => {
           setPencilPath([point]);
+          // startPoint must be set or the mouseup commit guard
+          // (`!isDrawing || !startPoint`) silently discards the stroke —
+          // this override skips the defaultHandler that sets it for the
+          // other shape tools (2nd stacked pre-existing pencil bug caught
+          // in Joel's A8b gate review; the 1st was the 'draw' tool id).
+          setStartPoint(point);
+          setCurrentPoint(point);
           setIsDrawing(true);
         },
         'mask-create': () => {

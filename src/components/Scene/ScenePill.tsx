@@ -1,8 +1,10 @@
-import React, { useEffect, useRef, useState } from 'react';
-import { useIsHost } from '@/stores/gameStore';
-import { SceneTabs } from './SceneTabs';
+import React, { useRef, useState, useEffect, useCallback } from 'react';
+import { useGameStore, useIsHost, useSession } from '@/stores/gameStore';
 import type { Scene } from '@/types/game';
+import { sceneUtils } from '@/utils/sceneUtils';
 import styles from './ScenePill.module.css';
+import { useDraggablePanel } from '@/hooks/useDraggablePanel';
+import { useUIStackStore, useStackZIndex } from '@/stores/uiStackStore';
 
 interface ScenePillProps {
   scenes: Scene[];
@@ -10,115 +12,161 @@ interface ScenePillProps {
 }
 
 /**
- * A6c: floating replacement for the permanent `.scene-tab-bar` row, mounted
- * under the `floating-panels` flag only (see GameUI.tsx). Host-only - a
- * player following the DM's active scene has no scene control at all, so
- * they get no pill (verified: SceneTabs' onClick calls setActiveScene
- * unconditionally, but the tab list itself is host-gated in practice via
- * this component - non-hosts never render ScenePill and therefore never
- * reach a scene tab to click).
+ * A6c: Floating scene dock for hosts.
  *
- * Renders a compact button showing the active scene's name; clicking it
- * opens a popover containing the existing SceneTabs UI (unmodified) so all
- * scene CRUD (switch/add/rename/delete/reorder) stays reachable through one
- * code path instead of forking the logic. This is the least-risk reuse
- * strategy: SceneTabs already reads all its actions from useGameStore, so
- * rendering it verbatim inside a popover requires no changes to SceneTabs.
+ * Renders a compact pill showing the active scene name.
+ * On hover it smoothly expands to reveal all scene chips and a "+" button.
+ * Draggable via the ⠿ handle, identical interaction model to PlayerClusterFloating.
  *
- * Positioned below PlayerClusterFloating's default top-left slot (16,16) so
- * the two floating clusters don't overlap out of the box; both remain
- * independently draggable via useDraggablePanel elsewhere, so this is a
- * default-position concern only, not a hard constraint.
+ * Key design decisions:
+ * - Renders its own scene chips instead of delegating to SceneTabs so we avoid
+ *   inheriting the complex `.scene-tab` CSS from layout-consolidated.css.
+ * - The drag handle has a 44×44 touch target matching WCAG / player cluster.
  */
 export const ScenePill: React.FC<ScenePillProps> = ({
   scenes,
   activeSceneId,
 }) => {
   const isHost = useIsHost();
-  const [isOpen, setIsOpen] = useState(false);
-  const containerRef = useRef<HTMLDivElement>(null);
-  const triggerRef = useRef<HTMLButtonElement>(null);
-  const previouslyFocusedRef = useRef<HTMLElement | null>(null);
+  const session = useSession();
+  const { setActiveScene, createScene, deleteScene } = useGameStore();
+  const [isExpanded, setIsExpanded] = useState(false);
+
+  const { onPointerDown, panelRef } = useDraggablePanel({
+    // Fresh id — ensures no stale localStorage position
+    id: 'sceneDock_v4',
+    defaultPosition: { x: 550, y: 16 },
+  });
+
+  const zIndex = useStackZIndex('scenePill');
+  const bringToFront = useUIStackStore((state) => state.bringToFront);
 
   const activeScene = scenes.find((s) => s.id === activeSceneId) || null;
+  const hoverTimeoutRef = useRef<number | undefined>(undefined);
 
-  // Close on outside click.
-  useEffect(() => {
-    if (!isOpen) return undefined;
+  const handleMouseEnter = useCallback(() => {
+    window.clearTimeout(hoverTimeoutRef.current);
+    setIsExpanded(true);
+  }, []);
 
-    const handlePointerDown = (e: PointerEvent) => {
-      if (!containerRef.current) return;
-      if (!containerRef.current.contains(e.target as Node)) {
-        setIsOpen(false);
+  const handleMouseLeave = useCallback(() => {
+    hoverTimeoutRef.current = window.setTimeout(() => {
+      setIsExpanded(false);
+    }, 400);
+  }, []);
+
+  const handleCreateScene = useCallback(() => {
+    const sceneNumber = scenes.length + 1;
+    const defaultScene = sceneUtils.createDefaultScene(
+      `Scene ${sceneNumber}`,
+      session?.hostId || 'unknown',
+    );
+    const newScene = createScene(defaultScene);
+    setActiveScene(newScene.id);
+  }, [scenes.length, session?.hostId, createScene, setActiveScene]);
+
+  const handleDeleteScene = useCallback(
+    (sceneId: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (
+        scenes.length > 1 &&
+        window.confirm('Delete this scene? This cannot be undone.')
+      ) {
+        deleteScene(sceneId);
       }
-    };
-
-    window.addEventListener('pointerdown', handlePointerDown);
-    return () => window.removeEventListener('pointerdown', handlePointerDown);
-  }, [isOpen]);
-
-  // Escape closes; focus captured on open and restored on close.
-  useEffect(() => {
-    if (isOpen) {
-      previouslyFocusedRef.current =
-        document.activeElement instanceof HTMLElement
-          ? document.activeElement
-          : null;
-      return undefined;
-    }
-
-    previouslyFocusedRef.current?.focus();
-    previouslyFocusedRef.current = null;
-    return undefined;
-  }, [isOpen]);
+    },
+    [scenes.length, deleteScene],
+  );
 
   useEffect(() => {
-    if (!isOpen) return undefined;
+    return () => window.clearTimeout(hoverTimeoutRef.current);
+  }, []);
 
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') {
-        e.stopPropagation();
-        setIsOpen(false);
-      }
-    };
-
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen]);
-
-  // Players never get a pill at all - they follow the DM's active scene and
-  // have no local scene-switching affordance under the flag.
   if (!isHost) return null;
 
   return (
-    <div ref={containerRef} className={styles.container}>
-      <button
-        ref={triggerRef}
-        type="button"
-        className={styles.trigger}
-        onClick={() => setIsOpen((prev) => !prev)}
-        aria-haspopup="true"
-        aria-expanded={isOpen}
-        aria-label="Switch scene"
-        title="Switch scene"
+    <div
+      ref={panelRef}
+      className={`${styles.container} ${isExpanded ? styles.expanded : ''}`}
+      onPointerDownCapture={() => bringToFront('scenePill')}
+      onMouseEnter={handleMouseEnter}
+      onMouseLeave={handleMouseLeave}
+      style={{ zIndex }}
+      aria-expanded={isExpanded}
+      role="region"
+      aria-label="Scene Manager"
+    >
+      {/* Drag handle — exactly like PlayerClusterFloating */}
+      <div
+        className={styles.dragHandle}
+        aria-hidden="true"
+        title="Drag Scene Dock"
+        onPointerDown={(e) => {
+          e.stopPropagation();
+          onPointerDown(e);
+        }}
       >
-        <span className={styles.icon} aria-hidden="true">
-          🗺️
-        </span>
+        ⠿
+      </div>
+
+      {/* Compact: active scene name */}
+      <div className={styles.compactView}>
+        <span className={styles.icon} aria-hidden="true">🗺️</span>
         <span className={styles.sceneName}>
           {activeScene?.name || 'No scene'}
         </span>
-      </button>
+      </div>
 
-      {isOpen && (
-        <div
-          className={styles.popover}
-          role="dialog"
-          aria-label="Scene switcher"
+      {/* Divider between compact and expanded */}
+      <div className={styles.separator} />
+
+      {/* Expanded: scene chips + add button */}
+      <div className={styles.expandedView}>
+        {scenes.map((scene) => (
+          <button
+            key={scene.id}
+            type="button"
+            className={
+              scene.id === activeSceneId
+                ? styles.sceneChipActive
+                : styles.sceneChip
+            }
+            onClick={() => setActiveScene(scene.id)}
+            title={scene.description || scene.name}
+          >
+            {scene.name}
+            {scenes.length > 1 && (
+              <span
+                className={styles.deleteBtn}
+                role="button"
+                tabIndex={0}
+                onClick={(e) => handleDeleteScene(scene.id, e)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    handleDeleteScene(scene.id, e as unknown as React.MouseEvent);
+                  }
+                }}
+                title="Delete scene"
+                aria-label={`Delete ${scene.name}`}
+              >
+                ×
+              </span>
+            )}
+          </button>
+        ))}
+
+        {/* Add new scene */}
+        <button
+          type="button"
+          className={styles.addButton}
+          onClick={handleCreateScene}
+          title="Create new scene"
+          aria-label="Create new scene"
         >
-          <SceneTabs scenes={scenes} activeSceneId={activeSceneId} />
-        </div>
-      )}
+          +
+        </button>
+      </div>
     </div>
   );
 };
