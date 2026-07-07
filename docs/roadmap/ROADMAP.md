@@ -4,7 +4,7 @@
 > Every future orchestrator session boots via [RESUME_PROTOCOL.md](RESUME_PROTOCOL.md),
 > reads [SESSION_STATE.md](SESSION_STATE.md), and executes exactly one packet from
 > [SESSION_BRIEFS/](SESSION_BRIEFS/). Status reconciled with
-> [SESSION_STATE.md](SESSION_STATE.md) on `packet/A-track-final` at `772f7b3`, 2026-07-07.
+> [SESSION_STATE.md](SESSION_STATE.md) on `packet/A-track-final` at `3de0d18`, 2026-07-07.
 
 ## Mission
 
@@ -32,7 +32,7 @@ All 14 ADRs in [ADR/](ADR/) are binding. Headlines:
 
 - **Track A** — Rendering & UX migration (blueprint steps 1–11), 15 packets:
   A1–A5, A6a/b/c/d, A7, A8a/b, A9, A10a/b. All feature packets are done;
-  terminal cleanup/design split is in progress.
+  terminal cleanup is done and toolbar design remains in progress.
 - **Track B** — Too Many Tokens ingestion, 4 packets: B0–B3. Complete.
 - **Track C** — The Atlas (backend service + frontend federation), 7 packets: C0–C6.
   Implementation complete; C6 go-live review remains pending Joel.
@@ -65,7 +65,7 @@ flowchart LR
     A8a["A8a canvas ink (flag) ✅"]:::done
     A8b["A8b ink cutover ✅"]:::done
     A9["A9 paintable fog ✅"]:::done
-    A10a["A10a cleanup + docs ▶️"]:::ready
+    A10a["A10a cleanup + docs ✅"]:::done
     A10b["A10b toolbar design 🔍▶️"]:::pending
   end
 
@@ -106,9 +106,8 @@ flowchart LR
   C4 --> C6
 ```
 
-**Current active packets:** A10a and A10b. They are parallel-safe only if the file ownership
-boundaries in their briefs are respected: A10a owns cleanup/docs and non-toolbar refactors;
-A10b owns `GameToolbar` and toolbar styling. **Critical paths completed:** A4→A5→A9 and
+**Current active packet:** A10b. A10a closed cleanup/docs and non-toolbar refactors; A10b owns
+`GameToolbar` and toolbar styling. **Critical paths completed:** A4→A5→A9 and
 C0→B0→B1→B2→B3→C6. Track C is implementation-complete, with C6 go-live review still pending.
 
 ## Gate policy
@@ -136,7 +135,7 @@ C0→B0→B1→B2→B3→C6. Track C is implementation-complete, with C6 go-live
 | ~~A8a~~ ✅ | ~~Canvas ink (flagged)~~ **done** | A4 | Med-High | — | 180k (T2 100k / T3 40k) | `DrawingRenderer.tsx`, new canvas layer, T0 pixel-diff harness |
 | ~~A8b~~ ✅ | ~~Ink cutover~~ **done** `e02ac0c`+`83cd99f`, gate approved | A8a | Med | ✅ | 140k (T2 70k / T3 40k) | `SelectionOverlay.tsx`, hit-test module |
 | ~~A9~~ ✅ | ~~Paintable fog~~ **done** `f5238c1`+`f444c95`, gate approved | A4, A5 | Med | ✅ | 160k (T2 90k / T3 40k) | new fog layer + `fogSlice`, `EntitySyncHandler.ts` |
-| A10a ▶️ | Cleanup + docs truth-up **in progress** | A8b(approved), A9(approved) | Low | — | 80k (T1 30k / T3 30k) | dead CSS, `CLAUDE.md`, shared helper/type cleanup |
+| ~~A10a~~ ✅ | ~~Cleanup + docs truth-up~~ **done** `c42a5fc` | A8b(approved), A9(approved) | Low | — | 80k (T1 30k / T3 30k) | dead CSS, `CLAUDE.md`, shared helper/type cleanup |
 | A10b 🔍▶️ | GameToolbar design overhaul **in progress** | A8b(approved), A9(approved) | Med | pending | 140k (T2 90k / T3 35k) | `GameToolbar.tsx`, `toolbar-unified.css`, optional CSS Module |
 | ~~C0~~ ✅ | ~~Atlas ADR ×3~~ **done** | — | Low | ✅ | 100k (T1 20k / T3 60k) | `docs/roadmap/ADR/0010–0012` |
 | ~~C1~~ ✅ | ~~Asset service skeleton~~ **done** | C0 | Med | 🔍 | 180k (T2 100k / T3 40k) | per ADR-0010 |
@@ -165,8 +164,8 @@ C0→B0→B1→B2→B3→C6. Track C is implementation-complete, with C6 go-live
 1. **A10b** — finish the GameToolbar design overhaul, remove the legacy `dm-mask` toolbar
    group, run toolbar tests, and prepare before/after screenshots for Joel's blocking visual
    review.
-2. **A10a** — finish cleanup/docs truth-up: stale `CLAUDE.md` claims, dead CSS with
-   zero-reference proof, shared transform helper, and small type cleanup.
+2. **C6 go-live review** — close Joel's review on the Base Library tab if there is feedback
+   from Atlas usage.
 3. **Camera relay follow-up** — after Track A closes, add server relay support for
    `camera/update` and decide host-only enforcement, or close C6's go-live review if Joel has
    feedback from the Atlas base library.

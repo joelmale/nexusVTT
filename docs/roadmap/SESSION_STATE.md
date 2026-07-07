@@ -4,8 +4,8 @@
 ## ⚠️ ACTIVE HANDOFF
 (Resolved in S6. Handoff clear.)
 
-last_updated: 2026-07-04
-last_verified_commit: HEAD (master — all packet branches merged)
+last_updated: 2026-07-07
+last_verified_commit: 3de0d18 (packet/A-track-final)
 roadmap_version: 1
 
 ## Packet ledger
@@ -19,7 +19,7 @@ roadmap_version: 1
 | A3  | done | n/a | A2 | 37443fe | zero mid-gesture re-renders; NOTE: camera/update has NO server relay (pre-existing — see deferred) |
 | A4  | done | n/a | — | d0891ed | T3 ruling: realized as ADDITIVE narrow-selector modules (src/stores/scene/) — gameStore.ts diff is ZERO; isolation via Immer structural sharing, proven by sliceIsolation.test.ts; physical monolith split deferred as optional cleanup. A5 imports from stores/scene/index.ts |
 | A5  | done | approved | A4 | f149b92+S9 | S9 POST-AUDIT (Joel reported intermittent hangs): root cause = unstable getSnapshot selectors OUTSIDE A5's fix scope — 5 legacy gameStore hooks (fresh `[]` fallback / fresh `.filter()` array per read → useSyncExternalStore loop) + 2 dormant slice hooks. All 7 hardened (stable EMPTY constants / useShallow); snapshotStability.test.ts (10 tests) guards the class. |
-| A6a | done | approved (Joel, 2026-07-03) | A1(approved) | 68db393+19ef427 | flag 'floating-panels' default OFF; first CSS Module; live-verified both states (found+fixed 1fr min-content blowout); A6b/A7 unblocked |
+| A6a | done | approved (Joel, 2026-07-03) | A1(approved) | 68db393+19ef427+3de0d18 | flag 'floating-panels' now defaults ON (explicit saved false still opts out); first CSS Module; live-verified both states (found+fixed 1fr min-content blowout); A6b/A7 unblocked |
 | A6b | done | approved | A6a | c4763b1 | |
 | A6c | done | n/a | A6b(approved) | f4c2d6b | S12: ScenePill (host-only, flag ON) hosting unmodified SceneTabs in popover; GeneratorOverlay w/ Escape+focus-trap+restore; z straggler fixed. 12 tests. Finding: flag-off players CAN locally scene-switch (pre-existing, unchanged). |
 | A6d | done | approved (Joel, 2026-07-04 — drag/stacking/layout verified live) | A6b(approved) | c95d925 | RETRO-formalized S7 floating-UI work (draggable chrome + focus stack + reset). S8 hardening: ADR-0004 z clamp (was 100+/1000 — chrome sat ABOVE modals), key naming, reset sweep, unit tests. Gate: Joel drag/stacking/reset review. See SESSION_BRIEFS/A6d-floating-ui-config.md |
@@ -27,7 +27,7 @@ roadmap_version: 1
 | A8a | done | n/a | A4 | c4763b1 | flag stays off |
 | A8b | done | approved (Joel, 2026-07-07 — all 5 types drawn/verified incl. pencil after 2 stacked pre-existing bugs fixed: 'draw' tool id + missing startPoint; differential regression test added) | A8a | e02ac0c+83cd99f | S12: Path2D hit-test + full cutover (SVG stroke path deleted, flag purged). A8a DRIFT: prior CanvasInkLayer was pencil-only/no-cache — this packet canvas-renders all 5 basic types for the FIRST time. Gate = Joel in-app: draw+select+resize each type @ zoom 0.3/1/3 + two-tab smoke (SVG gone → pixel-parity unmeasurable; T3 ruling supersedes harness matrix). Follow-ups: ResizeObserver/restoreMocks test fragility; ink rAF loop paints every frame (pre-existing). |
 | A9  | done | approved (Joel, 2026-07-07 — fog+reveal live-tested; WYSIWYG brush preview fix f444c95) | A4, A5(approved) | f5238c1+f444c95 | S12: paintable fog live (contract-split core+render builders). DM-only server-enforced (4 tests); persistence round-trip tested; narrowness proven. Gate = Joel two-tab: toggle fog, reveal rect+brush, player sees opaque/host 50%, clear re-conceals, refresh restores, player devtools fog send rejected. clearFog keeps enabled=true (T3 ruling). |
-| A10a | in-progress | n/a | A8b(approved),A9(approved) | — | SPLIT from A10 (Joel, 2026-07-07). Cleanup+docs, NO toolbar files: CLAUDE.md truth-up (Known drift list + nexus-room cookie), dead CSS w/ zero-ref proof, vestigial 'ln-of-war' type (verify unused), duplicate activeTool unions (SceneCanvas/DrawingTools shared type), transform-formula shared helper, ink-compare note. Worktree prune = T3-direct (agents don't touch git). |
+| A10a | done | n/a | A8b(approved),A9(approved) | c42a5fc | Cleanup+docs closed: CLAUDE.md truth-up, zero-ref style debris deleted, coordinate helpers centralized in sceneUtils, shared active-tool aliases, transform/viewport helpers, inkHitTest/fog comments corrected. Verification: stale-string greps clean, backup-style find clean, targeted drawing/camera tests green, type-check green, lint green (64 pre-existing warnings), unit suite green, build green with pre-existing CSS/chunk warnings. Browser smoke stack started but Playwright browser launch failed; no app source failure found. |
 | A10b | in-progress | **blocking 🔍** (Joel visual review) | A8b(approved),A9(approved) | — | SPLIT from A10 (Joel, 2026-07-07): toolbar design overhaul — layout efficiency + padding, award-caliber polish; KEEP tools/icons/selection-glow/hover. Owns GameToolbar.tsx + toolbar-unified.css incl. legacy dm-mask group sunset decision. Brief: SESSION_BRIEFS/A10b-toolbar-design.md |
 | C0  | done | approved (Joel, 2026-07-03) | — | (drafted) | ADR-0010/0011/0012 fully updated with Joel's picks (A / A+symlinks / as-recommended); C1/C2/B0 unblocked |
 | C1  | done | approved via T3 review w/ fixes required | C0(approved) | b22691e | services/asset-service; T3 REVIEW: service fails own tsc (404-handler types) + port-5001 default collision — see reviews/S3 must-fix #3/#4 |
@@ -52,30 +52,25 @@ roadmap_version: 1
   RELAY_EVENTS — Follow-DM cross-client sync is broken end-to-end, pre-existing. Needs a small
   server packet: add relay + decide host-only enforcement (DM_ONLY precedent). Scout-Data's
   claim that EntitySyncHandler handles camera/* was WRONG.
-- Transform-formula duplication: SceneCanvas declarative template + cameraGestureEngine
-  imperative write compute the same string — extract shared helper in A10.
 - PropRenderer still uses the pre-A2 mousemove drag pattern — candidate A2-style follow-up.
 - Zoom-at-cursor does not exist (zoom is center-anchored) — potential UX packet.
 - **Session recovery hangs forever** on "Loading game…" when the stored room is dead server-side;
   recovery uses an UNDOCUMENTED `nexus-room` cookie (plus localStorage nexus-session/
   nexus-connection-context + IndexedDB) that stuck pages re-write, making escape impossible
-  without clearing the cookie. Chip filed (task_c85a53e7). Document cookie in CLAUDE.md (A10).
+  without clearing the cookie. Chip filed (task_c85a53e7). Cookie is documented in CLAUDE.md.
 - Flaky pre-existing test: gameStore.test.ts token/move updatedAt toBeGreaterThan on
   same-millisecond timestamps. Chip filed (task_da58aa9c).
 - vitest mockReset:true gotcha: vi.mock factory mockResolvedValue is wiped per-test; re-arm in
   beforeEach (see sliceIsolation.test.ts / gameStore.persistence.test.ts convention).
 
 ## Known drift (codebase facts that contradict older docs — trust these, fix docs in A10)
-- CLAUDE.md §3/§11 claim canvas rendering → actually SVG master + DOM tokens (verified e29131b).
-- CLAUDE.md says `src/utils/websocket.ts` → actually `src/services/websocket.ts`.
-- CLAUDE.md references `drawingPersistenceV2.ts` and `'mask'` drawing type → neither exists.
-- `server/index.ts` `routeMessage()` is dead code; live path = SocketManager + `server/socket/handlers/*`.
-- No feature-flag infrastructure exists (A6a introduces it).
+(none current — A10a resolved the CLAUDE.md drift list and source comments.)
 
 ## Session log (append-only)
 | date | session | packet | outcome | spend (approx, by tier) | notes |
 |------|---------|--------|---------|--------------------------|-------|
 | 2026-07-04 | S11 | Atlas base maps/tokens fix (finish what C1/C6 shipped) | done | T3 inline ~60k (no agents) | Joel had already fixed the 503 (manifest path, commits 7e024be/07dced0). Remaining: base thumbnails/images didn't render. Root-caused + fixed 2 code bugs: (1) asset-service static mounts dropped the 'assets/' segment (manifest paths are relative to ASSETS_PATH/assets/) → added BASE_ASSETS_ROOT; (2) maps adapter used raw relative URLs → now assetManager.getThumbnailUrl + new getFullImageUrl (ASSET_SERVER_URL-prefixed). Verified real thumbnail serves 200 image/webp via VTT proxy; 501+29 tests green. **KEY FINDING: only ~14 of 1636 base-asset files exist locally** (full set = asset volume in prod); local base maps/tokens render only for samples. TMT library (C6) is complete locally. Preview MCP was disconnected → visual confirm pending Joel. |
+| 2026-07-07 | S13 | A10a cleanup + docs truth-up | done | T1 scouts x3 ~30k · T3 implementation/review ~45k | c42a5fc closed A10a: CLAUDE.md current, style debris deleted, sceneUtils owns client/world + transform helpers, active-tool aliases shared. 3de0d18 separately flips floating-panels default ON. Verification green: stale greps, targeted tests, type-check, lint, unit, build. Full browser smoke attempted; browser automation launch failed after dev stack start, so visual interaction coverage remains for A10b gate. |
 | 2026-07-04 | S10 | C6 base library tab (parallel C6a+C6b) + 2 integration bug fixes | done | T2 ~215k (2 parallel builders) · T3 integration/verify ~90k | **TRACK C COMPLETE.** Split C6 along backend/frontend seam, ran in parallel (C6a serve+proxy, C6b adapter+facets+virtualization+attribution). End-to-end verification caught 2 real bugs invisible to unit tests: (1) B2 derivatives.mjs wrote to derivatives/v1/ but stamped manifest thumbnails without v1 → all 404; fixed via DERIV_VERSION constant owning both. (2) hpm v4 (dependabot ee6640e) strips Express mount prefix → assetProxy+userAssetProxy sent '/' to service, ALL asset reads 404 (latent, C6 first to exercise proxy E2E); fixed via req.originalUrl rebuild in pathRewrite. Live-verified in browser: TMT art renders, facet counts, 20/20 thumbs 200. 501+29+13 tests green. NOTE: hpm fix means user-upload (C2) proxy path is now also unblocked (was same-bug broken). Gate: Joel go-live review. Track A remaining: A6c, A8b, A9, A10. |
 | 2026-07-04 | S9 | env fix + A6d gate + A5 hang audit | done | T3 inline ~50k (no agents) | (1) 'Failed to set up game' root-caused: .env(+.env.example!) set PORT=5173 labeled 'frontend port' but the BACKEND reads PORT → bound vite's port; fixed both, Quick DM verified E2E in-browser (room joined, recovery-fix confirmed live). (2) A6d gate APPROVED by Joel after live drag testing; live z audit: chrome 60-64, dice 90 (correct band). (3) A5 hang audit: Joel's intermittent hangs = unstable-getSnapshot class in 5 LEGACY gameStore hooks (useSceneDrawings/usePlacedTokens/usePlacedProps fresh-[] fallback; useVisibleDrawings/useVisibleProps fresh filter) + 2 dormant slice twins — all 7 fixed, 10-test regression guard (snapshotStability.test.ts). 487 tests green. Next: A6c (real scope), C6, A9 parallel-safe. |
 | 2026-07-04 | S8 | S6/S7 review + 3-problem fix-pack + A6d formalization | done | T3 inline ~80k (review + fixes; no agents) | REVIEW of S6/S7 (see chat + this file's A6c/A6d rows): A5/B3/C5/A7/A8a substance solid; 3 problems fixed: (1) A6c scope substitution corrected — A6c restored to todo, S7 floating-UI work formalized as A6d w/ retro-brief, committed; (2) uiStackStore ADR-0004 violation fixed — chrome z was 100+/1000 (ABOVE modals/sheets), now centralized useStackZIndex clamped [60..78] + unit tests, localStorage keys renamed nexus-ui-* w/ legacy fallback, resetLayout = canonical sweep; (3) A8b gate evidence ruling recorded in its brief (manual sign-off substitute). BEST-PRACTICE: eslint was linting .claude/worktrees (1171 phantom errors — CI lint would FAIL) → ignores fixed; react-hooks/refs error fixed in AtlasDock; dead `as any` casts removed. CI mirror ALL GREEN: lint 0 err, tsc clean, 477+27 tests, vite build, server build, service tsc. Backend down → in-game stacking smoke folded into A6d gate. Leftover worktrees noted: jovial-northcutt (camera-relay, never completed @e29131b — chip work may need re-run), nervous-lamport/stoic-nash (merged, prunable). Gates pending Joel: A6d. Next: A6c (real one), C6, A9, A8b. |
