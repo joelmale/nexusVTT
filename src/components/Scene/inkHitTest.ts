@@ -10,16 +10,10 @@
  *
  * Path2D cache
  * ------------
- * A8a's actual `CanvasInkLayer` (as landed) does NOT keep a `Path2D` cache —
- * it re-issues raw `moveTo`/`lineTo` calls straight against the 2D context
- * every rAF frame, and only paints `pencil` drawings (rectangle/circle/
- * polygon/line are never drawn by it; they still render as normal SVG
- * elements regardless of the flag). So there is no existing cache to reuse.
- * This module owns its own `Map<id, { path, updatedAt }>` cache, invalidated
- * per-drawing by `updatedAt` (bumped on every drawing mutation - see
- * gameStore's updateDrawing). CanvasInkLayer is free to adopt this same
- * cache in a follow-up if/when it starts drawing shapes beyond pencil; nothing
- * here depends on it doing so.
+ * This module owns the shared `Map<id, { path, updatedAt }>` cache,
+ * invalidated per-drawing by `updatedAt` (bumped on every drawing mutation -
+ * see gameStore's updateDrawing). CanvasInkLayer uses `getCachedPath` too, so
+ * committed ink rendering and hit-testing share the same Path2D builders.
  *
  * Context strategy
  * -----------------

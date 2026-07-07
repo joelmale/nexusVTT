@@ -2,6 +2,7 @@ import React, { useCallback, useState } from 'react';
 import type { Point } from '@/types/drawing';
 import type { Camera } from '@/types/game';
 import { pixelToHex, type HexCoord } from '@/utils/hexMath';
+import { sceneUtils } from '@/utils/sceneUtils';
 
 interface TerrainToolProps {
   isActive: boolean;
@@ -32,18 +33,9 @@ export const TerrainTool: React.FC<TerrainToolProps> = ({
   const [isPainting, setIsPainting] = useState(false);
   const [paintMode, setPaintMode] = useState<'add' | 'remove'>('add'); // Add or remove terrain
 
-  const screenToScene = useCallback(
+  const clientToScene = useCallback(
     (screenX: number, screenY: number): Point => {
-      if (!svgRef.current) return { x: 0, y: 0 };
-
-      const rect = svgRef.current.getBoundingClientRect();
-      const svgX = screenX - rect.left;
-      const svgY = screenY - rect.top;
-
-      const sceneX = (svgX - rect.width / 2) / camera.zoom + camera.x;
-      const sceneY = (svgY - rect.height / 2) / camera.zoom + camera.y;
-
-      return { x: sceneX, y: sceneY };
+      return sceneUtils.clientToWorld(screenX, screenY, camera, svgRef.current);
     },
     [camera, svgRef],
   );
@@ -101,7 +93,7 @@ export const TerrainTool: React.FC<TerrainToolProps> = ({
     (e: React.MouseEvent) => {
       if (!isActive || gridSettings.type !== 'hex') return;
 
-      const scenePoint = screenToScene(e.clientX, e.clientY);
+      const scenePoint = clientToScene(e.clientX, e.clientY);
       const hex = getHexAtPoint(scenePoint);
 
       if (hex) {
@@ -114,7 +106,7 @@ export const TerrainTool: React.FC<TerrainToolProps> = ({
     [
       isActive,
       gridSettings.type,
-      screenToScene,
+      clientToScene,
       getHexAtPoint,
       toggleTerrainAtHex,
     ],
@@ -124,7 +116,7 @@ export const TerrainTool: React.FC<TerrainToolProps> = ({
     (e: React.MouseEvent) => {
       if (!isPainting || !isActive || gridSettings.type !== 'hex') return;
 
-      const scenePoint = screenToScene(e.clientX, e.clientY);
+      const scenePoint = clientToScene(e.clientX, e.clientY);
       const hex = getHexAtPoint(scenePoint);
 
       if (hex) {
@@ -137,7 +129,7 @@ export const TerrainTool: React.FC<TerrainToolProps> = ({
       isPainting,
       isActive,
       gridSettings.type,
-      screenToScene,
+      clientToScene,
       getHexAtPoint,
       toggleTerrainAtHex,
     ],

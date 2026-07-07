@@ -297,6 +297,32 @@ export const sceneUtils = {
   },
 
   /**
+   * Convert browser client coordinates to world coordinates for an element
+   * that owns the scene viewport. The math remains centralized here per
+   * ADR-0002; callers only provide the event coordinates and target element.
+   */
+  clientToWorld(
+    clientX: number,
+    clientY: number,
+    camera: { x: number; y: number; zoom: number },
+    viewportElement: Element | null,
+  ): { x: number; y: number } {
+    if (!viewportElement) {
+      return { x: 0, y: 0 };
+    }
+
+    const rect = viewportElement.getBoundingClientRect();
+
+    return this.screenToWorld(
+      clientX - rect.left,
+      clientY - rect.top,
+      camera,
+      rect.width,
+      rect.height,
+    );
+  },
+
+  /**
    * Mid-gesture variant of `screenToWorld` (ADR-0002 / A3): reads the live
    * camera ref (`src/utils/cameraRef.ts`) instead of taking a `camera`
    * argument, so callers inside an active pan/zoom or drag gesture see the
@@ -332,6 +358,35 @@ export const sceneUtils = {
     const screenY = (worldY - camera.y) * camera.zoom + viewportHeight / 2;
 
     return { x: screenX, y: screenY };
+  },
+
+  /**
+   * Camera-root transform for the viewport-centered camera model.
+   * Kept with coordinate conversion so declarative and imperative renders
+   * cannot drift onto subtly different formulas.
+   */
+  cameraTransform(
+    camera: { x: number; y: number; zoom: number },
+    viewportWidth: number,
+    viewportHeight: number,
+  ): string {
+    return `translate(${viewportWidth / 2 - camera.x * camera.zoom}, ${viewportHeight / 2 - camera.y * camera.zoom}) scale(${camera.zoom})`;
+  },
+
+  /**
+   * Visible viewport rectangle expressed in world units.
+   */
+  viewportWorldRect(
+    camera: { x: number; y: number; zoom: number },
+    viewportWidth: number,
+    viewportHeight: number,
+  ): { x: number; y: number; width: number; height: number } {
+    return {
+      x: camera.x - viewportWidth / (2 * camera.zoom),
+      y: camera.y - viewportHeight / (2 * camera.zoom),
+      width: viewportWidth / camera.zoom,
+      height: viewportHeight / camera.zoom,
+    };
   },
 
   /**

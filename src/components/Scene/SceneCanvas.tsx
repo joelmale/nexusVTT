@@ -49,9 +49,8 @@ import { hitTestDrawings, createHitTestContext } from './inkHitTest';
 import type { Scene, WebSocketMessage } from '@/types/game';
 import type { Token } from '@/types/token';
 import type {
-  DrawingTool,
   DrawingStyle,
-  MeasurementTool,
+  SceneCanvasActiveTool,
   SpellOverlayDrawing,
 } from '@/types/drawing';
 
@@ -128,24 +127,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   const camera = useCamera();
   const followDM = useFollowDM();
   const isHost = useIsHost();
-  const activeTool = useActiveTool() as
-    | DrawingTool
-    | MeasurementTool
-    | 'pan'
-    | 'move'
-    | 'select'
-    | 'eraser'
-    | 'ping'
-    | 'polygon'
-    | 'pencil'
-    | 'mask-create'
-    | 'mask-toggle'
-    | 'mask-remove'
-    | 'mask-show'
-    | 'mask-hide'
-    | 'grid-align'
-    | 'fog-reveal-rect'
-    | 'fog-reveal-brush';
+  const activeTool = useActiveTool() as SceneCanvasActiveTool;
 
   const roomCode = useServerRoomCode();
 
@@ -840,7 +822,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
         if (!el) return;
         el.setAttribute(
           'transform',
-          `translate(${svgSize.width / 2 - liveCamera.x * liveCamera.zoom}, ${svgSize.height / 2 - liveCamera.y * liveCamera.zoom}) scale(${liveCamera.zoom})`,
+          sceneUtils.cameraTransform(liveCamera, svgSize.width, svgSize.height),
         );
       },
       minZoom: 0.1,
@@ -861,27 +843,25 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
       try {
         const prop = JSON.parse(propData);
 
-        // Get the SVG element and its bounding box
         if (!svgRef.current) return;
-        const rect = svgRef.current.getBoundingClientRect();
-
-        // Calculate position relative to SVG
-        const relativeX = e.clientX - rect.left;
-        const relativeY = e.clientY - rect.top;
-
-        // Convert screen coordinates to scene coordinates
-        const sceneX = (relativeX - rect.width / 2) / camera.zoom + camera.x;
-        const sceneY = (relativeY - rect.height / 2) / camera.zoom + camera.y;
+        const scenePoint = sceneUtils.clientToWorld(
+          e.clientX,
+          e.clientY,
+          camera,
+          svgRef.current,
+        );
 
         // Apply grid snapping if enabled
-        let finalX = sceneX;
-        let finalY = sceneY;
+        let finalX = scenePoint.x;
+        let finalY = scenePoint.y;
 
         if (safeGridSettings.snapToGrid && safeGridSettings.size > 0) {
           finalX =
-            Math.round(sceneX / safeGridSettings.size) * safeGridSettings.size;
+            Math.round(scenePoint.x / safeGridSettings.size) *
+            safeGridSettings.size;
           finalY =
-            Math.round(sceneY / safeGridSettings.size) * safeGridSettings.size;
+            Math.round(scenePoint.y / safeGridSettings.size) *
+            safeGridSettings.size;
         }
 
         // Create placed prop with correct arguments
@@ -944,17 +924,29 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   };
 
   // Calculate transform for the scene content
-  const transform = `translate(${svgSize.width / 2 - camera.x * camera.zoom}, ${svgSize.height / 2 - camera.y * camera.zoom}) scale(${camera.zoom})`;
+  const transform = sceneUtils.cameraTransform(
+    camera,
+    svgSize.width,
+    svgSize.height,
+  );
+  const viewportWorldRect = sceneUtils.viewportWorldRect(
+    camera,
+    viewportSize.width,
+    viewportSize.height,
+  );
 
   // Calculate toolbar position for selected prop
   const getPropToolbarPosition = useCallback(() => {
     if (!selectedPlacedProp) return { x: 0, y: 0 };
 
     // Calculate screen position: apply camera transform to prop position
-    const screenX =
-      svgSize.width / 2 + (selectedPlacedProp.x - camera.x) * camera.zoom;
-    const screenY =
-      svgSize.height / 2 + (selectedPlacedProp.y - camera.y) * camera.zoom;
+    const { x: screenX, y: screenY } = sceneUtils.worldToScreen(
+      selectedPlacedProp.x,
+      selectedPlacedProp.y,
+      camera,
+      svgSize.width,
+      svgSize.height,
+    );
 
     // Calculate prop size in pixels
     const propWidth =
@@ -1103,10 +1095,10 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                   handleMouseDown consulting inkHitTest, not by native
                   hit-testing on this element. */}
               <foreignObject
-                x={camera.x - viewportSize.width / (2 * camera.zoom)}
-                y={camera.y - viewportSize.height / (2 * camera.zoom)}
-                width={viewportSize.width / camera.zoom}
-                height={viewportSize.height / camera.zoom}
+                x={viewportWorldRect.x}
+                y={viewportWorldRect.y}
+                width={viewportWorldRect.width}
+                height={viewportWorldRect.height}
                 pointerEvents="none"
               >
                 <CanvasInkLayer
@@ -1179,10 +1171,10 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                   pointer events via the dedicated rect below, not this
                   layer itself. */}
               <foreignObject
-                x={camera.x - viewportSize.width / (2 * camera.zoom)}
-                y={camera.y - viewportSize.height / (2 * camera.zoom)}
-                width={viewportSize.width / camera.zoom}
-                height={viewportSize.height / camera.zoom}
+                x={viewportWorldRect.x}
+                y={viewportWorldRect.y}
+                width={viewportWorldRect.width}
+                height={viewportWorldRect.height}
                 pointerEvents="none"
                 style={{ zIndex: 'var(--z-fog)' } as React.CSSProperties}
               >

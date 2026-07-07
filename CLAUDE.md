@@ -174,7 +174,7 @@ const useSelector = () => useXStore((state) => state.property);
 
 The WebSocket system provides bidirectional, real-time event synchronization between clients and server.
 
-**Location:** `/src/utils/websocket.ts` (Client) + `/server/index.ts` (Server)
+**Location:** `/src/services/websocket.ts` (Client) + `/server/socket/` handlers (Server)
 
 ### Connection Lifecycle
 
@@ -231,21 +231,23 @@ WebSocket messages use event-driven architecture:
 
 ### Message Routing (Server)
 
-**`/server/index.ts` - `routeMessage()` method:**
+**Live path:** `server/socket/SocketManager.ts` receives WebSocket messages and emits typed
+events to registered handlers from `server/socket/handlers/*`. `server/index.ts` wires those
+handlers during startup. The older monolithic routing method in `server/index.ts` is legacy and
+not the active routing path.
 
 ```
 Message received from client
   ↓
-If heartbeat → handle heartbeat pong
+SocketManager.handleMessage parses the envelope
   ↓
-Get connection & room
+Handler registered for the event name processes authority/validation
   ↓
-Handle special cases:
-  - Dice rolls → validateDiceRoll() → broadcast result
-  - Host transfers → handleHostTransfer()
-  - Add/remove co-hosts → handleAddCoHost()
-  - Game state updates → updateRoomGameState()
-  - Version conflicts → reject with error
+Examples:
+  - DiceHandler validates and broadcasts dice results
+  - HostHandler handles host/co-host actions
+  - EntitySyncHandler handles entity and scene synchronization
+  - SceneHandler handles scene lifecycle and authority checks
   ↓
 If has destinationId (dst) → send to specific user
   ↓
@@ -316,33 +318,33 @@ Game
               └─ snapToGrid
 ```
 
-### Canvas Components
+### Scene Rendering Components
 
 **Location:** `/src/components/Scene/`
 
 #### Core Components:
 
 1. **SceneCanvas.tsx** (Master renderer)
-   - Main canvas orchestrator
+   - Main scene orchestrator
    - Handles camera, zoom, pan
    - Manages layer rendering order
    - Integrates all sub-renderers
    - Event delegation for interactions
 
 2. **TokenRenderer.tsx**
-   - Renders placed tokens as HTML img elements
+   - Renders placed tokens as SVG `<image>` elements inside token groups
    - Handles hover effects and selection
    - Receives drag events from canvas
 
 3. **DrawingRenderer.tsx**
-   - Renders drawings on HTML5 canvas
-   - Supports multi-layer rendering
-   - Handles visibility toggling
+   - Renders non-ink drawings as SVG
+   - Leaves committed pencil/line/rectangle/circle/polygon strokes to CanvasInkLayer
+   - Handles visibility and host-only drawing classes
 
 4. **DrawingTools.tsx** (45KB)
    - Tool palette (pencil, eraser, shapes, measurement)
    - Drawing state management
-   - Stroke rendering on canvas
+   - In-progress drawing previews and tool-specific interaction capture
    - Tool-specific UI panels
 
 5. **SelectionOverlay.tsx**
@@ -355,6 +357,21 @@ Game
    - Animated cursor tracking
    - Custom cursor styling per player
 
+#### Layer stack
+
+Per ADR-0005, the current scene stack is:
+
+1. Background: SVG (`SceneBackground`)
+2. Grid: SVG (`SceneGrid`)
+3. Committed basic ink strokes: Canvas 2D (`CanvasInkLayer`)
+4. Other drawings and previews: SVG (`DrawingRenderer` / `DrawingTools`)
+5. Tokens and props: SVG `<image>` elements (`TokenRenderer`, `PropRenderer`)
+6. Paintable fog: Canvas 2D (`FogLayer`)
+7. UI overlays/cursors: DOM/SVG overlays
+
+Coordinate conversion lives in `src/utils/sceneUtils.ts`. The single z-index scale lives in
+`src/utils/z-scale.ts` and is mirrored as CSS variables in `src/styles/design-tokens.css`.
+
 #### Supporting Components:
 
 - **ScenePanel.tsx** - Scene browser & properties
@@ -365,25 +382,21 @@ Game
 
 ### Drawing System
 
-**Persistence:** `/src/services/drawingPersistence.ts` + `drawingPersistenceV2.ts`
+**Persistence:** `/src/services/drawingPersistence.ts`
 
 Drawings are stored as:
 ```typescript
 interface Drawing {
   id: string;
-  sceneId: string;
-  type: 'pencil' | 'rectangle' | 'circle' | 'polygon' | 'mask';
-  points?: Array<{x: number, y: number}>;  // For pencil/polygon
-  x?: number; y?: number; width?: number; height?: number;  // For shapes
-  style: {
-    color: string;
-    thickness: number;
-    opacity: number;
-    lineJoin?: 'round' | 'bevel' | 'miter';
-  };
-  visibility: 'hidden' | 'shown';
+  type: DrawingTool;
+  layer: 'background' | 'tokens' | 'drawings' | 'effects' | 'ui';
+  roomCode: string;
+  createdBy: string;
+  visibleToPlayers: boolean;
+  style: DrawingStyle;
   createdAt: number;
   updatedAt: number;
+  // Shape-specific fields live on the Drawing union in src/types/drawing.ts.
 }
 ```
 
@@ -391,7 +404,8 @@ Key features:
 - Drawings auto-save to IndexedDB
 - Hidden drawings only visible to host
 - Drawing updates sent via WebSocket events
-- Compression for bandwidth optimization
+- Committed pencil/line/rectangle/circle/polygon strokes render through CanvasInkLayer
+- There is no second-generation drawing persistence module; compression docs should not invent one
 
 ### Camera System
 
@@ -694,7 +708,7 @@ Services are imported dynamically within store actions to prevent circular depen
 
 ```typescript
 // In gameStore action:
-const { webSocketService } = await import('@/utils/websocket');
+const { webSocketService } = await import('@/services/websocket');
 const { sessionPersistenceService } = await import('@/services/sessionPersistence');
 const { dungeonMapService } = await import('@/services/dungeonMapService');
 ```
@@ -735,7 +749,7 @@ const scene = useActiveScene();  // Only re-renders if active scene changes
 // Always use @ imports for src files:
 import { useGameStore } from '@/stores/gameStore';
 import { Button } from '@/components/ui/Button';
-import { webSocketService } from '@/utils/websocket';
+import { webSocketService } from '@/services/websocket';
 
 // Available aliases:
 // @/ → ./src/
@@ -767,19 +781,12 @@ Room cleanup:
 - Abandonment timeout: 60 minutes
 - Periodic cleanup task removes stale rooms
 
-### Drawing Compression
+### Drawing Persistence
 
-**Location:** `/src/services/drawingPersistenceV2.ts`
+**Location:** `/src/services/drawingPersistence.ts`
 
-Techniques:
-1. Run-length encoding for pencil strokes
-2. Delta encoding for point coordinates
-3. WebP image compression at lower quality
-4. Base64 compression statistics tracking
-
-Example compression:
-- Original pencil stroke: 5KB
-- Compressed: 200 bytes (96% reduction)
+Drawing persistence stores and loads drawing arrays through the IndexedDB-backed
+linear flow storage adapter.
 
 ### Character/Token Resolution
 
@@ -1029,7 +1036,7 @@ Player sends:
     }
   }
   ↓
-Server receives in routeMessage:
+Server receives through SocketManager and DiceHandler:
   - Validates expression
   - Rolls dice
   - Calculates result

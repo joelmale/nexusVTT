@@ -35,6 +35,26 @@ export type DrawingTool =
 // Measurement tools
 export type MeasurementTool = 'measure';
 
+export type DrawingInteractionTool =
+  | DrawingTool
+  | MeasurementTool
+  | 'select'
+  | 'pan'
+  | 'move'
+  | 'copy'
+  | 'cut'
+  | 'paste'
+  | 'mask-create'
+  | 'mask-toggle'
+  | 'mask-remove'
+  | 'mask-show'
+  | 'mask-hide'
+  | 'grid-align';
+
+export type FogRevealTool = 'fog-reveal-rect' | 'fog-reveal-brush';
+
+export type SceneCanvasActiveTool = DrawingInteractionTool | FogRevealTool;
+
 // Drawing style configuration
 export interface DrawingStyle {
   // Fill properties

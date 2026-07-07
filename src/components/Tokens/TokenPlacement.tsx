@@ -4,6 +4,7 @@ import type { Camera } from '@/types/game';
 import { useUser, useActiveScene, useServerRoomCode } from '@/stores/gameStore';
 import { webSocketService } from '@/services/websocket';
 import { pixelToHex, hexToPixel } from '@/utils/hexMath';
+import { sceneUtils } from '@/utils/sceneUtils';
 
 interface TokenPlacementProps {
   activeTool: 'token-place' | string;
@@ -32,18 +33,9 @@ export const TokenPlacement: React.FC<TokenPlacementProps> = ({
   const activeScene = useActiveScene();
   const roomCode = useServerRoomCode();
 
-  const screenToScene = useCallback(
+  const clientToScene = useCallback(
     (screenX: number, screenY: number) => {
-      if (!svgRef.current) return { x: 0, y: 0 };
-
-      const rect = svgRef.current.getBoundingClientRect();
-      const svgX = screenX - rect.left;
-      const svgY = screenY - rect.top;
-
-      const sceneX = (svgX - rect.width / 2) / camera.zoom + camera.x;
-      const sceneY = (svgY - rect.height / 2) / camera.zoom + camera.y;
-
-      return { x: sceneX, y: sceneY };
+      return sceneUtils.clientToWorld(screenX, screenY, camera, svgRef.current);
     },
     [camera, svgRef],
   );
@@ -119,12 +111,12 @@ export const TokenPlacement: React.FC<TokenPlacementProps> = ({
     (e: React.MouseEvent) => {
       if (activeTool !== 'token-place' || !selectedToken) return;
 
-      const scenePosition = screenToScene(e.clientX, e.clientY);
+      const scenePosition = clientToScene(e.clientX, e.clientY);
       placeToken(scenePosition);
 
       e.stopPropagation();
     },
-    [activeTool, selectedToken, screenToScene, placeToken],
+    [activeTool, selectedToken, clientToScene, placeToken],
   );
 
   if (activeTool !== 'token-place') {

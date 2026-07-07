@@ -4,6 +4,7 @@ import {
   type Drawing,
   type DrawingStyle,
   type DrawingTool,
+  type DrawingInteractionTool,
   type ElementType,
   type SpellOverlayStyle,
   ELEMENT_THEMES,
@@ -28,6 +29,7 @@ import {
   isPointInCircle,
   gridSnap,
 } from '@/utils/mathUtils';
+import { sceneUtils } from '@/utils/sceneUtils';
 import { tokenAssetManager } from '@/services/tokenAssets';
 import { getTokenPixelSize } from '@/types/token';
 
@@ -44,21 +46,7 @@ const rotatePoint = (target: Point, origin: Point, angleDeg: number): Point => {
 };
 
 interface DrawingToolsProps {
-  activeTool:
-    | DrawingTool
-    | 'select'
-    | 'pan'
-    | 'measure'
-    | 'move'
-    | 'copy'
-    | 'cut'
-    | 'paste'
-    | 'mask-create'
-    | 'mask-toggle'
-    | 'mask-remove'
-    | 'mask-show'
-    | 'mask-hide'
-    | 'grid-align';
+  activeTool: DrawingInteractionTool;
   drawingStyle: DrawingStyle;
   camera: Camera;
   _gridSize: number;
@@ -141,30 +129,25 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
 
   const isHost = user.type === 'host';
 
-  // Convert screen coordinates to scene coordinates
-  const screenToScene = useCallback(
+  const clientToScene = useCallback(
     (
       screenX: number,
       screenY: number,
       applySnap: boolean = shouldSnapToGrid,
     ): Point => {
-      if (!svgRef.current) return { x: 0, y: 0 };
-
-      const rect = svgRef.current.getBoundingClientRect();
-      const svgX = screenX - rect.left;
-      const svgY = screenY - rect.top;
-
-      let sceneX = (svgX - rect.width / 2) / camera.zoom + camera.x;
-      let sceneY = (svgY - rect.height / 2) / camera.zoom + camera.y;
+      let scenePoint = sceneUtils.clientToWorld(
+        screenX,
+        screenY,
+        camera,
+        svgRef.current,
+      );
 
       // Apply grid snapping if enabled
       if (applySnap && _gridSize > 0) {
-        const snapped = gridSnap({ x: sceneX, y: sceneY }, _gridSize);
-        sceneX = snapped.x;
-        sceneY = snapped.y;
+        scenePoint = gridSnap(scenePoint, _gridSize);
       }
 
-      return { x: sceneX, y: sceneY };
+      return scenePoint;
     },
     [camera, svgRef, shouldSnapToGrid, _gridSize],
   );
@@ -738,7 +721,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
 
       // Disable snap for smooth drawing - only snap if Ctrl/Cmd key is held
       const shouldSnap = e.ctrlKey || e.metaKey;
-      const point = screenToScene(e.clientX, e.clientY, shouldSnap);
+      const point = clientToScene(e.clientX, e.clientY, shouldSnap);
 
       // Tools that don't interact with mousedown can be handled with an early return.
       if (activeTool === 'pan' || activeTool === 'move') {
@@ -1173,7 +1156,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
     },
     [
       activeTool,
-      screenToScene,
+      clientToScene,
       isHost,
       selectedObjectIds,
       setSelection,
@@ -1208,7 +1191,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
 
       // Disable snap for smooth drawing - only snap if Ctrl/Cmd key is held
       const shouldSnap = e.ctrlKey || e.metaKey;
-      const point = screenToScene(e.clientX, e.clientY, shouldSnap);
+      const point = clientToScene(e.clientX, e.clientY, shouldSnap);
 
       const dragEntity = dragEntityRef.current;
       if (dragEntity && activeScene) {
@@ -1288,7 +1271,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
     },
     [
       activeTool,
-      screenToScene,
+      clientToScene,
       isDrawing,
       startPoint,
       isErasing,
@@ -1307,7 +1290,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
     (e: React.MouseEvent) => {
       // Disable snap for smooth drawing - only snap if Ctrl/Cmd key is held
       const shouldSnap = e.ctrlKey || e.metaKey;
-      const endPoint = screenToScene(e.clientX, e.clientY, shouldSnap);
+      const endPoint = clientToScene(e.clientX, e.clientY, shouldSnap);
 
       const dragEntity = dragEntityRef.current;
       if (dragEntity && activeScene) {
@@ -1593,7 +1576,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
     },
     [
       activeTool,
-      screenToScene,
+      clientToScene,
       isDrawing,
       startPoint,
       selectionBox,

@@ -3,6 +3,7 @@ import { type Point, type Measurement } from '@/types/drawing';
 import type { Camera } from '@/types/game';
 import { calculateHexMovementDistance, pixelToHex } from '@/utils/hexMath';
 import { calculateDiagonalDistance } from '@/utils/mathUtils';
+import { sceneUtils } from '@/utils/sceneUtils';
 
 interface MeasurementToolProps {
   isActive: boolean;
@@ -32,18 +33,9 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
   const [measurements, setMeasurements] = useState<Measurement[]>([]);
   const [drawingStartTime, setDrawingStartTime] = useState(0);
 
-  const screenToScene = useCallback(
+  const clientToScene = useCallback(
     (screenX: number, screenY: number): Point => {
-      if (!svgRef.current) return { x: 0, y: 0 };
-
-      const rect = svgRef.current.getBoundingClientRect();
-      const svgX = screenX - rect.left;
-      const svgY = screenY - rect.top;
-
-      const sceneX = (svgX - rect.width / 2) / camera.zoom + camera.x;
-      const sceneY = (svgY - rect.height / 2) / camera.zoom + camera.y;
-
-      return { x: sceneX, y: sceneY };
+      return sceneUtils.clientToWorld(screenX, screenY, camera, svgRef.current);
     },
     [camera, svgRef],
   );
@@ -52,32 +44,32 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
     (e: React.MouseEvent) => {
       if (!isActive || e.button !== 0) return;
 
-      const point = screenToScene(e.clientX, e.clientY);
+      const point = clientToScene(e.clientX, e.clientY);
       setStartPoint(point);
       setCurrentPoint(point);
       setIsDrawing(true);
       setDrawingStartTime(Date.now());
       e.stopPropagation();
     },
-    [isActive, screenToScene],
+    [isActive, clientToScene],
   );
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
       if (!isDrawing || !startPoint) return;
 
-      const point = screenToScene(e.clientX, e.clientY);
+      const point = clientToScene(e.clientX, e.clientY);
       setCurrentPoint(point);
       e.stopPropagation();
     },
-    [isDrawing, startPoint, screenToScene],
+    [isDrawing, startPoint, clientToScene],
   );
 
   const handleMouseUp = useCallback(
     (e: React.MouseEvent) => {
       if (!isDrawing || !startPoint) return;
 
-      const endPoint = screenToScene(e.clientX, e.clientY);
+      const endPoint = clientToScene(e.clientX, e.clientY);
 
       const deltaX = endPoint.x - startPoint.x;
       const deltaY = endPoint.y - startPoint.y;
@@ -147,7 +139,7 @@ export const MeasurementTool: React.FC<MeasurementToolProps> = ({
     [
       isDrawing,
       startPoint,
-      screenToScene,
+      clientToScene,
       gridSettings,
       onMeasurement,
       drawingStartTime,

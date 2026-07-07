@@ -3,6 +3,7 @@ import { useActiveScene, useDrawingActions } from '@/stores/gameStore';
 import { webSocketService } from '@/services/websocket';
 import type { Camera } from '@/types/game';
 import type { Drawing, Point } from '@/types/drawing';
+import { sceneUtils } from '@/utils/sceneUtils';
 
 interface SelectionOverlayProps {
   selectedDrawings: string[];
@@ -33,18 +34,9 @@ const SelectionOverlayComponent: React.FC<SelectionOverlayProps> = ({
     drawingIds: string[];
   } | null>(null);
 
-  // Convert screen coordinates to scene coordinates
-  const screenToScene = useCallback(
+  const clientToScene = useCallback(
     (clientX: number, clientY: number, svgRef: SVGSVGElement | null): Point => {
-      if (!svgRef) return { x: 0, y: 0 };
-      const rect = svgRef.getBoundingClientRect();
-      const screenX = clientX - rect.left;
-      const screenY = clientY - rect.top;
-      const viewportWidth = rect.width;
-      const viewportHeight = rect.height;
-      const sceneX = (screenX - viewportWidth / 2) / camera.zoom + camera.x;
-      const sceneY = (screenY - viewportHeight / 2) / camera.zoom + camera.y;
-      return { x: sceneX, y: sceneY };
+      return sceneUtils.clientToWorld(clientX, clientY, camera, svgRef);
     },
     [camera],
   );
@@ -53,7 +45,7 @@ const SelectionOverlayComponent: React.FC<SelectionOverlayProps> = ({
   const handleMouseMove = useCallback(
     (e: MouseEvent) => {
       const svgElement = (e.target as Element).closest('svg');
-      const mousePos = screenToScene(e.clientX, e.clientY, svgElement);
+      const mousePos = clientToScene(e.clientX, e.clientY, svgElement);
 
       // Handle dragging selection
       if (draggingSelection && activeScene) {
@@ -249,7 +241,7 @@ const SelectionOverlayComponent: React.FC<SelectionOverlayProps> = ({
       resizingHandle,
       draggingSelection,
       activeScene,
-      screenToScene,
+      clientToScene,
       updateDrawing,
       sceneId,
     ],
@@ -300,7 +292,7 @@ const SelectionOverlayComponent: React.FC<SelectionOverlayProps> = ({
     const handleSelectionMouseDown = (e: React.MouseEvent) => {
       e.stopPropagation();
       const svgElement = (e.target as Element).closest('svg');
-      const startPos = screenToScene(e.clientX, e.clientY, svgElement);
+      const startPos = clientToScene(e.clientX, e.clientY, svgElement);
       setDraggingSelection({ startPos, drawingIds: selectedDrawings });
     };
 

@@ -1,6 +1,6 @@
 // Paintable fog of war types (A9). Net-new model per ADR-0009 — NOT a
-// drawing subtype (see src/types/drawing.ts's vestigial 'fog-of-war' /
-// 'ln-of-war' entries, which are unrelated corrupted leftovers; ignore them).
+// drawing subtype. The older `fog-of-war` drawing type is legacy mask UI
+// state and is separate from this reveal-shape model.
 //
 // Model: conceal-all + reveal shapes (Owlbear's model), not freeform paint.
 // A scene's fog is either off, or on with the whole scene concealed except
