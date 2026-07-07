@@ -52,13 +52,13 @@ flowchart LR
     A5["A5 subscription surgery ✅"]:::done
     A6a["A6a floating panels ✅"]:::done
     A6b["A6b header → icon dock ✅"]:::done
-    A6c["A6c scene pill + modals ▶️"]:::ready
+    A6c["A6c scene pill + modals ✅"]:::done
     A6d["A6d floating UI config 🔍"]:::done
     A7["A7 token context menu (adv.) ✅"]:::done
     A8a["A8a canvas ink (flag) ✅"]:::done
-    A8b["A8b ink cutover 🔍▶️"]:::ready
-    A9["A9 paintable fog 🔍▶️"]:::ready
-    A10["A10 cleanup + docs"]
+    A8b["A8b ink cutover 🔍✅"]:::done
+    A9["A9 paintable fog 🔍✅"]:::done
+    A10["A10 cleanup + docs ▶️(post-gates)"]:::ready
   end
 
   subgraph LaneC["Lane 2 — Atlas"]
