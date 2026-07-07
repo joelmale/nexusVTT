@@ -157,7 +157,11 @@ export const GameToolbar: React.FC = () => {
         label: 'Draw & Shapes',
         tools: [
           {
-            id: 'draw',
+            // 'pencil' is the tool id DrawingTools' gesture handlers dispatch
+            // on — this was 'draw' (which nothing listens to), leaving the
+            // freehand tool dead from the toolbar (pre-existing on master;
+            // caught in Joel's A8b gate review).
+            id: 'pencil',
             icon: <Pencil size={18} />,
             label: 'Draw',
             shortcut: 'D',
@@ -453,7 +457,7 @@ export const GameToolbar: React.FC = () => {
         disabled={tool.disabled}
         aria-pressed={activeTool === tool.id}
         aria-label={tool.label}
-        title={tool.tooltip || tool.label}
+        title={tool.tooltip && tool.tooltip !== tool.label ? `${tool.label}: ${tool.tooltip}` : tool.label}
         onMouseEnter={() => setHoveredTool(tool)}
       >
         {tool.icon ? (
@@ -476,7 +480,11 @@ export const GameToolbar: React.FC = () => {
         <div id="toolbar-info-banner">
           {hoveredTool ? (
             <>
-              <span>{hoveredTool.tooltip || hoveredTool.label}</span>
+              <span>
+                {hoveredTool.tooltip && hoveredTool.tooltip !== hoveredTool.label
+                  ? `${hoveredTool.label}: ${hoveredTool.tooltip}`
+                  : hoveredTool.label}
+              </span>
               {hoveredTool.shortcut && (
                 <span className="shortcut">{hoveredTool.shortcut}</span>
               )}
