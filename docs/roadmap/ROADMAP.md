@@ -3,7 +3,8 @@
 > **System of record.** Conversations do not survive between sessions; these files do.
 > Every future orchestrator session boots via [RESUME_PROTOCOL.md](RESUME_PROTOCOL.md),
 > reads [SESSION_STATE.md](SESSION_STATE.md), and executes exactly one packet from
-> [SESSION_BRIEFS/](SESSION_BRIEFS/). Ground truth herein verified at commit `e29131b`, 2026-07-02.
+> [SESSION_BRIEFS/](SESSION_BRIEFS/). Status reconciled with
+> [SESSION_STATE.md](SESSION_STATE.md) on `packet/A-track-final` at `772f7b3`, 2026-07-07.
 
 ## Mission
 
@@ -29,11 +30,16 @@ All 14 ADRs in [ADR/](ADR/) are binding. Headlines:
 
 ## Tracks
 
-- **Track A** — Rendering & UX migration (blueprint steps 1–11), 13 packets: A1–A5, A6a/b/c, A7, A8a/b, A9, A10.
-- **Track B** — Too Many Tokens ingestion, 4 packets: B0–B3. Gated by C0.
+- **Track A** — Rendering & UX migration (blueprint steps 1–11), 15 packets:
+  A1–A5, A6a/b/c/d, A7, A8a/b, A9, A10a/b. All feature packets are done;
+  terminal cleanup/design split is in progress.
+- **Track B** — Too Many Tokens ingestion, 4 packets: B0–B3. Complete.
 - **Track C** — The Atlas (backend service + frontend federation), 7 packets: C0–C6.
+  Implementation complete; C6 go-live review remains pending Joel.
 
-Deferred/unscheduled: token-vision fog (needs product decision; see ADR-0009).
+Deferred/unscheduled: token-vision fog (needs product decision; see ADR-0009),
+server `camera/update` relay, map/document drop routing from Atlas, PropRenderer transient
+drag follow-up, zoom-at-cursor UX, and dead-room session recovery.
 
 ## Dependency DAG
 
@@ -42,6 +48,7 @@ flowchart LR
   classDef gate stroke:#e11,stroke-width:3px
   classDef adr fill:#f4e8ff,stroke:#95f
   classDef done fill:#c8e6c9,stroke:#2e7d32,stroke-width:2px
+  classDef pending fill:#fff8e1,stroke:#f9a825,stroke-width:2px
   classDef ready fill:#e3f2fd,stroke:#1976d2,stroke-width:2px
 
   subgraph LaneA["Lane 1 — Track A"]
@@ -53,12 +60,13 @@ flowchart LR
     A6a["A6a floating panels ✅"]:::done
     A6b["A6b header → icon dock ✅"]:::done
     A6c["A6c scene pill + modals ✅"]:::done
-    A6d["A6d floating UI config 🔍"]:::done
+    A6d["A6d floating UI config ✅"]:::done
     A7["A7 token context menu (adv.) ✅"]:::done
     A8a["A8a canvas ink (flag) ✅"]:::done
-    A8b["A8b ink cutover 🔍✅"]:::done
-    A9["A9 paintable fog 🔍✅"]:::done
-    A10["A10 cleanup + docs ▶️(post-gates)"]:::ready
+    A8b["A8b ink cutover ✅"]:::done
+    A9["A9 paintable fog ✅"]:::done
+    A10a["A10a cleanup + docs ▶️"]:::ready
+    A10b["A10b toolbar design 🔍▶️"]:::pending
   end
 
   subgraph LaneC["Lane 2 — Atlas"]
@@ -68,7 +76,7 @@ flowchart LR
     C3["C3 federation hook ✅"]:::done
     C4["C4 dock shell + grid ✅"]:::done
     C5["C5 drag-drop (adv.) ✅"]:::done
-    C6["C6 Base Library tab ✅"]:::done
+    C6["C6 Base Library tab ✅ review pending"]:::pending
   end
 
   subgraph LaneB["Lane 3 — TMT ingestion"]
@@ -86,7 +94,8 @@ flowchart LR
   A6a --> A7
   A4 --> A8a --> A8b
   A5 --> A9
-  A6c & A7 & A8b & A9 --> A10
+  A8b & A9 --> A10a
+  A8b & A9 --> A10b
 
   C0 --> C1 --> C2
   C0 --> B0 --> B1 --> B2 --> B3
@@ -97,15 +106,17 @@ flowchart LR
   C4 --> C6
 ```
 
-**Entry points (no deps):** A1, A2, A4, C0, C3 — three lanes can advance in parallel;
-a blocked lane never idles the program. **Critical paths:** A4→A5→A9 and C0→B0→B1→B2→B3→C6.
-**Highest-leverage packet:** C0 (unblocks 7 packets).
+**Current active packets:** A10a and A10b. They are parallel-safe only if the file ownership
+boundaries in their briefs are respected: A10a owns cleanup/docs and non-toolbar refactors;
+A10b owns `GameToolbar` and toolbar styling. **Critical paths completed:** A4→A5→A9 and
+C0→B0→B1→B2→B3→C6. Track C is implementation-complete, with C6 go-live review still pending.
 
 ## Gate policy
 
-- **Blocking 🔍 (9):** A1, A5, A6a, A6b, A8b, A9, C0, C1, B1, B3, C6 — dependents must NOT
-  dispatch until Joel reviews the diff/decision and SESSION_STATE.md gate_status = `approved`.
-  (Count note: 11 marks, of which C1/C6 gate only their own successors.)
+- **Blocking 🔍:** A1, A5, A6a, A6b, A6d, A8b, A9, A10b, C0, C1, B1, B3,
+  C6. Dependents must NOT dispatch until Joel reviews the diff/decision and
+  SESSION_STATE.md gate status is `approved`. As of 2026-07-07, only A10b
+  and C6 remain pending review.
 - **Advisory (2):** A7, C5 — flag for review in the PR/close-out, but dependents may proceed.
 
 ## Packet index
@@ -116,23 +127,24 @@ a blocked lane never idles the program. **Critical paths:** A4→A5→A9 and C0�
 | ~~A2~~ ✅ | ~~Transient token drag~~ **done** `73ff143` | — | Low | — | 120k (T2 60k / T3 30k) | `src/components/Scene/TokenRenderer.tsx`, new `src/hooks/useTransientDrag.ts` |
 | ~~A3~~ ✅ | ~~Transient camera~~ **done** `37443fe` | A2 | Low | — | 100k (T2 50k / T3 25k) | `src/components/Scene/SceneCanvas.tsx`, camera ref module |
 | ~~A4~~ ✅ | ~~Store slice split~~ **done** `d0891ed` (additive realization, see SESSION_STATE) | — | Med | — | 180k (T2 90k / T1 15k / T3 40k) | new `src/stores/scene/*` (gameStore.ts untouched) |
-| ~~A5~~ ✅ | ~~Subscription surgery~~ **done** `f149b92`, gate approved | A4 (A3 soft) | Med | ✅ | 160k (T2 80k / T3 50k) | `SceneCanvas.tsx` + layer components |
+| ~~A5~~ ✅ | ~~Subscription surgery~~ **done** `f149b92`+S9, gate approved | A4 (A3 soft) | Med | ✅ | 160k (T2 80k / T3 50k) | `SceneCanvas.tsx` + layer components |
 | ~~A6a~~ ✅ | ~~Floating panels~~ **done** `68db393`+`19ef427`, gate approved | A1 | Med | ✅ | 150k (T2 80k / T3 35k) | `GameUI.tsx`, `layout-consolidated.css`, new flag util + first CSS Module |
-| ~~A6b~~ ✅ | ~~Header → icon dock~~ **done** `29acb84`, gate approved | A6a | Med | ✅ | 130k (T2 70k / T3 30k) | `GameUI.tsx`, `PlayerBar.tsx`, new `PanelDock` module |
-| A6c | Scene pill + modal hygiene (**still todo** — S7 marked a substituted work item done under this id; corrected S8) | A6b | Low | — | 100k (T2 50k / T3 25k) | `GameUI.tsx`, `generator-panel.css` |
-| ~~A6d~~ ✅ | ~~Floating UI config~~ **done** S8 (retro-brief; gate pending Joel) | A6b | Med | 🔍 | (emergent — S7 unbudgeted + S8 T3 ~40k) | `uiStackStore`, `useDraggablePanel`, chrome components |
+| ~~A6b~~ ✅ | ~~Header → icon dock~~ **done** `c4763b1`, gate approved | A6a | Med | ✅ | 130k (T2 70k / T3 30k) | `GameUI.tsx`, `PlayerBar.tsx`, new `PanelDock` module |
+| ~~A6c~~ ✅ | ~~Scene pill + modal hygiene~~ **done** `f4c2d6b` | A6b | Low | — | 100k (T2 50k / T3 25k) | `GameUI.tsx`, `generator-panel.css` |
+| ~~A6d~~ ✅ | ~~Floating UI config~~ **done** `c95d925`, gate approved | A6b | Med | ✅ | (emergent — S7 unbudgeted + S8 T3 ~40k) | `uiStackStore`, `useDraggablePanel`, chrome components |
 | ~~A7~~ ✅ | ~~Token context menu~~ **done** | A6a | Low-Med | ✅ | 110k (T2 60k / T3 25k) | new `TokenContextMenu`, `PopoverMenu.tsx` |
 | ~~A8a~~ ✅ | ~~Canvas ink (flagged)~~ **done** | A4 | Med-High | — | 180k (T2 100k / T3 40k) | `DrawingRenderer.tsx`, new canvas layer, T0 pixel-diff harness |
-| A8b | Ink cutover | A8a | Med | 🔍 | 140k (T2 70k / T3 40k) | `SelectionOverlay.tsx`, hit-test module |
-| A9 | Paintable fog | A4, A5 | Med | 🔍 | 160k (T2 90k / T3 40k) | new fog layer + `fogSlice`, `EntitySyncHandler.ts` |
-| A10 | Cleanup + docs | A5,A6c,A7,A8b,A9 | Low | — | 80k (T1 30k / T3 30k) | dead CSS, `CLAUDE.md` |
+| ~~A8b~~ ✅ | ~~Ink cutover~~ **done** `e02ac0c`+`83cd99f`, gate approved | A8a | Med | ✅ | 140k (T2 70k / T3 40k) | `SelectionOverlay.tsx`, hit-test module |
+| ~~A9~~ ✅ | ~~Paintable fog~~ **done** `f5238c1`+`f444c95`, gate approved | A4, A5 | Med | ✅ | 160k (T2 90k / T3 40k) | new fog layer + `fogSlice`, `EntitySyncHandler.ts` |
+| A10a ▶️ | Cleanup + docs truth-up **in progress** | A8b(approved), A9(approved) | Low | — | 80k (T1 30k / T3 30k) | dead CSS, `CLAUDE.md`, shared helper/type cleanup |
+| A10b 🔍▶️ | GameToolbar design overhaul **in progress** | A8b(approved), A9(approved) | Med | pending | 140k (T2 90k / T3 35k) | `GameToolbar.tsx`, `toolbar-unified.css`, optional CSS Module |
 | ~~C0~~ ✅ | ~~Atlas ADR ×3~~ **done** | — | Low | ✅ | 100k (T1 20k / T3 60k) | `docs/roadmap/ADR/0010–0012` |
 | ~~C1~~ ✅ | ~~Asset service skeleton~~ **done** | C0 | Med | 🔍 | 180k (T2 100k / T3 40k) | per ADR-0010 |
 | ~~C2~~ ✅ | ~~User-asset domain~~ **done** | C0, C1 | Med | — | 150k (T2 90k / T3 35k) | asset service |
 | ~~C3~~ ✅ | ~~Federation hook~~ **done** | — | Low-Med | — | 140k (T2 80k / T3 30k) | new `src/hooks/useAtlasAssets.ts` |
 | ~~C4~~ ✅ | ~~Dock shell + grid~~ **done** `b22691e` (virtualization deferred → C6 entry criterion) | C3, A1 | Med | — | 150k (T2 90k / T3 30k) | `src/components/Atlas/*` |
 | ~~C5~~ ✅ | ~~Dock→canvas DnD~~ **done** | C4 | Med | ✅ | 130k (T2 70k / T3 40k) | `src/components/Atlas/useDockToCanvasDrag.ts` |
-| C6 | Base Library tab | C4, B3 | Low | 🔍 | 100k (T2 50k / T3 25k) | Atlas components + hook |
+| ~~C6~~ ✅ | ~~Base Library tab~~ **done** `bc3cb37`, go-live review pending | C4, B3 | Low | pending | 100k (T2 50k / T3 25k) | Atlas components + hook |
 | ~~B0~~ ✅ | ~~TMT acquisition~~ **done** | C0 | Low | — | 60k (T0 / T1 15k / T3 25k) | new `tools/tmt-ingest/*` |
 | ~~B1~~ ✅ | ~~TMT normalization~~ **done** | B0 | Med | 🔍 | 100k (T0 / T1 40k / T3 35k) | `tools/tmt-ingest/*` |
 | ~~B2~~ ✅ | ~~Derivatives + storage~~ **done** `b22691e` (incl. browse symlink tree per Joel's 0011 pick) | B1, C0 | Low | — | 50k (T0 / T1 10k / T3 20k) | `tools/tmt-ingest/*`, NAS layout |
@@ -150,9 +162,14 @@ a blocked lane never idles the program. **Critical paths:** A4→A5→A9 and C0�
 
 ## Suggested next three sessions
 
-1. **A1** (z-scale) — small, unblocks A6a and C4.
-2. **C0** (Atlas ADRs) — unblocks seven packets.
-3. **C3** or **A2** — both dependency-free; pick by appetite (backend-less frontend vs feel-win).
+1. **A10b** — finish the GameToolbar design overhaul, remove the legacy `dm-mask` toolbar
+   group, run toolbar tests, and prepare before/after screenshots for Joel's blocking visual
+   review.
+2. **A10a** — finish cleanup/docs truth-up: stale `CLAUDE.md` claims, dead CSS with
+   zero-reference proof, shared transform helper, and small type cleanup.
+3. **Camera relay follow-up** — after Track A closes, add server relay support for
+   `camera/update` and decide host-only enforcement, or close C6's go-live review if Joel has
+   feedback from the Atlas base library.
 
 ## Appendix — Program budget & savings projection (conservative estimates)
 
