@@ -3,6 +3,15 @@
 track: A · risk: Med (pure presentation, high visibility) · gate: **blocking 🔍** (Joel visual review) · depends_on: [A8b(approved), A9(approved)] · unblocks: [] (Track A terminal with A10a)
 budget_cap: 140k tokens (T2 ~90k / T3 ~35k)
 
+## Execution discipline (S14 retry directive)
+- T2 builder owns implementation and routine troubleshooting inside this packet's file scope.
+- Unit-test fixing and mechanical failures stay at Haiku/Sonnet tier; do NOT spend T3 on
+  routine test repair or environment churn.
+- Escalate to T3 only for genuine design-judgment questions, scope conflicts, or gate
+  arbitration.
+- The builder should produce a standard RESUME_PROTOCOL.md §4 handoff plus any exact commands
+  still needed for verification.
+
 ## Objective (Joel's words, binding)
 "The tools and icons themselves are fine and I like the glow on selection as well as the hover
 effects, but the layout is very inefficient and the padding is ugly. Review the style, design,

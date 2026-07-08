@@ -4,7 +4,7 @@
 > Every future orchestrator session boots via [RESUME_PROTOCOL.md](RESUME_PROTOCOL.md),
 > reads [SESSION_STATE.md](SESSION_STATE.md), and executes exactly one packet from
 > [SESSION_BRIEFS/](SESSION_BRIEFS/). Status reconciled with
-> [SESSION_STATE.md](SESSION_STATE.md) on `packet/A-track-final` at `3de0d18`, 2026-07-07.
+> [SESSION_STATE.md](SESSION_STATE.md) on `packet/A-track-final` at `f0fe814`, 2026-07-07.
 
 ## Mission
 
@@ -162,8 +162,8 @@ C0→B0→B1→B2→B3→C6. Track C is implementation-complete, with C6 go-live
 ## Suggested next three sessions
 
 1. **A10b** — finish the GameToolbar design overhaul, remove the legacy `dm-mask` toolbar
-   group, run toolbar tests, and prepare before/after screenshots for Joel's blocking visual
-   review.
+   group, keep mechanical troubleshooting at Haiku/Sonnet tier, then prepare before/after
+   screenshots for Joel's blocking visual review after verification.
 2. **C6 go-live review** — close Joel's review on the Base Library tab if there is feedback
    from Atlas usage.
 3. **Camera relay follow-up** — after Track A closes, add server relay support for

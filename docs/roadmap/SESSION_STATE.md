@@ -1,11 +1,25 @@
 # SESSION_STATE — machine-parseable save file
 # Update per RESUME_PROTOCOL.md §5. Append-friendly: edit only your packet's row; append log rows.
 
-## ⚠️ ACTIVE HANDOFF
-(Resolved in S6. Handoff clear.)
+## ⚠️ ACTIVE HANDOFF (S14, 2026-07-07 — read before A10b retry)
+A10b builder retry is prepared for branch `packet/A-track-final` against
+SESSION_BRIEFS/A10b-toolbar-design.md. Joel's quota directive: unit-test fixing and
+troubleshooting stay at Haiku/Sonnet tier — do NOT burn T3 on mechanical failures; dispatch a
+small sonnet/haiku agent instead. On builder completion:
+1. T3-light review of the handoff (KEEP-list compliance: icons/glow/hover/drag/z-clamp intact;
+   dm-mask group removed; token-rhythm CSS; module migration completeness).
+2. Verify: `export PATH="/usr/local/bin:$PATH"` FIRST (nvm node 20.9 can't run vitest/husky;
+   system node 26.4 works), then type-check + full test (known env-only failure:
+   tests/integration/database.test.ts without live PostgreSQL).
+3. Commit as feat(A10b) on the branch; capture before/after toolbar screenshots in preview
+   (flag now defaults ON) for Joel's blocking visual gate.
+4. After Joel approves A10b (+ formal C6 go-live ✓): merge packet/A-track-final → master,
+   mark roadmap COMPLETE, write final program ledger to SESSION_STATE + ROADMAP appendix.
+Post-roadmap backlog: base-asset local population, camera/update relay, PropRenderer transient
+drag, zoom-at-cursor.
 
 last_updated: 2026-07-07
-last_verified_commit: 3de0d18 (packet/A-track-final)
+last_verified_commit: f0fe814 (packet/A-track-final)
 roadmap_version: 1
 
 ## Packet ledger
