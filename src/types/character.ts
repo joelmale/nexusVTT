@@ -422,6 +422,8 @@ export function createEmptyCharacter(playerId: string): Character {
     };
   });
 
+  const timestamp = new Date().toISOString();
+
   return {
     id: crypto.randomUUID(),
     playerId,
@@ -449,8 +451,8 @@ export function createEmptyCharacter(playerId: string): Character {
     skills,
     savingThrowProficiencies: { STR: false, DEX: false, CON: false, INT: false, WIS: false, CHA: false },
     languages: ['Common'],
-    createdAt: new Date().toISOString(),
-    updatedAt: new Date().toISOString(),
+    createdAt: timestamp,
+    updatedAt: timestamp,
   };
 }
 

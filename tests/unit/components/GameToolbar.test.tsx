@@ -70,22 +70,34 @@ describe('GameToolbar', () => {
     expect(setActiveTool).toHaveBeenCalledWith('pan');
   });
 
-  it('should show DM tools for the host', () => {
+  it('should show current host tools while hiding legacy mask controls', () => {
     (useActiveTool as vi.Mock).mockReturnValue('select');
     (useIsHost as vi.Mock).mockReturnValue(true);
     render(<GameToolbar />);
 
-    const createMaskButton = screen.getByRole('button', { name: 'Create Mask' });
-    expect(createMaskButton).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: 'Grid Alignment' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Fog: Off' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Create Mask' }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Toggle Mask' }),
+    ).not.toBeInTheDocument();
   });
 
-  it('should not show DM tools for non-host players', () => {
+  it('should not show host tools for non-host players', () => {
     (useActiveTool as vi.Mock).mockReturnValue('select');
     (useIsHost as vi.Mock).mockReturnValue(false);
     render(<GameToolbar />);
 
     const createMaskButton = screen.queryByRole('button', { name: 'Create Mask' });
     expect(createMaskButton).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('button', { name: 'Grid Alignment' }),
+    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Fog: Off' })).not.toBeInTheDocument();
   });
 
   it('should call updateCamera when zoom buttons are clicked', () => {

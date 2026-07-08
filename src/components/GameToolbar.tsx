@@ -19,8 +19,6 @@ import {
   Eraser,
   Grid3x3,
   Hand,
-  Eye,
-  EyeOff,
   Minus,
   MousePointer2,
   Pencil,
@@ -34,8 +32,6 @@ import {
   Play,
   Flame,
   Maximize2,
-  Drama,
-  Divide,
   CloudFog,
   Paintbrush,
   Trash2,
@@ -257,49 +253,6 @@ export const GameToolbar: React.FC = () => {
     [],
   );
 
-  const dmMaskGroup: ToolbarGroup | null = useMemo(
-    () =>
-      isHost
-        ? {
-            id: 'dm-mask',
-            label: 'Fog of War',
-            tools: [
-              {
-                id: 'mask-create',
-                icon: <Drama size={18} />,
-                label: 'Create Mask',
-                tooltip: 'Draw fog of war mask',
-              },
-              {
-                id: 'mask-toggle',
-                icon: <Divide size={18} />,
-                label: 'Toggle Mask',
-                tooltip: 'Toggle mask visibility',
-              },
-              {
-                id: 'mask-remove',
-                icon: <Eraser size={18} />,
-                label: 'Remove Mask',
-                tooltip: 'Erase fog of war',
-              },
-              {
-                id: 'mask-show',
-                icon: <Eye size={18} />,
-                label: 'Reveal Scene',
-                tooltip: 'Reveal entire scene to players',
-              },
-              {
-                id: 'mask-hide',
-                icon: <EyeOff size={18} />,
-                label: 'Hide Scene',
-                tooltip: 'Hide entire scene from players',
-              },
-            ],
-          }
-        : null,
-    [isHost],
-  );
-
   const dmUtilityGroup: ToolbarGroup | null = useMemo(
     () =>
       isHost
@@ -319,12 +272,11 @@ export const GameToolbar: React.FC = () => {
     [isHost],
   );
 
-  // A9: paintable fog - host-only group. Distinct from the legacy
-  // 'dm-mask' group above (polygon fog-of-war drawings, ADR-0009 note:
-  // pre-existing and out of scope for this packet - left untouched). The
-  // toggle/clear buttons are actions (not tool-select); the two reveal
-  // buttons behave like every other shape tool (setActiveTool via the
-  // default onClick in renderToolButton).
+  // A9: paintable fog - host-only group. The legacy dm-mask toolbar entry
+  // was removed from this UI; the underlying fog-of-war drawing runtime is
+  // left intact outside this packet. The toggle/clear buttons are actions
+  // (not tool-select); the two reveal buttons behave like every other shape
+  // tool (setActiveTool via the default onClick in renderToolButton).
   const handleToggleFog = useCallback(() => {
     if (!activeScene) return;
     const { setFogEnabled } = useGameStore.getState();
@@ -419,7 +371,6 @@ export const GameToolbar: React.FC = () => {
       const key = e.key.toUpperCase();
       const allTools = [
         ...toolGroups.flatMap((g) => g.tools),
-        ...(dmMaskGroup ? dmMaskGroup.tools : []),
         ...(dmUtilityGroup ? dmUtilityGroup.tools : []),
         ...(dmFogGroup ? dmFogGroup.tools : []),
       ];
@@ -442,22 +393,35 @@ export const GameToolbar: React.FC = () => {
 
     document.addEventListener('keydown', handleKeyDown);
     return () => document.removeEventListener('keydown', handleKeyDown);
-  }, [setActiveTool, toolGroups, dmMaskGroup, dmUtilityGroup, dmFogGroup]);
+  }, [setActiveTool, toolGroups, dmUtilityGroup, dmFogGroup]);
 
   const renderToolButton = (tool: ToolbarItem) => {
+    const isActive =
+      activeTool === tool.id || tool.className?.split(' ').includes('active');
+    const buttonClassName = [
+      'toolbar-btn',
+      isActive ? 'active' : '',
+      tool.disabled ? 'disabled' : '',
+      tool.className?.split(' ').filter((name) => name !== 'active').join(' '),
+    ]
+      .filter(Boolean)
+      .join(' ');
+
     return (
       <button
         key={tool.id}
         data-id={tool.id}
         type="button"
-        className={`toolbar-btn ${activeTool === tool.id ? 'active' : ''} ${
-          tool.disabled ? 'disabled' : ''
-        } ${tool.className || ''}`}
+        className={buttonClassName}
         onClick={tool.action ? tool.action : () => setActiveTool(tool.id)}
         disabled={tool.disabled}
-        aria-pressed={activeTool === tool.id}
+        aria-pressed={isActive}
         aria-label={tool.label}
-        title={tool.tooltip && tool.tooltip !== tool.label ? `${tool.label}: ${tool.tooltip}` : tool.label}
+        title={
+          tool.tooltip && tool.tooltip !== tool.label
+            ? `${tool.label}: ${tool.tooltip}`
+            : tool.label
+        }
         onMouseEnter={() => setHoveredTool(tool)}
       >
         {tool.icon ? (
@@ -548,21 +512,13 @@ export const GameToolbar: React.FC = () => {
               </div>
             </div>
 
+            <div className="toolbar-group-separator" />
+
             {/* Spell Effects Grid */}
             <div className="toolbar-section spell-tools">
               <div className="toolbar-group spell-grid">
                 {toolGroups[3].tools.map(renderToolButton)}
               </div>
-
-              {/* DM Mask Tools */}
-              {isHost && dmMaskGroup && (
-                <>
-                  <div className="toolbar-group-separator" />
-                  <div className="toolbar-group dm-tools">
-                    {dmMaskGroup.tools.map(renderToolButton)}
-                  </div>
-                </>
-              )}
 
               {/* DM Utility Tools */}
               {isHost && dmUtilityGroup && (

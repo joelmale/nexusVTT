@@ -61,6 +61,19 @@ afterEach(() => {
 });
 
 describe('GameToolbar - Fog group (A9)', () => {
+  it('does not render the legacy dm-mask controls for a host', () => {
+    mockIsHost = true;
+
+    render(<GameToolbar />);
+
+    expect(screen.queryByLabelText('Create Mask')).toBeNull();
+    expect(screen.queryByLabelText('Toggle Mask')).toBeNull();
+    expect(screen.queryByLabelText('Remove Mask')).toBeNull();
+    expect(screen.queryByLabelText('Reveal Scene')).toBeNull();
+    expect(screen.queryByLabelText('Hide Scene')).toBeNull();
+    expect(screen.getByTestId('dm-fog-group')).not.toBeNull();
+  });
+
   it('is not rendered for a non-host', () => {
     mockIsHost = false;
 
