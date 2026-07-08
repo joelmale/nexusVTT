@@ -4,7 +4,7 @@
 > Every future orchestrator session boots via [RESUME_PROTOCOL.md](RESUME_PROTOCOL.md),
 > reads [SESSION_STATE.md](SESSION_STATE.md), and executes exactly one packet from
 > [SESSION_BRIEFS/](SESSION_BRIEFS/). Status reconciled with
-> [SESSION_STATE.md](SESSION_STATE.md) on `packet/A-track-final` at `f0fe814`, 2026-07-07.
+> [SESSION_STATE.md](SESSION_STATE.md) on `packet/A-track-final` at `e44580e`, 2026-07-07.
 
 ## Mission
 
@@ -32,7 +32,7 @@ All 14 ADRs in [ADR/](ADR/) are binding. Headlines:
 
 - **Track A** — Rendering & UX migration (blueprint steps 1–11), 15 packets:
   A1–A5, A6a/b/c/d, A7, A8a/b, A9, A10a/b. All feature packets are done;
-  terminal cleanup is done and toolbar design remains in progress.
+  terminal cleanup and toolbar implementation are done; A10b visual approval remains pending.
 - **Track B** — Too Many Tokens ingestion, 4 packets: B0–B3. Complete.
 - **Track C** — The Atlas (backend service + frontend federation), 7 packets: C0–C6.
   Implementation complete; C6 go-live review remains pending Joel.
@@ -66,7 +66,7 @@ flowchart LR
     A8b["A8b ink cutover ✅"]:::done
     A9["A9 paintable fog ✅"]:::done
     A10a["A10a cleanup + docs ✅"]:::done
-    A10b["A10b toolbar design 🔍▶️"]:::pending
+    A10b["A10b toolbar design ✅ review pending"]:::pending
   end
 
   subgraph LaneC["Lane 2 — Atlas"]
@@ -106,9 +106,10 @@ flowchart LR
   C4 --> C6
 ```
 
-**Current active packet:** A10b. A10a closed cleanup/docs and non-toolbar refactors; A10b owns
-`GameToolbar` and toolbar styling. **Critical paths completed:** A4→A5→A9 and
-C0→B0→B1→B2→B3→C6. Track C is implementation-complete, with C6 go-live review still pending.
+**Current active work:** Joel visual review for A10b plus C6 go-live review. A10a closed
+cleanup/docs and non-toolbar refactors; A10b implementation is committed at `e44580e`.
+**Critical paths completed:** A4→A5→A9 and C0→B0→B1→B2→B3→C6. Track C is
+implementation-complete, with C6 go-live review still pending.
 
 ## Gate policy
 
@@ -136,7 +137,7 @@ C0→B0→B1→B2→B3→C6. Track C is implementation-complete, with C6 go-live
 | ~~A8b~~ ✅ | ~~Ink cutover~~ **done** `e02ac0c`+`83cd99f`, gate approved | A8a | Med | ✅ | 140k (T2 70k / T3 40k) | `SelectionOverlay.tsx`, hit-test module |
 | ~~A9~~ ✅ | ~~Paintable fog~~ **done** `f5238c1`+`f444c95`, gate approved | A4, A5 | Med | ✅ | 160k (T2 90k / T3 40k) | new fog layer + `fogSlice`, `EntitySyncHandler.ts` |
 | ~~A10a~~ ✅ | ~~Cleanup + docs truth-up~~ **done** `c42a5fc` | A8b(approved), A9(approved) | Low | — | 80k (T1 30k / T3 30k) | dead CSS, `CLAUDE.md`, shared helper/type cleanup |
-| A10b 🔍▶️ | GameToolbar design overhaul **in progress** | A8b(approved), A9(approved) | Med | pending | 140k (T2 90k / T3 35k) | `GameToolbar.tsx`, `toolbar-unified.css`, optional CSS Module |
+| ~~A10b~~ ✅ | ~~GameToolbar design overhaul~~ **done** `e44580e`, visual review pending | A8b(approved), A9(approved) | Med | pending | 140k (T2 90k / T3 35k) | `GameToolbar.tsx`, `toolbar-unified.css`, toolbar tests, screenshot artifacts |
 | ~~C0~~ ✅ | ~~Atlas ADR ×3~~ **done** | — | Low | ✅ | 100k (T1 20k / T3 60k) | `docs/roadmap/ADR/0010–0012` |
 | ~~C1~~ ✅ | ~~Asset service skeleton~~ **done** | C0 | Med | 🔍 | 180k (T2 100k / T3 40k) | per ADR-0010 |
 | ~~C2~~ ✅ | ~~User-asset domain~~ **done** | C0, C1 | Med | — | 150k (T2 90k / T3 35k) | asset service |
@@ -161,14 +162,13 @@ C0→B0→B1→B2→B3→C6. Track C is implementation-complete, with C6 go-live
 
 ## Suggested next three sessions
 
-1. **A10b** — finish the GameToolbar design overhaul, remove the legacy `dm-mask` toolbar
-   group, keep mechanical troubleshooting at Haiku/Sonnet tier, then prepare before/after
-   screenshots for Joel's blocking visual review after verification.
+1. **A10b visual review** — Joel reviews `e44580e` and the screenshots under
+   `docs/roadmap/artifacts/A10b-toolbar/`; if approved, mark A10b gate approved.
 2. **C6 go-live review** — close Joel's review on the Base Library tab if there is feedback
    from Atlas usage.
-3. **Camera relay follow-up** — after Track A closes, add server relay support for
-   `camera/update` and decide host-only enforcement, or close C6's go-live review if Joel has
-   feedback from the Atlas base library.
+3. **Merge/closeout** — after A10b and C6 approvals, merge `packet/A-track-final` to `master`,
+   mark the roadmap complete, then choose the first backlog packet (camera relay is the leading
+   candidate).
 
 ## Appendix — Program budget & savings projection (conservative estimates)
 
