@@ -23,6 +23,7 @@ Environment variables:
 | `ASSETS_PATH` | `<repo>/static-assets` | Root for legacy manifest/category/user-asset routes |
 | `LIBRARY_MANIFEST_PATH` | `<repo>/assets-data/manifests/manifest-v2.json` | TMT library manifest (B3 endpoints) |
 | `LIBRARY_DATA_PATH` | `<repo>/assets-data` | Root of the assets-data tree (parent of `manifests/`); serves the library's content-addressed `blobs/`/`derivatives/` files under `/library-assets` (C6). Resolved independently of `LIBRARY_MANIFEST_PATH` — set both if you relocate either piece separately. |
+| `ASSET_SEED_SOURCE` | `<repo>/asset-packs/tmt` locally, `/seed/tmt` in Docker | Repo-owned seed-pack source used by `scripts/ensure-library-assets.cjs`; the script copies into `LIBRARY_DATA_PATH` only when the runtime tree is missing or incomplete. |
 | `ASSET_SERVICE_SECRET` | *(none)* | Shared secret checked against the `x-nexus-auth` request header for all write/write-ish routes |
 
 Auth model (ADR-0012): reads are public-within-deployment; writes (`POST`/`DELETE` under
@@ -32,6 +33,27 @@ authenticated session, per `server/middleware/assetWriteGuard.ts`.
 
 Tests: `npx tsc --noEmit && npx vitest run` (30+ tests across `src/index.test.ts` and
 `src/library.test.ts`).
+
+### Runtime seeding
+
+TMT assets are treated as a host-local seed pack plus a writable runtime volume:
+
+```text
+asset-packs/tmt/          # gitignored, host-local; read-only seed source (bring your own)
+assets-data/              # writable local/runtime target; mounted as nexus-library-assets in Docker
+```
+
+Run `npm run seed:library-assets` to validate `assets-data/`. If it already has a valid
+`manifests/manifest-v2.json` and the manifest's sample thumbnail/full image exist, the command is a
+no-op. If the target is missing or incomplete, it copies from `asset-packs/tmt`. In production the
+`asset-service` container runs the same check before starting, with
+`${TMT_ASSET_PACK_PATH:-../asset-packs/tmt}` mounted read-only at `/seed/tmt` and
+`nexus-library-assets` mounted at `/app/assets-data`.
+
+The seed pack is intentionally not committed to the repo and not baked into the main app image:
+code-only clones/deploys stay small, and the large asset tree is host-provided data (local disk,
+NAS share, external drive — wherever you keep it) referenced via `TMT_ASSET_PACK_PATH`, separate
+from the persistent runtime volume it seeds.
 
 ---
 

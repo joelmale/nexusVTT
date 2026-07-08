@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { useGameStore } from '@/stores/gameStore';
 import { sceneUtils } from '@/utils/sceneUtils';
+import type { Token } from '@/types/token';
 
 interface UseDockToCanvasDragOptions {
   onDragStart?: () => void;
@@ -10,6 +11,65 @@ interface UseDockToCanvasDragOptions {
 export interface DragPayload {
   category: 'tokens' | 'props';
   id: string;
+  name?: string;
+  thumbnailUrl?: string;
+  tags?: string[];
+  resolveFullAsset?: () => Promise<string>;
+}
+
+let atlasTokenLibraryId: string | null = null;
+
+function stripAtlasSourcePrefix(id: string): string {
+  const separatorIndex = id.indexOf(':');
+  return separatorIndex >= 0 ? id.slice(separatorIndex + 1) : id;
+}
+
+async function resolveDroppedToken(payload: DragPayload): Promise<Token | null> {
+  const { tokenAssetManager } = await import('@/services/tokenAssets');
+  await tokenAssetManager.initialize();
+
+  const assetId = stripAtlasSourcePrefix(payload.id);
+  const existingToken =
+    tokenAssetManager.getTokenById(assetId) ||
+    tokenAssetManager.getTokenById(payload.id);
+  if (existingToken) return existingToken;
+
+  const imageUrl =
+    (payload.resolveFullAsset
+      ? await payload.resolveFullAsset().catch(() => payload.thumbnailUrl)
+      : payload.thumbnailUrl) || '';
+  if (!imageUrl) return null;
+
+  const now = Date.now();
+  const token: Token = {
+    id: payload.id,
+    name: payload.name || 'Atlas Token',
+    image: imageUrl,
+    thumbnailImage: payload.thumbnailUrl,
+    size: 'medium',
+    category: 'monster',
+    tags: payload.tags,
+    isCustom: true,
+    isPublic: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  try {
+    if (!atlasTokenLibraryId) {
+      atlasTokenLibraryId = tokenAssetManager.createCustomLibrary(
+        'Atlas Library',
+        'Tokens placed from Atlas assets',
+      ).id;
+    }
+    return tokenAssetManager.addCustomTokenWithId(atlasTokenLibraryId, token);
+  } catch {
+    atlasTokenLibraryId = tokenAssetManager.createCustomLibrary(
+      'Atlas Library',
+      'Tokens placed from Atlas assets',
+    ).id;
+    return tokenAssetManager.addCustomTokenWithId(atlasTokenLibraryId, token);
+  }
 }
 
 export const useDockToCanvasDrag = (options?: UseDockToCanvasDragOptions) => {
@@ -46,12 +106,24 @@ export const useDockToCanvasDrag = (options?: UseDockToCanvasDragOptions) => {
     }
   }, [isDragging]);
 
-  const handlePointerUp = useCallback((e: React.PointerEvent) => {
+  const handlePointerUp = useCallback(async (e: React.PointerEvent) => {
     if (!isDragging) return;
-    e.currentTarget.releasePointerCapture(e.pointerId);
-    
+    if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+      e.currentTarget.releasePointerCapture(e.pointerId);
+    }
+
+    const payload = dragPayload.current;
     const canvasRoot = document.querySelector('[data-role="scene-canvas-root"]');
-    if (canvasRoot && overCanvas && dragPayload.current) {
+    const rect = canvasRoot?.getBoundingClientRect();
+    const isOverCanvas = Boolean(
+      rect &&
+      e.clientX >= rect.left &&
+      e.clientX <= rect.right &&
+      e.clientY >= rect.top &&
+      e.clientY <= rect.bottom,
+    );
+
+    if (canvasRoot && rect && isOverCanvas && payload) {
       const state = useGameStore.getState();
       const activeSceneId = state.sceneState.activeSceneId;
       const scene = activeSceneId ? state.sceneState.scenes.find(s => s.id === activeSceneId) : undefined;
@@ -72,7 +144,6 @@ export const useDockToCanvasDrag = (options?: UseDockToCanvasDragOptions) => {
            return;
         }
         
-        const rect = canvasRoot.getBoundingClientRect();
         const screenX = e.clientX - rect.left;
         const screenY = e.clientY - rect.top;
         
@@ -87,35 +158,36 @@ export const useDockToCanvasDrag = (options?: UseDockToCanvasDragOptions) => {
           finalY = snapped.y;
         }
         
-        const payload = dragPayload.current;
         const roomCode = state.session?.roomCode || '';
         if (payload.category === 'props') {
-          import('@/types/prop').then(({ createPlacedProp }) => {
-            const placedProp = createPlacedProp(payload.id, scene.id, { x: finalX, y: finalY }, user.id);
-            state.placeProp(scene.id, placedProp);
-          });
+          const { createPlacedProp } = await import('@/types/prop');
+          const placedProp = createPlacedProp(
+            stripAtlasSourcePrefix(payload.id),
+            scene.id,
+            { x: finalX, y: finalY },
+            user.id,
+          );
+          state.placeProp(scene.id, placedProp);
         } else if (payload.category === 'tokens') {
-          import('@/types/token').then(({ createPlacedToken }) => {
-            import('@/services/tokenAssets').then(({ tokenAssetManager }) => {
-              const baseToken = tokenAssetManager.getTokenById(payload.id);
-              if (baseToken) {
-                const placedToken = createPlacedToken(baseToken, { x: finalX, y: finalY }, scene.id, roomCode, user.id, {
-                  visibleToPlayers: true,
-                });
-                state.placeToken(scene.id, placedToken);
-                // Dispatch unversioned event manually as token/place is relay-only
-                import('@/services/websocket').then(({ webSocketService }) => {
-                  webSocketService.sendEvent({
-                    type: 'token/place',
-                    data: {
-                      sceneId: scene.id,
-                      token: placedToken,
-                    },
-                  });
-                });
-              }
+          const { createPlacedToken } = await import('@/types/token');
+          const baseToken = await resolveDroppedToken(payload);
+          if (baseToken) {
+            const placedToken = createPlacedToken(baseToken, { x: finalX, y: finalY }, scene.id, roomCode, user.id, {
+              visibleToPlayers: true,
             });
-          });
+            state.placeToken(scene.id, placedToken);
+            // Dispatch unversioned event manually as token/place is relay-only
+            const { webSocketService } = await import('@/services/websocket');
+            webSocketService.sendEvent({
+              type: 'token/place',
+              data: {
+                sceneId: scene.id,
+                token: placedToken,
+              },
+            });
+          } else {
+            console.warn(`Dropped token asset could not be resolved: ${payload.id}`);
+          }
         }
       }
     }
@@ -126,7 +198,7 @@ export const useDockToCanvasDrag = (options?: UseDockToCanvasDragOptions) => {
     setOverCanvas(false);
     dragPayload.current = null;
     options?.onDragEnd?.();
-  }, [isDragging, overCanvas, options]);
+  }, [isDragging, options]);
   
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

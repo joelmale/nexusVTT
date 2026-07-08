@@ -11,9 +11,12 @@ export class PropsSourceAdapter implements AtlasSourceAdapter {
     }
   }
 
-  async search(query: string, cursor?: any, _signal?: AbortSignal): Promise<PaginatedResult> {
+  async search(query: string, cursor?: any, _signal?: AbortSignal, category?: string): Promise<PaginatedResult> {
     await this.initIfNeeded();
-    const results = propAssetManager.searchProps(query);
+    const searchResults = propAssetManager.searchProps(query);
+    const results = category && category !== 'all'
+      ? searchResults.filter(prop => prop.category === category)
+      : searchResults;
     
     const skip = cursor || 0;
     const limit = 20;

@@ -11,9 +11,12 @@ export class TokensSourceAdapter implements AtlasSourceAdapter {
     }
   }
 
-  async search(query: string, cursor?: any, _signal?: AbortSignal): Promise<PaginatedResult> {
+  async search(query: string, cursor?: any, _signal?: AbortSignal, category?: string): Promise<PaginatedResult> {
     await this.initIfNeeded();
-    const results = tokenAssetManager.searchTokens(query);
+    const searchResults = tokenAssetManager.searchTokens(query);
+    const results = category && category !== 'all'
+      ? searchResults.filter(token => token.category === category)
+      : searchResults;
     
     // Simulate pagination for local sync sources
     const skip = cursor || 0;

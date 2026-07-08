@@ -5,8 +5,12 @@ export class CodexSourceAdapter implements AtlasSourceAdapter {
   source = 'codex' as const;
   isOffline = false;
 
-  async search(query: string, cursor?: any, _signal?: AbortSignal): Promise<PaginatedResult> {
+  async search(query: string, cursor?: any, _signal?: AbortSignal, category?: string): Promise<PaginatedResult> {
     try {
+      if (category && category !== 'all') {
+        return { assets: [], hasMore: false, total: 0 };
+      }
+
       const skip = cursor || 0;
       const limit = 20;
       const result = await documentService.searchDocuments({ 

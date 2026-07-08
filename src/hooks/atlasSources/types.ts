@@ -33,6 +33,6 @@ export interface PaginatedResult {
 export interface AtlasSourceAdapter {
   source: AtlasAsset['source'];
   isOffline: boolean;
-  search(query: string, cursor?: any, signal?: AbortSignal): Promise<PaginatedResult>;
+  search(query: string, cursor?: any, signal?: AbortSignal, category?: string): Promise<PaginatedResult>;
   list(category: string, cursor?: any, signal?: AbortSignal): Promise<PaginatedResult>;
 }

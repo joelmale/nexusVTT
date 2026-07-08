@@ -59,6 +59,13 @@ POSTGRES_PASSWORD=YOUR_SECURE_PASSWORD_HERE
 # Service name is "redis" (from docker-compose.yml)
 REDIS_PASSWORD=YOUR_SECURE_REDIS_PASSWORD
 
+# Asset service write/reload secret
+ASSET_SERVICE_SECRET=<run: openssl rand -base64 32>
+
+# Optional: host path to the repo-owned TMT seed pack.
+# Defaults to ../asset-packs/tmt relative to docker/docker-compose.yml.
+TMT_ASSET_PACK_PATH=/path/to/nexusVTT/asset-packs/tmt
+
 # OAuth Callback URLs (MUST be absolute URLs for OAuth providers)
 GOOGLE_CALLBACK_URL=https://app.nexusvtt.com/auth/google/callback
 DISCORD_CALLBACK_URL=https://app.nexusvtt.com/auth/discord/callback
@@ -124,12 +131,43 @@ cd /Users/JoelN/Coding/nexusVTT
 # Build backend image
 docker build -f docker/backend.Dockerfile -t ghcr.io/joelmale/nexusvtt/backend:latest .
 
+# Build asset service image
+docker build -f docker/asset-service.Dockerfile -t ghcr.io/joelmale/nexusvtt/asset-service:latest .
+
 # Build frontend image
 docker build -f docker/frontend.Dockerfile -t ghcr.io/joelmale/nexusvtt/frontend:latest .
 
 # Push to GitHub Container Registry
 docker push ghcr.io/joelmale/nexusvtt/backend:latest
+docker push ghcr.io/joelmale/nexusvtt/asset-service:latest
 docker push ghcr.io/joelmale/nexusvtt/frontend:latest
+```
+
+### TMT Asset Seed Pack
+
+TMT assets are not baked into the main app image. The production `asset-service`
+starts by validating the persistent `nexus-library-assets` volume. If the volume
+is empty or incomplete, it seeds from a **host-local, gitignored** pack mounted at
+`${TMT_ASSET_PACK_PATH:-../asset-packs/tmt}`.
+
+The seed pack is not committed to the repo — bring your own copy (from an existing
+`assets-data/` volume, a NAS share, an external drive, wherever you keep it) and
+either drop it at the default path (`asset-packs/tmt/` at the repo root, already
+gitignored) or set `TMT_ASSET_PACK_PATH` to point elsewhere. Preserve this shape:
+
+```text
+asset-packs/tmt/
+  manifests/manifest-v2.json
+  blobs/
+  derivatives/
+  browse/
+  staging/
+```
+
+Before deploying on a new host, verify (or trigger) the seed:
+
+```bash
+npm run seed:library-assets
 ```
 
 ---

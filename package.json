@@ -32,6 +32,7 @@
     "docker:dev:down": "docker-compose -f docker/docker-compose.dev.yml down",
     "organize-assets": "chmod +x scripts/organize-assets.sh && ./scripts/organize-assets.sh",
     "update-assets": "node scripts/update-asset-references.js",
+    "seed:library-assets": "node scripts/ensure-library-assets.cjs",
     "generate-default-manifest": "node scripts/generate-default-manifest.js",
     "generate-thumbnails": "node scripts/generate-thumbnails.js",
     "generate-assets": "npm run generate-thumbnails && npm run generate-default-manifest",

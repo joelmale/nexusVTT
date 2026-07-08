@@ -27,6 +27,7 @@ jobs:
     outputs:
       frontend_image: ${{ steps.meta.outputs.frontend_image }}
       backend_image: ${{ steps.meta.outputs.backend_image }}
+      asset_service_image: ${{ steps.meta.outputs.asset_service_image }}
       postgres_image: ${{ steps.meta.outputs.postgres_image }}
       version: ${{ steps.meta.outputs.version }}
 
@@ -58,6 +59,7 @@ jobs:
           echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
           echo "frontend_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/frontend:$VERSION" >> $GITHUB_OUTPUT
           echo "backend_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/backend:$VERSION" >> $GITHUB_OUTPUT
+          echo "asset_service_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/asset-service:$VERSION" >> $GITHUB_OUTPUT
           echo "postgres_image=${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/postgres:$VERSION" >> $GITHUB_OUTPUT
 
       - name: Build and push frontend
@@ -90,6 +92,18 @@ jobs:
           build-args: |
             VERSION=${{ steps.meta.outputs.version }}
             COMMIT_SHA=${{ github.sha }}
+
+      - name: Build and push asset service
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: docker/asset-service.Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/asset-service:${{ steps.meta.outputs.version }}
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}/asset-service:latest
+          cache-from: type=gha,scope=asset-service-homelab
+          cache-to: type=gha,mode=max,scope=asset-service-homelab
 
       - name: Build and push postgres
         uses: docker/build-push-action@v7

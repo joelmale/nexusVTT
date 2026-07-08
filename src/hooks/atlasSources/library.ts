@@ -106,11 +106,17 @@ export class LibrarySourceAdapter implements AtlasSourceAdapter {
     }
   }
 
-  async search(query: string, cursor?: string | null, signal?: AbortSignal): Promise<PaginatedResult> {
+  async search(
+    query: string,
+    cursor?: string | null,
+    signal?: AbortSignal,
+    category?: string,
+  ): Promise<PaginatedResult> {
     const params: Record<string, string> = {
       q: query,
       limit: String(DEFAULT_LIMIT),
     };
+    if (category && category !== 'all') params.category = category;
     if (cursor) params.cursor = cursor;
     return this.fetchLibrary(params, signal);
   }

@@ -4,7 +4,7 @@
 > Every future orchestrator session boots via [RESUME_PROTOCOL.md](RESUME_PROTOCOL.md),
 > reads [SESSION_STATE.md](SESSION_STATE.md), and executes exactly one packet from
 > [SESSION_BRIEFS/](SESSION_BRIEFS/). Status reconciled with
-> [SESSION_STATE.md](SESSION_STATE.md) on `packet/A-track-final` at `e44580e`, 2026-07-07.
+> [SESSION_STATE.md](SESSION_STATE.md) on `packet/A-track-final`, 2026-07-08 closeout.
 
 ## Mission
 
@@ -35,7 +35,7 @@ All 14 ADRs in [ADR/](ADR/) are binding. Headlines:
   terminal cleanup and toolbar implementation are done; A10b visual approval is complete.
 - **Track B** — Too Many Tokens ingestion, 4 packets: B0–B3. Complete.
 - **Track C** — The Atlas (backend service + frontend federation), 7 packets: C0–C6.
-  Implementation complete; C6 go-live review remains pending Joel.
+  Complete; C6 go-live review approved by Joel on 2026-07-08.
 
 Deferred/unscheduled: token-vision fog (needs product decision; see ADR-0009),
 server `camera/update` relay, map/document drop routing from Atlas, PropRenderer transient
@@ -76,7 +76,7 @@ flowchart LR
     C3["C3 federation hook ✅"]:::done
     C4["C4 dock shell + grid ✅"]:::done
     C5["C5 drag-drop (adv.) ✅"]:::done
-    C6["C6 Base Library tab ✅ review pending"]:::pending
+    C6["C6 Base Library tab ✅ approved"]:::done
   end
 
   subgraph LaneB["Lane 3 — TMT ingestion"]
@@ -106,17 +106,16 @@ flowchart LR
   C4 --> C6
 ```
 
-**Current active work:** C6 go-live review. A10a closed cleanup/docs and non-toolbar
-refactors; A10b implementation is committed and approved at `e44580e`.
-**Critical paths completed:** A4→A5→A9 and C0→B0→B1→B2→B3→C6. Track C is
-implementation-complete, with C6 go-live review still pending.
+**Current active work:** roadmap closeout and deployment validation. A10a/A10b and C6 are
+approved; all Track A/B/C packets are complete.
+**Critical paths completed:** A4→A5→A9 and C0→B0→B1→B2→B3→C6.
 
 ## Gate policy
 
 - **Blocking 🔍:** A1, A5, A6a, A6b, A6d, A8b, A9, A10b, C0, C1, B1, B3,
   C6. Dependents must NOT dispatch until Joel reviews the diff/decision and
-  SESSION_STATE.md gate status is `approved`. As of 2026-07-07, only C6 remains
-  pending review.
+  SESSION_STATE.md gate status is `approved`. As of 2026-07-08, every blocking
+  roadmap gate is approved.
 - **Advisory (2):** A7, C5 — flag for review in the PR/close-out, but dependents may proceed.
 
 ## Packet index
@@ -144,7 +143,7 @@ implementation-complete, with C6 go-live review still pending.
 | ~~C3~~ ✅ | ~~Federation hook~~ **done** | — | Low-Med | — | 140k (T2 80k / T3 30k) | new `src/hooks/useAtlasAssets.ts` |
 | ~~C4~~ ✅ | ~~Dock shell + grid~~ **done** `b22691e` (virtualization deferred → C6 entry criterion) | C3, A1 | Med | — | 150k (T2 90k / T3 30k) | `src/components/Atlas/*` |
 | ~~C5~~ ✅ | ~~Dock→canvas DnD~~ **done** | C4 | Med | ✅ | 130k (T2 70k / T3 40k) | `src/components/Atlas/useDockToCanvasDrag.ts` |
-| ~~C6~~ ✅ | ~~Base Library tab~~ **done** `bc3cb37`, go-live review pending | C4, B3 | Low | pending | 100k (T2 50k / T3 25k) | Atlas components + hook |
+| ~~C6~~ ✅ | ~~Base Library tab~~ **done**, go-live approved; seed-pack/runtime fixes included in closeout | C4, B3 | Low | ✅ | 100k (T2 50k / T3 25k) | Atlas components + hook + asset-service Docker |
 | ~~B0~~ ✅ | ~~TMT acquisition~~ **done** | C0 | Low | — | 60k (T0 / T1 15k / T3 25k) | new `tools/tmt-ingest/*` |
 | ~~B1~~ ✅ | ~~TMT normalization~~ **done** | B0 | Med | 🔍 | 100k (T0 / T1 40k / T3 35k) | `tools/tmt-ingest/*` |
 | ~~B2~~ ✅ | ~~Derivatives + storage~~ **done** `b22691e` (incl. browse symlink tree per Joel's 0011 pick) | B1, C0 | Low | — | 50k (T0 / T1 10k / T3 20k) | `tools/tmt-ingest/*`, NAS layout |
@@ -160,15 +159,14 @@ implementation-complete, with C6 go-live review still pending.
 3. Front-loading is deliberate: A1/A2 before subscription surgery; C0 ADRs before any
    pipeline or service code. Do not reorder around gates.
 
-## Suggested next three sessions
+## Suggested next sessions
 
-1. **C6 go-live review** — close Joel's review on the Base Library tab if there is feedback
-   from Atlas usage.
-2. **Merge/closeout** — after C6 approval, merge `packet/A-track-final` to `master`,
-   mark the roadmap complete, then choose the first backlog packet (camera relay is the leading
-   candidate).
-3. **Camera relay follow-up** — first post-roadmap backlog packet unless C6 review surfaces a
-   higher-priority Atlas issue.
+1. **Deploy to Dockhand** — publish the closeout images, deploy the stack, and verify app,
+   asset-service, `/library`, `/library-assets`, Atlas search/facets, and token drop.
+2. **Camera relay follow-up** — first post-roadmap backlog packet unless deployment testing
+   surfaces a higher-priority issue.
+3. **Post-roadmap backlog triage** — base-asset population, PropRenderer transient drag,
+   map/document drop routing, zoom-at-cursor, and session recovery polish.
 
 ## Appendix — Program budget & savings projection (conservative estimates)
 

@@ -71,7 +71,7 @@ export function useAtlasAssets(options?: UseAtlasAssetsOptions) {
       const promises = adapters.map(async adapter => {
         let result: PaginatedResult;
         if (q.trim()) {
-          result = await adapter.search(q, undefined, controller.signal);
+          result = await adapter.search(q, undefined, controller.signal, cat);
         } else {
           result = await adapter.list(cat, undefined, controller.signal);
         }
@@ -136,7 +136,7 @@ export function useAtlasAssets(options?: UseAtlasAssetsOptions) {
         const adapter = adapters.find(a => a.source === sourceName);
         if (!adapter) return null;
         const result = q.trim()
-          ? await adapter.search(q, state.cursor as any)
+          ? await adapter.search(q, state.cursor as any, undefined, cat)
           : await adapter.list(cat, state.cursor as any);
         return { adapter, result };
       });

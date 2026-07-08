@@ -230,7 +230,11 @@ export const AtlasDock: React.FC = () => {
                     onPointerDown={(e) => {
                       handlePointerDown(e, {
                         id: asset.id,
-                        category: (asset.category === 'props' ? 'props' : 'tokens') as 'tokens' | 'props',
+                        category: asset.source === 'props' ? 'props' : 'tokens',
+                        name: asset.name,
+                        thumbnailUrl: asset.thumbnailUrl,
+                        tags: asset.tags,
+                        resolveFullAsset: asset.resolveFullAsset,
                       }, asset.thumbnailUrl);
                     }}
                     onPointerMove={handlePointerMove}

@@ -81,6 +81,12 @@ describe('LibrarySourceAdapter', () => {
     const searchUrl = fetchSpy.mock.calls[0][0] as string;
     expect(searchUrl).toContain('q=goblin');
     expect(searchUrl).toContain('cursor=MjA%3D');
+
+    fetchSpy.mockClear();
+    await adapter.search('goblin', undefined, undefined, 'Goblin');
+    const filteredSearchUrl = fetchSpy.mock.calls[0][0] as string;
+    expect(filteredSearchUrl).toContain('q=goblin');
+    expect(filteredSearchUrl).toContain('category=Goblin');
   });
 
   it('omits the cursor param on the initial request', async () => {

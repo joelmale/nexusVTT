@@ -38,6 +38,8 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+      asset-service:
+        condition: service_healthy
     environment:
       NODE_ENV: production
       PORT: 5001
@@ -45,6 +47,8 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_SECRET: ${JWT_SECRET}
       SESSION_SECRET: ${SESSION_SECRET}
+      ASSET_API_URL: http://asset-service:5003
+      ASSET_SERVICE_SECRET: ${ASSET_SERVICE_SECRET}
       CORS_ORIGIN: ${CORS_ORIGIN}
       GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
       GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
@@ -57,6 +61,30 @@ services:
     networks:
       - nexus-internal
     restart: unless-stopped
+
+  asset-service:
+    image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexusvtt}/asset-service:${VERSION:-latest}
+    environment:
+      NODE_ENV: production
+      PORT: 5003
+      ASSETS_PATH: /app/static-assets
+      ASSET_SERVICE_SECRET: ${ASSET_SERVICE_SECRET}
+      LIBRARY_DATA_PATH: /app/assets-data
+      LIBRARY_MANIFEST_PATH: /app/assets-data/manifests/manifest-v2.json
+      ASSET_SEED_SOURCE: /seed/tmt
+    volumes:
+      - nexus-assets:/app/static-assets/assets
+      - nexus-user-assets:/app/static-assets/users
+      - nexus-library-assets:/app/assets-data
+      - ${TMT_ASSET_PACK_PATH:-../asset-packs/tmt}:/seed/tmt:ro
+    networks:
+      - nexus-internal
+    restart: unless-stopped
+    healthcheck:
+      test: ['CMD-SHELL', 'node -e "const port = process.env.PORT || 5003; require(''http'').get(''http://127.0.0.1:'' + port + ''/health'', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on(''error'', () => process.exit(1))"']
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   frontend:
     image: ${IMAGE_PREFIX:-ghcr.io/joelmale/nexusvtt}/frontend:${VERSION:-latest}
@@ -75,6 +103,8 @@ volumes:
   postgres-data:
   redis-data:
   nexus-assets:
+  nexus-user-assets:
+  nexus-library-assets:
 
 networks:
   # Internal network — only containers in this stack can communicate on it

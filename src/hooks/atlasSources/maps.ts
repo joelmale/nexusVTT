@@ -5,9 +5,12 @@ export class MapsSourceAdapter implements AtlasSourceAdapter {
   source = 'maps' as const;
   isOffline = false;
 
-  async search(query: string, cursor?: any, _signal?: AbortSignal): Promise<PaginatedResult> {
+  async search(query: string, cursor?: any, _signal?: AbortSignal, category?: string): Promise<PaginatedResult> {
     try {
-      const results = await assetManager.searchAssets(query);
+      const searchResults = await assetManager.searchAssets(query);
+      const results = category && category !== 'all'
+        ? searchResults.filter((asset: any) => asset.category === category)
+        : searchResults;
       
       const skip = cursor || 0;
       const limit = 20;

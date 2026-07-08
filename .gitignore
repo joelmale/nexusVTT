@@ -186,6 +186,12 @@ assets-working/
 graphics-src/
 design-files/
 
+# TMT seed pack (scripts/ensure-library-assets.cjs source): NOT committed to
+# the repo. Populate this directory locally (or point TMT_ASSET_PACK_PATH /
+# ASSET_SEED_SOURCE at a copy elsewhere — NAS share, external drive, etc.)
+# and it stays untracked. See DEPLOYMENT.md's TMT seed pack section.
+asset-packs/
+
 # Deployment files
 .vercel
 .netlify

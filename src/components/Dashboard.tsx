@@ -7,7 +7,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { useCharacterCreationLauncher } from '@/hooks';
-import type { PlayerCharacter } from '@/types/game';
+import type { GameConfig, PlayerCharacter } from '@/types/game';
 
 // Import our new Atomic components
 import { DashboardLayout } from './Dashboard/templates/DashboardLayout';
@@ -54,7 +54,13 @@ interface ApiCharacter {
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const { user, isAuthenticated, authChecked, joinRoomWithCode } = useGameStore();
+  const {
+    user,
+    isAuthenticated,
+    authChecked,
+    joinRoomWithCode,
+    createGameRoom,
+  } = useGameStore();
   const { startCharacterCreation, LauncherComponent } = useCharacterCreationLauncher();
 
   const [campaigns, setCampaigns] = useState<ApiCampaign[]>([]);
@@ -155,15 +161,22 @@ export const Dashboard: React.FC = () => {
     const apiCamp = campaigns.find((c) => c.id === layoutCamp.id);
     if (!apiCamp) return;
 
-    if (apiCamp.lastRoomCode) {
-      try {
-        await joinRoomWithCode(apiCamp.lastRoomCode);
-        navigate(`/lobby/game/${apiCamp.lastRoomCode}`);
-      } catch {
-        navigate('/lobby');
-      }
-    } else {
-      navigate('/lobby');
+    const gameConfig: GameConfig = {
+      name: apiCamp.name,
+      description: apiCamp.description || '',
+      estimatedTime: '',
+      campaignType: 'campaign',
+      maxPlayers: 6,
+      campaignId: apiCamp.id,
+      preferredRoomCode: apiCamp.lastRoomCode?.toUpperCase(),
+    };
+
+    try {
+      const roomCode = await createGameRoom(gameConfig, false);
+      navigate(`/lobby/game/${roomCode}`);
+    } catch (error) {
+      console.error('Failed to play campaign:', error);
+      alert('Failed to open campaign. Please try again.');
     }
   };
 
