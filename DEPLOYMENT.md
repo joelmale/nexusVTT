@@ -211,6 +211,7 @@ docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2025-12
 docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2025-12-08-add-local-auth.sql
 docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2026-07-19-add-room-event-journal.sql
 docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2026-07-19-add-durable-game-state-commits.sql
+docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2026-07-19-add-room-entity-versions.sql
 ```
 
 #### What These Migrations Add:
@@ -219,10 +220,29 @@ docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2026-07
 - **2025-12-08-add-local-auth.sql**: Local authentication password columns
 - **2026-07-19-add-room-event-journal.sql**: Ordered, idempotent room event history
 - **2026-07-19-add-durable-game-state-commits.sql**: Atomic canonical snapshot version and content-hash anchors
+- **2026-07-19-add-room-entity-versions.sql**: Cross-replica token/prop version compare-and-swap anchors
 
 > **Note:** These migrations are safe to run multiple times (use `IF NOT EXISTS` and conditional logic).
-> Apply the two 2026-07-19 migrations before updating any backend replica. Do
+> Apply the three 2026-07-19 migrations in the listed order before updating any backend replica. Do
 > not run mixed schema versions during a rolling update.
+
+### Multiplayer Monitoring
+
+The backend exports Prometheus metrics on `/metrics` and a JSON SLO snapshot on
+`/api/metrics/multiplayer`. Keep `/metrics` on the internal network or set
+`METRICS_AUTH_TOKEN`. The optional monitoring overlay starts Prometheus and
+Grafana with the repository alert rules:
+
+```bash
+docker compose -f docker/docker-compose.yml \
+  -f docker/docker-compose.observability.yml up -d
+```
+
+Set `GRAFANA_ADMIN_PASSWORD` before starting it. Use the `otel` profile and an
+`OTEL_EXPORTER_OTLP_ENDPOINT` to forward the same metrics to an external
+OpenTelemetry backend. Alert thresholds, response steps, and the required
+post-deploy soak are in
+`docs/operations/multiplayer-observability.md`.
 
 ---
 

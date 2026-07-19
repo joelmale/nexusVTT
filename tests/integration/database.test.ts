@@ -1,6 +1,7 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { Pool } from 'pg';
 import { DatabaseService, createDatabaseService } from '../../server/database';
+import { EntityVersionConflictError } from '../../server/repositories/EventJournalRepository';
 import {
   createEmptySyncableGameState,
   type JsonValue,
@@ -280,6 +281,96 @@ describeDatabase('DatabaseService Integration Tests', () => {
         stateVersion: initial.stateVersion,
         syncToken: initial.syncToken,
       });
+    });
+  });
+
+  describe('Ordered Event Journal', () => {
+    it('atomically rejects one of two concurrent entity updates with the same version', async () => {
+      const { sessionId, joinCode } = await dbService.createSession(
+        testCampaignId,
+        testHostId,
+      );
+      const messages = [
+        {
+          identity: {
+            eventId: '11111111-1111-4111-8111-111111111111',
+            actorId: testHostId,
+            clientSequence: 1,
+            occurredAt: Date.now(),
+          },
+          message: {
+            type: 'event',
+            data: {
+              name: 'token/move',
+              tokenId: 'shared-token',
+              expectedVersion: 0,
+              x: 100,
+              y: 100,
+            },
+            timestamp: Date.now(),
+          },
+        },
+        {
+          identity: {
+            eventId: '22222222-2222-4222-8222-222222222222',
+            actorId: testHostId,
+            clientSequence: 2,
+            occurredAt: Date.now(),
+          },
+          message: {
+            type: 'event',
+            data: {
+              name: 'token/move',
+              tokenId: 'shared-token',
+              expectedVersion: 0,
+              x: 200,
+              y: 200,
+            },
+            timestamp: Date.now(),
+          },
+        },
+      ] as const;
+
+      const results = await Promise.allSettled(
+        messages.map(({ identity, message }) =>
+          dbService.appendRoomEvent(joinCode, identity, message, false, {
+            entityId: 'shared-token',
+            expectedVersion: 0,
+          }),
+        ),
+      );
+
+      const committed = results.filter(
+        (result) => result.status === 'fulfilled',
+      );
+      const rejected = results.filter((result) => result.status === 'rejected');
+      expect(committed).toHaveLength(1);
+      expect(rejected).toHaveLength(1);
+      expect(rejected[0].reason).toBeInstanceOf(EntityVersionConflictError);
+
+      const versionResult = await pool.query(
+        `SELECT version
+         FROM room_entity_versions
+         WHERE "sessionId" = $1 AND "entityId" = $2`,
+        [sessionId, 'shared-token'],
+      );
+      expect(versionResult.rows[0]?.version).toBe('1');
+
+      const eventResult = await pool.query(
+        `SELECT COUNT(*)::integer AS count
+         FROM room_events
+         WHERE "sessionId" = $1`,
+        [sessionId],
+      );
+      expect(eventResult.rows[0]?.count).toBe(1);
+
+      const sessionResult = await pool.query(
+        `SELECT "eventSequence"
+         FROM sessions
+         WHERE id = $1`,
+        [sessionId],
+      );
+      expect(sessionResult.rows[0]?.eventSequence).toBe('1');
     });
   });
 

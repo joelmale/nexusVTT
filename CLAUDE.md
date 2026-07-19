@@ -35,6 +35,11 @@ server is not a passive message router.
    Express sessions, and ordered events.
 6. Any change to this path must keep the Docker PostgreSQL transaction tests
    and the managed Playwright backend-`SIGKILL`-after-ACK scenario green.
+7. Versioned token/prop events compare-and-swap `room_entity_versions` in the
+   same PostgreSQL transaction that appends `room_events`. Never replace this
+   with a process-local version check; replicas can accept concurrently.
+8. Reliability work must preserve zero logical event loss/duplication and
+   final state-hash convergence under `npm run test:soak:chaos`.
 
 ---
 
@@ -70,6 +75,8 @@ npm run test             # All tests once
 npm run test:unit        # Unit tests only
 npm run test:integration # Integration tests
 npm run test:e2e         # Playwright E2E tests
+npm run test:soak:managed # Multi-room/multi-replica load test
+npm run test:soak:chaos   # Load plus backend, Redis, and PostgreSQL faults
 
 # Test specific files
 npm test -- dice.test.ts
@@ -116,6 +123,17 @@ psql $DATABASE_URL
 # Run schema migrations (schema in server/schema.sql)
 psql $DATABASE_URL -f server/schema.sql
 ```
+
+Existing deployments apply the 2026-07-19 migrations in this order:
+
+1. `add-room-event-journal.sql`
+2. `add-durable-game-state-commits.sql`
+3. `add-room-entity-versions.sql`
+
+Prometheus/OpenTelemetry configuration lives in `monitoring/`. The backend
+exports `/metrics`; `/api/metrics/multiplayer` includes the current SLO
+evaluation. See `docs/operations/multiplayer-observability.md` before changing
+thresholds or failure-injection behavior.
 
 **Auto-Start Feature:** `start:all` checks the local infrastructure before
 starting the application processes.

@@ -75,6 +75,16 @@ CREATE TABLE IF NOT EXISTS room_events (
     UNIQUE ("sessionId", "eventId")
 );
 
+-- Cross-replica compare-and-swap anchors for versioned token/prop events.
+-- Updated in the same transaction as room_events.
+CREATE TABLE IF NOT EXISTS room_entity_versions (
+    "sessionId" UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+    "entityId" TEXT NOT NULL,
+    version BIGINT NOT NULL,
+    "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    PRIMARY KEY ("sessionId", "entityId")
+);
+
 -- Players Table (associates users with sessions)
 CREATE TABLE IF NOT EXISTS players (
     id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),

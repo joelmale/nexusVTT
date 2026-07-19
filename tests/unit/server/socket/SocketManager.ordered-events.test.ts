@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { WebSocket, WebSocketServer } from 'ws';
 import { SocketManager } from '../../../../server/socket/SocketManager.js';
+import { EntityVersionConflictError } from '../../../../server/repositories/EventJournalRepository.js';
 import type { DatabaseService } from '../../../../server/database.js';
 import type {
   Connection,
@@ -121,5 +122,51 @@ describe('SocketManager ordered events', () => {
       duplicates: 1,
       failed: 0,
     });
+  });
+
+  it('reports an entity compare-and-swap conflict without counting an infrastructure failure', async () => {
+    const database = {
+      findRoomEvent: vi.fn(async () => null),
+      appendRoomEvent: vi.fn(async () => {
+        throw new EntityVersionConflictError('token-1', 0, 1);
+      }),
+    } as unknown as DatabaseService;
+    const manager = new SocketManager({} as WebSocketServer, database);
+    managers.push(manager);
+    const sender = connection('11111111-1111-4111-8111-111111111111');
+    const peer = connection('22222222-2222-4222-8222-222222222222');
+    const activeRoom = room(sender, peer);
+    manager.rooms.set(activeRoom.code, activeRoom);
+    manager.connections.set(sender.id, sender);
+
+    const onVersionConflict = vi.fn();
+    await manager.publishOrderedEvent(
+      activeRoom,
+      sender,
+      {
+        type: 'event',
+        data: {
+          name: 'token/move',
+          tokenId: 'token-1',
+          expectedVersion: 0,
+        },
+        timestamp: 1,
+        eventId: '33333333-3333-4333-8333-333333333333',
+        actorId: sender.id,
+        clientSequence: 1,
+        occurredAt: 1,
+      },
+      {
+        entityVersion: { entityId: 'token-1', expectedVersion: 0 },
+        onVersionConflict,
+      },
+    );
+
+    expect(onVersionConflict).toHaveBeenCalledWith(1);
+    expect(manager.getStats().orderedEvents).toMatchObject({
+      failed: 0,
+      versionConflicts: 1,
+    });
+    expect(sender.ws.send).not.toHaveBeenCalled();
   });
 });

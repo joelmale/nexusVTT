@@ -179,3 +179,4 @@ healthScore = (resync['integrity-mismatch'] === 0) &&
 - **Metrics endpoint:** `server/index.ts` (`/api/metrics/delta-sync`)
 - **Durable CAS:** `server/repositories/SessionRepository.ts`
 - **Schema migration:** `server/migrations/2026-07-19-add-durable-game-state-commits.sql`
+- **Combined SLOs and alerts:** `docs/operations/multiplayer-observability.md`

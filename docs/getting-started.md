@@ -6,32 +6,36 @@ This guide will walk you through setting up your development environment for Nex
 
 Before you begin, ensure you have the following installed:
 
-- **Node.js:** Version 18 or higher.
-- **npm:** Usually comes with Node.js.
+- **Node.js:** Version 26.5.0 or newer in the Node 26 line.
+- **npm:** Version 11 (installed with the supported Node toolchain).
 - **Git:** For cloning the repository.
 - **Docker Desktop:** Must be installed and running.
 
 ## Development Setup
 
 1.  **Clone the Repository**
+
     ```bash
     git clone https://github.com/your-username/nexus-vtt.git
     cd nexus-vtt
     ```
 
 2.  **Install Dependencies**
+
     ```bash
     npm install
     ```
 
 3.  **Configure Environment**
     Create a new file named `.env.local` in the project root and add the database connection string:
+
     ```
     DATABASE_URL="postgres://nexus:password@localhost:5432/nexus"
     ```
 
 4.  **Start Development Database**
     In a separate terminal, run the following command to start the PostgreSQL container:
+
     ```bash
     docker compose -f docker/docker-compose.dev.yml up -d postgres-dev
     ```

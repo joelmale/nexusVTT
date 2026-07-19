@@ -83,6 +83,14 @@ import {
   DocumentServiceClient,
   createDocumentServiceClient,
 } from './services/documentServiceClient.js';
+import {
+  createCommitLatencyHistogram,
+  evaluateMultiplayerSlos,
+  getMultiplayerSloConfig,
+  observeCommitLatency,
+  renderPrometheusMetrics,
+  type MultiplayerMetricsSnapshot,
+} from './observability/multiplayerMetrics.js';
 
 // Routes
 import { createDocumentRoutes } from './routes/documents.js';
@@ -184,6 +192,7 @@ class NexusServer {
       failures: number;
       totalCommitLatencyMs: number;
       maxCommitLatencyMs: number;
+      commitLatency: ReturnType<typeof createCommitLatencyHistogram>;
     };
     resync: Record<ResyncReason, number>;
     patchBytesSaved: number;
@@ -196,6 +205,7 @@ class NexusServer {
       failures: 0,
       totalCommitLatencyMs: 0,
       maxCommitLatencyMs: 0,
+      commitLatency: createCommitLatencyHistogram(),
     },
     resync: {
       'base-mismatch': 0,
@@ -308,6 +318,7 @@ class NexusServer {
 
     this.setupAuthRoutes();
     this.setupApiRoutes();
+    this.setupMetricsRoutes();
     this.setupDocumentRoutes();
     this.setupAssetRoutes();
     this.setupHealthRoutes();
@@ -636,8 +647,23 @@ class NexusServer {
    * @returns {void}
    */
   private setupDocumentRoutes(): void {
-    // Delta-sync observability. Registered BEFORE the '/api' document-router
-    // mount below, otherwise that router's catch-all 404 shadows it.
+    const documentRoutes = createDocumentRoutes(
+      this.documentClient,
+      this.documentsEnabled,
+      this.db,
+    );
+    this.app.use('/api', documentRoutes);
+    if (this.documentsEnabled) {
+      console.log('📚 Document routes initialized');
+    } else {
+      console.log(
+        '📚 Document routes initialized in disabled mode (DOC_API_URL not set)',
+      );
+    }
+  }
+
+  private setupMetricsRoutes(): void {
+    // Register metrics before the '/api' document-router catch-all.
     this.app.get('/api/metrics/delta-sync', (req, res) => {
       const totalResyncs = Object.values(this.deltaSyncMetrics.resync).reduce(
         (sum, count) => sum + count,
@@ -690,19 +716,75 @@ class NexusServer {
       });
     });
 
-    const documentRoutes = createDocumentRoutes(
-      this.documentClient,
-      this.documentsEnabled,
-      this.db,
+    this.app.get('/api/metrics/multiplayer', (req, res) => {
+      const snapshot = this.getMultiplayerMetricsSnapshot();
+      res.json({
+        ...snapshot,
+        slo: evaluateMultiplayerSlos(snapshot, getMultiplayerSloConfig()),
+      });
+    });
+
+    this.app.get('/metrics', (req, res) => {
+      const configuredToken = process.env.METRICS_AUTH_TOKEN;
+      const suppliedToken = req
+        .get('authorization')
+        ?.replace(/^Bearer\s+/i, '');
+      if (configuredToken && suppliedToken !== configuredToken) {
+        res.status(401).type('text/plain').send('Unauthorized\n');
+        return;
+      }
+      const snapshot = this.getMultiplayerMetricsSnapshot();
+      res
+        .status(200)
+        .type('text/plain; version=0.0.4; charset=utf-8')
+        .send(renderPrometheusMetrics(snapshot));
+    });
+  }
+
+  private getMultiplayerMetricsSnapshot(): MultiplayerMetricsSnapshot {
+    const socketStats = this.socketManager.getStats();
+    const memory = process.memoryUsage();
+    const totalResyncs = Object.values(this.deltaSyncMetrics.resync).reduce(
+      (sum, count) => sum + count,
+      0,
     );
-    this.app.use('/api', documentRoutes);
-    if (this.documentsEnabled) {
-      console.log('📚 Document routes initialized');
-    } else {
-      console.log(
-        '📚 Document routes initialized in disabled mode (DOC_API_URL not set)',
-      );
-    }
+    return {
+      timestamp: Date.now(),
+      process: {
+        uptimeSeconds: process.uptime(),
+        residentMemoryBytes: memory.rss,
+        heapUsedBytes: memory.heapUsed,
+        heapTotalBytes: memory.heapTotal,
+        heapUtilizationRatio:
+          memory.heapTotal > 0 ? memory.heapUsed / memory.heapTotal : 0,
+      },
+      rooms: socketStats.totalRooms,
+      connections: socketStats.totalConnections,
+      gameStateQueueDepth: this.gameStateCommitQueues.size,
+      database: this.db.getPoolStats(),
+      gameState: {
+        commits: { ...this.deltaSyncMetrics.commits },
+        committed: this.deltaSyncMetrics.durability.committed,
+        conflicts: this.deltaSyncMetrics.durability.conflicts,
+        failures: this.deltaSyncMetrics.durability.failures,
+        resync: { ...this.deltaSyncMetrics.resync },
+        totalResyncs,
+        totalUploads: this.deltaSyncMetrics.totalUploads,
+        resyncRateRatio:
+          this.deltaSyncMetrics.totalUploads > 0
+            ? totalResyncs / this.deltaSyncMetrics.totalUploads
+            : 0,
+        patchBytesSaved: this.deltaSyncMetrics.patchBytesSaved,
+        commitLatency: {
+          ...this.deltaSyncMetrics.durability.commitLatency,
+          buckets: {
+            ...this.deltaSyncMetrics.durability.commitLatency.buckets,
+          },
+        },
+      },
+      orderedEvents: socketStats.orderedEvents,
+      realtime: socketStats.realtime,
+    };
   }
 
   private setupHealthRoutes(): void {
@@ -1859,6 +1941,10 @@ class NexusServer {
     this.deltaSyncMetrics.durability.totalCommitLatencyMs += commitLatencyMs;
     this.deltaSyncMetrics.durability.maxCommitLatencyMs = Math.max(
       this.deltaSyncMetrics.durability.maxCommitLatencyMs,
+      commitLatencyMs,
+    );
+    observeCommitLatency(
+      this.deltaSyncMetrics.durability.commitLatency,
       commitLatencyMs,
     );
 

@@ -128,6 +128,8 @@ npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
 npm run test:e2e        # Production Docker + Playwright smoke tests
 npm run test:e2e:headed # Smoke tests with a visible Chromium window
+npm run test:soak:managed # Configurable multi-room load test
+npm run test:soak:chaos # Load + backend/Redis/PostgreSQL fault injection
 npm run test:ci         # Full CI pipeline (lint + type-check + tests)
 npm run test:coverage   # Coverage report
 ```
@@ -171,6 +173,11 @@ npm run docker:dev:down     # Stop dev environment
 - **End-to-End Tests:** Production containers, two isolated clients, replica
   convergence, abrupt `SIGKILL` recovery after an ACK, PWA offline reloads,
   WebSocket reconnection, and dice runtime assets
+- **Load/Soak Tests:** 50-100 rooms with 4-8 isolated clients each, mixed
+  chat/dice/scene/token/state traffic, identity-preserving reconnects,
+  cross-replica conflict probes, zero-loss/duplicate checks, and final hash
+  convergence. The managed chaos mode restarts both backends, interrupts Redis,
+  and injects PostgreSQL latency through Toxiproxy.
 
 ## 🛡️ Security
 
@@ -251,11 +258,23 @@ nginx only terminates HTTP internally (port 80). TLS is terminated by the outer 
 - Automatic failover and recovery
 - Container health monitoring
 
-For an existing database, apply both July 19 migrations before rolling the new
-backend replicas: the ordered event journal first, followed by
-`server/migrations/2026-07-19-add-durable-game-state-commits.sql`. New databases
-receive the same columns from `server/schema.sql`, and startup defensively adds
-missing columns.
+For an existing database, apply all three July 19 migrations before rolling the
+new backend replicas: the ordered event journal, durable game-state commits,
+then `server/migrations/2026-07-19-add-room-entity-versions.sql`. The last table
+makes token/prop version checks atomic across replicas. New databases receive
+the same objects from `server/schema.sql`.
+
+The backend exposes a Prometheus endpoint at `/metrics` and a structured SLO
+snapshot at `/api/metrics/multiplayer`. Start the optional Prometheus/Grafana
+overlay with:
+
+```bash
+docker compose -f docker/docker-compose.yml \
+  -f docker/docker-compose.observability.yml up -d
+```
+
+See [Multiplayer Reliability Operations](./docs/operations/multiplayer-observability.md)
+for SLOs, alerts, OpenTelemetry export, load profiles, and the staging runbook.
 
 ## 📚 Documentation
 
@@ -265,6 +284,7 @@ missing columns.
 - [Network and Session Architecture](./docs/network-and-sessions.md)
 - [Ordered Event Delivery](./docs/ordered-event-delivery.md)
 - [Delta-Sync Operations](./docs/delta-sync-rollout.md)
+- [Multiplayer Reliability Operations](./docs/operations/multiplayer-observability.md)
 
 ### Deployment
 

@@ -67,3 +67,7 @@ See [Ordered Event Delivery](./ordered-event-delivery.md).
 Run `npm run test:ci` for static and Vitest coverage. Run `npm run test:e2e` for
 the managed two-replica browser suite, including concurrent writer conflict
 recovery and a backend `SIGKILL` immediately after a durable state ACK.
+Run `npm run test:soak:chaos` for multi-room cross-replica load, database-backed
+entity conflict serialization, rolling backend restarts, Redis interruption,
+PostgreSQL latency, and final event/state convergence. Metrics and SLOs are in
+[Multiplayer Reliability Operations](./operations/multiplayer-observability.md).

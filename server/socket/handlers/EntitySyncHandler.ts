@@ -128,12 +128,24 @@ export class EntitySyncHandler extends BaseHandler {
 
     const payload = message.data as VersionedPayload;
     const entityId = payload.tokenId ?? payload.propId;
+    const entityVersion =
+      VERSIONED_EVENTS.has(name) &&
+      entityId &&
+      typeof payload.expectedVersion === 'number'
+        ? { entityId, expectedVersion: payload.expectedVersion }
+        : undefined;
 
     await this.socketManager.publishOrderedEvent(room, connection, relayed, {
       excludeId: connection.id,
       identitySource: message,
-      validate: () =>
-        this.validateVersion(connection, room, name, entityId, payload),
+      entityVersion,
+      onVersionConflict: (currentVersion) => {
+        this.sendError(
+          connection,
+          `Update rejected due to version conflict for ${entityId} (expected v${payload.expectedVersion}, current v${currentVersion})`,
+          409,
+        );
+      },
       onAccepted: () => {
         if (
           VERSIONED_EVENTS.has(name) &&
@@ -153,34 +165,5 @@ export class EntitySyncHandler extends BaseHandler {
         }
       },
     });
-  }
-
-  private validateVersion(
-    connection: Connection,
-    room: Room,
-    eventName: string,
-    entityId: string | undefined,
-    payload: VersionedPayload,
-  ): boolean {
-    if (
-      !VERSIONED_EVENTS.has(eventName) ||
-      !entityId ||
-      typeof payload.expectedVersion !== 'number'
-    ) {
-      return true;
-    }
-
-    const currentVersion = room.entityVersions.get(entityId) ?? 0;
-    if (payload.expectedVersion >= currentVersion) return true;
-
-    console.warn(
-      `Version conflict for ${entityId}: expected ${payload.expectedVersion}, current ${currentVersion}`,
-    );
-    this.sendError(
-      connection,
-      `Update rejected due to version conflict for ${entityId} (expected v${payload.expectedVersion}, current v${currentVersion})`,
-      409,
-    );
-    return false;
   }
 }

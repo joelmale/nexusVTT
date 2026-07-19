@@ -83,12 +83,20 @@ function createHarness() {
       message: ServerMessage,
       options?: {
         excludeId?: string;
-        validate?: () => boolean;
+        entityVersion?: { entityId: string; expectedVersion: number };
+        onVersionConflict?: (currentVersion: number) => void;
         onAccepted?: () => void;
         onAcknowledged?: () => void;
       },
     ) => {
-      if (options?.validate && !options.validate()) {
+      const currentVersion = options?.entityVersion
+        ? (room.entityVersions.get(options.entityVersion.entityId) ?? 0)
+        : 0;
+      if (
+        options?.entityVersion &&
+        currentVersion > options.entityVersion.expectedVersion
+      ) {
+        options.onVersionConflict?.(currentVersion);
         return Promise.resolve(null);
       }
       options?.onAccepted?.();

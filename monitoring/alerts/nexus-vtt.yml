@@ -1,0 +1,83 @@
+groups:
+  - name: nexus-vtt-multiplayer
+    rules:
+      - alert: NexusVttDurableCommitFailure
+        expr: increase(nexus_vtt_game_state_commit_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Durable multiplayer commits are failing
+          description: At least one PostgreSQL-backed game-state commit failed in the last five minutes.
+
+      - alert: NexusVttOrderedEventFailure
+        expr: increase(nexus_vtt_ordered_events_failed_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Ordered multiplayer events are failing
+          description: The durable ordered-event journal rejected or failed an event.
+
+      - alert: NexusVttRealtimePublishFailure
+        expr: increase(nexus_vtt_realtime_publish_failures_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: Redis realtime fanout is failing
+          description: A backend instance could not publish distributed realtime traffic.
+
+      - alert: NexusVttDurableCommitLatencyHigh
+        expr: histogram_quantile(0.95, sum by (le) (rate(nexus_vtt_game_state_commit_duration_seconds_bucket[10m]))) > 0.25
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Durable commit p95 exceeds 250 ms
+          description: PostgreSQL acknowledgement latency is above the multiplayer SLO.
+
+      - alert: NexusVttResyncRateHigh
+        expr: nexus_vtt_game_state_resync_rate_ratio > 0.01
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Multiplayer resync rate exceeds 1 percent
+          description: Clients are frequently losing their expected game-state base token.
+
+      - alert: NexusVttCommitQueueBacklogged
+        expr: nexus_vtt_game_state_commit_queue_depth > 100
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: Durable game-state commit queue is backlogged
+          description: More than 100 rooms are waiting for a serialized database commit.
+
+      - alert: NexusVttRealtimeDisconnected
+        expr: nexus_vtt_realtime_enabled == 1 and nexus_vtt_realtime_connected == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: Backend lost Redis realtime coordination
+          description: Cross-replica event fanout and presence coordination are unavailable.
+
+      - alert: NexusVttDatabasePoolWaiting
+        expr: nexus_vtt_database_pool_connections{state="waiting"} > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: PostgreSQL pool has waiting requests
+          description: All backend database connections are occupied for a sustained period.
+
+      - alert: NexusVttHeapUtilizationHigh
+        expr: nexus_vtt_process_heap_utilization_ratio > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Backend heap utilization exceeds 90 percent
+          description: Sustained heap pressure may cause long garbage-collection pauses or an out-of-memory restart.

@@ -4,7 +4,7 @@ This guide shows you how to set up the external asset server with your 77MB of m
 
 ## 📋 Prerequisites
 
-- Node.js 18+ installed
+- Node.js 26.5.0+ from the Node 26 line installed
 - Your map assets in `/Volumes/PS2000w/DnD_Assets/maps`
 - Sharp image processing library: `npm install sharp`
 
@@ -66,6 +66,7 @@ npm run server:dev  # WebSocket server on 5000
 ## 📊 What Happens During Processing?
 
 **Original Assets (77MB)** →
+
 - **WebP Conversion**: Reduces size by ~40% with better quality
 - **Resolution Limiting**: Max 2048px to prevent huge images
 - **Thumbnail Generation**: 300x300 previews for fast browsing
@@ -73,6 +74,7 @@ npm run server:dev  # WebSocket server on 5000
 - **Smart Categorization**: Based on folder structure and filenames
 
 **Final Output (~50-60MB total)**:
+
 ```
 asset-server/assets/
 ├── manifest.json         # Asset metadata (~100KB)
@@ -97,7 +99,7 @@ services:
     build:
       context: .
       dockerfile: docker/frontend.Dockerfile
-    ports: ["3000:3000"]
+    ports: ['3000:3000']
     environment:
       - VITE_ASSET_SERVER_URL=http://asset-server:8080
     depends_on:
@@ -108,15 +110,15 @@ services:
     build:
       context: .
       dockerfile: docker/websocket.Dockerfile
-    ports: ["5000:5000"]
+    ports: ['5000:5000']
 
   asset-server:
     build:
       context: .
       dockerfile: docker/assets.Dockerfile
-    ports: ["8080:8080"]
+    ports: ['8080:8080']
     volumes:
-      - "./processed-assets:/app/assets:ro"
+      - './processed-assets:/app/assets:ro'
     environment:
       - PORT=8080
       - CORS_ORIGIN=*
@@ -127,6 +129,7 @@ services:
 ### Environment Variables
 
 **Asset Server (.env in asset-server/):**
+
 ```bash
 PORT=8080                    # Server port
 ASSETS_PATH=./assets         # Path to processed assets
@@ -135,6 +138,7 @@ CACHE_MAX_AGE=86400         # Cache headers (24 hours)
 ```
 
 **Frontend (.env in project root):**
+
 ```bash
 VITE_ASSET_SERVER_URL=http://localhost:8080  # Asset server URL
 ```
@@ -153,12 +157,14 @@ const THUMBNAIL_QUALITY = 80;   # Thumbnail quality
 ## 📈 Performance Benefits
 
 **Without Asset Server (Bundle Everything):**
+
 - ❌ App size: ~100MB
 - ❌ Initial load: 30-60 seconds
 - ❌ Memory usage: High (all assets loaded)
 - ❌ Can't add new assets without app update
 
 **With Asset Server:**
+
 - ✅ App size: ~15MB (core app only)
 - ✅ Initial load: 3-5 seconds
 - ✅ Memory usage: Low (only cached assets)
@@ -170,6 +176,7 @@ const THUMBNAIL_QUALITY = 80;   # Thumbnail quality
 ## 🗂️ Asset Organization Tips
 
 **Folder Structure for Best Results:**
+
 ```
 /Volumes/PS2000w/DnD_Assets/maps/
 ├── dungeons/
@@ -187,6 +194,7 @@ const THUMBNAIL_QUALITY = 80;   # Thumbnail quality
 ```
 
 **The processor will:**
+
 - Use folder names as categories
 - Extract keywords from filenames as tags
 - Generate searchable metadata
@@ -195,6 +203,7 @@ const THUMBNAIL_QUALITY = 80;   # Thumbnail quality
 ## 🚨 Troubleshooting
 
 **Asset processing fails:**
+
 ```bash
 # Check if Sharp is installed
 npm list sharp
@@ -207,6 +216,7 @@ ls -la /Volumes/PS2000w/DnD_Assets/maps
 ```
 
 **Asset server won't start:**
+
 ```bash
 # Check if port 8080 is in use
 lsof -i :8080
@@ -216,6 +226,7 @@ PORT=8081 npm run dev
 ```
 
 **Assets don't show in frontend:**
+
 ```bash
 # Verify asset server is running
 curl http://localhost:8080/health

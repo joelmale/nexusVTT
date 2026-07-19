@@ -7,7 +7,11 @@ import jsonpatch, { type Operation } from 'fast-json-patch';
 import { Room, Connection, ServerMessage, type GameState } from '../types.js';
 import { DatabaseService } from '../database.js';
 import { parseTransportEnvelope } from '../../shared/transport.js';
-import type { AppendRoomEventResult } from '../repositories/EventJournalRepository.js';
+import {
+  EntityVersionConflictError,
+  type AppendRoomEventResult,
+  type EntityVersionPrecondition,
+} from '../repositories/EventJournalRepository.js';
 import {
   RealtimeCoordinator,
   type DistributedRole,
@@ -40,6 +44,8 @@ export interface OrderedPublishOptions {
   onAccepted?: () => void;
   onAcknowledged?: () => void;
   senderReceivesEvent?: boolean;
+  entityVersion?: EntityVersionPrecondition;
+  onVersionConflict?: (currentVersion: number) => void;
 }
 
 export class SocketManager extends EventEmitter {
@@ -55,6 +61,7 @@ export class SocketManager extends EventEmitter {
     replayRequests: 0,
     replayed: 0,
     truncatedReplays: 0,
+    versionConflicts: 0,
   };
 
   private readonly HIBERNATION_TIMEOUT = 72 * 60 * 60 * 1000;
@@ -278,6 +285,7 @@ export class SocketManager extends EventEmitter {
           identity,
           message,
           Boolean(options.senderReceivesEvent),
+          options.entityVersion,
         );
         if (result.duplicate) {
           this.orderedEventMetrics.duplicates += 1;
@@ -297,6 +305,11 @@ export class SocketManager extends EventEmitter {
         if (!result.duplicate) await this.realtime.publishOrdered(result.event);
         return result;
       } catch (error) {
+        if (error instanceof EntityVersionConflictError) {
+          this.orderedEventMetrics.versionConflicts += 1;
+          options.onVersionConflict?.(error.currentVersion);
+          return null;
+        }
         this.orderedEventMetrics.failed += 1;
         console.error(
           `Failed to commit ordered event ${identity.eventId} in ${room.code}:`,

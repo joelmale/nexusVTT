@@ -25,6 +25,24 @@ export interface AppendRoomEventResult {
   event: OrderedTransportEnvelope;
 }
 
+export interface EntityVersionPrecondition {
+  entityId: string;
+  expectedVersion: number;
+}
+
+export class EntityVersionConflictError extends Error {
+  constructor(
+    public readonly entityId: string,
+    public readonly expectedVersion: number,
+    public readonly currentVersion: number,
+  ) {
+    super(
+      `Entity ${entityId} expected version ${expectedVersion}, current version ${currentVersion}`,
+    );
+    this.name = 'EntityVersionConflictError';
+  }
+}
+
 const DEFAULT_MAX_EVENTS_PER_ROOM = 1_000;
 
 function asSafeSequence(value: string | number): number {
@@ -91,6 +109,14 @@ export class EventJournalRepository extends BaseRepository {
 
       CREATE INDEX IF NOT EXISTS idx_room_events_created_at
       ON room_events ("createdAt");
+
+      CREATE TABLE IF NOT EXISTS room_entity_versions (
+        "sessionId" UUID NOT NULL REFERENCES sessions(id) ON DELETE CASCADE,
+        "entityId" TEXT NOT NULL,
+        version BIGINT NOT NULL,
+        "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+        PRIMARY KEY ("sessionId", "entityId")
+      );
     `);
   }
 
@@ -99,6 +125,7 @@ export class EventJournalRepository extends BaseRepository {
     identity: ClientEventIdentity,
     message: TransportEnvelope,
     echoToActor: boolean,
+    entityVersion?: EntityVersionPrecondition,
   ): Promise<AppendRoomEventResult> {
     const client = await this.pool.connect();
     try {
@@ -127,6 +154,31 @@ export class EventJournalRepository extends BaseRepository {
       }
 
       const serverSequence = asSafeSequence(session.eventSequence);
+      if (entityVersion) {
+        const versionResult = await client.query<{ version: string }>(
+          `INSERT INTO room_entity_versions (
+             "sessionId", "entityId", version, "updatedAt"
+           ) VALUES ($1, $2, $3::bigint + 1, NOW())
+           ON CONFLICT ("sessionId", "entityId") DO UPDATE
+           SET version = $3::bigint + 1, "updatedAt" = NOW()
+           WHERE room_entity_versions.version <= $3::bigint
+           RETURNING version`,
+          [session.id, entityVersion.entityId, entityVersion.expectedVersion],
+        );
+        if (!versionResult.rows[0]) {
+          const currentResult = await client.query<{ version: string }>(
+            `SELECT version
+             FROM room_entity_versions
+             WHERE "sessionId" = $1 AND "entityId" = $2`,
+            [session.id, entityVersion.entityId],
+          );
+          throw new EntityVersionConflictError(
+            entityVersion.entityId,
+            entityVersion.expectedVersion,
+            asSafeSequence(currentResult.rows[0]?.version ?? 0),
+          );
+        }
+      }
       const event: OrderedTransportEnvelope = {
         ...message,
         ...identity,

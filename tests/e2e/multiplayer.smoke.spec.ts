@@ -83,6 +83,59 @@ async function editActiveSceneName(page: Page, name: string): Promise<void> {
   await expect(activeScene(page)).toHaveAttribute('data-scene-name', name);
 }
 
+async function editSceneNameAfterResync(
+  page: Page,
+  observation: WebSocketObservation,
+  name: string,
+): Promise<void> {
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const acknowledgementCount = messagesOfType(
+      observation,
+      'game-state-ack',
+    ).length;
+    const resyncCount = messagesOfType(
+      observation,
+      'game-state-resync-required',
+    ).length;
+
+    await editActiveSceneName(page, name);
+    await expect
+      .poll(() => {
+        if (
+          messagesOfType(observation, 'game-state-ack').length >
+          acknowledgementCount
+        ) {
+          return 'acknowledged';
+        }
+        if (
+          messagesOfType(observation, 'game-state-resync-required').length >
+          resyncCount
+        ) {
+          return 'resync';
+        }
+        return 'pending';
+      })
+      .not.toBe('pending');
+
+    if (
+      messagesOfType(observation, 'game-state-ack').length >
+      acknowledgementCount
+    ) {
+      return;
+    }
+
+    // The observer sees the server frame before the application finishes
+    // applying its authoritative snapshot. Wait for that rollback before
+    // retrying the original user intent against the fresh chain base.
+    await expect(activeScene(page)).not.toHaveAttribute(
+      'data-scene-name',
+      name,
+    );
+  }
+
+  throw new Error('Scene edit did not commit after authoritative resyncs.');
+}
+
 test.describe.configure({ mode: 'serial' });
 
 test('two participants converge through gameplay, reconnects, restart, and a stale-base conflict', async ({
@@ -475,14 +528,11 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
       .toBeGreaterThan(hostAckCount);
 
     await openPanel(playerPage, 'Scene');
-    const playerAckCount = messagesOfType(
+    await editSceneNameAfterResync(
+      playerPage,
       playerSockets,
-      'game-state-ack',
-    ).length;
-    await editActiveSceneName(playerPage, 'Shared Chain Baseline');
-    await expect
-      .poll(() => messagesOfType(playerSockets, 'game-state-ack').length)
-      .toBeGreaterThan(playerAckCount);
+      'Shared Chain Baseline',
+    );
     await expect(activeScene(hostPage)).toHaveAttribute(
       'data-scene-name',
       'Shared Chain Baseline',

@@ -49,23 +49,28 @@ docker stack deploy -c docker/docker-compose.homelab.yml nexus
 ### Infrastructure
 
 ✅ **Docker Swarm cluster** (2 Proxmox nodes)
+
 - Manager node with public IP or port forwarding
 - Worker node(s) joined to swarm
 
 ✅ **Nginx Proxy Manager** installed and running
+
 - Accessible at port 81 or custom port
 - Has SSL certificate management configured
 - Can reach your swarm services
 
 ✅ **Portainer** running on swarm (optional but recommended)
+
 - Makes stack management much easier
 - Provides webhook for auto-deployment
 
 ✅ **Domain**: `nexusvtt.com`
+
 - DNS configured to point to your public IP
 - Subdomains: `app.nexusvtt.com`, `assets.nexusvtt.com` (optional)
 
 ✅ **Network**
+
 - Ports 80 and 443 forwarded to NPM host
 - NPM can access swarm manager on ports 3000, 5000, 8081
 
@@ -203,17 +208,17 @@ Configure DNS records at your domain registrar (where you bought `nexusvtt.com`)
 
 Point these to your **public IP address**:
 
-| Type | Name | Value | TTL |
-|------|------|-------|-----|
-| A | @ | `your.public.ip` | 300 |
-| A | app | `your.public.ip` | 300 |
+| Type | Name | Value            | TTL |
+| ---- | ---- | ---------------- | --- |
+| A    | @    | `your.public.ip` | 300 |
+| A    | app  | `your.public.ip` | 300 |
 
 ### Optional Records
 
-| Type | Name | Value | TTL |
-|------|------|-------|-----|
-| A | assets | `your.public.ip` | 300 |
-| A | www | `your.public.ip` | 300 |
+| Type | Name   | Value            | TTL |
+| ---- | ------ | ---------------- | --- |
+| A    | assets | `your.public.ip` | 300 |
+| A    | www    | `your.public.ip` | 300 |
 
 ### Using Dynamic DNS
 
@@ -222,9 +227,9 @@ If you have a dynamic public IP, consider using a DDNS service:
 1. Set up DDNS with a provider (DuckDNS, No-IP, Cloudflare, etc.)
 2. Create CNAME records pointing to your DDNS hostname:
 
-| Type | Name | Value | TTL |
-|------|------|-------|-----|
-| CNAME | app | `your-hostname.duckdns.org` | 300 |
+| Type  | Name | Value                       | TTL |
+| ----- | ---- | --------------------------- | --- |
+| CNAME | app  | `your-hostname.duckdns.org` | 300 |
 
 ### Verify DNS Propagation
 
@@ -250,11 +255,14 @@ docker exec -i $(docker ps -q -f name=nexus_postgres) \
   psql -U nexus -d nexus < server/migrations/2026-07-19-add-room-event-journal.sql
 docker exec -i $(docker ps -q -f name=nexus_postgres) \
   psql -U nexus -d nexus < server/migrations/2026-07-19-add-durable-game-state-commits.sql
+docker exec -i $(docker ps -q -f name=nexus_postgres) \
+  psql -U nexus -d nexus < server/migrations/2026-07-19-add-room-entity-versions.sql
 ```
 
 The second migration adds the snapshot `stateVersion` and `syncToken` anchors
-required by every backend replica. Deploy the schema before the application;
-do not run the new backend against an unmigrated database.
+required by every backend replica. The third makes entity-version conflicts
+atomic across replicas. Deploy the schema before the application; do not run
+the new backend against an unmigrated database.
 
 ## Deploy to Docker Swarm
 
@@ -282,6 +290,7 @@ do not run the new backend against an unmigrated database.
    - Paste contents of `.env.homelab`
 
    OR manually add each variable:
+
    ```
    GITHUB_REPO=yourusername/nexus
    VERSION=latest
@@ -385,6 +394,7 @@ See **[NPM_CONFIGURATION.md](./NPM_CONFIGURATION.md)** for detailed NPM setup.
    - I Agree: ✅
 
    **Advanced Tab:**
+
    ```nginx
    # Frontend - React SPA
    location / {
@@ -468,8 +478,8 @@ https://github.com/yourusername/nexus/settings/secrets/actions
 
 Click **New repository secret** and add:
 
-| Secret Name | Value | Example |
-|------------|-------|---------|
+| Secret Name             | Value                                      | Example                         |
+| ----------------------- | ------------------------------------------ | ------------------------------- |
 | `PORTAINER_WEBHOOK_URL` | `https://portainer.../api/webhooks/xxx...` | Full webhook URL from Portainer |
 
 ### 4. Enable Workflow Permissions
@@ -526,6 +536,7 @@ git push origin main
 ### View Logs
 
 **Via Portainer:**
+
 1. **Stacks** → **nexus** → Click service → **Logs** tab
 
 **Via CLI:**
@@ -547,6 +558,7 @@ docker logs <container-id> -f
 ### Scale Services
 
 **Via Portainer:**
+
 1. **Stacks** → **nexus** → Click service
 2. Click **Scale** button
 3. Adjust replicas
@@ -567,6 +579,7 @@ docker service scale nexus_backend=2
 ### Update Services Manually
 
 **Via Portainer:**
+
 1. **Stacks** → **nexus**
 2. Click **Pull and redeploy**
 
@@ -684,6 +697,7 @@ docker service logs nexus_postgres
 ```
 
 **Common causes:**
+
 - ❌ Missing environment variables → Check `.env.homelab`
 - ❌ Database not ready → Wait 30 seconds, check postgres logs
 - ❌ Image pull failed → Check GitHub package permissions
@@ -699,14 +713,17 @@ nslookup app.nexusvtt.com
 ```
 
 **2. Check port forwarding:**
+
 - Router should forward 80 and 443 to NPM host
 
 **3. Check NPM proxy host:**
+
 - Verify domain name is `app.nexusvtt.com` (no typos)
 - Verify forward IP is correct swarm manager IP
 - Check NPM logs for errors
 
 **4. Check SSL certificate:**
+
 - NPM → SSL Certificates → Should show "app.nexusvtt.com" with green status
 
 ### Issue: Frontend Loads but Shows "API Connection Error"
@@ -720,6 +737,7 @@ curl https://app.nexusvtt.com/api/health
 If fails:
 
 **1. Verify NPM routing:**
+
 - Check Advanced tab has `/api` location block
 - Verify swarm IP is correct in proxy_pass
 
@@ -751,6 +769,7 @@ docker service update \
 **Symptoms:** Real-time features don't work (can't see other players' cursors, chat doesn't update)
 
 **Check browser console:**
+
 - Press F12 → Console tab
 - Look for WebSocket errors
 
@@ -844,11 +863,11 @@ Edit `docker-compose.homelab.yml`:
 ```yaml
 frontend:
   deploy:
-    replicas: 1  # Reduce from 2
+    replicas: 1 # Reduce from 2
 
 backend:
   deploy:
-    replicas: 2  # Reduce from 3
+    replicas: 2 # Reduce from 3
 ```
 
 ### Add Resource Limits
