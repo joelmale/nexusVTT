@@ -5,34 +5,29 @@ FROM node:26.5.0-alpine
 # Set working directory
 WORKDIR /app
 
-# Install dumb-init for proper signal handling and netcat for readiness checks
-RUN apk add --no-cache dumb-init curl netcat-openbsd postgresql-client
+# Install runtime tools and create the non-root build/runtime user up front.
+RUN apk add --no-cache dumb-init curl netcat-openbsd postgresql-client && \
+    addgroup -g 1001 -S nodejs && \
+    adduser -S nodejs -u 1001 && \
+    chown nodejs:nodejs /app
 
 # Copy package files
-COPY package*.json ./
-COPY tsconfig*.json ./
-COPY patches ./patches
-COPY scripts/sync-dice-assets.js ./scripts/sync-dice-assets.js
+COPY --chown=nodejs:nodejs package*.json ./
+COPY --chown=nodejs:nodejs tsconfig*.json ./
+COPY --chown=nodejs:nodejs patches ./patches
+COPY --chown=nodejs:nodejs scripts/sync-dice-assets.js ./scripts/sync-dice-assets.js
+
+USER nodejs
 
 # Install dependencies
 RUN npm ci
 
 # Copy server and shared code
-COPY server/ ./server/
-COPY shared/ ./shared/
+COPY --chown=nodejs:nodejs server/ ./server/
+COPY --chown=nodejs:nodejs shared/ ./shared/
 
 # Build the server
 RUN npm run build:server
-
-# Create non-root user
-RUN addgroup -g 1001 -S nodejs && \
-    adduser -S nodejs -u 1001
-
-# Change ownership of app directory
-RUN chown -R nodejs:nodejs /app
-
-# Switch to non-root user
-USER nodejs
 
 # Default port — must match the server default (index.ts) and the health check below.
 # Override with PORT env var in docker-compose / Dockhand environment.

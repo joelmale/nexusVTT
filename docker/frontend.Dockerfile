@@ -31,6 +31,7 @@ WORKDIR /app
 # Build metadata
 ARG VERSION=dev
 ARG COMMIT_SHA=unknown
+ARG VITE_DELTA_SYNC=false
 
 # Copy package files
 COPY package*.json ./
@@ -45,6 +46,7 @@ COPY . .
 
 # Short commit SHA → lobby build badge matches the GitHub commit.
 ENV VITE_BUILD_VERSION=$COMMIT_SHA
+ENV VITE_DELTA_SYNC=$VITE_DELTA_SYNC
 
 # Build the application
 RUN npm run build

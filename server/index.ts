@@ -1207,7 +1207,10 @@ class NexusServer {
     room.connections.set(connection.id, connection.ws);
     room.lastActivity = Date.now();
     connection.room = normalizedRoomCode;
-    connection.user = { name: 'Host', type: 'host' };
+    connection.user = {
+      name: connection.user?.name || 'Host',
+      type: 'host',
+    };
 
     if (campaignId) {
       try {
@@ -1248,6 +1251,21 @@ class NexusServer {
         roomStatus: room.status,
         gameState: room.gameState,
         dmConnected: room.dmConnected,
+        players: Array.from(room.players).map((playerId) => {
+          const playerConnection = this.socketManager.connections.get(playerId);
+          return {
+            id: playerId,
+            name: playerConnection?.user?.name || 'Unknown',
+            type:
+              playerId === room.host || room.coHosts.has(playerId)
+                ? 'host'
+                : 'player',
+            color: 'blue',
+            connected: room.connections.has(playerId),
+            canEditScenes:
+              playerId === room.host || room.coHosts.has(playerId),
+          };
+        }),
       },
       timestamp: Date.now(),
     });
@@ -1325,7 +1343,14 @@ class NexusServer {
     room.connections.set(connection.id, connection.ws);
     room.lastActivity = Date.now();
     connection.room = roomCode;
-    connection.user = { name: 'Player', type: 'player' };
+    // Preserve the identity established from the authenticated/guest session
+    // (or the verified userName query fallback) during WebSocket admission.
+    // Replacing it with the literal "Player" loses names in presence, chat,
+    // dice attribution, and reconnect identity checks.
+    connection.user = {
+      name: connection.user?.name || 'Player',
+      type: 'player',
+    };
 
     // Add player to database session
     try {

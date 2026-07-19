@@ -89,6 +89,7 @@ services:
       dockerfile: docker/frontend.Dockerfile
       args:
         COMMIT_SHA: smoke
+        VITE_DELTA_SYNC: 'true'
     depends_on:
       backend:
         condition: service_healthy

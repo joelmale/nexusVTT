@@ -1025,16 +1025,17 @@ export const useGameStore = create<GameStore>()(
             // re-broadcast the restored state to the server below.
             await get().loadSessionState();
 
-            // Send the restored state to the server. The delta-sync engine
-            // rebuilds the snapshot from the (now-hydrated) live stores; flag
-            // OFF keeps this a byte-identical legacy full send.
-            const { webSocketService } = await import('@/services/websocket');
-            if (webSocketService.isConnected()) {
-              console.log('📤 Sending restored state to server');
-              gameStateSyncEngine.schedule();
-            }
           } else {
             console.log('ℹ️ No game state to restore, starting fresh');
+          }
+
+          // Publish an initial authoritative baseline for every room. Fresh
+          // rooms need this just as much as restored rooms: without it, the
+          // first player joins before the server knows about the default scene
+          // and cannot place a token. Restored stores were hydrated above.
+          if (webSocketService.isConnected()) {
+            console.log('📤 Sending initial game state to server');
+            gameStateSyncEngine.schedule();
           }
 
           // Save session to localStorage for refresh recovery
@@ -1498,12 +1499,14 @@ export const useGameStore = create<GameStore>()(
       },
 
       setActiveScene: (sceneId) => {
+        let sceneChanged = false;
         set((state) => {
           const sceneExists = state.sceneState.scenes.some(
             (s) => s.id === sceneId,
           );
-          if (sceneExists) {
+          if (sceneExists && state.sceneState.activeSceneId !== sceneId) {
             state.sceneState.activeSceneId = sceneId;
+            sceneChanged = true;
             // Reset camera when switching scenes
             state.sceneState.camera = {
               x: 0,
@@ -1512,6 +1515,7 @@ export const useGameStore = create<GameStore>()(
             };
           }
         });
+        if (sceneChanged) get().syncGameStateToServer();
       },
 
       updateCamera: (cameraUpdates) => {
@@ -2223,11 +2227,8 @@ export const useGameStore = create<GameStore>()(
 
         const { webSocketService } = await import('@/services/websocket');
         webSocketService.sendEvent({
-          type: 'event',
-          data: {
-            name: 'token/add-custom',
-            token,
-          },
+          type: 'token/add-custom',
+          data: { token },
         });
 
         webSocketService.sendEvent({

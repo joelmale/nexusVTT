@@ -155,6 +155,10 @@ describe('gameStore session persistence (characters + initiative round-trip)', (
       activeEntryId: entry.id,
     });
 
+    // The sync runtime now observes the character and initiative stores so
+    // multiplayer peers receive those mutations immediately. Isolate the
+    // explicit persistence action from those expected background publishes.
+    vi.mocked(webSocketService.sendGameStateUpdate).mockClear();
     useGameStore.getState().saveSessionState();
 
     // --- IndexedDB snapshot (synchronous fire-and-forget) ---
@@ -269,6 +273,7 @@ describe('gameStore session persistence (characters + initiative round-trip)', (
       },
     }));
 
+    vi.mocked(webSocketService.sendGameStateUpdate).mockClear();
     useGameStore.getState().saveSessionState();
 
     // --- IndexedDB snapshot includes the fog field on the scene ---

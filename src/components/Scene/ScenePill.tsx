@@ -34,8 +34,8 @@ export const ScenePill: React.FC<ScenePillProps> = ({
 
   const { onPointerDown, panelRef } = useDraggablePanel({
     // Fresh id — ensures no stale localStorage position
-    id: 'sceneDock_v4',
-    defaultPosition: { x: 550, y: 16 },
+    id: 'sceneDock_v5',
+    defaultPosition: { x: 550, y: 84 },
   });
 
   const zIndex = useStackZIndex('scenePill');

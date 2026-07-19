@@ -5,6 +5,11 @@ export interface HostSession {
   webSocket: WebSocket;
 }
 
+export interface PlayerSession {
+  roomCode: string;
+  webSocket: WebSocket;
+}
+
 export async function createGuestHostSession(page: Page): Promise<HostSession> {
   await page.goto('/lobby');
   await expect(page.getByRole('heading', { name: 'Nexus VTT' })).toBeVisible();
@@ -31,6 +36,30 @@ export async function createGuestHostSession(page: Page): Promise<HostSession> {
 
   const roomCode = new URL(page.url()).pathname.split('/').at(-1);
   if (!roomCode) throw new Error('Room code missing from game URL.');
+
+  return { roomCode, webSocket };
+}
+
+export async function createGuestPlayerSession(
+  page: Page,
+  roomCode: string,
+  playerName: string,
+): Promise<PlayerSession> {
+  await page.goto('/lobby');
+  await expect(page.getByRole('heading', { name: 'Nexus VTT' })).toBeVisible();
+
+  await page.getByLabel('Enter Your Name').fill(playerName);
+  const playerRole = page.getByRole('radio', { name: /Player/ });
+  await page.getByText('Player', { exact: true }).click();
+  await expect(playerRole).toBeChecked();
+  await page.getByPlaceholder('Room Code').fill(roomCode);
+
+  const webSocketPromise = page.waitForEvent('websocket');
+  await page.getByRole('button', { name: /Quick Join/ }).click();
+  const webSocket = await webSocketPromise;
+
+  await expect(page).toHaveURL(new RegExp(`/lobby/game/${roomCode}$`));
+  await expect(page.getByRole('tablist', { name: 'Panels' })).toBeVisible();
 
   return { roomCode, webSocket };
 }

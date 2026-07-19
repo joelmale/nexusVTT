@@ -19,9 +19,14 @@ import type { Player } from '@/types/game';
 interface PlayerCardProps {
   player: Player;
   isHost: boolean;
+  onToggleDM: (playerId: string, currentPermissions: boolean) => void;
 }
 
-const PlayerCard: React.FC<PlayerCardProps> = ({ player }) => {
+const PlayerCard: React.FC<PlayerCardProps> = ({
+  player,
+  isHost,
+  onToggleDM,
+}) => {
   return (
     <div
       className={`player-card ${player.type === 'host' ? 'dm-card' : ''} ${player.connected ? 'online' : 'offline'}`}
@@ -46,6 +51,23 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player }) => {
           </span>
         </div>
       </div>
+
+      {isHost && player.type !== 'host' && (
+        <div className="player-controls">
+          <button
+            type="button"
+            onClick={() => onToggleDM(player.id, player.canEditScenes)}
+            className={`dm-toggle-btn ${player.canEditScenes ? 'active' : ''}`}
+            title={
+              player.canEditScenes
+                ? 'Remove DM permissions'
+                : 'Grant DM permissions'
+            }
+          >
+            {player.canEditScenes ? '📋→👤' : '👤→📋'}
+          </button>
+        </div>
+      )}
     </div>
   );
 };
@@ -53,7 +75,8 @@ const PlayerCard: React.FC<PlayerCardProps> = ({ player }) => {
 export const LobbyPanel: React.FC = () => {
   const session = useSession();
   const isHost = useIsHost();
-  const { gameConfig, leaveRoom, createGameRoom } = useGameStore();
+  const { addCoHost, createGameRoom, gameConfig, leaveRoom, removeCoHost } =
+    useGameStore();
   const roomCode = useServerRoomCode();
   const isConnectedToRoom = useIsConnected();
   const [isConnecting, setIsConnecting] = useState(false);
@@ -138,6 +161,25 @@ export const LobbyPanel: React.FC = () => {
       .catch(() => {
         alert(`Room Code: ${roomCode}`);
       });
+  };
+
+  const handleToggleDMPermissions = (
+    playerId: string,
+    currentPermissions: boolean,
+  ) => {
+    const player = session?.players.find(
+      (candidate) => candidate.id === playerId,
+    );
+    if (!player) return;
+
+    const action = currentPermissions ? 'Remove' : 'Grant';
+    if (!window.confirm(`${action} DM permissions for ${player.name}?`)) return;
+
+    if (currentPermissions) {
+      removeCoHost(playerId);
+    } else {
+      addCoHost(playerId);
+    }
   };
 
   return (
@@ -267,7 +309,12 @@ export const LobbyPanel: React.FC = () => {
           <h3>Party Members ({session.players.length})</h3>
           <div className="lobby-panel__players-list">
             {session.players.map((player) => (
-              <PlayerCard key={player.id} player={player} isHost={isHost} />
+              <PlayerCard
+                key={player.id}
+                player={player}
+                isHost={isHost}
+                onToggleDM={handleToggleDMPermissions}
+              />
             ))}
           </div>
         </div>

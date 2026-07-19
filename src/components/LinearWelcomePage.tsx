@@ -328,7 +328,8 @@ export const LinearWelcomePage: React.FC = () => {
    * Handles quick join - creates guest user and joins room directly
    */
   const handleQuickJoin = async () => {
-    if (!playerName.trim()) {
+    const quickJoinPlayerName = playerName.trim();
+    if (!quickJoinPlayerName) {
       setError('Please enter your name');
       return;
     }
@@ -349,7 +350,7 @@ export const LinearWelcomePage: React.FC = () => {
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({ name: playerName.trim() }),
+          body: JSON.stringify({ name: quickJoinPlayerName }),
           credentials: 'include',
         });
 
@@ -366,7 +367,7 @@ export const LinearWelcomePage: React.FC = () => {
         });
       } else {
         setUser({
-          name: playerName.trim(),
+          name: quickJoinPlayerName,
           type: 'player',
           isSpectator: quickJoinMode === 'spectator',
         });
@@ -377,7 +378,7 @@ export const LinearWelcomePage: React.FC = () => {
       if (quickJoinMode === 'player') {
         setTimeout(() => {
           autoPlacePlayerToken(
-            playerName.trim(),
+            quickJoinPlayerName,
             quickJoinTokenImage || undefined,
           );
         }, 500);

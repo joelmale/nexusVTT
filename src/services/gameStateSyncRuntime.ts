@@ -1,25 +1,61 @@
-import { buildInitiativeSnapshot, useGameStore } from '@/stores/gameStore';
 import { useCharacterStore } from '@/stores/characterStore';
+import { useGameStore } from '@/stores/gameStore';
+import { useInitiativeStore } from '@/stores/initiativeStore';
 import { webSocketService } from '@/services/websocket';
 import {
   configureGameStateSyncRuntime,
+  gameStateSyncEngine,
   type LegacyGameStatePayload,
 } from '@/services/gameStateSync';
+import {
+  buildGameStateProjection,
+  isApplyingRemoteGameState,
+} from '@/services/gameStateProjection';
 import { isDevMode } from '@/utils/devMode';
-import type {
-  GameStateUpload,
-  SyncableGameState,
-} from '../../shared/sync/contracts';
+import type { GameStateUpload } from '../../shared/sync/contracts';
 
-function buildState(): SyncableGameState {
-  const sceneState = useGameStore.getState().sceneState;
-  const raw = {
-    scenes: sceneState.scenes,
-    activeSceneId: sceneState.activeSceneId,
-    characters: useCharacterStore.getState().characters,
-    initiative: buildInitiativeSnapshot(),
-  };
-  return JSON.parse(JSON.stringify(raw)) as SyncableGameState;
+let storeSubscriptionsInitialized = false;
+
+function canPublishGameState(): boolean {
+  const { session, user } = useGameStore.getState();
+  return session !== null && user.type === 'host';
+}
+
+function initializeStoreSubscriptions(): void {
+  if (storeSubscriptionsInitialized) return;
+  storeSubscriptionsInitialized = true;
+
+  useInitiativeStore.subscribe((state, previousState) => {
+    const initiativeChanged =
+      state.isActive !== previousState.isActive ||
+      state.isPaused !== previousState.isPaused ||
+      state.round !== previousState.round ||
+      state.entries !== previousState.entries ||
+      state.activeEntryId !== previousState.activeEntryId ||
+      state.history !== previousState.history ||
+      state.autoAdvanceTurns !== previousState.autoAdvanceTurns ||
+      state.showPlayerHP !== previousState.showPlayerHP ||
+      state.allowPlayerInitiative !== previousState.allowPlayerInitiative ||
+      state.sortByInitiative !== previousState.sortByInitiative;
+
+    if (
+      initiativeChanged &&
+      !isApplyingRemoteGameState() &&
+      canPublishGameState()
+    ) {
+      gameStateSyncEngine.schedule();
+    }
+  });
+
+  useCharacterStore.subscribe((state, previousState) => {
+    if (
+      state.characters !== previousState.characters &&
+      !isApplyingRemoteGameState() &&
+      canPublishGameState()
+    ) {
+      gameStateSyncEngine.schedule();
+    }
+  });
 }
 
 function sendUpload(upload: GameStateUpload): void {
@@ -42,7 +78,7 @@ function sendLegacy(payload: LegacyGameStatePayload): void {
 
 export function initializeGameStateSyncRuntime(): void {
   configureGameStateSyncRuntime({
-    buildState,
+    buildState: buildGameStateProjection,
     transport: { sendUpload, sendLegacy },
     onResync: (reason) => {
       if (isDevMode()) {
@@ -52,4 +88,5 @@ export function initializeGameStateSyncRuntime(): void {
       }
     },
   });
+  initializeStoreSubscriptions();
 }

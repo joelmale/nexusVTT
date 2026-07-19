@@ -101,7 +101,7 @@ export const DiceRoller: React.FC = () => {
 
   /**
    * Handles the primary roll action triggered by the "Roll" button or Enter key.
-   * Generates the roll on the client and broadcasts to other players.
+   * Validates/animates locally, then asks the server for the authoritative roll.
    */
   const handleRoll = () => {
     if (!expression.trim()) {
@@ -129,8 +129,11 @@ export const DiceRoller: React.FC = () => {
       return;
     }
 
-    // Add to local state immediately for instant UI feedback
-    useGameStore.getState().addDiceRoll(roll);
+    const isOnline = webSocketService.isConnected();
+    if (!isOnline) {
+      // Offline mode has no authority to answer, so retain the local fallback.
+      useGameStore.getState().addDiceRoll(roll);
+    }
 
     // Clear expression immediately for better UX
     setExpression('');
@@ -161,11 +164,18 @@ export const DiceRoller: React.FC = () => {
         diceData,
       );
 
-      // Broadcast to other players (if connected)
-      if (webSocketService.isConnected()) {
+      // The server generates and broadcasts one canonical result to every
+      // participant, including the requester. Sending the client-generated
+      // result here would be both forgeable and invisible to DiceHandler.
+      if (isOnline) {
         webSocketService.sendEvent({
-          type: 'dice/roll-result',
-          data: { roll },
+          type: 'dice/roll-request',
+          data: {
+            expression: roll.expression,
+            isPrivate: isHost && isPrivate,
+            advantage: rollMode === 'advantage',
+            disadvantage: rollMode === 'disadvantage',
+          },
         });
       }
     });

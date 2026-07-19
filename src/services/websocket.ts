@@ -13,8 +13,12 @@ import type { WebSocketCustomEvent } from '@/types/events';
 import type { ChatMessage } from '@/types/game';
 import { useGameStore } from '@/stores/gameStore';
 import { gameStateSyncEngine } from '@/services/gameStateSync';
+import {
+  applyGameStateProjection,
+  buildGameStateProjection,
+} from '@/services/gameStateProjection';
 import { toast } from '@/utils/notifications';
-import { applyPatch, Operation } from 'fast-json-patch';
+import { applyPatch, type Operation } from 'fast-json-patch';
 import { encode, decode } from '@msgpack/msgpack';
 import type { StateHash } from '../../shared/sync/contracts';
 import { parseTransportEnvelope } from '../../shared/transport';
@@ -354,6 +358,15 @@ class WebSocketService extends EventTarget {
         };
         gameStore.applyEvent(gameEvent);
 
+        if (
+          (message.data.name === 'session/joined' ||
+            message.data.name === 'session/reconnected') &&
+          'gameState' in message.data &&
+          message.data.gameState
+        ) {
+          applyGameStateProjection(message.data.gameState);
+        }
+
         // Also emit a specific event for the drawing synchronization
         if (message.data.name === 'drawing/create') {
           this.dispatchEvent(
@@ -396,33 +409,20 @@ class WebSocketService extends EventTarget {
             `📦 Applying game state patch v${sanitizeLog(version)} (${patch.length} operations)`,
           );
 
-          // Get current game state
-          const currentState = useGameStore.getState();
-
-          // Create a copy to apply patch to
-          const stateCopy = JSON.parse(
-            JSON.stringify({
-              scenes: currentState.sceneState.scenes,
-              activeSceneId: currentState.sceneState.activeSceneId,
-              characters: [], // Characters are stored separately
-              initiative: {}, // Initiative is stored separately
-            }),
-          );
+          const stateCopy = buildGameStateProjection();
 
           // Apply patch
-          const patchResult = applyPatch(stateCopy, patch as Operation[]);
+          const patchResult = applyPatch(
+            stateCopy,
+            patch as Operation[],
+            true,
+            false,
+          );
 
           if (patchResult.newDocument) {
-            // Update game store with patched state
-            useGameStore.setState((state) => {
-              if (patchResult.newDocument.scenes) {
-                state.sceneState.scenes = patchResult.newDocument.scenes;
-              }
-              if (patchResult.newDocument.activeSceneId !== undefined) {
-                state.sceneState.activeSceneId =
-                  patchResult.newDocument.activeSceneId;
-              }
-            });
+            if (!applyGameStateProjection(patchResult.newDocument)) {
+              throw new Error('Server patch produced an invalid game state.');
+            }
 
             console.log(
               `✅ Game state patch v${sanitizeLog(version)} applied successfully`,

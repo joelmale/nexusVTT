@@ -1,5 +1,11 @@
 import React from 'react';
-import type { Token, TokenLibrary, TokenCategory, TokenSize } from '@/types/token';
+import {
+  isTokenCategory,
+  type Token,
+  type TokenCategory,
+  type TokenLibrary,
+  type TokenSize,
+} from '@/types/token';
 
 /** Shape of a single token entry in the bundled asset manifest. */
 interface ManifestTokenItem {
@@ -14,6 +20,34 @@ interface ManifestTokenItem {
 /** Minimal shape of the token asset manifest we read from. */
 interface TokenManifest {
   tokens?: { items?: ManifestTokenItem[] };
+}
+
+const TOKEN_SIZES = new Set<TokenSize>([
+  'tiny',
+  'small',
+  'medium',
+  'large',
+  'huge',
+  'gargantuan',
+]);
+
+function isPersistedCustomToken(value: unknown): value is Token {
+  if (typeof value !== 'object' || value === null || Array.isArray(value)) {
+    return false;
+  }
+  const token = value as Record<string, unknown>;
+  return (
+    typeof token.id === 'string' &&
+    typeof token.name === 'string' &&
+    typeof token.image === 'string' &&
+    typeof token.size === 'string' &&
+    TOKEN_SIZES.has(token.size as TokenSize) &&
+    typeof token.category === 'string' &&
+    isTokenCategory(token.category) &&
+    token.isCustom === true &&
+    typeof token.createdAt === 'number' &&
+    typeof token.updatedAt === 'number'
+  );
 }
 
 /**
@@ -33,7 +67,7 @@ export class GuestUploadForbiddenError extends Error {
 /**
  * Token Asset Manager handles loading, caching, and organizing token assets
  */
-class TokenAssetManager {
+export class TokenAssetManager {
   private imageCache = new Map<string, HTMLImageElement>();
   private loadingPromises = new Map<string, Promise<HTMLImageElement>>();
   private tokenLibraries: TokenLibrary[] = [];
@@ -71,11 +105,16 @@ class TokenAssetManager {
       const savedCustomTokens = localStorage.getItem(this.CUSTOM_TOKENS_KEY);
       if (!savedCustomTokens) return;
 
-      const customizations = JSON.parse(savedCustomTokens);
+      const customizations: unknown = JSON.parse(savedCustomTokens);
+      if (!Array.isArray(customizations)) return;
 
       // Apply saved customizations to tokens
-      for (const customToken of customizations) {
+      for (const value of customizations) {
         try {
+          if (!isPersistedCustomToken(value)) continue;
+          const customToken = value;
+          let wasRestored = false;
+
           // Find the token in libraries and update it
           for (const library of this.tokenLibraries) {
             const tokenIndex = library.tokens.findIndex((t) => t.id === customToken.id);
@@ -86,11 +125,32 @@ class TokenAssetManager {
                 ...customToken,
               };
               console.log(`Applied saved customization for token: ${String(customToken.name).replace(/[\r\n\t]/g, ' ').slice(0, 200)}`);
+              wasRestored = true;
               break;
             }
           }
+
+          // Standalone custom tokens have no matching default manifest entry.
+          // Reconstruct their library so placed-token IDs remain renderable
+          // after a page lifecycle or reconnect.
+          if (!wasRestored) {
+            let customLibrary = this.tokenLibraries.find(
+              (library) => !library.isDefault && library.name === 'Custom Tokens',
+            );
+            if (!customLibrary) {
+              customLibrary = this.createCustomLibrary(
+                'Custom Tokens',
+                'User-created custom tokens',
+              );
+            }
+            customLibrary.tokens.push(customToken);
+            customLibrary.updatedAt = Date.now();
+            console.log(
+              `Restored custom token: ${customToken.name.replace(/[\r\n\t]/g, ' ').slice(0, 200)}`,
+            );
+          }
         } catch (error) {
-          console.warn(`Failed to apply customization for token ${String(customToken.id).replace(/[\r\n\t]/g, ' ').slice(0, 200)}:`, error);
+          console.warn('Failed to apply a saved token customization:', error);
         }
       }
     } catch (error) {
@@ -558,6 +618,13 @@ class TokenAssetManager {
     console.log(
       `Added custom token "${newToken.name}" to library "${library.name}"`,
     );
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('token-assets-updated', {
+          detail: { tokenId: newToken.id },
+        }),
+      );
+    }
     return newToken;
   }
 
@@ -589,6 +656,13 @@ class TokenAssetManager {
     console.log(
       `Added custom token "${newToken.name}" to library "${library.name}"`,
     );
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(
+        new CustomEvent('token-assets-updated', {
+          detail: { tokenId: newToken.id },
+        }),
+      );
+    }
     return newToken;
   }
 

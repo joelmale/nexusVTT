@@ -63,7 +63,15 @@ export const eventHandlers: Record<string, EventHandler> = {
         if (!state.sceneState.scenes[sceneIndex].placedTokens) {
           state.sceneState.scenes[sceneIndex].placedTokens = [];
         }
-        state.sceneState.scenes[sceneIndex].placedTokens.push(eventData.token);
+        const existingTokenIndex = state.sceneState.scenes[
+          sceneIndex
+        ].placedTokens.findIndex((token) => token.id === eventData.token.id);
+        if (existingTokenIndex >= 0) {
+          state.sceneState.scenes[sceneIndex].placedTokens[existingTokenIndex] =
+            eventData.token;
+        } else {
+          state.sceneState.scenes[sceneIndex].placedTokens.push(eventData.token);
+        }
         state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
       }
     }
@@ -558,6 +566,7 @@ export const eventHandlers: Record<string, EventHandler> = {
         activeSceneId?: string | null;
       };
       dmConnected?: boolean;
+      players?: Player[];
     };
 
     // Update session data if provided
@@ -581,6 +590,9 @@ export const eventHandlers: Record<string, EventHandler> = {
         state.session.hostId = eventData.hostId || state.session.hostId;
         state.session.status = 'connected';
         state.session.dmConnected = eventData.dmConnected ?? true;
+      }
+      if (eventData.players) {
+        state.session.players = eventData.players;
       }
     }
 

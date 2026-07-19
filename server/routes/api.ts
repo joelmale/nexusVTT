@@ -325,11 +325,19 @@ export function registerApiRoutes(
           .json({ error: 'Name must be 50 characters or less' });
       }
 
+      // A browser session owns one stable guest identity. Re-entering the
+      // welcome flow after a disconnect must not create a new UUID, otherwise
+      // token ownership, permissions, and reconnect membership all drift.
+      const session = req.session as ApiSession;
+      if (session.guestUser) {
+        return res.status(200).json(session.guestUser);
+      }
+
       // Create guest user in database
       const guestUser = await db.createGuestUser(name.trim());
 
       // Create a session for the guest user (without using passport)
-      (req.session as ApiSession).guestUser = {
+      session.guestUser = {
         id: guestUser.id,
         name: guestUser.name,
         provider: 'guest',

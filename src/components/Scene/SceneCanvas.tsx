@@ -1047,6 +1047,8 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
           <svg
             ref={svgRef}
             data-role="scene-canvas-root"
+            data-scene-id={scene.id}
+            data-scene-name={scene.name}
             className="scene-canvas"
             width="100%"
             height="100%"
