@@ -46,7 +46,12 @@ The suite verifies:
 - WebSocket recovery when the backend remains unavailable through the first
   reconnect attempt;
 - cross-replica chat, dice, scene, initiative, and token convergence, followed
-  by one-at-a-time backend restarts and ordered journal catch-up;
+  by an immediate backend `SIGKILL` after a game-state ACK, exact PostgreSQL
+  snapshot recovery, one-at-a-time replica restarts, and ordered journal
+  catch-up;
+- concurrent host/co-host state edits where PostgreSQL accepts one
+  token/version compare-and-swap and the loser rebases from the authoritative
+  snapshot without duplicating events;
 - lobby availability and API recovery during an asset-service outage.
 
 Failures retain screenshots, video, traces, and browser/network diagnostics in
@@ -78,3 +83,12 @@ the managed stack is active.
 The GitHub Actions smoke job installs only Chromium, uses one worker for
 deterministic service restarts, retries a failed test once, and uploads the
 Playwright report whether the suite passes or fails.
+
+For repository-level transaction coverage with a real database, run:
+
+```bash
+docker compose -p nexus-vtt-db-test -f docker/docker-compose.test.yml up \
+  --build --abort-on-container-exit --exit-code-from test
+docker compose -p nexus-vtt-db-test -f docker/docker-compose.test.yml down \
+  --volumes --remove-orphans
+```

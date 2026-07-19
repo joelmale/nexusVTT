@@ -10,7 +10,9 @@ Nexus VTT is built with a focus on performance, aesthetics, and ease of use. It 
 
 - **Glassmorphism Design:** A beautiful, modern interface with translucent panels and smooth animations.
 - **Real-time Multiplayer:** Create or join game sessions with a simple room code.
-- **Hybrid Architecture:** A minimal server relays messages, while the game logic runs in the host's browser.
+- **Durable Hybrid Architecture:** Browsers provide responsive local-first
+  state, while PostgreSQL serializes acknowledged canonical state and ordered
+  multiplayer history across backend replicas.
 - **Developer-Friendly:** A modern TypeScript codebase with a clear structure and tooling.
 
 ## Getting Started

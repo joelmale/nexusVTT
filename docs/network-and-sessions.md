@@ -4,6 +4,13 @@
 
 Nexus VTT uses a **reverse proxy architecture** with nginx sitting in front of both the React frontend (static files) and the Express backend (API + WebSocket server). All communication happens over the same domain (`app.nexusvtt.com`) to avoid CORS issues and simplify session management.
 
+PostgreSQL stores Express sessions, canonical game-state snapshots, their
+content-hash/version anchors, and the ordered event journal. Redis carries only
+ephemeral cross-replica pub/sub, expiring presence, and host leases. A backend
+ACKs canonical state only after a PostgreSQL compare-and-swap commits the
+snapshot, `syncToken`, and `stateVersion`; a stale replica responds with the
+full authoritative tuple so the browser can rebase.
+
 ---
 
 ## Network Architecture
@@ -63,11 +70,11 @@ All services communicate using **Docker Swarm's internal DNS**:
 ```yaml
 # docker-compose.yml
 services:
-  postgres:    # ← Use this name in DATABASE_URL
+  postgres: # ← Use this name in DATABASE_URL
     ...
-  redis:       # ← Use this name in REDIS_URL
+  redis: # ← Use this name in REDIS_URL
     ...
-  backend:     # ← nginx proxies to this
+  backend: # ← nginx proxies to this
     ...
 ```
 
@@ -104,12 +111,14 @@ location / {
 ### Request Flow Examples
 
 **Frontend Asset Request:**
+
 ```
 GET https://app.nexusvtt.com/assets/logo.png
 → nginx serves from /usr/share/nginx/html/assets/logo.png
 ```
 
 **API Request:**
+
 ```
 GET https://app.nexusvtt.com/api/campaigns
 → nginx proxies to http://nexusvtt_backend:5000/api/campaigns
@@ -118,6 +127,7 @@ GET https://app.nexusvtt.com/api/campaigns
 ```
 
 **WebSocket Connection:**
+
 ```
 WSS wss://app.nexusvtt.com/ws
 → nginx upgrades to WebSocket
@@ -185,18 +195,18 @@ Nexus VTT uses **server-side sessions** stored in PostgreSQL via `express-sessio
 ```typescript
 // server/index.ts
 session({
-  store: sessionStore,              // PostgreSQL session store
+  store: sessionStore, // PostgreSQL session store
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
   cookie: {
-    secure: true,                   // HTTPS only in production
-    httpOnly: true,                 // No JavaScript access
-    sameSite: 'lax',               // CSRF protection
-    path: '/',                      // Valid for entire domain
-    maxAge: 1000 * 60 * 60 * 24 * 7 // 7 days
-  }
-})
+    secure: true, // HTTPS only in production
+    httpOnly: true, // No JavaScript access
+    sameSite: 'lax', // CSRF protection
+    path: '/', // Valid for entire domain
+    maxAge: 1000 * 60 * 60 * 24 * 7, // 7 days
+  },
+});
 ```
 
 **nginx (Proxy Configuration):**
@@ -281,12 +291,13 @@ req.session.passport = {
     email: 'user@example.com',
     name: 'User Name',
     avatarUrl: 'https://...',
-    provider: 'google'
-  }
-}
+    provider: 'google',
+  },
+};
 ```
 
 **Flow:**
+
 1. User clicks "Login with Google"
 2. Redirected to Google OAuth
 3. Google redirects to `/auth/google/callback`
@@ -303,11 +314,12 @@ req.session.passport = {
 req.session.guestUser = {
   id: 'uuid',
   name: 'Guest Name',
-  provider: 'guest'
-}
+  provider: 'guest',
+};
 ```
 
 **Flow:**
+
 1. User enters name, clicks "Start as Guest DM"
 2. Frontend calls `POST /api/guest-users`
 3. Backend creates user in database
@@ -357,6 +369,7 @@ private async handleConnection(ws: WebSocket, req: RequestWithSession) {
 ```
 
 **Critical:** If the Cookie header is missing:
+
 - `req.session` is a new empty session
 - `guestUser` is undefined
 - Backend generates a **new random UUID**
@@ -370,6 +383,7 @@ private async handleConnection(ws: WebSocket, req: RequestWithSession) {
 ### Issue 1: "User not authenticated" after OAuth login
 
 **Symptom:**
+
 - OAuth succeeds
 - Redirects to dashboard
 - Immediately redirects back to lobby
@@ -378,6 +392,7 @@ private async handleConnection(ws: WebSocket, req: RequestWithSession) {
 **Cause:** Session cookie not forwarded through nginx proxy
 
 **Solution:** Add cookie headers to nginx `/auth` and `/api` locations:
+
 ```nginx
 proxy_set_header Cookie $http_cookie;
 proxy_pass_header Set-Cookie;
@@ -388,6 +403,7 @@ proxy_pass_header Set-Cookie;
 ### Issue 2: "Failed to create session" for guest DM
 
 **Symptom:**
+
 - WebSocket connects successfully
 - Server error: "Failed to create session"
 - PostgreSQL: Foreign key constraint violation on `campaigns.dmId`
@@ -395,6 +411,7 @@ proxy_pass_header Set-Cookie;
 **Cause:** Session cookie not forwarded to WebSocket upgrade request
 
 **Solution:** Add cookie header to nginx `/ws` location:
+
 ```nginx
 proxy_set_header Cookie $http_cookie;
 ```
@@ -404,17 +421,20 @@ proxy_set_header Cookie $http_cookie;
 ### Issue 3: Sessions expire immediately
 
 **Symptom:**
+
 - Login works
 - After refresh, logged out again
 - Session doesn't persist
 
 **Possible Causes:**
+
 1. **SESSION_SECRET not set** - Sessions can't be decrypted
 2. **PostgreSQL session store failing** - Can't persist sessions
 3. **Cookie domain mismatch** - Cookie not sent with requests
 4. **Secure flag in HTTP** - Cookie requires HTTPS
 
 **Solution:**
+
 - Set `SESSION_SECRET` environment variable
 - Verify PostgreSQL connection
 - Check cookie domain matches site domain
@@ -453,6 +473,7 @@ CREATE INDEX IF NOT EXISTS idx_session_expire ON session(expire);
 ```
 
 Automatic cleanup of expired sessions happens via PostgreSQL:
+
 ```sql
 DELETE FROM session WHERE expire < NOW();
 ```
@@ -463,13 +484,13 @@ DELETE FROM session WHERE expire < NOW();
 
 ### Cookie Attributes
 
-| Attribute | Value | Purpose |
-|-----------|-------|---------|
-| `HttpOnly` | `true` | Prevents JavaScript from accessing cookie (XSS protection) |
-| `Secure` | `true` (prod) | Only send over HTTPS (prevents MITM) |
-| `SameSite` | `Lax` | CSRF protection (allows navigation, blocks cross-site forms) |
-| `Path` | `/` | Cookie sent with all requests to domain |
-| `Domain` | (not set) | Defaults to current domain only |
+| Attribute  | Value         | Purpose                                                      |
+| ---------- | ------------- | ------------------------------------------------------------ |
+| `HttpOnly` | `true`        | Prevents JavaScript from accessing cookie (XSS protection)   |
+| `Secure`   | `true` (prod) | Only send over HTTPS (prevents MITM)                         |
+| `SameSite` | `Lax`         | CSRF protection (allows navigation, blocks cross-site forms) |
+| `Path`     | `/`           | Cookie sent with all requests to domain                      |
+| `Domain`   | (not set)     | Defaults to current domain only                              |
 
 ### Trust Proxy
 
@@ -481,6 +502,7 @@ app.set('trust proxy', 1);
 ```
 
 This allows Express to:
+
 - Read `X-Forwarded-Proto` (http vs https)
 - Set `secure` cookie flag based on original protocol
 - Read `X-Forwarded-For` for real client IP
@@ -488,12 +510,14 @@ This allows Express to:
 ### Session Storage
 
 **Why PostgreSQL?**
+
 - Persistent across server restarts
 - Shared across multiple backend replicas
 - Automatic expiration via TTL
 - ACID guarantees for session data
 
 **Why not Redis for session records?**
+
 - PostgreSQL is already the durable authority for users and campaigns.
 - Redis is reserved for cross-replica WebSocket fanout, renewable presence,
   and host leases; losing Redis does not erase authenticated sessions.
@@ -506,6 +530,7 @@ This allows Express to:
 ### 1. Check Cookie is Set
 
 **Chrome DevTools:**
+
 1. F12 → Application tab
 2. Cookies → https://app.nexusvtt.com
 3. Look for `connect.sid`
@@ -518,6 +543,7 @@ This allows Express to:
 ### 2. Verify Cookie is Sent
 
 **Network tab:**
+
 1. Make a request to `/api/me`
 2. Check Request Headers
 3. Should see: `Cookie: connect.sid=s%3A...`
@@ -525,6 +551,7 @@ This allows Express to:
 ### 3. Check Backend Receives Cookie
 
 **Backend logs:**
+
 ```typescript
 // Add temporary logging
 console.log('Session:', req.session);
@@ -537,6 +564,7 @@ Should show session data if cookie forwarding works.
 ### 4. Verify WebSocket Has Cookie
 
 **Browser console:**
+
 ```javascript
 // Check WebSocket headers (before connection)
 const ws = new WebSocket('wss://app.nexusvtt.com/ws');

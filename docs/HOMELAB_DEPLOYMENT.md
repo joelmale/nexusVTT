@@ -240,6 +240,22 @@ DNS can take 5-10 minutes to propagate. Use https://dnschecker.org to verify glo
 
 ---
 
+## Apply Database Migrations
+
+Before updating backend replicas on an existing installation, back up
+PostgreSQL and apply these migrations in order:
+
+```bash
+docker exec -i $(docker ps -q -f name=nexus_postgres) \
+  psql -U nexus -d nexus < server/migrations/2026-07-19-add-room-event-journal.sql
+docker exec -i $(docker ps -q -f name=nexus_postgres) \
+  psql -U nexus -d nexus < server/migrations/2026-07-19-add-durable-game-state-commits.sql
+```
+
+The second migration adds the snapshot `stateVersion` and `syncToken` anchors
+required by every backend replica. Deploy the schema before the application;
+do not run the new backend against an unmigrated database.
+
 ## Deploy to Docker Swarm
 
 ### Option A: Deploy via Portainer (Recommended)

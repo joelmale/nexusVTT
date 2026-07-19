@@ -1,7 +1,61 @@
 import { v4 as uuidv4 } from 'uuid';
-import { BaseRepository, SessionRecord, PlayerRecord, HostRecord, CharacterRecord } from './base.js';
+import {
+  createEmptySyncableGameState,
+  type JsonValue,
+  type SyncableGameState,
+} from '../../shared/sync/contracts.js';
+import { hashSync } from '../../shared/sync/hashSync.js';
+import {
+  BaseRepository,
+  SessionRecord,
+  PlayerRecord,
+  HostRecord,
+  CharacterRecord,
+} from './base.js';
+
+type RawSessionRecord = Omit<SessionRecord, 'stateVersion'> & {
+  stateVersion: number | string;
+};
+
+export interface GameStateCommitResult {
+  status: 'committed' | 'conflict';
+  gameState: unknown;
+  syncToken: string | null;
+  stateVersion: number;
+}
+
+function parseStateVersion(value: number | string): number {
+  const parsed = Number(value);
+  if (!Number.isSafeInteger(parsed) || parsed < 0) {
+    throw new Error(`Invalid persisted game-state version: ${value}`);
+  }
+  return parsed;
+}
+
+function normalizeSession(row: RawSessionRecord): SessionRecord {
+  return {
+    ...row,
+    stateVersion: parseStateVersion(row.stateVersion),
+  };
+}
 
 export class SessionRepository extends BaseRepository {
+  async initialize(): Promise<void> {
+    await this.pool.query(`
+      ALTER TABLE sessions
+        ADD COLUMN IF NOT EXISTS "stateVersion" BIGINT NOT NULL DEFAULT 0,
+        ADD COLUMN IF NOT EXISTS "syncToken" VARCHAR(64)
+    `);
+    await this.pool.query(
+      `UPDATE sessions SET "gameState" = '{}'::jsonb WHERE "gameState" IS NULL`,
+    );
+    await this.pool.query(`
+      ALTER TABLE sessions
+        ALTER COLUMN "gameState" SET DEFAULT '{}'::jsonb,
+        ALTER COLUMN "gameState" SET NOT NULL
+    `);
+  }
+
   private async generateUniqueJoinCode(): Promise<string> {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let attempts = 0;
@@ -41,11 +95,21 @@ export class SessionRepository extends BaseRepository {
 
       const sessionId = uuidv4();
       const joinCode = await this.generateUniqueJoinCode();
+      const initialState = createEmptySyncableGameState();
+      const initialToken = hashSync(initialState as unknown as JsonValue);
 
       await client.query(
-        `INSERT INTO sessions (id, "joinCode", "campaignId", "primaryHostId", "gameState")
-         VALUES ($1, $2, $3, $4, '{}'::jsonb)`,
-        [sessionId, joinCode, campaignId, hostId],
+        `INSERT INTO sessions
+           (id, "joinCode", "campaignId", "primaryHostId", "gameState", "syncToken")
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          sessionId,
+          joinCode,
+          campaignId,
+          hostId,
+          JSON.stringify(initialState),
+          initialToken,
+        ],
       );
 
       await client.query(
@@ -95,11 +159,21 @@ export class SessionRepository extends BaseRepository {
       }
 
       const sessionId = uuidv4();
+      const initialState = createEmptySyncableGameState();
+      const initialToken = hashSync(initialState as unknown as JsonValue);
 
       await client.query(
-        `INSERT INTO sessions (id, "joinCode", "campaignId", "primaryHostId", "gameState")
-         VALUES ($1, $2, $3, $4, '{}'::jsonb)`,
-        [sessionId, joinCode, campaignId, hostId],
+        `INSERT INTO sessions
+           (id, "joinCode", "campaignId", "primaryHostId", "gameState", "syncToken")
+         VALUES ($1, $2, $3, $4, $5, $6)`,
+        [
+          sessionId,
+          joinCode,
+          campaignId,
+          hostId,
+          JSON.stringify(initialState),
+          initialToken,
+        ],
       );
 
       await client.query(
@@ -131,12 +205,12 @@ export class SessionRepository extends BaseRepository {
   }
 
   async getSessionByJoinCode(joinCode: string): Promise<SessionRecord | null> {
-    const result = await this.pool.query<SessionRecord>(
+    const result = await this.pool.query<RawSessionRecord>(
       'SELECT * FROM sessions WHERE "joinCode" = $1',
       [joinCode],
     );
 
-    return result.rows[0] || null;
+    return result.rows[0] ? normalizeSession(result.rows[0]) : null;
   }
 
   async getCampaignIdByJoinCode(joinCode: string): Promise<string | null> {
@@ -162,7 +236,12 @@ export class SessionRepository extends BaseRepository {
 
   async saveGameState(sessionId: string, gameState: unknown): Promise<void> {
     await this.pool.query(
-      `UPDATE sessions SET "gameState" = $1, "lastActivity" = NOW() WHERE id = $2`,
+      `UPDATE sessions
+       SET "gameState" = $1,
+           "syncToken" = NULL,
+           "stateVersion" = "stateVersion" + 1,
+           "lastActivity" = NOW()
+       WHERE id = $2`,
       [JSON.stringify(gameState), sessionId],
     );
 
@@ -174,7 +253,12 @@ export class SessionRepository extends BaseRepository {
     gameState: unknown,
   ): Promise<void> {
     await this.pool.query(
-      `UPDATE sessions SET "gameState" = $1, "lastActivity" = NOW() WHERE "joinCode" = $2`,
+      `UPDATE sessions
+       SET "gameState" = $1,
+           "syncToken" = NULL,
+           "stateVersion" = "stateVersion" + 1,
+           "lastActivity" = NOW()
+       WHERE "joinCode" = $2`,
       [JSON.stringify(gameState), joinCode],
     );
 
@@ -188,6 +272,124 @@ export class SessionRepository extends BaseRepository {
     );
 
     return result.rows[0]?.gameState || null;
+  }
+
+  /**
+   * Atomically persists the canonical snapshot and both chain anchors. The
+   * update succeeds only when the caller still owns the observed version/token
+   * pair, making PostgreSQL the serialization point across server replicas.
+   */
+  async commitGameState(
+    joinCode: string,
+    expectedVersion: number,
+    expectedToken: string | null,
+    gameState: SyncableGameState,
+    newToken: string,
+  ): Promise<GameStateCommitResult> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const committed = await client.query<{
+        campaignId: string;
+        stateVersion: number | string;
+        syncToken: string;
+      }>(
+        `UPDATE sessions
+         SET "gameState" = $1,
+             "syncToken" = $2::varchar,
+             "stateVersion" = CASE
+               WHEN "syncToken" = $2::varchar THEN "stateVersion"
+               ELSE "stateVersion" + 1
+             END,
+             "lastActivity" = NOW()
+         WHERE "joinCode" = $3
+           AND "stateVersion" = $4
+           AND "syncToken" IS NOT DISTINCT FROM $5
+         RETURNING "campaignId", "stateVersion", "syncToken"`,
+        [
+          JSON.stringify(gameState),
+          newToken,
+          joinCode,
+          expectedVersion,
+          expectedToken,
+        ],
+      );
+
+      const committedRow = committed.rows[0];
+      if (committedRow) {
+        await client.query(
+          `UPDATE campaigns
+           SET scenes = $1, "updatedAt" = NOW()
+           WHERE id = $2`,
+          [JSON.stringify(gameState.scenes), committedRow.campaignId],
+        );
+        await client.query('COMMIT');
+        return {
+          status: 'committed',
+          gameState,
+          syncToken: committedRow.syncToken,
+          stateVersion: parseStateVersion(committedRow.stateVersion),
+        };
+      }
+
+      const current = await client.query<{
+        gameState: unknown;
+        stateVersion: number | string;
+        syncToken: string | null;
+      }>(
+        `SELECT "gameState", "stateVersion", "syncToken"
+         FROM sessions
+         WHERE "joinCode" = $1`,
+        [joinCode],
+      );
+      const currentRow = current.rows[0];
+      if (!currentRow) {
+        await client.query('ROLLBACK');
+        throw new Error(
+          `Cannot commit game state for unknown room ${joinCode}`,
+        );
+      }
+      await client.query('COMMIT');
+      return {
+        status: 'conflict',
+        gameState: currentRow.gameState,
+        syncToken: currentRow.syncToken,
+        stateVersion: parseStateVersion(currentRow.stateVersion),
+      };
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
+  }
+
+  /**
+   * Re-anchors rows written before durable tokens existed. The compare-and-swap
+   * predicate prevents recovery on one replica from overwriting a live commit.
+   */
+  async repairGameStateMetadata(
+    joinCode: string,
+    expectedVersion: number,
+    expectedToken: string | null,
+    gameState: SyncableGameState,
+    syncToken: string,
+  ): Promise<SessionRecord | null> {
+    await this.pool.query(
+      `UPDATE sessions
+       SET "gameState" = $1, "syncToken" = $2, "lastActivity" = NOW()
+       WHERE "joinCode" = $3
+         AND "stateVersion" = $4
+         AND "syncToken" IS NOT DISTINCT FROM $5`,
+      [
+        JSON.stringify(gameState),
+        syncToken,
+        joinCode,
+        expectedVersion,
+        expectedToken,
+      ],
+    );
+    return this.getSessionByJoinCode(joinCode);
   }
 
   async deleteSession(sessionId: string): Promise<void> {

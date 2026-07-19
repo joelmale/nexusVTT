@@ -22,6 +22,8 @@ describe('SessionRepository', () => {
       id: 'session-1',
       joinCode: 'ABC1',
       status: 'hibernating',
+      stateVersion: 0,
+      syncToken: null,
     };
 
     // Mock getSessionByJoinCode call in activateSessionByJoinCode

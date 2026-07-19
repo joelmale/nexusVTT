@@ -183,6 +183,27 @@
 - **Conflict Resolution**: Implement strategies for handling concurrent edits. Use `src/types/hybrid.ts` for conflict resolution types.
 - **Lazy Loading**: Optimize performance by lazy loading heavy dependencies like 3D libraries and PDF viewers.
 - **Service Workers**: Implement PWA functionality with caching strategies for offline use. Configure in `vite.config.ts` with VitePWA plugin.
+
+### Durable Game-State Contract
+
+- PostgreSQL is the serialization and durability boundary for canonical game
+  state. Never send `game-state-ack`, mutate the authoritative room projection,
+  or publish the peer patch before `sessions.gameState`, `syncToken`, and
+  `stateVersion` commit together.
+- All canonical writes must use `SessionRepository.commitGameState()` with a
+  compare-and-swap on both the observed token and version. Do not reintroduce
+  fire-and-forget snapshot persistence.
+- A reconnect may submit a full snapshot identical to the committed state. Keep
+  that commit version-neutral so a replica cannot advance `stateVersion`
+  without a corresponding state change and peer patch.
+- A compare-and-swap loser must receive `game-state-resync-required` with the
+  full committed snapshot, token, and version. Clients rebase onto that state;
+  they must not upload the stale losing snapshot over the winner.
+- Redis is ephemeral coordination only (pub/sub, presence, host leases).
+  PostgreSQL remains authoritative for game state, Express sessions, and the
+  ordered event journal.
+- Changes to this path require repository transaction tests and the managed
+  Playwright `SIGKILL`-after-ACK recovery scenario.
 - **Asset Management**: Use sophisticated asset system with generators and themes. Manage through `src/services/assetFavorites.ts` and `src/services/tokenAssets.ts`.
 - **OAuth Integration**: Implement Google and Discord OAuth flows. Configure in `server/auth.ts` and environment variables.
 - **WebSocket Communication**: Real-time multiplayer features with WebSocket. Handle in `src/services/storageWorkerClient.ts` and server-side WebSocket handlers.
@@ -207,7 +228,7 @@
 ## Database & Server Setup
 
 - **PostgreSQL**: Use PostgreSQL 16+ for data persistence. Configure in Docker compose files.
-- **Redis**: Use Redis for sessions and pub/sub. Configure in production Docker setup.
+- **Redis**: Use Redis for pub/sub, expiring presence, and host leases. Express sessions remain in PostgreSQL.
 - **Schema**: Database schema in `server/schema.sql` with migrations in `server/migrations/`.
 - **Server**: Express.js backend with WebSocket support in `server/index.ts`.
 - **Authentication**: OAuth2 authentication with Google and Discord providers.
@@ -259,7 +280,7 @@
 - **Authentication**: JWT-based authentication with OAuth providers.
 - **Authorization**: Role-based permissions with fine-grained access control.
 - **Data Protection**: Encrypt sensitive data and use secure connections.
-- **Session Management**: Secure session handling with Redis storage.
+- **Session Management**: Secure session handling with PostgreSQL storage via `connect-pg-simple`.
 - **Dependency Security**: Regular security scanning and dependency updates.
 - **Environment Security**: Never commit secrets or credentials to repository.
 - **CORS Configuration**: Proper cross-origin resource sharing setup.

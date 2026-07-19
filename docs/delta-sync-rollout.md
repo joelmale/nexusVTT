@@ -27,6 +27,14 @@ Returns JSON with the following structure:
     "patch": 128
   },
   "totalCommits": 185,
+  "durability": {
+    "committed": 185,
+    "conflicts": 2,
+    "failures": 0,
+    "totalCommitLatencyMs": 740,
+    "maxCommitLatencyMs": 18,
+    "averageCommitLatencyMs": 4.0
+  },
   "resync": {
     "base-mismatch": 2,
     "integrity-mismatch": 0,
@@ -45,7 +53,8 @@ Returns JSON with the following structure:
 
 ### 1. Resync Rate (Primary Health Indicator)
 
-**Metric:** `resyncRate = (totalResyncs / (totalUploads + totalResyncs)) * 100`
+**Metric:** `resyncRate = (totalResyncs / totalUploads) * 100`; every attempt,
+including a rejected attempt, is already counted in `totalUploads`.
 
 - **Healthy:** Near 0% (aside from reconnects)
 - **Warning:** > 5% (indicates frequent upload rejections)
@@ -79,6 +88,17 @@ Returns JSON with the following structure:
 - **Legacy:** Clients not yet using delta-sync (expected to decrease)
 - **Full:** Tagged full snapshots (e.g., after reconnect)
 - **Patch:** Delta patches (should grow as legacy decreases)
+
+### 5. Durability
+
+- `durability.failures` must remain zero. A failure is not ACKed, so the client
+  keeps its in-flight update and retries through timeout/reconnect recovery.
+- `durability.conflicts` may be nonzero during legitimate concurrent co-host
+  edits; correlate spikes with `resync['base-mismatch']`.
+- Identical full snapshots sent during reconnect are version-neutral. A version
+  increase must correspond to changed canonical content and replica fanout.
+- Track `averageCommitLatencyMs` and `maxCommitLatencyMs` because PostgreSQL
+  commit latency is intentionally on the ACK path.
 
 ## Rollout Stages
 
@@ -127,23 +147,22 @@ If integrity-mismatch is nonzero at any time:
 - **Type:** Strongly typed (no `any`)
 - **Counters:**
   - `commits: { legacy, full, patch }` — incremented on successful commit
+  - `durability` — committed CAS operations, conflicts, failures, and latency
   - `resync: Record<ResyncReason, number>` — incremented on resync (by reason)
   - `patchBytesSaved: number` — cumulative bytes saved by patches
   - `totalUploads: number` — total upload attempts
 
-### Increment Sites
-
-- **Legacy commits:** Line ~2747 (if `!upload`)
-- **Full commits:** Line ~2750 (if `upload.kind === 'full'`)
-- **Patch commits:** Line ~2753 (if `upload.kind === 'patch'`)
-- **Patch bytes saved:** Line ~2758 (calculated as `max(0, fullSnapshotSize - patchSize)`)
-- **Resync counters:** `sendResync()` method, line ~2850 (before sending message)
+Successful commit counters advance only after
+`SessionRepository.commitGameState()` commits. `sendResync()` increments reason
+counters, while database conflicts and failures increment the durability
+counters separately.
 
 ### Derivation
 
 ```
-resyncRate (%) = (totalResyncs / max(1, totalUploads + totalResyncs)) * 100
-healthScore = (resync['integrity-mismatch'] === 0) && (resyncRate < 5)
+resyncRate (%) = (totalResyncs / max(1, totalUploads)) * 100
+healthScore = (resync['integrity-mismatch'] === 0) &&
+              (durability.failures === 0) && (resyncRate < 5)
 ```
 
 ## Key Assumptions
@@ -157,4 +176,6 @@ healthScore = (resync['integrity-mismatch'] === 0) && (resyncRate < 5)
 - **Delta-sync contracts:** `shared/sync/contracts.ts`
 - **Server hashing:** `shared/sync/hashSync.ts`
 - **Client hashing:** `shared/sync/hashState.ts` (client-only async variant)
-- **Metrics endpoint:** `server/index.ts` line ~1533 (setupHealthRoutes → `/api/metrics/delta-sync`)
+- **Metrics endpoint:** `server/index.ts` (`/api/metrics/delta-sync`)
+- **Durable CAS:** `server/repositories/SessionRepository.ts`
+- **Schema migration:** `server/migrations/2026-07-19-add-durable-game-state-commits.sql`

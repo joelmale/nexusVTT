@@ -62,6 +62,7 @@ export class DatabaseService {
         console.log('✅ Database connection successful');
 
         await this.initSchema();
+        await this.sessions.initialize();
         await this.eventJournal.initialize();
         return;
       } catch (error) {
@@ -150,6 +151,36 @@ export class DatabaseService {
   async saveGameState(id: string, state: unknown) { return this.sessions.saveGameState(id, state); }
   async saveGameStateByJoinCode(code: string, state: unknown) { return this.sessions.saveGameStateByJoinCode(code, state); }
   async getGameStateByJoinCode(code: string) { return this.sessions.getGameStateByJoinCode(code); }
+  async commitGameState(
+    code: string,
+    expectedVersion: number,
+    expectedToken: string | null,
+    state: Parameters<SessionRepository['commitGameState']>[3],
+    newToken: string,
+  ) {
+    return this.sessions.commitGameState(
+      code,
+      expectedVersion,
+      expectedToken,
+      state,
+      newToken,
+    );
+  }
+  async repairGameStateMetadata(
+    code: string,
+    expectedVersion: number,
+    expectedToken: string | null,
+    state: Parameters<SessionRepository['repairGameStateMetadata']>[3],
+    token: string,
+  ) {
+    return this.sessions.repairGameStateMetadata(
+      code,
+      expectedVersion,
+      expectedToken,
+      state,
+      token,
+    );
+  }
   async deleteSession(id: string) { return this.sessions.deleteSession(id); }
 
   async addPlayerToSession(uId: string, sId: string, cId?: string | null) { return this.sessions.addPlayerToSession(uId, sId, cId); }

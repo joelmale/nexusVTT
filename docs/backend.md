@@ -1,64 +1,69 @@
-# Backend Documentation
+# Backend Architecture
 
-This document provides a detailed overview of the backend architecture of Nexus VTT.
+The `server/` runtime is an Express 5 API and WebSocket collaboration service.
+It authenticates requests, validates realtime envelopes, enforces host/co-host
+authority, serializes durable work in PostgreSQL, and coordinates backend
+replicas through Redis.
 
-## Project Structure
+## Structure
 
-The backend code is located in the `server` directory:
-
-```
+```text
 server/
-├── index.ts           # Main server with port management
-└── types.ts           # Server type definitions
+├── index.ts                    # Process, HTTP, and room lifecycle
+├── database.ts                 # Repository composition
+├── schema.sql                  # New-database schema
+├── migrations/                # Existing-database upgrades
+├── routes/                    # REST and document routes
+├── repositories/              # PostgreSQL transactions and queries
+├── services/                  # Redis coordination and external adapters
+└── socket/
+    ├── SocketManager.ts       # Validation, dispatch, fanout, replay
+    └── handlers/              # Feature-specific realtime handlers
 ```
 
-## Responsibilities
+## Realtime responsibilities
 
-The backend is a lightweight WebSocket server with a minimal set of responsibilities:
+- Maintain local socket connections and a projection of each active room.
+- Publish committed/transient messages across replicas with Redis.
+- Persist idempotent ordered actions in `room_events` before delivery.
+- Fence the active host with a renewable Redis lease.
+- Recover ordered gaps and canonical state from PostgreSQL.
+- Validate permissions, payload size, content hashes, and JSON Patch operations.
 
-- **Room Management:** Creating and managing game rooms with unique 4-character codes.
-- **Connection Handling:** Managing WebSocket connections for each client.
-- **Message Relaying:** Relaying messages between the host and players in a room.
+Redis is coordination, not storage of record. PostgreSQL owns accounts,
+campaigns, game sessions, Express sessions, canonical state, and ordered event
+history.
 
-## WebSocket Server
+## Canonical game-state commit
 
-The server is built with the `ws` library for Node.js. The main server logic is in `server/index.ts`.
+Hosts send either a full `SyncableGameState` or an RFC 6902 patch with a base
+content hash. `SessionRepository.commitGameState()` performs one transaction:
 
-### `NexusServer`
+1. Compare `sessions.stateVersion` and `sessions.syncToken` with the observed
+   anchors.
+2. Write `sessions.gameState`, the new token, and increment the version only
+   when canonical content changes. An identical reconnect snapshot is
+   version-neutral.
+3. Write `campaigns.scenes` in the same transaction.
+4. Commit.
+5. Only then update room memory, send `game-state-ack`, and publish the peer
+   patch.
 
-The `NexusServer` class encapsulates the server's functionality:
+If the compare-and-swap loses, the server returns
+`game-state-resync-required` with the committed snapshot, token, and version.
+The browser rebases onto that tuple rather than overwriting the winner. An ACK
+therefore remains valid after immediate process death.
 
-- **`handleConnection(ws: WebSocket, req: any)`:** Handles a new WebSocket connection.
-- **`handleHostConnection(connection: Connection, hostRoomCode?: string)`:** Handles a connection from a host.
-- **`handleJoinConnection(connection: Connection, roomCode: string)`:** Handles a connection from a player joining a room.
-- **`routeMessage(fromUuid: string, message: any)`:** Routes a message to the appropriate room or player.
-- **`broadcastToRoom(roomCode: string, message: ServerMessage, excludeUuid?: string)`:** Broadcasts a message to all players in a room.
-- **`handleDisconnect(uuid: string)`:** Handles a client disconnection.
+## Ordered actions
 
-## Message Protocol
+Durable chat, dice, scene, token, drawing, character, fog, and prop events use
+stable event IDs. PostgreSQL assigns one `serverSequence` per room and rejects a
+duplicate `(sessionId, eventId)` as a retry. Reconnecting clients provide their
+last cursor, replay the retained journal, then transition to live Redis fanout.
+See [Ordered Event Delivery](./ordered-event-delivery.md).
 
-The server and clients communicate using a simple JSON-based message protocol. All messages have the following basic structure:
+## Verification
 
-```typescript
-interface WebSocketMessage {
-  type: string;
-  data: any;
-  src?: string; // Source client UUID
-  dst?: string; // Destination client UUID
-  timestamp: number;
-}
-```
-
-### Message Types
-
-- **`event`:** A game event, such as `session/created` or `dice/roll`.
-- **`dice-roll`:** A dice roll result.
-- **`state`:** A partial state update.
-- **`error`:** An error message.
-
-## Room Management
-
-- **Room Creation:** A room is created when a host connects to the server.
-- **Room Codes:** Each room is assigned a unique 4-character code.
-- **Joining a Room:** Players can join a room by providing the room code.
-- **Host Disconnection:** If the host disconnects, the room is destroyed, and all players are disconnected.
+Run `npm run test:ci` for static and Vitest coverage. Run `npm run test:e2e` for
+the managed two-replica browser suite, including concurrent writer conflict
+recovery and a backend `SIGKILL` immediately after a durable state ACK.

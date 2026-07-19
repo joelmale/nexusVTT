@@ -4,6 +4,12 @@ Nexus VTT gives durable multiplayer actions one room-wide order and makes
 client retries idempotent. The protocol complements the canonical game-state
 snapshot and delta-sync flow; it does not replace them.
 
+The two durability protocols share PostgreSQL but serve different purposes.
+Canonical state commits atomically compare-and-swap
+`sessions.(gameState, syncToken, stateVersion)` before ACK. Ordered actions
+atomically append `room_events` while advancing `sessions.eventSequence`.
+Redis distributes both after commit but is not the record of either.
+
 ## Delivery contract
 
 Before sending a durable action, the browser adds:
@@ -64,9 +70,11 @@ When adding a new shared mutation:
 
 ## Operations and scaling
 
-Apply `server/migrations/2026-07-19-add-room-event-journal.sql` before deploying
-code to an existing database. New databases receive the same schema from
-`server/schema.sql`; startup also creates missing journal objects defensively.
+Apply `server/migrations/2026-07-19-add-room-event-journal.sql` and then
+`server/migrations/2026-07-19-add-durable-game-state-commits.sql` before
+deploying code to an existing database. New databases receive the same schema
+from `server/schema.sql`; startup also creates missing journal objects and
+state-anchor columns defensively.
 Runtime counters for commits, duplicates, failures, replay volume, and
 truncated replay windows are available from `GET /api/metrics/ordered-events`.
 
@@ -90,6 +98,7 @@ Redis is configured, `/health` does not report ready until both the database and
 realtime coordinator are available.
 
 The smoke suite exercises exact duplicate submission, four concurrent clients,
-an isolated connection outage with replay, two backend replicas, asymmetric
-replica restarts with journal recovery, and stale-base delta resynchronization.
-Run it with `npm run test:e2e`.
+an isolated connection outage with replay, two backend replicas, an abrupt
+`SIGKILL` immediately after a game-state ACK, asymmetric replica restarts with
+journal recovery, and stale-base authoritative resynchronization. Run it with
+`npm run test:e2e`.

@@ -254,6 +254,24 @@ export class GameStateSyncEngine {
     void this.flush();
   }
 
+  /**
+   * Rebase directly onto a server-authoritative snapshot after a compare-and-
+   * swap conflict. This must not upload the loser's stale local state over the
+   * winning commit.
+   */
+  onAuthoritativeSnapshot(
+    state: SyncableGameState,
+    token: StateHash,
+    reason = 'server-authoritative',
+  ): void {
+    this.inFlight = null;
+    this.clearAckTimer();
+    this.acknowledged = deepClone(state);
+    this.acknowledgedToken = token;
+    this.dirty = false;
+    this.deps.onResync?.(reason);
+  }
+
   /** Full reset. Called on every (re)connect so we re-baseline the chain. */
   reset(): void {
     this.acknowledged = null;

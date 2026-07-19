@@ -38,6 +38,11 @@ export async function stopSmokeService(service: string): Promise<void> {
   await runCompose(['stop', service]);
 }
 
+/** Abruptly kills a container so crash tests cannot rely on shutdown hooks. */
+export async function killSmokeService(service: string): Promise<void> {
+  await runCompose(['kill', '--signal', 'SIGKILL', service]);
+}
+
 export async function startSmokeService(service: string): Promise<void> {
   await runCompose([
     'up',

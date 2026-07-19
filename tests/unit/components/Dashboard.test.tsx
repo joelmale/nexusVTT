@@ -64,7 +64,11 @@ describe('Dashboard', () => {
           ]),
         });
       }
-      return Promise.resolve({ ok: false });
+      return Promise.resolve({
+        ok: false,
+        status: 503,
+        json: () => Promise.resolve({ error: 'Service unavailable in test' }),
+      });
     });
 
     // Act
@@ -113,12 +117,22 @@ describe('Dashboard', () => {
           json: () => Promise.resolve([]),
         });
       }
-      return Promise.resolve({ ok: false });
+      return Promise.resolve({
+        ok: false,
+        status: 503,
+        json: () => Promise.resolve({ error: 'Service unavailable in test' }),
+      });
     });
 
     render(<Dashboard />);
 
-    fireEvent.click(await screen.findByRole('button', { name: /play/i }));
+    fireEvent.click(
+      await screen.findByRole(
+        'button',
+        { name: /play/i },
+        { timeout: 5000 },
+      ),
+    );
 
     await waitFor(() => {
       expect(createGameRoom).toHaveBeenCalledWith(

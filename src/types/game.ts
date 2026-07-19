@@ -405,6 +405,8 @@ export interface GameStateResyncRequiredMessage extends BaseMessage {
   type: 'game-state-resync-required';
   data: {
     serverToken: string; // Server's current authoritative StateHash
+    gameState: unknown; // Validated before projection into the stores
+    version: number;
     reason: string; // ResyncReason
   };
 }

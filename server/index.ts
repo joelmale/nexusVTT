@@ -56,6 +56,7 @@ import type {
   JsonPatch,
   ResyncReason,
 } from '../shared/sync/contracts.js';
+import { createEmptySyncableGameState } from '../shared/sync/contracts.js';
 import { hashSync } from '../shared/sync/hashSync.js';
 import type { Operation } from 'fast-json-patch';
 
@@ -177,11 +178,25 @@ class NexusServer {
    */
   private deltaSyncMetrics: {
     commits: { legacy: number; full: number; patch: number };
+    durability: {
+      committed: number;
+      conflicts: number;
+      failures: number;
+      totalCommitLatencyMs: number;
+      maxCommitLatencyMs: number;
+    };
     resync: Record<ResyncReason, number>;
     patchBytesSaved: number;
     totalUploads: number;
   } = {
     commits: { legacy: 0, full: 0, patch: 0 },
+    durability: {
+      committed: 0,
+      conflicts: 0,
+      failures: 0,
+      totalCommitLatencyMs: 0,
+      maxCommitLatencyMs: 0,
+    },
     resync: {
       'base-mismatch': 0,
       'integrity-mismatch': 0,
@@ -191,6 +206,7 @@ class NexusServer {
     patchBytesSaved: 0,
     totalUploads: 0,
   };
+  private readonly gameStateCommitQueues = new Map<string, Promise<void>>();
 
   constructor(port: number) {
     if (process.env.NODE_ENV === 'production' && !process.env.SESSION_SECRET) {
@@ -325,7 +341,7 @@ class NexusServer {
           this.sendError(connection, 'Access denied: Host privilege required.');
           return;
         }
-        this.handleGameStateUpload(room.code, connection, message.data);
+        this.enqueueGameStateUpload(room.code, connection, message.data);
       },
     );
 
@@ -639,6 +655,18 @@ class NexusServer {
       res.json({
         commits: this.deltaSyncMetrics.commits,
         totalCommits,
+        durability: {
+          ...this.deltaSyncMetrics.durability,
+          averageCommitLatencyMs:
+            this.deltaSyncMetrics.durability.committed > 0
+              ? parseFloat(
+                  (
+                    this.deltaSyncMetrics.durability.totalCommitLatencyMs /
+                    this.deltaSyncMetrics.durability.committed
+                  ).toFixed(2),
+                )
+              : 0,
+        },
         resync: this.deltaSyncMetrics.resync,
         totalResyncs,
         patchBytesSaved: this.deltaSyncMetrics.patchBytesSaved,
@@ -916,11 +944,7 @@ class NexusServer {
     replay: EventReplayWindow,
     requestedSequence: number | null,
   ): Promise<void> {
-    this.socketManager.deliverRoomReplay(
-      connection,
-      replay,
-      requestedSequence,
-    );
+    this.socketManager.deliverRoomReplay(connection, replay, requestedSequence);
     const catchUp = await this.prepareRoomReplay(
       roomCode,
       replay.latestSequence,
@@ -1135,9 +1159,12 @@ class NexusServer {
         lastActivity: Date.now(),
         status: 'active',
         dmConnected: true,
+        gameState: createEmptySyncableGameState() as unknown as GameState,
         stateVersion: 0, // Initialize state version for delta updates
         entityVersions: new Map(),
-        syncToken: null, // No committed state yet
+        syncToken: hashSync(
+          createEmptySyncableGameState() as unknown as JsonValue,
+        ),
       };
 
       this.socketManager.rooms.set(joinCode, room);
@@ -1251,11 +1278,13 @@ class NexusServer {
           status: 'active',
           dmConnected: true,
           hibernationTimer: undefined,
-          gameState: undefined,
+          gameState: createEmptySyncableGameState() as unknown as GameState,
           previousGameState: undefined,
           stateVersion: 0,
           entityVersions: new Map(),
-          syncToken: null, // No committed state yet
+          syncToken: hashSync(
+            createEmptySyncableGameState() as unknown as JsonValue,
+          ),
         };
         this.socketManager.rooms.set(created.joinCode, room);
       }
@@ -1651,27 +1680,35 @@ class NexusServer {
   private static readonly MAX_UPLOAD_BYTES = 8 * 1024 * 1024; // 8 MiB serialized
   private static readonly MAX_PATCH_OPS = 5000;
 
-  /**
-   * Commits a host game-state upload through the content-hash token chain and
-   * fans it out. Accepts THREE input shapes on `data`:
-   *   - Tagged full  : data.upload = { kind: 'full',  state, newToken }
-   *   - Tagged patch : data.upload = { kind: 'patch', patch, baseToken, newToken }
-   *   - Legacy       : no data.upload; top-level { scenes, activeSceneId,
-   *                    characters, initiative } (current client format).
-   *
-   * CRITICAL SECTION: between reading room.syncToken and writing the new
-   * room.gameState + room.syncToken there is ZERO `await`. All hashing is the
-   * synchronous hashSync(); DB persistence is dispatched (fire-and-forget)
-   * strictly AFTER the token has advanced.
-   *
-   * The host gate is enforced by the caller.
-   * @private
-   */
-  private handleGameStateUpload(
+  private enqueueGameStateUpload(
     roomCode: string,
     sender: Connection,
     data: unknown,
   ): void {
+    const previous =
+      this.gameStateCommitQueues.get(roomCode) ?? Promise.resolve();
+    const queued = previous
+      .catch(() => undefined)
+      .then(() => this.handleGameStateUpload(roomCode, sender, data));
+    this.gameStateCommitQueues.set(roomCode, queued);
+    void queued.finally(() => {
+      if (this.gameStateCommitQueues.get(roomCode) === queued) {
+        this.gameStateCommitQueues.delete(roomCode);
+      }
+    });
+  }
+
+  /**
+   * Validates a host upload and atomically compare-and-swaps the snapshot,
+   * content hash, and version in PostgreSQL. PostgreSQL is the serialization
+   * point across replicas; memory, peer broadcasts, and the sender ACK advance
+   * only after the transaction commits.
+   */
+  private async handleGameStateUpload(
+    roomCode: string,
+    sender: Connection,
+    data: unknown,
+  ): Promise<void> {
     const room = this.socketManager.rooms.get(roomCode);
     if (!room) return;
 
@@ -1682,31 +1719,31 @@ class NexusServer {
     if (upload) {
       const serialized = JSON.stringify(upload);
       if (serialized.length > NexusServer.MAX_UPLOAD_BYTES) {
-        this.sendResync(sender, room.syncToken, 'payload-too-large');
+        this.sendResync(sender, room, 'payload-too-large');
         return;
       }
       if (
         upload.kind === 'patch' &&
         upload.patch.length > NexusServer.MAX_PATCH_OPS
       ) {
-        this.sendResync(sender, room.syncToken, 'payload-too-large');
+        this.sendResync(sender, room, 'payload-too-large');
         return;
       }
     } else {
       // Legacy untagged snapshot: guard on the serialized top-level data.
       const serialized = JSON.stringify(data ?? {});
       if (serialized.length > NexusServer.MAX_UPLOAD_BYTES) {
-        this.sendResync(sender, room.syncToken, 'payload-too-large');
+        this.sendResync(sender, room, 'payload-too-large');
         return;
       }
     }
 
-    // ================== CRITICAL SECTION (no await below) =================
-    // Capture the pre-commit anchors BEFORE mutating the room.
+    // Capture the database compare-and-swap anchors before building a candidate.
     const prevToken = room.syncToken;
+    const prevVersion = room.stateVersion;
     const prevState: SyncableGameState = room.gameState
       ? (jsonpatch.deepClone(room.gameState) as unknown as SyncableGameState)
-      : { scenes: [], activeSceneId: null, characters: [], initiative: {} };
+      : createEmptySyncableGameState();
 
     // The committed next state + its token, resolved per input shape. Every
     // rejecting branch returns before commit, so both values are definitely
@@ -1725,7 +1762,7 @@ class NexusServer {
     } else if (upload.kind === 'full') {
       // --- Tagged full: verify integrity against declared newToken ----------
       if (hashSync(upload.state as unknown as JsonValue) !== upload.newToken) {
-        this.sendResync(sender, room.syncToken, 'integrity-mismatch');
+        this.sendResync(sender, room, 'integrity-mismatch');
         return;
       }
       committed = upload.state;
@@ -1733,7 +1770,7 @@ class NexusServer {
     } else {
       // --- Patch: base-match, apply, integrity-check ------------------------
       if (upload.baseToken !== room.syncToken) {
-        this.sendResync(sender, room.syncToken, 'base-mismatch');
+        this.sendResync(sender, room, 'base-mismatch');
         return; // no mutation
       }
       let candidate: SyncableGameState;
@@ -1745,11 +1782,11 @@ class NexusServer {
         );
         candidate = result.newDocument as unknown as SyncableGameState;
       } catch {
-        this.sendResync(sender, room.syncToken, 'malformed-patch');
+        this.sendResync(sender, room, 'malformed-patch');
         return;
       }
       if (hashSync(candidate as unknown as JsonValue) !== upload.newToken) {
-        this.sendResync(sender, room.syncToken, 'integrity-mismatch');
+        this.sendResync(sender, room, 'integrity-mismatch');
         return;
       }
       committed = candidate;
@@ -1757,13 +1794,80 @@ class NexusServer {
       broadcastPatch = upload.patch;
     }
 
-    // Commit: advance authoritative state + token + version atomically.
+    const commitStartedAt = Date.now();
+    let persisted: Awaited<ReturnType<DatabaseService['commitGameState']>>;
+    try {
+      persisted = await this.db.commitGameState(
+        roomCode,
+        prevVersion,
+        prevToken,
+        committed,
+        committedToken,
+      );
+    } catch (error) {
+      this.deltaSyncMetrics.durability.failures++;
+      console.error(
+        `Failed to durably commit game state for room ${roomCode}:`,
+        error,
+      );
+      this.sendMessage(sender, {
+        type: 'error',
+        data: {
+          message: 'Game-state commit failed; the update was not acknowledged.',
+          code: 503,
+        },
+        timestamp: Date.now(),
+      });
+      return;
+    }
+
+    if (persisted.status === 'conflict') {
+      this.deltaSyncMetrics.durability.conflicts++;
+      let authoritative = this.buildSyncableFromLegacy(persisted.gameState);
+      let authoritativeToken = hashSync(authoritative as unknown as JsonValue);
+      let authoritativeVersion = persisted.stateVersion;
+
+      // Legacy save APIs invalidate their token. Re-anchor such rows without
+      // overwriting a durable commit that raced with this recovery.
+      if (persisted.syncToken !== authoritativeToken) {
+        const repaired = await this.db.repairGameStateMetadata(
+          roomCode,
+          persisted.stateVersion,
+          persisted.syncToken,
+          authoritative,
+          authoritativeToken,
+        );
+        if (repaired) {
+          authoritative = this.buildSyncableFromLegacy(repaired.gameState);
+          authoritativeToken = hashSync(authoritative as unknown as JsonValue);
+          authoritativeVersion = repaired.stateVersion;
+        }
+      }
+
+      if (authoritativeVersion >= room.stateVersion) {
+        room.previousGameState = room.gameState;
+        room.gameState = authoritative as unknown as GameState;
+        room.syncToken = authoritativeToken;
+        room.stateVersion = authoritativeVersion;
+      }
+      this.sendResync(sender, room, 'base-mismatch');
+      return;
+    }
+
+    const commitLatencyMs = Date.now() - commitStartedAt;
+    this.deltaSyncMetrics.durability.committed++;
+    this.deltaSyncMetrics.durability.totalCommitLatencyMs += commitLatencyMs;
+    this.deltaSyncMetrics.durability.maxCommitLatencyMs = Math.max(
+      this.deltaSyncMetrics.durability.maxCommitLatencyMs,
+      commitLatencyMs,
+    );
+
     room.gameState = committed as unknown as GameState;
     room.syncToken = committedToken;
-    room.stateVersion++;
+    room.stateVersion = persisted.stateVersion;
     room.previousGameState = prevState as unknown as GameState;
-    const newToken = room.syncToken;
-    const version = room.stateVersion;
+    const newToken = committedToken;
+    const version = persisted.stateVersion;
 
     // Record commit branch for metrics (legacy/full/patch).
     if (!upload) {
@@ -1790,10 +1894,7 @@ class NexusServer {
         prevState as unknown as Record<string, unknown>,
         committed as unknown as Record<string, unknown>,
       ) as JsonPatch);
-    // =================== END CRITICAL SECTION =============================
-
-    // 1) Ack the sender (excluded from the peer broadcast) so it advances its
-    //    own chain to the committed token.
+    // The ACK is a durability promise: the complete tuple is already committed.
     this.sendSyncAck(sender, newToken, version);
 
     // 2) Broadcast the chained patch to peers, excluding the sender.
@@ -1816,9 +1917,6 @@ class NexusServer {
         `📡 Broadcasting game state patch v${version} to room ${roomCode} (${patch.length} operations) [excluding sender ${sender.id}]`,
       );
     }
-
-    // 3) Persist off the critical path (the one `await`, fire-and-forget).
-    void this.persistRoomGameState(roomCode);
   }
 
   /**
@@ -1834,37 +1932,20 @@ class NexusServer {
       characters: JsonValue[];
       initiative: JsonValue;
     }>;
+    const defaultInitiative = createEmptySyncableGameState()
+      .initiative as Record<string, JsonValue>;
+    const legacyInitiative =
+      typeof d.initiative === 'object' &&
+      d.initiative !== null &&
+      !Array.isArray(d.initiative)
+        ? (d.initiative as Record<string, JsonValue>)
+        : {};
     return {
       scenes: Array.isArray(d.scenes) ? d.scenes : [],
       activeSceneId: d.activeSceneId ?? null,
       characters: Array.isArray(d.characters) ? d.characters : [],
-      initiative: d.initiative ?? {},
+      initiative: { ...defaultInitiative, ...legacyInitiative },
     };
-  }
-
-  /**
-   * Persists the room's committed game state to the database (session snapshot
-   * + campaign scenes). Runs AFTER the token chain has advanced; safe to fail.
-   * @private
-   */
-  private async persistRoomGameState(roomCode: string): Promise<void> {
-    const room = this.socketManager.rooms.get(roomCode);
-    if (!room?.gameState) return;
-    try {
-      const session = await this.db.getSessionByJoinCode(roomCode);
-      if (session) {
-        await this.db.saveGameState(session.id, room.gameState);
-        if (room.gameState.scenes && session.campaignId) {
-          await this.db.saveCampaignScenes(
-            session.campaignId,
-            room.gameState.scenes,
-          );
-        }
-        console.log(`💾 Game state updated and persisted for room ${roomCode}`);
-      }
-    } catch (error) {
-      console.error('Failed to persist game state:', error);
-    }
   }
 
   /**
@@ -1891,13 +1972,22 @@ class NexusServer {
    */
   private sendResync(
     connection: Connection,
-    serverToken: StateHash | null,
+    room: Room,
     reason: ResyncReason,
   ): void {
+    const gameState = (room.gameState ??
+      createEmptySyncableGameState()) as GameState;
+    const serverToken =
+      room.syncToken ?? hashSync(gameState as unknown as JsonValue);
     this.deltaSyncMetrics.resync[reason]++;
     this.sendMessage(connection, {
       type: 'game-state-resync-required',
-      data: { serverToken, reason },
+      data: {
+        serverToken,
+        gameState,
+        version: room.stateVersion,
+        reason,
+      },
       timestamp: Date.now(),
     });
   }
@@ -2201,9 +2291,26 @@ class NexusServer {
     roomCode: string,
   ): Promise<Room | undefined> {
     try {
-      const session = await this.db.getSessionByJoinCode(roomCode);
+      let session = await this.db.getSessionByJoinCode(roomCode);
       if (!session || session.status === 'abandoned') {
         return undefined;
+      }
+
+      let recoveredState = this.buildSyncableFromLegacy(session.gameState);
+      let recoveredToken = hashSync(recoveredState as unknown as JsonValue);
+      if (session.syncToken !== recoveredToken) {
+        const repaired = await this.db.repairGameStateMetadata(
+          roomCode,
+          session.stateVersion,
+          session.syncToken,
+          recoveredState,
+          recoveredToken,
+        );
+        if (repaired) {
+          session = repaired;
+          recoveredState = this.buildSyncableFromLegacy(session.gameState);
+          recoveredToken = hashSync(recoveredState as unknown as JsonValue);
+        }
       }
 
       const recoveredRoom: Room = {
@@ -2219,15 +2326,11 @@ class NexusServer {
         status: session.status === 'hibernating' ? 'hibernating' : 'active',
         dmConnected: false,
         hibernationTimer: undefined,
-        gameState: session.gameState as GameState,
+        gameState: recoveredState as unknown as GameState,
         previousGameState: undefined,
-        stateVersion: 0,
+        stateVersion: session.stateVersion,
         entityVersions: new Map(),
-        // Anchor the token chain to the persisted state so patch uploads from a
-        // reconnecting host can baseToken-match without a forced full resync.
-        syncToken: session.gameState
-          ? hashSync(session.gameState as unknown as JsonValue)
-          : null,
+        syncToken: recoveredToken,
       };
 
       this.socketManager.rooms.set(roomCode, recoveredRoom);

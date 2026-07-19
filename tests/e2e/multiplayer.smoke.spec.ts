@@ -6,6 +6,7 @@ import {
 } from './support/flows';
 import {
   hasManagedSmokeStack,
+  killSmokeService,
   startSmokeService,
   stopSmokeService,
 } from './support/stack';
@@ -20,6 +21,7 @@ import {
 
 interface DeltaSyncMetrics {
   commits: { full: number; patch: number };
+  durability: { committed: number; conflicts: number; failures: number };
   resync: { 'base-mismatch': number };
 }
 
@@ -320,8 +322,24 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     await openPanel(playerPage, 'Dice');
     await expect(diceRoll(playerPage, replayDiceExpression)).toHaveCount(1);
 
-    // Restart the backend while PostgreSQL remains alive. Both sockets must
-    // recover and the persisted canonical state must not replay duplicates.
+    // Crash the backend immediately after its ACK. Because ACK now follows the
+    // PostgreSQL commit, recovery must include the exact acknowledged edit even
+    // though SIGKILL bypasses every graceful shutdown hook.
+    const durableCrashSceneName = 'Durable Before Crash';
+    const ackCountBeforeCrashCommit = messagesOfType(
+      hostSockets,
+      'game-state-ack',
+    ).length;
+    await openPanel(hostPage, 'Scene');
+    await editActiveSceneName(hostPage, durableCrashSceneName);
+    await expect
+      .poll(() => messagesOfType(hostSockets, 'game-state-ack').length)
+      .toBeGreaterThan(ackCountBeforeCrashCommit);
+    await expect(activeScene(playerPage)).toHaveAttribute(
+      'data-scene-name',
+      durableCrashSceneName,
+    );
+
     const hostSocketCountBeforeRestart = hostSockets.socketUrls.length;
     const playerClosedSocketsBeforePrimaryRestart =
       playerSockets.closedSocketCount;
@@ -334,9 +352,7 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
       'session/joined',
     ).length;
 
-    // Let the last acknowledged state finish its fire-and-forget DB write.
-    await hostPage.waitForTimeout(1_000);
-    await stopSmokeService('backend');
+    await killSmokeService('backend');
     stoppedBackends.add('backend');
     await expect
       .poll(() =>
@@ -376,11 +392,11 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
 
     await expect(activeScene(hostPage)).toHaveAttribute(
       'data-scene-name',
-      'Scene 1',
+      durableCrashSceneName,
     );
     await expect(activeScene(playerPage)).toHaveAttribute(
       'data-scene-name',
-      'Scene 1',
+      durableCrashSceneName,
     );
     await expect(token(hostPage, playerName)).toHaveCount(1);
     await expect(token(playerPage, playerName)).toHaveCount(1);
@@ -434,7 +450,9 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
         timeout: 30_000,
       })
       .toBeGreaterThan(playerJoinCountBeforePeerRestart);
-    expect(hostSockets.closedSocketCount).toBe(hostClosedSocketsBeforePeerRestart);
+    expect(hostSockets.closedSocketCount).toBe(
+      hostClosedSocketsBeforePeerRestart,
+    );
     expect(joinedIdentity(playerSockets)).toBe(initialPlayerIdentity);
     await openPanel(playerPage, 'Chat');
     await expect(chatMessage(playerPage, peerOutageChatText)).toHaveCount(1);
@@ -517,6 +535,15 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     await openPanel(playerPage, 'Initiative');
     await expectSingleInitiativeEntry(hostPage, combatantName);
     await expectSingleInitiativeEntry(playerPage, combatantName);
+
+    const durabilityResponse = await request.get(
+      `${backendUrl}/api/metrics/delta-sync`,
+    );
+    expect(durabilityResponse.ok()).toBe(true);
+    const durabilityMetrics =
+      (await durabilityResponse.json()) as DeltaSyncMetrics;
+    expect(durabilityMetrics.durability.committed).toBeGreaterThan(0);
+    expect(durabilityMetrics.durability.failures).toBe(0);
 
     expect(diagnostics.host.errors).toEqual([]);
     expect(diagnostics.player.errors).toEqual([]);

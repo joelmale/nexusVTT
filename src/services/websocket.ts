@@ -20,7 +20,7 @@ import {
 import { toast } from '@/utils/notifications';
 import { applyPatch, type Operation } from 'fast-json-patch';
 import { encode, decode } from '@msgpack/msgpack';
-import type { StateHash } from '../../shared/sync/contracts';
+import type { StateHash, SyncableGameState } from '../../shared/sync/contracts';
 import {
   parseTransportEnvelope,
   type TransportEnvelope,
@@ -515,12 +515,27 @@ class WebSocketService extends EventTarget {
       }
 
       case 'game-state-resync-required': {
-        // Sender-only: the content-hash chain broke. Drop our base and
-        // re-baseline with a full snapshot on the next flush. The reason
-        // ('base-mismatch' | 'integrity-mismatch' | …) drives the dev log.
-        const reason =
-          (message.data as { reason?: string })?.reason ?? 'server';
-        gameStateSyncEngine.onResyncRequired(reason);
+        // PostgreSQL rejected our compare-and-swap or validation rejected the
+        // chain. Rebase from the authoritative snapshot; never upload the stale
+        // losing state over a commit made by another host/replica.
+        const resync = message.data as {
+          reason?: string;
+          serverToken?: string;
+          gameState?: unknown;
+        };
+        const reason = resync.reason ?? 'server';
+        if (
+          typeof resync.serverToken === 'string' &&
+          applyGameStateProjection(resync.gameState)
+        ) {
+          gameStateSyncEngine.onAuthoritativeSnapshot(
+            resync.gameState as SyncableGameState,
+            resync.serverToken as StateHash,
+            reason,
+          );
+        } else {
+          gameStateSyncEngine.onResyncRequired(reason);
+        }
         break;
       }
 

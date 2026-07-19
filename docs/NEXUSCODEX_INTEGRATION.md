@@ -264,7 +264,8 @@ const results = await documentService.quickSearch('fireball', campaignId);
 - `doc-processor` - Background worker for PDF processing
 - `doc-websocket` - Real-time collaboration on :3002
 - `postgres` - PostgreSQL with 2 databases
-- `redis` - Session store and job queue
+- `redis` - NexusCodex job coordination plus Nexus VTT realtime fanout,
+  presence, and host leases. Nexus VTT Express sessions remain in PostgreSQL.
 - `minio` - S3-compatible object storage
 - `elasticsearch` - Full-text search engine
 - `asset-server` - Static assets on :8081

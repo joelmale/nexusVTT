@@ -2,9 +2,11 @@
 
 Nexus VTT is a TypeScript monorepo with three runtime boundaries: the React
 web application, the Express/WebSocket API, and the asset-service workspace.
-PostgreSQL stores accounts, campaigns, sessions, and durable game data. The
-host remains authoritative for live tabletop interactions, while the server
-validates transport messages, maintains room state, and persists snapshots.
+PostgreSQL stores accounts, campaigns, sessions, and durable game data. Hosts
+originate canonical tabletop interactions, while PostgreSQL is the
+cross-replica serialization and durability authority. The server validates
+messages, maintains a local room projection, and coordinates Redis fanout
+without treating Redis as durable storage.
 
 ## Repository boundaries
 
@@ -61,9 +63,22 @@ remain separate domains.
 
 Live updates use a validated transport envelope. The host sends either a full
 snapshot or a JSON patch chained to a content hash. The server validates the
-envelope, checks the base hash, commits the authoritative room state, then
-acknowledges the sender and broadcasts a patch to peers. Invalid or stale
-messages request a full resynchronization.
+envelope and checks the base hash. It then compare-and-swaps the observed
+`syncToken` and `stateVersion` while writing `gameState` and campaign scenes in
+one PostgreSQL transaction. Only after commit does it advance room memory,
+acknowledge the sender, and broadcast the patch. Therefore an ACK is a durable
+commit promise even if the backend is immediately killed.
+
+Reconnects can repeat the already-committed full snapshot. Those commits keep
+the existing `stateVersion`; advancing a version without changed content and a
+peer patch would leave other replicas behind.
+
+A stale writer receives `game-state-resync-required` with the complete
+authoritative snapshot, token, and version. The browser projects that snapshot
+into every owning store and re-anchors its delta engine; it does not upload the
+losing state again. If a replica receives an out-of-order Redis patch, it
+hydrates the latest tuple from PostgreSQL and sends local clients the same full
+authoritative resync.
 
 ## Asset ownership
 

@@ -3,7 +3,7 @@
 ## Build/Lint/Test Commands
 
 - **Build**: `npm run build` (TypeScript + Vite)
-- **Lint**: `npm run lint` (ESLint with max 100 warnings)
+- **Lint**: `npm run lint` (ESLint with zero warnings)
 - **Type Check**: `npm run type-check` (TypeScript strict mode)
 - **All Tests**: `npm run test` (Vitest)
 - **Unit Tests**: `npm run test:unit`
@@ -11,7 +11,7 @@
 - **E2E Tests**: `npm run test:e2e` (Playwright)
 - **Single Test**: `vitest run <path-to-test-file>`
 - **Test Watch**: `npm run test:watch`
-- **Test Coverage**: `npm run test:coverage` (80% thresholds)
+- **Test Coverage**: `npm run test:coverage` (repository thresholds)
 - **Layout Tests**: `npm run test:layout`
 
 ## Code Style Guidelines
@@ -32,3 +32,17 @@
 
 - No Cursor rules (.cursor/ or .cursorrules not found)
 - No Copilot rules (.github/copilot-instructions.md not found)
+
+## Realtime Durability Rules
+
+- Treat PostgreSQL—not in-memory rooms or Redis—as the durable authority.
+- Canonical snapshot writes compare-and-swap `gameState`, `syncToken`, and
+  `stateVersion` in one transaction; ACK and broadcast only after commit.
+- On a stale writer, return the authoritative snapshot/token/version and rebase
+  the browser. Never let conflict recovery automatically overwrite the winner.
+- Treat an identical full snapshot on reconnect as a version-neutral commit;
+  advancing only the version would desynchronize replicas without a peer patch.
+- Redis carries ephemeral fanout, presence, and host leases. Express sessions
+  and ordered event history remain in PostgreSQL.
+- Run `npm run test:e2e` for realtime changes. Its managed stack hard-kills a
+  backend immediately after an ACK and verifies exact multi-client recovery.

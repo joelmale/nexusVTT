@@ -68,15 +68,13 @@ export class SocketManager extends EventEmitter {
     private readonly realtime = new RealtimeCoordinator(db),
   ) {
     super();
-    this.realtime.on(
-      'ordered',
-      (event: OrderedTransportEnvelope) => this.broadcastOrderedLocally(event),
+    this.realtime.on('ordered', (event: OrderedTransportEnvelope) =>
+      this.broadcastOrderedLocally(event),
     );
     this.realtime.on(
       'transient',
       (roomCode: string, message: ServerMessage, excludeId?: string) => {
-        this.applyRemoteRoomMutation(roomCode, message);
-        this.broadcastLocally(roomCode, message, excludeId);
+        void this.handleRemoteTransient(roomCode, message, excludeId);
       },
     );
     this.realtime.on(
@@ -517,30 +515,42 @@ export class SocketManager extends EventEmitter {
       ...distributedPlayers,
       ...room.connections.keys(),
     ]);
-    room.players = new Set([
-      ...activePlayerIds,
+    room.players = new Set([...activePlayerIds]);
+    room.coHosts = new Set([
+      ...Array.from(room.coHosts).filter((userId) =>
+        activePlayerIds.has(userId),
+      ),
+      ...presence.members
+        .filter((member) => member.role === 'cohost')
+        .map((member) => member.userId),
     ]);
-    room.coHosts = new Set(
-      [
-        ...Array.from(room.coHosts).filter((userId) =>
-          activePlayerIds.has(userId),
-        ),
-        ...presence.members
-          .filter((member) => member.role === 'cohost')
-          .map((member) => member.userId),
-      ],
-    );
     room.dmConnected =
       presence.hostLease !== null ||
       presence.members.some((member) => member.role === 'host');
   }
 
-  private applyRemoteRoomMutation(
+  private async handleRemoteTransient(
     roomCode: string,
     message: ServerMessage,
-  ): void {
+    excludeId?: string,
+  ): Promise<void> {
+    try {
+      const resolved = await this.applyRemoteRoomMutation(roomCode, message);
+      this.broadcastLocally(roomCode, resolved, excludeId);
+    } catch (error) {
+      console.error(
+        `Failed to reconcile remote mutation in room ${roomCode}:`,
+        error,
+      );
+    }
+  }
+
+  private async applyRemoteRoomMutation(
+    roomCode: string,
+    message: ServerMessage,
+  ): Promise<ServerMessage> {
     const room = this.rooms.get(roomCode);
-    if (!room) return;
+    if (!room) return message;
     if (message.type === 'game-state-patch') {
       const { baseToken, newToken, patch, version } = message.data;
       if (
@@ -561,6 +571,7 @@ export class SocketManager extends EventEmitter {
             room.gameState = nextState;
             room.syncToken = newToken;
             room.stateVersion = Math.max(room.stateVersion, version);
+            return message;
           }
         } catch (error) {
           console.error(
@@ -569,13 +580,37 @@ export class SocketManager extends EventEmitter {
           );
         }
       }
-      return;
+
+      // A patch may arrive out of order when different replicas win adjacent
+      // database commits. Hydrate the latest committed tuple and send local
+      // clients one authoritative snapshot instead of dropping the update.
+      const session = await this.db.getSessionByJoinCode(roomCode);
+      if (!session?.gameState) return message;
+      const authoritativeState = session.gameState as GameState;
+      const authoritativeToken = hashSync(
+        authoritativeState as unknown as JsonValue,
+      );
+      room.previousGameState = room.gameState;
+      room.gameState = authoritativeState;
+      room.syncToken = authoritativeToken;
+      room.stateVersion = session.stateVersion;
+      return {
+        type: 'game-state-resync-required',
+        data: {
+          serverToken: authoritativeToken,
+          gameState: authoritativeState,
+          version: session.stateVersion,
+          reason: 'base-mismatch',
+        },
+        timestamp: Date.now(),
+      };
     }
-    if (message.type !== 'event') return;
-    const eventData = message.data as Record<string, unknown> & { name: string };
+    if (message.type !== 'event') return message;
+    const eventData = message.data as Record<string, unknown> & {
+      name: string;
+    };
     const eventName = eventData.name;
-    const userId =
-      typeof eventData.uuid === 'string' ? eventData.uuid : null;
+    const userId = typeof eventData.uuid === 'string' ? eventData.uuid : null;
     if (eventName === 'session/join' && userId) room.players.add(userId);
     if (eventName === 'session/leave' && userId) {
       room.players.delete(userId);
@@ -605,6 +640,7 @@ export class SocketManager extends EventEmitter {
     ) {
       room.dmConnected = eventData.dmConnected;
     }
+    return message;
   }
 
   private applyOrderedRoomMutation(event: OrderedTransportEnvelope): void {

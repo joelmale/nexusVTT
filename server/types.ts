@@ -160,7 +160,9 @@ export interface ServerSyncAckMessage extends BaseServerMessage {
 export interface ServerResyncRequiredMessage extends BaseServerMessage {
   type: 'game-state-resync-required';
   data: {
-    serverToken: StateHash | null;
+    serverToken: StateHash;
+    gameState: GameState;
+    version: number;
     reason: ResyncReason;
   };
 }

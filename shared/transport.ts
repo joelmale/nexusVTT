@@ -110,7 +110,12 @@ export function parseTransportEnvelope(
   }
   if (
     value.type === 'game-state-resync-required' &&
-    typeof value.data.reason !== 'string'
+    (typeof value.data.reason !== 'string' ||
+      typeof value.data.serverToken !== 'string' ||
+      typeof value.data.gameState !== 'object' ||
+      value.data.gameState === null ||
+      !Number.isSafeInteger(value.data.version) ||
+      Number(value.data.version) < 0)
   ) {
     throw new TypeError('Game-state resync message is invalid');
   }
