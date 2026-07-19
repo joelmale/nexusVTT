@@ -54,12 +54,6 @@ import { drawingPersistenceService } from '@/services/drawingPersistence';
 
 const getInitialState = () => useGameStore.getState();
 
-/** Flush microtasks so the fire-and-forget dynamic
- * `import('@/services/websocket')` inside the fog actions resolves before
- * the test (and vitest's module-mock teardown) proceeds - same convention
- * as src/stores/fog.test.ts. */
-const flushAsync = () => new Promise((resolve) => setTimeout(resolve, 0));
-
 const makeScene = (sceneId: string): Scene => ({
   id: sceneId,
   name: 'Fog Test Scene',
@@ -205,10 +199,9 @@ describe('FogLayer (A9)', () => {
   it('draws nothing (no fillRect) when fog.enabled is false', async () => {
     const ctx = installCanvasContextSpy();
 
-    act(() => {
-      useGameStore.getState().setFogEnabled(sceneId, false);
+    await act(async () => {
+      await useGameStore.getState().setFogEnabled(sceneId, false);
     });
-    await flushAsync();
 
     render(
       <FogLayer
@@ -226,10 +219,9 @@ describe('FogLayer (A9)', () => {
   it('conceals with an OPAQUE fill for a player when fog is enabled', async () => {
     const ctx = installCanvasContextSpy();
 
-    act(() => {
-      useGameStore.getState().setFogEnabled(sceneId, true);
+    await act(async () => {
+      await useGameStore.getState().setFogEnabled(sceneId, true);
     });
-    await flushAsync();
 
     render(
       <FogLayer
@@ -250,10 +242,9 @@ describe('FogLayer (A9)', () => {
   it('conceals with a 50%-alpha fill for the host when fog is enabled', async () => {
     const ctx = installCanvasContextSpy();
 
-    act(() => {
-      useGameStore.getState().setFogEnabled(sceneId, true);
+    await act(async () => {
+      await useGameStore.getState().setFogEnabled(sceneId, true);
     });
-    await flushAsync();
 
     render(
       <FogLayer
@@ -272,9 +263,9 @@ describe('FogLayer (A9)', () => {
   it('punches a rect reveal shape via destination-out compositing', async () => {
     const ctx = installCanvasContextSpy();
 
-    act(() => {
-      useGameStore.getState().setFogEnabled(sceneId, true);
-      useGameStore.getState().addFogShape(sceneId, {
+    await act(async () => {
+      await useGameStore.getState().setFogEnabled(sceneId, true);
+      await useGameStore.getState().addFogShape(sceneId, {
         id: 'shape-1',
         kind: 'reveal',
         shape: 'rect',
@@ -285,7 +276,6 @@ describe('FogLayer (A9)', () => {
         createdAt: Date.now(),
       });
     });
-    await flushAsync();
 
     render(
       <FogLayer
@@ -306,9 +296,9 @@ describe('FogLayer (A9)', () => {
   it('strokes a brush reveal shape via destination-out compositing', async () => {
     const ctx = installCanvasContextSpy();
 
-    act(() => {
-      useGameStore.getState().setFogEnabled(sceneId, true);
-      useGameStore.getState().addFogShape(sceneId, {
+    await act(async () => {
+      await useGameStore.getState().setFogEnabled(sceneId, true);
+      await useGameStore.getState().addFogShape(sceneId, {
         id: 'shape-2',
         kind: 'reveal',
         shape: 'brush',
@@ -321,7 +311,6 @@ describe('FogLayer (A9)', () => {
         createdAt: Date.now(),
       });
     });
-    await flushAsync();
 
     render(
       <FogLayer
@@ -351,10 +340,9 @@ describe('FogLayer (A9)', () => {
 
     const before = vi.mocked(sceneSlices.useSceneFog).mock.calls.length;
 
-    act(() => {
-      useGameStore.getState().setFogEnabled(sceneId, true);
+    await act(async () => {
+      await useGameStore.getState().setFogEnabled(sceneId, true);
     });
-    await flushAsync();
 
     const after = vi.mocked(sceneSlices.useSceneFog).mock.calls.length;
     expect(after).toBeGreaterThan(before);

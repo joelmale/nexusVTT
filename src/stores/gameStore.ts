@@ -169,9 +169,9 @@ interface GameStore extends GameState {
   // Fog of War Actions (A9) — host-authored; optimistic-apply locally then
   // relay the complete SceneFog via webSocketService.sendEvent (unversioned,
   // mirrors token/place).
-  setFogEnabled: (sceneId: string, enabled: boolean) => void;
-  addFogShape: (sceneId: string, shape: FogShape) => void;
-  clearFog: (sceneId: string) => void;
+  setFogEnabled: (sceneId: string, enabled: boolean) => Promise<void>;
+  addFogShape: (sceneId: string, shape: FogShape) => Promise<void>;
+  clearFog: (sceneId: string) => Promise<void>;
 
   // Settings Actions
   updateSettings: (settings: Partial<UserSettings>) => void;
@@ -1815,7 +1815,7 @@ export const useGameStore = create<GameStore>()(
       // since these are DM-only relay events, not entity-conflict-prone), then
       // sends the resulting complete SceneFog over the wire so peers can just
       // overwrite their local copy. See fogSlice.ts for the read-side selector.
-      setFogEnabled: (sceneId, enabled) => {
+      setFogEnabled: async (sceneId, enabled) => {
         let nextFog: SceneFog | undefined;
         set((state) => {
           const sceneIndex = state.sceneState.scenes.findIndex(
@@ -1829,17 +1829,15 @@ export const useGameStore = create<GameStore>()(
         });
 
         if (!nextFog) return;
-        import('@/services/websocket').then(({ webSocketService }) => {
-          webSocketService.sendEvent({
-            type: 'fog/update',
-            data: { sceneId, fog: nextFog },
-          });
-        });
-
         scheduleServerSync(get);
+        const { webSocketService } = await import('@/services/websocket');
+        webSocketService.sendEvent({
+          type: 'fog/update',
+          data: { sceneId, fog: nextFog },
+        });
       },
 
-      addFogShape: (sceneId, shape) => {
+      addFogShape: async (sceneId, shape) => {
         let nextFog: SceneFog | undefined;
         set((state) => {
           const sceneIndex = state.sceneState.scenes.findIndex(
@@ -1856,17 +1854,16 @@ export const useGameStore = create<GameStore>()(
         });
 
         if (!nextFog) return;
-        import('@/services/websocket').then(({ webSocketService }) => {
-          webSocketService.sendEvent({
-            type: 'fog/update',
-            data: { sceneId, fog: nextFog },
-          });
-        });
-
         scheduleServerSync(get);
+        const { webSocketService } = await import('@/services/websocket');
+        webSocketService.sendEvent({
+          type: 'fog/update',
+          data: { sceneId, fog: nextFog },
+        });
       },
 
-      clearFog: (sceneId) => {
+      clearFog: async (sceneId) => {
+        let didClearFog = false;
         set((state) => {
           const sceneIndex = state.sceneState.scenes.findIndex(
             (s) => s.id === sceneId,
@@ -1878,16 +1875,16 @@ export const useGameStore = create<GameStore>()(
             shapes: [],
           };
           state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
+          didClearFog = true;
         });
 
-        import('@/services/websocket').then(({ webSocketService }) => {
-          webSocketService.sendEvent({
-            type: 'fog/clear',
-            data: { sceneId },
-          });
-        });
-
+        if (!didClearFog) return;
         scheduleServerSync(get);
+        const { webSocketService } = await import('@/services/websocket');
+        webSocketService.sendEvent({
+          type: 'fog/clear',
+          data: { sceneId },
+        });
       },
 
       // Settings Management Actions
