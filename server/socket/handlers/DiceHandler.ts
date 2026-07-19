@@ -18,7 +18,7 @@ export class DiceHandler extends BaseHandler {
     this.socketManager.on(
       'event:dice/roll-request',
       ({ connection, room, message }) => {
-        this.handleDiceRollRequest(connection, room, message);
+        void this.handleDiceRollRequest(connection, room, message);
       },
     );
   }
@@ -27,13 +27,16 @@ export class DiceHandler extends BaseHandler {
     connection: Connection,
     room: Room,
     message: ServerEventMessage,
-  ): void {
+  ): Promise<void> {
     const request = message.data as unknown as DiceRollRequest;
 
     const validation = validateDiceRollRequest(request);
     if (!validation.valid) {
-      this.sendError(connection, validation.error || 'Invalid dice roll request');
-      return;
+      this.sendError(
+        connection,
+        validation.error || 'Invalid dice roll request',
+      );
+      return Promise.resolve();
     }
 
     const userName = connection.user?.name || 'Unknown Player';
@@ -53,7 +56,7 @@ export class DiceHandler extends BaseHandler {
 
     if (!roll) {
       this.sendError(connection, 'Failed to create dice roll');
-      return;
+      return Promise.resolve();
     }
 
     console.log(
@@ -61,11 +64,18 @@ export class DiceHandler extends BaseHandler {
     );
 
     // Broadcast to the whole room (the roller sees the authoritative result too).
-    this.socketManager.broadcastToRoom(room.code, {
-      type: 'event',
-      data: { name: 'dice/roll-result', roll },
-      src: connection.id,
-      timestamp: Date.now(),
-    });
+    return this.socketManager
+      .publishOrderedEvent(
+        room,
+        connection,
+        {
+          type: 'event',
+          data: { name: 'dice/roll-result', roll },
+          src: connection.id,
+          timestamp: Date.now(),
+        },
+        { identitySource: message, senderReceivesEvent: true },
+      )
+      .then(() => undefined);
   }
 }

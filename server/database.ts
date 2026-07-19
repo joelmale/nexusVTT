@@ -6,6 +6,7 @@ import { UserRepository } from './repositories/UserRepository.js';
 import { CampaignRepository } from './repositories/CampaignRepository.js';
 import { CharacterRepository } from './repositories/CharacterRepository.js';
 import { SessionRepository } from './repositories/SessionRepository.js';
+import { EventJournalRepository } from './repositories/EventJournalRepository.js';
 import {
   DatabaseConfig,
   OAuthProfile,
@@ -20,6 +21,7 @@ export class DatabaseService {
   public campaigns: CampaignRepository;
   public characters: CharacterRepository;
   public sessions: SessionRepository;
+  public eventJournal: EventJournalRepository;
 
   constructor(config: DatabaseConfig) {
     this.pool = new Pool({
@@ -45,6 +47,7 @@ export class DatabaseService {
     this.campaigns = new CampaignRepository(this.pool);
     this.characters = new CharacterRepository(this.pool);
     this.sessions = new SessionRepository(this.pool);
+    this.eventJournal = new EventJournalRepository(this.pool);
 
     console.log('✅ Database connection pool and repositories created');
   }
@@ -59,6 +62,7 @@ export class DatabaseService {
         console.log('✅ Database connection successful');
 
         await this.initSchema();
+        await this.eventJournal.initialize();
         return;
       } catch (error) {
         console.error('❌ Failed to initialize database:', error);
@@ -158,6 +162,22 @@ export class DatabaseService {
   async removeCoHost(uId: string, sId: string) { return this.sessions.removeCoHost(uId, sId); }
   async transferPrimaryHost(sId: string, hId: string) { return this.sessions.transferPrimaryHost(sId, hId); }
   async getHostsBySession(sId: string) { return this.sessions.getHostsBySession(sId); }
+
+  async appendRoomEvent(
+    roomCode: string,
+    identity: Parameters<EventJournalRepository['append']>[1],
+    message: Parameters<EventJournalRepository['append']>[2],
+  ) {
+    return this.eventJournal.append(roomCode, identity, message);
+  }
+
+  async getRoomEventReplay(roomCode: string, afterSequence: number | null) {
+    return this.eventJournal.getReplayWindow(roomCode, afterSequence);
+  }
+
+  async findRoomEvent(roomCode: string, eventId: string) {
+    return this.eventJournal.find(roomCode, eventId);
+  }
 
   async migrateGuestToUser(guestId: string, userId: string): Promise<void> {
     const client = await this.pool.connect();

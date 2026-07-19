@@ -1,14 +1,19 @@
-import type { Page } from '@playwright/test';
+import type { Page, WebSocketRoute } from '@playwright/test';
 
 export interface ObservedServerMessage {
   type: string;
   data: Record<string, unknown>;
+  eventId?: string;
+  serverSequence?: number;
 }
 
 export interface WebSocketObservation {
   messages: ObservedServerMessage[];
+  sentMessages: ObservedServerMessage[];
   socketUrls: string[];
   closedSocketCount: number;
+  disconnect(): Promise<void>;
+  reconnect(): void;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -16,12 +21,111 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 }
 
 /** Observes every socket opened by a page, including automatic reconnects. */
-export function observeWebSocketMessages(page: Page): WebSocketObservation {
+interface BrowserSocketTestHooks {
+  resendLast(type: string, eventName?: string): boolean;
+}
+
+declare global {
+  interface Window {
+    __nexusSocketTestHooks?: BrowserSocketTestHooks;
+  }
+}
+
+function parseObservedMessage(payload: string): ObservedServerMessage | null {
+  try {
+    const decoded: unknown = JSON.parse(payload);
+    if (
+      isRecord(decoded) &&
+      typeof decoded.type === 'string' &&
+      isRecord(decoded.data)
+    ) {
+      return {
+        type: decoded.type,
+        data: decoded.data,
+        eventId:
+          typeof decoded.eventId === 'string' ? decoded.eventId : undefined,
+        serverSequence:
+          typeof decoded.serverSequence === 'number'
+            ? decoded.serverSequence
+            : undefined,
+      };
+    }
+  } catch {
+    // MessagePack frames are intentionally ignored by JSON diagnostics.
+  }
+  return null;
+}
+
+export async function observeWebSocketMessages(
+  page: Page,
+): Promise<WebSocketObservation> {
+  let networkAvailable = true;
+  const activeRoutes = new Set<WebSocketRoute>();
   const observation: WebSocketObservation = {
     messages: [],
+    sentMessages: [],
     socketUrls: [],
     closedSocketCount: 0,
+    async disconnect(): Promise<void> {
+      networkAvailable = false;
+      await Promise.all(
+        Array.from(activeRoutes).map((route) =>
+          route.close({ code: 1012, reason: 'E2E simulated connection loss' }),
+        ),
+      );
+      activeRoutes.clear();
+    },
+    reconnect(): void {
+      networkAvailable = true;
+    },
   };
+
+  await page.routeWebSocket(/.*/, async (route) => {
+    if (!networkAvailable) {
+      await route.close({ code: 1013, reason: 'E2E network unavailable' });
+      return;
+    }
+    activeRoutes.add(route);
+    route.onClose(() => activeRoutes.delete(route));
+    route.connectToServer();
+  });
+
+  await page.addInitScript(() => {
+    const frames: string[] = [];
+    const sockets = new Set<WebSocket>();
+    const originalSend = WebSocket.prototype.send;
+    WebSocket.prototype.send = function send(
+      data: string | ArrayBufferLike | Blob | ArrayBufferView,
+    ): void {
+      sockets.add(this);
+      if (typeof data === 'string') frames.push(data);
+      originalSend.call(this, data);
+    };
+    window.__nexusSocketTestHooks = {
+      resendLast(type: string, eventName?: string): boolean {
+        const frame = frames.findLast((candidate) => {
+          try {
+            const parsed = JSON.parse(candidate) as {
+              type?: string;
+              data?: { name?: string };
+            };
+            return (
+              parsed.type === type &&
+              (eventName === undefined || parsed.data?.name === eventName)
+            );
+          } catch {
+            return false;
+          }
+        });
+        const socket = Array.from(sockets).findLast(
+          (candidate) => candidate.readyState === WebSocket.OPEN,
+        );
+        if (!frame || !socket) return false;
+        originalSend.call(socket, frame);
+        return true;
+      },
+    };
+  });
 
   page.on('websocket', (socket) => {
     observation.socketUrls.push(socket.url());
@@ -31,26 +135,33 @@ export function observeWebSocketMessages(page: Page): WebSocketObservation {
     socket.on('framereceived', ({ payload }) => {
       const text =
         typeof payload === 'string' ? payload : payload.toString('utf8');
-      try {
-        const decoded: unknown = JSON.parse(text);
-        if (
-          isRecord(decoded) &&
-          typeof decoded.type === 'string' &&
-          isRecord(decoded.data)
-        ) {
-          observation.messages.push({
-            type: decoded.type,
-            data: decoded.data,
-          });
-        }
-      } catch {
-        // The production transport may negotiate MessagePack. UI assertions
-        // remain authoritative; this observer only records JSON diagnostics.
-      }
+      const message = parseObservedMessage(text);
+      if (message) observation.messages.push(message);
+    });
+    socket.on('framesent', ({ payload }) => {
+      const text =
+        typeof payload === 'string' ? payload : payload.toString('utf8');
+      const message = parseObservedMessage(text);
+      if (message) observation.sentMessages.push(message);
     });
   });
 
   return observation;
+}
+
+export async function resendLastClientMessage(
+  page: Page,
+  type: string,
+  eventName?: string,
+): Promise<void> {
+  const resent = await page.evaluate(
+    ({ messageType, name }) =>
+      window.__nexusSocketTestHooks?.resendLast(messageType, name) ?? false,
+    { messageType: type, name: eventName },
+  );
+  if (!resent) {
+    throw new Error(`No open socket frame found for ${eventName || type}`);
+  }
 }
 
 export function eventMessages(

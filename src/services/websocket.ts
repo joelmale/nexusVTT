@@ -21,7 +21,18 @@ import { toast } from '@/utils/notifications';
 import { applyPatch, type Operation } from 'fast-json-patch';
 import { encode, decode } from '@msgpack/msgpack';
 import type { StateHash } from '../../shared/sync/contracts';
-import { parseTransportEnvelope } from '../../shared/transport';
+import {
+  parseTransportEnvelope,
+  type TransportEnvelope,
+} from '../../shared/transport';
+import {
+  hasOrderedEventMetadata,
+  isDurableTransportEvent,
+  type EventAcknowledgement,
+  type EventCursorUpdate,
+  type OrderedTransportEnvelope,
+} from '../../shared/events/contracts';
+import { orderedEventClient } from '@/services/orderedEventClient';
 
 const SERVER_MESSAGE_TYPES = new Set([
   'event',
@@ -34,6 +45,8 @@ const SERVER_MESSAGE_TYPES = new Set([
   'game-state-patch',
   'game-state-ack',
   'game-state-resync-required',
+  'event-ack',
+  'event-cursor',
 ]);
 
 const sanitizeLog = (value: unknown): string =>
@@ -116,6 +129,10 @@ class WebSocketService extends EventTarget {
     if (userName) {
       params.set('userName', userName);
     }
+    const lastSeenSequence = orderedEventClient.getRequestedCursor();
+    if (roomCode && lastSeenSequence !== null) {
+      params.set('lastSeenSequence', String(lastSeenSequence));
+    }
 
     const queryString = params.toString();
     return queryString ? `${wsUrl}?${queryString}` : wsUrl;
@@ -161,6 +178,13 @@ class WebSocketService extends EventTarget {
         // a room the server no longer knows about.
         this.lastSessionCreatedEvent = null;
         this.lastSessionJoinedEvent = null;
+
+        if (roomCode) {
+          const resolvedUserId = userId || useGameStore.getState().user.id;
+          if (resolvedUserId) {
+            orderedEventClient.configure(roomCode, resolvedUserId);
+          }
+        }
 
         // Store connection context for reconnection (if we have enough info)
         if (roomCode && userType && userId && userName) {
@@ -262,6 +286,38 @@ class WebSocketService extends EventTarget {
   }
 
   private handleMessage(message: WebSocketMessage) {
+    if (message.type === 'event-ack') {
+      const ready = orderedEventClient.acknowledge(
+        message.data as EventAcknowledgement,
+      );
+      this.processOrderedMessages(ready);
+      return;
+    }
+
+    if (message.type === 'event-cursor') {
+      const ready = orderedEventClient.establishCursor(
+        message.data as EventCursorUpdate,
+      );
+      this.processOrderedMessages(ready);
+      return;
+    }
+
+    if (hasOrderedEventMetadata(message)) {
+      const ready = orderedEventClient.receive(message);
+      this.processOrderedMessages(ready);
+      return;
+    }
+
+    this.processMessage(message);
+  }
+
+  private processOrderedMessages(messages: OrderedTransportEnvelope[]): void {
+    for (const message of messages) {
+      this.processMessage(message as unknown as WebSocketMessage);
+    }
+  }
+
+  private processMessage(message: WebSocketMessage) {
     console.log(
       '📨 Received WebSocket message:',
       sanitizeLog(message.type),
@@ -308,6 +364,10 @@ class WebSocketService extends EventTarget {
           };
           const { user, session } = useGameStore.getState();
           if (user?.id && user?.name) {
+            orderedEventClient.configure(
+              message.data.roomCode as string,
+              user.id,
+            );
             this.connectionContext = {
               roomCode: message.data.roomCode as string,
               userType: 'host',
@@ -334,6 +394,7 @@ class WebSocketService extends EventTarget {
             session?.roomCode ||
             (message.data as unknown as { roomCode?: string })?.roomCode;
           if (user?.id && user?.name && joinedRoomCode) {
+            orderedEventClient.configure(joinedRoomCode, user.id);
             this.connectionContext = {
               roomCode: joinedRoomCode,
               userType: 'player',
@@ -365,6 +426,14 @@ class WebSocketService extends EventTarget {
           message.data.gameState
         ) {
           applyGameStateProjection(message.data.gameState);
+        }
+
+        if (
+          message.data.name === 'session/created' ||
+          message.data.name === 'session/joined' ||
+          message.data.name === 'session/reconnected'
+        ) {
+          this.resendPendingOrderedMessages();
         }
 
         // Also emit a specific event for the drawing synchronization
@@ -494,6 +563,10 @@ class WebSocketService extends EventTarget {
 
       case 'heartbeat':
         this.handleHeartbeatMessage(message);
+        break;
+
+      case 'event-ack':
+      case 'event-cursor':
         break;
 
       default: {
@@ -843,8 +916,18 @@ class WebSocketService extends EventTarget {
   private sendMessage(
     message: Omit<WebSocketMessage, 'src'> & { src: string },
   ) {
+    let outgoing = message;
+    if (
+      isDurableTransportEvent(message.type, message.data) &&
+      !message.eventId
+    ) {
+      outgoing = { ...message, ...orderedEventClient.createIdentity() };
+      orderedEventClient.track(outgoing as unknown as TransportEnvelope);
+    }
     const useMessagePack = import.meta.env.VITE_USE_MESSAGEPACK === 'true';
-    const payload = useMessagePack ? encode(message) : JSON.stringify(message);
+    const payload = useMessagePack
+      ? encode(outgoing)
+      : JSON.stringify(outgoing);
 
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(payload);
@@ -860,6 +943,14 @@ class WebSocketService extends EventTarget {
       if (this.messageQueue.length > 50) {
         this.messageQueue.shift();
       }
+    }
+  }
+
+  private resendPendingOrderedMessages(): void {
+    if (this.ws?.readyState !== WebSocket.OPEN) return;
+    const useMessagePack = import.meta.env.VITE_USE_MESSAGEPACK === 'true';
+    for (const message of orderedEventClient.pendingMessages()) {
+      this.ws.send(useMessagePack ? encode(message) : JSON.stringify(message));
     }
   }
 

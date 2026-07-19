@@ -5,33 +5,41 @@ Welcome to the Nexus VTT documentation! This guide will help you get started wit
 ## 📚 Table of Contents
 
 ### 🚀 Getting Started
+
 - [Quick Start Guide](getting-started.md) - Get up and running in minutes
 - [Installation](installation.md) - Detailed installation instructions
 - [First Game Setup](first-game.md) - Create your first virtual game
 
-### 👥 User Guides  
+### 👥 User Guides
+
 - [Player Guide](user/player-guide.md) - For players joining games
 - [DM Guide](user/dm-guide.md) - For Dungeon Masters running games
 - [Asset Management](user/asset-management.md) - Managing your maps and tokens
 
 ### 🔧 Developer Documentation
+
 - [Architecture Overview](architecture.md) - System design and structure
 - [Frontend Development](frontend.md) - React app development
 - [Backend Development](backend.md) - WebSocket server development
+- [Ordered Event Delivery](ordered-event-delivery.md) - Multiplayer ordering,
+  retries, and reconnect recovery
 - [Asset Server](developer/asset-server.md) - Asset management system
 - [API Reference](developer/api-reference.md) - Complete API documentation
 
 ### 🎨 Asset System
+
 - [Asset Processing](assets/processing.md) - Converting your images
 - [Folder Structure](assets/structure.md) - Organizing your assets
 - [Supported Formats](assets/formats.md) - Image types and requirements
 
 ### 🐳 Deployment
+
 - [Docker Setup](deployment/docker.md) - Containerized deployment
 - [Production Guide](deployment/production.md) - Production deployment
 - [Environment Variables](deployment/environment.md) - Configuration options
 
 ### 🔍 Troubleshooting
+
 - [Common Issues](troubleshooting/common-issues.md) - Frequent problems and solutions
 - [Development Problems](troubleshooting/development.md) - Dev environment issues
 - [Asset Loading Issues](troubleshooting/assets.md) - Asset-related problems
@@ -39,7 +47,7 @@ Welcome to the Nexus VTT documentation! This guide will help you get started wit
 ## 🎯 Quick Links
 
 - **🎲 [Quick Start](getting-started.md)** - Get running in 5 minutes
-- **🎨 [Asset Setup](assets/processing.md)** - Process your maps and tokens  
+- **🎨 [Asset Setup](assets/processing.md)** - Process your maps and tokens
 - **🚀 [Development](developer/development.md)** - Start contributing
 - **🐛 [Report Issues](https://github.com/your-username/nexus-vtt/issues)** - Bug reports and feature requests
 

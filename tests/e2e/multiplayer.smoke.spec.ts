@@ -13,6 +13,7 @@ import {
   eventMessages,
   messagesOfType,
   observeWebSocketMessages,
+  resendLastClientMessage,
   type WebSocketObservation,
 } from './support/websocket-observer';
 
@@ -88,9 +89,11 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
   const playerName = `Sync Player ${Date.now()}`;
   const chatText = `multiplayer-chat-${Date.now()}`;
   const recoveryChatText = `post-restart-chat-${Date.now()}`;
+  const replayChatText = `offline-replay-chat-${Date.now()}`;
   const combatantName = `Sentinel ${Date.now()}`;
   const diceExpression = '2d8+3';
   const recoveryDiceExpression = '1d12+2';
+  const replayDiceExpression = '1d10+4';
   const backendUrl = process.env.E2E_BACKEND_URL ?? 'http://127.0.0.1:15001';
 
   let hostContext: BrowserContext | undefined;
@@ -112,8 +115,8 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     const playerPage = await playerContext.newPage();
     diagnostics.host = observePage(hostPage);
     diagnostics.player = observePage(playerPage);
-    const hostSockets = observeWebSocketMessages(hostPage);
-    const playerSockets = observeWebSocketMessages(playerPage);
+    const hostSockets = await observeWebSocketMessages(hostPage);
+    const playerSockets = await observeWebSocketMessages(playerPage);
     diagnostics.hostSockets = hostSockets;
     diagnostics.playerSockets = playerSockets;
 
@@ -141,6 +144,19 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
       .getByPlaceholder('Type a message or /help for commands...')
       .fill(chatText);
     await playerPage.getByTitle('Send message (Enter)').click();
+    await expect(chatMessage(hostPage, chatText)).toHaveCount(1);
+    await expect(chatMessage(playerPage, chatText)).toHaveCount(1);
+    const acknowledgementCount = messagesOfType(
+      playerSockets,
+      'event-ack',
+    ).length;
+    await resendLastClientMessage(playerPage, 'chat-message');
+    await expect
+      .poll(() => messagesOfType(playerSockets, 'event-ack').length)
+      .toBeGreaterThan(acknowledgementCount);
+    expect(
+      messagesOfType(playerSockets, 'event-ack').at(-1)?.data.duplicate,
+    ).toBe(true);
     await expect(chatMessage(hostPage, chatText)).toHaveCount(1);
     await expect(chatMessage(playerPage, chatText)).toHaveCount(1);
 
@@ -238,6 +254,20 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     await expect
       .poll(() => playerSockets.closedSocketCount)
       .toBeGreaterThan(playerClosedSocketsBeforeOffline);
+
+    await openPanel(hostPage, 'Chat');
+    await hostPage
+      .getByPlaceholder('Type a message or /help for commands...')
+      .fill(replayChatText);
+    await hostPage.getByTitle('Send message (Enter)').click();
+    await expect(chatMessage(hostPage, replayChatText)).toHaveCount(1);
+    await openPanel(hostPage, 'Dice');
+    await hostPage
+      .getByPlaceholder('Click dice below to build your roll...')
+      .fill(replayDiceExpression);
+    await hostPage.getByRole('button', { name: 'Roll', exact: true }).click();
+    await expect(diceRoll(hostPage, replayDiceExpression)).toHaveCount(1);
+
     await createGuestPlayerSession(playerPage, roomCode, playerName);
     await expect
       .poll(() => playerSockets.socketUrls.length, { timeout: 20_000 })
@@ -253,6 +283,10 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
       'Scene 1',
     );
     await expect(token(playerPage, playerName)).toHaveCount(1);
+    await openPanel(playerPage, 'Chat');
+    await expect(chatMessage(playerPage, replayChatText)).toHaveCount(1);
+    await openPanel(playerPage, 'Dice');
+    await expect(diceRoll(playerPage, replayDiceExpression)).toHaveCount(1);
 
     // Restart the backend while PostgreSQL remains alive. Both sockets must
     // recover and the persisted canonical state must not replay duplicates.

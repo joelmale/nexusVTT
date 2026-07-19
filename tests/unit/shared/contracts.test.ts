@@ -78,5 +78,19 @@ describe('shared runtime contracts', () => {
         allowedTypes,
       ),
     ).toThrow(TypeError);
+    expect(() =>
+      parseTransportEnvelope(
+        {
+          type: 'event',
+          data: { name: 'scene/update' },
+          timestamp: 1,
+          eventId: 'event-1',
+          actorId: 'actor-1',
+          clientSequence: -1,
+          occurredAt: 1,
+        },
+        allowedTypes,
+      ),
+    ).toThrow(TypeError);
   });
 });

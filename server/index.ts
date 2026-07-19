@@ -45,6 +45,7 @@ import type {
 
 // Shared types
 import { parseAssetManifest, type AssetManifest } from '../shared/types.js';
+import type { EventReplayWindow } from '../shared/events/contracts.js';
 
 // Delta-sync contracts + synchronous hashing (server-only)
 import type {
@@ -646,6 +647,13 @@ class NexusServer {
       });
     });
 
+    this.app.get('/api/metrics/ordered-events', (req, res) => {
+      res.json({
+        ...this.socketManager.getStats().orderedEvents,
+        timestamp: Date.now(),
+      });
+    });
+
     const documentRoutes = createDocumentRoutes(
       this.documentClient,
       this.documentsEnabled,
@@ -859,6 +867,57 @@ class NexusServer {
     }
   }
 
+  private parseEventCursor(value: string | null): number | null {
+    if (value === null) return null;
+    const sequence = Number(value);
+    return Number.isSafeInteger(sequence) && sequence >= 0 ? sequence : null;
+  }
+
+  private async prepareRoomReplay(
+    roomCode: string,
+    requestedSequence: number | null | undefined,
+  ): Promise<EventReplayWindow | null> {
+    try {
+      return await this.socketManager.getRoomReplayWindow(
+        roomCode,
+        requestedSequence ?? null,
+      );
+    } catch (error) {
+      console.error(`Failed to prepare event replay for ${roomCode}:`, error);
+      return null;
+    }
+  }
+
+  /**
+   * Delivers the captured replay, then closes the small race between capturing
+   * it and installing the connection in the live room. Events accepted after
+   * membership was installed are also delivered live, so duplicate catch-up
+   * frames are harmless at the client's sequence cursor.
+   */
+  private async deliverReplayWithCatchUp(
+    connection: Connection,
+    roomCode: string,
+    replay: EventReplayWindow,
+    requestedSequence: number | null,
+  ): Promise<void> {
+    this.socketManager.deliverRoomReplay(
+      connection,
+      replay,
+      requestedSequence,
+    );
+    const catchUp = await this.prepareRoomReplay(
+      roomCode,
+      replay.latestSequence,
+    );
+    if (catchUp && catchUp.latestSequence > replay.latestSequence) {
+      this.socketManager.deliverRoomReplay(
+        connection,
+        catchUp,
+        replay.latestSequence,
+      );
+    }
+  }
+
   private async handleConnection(ws: WebSocket, req: RequestWithSession) {
     const user = req.session?.passport?.user;
     const guestUser = req.session?.guestUser;
@@ -912,6 +971,9 @@ class NexusServer {
     console.log(`📡 New connection: ${uuid} (${userType} as ${displayName})`);
 
     const connection = this.socketManager.addConnection(ws, displayName, uuid);
+    const requestedEventCursor = params.get('lastSeenSequence');
+    connection.requestedEventCursor =
+      this.parseEventCursor(requestedEventCursor);
 
     const host = params.get('host');
     const join = params.get('join')?.toUpperCase();
@@ -1093,6 +1155,18 @@ class NexusServer {
         },
         timestamp: Date.now(),
       });
+      const initialReplay = await this.prepareRoomReplay(
+        joinCode,
+        connection.requestedEventCursor,
+      );
+      if (initialReplay) {
+        await this.deliverReplayWithCatchUp(
+          connection,
+          joinCode,
+          initialReplay,
+          connection.requestedEventCursor ?? null,
+        );
+      }
 
       console.log(
         `🏠 Session created: ${joinCode} (${sessionId}) for campaign ${usedCampaignId}`,
@@ -1160,6 +1234,15 @@ class NexusServer {
 
     if (!room) {
       this.sendError(connection, 'Room not found');
+      return;
+    }
+
+    const replay = await this.prepareRoomReplay(
+      normalizedRoomCode,
+      connection.requestedEventCursor,
+    );
+    if (!replay) {
+      this.sendError(connection, 'Unable to prepare room event recovery');
       return;
     }
 
@@ -1262,13 +1345,18 @@ class NexusServer {
                 : 'player',
             color: 'blue',
             connected: room.connections.has(playerId),
-            canEditScenes:
-              playerId === room.host || room.coHosts.has(playerId),
+            canEditScenes: playerId === room.host || room.coHosts.has(playerId),
           };
         }),
       },
       timestamp: Date.now(),
     });
+    await this.deliverReplayWithCatchUp(
+      connection,
+      normalizedRoomCode,
+      replay,
+      connection.requestedEventCursor ?? null,
+    );
 
     // Notify all players about host reconnection
     this.broadcastToRoom(
@@ -1338,6 +1426,15 @@ class NexusServer {
       }
     }
 
+    const replay = await this.prepareRoomReplay(
+      roomCode,
+      connection.requestedEventCursor,
+    );
+    if (!replay) {
+      this.sendError(connection, 'Unable to prepare room event recovery');
+      return;
+    }
+
     // Add player to in-memory room state
     room.players.add(connection.id);
     room.connections.set(connection.id, connection.ws);
@@ -1395,6 +1492,12 @@ class NexusServer {
       },
       timestamp: Date.now(),
     });
+    await this.deliverReplayWithCatchUp(
+      connection,
+      roomCode,
+      replay,
+      connection.requestedEventCursor ?? null,
+    );
 
     // Notify other players about the new player
     this.broadcastToRoom(

@@ -1,9 +1,15 @@
 export interface TransportEnvelope {
   type: string;
-  data: Record<string, unknown>;
+  data: unknown;
   timestamp: number;
   src?: string;
   dst?: string;
+  eventId?: string;
+  actorId?: string;
+  clientSequence?: number;
+  serverSequence?: number;
+  occurredAt?: number;
+  roomCode?: string;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -31,6 +37,36 @@ export function parseTransportEnvelope(
   }
   if (value.dst !== undefined && typeof value.dst !== 'string') {
     throw new TypeError('Message dst must be a string');
+  }
+
+  const orderingFields = [
+    value.eventId,
+    value.actorId,
+    value.clientSequence,
+    value.occurredAt,
+  ];
+  if (orderingFields.some((field) => field !== undefined)) {
+    if (
+      typeof value.eventId !== 'string' ||
+      typeof value.actorId !== 'string' ||
+      !Number.isSafeInteger(value.clientSequence) ||
+      Number(value.clientSequence) < 0 ||
+      typeof value.occurredAt !== 'number' ||
+      !Number.isFinite(value.occurredAt)
+    ) {
+      throw new TypeError('Ordered event identity is invalid');
+    }
+  }
+  if (
+    value.serverSequence !== undefined &&
+    (typeof value.serverSequence !== 'number' ||
+      !Number.isSafeInteger(value.serverSequence) ||
+      value.serverSequence <= 0)
+  ) {
+    throw new TypeError('Server sequence must be a positive safe integer');
+  }
+  if (value.roomCode !== undefined && typeof value.roomCode !== 'string') {
+    throw new TypeError('Message roomCode must be a string');
   }
 
   if (value.type === 'event' && typeof value.data.name !== 'string') {
@@ -70,6 +106,26 @@ export function parseTransportEnvelope(
     typeof value.data.reason !== 'string'
   ) {
     throw new TypeError('Game-state resync message is invalid');
+  }
+  if (
+    value.type === 'event-ack' &&
+    (typeof value.data.eventId !== 'string' ||
+      !Number.isSafeInteger(value.data.serverSequence) ||
+      Number(value.data.serverSequence) <= 0 ||
+      typeof value.data.duplicate !== 'boolean' ||
+      typeof value.data.advancesCursor !== 'boolean')
+  ) {
+    throw new TypeError('Event acknowledgement is invalid');
+  }
+  if (
+    value.type === 'event-cursor' &&
+    (!['baseline', 'resume'].includes(String(value.data.mode)) ||
+      !Number.isSafeInteger(value.data.sequence) ||
+      Number(value.data.sequence) < 0 ||
+      !Number.isSafeInteger(value.data.replayThrough) ||
+      Number(value.data.replayThrough) < Number(value.data.sequence))
+  ) {
+    throw new TypeError('Event cursor is invalid');
   }
 
   return value as unknown as TransportEnvelope;
