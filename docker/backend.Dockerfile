@@ -1,6 +1,6 @@
 # Dockerfile for Nexus VTT Backend WebSocket Server
 
-FROM node:26-alpine
+FROM node:26.5.0-alpine
 
 # Set working directory
 WORKDIR /app
@@ -11,6 +11,8 @@ RUN apk add --no-cache dumb-init curl netcat-openbsd postgresql-client
 # Copy package files
 COPY package*.json ./
 COPY tsconfig*.json ./
+COPY patches ./patches
+COPY scripts/sync-dice-assets.js ./scripts/sync-dice-assets.js
 
 # Install dependencies
 RUN npm ci

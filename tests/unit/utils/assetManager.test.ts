@@ -26,6 +26,17 @@ global.indexedDB = {
   })),
 } as unknown as IDBFactory;
 
+const mockAssetMetadata = {
+  id: 'asset1',
+  name: 'Asset 1',
+  category: 'maps',
+  tags: ['dungeon'],
+  thumbnail: 'path/to/thumbnail.webp',
+  fullImage: 'path/to/image.png',
+  dimensions: { width: 100, height: 100 },
+  fileSize: 1024,
+  format: 'png',
+} as const;
 
 describe('AssetManager', () => {
   let assetManager: AssetManager;
@@ -41,7 +52,13 @@ describe('AssetManager', () => {
 
   describe('loadAssetManifest', () => {
     it('should load and return the asset manifest', async () => {
-      const mockManifest = { version: '1.0', assets: [] };
+      const mockManifest = {
+        version: '1.0',
+        generatedAt: '2026-07-18T00:00:00.000Z',
+        totalAssets: 0,
+        categories: [],
+        assets: [],
+      };
       (fetch as vi.Mock).mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockManifest),
@@ -65,7 +82,14 @@ describe('AssetManager', () => {
 
   describe('getAssetsByCategory', () => {
     it('should fetch assets by category', async () => {
-      const mockAssets = { assets: [{ id: '1', name: 'asset1' }] };
+      const mockAssets = {
+        category: 'maps',
+        page: 0,
+        limit: 20,
+        assets: [mockAssetMetadata],
+        hasMore: false,
+        total: 1,
+      };
       (fetch as vi.Mock).mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockAssets),
@@ -73,7 +97,9 @@ describe('AssetManager', () => {
 
       const result = await assetManager.getAssetsByCategory('maps');
 
-      expect(fetch).toHaveBeenCalledWith('http://localhost:5001/category/maps?page=0&limit=20');
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:5001/category/maps?page=0&limit=20',
+      );
       expect(result).toEqual(mockAssets);
     });
 
@@ -88,7 +114,11 @@ describe('AssetManager', () => {
 
   describe('searchAssets', () => {
     it('should search for assets', async () => {
-      const mockResults = { results: [{ id: '1', name: 'asset1' }] };
+      const mockResults = {
+        query: 'query',
+        results: [mockAssetMetadata],
+        total: 1,
+      };
       (fetch as vi.Mock).mockResolvedValue({
         ok: true,
         json: () => Promise.resolve(mockResults),
@@ -96,7 +126,9 @@ describe('AssetManager', () => {
 
       const result = await assetManager.searchAssets('query');
 
-      expect(fetch).toHaveBeenCalledWith('http://localhost:5001/search?q=query');
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:5001/search?q=query',
+      );
       expect(result).toEqual(mockResults.results);
     });
 
@@ -111,7 +143,6 @@ describe('AssetManager', () => {
 
   describe('loadAsset', () => {
     it('should load an asset from the server and cache it in memory', async () => {
-      const mockAssetMetadata = { fullImage: 'path/to/image.png' };
       const mockBlob = new Blob(['image data'], { type: 'image/png' });
       global.URL.createObjectURL = vi.fn(() => 'blob:url');
 
@@ -132,7 +163,9 @@ describe('AssetManager', () => {
       const result = await assetManager.loadAsset('asset1');
 
       expect(fetch).toHaveBeenCalledWith('http://localhost:5001/asset/asset1');
-      expect(fetch).toHaveBeenCalledWith('http://localhost:5001/path/to/image.png');
+      expect(fetch).toHaveBeenCalledWith(
+        'http://localhost:5001/path/to/image.png',
+      );
       expect(result).toBe('blob:url');
 
       // Check in-memory cache

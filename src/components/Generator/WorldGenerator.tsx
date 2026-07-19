@@ -1,16 +1,18 @@
 import React, { useEffect, useRef, useState } from 'react';
 
+export interface WorldMapPayload {
+  full: { dataUrl: string; mime: string; quality: number };
+  thumb: { dataUrl: string; mime: string; quality: number };
+  meta: {
+    width: number;
+    height: number;
+    timestamp: number;
+    generator: string;
+  };
+}
+
 interface WorldGeneratorProps {
-  onMapGenerated: (data: {
-    full: { dataUrl: string; mime: string; quality: number };
-    thumb: { dataUrl: string; mime: string; quality: number };
-    meta: {
-      width: number;
-      height: number;
-      timestamp: number;
-      generator: string;
-    };
-  }) => void;
+  onMapGenerated: (data: WorldMapPayload) => void;
 }
 
 export const WorldGenerator: React.FC<WorldGeneratorProps> = ({

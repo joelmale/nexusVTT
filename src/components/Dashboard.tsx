@@ -3,7 +3,7 @@
  * @description Connected production user dashboard using the TTRPG Gothic/Fantasy Atomic Design redesign.
  */
 
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { useCharacterCreationLauncher } from '@/hooks';
@@ -11,7 +11,10 @@ import type { GameConfig, PlayerCharacter } from '@/types/game';
 
 // Import our new Atomic components
 import { DashboardLayout } from './Dashboard/templates/DashboardLayout';
-import { Campaign as LayoutCampaign, CharacterRecord as LayoutCharacter } from './Dashboard/types';
+import {
+  Campaign as LayoutCampaign,
+  CharacterRecord as LayoutCharacter,
+} from './Dashboard/types';
 import { GothicHeader } from './Dashboard/atoms/Typography';
 import { Button } from './Dashboard/atoms/Button';
 
@@ -61,7 +64,8 @@ export const Dashboard: React.FC = () => {
     joinRoomWithCode,
     createGameRoom,
   } = useGameStore();
-  const { startCharacterCreation, LauncherComponent } = useCharacterCreationLauncher();
+  const { startCharacterCreation, LauncherComponent } =
+    useCharacterCreationLauncher();
 
   const [campaigns, setCampaigns] = useState<ApiCampaign[]>([]);
   const [characters, setCharacters] = useState<ApiCharacter[]>([]);
@@ -69,7 +73,9 @@ export const Dashboard: React.FC = () => {
 
   // Session Modal State
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
-  const [sessionCharacter, setSessionCharacter] = useState<ApiCharacter | null>(null);
+  const [sessionCharacter, setSessionCharacter] = useState<ApiCharacter | null>(
+    null,
+  );
   const [sessionRoomCode, setSessionRoomCode] = useState('');
   const [sessionJoining, setSessionJoining] = useState(false);
   const [sessionError, setSessionError] = useState<string | null>(null);
@@ -88,7 +94,7 @@ export const Dashboard: React.FC = () => {
     if (authChecked && !isAuthenticated) navigate('/lobby');
   }, [authChecked, isAuthenticated, navigate]);
 
-  const fetchDashboardData = async () => {
+  const fetchDashboardData = useCallback(async () => {
     try {
       setLoading(true);
       const [campRes, charRes] = await Promise.all([
@@ -102,13 +108,17 @@ export const Dashboard: React.FC = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // Fetch data on mount / auth change
   useEffect(() => {
     if (!isAuthenticated) return;
-    fetchDashboardData();
-  }, [isAuthenticated]);
+    const timeoutId = window.setTimeout(() => {
+      void fetchDashboardData();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [fetchDashboardData, isAuthenticated]);
 
   // Join game with a character
   const handleModalJoin = async () => {
@@ -118,11 +128,13 @@ export const Dashboard: React.FC = () => {
     try {
       await joinRoomWithCode(
         sessionRoomCode.trim().toUpperCase(),
-        sessionCharacter as unknown as PlayerCharacter
+        sessionCharacter as unknown as PlayerCharacter,
       );
       navigate(`/lobby/game/${sessionRoomCode.trim().toUpperCase()}`);
     } catch (err) {
-      setSessionError(err instanceof Error ? err.message : 'Failed to join game');
+      setSessionError(
+        err instanceof Error ? err.message : 'Failed to join game',
+      );
     } finally {
       setSessionJoining(false);
     }
@@ -185,7 +197,11 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleDeleteCampaign = async (layoutCamp: LayoutCampaign) => {
-    if (confirm(`Are you sure you want to delete the campaign: ${layoutCamp.name}?`)) {
+    if (
+      confirm(
+        `Are you sure you want to delete the campaign: ${layoutCamp.name}?`,
+      )
+    ) {
       try {
         const res = await fetch(`/api/campaigns/${layoutCamp.id}`, {
           method: 'DELETE',
@@ -233,7 +249,9 @@ export const Dashboard: React.FC = () => {
         await fetchDashboardData();
       } else {
         const body = await res.json().catch(() => ({}));
-        setCampaignError(body.error || `Failed to create campaign (HTTP ${res.status})`);
+        setCampaignError(
+          body.error || `Failed to create campaign (HTTP ${res.status})`,
+        );
       }
     } catch {
       setCampaignError('Failed to create campaign');
@@ -243,17 +261,13 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleCreateCharacter = () => {
-    startCharacterCreation(
-      user.id,
-      'modal',
-      () => {
-        // Refresh characters list after wizard completion
-        fetch('/api/characters', { credentials: 'include' })
-          .then((r) => r.json())
-          .then(setCharacters)
-          .catch(() => undefined);
-      }
-    );
+    startCharacterCreation(user.id, 'modal', () => {
+      // Refresh characters list after wizard completion
+      fetch('/api/characters', { credentials: 'include' })
+        .then((r) => r.json())
+        .then(setCharacters)
+        .catch(() => undefined);
+    });
   };
 
   const handleJoinGame = () => {
@@ -309,8 +323,7 @@ export const Dashboard: React.FC = () => {
   const deriveStats = (data: ApiCharacter['data']) => {
     if (data.stats) return data.stats;
     const abilities = data.abilities as
-      | Record<string, { score?: number }>
-      | undefined;
+      Record<string, { score?: number }> | undefined;
     if (abilities) {
       const out = { ...DEFAULT_STATS };
       for (const [abbr, statKey] of Object.entries(ABILITY_TO_STAT)) {
@@ -386,7 +399,8 @@ export const Dashboard: React.FC = () => {
       {/* Start Session / Join Game Modal */}
       {sessionModalOpen && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="
+          <div
+            className="
             relative bg-[#252a31] border-4 border-double border-[#8c6b4a]/60
             rounded-sm p-6 w-full max-w-sm shadow-2xl font-sans text-[#f1e6d3]
           "
@@ -399,14 +413,20 @@ export const Dashboard: React.FC = () => {
               }}
             />
 
-            <GothicHeader level={3} variant="medieval" className="mb-4 border-b border-[#8c6b4a]/30 pb-2">
-              {sessionCharacter ? `Start Session: ${sessionCharacter.name}` : 'Join Game'}
+            <GothicHeader
+              level={3}
+              variant="medieval"
+              className="mb-4 border-b border-[#8c6b4a]/30 pb-2"
+            >
+              {sessionCharacter
+                ? `Start Session: ${sessionCharacter.name}`
+                : 'Join Game'}
             </GothicHeader>
 
             <p className="text-xs text-[#cbd5e1]/80 mb-4 font-serif italic">
               {sessionCharacter
-                ? 'Enter the GM\'s room code to enter the lobby with this character.'
-                : 'Enter the GM\'s room code to connect to the lobby.'}
+                ? "Enter the GM's room code to enter the lobby with this character."
+                : "Enter the GM's room code to connect to the lobby."}
             </p>
 
             <input
@@ -425,7 +445,11 @@ export const Dashboard: React.FC = () => {
               autoFocus
             />
 
-            {sessionError && <p className="text-red-500 text-xs mb-4 font-medium">{sessionError}</p>}
+            {sessionError && (
+              <p className="text-red-500 text-xs mb-4 font-medium">
+                {sessionError}
+              </p>
+            )}
 
             <div className="flex justify-end gap-3 border-t border-[#8c6b4a]/20 pt-3 mt-2">
               <Button
@@ -455,7 +479,8 @@ export const Dashboard: React.FC = () => {
       {/* Create Campaign Modal */}
       {campaignModalOpen && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4 animate-fade-in">
-          <div className="
+          <div
+            className="
             relative bg-[#252a31] border-4 border-double border-[#8c6b4a]/60
             rounded-sm p-6 w-full max-w-sm shadow-2xl font-sans text-[#f1e6d3]
           "
@@ -468,7 +493,11 @@ export const Dashboard: React.FC = () => {
               }}
             />
 
-            <GothicHeader level={3} variant="medieval" className="mb-4 border-b border-[#8c6b4a]/30 pb-2">
+            <GothicHeader
+              level={3}
+              variant="medieval"
+              className="mb-4 border-b border-[#8c6b4a]/30 pb-2"
+            >
               New Campaign
             </GothicHeader>
 
@@ -496,7 +525,10 @@ export const Dashboard: React.FC = () => {
             />
 
             <label className="block text-[10px] uppercase font-bold tracking-widest text-amber-500 mb-1">
-              Description <span className="text-[#cbd5e1]/40 normal-case font-normal">(optional)</span>
+              Description{' '}
+              <span className="text-[#cbd5e1]/40 normal-case font-normal">
+                (optional)
+              </span>
             </label>
             <textarea
               placeholder="A short summary of the adventure ahead…"
@@ -511,7 +543,11 @@ export const Dashboard: React.FC = () => {
               "
             />
 
-            {campaignError && <p className="text-red-500 text-xs mb-4 font-medium">{campaignError}</p>}
+            {campaignError && (
+              <p className="text-red-500 text-xs mb-4 font-medium">
+                {campaignError}
+              </p>
+            )}
 
             <div className="flex justify-end gap-3 border-t border-[#8c6b4a]/20 pt-3 mt-2">
               <Button

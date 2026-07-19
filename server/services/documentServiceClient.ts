@@ -259,7 +259,7 @@ export class DocumentServiceClient {
    */
   private async request<T>(
     endpoint: string,
-    options: RequestInit = {}
+    options: RequestInit = {},
   ): Promise<T> {
     const url = `${this.apiUrl}${endpoint}`;
 
@@ -289,7 +289,7 @@ export class DocumentServiceClient {
     } catch (error) {
       clearTimeout(timeoutId);
       if (error instanceof Error && error.name === 'AbortError') {
-        throw new Error('Request timeout');
+        throw new Error('Request timeout', { cause: error });
       }
       throw error;
     }
@@ -302,7 +302,7 @@ export class DocumentServiceClient {
    */
   async createDocument(
     params: CreateDocumentParams,
-    userId: string
+    userId: string,
   ): Promise<CreateDocumentResponse> {
     return this.request<CreateDocumentResponse>('/api/documents', {
       method: 'POST',
@@ -317,11 +317,15 @@ export class DocumentServiceClient {
    * List documents with optional filtering
    * @param params - List parameters
    */
-  async listDocuments(params: ListDocumentsParams = {}): Promise<ListDocumentsResponse> {
+  async listDocuments(
+    params: ListDocumentsParams = {},
+  ): Promise<ListDocumentsResponse> {
     const queryParams = new URLSearchParams();
 
-    if (params.skip !== undefined) queryParams.append('skip', params.skip.toString());
-    if (params.limit !== undefined) queryParams.append('limit', params.limit.toString());
+    if (params.skip !== undefined)
+      queryParams.append('skip', params.skip.toString());
+    if (params.limit !== undefined)
+      queryParams.append('limit', params.limit.toString());
     if (params.type) queryParams.append('type', params.type);
     if (params.campaign) queryParams.append('campaign', params.campaign);
     if (params.tag) queryParams.append('tag', params.tag);
@@ -357,7 +361,7 @@ export class DocumentServiceClient {
    */
   async updateDocument(
     documentId: string,
-    updates: Partial<CreateDocumentParams>
+    updates: Partial<CreateDocumentParams>,
   ): Promise<Document> {
     return this.request<Document>(`/api/documents/${documentId}`, {
       method: 'PUT',
@@ -384,12 +388,17 @@ export class DocumentServiceClient {
 
     queryParams.append('query', params.query);
     if (params.type) queryParams.append('type', params.type);
-    if (params.campaigns) queryParams.append('campaigns', params.campaigns.join(','));
+    if (params.campaigns)
+      queryParams.append('campaigns', params.campaigns.join(','));
     if (params.tags) queryParams.append('tags', params.tags.join(','));
-    if (params.from !== undefined) queryParams.append('from', params.from.toString());
-    if (params.size !== undefined) queryParams.append('size', params.size.toString());
+    if (params.from !== undefined)
+      queryParams.append('from', params.from.toString());
+    if (params.size !== undefined)
+      queryParams.append('size', params.size.toString());
 
-    return this.request<SearchResponse>(`/api/search?${queryParams.toString()}`);
+    return this.request<SearchResponse>(
+      `/api/search?${queryParams.toString()}`,
+    );
   }
 
   /**
@@ -401,7 +410,7 @@ export class DocumentServiceClient {
   async quickSearch(
     query: string,
     campaign?: string,
-    size: number = 5
+    size: number = 5,
   ): Promise<QuickSearchResponse> {
     const queryParams = new URLSearchParams();
 
@@ -409,23 +418,31 @@ export class DocumentServiceClient {
     if (campaign) queryParams.append('campaign', campaign);
     queryParams.append('size', size.toString());
 
-    return this.request<QuickSearchResponse>(`/api/search/quick?${queryParams.toString()}`);
+    return this.request<QuickSearchResponse>(
+      `/api/search/quick?${queryParams.toString()}`,
+    );
   }
 
   /**
    * Hybrid semantic search over document chunks
    * @param params - Search parameters
    */
-  async semanticSearch(params: SearchParams & { topK?: number }): Promise<SemanticSearchResponse> {
+  async semanticSearch(
+    params: SearchParams & { topK?: number },
+  ): Promise<SemanticSearchResponse> {
     const queryParams = new URLSearchParams();
 
     queryParams.append('query', params.query);
     if (params.type) queryParams.append('type', params.type);
-    if (params.campaigns) queryParams.append('campaigns', params.campaigns.join(','));
+    if (params.campaigns)
+      queryParams.append('campaigns', params.campaigns.join(','));
     if (params.tags) queryParams.append('tags', params.tags.join(','));
-    if (params.topK !== undefined) queryParams.append('topK', params.topK.toString());
+    if (params.topK !== undefined)
+      queryParams.append('topK', params.topK.toString());
 
-    return this.request<SemanticSearchResponse>(`/api/search/semantic?${queryParams.toString()}`);
+    return this.request<SemanticSearchResponse>(
+      `/api/search/semantic?${queryParams.toString()}`,
+    );
   }
 
   /**
@@ -435,7 +452,12 @@ export class DocumentServiceClient {
    */
   async ask(
     question: string,
-    filters?: { type?: DocumentType; campaigns?: string[]; tags?: string[]; topK?: number }
+    filters?: {
+      type?: DocumentType;
+      campaigns?: string[];
+      tags?: string[];
+      topK?: number;
+    },
   ): Promise<AskSearchResponse> {
     return this.request<AskSearchResponse>('/api/search/ask', {
       method: 'POST',
@@ -458,7 +480,7 @@ export class DocumentServiceClient {
    */
   async getDocumentStructuredData(
     documentId: string,
-    params?: { type?: string; name?: string }
+    params?: { type?: string; name?: string },
   ): Promise<StructuredEntity[]> {
     const queryParams = new URLSearchParams();
     if (params?.type) queryParams.append('type', params.type);
@@ -496,7 +518,9 @@ export class DocumentServiceClient {
     if (params?.limit) queryParams.append('limit', params.limit);
     if (params?.offset) queryParams.append('offset', params.offset);
     const query = queryParams.toString();
-    const endpoint = query ? `/api/structured-data?${query}` : '/api/structured-data';
+    const endpoint = query
+      ? `/api/structured-data?${query}`
+      : '/api/structured-data';
     return this.request<StructuredEntity[]>(endpoint);
   }
 }
@@ -505,6 +529,8 @@ export class DocumentServiceClient {
  * Create a DocumentServiceClient instance
  * @param apiUrl - Base URL for doc-api service
  */
-export function createDocumentServiceClient(apiUrl: string): DocumentServiceClient {
+export function createDocumentServiceClient(
+  apiUrl: string,
+): DocumentServiceClient {
   return new DocumentServiceClient({ apiUrl });
 }

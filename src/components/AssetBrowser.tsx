@@ -60,9 +60,11 @@ export const AssetBrowser: React.FC<AssetBrowserProps> = ({
 
   // Load initial data
   useEffect(() => {
-    loadAssets();
-    loadCategories();
-    loadCacheSize();
+    const timeoutId = window.setTimeout(() => {
+      void Promise.all([loadAssets(), loadCategories(), loadCacheSize()]);
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [loadAssets, loadCategories, loadCacheSize]);
 
   const loadMore = async () => {

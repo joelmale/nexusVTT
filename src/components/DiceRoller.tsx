@@ -4,7 +4,6 @@ import { createDiceRoll, formatDiceRoll } from '@/utils/dice';
 import { webSocketService } from '@/services/websocket';
 import { diceSounds } from '@/services/diceSounds';
 import { initializeTheme } from '@/services/themeManager';
-import '@/styles/dice.css';
 
 /**
  * @file DiceRoller.tsx
@@ -155,7 +154,12 @@ export const DiceRoller: React.FC = () => {
       };
 
       // Send chat message about the roll
-      sendChatMessage(`rolled ${roll.expression}`, 'dice-roll', undefined, diceData);
+      sendChatMessage(
+        `rolled ${roll.expression}`,
+        'dice-roll',
+        undefined,
+        diceData,
+      );
 
       // Broadcast to other players (if connected)
       if (webSocketService.isConnected()) {

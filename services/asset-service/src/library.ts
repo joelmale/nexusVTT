@@ -1,7 +1,6 @@
 import express from 'express';
 import type { Request, Response, NextFunction } from 'express';
 import fs from 'fs';
-import path from 'path';
 
 export interface LibraryAsset {
   id: string;
@@ -62,7 +61,10 @@ export function buildLibraryIndex(manifest: LibraryManifest): LibraryIndex {
   for (const asset of all) {
     byId.set(asset.id, asset);
     if (asset.removed) continue;
-    categoryCounts.set(asset.category, (categoryCounts.get(asset.category) ?? 0) + 1);
+    categoryCounts.set(
+      asset.category,
+      (categoryCounts.get(asset.category) ?? 0) + 1,
+    );
     for (const tag of asset.tags ?? []) {
       tagCounts.set(tag, (tagCounts.get(tag) ?? 0) + 1);
     }
@@ -115,7 +117,12 @@ export function createLibraryRouter(
   function requireIndex(req: Request, res: Response): LibraryIndex | null {
     const index = getIndex();
     if (!index) {
-      res.status(503).json({ error: 'source-unavailable', message: 'Library manifest not loaded' });
+      res
+        .status(503)
+        .json({
+          error: 'source-unavailable',
+          message: 'Library manifest not loaded',
+        });
       return null;
     }
     return index;
@@ -125,11 +132,18 @@ export function createLibraryRouter(
     const index = requireIndex(req, res);
     if (!index) return;
 
-    const limit = Math.min(Math.max(parseInt(String(req.query.limit ?? ''), 10) || DEFAULT_LIMIT, 1), MAX_LIMIT);
+    const limit = Math.min(
+      Math.max(parseInt(String(req.query.limit ?? ''), 10) || DEFAULT_LIMIT, 1),
+      MAX_LIMIT,
+    );
     const offset = decodeCursor(req.query.cursor);
     const includeRemoved = req.query.includeRemoved === 'true';
-    const category = typeof req.query.category === 'string' ? req.query.category : undefined;
-    const q = typeof req.query.q === 'string' ? req.query.q.trim().toLowerCase() : undefined;
+    const category =
+      typeof req.query.category === 'string' ? req.query.category : undefined;
+    const q =
+      typeof req.query.q === 'string'
+        ? req.query.q.trim().toLowerCase()
+        : undefined;
 
     let filtered = index.all;
     if (!includeRemoved) filtered = filtered.filter((a) => !a.removed);
@@ -180,7 +194,9 @@ export function createLibraryRouter(
   router.post('/library/reload', requireAuth, (req, res) => {
     const result = reloadIndex();
     if (!result.ok) {
-      return res.status(503).json({ error: 'source-unavailable', message: result.error });
+      return res
+        .status(503)
+        .json({ error: 'source-unavailable', message: result.error });
     }
     const index = getIndex();
     res.json({ success: true, totalAssets: index?.manifest.totalAssets ?? 0 });
@@ -191,6 +207,7 @@ export function createLibraryRouter(
 
 function stripInternal(asset: IndexedAsset): LibraryAsset {
   const { _searchText, ...rest } = asset;
+  void _searchText;
   return rest;
 }
 

@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { DungeonGenerator } from './DungeonGenerator';
-import { WorldGenerator } from './WorldGenerator';
+import { WorldGenerator, type WorldMapPayload } from './WorldGenerator';
 import { type DungeonData } from './DungeonRenderer';
 import { GeneratorFloatingControls } from './GeneratorFloatingControls';
 import { useGameStore, useActiveScene } from '@/stores/gameStore';
-import '@/styles/generator-panel.css';
+import './GeneratorPanel.css';
 import { useProceduralGeneration } from '@/hooks/useProceduralGeneration';
 
-const DEFAULT_SANDBOX = 'allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-pointer-lock allow-orientation-lock allow-downloads';
+const DEFAULT_SANDBOX =
+  'allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-pointer-lock allow-orientation-lock allow-downloads';
 
 const iframeUrls: Record<string, string> = {
   cave: '/cave-generator/index.html',
@@ -42,7 +43,9 @@ const openGeneratorDB = async (): Promise<IDBDatabase> => {
     request.onerror = () => reject(request.error);
     request.onupgradeneeded = (event) => {
       const db = (event.target as IDBOpenDBRequest).result;
-      console.log(`🔧 IndexedDB upgrade for generator: v${event.oldVersion} → v5`);
+      console.log(
+        `🔧 IndexedDB upgrade for generator: v${event.oldVersion} → v5`,
+      );
 
       // Create existing stores if they don't exist (for compatibility)
       if (!db.objectStoreNames.contains('maps')) {
@@ -60,7 +63,9 @@ const openGeneratorDB = async (): Promise<IDBDatabase> => {
   });
 };
 
-const saveGeneratorMapToIndexedDB = async (data: GeneratorMapData): Promise<void> => {
+const saveGeneratorMapToIndexedDB = async (
+  data: GeneratorMapData,
+): Promise<void> => {
   try {
     const db = await openGeneratorDB();
     return new Promise((resolve, reject) => {
@@ -81,23 +86,24 @@ const saveGeneratorMapToIndexedDB = async (data: GeneratorMapData): Promise<void
   }
 };
 
-const loadGeneratorMapFromIndexedDB = async (): Promise<GeneratorMapData | null> => {
-  try {
-    const db = await openGeneratorDB();
-    if (!db.objectStoreNames.contains('tempStorage')) return null;
+const loadGeneratorMapFromIndexedDB =
+  async (): Promise<GeneratorMapData | null> => {
+    try {
+      const db = await openGeneratorDB();
+      if (!db.objectStoreNames.contains('tempStorage')) return null;
 
-    return new Promise((resolve, reject) => {
-      const transaction = db.transaction(['tempStorage'], 'readonly');
-      const store = transaction.objectStore('tempStorage');
-      const request = store.get(GENERATOR_MAP_STORAGE_KEY);
-      request.onsuccess = () => resolve(request.result || null);
-      request.onerror = () => reject(request.error);
-    });
-  } catch (error) {
-    console.warn('Failed to load generator map from IndexedDB:', error);
-    return null;
-  }
-};
+      return new Promise((resolve, reject) => {
+        const transaction = db.transaction(['tempStorage'], 'readonly');
+        const store = transaction.objectStore('tempStorage');
+        const request = store.get(GENERATOR_MAP_STORAGE_KEY);
+        request.onsuccess = () => resolve(request.result || null);
+        request.onerror = () => reject(request.error);
+      });
+    } catch (error) {
+      console.warn('Failed to load generator map from IndexedDB:', error);
+      return null;
+    }
+  };
 
 const deleteGeneratorMapFromIndexedDB = async (): Promise<void> => {
   try {
@@ -124,6 +130,26 @@ interface GeneratorPanelProps {
 }
 
 type GeneratorType = 'dungeon' | 'cave' | 'world' | 'city' | 'dwelling';
+
+interface DungeonMapPayload {
+  image: string;
+  data: DungeonData;
+}
+
+type GeneratedMapPayload =
+  string | DungeonMapPayload | DungeonData | WorldMapPayload;
+
+function isDungeonMapPayload(
+  payload: Exclude<GeneratedMapPayload, string>,
+): payload is DungeonMapPayload {
+  return 'image' in payload && typeof payload.image === 'string';
+}
+
+function isWorldMapPayload(
+  payload: Exclude<GeneratedMapPayload, string>,
+): payload is WorldMapPayload {
+  return 'full' in payload && typeof payload.full?.dataUrl === 'string';
+}
 
 export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   onSwitchToScenes,
@@ -172,28 +198,29 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   }, [generatedData]);
 
   const handleMapGenerated = async (
-    imageDataOrData:
-      | string
-      | { image: string; data: DungeonData }
-      | DungeonData
-      | any,
-    generatorType: string = 'dungeon',
+    imageDataOrData: GeneratedMapPayload,
+    format: 'webp' | 'png' = 'webp',
+    originalSize?: number,
   ) => {
+    const generatorType =
+      typeof imageDataOrData === 'object' && isWorldMapPayload(imageDataOrData)
+        ? imageDataOrData.meta.generator
+        : 'dungeon';
     console.log('🗺️ Map generated from:', generatorType);
 
-    let imageData: string = '';
+    let imageData: string;
     let data: DungeonData | null = null;
 
     if (typeof imageDataOrData === 'string') {
       imageData = imageDataOrData;
-    } else if (imageDataOrData && 'image' in imageDataOrData) {
+    } else if (isDungeonMapPayload(imageDataOrData)) {
       imageData = imageDataOrData.image;
       data = imageDataOrData.data;
-    } else if (imageDataOrData && 'full' in imageDataOrData) {
+    } else if (isWorldMapPayload(imageDataOrData)) {
       imageData = imageDataOrData.full.dataUrl;
     } else {
       data = imageDataOrData;
-      imageData = ''; 
+      imageData = '';
     }
 
     setGeneratedMap(imageData);
@@ -201,7 +228,8 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
 
     await saveGeneratorMapToIndexedDB({
       imageData,
-      format: 'webp',
+      format,
+      originalSize,
       timestamp: Date.now(),
       generator: generatorType,
     });
@@ -214,12 +242,12 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       await updateScene(activeScene.id, {
         backgroundImage: {
           url: generatedMap,
-          width: 2000, 
+          width: 2000,
           height: 2000,
           offsetX: 0,
           offsetY: 0,
-          scale: 1
-        }
+          scale: 1,
+        },
       });
 
       if (onSwitchToScenes) {

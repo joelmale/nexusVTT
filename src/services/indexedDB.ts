@@ -3,33 +3,9 @@
  * Provides unlimited local storage for DM-generated dungeon maps and game state
  */
 
-export interface DungeonMapDB {
-  id: string;
-  name: string;
-  imageData: string; // base64 data URL
-  format: 'webp' | 'png'; // image format
-  originalSize: number; // original blob size in bytes
-  compressedSize: number; // base64 size in bytes
-  timestamp: number;
-  source: 'one-page-dungeon-generator';
-}
+import type { DungeonMapDB, GameStateDB, StorageStats } from '@/types/storage';
 
-export interface GameStateDB {
-  id: string; // 'current' or campaignId
-  scenes: unknown[];
-  activeSceneId: string | null;
-  characters: unknown[];
-  initiative: unknown;
-  settings: unknown;
-  timestamp: number;
-  version: number; // For conflict resolution
-}
-
-export interface StorageStats {
-  count: number;
-  totalSize: number; // bytes
-  averageSize: number; // bytes
-}
+export type { DungeonMapDB, GameStateDB, StorageStats } from '@/types/storage';
 
 class DungeonMapIndexedDB {
   private db: IDBDatabase | null = null;
@@ -54,16 +30,24 @@ class DungeonMapIndexedDB {
         checkRequest.onsuccess = () => {
           const db = checkRequest.result;
           const storeNames = Array.from(db.objectStoreNames);
-          console.log(`🔍 Checking existing database: ${storeNames.length} stores found - ${storeNames.join(', ')}`);
+          console.log(
+            `🔍 Checking existing database: ${storeNames.length} stores found - ${storeNames.join(', ')}`,
+          );
 
           // Check if required stores exist
           const hasMapsStore = db.objectStoreNames.contains(this.MAPS_STORE);
-          const hasGameStateStore = db.objectStoreNames.contains(this.GAMESTATE_STORE);
+          const hasGameStateStore = db.objectStoreNames.contains(
+            this.GAMESTATE_STORE,
+          );
 
           // If database is missing required stores, it's corrupted - need to delete and recreate
           if (!hasMapsStore || !hasGameStateStore) {
-            console.warn(`⚠️ Database exists at v${db.version} but missing required stores:`);
-            console.warn(`   maps: ${hasMapsStore}, gameState: ${hasGameStateStore}`);
+            console.warn(
+              `⚠️ Database exists at v${db.version} but missing required stores:`,
+            );
+            console.warn(
+              `   maps: ${hasMapsStore}, gameState: ${hasGameStateStore}`,
+            );
             console.warn(`   Will delete and recreate database`);
             db.close();
 
@@ -78,7 +62,9 @@ class DungeonMapIndexedDB {
               resolve();
             };
             deleteRequest.onblocked = () => {
-              console.warn(`⚠️ ${this.DB_NAME} deletion blocked - close all tabs and refresh`);
+              console.warn(
+                `⚠️ ${this.DB_NAME} deletion blocked - close all tabs and refresh`,
+              );
               resolve();
             };
           } else {
@@ -100,7 +86,9 @@ class DungeonMapIndexedDB {
         oldDbRequest.onsuccess = async () => {
           const oldDb = oldDbRequest.result;
           if (oldDb.objectStoreNames.contains('maps')) {
-            console.log('🔄 Migrating maps from old NexusDungeonMaps database...');
+            console.log(
+              '🔄 Migrating maps from old NexusDungeonMaps database...',
+            );
             try {
               const transaction = oldDb.transaction(['maps'], 'readonly');
               const store = transaction.objectStore('maps');
@@ -112,8 +100,13 @@ class DungeonMapIndexedDB {
                   console.log(`Found ${oldMaps.length} maps in old database`);
                   // Store in localStorage temporarily for migration by dungeonMapService
                   if (oldMaps.length > 0) {
-                    localStorage.setItem('nexus_old_indexeddb_maps', JSON.stringify(oldMaps));
-                    console.log('💾 Stored old maps in localStorage for migration');
+                    localStorage.setItem(
+                      'nexus_old_indexeddb_maps',
+                      JSON.stringify(oldMaps),
+                    );
+                    console.log(
+                      '💾 Stored old maps in localStorage for migration',
+                    );
                   }
                   migrateResolve();
                 };
@@ -164,7 +157,9 @@ class DungeonMapIndexedDB {
       request.onsuccess = () => {
         this.db = request.result;
         const storeNames = Array.from(this.db.objectStoreNames);
-        console.log(`✅ DungeonMapIndexedDB initialized v${this.db.version} with stores: ${storeNames.join(', ')}`);
+        console.log(
+          `✅ DungeonMapIndexedDB initialized v${this.db.version} with stores: ${storeNames.join(', ')}`,
+        );
 
         // Verify expected stores exist
         if (!this.db.objectStoreNames.contains(this.MAPS_STORE)) {
@@ -181,11 +176,15 @@ class DungeonMapIndexedDB {
         const db = (event.target as IDBOpenDBRequest).result;
         const oldVersion = event.oldVersion;
 
-        console.log(`🔧 IndexedDB upgrade: v${oldVersion} → v${this.DB_VERSION}`);
+        console.log(
+          `🔧 IndexedDB upgrade: v${oldVersion} → v${this.DB_VERSION}`,
+        );
 
         // Create maps store if it doesn't exist
         if (!db.objectStoreNames.contains(this.MAPS_STORE)) {
-          const mapsStore = db.createObjectStore(this.MAPS_STORE, { keyPath: 'id' });
+          const mapsStore = db.createObjectStore(this.MAPS_STORE, {
+            keyPath: 'id',
+          });
           mapsStore.createIndex('timestamp', 'timestamp', { unique: false });
           mapsStore.createIndex('name', 'name', { unique: false });
           console.log('✅ Created IndexedDB store for dungeon maps');
@@ -193,8 +192,12 @@ class DungeonMapIndexedDB {
 
         // Create game state store if it doesn't exist
         if (!db.objectStoreNames.contains(this.GAMESTATE_STORE)) {
-          const gameStateStore = db.createObjectStore(this.GAMESTATE_STORE, { keyPath: 'id' });
-          gameStateStore.createIndex('timestamp', 'timestamp', { unique: false });
+          const gameStateStore = db.createObjectStore(this.GAMESTATE_STORE, {
+            keyPath: 'id',
+          });
+          gameStateStore.createIndex('timestamp', 'timestamp', {
+            unique: false,
+          });
           gameStateStore.createIndex('version', 'version', { unique: false });
           console.log('✅ Created IndexedDB store for game state');
         }
@@ -205,7 +208,9 @@ class DungeonMapIndexedDB {
           console.log('✅ Created IndexedDB store for temporary storage');
         }
 
-        console.log(`✅ IndexedDB upgrade complete. Available stores: ${Array.from(db.objectStoreNames).join(', ')}`);
+        console.log(
+          `✅ IndexedDB upgrade complete. Available stores: ${Array.from(db.objectStoreNames).join(', ')}`,
+        );
       };
     });
 
@@ -415,7 +420,9 @@ class DungeonMapIndexedDB {
    * @param gameState Game state object
    * @param id Storage key (use 'current' for current session, or campaignId)
    */
-  async saveGameState(gameState: Omit<GameStateDB, 'timestamp' | 'version'> & { id: string }): Promise<void> {
+  async saveGameState(
+    gameState: Omit<GameStateDB, 'timestamp' | 'version'> & { id: string },
+  ): Promise<void> {
     await this.ensureInit();
 
     if (!this.db) {
@@ -424,7 +431,10 @@ class DungeonMapIndexedDB {
 
     // Check if the store exists
     if (!this.db.objectStoreNames.contains(this.GAMESTATE_STORE)) {
-      console.error(`❌ Store '${this.GAMESTATE_STORE}' not found. Available stores:`, Array.from(this.db.objectStoreNames));
+      console.error(
+        `❌ Store '${this.GAMESTATE_STORE}' not found. Available stores:`,
+        Array.from(this.db.objectStoreNames),
+      );
       throw new Error(`Store '${this.GAMESTATE_STORE}' not found in database`);
     }
 
@@ -450,7 +460,10 @@ class DungeonMapIndexedDB {
         return;
       }
 
-      const transaction = this.db.transaction([this.GAMESTATE_STORE], 'readwrite');
+      const transaction = this.db.transaction(
+        [this.GAMESTATE_STORE],
+        'readwrite',
+      );
       const store = transaction.objectStore(this.GAMESTATE_STORE);
       const request = store.put(stateToSave);
 
@@ -483,12 +496,20 @@ class DungeonMapIndexedDB {
 
       // Check if the store exists
       if (!this.db.objectStoreNames.contains(this.GAMESTATE_STORE)) {
-        console.error(`❌ Store '${this.GAMESTATE_STORE}' not found. Available stores:`, Array.from(this.db.objectStoreNames));
-        reject(new Error(`Store '${this.GAMESTATE_STORE}' not found in database`));
+        console.error(
+          `❌ Store '${this.GAMESTATE_STORE}' not found. Available stores:`,
+          Array.from(this.db.objectStoreNames),
+        );
+        reject(
+          new Error(`Store '${this.GAMESTATE_STORE}' not found in database`),
+        );
         return;
       }
 
-      const transaction = this.db.transaction([this.GAMESTATE_STORE], 'readonly');
+      const transaction = this.db.transaction(
+        [this.GAMESTATE_STORE],
+        'readonly',
+      );
       const store = transaction.objectStore(this.GAMESTATE_STORE);
       const request = store.get(id);
 
@@ -521,7 +542,10 @@ class DungeonMapIndexedDB {
         return;
       }
 
-      const transaction = this.db.transaction([this.GAMESTATE_STORE], 'readwrite');
+      const transaction = this.db.transaction(
+        [this.GAMESTATE_STORE],
+        'readwrite',
+      );
       const store = transaction.objectStore(this.GAMESTATE_STORE);
       const request = store.delete(id);
 
@@ -549,7 +573,10 @@ class DungeonMapIndexedDB {
         return;
       }
 
-      const transaction = this.db.transaction([this.GAMESTATE_STORE], 'readwrite');
+      const transaction = this.db.transaction(
+        [this.GAMESTATE_STORE],
+        'readwrite',
+      );
       const store = transaction.objectStore(this.GAMESTATE_STORE);
       const request = store.clear();
 

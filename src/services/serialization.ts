@@ -40,7 +40,9 @@ export class SerializationService {
       return transitWrite.write(data);
     } catch (error) {
       console.error('Transit serialization failed:', error);
-      throw new Error(`Failed to serialize with Transit: ${error}`);
+      throw new Error(`Failed to serialize with Transit: ${error}`, {
+        cause: error,
+      });
     }
   }
 
@@ -52,7 +54,9 @@ export class SerializationService {
       return transitRead.read(serialized) as T;
     } catch (error) {
       console.error('Transit deserialization failed:', error);
-      throw new Error(`Failed to deserialize with Transit: ${error}`);
+      throw new Error(`Failed to deserialize with Transit: ${error}`, {
+        cause: error,
+      });
     }
   }
 
@@ -65,7 +69,9 @@ export class SerializationService {
       return encode(data);
     } catch (error) {
       console.error('MessagePack serialization failed:', error);
-      throw new Error(`Failed to serialize with MessagePack: ${error}`);
+      throw new Error(`Failed to serialize with MessagePack: ${error}`, {
+        cause: error,
+      });
     }
   }
 
@@ -77,7 +83,9 @@ export class SerializationService {
       return decode(packed) as T;
     } catch (error) {
       console.error('MessagePack deserialization failed:', error);
-      throw new Error(`Failed to deserialize with MessagePack: ${error}`);
+      throw new Error(`Failed to deserialize with MessagePack: ${error}`, {
+        cause: error,
+      });
     }
   }
 
@@ -176,11 +184,9 @@ export class SerializationService {
     const state = gameState as Record<string, unknown>;
     const sceneState = state.sceneState as { scenes?: unknown[] } | undefined;
     const characterStore = state.characterStore as
-      | { characters?: unknown[] }
-      | undefined;
+      { characters?: unknown[] } | undefined;
     const assetStore = state.assetStore as
-      | { assets?: Record<string, unknown> }
-      | undefined;
+      { assets?: Record<string, unknown> } | undefined;
 
     const backupData = {
       version: '1.0.0',

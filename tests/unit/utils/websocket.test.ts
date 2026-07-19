@@ -1,11 +1,4 @@
-import {
-  describe,
-  it,
-  expect,
-  vi,
-  beforeEach,
-  afterEach,
-} from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { webSocketService } from '../../../src/services/websocket';
 
 type MockWebSocket = {
@@ -52,13 +45,13 @@ function createMockWebSocket(): MockWebSocket {
 
 // Helper to get the current mock WebSocket instance
 function getMockWebSocket(): MockWebSocket {
-  const mockWsConstructor = vi.mocked(global.WebSocket);
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  return (mockWsConstructor as any).mock.results[mockWsConstructor.mock.results.length - 1]?.value;
+  const result = WebSocketMock.mock.results.at(-1)?.value;
+  if (!result) throw new Error('Expected a WebSocket instance');
+  return result;
 }
 
 // Create a proper WebSocket mock constructor
-const WebSocketMock = vi.fn(function(_url: string) {
+const WebSocketMock = vi.fn(function (_url: string) {
   return createMockWebSocket();
 });
 WebSocketMock.CONNECTING = 0;
@@ -67,8 +60,7 @@ WebSocketMock.CLOSING = 2;
 WebSocketMock.CLOSED = 3;
 
 // Mock WebSocket
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(global as any).WebSocket = WebSocketMock;
+globalThis.WebSocket = WebSocketMock as unknown as typeof WebSocket;
 
 // Mock fetch to prevent HTTP health checks in tests
 global.fetch = vi.fn().mockRejectedValue(new Error('Network error'));
@@ -81,11 +73,7 @@ vi.stubEnv('VITE_WS_HOST', 'localhost');
 describe('WebSocketManager', () => {
   beforeEach(() => {
     WebSocketMock.mockClear();
-    // Clear any cached session events
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (webSocketService as any).lastSessionCreatedEvent = null;
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (webSocketService as any).lastSessionJoinedEvent = null;
+    webSocketService.resetSessionEventCache();
   });
 
   afterEach(() => {
@@ -102,9 +90,7 @@ describe('WebSocketManager', () => {
       await webSocketService.connect('TEST123');
 
       // Get the mock WebSocket instance
-      const mockWsConstructor = vi.mocked(global.WebSocket);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mockWs = (mockWsConstructor as any).mock.results[0]?.value;
+      const mockWs = WebSocketMock.mock.results[0]?.value;
 
       webSocketService.disconnect();
 
@@ -120,13 +106,11 @@ describe('WebSocketManager', () => {
       await Promise.all([promise1, promise2]);
 
       // Should only create one WebSocket
-      const mockWsConstructor = vi.mocked(global.WebSocket);
-      expect(mockWsConstructor).toHaveBeenCalledTimes(1);
+      expect(WebSocketMock).toHaveBeenCalledTimes(1);
     });
 
     it('should handle connection failure', async () => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (global.WebSocket as any).mockImplementationOnce(() => {
+      WebSocketMock.mockImplementationOnce(() => {
         const ws = createMockWebSocket();
         Object.defineProperty(ws, 'onopen', {
           set(_callback) {
@@ -157,9 +141,7 @@ describe('WebSocketManager', () => {
       };
       webSocketService.sendEvent(testEvent);
 
-      const mockWsConstructor = vi.mocked(global.WebSocket);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mockWs = (mockWsConstructor as any).mock.results[0]?.value;
+      const mockWs = WebSocketMock.mock.results[0]?.value;
 
       expect(mockWs.send).toHaveBeenCalled();
       const sentData = JSON.parse(mockWs.send.mock.calls[0][0]);
@@ -177,7 +159,7 @@ describe('WebSocketManager', () => {
       webSocketService.sendEvent(testEvent);
 
       // Should not have created any WebSocket instances
-      expect(global.WebSocket).not.toHaveBeenCalled();
+      expect(WebSocketMock).not.toHaveBeenCalled();
     });
 
     it('should send queued messages after reconnection', async () => {
@@ -192,24 +174,22 @@ describe('WebSocketManager', () => {
       await webSocketService.connect('TEST123');
 
       // Wait for connection to complete and queue to flush
-      await new Promise(resolve => setTimeout(resolve, 50));
+      await new Promise((resolve) => setTimeout(resolve, 50));
 
-      const mockWsConstructor = vi.mocked(global.WebSocket);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mockWs = (mockWsConstructor as any).mock.results[0]?.value;
+      const mockWs = WebSocketMock.mock.results[0]?.value;
 
       // Both queued messages should have been sent
       expect(mockWs.send).toHaveBeenCalled();
     });
 
     it('should handle malformed JSON messages gracefully', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
       await webSocketService.connect('TEST123');
 
-      const mockWsConstructor = vi.mocked(global.WebSocket);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mockWs = (mockWsConstructor as any).mock.results[0]?.value;
+      const mockWs = WebSocketMock.mock.results[0]?.value;
 
       // Send malformed JSON
       if (mockWs.onmessage) {
@@ -223,9 +203,7 @@ describe('WebSocketManager', () => {
     it('should handle valid JSON messages', async () => {
       await webSocketService.connect('TEST123');
 
-      const mockWsConstructor = vi.mocked(global.WebSocket);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const mockWs = (mockWsConstructor as any).mock.results[0]?.value;
+      const mockWs = WebSocketMock.mock.results[0]?.value;
 
       const testMessage = {
         type: 'event',
@@ -265,8 +243,7 @@ describe('WebSocketManager', () => {
 
       // Should NOT have sent any client-initiated heartbeat
       const calls = mockWs.send.mock.calls;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const heartbeatCalls = calls.filter((call: any[]) => {
+      const heartbeatCalls = calls.filter((call) => {
         const data = JSON.parse(call[0]);
         return data.type === 'heartbeat' && data.data?.type === 'ping';
       });
@@ -299,8 +276,7 @@ describe('WebSocketManager', () => {
       // Should respond with pong
       expect(mockWs.send).toHaveBeenCalled();
       const calls = mockWs.send.mock.calls;
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const pongCall = calls.find((call: any[]) => {
+      const pongCall = calls.find((call) => {
         const data = JSON.parse(call[0]);
         return data.type === 'heartbeat' && data.data?.type === 'pong';
       });
@@ -408,7 +384,10 @@ describe('WebSocketManager', () => {
 
       // Simulate second disconnect
       if (secondMockWs.onclose) {
-        secondMockWs.onclose({ code: 1006, reason: 'Connection lost' } as CloseEvent);
+        secondMockWs.onclose({
+          code: 1006,
+          reason: 'Connection lost',
+        } as CloseEvent);
       }
 
       // Second reconnect should take longer (exponential backoff)
@@ -436,6 +415,57 @@ describe('WebSocketManager', () => {
       // Should not have attempted reconnection
       expect(WebSocketMock).toHaveBeenCalledTimes(initialCallCount);
     });
+
+    it('should retry when a reconnection attempt fails', async () => {
+      const connectPromise = webSocketService.connect('TEST123');
+      await vi.runAllTimersAsync();
+      await connectPromise;
+      const initialSocket = getMockWebSocket();
+
+      WebSocketMock.mockImplementationOnce(() => {
+        const ws = createMockWebSocket();
+        Object.defineProperty(ws, 'onopen', {
+          set(_callback) {
+            // Keep the socket closed so the error path wins.
+          },
+        });
+        Object.defineProperty(ws, 'onerror', {
+          set(callback) {
+            if (callback) {
+              setTimeout(() => callback(new Event('error')), 0);
+            }
+          },
+        });
+        return ws;
+      });
+
+      initialSocket.onclose?.({
+        code: 1006,
+        reason: 'Connection lost',
+      } as CloseEvent);
+
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(WebSocketMock).toHaveBeenCalledTimes(3);
+      expect(webSocketService.isConnected()).toBe(true);
+    });
+
+    it('should cancel a pending reconnect on manual disconnect', async () => {
+      const connectPromise = webSocketService.connect('TEST123');
+      await vi.runAllTimersAsync();
+      await connectPromise;
+      const initialSocket = getMockWebSocket();
+
+      initialSocket.onclose?.({
+        code: 1006,
+        reason: 'Connection lost',
+      } as CloseEvent);
+      webSocketService.disconnect();
+
+      await vi.advanceTimersByTimeAsync(5000);
+
+      expect(WebSocketMock).toHaveBeenCalledTimes(1);
+    });
   });
 
   describe('Error Handling', () => {
@@ -456,7 +486,7 @@ describe('WebSocketManager', () => {
       }
 
       // Wait for error handling
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Error should be handled (logged to console)
       expect(true).toBe(true);
@@ -470,7 +500,7 @@ describe('WebSocketManager', () => {
         type: 'error',
         data: {
           message: 'Update rejected: version conflict detected',
-          code: 409
+          code: 409,
         },
         timestamp: Date.now(),
       };
@@ -482,14 +512,16 @@ describe('WebSocketManager', () => {
       }
 
       // Wait for error handling
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Should handle version conflict gracefully
       expect(true).toBe(true);
     });
 
     it('should handle generic server errors', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
       await webSocketService.connect('TEST123');
       const mockWs = getMockWebSocket();
@@ -507,7 +539,7 @@ describe('WebSocketManager', () => {
       }
 
       // Wait for error handling
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();
@@ -523,7 +555,7 @@ describe('WebSocketManager', () => {
         type: 'event',
         data: {
           name: 'session/created',
-          roomCode: 'ABCD'
+          roomCode: 'ABCD',
         },
         timestamp: Date.now(),
       };
@@ -535,7 +567,7 @@ describe('WebSocketManager', () => {
       }
 
       // Wait for message processing
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Event should be cached for waitForSessionCreated()
       const event = await webSocketService.waitForSessionCreated();
@@ -551,7 +583,7 @@ describe('WebSocketManager', () => {
         data: {
           name: 'session/joined',
           roomCode: 'ABCD',
-          players: []
+          players: [],
         },
         timestamp: Date.now(),
       };
@@ -563,7 +595,7 @@ describe('WebSocketManager', () => {
       }
 
       // Wait for message processing
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Event should be cached for waitForSessionJoined()
       const event = await webSocketService.waitForSessionJoined();
@@ -597,8 +629,8 @@ describe('WebSocketManager', () => {
         data: {
           version: 5,
           patch: [
-            { op: 'replace', path: '/scenes/0/name', value: 'Updated Scene' }
-          ]
+            { op: 'replace', path: '/scenes/0/name', value: 'Updated Scene' },
+          ],
         },
         timestamp: Date.now(),
       };
@@ -610,14 +642,16 @@ describe('WebSocketManager', () => {
       }
 
       // Wait for patch application
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Patch should be applied to game state
       expect(true).toBe(true);
     });
 
     it('should handle invalid patches gracefully', async () => {
-      const consoleSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+      const consoleSpy = vi
+        .spyOn(console, 'error')
+        .mockImplementation(() => {});
 
       await webSocketService.connect('TEST123');
       const mockWs = getMockWebSocket();
@@ -626,9 +660,7 @@ describe('WebSocketManager', () => {
         type: 'game-state-patch',
         data: {
           version: 5,
-          patch: [
-            { op: 'invalid', path: '/invalid', value: 'bad' }
-          ]
+          patch: [{ op: 'invalid', path: '/invalid', value: 'bad' }],
         },
         timestamp: Date.now(),
       };
@@ -640,7 +672,7 @@ describe('WebSocketManager', () => {
       }
 
       // Wait for error handling
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       expect(consoleSpy).toHaveBeenCalled();
       consoleSpy.mockRestore();
@@ -665,7 +697,7 @@ describe('WebSocketManager', () => {
       }
 
       // Wait for confirmation processing
-      await new Promise(resolve => setTimeout(resolve, 100));
+      await new Promise((resolve) => setTimeout(resolve, 100));
 
       // Update should be confirmed in gameStore
       expect(true).toBe(true);

@@ -14,17 +14,18 @@ vi.mock('@/services/linearFlowStorage', () => ({
 }));
 
 // Mock the character types utilities
+vi.mock('@/types/character', async () => {
+  const actual = await vi.importActual('@/types/character');
+  return {
+    ...actual,
+    createEmptyCharacter: vi.fn(),
+    calculateAbilityModifier: (score: number) => Math.floor((score - 10) / 2),
+    calculateProficiencyBonus: (level: number) => Math.ceil(level / 4) + 1,
+    calculatePassivePerception: vi.fn().mockReturnValue(10),
+  };
+});
+
 describe('CharacterStore', () => {
-  vi.mock('@/types/character', async () => {
-    const actual = await vi.importActual('@/types/character');
-    return {
-      ...actual,
-      createEmptyCharacter: vi.fn(),
-      calculateAbilityModifier: (score: number) => Math.floor((score - 10) / 2),
-      calculateProficiencyBonus: (level: number) => Math.ceil(level / 4) + 1,
-      calculatePassivePerception: vi.fn().mockReturnValue(10),
-    };
-  });
   let idCounter = 0;
   const createMockCharacter = (playerId: string): Character => {
     idCounter++;
@@ -57,8 +58,12 @@ describe('CharacterStore', () => {
         armorClass: 10,
         proficiencyBonus: 2,
         savingThrowProficiencies: {
-          STR: false, DEX: false, CON: false,
-          INT: false, WIS: false, CHA: false,
+          STR: false,
+          DEX: false,
+          CON: false,
+          INT: false,
+          WIS: false,
+          CHA: false,
         },
         inventory: [],
         languages: ['Common'],
@@ -211,9 +216,7 @@ describe('CharacterStore', () => {
 
     it('should update ability scores and recalculate modifiers', () => {
       act(() => {
-        useCharacterStore
-          .getState()
-          .updateAbilityScore(characterId, 'STR', 16);
+        useCharacterStore.getState().updateAbilityScore(characterId, 'STR', 16);
       });
 
       const character = useCharacterStore.getState().getCharacter(characterId);
@@ -263,12 +266,8 @@ describe('CharacterStore', () => {
 
     it('should recalculate all stats correctly', () => {
       act(() => {
-        useCharacterStore
-          .getState()
-          .updateAbilityScore(characterId, 'STR', 16);
-        useCharacterStore
-          .getState()
-          .updateAbilityScore(characterId, 'DEX', 14);
+        useCharacterStore.getState().updateAbilityScore(characterId, 'STR', 16);
+        useCharacterStore.getState().updateAbilityScore(characterId, 'DEX', 14);
         useCharacterStore
           .getState()
           .updateSkillProficiency(characterId, 'Athletics', true);

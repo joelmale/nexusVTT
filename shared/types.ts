@@ -13,7 +13,7 @@ export interface AssetMetadata {
     height: number;
   };
   fileSize: number; // Original file size in bytes
-  format: 'jpg' | 'png' | 'webp' | 'gif';
+  format: 'jpg' | 'jpeg' | 'png' | 'webp' | 'gif';
 }
 
 export interface AssetManifest {
@@ -45,4 +45,76 @@ export interface AssetServerConfig {
   baseUrl: string;
   timeout: number;
   maxRetries: number;
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null && !Array.isArray(value);
+}
+
+function isStringArray(value: unknown): value is string[] {
+  return (
+    Array.isArray(value) && value.every((entry) => typeof entry === 'string')
+  );
+}
+
+export function isAssetMetadata(value: unknown): value is AssetMetadata {
+  if (!isRecord(value) || !isRecord(value.dimensions)) return false;
+  return (
+    typeof value.id === 'string' &&
+    typeof value.name === 'string' &&
+    typeof value.category === 'string' &&
+    (value.subcategory === undefined ||
+      typeof value.subcategory === 'string') &&
+    isStringArray(value.tags) &&
+    typeof value.thumbnail === 'string' &&
+    typeof value.fullImage === 'string' &&
+    typeof value.dimensions.width === 'number' &&
+    typeof value.dimensions.height === 'number' &&
+    typeof value.fileSize === 'number' &&
+    ['jpg', 'jpeg', 'png', 'webp', 'gif'].includes(String(value.format))
+  );
+}
+
+export function parseAssetManifest(value: unknown): AssetManifest {
+  if (
+    !isRecord(value) ||
+    typeof value.version !== 'string' ||
+    typeof value.generatedAt !== 'string' ||
+    typeof value.totalAssets !== 'number' ||
+    !isStringArray(value.categories) ||
+    !Array.isArray(value.assets) ||
+    !value.assets.every(isAssetMetadata)
+  ) {
+    throw new TypeError('Invalid asset manifest');
+  }
+  return value as unknown as AssetManifest;
+}
+
+export function parseAssetSearchResult(value: unknown): AssetSearchResult {
+  if (
+    !isRecord(value) ||
+    typeof value.query !== 'string' ||
+    typeof value.total !== 'number' ||
+    !Array.isArray(value.results) ||
+    !value.results.every(isAssetMetadata)
+  ) {
+    throw new TypeError('Invalid asset search result');
+  }
+  return value as unknown as AssetSearchResult;
+}
+
+export function parseAssetCategoryResult(value: unknown): AssetCategoryResult {
+  if (
+    !isRecord(value) ||
+    typeof value.category !== 'string' ||
+    typeof value.page !== 'number' ||
+    typeof value.limit !== 'number' ||
+    typeof value.hasMore !== 'boolean' ||
+    typeof value.total !== 'number' ||
+    !Array.isArray(value.assets) ||
+    !value.assets.every(isAssetMetadata)
+  ) {
+    throw new TypeError('Invalid asset category result');
+  }
+  return value as unknown as AssetCategoryResult;
 }

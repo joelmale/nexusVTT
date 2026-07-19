@@ -44,7 +44,7 @@ import type {
 } from './types.js';
 
 // Shared types
-import type { AssetManifest } from '../shared/types.js';
+import { parseAssetManifest, type AssetManifest } from '../shared/types.js';
 
 // Delta-sync contracts + synchronous hashing (server-only)
 import type {
@@ -84,6 +84,7 @@ import {
 
 // Routes
 import { createDocumentRoutes } from './routes/documents.js';
+import { registerApiRoutes } from './routes/api.js';
 
 // Dice functions and types
 import {
@@ -91,9 +92,6 @@ import {
   createServerDiceRoll,
   DiceRollRequest,
 } from './diceRoller.js';
-import { sanitizeLog } from './sanitizeLog.js';
-import { generateRandomCampaign, generateRandomCharacter } from './utils/mockGenerator.js';
-import { isDevMode } from './utils/devMode.js';
 
 interface SessionUser {
   id: string;
@@ -129,106 +127,6 @@ const ASSET_CATEGORIES = {
   Art: 'Art',
   Handouts: 'Handouts',
   Reference: 'Reference',
-};
-
-type CharacterRecord = {
-  id: string;
-  name: string;
-  ownerId: string;
-  data: unknown;
-  createdAt: Date;
-  updatedAt: Date;
-};
-
-const stableStringify = (value: unknown): string => {
-  if (value === null || typeof value !== 'object') {
-    return JSON.stringify(value);
-  }
-
-  if (Array.isArray(value)) {
-    return `[${value.map(stableStringify).join(',')}]`;
-  }
-
-  const obj = value as Record<string, unknown>;
-  const keys = Object.keys(obj).sort();
-  return `{${keys.map((key) => `${JSON.stringify(key)}:${stableStringify(obj[key])}`).join(',')}}`;
-};
-
-const normalizeCharacterPayload = (value: unknown): unknown => {
-  if (typeof value === 'string') {
-    try {
-      return JSON.parse(value);
-    } catch {
-      return value;
-    }
-  }
-  return value;
-};
-
-const normalizeForHash = (value: unknown): unknown => {
-  const normalized = normalizeCharacterPayload(value);
-  if (
-    normalized === null ||
-    normalized === undefined ||
-    typeof normalized !== 'object'
-  ) {
-    return normalized;
-  }
-
-  if (Array.isArray(normalized)) {
-    return normalized.map((item) => {
-      const normalizedItem = normalizeForHash(item);
-      return normalizedItem === undefined ? null : normalizedItem;
-    });
-  }
-
-  const record = normalized as Record<string, unknown>;
-  const sanitized: Record<string, unknown> = {};
-  const omittedKeys = new Set([
-    'id',
-    'createdAt',
-    'updatedAt',
-    'playerId',
-    'version',
-    'name',
-  ]);
-
-  Object.keys(record)
-    .sort()
-    .forEach((key) => {
-      if (omittedKeys.has(key)) return;
-      const normalizedValue = normalizeForHash(record[key]);
-      if (normalizedValue === undefined) return;
-      sanitized[key] = normalizedValue;
-    });
-
-  return sanitized;
-};
-
-const buildCharacterKey = (name: string, data: unknown): string => {
-  const normalizedName = name.trim().toLowerCase();
-  return `${normalizedName}::${stableStringify(normalizeForHash(data))}`;
-};
-
-const dedupeCharacters = (characters: CharacterRecord[]) => {
-  const sorted = [...characters].sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-  );
-  const seen = new Set<string>();
-  const unique: CharacterRecord[] = [];
-  const duplicateIds: string[] = [];
-
-  for (const character of sorted) {
-    const key = buildCharacterKey(character.name, character.data);
-    if (seen.has(key)) {
-      duplicateIds.push(character.id);
-      continue;
-    }
-    seen.add(key);
-    unique.push(character);
-  }
-
-  return { unique, duplicateIds };
 };
 
 class NexusServer {
@@ -340,7 +238,8 @@ class NexusServer {
 
           // Allow any localhost origin in non-production environments
           if (process.env.NODE_ENV !== 'production') {
-            const isLocalhost = /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
+            const isLocalhost =
+              /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
             if (isLocalhost) return callback(null, true);
           }
 
@@ -522,7 +421,11 @@ class NexusServer {
         const normalizedEmail = email.toLowerCase().trim();
         const atIdx = normalizedEmail.indexOf('@');
         const dotIdx = normalizedEmail.lastIndexOf('.');
-        if (atIdx < 1 || dotIdx <= atIdx + 1 || dotIdx >= normalizedEmail.length - 1) {
+        if (
+          atIdx < 1 ||
+          dotIdx <= atIdx + 1 ||
+          dotIdx >= normalizedEmail.length - 1
+        ) {
           return res.status(400).json({ error: 'Invalid email format' });
         }
 
@@ -706,787 +609,7 @@ class NexusServer {
    * @returns {void}
    */
   private setupApiRoutes(): void {
-    // ============================================================================
-    // USER ACCOUNT ROUTES
-    // ============================================================================
-    this.app.get('/api/users/profile', async (req, res) => {
-      try {
-        if (!req.isAuthenticated()) {
-          return res.status(401).json({ error: 'Authentication required' });
-        }
-
-        const user = req.user as { id: string };
-        const profile = await this.db.getUserProfile(user.id);
-
-        if (!profile) {
-          return res.status(404).json({ error: 'User not found' });
-        }
-
-        res.json({
-          id: profile.id,
-          email: profile.email,
-          name: profile.name,
-          displayName: profile.displayName || profile.name,
-          bio: profile.bio,
-          avatarUrl: profile.avatarUrl,
-          provider: profile.provider,
-          preferences: profile.preferences || {},
-          isActive: profile.isActive,
-          createdAt: profile.createdAt,
-          updatedAt: profile.updatedAt,
-          lastLogin: profile.lastLogin,
-          stats: profile.stats,
-        });
-      } catch (error) {
-        console.error('Failed to fetch user profile:', error);
-        res.status(500).json({ error: 'Failed to fetch user profile' });
-      }
-    });
-
-    this.app.put('/api/users/profile', async (req, res) => {
-      try {
-        if (!req.isAuthenticated()) {
-          return res.status(401).json({ error: 'Authentication required' });
-        }
-
-        const { displayName, bio, avatarUrl } = req.body || {};
-
-        if (displayName !== undefined) {
-          if (typeof displayName !== 'string') {
-            return res
-              .status(400)
-              .json({ error: 'displayName must be a string' });
-          }
-          if (
-            displayName.trim().length === 0 ||
-            displayName.trim().length > 100
-          ) {
-            return res.status(400).json({
-              error: 'displayName must be between 1 and 100 characters',
-            });
-          }
-        }
-
-        if (bio !== undefined && typeof bio !== 'string') {
-          return res.status(400).json({ error: 'bio must be a string' });
-        }
-        if (typeof bio === 'string' && bio.length > 1000) {
-          return res
-            .status(400)
-            .json({ error: 'bio must be 1000 characters or less' });
-        }
-
-        if (avatarUrl !== undefined && typeof avatarUrl !== 'string') {
-          return res.status(400).json({ error: 'avatarUrl must be a string' });
-        }
-        if (typeof avatarUrl === 'string' && avatarUrl.length > 2000) {
-          return res.status(400).json({ error: 'avatarUrl is too long' });
-        }
-
-        const user = req.user as { id: string };
-        const updated = await this.db.updateUserProfile(user.id, {
-          displayName: displayName?.trim() ?? undefined,
-          bio: bio ?? undefined,
-          avatarUrl: avatarUrl ?? undefined,
-        });
-
-        res.json({
-          id: updated.id,
-          email: updated.email,
-          name: updated.name,
-          displayName: updated.displayName || updated.name,
-          bio: updated.bio,
-          avatarUrl: updated.avatarUrl,
-          provider: updated.provider,
-          preferences: updated.preferences || {},
-          isActive: updated.isActive,
-          createdAt: updated.createdAt,
-          updatedAt: updated.updatedAt,
-          lastLogin: updated.lastLogin,
-        });
-      } catch (error) {
-        console.error('Failed to update user profile:', error);
-        res.status(500).json({ error: 'Failed to update user profile' });
-      }
-    });
-
-    this.app.get('/api/users/preferences', async (req, res) => {
-      try {
-        if (!req.isAuthenticated()) {
-          return res.status(401).json({ error: 'Authentication required' });
-        }
-        const user = req.user as { id: string };
-        const preferences = await this.db.getUserPreferences(user.id);
-        res.json(preferences);
-      } catch (error) {
-        console.error('Failed to fetch preferences:', error);
-        res.status(500).json({ error: 'Failed to fetch preferences' });
-      }
-    });
-
-    this.app.put('/api/users/preferences', async (req, res) => {
-      try {
-        if (!req.isAuthenticated()) {
-          return res.status(401).json({ error: 'Authentication required' });
-        }
-
-        const { allowSpectators, shareCharacterSheets, logSessions, ...rest } =
-          req.body || {};
-
-        const invalid =
-          (allowSpectators !== undefined &&
-            typeof allowSpectators !== 'boolean') ||
-          (shareCharacterSheets !== undefined &&
-            typeof shareCharacterSheets !== 'boolean') ||
-          (logSessions !== undefined && typeof logSessions !== 'boolean');
-
-        if (invalid) {
-          return res
-            .status(400)
-            .json({ error: 'Preference values must be boolean' });
-        }
-
-        const user = req.user as { id: string };
-        const currentPrefs = await this.db.getUserPreferences(user.id);
-        const mergedPrefs = {
-          ...currentPrefs,
-          ...(allowSpectators !== undefined ? { allowSpectators } : {}),
-          ...(shareCharacterSheets !== undefined
-            ? { shareCharacterSheets }
-            : {}),
-          ...(logSessions !== undefined ? { logSessions } : {}),
-          ...rest,
-        };
-
-        const updated = await this.db.updateUserPreferences(
-          user.id,
-          mergedPrefs,
-        );
-        res.json(updated);
-      } catch (error) {
-        console.error('Failed to update preferences:', error);
-        res.status(500).json({ error: 'Failed to update preferences' });
-      }
-    });
-
-    this.app.post('/api/users/migrate-guest', async (req, res) => {
-      try {
-        if (!req.isAuthenticated()) {
-          return res.status(401).json({ error: 'Authentication required' });
-        }
-        const guest = (req.session as CustomSession).guestUser;
-        if (!guest) {
-          return res.status(400).json({ error: 'No guest session to migrate' });
-        }
-
-        const user = req.user as { id: string };
-        await this.db.migrateGuestToUser(guest.id, user.id);
-
-        delete (req.session as CustomSession).guestUser;
-
-        res.json({ success: true });
-      } catch (error) {
-        console.error('Failed to migrate guest data:', error);
-        res.status(500).json({ error: 'Failed to migrate guest data' });
-      }
-    });
-
-    this.app.delete('/api/users/account', async (req, res) => {
-      try {
-        if (!req.isAuthenticated()) {
-          return res.status(401).json({ error: 'Authentication required' });
-        }
-
-        const user = req.user as { id: string };
-        await this.db.deactivateUser(user.id);
-
-        req.logout((err) => {
-          if (err) {
-            console.error('Logout after deactivate failed:', err);
-          }
-        });
-
-        res.json({ success: true });
-      } catch (error) {
-        console.error('Failed to deactivate account:', error);
-        res.status(500).json({ error: 'Failed to deactivate account' });
-      }
-    });
-
-    // ============================================================================
-    // GUEST USER ROUTES
-    // ============================================================================
-
-    /**
-     * POST /api/guest-users
-     * Creates a new guest user for non-authenticated gameplay
-     * Body: { name: string }
-     */
-    this.app.post('/api/guest-users', async (req, res) => {
-      try {
-        const { name } = req.body;
-
-        if (!name || typeof name !== 'string' || name.trim().length === 0) {
-          return res.status(400).json({ error: 'Name is required' });
-        }
-
-        if (name.trim().length > 50) {
-          return res
-            .status(400)
-            .json({ error: 'Name must be 50 characters or less' });
-        }
-
-        // Create guest user in database
-        const guestUser = await this.db.createGuestUser(name.trim());
-
-        // Create a session for the guest user (without using passport)
-        (req.session as CustomSession).guestUser = {
-          id: guestUser.id,
-          name: guestUser.name,
-          provider: 'guest',
-        };
-
-        res.status(201).json({
-          id: guestUser.id,
-          name: guestUser.name,
-          provider: 'guest',
-        });
-      } catch (error) {
-        console.error('Failed to create guest user:', error);
-        res.status(500).json({ error: 'Failed to create guest user' });
-      }
-    });
-
-    /**
-     * GET /api/guest-me
-     * Gets current guest user from session
-     */
-    this.app.get('/api/guest-me', (req, res) => {
-      const guestUser = (req.session as CustomSession).guestUser;
-      if (guestUser) {
-        res.json(guestUser);
-      } else {
-        res.status(401).json({ message: 'Not a guest user' });
-      }
-    });
-
-    /**
-     * POST /api/dev/populate-mock-data
-     * Dev-only endpoint to populate mock campaigns and characters.
-     * Gated by the unified dev-mode flag (DEV_MODE, default NODE_ENV!==production).
-     */
-    if (isDevMode()) {
-      this.app.post('/api/dev/populate-mock-data', async (req, res) => {
-        try {
-          if (!req.isAuthenticated()) {
-            return res.status(401).json({ error: 'Authentication required' });
-          }
-
-          const user = req.user as { id: string };
-
-          // Configurable counts (default 3 campaigns / 4 characters), clamped to
-          // a sane range so a bad request can't ask for thousands of inserts.
-          const clamp = (v: unknown, def: number) =>
-            Math.min(Math.max(Math.floor(Number(v) || def), 0), 25);
-          const campaignCount = clamp(req.body?.campaigns, 3);
-          const characterCount = clamp(req.body?.characters, 4);
-
-          console.log(
-            `🛠️ Dev seeding requested for user ${user.id}: ${campaignCount} campaigns, ${characterCount} characters`,
-          );
-
-          // Each insert is isolated so one failure can't abort the whole batch;
-          // we report partial success instead of 500-ing everything.
-          const createdCampaigns = [];
-          const createdCharacters = [];
-          const errors: string[] = [];
-
-          for (let i = 0; i < campaignCount; i++) {
-            try {
-              const campData = generateRandomCampaign(user.id);
-              const campaign = await this.db.createCampaign(
-                user.id,
-                campData.name,
-                campData.description ?? undefined,
-              );
-              createdCampaigns.push(campaign);
-            } catch (err) {
-              console.error(`Seed campaign ${i} failed:`, err);
-              errors.push(`campaign ${i}: ${(err as Error).message}`);
-            }
-          }
-
-          for (let i = 0; i < characterCount; i++) {
-            try {
-              const charData = generateRandomCharacter(user.id);
-              const character = await this.db.createCharacter(
-                user.id,
-                charData.name,
-                charData.data,
-              );
-              createdCharacters.push(character);
-            } catch (err) {
-              console.error(`Seed character ${i} failed:`, err);
-              errors.push(`character ${i}: ${(err as Error).message}`);
-            }
-          }
-
-          res.json({
-            success: errors.length === 0,
-            campaigns: createdCampaigns,
-            characters: createdCharacters,
-            requested: { campaigns: campaignCount, characters: characterCount },
-            errors,
-          });
-        } catch (error) {
-          console.error('Failed to populate mock data:', error);
-          res.status(500).json({ error: 'Failed to populate mock data' });
-        }
-      });
-    }
-
-    // ============================================================================
-    // CAMPAIGN ROUTES
-    // ============================================================================
-
-    /**
-     * GET /api/campaigns
-     * Gets all campaigns for the authenticated user
-     * Requires authentication
-     */
-    this.app.get('/api/campaigns', async (req, res) => {
-      try {
-        if (!req.isAuthenticated()) {
-          return res.status(401).json({ error: 'Authentication required' });
-        }
-
-        const user = req.user as { id: string };
-        const campaigns = await this.db.getCampaignsByUser(user.id);
-
-        res.json(campaigns);
-      } catch (error) {
-        console.error('Failed to fetch campaigns:', error);
-        res.status(500).json({ error: 'Failed to fetch campaigns' });
-      }
-    });
-
-    /**
-     * POST /api/campaigns
-     * Creates a new campaign
-     * Requires authentication
-     * Body: { name: string, description?: string }
-     */
-    this.app.post('/api/campaigns', async (req, res) => {
-      try {
-        if (!req.isAuthenticated()) {
-          return res.status(401).json({ error: 'Authentication required' });
-        }
-
-        const { name, description } = req.body;
-
-        if (!name || typeof name !== 'string' || name.trim().length === 0) {
-          return res.status(400).json({ error: 'Campaign name is required' });
-        }
-
-        if (name.trim().length > 255) {
-          return res
-            .status(400)
-            .json({ error: 'Campaign name must be 255 characters or less' });
-        }
-
-        const user = req.user as { id: string };
-        const campaign = await this.db.createCampaign(
-          user.id,
-          name.trim(),
-          description?.trim() || undefined,
-        );
-
-        res.status(201).json(campaign);
-      } catch (error) {
-        console.error('Failed to create campaign:', error);
-        res.status(500).json({ error: 'Failed to create campaign' });
-      }
-    });
-
-    /**
-     * PUT /api/campaigns/:id
-     * Updates a campaign
-     * Requires authentication and ownership
-     * Body: { name?: string, description?: string, scenes?: unknown }
-     */
-    this.app.put('/api/campaigns/:id', async (req, res) => {
-      try {
-        if (!req.isAuthenticated()) {
-          return res.status(401).json({ error: 'Authentication required' });
-        }
-
-        const campaignId = req.params.id;
-        const updates = req.body;
-
-        const user = req.user as { id: string };
-        const campaign = await this.db.getCampaignById(campaignId);
-        if (!campaign) {
-          return res.status(404).json({ error: 'Campaign not found' });
-        }
-        if (campaign.dmId !== user.id) {
-          return res
-            .status(403)
-            .json({ error: 'Access denied: not campaign owner' });
-        }
-
-        // Validate updates
-        if (updates.name !== undefined) {
-          if (
-            typeof updates.name !== 'string' ||
-            updates.name.trim().length === 0
-          ) {
-            return res
-              .status(400)
-              .json({ error: 'Campaign name cannot be empty' });
-          }
-          if (updates.name.trim().length > 255) {
-            return res
-              .status(400)
-              .json({ error: 'Campaign name must be 255 characters or less' });
-          }
-          updates.name = updates.name.trim();
-        }
-
-        if (
-          updates.description !== undefined &&
-          typeof updates.description === 'string'
-        ) {
-          updates.description = updates.description.trim();
-        }
-
-        await this.db.updateCampaign(campaignId, updates);
-
-        res.json({ success: true, message: 'Campaign updated successfully' });
-      } catch (error) {
-        console.error('Failed to update campaign:', error);
-        res.status(500).json({ error: 'Failed to update campaign' });
-      }
-    });
-
-    /**
-     * DELETE /api/campaigns/:id
-     * Deletes a campaign (and cascades to its sessions via ON DELETE CASCADE)
-     * Requires authentication and ownership
-     */
-    this.app.delete('/api/campaigns/:id', async (req, res) => {
-      try {
-        if (!req.isAuthenticated()) {
-          return res.status(401).json({ error: 'Authentication required' });
-        }
-
-        const campaignId = req.params.id;
-
-        // Verify ownership
-        const campaign = await this.db.getCampaignById(campaignId);
-        if (!campaign) {
-          return res.status(404).json({ error: 'Campaign not found' });
-        }
-
-        const user = req.user as { id: string };
-        if (campaign.dmId !== user.id) {
-          return res
-            .status(403)
-            .json({ error: 'Access denied: not campaign owner' });
-        }
-
-        await this.db.deleteCampaign(campaignId);
-
-        res.json({ success: true, message: 'Campaign deleted successfully' });
-      } catch (error) {
-        console.error('Failed to delete campaign:', error);
-        res.status(500).json({ error: 'Failed to delete campaign' });
-      }
-    });
-
-    /**
-     * GET /api/characters
-     * Retrieves all characters owned by the authenticated user
-     * Requires authentication
-     */
-    this.app.get('/api/characters', async (req, res) => {
-      try {
-        if (!req.isAuthenticated()) {
-          return res.status(401).json({ error: 'Authentication required' });
-        }
-
-        const user = req.user as { id: string };
-        const characters = await this.db.getCharactersByUser(user.id);
-        const { unique, duplicateIds } = dedupeCharacters(characters);
-
-        if (duplicateIds.length > 0) {
-          await this.db.deleteCharactersByIds(duplicateIds);
-        }
-
-        res.json(unique);
-      } catch (error) {
-        console.error('Failed to fetch characters:', error);
-        res.status(500).json({ error: 'Failed to fetch characters' });
-      }
-    });
-
-    /**
-     * GET /api/characters/:id
-     * Retrieves a specific character by ID
-     * Requires authentication and ownership
-     */
-    this.app.get('/api/characters/:id', async (req, res) => {
-      try {
-        if (!req.isAuthenticated()) {
-          return res.status(401).json({ error: 'Authentication required' });
-        }
-
-        const characterId = req.params.id;
-        const character = await this.db.getCharacterById(characterId);
-
-        if (!character) {
-          return res.status(404).json({ error: 'Character not found' });
-        }
-
-        // Verify ownership
-        const user = req.user as { id: string };
-        if (character.ownerId !== user.id) {
-          return res.status(403).json({ error: 'Access denied' });
-        }
-
-        res.json(character);
-      } catch (error) {
-        console.error('Failed to fetch character:', error);
-        res.status(500).json({ error: 'Failed to fetch character' });
-      }
-    });
-
-    /**
-     * POST /api/characters
-     * Creates a new character
-     * Requires authentication
-     * Body: { name: string, data?: object }
-     */
-    this.app.post('/api/characters', async (req, res) => {
-      try {
-        if (!req.isAuthenticated()) {
-          return res.status(401).json({ error: 'Authentication required' });
-        }
-
-        const { name, data } = req.body;
-
-        if (!name || typeof name !== 'string' || name.trim().length === 0) {
-          return res.status(400).json({ error: 'Character name is required' });
-        }
-
-        if (name.trim().length > 255) {
-          return res
-            .status(400)
-            .json({ error: 'Character name must be 255 characters or less' });
-        }
-
-        const user = req.user as { id: string };
-        const existingCharacters = await this.db.getCharactersByUser(user.id);
-        const incomingKey = buildCharacterKey(name.trim(), data || {});
-        const match = existingCharacters
-          .map((character) => ({
-            character,
-            key: buildCharacterKey(character.name, character.data),
-          }))
-          .filter(({ key }) => key === incomingKey)
-          .sort(
-            (a, b) =>
-              new Date(b.character.updatedAt).getTime() -
-              new Date(a.character.updatedAt).getTime(),
-          )[0]?.character;
-
-        if (match) {
-          return res.status(200).json(match);
-        }
-
-        const character = await this.db.createCharacter(
-          user.id,
-          name.trim(),
-          data || {},
-        );
-
-        res.status(201).json(character);
-      } catch (error) {
-        console.error('Failed to create character:', error);
-        res.status(500).json({ error: 'Failed to create character' });
-      }
-    });
-
-    /**
-     * PUT /api/characters/:id
-     * Updates a character
-     * Requires authentication and ownership
-     * Body: { name?: string, data?: object }
-     */
-    this.app.put('/api/characters/:id', async (req, res) => {
-      try {
-        if (!req.isAuthenticated()) {
-          return res.status(401).json({ error: 'Authentication required' });
-        }
-
-        const characterId = req.params.id;
-        const updates = req.body;
-
-        // Verify ownership
-        const character = await this.db.getCharacterById(characterId);
-        if (!character) {
-          return res.status(404).json({ error: 'Character not found' });
-        }
-
-        const user = req.user as { id: string };
-        if (character.ownerId !== user.id) {
-          return res.status(403).json({ error: 'Access denied' });
-        }
-
-        // Validate updates
-        if (updates.name !== undefined) {
-          if (
-            typeof updates.name !== 'string' ||
-            updates.name.trim().length === 0
-          ) {
-            return res
-              .status(400)
-              .json({ error: 'Character name cannot be empty' });
-          }
-          if (updates.name.trim().length > 255) {
-            return res
-              .status(400)
-              .json({ error: 'Character name must be 255 characters or less' });
-          }
-          updates.name = updates.name.trim();
-        }
-
-        await this.db.updateCharacter(characterId, updates);
-
-        res.json({ success: true, message: 'Character updated successfully' });
-      } catch (error) {
-        console.error('Failed to update character:', error);
-        res.status(500).json({ error: 'Failed to update character' });
-      }
-    });
-
-    /**
-     * DELETE /api/characters/:id
-     * Deletes a character
-     * Requires authentication and ownership
-     */
-    this.app.delete('/api/characters/:id', async (req, res) => {
-      try {
-        if (!req.isAuthenticated()) {
-          return res.status(401).json({ error: 'Authentication required' });
-        }
-
-        const characterId = req.params.id;
-
-        // Verify ownership
-        const character = await this.db.getCharacterById(characterId);
-        if (!character) {
-          return res.status(404).json({ error: 'Character not found' });
-        }
-
-        const user = req.user as { id: string };
-        if (character.ownerId !== user.id) {
-          return res.status(403).json({ error: 'Access denied' });
-        }
-
-        await this.db.deleteCharacter(characterId);
-
-        res.json({ success: true, message: 'Character deleted successfully' });
-      } catch (error) {
-        console.error('Failed to delete character:', error);
-        res.status(500).json({ error: 'Failed to delete character' });
-      }
-    });
-
-    /**
-     * DELETE /api/characters
-     * Deletes all characters owned by the authenticated user
-     */
-    this.app.delete('/api/characters', async (req, res) => {
-      try {
-        if (!req.isAuthenticated()) {
-          return res.status(401).json({ error: 'Authentication required' });
-        }
-
-        const user = req.user as { id: string };
-        const deletedCount = await this.db.deleteCharactersByUser(user.id);
-
-        res.json({
-          success: true,
-          deletedCount,
-        });
-      } catch (error) {
-        console.error('Failed to delete all characters:', error);
-        res.status(500).json({ error: 'Failed to delete characters' });
-      }
-    });
-
-    /**
-     * POST /api/tokens/save
-     * Saves a customized token image to the server
-     * Body: { tokenId: string, imageData: string (base64), name: string }
-     */
-    this.app.post('/api/tokens/save', async (req, res) => {
-      try {
-        const { tokenId, imageData, name } = req.body;
-
-        if (!tokenId || !imageData || !name) {
-          return res.status(400).json({ error: 'Missing required fields' });
-        }
-
-        // Validate that imageData is a base64 PNG
-        if (!imageData.startsWith('data:image/png;base64,')) {
-          return res.status(400).json({ error: 'Invalid image format' });
-        }
-
-        // Extract base64 data
-        const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
-        const buffer = Buffer.from(base64Data, 'base64');
-
-        // Create custom tokens directory if it doesn't exist
-        // Save to ASSETS_PATH/assets/tokens/custom to match the static serve path
-        const customTokensDir = path.join(
-          this.ASSETS_PATH,
-          'assets',
-          'tokens',
-          'custom',
-        );
-        if (!fs.existsSync(customTokensDir)) {
-          fs.mkdirSync(customTokensDir, { recursive: true });
-        }
-
-        // Generate filename from tokenId
-        const sanitizedName = name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const sanitizedId = String(tokenId).replace(/[^a-z0-9]/gi, '_');
-        const filename = `${sanitizedName}_${sanitizedId}.png`;
-        const filepath = path.join(customTokensDir, filename);
-
-        // Reject if resolved path escapes the tokens directory
-        if (!filepath.startsWith(path.resolve(customTokensDir) + path.sep)) {
-          return res.status(400).json({ error: 'Invalid token path' });
-        }
-
-        // Write the file
-        fs.writeFileSync(filepath, buffer);
-
-        // Return the server path
-        const serverPath = `/assets/tokens/custom/${filename}`;
-
-        console.log(`💾 Saved custom token: ${sanitizeLog(serverPath)}`);
-        res.json({
-          success: true,
-          path: serverPath,
-          message: 'Token saved successfully',
-        });
-      } catch (error) {
-        console.error('Failed to save token:', error);
-        res.status(500).json({ error: 'Failed to save token' });
-      }
-    });
+    registerApiRoutes(this.app, this.db, this.ASSETS_PATH);
   }
 
   /**
@@ -1594,7 +717,8 @@ class NexusServer {
       // Express-stripped req.url, so `app.use('/library', proxy)` would send
       // '/' to the asset service instead of '/library'. Restore the full
       // original path (incl. query) so every mount below forwards intact.
-      pathRewrite: (_path, req) => (req as { originalUrl?: string }).originalUrl ?? _path,
+      pathRewrite: (_path, req) =>
+        (req as { originalUrl?: string }).originalUrl ?? _path,
     });
 
     this.app.use('/manifest.json', assetProxy);
@@ -1651,12 +775,12 @@ class NexusServer {
           '/user',
         ),
       on: {
-        proxyReq: (proxyReq: any, _req: any, _res: any) => {
+        proxyReq: (proxyReq) => {
           if (assetServiceSecret) {
             proxyReq.setHeader('x-nexus-auth', assetServiceSecret);
           }
-        }
-      }
+        },
+      },
     });
 
     // Mounted at '/api/user' (not '/user') to match the client's existing
@@ -1697,7 +821,9 @@ class NexusServer {
     try {
       const manifestPath = path.join(this.ASSETS_PATH, 'manifest.json');
       if (fs.existsSync(manifestPath)) {
-        this.manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        this.manifest = parseAssetManifest(
+          JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as unknown,
+        );
         console.log(
           `📋 Loaded manifest: ${this.manifest?.totalAssets} assets in ${this.manifest?.categories.length} categories`,
         );
@@ -1855,7 +981,10 @@ class NexusServer {
         usedCampaignId = campaign.id;
       }
 
-      if (preferredRoomCode && this.socketManager.rooms.has(preferredRoomCode)) {
+      if (
+        preferredRoomCode &&
+        this.socketManager.rooms.has(preferredRoomCode)
+      ) {
         console.log(
           `🔄 Reusing active room code ${preferredRoomCode} for campaign ${usedCampaignId}`,
         );
@@ -2275,253 +1404,6 @@ class NexusServer {
     await this.handleHostConnection(connection, roomCode, campaignId);
   }
 
-  private routeMessage(fromUuid: string, message: ServerMessage) {
-    // Handle heartbeat messages regardless of room state
-    if (message.type === 'heartbeat') {
-      const heartbeatData = message.data as {
-        type: 'ping' | 'pong';
-        id: string;
-      };
-      if (heartbeatData.type === 'pong') {
-        this.handleHeartbeatPong(fromUuid, heartbeatData.id);
-      }
-      return;
-    }
-
-    const connection = this.socketManager.connections.get(fromUuid);
-    if (!connection?.room) return;
-
-    const room = this.socketManager.rooms.get(connection.room);
-    if (!room) return;
-
-    room.lastActivity = Date.now();
-
-    if (message.type === 'event') {
-      const eventName = (message.data as { name?: string })?.name;
-      const isSenderHost =
-        room.host === connection.id || room.coHosts.has(connection.id);
-
-      const dmOnlyActions = new Set([
-        'game-state-update',
-        'scene/create',
-        'scene/update',
-        'scene/delete',
-        'scene/reorder',
-        'scene/change',
-        'host/transfer',
-        'host/add-cohost',
-        'host/remove-cohost',
-        'drawing/clear',
-        'session/kickPlayer',
-        'session/updatePermissions',
-      ]);
-
-      const dmOfflineRestrictedActions = new Set([
-        'drawing/create',
-        'drawing/update',
-        'drawing/delete',
-        'token/place',
-        'token/update',
-        'token/delete',
-        'token/move',
-        'prop/place',
-        'prop/update',
-        'prop/delete',
-        'prop/move',
-        'prop/interact',
-      ]);
-
-      // Enforce DM-Only actions: Only host or co-host can perform
-      if (eventName && dmOnlyActions.has(eventName) && !isSenderHost) {
-        connection.maliciousAttemptsCount = (connection.maliciousAttemptsCount || 0) + 1;
-        console.warn(
-          `⚠️ Security violation: Unauthorized user ${connection.id} attempted DM-Only action "${eventName}" (Attempt ${connection.maliciousAttemptsCount}/3)`,
-        );
-
-        this.sendMessage(connection, {
-          type: 'error',
-          data: {
-            message: 'Access denied: Host privilege required.',
-            code: 403,
-          },
-          timestamp: Date.now(),
-        });
-
-        if (connection.maliciousAttemptsCount >= 3) {
-          console.error(
-            `🔌 Anti-tamper: Terminating connection for user ${connection.id} due to repeated security violations.`,
-          );
-          connection.ws.terminate();
-        }
-        return;
-      }
-
-      // Enforce DM-Offline restrictions: Players cannot perform when DM is offline
-      if (
-        eventName &&
-        dmOfflineRestrictedActions.has(eventName) &&
-        !isSenderHost &&
-        !room.dmConnected
-      ) {
-        this.sendMessage(connection, {
-          type: 'error',
-          data: {
-            message: 'Host is offline; this action is temporarily restricted.',
-            code: 403,
-          },
-          timestamp: Date.now(),
-        });
-        return;
-      }
-    }
-
-    if (
-      message.type === 'event' &&
-      message.data?.name === 'dice/roll-request'
-    ) {
-      this.handleDiceRollRequest(
-        fromUuid,
-        connection,
-        message.data as unknown as DiceRollRequest,
-      );
-      return;
-    }
-
-    if (message.type === 'event') {
-      const eventName = message.data?.name;
-      if (eventName === 'host/transfer') {
-        this.handleHostTransfer(
-          fromUuid,
-          connection,
-          room,
-          message.data as unknown as { targetUserId: string },
-        );
-        return;
-      } else if (eventName === 'host/add-cohost') {
-        this.handleAddCoHost(
-          fromUuid,
-          connection,
-          room,
-          message.data as unknown as { targetUserId: string },
-        );
-        return;
-      } else if (eventName === 'host/remove-cohost') {
-        this.handleRemoveCoHost(
-          fromUuid,
-          connection,
-          room,
-          message.data as unknown as { targetUserId: string },
-        );
-        return;
-      }
-    }
-
-    if (
-      message.type === 'event' &&
-      message.data?.name === 'game-state-update'
-    ) {
-      // NOTE: routeMessage is legacy/unused (SocketManager.handleMessage drives
-      // the live path via the 'event:game-state-update' subscription). Kept in
-      // sync with the new content-hash commit flow for correctness.
-      const senderIsHost =
-        room.host === connection.id || room.coHosts.has(connection.id);
-      if (senderIsHost) {
-        this.handleGameStateUpload(
-          connection.room,
-          connection,
-          message.data,
-        );
-      } else {
-        this.sendError(connection, 'Access denied: Host privilege required.');
-      }
-    }
-
-    if (
-      message.type === 'event' &&
-      [
-        'token/move',
-        'token/update',
-        'token/delete',
-        'prop/move',
-        'prop/update',
-        'prop/delete',
-        'prop/interact',
-      ].includes((message.data as { name: string })?.name)
-    ) {
-      const eventData = message.data as {
-        name: string;
-        tokenId?: string;
-        propId?: string;
-        expectedVersion: number;
-      };
-      const entityId = eventData.tokenId || eventData.propId;
-      const expectedVersion = eventData.expectedVersion;
-
-      if (entityId && expectedVersion !== undefined) {
-        const currentVersion = room.entityVersions.get(entityId) || 0;
-
-        if (expectedVersion < currentVersion) {
-          console.warn(
-            `⚠️ Version conflict detected for ${entityId}: expected ${expectedVersion}, current ${currentVersion}`,
-          );
-
-          this.sendMessage(connection, {
-            type: 'error',
-            data: {
-              message: `Update rejected due to version conflict for ${entityId} (expected v${expectedVersion}, current v${currentVersion})`,
-              code: 409,
-            },
-            timestamp: Date.now(),
-          });
-
-          return;
-        }
-
-        room.entityVersions.set(entityId, expectedVersion + 1);
-      }
-    }
-
-    if (
-      message.type === 'event' &&
-      (message.data as unknown as { updateId: string })?.updateId &&
-      (message.data as unknown as { name: string })?.name !== 'cursor/update'
-    ) {
-      this.sendMessage(connection, {
-        type: 'update-confirmed',
-        data: {
-          updateId: (message.data as unknown as { updateId: string }).updateId,
-        },
-        timestamp: Date.now(),
-      });
-    }
-
-    if (message.type === 'chat-message') {
-      this.handleChatMessage(fromUuid, connection, message);
-      return;
-    }
-
-    if (message.dst) {
-      const targetConnection = this.socketManager.connections.get(message.dst);
-      if (targetConnection && room.connections.has(message.dst)) {
-        this.sendMessage(targetConnection, {
-          ...message,
-          src: fromUuid,
-          timestamp: Date.now(),
-        });
-      }
-    } else {
-      this.broadcastToRoom(
-        connection.room,
-        {
-          ...message,
-          src: fromUuid,
-          timestamp: Date.now(),
-        },
-        fromUuid,
-      );
-    }
-  }
-
   private handleChatMessage(
     fromUuid: string,
     connection: Connection,
@@ -2649,11 +1531,11 @@ class NexusServer {
       ? (jsonpatch.deepClone(room.gameState) as unknown as SyncableGameState)
       : { scenes: [], activeSceneId: null, characters: [], initiative: {} };
 
-    // The committed next state + its token, resolved per input shape. A null
-    // committed marks a rejection (resync already sent) so we bail without
-    // advancing the chain.
-    let committed: SyncableGameState | null = null;
-    let committedToken: StateHash | null = null;
+    // The committed next state + its token, resolved per input shape. Every
+    // rejecting branch returns before commit, so both values are definitely
+    // assigned by the successful branch that reaches the commit below.
+    let committed: SyncableGameState;
+    let committedToken: StateHash;
     // For patch uploads we reuse the client's patch as the peer broadcast; for
     // full/legacy we compute a delta below. undefined = compute delta.
     let broadcastPatch: JsonPatch | undefined;
@@ -3184,21 +2066,6 @@ class NexusServer {
     }
   }
 
-  private selectNewHost(room: Room, excludeUuid?: string): string | null {
-    const candidates = Array.from(room.players).filter(
-      (uuid) => uuid !== excludeUuid,
-    );
-    if (candidates.length === 0) {
-      return null;
-    }
-    for (const candidate of candidates) {
-      if (room.coHosts.has(candidate)) {
-        return candidate;
-      }
-    }
-    return candidates[0];
-  }
-
   private handleHostTransfer(
     fromUuid: string,
     connection: Connection,
@@ -3326,7 +2193,7 @@ class NexusServer {
 
   private generateRoomCode(): string {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
-    let result = '';
+    let result: string;
     do {
       result = '';
       for (let i = 0; i < 4; i++) {
@@ -3351,12 +2218,6 @@ class NexusServer {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
       console.log('💓 Stopped heartbeat mechanism');
-    }
-  }
-
-  private startHeartbeatForConnection(_connection: Connection) {
-    if (this.socketManager.connections.size === 1) {
-      this.startHeartbeat();
     }
   }
 
@@ -3465,33 +2326,22 @@ class NexusServer {
       console.log('✅ Server shutdown complete');
     });
   }
-
-  public getStats() {
-    const activeRooms = Array.from(this.socketManager.rooms.values()).filter(
-      (r) => r.status === 'active',
-    ).length;
-    const hibernatingRooms = Array.from(this.socketManager.rooms.values()).filter(
-      (r) => r.status === 'hibernating',
-    ).length;
-    return {
-      activeRooms,
-      hibernatingRooms,
-      totalRooms: this.socketManager.rooms.size,
-      totalConnections: this.socketManager.connections.size,
-      serverPort: this.port,
-      rooms: Array.from(this.socketManager.rooms.entries()).map(([code, room]) => ({
-        code,
-        playerCount: room.players.size,
-        connectionCount: room.connections.size,
-        status: room.status,
-        created: new Date(room.created).toISOString(),
-        lastActivity: new Date(room.lastActivity).toISOString(),
-        hasGameState: !!room.gameState,
-      })),
-    };
-  }
 }
 
 const REQUIRED_PORT = process.env.PORT ? parseInt(process.env.PORT) : 5001;
 console.log(`🚀 Starting WebSocket server on port ${REQUIRED_PORT}...`);
-new NexusServer(REQUIRED_PORT);
+const server = new NexusServer(REQUIRED_PORT);
+let shutdownStarted = false;
+
+const handleShutdownSignal = (signal: NodeJS.Signals): void => {
+  if (shutdownStarted) return;
+  shutdownStarted = true;
+  console.log(`Received ${signal}`);
+  void server.shutdown().catch((error: unknown) => {
+    console.error('Server shutdown failed:', error);
+    process.exitCode = 1;
+  });
+};
+
+process.once('SIGTERM', () => handleShutdownSignal('SIGTERM'));
+process.once('SIGINT', () => handleShutdownSignal('SIGINT'));

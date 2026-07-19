@@ -37,12 +37,10 @@ export function PanelDock<T extends string = string>({
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [focusedId, setFocusedId] = useState<T>(activePanel);
 
-  const {
-    onPointerDown,
-    panelRef,
-  } = useDraggablePanel({
+  const { onPointerDown, panelRef } = useDraggablePanel({
     id: 'panelDock',
     defaultPosition: { x: window.innerWidth - 300, y: 16 },
+    resizeAnchor: 'right',
   });
 
   const zIndex = useStackZIndex('panelDock');

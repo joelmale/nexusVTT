@@ -17,6 +17,22 @@ export type PropCategory =
   | 'effect'
   | 'other';
 
+const PROP_CATEGORIES: readonly PropCategory[] = [
+  'furniture',
+  'decoration',
+  'treasure',
+  'container',
+  'door',
+  'trap',
+  'light',
+  'effect',
+  'other',
+];
+
+export function isPropCategory(value: string): value is PropCategory {
+  return PROP_CATEGORIES.some((category) => category === value);
+}
+
 export type PropLayer = 'background' | 'props' | 'overlay';
 
 export interface Point {

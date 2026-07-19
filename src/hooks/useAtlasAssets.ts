@@ -1,5 +1,11 @@
 import { useState, useEffect, useRef, useCallback } from 'react';
-import { AtlasAsset, AtlasSourceAdapter, PaginatedResult } from './atlasSources/types';
+import {
+  errorName,
+  type AtlasAsset,
+  type AtlasCursor,
+  type AtlasSourceAdapter,
+  type PaginatedResult,
+} from './atlasSources/types';
 import { CodexSourceAdapter } from './atlasSources/codex';
 import { MapsSourceAdapter } from './atlasSources/maps';
 import { TokensSourceAdapter } from './atlasSources/tokens';
@@ -19,10 +25,8 @@ const adapters: AtlasSourceAdapter[] = [
 // Per-source pagination cursor. Numeric-offset sources (maps/tokens/props/
 // codex) track "next skip" as a number; opaque-cursor sources (library)
 // track the string the server handed back. `null` means "no next page".
-type SourceCursor = number | string | null;
-
 interface SourceState {
-  cursor: SourceCursor;
+  cursor: AtlasCursor;
   hasMore: boolean;
 }
 
@@ -45,7 +49,10 @@ export function useAtlasAssets(options?: UseAtlasAssetsOptions) {
   const [loading, setLoading] = useState(false);
   const [loadingMore, setLoadingMore] = useState(false);
   const [offlineSources, setOfflineSources] = useState<string[]>([]);
-  const [libraryFacets, setLibraryFacets] = useState<LibraryFacets>({ categories: [], tags: [] });
+  const [libraryFacets, setLibraryFacets] = useState<LibraryFacets>({
+    categories: [],
+    tags: [],
+  });
   const [hasMore, setHasMore] = useState(false);
 
   const abortControllerRef = useRef<AbortController | null>(null);
@@ -57,7 +64,7 @@ export function useAtlasAssets(options?: UseAtlasAssetsOptions) {
   const sourceStateRef = useRef<Map<string, SourceState>>(new Map());
 
   const computeHasMore = () =>
-    Array.from(sourceStateRef.current.values()).some(s => s.hasMore);
+    Array.from(sourceStateRef.current.values()).some((s) => s.hasMore);
 
   const fetchAssets = useCallback(async (q: string, cat: string) => {
     if (abortControllerRef.current) {
@@ -68,7 +75,7 @@ export function useAtlasAssets(options?: UseAtlasAssetsOptions) {
 
     setLoading(true);
     try {
-      const promises = adapters.map(async adapter => {
+      const promises = adapters.map(async (adapter) => {
         let result: PaginatedResult;
         if (q.trim()) {
           result = await adapter.search(q, undefined, controller.signal, cat);
@@ -94,7 +101,7 @@ export function useAtlasAssets(options?: UseAtlasAssetsOptions) {
           }
           // Numeric-offset sources: next cursor is "items fetched so far".
           // Opaque-cursor sources (result.cursor present): thread it back verbatim.
-          const nextCursor: SourceCursor =
+          const nextCursor: AtlasCursor =
             result.cursor !== undefined ? result.cursor : result.assets.length;
           nextSourceState.set(adapter.source, {
             cursor: nextCursor,
@@ -110,9 +117,9 @@ export function useAtlasAssets(options?: UseAtlasAssetsOptions) {
       setAssets(newAssets);
       setOfflineSources(newOffline);
       setHasMore(computeHasMore());
-    } catch (err: any) {
-      if (err.name !== 'AbortError') {
-        console.error('Atlas fetch error:', err);
+    } catch (error: unknown) {
+      if (errorName(error) !== 'AbortError') {
+        console.error('Atlas fetch error:', error);
       }
     } finally {
       if (!controller.signal.aborted) {
@@ -133,11 +140,11 @@ export function useAtlasAssets(options?: UseAtlasAssetsOptions) {
       const cat = category;
 
       const promises = entries.map(async ([sourceName, state]) => {
-        const adapter = adapters.find(a => a.source === sourceName);
+        const adapter = adapters.find((a) => a.source === sourceName);
         if (!adapter) return null;
         const result = q.trim()
-          ? await adapter.search(q, state.cursor as any, undefined, cat)
-          : await adapter.list(cat, state.cursor as any);
+          ? await adapter.search(q, state.cursor, undefined, cat)
+          : await adapter.list(cat, state.cursor);
         return { adapter, result };
       });
 
@@ -148,11 +155,11 @@ export function useAtlasAssets(options?: UseAtlasAssetsOptions) {
         if (p.status === 'fulfilled' && p.value) {
           const { adapter, result } = p.value;
           appended.push(...result.assets);
-          const nextCursor: SourceCursor =
+          const nextCursor: AtlasCursor =
             result.cursor !== undefined
               ? result.cursor
-              : ((sourceStateRef.current.get(adapter.source)?.cursor as number) || 0) +
-                result.assets.length;
+              : ((sourceStateRef.current.get(adapter.source)
+                  ?.cursor as number) || 0) + result.assets.length;
           sourceStateRef.current.set(adapter.source, {
             cursor: nextCursor,
             hasMore: result.hasMore,
@@ -163,7 +170,7 @@ export function useAtlasAssets(options?: UseAtlasAssetsOptions) {
       }
 
       if (appended.length > 0) {
-        setAssets(prev => [...prev, ...appended]);
+        setAssets((prev) => [...prev, ...appended]);
       }
       setHasMore(computeHasMore());
     } finally {

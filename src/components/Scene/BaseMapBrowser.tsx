@@ -2,8 +2,6 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { baseMapAssetManager, type BaseMap } from '@/services/baseMapAssets';
 import { dungeonMapService } from '@/services/dungeonMapService';
 import { assetFavoritesManager } from '@/services/assetFavorites';
-import '@/styles/asset-browser.css';
-import '@/styles/scenes.css';
 import { Portal } from '@/components/Portal';
 
 interface BaseMapBrowserProps {
@@ -33,10 +31,16 @@ export const BaseMapBrowser: React.FC<BaseMapBrowserProps> = ({
         console.log('🗺️ BaseMapBrowser: Initializing...');
         await baseMapAssetManager.initialize();
         const defaultMaps = baseMapAssetManager.getAllMaps();
-        console.log('🗺️ BaseMapBrowser: Loaded default maps:', defaultMaps.length);
+        console.log(
+          '🗺️ BaseMapBrowser: Loaded default maps:',
+          defaultMaps.length,
+        );
 
         const generatedMaps = await dungeonMapService.getAsBaseMaps();
-        console.log('🗺️ BaseMapBrowser: Loaded generated maps:', generatedMaps.length);
+        console.log(
+          '🗺️ BaseMapBrowser: Loaded generated maps:',
+          generatedMaps.length,
+        );
 
         const allMaps = [...generatedMaps, ...defaultMaps];
         console.log('🗺️ BaseMapBrowser: Total maps:', allMaps.length);

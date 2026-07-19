@@ -6,7 +6,7 @@
 | --- | --- |
 | TypeScript 5.9 strict mode | Frontend, backend, shared types |
 | ECMAScript modules | `package.json` uses `"type": "module"` |
-| Node.js | Engine requires `>=20.19.0`; Dockerfiles currently use `node:25-alpine` |
+| Node.js 26.5 | Engine requires `>=26.5.0 <27`; CI and Docker use `node:26.5.0` |
 | HTML5/CSS/DOM APIs | Browser UI, IndexedDB, Service Worker, WebSocket |
 | SQL/PostgreSQL | Relational schema, JSONB, indexes, triggers |
 | JSON | REST payloads, manifests, WebSocket payloads, document metadata |
@@ -66,6 +66,6 @@
 | --- | --- |
 | Redis is declared for sessions/pub-sub, but Express sessions are stored in PostgreSQL and no Redis client usage was found | Treat Redis as provisioned but not functionally integrated until pub/sub/session code is added. |
 | Backend replicas maintain active WebSocket rooms in memory | Horizontal scaling depends on sticky routing or shared room state/pub-sub. |
-| Frontend Dockerfile uses Node 25 while `package.json` declares Node `>=20.19.0` | This is compatible by version range, but production runtime reproducibility may improve with a pinned LTS image. |
+| Node 26 is the Current release line rather than LTS | Track Node's release lifecycle and plan an explicit move to an LTS line if production stability takes precedence over early access to platform features. |
 | Production Compose lacks `ports:` on frontend | Public ingress must be supplied externally by Swarm routing mesh/reverse proxy attachment. |
 | Optional document routes are mounted even when disabled | Disabled mode returns `503` for document operations and `{ status: "disabled" }` for document health. |

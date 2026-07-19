@@ -5,6 +5,12 @@ import type {
   AssetSearchResult,
   AssetCategoryResult,
 } from '../../shared/types';
+import {
+  isAssetMetadata,
+  parseAssetCategoryResult,
+  parseAssetManifest,
+  parseAssetSearchResult,
+} from '../../shared/types';
 import type { Scene } from '@/types/game';
 
 // Re-export types for use in components
@@ -42,20 +48,18 @@ export class AssetManager {
    * Load the asset manifest from the asset server
    */
   async loadAssetManifest(): Promise<AssetManifest> {
-    if (this.manifest) return this.manifest as AssetManifest;
+    if (this.manifest) return this.manifest;
 
     try {
       const response = await fetch(`${ASSET_SERVER_URL}/manifest.json`);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      const manifestData = await response.json();
-      if (!manifestData) {
-        throw new Error('Received empty manifest data from server');
-      }
-      return (this.manifest = manifestData);
+      const manifestData: unknown = await response.json();
+      return (this.manifest = parseAssetManifest(manifestData));
     } catch (error) {
       console.error('Failed to load asset manifest:', error);
+      if (error instanceof TypeError) throw error;
       // Fallback to empty manifest
       return {
         version: '1.0.0',
@@ -82,9 +86,10 @@ export class AssetManager {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      return await response.json();
+      return parseAssetCategoryResult(await response.json());
     } catch (error) {
       console.error('Failed to get assets by category:', error);
+      if (error instanceof TypeError) throw error;
       return {
         category,
         page,
@@ -107,10 +112,11 @@ export class AssetManager {
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      const result: AssetSearchResult = await response.json();
+      const result = parseAssetSearchResult(await response.json());
       return result.results;
     } catch (error) {
       console.error('Failed to search assets:', error);
+      if (error instanceof TypeError) throw error;
       return [];
     }
   }
@@ -162,7 +168,11 @@ export class AssetManager {
         throw new Error(`Asset metadata not found: ${response.status}`);
       }
 
-      const asset: AssetMetadata = await response.json();
+      const assetData: unknown = await response.json();
+      if (!isAssetMetadata(assetData)) {
+        throw new TypeError(`Invalid metadata for asset ${assetId}`);
+      }
+      const asset = assetData;
 
       // Now fetch the actual image
       const imageResponse = await fetch(
@@ -217,8 +227,7 @@ export class AssetManager {
         request.onerror = () => reject(request.error);
         request.onsuccess = () => {
           const result = request.result as
-            | { id: string; blob: Blob; timestamp: number }
-            | undefined;
+            { id: string; blob: Blob; timestamp: number } | undefined;
           if (result && result.timestamp) {
             // Check if cache is expired (e.g., 7 days)
             const maxAge = 7 * 24 * 60 * 60 * 1000; // 7 days

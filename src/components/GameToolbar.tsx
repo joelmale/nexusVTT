@@ -11,7 +11,6 @@ import {
   useCamera,
   useActiveTool,
 } from '@/stores/gameStore';
-import '@/styles/toolbar-unified.css';
 import { useDraggablePanel } from '@/hooks/useDraggablePanel';
 import { useUIStackStore, useStackZIndex } from '@/stores/uiStackStore';
 import {
@@ -91,15 +90,14 @@ export const GameToolbar: React.FC = () => {
   const [hoveredTool, setHoveredTool] = useState<ToolbarItem | null>(null);
   const [isVertical, setIsVertical] = useState(false);
 
-  const {
-    onPointerDown,
-    isCollapsed,
-    toggleCollapsed,
-    panelRef,
-  } = useDraggablePanel({
-    id: 'gameToolbar',
-    defaultPosition: { x: window.innerWidth / 2 - 200, y: window.innerHeight - 80 },
-  });
+  const { onPointerDown, isCollapsed, toggleCollapsed, panelRef } =
+    useDraggablePanel({
+      id: 'gameToolbar',
+      defaultPosition: {
+        x: window.innerWidth / 2 - 200,
+        y: window.innerHeight - 80,
+      },
+    });
 
   const zIndex = useStackZIndex('gameToolbar');
   const bringToFront = useUIStackStore((state) => state.bringToFront);
@@ -402,7 +400,10 @@ export const GameToolbar: React.FC = () => {
       'toolbar-btn',
       isActive ? 'active' : '',
       tool.disabled ? 'disabled' : '',
-      tool.className?.split(' ').filter((name) => name !== 'active').join(' '),
+      tool.className
+        ?.split(' ')
+        .filter((name) => name !== 'active')
+        .join(' '),
     ]
       .filter(Boolean)
       .join(' ');
@@ -445,7 +446,8 @@ export const GameToolbar: React.FC = () => {
           {hoveredTool ? (
             <>
               <span>
-                {hoveredTool.tooltip && hoveredTool.tooltip !== hoveredTool.label
+                {hoveredTool.tooltip &&
+                hoveredTool.tooltip !== hoveredTool.label
                   ? `${hoveredTool.label}: ${hoveredTool.tooltip}`
                   : hoveredTool.label}
               </span>
@@ -483,9 +485,9 @@ export const GameToolbar: React.FC = () => {
               toggleCollapsed();
             }
           }}
-          title={isCollapsed ? "Expand Toolbar" : "Drag Toolbar"}
+          title={isCollapsed ? 'Expand Toolbar' : 'Drag Toolbar'}
         >
-          {isCollapsed ? <Pencil size={18} /> : "⠿"}
+          {isCollapsed ? <Pencil size={18} /> : '⠿'}
         </div>
 
         {!isCollapsed && (
@@ -534,7 +536,10 @@ export const GameToolbar: React.FC = () => {
               {isHost && dmFogGroup && (
                 <>
                   <div className="toolbar-group-separator" />
-                  <div className="toolbar-group dm-tools" data-testid="dm-fog-group">
+                  <div
+                    className="toolbar-group dm-tools"
+                    data-testid="dm-fog-group"
+                  >
                     {dmFogGroup.tools.map(renderToolButton)}
                   </div>
                 </>

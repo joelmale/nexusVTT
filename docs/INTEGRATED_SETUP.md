@@ -39,7 +39,7 @@ The integrated system combines:
 ## Prerequisites
 
 - Docker Desktop or Docker Engine with Docker Compose v2+
-- Node.js 20+ (for local development outside Docker)
+- Node.js 26.5+ (for local development outside Docker)
 - Git
 - 8GB+ RAM recommended (ElasticSearch is memory-intensive)
 

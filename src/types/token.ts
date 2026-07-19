@@ -1,17 +1,20 @@
 export type TokenSize =
-  | 'tiny'
-  | 'small'
-  | 'medium'
-  | 'large'
-  | 'huge'
-  | 'gargantuan';
+  'tiny' | 'small' | 'medium' | 'large' | 'huge' | 'gargantuan';
 export type TokenCategory =
-  | 'pc'
-  | 'npc'
-  | 'monster'
-  | 'object'
-  | 'vehicle'
-  | 'effect';
+  'pc' | 'npc' | 'monster' | 'object' | 'vehicle' | 'effect';
+
+const TOKEN_CATEGORIES: readonly TokenCategory[] = [
+  'pc',
+  'npc',
+  'monster',
+  'object',
+  'vehicle',
+  'effect',
+];
+
+export function isTokenCategory(value: string): value is TokenCategory {
+  return TOKEN_CATEGORIES.some((category) => category === value);
+}
 export type TokenLayer = 'background' | 'tokens' | 'overlay';
 
 export interface Point {

@@ -6,7 +6,7 @@
  */
 
 import { expose } from 'comlink';
-import type { DungeonMapDB, GameStateDB, StorageStats } from '../services/indexedDB';
+import type { DungeonMapDB, GameStateDB, StorageStats } from '@/types/storage';
 
 class StorageWorkerAPI {
   private db: IDBDatabase | null = null;
@@ -41,7 +41,7 @@ class StorageWorkerAPI {
       request.onsuccess = () => {
         this.db = request.result;
         console.log(
-          `[Worker] ✅ IndexedDB opened successfully (v${this.db.version})`
+          `[Worker] ✅ IndexedDB opened successfully (v${this.db.version})`,
         );
         resolve();
       };
@@ -51,7 +51,7 @@ class StorageWorkerAPI {
         const oldVersion = event.oldVersion;
 
         console.log(
-          `[Worker] 🔧 IndexedDB upgrade: v${oldVersion} → v${this.DB_VERSION}`
+          `[Worker] 🔧 IndexedDB upgrade: v${oldVersion} → v${this.DB_VERSION}`,
         );
 
         // Create maps store if it doesn't exist
@@ -97,9 +97,7 @@ class StorageWorkerAPI {
   // DUNGEON MAP OPERATIONS
   // =============================================================================
 
-  async saveMap(
-    mapData: Omit<DungeonMapDB, 'id'>
-  ): Promise<string> {
+  async saveMap(mapData: Omit<DungeonMapDB, 'id'>): Promise<string> {
     await this.ensureInit();
 
     const mapId = `dungeon_${Date.now()}_${Math.random()
@@ -125,7 +123,7 @@ class StorageWorkerAPI {
         console.log(
           `[Worker] ✅ Saved dungeon map: ${mapId} (${(
             map.originalSize / 1024
-          ).toFixed(1)} KB)`
+          ).toFixed(1)} KB)`,
         );
         resolve(mapId);
       };
@@ -263,7 +261,9 @@ class StorageWorkerAPI {
 
     await Promise.all(deletePromises);
 
-    console.log(`[Worker] 🧹 Cleaned up ${mapsToDelete.length} old dungeon maps`);
+    console.log(
+      `[Worker] 🧹 Cleaned up ${mapsToDelete.length} old dungeon maps`,
+    );
     return mapsToDelete.length;
   }
 
@@ -272,7 +272,7 @@ class StorageWorkerAPI {
   // =============================================================================
 
   async saveGameState(
-    gameState: Omit<GameStateDB, 'timestamp' | 'version'> & { id: string }
+    gameState: Omit<GameStateDB, 'timestamp' | 'version'> & { id: string },
   ): Promise<void> {
     await this.ensureInit();
 
@@ -291,7 +291,10 @@ class StorageWorkerAPI {
       const existing = await this.getGameState(gameState.id);
       version = existing ? existing.version + 1 : 1;
     } catch (error) {
-      console.warn('[Worker] Could not get existing game state version:', error);
+      console.warn(
+        '[Worker] Could not get existing game state version:',
+        error,
+      );
     }
 
     const stateToSave: GameStateDB = {
@@ -308,14 +311,14 @@ class StorageWorkerAPI {
 
       const transaction = this.db.transaction(
         [this.GAMESTATE_STORE],
-        'readwrite'
+        'readwrite',
       );
       const store = transaction.objectStore(this.GAMESTATE_STORE);
       const request = store.put(stateToSave);
 
       request.onsuccess = () => {
         console.log(
-          `[Worker] 💾 Saved game state: ${gameState.id} (v${version}, ${gameState.scenes.length} scenes)`
+          `[Worker] 💾 Saved game state: ${gameState.id} (v${version}, ${gameState.scenes.length} scenes)`,
         );
         resolve();
       };
@@ -338,14 +341,14 @@ class StorageWorkerAPI {
 
       if (!this.db.objectStoreNames.contains(this.GAMESTATE_STORE)) {
         reject(
-          new Error(`Store '${this.GAMESTATE_STORE}' not found in database`)
+          new Error(`Store '${this.GAMESTATE_STORE}' not found in database`),
         );
         return;
       }
 
       const transaction = this.db.transaction(
         [this.GAMESTATE_STORE],
-        'readonly'
+        'readonly',
       );
       const store = transaction.objectStore(this.GAMESTATE_STORE);
       const request = store.get(id);
@@ -354,7 +357,7 @@ class StorageWorkerAPI {
         const result = request.result as GameStateDB | undefined;
         if (result) {
           console.log(
-            `[Worker] 📂 Loaded game state: ${id} (v${result.version}, ${result.scenes.length} scenes)`
+            `[Worker] 📂 Loaded game state: ${id} (v${result.version}, ${result.scenes.length} scenes)`,
           );
         }
         resolve(result || null);
@@ -378,7 +381,7 @@ class StorageWorkerAPI {
 
       const transaction = this.db.transaction(
         [this.GAMESTATE_STORE],
-        'readwrite'
+        'readwrite',
       );
       const store = transaction.objectStore(this.GAMESTATE_STORE);
       const request = store.delete(id);
@@ -406,7 +409,7 @@ class StorageWorkerAPI {
 
       const transaction = this.db.transaction(
         [this.GAMESTATE_STORE],
-        'readwrite'
+        'readwrite',
       );
       const store = transaction.objectStore(this.GAMESTATE_STORE);
       const request = store.clear();
@@ -449,13 +452,16 @@ class StorageWorkerAPI {
       };
 
       deleteRequest.onerror = () => {
-        console.error('[Worker] Failed to delete database:', deleteRequest.error);
+        console.error(
+          '[Worker] Failed to delete database:',
+          deleteRequest.error,
+        );
         resolve(); // Continue anyway
       };
 
       deleteRequest.onblocked = () => {
         console.warn(
-          '[Worker] Database deletion blocked, close all tabs and try again'
+          '[Worker] Database deletion blocked, close all tabs and try again',
         );
         resolve();
       };

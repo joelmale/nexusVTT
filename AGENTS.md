@@ -12,7 +12,7 @@
 
 ## Build, Test, and Dev Commands
 
-- **Installation**: `npm install` — install dependencies (requires Node 20.19.0+, npm 10.0.0+).
+- **Installation**: `npm install` — install dependencies (requires Node 26.5.0+, npm 11.0.0+).
 - **Development**:
   - `npm run dev` — start Vite dev server for client (hot reload).
   - `npm run server:dev` — start server in watch mode with tsx and dotenv.

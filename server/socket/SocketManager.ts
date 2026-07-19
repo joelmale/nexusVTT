@@ -4,6 +4,18 @@ import { v4 as uuidv4 } from 'uuid';
 import { encode, decode } from '@msgpack/msgpack';
 import { Room, Connection, ServerMessage } from '../types.js';
 import { DatabaseService } from '../database.js';
+import { parseTransportEnvelope } from '../../shared/transport.js';
+
+const CLIENT_MESSAGE_TYPES = new Set([
+  'event',
+  'error',
+  'heartbeat',
+  'update-confirmed',
+  'chat-message',
+  'game-state-patch',
+  'game-state-ack',
+  'game-state-resync-required',
+]);
 
 export class SocketManager extends EventEmitter {
   public rooms = new Map<string, Room>();
@@ -16,10 +28,15 @@ export class SocketManager extends EventEmitter {
   private readonly HEARTBEAT_INTERVAL = 30 * 1000;
   private readonly HEARTBEAT_TIMEOUT = 10 * 1000;
 
-  constructor(private wss: WebSocketServer, private db: DatabaseService) {
+  constructor(
+    private wss: WebSocketServer,
+    private db: DatabaseService,
+  ) {
     super();
     this.startHeartbeat();
-    console.log(`🔌 SocketManager initialized (MessagePack: ${this.useMessagePack})`);
+    console.log(
+      `🔌 SocketManager initialized (MessagePack: ${this.useMessagePack})`,
+    );
   }
 
   public getRoom(code: string): Room | undefined {
@@ -30,7 +47,11 @@ export class SocketManager extends EventEmitter {
     return this.connections.get(id);
   }
 
-  public addConnection(ws: WebSocket, displayName: string, existingId?: string): Connection {
+  public addConnection(
+    ws: WebSocket,
+    displayName: string,
+    existingId?: string,
+  ): Connection {
     const id = existingId || uuidv4();
     const connection: Connection = {
       id,
@@ -44,15 +65,19 @@ export class SocketManager extends EventEmitter {
     };
 
     this.connections.set(id, connection);
-    
+
     ws.on('message', (data, isBinary) => {
       try {
-        let message: ServerMessage;
+        let decodedMessage: unknown;
         if (isBinary || this.useMessagePack) {
-          message = decode(data as Buffer) as ServerMessage;
+          decodedMessage = decode(data as Buffer);
         } else {
-          message = JSON.parse(data.toString()) as ServerMessage;
+          decodedMessage = JSON.parse(data.toString()) as unknown;
         }
+        const message = parseTransportEnvelope(
+          decodedMessage,
+          CLIENT_MESSAGE_TYPES,
+        ) as ServerMessage;
         this.handleMessage(id, message);
       } catch (error) {
         console.error('Failed to parse message:', error);
@@ -84,12 +109,17 @@ export class SocketManager extends EventEmitter {
     if (!room) return;
 
     room.lastActivity = Date.now();
-    
+
     // Emit for specialized handlers
     this.emit('message', { fromId, connection, room, message });
     this.emit(message.type, { fromId, connection, room, message });
     if (message.type === 'event' && message.data?.name) {
-      this.emit(`event:${message.data.name}`, { fromId, connection, room, message });
+      this.emit(`event:${message.data.name}`, {
+        fromId,
+        connection,
+        room,
+        message,
+      });
     }
   }
 
@@ -107,11 +137,17 @@ export class SocketManager extends EventEmitter {
     this.connections.delete(id);
   }
 
-  public broadcastToRoom(roomCode: string, message: ServerMessage, excludeId?: string) {
+  public broadcastToRoom(
+    roomCode: string,
+    message: ServerMessage,
+    excludeId?: string,
+  ) {
     const room = this.rooms.get(roomCode);
     if (!room) return;
 
-    const payload = this.useMessagePack ? encode(message) : JSON.stringify(message);
+    const payload = this.useMessagePack
+      ? encode(message)
+      : JSON.stringify(message);
 
     room.connections.forEach((ws, id) => {
       if (id !== excludeId) {
@@ -125,7 +161,9 @@ export class SocketManager extends EventEmitter {
 
   public sendMessage(connection: Connection, message: ServerMessage) {
     if (connection.ws.readyState === WebSocket.OPEN) {
-      const payload = this.useMessagePack ? encode(message) : JSON.stringify(message);
+      const payload = this.useMessagePack
+        ? encode(message)
+        : JSON.stringify(message);
       connection.ws.send(payload);
     }
   }
@@ -175,7 +213,10 @@ export class SocketManager extends EventEmitter {
     }
   }
 
-  private updateConnectionQuality(connection: Connection, responseTime: number) {
+  private updateConnectionQuality(
+    connection: Connection,
+    responseTime: number,
+  ) {
     if (responseTime < 100) connection.connectionQuality = 'excellent';
     else if (responseTime < 500) connection.connectionQuality = 'good';
     else if (responseTime < 2000) connection.connectionQuality = 'poor';
@@ -184,7 +225,7 @@ export class SocketManager extends EventEmitter {
 
   public shutdown() {
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
-    this.connections.forEach(c => c.ws.close());
+    this.connections.forEach((c) => c.ws.close());
     this.rooms.clear();
     this.connections.clear();
   }

@@ -1,60 +1,82 @@
-import { AtlasSourceAdapter, PaginatedResult, AtlasAsset } from './types';
+import {
+  atlasOffset,
+  errorMessage,
+  type AtlasAsset,
+  type AtlasCursor,
+  type AtlasSourceAdapter,
+  type PaginatedResult,
+} from './types';
 import { assetManager } from '@/services/assetManager';
 
 export class MapsSourceAdapter implements AtlasSourceAdapter {
   source = 'maps' as const;
   isOffline = false;
 
-  async search(query: string, cursor?: any, _signal?: AbortSignal, category?: string): Promise<PaginatedResult> {
+  async search(
+    query: string,
+    cursor?: AtlasCursor,
+    _signal?: AbortSignal,
+    category?: string,
+  ): Promise<PaginatedResult> {
     try {
       const searchResults = await assetManager.searchAssets(query);
-      const results = category && category !== 'all'
-        ? searchResults.filter((asset: any) => asset.category === category)
-        : searchResults;
-      
-      const skip = cursor || 0;
+      const results =
+        category && category !== 'all'
+          ? searchResults.filter((asset) => asset.category === category)
+          : searchResults;
+
+      const skip = atlasOffset(cursor);
       const limit = 20;
       const page = results.slice(skip, skip + limit);
-      
-      const assets: AtlasAsset[] = page.map(a => ({
+
+      const assets: AtlasAsset[] = page.map((a) => ({
         id: `maps:${a.id}`,
         source: this.source,
         name: a.name,
         thumbnailUrl: assetManager.getThumbnailUrl(a),
         resolveFullAsset: async () => assetManager.getFullImageUrl(a),
         tags: a.tags,
-        category: a.category
+        category: a.category,
       }));
 
       this.isOffline = false;
       return {
         assets,
         hasMore: skip + limit < results.length,
-        total: results.length
+        total: results.length,
       };
-    } catch (err: any) {
-      if (err.message?.includes('fetch') || err.message?.includes('network')) {
+    } catch (error: unknown) {
+      const message = errorMessage(error);
+      if (message.includes('fetch') || message.includes('network')) {
         this.isOffline = true;
         return { assets: [], hasMore: false, total: 0 };
       }
-      throw err;
+      throw error;
     }
   }
 
-  async list(category: string, cursor?: any, _signal?: AbortSignal): Promise<PaginatedResult> {
+  async list(
+    category: string,
+    cursor?: AtlasCursor,
+    _signal?: AbortSignal,
+  ): Promise<PaginatedResult> {
     try {
-      const pageNum = cursor || 0;
+      const pageNum = atlasOffset(cursor);
       const limit = 20;
-      const result = await assetManager.getAssetsByCategory(category, pageNum, limit);
-      
-      const assets: AtlasAsset[] = result.assets.map((a: any) => ({
+      const result = await assetManager.getAssetsByCategory(
+        category,
+        pageNum,
+        limit,
+      );
+
+      const assets: AtlasAsset[] = result.assets.map((a) => ({
         id: `maps:${a.id}`,
         source: this.source,
         name: a.name,
         thumbnailUrl: assetManager.getThumbnailUrl(a),
         resolveFullAsset: async () => assetManager.getFullImageUrl(a),
         tags: a.tags,
-        category: a.category
+        category: a.category,
       }));
 
       this.isOffline = false;
@@ -62,14 +84,15 @@ export class MapsSourceAdapter implements AtlasSourceAdapter {
         assets,
         hasMore: result.hasMore,
         // using next page as cursor
-        total: result.total
+        total: result.total,
       };
-    } catch (err: any) {
-      if (err.message?.includes('fetch') || err.message?.includes('network')) {
+    } catch (error: unknown) {
+      const message = errorMessage(error);
+      if (message.includes('fetch') || message.includes('network')) {
         this.isOffline = true;
         return { assets: [], hasMore: false, total: 0 };
       }
-      throw err;
+      throw error;
     }
   }
 }

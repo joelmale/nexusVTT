@@ -160,6 +160,15 @@ scripts/output/
 coverage/
 nyc_output/
 
+# Local diagnostics and profiling output
+report.html
+report.json
+stats.html
+trace*.json
+*_screenshot.png
+*.bak[0-9]*
+*.textClipping
+
 # Cypress
 cypress/videos/
 cypress/screenshots/

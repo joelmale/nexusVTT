@@ -409,7 +409,7 @@ npm install pdfjs-dist
 ### Prerequisites
 
 - **Docker Desktop** or Docker Engine with Docker Compose v2+
-- **Node.js** 20+ (for local development)
+- **Node.js** 26.5+ (for local development)
 - **Git**
 - **8GB+ RAM** (ElasticSearch is memory-intensive)
 - **Google OAuth Credentials** (for authentication)

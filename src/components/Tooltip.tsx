@@ -1,5 +1,5 @@
 import React, { useId, useRef } from 'react';
-import '../styles/Tooltip.css';
+import './Tooltip.css';
 
 interface TooltipProps {
   text: string;
@@ -9,7 +9,7 @@ interface TooltipProps {
 
 /**
  * Modern Tooltip utilizing the native HTML Popover API.
- * This ensures the tooltip is promoted to the browser's top-layer, 
+ * This ensures the tooltip is promoted to the browser's top-layer,
  * preventing it from being clipped by overflow:hidden containers.
  */
 export const Tooltip: React.FC<TooltipProps> = React.memo(
@@ -34,7 +34,7 @@ export const Tooltip: React.FC<TooltipProps> = React.memo(
     };
 
     return (
-      <div 
+      <div
         className={`tooltip-container ${className || ''}`}
         onMouseEnter={showTooltip}
         onMouseLeave={hideTooltip}
@@ -42,7 +42,7 @@ export const Tooltip: React.FC<TooltipProps> = React.memo(
         onBlur={hideTooltip}
       >
         {children}
-        <div 
+        <div
           id={popoverId}
           popover="manual"
           ref={popoverRef}

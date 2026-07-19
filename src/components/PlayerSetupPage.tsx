@@ -8,7 +8,7 @@
  * - Import/export character data
  */
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { useCharacters } from '@/stores/characterStore';
@@ -17,7 +17,7 @@ import { QuickCharacterEntry } from './QuickCharacterEntry';
 import { CharacterImportModal } from './CharacterImportModal';
 import type { Character } from '@/types/character';
 import type { PlayerCharacter } from '@/types/game';
-import '@/styles/character-sheet-parchment.css';
+import './PlayerSetupPage.css';
 
 // Convert Character to PlayerCharacter for gameStore compatibility
 const convertCharacterToPlayerCharacter = (
@@ -77,12 +77,10 @@ export const PlayerSetupPage: React.FC = () => {
     (c) => c.id === selectedCharacterId,
   );
 
-  // Update player name when character is selected
-  useEffect(() => {
-    if (selectedCharacter) {
-      setPlayerName(selectedCharacter.name);
-    }
-  }, [selectedCharacter]);
+  const selectCharacter = (character: Character): void => {
+    setSelectedCharacterId(character.id);
+    setPlayerName(character.name);
+  };
 
   const handleJoinGame = async () => {
     if (!roomCode.trim() || roomCode.trim().length !== 4) {
@@ -163,6 +161,10 @@ export const PlayerSetupPage: React.FC = () => {
 
   const handleQuickEntryComplete = (characterId: string) => {
     setSelectedCharacterId(characterId);
+    const character = characters.find(
+      (candidate) => candidate.id === characterId,
+    );
+    if (character) setPlayerName(character.name);
     setShowQuickEntry(false);
   };
 
@@ -186,7 +188,7 @@ export const PlayerSetupPage: React.FC = () => {
           typeof b.createdAt === 'string' ? Date.parse(b.createdAt) : 0;
         return bDate - aDate;
       })[0];
-      setSelectedCharacterId(latestCharacter.id);
+      selectCharacter(latestCharacter);
     }
   };
 
@@ -343,7 +345,7 @@ export const PlayerSetupPage: React.FC = () => {
                             type="checkbox"
                             onClick={(e) => {
                               e.stopPropagation();
-                              setSelectedCharacterId(character.id);
+                              selectCharacter(character);
                             }}
                             className="character-select-checkbox"
                             title="Select this character"

@@ -17,9 +17,25 @@ import { toast } from '@/utils/notifications';
 import { applyPatch, Operation } from 'fast-json-patch';
 import { encode, decode } from '@msgpack/msgpack';
 import type { StateHash } from '../../shared/sync/contracts';
+import { parseTransportEnvelope } from '../../shared/transport';
+
+const SERVER_MESSAGE_TYPES = new Set([
+  'event',
+  'state',
+  'dice-roll',
+  'chat-message',
+  'error',
+  'heartbeat',
+  'update-confirmed',
+  'game-state-patch',
+  'game-state-ack',
+  'game-state-resync-required',
+]);
 
 const sanitizeLog = (value: unknown): string =>
-  String(value).replace(/[\r\n\t]/g, ' ').slice(0, 200);
+  String(value)
+    .replace(/[\r\n\t]/g, ' ')
+    .slice(0, 200);
 
 interface ConnectionContext {
   roomCode: string;
@@ -34,6 +50,7 @@ class WebSocketService extends EventTarget {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private messageQueue: Array<string | Uint8Array> = [];
   private connectionPromise: Promise<void> | null = null;
   /** Signature of the last game-state snapshot sent, for dedup. Reset on
@@ -152,7 +169,10 @@ class WebSocketService extends EventTarget {
           };
           // Persist to localStorage for page refresh recovery
           try {
-            localStorage.setItem('nexus-connection-context', JSON.stringify(this.connectionContext));
+            localStorage.setItem(
+              'nexus-connection-context',
+              JSON.stringify(this.connectionContext),
+            );
           } catch (error) {
             console.warn('Failed to save connection context:', error);
           }
@@ -190,12 +210,16 @@ class WebSocketService extends EventTarget {
         // Set up message handlers
         this.ws.onmessage = (event) => {
           try {
-            let message: WebSocketMessage;
+            let decodedMessage: unknown;
             if (event.data instanceof ArrayBuffer) {
-              message = decode(new Uint8Array(event.data)) as WebSocketMessage;
+              decodedMessage = decode(new Uint8Array(event.data));
             } else {
-              message = JSON.parse(event.data);
+              decodedMessage = JSON.parse(event.data) as unknown;
             }
+            const message = parseTransportEnvelope(
+              decodedMessage,
+              SERVER_MESSAGE_TYPES,
+            ) as WebSocketMessage;
             this.handleMessage(message);
           } catch (error) {
             console.error(
@@ -234,7 +258,11 @@ class WebSocketService extends EventTarget {
   }
 
   private handleMessage(message: WebSocketMessage) {
-    console.log('📨 Received WebSocket message:', sanitizeLog(message.type), message.data);
+    console.log(
+      '📨 Received WebSocket message:',
+      sanitizeLog(message.type),
+      message.data,
+    );
     const gameStore = useGameStore.getState();
 
     // Emit custom event for components to listen to
@@ -242,7 +270,11 @@ class WebSocketService extends EventTarget {
 
     switch (message.type) {
       case 'event': {
-        console.log('🎯 Processing event:', sanitizeLog(message.data.name), message.data);
+        console.log(
+          '🎯 Processing event:',
+          sanitizeLog(message.data.name),
+          message.data,
+        );
 
         // Session events will be handled by the gameStore's applyEvent method
 
@@ -392,7 +424,9 @@ class WebSocketService extends EventTarget {
               }
             });
 
-            console.log(`✅ Game state patch v${sanitizeLog(version)} applied successfully`);
+            console.log(
+              `✅ Game state patch v${sanitizeLog(version)} applied successfully`,
+            );
           }
         } catch (error) {
           console.error('❌ Failed to apply game state patch:', error);
@@ -472,6 +506,10 @@ class WebSocketService extends EventTarget {
   }
 
   private handleReconnect() {
+    if (this.reconnectTimer) {
+      return;
+    }
+
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
       const baseDelay =
@@ -491,7 +529,9 @@ class WebSocketService extends EventTarget {
         duration: delay + 5000,
       });
 
-      setTimeout(() => {
+      this.reconnectTimer = setTimeout(() => {
+        this.reconnectTimer = null;
+
         // Try to load connection context from memory or localStorage
         let context = this.connectionContext;
         if (!context) {
@@ -531,6 +571,7 @@ class WebSocketService extends EventTarget {
                 id: 'reconnect-toast',
                 description: 'Retrying...',
               });
+              this.handleReconnect();
             });
         } else {
           // Fallback to session-based reconnection (old behavior)
@@ -559,9 +600,12 @@ class WebSocketService extends EventTarget {
                   id: 'reconnect-toast',
                   description: 'Retrying...',
                 });
+                this.handleReconnect();
               });
           } else {
-            console.warn('⚠️ No connection context or session available for reconnection');
+            console.warn(
+              '⚠️ No connection context or session available for reconnection',
+            );
           }
         }
       }, delay);
@@ -698,7 +742,10 @@ class WebSocketService extends EventTarget {
       const handler = (event: Event) => {
         const customEvent = event as CustomEvent;
         const eventName = customEvent.detail?.data?.name;
-        if (eventName === 'session/created' || eventName === 'session/reconnected') {
+        if (
+          eventName === 'session/created' ||
+          eventName === 'session/reconnected'
+        ) {
           clearTimeout(timeout);
           this.removeEventListener('message', handler);
           resolve(customEvent.detail.data);
@@ -934,6 +981,10 @@ class WebSocketService extends EventTarget {
   disconnect() {
     console.log('Manually disconnecting WebSocket');
     this.stopHeartbeat();
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     if (this.ws) {
       // Use code 1000 for normal closure
       this.ws.close(1000, 'Manual disconnect');
@@ -966,6 +1017,11 @@ class WebSocketService extends EventTarget {
     } catch (error) {
       console.warn('Failed to clear cached port:', error);
     }
+  }
+
+  resetSessionEventCache(): void {
+    this.lastSessionCreatedEvent = null;
+    this.lastSessionJoinedEvent = null;
   }
 
   isConnected(): boolean {

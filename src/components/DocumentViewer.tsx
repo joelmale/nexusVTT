@@ -87,11 +87,16 @@ export const DocumentViewer: React.FC = () => {
         return;
       }
 
-      void joinDocumentSyncSession(data.documentId, data.sessionId, data.presenterId);
+      void joinDocumentSyncSession(
+        data.documentId,
+        data.sessionId,
+        data.presenterId,
+      );
     };
 
     webSocketService.addEventListener('message', handleVttMessage);
-    return () => webSocketService.removeEventListener('message', handleVttMessage);
+    return () =>
+      webSocketService.removeEventListener('message', handleVttMessage);
   }, [joinDocumentSyncSession, user.type]);
 
   useEffect(() => {
@@ -114,29 +119,32 @@ export const DocumentViewer: React.FC = () => {
   /**
    * Render a PDF page
    */
-  const renderPage = useCallback(async (pdf: PDFDocumentProxy, pageNum: number) => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
+  const renderPage = useCallback(
+    async (pdf: PDFDocumentProxy, pageNum: number) => {
+      const canvas = canvasRef.current;
+      if (!canvas) return;
 
-    const page = await pdf.getPage(pageNum);
-    const viewport = page.getViewport({ scale });
+      const page = await pdf.getPage(pageNum);
+      const viewport = page.getViewport({ scale });
 
-    // Set canvas dimensions
-    const context = canvas.getContext('2d');
-    if (!context) return;
+      // Set canvas dimensions
+      const context = canvas.getContext('2d');
+      if (!context) return;
 
-    canvas.height = viewport.height;
-    canvas.width = viewport.width;
+      canvas.height = viewport.height;
+      canvas.width = viewport.width;
 
-    // Render PDF page
-    const renderContext = {
-      canvasContext: context,
-      viewport: viewport,
-      canvas: canvas,
-    };
+      // Render PDF page
+      const renderContext = {
+        canvasContext: context,
+        viewport: viewport,
+        canvas: canvas,
+      };
 
-    await page.render(renderContext).promise;
-  }, [scale]);
+      await page.render(renderContext).promise;
+    },
+    [scale],
+  );
 
   // Load and render PDF
   useEffect(() => {
@@ -179,7 +187,11 @@ export const DocumentViewer: React.FC = () => {
   }, [currentPage, scale, totalPages, renderPage]);
 
   useEffect(() => {
-    if (!isPresenter || !isPresentationMode || currentPage === lastSyncedPageRef.current) {
+    if (
+      !isPresenter ||
+      !isPresentationMode ||
+      currentPage === lastSyncedPageRef.current
+    ) {
       return;
     }
 
@@ -192,7 +204,11 @@ export const DocumentViewer: React.FC = () => {
       return;
     }
 
-    setScale(Math.min(Math.max(syncZoomScale, 0.5), 3.0));
+    const frameId = window.requestAnimationFrame(() => {
+      setScale(Math.min(Math.max(syncZoomScale, 0.5), 3.0));
+    });
+
+    return () => window.cancelAnimationFrame(frameId);
   }, [isPresenter, scale, syncZoomScale]);
 
   useEffect(() => {
@@ -205,7 +221,10 @@ export const DocumentViewer: React.FC = () => {
       return;
     }
 
-    const maxScrollTop = Math.max(content.scrollHeight - content.clientHeight, 0);
+    const maxScrollTop = Math.max(
+      content.scrollHeight - content.clientHeight,
+      0,
+    );
     content.scrollTop = maxScrollTop * syncScrollRatio;
   }, [currentPage, isPresenter, syncScrollRatio, scale]);
 
@@ -225,7 +244,10 @@ export const DocumentViewer: React.FC = () => {
         return;
       }
 
-      const maxScrollTop = Math.max(content.scrollHeight - content.clientHeight, 0);
+      const maxScrollTop = Math.max(
+        content.scrollHeight - content.clientHeight,
+        0,
+      );
       const ratio = maxScrollTop > 0 ? content.scrollTop / maxScrollTop : 0;
       sendScrollSync(ratio);
     }, 50);
@@ -281,16 +303,25 @@ export const DocumentViewer: React.FC = () => {
 
   return (
     <div className="document-viewer-overlay" onClick={handleCloseDocument}>
-      <div className="document-viewer glass-panel" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="document-viewer glass-panel"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Header */}
         <div className="document-viewer-header">
           <div className="document-viewer-title">
             <h2>{currentDocument.title}</h2>
             {currentDocument.description && (
-              <p className="document-viewer-description">{currentDocument.description}</p>
+              <p className="document-viewer-description">
+                {currentDocument.description}
+              </p>
             )}
           </div>
-          <button className="document-viewer-close" onClick={handleCloseDocument} aria-label="Close">
+          <button
+            className="document-viewer-close"
+            onClick={handleCloseDocument}
+            aria-label="Close"
+          >
             ✕
           </button>
         </div>
@@ -323,14 +354,26 @@ export const DocumentViewer: React.FC = () => {
 
             {/* Zoom */}
             <div className="toolbar-group">
-              <button onClick={handleZoomOut} className="toolbar-btn" aria-label="Zoom out">
+              <button
+                onClick={handleZoomOut}
+                className="toolbar-btn"
+                aria-label="Zoom out"
+              >
                 −
               </button>
               <span className="zoom-indicator">{Math.round(scale * 100)}%</span>
-              <button onClick={handleZoomIn} className="toolbar-btn" aria-label="Zoom in">
+              <button
+                onClick={handleZoomIn}
+                className="toolbar-btn"
+                aria-label="Zoom in"
+              >
                 +
               </button>
-              <button onClick={handleZoomReset} className="toolbar-btn" aria-label="Reset zoom">
+              <button
+                onClick={handleZoomReset}
+                className="toolbar-btn"
+                aria-label="Reset zoom"
+              >
                 100%
               </button>
             </div>
@@ -344,14 +387,18 @@ export const DocumentViewer: React.FC = () => {
                   aria-pressed={isPresentationMode}
                   disabled={!documentSessionId}
                 >
-                  {isPresentationMode ? 'Presentation Mode' : 'Sync View to Players'}
+                  {isPresentationMode
+                    ? 'Presentation Mode'
+                    : 'Sync View to Players'}
                 </button>
               </div>
             )}
 
             {!isHost && documentSessionId && (
               <div className="toolbar-group">
-                <StatusBadge status="success">Synced with Presenter</StatusBadge>
+                <StatusBadge status="success">
+                  Synced with Presenter
+                </StatusBadge>
               </div>
             )}
 
@@ -395,7 +442,8 @@ export const DocumentViewer: React.FC = () => {
             <div className="pdf-canvas-container">
               <canvas ref={canvasRef} className="pdf-canvas" />
             </div>
-          ) : currentDocument.format === 'markdown' || currentDocument.format === 'html' ? (
+          ) : currentDocument.format === 'markdown' ||
+            currentDocument.format === 'html' ? (
             <iframe
               src={currentDocumentContent || ''}
               className="document-iframe"

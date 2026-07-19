@@ -7,7 +7,7 @@
 
 import { wrap, Remote } from 'comlink';
 import type { StorageWorkerAPI } from '../workers/storageWorker';
-import type { DungeonMapDB, GameStateDB, StorageStats } from './indexedDB';
+import type { DungeonMapDB, GameStateDB, StorageStats } from '@/types/storage';
 
 class StorageWorkerClient {
   private worker: Worker | null = null;
@@ -28,7 +28,7 @@ class StorageWorkerClient {
         // Create the worker
         this.worker = new Worker(
           new URL('../workers/storageWorker.ts', import.meta.url),
-          { type: 'module' }
+          { type: 'module' },
         );
 
         // Wrap it with Comlink
@@ -100,7 +100,7 @@ class StorageWorkerClient {
   // =============================================================================
 
   async saveGameState(
-    gameState: Omit<GameStateDB, 'timestamp' | 'version'> & { id: string }
+    gameState: Omit<GameStateDB, 'timestamp' | 'version'> & { id: string },
   ): Promise<void> {
     const api = await this.ensureInit();
     return api.saveGameState(gameState);

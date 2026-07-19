@@ -23,27 +23,17 @@ import { webSocketService } from '@/services/websocket';
 import { clipboardService } from '@/services/clipboardService';
 import {
   distance,
-  isPointNearLine,
   isPointInRectangle,
-  isPointInPolygon,
   isPointInCircle,
   gridSnap,
 } from '@/utils/mathUtils';
 import { sceneUtils } from '@/utils/sceneUtils';
 import { tokenAssetManager } from '@/services/tokenAssets';
 import { getTokenPixelSize } from '@/types/token';
-
-const rotatePoint = (target: Point, origin: Point, angleDeg: number): Point => {
-  const angleRad = (angleDeg * Math.PI) / 180;
-  const cos = Math.cos(angleRad);
-  const sin = Math.sin(angleRad);
-  const dx = target.x - origin.x;
-  const dy = target.y - origin.y;
-  return {
-    x: origin.x + dx * cos - dy * sin,
-    y: origin.y + dx * sin + dy * cos,
-  };
-};
+import {
+  getDrawingIdsAtPoint,
+  getDrawingIdsInSelection,
+} from './drawingHitTesting';
 
 interface DrawingToolsProps {
   activeTool: DrawingInteractionTool;
@@ -107,7 +97,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
   const [gridAlignPoints, setGridAlignPoints] = useState<Point[]>([]);
   const [gridAlignMode, setGridAlignMode] = useState<
     'waiting-first' | 'waiting-second' | 'fine-tuning' | null
-  >(null);
+  >(activeTool === 'grid-align' ? 'waiting-first' : null);
   const [fineTuningOffset, setFineTuningOffset] = useState<{
     x: number;
     y: number;
@@ -274,204 +264,15 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
     }
   }, [activeTool, handleCopy, handleCut, handlePaste]);
 
-  // Initialize grid alignment mode when tool is activated
-  useEffect(() => {
-    if (activeTool === 'grid-align') {
-      setGridAlignMode('waiting-first');
-      setGridAlignPoints([]);
-      setFineTuningOffset(null);
-    } else {
-      // Clean up when switching away from grid-align tool
-      setGridAlignMode(null);
-      setGridAlignPoints([]);
-      setFineTuningOffset(null);
-    }
-  }, [activeTool]);
-
   // Get drawings that intersect with a point (for eraser and selection)
   const getDrawingsAtPoint = useCallback(
-    (point: Point, radius: number = 5): string[] => {
-      if (!activeScene) return [];
-
-      const intersectedDrawings: string[] = [];
-
-      activeScene.drawings.forEach((drawing) => {
-        // Filter: non-hosts can only select their own drawings
-        if (!isHost && drawing.createdBy !== user.id) {
-          return;
-        }
-
-        let intersects = false;
-
-        switch (drawing.type) {
-          case 'line': {
-            intersects = isPointNearLine(
-              point,
-              drawing.start,
-              drawing.end,
-              radius,
-            );
-            break;
-          }
-          case 'rectangle': {
-            intersects = isPointInRectangle(
-              point,
-              {
-                x: drawing.x,
-                y: drawing.y,
-                width: drawing.width,
-                height: drawing.height,
-              },
-              radius,
-            );
-            break;
-          }
-          case 'circle': {
-            intersects = isPointInCircle(
-              point,
-              drawing.center,
-              drawing.radius + radius,
-            );
-            break;
-          }
-          case 'pencil': {
-            intersects = drawing.points.some((p) =>
-              isPointInCircle(point, p, radius),
-            );
-            break;
-          }
-          case 'polygon': {
-            intersects =
-              isPointInPolygon(point, drawing.points) ||
-              drawing.points.some((p) => isPointInCircle(point, p, radius));
-            break;
-          }
-          case 'cone': {
-            // Check if point is within the cone's bounding area
-            const dx = point.x - drawing.origin.x;
-            const dy = point.y - drawing.origin.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            // Check if click is within the cone's area
-            if (distance <= drawing.length + radius) {
-              const clickAngle = (Math.atan2(dy, dx) * 180) / Math.PI;
-              const angleDiff = Math.abs(
-                ((clickAngle - drawing.direction + 180) % 360) - 180,
-              );
-              const halfConeAngle = drawing.angle / 2;
-              intersects = angleDiff <= halfConeAngle + 30; // Add 30° tolerance
-            }
-            break;
-          }
-          case 'spell-circle': {
-            intersects = isPointInCircle(
-              point,
-              drawing.center,
-              drawing.radius + radius,
-            );
-            break;
-          }
-          case 'spell-ring': {
-            const inOuter = isPointInCircle(
-              point,
-              drawing.center,
-              drawing.outerRadius + radius,
-            );
-            const innerRadius = Math.max(0, drawing.innerRadius - radius);
-            const inInner = isPointInCircle(point, drawing.center, innerRadius);
-            intersects = inOuter && !inInner;
-            break;
-          }
-          case 'spell-cone': {
-            const dx = point.x - drawing.origin.x;
-            const dy = point.y - drawing.origin.y;
-            const distance = Math.sqrt(dx * dx + dy * dy);
-
-            if (distance <= drawing.length + radius) {
-              const clickAngle = (Math.atan2(dy, dx) * 180) / Math.PI;
-              const angleDiff = Math.abs(
-                ((clickAngle - drawing.direction + 180) % 360) - 180,
-              );
-              const halfConeAngle = drawing.angle / 2;
-              intersects = angleDiff <= halfConeAngle + 5;
-            }
-            break;
-          }
-          case 'spell-line': {
-            intersects = isPointNearLine(
-              point,
-              drawing.start,
-              drawing.end,
-              drawing.width / 2 + radius,
-            );
-            break;
-          }
-          case 'spell-square': {
-            const rotation = drawing.rotation || 0;
-            const adjustedPoint =
-              rotation !== 0
-                ? rotatePoint(point, drawing.origin, -rotation)
-                : point;
-            const halfSize = drawing.size / 2;
-            intersects = isPointInRectangle(
-              adjustedPoint,
-              {
-                x: drawing.origin.x - halfSize,
-                y: drawing.origin.y - halfSize,
-                width: drawing.size,
-                height: drawing.size,
-              },
-              radius,
-            );
-            break;
-          }
-          case 'spell-triangle': {
-            const angleRad = (drawing.direction * Math.PI) / 180;
-            const baseCenterX =
-              drawing.origin.x + Math.cos(angleRad) * drawing.length;
-            const baseCenterY =
-              drawing.origin.y + Math.sin(angleRad) * drawing.length;
-            const halfWidth = drawing.width / 2;
-            const perpAngle = angleRad + Math.PI / 2;
-            const cos = Math.cos(perpAngle);
-            const sin = Math.sin(perpAngle);
-            const baseLeft = {
-              x: baseCenterX + cos * halfWidth,
-              y: baseCenterY + sin * halfWidth,
-            };
-            const baseRight = {
-              x: baseCenterX - cos * halfWidth,
-              y: baseCenterY - sin * halfWidth,
-            };
-            const trianglePoints = [drawing.origin, baseLeft, baseRight];
-            intersects =
-              isPointInPolygon(point, trianglePoints) ||
-              trianglePoints.some((p) => isPointInCircle(point, p, radius));
-            break;
-          }
-          case 'text':
-          case 'ping': {
-            // Check if point is near the text/ping position
-            intersects = isPointInCircle(point, drawing.position, radius + 15);
-            break;
-          }
-          case 'fog-of-war': {
-            intersects =
-              isPointInPolygon(point, drawing.area) ||
-              drawing.area.some((p) => isPointInCircle(point, p, radius));
-            break;
-          }
-          default:
-            break;
-        }
-
-        if (intersects) {
-          intersectedDrawings.push(drawing.id);
-        }
-      });
-
-      return intersectedDrawings;
-    },
+    (point: Point, radius = 5): string[] =>
+      activeScene
+        ? getDrawingIdsAtPoint(activeScene.drawings, point, radius, {
+            isHost,
+            userId: user.id,
+          })
+        : [],
     [activeScene, isHost, user.id],
   );
 
@@ -571,146 +372,10 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
 
   // Get drawings in selection box
   const getDrawingsInSelection = useCallback(
-    (start: Point, end: Point): string[] => {
-      if (!activeScene) return [];
-
-      const minX = Math.min(start.x, end.x);
-      const maxX = Math.max(start.x, end.x);
-      const minY = Math.min(start.y, end.y);
-      const maxY = Math.max(start.y, end.y);
-
-      return activeScene.drawings
-        .filter((drawing) => {
-          switch (drawing.type) {
-            case 'line':
-              return (
-                (drawing.start.x >= minX &&
-                  drawing.start.x <= maxX &&
-                  drawing.start.y >= minY &&
-                  drawing.start.y <= maxY) ||
-                (drawing.end.x >= minX &&
-                  drawing.end.x <= maxX &&
-                  drawing.end.y >= minY &&
-                  drawing.end.y <= maxY)
-              );
-            case 'rectangle':
-              return !(
-                drawing.x + drawing.width < minX ||
-                drawing.x > maxX ||
-                drawing.y + drawing.height < minY ||
-                drawing.y > maxY
-              );
-            case 'circle':
-              return (
-                drawing.center.x >= minX &&
-                drawing.center.x <= maxX &&
-                drawing.center.y >= minY &&
-                drawing.center.y <= maxY
-              );
-            case 'pencil':
-              return drawing.points.some(
-                (p) => p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY,
-              );
-            case 'polygon':
-              return drawing.points.some(
-                (p) => p.x >= minX && p.x <= maxX && p.y >= minY && p.y <= maxY,
-              );
-            case 'cone': {
-              // Check if cone origin is in selection box
-              const originInBox =
-                drawing.origin.x >= minX &&
-                drawing.origin.x <= maxX &&
-                drawing.origin.y >= minY &&
-                drawing.origin.y <= maxY;
-
-              // Also check if cone's end point is in selection box
-              const directionRad = (drawing.direction * Math.PI) / 180;
-              const endX =
-                drawing.origin.x + Math.cos(directionRad) * drawing.length;
-              const endY =
-                drawing.origin.y + Math.sin(directionRad) * drawing.length;
-              const endInBox =
-                endX >= minX && endX <= maxX && endY >= minY && endY <= maxY;
-
-              return originInBox || endInBox;
-            }
-            case 'spell-circle':
-              return (
-                drawing.center.x >= minX &&
-                drawing.center.x <= maxX &&
-                drawing.center.y >= minY &&
-                drawing.center.y <= maxY
-              );
-            case 'spell-ring':
-              return (
-                drawing.center.x >= minX &&
-                drawing.center.x <= maxX &&
-                drawing.center.y >= minY &&
-                drawing.center.y <= maxY
-              );
-            case 'spell-cone': {
-              const originInBox =
-                drawing.origin.x >= minX &&
-                drawing.origin.x <= maxX &&
-                drawing.origin.y >= minY &&
-                drawing.origin.y <= maxY;
-              const directionRad = (drawing.direction * Math.PI) / 180;
-              const endX =
-                drawing.origin.x + Math.cos(directionRad) * drawing.length;
-              const endY =
-                drawing.origin.y + Math.sin(directionRad) * drawing.length;
-              const endInBox =
-                endX >= minX && endX <= maxX && endY >= minY && endY <= maxY;
-              return originInBox || endInBox;
-            }
-            case 'spell-line': {
-              return (
-                (drawing.start.x >= minX &&
-                  drawing.start.x <= maxX &&
-                  drawing.start.y >= minY &&
-                  drawing.start.y <= maxY) ||
-                (drawing.end.x >= minX &&
-                  drawing.end.x <= maxX &&
-                  drawing.end.y >= minY &&
-                  drawing.end.y <= maxY)
-              );
-            }
-            case 'spell-square':
-              return !(
-                drawing.origin.x + drawing.size / 2 < minX ||
-                drawing.origin.x - drawing.size / 2 > maxX ||
-                drawing.origin.y + drawing.size / 2 < minY ||
-                drawing.origin.y - drawing.size / 2 > maxY
-              );
-            case 'spell-triangle': {
-              const originInBox =
-                drawing.origin.x >= minX &&
-                drawing.origin.x <= maxX &&
-                drawing.origin.y >= minY &&
-                drawing.origin.y <= maxY;
-              const directionRad = (drawing.direction * Math.PI) / 180;
-              const endX =
-                drawing.origin.x + Math.cos(directionRad) * drawing.length;
-              const endY =
-                drawing.origin.y + Math.sin(directionRad) * drawing.length;
-              const endInBox =
-                endX >= minX && endX <= maxX && endY >= minY && endY <= maxY;
-              return originInBox || endInBox;
-            }
-            case 'text':
-            case 'ping':
-              return (
-                drawing.position.x >= minX &&
-                drawing.position.x <= maxX &&
-                drawing.position.y >= minY &&
-                drawing.position.y <= maxY
-              );
-            default:
-              return false;
-          }
-        })
-        .map((d) => d.id);
-    },
+    (start: Point, end: Point): string[] =>
+      activeScene
+        ? getDrawingIdsInSelection(activeScene.drawings, start, end)
+        : [],
     [activeScene],
   );
 
@@ -773,8 +438,7 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
               const canEditToken =
                 isHost || (token && token.placedBy === user.id);
               const canDrag =
-                !isMultiSelectModifier ||
-                selectedObjectIds.includes(tokenId);
+                !isMultiSelectModifier || selectedObjectIds.includes(tokenId);
               if (canEditToken && canDrag) {
                 dragEntityRef.current = {
                   type: 'token',
@@ -784,11 +448,9 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
               }
             } else if (activeScene && propId && propId === objectToSelect) {
               const prop = placedProps.find((p) => p.id === propId);
-              const canEditProp =
-                isHost || (prop && prop.placedBy === user.id);
+              const canEditProp = isHost || (prop && prop.placedBy === user.id);
               const canDrag =
-                !isMultiSelectModifier ||
-                selectedObjectIds.includes(propId);
+                !isMultiSelectModifier || selectedObjectIds.includes(propId);
               if (canEditProp && canDrag) {
                 dragEntityRef.current = {
                   type: 'prop',
@@ -1022,7 +684,10 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
             `;
             document.body.appendChild(notification);
             setTimeout(() => notification.remove(), 3000);
-          } else if (gridAlignMode === 'waiting-second' && gridAlignPoints.length === 1) {
+          } else if (
+            gridAlignMode === 'waiting-second' &&
+            gridAlignPoints.length === 1
+          ) {
             // Second click - calculate grid size and offset
             const firstPoint = gridAlignPoints[0];
             const secondPoint = point;
@@ -1455,11 +1120,20 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                 pulseIntensity: theme.pulseIntensity,
                 gridSnap: spellGridSnap,
               };
-              return { ...baseDrawing, type: 'spell-circle', center: startPoint, radius, style: spellStyle };
+              return {
+                ...baseDrawing,
+                type: 'spell-circle',
+                center: startPoint,
+                radius,
+                style: spellStyle,
+              };
             },
             'spell-ring': () => {
               const outerRadius = distance(startPoint, endPoint);
-              const thickness = Math.max(15, Math.min(60, 15 + outerRadius * 0.1));
+              const thickness = Math.max(
+                15,
+                Math.min(60, 15 + outerRadius * 0.1),
+              );
               const innerRadius = Math.max(0, outerRadius - thickness);
               const theme = ELEMENT_THEMES[spellElementType];
               const spellStyle: SpellOverlayStyle = {
@@ -1471,12 +1145,24 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                 pulseIntensity: theme.pulseIntensity,
                 gridSnap: spellGridSnap,
               };
-              return { ...baseDrawing, type: 'spell-ring', center: startPoint, outerRadius, innerRadius, style: spellStyle };
+              return {
+                ...baseDrawing,
+                type: 'spell-ring',
+                center: startPoint,
+                outerRadius,
+                innerRadius,
+                style: spellStyle,
+              };
             },
             'spell-cone': () => {
               const length = distance(startPoint, endPoint);
               const direction =
-                (Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x) * 180) / Math.PI;
+                (Math.atan2(
+                  endPoint.y - startPoint.y,
+                  endPoint.x - startPoint.x,
+                ) *
+                  180) /
+                Math.PI;
               const theme = ELEMENT_THEMES[spellElementType];
               const spellStyle: SpellOverlayStyle = {
                 ...drawingStyle,
@@ -1487,7 +1173,15 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                 pulseIntensity: theme.pulseIntensity,
                 gridSnap: spellGridSnap,
               };
-              return { ...baseDrawing, type: 'spell-cone', origin: startPoint, direction, length, angle: 90, style: spellStyle };
+              return {
+                ...baseDrawing,
+                type: 'spell-cone',
+                origin: startPoint,
+                direction,
+                length,
+                angle: 90,
+                style: spellStyle,
+              };
             },
             'spell-line': () => {
               const theme = ELEMENT_THEMES[spellElementType];
@@ -1501,7 +1195,14 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                 pulseIntensity: theme.pulseIntensity,
                 gridSnap: spellGridSnap,
               };
-              return { ...baseDrawing, type: 'spell-line', start: startPoint, end: endPoint, width, style: spellStyle };
+              return {
+                ...baseDrawing,
+                type: 'spell-line',
+                start: startPoint,
+                end: endPoint,
+                width,
+                style: spellStyle,
+              };
             },
             'spell-square': () => {
               const size = distance(startPoint, endPoint);
@@ -1515,12 +1216,24 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                 pulseIntensity: theme.pulseIntensity,
                 gridSnap: spellGridSnap,
               };
-              return { ...baseDrawing, type: 'spell-square', origin: startPoint, size, rotation: 0, style: spellStyle };
+              return {
+                ...baseDrawing,
+                type: 'spell-square',
+                origin: startPoint,
+                size,
+                rotation: 0,
+                style: spellStyle,
+              };
             },
             'spell-triangle': () => {
               const length = distance(startPoint, endPoint);
               const direction =
-                (Math.atan2(endPoint.y - startPoint.y, endPoint.x - startPoint.x) * 180) / Math.PI;
+                (Math.atan2(
+                  endPoint.y - startPoint.y,
+                  endPoint.x - startPoint.x,
+                ) *
+                  180) /
+                Math.PI;
               const width = length * 0.8;
               const theme = ELEMENT_THEMES[spellElementType];
               const spellStyle: SpellOverlayStyle = {
@@ -1532,7 +1245,15 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
                 pulseIntensity: theme.pulseIntensity,
                 gridSnap: spellGridSnap,
               };
-              return { ...baseDrawing, type: 'spell-triangle', origin: startPoint, direction, length, width, style: spellStyle };
+              return {
+                ...baseDrawing,
+                type: 'spell-triangle',
+                origin: startPoint,
+                direction,
+                length,
+                width,
+                style: spellStyle,
+              };
             },
           };
 
@@ -1865,7 +1586,8 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
         // Update offset if arrow key was pressed
         if (
           e.key.startsWith('Arrow') &&
-          (newOffsetX !== fineTuningOffset.x || newOffsetY !== fineTuningOffset.y)
+          (newOffsetX !== fineTuningOffset.x ||
+            newOffsetY !== fineTuningOffset.y)
         ) {
           setFineTuningOffset({ x: newOffsetX, y: newOffsetY });
 
@@ -2155,7 +1877,8 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
               textAnchor="middle"
               pointerEvents="none"
               style={{
-                textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
+                textShadow:
+                  '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
               }}
             >
               {radiusFeet.toFixed(0)} ft radius
@@ -2226,10 +1949,12 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
               textAnchor="middle"
               pointerEvents="none"
               style={{
-                textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
+                textShadow:
+                  '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
               }}
             >
-              {radiusFeet.toFixed(0)} ft ring ({thicknessFeet.toFixed(0)} ft thick)
+              {radiusFeet.toFixed(0)} ft ring ({thicknessFeet.toFixed(0)} ft
+              thick)
             </text>
           </>
         );
@@ -2238,14 +1963,24 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
       case 'spell-cone': {
         const length = distance(startPoint, currentPoint);
         const lengthFeet = (length / _gridSize) * 5;
-        const direction = (Math.atan2(currentPoint.y - startPoint.y, currentPoint.x - startPoint.x) * 180) / Math.PI;
+        const direction =
+          (Math.atan2(
+            currentPoint.y - startPoint.y,
+            currentPoint.x - startPoint.x,
+          ) *
+            180) /
+          Math.PI;
         const angleRad = (direction * Math.PI) / 180;
         const coneAngleRad = (90 * Math.PI) / 180; // 90-degree cone
 
-        const leftX = startPoint.x + Math.cos(angleRad - coneAngleRad / 2) * length;
-        const leftY = startPoint.y + Math.sin(angleRad - coneAngleRad / 2) * length;
-        const rightX = startPoint.x + Math.cos(angleRad + coneAngleRad / 2) * length;
-        const rightY = startPoint.y + Math.sin(angleRad + coneAngleRad / 2) * length;
+        const leftX =
+          startPoint.x + Math.cos(angleRad - coneAngleRad / 2) * length;
+        const leftY =
+          startPoint.y + Math.sin(angleRad - coneAngleRad / 2) * length;
+        const rightX =
+          startPoint.x + Math.cos(angleRad + coneAngleRad / 2) * length;
+        const rightY =
+          startPoint.y + Math.sin(angleRad + coneAngleRad / 2) * length;
 
         const pathData = `M ${startPoint.x} ${startPoint.y} L ${leftX} ${leftY} A ${length} ${length} 0 0 1 ${rightX} ${rightY} Z`;
         const labelX = startPoint.x + Math.cos(angleRad) * length;
@@ -2271,7 +2006,8 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
               textAnchor="middle"
               pointerEvents="none"
               style={{
-                textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
+                textShadow:
+                  '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
               }}
             >
               {lengthFeet.toFixed(0)} ft cone
@@ -2281,16 +2017,31 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
       }
 
       case 'spell-line': {
-        const angle = Math.atan2(currentPoint.y - startPoint.y, currentPoint.x - startPoint.x);
+        const angle = Math.atan2(
+          currentPoint.y - startPoint.y,
+          currentPoint.x - startPoint.x,
+        );
         const width = _gridSize || 50; // 5ft width
         const halfWidth = width / 2;
         const cos = Math.cos(angle + Math.PI / 2);
         const sin = Math.sin(angle + Math.PI / 2);
 
-        const p1 = { x: startPoint.x + cos * halfWidth, y: startPoint.y + sin * halfWidth };
-        const p2 = { x: startPoint.x - cos * halfWidth, y: startPoint.y - sin * halfWidth };
-        const p3 = { x: currentPoint.x - cos * halfWidth, y: currentPoint.y - sin * halfWidth };
-        const p4 = { x: currentPoint.x + cos * halfWidth, y: currentPoint.y + sin * halfWidth };
+        const p1 = {
+          x: startPoint.x + cos * halfWidth,
+          y: startPoint.y + sin * halfWidth,
+        };
+        const p2 = {
+          x: startPoint.x - cos * halfWidth,
+          y: startPoint.y - sin * halfWidth,
+        };
+        const p3 = {
+          x: currentPoint.x - cos * halfWidth,
+          y: currentPoint.y - sin * halfWidth,
+        };
+        const p4 = {
+          x: currentPoint.x + cos * halfWidth,
+          y: currentPoint.y + sin * halfWidth,
+        };
 
         const pathData = `M ${p1.x} ${p1.y} L ${p2.x} ${p2.y} L ${p3.x} ${p3.y} L ${p4.x} ${p4.y} Z`;
         const lengthFeet = (distance(startPoint, currentPoint) / _gridSize) * 5;
@@ -2317,7 +2068,8 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
               textAnchor="middle"
               pointerEvents="none"
               style={{
-                textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
+                textShadow:
+                  '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
               }}
             >
               {lengthFeet.toFixed(0)} ft × 5 ft
@@ -2354,7 +2106,8 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
               textAnchor="middle"
               pointerEvents="none"
               style={{
-                textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
+                textShadow:
+                  '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
               }}
             >
               {sizeFeet.toFixed(0)} ft cube
@@ -2366,7 +2119,13 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
       case 'spell-triangle': {
         const length = distance(startPoint, currentPoint);
         const lengthFeet = (length / _gridSize) * 5;
-        const direction = (Math.atan2(currentPoint.y - startPoint.y, currentPoint.x - startPoint.x) * 180) / Math.PI;
+        const direction =
+          (Math.atan2(
+            currentPoint.y - startPoint.y,
+            currentPoint.x - startPoint.x,
+          ) *
+            180) /
+          Math.PI;
         const angleRad = (direction * Math.PI) / 180;
         const width = length * 0.8;
         const halfWidth = width / 2;
@@ -2377,8 +2136,14 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
         const cos = Math.cos(perpAngle);
         const sin = Math.sin(perpAngle);
 
-        const baseLeft = { x: baseCenterX + cos * halfWidth, y: baseCenterY + sin * halfWidth };
-        const baseRight = { x: baseCenterX - cos * halfWidth, y: baseCenterY - sin * halfWidth };
+        const baseLeft = {
+          x: baseCenterX + cos * halfWidth,
+          y: baseCenterY + sin * halfWidth,
+        };
+        const baseRight = {
+          x: baseCenterX - cos * halfWidth,
+          y: baseCenterY - sin * halfWidth,
+        };
 
         const pathData = `M ${startPoint.x} ${startPoint.y} L ${baseLeft.x} ${baseLeft.y} L ${baseRight.x} ${baseRight.y} Z`;
         const labelX = startPoint.x + Math.cos(angleRad) * (length * 0.6);
@@ -2404,7 +2169,8 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
               textAnchor="middle"
               pointerEvents="none"
               style={{
-                textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
+                textShadow:
+                  '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
               }}
             >
               {lengthFeet.toFixed(0)} ft wedge
@@ -2510,8 +2276,10 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
     }
 
     const gridSize = activeScene.gridSettings.size || 50;
-    const offsetX = fineTuningOffset?.x ?? activeScene.gridSettings.offsetX ?? 0;
-    const offsetY = fineTuningOffset?.y ?? activeScene.gridSettings.offsetY ?? 0;
+    const offsetX =
+      fineTuningOffset?.x ?? activeScene.gridSettings.offsetX ?? 0;
+    const offsetY =
+      fineTuningOffset?.y ?? activeScene.gridSettings.offsetY ?? 0;
 
     // Calculate visible grid intersections based on current viewport
     // Use fallback values if ref not yet initialized
@@ -2524,17 +2292,29 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
 
     // Calculate grid intersection points in viewport
     const gridIntersections: Point[] = [];
-    const gridLeft = Math.floor((worldLeft - offsetX) / gridSize) * gridSize + offsetX;
-    const gridTop = Math.floor((worldTop - offsetY) / gridSize) * gridSize + offsetY;
-    const gridRight = Math.ceil((worldRight - offsetX) / gridSize) * gridSize + offsetX;
-    const gridBottom = Math.ceil((worldBottom - offsetY) / gridSize) * gridSize + offsetY;
+    const gridLeft =
+      Math.floor((worldLeft - offsetX) / gridSize) * gridSize + offsetX;
+    const gridTop =
+      Math.floor((worldTop - offsetY) / gridSize) * gridSize + offsetY;
+    const gridRight =
+      Math.ceil((worldRight - offsetX) / gridSize) * gridSize + offsetX;
+    const gridBottom =
+      Math.ceil((worldBottom - offsetY) / gridSize) * gridSize + offsetY;
 
     // Limit the number of crosshairs to avoid performance issues
     const maxCrosshairs = 100;
     let count = 0;
 
-    for (let x = gridLeft; x <= gridRight && count < maxCrosshairs; x += gridSize) {
-      for (let y = gridTop; y <= gridBottom && count < maxCrosshairs; y += gridSize) {
+    for (
+      let x = gridLeft;
+      x <= gridRight && count < maxCrosshairs;
+      x += gridSize
+    ) {
+      for (
+        let y = gridTop;
+        y <= gridBottom && count < maxCrosshairs;
+        y += gridSize
+      ) {
         gridIntersections.push({ x, y });
         count++;
       }
@@ -2546,7 +2326,8 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
     return (
       <>
         {/* Render crosshairs at grid intersections (only when waiting for click) */}
-        {(gridAlignMode === 'waiting-first' || gridAlignMode === 'waiting-second') &&
+        {(gridAlignMode === 'waiting-first' ||
+          gridAlignMode === 'waiting-second') &&
           gridIntersections.map((point, index) => (
             <g key={`crosshair-${index}`} opacity={0.4}>
               {/* Horizontal line */}
@@ -2603,7 +2384,8 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
               textAnchor="middle"
               pointerEvents="none"
               style={{
-                textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
+                textShadow:
+                  '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
               }}
             >
               Point {index + 1}
@@ -2629,14 +2411,17 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
               {/* Distance label */}
               <text
                 x={(gridAlignPoints[0].x + currentPoint.x) / 2}
-                y={(gridAlignPoints[0].y + currentPoint.y) / 2 - 10 / camera.zoom}
+                y={
+                  (gridAlignPoints[0].y + currentPoint.y) / 2 - 10 / camera.zoom
+                }
                 fill="#00bcd4"
                 fontSize={12 / camera.zoom}
                 fontWeight="bold"
                 textAnchor="middle"
                 pointerEvents="none"
                 style={{
-                  textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
+                  textShadow:
+                    '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(0,188,212,0.5)',
                 }}
               >
                 {distance(gridAlignPoints[0], currentPoint).toFixed(0)}px
@@ -2655,18 +2440,22 @@ const DrawingToolsComponent: React.FC<DrawingToolsProps> = ({
             textAnchor="middle"
             pointerEvents="none"
             style={{
-              textShadow: '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(76,175,80,0.5)',
+              textShadow:
+                '0 0 4px rgba(0,0,0,0.8), 0 0 8px rgba(76,175,80,0.5)',
             }}
           >
-            ⌨️ Fine-Tuning Mode - Use arrow keys to adjust (Enter to confirm, Esc to
-            cancel)
+            ⌨️ Fine-Tuning Mode - Use arrow keys to adjust (Enter to confirm,
+            Esc to cancel)
           </text>
         )}
       </>
     );
   };
 
-  const shouldRenderInteractionLayer = !['pan' as const, 'move' as const].includes(activeTool as 'pan' | 'move');
+  const shouldRenderInteractionLayer = ![
+    'pan' as const,
+    'move' as const,
+  ].includes(activeTool as 'pan' | 'move');
 
   return (
     <g className="drawing-tools">

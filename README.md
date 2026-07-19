@@ -119,6 +119,8 @@ npm run preview         # Preview built frontend
 npm run test            # All tests
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
+npm run test:e2e        # Production Docker + Playwright smoke tests
+npm run test:e2e:headed # Smoke tests with a visible Chromium window
 npm run test:ci         # Full CI pipeline (lint + type-check + tests)
 npm run test:coverage   # Coverage report
 ```
@@ -150,7 +152,7 @@ npm run docker:dev:down     # Stop dev environment
 
 ## 🧪 Testing Setup
 
-- **Framework:** Vitest with Testing Library
+- **Frameworks:** Vitest with Testing Library; Playwright for browser smoke tests
 - **Mocks:** WebSocket, IndexedDB, localStorage, sessionStorage
 - **Coverage:** 20% lines, 18% functions, 16% branches, 20% statements
 - **Environment:** jsdom with custom setup
@@ -159,7 +161,8 @@ npm run docker:dev:down     # Stop dev environment
 
 - **Unit Tests:** Component and utility tests
 - **Integration Tests:** Database operations and API endpoints
-- **End-to-End Tests:** Full user workflows
+- **End-to-End Tests:** Production containers, service recovery, PWA offline
+  reloads, WebSocket reconnection, and dice runtime assets
 
 ## 🛡️ Security
 
@@ -294,8 +297,8 @@ MIT - see [LICENSE](./LICENSE).
 
 ### Prerequisites
 
-- Node.js 20.19.0+
-- npm 10.0.0+
+- Node.js 26.5.0+
+- npm 11.0.0+
 - Docker Desktop
 - PostgreSQL client (optional)
 
