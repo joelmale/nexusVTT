@@ -15,7 +15,10 @@ type HandlerPayload = {
   message: ServerEventMessage;
 };
 
-function makeConnection(id: string, type: 'host' | 'player' = 'player'): Connection {
+function makeConnection(
+  id: string,
+  type: 'host' | 'player' = 'player',
+): Connection {
   return {
     id,
     ws: { close: vi.fn(), terminate: vi.fn(), readyState: 1 },
@@ -44,7 +47,11 @@ function makeRoom(host: string): Room {
 function createHarness() {
   const handlers = new Map<string, (payload: HandlerPayload) => void>();
   const sent: Array<{ connection: Connection; message: ServerMessage }> = [];
-  const broadcasts: Array<{ code: string; message: ServerMessage; excludeId?: string }> = [];
+  const broadcasts: Array<{
+    code: string;
+    message: ServerMessage;
+    excludeId?: string;
+  }> = [];
 
   const socketManager = {
     connections: new Map<string, Connection>(),
@@ -54,8 +61,25 @@ function createHarness() {
     sendMessage: (connection: Connection, message: ServerMessage) => {
       sent.push({ connection, message });
     },
-    broadcastToRoom: (code: string, message: ServerMessage, excludeId?: string) => {
+    broadcastToRoom: (
+      code: string,
+      message: ServerMessage,
+      excludeId?: string,
+    ) => {
       broadcasts.push({ code, message, excludeId });
+    },
+    publishOrderedEvent: (
+      room: Room,
+      _connection: Connection,
+      message: ServerMessage,
+      options?: { excludeId?: string },
+    ) => {
+      broadcasts.push({
+        code: room.code,
+        message,
+        excludeId: options?.excludeId,
+      });
+      return Promise.resolve(null);
     },
   } as unknown as SocketManager;
 
@@ -82,7 +106,11 @@ describe('SceneHandler', () => {
     const host = makeConnection('host', 'host');
     const room = makeRoom('host');
 
-    h.emit('event:scene/update', { connection: host, room, message: sceneUpdate() });
+    h.emit('event:scene/update', {
+      connection: host,
+      room,
+      message: sceneUpdate(),
+    });
 
     expect(h.broadcasts).toHaveLength(1);
     expect(h.broadcasts[0].excludeId).toBe('host');
@@ -95,7 +123,11 @@ describe('SceneHandler', () => {
     const room = makeRoom('host');
     room.players.add('p1');
 
-    h.emit('event:scene/update', { connection: player, room, message: sceneUpdate() });
+    h.emit('event:scene/update', {
+      connection: player,
+      room,
+      message: sceneUpdate(),
+    });
 
     expect(h.broadcasts).toHaveLength(0);
     expect(h.sent.some((s) => s.message.type === 'error')).toBe(true);
@@ -108,7 +140,11 @@ describe('SceneHandler', () => {
     const room = makeRoom('host');
     room.coHosts.add('co');
 
-    h.emit('event:scene/update', { connection: coHost, room, message: sceneUpdate() });
+    h.emit('event:scene/update', {
+      connection: coHost,
+      room,
+      message: sceneUpdate(),
+    });
 
     expect(h.broadcasts).toHaveLength(1);
     expect(h.sent.some((s) => s.message.type === 'error')).toBe(false);

@@ -1,8 +1,4 @@
 import { compare } from 'fast-json-patch';
-import { useGameStore, buildInitiativeSnapshot } from '@/stores/gameStore';
-import { useCharacterStore } from '@/stores/characterStore';
-import { webSocketService } from '@/services/websocket';
-import { isDevMode } from '@/utils/devMode';
 import {
   hashState,
   type GameStateUpload,
@@ -258,6 +254,24 @@ export class GameStateSyncEngine {
     void this.flush();
   }
 
+  /**
+   * Rebase directly onto a server-authoritative snapshot after a compare-and-
+   * swap conflict. This must not upload the loser's stale local state over the
+   * winning commit.
+   */
+  onAuthoritativeSnapshot(
+    state: SyncableGameState,
+    token: StateHash,
+    reason = 'server-authoritative',
+  ): void {
+    this.inFlight = null;
+    this.clearAckTimer();
+    this.acknowledged = deepClone(state);
+    this.acknowledgedToken = token;
+    this.dirty = false;
+    this.deps.onResync?.(reason);
+  }
+
   /** Full reset. Called on every (re)connect so we re-baseline the chain. */
   reset(): void {
     this.acknowledged = null;
@@ -276,6 +290,27 @@ export function isDeltaSyncEnabled(): boolean {
   return import.meta.env.VITE_DELTA_SYNC === 'true';
 }
 
+export interface GameStateSyncRuntime {
+  buildState: () => SyncableGameState;
+  transport: SyncTransport;
+  onResync?: (reason: string) => void;
+}
+
+let runtime: GameStateSyncRuntime | null = null;
+
+export function configureGameStateSyncRuntime(
+  nextRuntime: GameStateSyncRuntime,
+): void {
+  runtime = nextRuntime;
+}
+
+function getRuntime(): GameStateSyncRuntime {
+  if (!runtime) {
+    throw new Error('Game-state sync runtime has not been initialized');
+  }
+  return runtime;
+}
+
 /**
  * Build the canonical, JSON-plain `SyncableGameState` from the live stores.
  *
@@ -288,15 +323,7 @@ export function isDeltaSyncEnabled(): boolean {
  * / class instances — required for STABLE hashing across sends.
  */
 export function buildSyncableState(): SyncableGameState {
-  const sceneState = useGameStore.getState().sceneState;
-  const raw = {
-    scenes: sceneState.scenes,
-    activeSceneId: sceneState.activeSceneId,
-    characters: useCharacterStore.getState().characters,
-    initiative: buildInitiativeSnapshot(),
-  };
-  // JSON-roundtrip → plain JSON, no undefined / class instances → stable hash.
-  return JSON.parse(JSON.stringify(raw)) as SyncableGameState;
+  return getRuntime().buildState();
 }
 
 /**
@@ -312,20 +339,10 @@ export const gameStateSyncEngine = new GameStateSyncEngine({
   buildState: buildSyncableState,
   transport: {
     sendUpload: (upload) => {
-      webSocketService.sendEvent({
-        type: 'game-state-update',
-        data: { upload },
-      });
+      getRuntime().transport.sendUpload(upload);
     },
     sendLegacy: (payload) => {
-      webSocketService.sendGameStateUpdate({
-        sceneState: {
-          scenes: payload.scenes as unknown[],
-          activeSceneId: payload.activeSceneId,
-        },
-        characters: payload.characters as unknown[],
-        initiative: payload.initiative,
-      });
+      getRuntime().transport.sendLegacy(payload);
     },
   },
   isDeltaSyncEnabled,
@@ -334,10 +351,6 @@ export const gameStateSyncEngine = new GameStateSyncEngine({
   // 'integrity-mismatch' means client/server hashing disagrees on real data
   // (keep delta-sync OFF and investigate canonicalStringify).
   onResync: (reason) => {
-    if (isDevMode()) {
-      console.warn(
-        `🔄 [delta-sync] resync (${reason}) — re-baselining with a full snapshot`,
-      );
-    }
+    runtime?.onResync?.(reason);
   },
 });

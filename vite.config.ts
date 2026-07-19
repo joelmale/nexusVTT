@@ -20,7 +20,7 @@ export default defineConfig(({ command, mode }) => {
         remotes: {
           nexus_forge: 'http://localhost:3000/assets/remoteEntry.js',
         },
-        shared: ['react', 'react-dom', 'react-router-dom']
+        shared: ['react', 'react-dom', 'react-router-dom'],
       }),
       isAnalyze &&
         visualizer({
@@ -214,7 +214,13 @@ export default defineConfig(({ command, mode }) => {
       },
     },
     optimizeDeps: {
-      include: ['react-dnd', 'react-dnd-html5-backend', 'dnd-core', '@react-dnd/invariant', '@react-dnd/shallowequal'],
+      include: [
+        'react-dnd',
+        'react-dnd-html5-backend',
+        'dnd-core',
+        '@react-dnd/invariant',
+        '@react-dnd/shallowequal',
+      ],
     },
     build: {
       commonjsOptions: {
@@ -256,7 +262,13 @@ export default defineConfig(({ command, mode }) => {
             if (inPkg('@3d-dice/dice-box')) return 'vendor-3d';
             if (inPkg('pdfjs-dist')) return 'vendor-pdf';
             if (inPkg('uuid')) return 'vendor-utils';
-            if (inPkg('react-dnd') || inPkg('react-dnd-html5-backend') || inPkg('dnd-core') || inPkg('@react-dnd'))
+            // Keep the HTML5 backend separate from the federation-enabled React
+            // bindings. Its exported `URL` native type otherwise shares a chunk
+            // with the federation runtime's global `URL` constructor reference;
+            // Rolldown can bind the latter to the string export and produce a
+            // production-only "URL is not a constructor" boot failure.
+            if (inPkg('react-dnd-html5-backend')) return 'vendor-dnd-html5';
+            if (inPkg('react-dnd') || inPkg('dnd-core') || inPkg('@react-dnd'))
               return 'vendor-dnd';
             return undefined;
           },

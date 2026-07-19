@@ -5,24 +5,32 @@ import path from 'path';
 import fs from 'fs';
 import multer from 'multer';
 import crypto from 'crypto';
-import { createLibraryRouter, buildLibraryIndex, loadManifestFromDisk } from './library';
+import {
+  createLibraryRouter,
+  buildLibraryIndex,
+  loadManifestFromDisk,
+} from './library';
 import type { LibraryIndex } from './library';
+import { parseAssetManifest, type AssetManifest } from '../../../shared/types';
 
 export const app = express();
 const port = process.env.PORT || 5003;
 
 // Base paths (using fallback to current project for local dev)
-const ASSETS_PATH = process.env.ASSETS_PATH || path.resolve(__dirname, '../../../static-assets');
+const ASSETS_PATH =
+  process.env.ASSETS_PATH || path.resolve(__dirname, '../../../static-assets');
 const MANIFEST_PATH = path.join(ASSETS_PATH, 'assets', 'manifest.json');
 
 app.use(cors());
 app.use(express.json());
 
 // Load manifest
-let manifest: any = null;
+let manifest: AssetManifest | null = null;
 try {
   if (fs.existsSync(MANIFEST_PATH)) {
-    manifest = JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8'));
+    manifest = parseAssetManifest(
+      JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8')) as unknown,
+    );
     console.log(`Loaded manifest with ${manifest.totalAssets || 0} assets.`);
   } else {
     console.warn(`Manifest not found at ${MANIFEST_PATH}`);
@@ -47,7 +55,8 @@ function resolveLibraryManifestPath(): string {
 // serving the default assets-data tree, or vice versa — matching the
 // contract doc, which documents these as two separate env vars.
 const LIBRARY_DATA_PATH =
-  process.env.LIBRARY_DATA_PATH || path.resolve(__dirname, '../../../assets-data');
+  process.env.LIBRARY_DATA_PATH ||
+  path.resolve(__dirname, '../../../assets-data');
 
 let libraryIndex: LibraryIndex | null = null;
 function loadLibraryIndex(): { ok: boolean; error?: string } {
@@ -55,10 +64,15 @@ function loadLibraryIndex(): { ok: boolean; error?: string } {
   const loaded = loadManifestFromDisk(manifestPath);
   if (!loaded) {
     libraryIndex = null;
-    return { ok: false, error: `Library manifest not found or invalid at ${manifestPath}` };
+    return {
+      ok: false,
+      error: `Library manifest not found or invalid at ${manifestPath}`,
+    };
   }
   libraryIndex = buildLibraryIndex(loaded);
-  console.log(`Loaded library manifest with ${libraryIndex.manifest.totalAssets} active assets.`);
+  console.log(
+    `Loaded library manifest with ${libraryIndex.manifest.totalAssets} active assets.`,
+  );
   return { ok: true };
 }
 loadLibraryIndex();
@@ -97,13 +111,17 @@ app.get('/search', (req, res) => {
   }
   const query = String(req.query.q ?? '');
   if (!query || query.length < 2) {
-    return res.status(400).json({ error: 'Query must be at least 2 characters' });
+    return res
+      .status(400)
+      .json({ error: 'Query must be at least 2 characters' });
   }
   const lowercaseQuery = query.toLowerCase();
   const results = manifest.assets.filter(
-    (asset: any) =>
+    (asset) =>
       asset.name.toLowerCase().includes(lowercaseQuery) ||
-      (asset.tags || []).some((tag: string) => tag.toLowerCase().includes(lowercaseQuery)),
+      (asset.tags || []).some((tag: string) =>
+        tag.toLowerCase().includes(lowercaseQuery),
+      ),
   );
   setCacheHeaders(res, 60, false);
   res.json({ query, results, total: results.length });
@@ -118,7 +136,9 @@ app.get('/category/:category', (req, res) => {
   const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
   let filteredAssets = manifest.assets;
   if (category !== 'all') {
-    filteredAssets = manifest.assets.filter((asset: any) => asset.category === category);
+    filteredAssets = manifest.assets.filter(
+      (asset) => asset.category === category,
+    );
   }
   const start = page * limit;
   const end = start + limit;
@@ -138,7 +158,9 @@ app.get('/asset/:id', (req, res) => {
   if (!manifest) {
     return res.status(503).json({ error: 'Manifest not loaded' });
   }
-  const asset = manifest.assets.find((a: any) => a.id === req.params.id);
+  const asset = manifest.assets.find(
+    (candidate) => candidate.id === req.params.id,
+  );
   if (!asset) {
     return res.status(404).json({ error: 'Asset not found' });
   }
@@ -169,33 +191,48 @@ Object.values(ASSET_CATEGORIES).forEach((categoryName) => {
   const thumbsDir = path.join(BASE_ASSETS_ROOT, 'thumbnails');
   app.use(
     `/${categoryName}/assets`,
-    (req, res, next) => { setCacheHeaders(res); next(); },
+    (req, res, next) => {
+      setCacheHeaders(res);
+      next();
+    },
     express.static(assetsDir),
   );
   app.use(
     `/${categoryName}/thumbnails`,
-    (req, res, next) => { setCacheHeaders(res); next(); },
+    (req, res, next) => {
+      setCacheHeaders(res);
+      next();
+    },
     express.static(thumbsDir),
   );
 });
 
 app.use(
   '/assets/tokens/custom',
-  (req, res, next) => { setCacheHeaders(res); next(); },
+  (req, res, next) => {
+    setCacheHeaders(res);
+    next();
+  },
   express.static(path.join(ASSETS_PATH, 'tokens', 'custom')),
 );
 
 app.use(
   '/assets',
-  (req, res, next) => { setCacheHeaders(res); next(); },
+  (req, res, next) => {
+    setCacheHeaders(res);
+    next();
+  },
   // manifest fullImage "assets/x.webp" → /assets/x.webp → BASE_ASSETS_ROOT/assets/x.webp
   express.static(path.join(BASE_ASSETS_ROOT, 'assets')),
 );
 
 app.use(
   '/users',
-  (req, res, next) => { setCacheHeaders(res); next(); },
-  express.static(path.join(ASSETS_PATH, 'users'))
+  (req, res, next) => {
+    setCacheHeaders(res);
+    next();
+  },
+  express.static(path.join(ASSETS_PATH, 'users')),
 );
 
 // TMT library asset files (B3 manifest's thumbnail/fullImage paths are
@@ -203,30 +240,93 @@ app.use(
 // Content-addressed (hash-named) → safe to cache forever, same as /asset/:id.
 app.use(
   '/library-assets',
-  (req, res, next) => { setCacheHeaders(res, 86400, true); next(); },
+  (req, res, next) => {
+    setCacheHeaders(res, 86400, true);
+    next();
+  },
   express.static(LIBRARY_DATA_PATH),
 );
 
 // User Asset Domain
-const upload = multer({ 
+const upload = multer({
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB per file max
-  storage: multer.memoryStorage()
+  storage: multer.memoryStorage(),
 });
 
 const USER_QUOTA_BYTES = 50 * 1024 * 1024; // 50MB
 
-async function getUserManifest(userId: string) {
+interface UserAsset {
+  id: string;
+  name: string;
+  category: string;
+  tags: string[];
+  fullImage: string;
+  thumbnail: string;
+  size: number;
+  source: 'user';
+}
+
+interface UserAssetManifest {
+  assets: UserAsset[];
+}
+
+function isUserAsset(value: unknown): value is UserAsset {
+  if (typeof value !== 'object' || value === null) return false;
+  const asset = value as Record<string, unknown>;
+  return (
+    typeof asset.id === 'string' &&
+    typeof asset.name === 'string' &&
+    typeof asset.category === 'string' &&
+    Array.isArray(asset.tags) &&
+    asset.tags.every((tag) => typeof tag === 'string') &&
+    typeof asset.fullImage === 'string' &&
+    typeof asset.thumbnail === 'string' &&
+    typeof asset.size === 'number' &&
+    asset.source === 'user'
+  );
+}
+
+function parseUserAssetManifest(value: unknown): UserAssetManifest {
+  if (typeof value !== 'object' || value === null || !('assets' in value)) {
+    throw new TypeError('Invalid user asset manifest');
+  }
+  const assets = (value as { assets?: unknown }).assets;
+  if (!Array.isArray(assets) || !assets.every(isUserAsset)) {
+    throw new TypeError('Invalid user asset manifest');
+  }
+  return { assets };
+}
+
+function optionalBodyString(body: unknown, key: string): string | undefined {
+  if (typeof body !== 'object' || body === null) return undefined;
+  const value = (body as Record<string, unknown>)[key];
+  return typeof value === 'string' && value.trim() ? value.trim() : undefined;
+}
+
+function routeParameter(value: string | string[]): string {
+  return Array.isArray(value) ? (value[0] ?? '') : value;
+}
+
+async function getUserManifest(userId: string): Promise<UserAssetManifest> {
   const manifestPath = path.join(ASSETS_PATH, 'users', userId, 'manifest.json');
   if (fs.existsSync(manifestPath)) {
-    return JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+    return parseUserAssetManifest(
+      JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as unknown,
+    );
   }
   return { assets: [] };
 }
 
-async function saveUserManifest(userId: string, manifest: any) {
+async function saveUserManifest(
+  userId: string,
+  manifest: UserAssetManifest,
+): Promise<void> {
   const dir = path.join(ASSETS_PATH, 'users', userId);
   if (!fs.existsSync(dir)) fs.mkdirSync(dir, { recursive: true });
-  fs.writeFileSync(path.join(dir, 'manifest.json'), JSON.stringify(manifest, null, 2));
+  fs.writeFileSync(
+    path.join(dir, 'manifest.json'),
+    JSON.stringify(manifest, null, 2),
+  );
 }
 
 function getDirSize(dirPath: string): number {
@@ -248,7 +348,11 @@ function getDirSize(dirPath: string): number {
 // Auth check: rely on VTT proxy to send a specific header `x-nexus-auth: shared-secret`.
 // Runs BEFORE multer on the upload route so unauthenticated requests are
 // rejected before any file buffering occurs.
-function requireNexusAuth(req: Request, res: Response, next: NextFunction): void {
+function requireNexusAuth(
+  req: Request,
+  res: Response,
+  next: NextFunction,
+): void {
   if (req.headers['x-nexus-auth'] !== process.env.ASSET_SERVICE_SECRET) {
     // Drain and discard any request body instead of leaving it unconsumed:
     // avoids the client seeing a socket reset while still streaming a large
@@ -262,92 +366,113 @@ function requireNexusAuth(req: Request, res: Response, next: NextFunction): void
 
 // TMT library endpoints (B3) — public reads per ADR-0012; /library/reload is
 // write-ish (forces a re-read from disk) so it's gated the same way uploads are.
-app.use(createLibraryRouter(() => libraryIndex, requireNexusAuth, loadLibraryIndex));
+app.use(
+  createLibraryRouter(() => libraryIndex, requireNexusAuth, loadLibraryIndex),
+);
 
 app.get('/user/:userId/assets', async (req, res) => {
-  const userId = req.params.userId;
-  if (!/^[a-zA-Z0-9-]+$/.test(userId)) return res.status(400).json({ error: 'Invalid userId' });
+  const userId = routeParameter(req.params.userId);
+  if (!/^[a-zA-Z0-9-]+$/.test(userId))
+    return res.status(400).json({ error: 'Invalid userId' });
   const manifest = await getUserManifest(userId);
   setCacheHeaders(res, 60, false);
   res.json({ assets: manifest.assets });
 });
 
-app.post('/user/:userId/upload', requireNexusAuth, upload.single('file'), async (req, res) => {
-  const userId = req.params.userId;
-  if (!/^[a-zA-Z0-9-]+$/.test(userId)) {
-    return res.status(400).json({ error: 'Invalid userId' });
-  }
+app.post(
+  '/user/:userId/upload',
+  requireNexusAuth,
+  upload.single('file'),
+  async (req, res) => {
+    const userId = routeParameter(req.params.userId);
+    if (!/^[a-zA-Z0-9-]+$/.test(userId)) {
+      return res.status(400).json({ error: 'Invalid userId' });
+    }
 
-  if (!req.file) {
-    return res.status(400).json({ error: 'No file uploaded' });
-  }
+    if (!req.file) {
+      return res.status(400).json({ error: 'No file uploaded' });
+    }
 
-  const userDir = path.join(ASSETS_PATH, 'users', userId);
-  const currentSize = getDirSize(userDir);
-  
-  if (currentSize + req.file.size > USER_QUOTA_BYTES) {
-    return res.status(413).json({ error: 'Quota exceeded (50MB max)' });
-  }
+    const userDir = path.join(ASSETS_PATH, 'users', userId);
+    const currentSize = getDirSize(userDir);
 
-  const ext = path.extname(req.file.originalname).toLowerCase();
-  if (!['.png', '.webp', '.jpg', '.jpeg'].includes(ext)) {
-    return res.status(400).json({ error: 'Invalid file type' });
-  }
+    if (currentSize + req.file.size > USER_QUOTA_BYTES) {
+      return res.status(413).json({ error: 'Quota exceeded (50MB max)' });
+    }
 
-  const assetId = crypto.randomUUID();
-  const filename = `${assetId}${ext}`;
-  const filePath = path.join(userDir, filename);
+    const ext = path.extname(req.file.originalname).toLowerCase();
+    if (!['.png', '.webp', '.jpg', '.jpeg'].includes(ext)) {
+      return res.status(400).json({ error: 'Invalid file type' });
+    }
 
-  if (!fs.existsSync(userDir)) fs.mkdirSync(userDir, { recursive: true });
-  fs.writeFileSync(filePath, req.file.buffer);
+    const assetId = crypto.randomUUID();
+    const filename = `${assetId}${ext}`;
+    const filePath = path.join(userDir, filename);
 
-  const manifest = await getUserManifest(userId);
-  
-  const newAsset = {
-    id: assetId,
-    name: req.body.name || req.file.originalname,
-    category: req.body.category || 'custom',
-    tags: ['custom'],
-    fullImage: `users/${userId}/${filename}`,
-    thumbnail: `users/${userId}/${filename}`, // No thumbnail generation yet, use full image
-    size: req.file.size,
-    source: 'user',
-  };
+    if (!fs.existsSync(userDir)) fs.mkdirSync(userDir, { recursive: true });
+    fs.writeFileSync(filePath, req.file.buffer);
 
-  manifest.assets.push(newAsset);
-  await saveUserManifest(userId, manifest);
+    const manifest = await getUserManifest(userId);
 
-  res.json({ asset: newAsset });
-});
+    const newAsset: UserAsset = {
+      id: assetId,
+      name:
+        optionalBodyString(req.body as unknown, 'name') ??
+        req.file.originalname,
+      category: optionalBodyString(req.body as unknown, 'category') ?? 'custom',
+      tags: ['custom'],
+      fullImage: `users/${userId}/${filename}`,
+      thumbnail: `users/${userId}/${filename}`, // No thumbnail generation yet, use full image
+      size: req.file.size,
+      source: 'user',
+    };
 
-app.delete('/user/:userId/asset/:assetId', requireNexusAuth, async (req, res) => {
-  const { userId, assetId } = req.params;
-  if (!/^[a-zA-Z0-9-]+$/.test(userId)) return res.status(400).json({ error: 'Invalid userId' });
+    manifest.assets.push(newAsset);
+    await saveUserManifest(userId, manifest);
 
-  const manifest = await getUserManifest(userId);
-  const assetIndex = manifest.assets.findIndex((a: any) => a.id === assetId);
+    res.json({ asset: newAsset });
+  },
+);
 
-  if (assetIndex === -1) {
-    return res.status(404).json({ error: 'Asset not found' });
-  }
+app.delete(
+  '/user/:userId/asset/:assetId',
+  requireNexusAuth,
+  async (req, res) => {
+    const userId = routeParameter(req.params.userId);
+    const assetId = routeParameter(req.params.assetId);
+    if (!/^[a-zA-Z0-9-]+$/.test(userId))
+      return res.status(400).json({ error: 'Invalid userId' });
 
-  const asset = manifest.assets[assetIndex];
-  const filename = path.basename(asset.fullImage);
-  const filePath = path.join(ASSETS_PATH, 'users', userId, filename);
+    const manifest = await getUserManifest(userId);
+    const assetIndex = manifest.assets.findIndex(
+      (asset) => asset.id === assetId,
+    );
 
-  if (fs.existsSync(filePath)) {
-    fs.unlinkSync(filePath);
-  }
+    if (assetIndex === -1) {
+      return res.status(404).json({ error: 'Asset not found' });
+    }
 
-  manifest.assets.splice(assetIndex, 1);
-  await saveUserManifest(userId, manifest);
+    const asset = manifest.assets[assetIndex];
+    const filename = path.basename(asset.fullImage);
+    const filePath = path.join(ASSETS_PATH, 'users', userId, filename);
 
-  res.json({ success: true });
-});
+    if (fs.existsSync(filePath)) {
+      fs.unlinkSync(filePath);
+    }
+
+    manifest.assets.splice(assetIndex, 1);
+    await saveUserManifest(userId, manifest);
+
+    res.json({ success: true });
+  },
+);
 
 app.use(
   '/thumbnails',
-  (req, res, _next) => { setCacheHeaders(res); _next(); },
+  (req, res, _next) => {
+    setCacheHeaders(res);
+    _next();
+  },
   // manifest thumbnail "thumbnails/x.webp" → /thumbnails/x.webp → BASE_ASSETS_ROOT/thumbnails/x.webp
   express.static(path.join(BASE_ASSETS_ROOT, 'thumbnails')),
 );

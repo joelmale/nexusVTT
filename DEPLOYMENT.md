@@ -209,14 +209,20 @@ docker exec -it CONTAINER_NAME psql -U nexus -d nexus -f /tmp/2025-12-08-add-loc
 # Option B: Pipe SQL directly via stdin
 docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2025-12-08-add-account-fields.sql
 docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2025-12-08-add-local-auth.sql
+docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2026-07-19-add-room-event-journal.sql
+docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2026-07-19-add-durable-game-state-commits.sql
 ```
 
 #### What These Migrations Add:
 
 - **2025-12-08-add-account-fields.sql**: Extended account fields (display name, bio, avatar URL, preferences, activity flags)
 - **2025-12-08-add-local-auth.sql**: Local authentication password columns
+- **2026-07-19-add-room-event-journal.sql**: Ordered, idempotent room event history
+- **2026-07-19-add-durable-game-state-commits.sql**: Atomic canonical snapshot version and content-hash anchors
 
 > **Note:** These migrations are safe to run multiple times (use `IF NOT EXISTS` and conditional logic).
+> Apply the two 2026-07-19 migrations before updating any backend replica. Do
+> not run mixed schema versions during a rolling update.
 
 ---
 

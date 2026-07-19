@@ -1,0 +1,168 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: nexus_smoke
+      POSTGRES_USER: nexus_smoke
+      POSTGRES_PASSWORD: nexus_smoke_password
+    tmpfs:
+      - /var/lib/postgresql/data
+    volumes:
+      - ../server/schema.sql:/docker-entrypoint-initdb.d/001-schema.sql:ro
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U nexus_smoke -d nexus_smoke']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  redis:
+    image: redis:7-alpine
+    tmpfs:
+      - /data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  asset-service:
+    build:
+      context: ..
+      dockerfile: docker/asset-service.Dockerfile
+    command: ['npm', 'start', '--workspace', 'asset-service']
+    environment:
+      NODE_ENV: production
+      PORT: 5003
+      ASSETS_PATH: /app/static-assets
+      LIBRARY_DATA_PATH: /app/assets-data
+      LIBRARY_MANIFEST_PATH: /app/assets-data/manifests/manifest-v2.json
+      ASSET_SERVICE_SECRET: smoke-asset-secret
+    volumes:
+      - ../tests/e2e/fixtures/asset-manifest.json:/app/static-assets/assets/manifest.json:ro
+    ports:
+      - '${E2E_ASSET_PORT:-15003}:5003'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://127.0.0.1:5003/health', (response) => process.exit(response.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 30
+
+  backend:
+    build:
+      context: ..
+      dockerfile: docker/backend.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      asset-service:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DEV_MODE: 'false'
+      PORT: 5001
+      DATABASE_URL: postgres://nexus_smoke:nexus_smoke_password@postgres:5432/nexus_smoke
+      REDIS_URL: redis://redis:6379
+      BACKEND_INSTANCE_ID: smoke-primary
+      SESSION_SECRET: smoke-session-secret
+      JWT_SECRET: smoke-jwt-secret
+      GOOGLE_CLIENT_ID: smoke-google-client
+      GOOGLE_CLIENT_SECRET: smoke-google-secret
+      GOOGLE_CALLBACK_URL: https://smoke.invalid/auth/google/callback
+      DISCORD_CLIENT_ID: smoke-discord-client
+      DISCORD_CLIENT_SECRET: smoke-discord-secret
+      DISCORD_CALLBACK_URL: https://smoke.invalid/auth/discord/callback
+      SECURE_COOKIES: 'false'
+      CORS_ORIGIN: http://127.0.0.1:${E2E_FRONTEND_PORT:-4173},http://localhost:${E2E_FRONTEND_PORT:-4173}
+      ASSET_API_URL: http://asset-service:5003
+      ASSET_SERVICE_SECRET: smoke-asset-secret
+    ports:
+      - '${E2E_BACKEND_PORT:-15001}:5001'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://127.0.0.1:5001/health', (response) => process.exit(response.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+
+  backend-peer:
+    build:
+      context: ..
+      dockerfile: docker/backend.Dockerfile
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      asset-service:
+        condition: service_healthy
+    environment:
+      NODE_ENV: production
+      DEV_MODE: 'false'
+      PORT: 5001
+      DATABASE_URL: postgres://nexus_smoke:nexus_smoke_password@postgres:5432/nexus_smoke
+      REDIS_URL: redis://redis:6379
+      BACKEND_INSTANCE_ID: smoke-peer
+      SESSION_SECRET: smoke-session-secret
+      JWT_SECRET: smoke-jwt-secret
+      GOOGLE_CLIENT_ID: smoke-google-client
+      GOOGLE_CLIENT_SECRET: smoke-google-secret
+      GOOGLE_CALLBACK_URL: https://smoke.invalid/auth/google/callback
+      DISCORD_CLIENT_ID: smoke-discord-client
+      DISCORD_CLIENT_SECRET: smoke-discord-secret
+      DISCORD_CALLBACK_URL: https://smoke.invalid/auth/discord/callback
+      SECURE_COOKIES: 'false'
+      CORS_ORIGIN: http://127.0.0.1:${E2E_FRONTEND_PORT:-4173},http://localhost:${E2E_FRONTEND_PORT:-4173}
+      ASSET_API_URL: http://asset-service:5003
+      ASSET_SERVICE_SECRET: smoke-asset-secret
+    ports:
+      - '${E2E_BACKEND_PEER_PORT:-15002}:5001'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'node',
+          '-e',
+          "require('http').get('http://127.0.0.1:5001/health', (response) => process.exit(response.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))",
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 60
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/frontend.Dockerfile
+      args:
+        COMMIT_SHA: smoke
+        VITE_DELTA_SYNC: 'true'
+    depends_on:
+      backend:
+        condition: service_healthy
+    ports:
+      - '${E2E_FRONTEND_PORT:-4173}:80'
+    healthcheck:
+      test:
+        [
+          'CMD',
+          'wget',
+          '--quiet',
+          '--tries=1',
+          '--spider',
+          'http://127.0.0.1/health',
+        ]
+      interval: 2s
+      timeout: 5s
+      retries: 30

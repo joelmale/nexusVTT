@@ -15,23 +15,25 @@ export class CharacterHandler extends BaseHandler {
       this.socketManager.on(
         `event:${event}`,
         ({ connection, room, message }) => {
-          this.handleCharacterEvent(event, connection, room, message);
+          void this.handleCharacterEvent(event, connection, room, message);
         },
       );
     });
   }
 
-  private handleCharacterEvent(
+  private async handleCharacterEvent(
     event: string,
     connection: Connection,
     room: Room,
     message: ServerEventMessage,
-  ) {
+  ): Promise<void> {
     // Characters are owned by players, so anyone can send character updates.
     // In a fully secure model, we would verify `message.payload.ownerId === connection.userId`.
-    
+
     // Relay to the rest of the room
-    this.socketManager.broadcastToRoom(room.code, message, connection.id);
+    await this.socketManager.publishOrderedEvent(room, connection, message, {
+      excludeId: connection.id,
+    });
     console.log(
       `🛡️ Character event "${event}" in ${room.code} from ${connection.id}`,
     );

@@ -310,6 +310,20 @@ docker service rollback nexus_backend
 
 ### Database Operations
 
+Before deploying a backend version that includes durable canonical commits:
+
+```bash
+CONTAINER=$(docker ps -q -f name=nexus_postgres)
+docker exec -i "$CONTAINER" psql -U nexus -d nexus \
+  < server/migrations/2026-07-19-add-room-event-journal.sql
+docker exec -i "$CONTAINER" psql -U nexus -d nexus \
+  < server/migrations/2026-07-19-add-durable-game-state-commits.sql
+```
+
+Run both migrations before rolling any backend replica. The backend startup
+check adds missing columns defensively, but explicit migrations keep the fleet
+on one known schema and make rollback planning predictable.
+
 **Portainer GUI:**
 - **Backup:** Volumes → `nexus_postgres-data` → **Download**
 - **Console access:** Stacks → nexus → nexus_postgres → Container → **Exec Console**

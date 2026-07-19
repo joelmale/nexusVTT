@@ -34,6 +34,31 @@ export interface SyncableGameState {
 }
 
 /**
+ * Creates the canonical empty state used by new sessions and legacy recovery.
+ * Keeping this shape shared prevents the database, server, and browser from
+ * starting a content-hash chain from different representations of "empty".
+ */
+export function createEmptySyncableGameState(): SyncableGameState {
+  return {
+    scenes: [],
+    activeSceneId: null,
+    characters: [],
+    initiative: {
+      isActive: false,
+      isPaused: false,
+      round: 0,
+      entries: [],
+      activeEntryId: null,
+      history: [],
+      autoAdvanceTurns: false,
+      showPlayerHP: true,
+      allowPlayerInitiative: true,
+      sortByInitiative: true,
+    },
+  };
+}
+
+/**
  * Full state upload: sends entire state to server.
  */
 export interface FullStateUpload<TState> {
@@ -56,8 +81,7 @@ export interface PatchStateUpload {
  * Discriminated union for game state uploads.
  */
 export type GameStateUpload<TState = SyncableGameState> =
-  | FullStateUpload<TState>
-  | PatchStateUpload;
+  FullStateUpload<TState> | PatchStateUpload;
 
 /**
  * Utility type aliases for extract patterns.
@@ -92,6 +116,8 @@ export type ResyncReason =
 export interface ResyncRequiredMessage {
   readonly type: 'game-state-resync-required';
   readonly serverToken: StateHash;
+  readonly gameState: SyncableGameState;
+  readonly version: number;
   readonly reason: ResyncReason;
 }
 
@@ -136,7 +162,7 @@ export function canonicalStringify(value: JsonValue): string {
   const obj = value as { readonly [k: string]: JsonValue };
   const keys = Object.keys(obj).sort();
   const pairs = keys.map(
-    (k) => JSON.stringify(k) + ':' + canonicalStringify(obj[k])
+    (k) => JSON.stringify(k) + ':' + canonicalStringify(obj[k]),
   );
   return '{' + pairs.join(',') + '}';
 }

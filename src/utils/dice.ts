@@ -191,7 +191,7 @@ export function formatDiceRoll(roll: DiceRoll): string {
 
   if (pools.length === 0) return `${expression} = ${total}`;
 
-  let resultText = '';
+  let resultText: string;
   const critClass =
     crit === 'success'
       ? 'crit-success'

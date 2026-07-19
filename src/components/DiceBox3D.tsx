@@ -190,7 +190,9 @@ export const DiceBox3D: React.FC = () => {
         });
       }
       // Mark all as processed
-      unprocessedRolls.forEach((roll) => processedRollIdsRef.current.add(roll.id));
+      unprocessedRolls.forEach((roll) =>
+        processedRollIdsRef.current.add(roll.id),
+      );
       return;
     }
 
@@ -272,7 +274,14 @@ export const DiceBox3D: React.FC = () => {
         processedRollIdsRef.current.add(latestRoll.id);
       }, 120);
     }
-  }, [diceRolls, isInitialized, settings.diceDisappearTime]);
+  }, [
+    diceRolls,
+    isInitialized,
+    settings.diceDisappearTime,
+    settings.diceRollSounds,
+    settings.enableAnimations,
+    settings.enableSounds,
+  ]);
 
   return (
     <>

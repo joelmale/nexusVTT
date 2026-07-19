@@ -1,6 +1,15 @@
 import type { WebSocket } from 'ws';
 import type { ServerDiceRoll } from './diceRoller.js';
-import type { StateHash, JsonPatch, ResyncReason } from '../shared/sync/contracts.js';
+import type {
+  StateHash,
+  JsonPatch,
+  ResyncReason,
+} from '../shared/sync/contracts.js';
+import type {
+  ClientEventIdentity,
+  EventAcknowledgement,
+  EventCursorUpdate,
+} from '../shared/events/contracts.js';
 
 export interface GameState {
   scenes: unknown[];
@@ -45,12 +54,21 @@ export interface Connection {
   consecutiveMisses: number;
   connectionQuality: 'excellent' | 'good' | 'poor' | 'critical';
   maliciousAttemptsCount?: number; // Tracks anti-tamper security violations
+  requestedEventCursor?: number | null;
+  legacyClientSequence?: number;
 }
 
 export interface BaseServerMessage {
   src?: string;
   dst?: string;
   timestamp: number;
+  eventId?: string;
+  actorId?: string;
+  clientSequence?: number;
+  serverSequence?: number;
+  occurredAt?: number;
+  roomCode?: string;
+  echoToActor?: boolean;
 }
 
 export interface ServerEventMessage extends BaseServerMessage {
@@ -93,6 +111,16 @@ export interface ServerUpdateConfirmationMessage extends BaseServerMessage {
   };
 }
 
+export interface ServerEventAcknowledgementMessage extends BaseServerMessage {
+  type: 'event-ack';
+  data: EventAcknowledgement;
+}
+
+export interface ServerEventCursorMessage extends BaseServerMessage {
+  type: 'event-cursor';
+  data: EventCursorUpdate;
+}
+
 export interface ServerChatMessage extends BaseServerMessage {
   type: 'chat-message';
   data: {
@@ -132,7 +160,9 @@ export interface ServerSyncAckMessage extends BaseServerMessage {
 export interface ServerResyncRequiredMessage extends BaseServerMessage {
   type: 'game-state-resync-required';
   data: {
-    serverToken: StateHash | null;
+    serverToken: StateHash;
+    gameState: GameState;
+    version: number;
     reason: ResyncReason;
   };
 }
@@ -147,7 +177,11 @@ export type ServerMessage =
   | ServerErrorMessage
   | ServerHeartbeatMessage
   | ServerUpdateConfirmationMessage
+  | ServerEventAcknowledgementMessage
+  | ServerEventCursorMessage
   | ServerChatMessage
   | ServerGameStatePatchMessage
   | ServerSyncAckMessage
   | ServerResyncRequiredMessage;
+
+export type { ClientEventIdentity };

@@ -77,6 +77,29 @@ function createHarness() {
     ) => {
       broadcasts.push({ code, message, excludeId });
     },
+    publishOrderedEvent: (
+      room: Room,
+      _connection: Connection,
+      message: ServerMessage,
+      options?: {
+        excludeId?: string;
+        validate?: () => boolean;
+        onAccepted?: () => void;
+        onAcknowledged?: () => void;
+      },
+    ) => {
+      if (options?.validate && !options.validate()) {
+        return Promise.resolve(null);
+      }
+      options?.onAccepted?.();
+      options?.onAcknowledged?.();
+      broadcasts.push({
+        code: room.code,
+        message,
+        excludeId: options?.excludeId,
+      });
+      return Promise.resolve(null);
+    },
   } as unknown as SocketManager;
 
   new EntitySyncHandler(socketManager, {} as unknown as DatabaseService);

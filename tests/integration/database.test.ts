@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { Pool } from 'pg';
 import { DatabaseService, createDatabaseService } from '../../server/database';
+import {
+  createEmptySyncableGameState,
+  type JsonValue,
+} from '../../shared/sync/contracts';
+import { hashSync } from '../../shared/sync/hashSync';
 
 // Skip these tests if DATABASE_URL is not set (e.g., in CI without database)
 const shouldSkip = !process.env.DATABASE_URL;
@@ -17,7 +22,9 @@ describeDatabase('DatabaseService Integration Tests', () => {
       throw new Error('DATABASE_URL environment variable is not set');
     }
 
-    dbService = createDatabaseService({ connectionString: process.env.DATABASE_URL });
+    dbService = createDatabaseService({
+      connectionString: process.env.DATABASE_URL,
+    });
     pool = new Pool({ connectionString: process.env.DATABASE_URL });
 
     // Initialize the database schema
@@ -31,7 +38,7 @@ describeDatabase('DatabaseService Integration Tests', () => {
     const testCampaign = await dbService.createCampaign(
       testHostId,
       'Test Campaign',
-      'Integration test campaign'
+      'Integration test campaign',
     );
     testCampaignId = testCampaign.id;
   });
@@ -45,7 +52,9 @@ describeDatabase('DatabaseService Integration Tests', () => {
 
   beforeEach(async () => {
     // Clean up sessions, players, and hosts before each test (in order to respect foreign keys)
-    await pool.query('TRUNCATE TABLE hosts, players, sessions RESTART IDENTITY CASCADE');
+    await pool.query(
+      'TRUNCATE TABLE hosts, players, sessions RESTART IDENTITY CASCADE',
+    );
   });
 
   it('should connect to the database and verify schema exists', async () => {
@@ -54,7 +63,7 @@ describeDatabase('DatabaseService Integration Tests', () => {
       FROM information_schema.tables
       WHERE table_schema = 'public'
     `);
-    const tableNames = result.rows.map(row => row.table_name);
+    const tableNames = result.rows.map((row) => row.table_name);
     expect(tableNames).toContain('sessions');
     expect(tableNames).toContain('players');
     expect(tableNames).toContain('hosts');
@@ -67,41 +76,59 @@ describeDatabase('DatabaseService Integration Tests', () => {
     it('should create a new session with a host', async () => {
       const { sessionId, joinCode } = await dbService.createSession(
         testCampaignId,
-        testHostId
+        testHostId,
       );
 
       // Verify session was created
-      const sessionResult = await pool.query('SELECT * FROM sessions WHERE id = $1', [sessionId]);
+      const sessionResult = await pool.query(
+        'SELECT * FROM sessions WHERE id = $1',
+        [sessionId],
+      );
       expect(sessionResult.rowCount).toBe(1);
       expect(sessionResult.rows[0].joinCode).toBe(joinCode);
       expect(sessionResult.rows[0].primaryHostId).toBe(testHostId);
 
       // Verify host record was created
-      const hostResult = await pool.query('SELECT * FROM hosts WHERE "sessionId" = $1 AND "userId" = $2', [sessionId, testHostId]);
+      const hostResult = await pool.query(
+        'SELECT * FROM hosts WHERE "sessionId" = $1 AND "userId" = $2',
+        [sessionId, testHostId],
+      );
       expect(hostResult.rowCount).toBe(1);
       expect(hostResult.rows[0].isPrimary).toBe(true);
 
       // Verify host was added as a player
-      const playerResult = await pool.query('SELECT * FROM players WHERE "sessionId" = $1 AND "userId" = $2', [sessionId, testHostId]);
+      const playerResult = await pool.query(
+        'SELECT * FROM players WHERE "sessionId" = $1 AND "userId" = $2',
+        [sessionId, testHostId],
+      );
       expect(playerResult.rowCount).toBe(1);
     });
 
     it('should get a session by join code', async () => {
-      const { joinCode } = await dbService.createSession(testCampaignId, testHostId);
+      const { joinCode } = await dbService.createSession(
+        testCampaignId,
+        testHostId,
+      );
       const session = await dbService.getSessionByJoinCode(joinCode);
       expect(session).not.toBeNull();
       expect(session?.joinCode).toBe(joinCode);
     });
 
     it('should update session status', async () => {
-      const { sessionId, joinCode } = await dbService.createSession(testCampaignId, testHostId);
+      const { sessionId, joinCode } = await dbService.createSession(
+        testCampaignId,
+        testHostId,
+      );
       await dbService.updateSessionStatus(sessionId, 'hibernating');
       const session = await dbService.getSessionByJoinCode(joinCode);
       expect(session?.status).toBe('hibernating');
     });
 
     it('should transfer primary host', async () => {
-      const { sessionId, joinCode } = await dbService.createSession(testCampaignId, testHostId);
+      const { sessionId, joinCode } = await dbService.createSession(
+        testCampaignId,
+        testHostId,
+      );
 
       // Create a new user to transfer to
       const newHost = await dbService.createGuestUser('New Host');
@@ -120,7 +147,10 @@ describeDatabase('DatabaseService Integration Tests', () => {
   describe('Game State Operations', () => {
     let sessionId: string;
     let joinCode: string;
-    const gameState = { scenes: [{ id: 'scene1', name: 'Test Scene' }], activeSceneId: 'scene1' };
+    const gameState = {
+      scenes: [{ id: 'scene1', name: 'Test Scene' }],
+      activeSceneId: 'scene1',
+    };
 
     beforeEach(async () => {
       const result = await dbService.createSession(testCampaignId, testHostId);
@@ -130,7 +160,9 @@ describeDatabase('DatabaseService Integration Tests', () => {
 
     it('should save game state', async () => {
       await dbService.saveGameState(sessionId, gameState);
-      const result = await pool.query('SELECT * FROM sessions WHERE id = $1', [sessionId]);
+      const result = await pool.query('SELECT * FROM sessions WHERE id = $1', [
+        sessionId,
+      ]);
       expect(result.rowCount).toBe(1);
       expect(result.rows[0].gameState).toEqual(gameState);
     });
@@ -145,6 +177,109 @@ describeDatabase('DatabaseService Integration Tests', () => {
       await dbService.saveGameStateByJoinCode(joinCode, gameState);
       const loadedState = await dbService.getGameStateByJoinCode(joinCode);
       expect(loadedState).toEqual(gameState);
+    });
+
+    it('creates sessions with a canonical snapshot and durable chain anchors', async () => {
+      const session = await dbService.getSessionByJoinCode(joinCode);
+      expect(session).not.toBeNull();
+      expect(session?.gameState).toEqual(createEmptySyncableGameState());
+      expect(session?.stateVersion).toBe(0);
+      expect(session?.syncToken).toBe(
+        hashSync(createEmptySyncableGameState() as unknown as JsonValue),
+      );
+    });
+
+    it('atomically commits snapshot, token, version, and campaign scenes', async () => {
+      const initial = await dbService.getSessionByJoinCode(joinCode);
+      if (!initial) throw new Error('session was not created');
+      const nextState = {
+        ...createEmptySyncableGameState(),
+        scenes: [{ id: 'scene-1', name: 'Durable Scene' }],
+        activeSceneId: 'scene-1',
+      };
+      const nextToken = hashSync(nextState as unknown as JsonValue);
+
+      const result = await dbService.commitGameState(
+        joinCode,
+        initial.stateVersion,
+        initial.syncToken,
+        nextState,
+        nextToken,
+      );
+
+      expect(result).toMatchObject({
+        status: 'committed',
+        stateVersion: 1,
+        syncToken: nextToken,
+        gameState: nextState,
+      });
+      const persisted = await dbService.getSessionByJoinCode(joinCode);
+      expect(persisted).toMatchObject({
+        stateVersion: 1,
+        syncToken: nextToken,
+        gameState: nextState,
+      });
+      expect(await dbService.getCampaignScenes(testCampaignId)).toEqual(
+        nextState.scenes,
+      );
+    });
+
+    it('rejects a stale compare-and-swap without overwriting the winner', async () => {
+      const initial = await dbService.getSessionByJoinCode(joinCode);
+      if (!initial) throw new Error('session was not created');
+      const winner = {
+        ...createEmptySyncableGameState(),
+        activeSceneId: 'winner',
+      };
+      const winnerToken = hashSync(winner as unknown as JsonValue);
+      await dbService.commitGameState(
+        joinCode,
+        initial.stateVersion,
+        initial.syncToken,
+        winner,
+        winnerToken,
+      );
+
+      const loser = {
+        ...createEmptySyncableGameState(),
+        activeSceneId: 'loser',
+      };
+      const conflict = await dbService.commitGameState(
+        joinCode,
+        initial.stateVersion,
+        initial.syncToken,
+        loser,
+        hashSync(loser as unknown as JsonValue),
+      );
+
+      expect(conflict).toMatchObject({
+        status: 'conflict',
+        stateVersion: 1,
+        syncToken: winnerToken,
+        gameState: winner,
+      });
+      expect(await dbService.getGameStateByJoinCode(joinCode)).toEqual(winner);
+    });
+
+    it('keeps the version stable for an identical reconnect snapshot', async () => {
+      const initial = await dbService.getSessionByJoinCode(joinCode);
+      if (!initial || !initial.syncToken) {
+        throw new Error('session metadata was not initialized');
+      }
+
+      const result = await dbService.commitGameState(
+        joinCode,
+        initial.stateVersion,
+        initial.syncToken,
+        initial.gameState as ReturnType<typeof createEmptySyncableGameState>,
+        initial.syncToken,
+      );
+
+      expect(result).toMatchObject({
+        status: 'committed',
+        stateVersion: initial.stateVersion,
+        syncToken: initial.syncToken,
+      });
     });
   });
 
@@ -165,7 +300,7 @@ describeDatabase('DatabaseService Integration Tests', () => {
       await dbService.addPlayerToSession(player1Id, sessionId);
       const players = await dbService.getPlayersBySession(sessionId);
       expect(players.length).toBe(2); // Host + Player 1
-      expect(players.some(p => p.userId === player1Id)).toBe(true);
+      expect(players.some((p) => p.userId === player1Id)).toBe(true);
     });
 
     it('should remove a player from a session', async () => {
@@ -185,27 +320,38 @@ describeDatabase('DatabaseService Integration Tests', () => {
 
       let hosts = await dbService.getHostsBySession(sessionId);
       expect(hosts.length).toBe(2);
-      expect(hosts.some(h => h.userId === player1Id && h.isPrimary === false)).toBe(true);
+      expect(
+        hosts.some((h) => h.userId === player1Id && h.isPrimary === false),
+      ).toBe(true);
 
       await dbService.removeCoHost(player1Id, sessionId);
       hosts = await dbService.getHostsBySession(sessionId);
       expect(hosts.length).toBe(1);
-      expect(hosts.some(h => h.userId === player1Id)).toBe(false);
+      expect(hosts.some((h) => h.userId === player1Id)).toBe(false);
     });
 
     it('should verify campaign authorization correctly', async () => {
       // Host should be authorized (as DM)
-      let authorized = await dbService.isUserAuthorizedForCampaign(testHostId, testCampaignId);
+      let authorized = await dbService.isUserAuthorizedForCampaign(
+        testHostId,
+        testCampaignId,
+      );
       expect(authorized).toBe(true);
 
       // Random user should NOT be authorized
       const randomUser = await dbService.createGuestUser('Random User');
-      authorized = await dbService.isUserAuthorizedForCampaign(randomUser.id, testCampaignId);
+      authorized = await dbService.isUserAuthorizedForCampaign(
+        randomUser.id,
+        testCampaignId,
+      );
       expect(authorized).toBe(false);
 
       // Once added to the session as a player, they should be authorized
       await dbService.addPlayerToSession(randomUser.id, sessionId);
-      authorized = await dbService.isUserAuthorizedForCampaign(randomUser.id, testCampaignId);
+      authorized = await dbService.isUserAuthorizedForCampaign(
+        randomUser.id,
+        testCampaignId,
+      );
       expect(authorized).toBe(true);
     });
   });

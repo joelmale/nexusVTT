@@ -1,4 +1,11 @@
-import { AtlasSourceAdapter, PaginatedResult, AtlasAsset } from './types';
+import {
+  errorMessage,
+  errorName,
+  type AtlasAsset,
+  type AtlasCursor,
+  type AtlasSourceAdapter,
+  type PaginatedResult,
+} from './types';
 
 // Same DEV/prod split as src/services/assetManager.ts: relative URLs in
 // production (nginx/VTT backend proxies /library-assets and /library),
@@ -59,11 +66,12 @@ function mapAsset(raw: RawLibraryAsset): AtlasAsset {
   };
 }
 
-function isNetworkError(err: any): boolean {
-  return Boolean(
-    err?.message?.includes('fetch') ||
-      err?.message?.includes('network') ||
-      err?.name === 'TypeError',
+function isNetworkError(error: unknown): boolean {
+  const message = errorMessage(error);
+  return (
+    message.includes('fetch') ||
+    message.includes('network') ||
+    errorName(error) === 'TypeError'
   );
 }
 
@@ -71,10 +79,16 @@ export class LibrarySourceAdapter implements AtlasSourceAdapter {
   source = 'library' as const;
   isOffline = false;
 
-  private async fetchLibrary(params: Record<string, string>, signal?: AbortSignal): Promise<PaginatedResult> {
+  private async fetchLibrary(
+    params: Record<string, string>,
+    signal?: AbortSignal,
+  ): Promise<PaginatedResult> {
     const search = new URLSearchParams(params);
     try {
-      const response = await fetch(`${ASSET_SERVER_URL}/library?${search.toString()}`, { signal });
+      const response = await fetch(
+        `${ASSET_SERVER_URL}/library?${search.toString()}`,
+        { signal },
+      );
 
       if (response.status === 503) {
         this.isOffline = true;
@@ -94,21 +108,21 @@ export class LibrarySourceAdapter implements AtlasSourceAdapter {
         total: data.total,
         cursor: data.cursor,
       };
-    } catch (err: any) {
-      if (err?.name === 'AbortError') {
-        throw err;
+    } catch (error: unknown) {
+      if (errorName(error) === 'AbortError') {
+        throw error;
       }
-      if (isNetworkError(err)) {
+      if (isNetworkError(error)) {
         this.isOffline = true;
         return { assets: [], hasMore: false, total: 0, cursor: null };
       }
-      throw err;
+      throw error;
     }
   }
 
   async search(
     query: string,
-    cursor?: string | null,
+    cursor?: AtlasCursor,
     signal?: AbortSignal,
     category?: string,
   ): Promise<PaginatedResult> {
@@ -117,22 +131,28 @@ export class LibrarySourceAdapter implements AtlasSourceAdapter {
       limit: String(DEFAULT_LIMIT),
     };
     if (category && category !== 'all') params.category = category;
-    if (cursor) params.cursor = cursor;
+    if (typeof cursor === 'string' && cursor) params.cursor = cursor;
     return this.fetchLibrary(params, signal);
   }
 
-  async list(category: string, cursor?: string | null, signal?: AbortSignal): Promise<PaginatedResult> {
+  async list(
+    category: string,
+    cursor?: AtlasCursor,
+    signal?: AbortSignal,
+  ): Promise<PaginatedResult> {
     const params: Record<string, string> = {
       limit: String(DEFAULT_LIMIT),
     };
     if (category && category !== 'all') params.category = category;
-    if (cursor) params.cursor = cursor;
+    if (typeof cursor === 'string' && cursor) params.cursor = cursor;
     return this.fetchLibrary(params, signal);
   }
 
   async fetchFacets(signal?: AbortSignal): Promise<LibraryFacets> {
     try {
-      const response = await fetch(`${ASSET_SERVER_URL}/library/facets`, { signal });
+      const response = await fetch(`${ASSET_SERVER_URL}/library/facets`, {
+        signal,
+      });
 
       if (response.status === 503) {
         this.isOffline = true;
@@ -146,15 +166,15 @@ export class LibrarySourceAdapter implements AtlasSourceAdapter {
       const data: LibraryFacets = await response.json();
       this.isOffline = false;
       return data;
-    } catch (err: any) {
-      if (err?.name === 'AbortError') {
-        throw err;
+    } catch (error: unknown) {
+      if (errorName(error) === 'AbortError') {
+        throw error;
       }
-      if (isNetworkError(err)) {
+      if (isNetworkError(error)) {
         this.isOffline = true;
         return { categories: [], tags: [] };
       }
-      throw err;
+      throw error;
     }
   }
 }

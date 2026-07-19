@@ -40,6 +40,7 @@ import { useCharacterStore } from './characterStore';
 import { useInitiativeStore } from './initiativeStore';
 import { sessionPersistenceService } from '@/services/sessionPersistence';
 import { webSocketService } from '@/services/websocket';
+import { initializeGameStateSyncRuntime } from '@/services/gameStateSyncRuntime';
 
 // ---- Fixtures --------------------------------------------------------------
 
@@ -105,6 +106,7 @@ const emptyInitiative: Partial<InitiativeState> = {
 
 describe('gameStore session persistence (characters + initiative round-trip)', () => {
   beforeEach(() => {
+    initializeGameStateSyncRuntime();
     vi.clearAllMocks();
     // clearAllMocks resets implementations too, so restore the async defaults.
     vi.mocked(sessionPersistenceService.saveGameState).mockResolvedValue(
@@ -153,6 +155,10 @@ describe('gameStore session persistence (characters + initiative round-trip)', (
       activeEntryId: entry.id,
     });
 
+    // The sync runtime now observes the character and initiative stores so
+    // multiplayer peers receive those mutations immediately. Isolate the
+    // explicit persistence action from those expected background publishes.
+    vi.mocked(webSocketService.sendGameStateUpdate).mockClear();
     useGameStore.getState().saveSessionState();
 
     // --- IndexedDB snapshot (synchronous fire-and-forget) ---
@@ -239,7 +245,7 @@ describe('gameStore session persistence (characters + initiative round-trip)', (
     expect(typeof initiative.addEntry).toBe('function');
   });
 
-  it('saveSessionState/loadSessionState round-trips a scene\'s fog config (A9)', async () => {
+  it("saveSessionState/loadSessionState round-trips a scene's fog config (A9)", async () => {
     // Fog rides scene->gameState JSONB persistence automatically: it's just
     // another optional field on Scene, serialized/restored the same way as
     // gridSettings/backgroundImage/placedTokens (no fog-specific plumbing
@@ -267,6 +273,7 @@ describe('gameStore session persistence (characters + initiative round-trip)', (
       },
     }));
 
+    vi.mocked(webSocketService.sendGameStateUpdate).mockClear();
     useGameStore.getState().saveSessionState();
 
     // --- IndexedDB snapshot includes the fog field on the scene ---

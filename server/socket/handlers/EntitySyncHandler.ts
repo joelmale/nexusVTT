@@ -1,20 +1,7 @@
+import { isDurableTransportEvent } from '../../../shared/events/contracts.js';
 import { BaseHandler } from './BaseHandler.js';
-import { ServerEventMessage, Connection, Room } from '../../types.js';
+import { Connection, Room, ServerEventMessage } from '../../types.js';
 
-/**
- * Real-time relay for scene-entity mutations: tokens, props, freehand drawings,
- * and remote cursors. These are the highest-frequency events in a session and
- * were left unwired when message routing moved to the SocketManager pattern
- * (the authoritative logic still lived in the now-dead `routeMessage`).
- *
- * Authority model: clients hold optimistic authority and apply changes locally
- * first; the server validates (host permissions + optimistic-concurrency
- * version checks), then relays the canonical event to the other peers. The
- * sender is never echoed its own event — it already applied it — and instead
- * receives a lightweight `update-confirmed` so its rollback timer can clear.
- */
-
-/** Every entity event this handler relays. */
 const RELAY_EVENTS = [
   'token/place',
   'token/move',
@@ -35,10 +22,6 @@ const RELAY_EVENTS = [
   'cursor/update',
 ] as const;
 
-/**
- * Events that participate in the optimistic-update lifecycle: they carry an
- * `expectedVersion` for conflict detection and an `updateId` to confirm.
- */
 const VERSIONED_EVENTS = new Set<string>([
   'token/move',
   'token/update',
@@ -49,14 +32,12 @@ const VERSIONED_EVENTS = new Set<string>([
   'prop/interact',
 ]);
 
-/** Mutations only the host (or a co-host) may perform. */
 const DM_ONLY_EVENTS = new Set<string>([
   'drawing/clear',
   'fog/update',
   'fog/clear',
 ]);
 
-/** Player mutations that are blocked while the host is disconnected. */
 const DM_OFFLINE_RESTRICTED_EVENTS = new Set<string>([
   'drawing/create',
   'drawing/update',
@@ -72,7 +53,6 @@ const DM_OFFLINE_RESTRICTED_EVENTS = new Set<string>([
   'prop/interact',
 ]);
 
-/** Fire-and-forget events that must never wait on a confirmation. */
 const UNCONFIRMED_EVENTS = new Set<string>(['cursor/update']);
 
 interface VersionedPayload {
@@ -82,32 +62,38 @@ interface VersionedPayload {
   updateId?: string;
 }
 
+/**
+ * Validates and commits shared scene-entity mutations. Durable mutations go
+ * through SocketManager's serialized journal before they are broadcast;
+ * high-frequency presence signals such as cursors remain transient.
+ */
 export class EntitySyncHandler extends BaseHandler {
   setupListeners(): void {
     for (const eventName of RELAY_EVENTS) {
       this.socketManager.on(
         `event:${eventName}`,
         ({ connection, room, message }) =>
-          this.handleEntityEvent(connection, room, message),
+          void this.handleEntityEvent(connection, room, message),
       );
     }
   }
 
-  private handleEntityEvent(
+  private async handleEntityEvent(
     connection: Connection,
     room: Room,
     message: ServerEventMessage,
-  ): void {
+  ): Promise<void> {
     const name = message.data.name;
     const isSenderHost =
       room.host === connection.id || room.coHosts.has(connection.id);
 
-    // --- Authority: host-only mutations ---
-    if (DM_ONLY_EVENTS.has(name) && !this.enforceHostOnly(connection, room, name)) {
+    if (
+      DM_ONLY_EVENTS.has(name) &&
+      !this.enforceHostOnly(connection, room, name)
+    ) {
       return;
     }
 
-    // --- Authority: block player mutations while the DM is offline ---
     if (
       DM_OFFLINE_RESTRICTED_EVENTS.has(name) &&
       !isSenderHost &&
@@ -121,39 +107,6 @@ export class EntitySyncHandler extends BaseHandler {
       return;
     }
 
-    // --- Optimistic concurrency: reject stale updates, else bump the version ---
-    if (VERSIONED_EVENTS.has(name)) {
-      const { tokenId, propId, expectedVersion } = message.data as VersionedPayload;
-      const entityId = tokenId ?? propId;
-      if (entityId && typeof expectedVersion === 'number') {
-        const currentVersion = room.entityVersions.get(entityId) ?? 0;
-        if (expectedVersion < currentVersion) {
-          console.warn(
-            `⚠️ Version conflict for ${entityId}: expected ${expectedVersion}, current ${currentVersion}`,
-          );
-          this.sendError(
-            connection,
-            `Update rejected due to version conflict for ${entityId} (expected v${expectedVersion}, current v${currentVersion})`,
-            409,
-          );
-          // No confirmation is sent, so the sender's rollback timer reverts it.
-          return;
-        }
-        room.entityVersions.set(entityId, expectedVersion + 1);
-      }
-    }
-
-    // --- Confirm the optimistic update so the sender doesn't roll back ---
-    const { updateId } = message.data as VersionedPayload;
-    if (updateId && !UNCONFIRMED_EVENTS.has(name)) {
-      this.socketManager.sendMessage(connection, {
-        type: 'update-confirmed',
-        data: { updateId },
-        timestamp: Date.now(),
-      });
-    }
-
-    // --- Relay to peers, never echoing back to the sender ---
     const relayed: ServerEventMessage = {
       ...message,
       src: connection.id,
@@ -161,8 +114,6 @@ export class EntitySyncHandler extends BaseHandler {
     };
 
     if (message.dst) {
-      // Targeted delivery (e.g. a whispered cursor); only if the recipient is
-      // actually in this room.
       const target = this.socketManager.getConnection(message.dst);
       if (target && room.connections.has(message.dst)) {
         this.socketManager.sendMessage(target, relayed);
@@ -170,6 +121,66 @@ export class EntitySyncHandler extends BaseHandler {
       return;
     }
 
-    this.socketManager.broadcastToRoom(room.code, relayed, connection.id);
+    if (!isDurableTransportEvent(relayed.type, relayed.data)) {
+      this.socketManager.broadcastToRoom(room.code, relayed, connection.id);
+      return;
+    }
+
+    const payload = message.data as VersionedPayload;
+    const entityId = payload.tokenId ?? payload.propId;
+
+    await this.socketManager.publishOrderedEvent(room, connection, relayed, {
+      excludeId: connection.id,
+      identitySource: message,
+      validate: () =>
+        this.validateVersion(connection, room, name, entityId, payload),
+      onAccepted: () => {
+        if (
+          VERSIONED_EVENTS.has(name) &&
+          entityId &&
+          typeof payload.expectedVersion === 'number'
+        ) {
+          room.entityVersions.set(entityId, payload.expectedVersion + 1);
+        }
+      },
+      onAcknowledged: () => {
+        if (payload.updateId && !UNCONFIRMED_EVENTS.has(name)) {
+          this.socketManager.sendMessage(connection, {
+            type: 'update-confirmed',
+            data: { updateId: payload.updateId },
+            timestamp: Date.now(),
+          });
+        }
+      },
+    });
+  }
+
+  private validateVersion(
+    connection: Connection,
+    room: Room,
+    eventName: string,
+    entityId: string | undefined,
+    payload: VersionedPayload,
+  ): boolean {
+    if (
+      !VERSIONED_EVENTS.has(eventName) ||
+      !entityId ||
+      typeof payload.expectedVersion !== 'number'
+    ) {
+      return true;
+    }
+
+    const currentVersion = room.entityVersions.get(entityId) ?? 0;
+    if (payload.expectedVersion >= currentVersion) return true;
+
+    console.warn(
+      `Version conflict for ${entityId}: expected ${payload.expectedVersion}, current ${currentVersion}`,
+    );
+    this.sendError(
+      connection,
+      `Update rejected due to version conflict for ${entityId} (expected v${payload.expectedVersion}, current v${currentVersion})`,
+      409,
+    );
+    return false;
   }
 }

@@ -30,25 +30,28 @@ sequenceDiagram
   F-->>B: JSON
   B->>F: WSS /ws?host=CODE&campaignId=...
   F->>A: HTTP upgrade /ws
-  A->>P: create/activate session, save state
-  A-->>B: WebSocket events/patches
-  A-->>R: readiness verified before startup in Compose
+  A->>P: create/activate session
+  B->>A: state snapshot or content-hash patch
+  A->>P: CAS snapshot + token + version
+  P-->>A: committed version or conflict tuple
+  A-->>B: durable ACK or authoritative resync
+  A-->>R: publish committed traffic and renew presence/lease
+  R-->>A: fanout from other backend replicas
   A-->>D: optional document proxy calls
 ```
 
 ## Resource Flow Matrix
 
-| Producer system | Consumer system | Resource | Protocol/path |
-| --- | --- | --- | --- |
-| Browser | Frontend | SPA and static asset requests | HTTP(S) `/`, `/assets/*` |
-| Frontend | Browser | Built HTML, JS, CSS, fonts, image assets | HTTP(S) response |
-| Browser | Backend via Frontend | Auth, user, campaign, character, token, document API requests | HTTP(S) JSON `/api/*`, `/auth/*` |
-| Backend | Browser via Frontend | JSON responses, redirects, cookies | HTTP(S), `Set-Cookie` |
-| Browser | Backend via Frontend | Realtime session actions | WebSocket `/ws` JSON |
-| Backend | Browser | Events, JSON patches, chat, dice results, errors, heartbeat pings | WebSocket JSON |
-| Backend | PostgreSQL | SQL queries and mutations | PostgreSQL TCP :5432 |
-| PostgreSQL | Backend | Rows and JSONB values | PostgreSQL TCP :5432 |
-| Backend | Redis | Readiness check | Redis TCP :6379 |
-| Backend | OAuth providers | OAuth redirects/token/profile interactions | HTTPS |
-| Backend | NexusCodex | Document CRUD/search/content metadata | HTTP JSON, optional |
-
+| Producer system | Consumer system      | Resource                                                                                         | Protocol/path                    |
+| --------------- | -------------------- | ------------------------------------------------------------------------------------------------ | -------------------------------- |
+| Browser         | Frontend             | SPA and static asset requests                                                                    | HTTP(S) `/`, `/assets/*`         |
+| Frontend        | Browser              | Built HTML, JS, CSS, fonts, image assets                                                         | HTTP(S) response                 |
+| Browser         | Backend via Frontend | Auth, user, campaign, character, token, document API requests                                    | HTTP(S) JSON `/api/*`, `/auth/*` |
+| Backend         | Browser via Frontend | JSON responses, redirects, cookies                                                               | HTTP(S), `Set-Cookie`            |
+| Browser         | Backend via Frontend | Realtime session actions                                                                         | WebSocket `/ws` JSON             |
+| Backend         | Browser              | Events, durable ACKs, JSON patches/resync snapshots, chat, dice results, errors, heartbeat pings | WebSocket JSON                   |
+| Backend         | PostgreSQL           | SQL queries, canonical snapshot CAS, ordered event transactions                                  | PostgreSQL TCP :5432             |
+| PostgreSQL      | Backend              | Rows and JSONB values                                                                            | PostgreSQL TCP :5432             |
+| Backend         | Redis                | Versioned pub/sub, presence, host leases, readiness                                              | Redis TCP :6379                  |
+| Backend         | OAuth providers      | OAuth redirects/token/profile interactions                                                       | HTTPS                            |
+| Backend         | NexusCodex           | Document CRUD/search/content metadata                                                            | HTTP JSON, optional              |

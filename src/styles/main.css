@@ -47,6 +47,8 @@
 @import './welcome-page.css' layer(components);
 @import './linear-flow.css' layer(components);
 @import './error-boundary.css' layer(components);
+@import './spell-overlays.css' layer(components);
+@import './spell-overlay-properties.css' layer(components);
 
 /* 5. UTILITIES */
 /* utilities.css retired — Tailwind regenerates all utility classes from usage.

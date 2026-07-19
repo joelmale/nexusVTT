@@ -15,7 +15,10 @@ type HandlerPayload = {
   message: ServerEventMessage;
 };
 
-function makeConnection(id: string, type: 'host' | 'player' = 'player'): Connection {
+function makeConnection(
+  id: string,
+  type: 'host' | 'player' = 'player',
+): Connection {
   return {
     id,
     ws: { readyState: 1 },
@@ -44,7 +47,11 @@ function makeRoom(host: string): Room {
 function createHarness() {
   const handlers = new Map<string, (payload: HandlerPayload) => void>();
   const sent: Array<{ connection: Connection; message: ServerMessage }> = [];
-  const broadcasts: Array<{ code: string; message: ServerMessage; excludeId?: string }> = [];
+  const broadcasts: Array<{
+    code: string;
+    message: ServerMessage;
+    excludeId?: string;
+  }> = [];
 
   const socketManager = {
     connections: new Map<string, Connection>(),
@@ -54,8 +61,20 @@ function createHarness() {
     sendMessage: (connection: Connection, message: ServerMessage) => {
       sent.push({ connection, message });
     },
-    broadcastToRoom: (code: string, message: ServerMessage, excludeId?: string) => {
+    broadcastToRoom: (
+      code: string,
+      message: ServerMessage,
+      excludeId?: string,
+    ) => {
       broadcasts.push({ code, message, excludeId });
+    },
+    publishOrderedEvent: (
+      room: Room,
+      _connection: Connection,
+      message: ServerMessage,
+    ) => {
+      broadcasts.push({ code: room.code, message });
+      return Promise.resolve(null);
     },
   } as unknown as SocketManager;
 

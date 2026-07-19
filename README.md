@@ -18,15 +18,19 @@ npm run start:all  # Starts PostgreSQL, Redis, and both services
 
 - Frontend: http://localhost:5173
 - Backend: http://localhost:5001
-- Database: http://localhost:5432
+- Database: `localhost:5432`
 
 ## 🏗️ Architecture
 
 - **Frontend:** React 19 + TypeScript + Vite
 - **Backend:** Express.js + WebSocket + PostgreSQL + Redis
 - **State Management:** Zustand with immer + IndexedDB persistence
-- **Authentication:** OAuth2 (Google/Discord) + JWT sessions
+- **Authentication:** OAuth2 (Google/Discord) + PostgreSQL-backed sessions
 - **Deployment:** Docker Swarm + Nginx Proxy Manager
+
+PostgreSQL is the durable authority for canonical game state and ordered
+multiplayer history. Redis provides cross-replica fanout, expiring presence,
+and host leases; losing Redis cannot erase an acknowledged game-state commit.
 
 ## ✨ Features
 
@@ -36,6 +40,9 @@ npm run start:all  # Starts PostgreSQL, Redis, and both services
 - Real-time dice rolling and game state updates
 - WebSocket communication for instant updates
 - Session persistence across browser refreshes
+- Durable ACKs: snapshot, content hash, and version commit atomically before
+  the browser is told an update succeeded
+- Compare-and-swap conflict recovery across backend replicas
 
 ### 🔐 OAuth Authentication
 
@@ -119,6 +126,8 @@ npm run preview         # Preview built frontend
 npm run test            # All tests
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
+npm run test:e2e        # Production Docker + Playwright smoke tests
+npm run test:e2e:headed # Smoke tests with a visible Chromium window
 npm run test:ci         # Full CI pipeline (lint + type-check + tests)
 npm run test:coverage   # Coverage report
 ```
@@ -150,7 +159,7 @@ npm run docker:dev:down     # Stop dev environment
 
 ## 🧪 Testing Setup
 
-- **Framework:** Vitest with Testing Library
+- **Frameworks:** Vitest with Testing Library; Playwright for browser smoke tests
 - **Mocks:** WebSocket, IndexedDB, localStorage, sessionStorage
 - **Coverage:** 20% lines, 18% functions, 16% branches, 20% statements
 - **Environment:** jsdom with custom setup
@@ -159,7 +168,9 @@ npm run docker:dev:down     # Stop dev environment
 
 - **Unit Tests:** Component and utility tests
 - **Integration Tests:** Database operations and API endpoints
-- **End-to-End Tests:** Full user workflows
+- **End-to-End Tests:** Production containers, two isolated clients, replica
+  convergence, abrupt `SIGKILL` recovery after an ACK, PWA offline reloads,
+  WebSocket reconnection, and dice runtime assets
 
 ## 🛡️ Security
 
@@ -180,7 +191,8 @@ npm run docker:dev:down     # Stop dev environment
 
 - Prepared statements for database queries
 - Rate limiting on API endpoints
-- Secure session storage with Redis
+- Secure server-side session storage with PostgreSQL
+- Redis is restricted to ephemeral realtime coordination
 - Regular security scanning
 
 ## 🏢 Deployment
@@ -203,30 +215,30 @@ Copy `.env.example` to `.env` and fill in the values before starting. The full r
 
 #### Required environment variables
 
-| Variable | Description | Example |
-|---|---|---|
-| `DATABASE_URL` | PostgreSQL connection string | `postgresql://nexus:pass@localhost:5432/nexus` |
-| `POSTGRES_PASSWORD` | Postgres superuser password (used by the postgres container) | `change-me` |
-| `REDIS_PASSWORD` | Redis auth password | `change-me` |
-| `JWT_SECRET` | Signs JWT tokens — use a long random string | `openssl rand -hex 64` |
-| `SESSION_SECRET` | Signs session cookies — use a long random string | `openssl rand -hex 64` |
-| `GOOGLE_CLIENT_ID` | Google OAuth 2.0 client ID | `xxx.apps.googleusercontent.com` |
-| `GOOGLE_CLIENT_SECRET` | Google OAuth 2.0 client secret | — |
-| `GOOGLE_CALLBACK_URL` | Absolute HTTPS URL registered in Google Cloud Console | `https://app.nexusvtt.com/auth/google/callback` |
-| `DISCORD_CLIENT_ID` | Discord application client ID | — |
-| `DISCORD_CLIENT_SECRET` | Discord application client secret | — |
-| `DISCORD_CALLBACK_URL` | Absolute HTTPS URL registered in your Discord application | `https://app.nexusvtt.com/auth/discord/callback` |
+| Variable                | Description                                                  | Example                                          |
+| ----------------------- | ------------------------------------------------------------ | ------------------------------------------------ |
+| `DATABASE_URL`          | PostgreSQL connection string                                 | `postgresql://nexus:pass@localhost:5432/nexus`   |
+| `POSTGRES_PASSWORD`     | Postgres superuser password (used by the postgres container) | `change-me`                                      |
+| `REDIS_PASSWORD`        | Redis auth password                                          | `change-me`                                      |
+| `JWT_SECRET`            | Signs JWT tokens — use a long random string                  | `openssl rand -hex 64`                           |
+| `SESSION_SECRET`        | Signs session cookies — use a long random string             | `openssl rand -hex 64`                           |
+| `GOOGLE_CLIENT_ID`      | Google OAuth 2.0 client ID                                   | `xxx.apps.googleusercontent.com`                 |
+| `GOOGLE_CLIENT_SECRET`  | Google OAuth 2.0 client secret                               | —                                                |
+| `GOOGLE_CALLBACK_URL`   | Absolute HTTPS URL registered in Google Cloud Console        | `https://app.nexusvtt.com/auth/google/callback`  |
+| `DISCORD_CLIENT_ID`     | Discord application client ID                                | —                                                |
+| `DISCORD_CLIENT_SECRET` | Discord application client secret                            | —                                                |
+| `DISCORD_CALLBACK_URL`  | Absolute HTTPS URL registered in your Discord application    | `https://app.nexusvtt.com/auth/discord/callback` |
 
 #### Optional / deployment variables
 
-| Variable | Default | Description |
-|---|---|---|
-| `SECURE_COOKIES` | `true` (production) | Set to `false` only in non-TLS local environments. Controls the `Secure` flag on session cookies. **Note:** `FORCE_HTTPS` no longer exists — it was removed as it only accidentally disabled this flag. |
-| `IMAGE_PREFIX` | `ghcr.io/joelmale/nexusvtt` | Container registry prefix used by docker-compose |
-| `VERSION` | `latest` | Image tag to deploy. CI automatically pushes `latest` and a date+SHA tag on every master merge. Pin to a specific tag (e.g. `20260611-63d0651`) for reproducible deploys. |
-| `POSTGRES_USER` | `nexus` | Postgres username |
-| `POSTGRES_DB` | `nexus` | Postgres database name |
-| `CORS_ORIGIN` | `http://localhost:5173` | Comma-separated list of allowed CORS origins |
+| Variable         | Default                     | Description                                                                                                                                                                                             |
+| ---------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `SECURE_COOKIES` | `true` (production)         | Set to `false` only in non-TLS local environments. Controls the `Secure` flag on session cookies. **Note:** `FORCE_HTTPS` no longer exists — it was removed as it only accidentally disabled this flag. |
+| `IMAGE_PREFIX`   | `ghcr.io/joelmale/nexusvtt` | Container registry prefix used by docker-compose                                                                                                                                                        |
+| `VERSION`        | `latest`                    | Image tag to deploy. CI automatically pushes `latest` and a date+SHA tag on every master merge. Pin to a specific tag (e.g. `20260611-63d0651`) for reproducible deploys.                               |
+| `POSTGRES_USER`  | `nexus`                     | Postgres username                                                                                                                                                                                       |
+| `POSTGRES_DB`    | `nexus`                     | Postgres database name                                                                                                                                                                                  |
+| `CORS_ORIGIN`    | `http://localhost:5173`     | Comma-separated list of allowed CORS origins                                                                                                                                                            |
 
 #### Proxy / SSL notes
 
@@ -239,31 +251,36 @@ nginx only terminates HTTP internally (port 80). TLS is terminated by the outer 
 - Automatic failover and recovery
 - Container health monitoring
 
+For an existing database, apply both July 19 migrations before rolling the new
+backend replicas: the ordered event journal first, followed by
+`server/migrations/2026-07-19-add-durable-game-state-commits.sql`. New databases
+receive the same columns from `server/schema.sql`, and startup defensively adds
+missing columns.
+
 ## 📚 Documentation
 
 ### Architecture
 
 - [Complete Architecture Guide](./docs/architecture.md)
-- [Component Structure](./docs/component-structure.md)
-- [State Management](./docs/state-management.md)
+- [Network and Session Architecture](./docs/network-and-sessions.md)
+- [Ordered Event Delivery](./docs/ordered-event-delivery.md)
+- [Delta-Sync Operations](./docs/delta-sync-rollout.md)
 
 ### Deployment
 
 - [Production Deployment Guide](./docs/HOMELAB_DEPLOYMENT.md)
-- [Docker Configuration](./docs/docker-setup.md)
-- [SSL Certificate Setup](./docs/ssl-setup.md)
+- [Deployment Quick Reference](./docs/DEPLOYMENT_QUICKREF.md)
 
 ### Development
 
 - [Developer Setup Guide](./docs/developer/development.md)
-- [Code Style Guidelines](./docs/developer/code-style.md)
 - [Testing Guidelines](./docs/developer/testing.md)
+- [Dependency Policy](./docs/dependency-policy.md)
 
 ### Assets
 
 - [Asset Management Guide](./docs/ASSETS-GUIDE.md)
-- [Custom Asset Creation](./docs/developer/asset-creation.md)
-- [Optimization Techniques](./docs/developer/asset-optimization.md)
+- [Asset Processing](./docs/assets/processing.md)
 
 ## 🤝 Contributing
 
@@ -294,8 +311,8 @@ MIT - see [LICENSE](./LICENSE).
 
 ### Prerequisites
 
-- Node.js 20.19.0+
-- npm 10.0.0+
+- Node.js 26.5.0+
+- npm 11.0.0+
 - Docker Desktop
 - PostgreSQL client (optional)
 

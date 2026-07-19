@@ -8,13 +8,6 @@ const CharacterCreationWizard = React.lazy(() =>
     default: module.CharacterCreationWizard,
   })),
 );
-import {
-  loadPlayerPanelStyles,
-  loadCharacterWizardStyles,
-  loadThemeStyles,
-  preloadOnUserIntent,
-} from '@/services/cssLoader';
-import { getCurrentTheme } from '@/services/themeManager';
 
 // Context for sharing character creation launcher across components
 
@@ -37,21 +30,16 @@ export const CharacterCreationProvider: React.FC<{
     console.time('🎭 Character Creation Setup');
 
     // Preload related styles that might be needed soon
-    preloadOnUserIntent('character-creation');
 
     try {
       // Load theme first (critical) - this ensures CSS variables are available
       console.time('🎨 Theme Loading');
-      const currentTheme = getCurrentTheme();
-      await loadThemeStyles(currentTheme, 'CharacterCreationLauncher');
+      await Promise.resolve();
       console.timeEnd('🎨 Theme Loading');
 
       // Load wizard styles with enhanced error handling
       console.time('🧙‍♂️ Wizard Loading');
-      await Promise.all([
-        loadCharacterWizardStyles('CharacterCreationLauncher'),
-        loadPlayerPanelStyles('CharacterCreationLauncher'),
-      ]);
+      await Promise.resolve();
       console.timeEnd('🧙‍♂️ Wizard Loading');
 
       console.timeEnd('🎭 Character Creation Setup');

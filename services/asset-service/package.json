@@ -1,29 +1,31 @@
 {
   "name": "asset-service",
   "version": "1.0.0",
+  "private": true,
   "description": "Standalone asset service for NexusVTT",
-  "main": "dist/index.js",
+  "main": "dist/services/asset-service/src/index.js",
   "scripts": {
-    "start": "node dist/index.js",
-    "dev": "ts-node-dev --respawn src/index.ts",
+    "start": "node dist/services/asset-service/src/index.js",
+    "dev": "tsx watch src/index.ts",
     "build": "tsc",
     "type-check": "tsc --noEmit",
     "test": "vitest run"
   },
   "dependencies": {
     "cors": "^2.8.5",
-    "express": "^4.21.2",
+    "express": "^5.2.1",
     "multer": "^2.2.0"
   },
   "devDependencies": {
     "@types/cors": "^2.8.17",
-    "@types/express": "^4.17.21",
+    "@types/express": "^5.0.6",
     "@types/multer": "^2.2.0",
-    "@types/node": "^20.10.4",
+    "@types/node": "^26.1.1",
     "@types/supertest": "^6.0.2",
+    "patch-package": "^8.0.1",
     "supertest": "^7.0.0",
-    "ts-node-dev": "^2.0.0",
-    "typescript": "^5.3.3",
-    "vitest": "^3.2.6"
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.1.10"
   }
 }

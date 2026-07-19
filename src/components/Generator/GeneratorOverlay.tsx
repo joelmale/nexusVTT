@@ -8,7 +8,7 @@ interface GeneratorOverlayProps {
   /** `true` under the `floating-panels` flag - the legacy header carve-out
    * (top: var(--header-height)) no longer applies, so the overlay should
    * cover the full viewport (inset: 0). Flag off (default/undefined):
-   * unchanged legacy behavior via generator-panel.css. */
+   * unchanged legacy behavior via GeneratorPanel.css. */
   floatingPanelsEnabled?: boolean;
   children: React.ReactNode;
 }
@@ -24,7 +24,7 @@ interface GeneratorOverlayProps {
  * This is a hygiene fix, not a layout change - it is mounted unconditionally
  * by GameUI.tsx (not flag-gated); only the inset/top styling branches on
  * `floatingPanelsEnabled` via the `data-floating-panels` attribute consumed
- * in generator-panel.css.
+ * in GeneratorPanel.css.
  */
 export const GeneratorOverlay: React.FC<GeneratorOverlayProps> = ({
   isOpen,

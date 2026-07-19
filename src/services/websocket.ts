@@ -13,13 +13,46 @@ import type { WebSocketCustomEvent } from '@/types/events';
 import type { ChatMessage } from '@/types/game';
 import { useGameStore } from '@/stores/gameStore';
 import { gameStateSyncEngine } from '@/services/gameStateSync';
+import {
+  applyGameStateProjection,
+  buildGameStateProjection,
+} from '@/services/gameStateProjection';
 import { toast } from '@/utils/notifications';
-import { applyPatch, Operation } from 'fast-json-patch';
+import { applyPatch, type Operation } from 'fast-json-patch';
 import { encode, decode } from '@msgpack/msgpack';
-import type { StateHash } from '../../shared/sync/contracts';
+import type { StateHash, SyncableGameState } from '../../shared/sync/contracts';
+import {
+  parseTransportEnvelope,
+  type TransportEnvelope,
+} from '../../shared/transport';
+import {
+  hasOrderedEventMetadata,
+  isDurableTransportEvent,
+  type EventAcknowledgement,
+  type EventCursorUpdate,
+  type OrderedTransportEnvelope,
+} from '../../shared/events/contracts';
+import { orderedEventClient } from '@/services/orderedEventClient';
+
+const SERVER_MESSAGE_TYPES = new Set([
+  'event',
+  'state',
+  'dice-roll',
+  'chat-message',
+  'error',
+  'heartbeat',
+  'update-confirmed',
+  'game-state-patch',
+  'game-state-ack',
+  'game-state-resync-required',
+  'event-ack',
+  'event-cursor',
+]);
 
 const sanitizeLog = (value: unknown): string =>
-  String(value).replace(/[\r\n\t]/g, ' ').slice(0, 200);
+  String(value)
+    .replace(/[\r\n\t]/g, ' ')
+    .slice(0, 200);
 
 interface ConnectionContext {
   roomCode: string;
@@ -34,6 +67,7 @@ class WebSocketService extends EventTarget {
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
+  private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
   private messageQueue: Array<string | Uint8Array> = [];
   private connectionPromise: Promise<void> | null = null;
   /** Signature of the last game-state snapshot sent, for dedup. Reset on
@@ -95,6 +129,10 @@ class WebSocketService extends EventTarget {
     if (userName) {
       params.set('userName', userName);
     }
+    const lastSeenSequence = orderedEventClient.getRequestedCursor();
+    if (roomCode && lastSeenSequence !== null) {
+      params.set('lastSeenSequence', String(lastSeenSequence));
+    }
 
     const queryString = params.toString();
     return queryString ? `${wsUrl}?${queryString}` : wsUrl;
@@ -141,6 +179,13 @@ class WebSocketService extends EventTarget {
         this.lastSessionCreatedEvent = null;
         this.lastSessionJoinedEvent = null;
 
+        if (roomCode) {
+          const resolvedUserId = userId || useGameStore.getState().user.id;
+          if (resolvedUserId) {
+            orderedEventClient.configure(roomCode, resolvedUserId);
+          }
+        }
+
         // Store connection context for reconnection (if we have enough info)
         if (roomCode && userType && userId && userName) {
           this.connectionContext = {
@@ -152,7 +197,10 @@ class WebSocketService extends EventTarget {
           };
           // Persist to localStorage for page refresh recovery
           try {
-            localStorage.setItem('nexus-connection-context', JSON.stringify(this.connectionContext));
+            localStorage.setItem(
+              'nexus-connection-context',
+              JSON.stringify(this.connectionContext),
+            );
           } catch (error) {
             console.warn('Failed to save connection context:', error);
           }
@@ -190,12 +238,16 @@ class WebSocketService extends EventTarget {
         // Set up message handlers
         this.ws.onmessage = (event) => {
           try {
-            let message: WebSocketMessage;
+            let decodedMessage: unknown;
             if (event.data instanceof ArrayBuffer) {
-              message = decode(new Uint8Array(event.data)) as WebSocketMessage;
+              decodedMessage = decode(new Uint8Array(event.data));
             } else {
-              message = JSON.parse(event.data);
+              decodedMessage = JSON.parse(event.data) as unknown;
             }
+            const message = parseTransportEnvelope(
+              decodedMessage,
+              SERVER_MESSAGE_TYPES,
+            ) as WebSocketMessage;
             this.handleMessage(message);
           } catch (error) {
             console.error(
@@ -234,7 +286,43 @@ class WebSocketService extends EventTarget {
   }
 
   private handleMessage(message: WebSocketMessage) {
-    console.log('📨 Received WebSocket message:', sanitizeLog(message.type), message.data);
+    if (message.type === 'event-ack') {
+      const ready = orderedEventClient.acknowledge(
+        message.data as EventAcknowledgement,
+      );
+      this.processOrderedMessages(ready);
+      return;
+    }
+
+    if (message.type === 'event-cursor') {
+      const ready = orderedEventClient.establishCursor(
+        message.data as EventCursorUpdate,
+      );
+      this.processOrderedMessages(ready);
+      return;
+    }
+
+    if (hasOrderedEventMetadata(message)) {
+      const ready = orderedEventClient.receive(message);
+      this.processOrderedMessages(ready);
+      return;
+    }
+
+    this.processMessage(message);
+  }
+
+  private processOrderedMessages(messages: OrderedTransportEnvelope[]): void {
+    for (const message of messages) {
+      this.processMessage(message as unknown as WebSocketMessage);
+    }
+  }
+
+  private processMessage(message: WebSocketMessage) {
+    console.log(
+      '📨 Received WebSocket message:',
+      sanitizeLog(message.type),
+      message.data,
+    );
     const gameStore = useGameStore.getState();
 
     // Emit custom event for components to listen to
@@ -242,7 +330,11 @@ class WebSocketService extends EventTarget {
 
     switch (message.type) {
       case 'event': {
-        console.log('🎯 Processing event:', sanitizeLog(message.data.name), message.data);
+        console.log(
+          '🎯 Processing event:',
+          sanitizeLog(message.data.name),
+          message.data,
+        );
 
         // Session events will be handled by the gameStore's applyEvent method
 
@@ -272,6 +364,10 @@ class WebSocketService extends EventTarget {
           };
           const { user, session } = useGameStore.getState();
           if (user?.id && user?.name) {
+            orderedEventClient.configure(
+              message.data.roomCode as string,
+              user.id,
+            );
             this.connectionContext = {
               roomCode: message.data.roomCode as string,
               userType: 'host',
@@ -298,6 +394,7 @@ class WebSocketService extends EventTarget {
             session?.roomCode ||
             (message.data as unknown as { roomCode?: string })?.roomCode;
           if (user?.id && user?.name && joinedRoomCode) {
+            orderedEventClient.configure(joinedRoomCode, user.id);
             this.connectionContext = {
               roomCode: joinedRoomCode,
               userType: 'player',
@@ -321,6 +418,23 @@ class WebSocketService extends EventTarget {
           data: message.data,
         };
         gameStore.applyEvent(gameEvent);
+
+        if (
+          (message.data.name === 'session/joined' ||
+            message.data.name === 'session/reconnected') &&
+          'gameState' in message.data &&
+          message.data.gameState
+        ) {
+          applyGameStateProjection(message.data.gameState);
+        }
+
+        if (
+          message.data.name === 'session/created' ||
+          message.data.name === 'session/joined' ||
+          message.data.name === 'session/reconnected'
+        ) {
+          this.resendPendingOrderedMessages();
+        }
 
         // Also emit a specific event for the drawing synchronization
         if (message.data.name === 'drawing/create') {
@@ -364,35 +478,24 @@ class WebSocketService extends EventTarget {
             `📦 Applying game state patch v${sanitizeLog(version)} (${patch.length} operations)`,
           );
 
-          // Get current game state
-          const currentState = useGameStore.getState();
-
-          // Create a copy to apply patch to
-          const stateCopy = JSON.parse(
-            JSON.stringify({
-              scenes: currentState.sceneState.scenes,
-              activeSceneId: currentState.sceneState.activeSceneId,
-              characters: [], // Characters are stored separately
-              initiative: {}, // Initiative is stored separately
-            }),
-          );
+          const stateCopy = buildGameStateProjection();
 
           // Apply patch
-          const patchResult = applyPatch(stateCopy, patch as Operation[]);
+          const patchResult = applyPatch(
+            stateCopy,
+            patch as Operation[],
+            true,
+            false,
+          );
 
           if (patchResult.newDocument) {
-            // Update game store with patched state
-            useGameStore.setState((state) => {
-              if (patchResult.newDocument.scenes) {
-                state.sceneState.scenes = patchResult.newDocument.scenes;
-              }
-              if (patchResult.newDocument.activeSceneId !== undefined) {
-                state.sceneState.activeSceneId =
-                  patchResult.newDocument.activeSceneId;
-              }
-            });
+            if (!applyGameStateProjection(patchResult.newDocument)) {
+              throw new Error('Server patch produced an invalid game state.');
+            }
 
-            console.log(`✅ Game state patch v${sanitizeLog(version)} applied successfully`);
+            console.log(
+              `✅ Game state patch v${sanitizeLog(version)} applied successfully`,
+            );
           }
         } catch (error) {
           console.error('❌ Failed to apply game state patch:', error);
@@ -412,12 +515,27 @@ class WebSocketService extends EventTarget {
       }
 
       case 'game-state-resync-required': {
-        // Sender-only: the content-hash chain broke. Drop our base and
-        // re-baseline with a full snapshot on the next flush. The reason
-        // ('base-mismatch' | 'integrity-mismatch' | …) drives the dev log.
-        const reason =
-          (message.data as { reason?: string })?.reason ?? 'server';
-        gameStateSyncEngine.onResyncRequired(reason);
+        // PostgreSQL rejected our compare-and-swap or validation rejected the
+        // chain. Rebase from the authoritative snapshot; never upload the stale
+        // losing state over a commit made by another host/replica.
+        const resync = message.data as {
+          reason?: string;
+          serverToken?: string;
+          gameState?: unknown;
+        };
+        const reason = resync.reason ?? 'server';
+        if (
+          typeof resync.serverToken === 'string' &&
+          applyGameStateProjection(resync.gameState)
+        ) {
+          gameStateSyncEngine.onAuthoritativeSnapshot(
+            resync.gameState as SyncableGameState,
+            resync.serverToken as StateHash,
+            reason,
+          );
+        } else {
+          gameStateSyncEngine.onResyncRequired(reason);
+        }
         break;
       }
 
@@ -462,6 +580,10 @@ class WebSocketService extends EventTarget {
         this.handleHeartbeatMessage(message);
         break;
 
+      case 'event-ack':
+      case 'event-cursor':
+        break;
+
       default: {
         // This is an exhaustive check. If a new message type is added, this will cause a TypeScript error.
         const _exhaustiveCheck: never = message;
@@ -472,6 +594,10 @@ class WebSocketService extends EventTarget {
   }
 
   private handleReconnect() {
+    if (this.reconnectTimer) {
+      return;
+    }
+
     if (this.reconnectAttempts < this.maxReconnectAttempts) {
       this.reconnectAttempts++;
       const baseDelay =
@@ -491,7 +617,9 @@ class WebSocketService extends EventTarget {
         duration: delay + 5000,
       });
 
-      setTimeout(() => {
+      this.reconnectTimer = setTimeout(() => {
+        this.reconnectTimer = null;
+
         // Try to load connection context from memory or localStorage
         let context = this.connectionContext;
         if (!context) {
@@ -531,6 +659,7 @@ class WebSocketService extends EventTarget {
                 id: 'reconnect-toast',
                 description: 'Retrying...',
               });
+              this.handleReconnect();
             });
         } else {
           // Fallback to session-based reconnection (old behavior)
@@ -559,9 +688,12 @@ class WebSocketService extends EventTarget {
                   id: 'reconnect-toast',
                   description: 'Retrying...',
                 });
+                this.handleReconnect();
               });
           } else {
-            console.warn('⚠️ No connection context or session available for reconnection');
+            console.warn(
+              '⚠️ No connection context or session available for reconnection',
+            );
           }
         }
       }, delay);
@@ -698,7 +830,10 @@ class WebSocketService extends EventTarget {
       const handler = (event: Event) => {
         const customEvent = event as CustomEvent;
         const eventName = customEvent.detail?.data?.name;
-        if (eventName === 'session/created' || eventName === 'session/reconnected') {
+        if (
+          eventName === 'session/created' ||
+          eventName === 'session/reconnected'
+        ) {
           clearTimeout(timeout);
           this.removeEventListener('message', handler);
           resolve(customEvent.detail.data);
@@ -796,8 +931,18 @@ class WebSocketService extends EventTarget {
   private sendMessage(
     message: Omit<WebSocketMessage, 'src'> & { src: string },
   ) {
+    let outgoing = message;
+    if (
+      isDurableTransportEvent(message.type, message.data) &&
+      !message.eventId
+    ) {
+      outgoing = { ...message, ...orderedEventClient.createIdentity() };
+      orderedEventClient.track(outgoing as unknown as TransportEnvelope);
+    }
     const useMessagePack = import.meta.env.VITE_USE_MESSAGEPACK === 'true';
-    const payload = useMessagePack ? encode(message) : JSON.stringify(message);
+    const payload = useMessagePack
+      ? encode(outgoing)
+      : JSON.stringify(outgoing);
 
     if (this.ws?.readyState === WebSocket.OPEN) {
       this.ws.send(payload);
@@ -813,6 +958,14 @@ class WebSocketService extends EventTarget {
       if (this.messageQueue.length > 50) {
         this.messageQueue.shift();
       }
+    }
+  }
+
+  private resendPendingOrderedMessages(): void {
+    if (this.ws?.readyState !== WebSocket.OPEN) return;
+    const useMessagePack = import.meta.env.VITE_USE_MESSAGEPACK === 'true';
+    for (const message of orderedEventClient.pendingMessages()) {
+      this.ws.send(useMessagePack ? encode(message) : JSON.stringify(message));
     }
   }
 
@@ -934,6 +1087,10 @@ class WebSocketService extends EventTarget {
   disconnect() {
     console.log('Manually disconnecting WebSocket');
     this.stopHeartbeat();
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
     if (this.ws) {
       // Use code 1000 for normal closure
       this.ws.close(1000, 'Manual disconnect');
@@ -966,6 +1123,11 @@ class WebSocketService extends EventTarget {
     } catch (error) {
       console.warn('Failed to clear cached port:', error);
     }
+  }
+
+  resetSessionEventCache(): void {
+    this.lastSessionCreatedEvent = null;
+    this.lastSessionJoinedEvent = null;
   }
 
   isConnected(): boolean {

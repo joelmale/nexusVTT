@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import '@/styles/character-manager.css';
+import './CharacterManager.css';
 
 interface CharacterData {
   race?: string;

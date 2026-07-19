@@ -41,15 +41,11 @@ const AdminPage = React.lazy(() =>
 );
 import './styles/main.css';
 import './styles/tailwind.css'; // Tailwind layer – loaded after main.css for correct cascade order
-import './styles/spell-overlays.css';
-import './styles/spell-overlay-properties.css';
-import {
-  logCSSLoadingReport,
-  getCSSLoadStats,
-  getCSSQueueStatus,
-} from './services/cssLoader';
 import { initializeTheme } from './services/themeManager';
 import { propAssetManager } from './services/propAssets';
+import { initializeGameStateSyncRuntime } from './services/gameStateSyncRuntime';
+
+initializeGameStateSyncRuntime();
 
 // Load non-critical assets after initial render for better performance
 const loadNonCriticalAssets = async () => {
@@ -72,64 +68,70 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
     <BrowserRouter>
       <Providers>
         <RouteErrorBoundary>
-        <Routes>
-          {/* Root redirect */}
-          <Route path="/" element={<Navigate to="/lobby" replace />} />
+          <Routes>
+            {/* Root redirect */}
+            <Route path="/" element={<Navigate to="/lobby" replace />} />
 
-          {/* Lobby routes - linear flow for creating/joining games */}
-          <Route path="/lobby" element={<LinearWelcomePage />} />
-          <Route
-            path="/lobby/player-setup"
-            element={
-              <Suspense fallback={<LoadingScreen message="Loading setup…" />}>
-                <PlayerSetupPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/lobby/dm-setup"
-            element={
-              <Suspense fallback={<LoadingScreen message="Loading setup…" />}>
-                <DMSetupPage />
-              </Suspense>
-            }
-          />
-          <Route
-            path="/lobby/game/:roomCode"
-            element={
-              <ProtectedRoute requireUser requireSession>
-                <Suspense fallback={<LoadingScreen message="Loading game…" />}>
-                  <LinearGameLayout />
-                </Suspense>
-              </ProtectedRoute>
-            }
-          />
-
-          {/* User dashboard (authenticated users) */}
-          <Route
-            path="/dashboard"
-            element={
-              <Suspense fallback={<LoadingScreen message="Loading dashboard…" />}>
-                <Dashboard />
-              </Suspense>
-            }
-          />
-
-          {/* Admin panel (development only) */}
-          {process.env.NODE_ENV === 'development' && (
+            {/* Lobby routes - linear flow for creating/joining games */}
+            <Route path="/lobby" element={<LinearWelcomePage />} />
             <Route
-              path="/admin"
+              path="/lobby/player-setup"
               element={
-                <Suspense fallback={<LoadingScreen message="Loading admin…" />}>
-                  <AdminPage />
+                <Suspense fallback={<LoadingScreen message="Loading setup…" />}>
+                  <PlayerSetupPage />
                 </Suspense>
               }
             />
-          )}
+            <Route
+              path="/lobby/dm-setup"
+              element={
+                <Suspense fallback={<LoadingScreen message="Loading setup…" />}>
+                  <DMSetupPage />
+                </Suspense>
+              }
+            />
+            <Route
+              path="/lobby/game/:roomCode"
+              element={
+                <ProtectedRoute requireUser requireSession>
+                  <Suspense
+                    fallback={<LoadingScreen message="Loading game…" />}
+                  >
+                    <LinearGameLayout />
+                  </Suspense>
+                </ProtectedRoute>
+              }
+            />
 
-          {/* Fallback - redirect unknown routes to lobby */}
-          <Route path="*" element={<Navigate to="/lobby" replace />} />
-        </Routes>
+            {/* User dashboard (authenticated users) */}
+            <Route
+              path="/dashboard"
+              element={
+                <Suspense
+                  fallback={<LoadingScreen message="Loading dashboard…" />}
+                >
+                  <Dashboard />
+                </Suspense>
+              }
+            />
+
+            {/* Admin panel (development only) */}
+            {process.env.NODE_ENV === 'development' && (
+              <Route
+                path="/admin"
+                element={
+                  <Suspense
+                    fallback={<LoadingScreen message="Loading admin…" />}
+                  >
+                    <AdminPage />
+                  </Suspense>
+                }
+              />
+            )}
+
+            {/* Fallback - redirect unknown routes to lobby */}
+            <Route path="*" element={<Navigate to="/lobby" replace />} />
+          </Routes>
         </RouteErrorBoundary>
       </Providers>
       <Toaster />
@@ -159,19 +161,4 @@ if ('serviceWorker' in navigator && import.meta.env.PROD) {
       },
     });
   });
-}
-
-// Add CSS debugging utilities to window for development
-if (import.meta.env.DEV) {
-  interface CssDebug {
-    logReport: () => void;
-    getStats: () => void;
-    getQueueStatus: () => void;
-  }
-
-  (window as Window & typeof globalThis & { cssDebug: CssDebug }).cssDebug = {
-    logReport: logCSSLoadingReport,
-    getStats: getCSSLoadStats,
-    getQueueStatus: getCSSQueueStatus,
-  };
 }

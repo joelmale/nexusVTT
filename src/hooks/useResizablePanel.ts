@@ -20,8 +20,15 @@ interface UseResizablePanelOptions {
   onPositionChange?: (dx: number, dy: number) => void;
 }
 
-type Edge = 'left' | 'right' | 'top' | 'bottom'
-  | 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right';
+type Edge =
+  | 'left'
+  | 'right'
+  | 'top'
+  | 'bottom'
+  | 'top-left'
+  | 'top-right'
+  | 'bottom-left'
+  | 'bottom-right';
 
 interface UseResizablePanelResult {
   /** Current size state */
@@ -56,7 +63,9 @@ export function useResizablePanel({
     try {
       const saved = localStorage.getItem(`nexus-ui-${id}-size`);
       if (saved) return JSON.parse(saved);
-    } catch { /* fallback */ }
+    } catch {
+      /* fallback */
+    }
     return { ...defaultSize };
   });
 
@@ -80,7 +89,9 @@ export function useResizablePanel({
   useEffect(() => {
     try {
       localStorage.setItem(`nexus-ui-${id}-size`, JSON.stringify(size));
-    } catch { /* quota */ }
+    } catch {
+      /* quota */
+    }
   }, [id, size]);
 
   const onResizeStart = useCallback(
@@ -145,7 +156,7 @@ export function useResizablePanel({
       window.addEventListener('pointerup', handleUp);
       window.addEventListener('pointercancel', handleUp);
     },
-    [clamp],
+    [clamp, onPositionChange],
   );
 
   const edgeCursor = useCallback((edge: Edge) => EDGE_CURSORS[edge], []);

@@ -279,6 +279,12 @@ export interface BaseMessage {
   timestamp: number;
   src: string;
   dst?: string;
+  eventId?: string;
+  actorId?: string;
+  clientSequence?: number;
+  serverSequence?: number;
+  occurredAt?: number;
+  roomCode?: string;
 }
 
 export interface EventMessage extends BaseMessage {
@@ -368,6 +374,25 @@ export interface UpdateConfirmationMessage extends BaseMessage {
   };
 }
 
+export interface EventAcknowledgementMessage extends BaseMessage {
+  type: 'event-ack';
+  data: {
+    eventId: string;
+    serverSequence: number;
+    duplicate: boolean;
+    advancesCursor: boolean;
+  };
+}
+
+export interface EventCursorMessage extends BaseMessage {
+  type: 'event-cursor';
+  data: {
+    mode: 'baseline' | 'resume';
+    sequence: number;
+    replayThrough: number;
+  };
+}
+
 export interface GameStateAckMessage extends BaseMessage {
   type: 'game-state-ack';
   data: {
@@ -380,6 +405,8 @@ export interface GameStateResyncRequiredMessage extends BaseMessage {
   type: 'game-state-resync-required';
   data: {
     serverToken: string; // Server's current authoritative StateHash
+    gameState: unknown; // Validated before projection into the stores
+    version: number;
     reason: string; // ResyncReason
   };
 }
@@ -400,6 +427,8 @@ export type WebSocketMessage =
   | ErrorMessage
   | HeartbeatMessage
   | UpdateConfirmationMessage
+  | EventAcknowledgementMessage
+  | EventCursorMessage
   | GameStatePatchMessage
   | GameStateAckMessage
   | GameStateResyncRequiredMessage;

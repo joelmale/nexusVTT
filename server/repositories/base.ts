@@ -58,6 +58,8 @@ export interface SessionRecord {
   primaryHostId: string;
   status: 'active' | 'hibernating' | 'abandoned';
   gameState: unknown;
+  stateVersion: number;
+  syncToken: string | null;
   createdAt: Date;
   lastActivity: Date;
 }

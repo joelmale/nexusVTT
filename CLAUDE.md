@@ -6,14 +6,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Overview
 
-Nexus VTT is a lightweight, web-based virtual tabletop system featuring real-time multiplayer synchronization with a hybrid client-server architecture. The system prioritizes client-side authority with a minimal server for message routing and persistence.
+Nexus VTT is a web-based virtual tabletop with local-first browser stores and a
+server-authoritative durability boundary. Hosts originate canonical tabletop
+changes, but PostgreSQL serializes accepted state across backend replicas; the
+server is not a passive message router.
 
 **Tech Stack:**
+
 - Frontend: React 19 + TypeScript + Vite + Zustand
 - Backend: Node.js + Express + WebSocket (ws)
-- Database: PostgreSQL (for session persistence)
+- Database: PostgreSQL (canonical game state, event journal, and sessions)
+- Realtime Coordination: Redis (ephemeral fanout, presence, and host leases)
 - Local Storage: IndexedDB (unlimited storage for assets)
-- Real-time Communication: WebSocket with fallback polling
+- Real-time Communication: WebSocket with reconnect and journal catch-up
+
+### Non-negotiable realtime invariants
+
+1. `sessions.gameState`, `sessions.syncToken`, and
+   `sessions.stateVersion` are one atomic commit tuple.
+2. A `game-state-ack` is sent only after PostgreSQL commits that tuple. Never
+   restore fire-and-forget persistence after ACK.
+3. Writes compare-and-swap both token and version. A stale writer receives the
+   authoritative snapshot/token/version and rebases instead of re-uploading its
+   losing local snapshot.
+4. An identical reconnect snapshot is version-neutral. Never advance
+   `stateVersion` when `syncToken` and canonical content are unchanged.
+5. Redis is never the durable record. PostgreSQL owns canonical snapshots,
+   Express sessions, and ordered events.
+6. Any change to this path must keep the Docker PostgreSQL transaction tests
+   and the managed Playwright backend-`SIGKILL`-after-ACK scenario green.
 
 ---
 
@@ -24,7 +45,7 @@ Nexus VTT is a lightweight, web-based virtual tabletop system featuring real-tim
 ```bash
 # First-time setup
 npm install
-npm run start:all  # Auto-starts PostgreSQL + frontend (5173) + backend (5001)
+npm run start:all  # Starts PostgreSQL, Redis, frontend, and backend
 
 # Alternative: Individual services
 npm run dev              # Frontend only (port 5173)
@@ -38,7 +59,8 @@ npm run db:logs          # View PostgreSQL logs
 npm run db:shell         # Open PostgreSQL shell
 ```
 
-**Note:** `npm run start:all` automatically starts PostgreSQL if Docker is running.
+**Note:** `npm run start:all` orchestrates the local PostgreSQL and Redis
+dependencies when Docker is available.
 
 ### Running Tests
 
@@ -95,7 +117,8 @@ psql $DATABASE_URL
 psql $DATABASE_URL -f server/schema.sql
 ```
 
-**Auto-Start Feature:** The `start:all` script automatically checks if PostgreSQL is running and starts it if needed.
+**Auto-Start Feature:** `start:all` checks the local infrastructure before
+starting the application processes.
 
 ---
 
@@ -103,18 +126,19 @@ psql $DATABASE_URL -f server/schema.sql
 
 ### Zustand Stores (Single Source of Truth)
 
-The application uses **Zustand** as the primary state management solution with the **Immer middleware** for immutable updates. All game state lives in a monolithic `useGameStore` hook.
+The application uses **Zustand** with Immer. State is split by domain:
+`gameStore` coordinates sessions/scenes, while characters, initiative,
+documents, tokens, and other focused domains retain their own stores.
 
 **Location:** `/src/stores/`
 
 #### Primary Stores:
 
-1. **`gameStore.ts`** (97KB+) - Monolithic store containing:
+1. **`gameStore.ts`** - Session and scene coordinator containing:
    - User/Session state (authentication, room code, players)
    - Game state (scenes, tokens, drawings)
    - UI state (active tab, selection, camera)
    - Settings & preferences
-   - Chat & voice state
    - Connection quality metrics
 
 2. **`characterStore.ts`** - Character management:
@@ -141,6 +165,7 @@ The application uses **Zustand** as the primary state management solution with t
 ### Store Architecture Pattern
 
 All stores follow this pattern:
+
 ```typescript
 // Create store with Immer middleware
 const useXStore = create<StoreInterface>()(
@@ -149,10 +174,11 @@ const useXStore = create<StoreInterface>()(
     state: initialValue,
 
     // Actions that modify state via Immer
-    action: (payload) => set((state) => {
-      state.nested.property = payload; // Direct mutation (Immer handles immutability)
-    })
-  }))
+    action: (payload) =>
+      set((state) => {
+        state.nested.property = payload; // Direct mutation (Immer handles immutability)
+      }),
+  })),
 );
 
 // Custom hooks for subscriptions (prevent unnecessary re-renders)
@@ -229,6 +255,13 @@ WebSocket messages use event-driven architecture:
    - Server rejects invalid updates (version conflicts, permissions)
    - Contains error code and message
 
+5. **Canonical State Sync**
+   - `game-state-update`: tagged full snapshot or RFC 6902 patch
+   - `game-state-ack`: confirms a PostgreSQL-committed token/version
+   - `game-state-patch`: distributes the committed delta to peers
+   - `game-state-resync-required`: returns the authoritative full snapshot,
+     token, version, and rejection reason
+
 ### Message Routing (Server)
 
 **Live path:** `server/socket/SocketManager.ts` receives WebSocket messages and emits typed
@@ -259,11 +292,13 @@ Otherwise → broadcast to entire room
 Both client and server track connection quality:
 
 **Server:**
+
 - Heartbeat timeout: 10 seconds
 - Max consecutive misses: 3 before disconnection
 - Quality metric: 'excellent' | 'good' | 'poor' | 'critical'
 
 **Client:**
+
 - Tracks latency (ping/pong roundtrip)
 - Measures packet loss rate
 - Adjusts optimization based on quality
@@ -385,6 +420,7 @@ Coordinate conversion lives in `src/utils/sceneUtils.ts`. The single z-index sca
 **Persistence:** `/src/services/drawingPersistence.ts`
 
 Drawings are stored as:
+
 ```typescript
 interface Drawing {
   id: string;
@@ -401,6 +437,7 @@ interface Drawing {
 ```
 
 Key features:
+
 - Drawings auto-save to IndexedDB
 - Hidden drawings only visible to host
 - Drawing updates sent via WebSocket events
@@ -411,9 +448,9 @@ Key features:
 
 ```typescript
 interface Camera {
-  x: number;      // Pan X (left/right)
-  y: number;      // Pan Y (up/down)
-  zoom: number;   // Zoom factor (0.1 - 5.0)
+  x: number; // Pan X (left/right)
+  y: number; // Pan Y (up/down)
+  zoom: number; // Zoom factor (0.1 - 5.0)
 }
 ```
 
@@ -463,6 +500,7 @@ Server serves four main asset types:
 5. **Reference** - Rules and quick reference
 
 Asset serving:
+
 - `/assets/:filename` - Original assets
 - `/thumbnails/:filename` - Cached thumbnails
 - `/manifest.json` - Asset catalog
@@ -524,6 +562,7 @@ Core tables:
    - Active game sessions with join code
    - Status: 'active' | 'hibernating' | 'abandoned'
    - gameState stored as JSONB for persistence
+   - stateVersion and syncToken fence concurrent replica writes
    - Maps to campaign via campaignId
    - lastActivity tracked for cleanup
 
@@ -545,14 +584,17 @@ Core tables:
 ```
 Game state changes (tokens, scenes, drawings)
   ↓
-updateRoomGameState() called in server
+Client sends a full snapshot or content-hash-chained patch
   ↓
-GameState serialized to JSONB
+Server validates the hash and compare-and-swaps the observed token/version
   ↓
-UPDATE sessions SET gameState = $1, lastActivity = NOW()
+One transaction updates sessions.gameState + syncToken + stateVersion and
+campaigns.scenes
+  ↓
+Only after COMMIT: update room memory, ACK sender, broadcast peer patch
   ↓
 On player refresh/reconnect:
-  SELECT gameState FROM sessions WHERE joinCode = $1
+  SELECT gameState, syncToken, stateVersion FROM sessions WHERE joinCode = $1
   ↓
 Server sends session-joined with gameState included
   ↓
@@ -564,10 +606,12 @@ Client applies persisted state to gameStore
 **Location:** `/server/database.ts`
 
 Key methods:
+
 - `getUserById()` / `getUserByEmail()` - User lookup
 - `getCampaignsByUser()` - Load user's campaigns
 - `getSessionByJoinCode()` - Find session for join/reconnect
-- `updateSessionGameState()` - Persist game state
+- `commitGameState()` - Transactional compare-and-swap for canonical state
+- `repairGameStateMetadata()` - Lazily anchors rows written before tokens
 - `createGuestUser()` - On-the-fly guest user creation
 - `trackLastActivity()` - Update session heartbeat
 
@@ -590,11 +634,13 @@ Three-layer persistence model:
 **Location:** `/src/utils/indexedDB.ts`
 
 Object stores:
+
 - `dungeonMaps` - Generated map images (blob storage)
 - `gameState` - Full game state snapshots
 - `drawings` - Scene drawings (compressed)
 
 Benefits:
+
 - Unlimited storage (~50MB+ per domain)
 - Survives page refresh
 - No network required for reads
@@ -645,10 +691,18 @@ The core event system uses a dispatch pattern:
 ```typescript
 // Event handlers registry (gameStore.ts around line 600-900)
 const eventHandlers: Record<string, (state: GameState, data: any) => void> = {
-  'session/created': (state, data) => { /* update state */ },
-  'session/joined': (state, data) => { /* update state */ },
-  'token/move': (state, data) => { /* update state */ },
-  'token/update': (state, data) => { /* update state */ },
+  'session/created': (state, data) => {
+    /* update state */
+  },
+  'session/joined': (state, data) => {
+    /* update state */
+  },
+  'token/move': (state, data) => {
+    /* update state */
+  },
+  'token/update': (state, data) => {
+    /* update state */
+  },
   // ... 20+ event types
 };
 
@@ -709,11 +763,13 @@ Services are imported dynamically within store actions to prevent circular depen
 ```typescript
 // In gameStore action:
 const { webSocketService } = await import('@/services/websocket');
-const { sessionPersistenceService } = await import('@/services/sessionPersistence');
+const { sessionPersistenceService } =
+  await import('@/services/sessionPersistence');
 const { dungeonMapService } = await import('@/services/dungeonMapService');
 ```
 
 This allows:
+
 - Services to use the store without circular deps
 - Lazy loading of heavy modules
 - Better code splitting
@@ -777,6 +833,7 @@ private rooms = new Map<string, Room>();
 ```
 
 Room cleanup:
+
 - Hibernation timeout: 10 minutes of inactivity
 - Abandonment timeout: 60 minutes
 - Periodic cleanup task removes stale rooms
@@ -791,6 +848,7 @@ linear flow storage adapter.
 ### Character/Token Resolution
 
 When a player joins with a character:
+
 1. Store character in localStorage (via characterStore)
 2. Send character info to server
 3. Server optionally links playerRecord.characterId
@@ -799,6 +857,7 @@ When a player joins with a character:
 ### Chat System
 
 Simple but effective:
+
 - Messages stored in gameStore.chat.messages[]
 - WebSocket broadcasts chat-message events
 - No database persistence (ephemeral)
@@ -807,6 +866,7 @@ Simple but effective:
 ### Voice State (Stub)
 
 Voice infrastructure in place but not implemented:
+
 - VoiceState interface defined
 - Voice channel types defined
 - Ready for WebRTC integration
@@ -819,22 +879,26 @@ Voice infrastructure in place but not implemented:
 ### Naming Conventions
 
 **Stores & Hooks:**
+
 - `useGameStore` - Main Zustand store
 - `useActiveScene()` - Custom selector hook
 - `useIsHost()` - Boolean selector
 - `useDiceRolls()` - Array selector
 
 **Events:**
+
 - Namespace/action format: `'session/created'`, `'token/move'`, `'drawing/delete'`
 - Server-sent events broadcast to all players
 - Client-sent events can include updateId for confirmation
 
 **Services:**
+
 - CamelCase class names: `TokenAssetManager`, `DungeonMapService`
 - Singleton instances: `export const tokenAssetManager = new TokenAssetManager()`
 - Async initialization: `async initialize()` method
 
 **Components:**
+
 - React FC components named as PascalCase
 - Props interface named `<ComponentName>Props`
 - File names match component names
@@ -872,6 +936,7 @@ src/
 ### Debug Logging
 
 Consistent emoji prefixes in console:
+
 - `🎮` - Game state changes
 - `📡` - WebSocket communication
 - `🗄️` - Database operations
@@ -884,6 +949,7 @@ Consistent emoji prefixes in console:
 ### Development Features
 
 **In-development environment:**
+
 - Mock data generator available
 - Admin panel at `/admin`
 - CSS debugging utilities exposed to window
@@ -893,6 +959,7 @@ Consistent emoji prefixes in console:
 ### Test Files
 
 Located alongside implementation:
+
 - `gameStore.test.ts` - Store action tests
 - Integration tests in `/tests/integration`
 - E2E tests in `/tests/e2e` with Playwright

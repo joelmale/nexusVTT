@@ -14,7 +14,7 @@ import type {
 } from '@/types/character';
 import type { PlayerCharacter } from '@/types/game';
 import { useInitiativeStore } from '@/stores/initiativeStore';
-import { useGameStore } from '@/stores/gameStore';
+import { getGameStoreContext } from '@/stores/gameStoreContext';
 import {
   createEmptyCharacter,
   calculateAbilityModifier,
@@ -132,7 +132,9 @@ interface CharacterStore extends CharacterState {
 
   // Import/Export
   importCharacter: (source: string, data: unknown) => Promise<string>;
-  importCharactersFromFiles: (files: File[] | FileList) => Promise<{ successful: number; failed: number; errors: string[] }>;
+  importCharactersFromFiles: (
+    files: File[] | FileList,
+  ) => Promise<{ successful: number; failed: number; errors: string[] }>;
   exportCharacter: (characterId: string, format: string) => Promise<string>;
 
   // Utility
@@ -230,9 +232,8 @@ export const useCharacterStore = create<CharacterStore>()(
 
     createQuickCharacter: async (data, playerId) => {
       // Import helper functions dynamically to avoid circular dependencies
-      const { getHitDieForClass, estimateHP } = await import(
-        '@/utils/characterHelpers'
-      );
+      const { getHitDieForClass, estimateHP } =
+        await import('@/utils/characterHelpers');
       const baseCharacter = createEmptyCharacter(playerId);
 
       const characterId = crypto.randomUUID();
@@ -377,8 +378,12 @@ export const useCharacterStore = create<CharacterStore>()(
         if (character) {
           if (!character.savingThrowProficiencies) {
             character.savingThrowProficiencies = {
-              STR: false, DEX: false, CON: false,
-              INT: false, WIS: false, CHA: false,
+              STR: false,
+              DEX: false,
+              CON: false,
+              INT: false,
+              WIS: false,
+              CHA: false,
             };
           }
           character.savingThrowProficiencies[ability] = proficient;
@@ -605,7 +610,8 @@ export const useCharacterStore = create<CharacterStore>()(
 
         const finalSkills: SkillMap = {};
         const shouldBuildDefaults =
-          !baseCharacter.skills || Object.keys(baseCharacter.skills).length === 0;
+          !baseCharacter.skills ||
+          Object.keys(baseCharacter.skills).length === 0;
 
         if (shouldBuildDefaults) {
           STANDARD_SKILLS.forEach((skill) => {
@@ -640,9 +646,8 @@ export const useCharacterStore = create<CharacterStore>()(
 
         // Save to IndexedDB
         try {
-          const { getLinearFlowStorage } = await import(
-            '@/services/linearFlowStorage'
-          );
+          const { getLinearFlowStorage } =
+            await import('@/services/linearFlowStorage');
           const storage = getLinearFlowStorage();
 
           // Convert character to the format expected by the storage system (PlayerCharacter)
@@ -661,7 +666,8 @@ export const useCharacterStore = create<CharacterStore>()(
               wisdom: completedCharacter.abilities?.WIS?.score || 10,
               charisma: completedCharacter.abilities?.CHA?.score || 10,
             },
-            createdAt: Date.parse(completedCharacter.createdAt || '') || Date.now(),
+            createdAt:
+              Date.parse(completedCharacter.createdAt || '') || Date.now(),
             playerId: storage['getBrowserId'](), // Use browser ID as player ID for storage
           };
 
@@ -785,13 +791,14 @@ export const useCharacterStore = create<CharacterStore>()(
 
     // Import/Export
     importCharacter: async (source, data) => {
-      const { characterImportService } = await import('@/services/characterImport');
-      const { user } = useGameStore.getState();
+      const { characterImportService } =
+        await import('@/services/characterImport');
+      const { userId } = getGameStoreContext();
 
       const result = await characterImportService.importFromData(
         data,
         source,
-        user.id,
+        userId,
       );
 
       if (!result.success) {
@@ -805,7 +812,7 @@ export const useCharacterStore = create<CharacterStore>()(
       // Add the imported character to the store
       const character = {
         ...(result.character as Character),
-        playerId: (result.character as Character).playerId || user.id,
+        playerId: (result.character as Character).playerId || userId,
       };
       set((state) => {
         state.characters.push(character);
@@ -815,12 +822,13 @@ export const useCharacterStore = create<CharacterStore>()(
     },
 
     importCharactersFromFiles: async (files) => {
-      const { characterImportService } = await import('@/services/characterImport');
-      const { user, isAuthenticated } = useGameStore.getState();
+      const { characterImportService } =
+        await import('@/services/characterImport');
+      const { userId, isAuthenticated } = getGameStoreContext();
 
       const batchResult = await characterImportService.importFromFiles(
         files,
-        user.id,
+        userId,
       );
 
       const errors: string[] = [];
@@ -830,7 +838,7 @@ export const useCharacterStore = create<CharacterStore>()(
         if (result.success && result.character) {
           const character = {
             ...(result.character as Character),
-            playerId: (result.character as Character).playerId || user.id,
+            playerId: (result.character as Character).playerId || userId,
           };
 
           // Add to store

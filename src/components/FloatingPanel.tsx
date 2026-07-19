@@ -73,7 +73,7 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
     previouslyFocusedRef.current?.focus();
     previouslyFocusedRef.current = null;
     return undefined;
-  }, [isOpen]);
+  }, [isOpen, panelRef]);
 
   useEffect(() => {
     if (!isOpen) return;
@@ -101,39 +101,80 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
         aria-hidden={!isOpen}
         tabIndex={-1}
         inert={isOpen ? undefined : true}
-        style={{ zIndex, width: size.width, height: isCollapsed ? 'auto' : size.height }}
+        style={{
+          zIndex,
+          width: size.width,
+          height: isCollapsed ? 'auto' : size.height,
+        }}
         onPointerDownCapture={() => bringToFront('floatingPanel')}
       >
         {/* ── Resize handles (edges + corners) ── */}
-        <div className={styles.resizeLeft} style={{ cursor: edgeCursor('left') }} onPointerDown={onResizeStart('left')} />
-        <div className={styles.resizeRight} style={{ cursor: edgeCursor('right') }} onPointerDown={onResizeStart('right')} />
-        <div className={styles.resizeTop} style={{ cursor: edgeCursor('top') }} onPointerDown={onResizeStart('top')} />
-        <div className={styles.resizeBottom} style={{ cursor: edgeCursor('bottom') }} onPointerDown={onResizeStart('bottom')} />
-        <div className={styles.resizeTopLeft} style={{ cursor: edgeCursor('top-left') }} onPointerDown={onResizeStart('top-left')} />
-        <div className={styles.resizeTopRight} style={{ cursor: edgeCursor('top-right') }} onPointerDown={onResizeStart('top-right')} />
-        <div className={styles.resizeBottomLeft} style={{ cursor: edgeCursor('bottom-left') }} onPointerDown={onResizeStart('bottom-left')} />
-        <div className={styles.resizeBottomRight} style={{ cursor: edgeCursor('bottom-right') }} onPointerDown={onResizeStart('bottom-right')} />
+        <div
+          className={styles.resizeLeft}
+          style={{ cursor: edgeCursor('left') }}
+          onPointerDown={onResizeStart('left')}
+        />
+        <div
+          className={styles.resizeRight}
+          style={{ cursor: edgeCursor('right') }}
+          onPointerDown={onResizeStart('right')}
+        />
+        <div
+          className={styles.resizeTop}
+          style={{ cursor: edgeCursor('top') }}
+          onPointerDown={onResizeStart('top')}
+        />
+        <div
+          className={styles.resizeBottom}
+          style={{ cursor: edgeCursor('bottom') }}
+          onPointerDown={onResizeStart('bottom')}
+        />
+        <div
+          className={styles.resizeTopLeft}
+          style={{ cursor: edgeCursor('top-left') }}
+          onPointerDown={onResizeStart('top-left')}
+        />
+        <div
+          className={styles.resizeTopRight}
+          style={{ cursor: edgeCursor('top-right') }}
+          onPointerDown={onResizeStart('top-right')}
+        />
+        <div
+          className={styles.resizeBottomLeft}
+          style={{ cursor: edgeCursor('bottom-left') }}
+          onPointerDown={onResizeStart('bottom-left')}
+        />
+        <div
+          className={styles.resizeBottomRight}
+          style={{ cursor: edgeCursor('bottom-right') }}
+          onPointerDown={onResizeStart('bottom-right')}
+        />
 
         {/* ── Title bar (drag handle) ── */}
-        <div 
-          className={styles.titleBar}
-          onPointerDown={onPointerDown}
-        >
-          <div className={styles.dragHandle} aria-hidden="true">⠿</div>
+        <div className={styles.titleBar} onPointerDown={onPointerDown}>
+          <div className={styles.dragHandle} aria-hidden="true">
+            ⠿
+          </div>
           <span className={styles.titleLabel}>{label}</span>
           <div className={styles.titleActions}>
-            <button 
-              className={styles.actionButton} 
-              onClick={(e) => { e.stopPropagation(); toggleCollapsed(); }}
-              title={isCollapsed ? "Expand panel" : "Roll up panel"}
-              aria-label={isCollapsed ? "Expand panel" : "Roll up panel"}
+            <button
+              className={styles.actionButton}
+              onClick={(e) => {
+                e.stopPropagation();
+                toggleCollapsed();
+              }}
+              title={isCollapsed ? 'Expand panel' : 'Roll up panel'}
+              aria-label={isCollapsed ? 'Expand panel' : 'Roll up panel'}
               onPointerDown={(e) => e.stopPropagation()}
             >
-              {isCollapsed ? "＋" : "−"}
+              {isCollapsed ? '＋' : '−'}
             </button>
-            <button 
-              className={styles.actionButton} 
-              onClick={(e) => { e.stopPropagation(); onClose(); }}
+            <button
+              className={styles.actionButton}
+              onClick={(e) => {
+                e.stopPropagation();
+                onClose();
+              }}
               title="Close panel"
               aria-label="Close panel"
               onPointerDown={(e) => e.stopPropagation()}

@@ -6,7 +6,9 @@ interface UseUserProfileResult {
   loading: boolean;
   error: string | null;
   refresh: () => Promise<void>;
-  updateProfile: (updates: Partial<Pick<UserProfile, 'displayName' | 'bio' | 'avatarUrl'>>) => Promise<void>;
+  updateProfile: (
+    updates: Partial<Pick<UserProfile, 'displayName' | 'bio' | 'avatarUrl'>>,
+  ) => Promise<void>;
 }
 
 export const useUserProfile = (): UseUserProfileResult => {
@@ -59,7 +61,9 @@ export const useUserProfile = (): UseUserProfileResult => {
         setProfile(data);
       } catch (err) {
         console.error('Failed to update profile', err);
-        setError(err instanceof Error ? err.message : 'Failed to update profile');
+        setError(
+          err instanceof Error ? err.message : 'Failed to update profile',
+        );
         throw err;
       }
     },
@@ -67,7 +71,11 @@ export const useUserProfile = (): UseUserProfileResult => {
   );
 
   useEffect(() => {
-    fetchProfile();
+    const timeoutId = window.setTimeout(() => {
+      void fetchProfile();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [fetchProfile]);
 
   return {

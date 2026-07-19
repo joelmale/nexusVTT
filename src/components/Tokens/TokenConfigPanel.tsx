@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useRef, useState } from 'react';
 import type { Token, TokenSize } from '@/types/token';
 
 interface TokenConfigPanelProps {
@@ -113,17 +113,6 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  useEffect(() => {
-    if (isOpen) {
-      // Reset state when panel opens
-      setName(token.name);
-      setSize(token.size);
-      setExclusive(token.exclusive || false);
-      setBackgroundRemoved(false);
-      setProcessedImage(null);
-    }
-  }, [isOpen, token]);
-
   if (!isOpen) return null;
 
   const handleRemoveBackground = async () => {
@@ -213,9 +202,7 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         console.error('   Server error:', errorData);
-        throw new Error(
-          errorData.error || 'Failed to save token to server'
-        );
+        throw new Error(errorData.error || 'Failed to save token to server');
       }
 
       const result = await response.json();
@@ -244,7 +231,7 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
       console.error('❌ Failed to save token to server:', error);
       alert(
         'Failed to save token to server: ' +
-          (error instanceof Error ? error.message : String(error))
+          (error instanceof Error ? error.message : String(error)),
       );
     }
   };
@@ -557,7 +544,14 @@ export const TokenConfigPanel: React.FC<TokenConfigPanelProps> = ({
         </div>
 
         {/* Actions */}
-        <div style={{ display: 'flex', gap: '12px', marginTop: '24px', flexWrap: 'wrap' }}>
+        <div
+          style={{
+            display: 'flex',
+            gap: '12px',
+            marginTop: '24px',
+            flexWrap: 'wrap',
+          }}
+        >
           <button
             onClick={onClose}
             style={{

@@ -16,7 +16,8 @@ const defaultPreferences: UserPreferences = {
 };
 
 export const useUserPreferences = (): UseUserPreferencesResult => {
-  const [preferences, setPreferences] = useState<UserPreferences>(defaultPreferences);
+  const [preferences, setPreferences] =
+    useState<UserPreferences>(defaultPreferences);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -39,7 +40,9 @@ export const useUserPreferences = (): UseUserPreferencesResult => {
       setPreferences({ ...defaultPreferences, ...data });
     } catch (err) {
       console.error('Failed to fetch preferences', err);
-      setError(err instanceof Error ? err.message : 'Failed to load preferences');
+      setError(
+        err instanceof Error ? err.message : 'Failed to load preferences',
+      );
     } finally {
       setLoading(false);
     }
@@ -62,13 +65,19 @@ export const useUserPreferences = (): UseUserPreferencesResult => {
       setPreferences({ ...defaultPreferences, ...data });
     } catch (err) {
       console.error('Failed to update preferences', err);
-      setError(err instanceof Error ? err.message : 'Failed to update preferences');
+      setError(
+        err instanceof Error ? err.message : 'Failed to update preferences',
+      );
       throw err;
     }
   }, []);
 
   useEffect(() => {
-    fetchPreferences();
+    const timeoutId = window.setTimeout(() => {
+      void fetchPreferences();
+    }, 0);
+
+    return () => window.clearTimeout(timeoutId);
   }, [fetchPreferences]);
 
   return {

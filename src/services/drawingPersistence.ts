@@ -1,6 +1,5 @@
 import type { Drawing } from '@/types/drawing';
 import type { Scene } from '@/types/game';
-import { useGameStore } from '@/stores/gameStore';
 import { getLinearFlowStorage } from './linearFlowStorage';
 
 /**
@@ -172,35 +171,3 @@ class DrawingPersistenceService {
 
 // Export singleton instance
 export const drawingPersistenceService = new DrawingPersistenceService();
-
-// Hook for React components to use the persistence service
-export const useDrawingPersistence = () => {
-  const sceneState = useGameStore((state) => state.sceneState);
-  const updateScene = useGameStore((state) => state.updateScene);
-
-  const saveCurrentScene = async () => {
-    const activeScene = sceneState.scenes.find(
-      (s) => s.id === sceneState.activeSceneId,
-    );
-
-    if (activeScene) {
-      await drawingPersistenceService.saveScene(activeScene);
-    }
-  };
-
-  const loadScene = async (sceneId: string) => {
-    const drawings = await drawingPersistenceService.loadDrawings(sceneId);
-    updateScene(sceneId, { drawings });
-    return drawings;
-  };
-
-  const saveDrawingsForScene = async (sceneId: string, drawings: Drawing[]) => {
-    await drawingPersistenceService.saveDrawings(sceneId, drawings);
-  };
-
-  return {
-    saveCurrentScene,
-    loadScene,
-    saveDrawingsForScene,
-  };
-};

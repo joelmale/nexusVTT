@@ -60,6 +60,13 @@ export class HostHandler extends BaseHandler {
     if (targetConn?.user) {
       targetConn.user.type = 'host';
     }
+    void this.socketManager.updateDistributedRole(
+      room.code,
+      targetUserId,
+      'cohost',
+    ).catch((error: unknown) => {
+      console.error('Failed to update distributed co-host presence:', error);
+    });
 
     console.log(`👥 Co-host added in room ${room.code}: ${targetUserId}`);
     this.socketManager.broadcastToRoom(room.code, {
@@ -93,6 +100,13 @@ export class HostHandler extends BaseHandler {
     if (targetConn?.user) {
       targetConn.user.type = 'player';
     }
+    void this.socketManager.updateDistributedRole(
+      room.code,
+      targetUserId,
+      'player',
+    ).catch((error: unknown) => {
+      console.error('Failed to update distributed player presence:', error);
+    });
 
     console.log(`👥 Co-host removed in room ${room.code}: ${targetUserId}`);
     this.socketManager.broadcastToRoom(room.code, {
@@ -149,6 +163,12 @@ export class HostHandler extends BaseHandler {
     room.connections.delete(targetUserId);
     room.lastActivity = Date.now();
     this.socketManager.connections.delete(targetUserId);
+    void this.socketManager.unregisterDistributedConnection(
+      room.code,
+      targetUserId,
+    ).catch((error: unknown) => {
+      console.error('Failed to clear kicked player presence:', error);
+    });
 
     console.log(`🚪 Player kicked from room ${room.code}: ${targetUserId}`);
     this.socketManager.broadcastToRoom(room.code, {

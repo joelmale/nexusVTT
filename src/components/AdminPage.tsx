@@ -302,15 +302,17 @@ export const AdminPage: React.FC = () => {
       </div>
 
       {/* Modal */}
-      <DataModal
-        isOpen={modalState.isOpen}
-        onClose={closeModal}
-        onSave={handleModalSave}
-        title={modalState.dataType}
-        fields={getModalFields(modalState.dataType)}
-        initialData={modalState.initialData}
-        mode={modalState.mode}
-      />
+      {modalState.isOpen && (
+        <DataModal
+          isOpen
+          onClose={closeModal}
+          onSave={handleModalSave}
+          title={modalState.dataType}
+          fields={getModalFields(modalState.dataType)}
+          initialData={modalState.initialData}
+          mode={modalState.mode}
+        />
+      )}
     </div>
   );
 };

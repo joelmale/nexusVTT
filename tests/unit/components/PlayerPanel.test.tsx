@@ -63,17 +63,18 @@ vi.mock('@/components/CharacterImportModal', () => ({
     isOpen: boolean;
     onClose: () => void;
     onImportComplete?: (result: { successful: number; failed: number }) => void;
-  }) => (
+  }) =>
     isOpen ? (
       <div data-testid="character-import-modal">
         Character Import Modal
         <button onClick={onClose}>Close</button>
-        <button onClick={() => onImportComplete?.({ successful: 1, failed: 0 })}>
+        <button
+          onClick={() => onImportComplete?.({ successful: 1, failed: 0 })}
+        >
           Import
         </button>
       </div>
-    ) : null
-  ),
+    ) : null,
 }));
 
 describe('PlayerPanel', () => {
@@ -198,8 +199,9 @@ describe('PlayerPanel', () => {
     vi.mocked(useCharacterCreation).mockReturnValue(mockCharacterCreation);
     vi.mocked(useInitiativeStore).mockReturnValue(mockInitiativeActions);
     vi.mocked(useCharacterCreationLauncher).mockReturnValue(mockLauncher);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    vi.mocked(useGameStore).mockReturnValue({} as any);
+    vi.mocked(useGameStore).mockReturnValue(
+      {} as ReturnType<typeof useGameStore>,
+    );
   });
 
   describe('Component Rendering', () => {

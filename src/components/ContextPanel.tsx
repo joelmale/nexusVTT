@@ -11,7 +11,6 @@ import { PropPanel } from './Props/PropPanel';
 import { ChatPanel } from './ChatPanel';
 import { DocumentsPanel } from './DocumentsPanel';
 import { CharacterPanel } from './CharacterPanel';
-import { loadChatStyles, loadInitiativeStyles } from '@/services/cssLoader';
 import { ErrorBoundary } from './ErrorBoundary';
 
 interface ContextPanelProps {
@@ -86,19 +85,6 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   // Track the last reported width to prevent infinite loops
   const lastReportedWidthRef = useRef<number>(0);
 
-  useEffect(() => {
-    if (activePanel === 'chat') {
-      loadChatStyles('ContextPanel').catch((error) => {
-        console.warn('Failed to load chat styles:', error);
-      });
-    }
-    if (activePanel === 'initiative') {
-      loadInitiativeStyles('ContextPanel').catch((error) => {
-        console.warn('Failed to load initiative styles:', error);
-      });
-    }
-  }, [activePanel]);
-
   // Simple approach: Set fixed widths per panel type
   useEffect(() => {
     if (!expanded) return;
@@ -156,7 +142,9 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
               {activePanel === 'initiative' && <InitiativeTracker />}
               {activePanel === 'dice' && <DiceRoller />}
               {activePanel === 'documents' && <DocumentsPanel />}
-              {activePanel === 'sounds' && <Placeholder title="Sound Effects" />}
+              {activePanel === 'sounds' && (
+                <Placeholder title="Sound Effects" />
+              )}
               {activePanel === 'chat' && <ChatPanel />}
               {activePanel === 'lobby' && <LobbyPanel />}
               {activePanel === 'settings' && <Settings />}

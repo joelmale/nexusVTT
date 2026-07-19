@@ -3,7 +3,7 @@ import { useCharacterStore } from '@/stores/characterStore';
 import { useGameStore } from '@/stores/gameStore';
 import { useInitiativeStore } from '@/stores/initiativeStore';
 import { CharacterCard } from './CharacterCard';
-import '@/styles/character-panel.css';
+import './CharacterPanel.css';
 
 type FilterType = 'all' | 'in-combat' | 'not-in-combat' | 'has-token';
 

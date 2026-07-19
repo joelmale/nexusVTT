@@ -126,24 +126,19 @@ export class UserRepository extends BaseRepository {
   ): Promise<UserRecord> {
     const fields: string[] = [];
     const values: unknown[] = [userId];
-    let paramIndex = 2;
-
     if (updates.displayName !== undefined) {
-      fields.push(`"displayName" = $${paramIndex}`);
+      fields.push(`"displayName" = $${values.length + 1}`);
       values.push(updates.displayName);
-      paramIndex += 1;
     }
 
     if (updates.bio !== undefined) {
-      fields.push(`bio = $${paramIndex}`);
+      fields.push(`bio = $${values.length + 1}`);
       values.push(updates.bio);
-      paramIndex += 1;
     }
 
     if (updates.avatarUrl !== undefined) {
-      fields.push(`"avatarUrl" = $${paramIndex}`);
+      fields.push(`"avatarUrl" = $${values.length + 1}`);
       values.push(updates.avatarUrl);
-      paramIndex += 1;
     }
 
     if (fields.length === 0) {
@@ -166,10 +161,9 @@ export class UserRepository extends BaseRepository {
   }
 
   async getUserPreferences(userId: string): Promise<Record<string, unknown>> {
-    const result = await this.pool.query<{ preferences: Record<string, unknown> | null }>(
-      'SELECT preferences FROM users WHERE id = $1',
-      [userId],
-    );
+    const result = await this.pool.query<{
+      preferences: Record<string, unknown> | null;
+    }>('SELECT preferences FROM users WHERE id = $1', [userId]);
     return result.rows[0]?.preferences || {};
   }
 
@@ -177,7 +171,9 @@ export class UserRepository extends BaseRepository {
     userId: string,
     preferences: Record<string, unknown>,
   ): Promise<Record<string, unknown>> {
-    const result = await this.pool.query<{ preferences: Record<string, unknown> }>(
+    const result = await this.pool.query<{
+      preferences: Record<string, unknown>;
+    }>(
       `UPDATE users
        SET preferences = $2,
            "updatedAt" = NOW()

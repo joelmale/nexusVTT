@@ -1,17 +1,26 @@
 # Dockerfile for the standalone Nexus VTT asset service
 
-FROM node:26-alpine
+FROM node:26.5.0-alpine
 
 WORKDIR /app
 
 RUN apk add --no-cache dumb-init
 
-COPY services/asset-service/package*.json ./
-RUN npm ci
+COPY package*.json ./
+COPY services/asset-service/package.json ./services/asset-service/package.json
+# A workspace-scoped install still invokes the root lifecycle in npm 11. The
+# root postinstall tooling is intentionally absent from this production image,
+# so suppress lifecycle scripts here and apply the shared runtime patch
+# explicitly after installation.
+RUN npm ci --workspace asset-service --include-workspace-root=false --ignore-scripts
 
-COPY services/asset-service/tsconfig.json ./tsconfig.json
-COPY services/asset-service/src ./src
-RUN npm run build && npm prune --omit=dev
+COPY patches ./patches
+RUN npm exec -- patch-package
+
+COPY services/asset-service/tsconfig.json ./services/asset-service/tsconfig.json
+COPY services/asset-service/src ./services/asset-service/src
+COPY shared ./shared
+RUN npm run build --workspace asset-service && npm prune --omit=dev --workspace asset-service
 
 COPY scripts/ensure-library-assets.cjs ./scripts/ensure-library-assets.cjs
 
@@ -35,4 +44,4 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
 
 ENTRYPOINT ["dumb-init", "--"]
 
-CMD ["sh", "-c", "node /app/scripts/ensure-library-assets.cjs --source \"$ASSET_SEED_SOURCE\" --target \"$LIBRARY_DATA_PATH\" && npm start"]
+CMD ["sh", "-c", "node /app/scripts/ensure-library-assets.cjs --source \"$ASSET_SEED_SOURCE\" --target \"$LIBRARY_DATA_PATH\" && npm start --workspace asset-service"]

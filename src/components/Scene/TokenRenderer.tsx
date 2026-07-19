@@ -44,6 +44,20 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
   }) => {
     const activeTool = useActiveTool();
     const placedToken = useTokenRenderData(placedTokenId);
+    const [, setAssetRevision] = useState(0);
+
+    useEffect(() => {
+      const handleAssetUpdate = (event: Event) => {
+        const tokenId = (event as CustomEvent<{ tokenId?: string }>).detail
+          ?.tokenId;
+        if (!tokenId || tokenId === placedToken?.tokenId) {
+          setAssetRevision((revision) => revision + 1);
+        }
+      };
+      window.addEventListener('token-assets-updated', handleAssetUpdate);
+      return () =>
+        window.removeEventListener('token-assets-updated', handleAssetUpdate);
+    }, [placedToken?.tokenId]);
 
     // Resolve the base token asset (synchronous in-memory lookup; the
     // parent gates the whole layer behind `assetsReady`, same as before).
@@ -147,9 +161,15 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
     // hidden tokens.
     if (!isHost && !placedToken.visibleToPlayers) return null;
 
+    const effectiveName =
+      placedToken.nameOverride || token.name || 'Unknown Token';
+
     return (
       <>
         <g
+          aria-label={`Token: ${effectiveName}`}
+          data-token-id={placedTokenId}
+          data-token-name={effectiveName}
           transform={`translate(${placedToken.x}, ${placedToken.y}) rotate(${placedToken.rotation})`}
         onPointerDown={handlePointerDown}
         style={{
@@ -262,9 +282,7 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
         )}
 
         {/* Token label */}
-        {(() => {
-          const effectiveName = placedToken.nameOverride || token.name || 'Unknown Token';
-          return effectiveName ? (
+        {effectiveName ? (
             <text
               x={0}
               y={tokenSize / 2 + 15}
@@ -278,8 +296,7 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
             >
               {effectiveName}
             </text>
-          ) : null;
-        })()}
+          ) : null}
         </g>
         {isSelected && !isDragging && (
           <TokenContextMenu

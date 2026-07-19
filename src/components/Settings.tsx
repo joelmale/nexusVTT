@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 // import { useNavigate } from 'react-router-dom'; // Not used yet
 import { useGameStore, useSettings, useColorScheme } from '@/stores/gameStore';
 import { switchTheme } from '@/services/themeManager';
-import '@/styles/settings-optimized.css';
 import {
   defaultColorSchemes,
   generateRandomColorScheme,
@@ -758,12 +757,15 @@ export const Settings: React.FC = () => {
                   const keysToRemove: string[] = [];
                   for (let i = 0; i < localStorage.length; i++) {
                     const key = localStorage.key(i);
-                    if (key?.startsWith('nexus_ui_') || key?.startsWith('nexus-ui-')) {
+                    if (
+                      key?.startsWith('nexus_ui_') ||
+                      key?.startsWith('nexus-ui-')
+                    ) {
                       keysToRemove.push(key);
                     }
                   }
-                  keysToRemove.forEach(k => localStorage.removeItem(k));
-                  
+                  keysToRemove.forEach((k) => localStorage.removeItem(k));
+
                   // Reload window to reinitialize state
                   window.location.reload();
                 }
@@ -795,9 +797,8 @@ export const Settings: React.FC = () => {
                   ) {
                     try {
                       // 1. Clear IndexedDB storage (scenes, characters, etc.)
-                      const { getLinearFlowStorage } = await import(
-                        '@/services/linearFlowStorage'
-                      );
+                      const { getLinearFlowStorage } =
+                        await import('@/services/linearFlowStorage');
                       const storage = getLinearFlowStorage();
                       await storage.clearGameData();
 
@@ -870,7 +871,13 @@ export const Settings: React.FC = () => {
           title="📜 Credits"
           description="Third-party assets used in Nexus VTT"
         >
-          <p style={{ margin: 0, fontSize: '0.9em', color: 'var(--text-secondary, #aaa)' }}>
+          <p
+            style={{
+              margin: 0,
+              fontSize: '0.9em',
+              color: 'var(--text-secondary, #aaa)',
+            }}
+          >
             The Atlas Library token art is provided by{' '}
             <a
               href="https://github.com/IsThisMyRealName/too-many-tokens-dnd"
@@ -881,13 +888,21 @@ export const Settings: React.FC = () => {
             </a>
             , licensed under the MIT License.
           </p>
-          <p style={{ margin: '8px 0 0', fontSize: '0.8em', color: 'var(--text-secondary, #888)' }}>
-            Permission is hereby granted, free of charge, to any person obtaining a copy of this
-            software and associated documentation files, to deal in the software without
-            restriction, including without limitation the rights to use, copy, modify, merge,
-            publish, distribute, sublicense, and/or sell copies of the software, subject to the
-            inclusion of the above copyright notice and this permission notice in all copies or
-            substantial portions of the software. See the{' '}
+          <p
+            style={{
+              margin: '8px 0 0',
+              fontSize: '0.8em',
+              color: 'var(--text-secondary, #888)',
+            }}
+          >
+            Permission is hereby granted, free of charge, to any person
+            obtaining a copy of this software and associated documentation
+            files, to deal in the software without restriction, including
+            without limitation the rights to use, copy, modify, merge, publish,
+            distribute, sublicense, and/or sell copies of the software, subject
+            to the inclusion of the above copyright notice and this permission
+            notice in all copies or substantial portions of the software. See
+            the{' '}
             <a
               href="https://github.com/IsThisMyRealName/too-many-tokens-dnd/blob/main/LICENSE"
               target="_blank"
@@ -905,17 +920,12 @@ export const Settings: React.FC = () => {
 
 // Campaign Backup Section Component
 const CampaignBackupSection: React.FC = () => {
+  const storage = getLinearFlowStorage();
   const [isExporting, setIsExporting] = useState(false);
   const [isImporting, setIsImporting] = useState(false);
-  const [stats, setStats] = useState<Record<string, unknown> | null>(null);
-
-  const storage = getLinearFlowStorage();
-
-  // Load stats on mount
-  useEffect(() => {
-    setStats(storage.getStats());
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  const [stats, setStats] = useState<Record<string, unknown>>(() =>
+    storage.getStats(),
+  );
 
   const handleExport = async () => {
     setIsExporting(true);

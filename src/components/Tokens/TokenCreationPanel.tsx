@@ -128,7 +128,7 @@ export const TokenCreationPanel: React.FC<TokenCreationPanelProps> = ({
       return;
     }
 
-    let imageUrl = '';
+    let imageUrl: string;
 
     if (imageSource === 'upload') {
       if (!uploadedImage) {

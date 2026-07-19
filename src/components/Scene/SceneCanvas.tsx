@@ -19,7 +19,11 @@ import {
   useSelectedPlacedProp,
   useSceneDrawings,
 } from '@/stores/gameStore';
-import { useGridSettings, useTokenIdsSlice, usePropIdsSlice } from '@/stores/scene';
+import {
+  useGridSettings,
+  useTokenIdsSlice,
+  usePropIdsSlice,
+} from '@/stores/scene';
 import { SceneGrid } from './SceneGrid';
 import { SceneBackground } from './SceneBackground';
 import { DrawingTools } from './DrawingTools';
@@ -58,7 +62,14 @@ interface SceneCanvasProps {
   scene: Scene;
 }
 
-const SPELL_TYPES = new Set(['spell-circle', 'spell-ring', 'spell-cone', 'spell-line', 'spell-square', 'spell-triangle']);
+const SPELL_TYPES = new Set([
+  'spell-circle',
+  'spell-ring',
+  'spell-cone',
+  'spell-line',
+  'spell-square',
+  'spell-triangle',
+]);
 
 // Fixed brush stroke width (world units) for the fog-reveal brush tool (A9).
 // No size UI is specced in the brief - a single sensible default matches
@@ -189,7 +200,8 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     dndSpellLevel: 1,
   });
 
-  const [spellElementType, setSpellElementType] = useState<ElementType>('arcane');
+  const [spellElementType, setSpellElementType] =
+    useState<ElementType>('arcane');
   const [spellGridSnap, setSpellGridSnap] = useState(true);
 
   const drawings = useSceneDrawings(scene.id);
@@ -294,9 +306,8 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
       // the full props array here (and re-rendering SceneCanvas on every
       // prop write) is unnecessary.
       const sceneProps =
-        useGameStore
-          .getState()
-          .sceneState.scenes.find((s) => s.id === scene.id)?.placedProps || [];
+        useGameStore.getState().sceneState.scenes.find((s) => s.id === scene.id)
+          ?.placedProps || [];
 
       // Delete key - delete selected props
       if ((e.key === 'Delete' || e.key === 'Backspace') && !e.repeat) {
@@ -621,9 +632,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
             .getState()
             .sceneState.scenes.find((s) => s.id === scene.id)?.placedTokens ||
           [];
-        const alreadyPlaced = sceneTokens.some(
-          (pt) => pt.tokenId === token.id,
-        );
+        const alreadyPlaced = sceneTokens.some((pt) => pt.tokenId === token.id);
         if (alreadyPlaced) {
           alert(
             `${token.name} is marked as exclusive and can only be placed once per scene. Remove the existing instance first.`,
@@ -688,8 +697,12 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
       // Apply grid snapping when drag ends (identical behavior to pre-A2)
       if (safeGridSettings.snapToGrid && safeGridSettings.size > 0) {
         finalPosition = {
-          x: Math.round(position.x / safeGridSettings.size) * safeGridSettings.size,
-          y: Math.round(position.y / safeGridSettings.size) * safeGridSettings.size,
+          x:
+            Math.round(position.x / safeGridSettings.size) *
+            safeGridSettings.size,
+          y:
+            Math.round(position.y / safeGridSettings.size) *
+            safeGridSettings.size,
         };
       }
 
@@ -1010,6 +1023,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
         {/* Drawing Properties Panel (for non-spell overlays) */}
         {selectedDrawingIds.length > 0 && !selectedSpellOverlay && (
           <DrawingPropertiesPanel
+            key={selectedDrawingIds.join(':')}
             selectedDrawingIds={selectedDrawingIds}
             sceneId={scene.id}
             onClose={handleClosePropertiesPanel}
@@ -1033,6 +1047,8 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
           <svg
             ref={svgRef}
             data-role="scene-canvas-root"
+            data-scene-id={scene.id}
+            data-scene-name={scene.name}
             className="scene-canvas"
             width="100%"
             height="100%"
@@ -1196,6 +1212,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                   <rect> to the dedicated fog capture rect below instead of
                   double-handling pointer events on the same gesture. */}
               <DrawingTools
+                key={activeTool}
                 activeTool={
                   activeTool === 'fog-reveal-rect' ||
                   activeTool === 'fog-reveal-brush'
@@ -1358,7 +1375,9 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                     width: 28,
                     height: 28,
                     borderRadius: '50%',
-                    border: isActive ? '2px solid white' : '2px solid transparent',
+                    border: isActive
+                      ? '2px solid white'
+                      : '2px solid transparent',
                     background: theme.baseColor,
                     cursor: 'pointer',
                     outline: isActive ? `0 0 0 2px ${theme.edgeGlow}` : 'none',
@@ -1379,7 +1398,17 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                 margin: '0 4px',
               }}
             />
-            <label style={{ display: 'flex', alignItems: 'center', gap: 4, fontSize: 12, color: 'var(--text-secondary, #aaa)', cursor: 'pointer', userSelect: 'none' }}>
+            <label
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 12,
+                color: 'var(--text-secondary, #aaa)',
+                cursor: 'pointer',
+                userSelect: 'none',
+              }}
+            >
               <input
                 type="checkbox"
                 checked={spellGridSnap}

@@ -31,13 +31,6 @@ export function DataModal<T extends Record<string, unknown>>({
   const [formData, setFormData] = useState<Partial<T>>(initialData);
   const [errors, setErrors] = useState<Record<string, string>>({});
 
-  // Reset form when modal opens - only reset errors, keep form data stable
-  React.useEffect(() => {
-    if (isOpen) {
-      setErrors({});
-    }
-  }, [isOpen]);
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
@@ -55,10 +48,14 @@ export function DataModal<T extends Record<string, unknown>>({
     }
 
     onSave(formData);
+    setErrors({});
     onClose();
   };
 
-  const handleFieldChange = (key: string, value: string | number | boolean | string[]) => {
+  const handleFieldChange = (
+    key: string,
+    value: string | number | boolean | string[],
+  ) => {
     setFormData((prev) => ({ ...prev, [key]: value }));
     if (errors[key]) {
       setErrors((prev) => ({ ...prev, [key]: '' }));
@@ -164,7 +161,10 @@ export function DataModal<T extends Record<string, unknown>>({
             {mode === 'add' ? 'Add' : 'Edit'} {title}
           </h2>
           <button
-            onClick={onClose}
+            onClick={() => {
+              setErrors({});
+              onClose();
+            }}
             className="text-gray-400 hover:text-white text-2xl"
           >
             ×
@@ -188,7 +188,10 @@ export function DataModal<T extends Record<string, unknown>>({
           <div className="flex justify-end gap-3 mt-6">
             <button
               type="button"
-              onClick={onClose}
+              onClick={() => {
+                setErrors({});
+                onClose();
+              }}
               className="px-4 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-500 transition-colors"
             >
               Cancel

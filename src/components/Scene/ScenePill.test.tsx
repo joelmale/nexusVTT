@@ -4,6 +4,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { ScenePill } from './ScenePill';
 import { useGameStore } from '@/stores/gameStore';
 import { drawingPersistenceService } from '@/services/drawingPersistence';
+import { initializeGameStateSyncRuntime } from '@/services/gameStateSyncRuntime';
 import type { Scene } from '@/types/game';
 
 // Conventions per src/stores/fog.test.ts (network mocked; real store).
@@ -31,8 +32,20 @@ vi.mock('@/services/drawingPersistence', () => ({
  */
 const scenesFixture = (): Scene[] =>
   [
-    { id: 's1', name: 'The Tavern', drawings: [], placedTokens: [], placedProps: [] },
-    { id: 's2', name: 'The Dungeon', drawings: [], placedTokens: [], placedProps: [] },
+    {
+      id: 's1',
+      name: 'The Tavern',
+      drawings: [],
+      placedTokens: [],
+      placedProps: [],
+    },
+    {
+      id: 's2',
+      name: 'The Dungeon',
+      drawings: [],
+      placedTokens: [],
+      placedProps: [],
+    },
   ] as unknown as Scene[];
 
 const seedStore = (userType: 'host' | 'player') => {
@@ -54,6 +67,7 @@ const renderPill = () =>
 
 describe('ScenePill (hover-expanding scene dock)', () => {
   beforeEach(() => {
+    initializeGameStateSyncRuntime();
     // vitest mockReset:true wipes factory implementations — re-arm (repo gotcha;
     // an un-armed saveScene returns undefined and its .catch throws INSIDE
     // createScene, aborting it between the push and setActiveScene).
@@ -73,7 +87,9 @@ describe('ScenePill (hover-expanding scene dock)', () => {
     const compact = container.querySelector('[class*="compactView"]');
     expect(compact?.textContent).toContain('The Tavern');
     expect(
-      getByRole('region', { name: 'Scene Manager' }).getAttribute('aria-expanded'),
+      getByRole('region', { name: 'Scene Manager' }).getAttribute(
+        'aria-expanded',
+      ),
     ).toBe('false');
   });
 

@@ -30,9 +30,34 @@ export interface PaginatedResult {
   cursor?: string | null;
 }
 
+export type AtlasCursor = number | string | null;
+
+export function atlasOffset(cursor: AtlasCursor | undefined): number {
+  return typeof cursor === 'number' && Number.isFinite(cursor)
+    ? Math.max(0, cursor)
+    : 0;
+}
+
+export function errorName(error: unknown): string | undefined {
+  return error instanceof Error ? error.name : undefined;
+}
+
+export function errorMessage(error: unknown): string {
+  return error instanceof Error ? error.message : String(error);
+}
+
 export interface AtlasSourceAdapter {
   source: AtlasAsset['source'];
   isOffline: boolean;
-  search(query: string, cursor?: any, signal?: AbortSignal, category?: string): Promise<PaginatedResult>;
-  list(category: string, cursor?: any, signal?: AbortSignal): Promise<PaginatedResult>;
+  search(
+    query: string,
+    cursor?: AtlasCursor,
+    signal?: AbortSignal,
+    category?: string,
+  ): Promise<PaginatedResult>;
+  list(
+    category: string,
+    cursor?: AtlasCursor,
+    signal?: AbortSignal,
+  ): Promise<PaginatedResult>;
 }

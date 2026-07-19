@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useActiveScene, useDrawingActions } from '@/stores/gameStore';
 import { webSocketService } from '@/services/websocket';
 import type { DrawingStyle } from '@/types/drawing';
@@ -25,7 +25,7 @@ export const DrawingPropertiesPanel: React.FC<DrawingPropertiesPanelProps> = ({
   // Debug logging
   console.log('🎨 DrawingPropertiesPanel:', {
     selectedDrawingIds,
-    selectedDrawings: selectedDrawings.map(d => ({ id: d.id, type: d.type })),
+    selectedDrawings: selectedDrawings.map((d) => ({ id: d.id, type: d.type })),
     count: selectedDrawings.length,
   });
 
@@ -48,25 +48,6 @@ export const DrawingPropertiesPanel: React.FC<DrawingPropertiesPanelProps> = ({
   const [strokeDashArray, setStrokeDashArray] = useState(
     firstDrawing?.style.strokeDashArray || undefined,
   );
-
-  // Update local state when selection changes
-  useEffect(() => {
-    if (firstDrawing) {
-      setFillColor(firstDrawing.style.fillColor);
-      setFillOpacity(firstDrawing.style.fillOpacity);
-      setStrokeColor(firstDrawing.style.strokeColor);
-      setStrokeWidth(firstDrawing.style.strokeWidth);
-      setStrokeDashArray(firstDrawing.style.strokeDashArray);
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [
-    firstDrawing?.id,
-    firstDrawing?.style.fillColor,
-    firstDrawing?.style.fillOpacity,
-    firstDrawing?.style.strokeColor,
-    firstDrawing?.style.strokeWidth,
-    firstDrawing?.style.strokeDashArray,
-  ]);
 
   if (!activeScene || selectedDrawings.length === 0) {
     return null;

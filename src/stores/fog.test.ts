@@ -27,9 +27,6 @@ import { webSocketService } from '@/services/websocket';
 
 const getInitialState = () => useGameStore.getState();
 
-/** Flush microtasks so the fire-and-forget dynamic `import('@/services/websocket')` resolves. */
-const flushAsync = () => new Promise((resolve) => setTimeout(resolve, 0));
-
 const makeScene = (sceneId: string): Scene => ({
   id: sceneId,
   name: 'Test Scene',
@@ -169,13 +166,12 @@ describe('fog of war (A9)', () => {
 
   describe('optimistic actions', () => {
     it('setFogEnabled applies locally and sends the complete SceneFog over fog/update', async () => {
-      useGameStore.getState().setFogEnabled(sceneId, true);
+      await useGameStore.getState().setFogEnabled(sceneId, true);
 
       // Optimistic local apply.
       const scene = useGameStore.getState().sceneState.scenes[0];
       expect(scene.fog).toEqual({ enabled: true, shapes: [] });
 
-      await flushAsync();
       expect(webSocketService.sendEvent).toHaveBeenCalledWith({
         type: 'fog/update',
         data: { sceneId, fog: { enabled: true, shapes: [] } },
@@ -183,16 +179,14 @@ describe('fog of war (A9)', () => {
     });
 
     it('addFogShape appends the shape locally and sends the full updated SceneFog', async () => {
-      useGameStore.getState().setFogEnabled(sceneId, true);
-      await flushAsync(); // let the setFogEnabled send resolve before the next action
+      await useGameStore.getState().setFogEnabled(sceneId, true);
 
       const shape = makeRectShape('shape-1');
-      useGameStore.getState().addFogShape(sceneId, shape);
+      await useGameStore.getState().addFogShape(sceneId, shape);
 
       const scene = useGameStore.getState().sceneState.scenes[0];
       expect(scene.fog?.shapes).toEqual([shape]);
 
-      await flushAsync();
       const calls = (webSocketService.sendEvent as ReturnType<typeof vi.fn>)
         .mock.calls;
       const lastCall = calls[calls.length - 1][0];
@@ -203,17 +197,16 @@ describe('fog of war (A9)', () => {
     });
 
     it('clearFog empties shapes locally and sends fog/clear', async () => {
-      useGameStore.getState().setFogEnabled(sceneId, true);
-      await flushAsync();
-      useGameStore.getState().addFogShape(sceneId, makeRectShape('shape-1'));
-      await flushAsync(); // let both prior sends resolve before clearFog's
+      await useGameStore.getState().setFogEnabled(sceneId, true);
+      await useGameStore
+        .getState()
+        .addFogShape(sceneId, makeRectShape('shape-1'));
 
-      useGameStore.getState().clearFog(sceneId);
+      await useGameStore.getState().clearFog(sceneId);
 
       const scene = useGameStore.getState().sceneState.scenes[0];
       expect(scene.fog).toEqual({ enabled: true, shapes: [] });
 
-      await flushAsync();
       expect(webSocketService.sendEvent).toHaveBeenLastCalledWith({
         type: 'fog/clear',
         data: { sceneId },
@@ -222,7 +215,7 @@ describe('fog of war (A9)', () => {
 
     it('addFogShape on a scene with no prior fog config defaults enabled to true', async () => {
       const shape = makeRectShape('shape-1');
-      useGameStore.getState().addFogShape(sceneId, shape);
+      await useGameStore.getState().addFogShape(sceneId, shape);
 
       const scene = useGameStore.getState().sceneState.scenes[0];
       expect(scene.fog).toEqual({ enabled: true, shapes: [shape] });

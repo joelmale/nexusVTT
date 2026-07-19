@@ -243,17 +243,62 @@ describe('GameStateSyncEngine — flag ON reconciliation', () => {
     expect(last.kind).toBe('full');
   });
 
-  it('(d2) the ack timeout re-baselines with a full snapshot', async () => {
-    // Use REAL timers with a tiny ack timeout so the WebCrypto `hashState`
-    // promise settles normally; fake timers don't control the digest and made
-    // the settle flaky. A short deterministic sleep exercises the same timeout
-    // path as production (which uses 5000ms).
+  it('(d2) authoritative conflict recovery rebases without re-uploading stale state', async () => {
     const transport = makeTransport();
+    const engine = makeEngine(transport, true);
+
+    setLive({ ...emptyState(), activeSceneId: 'losing-edit' });
+    engine.schedule();
+    await tick();
+    expect(transport.uploads).toHaveLength(1);
+
+    const authoritative = {
+      ...emptyState(),
+      activeSceneId: 'winning-edit',
+    };
+    const authoritativeToken = 'authoritative-token' as StateHash;
+    setLive(authoritative);
+    engine.onAuthoritativeSnapshot(
+      authoritative,
+      authoritativeToken,
+      'base-mismatch',
+    );
+    engine.schedule();
+    await tick();
+
+    // Applying the winner does not echo it back as a stale full upload.
+    expect(transport.uploads).toHaveLength(1);
+
+    setLive({ ...emptyState(), activeSceneId: 'next-edit' });
+    engine.schedule();
+    await tick();
+
+    expect(transport.uploads).toHaveLength(2);
+    const follow = transport.uploads[1];
+    if (follow.kind !== 'patch') throw new Error('expected patch');
+    expect(follow.baseToken).toBe(authoritativeToken);
+    expect(follow.patch).toEqual([
+      { op: 'replace', path: '/activeSceneId', value: 'next-edit' },
+    ]);
+  });
+
+  it('(d3) the ack timeout re-baselines with a full snapshot', async () => {
+    // Use real timers because fake timers do not control WebCrypto digest.
+    // Observe the timeout callback directly instead of relying on a short sleep,
+    // which becomes flaky when the full suite is hashing in parallel.
+    const transport = makeTransport();
+    let resolveTimeout: () => void = () => undefined;
+    const timeoutObserved = new Promise<void>((resolve) => {
+      resolveTimeout = resolve;
+    });
     const engine = new GameStateSyncEngine({
       buildState: () => JSON.parse(JSON.stringify(live)) as SyncableGameState,
       transport,
       isDeltaSyncEnabled: () => true,
-      ackTimeoutMs: 20,
+      ackTimeoutMs: 250,
+      onResync: (reason) => {
+        if (reason === 'ack-timeout') resolveTimeout();
+      },
     });
 
     setLive({ ...emptyState(), activeSceneId: 'a' });
@@ -265,14 +310,17 @@ describe('GameStateSyncEngine — flag ON reconciliation', () => {
     setLive({ ...emptyState(), activeSceneId: 'b' });
     engine.schedule();
     await tick();
-    expect(transport.uploads[transport.uploads.length - 1].kind).toBe('patch');
+    expect(transport.uploads.some((upload) => upload.kind === 'patch')).toBe(
+      true,
+    );
 
-    // Wait past the 20ms ack timeout → treated as resync → full follow-up.
-    await new Promise((resolve) => setTimeout(resolve, 40));
+    // The unacknowledged patch times out and triggers a full follow-up.
+    await timeoutObserved;
     await tick();
 
     const last = transport.uploads[transport.uploads.length - 1];
     expect(last.kind).toBe('full');
+    engine.reset();
   });
 
   // ---- (e) stale ack (token mismatch) is ignored -------------------------

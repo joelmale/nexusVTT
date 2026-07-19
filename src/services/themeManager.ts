@@ -15,14 +15,12 @@ declare global {
   }
 }
 
-import { loadThemeStyles } from './cssLoader';
 import { applyColorScheme } from '../utils/colorSchemes';
 
 export type ThemeType = 'glass' | 'solid';
 
 interface ThemeConfig {
   className: string;
-  cssFile: string;
   variables: Record<string, string>;
 }
 
@@ -32,14 +30,12 @@ interface ThemeConfig {
 const THEME_CONFIGS: Record<ThemeType, ThemeConfig> = {
   glass: {
     className: '',
-    cssFile: '',
     variables: {
       // Glass theme uses default CSS variables
     },
   },
   solid: {
     className: 'solid-theme theme-solid',
-    cssFile: 'theme-solid.css',
     variables: {
       // Solid theme overrides are handled in CSS
     },
@@ -55,10 +51,8 @@ let currentTheme: ThemeType | null = null;
  * Preload theme styles for instant switching
  */
 export async function preloadTheme(theme: ThemeType): Promise<void> {
-  if (theme === 'solid') {
-    await loadThemeStyles('solid');
-  }
-  // Glass theme styles are already loaded in critical bundle
+  void theme;
+  await Promise.resolve();
 }
 
 /**
@@ -82,11 +76,6 @@ export async function switchTheme(theme: ThemeType): Promise<void> {
   if (theme === currentTheme) return;
 
   const config = THEME_CONFIGS[theme];
-
-  // Preload theme styles if needed
-  if (config.cssFile) {
-    await loadThemeStyles(theme === 'solid' ? 'solid' : 'glass');
-  }
 
   // Apply theme class to body
   // Remove any existing theme classes (both old 'theme-*' and new '*-theme' patterns)

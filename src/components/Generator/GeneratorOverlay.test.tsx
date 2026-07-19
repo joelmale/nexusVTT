@@ -1,6 +1,12 @@
 import React from 'react';
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { render, screen, cleanup, act, fireEvent } from '@testing-library/react';
+import {
+  render,
+  screen,
+  cleanup,
+  act,
+  fireEvent,
+} from '@testing-library/react';
 import { GeneratorOverlay } from './GeneratorOverlay';
 
 /**
@@ -10,7 +16,7 @@ import { GeneratorOverlay } from './GeneratorOverlay';
  *  - Tab cycles focus within the overlay (focus trap) instead of escaping
  *    to the rest of the page
  *  - data-floating-panels reflects the floatingPanelsEnabled prop (drives
- *    the inset:0 vs. header-carve-out styling in generator-panel.css)
+ *    the inset:0 vs. header-carve-out styling in GeneratorPanel.css)
  */
 
 beforeEach(() => {
@@ -109,7 +115,9 @@ describe('GeneratorOverlay', () => {
       </GeneratorOverlay>,
     );
 
-    const closeButton = screen.getByTitle('Close generator and return to scene');
+    const closeButton = screen.getByTitle(
+      'Close generator and return to scene',
+    );
     const middleButton = screen.getByText('middle');
 
     // Focus the last element and press Tab - should wrap to the first.

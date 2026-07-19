@@ -21,14 +21,18 @@ const PingDrawing: React.FC<{
   const [elapsed, setElapsed] = useState(0);
 
   useEffect(() => {
+    let frameId = 0;
     const updateFrame = () => {
-      setElapsed(Date.now() - drawing.timestamp);
-      requestAnimationFrame(updateFrame);
+      const nextElapsed = Date.now() - drawing.timestamp;
+      setElapsed(nextElapsed);
+      if (nextElapsed < drawing.duration) {
+        frameId = requestAnimationFrame(updateFrame);
+      }
     };
 
-    const frameId = requestAnimationFrame(updateFrame);
+    frameId = requestAnimationFrame(updateFrame);
     return () => cancelAnimationFrame(frameId);
-  }, [drawing.timestamp]);
+  }, [drawing.duration, drawing.timestamp]);
 
   const progress = Math.min(elapsed / drawing.duration, 1);
 
@@ -245,10 +249,17 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
           : `spell-overlay element-${elementType}`;
         const roundCounter = drawing.style.roundCounter ?? 0;
         const spellName = drawing.style.spellName ?? '';
-        const blendStyle = theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
+        const blendStyle =
+          theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
 
         return (
-          <g key={drawing.id} className={animationClass} style={{ mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'] }}>
+          <g
+            key={drawing.id}
+            className={animationClass}
+            style={{
+              mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'],
+            }}
+          >
             {/* Feathered edge gradient */}
             <circle
               cx={drawing.center.x}
@@ -307,7 +318,8 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
                 textAnchor="middle"
                 pointerEvents="none"
                 style={{
-                  textShadow: '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
+                  textShadow:
+                    '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
                   filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
                 }}
               >
@@ -327,7 +339,8 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
           : `spell-overlay element-${elementType}`;
         const roundCounter = drawing.style.roundCounter ?? 0;
         const spellName = drawing.style.spellName ?? '';
-        const blendStyle = theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
+        const blendStyle =
+          theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
         const pathData = createRingPath(
           drawing.center,
           drawing.outerRadius,
@@ -335,7 +348,13 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
         );
 
         return (
-          <g key={drawing.id} className={animationClass} style={{ mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'] }}>
+          <g
+            key={drawing.id}
+            className={animationClass}
+            style={{
+              mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'],
+            }}
+          >
             <path
               d={pathData}
               fill={`url(#spell-edge-${elementType})`}
@@ -386,7 +405,8 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
                 textAnchor="middle"
                 pointerEvents="none"
                 style={{
-                  textShadow: '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
+                  textShadow:
+                    '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
                   filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
                 }}
               >
@@ -406,7 +426,8 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
           : `spell-overlay element-${elementType}`;
         const roundCounter = drawing.style.roundCounter ?? 0;
         const spellName = drawing.style.spellName ?? '';
-        const blendStyle = theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
+        const blendStyle =
+          theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
         const conePath = calculateConePath(
           drawing.origin,
           drawing.direction,
@@ -415,7 +436,13 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
         );
 
         return (
-          <g key={drawing.id} className={animationClass} style={{ mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'] }}>
+          <g
+            key={drawing.id}
+            className={animationClass}
+            style={{
+              mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'],
+            }}
+          >
             <path
               d={conePath}
               fill={`url(#spell-edge-${elementType})`}
@@ -466,7 +493,8 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
                 textAnchor="middle"
                 pointerEvents="none"
                 style={{
-                  textShadow: '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
+                  textShadow:
+                    '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
                   filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
                 }}
               >
@@ -486,13 +514,24 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
           : `spell-overlay element-${elementType}`;
         const roundCounter = drawing.style.roundCounter ?? 0;
         const spellName = drawing.style.spellName ?? '';
-        const blendStyle = theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
-        const rectPath = createLineRectangle(drawing.start, drawing.end, drawing.width);
+        const blendStyle =
+          theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
+        const rectPath = createLineRectangle(
+          drawing.start,
+          drawing.end,
+          drawing.width,
+        );
         const midX = (drawing.start.x + drawing.end.x) / 2;
         const midY = (drawing.start.y + drawing.end.y) / 2;
 
         return (
-          <g key={drawing.id} className={animationClass} style={{ mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'] }}>
+          <g
+            key={drawing.id}
+            className={animationClass}
+            style={{
+              mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'],
+            }}
+          >
             <path
               d={rectPath}
               fill={`url(#spell-edge-${elementType})`}
@@ -543,7 +582,8 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
                 textAnchor="middle"
                 pointerEvents="none"
                 style={{
-                  textShadow: '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
+                  textShadow:
+                    '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
                   filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
                 }}
               >
@@ -563,12 +603,19 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
           : `spell-overlay element-${elementType}`;
         const roundCounter = drawing.style.roundCounter ?? 0;
         const spellName = drawing.style.spellName ?? '';
-        const blendStyle = theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
+        const blendStyle =
+          theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
         const halfSize = drawing.size / 2;
         const rotation = drawing.rotation || 0;
 
         return (
-          <g key={drawing.id} className={animationClass} style={{ mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'] }}>
+          <g
+            key={drawing.id}
+            className={animationClass}
+            style={{
+              mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'],
+            }}
+          >
             <rect
               x={drawing.origin.x - halfSize}
               y={drawing.origin.y - halfSize}
@@ -627,7 +674,8 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
                 textAnchor="middle"
                 pointerEvents="none"
                 style={{
-                  textShadow: '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
+                  textShadow:
+                    '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
                   filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
                 }}
               >
@@ -647,7 +695,8 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
           : `spell-overlay element-${elementType}`;
         const roundCounter = drawing.style.roundCounter ?? 0;
         const spellName = drawing.style.spellName ?? '';
-        const blendStyle = theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
+        const blendStyle =
+          theme.blendMode === 'additive' ? 'screen' : theme.blendMode;
         const trianglePath = calculateTrianglePath(
           drawing.origin,
           drawing.direction,
@@ -656,7 +705,13 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
         );
 
         return (
-          <g key={drawing.id} className={animationClass} style={{ mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'] }}>
+          <g
+            key={drawing.id}
+            className={animationClass}
+            style={{
+              mixBlendMode: blendStyle as React.CSSProperties['mixBlendMode'],
+            }}
+          >
             <path
               d={trianglePath}
               fill={`url(#spell-edge-${elementType})`}
@@ -707,7 +762,8 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
                 textAnchor="middle"
                 pointerEvents="none"
                 style={{
-                  textShadow: '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
+                  textShadow:
+                    '0 0 4px rgba(0,0,0,0.9), 0 0 8px rgba(0,0,0,0.6)',
                   filter: 'drop-shadow(0 2px 4px rgba(0,0,0,0.5))',
                 }}
               >

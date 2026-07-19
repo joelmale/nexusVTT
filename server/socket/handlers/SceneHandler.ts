@@ -21,22 +21,24 @@ export class SceneHandler extends BaseHandler {
       this.socketManager.on(
         `event:${event}`,
         ({ connection, room, message }) => {
-          this.handleSceneEvent(event, connection, room, message);
+          void this.handleSceneEvent(event, connection, room, message);
         },
       );
     });
   }
 
-  private handleSceneEvent(
+  private async handleSceneEvent(
     event: string,
     connection: Connection,
     room: Room,
     message: ServerEventMessage,
-  ) {
+  ): Promise<void> {
     if (!this.enforceHostOnly(connection, room, event)) return;
 
     // Relay to the rest of the room; the sender already applied it optimistically.
-    this.socketManager.broadcastToRoom(room.code, message, connection.id);
+    await this.socketManager.publishOrderedEvent(room, connection, message, {
+      excludeId: connection.id,
+    });
     console.log(
       `🎬 Scene event "${event}" in ${room.code} from ${connection.id}`,
     );
