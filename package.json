@@ -151,7 +151,7 @@
     "patch-package": "^8.0.1",
     "postcss": "^8.5.16",
     "prettier": "^3.7.4",
-    "rollup-plugin-visualizer": "^6.0.5",
+    "rollup-plugin-visualizer": "^7.0.1",
     "tailwindcss": "^4.3.3",
     "tsx": "^4.21.0",
     "typescript": "^5.9.3",
