@@ -365,6 +365,7 @@ class NexusServer {
     try {
       await this.db.initialize();
       await this.runLocalMigrations();
+      await this.socketManager.initializeRealtime();
       // await this.loadRoomsFromDatabase(); // This needs to be updated for the new schema
       console.log('✅ Server initialization complete');
     } catch (error) {
@@ -654,6 +655,13 @@ class NexusServer {
       });
     });
 
+    this.app.get('/api/metrics/realtime', (req, res) => {
+      res.json({
+        ...this.socketManager.getStats().realtime,
+        timestamp: Date.now(),
+      });
+    });
+
     const documentRoutes = createDocumentRoutes(
       this.documentClient,
       this.documentsEnabled,
@@ -678,6 +686,10 @@ class NexusServer {
 
       try {
         await this.db.healthCheck();
+        const realtime = this.socketManager.getStats().realtime;
+        if (realtime.enabled && !realtime.connected) {
+          throw new Error('realtime coordinator unavailable');
+        }
         res.json({
           status: 'ok',
           version: '1.0.0',
@@ -685,13 +697,17 @@ class NexusServer {
           wsUrl,
           rooms: this.socketManager.rooms.size,
           connections: this.socketManager.connections.size,
+          realtime,
           assetsLoaded: this.manifest?.totalAssets || 0,
           uptime: process.uptime(),
         });
-      } catch {
+      } catch (error) {
         res.status(503).json({
           status: 'error',
-          reason: 'database unavailable',
+          reason:
+            error instanceof Error
+              ? error.message
+              : 'required dependency unavailable',
           uptime: process.uptime(),
         });
       }
@@ -1127,6 +1143,19 @@ class NexusServer {
       this.socketManager.rooms.set(joinCode, room);
       connection.room = joinCode;
       connection.user!.type = 'host'; // Preserve the user's actual name from OAuth/guest login
+      if (
+        !(await this.socketManager.registerDistributedConnection(
+          room,
+          connection,
+          'host',
+        ))
+      ) {
+        room.connections.delete(connection.id);
+        room.players.delete(connection.id);
+        connection.room = undefined;
+        this.sendError(connection, 'This room already has an active host');
+        return;
+      }
 
       // Send session created confirmation to client
       this.sendMessage(connection, {
@@ -1294,6 +1323,20 @@ class NexusServer {
       name: connection.user?.name || 'Host',
       type: 'host',
     };
+    if (
+      !(await this.socketManager.registerDistributedConnection(
+        room,
+        connection,
+        'host',
+        replay.latestSequence,
+      ))
+    ) {
+      room.connections.delete(connection.id);
+      room.players.delete(connection.id);
+      connection.room = undefined;
+      this.sendError(connection, 'This room already has an active host');
+      return;
+    }
 
     if (campaignId) {
       try {
@@ -1448,6 +1491,12 @@ class NexusServer {
       name: connection.user?.name || 'Player',
       type: 'player',
     };
+    await this.socketManager.registerDistributedConnection(
+      room,
+      connection,
+      room.coHosts.has(connection.id) ? 'cohost' : 'player',
+      replay.latestSequence,
+    );
 
     // Add player to database session
     try {
@@ -1866,17 +1915,7 @@ class NexusServer {
     message: ServerMessage,
     excludeUuid?: string,
   ): void {
-    const room = this.socketManager.rooms.get(roomCode);
-    if (!room) return;
-
-    room.connections.forEach((ws, uuid) => {
-      if (uuid !== excludeUuid) {
-        const connection = this.socketManager.connections.get(uuid);
-        if (connection) {
-          this.sendMessage(connection, message);
-        }
-      }
-    });
+    this.socketManager.broadcastToRoom(roomCode, message, excludeUuid);
   }
 
   /**
@@ -1937,6 +1976,14 @@ class NexusServer {
       return;
     }
     room.connections.delete(uuid);
+    try {
+      await this.socketManager.unregisterDistributedConnection(
+        connection.room,
+        uuid,
+      );
+    } catch (error) {
+      console.error('Failed to clear distributed presence:', error);
+    }
 
     // Get session from database to find sessionId
     let session: SessionRecord | null = null;
@@ -2092,7 +2139,7 @@ class NexusServer {
     });
 
     // Remove room from memory
-    this.socketManager.rooms.delete(roomCode);
+    this.socketManager.removeRoom(roomCode);
 
     // Schedule database cleanup after abandonment timeout
     setTimeout(async () => {
@@ -2184,6 +2231,7 @@ class NexusServer {
       };
 
       this.socketManager.rooms.set(roomCode, recoveredRoom);
+      await this.socketManager.hydrateDistributedPresence(recoveredRoom);
       console.log(
         `🔄 Recovered room ${roomCode} from session; status: ${recoveredRoom.status}`,
       );
@@ -2435,11 +2483,7 @@ class NexusServer {
         clearTimeout(room.hibernationTimer);
       }
     });
-    this.socketManager.connections.forEach((connection) => {
-      connection.ws.close();
-    });
-    this.socketManager.rooms.clear();
-    this.socketManager.connections.clear();
+    await this.socketManager.shutdown();
     try {
       await this.db.close();
       console.log('✅ Database closed');

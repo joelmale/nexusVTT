@@ -81,6 +81,8 @@ function createHarness() {
     broadcastToRoom: (code: string, message: ServerMessage) => {
       broadcasts.push({ code, message });
     },
+    updateDistributedRole: vi.fn(async () => undefined),
+    unregisterDistributedConnection: vi.fn(async () => undefined),
   } as unknown as SocketManager;
 
   new HostHandler(socketManager, {} as unknown as DatabaseService);

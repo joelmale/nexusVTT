@@ -150,6 +150,6 @@ Triggers update `updatedAt` on `users`, `campaigns`, and `characters`.
 | --- | --- |
 | Several durable structures use JSONB (`scenes`, `data`, `gameState`, `preferences`, `permissions`) | Schema supports fast evolution, but detailed constraints live in TypeScript and runtime validation rather than database columns. |
 | Express session data is in an auto-created `session` table | Authentication/session persistence is separate from game `sessions`. |
-| Redis has NFS-backed persistence in Compose but no observed runtime client | Redis data model is not defined by this repository snapshot. |
+| Redis has NFS-backed persistence in Compose | Versioned pub/sub messages are ephemeral; sorted-set presence and host-lease keys use renewable TTLs. PostgreSQL remains durable. |
 | Browser IndexedDB stores are versioned separately from PostgreSQL | Client recovery and server persistence have distinct migration paths. |
 

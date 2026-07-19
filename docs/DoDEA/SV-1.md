@@ -35,7 +35,7 @@ flowchart LR
 | Frontend System | `frontend` Nginx container | HTTP :80, reverse proxy to backend | Static SPA delivery and path routing |
 | Backend System | `backend` Node container | HTTP :5000, WebSocket upgrade, PostgreSQL TCP, optional external HTTP | Application APIs, WebSocket rooms, auth, dice, persistence orchestration |
 | Database System | `postgres` container | PostgreSQL TCP :5432 | Users, campaigns, characters, game sessions, players, hosts, Express sessions |
-| Cache System | `redis` container | Redis TCP :6379 | Provisioned cache/pub-sub infrastructure; runtime application use not observed |
+| Cache System | `redis` container | Redis TCP :6379 | Realtime fanout, expiring room presence, and host leases |
 | Identity Provider Systems | Google and Discord | OAuth2 HTTPS | User identity/profile source |
 | Document System | NexusCodex doc-api | HTTP JSON through `DOC_API_URL` | Optional document metadata/search/content URLs |
 | Asset File System | Backend filesystem or mounted path | File I/O and static HTTP | Asset manifests and custom token files |

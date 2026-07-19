@@ -167,8 +167,14 @@ export class DatabaseService {
     roomCode: string,
     identity: Parameters<EventJournalRepository['append']>[1],
     message: Parameters<EventJournalRepository['append']>[2],
+    echoToActor: Parameters<EventJournalRepository['append']>[3],
   ) {
-    return this.eventJournal.append(roomCode, identity, message);
+    return this.eventJournal.append(
+      roomCode,
+      identity,
+      message,
+      echoToActor,
+    );
   }
 
   async getRoomEventReplay(roomCode: string, afterSequence: number | null) {

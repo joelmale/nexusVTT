@@ -40,7 +40,7 @@ flowchart LR
 | Realtime Collaboration Service | Backend WebSocket server | Browser SPA | WebSocket JSON under `/ws` |
 | Asset Catalog Service | Backend Express/static file serving | Browser SPA | `/manifest.json`, `/search`, `/category/:category`, `/asset/:id`, static paths |
 | Persistence Service | PostgreSQL | Backend | SQL schema plus JSONB records |
-| Redis Service | Redis container | Backend startup command | Redis availability check; future cache/pub-sub service |
+| Redis Coordination Service | Redis container | Backend replicas | Versioned fanout, expiring room presence, and host-lease fencing |
 | Document Proxy Service | Backend routes plus NexusCodex doc-api | Browser SPA | `/api/documents*`, `/api/search*`, `/api/health` |
 | OAuth Service | Google/Discord | Backend and browser redirects | OAuth2 authorization and profile exchange |
 

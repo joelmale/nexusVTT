@@ -35,6 +35,29 @@ function asSafeSequence(value: string | number): number {
   return sequence;
 }
 
+function withDeliveryPolicy(
+  envelope: OrderedTransportEnvelope,
+): OrderedTransportEnvelope {
+  const candidate = envelope as OrderedTransportEnvelope & {
+    echoToActor?: boolean;
+  };
+  if (typeof candidate.echoToActor === 'boolean') return envelope;
+  const eventName =
+    candidate.type === 'event' &&
+    typeof candidate.data === 'object' &&
+    candidate.data !== null &&
+    'name' in candidate.data
+      ? String(candidate.data.name)
+      : null;
+  return {
+    ...candidate,
+    // Compatibility for journal rows written before delivery policy became
+    // explicit. Chat and authoritative dice were the only sender echoes.
+    echoToActor:
+      candidate.type === 'chat-message' || eventName === 'dice/roll-result',
+  };
+}
+
 export class EventJournalRepository extends BaseRepository {
   private readonly maxEventsPerRoom = Math.max(
     100,
@@ -75,6 +98,7 @@ export class EventJournalRepository extends BaseRepository {
     roomCode: string,
     identity: ClientEventIdentity,
     message: TransportEnvelope,
+    echoToActor: boolean,
   ): Promise<AppendRoomEventResult> {
     const client = await this.pool.connect();
     try {
@@ -108,6 +132,7 @@ export class EventJournalRepository extends BaseRepository {
         ...identity,
         roomCode,
         serverSequence,
+        echoToActor,
       };
 
       await client.query(
@@ -220,7 +245,7 @@ export class EventJournalRepository extends BaseRepository {
     return {
       baselineSequence,
       latestSequence,
-      events: eventsResult.rows.map((row) => row.envelope),
+      events: eventsResult.rows.map((row) => withDeliveryPolicy(row.envelope)),
       truncated,
     };
   }
@@ -236,7 +261,8 @@ export class EventJournalRepository extends BaseRepository {
        WHERE session."joinCode" = $1 AND event."eventId" = $2`,
       [roomCode, eventId],
     );
-    return result.rows[0]?.envelope || null;
+    const envelope = result.rows[0]?.envelope;
+    return envelope ? withDeliveryPolicy(envelope) : null;
   }
 
   private async findByEventId(
@@ -251,6 +277,7 @@ export class EventJournalRepository extends BaseRepository {
        WHERE session."joinCode" = $1 AND event."eventId" = $2`,
       [roomCode, eventId],
     );
-    return result.rows[0]?.envelope || null;
+    const envelope = result.rows[0]?.envelope;
+    return envelope ? withDeliveryPolicy(envelope) : null;
   }
 }

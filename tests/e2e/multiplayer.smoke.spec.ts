@@ -14,12 +14,19 @@ import {
   messagesOfType,
   observeWebSocketMessages,
   resendLastClientMessage,
+  routeWebSocketsToBackend,
   type WebSocketObservation,
 } from './support/websocket-observer';
 
 interface DeltaSyncMetrics {
   commits: { full: number; patch: number };
   resync: { 'base-mismatch': number };
+}
+
+interface RealtimeMetrics {
+  instanceId: string;
+  connected: boolean;
+  orderedReceived: number;
 }
 
 function observePage(page: Page): { logs: string[]; errors: string[] } {
@@ -89,16 +96,20 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
   const playerName = `Sync Player ${Date.now()}`;
   const chatText = `multiplayer-chat-${Date.now()}`;
   const recoveryChatText = `post-restart-chat-${Date.now()}`;
+  const primaryOutageChatText = `primary-outage-chat-${Date.now()}`;
+  const peerOutageChatText = `peer-outage-chat-${Date.now()}`;
   const replayChatText = `offline-replay-chat-${Date.now()}`;
   const combatantName = `Sentinel ${Date.now()}`;
   const diceExpression = '2d8+3';
   const recoveryDiceExpression = '1d12+2';
   const replayDiceExpression = '1d10+4';
   const backendUrl = process.env.E2E_BACKEND_URL ?? 'http://127.0.0.1:15001';
+  const backendPeerUrl =
+    process.env.E2E_BACKEND_PEER_URL ?? 'http://127.0.0.1:15002';
 
   let hostContext: BrowserContext | undefined;
   let playerContext: BrowserContext | undefined;
-  let backendStopped = false;
+  const stoppedBackends = new Set<string>();
 
   const diagnostics = {
     host: { logs: [] as string[], errors: [] as string[] },
@@ -113,6 +124,8 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     playerContext = await browser.newContext({ viewport });
     const hostPage = await hostContext.newPage();
     const playerPage = await playerContext.newPage();
+    await routeWebSocketsToBackend(hostPage, backendUrl);
+    await routeWebSocketsToBackend(playerPage, backendPeerUrl);
     diagnostics.host = observePage(hostPage);
     diagnostics.player = observePage(playerPage);
     const hostSockets = await observeWebSocketMessages(hostPage);
@@ -170,6 +183,25 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     await hostPage.getByRole('button', { name: 'Roll', exact: true }).click();
     await expect(diceRoll(hostPage, diceExpression)).toHaveCount(1);
     await expect(diceRoll(playerPage, diceExpression)).toHaveCount(1);
+
+    await expect
+      .poll(async () => {
+        const [primaryResponse, peerResponse] = await Promise.all([
+          request.get(`${backendUrl}/api/metrics/realtime`),
+          request.get(`${backendPeerUrl}/api/metrics/realtime`),
+        ]);
+        const primary = (await primaryResponse.json()) as RealtimeMetrics;
+        const peer = (await peerResponse.json()) as RealtimeMetrics;
+        return (
+          primary.instanceId === 'smoke-primary' &&
+          peer.instanceId === 'smoke-peer' &&
+          primary.connected &&
+          peer.connected &&
+          primary.orderedReceived > 0 &&
+          peer.orderedReceived > 0
+        );
+      })
+      .toBe(true);
 
     // Floating panels can cover world-space objects even though SVG locators
     // remain technically visible. Close Dice before exercising pointer input
@@ -291,7 +323,8 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     // Restart the backend while PostgreSQL remains alive. Both sockets must
     // recover and the persisted canonical state must not replay duplicates.
     const hostSocketCountBeforeRestart = hostSockets.socketUrls.length;
-    const playerSocketCountBeforeRestart = playerSockets.socketUrls.length;
+    const playerClosedSocketsBeforePrimaryRestart =
+      playerSockets.closedSocketCount;
     const hostReconnectCountBeforeRestart = eventMessages(
       hostSockets,
       'session/reconnected',
@@ -304,7 +337,7 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     // Let the last acknowledged state finish its fire-and-forget DB write.
     await hostPage.waitForTimeout(1_000);
     await stopSmokeService('backend');
-    backendStopped = true;
+    stoppedBackends.add('backend');
     await expect
       .poll(() =>
         diagnostics.host.logs.some((entry) =>
@@ -312,26 +345,34 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
         ),
       )
       .toBe(true);
+
+    await openPanel(playerPage, 'Chat');
+    await playerPage
+      .getByPlaceholder('Type a message or /help for commands...')
+      .fill(primaryOutageChatText);
+    await playerPage.getByTitle('Send message (Enter)').click();
+    await expect(chatMessage(playerPage, primaryOutageChatText)).toHaveCount(1);
+
     await startSmokeService('backend');
-    backendStopped = false;
+    stoppedBackends.delete('backend');
 
     await expect
       .poll(() => hostSockets.socketUrls.length, { timeout: 30_000 })
       .toBeGreaterThan(hostSocketCountBeforeRestart);
     await expect
-      .poll(() => playerSockets.socketUrls.length, { timeout: 30_000 })
-      .toBeGreaterThan(playerSocketCountBeforeRestart);
-    await expect
       .poll(() => eventMessages(hostSockets, 'session/reconnected').length, {
         timeout: 30_000,
       })
       .toBeGreaterThan(hostReconnectCountBeforeRestart);
-    await expect
-      .poll(() => eventMessages(playerSockets, 'session/joined').length, {
-        timeout: 30_000,
-      })
-      .toBeGreaterThan(playerJoinCountBeforeRestart);
+    expect(playerSockets.closedSocketCount).toBe(
+      playerClosedSocketsBeforePrimaryRestart,
+    );
+    expect(eventMessages(playerSockets, 'session/joined')).toHaveLength(
+      playerJoinCountBeforeRestart,
+    );
     expect(joinedIdentity(playerSockets)).toBe(initialPlayerIdentity);
+    await openPanel(hostPage, 'Chat');
+    await expect(chatMessage(hostPage, primaryOutageChatText)).toHaveCount(1);
 
     await expect(activeScene(hostPage)).toHaveAttribute(
       'data-scene-name',
@@ -365,6 +406,38 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     await hostPage.getByRole('button', { name: 'Roll', exact: true }).click();
     await expect(diceRoll(hostPage, recoveryDiceExpression)).toHaveCount(1);
     await expect(diceRoll(playerPage, recoveryDiceExpression)).toHaveCount(1);
+
+    // Repeat the asymmetric failure in the other direction. The host remains
+    // active on primary, while the peer rejoins and repairs its ordered cursor
+    // from PostgreSQL after the peer process is replaced.
+    const playerSocketCountBeforePeerRestart = playerSockets.socketUrls.length;
+    const playerJoinCountBeforePeerRestart = eventMessages(
+      playerSockets,
+      'session/joined',
+    ).length;
+    const hostClosedSocketsBeforePeerRestart = hostSockets.closedSocketCount;
+    await stopSmokeService('backend-peer');
+    stoppedBackends.add('backend-peer');
+    await openPanel(hostPage, 'Chat');
+    await hostPage
+      .getByPlaceholder('Type a message or /help for commands...')
+      .fill(peerOutageChatText);
+    await hostPage.getByTitle('Send message (Enter)').click();
+    await expect(chatMessage(hostPage, peerOutageChatText)).toHaveCount(1);
+    await startSmokeService('backend-peer');
+    stoppedBackends.delete('backend-peer');
+    await expect
+      .poll(() => playerSockets.socketUrls.length, { timeout: 30_000 })
+      .toBeGreaterThan(playerSocketCountBeforePeerRestart);
+    await expect
+      .poll(() => eventMessages(playerSockets, 'session/joined').length, {
+        timeout: 30_000,
+      })
+      .toBeGreaterThan(playerJoinCountBeforePeerRestart);
+    expect(hostSockets.closedSocketCount).toBe(hostClosedSocketsBeforePeerRestart);
+    expect(joinedIdentity(playerSockets)).toBe(initialPlayerIdentity);
+    await openPanel(playerPage, 'Chat');
+    await expect(chatMessage(playerPage, peerOutageChatText)).toHaveCount(1);
 
     // Grant the player co-host authority so both isolated clients can publish.
     // Establish host and player baselines, then race edits from different bases:
@@ -448,8 +521,8 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     expect(diagnostics.host.errors).toEqual([]);
     expect(diagnostics.player.errors).toEqual([]);
   } finally {
-    if (backendStopped) {
-      await startSmokeService('backend').catch(() => undefined);
+    for (const service of stoppedBackends) {
+      await startSmokeService(service).catch(() => undefined);
     }
     await testInfo.attach('multiplayer-diagnostics', {
       body: Buffer.from(JSON.stringify(diagnostics, null, 2)),

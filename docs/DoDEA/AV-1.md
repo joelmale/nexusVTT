@@ -14,7 +14,7 @@ The operational architecture is a multi-container web application:
 | Static delivery and edge routing | Nginx frontend container serves the SPA and proxies `/api`, `/auth`, and `/ws` |
 | Runtime services | Express 5 backend with REST APIs, Passport authentication, PostgreSQL sessions, WebSocket room coordination, JSON Patch state deltas |
 | Persistent storage | PostgreSQL stores users, campaigns, characters, game sessions, players, hosts, and Express session records |
-| Cache/pub-sub infrastructure | Redis container is provisioned in production Compose, but repository code currently shows no Redis client integration beyond startup readiness and `REDIS_URL` configuration |
+| Realtime coordination | Redis pub/sub fans out ordered and transient WebSocket traffic; sorted sets track expiring presence and keys fence the active host lease |
 | Optional document capability | Backend can proxy to external NexusCodex document services when `DOC_API_URL` is set |
 | Deployment target | Docker Swarm on an external `homelab-net` network, with NFS-mounted PostgreSQL and Redis data directories |
 
@@ -42,7 +42,7 @@ The operational architecture is a multi-container web application:
 | Constraint or assumption | Impact |
 | --- | --- |
 | Production `docker-compose.yml` defines 2 frontend replicas and 3 backend replicas but no published ports | An external reverse proxy or Docker Swarm ingress is assumed to route public HTTPS traffic to the frontend service. |
-| Backend maintains active rooms, connections, and room game state in process memory | Multi-replica WebSocket operation requires sticky routing by room/session or a shared coordination layer. Redis is present in Compose but not wired into backend pub/sub in the inspected code. |
+| Backend maintains local socket connections and room projections in process memory | Redis coordinates cross-replica fanout and presence, while PostgreSQL repairs ordered gaps and remains the durable authority. |
 | PostgreSQL is the canonical server data store | Server-side campaign, character, user, session, player, host, and Express session data persist across restarts. |
 | Browser IndexedDB/localStorage retains local-first state | Some state exists client-side for responsiveness and recovery, so reconciliation with server state matters. |
 | `DOC_API_URL` is optional | Document APIs return disabled/unavailable responses when NexusCodex services are not configured. |

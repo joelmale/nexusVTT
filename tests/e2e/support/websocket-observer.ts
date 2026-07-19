@@ -28,7 +28,44 @@ interface BrowserSocketTestHooks {
 declare global {
   interface Window {
     __nexusSocketTestHooks?: BrowserSocketTestHooks;
+    __nexusWebSocketBackend?: string;
   }
+}
+
+/**
+ * Pins every WebSocket opened by this page to one backend replica. HTTP still
+ * flows through the frontend proxy, so isolated contexts share the normal
+ * session/cookie behavior while the test controls socket placement.
+ */
+export async function routeWebSocketsToBackend(
+  page: Page,
+  backendUrl: string,
+): Promise<void> {
+  await page.addInitScript((initialBackendUrl: string) => {
+    window.__nexusWebSocketBackend = initialBackendUrl;
+    const NativeWebSocket = window.WebSocket;
+    window.WebSocket = new Proxy(NativeWebSocket, {
+      construct(target, argumentsList) {
+        const requestedUrl = new URL(String(argumentsList[0]), location.href);
+        const backend = new URL(
+          window.__nexusWebSocketBackend || initialBackendUrl,
+        );
+        requestedUrl.protocol = backend.protocol === 'https:' ? 'wss:' : 'ws:';
+        requestedUrl.host = backend.host;
+        argumentsList[0] = requestedUrl.toString();
+        return Reflect.construct(target, argumentsList);
+      },
+    });
+  }, backendUrl);
+}
+
+export async function setWebSocketBackend(
+  page: Page,
+  backendUrl: string,
+): Promise<void> {
+  await page.evaluate((target) => {
+    window.__nexusWebSocketBackend = target;
+  }, backendUrl);
 }
 
 function parseObservedMessage(payload: string): ObservedServerMessage | null {

@@ -10,6 +10,7 @@ export interface TransportEnvelope {
   serverSequence?: number;
   occurredAt?: number;
   roomCode?: string;
+  echoToActor?: boolean;
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -67,6 +68,12 @@ export function parseTransportEnvelope(
   }
   if (value.roomCode !== undefined && typeof value.roomCode !== 'string') {
     throw new TypeError('Message roomCode must be a string');
+  }
+  if (
+    value.echoToActor !== undefined &&
+    typeof value.echoToActor !== 'boolean'
+  ) {
+    throw new TypeError('Message echoToActor must be a boolean');
   }
 
   if (value.type === 'event' && typeof value.data.name !== 'string') {

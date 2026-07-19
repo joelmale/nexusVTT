@@ -29,7 +29,7 @@
 | IndexedDB | Browser storage used for maps, game state, local-first persistence, token images, and recovery. |
 | `homelab-net` | External Docker Swarm network used by production services. |
 | `DATABASE_URL` | Backend PostgreSQL connection string. |
-| `REDIS_URL` | Production Redis connection string exposed to backend, but not consumed by backend code in this snapshot. |
+| `REDIS_URL` | Redis connection used for cross-replica fanout, expiring presence, and host leases. |
 | `DOC_API_URL` | Backend URL for optional NexusCodex document API integration. |
 | `ASSETS_PATH` | Backend filesystem path for static asset catalog and uploaded custom tokens. |
 

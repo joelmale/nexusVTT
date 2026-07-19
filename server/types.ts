@@ -68,6 +68,7 @@ export interface BaseServerMessage {
   serverSequence?: number;
   occurredAt?: number;
   roomCode?: string;
+  echoToActor?: boolean;
 }
 
 export interface ServerEventMessage extends BaseServerMessage {

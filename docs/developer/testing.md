@@ -38,13 +38,15 @@ developer OAuth credentials or the development database.
 
 The suite verifies:
 
-- frontend, backend, and database health;
+- frontend, two backend replicas, PostgreSQL, and Redis health;
 - guest session cookie round-tripping;
 - every dice theme config and referenced runtime file, including Ammo WASM;
 - production service-worker caching and an offline shell reload;
 - guest DM room creation and an animated 3D dice roll;
 - WebSocket recovery when the backend remains unavailable through the first
   reconnect attempt;
+- cross-replica chat, dice, scene, initiative, and token convergence, followed
+  by one-at-a-time backend restarts and ordered journal catch-up;
 - lobby availability and API recovery during an asset-service outage.
 
 Failures retain screenshots, video, traces, and browser/network diagnostics in
@@ -66,9 +68,10 @@ docker compose -p nexus-vtt-e2e -f docker/docker-compose.smoke.yml down --volume
 ```
 
 `npm run test:e2e:local` runs Playwright against an already-running target.
-Override `E2E_BASE_URL`, `E2E_BACKEND_URL`, and `E2E_ASSET_URL` when that target
-is not using the default smoke ports (`4173`, `15001`, and `15003`). Service
-restart scenarios are skipped unless the managed stack is active.
+Override `E2E_BASE_URL`, `E2E_BACKEND_URL`, `E2E_BACKEND_PEER_URL`, and
+`E2E_ASSET_URL` when that target is not using the default smoke ports (`4173`,
+`15001`, `15002`, and `15003`). Service restart scenarios are skipped unless
+the managed stack is active.
 
 ## CI behavior
 

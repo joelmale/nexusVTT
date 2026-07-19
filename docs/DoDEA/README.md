@@ -30,8 +30,7 @@ architecture notes.
 - Data models are derived from `server/schema.sql`, `server/database.ts`,
   `server/types.ts`, `shared/types.ts`, `src/types/**`, and browser persistence
   services under `src/services`.
-- Redis is provisioned in production Compose and checked during backend startup,
-  but no runtime Redis client usage was found in the inspected backend code.
-- Active WebSocket rooms and connections are in backend process memory. With
-  multiple backend replicas, production operation needs sticky routing or a
-  shared coordination/pub-sub layer for cross-replica room state.
+- Redis provides runtime cross-replica pub/sub, expiring presence, and primary
+  host leases. PostgreSQL remains the ordering and recovery authority.
+- Active WebSocket connections stay process-local; replicas exchange room
+  traffic through Redis and repair ordered gaps from PostgreSQL.

@@ -10,6 +10,7 @@ const composeFile = path.join('docker', 'docker-compose.smoke.yml');
 const projectName = process.env.E2E_PROJECT_NAME ?? 'nexus-vtt-e2e';
 const frontendPort = process.env.E2E_FRONTEND_PORT ?? '4173';
 const backendPort = process.env.E2E_BACKEND_PORT ?? '15001';
+const backendPeerPort = process.env.E2E_BACKEND_PEER_PORT ?? '15002';
 const assetPort = process.env.E2E_ASSET_PORT ?? '15003';
 const playwrightCli = path.join(
   repositoryRoot,
@@ -89,6 +90,9 @@ async function main() {
         process.env.E2E_BASE_URL ?? `http://127.0.0.1:${frontendPort}`,
       E2E_BACKEND_URL:
         process.env.E2E_BACKEND_URL ?? `http://127.0.0.1:${backendPort}`,
+      E2E_BACKEND_PEER_URL:
+        process.env.E2E_BACKEND_PEER_URL ??
+        `http://127.0.0.1:${backendPeerPort}`,
       E2E_ASSET_URL:
         process.env.E2E_ASSET_URL ?? `http://127.0.0.1:${assetPort}`,
       E2E_MANAGED_STACK: '1',

@@ -70,12 +70,26 @@ code to an existing database. New databases receive the same schema from
 Runtime counters for commits, duplicates, failures, replay volume, and
 truncated replay windows are available from `GET /api/metrics/ordered-events`.
 
-Database transactions coordinate ordering across backend processes, but live
-WebSocket rooms are still process-local. Multiple backend replicas therefore
-require sticky routing for a room or a shared pub/sub fan-out layer. The event
-journal prevents duplicate commits across replicas; by itself it does not
-broadcast a live event between replicas.
+Database transactions remain the ordering authority across backend processes.
+When `REDIS_URL` is configured, each process also starts a realtime coordinator
+that publishes committed envelopes and transient room traffic to a versioned
+Redis channel. A replica detects any jump in `serverSequence`, reads the missing
+range from PostgreSQL, and only then delivers the live event. A Redis subscriber
+reconnect performs the same journal catch-up for every active room. Without a
+`REDIS_URL`, the coordinator keeps the exact same API in single-instance mode.
+
+Redis sorted sets hold renewable room presence with a 45-second expiry. The
+primary host also owns a renewable lease; a replacement connection fences the
+old connection and lease ownership is released during graceful shutdown.
+PostgreSQL remains the source of truth for sessions, snapshots, and event
+history, so Redis is never the durable record.
+
+`GET /api/metrics/realtime` exposes instance identity, connectivity, fanout,
+gap-repair, reconnect, publish-failure, presence, and host-lease counters. When
+Redis is configured, `/health` does not report ready until both the database and
+realtime coordinator are available.
 
 The smoke suite exercises exact duplicate submission, four concurrent clients,
-an isolated connection outage with replay, backend restart, and stale-base
-delta resynchronization. Run it with `npm run test:e2e`.
+an isolated connection outage with replay, two backend replicas, asymmetric
+replica restarts with journal recovery, and stale-base delta resynchronization.
+Run it with `npm run test:e2e`.

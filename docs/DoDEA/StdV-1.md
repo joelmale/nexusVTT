@@ -64,8 +64,8 @@
 
 | Observation | Architectural significance |
 | --- | --- |
-| Redis is declared for sessions/pub-sub, but Express sessions are stored in PostgreSQL and no Redis client usage was found | Treat Redis as provisioned but not functionally integrated until pub/sub/session code is added. |
-| Backend replicas maintain active WebSocket rooms in memory | Horizontal scaling depends on sticky routing or shared room state/pub-sub. |
+| Redis carries ephemeral pub/sub, presence, and host leases; Express sessions remain in PostgreSQL | Preserve this separation so Redis loss cannot erase authenticated sessions or ordered history. |
+| Backend replicas maintain local WebSocket connections in memory | Redis fanout plus PostgreSQL journal catch-up provides cross-replica delivery without room-sticky routing. |
 | Node 26 is the Current release line rather than LTS | Track Node's release lifecycle and plan an explicit move to an LTS line if production stability takes precedence over early access to platform features. |
 | Production Compose lacks `ports:` on frontend | Public ingress must be supplied externally by Swarm routing mesh/reverse proxy attachment. |
 | Optional document routes are mounted even when disabled | Disabled mode returns `503` for document operations and `{ status: "disabled" }` for document health. |

@@ -10,6 +10,7 @@ export interface ClientEventIdentity {
 export interface OrderedEventMetadata extends ClientEventIdentity {
   roomCode: string;
   serverSequence: number;
+  echoToActor: boolean;
 }
 
 export type OrderedTransportEnvelope = TransportEnvelope & OrderedEventMetadata;
@@ -21,6 +22,7 @@ interface EventMetadataCandidate {
   serverSequence?: unknown;
   occurredAt?: unknown;
   roomCode?: unknown;
+  echoToActor?: unknown;
 }
 
 export interface EventAcknowledgement {
@@ -110,6 +112,7 @@ export function hasOrderedEventMetadata(
   return (
     hasClientEventIdentity(value) &&
     typeof value.roomCode === 'string' &&
+    typeof value.echoToActor === 'boolean' &&
     typeof value.serverSequence === 'number' &&
     Number.isSafeInteger(value.serverSequence) &&
     value.serverSequence > 0

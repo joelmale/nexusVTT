@@ -493,10 +493,11 @@ This allows Express to:
 - Automatic expiration via TTL
 - ACID guarantees for session data
 
-**Why not Redis?**
-- Redis is optional (used for pub/sub in future)
-- PostgreSQL already required for users/campaigns
-- Simplifies deployment (fewer services)
+**Why not Redis for session records?**
+- PostgreSQL is already the durable authority for users and campaigns.
+- Redis is reserved for cross-replica WebSocket fanout, renewable presence,
+  and host leases; losing Redis does not erase authenticated sessions.
+- One durable store avoids split ownership of session identity and game data.
 
 ---
 

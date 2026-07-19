@@ -3,16 +3,24 @@ import { EventEmitter } from 'events';
 import { v4 as uuidv4 } from 'uuid';
 import { validate as validateUuid } from 'uuid';
 import { encode, decode } from '@msgpack/msgpack';
-import { Room, Connection, ServerMessage } from '../types.js';
+import jsonpatch, { type Operation } from 'fast-json-patch';
+import { Room, Connection, ServerMessage, type GameState } from '../types.js';
 import { DatabaseService } from '../database.js';
 import { parseTransportEnvelope } from '../../shared/transport.js';
 import type { AppendRoomEventResult } from '../repositories/EventJournalRepository.js';
+import {
+  RealtimeCoordinator,
+  type DistributedRole,
+  type DistributedRoomPresence,
+} from '../services/realtimeCoordinator.js';
 import type {
   ClientEventIdentity,
   EventReplayWindow,
   OrderedTransportEnvelope,
 } from '../../shared/events/contracts.js';
 import { hasClientEventIdentity } from '../../shared/events/contracts.js';
+import { hashSync } from '../../shared/sync/hashSync.js';
+import type { JsonValue } from '../../shared/sync/contracts.js';
 
 const CLIENT_MESSAGE_TYPES = new Set([
   'event',
@@ -57,8 +65,41 @@ export class SocketManager extends EventEmitter {
   constructor(
     private wss: WebSocketServer,
     private db: DatabaseService,
+    private readonly realtime = new RealtimeCoordinator(db),
   ) {
     super();
+    this.realtime.on(
+      'ordered',
+      (event: OrderedTransportEnvelope) => this.broadcastOrderedLocally(event),
+    );
+    this.realtime.on(
+      'transient',
+      (roomCode: string, message: ServerMessage, excludeId?: string) => {
+        this.applyRemoteRoomMutation(roomCode, message);
+        this.broadcastLocally(roomCode, message, excludeId);
+      },
+    );
+    this.realtime.on(
+      'presence',
+      (roomCode: string, presence: DistributedRoomPresence) =>
+        this.applyDistributedPresence(roomCode, presence),
+    );
+    this.realtime.on(
+      'host-lease-lost',
+      (roomCode: string, connectionId: string) => {
+        const connection = this.connections.get(connectionId);
+        if (!connection || connection.room !== roomCode) return;
+        this.sendMessage(connection, {
+          type: 'error',
+          data: {
+            message: 'Host authority moved to another connection.',
+            code: 409,
+          },
+          timestamp: Date.now(),
+        });
+        connection.ws.close(1012, 'Host lease superseded');
+      },
+    );
     this.startHeartbeat();
     console.log(
       `🔌 SocketManager initialized (MessagePack: ${this.useMessagePack})`,
@@ -167,7 +208,16 @@ export class SocketManager extends EventEmitter {
     roomCode: string,
     message: ServerMessage,
     excludeId?: string,
-  ) {
+  ): void {
+    this.broadcastLocally(roomCode, message, excludeId);
+    void this.realtime.publishTransient(roomCode, message, excludeId);
+  }
+
+  private broadcastLocally(
+    roomCode: string,
+    message: ServerMessage,
+    excludeId?: string,
+  ): void {
     const room = this.rooms.get(roomCode);
     if (!room) return;
 
@@ -207,7 +257,7 @@ export class SocketManager extends EventEmitter {
         );
         if (existing) {
           this.orderedEventMetrics.duplicates += 1;
-          if (options.senderReceivesEvent) {
+          if (existing.echoToActor) {
             this.sendMessage(connection, existing as unknown as ServerMessage);
           }
           this.sendEventAcknowledgement(
@@ -215,7 +265,7 @@ export class SocketManager extends EventEmitter {
             identity.eventId,
             existing.serverSequence,
             true,
-            !options.senderReceivesEvent,
+            !existing.echoToActor,
           );
           options.onAcknowledged?.();
           return { duplicate: true, event: existing };
@@ -229,6 +279,7 @@ export class SocketManager extends EventEmitter {
           room.code,
           identity,
           message,
+          Boolean(options.senderReceivesEvent),
         );
         if (result.duplicate) {
           this.orderedEventMetrics.duplicates += 1;
@@ -241,17 +292,11 @@ export class SocketManager extends EventEmitter {
           identity.eventId,
           result.event.serverSequence,
           result.duplicate,
-          !options.senderReceivesEvent,
+          !result.event.echoToActor,
         );
         options.onAcknowledged?.();
 
-        if (!result.duplicate) {
-          this.broadcastToRoom(
-            room.code,
-            result.event as unknown as ServerMessage,
-            options.excludeId,
-          );
-        }
+        if (!result.duplicate) await this.realtime.publishOrdered(result.event);
         return result;
       } catch (error) {
         this.orderedEventMetrics.failed += 1;
@@ -294,6 +339,8 @@ export class SocketManager extends EventEmitter {
     replay: EventReplayWindow,
     requestedSequence: number | null,
   ): void {
+    const roomCode = connection.room || replay.events[0]?.roomCode;
+    if (roomCode) this.realtime.registerRoom(roomCode, replay.latestSequence);
     this.orderedEventMetrics.replayRequests += 1;
     this.orderedEventMetrics.replayed += replay.events.length;
     if (replay.truncated) this.orderedEventMetrics.truncatedReplays += 1;
@@ -379,12 +426,13 @@ export class SocketManager extends EventEmitter {
     else connection.connectionQuality = 'critical';
   }
 
-  public shutdown() {
+  public async shutdown(): Promise<void> {
     if (this.heartbeatTimer) clearInterval(this.heartbeatTimer);
     this.connections.forEach((c) => c.ws.close());
     this.rooms.clear();
     this.connections.clear();
     this.roomPublishQueues.clear();
+    await this.realtime.shutdown();
   }
 
   // Room lifecycle methods to be called by handlers or NexusServer
@@ -394,6 +442,50 @@ export class SocketManager extends EventEmitter {
 
   public removeRoom(code: string) {
     this.rooms.delete(code);
+    this.realtime.unregisterRoom(code);
+  }
+
+  public initializeRealtime(): Promise<void> {
+    return this.realtime.initialize();
+  }
+
+  public async registerDistributedConnection(
+    room: Room,
+    connection: Connection,
+    role: DistributedRole,
+    baselineSequence = 0,
+  ): Promise<boolean> {
+    this.realtime.registerRoom(room.code, baselineSequence);
+    const registered = await this.realtime.registerPresence(
+      room.code,
+      connection.id,
+      connection.id,
+      role,
+    );
+    if (registered) await this.hydrateDistributedPresence(room);
+    return registered;
+  }
+
+  public async unregisterDistributedConnection(
+    roomCode: string,
+    connectionId: string,
+  ): Promise<void> {
+    await this.realtime.unregisterPresence(roomCode, connectionId);
+  }
+
+  public updateDistributedRole(
+    roomCode: string,
+    connectionId: string,
+    role: DistributedRole,
+  ): Promise<void> {
+    return this.realtime.updatePresenceRole(roomCode, connectionId, role);
+  }
+
+  public async hydrateDistributedPresence(room: Room): Promise<void> {
+    this.applyDistributedPresence(
+      room.code,
+      await this.realtime.getRoomPresence(room.code),
+    );
   }
 
   public getStats() {
@@ -401,7 +493,151 @@ export class SocketManager extends EventEmitter {
       totalRooms: this.rooms.size,
       totalConnections: this.connections.size,
       orderedEvents: { ...this.orderedEventMetrics },
+      realtime: this.realtime.getMetrics(),
     };
+  }
+
+  private broadcastOrderedLocally(event: OrderedTransportEnvelope): void {
+    this.applyOrderedRoomMutation(event);
+    this.broadcastLocally(
+      event.roomCode,
+      event as unknown as ServerMessage,
+      event.echoToActor ? undefined : event.actorId,
+    );
+  }
+
+  private applyDistributedPresence(
+    roomCode: string,
+    presence: DistributedRoomPresence,
+  ): void {
+    const room = this.rooms.get(roomCode);
+    if (!room) return;
+    const distributedPlayers = presence.members.map((member) => member.userId);
+    const activePlayerIds = new Set([
+      ...distributedPlayers,
+      ...room.connections.keys(),
+    ]);
+    room.players = new Set([
+      ...activePlayerIds,
+    ]);
+    room.coHosts = new Set(
+      [
+        ...Array.from(room.coHosts).filter((userId) =>
+          activePlayerIds.has(userId),
+        ),
+        ...presence.members
+          .filter((member) => member.role === 'cohost')
+          .map((member) => member.userId),
+      ],
+    );
+    room.dmConnected =
+      presence.hostLease !== null ||
+      presence.members.some((member) => member.role === 'host');
+  }
+
+  private applyRemoteRoomMutation(
+    roomCode: string,
+    message: ServerMessage,
+  ): void {
+    const room = this.rooms.get(roomCode);
+    if (!room) return;
+    if (message.type === 'game-state-patch') {
+      const { baseToken, newToken, patch, version } = message.data;
+      if (
+        room.gameState &&
+        room.syncToken === baseToken &&
+        typeof newToken === 'string' &&
+        Array.isArray(patch)
+      ) {
+        try {
+          const nextState = jsonpatch.applyPatch(
+            structuredClone(room.gameState),
+            patch as Operation[],
+            true,
+            false,
+          ).newDocument as GameState;
+          if (hashSync(nextState as unknown as JsonValue) === newToken) {
+            room.previousGameState = room.gameState;
+            room.gameState = nextState;
+            room.syncToken = newToken;
+            room.stateVersion = Math.max(room.stateVersion, version);
+          }
+        } catch (error) {
+          console.error(
+            `Failed to apply remote game-state patch in ${roomCode}:`,
+            error,
+          );
+        }
+      }
+      return;
+    }
+    if (message.type !== 'event') return;
+    const eventData = message.data as Record<string, unknown> & { name: string };
+    const eventName = eventData.name;
+    const userId =
+      typeof eventData.uuid === 'string' ? eventData.uuid : null;
+    if (eventName === 'session/join' && userId) room.players.add(userId);
+    if (eventName === 'session/leave' && userId) {
+      room.players.delete(userId);
+      room.coHosts.delete(userId);
+    }
+    if (
+      eventName === 'session/cohost-added' &&
+      typeof eventData.coHostId === 'string'
+    ) {
+      room.coHosts.add(eventData.coHostId);
+    }
+    if (
+      eventName === 'session/cohost-removed' &&
+      typeof eventData.coHostId === 'string'
+    ) {
+      room.coHosts.delete(eventData.coHostId);
+    }
+    if (
+      eventName === 'session/host-changed' &&
+      typeof eventData.newHostId === 'string'
+    ) {
+      room.host = eventData.newHostId;
+    }
+    if (
+      eventName === 'session/dm-status' &&
+      typeof eventData.dmConnected === 'boolean'
+    ) {
+      room.dmConnected = eventData.dmConnected;
+    }
+  }
+
+  private applyOrderedRoomMutation(event: OrderedTransportEnvelope): void {
+    const room = this.rooms.get(event.roomCode);
+    if (!room || event.type !== 'event') return;
+    const data = event.data as Record<string, unknown> & { name?: string };
+    const entityId =
+      typeof data.tokenId === 'string'
+        ? data.tokenId
+        : typeof data.propId === 'string'
+          ? data.propId
+          : null;
+    if (
+      entityId &&
+      typeof data.expectedVersion === 'number' &&
+      [
+        'token/move',
+        'token/update',
+        'token/delete',
+        'prop/move',
+        'prop/update',
+        'prop/delete',
+        'prop/interact',
+      ].includes(String(data.name))
+    ) {
+      room.entityVersions.set(
+        entityId,
+        Math.max(
+          room.entityVersions.get(entityId) ?? 0,
+          data.expectedVersion + 1,
+        ),
+      );
+    }
   }
 
   private getEventIdentity(

@@ -69,6 +69,7 @@ describe('SocketManager ordered events', () => {
             ...identity,
             roomCode,
             serverSequence: 1,
+            echoToActor: false,
           };
           return { duplicate: false, event: stored };
         },
