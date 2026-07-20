@@ -1,0 +1,6 @@
+.panel {
+  position: fixed;
+  max-width: calc(100vw - 24px);
+  max-height: calc(100vh - 24px);
+  pointer-events: auto;
+}

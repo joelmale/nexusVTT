@@ -50,6 +50,9 @@ import { CameraGestureEngine } from '@/utils/cameraGestureEngine';
 import { FogGestureEngine } from '@/utils/fogGestureEngine';
 import { sceneUtils } from '@/utils/sceneUtils';
 import { hitTestDrawings, createHitTestContext } from './inkHitTest';
+import { getDrawingsBounds } from './drawingBounds';
+import type { ViewportRect } from './anchoredPanelPosition';
+import { useUIStackStore } from '@/stores/uiStackStore';
 import type { Scene, WebSocketMessage } from '@/types/game';
 import type { Token } from '@/types/token';
 import type {
@@ -139,6 +142,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   const followDM = useFollowDM();
   const isHost = useIsHost();
   const activeTool = useActiveTool() as SceneCanvasActiveTool;
+  const bringToFront = useUIStackStore((state) => state.bringToFront);
 
   const roomCode = useServerRoomCode();
 
@@ -206,18 +210,23 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
 
   const drawings = useSceneDrawings(scene.id);
 
-  const selectedDrawingIds = useMemo(() => {
-    const drawingIds = new Set(drawings.map((d) => d.id));
-    return selectedObjectIds.filter((id) => drawingIds.has(id));
-  }, [selectedObjectIds, drawings]);
+  const selectedDrawingObjects = useMemo(
+    () => drawings.filter((drawing) => selectedObjectIds.includes(drawing.id)),
+    [selectedObjectIds, drawings],
+  );
+
+  const selectedDrawingIds = useMemo(
+    () => selectedDrawingObjects.map((drawing) => drawing.id),
+    [selectedDrawingObjects],
+  );
 
   // Filter for spell overlay drawings specifically
   const selectedSpellOverlay = useMemo(() => {
     if (selectedDrawingIds.length !== 1) return null;
-    const drawing = drawings.find((d) => d.id === selectedDrawingIds[0]);
+    const drawing = selectedDrawingObjects[0];
     if (!drawing || !SPELL_TYPES.has(drawing.type)) return null;
     return drawing as SpellOverlayDrawing;
-  }, [selectedDrawingIds, drawings]);
+  }, [selectedDrawingIds.length, selectedDrawingObjects]);
 
   // Update viewport size when container resizes
   useEffect(() => {
@@ -520,6 +529,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
             inkHitTestCtx,
           );
           if (hitId) {
+            bringToFront('objectProperties');
             if (e.shiftKey || e.metaKey || e.ctrlKey) {
               if (selectedObjectIds.includes(hitId)) {
                 setSelection(selectedObjectIds.filter((id) => id !== hitId));
@@ -557,6 +567,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
       selectedObjectIds,
       setSelection,
       inkHitTestCtx,
+      bringToFront,
     ],
   );
 
@@ -606,6 +617,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
 
   const handleDrawingClick = useCallback(
     (drawingId: string, event: React.MouseEvent) => {
+      bringToFront('objectProperties');
       if (event.shiftKey || event.metaKey || event.ctrlKey) {
         // Multi-select: toggle this drawing in selection
         if (selectedObjectIds.includes(drawingId)) {
@@ -618,7 +630,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
         setSelection([drawingId]);
       }
     },
-    [selectedObjectIds, setSelection],
+    [bringToFront, selectedObjectIds, setSelection],
   );
 
   // Token handlers
@@ -716,6 +728,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   // Prop handlers (mirror token handlers)
   const handlePropSelect = useCallback(
     (propId: string, multi: boolean) => {
+      bringToFront('objectProperties');
       console.log('🎭 Props: handlePropSelect called:', { propId, multi });
       if (multi) {
         console.log('📝 Props: Multi-select: calling addToSelection with:', [
@@ -731,7 +744,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
         console.log('✅ Props: setSelection completed');
       }
     },
-    [addToSelection, setSelection],
+    [addToSelection, bringToFront, setSelection],
   );
 
   // A5: prop lookups inside these gesture handlers read the store
@@ -786,6 +799,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     width: viewportSize.width,
     height: viewportSize.height,
   }));
+  const [svgViewportOffset, setSvgViewportOffset] = useState({ x: 0, y: 0 });
 
   // Keep svgSize in sync with actual rendered SVG dimensions
   useLayoutEffect(() => {
@@ -795,6 +809,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
       const rect = svgRef.current?.getBoundingClientRect();
       if (rect) {
         setSvgSize({ width: rect.width, height: rect.height });
+        setSvgViewportOffset({ x: rect.left, y: rect.top });
       }
     };
 
@@ -948,6 +963,41 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     viewportSize.height,
   );
 
+  const getDrawingPropertiesAnchor = useCallback((): ViewportRect | null => {
+    const bounds = getDrawingsBounds(selectedDrawingObjects);
+    if (!bounds) return null;
+
+    const topLeft = sceneUtils.worldToScreen(
+      bounds.minX,
+      bounds.minY,
+      camera,
+      svgSize.width,
+      svgSize.height,
+    );
+    const bottomRight = sceneUtils.worldToScreen(
+      bounds.maxX,
+      bounds.maxY,
+      camera,
+      svgSize.width,
+      svgSize.height,
+    );
+    return {
+      left: svgViewportOffset.x + Math.min(topLeft.x, bottomRight.x),
+      right: svgViewportOffset.x + Math.max(topLeft.x, bottomRight.x),
+      top: svgViewportOffset.y + Math.min(topLeft.y, bottomRight.y),
+      bottom: svgViewportOffset.y + Math.max(topLeft.y, bottomRight.y),
+    };
+  }, [
+    camera,
+    selectedDrawingObjects,
+    svgSize.height,
+    svgSize.width,
+    svgViewportOffset.x,
+    svgViewportOffset.y,
+  ]);
+
+  const drawingPropertiesAnchor = getDrawingPropertiesAnchor();
+
   // Calculate toolbar position for selected prop
   const getPropToolbarPosition = useCallback(() => {
     if (!selectedPlacedProp) return { x: 0, y: 0 };
@@ -1004,31 +1054,45 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
       y = svgSize.height - toolbarHeight - toolbarOffset;
     }
 
-    return { x, y };
-  }, [selectedPlacedProp, camera, svgSize, safeGridSettings.size]);
+    return {
+      x: x + svgViewportOffset.x,
+      y: y + svgViewportOffset.y,
+    };
+  }, [
+    selectedPlacedProp,
+    camera,
+    svgSize,
+    safeGridSettings.size,
+    svgViewportOffset.x,
+    svgViewportOffset.y,
+  ]);
 
   return (
     <CanvasErrorBoundary>
       <div className="scene-canvas-container">
         {/* Spell Overlay Properties Panel */}
-        {selectedSpellOverlay && (
+        {selectedSpellOverlay && drawingPropertiesAnchor && (
           <SpellOverlayPropertiesPanel
             drawing={selectedSpellOverlay}
             onUpdate={handleUpdateSpellOverlay}
             onClose={handleClosePropertiesPanel}
             gridSize={safeGridSettings.size}
+            anchor={drawingPropertiesAnchor}
           />
         )}
 
         {/* Drawing Properties Panel (for non-spell overlays) */}
-        {selectedDrawingIds.length > 0 && !selectedSpellOverlay && (
-          <DrawingPropertiesPanel
-            key={selectedDrawingIds.join(':')}
-            selectedDrawingIds={selectedDrawingIds}
-            sceneId={scene.id}
-            onClose={handleClosePropertiesPanel}
-          />
-        )}
+        {selectedDrawingIds.length > 0 &&
+          !selectedSpellOverlay &&
+          drawingPropertiesAnchor && (
+            <DrawingPropertiesPanel
+              key={selectedDrawingIds.join(':')}
+              selectedDrawingIds={selectedDrawingIds}
+              sceneId={scene.id}
+              onClose={handleClosePropertiesPanel}
+              anchor={drawingPropertiesAnchor}
+            />
+          )}
 
         {/* Prop Toolbar */}
         {selectedPlacedProp && (
