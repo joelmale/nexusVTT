@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import ConnectionStatus from '../../../src/components/ConnectionStatus';
 import { webSocketService } from '../../../src/services/websocket';
+import { useGameStore } from '../../../src/stores/gameStore';
 
 // Mock the webSocketService
 vi.mock('../../../src/services/websocket', () => ({
@@ -9,6 +10,7 @@ vi.mock('../../../src/services/websocket', () => ({
     isConnected: vi.fn(),
     getConnectionQuality: vi.fn(),
     connect: vi.fn(),
+    reconnect: vi.fn(),
   },
 }));
 
@@ -17,6 +19,7 @@ const mockWebSocketService = vi.mocked(webSocketService);
 describe('ConnectionStatus', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    useGameStore.setState({ session: null });
     // Default mock values
     mockWebSocketService.isConnected.mockReturnValue(true);
     mockWebSocketService.getConnectionQuality.mockReturnValue({
@@ -50,7 +53,7 @@ describe('ConnectionStatus', () => {
     expect(screen.queryByText('50ms latency')).toBeNull();
   });
 
-  it('should show reconnect button for poor connection quality', () => {
+  it('should not show reconnect for poor connection quality while connected', () => {
     mockWebSocketService.getConnectionQuality.mockReturnValue({
       latency: 2500,
       packetLoss: 0,
@@ -62,11 +65,10 @@ describe('ConnectionStatus', () => {
     render(<ConnectionStatus showDetails={true} />);
 
     expect(screen.getByText('Poor')).toBeDefined();
-    const reconnectButton = screen.getByText('Reconnect');
-    expect(reconnectButton).toBeDefined();
+    expect(screen.queryByText('Reconnect')).toBeNull();
   });
 
-  it('should show reconnect button for critical connection quality', () => {
+  it('should not show reconnect for critical connection quality while connected', () => {
     mockWebSocketService.getConnectionQuality.mockReturnValue({
       latency: 5000,
       packetLoss: 0,
@@ -78,18 +80,31 @@ describe('ConnectionStatus', () => {
     render(<ConnectionStatus showDetails={true} />);
 
     expect(screen.getByText('Critical')).toBeDefined();
-    const reconnectButton = screen.getByText('Reconnect');
-    expect(reconnectButton).toBeDefined();
+    expect(screen.queryByText('Reconnect')).toBeNull();
   });
 
-  it('should show disconnected state when not connected', () => {
+  it('should show reconnect only when disconnected', async () => {
     mockWebSocketService.isConnected.mockReturnValue(false);
+    useGameStore.setState({
+      session: {
+        roomCode: 'ROOM',
+        hostId: 'host-id',
+        players: [],
+        status: 'disconnected',
+      },
+    });
 
     render(<ConnectionStatus showDetails={true} />);
 
     const statusIcon = screen.getByTitle(/disconnected/i);
     expect(statusIcon).toBeDefined();
     expect(statusIcon.textContent).toBe('🔴');
+    fireEvent.click(screen.getByRole('button', { name: 'Reconnect' }));
+    await waitFor(() => {
+      expect(mockWebSocketService.reconnect).toHaveBeenCalledWith(
+        'manual-button',
+      );
+    });
   });
 
   it('should show packet loss information when present', () => {

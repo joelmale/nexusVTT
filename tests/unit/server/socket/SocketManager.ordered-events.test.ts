@@ -13,6 +13,7 @@ import type { OrderedTransportEnvelope } from '../../../../shared/events/contrac
 function connection(id: string): Connection {
   return {
     id,
+    instanceId: `${id}-socket`,
     ws: {
       readyState: 1,
       send: vi.fn(),

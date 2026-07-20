@@ -40,7 +40,10 @@ export interface Room {
 }
 
 export interface Connection {
+  /** Stable participant identity used by room membership and authorization. */
   id: string;
+  /** Unique identity for this physical WebSocket connection. */
+  instanceId: string;
   ws: WebSocket;
   room?: string;
   user?: {
@@ -56,6 +59,7 @@ export interface Connection {
   maliciousAttemptsCount?: number; // Tracks anti-tamper security violations
   requestedEventCursor?: number | null;
   legacyClientSequence?: number;
+  reconnectTrigger?: string;
 }
 
 export interface BaseServerMessage {
