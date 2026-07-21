@@ -33,6 +33,7 @@ import {
   type OrderedTransportEnvelope,
 } from '../../shared/events/contracts';
 import { orderedEventClient } from '@/services/orderedEventClient';
+import { v4 as uuidv4 } from 'uuid';
 
 const SERVER_MESSAGE_TYPES = new Set([
   'event',
@@ -62,8 +63,16 @@ interface ConnectionContext {
   campaignId?: string;
 }
 
+interface PendingHeartbeat {
+  socketInstanceId: string;
+  startedAt: number;
+  timeout: ReturnType<typeof setTimeout>;
+}
+
 class WebSocketService extends EventTarget {
   private ws: WebSocket | null = null;
+  private socketInstanceId: string | null = null;
+  private participantId: string | null = null;
   private reconnectAttempts = 0;
   private maxReconnectAttempts = 5;
   private reconnectDelay = 1000;
@@ -81,6 +90,7 @@ class WebSocketService extends EventTarget {
 
   // Heartbeat and connection quality monitoring
   private heartbeatTimer: NodeJS.Timeout | null = null;
+  private pendingHeartbeats = new Map<string, PendingHeartbeat>();
   private readonly HEARTBEAT_INTERVAL = 30 * 1000; // 30 seconds
   private readonly HEARTBEAT_TIMEOUT = 10 * 1000; // 10 seconds timeout
   private connectionQuality = {
@@ -100,6 +110,8 @@ class WebSocketService extends EventTarget {
     userId?: string,
     userName?: string,
     connectionMode?: 'host' | 'reconnect',
+    connectionInstanceId?: string,
+    reconnectTrigger?: string,
   ): string {
     const envUrl = import.meta.env.VITE_WS_URL;
     const wsHost =
@@ -128,6 +140,12 @@ class WebSocketService extends EventTarget {
     }
     if (userName) {
       params.set('userName', userName);
+    }
+    if (connectionInstanceId) {
+      params.set('connectionInstanceId', connectionInstanceId);
+    }
+    if (reconnectTrigger) {
+      params.set('reconnectTrigger', reconnectTrigger);
     }
     const lastSeenSequence = orderedEventClient.getRequestedCursor();
     if (roomCode && lastSeenSequence !== null) {
@@ -165,8 +183,18 @@ class WebSocketService extends EventTarget {
     userId?: string,
     userName?: string,
     connectionMode?: 'host' | 'reconnect',
+    reconnectTrigger = 'connect',
   ): Promise<void> {
-    // Prevent multiple simultaneous connection attempts
+    if (this.ws?.readyState === WebSocket.OPEN) {
+      console.info('[WebSocket] connect ignored; socket already open', {
+        socketInstanceId: this.socketInstanceId,
+        participantId: this.participantId,
+        reconnectTrigger,
+      });
+      return Promise.resolve();
+    }
+
+    // Prevent multiple simultaneous connection attempts.
     if (this.connectionPromise) {
       return this.connectionPromise;
     }
@@ -179,21 +207,41 @@ class WebSocketService extends EventTarget {
         this.lastSessionCreatedEvent = null;
         this.lastSessionJoinedEvent = null;
 
-        if (roomCode) {
-          const resolvedUserId = userId || useGameStore.getState().user.id;
-          if (resolvedUserId) {
-            orderedEventClient.configure(roomCode, resolvedUserId);
-          }
+        const gameState = useGameStore.getState();
+        const matchingContext =
+          this.connectionContext?.roomCode === roomCode
+            ? this.connectionContext
+            : null;
+        const resolvedUserType =
+          userType ||
+          matchingContext?.userType ||
+          (gameState.session?.roomCode === roomCode
+            ? (gameState.user.type as 'host' | 'player')
+            : 'player');
+        const resolvedUserId =
+          userId || matchingContext?.userId || gameState.user.id;
+        const resolvedUserName =
+          userName || matchingContext?.userName || gameState.user.name || 'Guest';
+        const resolvedCampaignId =
+          campaignId || matchingContext?.campaignId || undefined;
+
+        if (roomCode && resolvedUserId) {
+          orderedEventClient.configure(roomCode, resolvedUserId);
         }
 
         // Store connection context for reconnection (if we have enough info)
-        if (roomCode && userType && userId && userName) {
+        if (
+          roomCode &&
+          resolvedUserType &&
+          resolvedUserId &&
+          resolvedUserName
+        ) {
           this.connectionContext = {
             roomCode,
-            userType,
-            userName,
-            userId,
-            campaignId,
+            userType: resolvedUserType,
+            userName: resolvedUserName,
+            userId: resolvedUserId,
+            campaignId: resolvedCampaignId,
           };
           // Persist to localStorage for page refresh recovery
           try {
@@ -206,19 +254,36 @@ class WebSocketService extends EventTarget {
           }
         }
 
+        const nextSocketInstanceId = uuidv4();
         const url = this.getWebSocketUrl(
           roomCode,
-          userType,
-          campaignId,
-          userId,
-          userName,
+          resolvedUserType,
+          resolvedCampaignId,
+          resolvedUserId,
+          resolvedUserName,
           connectionMode,
+          nextSocketInstanceId,
+          reconnectTrigger,
         );
-        console.log(`🔌 Attempting WebSocket connection to ${url}...`);
-        this.ws = await this.attemptConnection(url, 'primary');
-        this.ws.binaryType = 'arraybuffer';
+        console.info('[WebSocket] connecting', {
+          socketInstanceId: nextSocketInstanceId,
+          participantId: resolvedUserId || null,
+          roomCode: roomCode || null,
+          role: resolvedUserType || null,
+          reconnectTrigger,
+        });
+        const socket = await this.attemptConnection(url, 'primary');
+        this.ws = socket;
+        this.socketInstanceId = nextSocketInstanceId;
+        this.participantId = resolvedUserId || null;
+        socket.binaryType = 'arraybuffer';
 
-        console.log('WebSocket connected successfully');
+        console.info('[WebSocket] connected', {
+          socketInstanceId: nextSocketInstanceId,
+          participantId: this.participantId,
+          reconnectTrigger,
+        });
+
         this.reconnectAttempts = 0;
         // Re-baseline game-state dedup: the server (re)starts from its own
         // snapshot on connect, so the next update must be a full send.
@@ -230,13 +295,13 @@ class WebSocketService extends EventTarget {
         // Send queued messages
         while (this.messageQueue.length > 0) {
           const message = this.messageQueue.shift();
-          if (message && this.ws?.readyState === WebSocket.OPEN) {
-            this.ws.send(message);
+          if (message && socket.readyState === WebSocket.OPEN) {
+            socket.send(message);
           }
         }
 
         // Set up message handlers
-        this.ws.onmessage = (event) => {
+        socket.onmessage = (event) => {
           try {
             let decodedMessage: unknown;
             if (event.data instanceof ArrayBuffer) {
@@ -248,7 +313,7 @@ class WebSocketService extends EventTarget {
               decodedMessage,
               SERVER_MESSAGE_TYPES,
             ) as WebSocketMessage;
-            this.handleMessage(message);
+            this.handleMessage(message, nextSocketInstanceId);
           } catch (error) {
             console.error(
               '🔌 [CLIENT] Failed to parse WebSocket message:',
@@ -258,21 +323,47 @@ class WebSocketService extends EventTarget {
         };
 
         // Start heartbeat mechanism
-        this.startHeartbeat();
+        this.startHeartbeat(nextSocketInstanceId);
 
-        this.ws.onclose = (event) => {
-          console.log('WebSocket disconnected:', event.code, event.reason);
+        socket.onclose = (event) => {
+          const superseded = !this.isActiveSocket(
+            socket,
+            nextSocketInstanceId,
+          );
+          console.info('[WebSocket] closed', {
+            socketInstanceId: nextSocketInstanceId,
+            participantId: resolvedUserId || null,
+            closeCode: event.code,
+            closeReason: event.reason || '',
+            reconnectTrigger:
+              event.code === 1000 || event.code === 4000
+                ? 'none'
+                : 'socket-close',
+            superseded,
+          });
+
+          if (superseded) return;
+
+          this.stopHeartbeat();
+          this.ws = null;
+          this.socketInstanceId = null;
           this.connectionPromise = null;
 
-          if (event.code !== 1000) {
+          if (event.code !== 1000 && event.code !== 4000) {
             // Not a normal closure
-            this.handleReconnect();
+            this.handleReconnect('socket-close');
           }
         };
 
-        this.ws.onerror = (error) => {
-          console.error('WebSocket error:', error);
-          this.connectionPromise = null;
+        socket.onerror = (error) => {
+          console.error('[WebSocket] error', {
+            socketInstanceId: nextSocketInstanceId,
+            participantId: resolvedUserId || null,
+            error,
+          });
+          if (this.isActiveSocket(socket, nextSocketInstanceId)) {
+            this.connectionPromise = null;
+          }
         };
 
         this.connectionPromise = null;
@@ -285,12 +376,29 @@ class WebSocketService extends EventTarget {
     return this.connectionPromise;
   }
 
-  private handleMessage(message: WebSocketMessage) {
+  private isActiveSocket(socket: WebSocket, socketInstanceId: string): boolean {
+    return this.ws === socket && this.socketInstanceId === socketInstanceId;
+  }
+
+  private handleMessage(
+    message: WebSocketMessage,
+    socketInstanceId: string,
+  ) {
+    if (socketInstanceId !== this.socketInstanceId) {
+      console.warn('[WebSocket] ignored message from superseded socket', {
+        socketInstanceId,
+        activeSocketInstanceId: this.socketInstanceId,
+        participantId: this.participantId,
+        messageType: message.type,
+      });
+      return;
+    }
+
     if (message.type === 'event-ack') {
       const ready = orderedEventClient.acknowledge(
         message.data as EventAcknowledgement,
       );
-      this.processOrderedMessages(ready);
+      this.processOrderedMessages(ready, socketInstanceId);
       return;
     }
 
@@ -298,26 +406,35 @@ class WebSocketService extends EventTarget {
       const ready = orderedEventClient.establishCursor(
         message.data as EventCursorUpdate,
       );
-      this.processOrderedMessages(ready);
+      this.processOrderedMessages(ready, socketInstanceId);
       return;
     }
 
     if (hasOrderedEventMetadata(message)) {
       const ready = orderedEventClient.receive(message);
-      this.processOrderedMessages(ready);
+      this.processOrderedMessages(ready, socketInstanceId);
       return;
     }
 
-    this.processMessage(message);
+    this.processMessage(message, socketInstanceId);
   }
 
-  private processOrderedMessages(messages: OrderedTransportEnvelope[]): void {
+  private processOrderedMessages(
+    messages: OrderedTransportEnvelope[],
+    socketInstanceId: string,
+  ): void {
     for (const message of messages) {
-      this.processMessage(message as unknown as WebSocketMessage);
+      this.processMessage(
+        message as unknown as WebSocketMessage,
+        socketInstanceId,
+      );
     }
   }
 
-  private processMessage(message: WebSocketMessage) {
+  private processMessage(
+    message: WebSocketMessage,
+    socketInstanceId: string,
+  ) {
     console.log(
       '📨 Received WebSocket message:',
       sanitizeLog(message.type),
@@ -577,7 +694,7 @@ class WebSocketService extends EventTarget {
         break;
 
       case 'heartbeat':
-        this.handleHeartbeatMessage(message);
+        this.handleHeartbeatMessage(message, socketInstanceId);
         break;
 
       case 'event-ack':
@@ -593,7 +710,71 @@ class WebSocketService extends EventTarget {
     }
   }
 
-  private handleReconnect() {
+  private getReconnectContext(): ConnectionContext | null {
+    if (this.connectionContext) return this.connectionContext;
+
+    try {
+      const saved = localStorage.getItem('nexus-connection-context');
+      if (saved) {
+        const parsed = JSON.parse(saved) as Partial<ConnectionContext>;
+        if (
+          typeof parsed.roomCode === 'string' &&
+          (parsed.userType === 'host' || parsed.userType === 'player') &&
+          typeof parsed.userId === 'string' &&
+          typeof parsed.userName === 'string'
+        ) {
+          this.connectionContext = parsed as ConnectionContext;
+          return this.connectionContext;
+        }
+      }
+    } catch (error) {
+      console.warn('Failed to load connection context:', error);
+    }
+
+    const { session, user } = useGameStore.getState();
+    if (!session?.roomCode || !user.id || !user.name) return null;
+
+    this.connectionContext = {
+      roomCode: session.roomCode,
+      userType: user.type as 'host' | 'player',
+      userId: user.id,
+      userName: user.name,
+      campaignId: session.campaignId,
+    };
+    return this.connectionContext;
+  }
+
+  reconnect(reconnectTrigger = 'manual'): Promise<void> {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = null;
+    }
+
+    const context = this.getReconnectContext();
+    if (!context) {
+      return Promise.reject(new Error('No session is available to reconnect.'));
+    }
+
+    console.info('[WebSocket] reconnect requested', {
+      socketInstanceId: this.socketInstanceId,
+      participantId: context.userId,
+      roomCode: context.roomCode,
+      role: context.userType,
+      reconnectTrigger,
+    });
+
+    return this.connect(
+      context.roomCode,
+      context.userType,
+      context.campaignId,
+      context.userId,
+      context.userName,
+      undefined,
+      reconnectTrigger,
+    );
+  }
+
+  private handleReconnect(reconnectTrigger: string) {
     if (this.reconnectTimer) {
       return;
     }
@@ -607,9 +788,14 @@ class WebSocketService extends EventTarget {
       const jitter = baseDelay * 0.2 * (Math.random() * 2 - 1);
       const delay = Math.round(baseDelay + jitter);
 
-      console.log(
-        `🔄 Attempting to reconnect in ${delay}ms (attempt ${this.reconnectAttempts}/${this.maxReconnectAttempts})`,
-      );
+      console.info('[WebSocket] reconnect scheduled', {
+        socketInstanceId: this.socketInstanceId,
+        participantId: this.connectionContext?.userId || this.participantId,
+        reconnectTrigger,
+        delayMs: delay,
+        attempt: this.reconnectAttempts,
+        maxAttempts: this.maxReconnectAttempts,
+      });
 
       // Show reconnecting toast
       toast.loading('Reconnecting to server...', {
@@ -619,83 +805,20 @@ class WebSocketService extends EventTarget {
 
       this.reconnectTimer = setTimeout(() => {
         this.reconnectTimer = null;
-
-        // Try to load connection context from memory or localStorage
-        let context = this.connectionContext;
-        if (!context) {
-          try {
-            const saved = localStorage.getItem('nexus-connection-context');
-            if (saved) {
-              context = JSON.parse(saved) as ConnectionContext;
-              this.connectionContext = context;
-            }
-          } catch (error) {
-            console.warn('Failed to load connection context:', error);
-          }
-        }
-
-        // Use connection context if available, otherwise fall back to session
-        if (context) {
-          console.log(`🔄 Reconnecting with context:`, {
-            roomCode: context.roomCode,
-            userType: context.userType,
-            userName: context.userName,
+        void this.reconnect(reconnectTrigger)
+          .then(() => {
+            toast.success('Reconnected to server!', {
+              id: 'reconnect-toast',
+            });
+          })
+          .catch((error) => {
+            console.error('Reconnection failed:', error);
+            toast.error('Reconnection failed', {
+              id: 'reconnect-toast',
+              description: 'Retrying...',
+            });
+            this.handleReconnect('retry-after-failure');
           });
-          this.connect(
-            context.roomCode,
-            context.userType,
-            context.campaignId,
-            context.userId,
-            context.userName,
-          )
-            .then(() => {
-              toast.success('Reconnected to server!', {
-                id: 'reconnect-toast',
-              });
-            })
-            .catch((error) => {
-              console.error('Reconnection failed:', error);
-              toast.error('Reconnection failed', {
-                id: 'reconnect-toast',
-                description: 'Retrying...',
-              });
-              this.handleReconnect();
-            });
-        } else {
-          // Fallback to session-based reconnection (old behavior)
-          const session = useGameStore.getState().session;
-          const user = useGameStore.getState().user;
-          if (session && user) {
-            console.log(`🔄 Reconnecting with session fallback:`, {
-              roomCode: session.roomCode,
-              userType: user.type,
-            });
-            this.connect(
-              session.roomCode,
-              user.type as 'host' | 'player',
-              undefined,
-              user.id,
-              user.name,
-            )
-              .then(() => {
-                toast.success('Reconnected to server!', {
-                  id: 'reconnect-toast',
-                });
-              })
-              .catch((error) => {
-                console.error('Reconnection failed:', error);
-                toast.error('Reconnection failed', {
-                  id: 'reconnect-toast',
-                  description: 'Retrying...',
-                });
-                this.handleReconnect();
-              });
-          } else {
-            console.warn(
-              '⚠️ No connection context or session available for reconnection',
-            );
-          }
-        }
       }, delay);
     } else {
       console.error('❌ Max reconnection attempts reached');
@@ -969,58 +1092,62 @@ class WebSocketService extends EventTarget {
     }
   }
 
-  // Heartbeat methods
-  private startHeartbeat() {
-    // DISABLE CLIENT HEARTBEAT - let server handle heartbeat monitoring
-    // Client only responds to server pings, doesn't initiate its own
-    console.log('💓 Client heartbeat disabled - using server heartbeat only');
-    return;
-
-    // Original client heartbeat code (disabled):
-    // if (this.heartbeatTimer) return; // Already running
-    // console.log('💓 Starting client heartbeat');
-    // this.heartbeatTimer = setInterval(() => {
-    //   if (this.ws?.readyState === WebSocket.OPEN) {
-    //     this.sendPing();
-    //   }
-    // }, this.HEARTBEAT_INTERVAL);
+  // Heartbeat methods. The client owns its RTT sample so the elapsed time is
+  // measured entirely on one monotonic clock; server/client clock skew cannot
+  // affect the result.
+  private startHeartbeat(socketInstanceId: string) {
+    this.stopHeartbeat();
+    this.heartbeatTimer = setInterval(() => {
+      this.sendPing(socketInstanceId);
+    }, this.HEARTBEAT_INTERVAL);
   }
 
   private stopHeartbeat() {
     if (this.heartbeatTimer) {
       clearInterval(this.heartbeatTimer);
       this.heartbeatTimer = null;
-      console.log('💓 Stopped client heartbeat');
     }
+    for (const pending of this.pendingHeartbeats.values()) {
+      clearTimeout(pending.timeout);
+    }
+    this.pendingHeartbeats.clear();
   }
 
-  private sendPing() {
-    // DISABLED: Client doesn't send pings anymore - only responds to server pings
-    console.warn('⚠️ sendPing called but client heartbeat is disabled');
-    return;
+  private sendPing(socketInstanceId: string) {
+    if (
+      this.socketInstanceId !== socketInstanceId ||
+      this.ws?.readyState !== WebSocket.OPEN
+    ) {
+      return;
+    }
 
-    // Original ping sending code (disabled):
-    // const pingId = uuidv4();
-    // this.connectionQuality.lastPingTime = Date.now();
-    // this.sendMessage({
-    //   type: 'heartbeat',
-    //   data: { type: 'ping', id: pingId },
-    //   timestamp: Date.now(),
-    //   src: useGameStore.getState().user.id,
-    // });
-    // // Set timeout for pong response
-    // setTimeout(() => {
-    //   // Check if we still haven't received a pong for this ping
-    //   if (
-    //     this.connectionQuality.lastPingTime ===
-    //     this.connectionQuality.lastPingTime
-    //   ) {
-    //     this.handleMissedPong();
-    //   }
-    // }, this.HEARTBEAT_TIMEOUT);
+    const pingId = uuidv4();
+    const startedAt = performance.now();
+    this.connectionQuality.lastPingTime = startedAt;
+    const timeout = setTimeout(() => {
+      const pending = this.pendingHeartbeats.get(pingId);
+      if (!pending || pending.socketInstanceId !== socketInstanceId) return;
+      this.pendingHeartbeats.delete(pingId);
+      this.handleMissedPong(socketInstanceId);
+    }, this.HEARTBEAT_TIMEOUT);
+
+    this.pendingHeartbeats.set(pingId, {
+      socketInstanceId,
+      startedAt,
+      timeout,
+    });
+    this.sendMessage({
+      type: 'heartbeat',
+      data: { type: 'ping', id: pingId },
+      timestamp: Date.now(),
+      src: this.participantId || useGameStore.getState().user.id,
+    });
   }
 
-  private handleHeartbeatMessage(message: HeartbeatMessage) {
+  private handleHeartbeatMessage(
+    message: HeartbeatMessage,
+    socketInstanceId: string,
+  ) {
     if (message.data.type === 'ping') {
       // Respond to server ping with pong
       this.sendMessage({
@@ -1033,69 +1160,89 @@ class WebSocketService extends EventTarget {
         timestamp: Date.now(),
         src: useGameStore.getState().user.id,
       });
-
-      // Update connection quality based on server ping timing
-      const latency = Date.now() - message.timestamp;
-      this.updateConnectionQuality(latency);
+      return;
     }
-    // Removed pong handling since client doesn't send pings anymore
+
+    const pending = this.pendingHeartbeats.get(message.data.id);
+    if (
+      !pending ||
+      pending.socketInstanceId !== socketInstanceId ||
+      this.socketInstanceId !== socketInstanceId
+    ) {
+      return;
+    }
+
+    clearTimeout(pending.timeout);
+    this.pendingHeartbeats.delete(message.data.id);
+    const rttMs = Math.max(0, performance.now() - pending.startedAt);
+    this.updateConnectionQuality(rttMs);
+    console.info('[WebSocket] heartbeat RTT', {
+      socketInstanceId,
+      participantId: this.participantId,
+      rttMs: Math.round(rttMs),
+    });
   }
 
-  private handleMissedPong() {
-    // DISABLED: Client doesn't send pings anymore, so no missed pongs to handle
-    console.warn('⚠️ handleMissedPong called but client heartbeat is disabled');
-    return;
+  private handleMissedPong(socketInstanceId: string) {
+    if (this.socketInstanceId !== socketInstanceId) return;
 
-    // Original missed pong handling (disabled):
-    // this.connectionQuality.consecutiveMisses += 1;
-    // this.connectionQuality.packetLoss += 1;
-    // // Update quality based on consecutive misses
-    // if (this.connectionQuality.consecutiveMisses >= 3) {
-    //   this.connectionQuality.quality = 'critical';
-    // } else if (this.connectionQuality.consecutiveMisses >= 2) {
-    //   this.connectionQuality.quality = 'poor';
-    // } else if (this.connectionQuality.consecutiveMisses >= 1) {
-    //   this.connectionQuality.quality = 'good';
-    // }
-    // this.connectionQuality.lastUpdate = Date.now();
-    // console.warn(
-    //   `⚠️ Missed pong response (${this.connectionQuality.consecutiveMisses} consecutive)`,
-    // );
+    this.connectionQuality.consecutiveMisses += 1;
+    this.connectionQuality.packetLoss += 1;
+    this.connectionQuality.lastUpdate = Date.now();
+    if (this.connectionQuality.consecutiveMisses >= 3) {
+      this.connectionQuality.quality = 'critical';
+    } else if (this.connectionQuality.consecutiveMisses >= 2) {
+      this.connectionQuality.quality = 'poor';
+    } else {
+      this.connectionQuality.quality = 'good';
+    }
+    console.warn('[WebSocket] heartbeat missed', {
+      socketInstanceId,
+      participantId: this.participantId,
+      consecutiveMisses: this.connectionQuality.consecutiveMisses,
+    });
   }
 
   private updateConnectionQuality(latency: number) {
-    this.connectionQuality.latency = latency;
+    const roundedLatency = Math.round(latency);
+    this.connectionQuality.latency = roundedLatency;
     this.connectionQuality.consecutiveMisses = 0; // Reset on successful pong
     this.connectionQuality.lastUpdate = Date.now();
 
     // Update quality based on latency
-    if (latency < 100) {
+    if (roundedLatency < 100) {
       this.connectionQuality.quality = 'excellent';
-    } else if (latency < 500) {
+    } else if (roundedLatency < 500) {
       this.connectionQuality.quality = 'good';
-    } else if (latency < 2000) {
+    } else if (roundedLatency < 2000) {
       this.connectionQuality.quality = 'poor';
     } else {
       this.connectionQuality.quality = 'critical';
     }
 
-    console.log(
-      `📊 Connection quality: ${this.connectionQuality.quality} (${latency}ms latency)`,
-    );
   }
 
   disconnect() {
-    console.log('Manually disconnecting WebSocket');
+    console.info('[WebSocket] manual disconnect', {
+      socketInstanceId: this.socketInstanceId,
+      participantId: this.participantId,
+      reconnectTrigger: 'manual-disconnect',
+    });
     this.stopHeartbeat();
     if (this.reconnectTimer) {
       clearTimeout(this.reconnectTimer);
       this.reconnectTimer = null;
     }
     if (this.ws) {
-      // Use code 1000 for normal closure
-      this.ws.close(1000, 'Manual disconnect');
+      const socket = this.ws;
       this.ws = null;
+      this.socketInstanceId = null;
+      this.participantId = null;
+      // Use code 1000 for normal closure
+      socket.close(1000, 'Manual disconnect');
     }
+    this.socketInstanceId = null;
+    this.participantId = null;
     this.reconnectAttempts = 0;
     this.messageQueue = [];
     this.connectionPromise = null;

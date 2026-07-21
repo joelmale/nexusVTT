@@ -9,6 +9,7 @@
 - **Unit Tests**: `npm run test:unit`
 - **Integration Tests**: `npm run test:integration`
 - **E2E Tests**: `npm run test:e2e` (Playwright)
+- **Soak Tests**: `npm run test:soak:managed` or `npm run test:soak:chaos`
 - **Single Test**: `vitest run <path-to-test-file>`
 - **Test Watch**: `npm run test:watch`
 - **Test Coverage**: `npm run test:coverage` (repository thresholds)
@@ -46,3 +47,9 @@
   and ordered event history remain in PostgreSQL.
 - Run `npm run test:e2e` for realtime changes. Its managed stack hard-kills a
   backend immediately after an ACK and verifies exact multi-client recovery.
+- Run the conflict-enabled soak suite for changes to ordering, reconnects,
+  Redis fanout, entity versions, or canonical state. PostgreSQL—not a local
+  map—must serialize versioned entity acceptance across replicas.
+- Keep `monitoring/` alert rules and
+  `docs/operations/multiplayer-observability.md` synchronized with exported
+  multiplayer metrics and SLO threshold changes.

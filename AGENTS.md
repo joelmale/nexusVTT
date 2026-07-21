@@ -6,7 +6,7 @@
 - **Backend**: Runtime lives in `server/` (Express.js with WebSocket support, PostgreSQL database helpers), with build output in `dist/server`.
 - **Shared Types**: Shared types between frontend and asset server in `shared/types.ts`.
 - **Tests**: Unit tests in `tests/unit/**` (component and utility tests); integration tests in `tests/integration/**` (end-to-end flows, database interactions).
-- **Documentation**: Developer docs in `docs/`, deployment guides in `DEPLOYMENT.md`, and local dev setup in `LOCAL-DEV-GUIDE.md`. Scripts in `scripts/` for asset management and setup.
+- **Documentation**: Developer and operations docs live in `docs/`, with deployment guidance in `DEPLOYMENT.md`. Scripts in `scripts/` cover asset management, smoke orchestration, and multiplayer soak testing.
 - **Configuration**: TypeScript configs (`tsconfig.json`, `tsconfig.node.json`, `tsconfig.server.json`); ESLint (`eslint.config.js`); Prettier (`.prettierrc`); Vite config (`vite.config.ts`); Docker compose files in `docker/`.
 - **Other**: Patches in `patches/`; GitHub workflows in `.github/workflows/`; Husky pre-commit hooks in `.husky/`; Docker configurations for production deployment.
 
@@ -30,6 +30,9 @@
   - `npm run test` — run all tests once.
   - `npm run test:unit` — run unit tests only.
   - `npm run test:integration` — run integration tests.
+  - `npm run test:e2e` — run the managed two-replica Playwright smoke suite.
+  - `npm run test:soak:managed -- --rooms 10 --clients-per-room 4 --duration 10m` — run the managed multi-room soak suite.
+  - `npm run test:soak:chaos -- --rooms 10 --clients-per-room 4 --duration 10m` — add backend restarts, a Redis interruption, and PostgreSQL latency.
   - `npm run test:all` — run both unit and integration tests.
   - `npm run test:ci` — full CI pipeline: lint + type-check + unit + integration.
   - `npm run test:watch` — run tests in watch mode.
@@ -207,6 +210,9 @@
 - **Asset Management**: Use sophisticated asset system with generators and themes. Manage through `src/services/assetFavorites.ts` and `src/services/tokenAssets.ts`.
 - **OAuth Integration**: Implement Google and Discord OAuth flows. Configure in `server/auth.ts` and environment variables.
 - **WebSocket Communication**: Real-time multiplayer features with WebSocket. Handle in `src/services/storageWorkerClient.ts` and server-side WebSocket handlers.
+- **Durability Boundary**: PostgreSQL owns canonical state, ordered events, and entity-version compare-and-swap. Never ACK durable state or an event before its transaction commits. Redis is fanout/presence only.
+- **Entity Conflicts**: Versioned token/prop acceptance must use `room_entity_versions` in the same transaction as `room_events`; an in-memory `Map` is not authoritative across replicas.
+- **Reliability Gate**: Realtime changes must keep `npm run test:e2e` and the conflict-enabled managed soak green. Inspect `/api/metrics/multiplayer` and `/metrics` when changing persistence or reconnect behavior.
 - **IndexedDB Persistence**: Local-first data storage with IndexedDB. Use `src/services/indexedDBAdapter.ts` for storage operations.
 - **Performance Optimization**: Implement code splitting, lazy loading, and bundle analysis. Configure in `vite.config.ts` with manual chunks and rollup plugins.
 
@@ -273,6 +279,7 @@
 - **Environment Variables**: Secure configuration management.
 - **Security**: HTTPS enforcement, CORS configuration, and security headers.
 - **Monitoring**: Container monitoring and logging setup.
+- **Multiplayer Observability**: Prometheus rules/configuration live in `monitoring/`; SLO and soak operations are documented in `docs/operations/multiplayer-observability.md`.
 
 ## Security & Best Practices
 

@@ -61,6 +61,7 @@ Database integration cases need `DATABASE_URL`; CI supplies it through
 
 ```bash
 npm run test:e2e
+npm run test:soak:managed -- --rooms 10 --clients-per-room 4 --duration 10m
 ```
 
 That managed suite builds production containers, uses two isolated browser

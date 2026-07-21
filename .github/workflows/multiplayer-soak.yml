@@ -1,0 +1,119 @@
+name: Multiplayer Soak
+
+on:
+  schedule:
+    - cron: '30 5 * * *'
+  workflow_dispatch:
+    inputs:
+      rooms:
+        description: Concurrent rooms
+        required: true
+        default: '10'
+      clients_per_room:
+        description: Clients in each room
+        required: true
+        default: '4'
+      duration:
+        description: Workload duration (for example 10m or 2h)
+        required: true
+        default: '10m'
+      events_per_second:
+        description: Aggregate operation rate
+        required: true
+        default: '20'
+      chaos:
+        description: Restart backends and interrupt Redis/PostgreSQL
+        required: true
+        type: boolean
+        default: true
+
+concurrency:
+  group: multiplayer-soak-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  managed-stack:
+    name: Managed multiplayer soak
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    env:
+      SOAK_CHAOS_WARMUP_MS: '30000'
+      SOAK_CHAOS_OUTAGE_MS: '15000'
+      SOAK_CHAOS_LATENCY_DURATION_MS: '60000'
+      SOAK_KEEP_STACK: '1'
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Set up Node.js 26
+        uses: actions/setup-node@v5
+        with:
+          node-version: 26.5.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Run managed soak
+        shell: bash
+        env:
+          ROOMS: ${{ inputs.rooms || '10' }}
+          CLIENTS_PER_ROOM: ${{ inputs.clients_per_room || '4' }}
+          DURATION: ${{ inputs.duration || '10m' }}
+          EVENTS_PER_SECOND: ${{ inputs.events_per_second || '20' }}
+          CHAOS: ${{ github.event_name == 'schedule' && '1' || (inputs.chaos && '1' || '0') }}
+        run: |
+          set -euo pipefail
+          command=(node scripts/run-multiplayer-soak.js)
+          if [[ "$CHAOS" == "1" ]]; then command+=(--chaos); fi
+          command+=(
+            --rooms "$ROOMS"
+            --clients-per-room "$CLIENTS_PER_ROOM"
+            --duration "$DURATION"
+            --events-per-second "$EVENTS_PER_SECOND"
+            --ack-timeout 45s
+            --ack-p95 2s
+            --reconnect-p95 15s
+            --report test-results/multiplayer-soak.json
+          )
+          "${command[@]}"
+
+      - name: Upload soak report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: multiplayer-soak-report
+          path: |
+            test-results/multiplayer-soak.json
+            test-results/multiplayer-soak.ready
+          if-no-files-found: warn
+          retention-days: 14
+
+      - name: Capture stack logs after failure
+        if: failure()
+        run: |
+          docker compose \
+            -p "${SOAK_PROJECT_NAME:-nexus-vtt-soak}" \
+            -f docker/docker-compose.smoke.yml \
+            -f docker/docker-compose.soak.yml \
+            logs --no-color --tail 500 > test-results/multiplayer-soak-stack.log || true
+
+      - name: Upload failure logs
+        if: failure()
+        uses: actions/upload-artifact@v5
+        with:
+          name: multiplayer-soak-failure-logs
+          path: test-results/multiplayer-soak-stack.log
+          if-no-files-found: ignore
+          retention-days: 14
+
+      - name: Remove managed stack
+        if: always()
+        run: |
+          docker compose \
+            -p "${SOAK_PROJECT_NAME:-nexus-vtt-soak}" \
+            -f docker/docker-compose.smoke.yml \
+            -f docker/docker-compose.soak.yml \
+            down --volumes --remove-orphans

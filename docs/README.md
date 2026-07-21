@@ -22,6 +22,7 @@
 - [Ordered Event Delivery](ordered-event-delivery.md)
 - [Delta-Sync Rollout and Metrics](delta-sync-rollout.md)
 - [Server-Authoritative Dice](SERVER_AUTHORITATIVE_DICE.md)
+- [Multiplayer Reliability Operations](operations/multiplayer-observability.md)
 
 PostgreSQL is the durable authority for canonical snapshots, sync tokens,
 versions, Express sessions, and ordered event history. Redis provides ephemeral
@@ -42,7 +43,7 @@ only after the snapshot/token/version tuple commits.
 - [GCP Deployment](GCP_DEPLOYMENT_GUIDE.md)
 - [Security Scanning](SECURITY_SCANNING.md)
 
-Existing installations must apply the ordered-event-journal migration followed
-by `2026-07-19-add-durable-game-state-commits.sql` before rolling the new
-backend. Run `npm run test:e2e` to verify the two-replica, multi-client recovery
-contract, including an immediate `SIGKILL` after an acknowledged state change.
+Existing installations must apply the ordered-event-journal, durable
+game-state-commit, and room-entity-version migrations in that order before
+rolling the new backend. Run `npm run test:e2e` for browser recovery and
+`npm run test:soak:chaos` for multi-room failure-injection coverage.

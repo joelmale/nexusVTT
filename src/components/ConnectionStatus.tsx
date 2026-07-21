@@ -21,7 +21,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
   const [connectionQuality, setConnectionQuality] =
     useState<ConnectionQuality | null>(null);
   const [isConnected, setIsConnected] = useState(false);
-  const [showReconnect, setShowReconnect] = useState(false);
+  const [isReconnecting, setIsReconnecting] = useState(false);
   const { session } = useGameStore();
 
   useEffect(() => {
@@ -32,14 +32,8 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
       if (connected) {
         const quality = webSocketService.getConnectionQuality();
         setConnectionQuality(quality);
-
-        // Show reconnect button if quality is poor or critical
-        setShowReconnect(
-          quality.quality === 'poor' || quality.quality === 'critical',
-        );
       } else {
         setConnectionQuality(null);
-        setShowReconnect(false);
       }
     };
 
@@ -56,11 +50,12 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
     if (!session?.roomCode) return;
 
     try {
-      setShowReconnect(false);
-      await webSocketService.connect(session.roomCode);
+      setIsReconnecting(true);
+      await webSocketService.reconnect('manual-button');
     } catch (error) {
       console.error('Failed to reconnect:', error);
-      setShowReconnect(true);
+    } finally {
+      setIsReconnecting(false);
     }
   };
 
@@ -140,13 +135,14 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
           </div>
         )}
 
-        {showReconnect && (
+        {!isConnected && session?.roomCode && (
           <button
             onClick={handleReconnect}
+            disabled={isReconnecting}
             className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
             title="Attempt to reconnect"
           >
-            Reconnect
+            {isReconnecting ? 'Reconnecting…' : 'Reconnect'}
           </button>
         )}
       </div>

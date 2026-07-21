@@ -10,6 +10,10 @@ Canonical state commits atomically compare-and-swap
 atomically append `room_events` while advancing `sessions.eventSequence`.
 Redis distributes both after commit but is not the record of either.
 
+Versioned token/prop actions add a third anchor: the backend compare-and-swaps
+`room_entity_versions` inside the event-journal transaction. This database
+check is required because process-local entity maps can race across replicas.
+
 ## Delivery contract
 
 Before sending a durable action, the browser adds:
@@ -70,11 +74,12 @@ When adding a new shared mutation:
 
 ## Operations and scaling
 
-Apply `server/migrations/2026-07-19-add-room-event-journal.sql` and then
-`server/migrations/2026-07-19-add-durable-game-state-commits.sql` before
-deploying code to an existing database. New databases receive the same schema
-from `server/schema.sql`; startup also creates missing journal objects and
-state-anchor columns defensively.
+Before deploying to an existing database, apply these migrations in order:
+`2026-07-19-add-room-event-journal.sql`,
+`2026-07-19-add-durable-game-state-commits.sql`, then
+`2026-07-19-add-room-entity-versions.sql`. New databases receive the same
+schema from `server/schema.sql`; startup also creates missing journal/version
+objects and state-anchor columns defensively.
 Runtime counters for commits, duplicates, failures, replay volume, and
 truncated replay windows are available from `GET /api/metrics/ordered-events`.
 
@@ -102,3 +107,8 @@ an isolated connection outage with replay, two backend replicas, an abrupt
 `SIGKILL` immediately after a game-state ACK, asymmetric replica restarts with
 journal recovery, and stale-base authoritative resynchronization. Run it with
 `npm run test:e2e`.
+
+For multi-room load, cross-replica conflict probes, rolling restarts, Redis
+interruption, and PostgreSQL latency, run `npm run test:soak:chaos`. Operational
+SLOs and alerts are documented in
+`docs/operations/multiplayer-observability.md`.

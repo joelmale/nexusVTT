@@ -6,7 +6,8 @@ import type {
   SpellOverlayStyle,
   BaseDrawing,
 } from '@/types/drawing';
-
+import { AnchoredPropertiesPanel } from './AnchoredPropertiesPanel';
+import type { ViewportRect } from './anchoredPanelPosition';
 
 type SpellOverlayUpdate = {
   style?: SpellOverlayStyle;
@@ -19,15 +20,18 @@ interface SpellOverlayPropertiesPanelProps {
   onUpdate: (updates: SpellOverlayUpdate) => void;
   onClose: () => void;
   gridSize: number;
+  anchor: ViewportRect;
 }
 
 export const SpellOverlayPropertiesPanel: React.FC<
   SpellOverlayPropertiesPanelProps
-> = ({ drawing, onUpdate, onClose, gridSize }) => {
+> = ({ drawing, onUpdate, onClose, gridSize, anchor }) => {
   const elementType = drawing.style.elementType;
 
   const [spellName, setSpellName] = useState(drawing.style.spellName ?? '');
-  const [roundCounter, setRoundCounter] = useState(drawing.style.roundCounter ?? 0);
+  const [roundCounter, setRoundCounter] = useState(
+    drawing.style.roundCounter ?? 0,
+  );
   const [maxRounds, setMaxRounds] = useState(drawing.style.maxRounds ?? 10);
   const [opacity, setOpacity] = useState(
     drawing.style.fillOpacity !== undefined
@@ -148,203 +152,209 @@ export const SpellOverlayPropertiesPanel: React.FC<
   };
 
   return (
-    <div className="spell-overlay-properties-panel">
-      <div className="panel-header">
-        <h3>Spell Effect Properties</h3>
-        <button
-          className="close-btn"
-          onClick={onClose}
-          aria-label="Close properties"
-        >
-          <X size={18} />
-        </button>
-      </div>
-
-      <div className="panel-content">
-        {/* Spell Name */}
-        <div className="property-section">
-          <label htmlFor="spell-name">Spell Name</label>
-          <input
-            id="spell-name"
-            type="text"
-            value={spellName}
-            onChange={(e) => handleSpellNameChange(e.target.value)}
-            placeholder="e.g., Fireball, Darkness"
-            className="text-input"
-          />
+    <AnchoredPropertiesPanel anchor={anchor} label="Spell effect properties">
+      <div className="spell-overlay-properties-panel">
+        <div className="panel-header">
+          <h3>Spell Effect Properties</h3>
+          <button
+            className="close-btn"
+            onClick={onClose}
+            aria-label="Close properties"
+          >
+            <X size={18} />
+          </button>
         </div>
 
-        {/* Element Type Selector */}
-        <div className="property-section">
-          <label>Element Type</label>
-          <div className="element-type-grid">
-            {(Object.keys(ELEMENT_THEMES) as ElementType[]).map((element) => {
-              const theme = ELEMENT_THEMES[element];
-              return (
-                <button
-                  key={element}
-                  className={`element-type-btn ${elementType === element ? 'active' : ''}`}
-                  onClick={() => handleElementChange(element)}
-                  style={{
-                    backgroundColor: theme.baseColor,
-                    opacity: elementType === element ? 1 : 0.6,
-                  }}
-                  title={element.charAt(0).toUpperCase() + element.slice(1)}
-                >
-                  <span className="element-label">
-                    {element.charAt(0).toUpperCase()}
-                  </span>
-                </button>
-              );
-            })}
+        <div className="panel-content">
+          {/* Spell Name */}
+          <div className="property-section">
+            <label htmlFor="spell-name">Spell Name</label>
+            <input
+              id="spell-name"
+              type="text"
+              value={spellName}
+              onChange={(e) => handleSpellNameChange(e.target.value)}
+              placeholder="e.g., Fireball, Darkness"
+              className="text-input"
+            />
           </div>
-        </div>
 
-        {/* Round Counter */}
-        <div className="property-section">
-          <label>Round Counter (Duration Tracking)</label>
-          <div className="round-counter-controls">
-            <div className="counter-display">
-              <button
-                className="counter-btn"
-                onClick={decrementRound}
-                disabled={roundCounter === 0}
-              >
-                −
-              </button>
-              <div className="counter-value">
-                <span className="current-round">{roundCounter}</span>
-                <span className="counter-separator">/</span>
-                <input
-                  type="number"
-                  min="1"
-                  max="99"
-                  value={maxRounds}
-                  onChange={(e) =>
-                    setMaxRounds(Math.max(1, parseInt(e.target.value) || 10))
-                  }
-                  className="max-rounds-input"
-                />
+          {/* Element Type Selector */}
+          <div className="property-section">
+            <label>Element Type</label>
+            <div className="element-type-grid">
+              {(Object.keys(ELEMENT_THEMES) as ElementType[]).map((element) => {
+                const theme = ELEMENT_THEMES[element];
+                return (
+                  <button
+                    key={element}
+                    className={`element-type-btn ${elementType === element ? 'active' : ''}`}
+                    onClick={() => handleElementChange(element)}
+                    style={{
+                      backgroundColor: theme.baseColor,
+                      opacity: elementType === element ? 1 : 0.6,
+                    }}
+                    title={element.charAt(0).toUpperCase() + element.slice(1)}
+                  >
+                    <span className="element-label">
+                      {element.charAt(0).toUpperCase()}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Round Counter */}
+          <div className="property-section">
+            <label>Round Counter (Duration Tracking)</label>
+            <div className="round-counter-controls">
+              <div className="counter-display">
+                <button
+                  className="counter-btn"
+                  onClick={decrementRound}
+                  disabled={roundCounter === 0}
+                >
+                  −
+                </button>
+                <div className="counter-value">
+                  <span className="current-round">{roundCounter}</span>
+                  <span className="counter-separator">/</span>
+                  <input
+                    type="number"
+                    min="1"
+                    max="99"
+                    value={maxRounds}
+                    onChange={(e) =>
+                      setMaxRounds(Math.max(1, parseInt(e.target.value) || 10))
+                    }
+                    className="max-rounds-input"
+                  />
+                </div>
+                <button
+                  className="counter-btn"
+                  onClick={incrementRound}
+                  disabled={roundCounter >= maxRounds}
+                >
+                  +
+                </button>
               </div>
-              <button
-                className="counter-btn"
-                onClick={incrementRound}
-                disabled={roundCounter >= maxRounds}
-              >
-                +
+              <button className="reset-btn" onClick={resetRound} title="Reset">
+                <RotateCw size={14} />
               </button>
             </div>
-            <button className="reset-btn" onClick={resetRound} title="Reset">
-              <RotateCw size={14} />
-            </button>
+            <div className="counter-info">
+              {roundCounter > 0 && (
+                <span className="rounds-remaining">
+                  {maxRounds - roundCounter} rounds remaining
+                </span>
+              )}
+            </div>
           </div>
-          <div className="counter-info">
-            {roundCounter > 0 && (
-              <span className="rounds-remaining">
-                {maxRounds - roundCounter} rounds remaining
-              </span>
-            )}
-          </div>
-        </div>
 
-        {/* Size Display */}
-        <div className="property-section">
-          <label>Size</label>
-          <div className="size-display">
-            <span className="size-value">{getSizeInFeet().toFixed(0)} ft</span>
-            <span className="size-type">
-              {drawing.type === 'spell-circle' && 'radius'}
-              {drawing.type === 'spell-ring' && 'outer radius'}
-              {drawing.type === 'spell-cone' && 'length'}
-              {drawing.type === 'spell-line' && 'length'}
-              {drawing.type === 'spell-square' && 'side'}
-              {drawing.type === 'spell-triangle' && 'length'}
-            </span>
-          </div>
-        </div>
-
-        {/* Opacity Slider */}
-        <div className="property-section">
-          <label htmlFor="opacity-slider">
-            Opacity: {(opacity * 100).toFixed(0)}%
-          </label>
-          <input
-            id="opacity-slider"
-            type="range"
-            min="0.1"
-            max="1"
-            step="0.05"
-            value={opacity}
-            onChange={(e) => handleOpacityChange(parseFloat(e.target.value))}
-            className="slider"
-          />
-        </div>
-
-        {/* Rotation (for directional spells) */}
-        {('rotation' in drawing ||
-          drawing.type === 'spell-cone' ||
-          drawing.type === 'spell-line' ||
-          drawing.type === 'spell-triangle') && (
+          {/* Size Display */}
           <div className="property-section">
-            <label htmlFor="rotation-slider">
-              Rotation: {rotation.toFixed(0)}°
+            <label>Size</label>
+            <div className="size-display">
+              <span className="size-value">
+                {getSizeInFeet().toFixed(0)} ft
+              </span>
+              <span className="size-type">
+                {drawing.type === 'spell-circle' && 'radius'}
+                {drawing.type === 'spell-ring' && 'outer radius'}
+                {drawing.type === 'spell-cone' && 'length'}
+                {drawing.type === 'spell-line' && 'length'}
+                {drawing.type === 'spell-square' && 'side'}
+                {drawing.type === 'spell-triangle' && 'length'}
+              </span>
+            </div>
+          </div>
+
+          {/* Opacity Slider */}
+          <div className="property-section">
+            <label htmlFor="opacity-slider">
+              Opacity: {(opacity * 100).toFixed(0)}%
             </label>
             <input
-              id="rotation-slider"
+              id="opacity-slider"
               type="range"
-              min="0"
-              max="360"
-              step="15"
-              value={rotation}
-              onChange={(e) => handleRotationChange(parseFloat(e.target.value))}
+              min="0.1"
+              max="1"
+              step="0.05"
+              value={opacity}
+              onChange={(e) => handleOpacityChange(parseFloat(e.target.value))}
               className="slider"
             />
           </div>
-        )}
 
-        {/* Visibility Toggle */}
-        <div className="property-section">
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={visibleToPlayers}
-              onChange={handleVisibilityToggle}
+          {/* Rotation (for directional spells) */}
+          {('rotation' in drawing ||
+            drawing.type === 'spell-cone' ||
+            drawing.type === 'spell-line' ||
+            drawing.type === 'spell-triangle') && (
+            <div className="property-section">
+              <label htmlFor="rotation-slider">
+                Rotation: {rotation.toFixed(0)}°
+              </label>
+              <input
+                id="rotation-slider"
+                type="range"
+                min="0"
+                max="360"
+                step="15"
+                value={rotation}
+                onChange={(e) =>
+                  handleRotationChange(parseFloat(e.target.value))
+                }
+                className="slider"
+              />
+            </div>
+          )}
+
+          {/* Visibility Toggle */}
+          <div className="property-section">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={visibleToPlayers}
+                onChange={handleVisibilityToggle}
+              />
+              <span className="checkbox-icon">
+                {visibleToPlayers ? <Eye size={16} /> : <EyeOff size={16} />}
+              </span>
+              <span>Visible to Players</span>
+            </label>
+          </div>
+
+          {/* Animations Toggle */}
+          <div className="property-section">
+            <label className="checkbox-label">
+              <input
+                type="checkbox"
+                checked={animationsEnabled}
+                onChange={handleAnimationsToggle}
+              />
+              <span className="checkbox-icon">
+                <Sparkles size={16} />
+              </span>
+              <span>Animations Enabled</span>
+            </label>
+          </div>
+
+          {/* Notes */}
+          <div className="property-section">
+            <label htmlFor="spell-notes">Notes / Description</label>
+            <textarea
+              id="spell-notes"
+              value={notes}
+              onChange={(e) => handleNotesChange(e.target.value)}
+              placeholder="e.g., Concentration required, affects undead only"
+              className="textarea-input"
+              rows={3}
             />
-            <span className="checkbox-icon">
-              {visibleToPlayers ? <Eye size={16} /> : <EyeOff size={16} />}
-            </span>
-            <span>Visible to Players</span>
-          </label>
-        </div>
-
-        {/* Animations Toggle */}
-        <div className="property-section">
-          <label className="checkbox-label">
-            <input
-              type="checkbox"
-              checked={animationsEnabled}
-              onChange={handleAnimationsToggle}
-            />
-            <span className="checkbox-icon">
-              <Sparkles size={16} />
-            </span>
-            <span>Animations Enabled</span>
-          </label>
-        </div>
-
-        {/* Notes */}
-        <div className="property-section">
-          <label htmlFor="spell-notes">Notes / Description</label>
-          <textarea
-            id="spell-notes"
-            value={notes}
-            onChange={(e) => handleNotesChange(e.target.value)}
-            placeholder="e.g., Concentration required, affects undead only"
-            className="textarea-input"
-            rows={3}
-          />
+          </div>
         </div>
       </div>
-    </div>
+    </AnchoredPropertiesPanel>
   );
 };

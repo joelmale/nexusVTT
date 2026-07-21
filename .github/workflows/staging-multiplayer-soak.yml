@@ -1,0 +1,115 @@
+name: Staging Multiplayer Soak
+
+on:
+  workflow_dispatch:
+    inputs:
+      rooms:
+        description: Concurrent rooms (50-100 recommended)
+        required: true
+        default: '50'
+      clients_per_room:
+        description: Clients per room (4-8 recommended)
+        required: true
+        default: '4'
+      duration:
+        description: Soak duration
+        required: true
+        default: '4h'
+      events_per_second:
+        description: Aggregate operation rate
+        required: true
+        default: '100'
+      apply_migrations:
+        description: Apply the multiplayer durability migrations first
+        required: true
+        type: boolean
+        default: true
+
+concurrency:
+  group: staging-multiplayer-soak
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  soak:
+    name: Staging durability soak
+    runs-on: ubuntu-latest
+    timeout-minutes: 330
+    environment: staging
+    env:
+      STAGING_BASE_URL: ${{ vars.STAGING_BASE_URL }}
+      STAGING_BACKEND_URLS: ${{ vars.STAGING_BACKEND_URLS }}
+      STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      METRICS_AUTH_TOKEN: ${{ secrets.STAGING_METRICS_TOKEN }}
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Validate staging configuration
+        shell: bash
+        run: |
+          set -euo pipefail
+          [[ -n "$STAGING_BASE_URL" ]] || {
+            echo 'Configure the staging environment variable STAGING_BASE_URL.' >&2
+            exit 1
+          }
+          if [[ '${{ inputs.apply_migrations }}' == 'true' && -z "$STAGING_DATABASE_URL" ]]; then
+            echo 'Configure the staging environment secret STAGING_DATABASE_URL.' >&2
+            exit 1
+          fi
+
+      - name: Set up Node.js 26
+        uses: actions/setup-node@v5
+        with:
+          node-version: 26.5.0
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install PostgreSQL client
+        if: inputs.apply_migrations
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
+
+      - name: Apply multiplayer durability migrations
+        if: inputs.apply_migrations
+        shell: bash
+        run: |
+          set -euo pipefail
+          for migration in \
+            server/migrations/2026-07-19-add-room-event-journal.sql \
+            server/migrations/2026-07-19-add-durable-game-state-commits.sql \
+            server/migrations/2026-07-19-add-room-entity-versions.sql
+          do
+            psql "$STAGING_DATABASE_URL" \
+              --set ON_ERROR_STOP=1 \
+              --file "$migration"
+          done
+
+      - name: Run staging soak
+        shell: bash
+        run: |
+          set -euo pipefail
+          websocket_urls="${STAGING_BACKEND_URLS:-$STAGING_BASE_URL}"
+          npm run test:soak -- \
+            --base-url "$STAGING_BASE_URL" \
+            --websocket-urls "$websocket_urls" \
+            --rooms '${{ inputs.rooms }}' \
+            --clients-per-room '${{ inputs.clients_per_room }}' \
+            --duration '${{ inputs.duration }}' \
+            --events-per-second '${{ inputs.events_per_second }}' \
+            --ack-timeout 60s \
+            --ack-p95 2s \
+            --reconnect-p95 15s \
+            --reconnect-every 2m \
+            --report test-results/staging-multiplayer-soak.json
+
+      - name: Upload staging soak report
+        if: always()
+        uses: actions/upload-artifact@v5
+        with:
+          name: staging-multiplayer-soak-report
+          path: test-results/staging-multiplayer-soak.json
+          if-no-files-found: warn
+          retention-days: 30

@@ -1,0 +1,11 @@
+{
+  "extends": "./tsconfig.server.json",
+  "compilerOptions": {
+    "noEmit": true
+  },
+  "include": [
+    "scripts/multiplayer-soak.ts",
+    "shared/sync/contracts.ts",
+    "shared/sync/hashSync.ts"
+  ]
+}

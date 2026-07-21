@@ -83,6 +83,14 @@ import {
   DocumentServiceClient,
   createDocumentServiceClient,
 } from './services/documentServiceClient.js';
+import {
+  createCommitLatencyHistogram,
+  evaluateMultiplayerSlos,
+  getMultiplayerSloConfig,
+  observeCommitLatency,
+  renderPrometheusMetrics,
+  type MultiplayerMetricsSnapshot,
+} from './observability/multiplayerMetrics.js';
 
 // Routes
 import { createDocumentRoutes } from './routes/documents.js';
@@ -184,6 +192,7 @@ class NexusServer {
       failures: number;
       totalCommitLatencyMs: number;
       maxCommitLatencyMs: number;
+      commitLatency: ReturnType<typeof createCommitLatencyHistogram>;
     };
     resync: Record<ResyncReason, number>;
     patchBytesSaved: number;
@@ -196,6 +205,7 @@ class NexusServer {
       failures: 0,
       totalCommitLatencyMs: 0,
       maxCommitLatencyMs: 0,
+      commitLatency: createCommitLatencyHistogram(),
     },
     resync: {
       'base-mismatch': 0,
@@ -308,6 +318,7 @@ class NexusServer {
 
     this.setupAuthRoutes();
     this.setupApiRoutes();
+    this.setupMetricsRoutes();
     this.setupDocumentRoutes();
     this.setupAssetRoutes();
     this.setupHealthRoutes();
@@ -350,9 +361,20 @@ class NexusServer {
     // persist connection status). SocketManager emits 'disconnect' with the
     // still-live connection before deleting it, so handleDisconnect can resolve
     // the room. Without this, players stayed "connected" in peers' lists.
-    this.socketManager.on('disconnect', ({ id }: { id: string }) => {
-      void this.handleDisconnect(id);
-    });
+    this.socketManager.on(
+      'disconnect',
+      ({
+        id,
+        instanceId,
+        connection,
+      }: {
+        id: string;
+        instanceId: string;
+        connection: Connection;
+      }) => {
+        void this.handleDisconnect(id, instanceId, connection);
+      },
+    );
 
     this.httpServer.on(
       'upgrade',
@@ -636,8 +658,23 @@ class NexusServer {
    * @returns {void}
    */
   private setupDocumentRoutes(): void {
-    // Delta-sync observability. Registered BEFORE the '/api' document-router
-    // mount below, otherwise that router's catch-all 404 shadows it.
+    const documentRoutes = createDocumentRoutes(
+      this.documentClient,
+      this.documentsEnabled,
+      this.db,
+    );
+    this.app.use('/api', documentRoutes);
+    if (this.documentsEnabled) {
+      console.log('📚 Document routes initialized');
+    } else {
+      console.log(
+        '📚 Document routes initialized in disabled mode (DOC_API_URL not set)',
+      );
+    }
+  }
+
+  private setupMetricsRoutes(): void {
+    // Register metrics before the '/api' document-router catch-all.
     this.app.get('/api/metrics/delta-sync', (req, res) => {
       const totalResyncs = Object.values(this.deltaSyncMetrics.resync).reduce(
         (sum, count) => sum + count,
@@ -690,19 +727,75 @@ class NexusServer {
       });
     });
 
-    const documentRoutes = createDocumentRoutes(
-      this.documentClient,
-      this.documentsEnabled,
-      this.db,
+    this.app.get('/api/metrics/multiplayer', (req, res) => {
+      const snapshot = this.getMultiplayerMetricsSnapshot();
+      res.json({
+        ...snapshot,
+        slo: evaluateMultiplayerSlos(snapshot, getMultiplayerSloConfig()),
+      });
+    });
+
+    this.app.get('/metrics', (req, res) => {
+      const configuredToken = process.env.METRICS_AUTH_TOKEN;
+      const suppliedToken = req
+        .get('authorization')
+        ?.replace(/^Bearer\s+/i, '');
+      if (configuredToken && suppliedToken !== configuredToken) {
+        res.status(401).type('text/plain').send('Unauthorized\n');
+        return;
+      }
+      const snapshot = this.getMultiplayerMetricsSnapshot();
+      res
+        .status(200)
+        .type('text/plain; version=0.0.4; charset=utf-8')
+        .send(renderPrometheusMetrics(snapshot));
+    });
+  }
+
+  private getMultiplayerMetricsSnapshot(): MultiplayerMetricsSnapshot {
+    const socketStats = this.socketManager.getStats();
+    const memory = process.memoryUsage();
+    const totalResyncs = Object.values(this.deltaSyncMetrics.resync).reduce(
+      (sum, count) => sum + count,
+      0,
     );
-    this.app.use('/api', documentRoutes);
-    if (this.documentsEnabled) {
-      console.log('📚 Document routes initialized');
-    } else {
-      console.log(
-        '📚 Document routes initialized in disabled mode (DOC_API_URL not set)',
-      );
-    }
+    return {
+      timestamp: Date.now(),
+      process: {
+        uptimeSeconds: process.uptime(),
+        residentMemoryBytes: memory.rss,
+        heapUsedBytes: memory.heapUsed,
+        heapTotalBytes: memory.heapTotal,
+        heapUtilizationRatio:
+          memory.heapTotal > 0 ? memory.heapUsed / memory.heapTotal : 0,
+      },
+      rooms: socketStats.totalRooms,
+      connections: socketStats.totalConnections,
+      gameStateQueueDepth: this.gameStateCommitQueues.size,
+      database: this.db.getPoolStats(),
+      gameState: {
+        commits: { ...this.deltaSyncMetrics.commits },
+        committed: this.deltaSyncMetrics.durability.committed,
+        conflicts: this.deltaSyncMetrics.durability.conflicts,
+        failures: this.deltaSyncMetrics.durability.failures,
+        resync: { ...this.deltaSyncMetrics.resync },
+        totalResyncs,
+        totalUploads: this.deltaSyncMetrics.totalUploads,
+        resyncRateRatio:
+          this.deltaSyncMetrics.totalUploads > 0
+            ? totalResyncs / this.deltaSyncMetrics.totalUploads
+            : 0,
+        patchBytesSaved: this.deltaSyncMetrics.patchBytesSaved,
+        commitLatency: {
+          ...this.deltaSyncMetrics.durability.commitLatency,
+          buckets: {
+            ...this.deltaSyncMetrics.durability.commitLatency.buckets,
+          },
+        },
+      },
+      orderedEvents: socketStats.orderedEvents,
+      realtime: socketStats.realtime,
+    };
   }
 
   private setupHealthRoutes(): void {
@@ -965,6 +1058,8 @@ class NexusServer {
     const params = url.searchParams;
     const userIdFromQuery = params.get('userId');
     const userNameFromQuery = params.get('userName');
+    const connectionInstanceId = params.get('connectionInstanceId');
+    const reconnectTrigger = params.get('reconnectTrigger') || 'connect';
 
     // Priority: authenticated user > guest user > query param > new UUID
     let uuid = user?.id || guestUser?.id || userIdFromQuery || uuidv4();
@@ -1008,9 +1103,20 @@ class NexusServer {
       }
     }
 
-    console.log(`📡 New connection: ${uuid} (${userType} as ${displayName})`);
-
-    const connection = this.socketManager.addConnection(ws, displayName, uuid);
+    const connection = this.socketManager.addConnection(
+      ws,
+      displayName,
+      uuid,
+      connectionInstanceId || undefined,
+      reconnectTrigger,
+    );
+    console.info('[WebSocket] accepted connection', {
+      socketInstanceId: connection.instanceId,
+      participantId: connection.id,
+      identityType: userType,
+      displayName,
+      reconnectTrigger: connection.reconnectTrigger,
+    });
     const requestedEventCursor = params.get('lastSeenSequence');
     connection.requestedEventCursor =
       this.parseEventCursor(requestedEventCursor);
@@ -1861,6 +1967,10 @@ class NexusServer {
       this.deltaSyncMetrics.durability.maxCommitLatencyMs,
       commitLatencyMs,
     );
+    observeCommitLatency(
+      this.deltaSyncMetrics.durability.commitLatency,
+      commitLatencyMs,
+    );
 
     room.gameState = committed as unknown as GameState;
     room.syncToken = committedToken;
@@ -2044,28 +2154,66 @@ class NexusServer {
    * @param {string} uuid - Connection UUID that disconnected
    * @returns {Promise<void>}
    */
-  private async handleDisconnect(uuid: string): Promise<void> {
-    const connection = this.socketManager.connections.get(uuid);
+  private async handleDisconnect(
+    uuid: string,
+    instanceId: string,
+    disconnectedConnection?: Connection,
+  ): Promise<void> {
+    const activeConnection = this.socketManager.connections.get(uuid);
+    if (
+      activeConnection &&
+      activeConnection.instanceId !== instanceId
+    ) {
+      console.info('[WebSocket] ignored superseded disconnect', {
+        socketInstanceId: instanceId,
+        activeSocketInstanceId: activeConnection.instanceId,
+        participantId: uuid,
+      });
+      return;
+    }
+
+    const connection = disconnectedConnection || activeConnection;
+    const deleteConnectionIfCurrent = () => {
+      if (
+        this.socketManager.connections.get(uuid)?.instanceId === instanceId
+      ) {
+        this.socketManager.connections.delete(uuid);
+      }
+    };
     if (!connection?.room) {
-      this.socketManager.connections.delete(uuid);
+      deleteConnectionIfCurrent();
       return;
     }
 
     const room = this.socketManager.rooms.get(connection.room);
     if (!room) {
-      this.socketManager.connections.delete(uuid);
+      deleteConnectionIfCurrent();
       return;
     }
+
+    const hasReplacement = () => {
+      const current = this.socketManager.connections.get(uuid);
+      const roomSocket = room.connections.get(uuid);
+      return Boolean(
+        (current && current.instanceId !== instanceId) ||
+          (roomSocket && roomSocket !== connection.ws),
+      );
+    };
+    const deleteRoomSocketIfCurrent = () => {
+      if (room.connections.get(uuid) === connection.ws) {
+        room.connections.delete(uuid);
+      }
+    };
 
     // Idempotency: a single socket can reach here through more than one path
     // (e.g. a forced terminate plus the ws 'close' event it triggers). Claim
     // this member synchronously — before any await — so an interleaved second
     // pass bails out here instead of re-broadcasting the leave or re-hibernating.
-    if (!room.connections.has(uuid)) {
-      this.socketManager.connections.delete(uuid);
+    if (room.connections.get(uuid) !== connection.ws) {
+      deleteConnectionIfCurrent();
       return;
     }
-    room.connections.delete(uuid);
+    deleteRoomSocketIfCurrent();
     try {
       await this.socketManager.unregisterDistributedConnection(
         connection.room,
@@ -2074,6 +2222,32 @@ class NexusServer {
     } catch (error) {
       console.error('Failed to clear distributed presence:', error);
     }
+    if (hasReplacement()) {
+      const replacement = this.socketManager.connections.get(uuid);
+      if (replacement?.room === room.code) {
+        const role =
+          room.host === uuid
+            ? 'host'
+            : room.coHosts.has(uuid)
+              ? 'cohost'
+              : 'player';
+        try {
+          await this.socketManager.registerDistributedConnection(
+            room,
+            replacement,
+            role,
+          );
+        } catch (error) {
+          console.error('Failed to restore replacement presence:', error);
+        }
+      }
+      console.info('[WebSocket] replacement preserved during disconnect', {
+        socketInstanceId: instanceId,
+        participantId: uuid,
+        phase: 'presence',
+      });
+      return;
+    }
 
     // Get session from database to find sessionId
     let session: SessionRecord | null = null;
@@ -2081,6 +2255,24 @@ class NexusServer {
       session = await this.db.getSessionByJoinCode(connection.room);
     } catch (error) {
       console.error('Failed to fetch session from database:', error);
+    }
+    if (hasReplacement()) {
+      if (session) {
+        try {
+          await this.db.updatePlayerConnection(uuid, session.id, true);
+        } catch (error) {
+          console.error(
+            'Failed to restore replacement connection status:',
+            error,
+          );
+        }
+      }
+      console.info('[WebSocket] replacement preserved during disconnect', {
+        socketInstanceId: instanceId,
+        participantId: uuid,
+        phase: 'session-lookup',
+      });
+      return;
     }
 
     // Update player connection status in database
@@ -2091,6 +2283,24 @@ class NexusServer {
         console.error('Failed to update player connection status:', error);
       }
     }
+    if (hasReplacement()) {
+      if (session) {
+        try {
+          await this.db.updatePlayerConnection(uuid, session.id, true);
+        } catch (error) {
+          console.error(
+            'Failed to restore replacement connection status:',
+            error,
+          );
+        }
+      }
+      console.info('[WebSocket] replacement preserved during disconnect', {
+        socketInstanceId: instanceId,
+        participantId: uuid,
+        phase: 'status-update',
+      });
+      return;
+    }
 
     // Handle host disconnection
     if (room.host === uuid) {
@@ -2100,7 +2310,7 @@ class NexusServer {
 
       room.dmConnected = false;
       room.players.delete(uuid);
-      room.connections.delete(uuid);
+      deleteRoomSocketIfCurrent();
       room.lastActivity = Date.now();
 
       this.hibernateRoom(connection.room);
@@ -2129,7 +2339,7 @@ class NexusServer {
       // Regular player disconnection
       console.log(`👋 Player left room ${connection.room}: ${uuid}`);
       room.players.delete(uuid);
-      room.connections.delete(uuid);
+      deleteRoomSocketIfCurrent();
       room.lastActivity = Date.now();
 
       this.broadcastToRoom(connection.room, {
@@ -2143,7 +2353,7 @@ class NexusServer {
       }
     }
 
-    this.socketManager.connections.delete(uuid);
+    deleteConnectionIfCurrent();
 
     // Stop heartbeat if no connections remain
     if (this.socketManager.connections.size === 0) {
@@ -2572,7 +2782,11 @@ class NexusServer {
       if (connection.ws.readyState === WebSocket.OPEN) {
         connection.ws.terminate();
       }
-      await this.handleDisconnect(connection.id);
+      await this.handleDisconnect(
+        connection.id,
+        connection.instanceId,
+        connection,
+      );
     } catch (error) {
       console.error(`Failed to forcefully disconnect ${connection.id}:`, error);
     }

@@ -1,8 +1,10 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { useGameStore, useActiveScene } from '@/stores/gameStore';
+import { useStackZIndex, useUIStackStore } from '@/stores/uiStackStore';
 import { propAssetManager } from '@/services/propAssets';
 import type { PlacedProp } from '@/types/prop';
 import { PopoverMenu } from '../PopoverMenu';
+import { Portal } from '../Portal';
 import './PropToolbar.css';
 
 interface PropToolbarProps {
@@ -10,11 +12,21 @@ interface PropToolbarProps {
   placedProp: PlacedProp;
 }
 
-export const PropToolbar: React.FC<PropToolbarProps> = ({ position, placedProp }) => {
+export const PropToolbar: React.FC<PropToolbarProps> = ({
+  position,
+  placedProp,
+}) => {
   const activeScene = useActiveScene();
-  const { updateProp, deleteProp, clearSelection, interactWithProp } = useGameStore();
+  const { updateProp, deleteProp, clearSelection, interactWithProp } =
+    useGameStore();
 
   const toolbarRef = useRef<HTMLDivElement>(null);
+  const zIndex = useStackZIndex('objectProperties');
+  const bringToFront = useUIStackStore((state) => state.bringToFront);
+
+  useLayoutEffect(() => {
+    bringToFront('objectProperties');
+  }, [bringToFront, placedProp.id]);
 
   // Get prop definition
   const prop = propAssetManager.getPropById(placedProp.propId);
@@ -26,7 +38,7 @@ export const PropToolbar: React.FC<PropToolbarProps> = ({ position, placedProp }
       propId: placedProp?.id,
       hasScene: !!activeScene,
       position,
-      propDefinition: prop
+      propDefinition: prop,
     });
   }, [placedProp, activeScene, position, prop]);
 
@@ -67,13 +79,13 @@ export const PropToolbar: React.FC<PropToolbarProps> = ({ position, placedProp }
 
   const handleToggleVisibility = () => {
     updateProp(activeScene.id, placedProp.id, {
-      visibleToPlayers: !placedProp.visibleToPlayers
+      visibleToPlayers: !placedProp.visibleToPlayers,
     });
   };
 
   const handleToggleDMOnly = () => {
     updateProp(activeScene.id, placedProp.id, {
-      dmNotesOnly: !placedProp.dmNotesOnly
+      dmNotesOnly: !placedProp.dmNotesOnly,
     });
   };
 
@@ -102,7 +114,9 @@ export const PropToolbar: React.FC<PropToolbarProps> = ({ position, placedProp }
               >
                 ↶
               </button>
-              <span className="option-value">{Math.round(placedProp.rotation)}°</span>
+              <span className="option-value">
+                {Math.round(placedProp.rotation)}°
+              </span>
               <button
                 className="option-btn"
                 onClick={() => handleRotate(45)}
@@ -124,7 +138,9 @@ export const PropToolbar: React.FC<PropToolbarProps> = ({ position, placedProp }
               >
                 -
               </button>
-              <span className="option-value">{Math.round(placedProp.scale * 100)}%</span>
+              <span className="option-value">
+                {Math.round(placedProp.scale * 100)}%
+              </span>
               <button
                 className="option-btn"
                 onClick={() => handleScale(0.25)}
@@ -141,21 +157,31 @@ export const PropToolbar: React.FC<PropToolbarProps> = ({ position, placedProp }
             <div className="option-controls">
               <button
                 className={`option-btn ${placedProp.layer === 'background' ? 'active' : ''}`}
-                onClick={() => updateProp(activeScene.id, placedProp.id, { layer: 'background' })}
+                onClick={() =>
+                  updateProp(activeScene.id, placedProp.id, {
+                    layer: 'background',
+                  })
+                }
                 title="Background Layer"
               >
                 Back
               </button>
               <button
                 className={`option-btn ${placedProp.layer === 'props' ? 'active' : ''}`}
-                onClick={() => updateProp(activeScene.id, placedProp.id, { layer: 'props' })}
+                onClick={() =>
+                  updateProp(activeScene.id, placedProp.id, { layer: 'props' })
+                }
                 title="Props Layer"
               >
                 Props
               </button>
               <button
                 className={`option-btn ${placedProp.layer === 'overlay' ? 'active' : ''}`}
-                onClick={() => updateProp(activeScene.id, placedProp.id, { layer: 'overlay' })}
+                onClick={() =>
+                  updateProp(activeScene.id, placedProp.id, {
+                    layer: 'overlay',
+                  })
+                }
                 title="Overlay Layer"
               >
                 Over
@@ -208,77 +234,95 @@ export const PropToolbar: React.FC<PropToolbarProps> = ({ position, placedProp }
   };
 
   return (
-    <div
-      ref={toolbarRef}
-      className="prop-toolbar"
-      style={{
-        left: position.x,
-        top: position.y,
-      }}
-    >
-      {/* Main Toolbar */}
-      <div className="prop-toolbar-main">
-        {/* Primary Tools */}
-        <div className="prop-toolbar-primary">
-          <PopoverMenu
-            trigger={
-              <span className="prop-toolbar-icon">⚙️</span>
-            }
-            triggerClassName="prop-toolbar-btn"
-            contentClassName="prop-toolbar-popover"
-          >
-            {renderOptionsPanel()}
-          </PopoverMenu>
-
-          {isInteractive && (
+    <Portal>
+      <div
+        ref={toolbarRef}
+        className="prop-toolbar"
+        role="dialog"
+        aria-modal="false"
+        aria-label="Object properties"
+        style={{
+          position: 'fixed',
+          left: position.x,
+          top: position.y,
+          zIndex,
+        }}
+        onPointerDownCapture={() => bringToFront('objectProperties')}
+      >
+        {/* Main Toolbar */}
+        <div className="prop-toolbar-main">
+          {/* Primary Tools */}
+          <div className="prop-toolbar-primary">
             <PopoverMenu
-              trigger={
-                <span className="prop-toolbar-icon">
-                  {currentState === 'locked' ? '🔒' : currentState === 'open' ? '🔓' : '🚪'}
-                </span>
-              }
+              trigger={<span className="prop-toolbar-icon">⚙️</span>}
               triggerClassName="prop-toolbar-btn"
               contentClassName="prop-toolbar-popover"
             >
-              {renderInteractivePanel()}
+              {renderOptionsPanel()}
             </PopoverMenu>
-          )}
 
-          <button
-            className={`prop-toolbar-btn ${placedProp.visibleToPlayers ? '' : 'active'}`}
-            onClick={handleToggleVisibility}
-            title={placedProp.visibleToPlayers ? 'Hide from Players' : 'Show to Players'}
-          >
-            <span className="prop-toolbar-icon">
-              {placedProp.visibleToPlayers ? '👁️' : '🙈'}
-            </span>
-          </button>
-        </div>
+            {isInteractive && (
+              <PopoverMenu
+                trigger={
+                  <span className="prop-toolbar-icon">
+                    {currentState === 'locked'
+                      ? '🔒'
+                      : currentState === 'open'
+                        ? '🔓'
+                        : '🚪'}
+                  </span>
+                }
+                triggerClassName="prop-toolbar-btn"
+                contentClassName="prop-toolbar-popover"
+              >
+                {renderInteractivePanel()}
+              </PopoverMenu>
+            )}
 
-        {/* Separator */}
-        <div className="prop-toolbar-separator" />
+            <button
+              className={`prop-toolbar-btn ${placedProp.visibleToPlayers ? '' : 'active'}`}
+              onClick={handleToggleVisibility}
+              title={
+                placedProp.visibleToPlayers
+                  ? 'Hide from Players'
+                  : 'Show to Players'
+              }
+            >
+              <span className="prop-toolbar-icon">
+                {placedProp.visibleToPlayers ? '👁️' : '🙈'}
+              </span>
+            </button>
+          </div>
 
-        {/* Secondary Tools */}
-        <div className="prop-toolbar-secondary">
-          <button
-            className={`prop-toolbar-btn ${placedProp.dmNotesOnly ? 'active' : ''}`}
-            onClick={handleToggleDMOnly}
-            title={placedProp.dmNotesOnly ? 'Visible to DM' : 'Hide from Players (DM Notes)'}
-          >
-            <span className="prop-toolbar-icon">
-              {placedProp.dmNotesOnly ? 'DM' : '📝'}
-            </span>
-          </button>
+          {/* Separator */}
+          <div className="prop-toolbar-separator" />
 
-          <button
-            className="prop-toolbar-btn danger"
-            onClick={handleRemoveProp}
-            title="Remove Prop"
-          >
-            <span className="prop-toolbar-icon">🗑️</span>
-          </button>
+          {/* Secondary Tools */}
+          <div className="prop-toolbar-secondary">
+            <button
+              className={`prop-toolbar-btn ${placedProp.dmNotesOnly ? 'active' : ''}`}
+              onClick={handleToggleDMOnly}
+              title={
+                placedProp.dmNotesOnly
+                  ? 'Visible to DM'
+                  : 'Hide from Players (DM Notes)'
+              }
+            >
+              <span className="prop-toolbar-icon">
+                {placedProp.dmNotesOnly ? 'DM' : '📝'}
+              </span>
+            </button>
+
+            <button
+              className="prop-toolbar-btn danger"
+              onClick={handleRemoveProp}
+              title="Remove Prop"
+            >
+              <span className="prop-toolbar-icon">🗑️</span>
+            </button>
+          </div>
         </div>
       </div>
-    </div>
+    </Portal>
   );
 };

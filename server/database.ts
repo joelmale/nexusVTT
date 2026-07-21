@@ -107,50 +107,128 @@ export class DatabaseService {
   // Backward compatibility wrapper methods
   // These will eventually be removed as we migrate callers to use .users, .campaigns, etc.
 
-  async getUserById(id: string) { return this.users.getUserById(id); }
-  async getUserByEmail(email: string) { return this.users.getUserByEmail(email); }
-  async findOrCreateUserByOAuth(profile: OAuthProfile) { return this.users.findOrCreateUserByOAuth(profile); }
-  async createLocalUser(email: string, pass: string, name?: string) { return this.users.createLocalUser(email, pass, name); }
-  async createGuestUser(name: string, id?: string) { return this.users.createGuestUser(name, id); }
-  async getUserProfile(id: string) { return this.users.getUserProfile(id); }
+  async getUserById(id: string) {
+    return this.users.getUserById(id);
+  }
+  async getUserByEmail(email: string) {
+    return this.users.getUserByEmail(email);
+  }
+  async findOrCreateUserByOAuth(profile: OAuthProfile) {
+    return this.users.findOrCreateUserByOAuth(profile);
+  }
+  async createLocalUser(email: string, pass: string, name?: string) {
+    return this.users.createLocalUser(email, pass, name);
+  }
+  async createGuestUser(name: string, id?: string) {
+    return this.users.createGuestUser(name, id);
+  }
+  async getUserProfile(id: string) {
+    return this.users.getUserProfile(id);
+  }
   async updateUserProfile(
     id: string,
-    updates: { displayName?: string | null; bio?: string | null; avatarUrl?: string | null },
-  ) { return this.users.updateUserProfile(id, updates); }
-  async getUserPreferences(id: string) { return this.users.getUserPreferences(id); }
-  async updateUserPreferences(id: string, prefs: Record<string, unknown>) { return this.users.updateUserPreferences(id, prefs); }
-  async deactivateUser(id: string) { return this.users.deactivateUser(id); }
-  async validateLocalLogin(email: string, pass: string) { return this.users.validateLocalLogin(email, pass); }
+    updates: {
+      displayName?: string | null;
+      bio?: string | null;
+      avatarUrl?: string | null;
+    },
+  ) {
+    return this.users.updateUserProfile(id, updates);
+  }
+  async getUserPreferences(id: string) {
+    return this.users.getUserPreferences(id);
+  }
+  async updateUserPreferences(id: string, prefs: Record<string, unknown>) {
+    return this.users.updateUserPreferences(id, prefs);
+  }
+  async deactivateUser(id: string) {
+    return this.users.deactivateUser(id);
+  }
+  async validateLocalLogin(email: string, pass: string) {
+    return this.users.validateLocalLogin(email, pass);
+  }
 
-  async createCampaign(dmId: string, name: string, desc?: string) { return this.campaigns.createCampaign(dmId, name, desc); }
-  async getCampaignsByUser(id: string) { return this.campaigns.getCampaignsByUser(id); }
-  async getCampaignById(id: string) { return this.campaigns.getCampaignById(id); }
-  async isUserAuthorizedForCampaign(userId: string, campId: string) { return this.campaigns.isUserAuthorizedForCampaign(userId, campId); }
-  async updateCampaign(id: string, updates: Partial<CampaignRecord>) { return this.campaigns.updateCampaign(id, updates); }
-  async deleteCampaign(id: string) { return this.campaigns.deleteCampaign(id); }
-  async saveCampaignScenes(id: string, scenes: unknown[]) { return this.campaigns.saveCampaignScenes(id, scenes); }
-  async getCampaignScenes(id: string) { return this.campaigns.getCampaignScenes(id); }
+  async createCampaign(dmId: string, name: string, desc?: string) {
+    return this.campaigns.createCampaign(dmId, name, desc);
+  }
+  async getCampaignsByUser(id: string) {
+    return this.campaigns.getCampaignsByUser(id);
+  }
+  async getCampaignById(id: string) {
+    return this.campaigns.getCampaignById(id);
+  }
+  async isUserAuthorizedForCampaign(userId: string, campId: string) {
+    return this.campaigns.isUserAuthorizedForCampaign(userId, campId);
+  }
+  async updateCampaign(id: string, updates: Partial<CampaignRecord>) {
+    return this.campaigns.updateCampaign(id, updates);
+  }
+  async deleteCampaign(id: string) {
+    return this.campaigns.deleteCampaign(id);
+  }
+  async saveCampaignScenes(id: string, scenes: unknown[]) {
+    return this.campaigns.saveCampaignScenes(id, scenes);
+  }
+  async getCampaignScenes(id: string) {
+    return this.campaigns.getCampaignScenes(id);
+  }
 
-  async createCharacter(ownerId: string, name: string, data: unknown) { return this.characters.createCharacter(ownerId, name, data); }
-  async getCharactersByUser(id: string) { return this.characters.getCharactersByUser(id); }
-  async getCharacterById(id: string) { return this.characters.getCharacterById(id); }
-  async updateCharacter(id: string, updates: Partial<CharacterRecord>) { return this.characters.updateCharacter(id, updates); }
-  async deleteCharacter(id: string) { return this.characters.deleteCharacter(id); }
-  async deleteCharactersByUser(id: string) { return this.characters.deleteCharactersByUser(id); }
-  async deleteCharactersByIds(ids: string[]) { return this.characters.deleteCharactersByIds(ids); }
+  async createCharacter(ownerId: string, name: string, data: unknown) {
+    return this.characters.createCharacter(ownerId, name, data);
+  }
+  async getCharactersByUser(id: string) {
+    return this.characters.getCharactersByUser(id);
+  }
+  async getCharacterById(id: string) {
+    return this.characters.getCharacterById(id);
+  }
+  async updateCharacter(id: string, updates: Partial<CharacterRecord>) {
+    return this.characters.updateCharacter(id, updates);
+  }
+  async deleteCharacter(id: string) {
+    return this.characters.deleteCharacter(id);
+  }
+  async deleteCharactersByUser(id: string) {
+    return this.characters.deleteCharactersByUser(id);
+  }
+  async deleteCharactersByIds(ids: string[]) {
+    return this.characters.deleteCharactersByIds(ids);
+  }
 
-  async createSession(campId: string, hostId: string) { return this.sessions.createSession(campId, hostId); }
-  async createSessionWithJoinCode(campId: string, hostId: string, code: string) { return this.sessions.createSessionWithJoinCode(campId, hostId, code); }
-  async activateSessionByJoinCode(code: string, hostId: string) { return this.sessions.activateSessionByJoinCode(code, hostId); }
-  async getSessionByJoinCode(code: string) { return this.sessions.getSessionByJoinCode(code); }
-  async getCampaignIdByJoinCode(code: string) { return this.sessions.getCampaignIdByJoinCode(code); }
+  async createSession(campId: string, hostId: string) {
+    return this.sessions.createSession(campId, hostId);
+  }
+  async createSessionWithJoinCode(
+    campId: string,
+    hostId: string,
+    code: string,
+  ) {
+    return this.sessions.createSessionWithJoinCode(campId, hostId, code);
+  }
+  async activateSessionByJoinCode(code: string, hostId: string) {
+    return this.sessions.activateSessionByJoinCode(code, hostId);
+  }
+  async getSessionByJoinCode(code: string) {
+    return this.sessions.getSessionByJoinCode(code);
+  }
+  async getCampaignIdByJoinCode(code: string) {
+    return this.sessions.getCampaignIdByJoinCode(code);
+  }
   async updateSessionStatus(
     id: string,
     status: 'active' | 'hibernating' | 'abandoned',
-  ) { return this.sessions.updateSessionStatus(id, status); }
-  async saveGameState(id: string, state: unknown) { return this.sessions.saveGameState(id, state); }
-  async saveGameStateByJoinCode(code: string, state: unknown) { return this.sessions.saveGameStateByJoinCode(code, state); }
-  async getGameStateByJoinCode(code: string) { return this.sessions.getGameStateByJoinCode(code); }
+  ) {
+    return this.sessions.updateSessionStatus(id, status);
+  }
+  async saveGameState(id: string, state: unknown) {
+    return this.sessions.saveGameState(id, state);
+  }
+  async saveGameStateByJoinCode(code: string, state: unknown) {
+    return this.sessions.saveGameStateByJoinCode(code, state);
+  }
+  async getGameStateByJoinCode(code: string) {
+    return this.sessions.getGameStateByJoinCode(code);
+  }
   async commitGameState(
     code: string,
     expectedVersion: number,
@@ -181,30 +259,52 @@ export class DatabaseService {
       token,
     );
   }
-  async deleteSession(id: string) { return this.sessions.deleteSession(id); }
+  async deleteSession(id: string) {
+    return this.sessions.deleteSession(id);
+  }
 
-  async addPlayerToSession(uId: string, sId: string, cId?: string | null) { return this.sessions.addPlayerToSession(uId, sId, cId); }
-  async removePlayerFromSession(uId: string, sId: string) { return this.sessions.removePlayerFromSession(uId, sId); }
-  async getPlayerCharacter(uId: string, sId: string) { return this.sessions.getPlayerCharacter(uId, sId); }
-  async updatePlayerConnection(uId: string, sId: string, conn: boolean) { return this.sessions.updatePlayerConnection(uId, sId, conn); }
-  async getPlayersBySession(sId: string) { return this.sessions.getPlayersBySession(sId); }
+  async addPlayerToSession(uId: string, sId: string, cId?: string | null) {
+    return this.sessions.addPlayerToSession(uId, sId, cId);
+  }
+  async removePlayerFromSession(uId: string, sId: string) {
+    return this.sessions.removePlayerFromSession(uId, sId);
+  }
+  async getPlayerCharacter(uId: string, sId: string) {
+    return this.sessions.getPlayerCharacter(uId, sId);
+  }
+  async updatePlayerConnection(uId: string, sId: string, conn: boolean) {
+    return this.sessions.updatePlayerConnection(uId, sId, conn);
+  }
+  async getPlayersBySession(sId: string) {
+    return this.sessions.getPlayersBySession(sId);
+  }
 
-  async addCoHost(uId: string, sId: string, perms?: unknown) { return this.sessions.addCoHost(uId, sId, perms); }
-  async removeCoHost(uId: string, sId: string) { return this.sessions.removeCoHost(uId, sId); }
-  async transferPrimaryHost(sId: string, hId: string) { return this.sessions.transferPrimaryHost(sId, hId); }
-  async getHostsBySession(sId: string) { return this.sessions.getHostsBySession(sId); }
+  async addCoHost(uId: string, sId: string, perms?: unknown) {
+    return this.sessions.addCoHost(uId, sId, perms);
+  }
+  async removeCoHost(uId: string, sId: string) {
+    return this.sessions.removeCoHost(uId, sId);
+  }
+  async transferPrimaryHost(sId: string, hId: string) {
+    return this.sessions.transferPrimaryHost(sId, hId);
+  }
+  async getHostsBySession(sId: string) {
+    return this.sessions.getHostsBySession(sId);
+  }
 
   async appendRoomEvent(
     roomCode: string,
     identity: Parameters<EventJournalRepository['append']>[1],
     message: Parameters<EventJournalRepository['append']>[2],
     echoToActor: Parameters<EventJournalRepository['append']>[3],
+    entityVersion?: Parameters<EventJournalRepository['append']>[4],
   ) {
     return this.eventJournal.append(
       roomCode,
       identity,
       message,
       echoToActor,
+      entityVersion,
     );
   }
 
@@ -220,10 +320,22 @@ export class DatabaseService {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
-      await client.query('UPDATE characters SET "ownerId" = $1 WHERE "ownerId" = $2', [userId, guestId]);
-      await client.query('UPDATE campaigns SET "dmId" = $1 WHERE "dmId" = $2', [userId, guestId]);
-      await client.query('UPDATE sessions SET "primaryHostId" = $1 WHERE "primaryHostId" = $2', [userId, guestId]);
-      await client.query('UPDATE users SET "isActive" = FALSE, "updatedAt" = NOW() WHERE id = $1', [guestId]);
+      await client.query(
+        'UPDATE characters SET "ownerId" = $1 WHERE "ownerId" = $2',
+        [userId, guestId],
+      );
+      await client.query('UPDATE campaigns SET "dmId" = $1 WHERE "dmId" = $2', [
+        userId,
+        guestId,
+      ]);
+      await client.query(
+        'UPDATE sessions SET "primaryHostId" = $1 WHERE "primaryHostId" = $2',
+        [userId, guestId],
+      );
+      await client.query(
+        'UPDATE users SET "isActive" = FALSE, "updatedAt" = NOW() WHERE id = $1',
+        [guestId],
+      );
       await client.query('COMMIT');
     } catch (error) {
       await client.query('ROLLBACK');
@@ -247,12 +359,26 @@ export class DatabaseService {
     }
   }
 
+  getPoolStats(): {
+    totalConnections: number;
+    idleConnections: number;
+    waitingRequests: number;
+  } {
+    return {
+      totalConnections: this.pool.totalCount,
+      idleConnections: this.pool.idleCount,
+      waitingRequests: this.pool.waitingCount,
+    };
+  }
+
   getPool(): Pool {
     return this.pool;
   }
 }
 
-export function createDatabaseService(config?: DatabaseConfig): DatabaseService {
+export function createDatabaseService(
+  config?: DatabaseConfig,
+): DatabaseService {
   let dbConfig: DatabaseConfig;
   if (config) {
     dbConfig = config;

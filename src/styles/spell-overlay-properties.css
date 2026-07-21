@@ -3,10 +3,6 @@
    ========================================================================== */
 
 .spell-overlay-properties-panel {
-  position: absolute;
-  top: 50%;
-  right: 20px;
-  transform: translateY(-50%);
   width: 320px;
   max-height: 80vh;
   overflow-y: auto;
@@ -19,18 +15,17 @@
     0 8px 32px rgba(0, 0, 0, 0.5),
     0 0 0 1px rgba(255, 255, 255, 0.05),
     inset 0 1px 0 rgba(255, 255, 255, 0.1);
-  z-index: var(--z-panel);
   animation: slideInRight 0.3s ease-out;
 }
 
 @keyframes slideInRight {
   from {
     opacity: 0;
-    transform: translateY(-50%) translateX(20px);
+    transform: translateX(20px);
   }
   to {
     opacity: 1;
-    transform: translateY(-50%) translateX(0);
+    transform: translateX(0);
   }
 }
 
@@ -348,7 +343,11 @@
   appearance: none;
   width: 18px;
   height: 18px;
-  background: linear-gradient(135deg, rgba(0, 188, 212, 1), rgba(0, 150, 170, 1));
+  background: linear-gradient(
+    135deg,
+    rgba(0, 188, 212, 1),
+    rgba(0, 150, 170, 1)
+  );
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid rgba(255, 255, 255, 0.3);
@@ -364,7 +363,11 @@
 .slider::-moz-range-thumb {
   width: 18px;
   height: 18px;
-  background: linear-gradient(135deg, rgba(0, 188, 212, 1), rgba(0, 150, 170, 1));
+  background: linear-gradient(
+    135deg,
+    rgba(0, 188, 212, 1),
+    rgba(0, 150, 170, 1)
+  );
   border-radius: 50%;
   cursor: pointer;
   border: 2px solid rgba(255, 255, 255, 0.3);

@@ -92,3 +92,45 @@ docker compose -p nexus-vtt-db-test -f docker/docker-compose.test.yml up \
 docker compose -p nexus-vtt-db-test -f docker/docker-compose.test.yml down \
   --volumes --remove-orphans
 ```
+
+## Multiplayer load and soak tests
+
+Use `npm run test:soak` against an existing target, or let the repository own
+an isolated two-replica stack:
+
+```bash
+npm run test:soak:managed -- \
+  --rooms 10 \
+  --clients-per-room 4 \
+  --duration 10m \
+  --events-per-second 20
+```
+
+The harness creates a distinct guest/session cookie per virtual client and
+mixes chat, server-authoritative dice, scene changes, versioned token moves,
+and canonical state patches. It deliberately verifies a stale delta base and a
+cross-replica entity-version conflict before load. During the run it reconnects
+players with their original identity and event cursor. At quiescence it checks
+each client's logical event set, ordered cursor, and canonical state hash.
+
+Run the complete resilience profile with:
+
+```bash
+npm run test:soak:chaos -- \
+  --rooms 50 \
+  --clients-per-room 4 \
+  --duration 2h \
+  --events-per-second 100
+```
+
+This adds abrupt rolling backend restarts, a Redis interruption, and
+Toxiproxy-based PostgreSQL latency. The test fails for lost logical events,
+duplicate deliveries, ordering or hash errors, convergence failures, durable
+database/journal failures, or breached ACK/reconnect percentiles. The JSON
+report is written under `test-results/`.
+
+The nightly workflow is `.github/workflows/multiplayer-soak.yml`. The protected
+staging workflow applies all multiplayer migrations and runs a four-hour
+50-room profile; see
+`docs/operations/multiplayer-observability.md` for environment configuration,
+SLOs, and alert response.

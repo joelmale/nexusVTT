@@ -26,7 +26,15 @@ services:
       - nexus-internal
     restart: unless-stopped
     healthcheck:
-      test: ['CMD', 'redis-cli', '--no-auth-warning', '-a', '${REDIS_PASSWORD}', 'ping']
+      test:
+        [
+          'CMD',
+          'redis-cli',
+          '--no-auth-warning',
+          '-a',
+          '${REDIS_PASSWORD}',
+          'ping',
+        ]
       interval: 10s
       timeout: 3s
       retries: 5
@@ -56,6 +64,11 @@ services:
       DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
       DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
       DISCORD_CALLBACK_URL: ${DISCORD_CALLBACK_URL}
+      METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
+      MULTIPLAYER_SLO_COMMIT_P95_MS: ${MULTIPLAYER_SLO_COMMIT_P95_MS:-250}
+      MULTIPLAYER_SLO_RESYNC_RATE_RATIO: ${MULTIPLAYER_SLO_RESYNC_RATE_RATIO:-0.01}
+      MULTIPLAYER_SLO_QUEUE_DEPTH: ${MULTIPLAYER_SLO_QUEUE_DEPTH:-100}
+      MULTIPLAYER_SLO_HEAP_UTILIZATION_RATIO: ${MULTIPLAYER_SLO_HEAP_UTILIZATION_RATIO:-0.9}
     volumes:
       - nexus-assets:/app/static-assets/assets
     networks:
@@ -81,7 +94,11 @@ services:
       - nexus-internal
     restart: unless-stopped
     healthcheck:
-      test: ['CMD-SHELL', 'node -e "const port = process.env.PORT || 5003; require(''http'').get(''http://127.0.0.1:'' + port + ''/health'', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on(''error'', () => process.exit(1))"']
+      test:
+        [
+          'CMD-SHELL',
+          'node -e "const port = process.env.PORT || 5003; require(''http'').get(''http://127.0.0.1:'' + port + ''/health'', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on(''error'', () => process.exit(1))"',
+        ]
       interval: 30s
       timeout: 5s
       retries: 3

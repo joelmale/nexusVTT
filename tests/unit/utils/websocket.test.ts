@@ -109,6 +109,68 @@ describe('WebSocketManager', () => {
       expect(WebSocketMock).toHaveBeenCalledTimes(1);
     });
 
+    it('should keep connect idempotent when the socket is already open', async () => {
+      await webSocketService.connect('TEST123', 'player');
+
+      await webSocketService.connect('TEST123', 'player');
+
+      expect(WebSocketMock).toHaveBeenCalledTimes(1);
+    });
+
+    it('should create only one socket for repeated reconnect clicks', async () => {
+      await webSocketService.connect(
+        'TEST123',
+        'player',
+        undefined,
+        'participant-1',
+        'Player One',
+      );
+      const initialSocket = getMockWebSocket();
+      initialSocket.onclose?.({
+        code: 1000,
+        reason: 'Network closed',
+      } as CloseEvent);
+
+      await Promise.all([
+        webSocketService.reconnect('manual-button'),
+        webSocketService.reconnect('manual-button'),
+      ]);
+
+      expect(WebSocketMock).toHaveBeenCalledTimes(2);
+      const socketInstanceIds = WebSocketMock.mock.calls.map((call) =>
+        new URL(String(call[0])).searchParams.get('connectionInstanceId'),
+      );
+      expect(socketInstanceIds[0]).toBeTruthy();
+      expect(socketInstanceIds[1]).toBeTruthy();
+      expect(socketInstanceIds[1]).not.toBe(socketInstanceIds[0]);
+    });
+
+    it('should preserve the host role during manual reconnect', async () => {
+      await webSocketService.connect(
+        'HOST01',
+        'host',
+        'campaign-1',
+        'host-participant',
+        'Host One',
+      );
+      const initialSocket = getMockWebSocket();
+      initialSocket.onclose?.({
+        code: 1000,
+        reason: 'Network closed',
+      } as CloseEvent);
+
+      await webSocketService.reconnect('manual-button');
+
+      const reconnectUrl = new URL(
+        String(WebSocketMock.mock.calls.at(-1)?.[0]),
+      );
+      expect(reconnectUrl.searchParams.get('reconnect')).toBe('HOST01');
+      expect(reconnectUrl.searchParams.has('join')).toBe(false);
+      expect(reconnectUrl.searchParams.get('userId')).toBe(
+        'host-participant',
+      );
+    });
+
     it('should handle connection failure', async () => {
       WebSocketMock.mockImplementationOnce(() => {
         const ws = createMockWebSocket();
@@ -231,24 +293,22 @@ describe('WebSocketManager', () => {
       vi.useRealTimers();
     });
 
-    it('should not send client-initiated heartbeat (server-driven)', async () => {
+    it('should send a client ping for a true RTT sample', async () => {
       const connectPromise = webSocketService.connect('TEST123');
-      await vi.runAllTimersAsync(); // Allow setTimeout(0) to fire
+      await vi.advanceTimersByTimeAsync(0);
       await connectPromise;
 
-      // Fast-forward time past heartbeat interval
-      vi.advanceTimersByTime(31000);
+      await vi.advanceTimersByTimeAsync(30000);
 
       const mockWs = getMockWebSocket();
 
-      // Should NOT have sent any client-initiated heartbeat
       const calls = mockWs.send.mock.calls;
       const heartbeatCalls = calls.filter((call) => {
         const data = JSON.parse(call[0]);
         return data.type === 'heartbeat' && data.data?.type === 'ping';
       });
 
-      expect(heartbeatCalls).toHaveLength(0);
+      expect(heartbeatCalls).toHaveLength(1);
     });
 
     it('should respond to server ping with pong', async () => {
@@ -288,38 +348,34 @@ describe('WebSocketManager', () => {
       vi.useFakeTimers(); // Restore fake timers
     });
 
-    it('should update connection quality on pong response', async () => {
+    it('should ignore an 800 ms clock difference when measuring RTT', async () => {
       vi.setSystemTime(new Date('2025-01-01T00:00:00.000Z'));
+      let monotonicNow = 100;
+      const performanceSpy = vi
+        .spyOn(performance, 'now')
+        .mockImplementation(() => monotonicNow);
 
       const connectPromise = webSocketService.connect('TEST123');
-      await vi.runAllTimersAsync(); // Allow setTimeout(0) to fire
+      await vi.advanceTimersByTimeAsync(0);
       await connectPromise;
 
       const mockWs = getMockWebSocket();
+      await vi.advanceTimersByTimeAsync(30000);
 
-      // Simulate server ping
-      const pingTime = Date.now();
-      const pingMessage = {
-        type: 'heartbeat',
-        data: { type: 'ping', id: 'test-ping-1' },
-        timestamp: pingTime,
-      };
+      const pingCall = mockWs.send.mock.calls.find((call) => {
+        const data = JSON.parse(call[0]);
+        return data.type === 'heartbeat' && data.data?.type === 'ping';
+      });
+      expect(pingCall).toBeDefined();
+      const pingMessage = JSON.parse(pingCall![0]);
 
-      if (mockWs.onmessage) {
-        mockWs.onmessage({
-          data: JSON.stringify(pingMessage),
-        } as MessageEvent);
-      }
-
-      await vi.runAllTimersAsync();
-
-      // Advance time by 50ms (simulate network latency)
-      vi.advanceTimersByTime(50);
-
-      // Simulate server pong response
+      // The server wall clock is 800 ms ahead, while the monotonic elapsed
+      // time on this browser is only 42 ms.
+      vi.setSystemTime(new Date('2025-01-01T00:00:00.800Z'));
+      monotonicNow += 42;
       const pongMessage = {
         type: 'heartbeat',
-        data: { type: 'pong', id: 'test-ping-1', clientTime: pingTime },
+        data: { type: 'pong', id: pingMessage.data.id },
         timestamp: Date.now(),
       };
 
@@ -329,10 +385,11 @@ describe('WebSocketManager', () => {
         } as MessageEvent);
       }
 
-      await vi.runAllTimersAsync();
-
-      // Connection quality should be updated (tested indirectly via console logs)
-      expect(true).toBe(true);
+      expect(webSocketService.getConnectionQuality().latency).toBe(42);
+      expect(webSocketService.getConnectionQuality().quality).toBe(
+        'excellent',
+      );
+      performanceSpy.mockRestore();
     });
   });
 
@@ -347,7 +404,7 @@ describe('WebSocketManager', () => {
 
     it('should attempt reconnection on unexpected disconnect', async () => {
       const connectPromise = webSocketService.connect('TEST123');
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(0);
       await connectPromise;
       const mockWs = getMockWebSocket();
 
@@ -358,7 +415,7 @@ describe('WebSocketManager', () => {
 
       // Fast-forward to trigger reconnection attempt
       vi.advanceTimersByTime(2000);
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(0);
 
       // Should have attempted reconnection
       expect(WebSocketMock).toHaveBeenCalledTimes(2);
@@ -366,7 +423,7 @@ describe('WebSocketManager', () => {
 
     it('should use exponential backoff for reconnection', async () => {
       const connectPromise = webSocketService.connect('TEST123');
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(0);
       await connectPromise;
       const mockWs = getMockWebSocket();
 
@@ -377,7 +434,7 @@ describe('WebSocketManager', () => {
 
       // First reconnect attempt after ~1s
       vi.advanceTimersByTime(1500);
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(0);
 
       // Get the reconnected mock
       const secondMockWs = getMockWebSocket();
@@ -392,7 +449,7 @@ describe('WebSocketManager', () => {
 
       // Second reconnect should take longer (exponential backoff)
       vi.advanceTimersByTime(3000);
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(0);
 
       // Should have made multiple reconnection attempts
       expect(WebSocketMock).toHaveBeenCalled();
@@ -400,7 +457,7 @@ describe('WebSocketManager', () => {
 
     it('should not reconnect on manual disconnect', async () => {
       const connectPromise = webSocketService.connect('TEST123');
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(0);
       await connectPromise;
 
       const initialCallCount = WebSocketMock.mock.calls.length;
@@ -410,7 +467,7 @@ describe('WebSocketManager', () => {
 
       // Wait for potential reconnection
       vi.advanceTimersByTime(5000);
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(0);
 
       // Should not have attempted reconnection
       expect(WebSocketMock).toHaveBeenCalledTimes(initialCallCount);
@@ -418,7 +475,7 @@ describe('WebSocketManager', () => {
 
     it('should retry when a reconnection attempt fails', async () => {
       const connectPromise = webSocketService.connect('TEST123');
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(0);
       await connectPromise;
       const initialSocket = getMockWebSocket();
 
@@ -452,7 +509,7 @@ describe('WebSocketManager', () => {
 
     it('should cancel a pending reconnect on manual disconnect', async () => {
       const connectPromise = webSocketService.connect('TEST123');
-      await vi.runAllTimersAsync();
+      await vi.advanceTimersByTimeAsync(0);
       await connectPromise;
       const initialSocket = getMockWebSocket();
 

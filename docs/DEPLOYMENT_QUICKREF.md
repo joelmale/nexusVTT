@@ -7,6 +7,7 @@ One-page cheat sheet for deploying and managing Nexus VTT on your homelab using 
 ### Method 1: Portainer GUI (Recommended)
 
 **Prerequisites:**
+
 - Portainer installed and accessible (e.g., `https://portainer.yourdomain.com`)
 - Docker Swarm initialized
 - Domain pointing to your server (e.g., `app.nexusvtt.com`)
@@ -43,6 +44,7 @@ One-page cheat sheet for deploying and managing Nexus VTT on your homelab using 
    ```
 
    **Optional (for OAuth):**
+
    ```
    GOOGLE_CLIENT_ID=xxx.apps.googleusercontent.com
    GOOGLE_CLIENT_SECRET=GOCSPX-xxx
@@ -84,12 +86,14 @@ docker service logs nexus_backend -f
 ## 🌐 Nginx Proxy Manager Setup (One-Time)
 
 **Create Proxy Host:**
+
 - Domain: `app.nexusvtt.com`
 - Forward to: `swarm-manager-ip:3000`
 - SSL: Request Let's Encrypt cert
 - Advanced tab: Add `/api`, `/auth`, `/ws` location blocks
 
 **Advanced Config Template:**
+
 ```nginx
 location / { proxy_pass http://SWARM_IP:3000; }
 location ~ ^/(api|auth|health) { proxy_pass http://SWARM_IP:5000; }
@@ -138,6 +142,7 @@ git push origin main
 ```
 
 **Watch the deployment:**
+
 - GitHub: **Actions** tab → See workflow running
 - Portainer: **Stacks** → **nexus** → Services updating (yellow → green)
 
@@ -150,6 +155,7 @@ git push origin main
 **Navigation:** Portainer → Stacks → nexus
 
 **What you see:**
+
 - **Services:** List of all 5 services (frontend, backend, postgres, redis, traefik)
 - **Status indicators:**
   - 🟢 Green: Running normally (e.g., 2/2 replicas)
@@ -173,6 +179,7 @@ git push origin main
 ### Scaling Services
 
 **Via Portainer GUI:**
+
 1. **Stacks** → **nexus** → Click service (e.g., **nexus_backend**)
 2. Click **Scale** button (or edit icon)
 3. Adjust **Replicas** number (e.g., 3 → 5)
@@ -209,10 +216,12 @@ git push origin main
 **Navigation:** Portainer → Volumes
 
 **Nexus volumes:**
+
 - `nexus_postgres-data` - PostgreSQL database files
 - `nexus_redis-data` - Redis cache data
 
 **Actions:**
+
 - **Browse:** View files inside volume
 - **Download:** Backup volume as tar.gz
 - **Upload:** Restore files to volume (⚠️ USE WITH CAUTION)
@@ -222,6 +231,7 @@ git push origin main
 **Navigation:** Portainer → Networks → `nexus_nexus-network`
 
 **See:**
+
 - Connected services
 - IP address assignments
 - Network driver (overlay for Swarm)
@@ -233,12 +243,14 @@ git push origin main
 ### Stack Management
 
 **Portainer GUI:**
+
 - **Deploy/Update:** Stacks → nexus → **Pull and redeploy** button
 - **Stop All Services:** Stacks → nexus → **Stop** button
 - **Start All Services:** Stacks → nexus → **Start** button
 - **Remove Stack:** Stacks → nexus → **Delete this stack** (⚠️ DATA LOSS if volumes removed)
 
 **CLI Alternative:**
+
 ```bash
 # Deploy/Update stack
 docker stack deploy -c docker/docker-compose.homelab.yml nexus
@@ -256,11 +268,13 @@ docker service ps nexus_backend --no-trunc
 ### Viewing Logs
 
 **Portainer GUI:**
+
 - Stacks → nexus → [service name] → **Logs** tab
 - Toggle **Auto-refresh** for live streaming
 - Use **Search** box to filter log lines
 
 **CLI Alternative:**
+
 ```bash
 # Follow logs
 docker service logs -f nexus_backend
@@ -276,10 +290,12 @@ docker service logs --since 2024-01-03T10:00:00 nexus_backend
 ### Scaling Services
 
 **Portainer GUI:**
+
 - Stacks → nexus → [service] → **Scale** button
 - Adjust replica count → **Apply**
 
 **CLI Alternative:**
+
 ```bash
 # Scale services
 docker service scale nexus_backend=5
@@ -292,10 +308,12 @@ docker service ls | grep nexus
 ### Service Updates
 
 **Portainer GUI:**
+
 - Stacks → nexus → **Pull and redeploy** (updates all services)
 - OR: Single service → **Update service** → Change image tag
 
 **CLI Alternative:**
+
 ```bash
 # Pull latest images
 docker service update --image ghcr.io/yourusername/nexus/frontend:latest nexus_frontend
@@ -318,19 +336,23 @@ docker exec -i "$CONTAINER" psql -U nexus -d nexus \
   < server/migrations/2026-07-19-add-room-event-journal.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
   < server/migrations/2026-07-19-add-durable-game-state-commits.sql
+docker exec -i "$CONTAINER" psql -U nexus -d nexus \
+  < server/migrations/2026-07-19-add-room-entity-versions.sql
 ```
 
-Run both migrations before rolling any backend replica. The backend startup
+Run all three migrations in order before rolling any backend replica. The backend startup
 check adds missing columns defensively, but explicit migrations keep the fleet
 on one known schema and make rollback planning predictable.
 
 **Portainer GUI:**
+
 - **Backup:** Volumes → `nexus_postgres-data` → **Download**
 - **Console access:** Stacks → nexus → nexus_postgres → Container → **Exec Console**
   - Shell: `/bin/bash`
   - Connect → Run: `psql -U nexus nexus`
 
 **CLI Alternative:**
+
 ```bash
 # Backup
 CONTAINER=$(docker ps -q -f name=nexus_postgres)
@@ -353,6 +375,7 @@ docker exec -it $(docker ps -q -f name=nexus_postgres) psql -U nexus nexus
 ### Service Won't Start (Red Status in Portainer)
 
 **Portainer GUI:**
+
 1. Stacks → nexus → Click failing service
 2. Check **Logs** tab for error messages
 3. Check **Tasks** or **Containers** list - hover over red icon for error details
@@ -362,6 +385,7 @@ docker exec -it $(docker ps -q -f name=nexus_postgres) psql -U nexus nexus
    - Image pull failures (check network/credentials)
 
 **CLI Alternative:**
+
 ```bash
 docker service ps nexus_backend --no-trunc
 docker service logs nexus_backend
@@ -370,7 +394,9 @@ docker service logs nexus_backend
 ### Can't Access App
 
 **Steps:**
+
 1. **Check DNS:**
+
    ```bash
    nslookup app.nexusvtt.com
    # Should return your server IP
@@ -395,21 +421,25 @@ docker service logs nexus_backend
 ### API/WebSocket Errors
 
 **Test endpoints:**
+
 ```bash
 curl https://app.nexusvtt.com/health
 curl https://app.nexusvtt.com/api/health
 ```
 
 **Check CORS (Portainer):**
+
 1. Stacks → nexus → nexus_backend → **Environment variables** section
 2. Verify `CORS_ORIGIN=https://app.nexusvtt.com`
 
 **Update CORS (Portainer):**
+
 1. Stacks → nexus → nexus_backend → **Update service**
 2. Environment variables → Add/edit `CORS_ORIGIN`
 3. **Update service**
 
 **CLI Alternative:**
+
 ```bash
 docker service update --env-add CORS_ORIGIN=https://app.nexusvtt.com nexus_backend
 ```
@@ -417,6 +447,7 @@ docker service update --env-add CORS_ORIGIN=https://app.nexusvtt.com nexus_backe
 ### Database Connection Issues
 
 **Portainer GUI:**
+
 1. **Check Postgres Logs:** Stacks → nexus → nexus_postgres → Logs
 2. **Test Connection from Backend:**
    - nexus_backend → Container → **Exec Console**
@@ -428,6 +459,7 @@ docker service update --env-add CORS_ORIGIN=https://app.nexusvtt.com nexus_backe
 3. **Check Network:** Networks → nexus_nexus-network → Verify both postgres and backend connected
 
 **CLI Alternative:**
+
 ```bash
 docker service logs nexus_postgres
 docker exec -it $(docker ps -q -f name=nexus_backend) sh
@@ -439,37 +471,46 @@ psql -h postgres -U nexus -d nexus
 ## 🎯 Health Checks
 
 **Portainer Quick Check:**
+
 - Stacks → nexus → All services should show green 🟢 with correct replica count (e.g., 2/2, 3/3)
 
 **Detailed Checks:**
 
 **Frontend:**
+
 ```bash
 curl -I https://app.nexusvtt.com
 # Expected: HTTP/2 200
 ```
-*Portainer: nexus_frontend → Logs should show "Server running on port 80"*
+
+_Portainer: nexus_frontend → Logs should show "Server running on port 80"_
 
 **Backend:**
+
 ```bash
 curl https://app.nexusvtt.com/health
 # Expected: {"status":"ok"}
 ```
-*Portainer: nexus_backend → Logs should show "Server listening on port 5000"*
+
+_Portainer: nexus_backend → Logs should show "Server listening on port 5000"_
 
 **Database:**
+
 ```bash
 docker exec $(docker ps -q -f name=nexus_postgres) pg_isready -U nexus
 # Expected: accepting connections
 ```
-*Portainer: nexus_postgres → Logs should show "database system is ready to accept connections"*
+
+_Portainer: nexus_postgres → Logs should show "database system is ready to accept connections"_
 
 **Redis:**
+
 ```bash
 docker exec $(docker ps -q -f name=nexus_redis) redis-cli ping
 # Expected: PONG
 ```
-*Portainer: nexus_redis → Logs should show "Ready to accept connections"*
+
+_Portainer: nexus_redis → Logs should show "Ready to accept connections"_
 
 ---
 
@@ -478,21 +519,25 @@ docker exec $(docker ps -q -f name=nexus_redis) redis-cli ping
 ### Portainer Dashboard
 
 **Real-time Stack Monitoring:**
+
 - **Home** → Environment → Click your Swarm
 - See cluster-wide stats: CPU, memory, running containers
 - Quick glance at all stacks and their health
 
 **Stack-Specific Monitoring:**
+
 - Stacks → nexus
 - Overview shows: Service count, running tasks, update status
 - Click any service for detailed metrics
 
 **Service Resource Usage:**
+
 - Stacks → nexus → [service] → Container → **Stats** tab
 - Real-time graphs: CPU %, Memory MB, Network I/O
 - Useful for identifying resource bottlenecks
 
 **Container Metrics:**
+
 - Live updating graphs per container
 - Historical data (if Portainer analytics enabled)
 - Set alerts for high resource usage (Portainer Business Edition)
@@ -520,6 +565,7 @@ docker network inspect nexus_nexus-network
 ### Managing Secrets
 
 **Update Environment Variable (Portainer):**
+
 1. Stacks → nexus → **Editor** tab
 2. Scroll to **Environment variables** section
 3. Edit value (e.g., change JWT_SECRET)
@@ -527,16 +573,19 @@ docker network inspect nexus_nexus-network
 5. Services automatically restart with new secrets
 
 **Generate New Secrets:**
+
 ```bash
 # Generate secure random strings
 openssl rand -base64 32
 ```
 
 **View Current Environment (Portainer):**
+
 - Stacks → nexus → Service → **Environment** section
 - ⚠️ Secrets are visible here - be careful who has access
 
 **CLI Alternative:**
+
 ```bash
 # View environment (redact before sharing)
 docker service inspect nexus_backend --format='{{json .Spec.TaskTemplate.ContainerSpec.Env}}'
@@ -549,16 +598,16 @@ docker service update --env-add NEW_SECRET=value nexus_backend
 
 ## 🗂️ File Locations
 
-| Item | Location |
-|------|----------|
-| Portainer Stack Config | Portainer → Stacks → nexus → **Editor** tab |
-| Docker Compose File | `docker/docker-compose.homelab.yml` (in GitHub repo) |
-| Environment Variables | Stored in Portainer stack configuration |
-| Webhook URL | Portainer → Stacks → nexus → **Webhooks** section |
-| Deployment files (if using CLI) | `/opt/nexus-vtt/` on Swarm manager |
-| Postgres data | Docker volume: `nexus_postgres-data` |
-| Redis data | Docker volume: `nexus_redis-data` |
-| Portainer data | Docker volume: `portainer_data` |
+| Item                            | Location                                             |
+| ------------------------------- | ---------------------------------------------------- |
+| Portainer Stack Config          | Portainer → Stacks → nexus → **Editor** tab          |
+| Docker Compose File             | `docker/docker-compose.homelab.yml` (in GitHub repo) |
+| Environment Variables           | Stored in Portainer stack configuration              |
+| Webhook URL                     | Portainer → Stacks → nexus → **Webhooks** section    |
+| Deployment files (if using CLI) | `/opt/nexus-vtt/` on Swarm manager                   |
+| Postgres data                   | Docker volume: `nexus_postgres-data`                 |
+| Redis data                      | Docker volume: `nexus_redis-data`                    |
+| Portainer data                  | Docker volume: `portainer_data`                      |
 
 ---
 
@@ -592,6 +641,7 @@ Live on https://app.nexusvtt.com 🎉
 ```
 
 **Monitoring Deployment in Portainer:**
+
 1. After `git push`, open: Stacks → nexus
 2. Watch service status icons change: 🟢 → 🟡 → 🟢
 3. Click any service to see logs during update
@@ -621,16 +671,16 @@ Live on https://app.nexusvtt.com 🎉
 
 ### Example Scenarios:
 
-| Task | Best Method | Why |
-|------|-------------|-----|
-| First-time deployment | **GUI** | Easier to configure environment variables |
-| Checking if services are healthy | **GUI** | Visual status indicators at a glance |
-| Viewing live logs during troubleshooting | **GUI** | Auto-refresh and search features |
-| Scaling backend from 3 to 5 replicas | **GUI** | Click button, done in 5 seconds |
-| Creating automated backup script | **CLI** | Scriptable, runs in cron |
-| Updating 10 environment variables | **GUI** | Form-based editing is clearer |
-| Accessing database console | **Either** | GUI has built-in console, CLI is direct |
-| Emergency rollback at 3am | **CLI** | Faster if you're already in terminal |
+| Task                                     | Best Method | Why                                       |
+| ---------------------------------------- | ----------- | ----------------------------------------- |
+| First-time deployment                    | **GUI**     | Easier to configure environment variables |
+| Checking if services are healthy         | **GUI**     | Visual status indicators at a glance      |
+| Viewing live logs during troubleshooting | **GUI**     | Auto-refresh and search features          |
+| Scaling backend from 3 to 5 replicas     | **GUI**     | Click button, done in 5 seconds           |
+| Creating automated backup script         | **CLI**     | Scriptable, runs in cron                  |
+| Updating 10 environment variables        | **GUI**     | Form-based editing is clearer             |
+| Accessing database console               | **Either**  | GUI has built-in console, CLI is direct   |
+| Emergency rollback at 3am                | **CLI**     | Faster if you're already in terminal      |
 
 **Pro Tip:** Use both! GUI for daily monitoring, CLI for scripts and automation.
 
@@ -641,10 +691,12 @@ Live on https://app.nexusvtt.com 🎉
 ### Complete Restart
 
 **Portainer GUI:**
+
 1. Stacks → nexus → **Stop stack** → Wait 30 seconds
 2. **Start stack** → Wait for all services to turn green 🟢
 
 **CLI Alternative:**
+
 ```bash
 docker stack rm nexus && sleep 30 && docker stack deploy -c docker/docker-compose.homelab.yml nexus
 ```
@@ -652,11 +704,13 @@ docker stack rm nexus && sleep 30 && docker stack deploy -c docker/docker-compos
 ### Rebuild Single Service
 
 **Portainer GUI:**
+
 1. Stacks → nexus → [service name]
 2. **Update service** → Check **Force update**
 3. **Update service** button
 
 **CLI Alternative:**
+
 ```bash
 docker service update --force nexus_backend
 ```
@@ -664,10 +718,12 @@ docker service update --force nexus_backend
 ### Maintenance Mode (Scale Down)
 
 **Portainer GUI:**
+
 1. Stacks → nexus → nexus_backend → **Scale** → Set to 0
 2. Stacks → nexus → nexus_frontend → **Scale** → Set to 0
 
 **CLI Alternative:**
+
 ```bash
 docker service scale nexus_backend=0 nexus_frontend=0
 ```
@@ -675,11 +731,13 @@ docker service scale nexus_backend=0 nexus_frontend=0
 ### Exit Maintenance Mode (Scale Up)
 
 **Portainer GUI:**
+
 1. Restore original replica counts via **Scale** button
    - Backend: 3 replicas
    - Frontend: 2 replicas
 
 **CLI Alternative:**
+
 ```bash
 docker service scale nexus_backend=3 nexus_frontend=2
 ```
@@ -687,12 +745,14 @@ docker service scale nexus_backend=3 nexus_frontend=2
 ### Nuclear Option: Reset Everything (⚠️ DATA LOSS!)
 
 **Portainer GUI:**
+
 1. Stacks → nexus → **Delete this stack**
 2. Check **Automatically remove the stack's volumes**
 3. Confirm deletion
 4. Redeploy using "Initial Deployment" steps
 
 **CLI Alternative:**
+
 ```bash
 docker stack rm nexus
 docker volume rm nexus_postgres-data nexus_redis-data
@@ -705,21 +765,21 @@ docker stack deploy -c docker/docker-compose.homelab.yml nexus
 
 Configure these in: **Portainer → Stacks → nexus → Editor → Environment variables**
 
-| Variable | Example | Required | Notes |
-|----------|---------|----------|-------|
-| `GITHUB_REPO` | `username/nexus` | ✅ | Your GitHub repo path |
-| `VERSION` | `latest` or `v1.0.0` | ✅ | Image tag to deploy |
-| `POSTGRES_PASSWORD` | `<32-char secret>` | ✅ | Generate with `openssl rand -base64 32` |
-| `POSTGRES_USER` | `nexus` | ✅ | Database username |
-| `POSTGRES_DB` | `nexus` | ✅ | Database name |
-| `REDIS_PASSWORD` | `<32-char secret>` | ✅ | Generate with `openssl rand -base64 32` |
-| `JWT_SECRET` | `<32-char secret>` | ✅ | Generate with `openssl rand -base64 32` |
-| `SESSION_SECRET` | `<32-char secret>` | ✅ | Generate with `openssl rand -base64 32` |
-| `CORS_ORIGIN` | `https://app.nexusvtt.com` | ✅ | Your public domain |
-| `GOOGLE_CLIENT_ID` | `xxx.apps.googleusercontent.com` | ❌ | For Google OAuth login |
-| `GOOGLE_CLIENT_SECRET` | `GOCSPX-xxx` | ❌ | For Google OAuth login |
-| `DISCORD_CLIENT_ID` | `1234567890` | ❌ | For Discord OAuth login |
-| `DISCORD_CLIENT_SECRET` | `xxx` | ❌ | For Discord OAuth login |
+| Variable                | Example                          | Required | Notes                                   |
+| ----------------------- | -------------------------------- | -------- | --------------------------------------- |
+| `GITHUB_REPO`           | `username/nexus`                 | ✅       | Your GitHub repo path                   |
+| `VERSION`               | `latest` or `v1.0.0`             | ✅       | Image tag to deploy                     |
+| `POSTGRES_PASSWORD`     | `<32-char secret>`               | ✅       | Generate with `openssl rand -base64 32` |
+| `POSTGRES_USER`         | `nexus`                          | ✅       | Database username                       |
+| `POSTGRES_DB`           | `nexus`                          | ✅       | Database name                           |
+| `REDIS_PASSWORD`        | `<32-char secret>`               | ✅       | Generate with `openssl rand -base64 32` |
+| `JWT_SECRET`            | `<32-char secret>`               | ✅       | Generate with `openssl rand -base64 32` |
+| `SESSION_SECRET`        | `<32-char secret>`               | ✅       | Generate with `openssl rand -base64 32` |
+| `CORS_ORIGIN`           | `https://app.nexusvtt.com`       | ✅       | Your public domain                      |
+| `GOOGLE_CLIENT_ID`      | `xxx.apps.googleusercontent.com` | ❌       | For Google OAuth login                  |
+| `GOOGLE_CLIENT_SECRET`  | `GOCSPX-xxx`                     | ❌       | For Google OAuth login                  |
+| `DISCORD_CLIENT_ID`     | `1234567890`                     | ❌       | For Discord OAuth login                 |
+| `DISCORD_CLIENT_SECRET` | `xxx`                            | ❌       | For Discord OAuth login                 |
 
 **Tip:** Copy these to a password manager before deploying!
 

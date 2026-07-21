@@ -1,13 +1,16 @@
 import { WebSocket, WebSocketServer } from 'ws';
 import { EventEmitter } from 'events';
-import { v4 as uuidv4 } from 'uuid';
-import { validate as validateUuid } from 'uuid';
+import { v4 as uuidv4, validate as validateUuid } from 'uuid';
 import { encode, decode } from '@msgpack/msgpack';
 import jsonpatch, { type Operation } from 'fast-json-patch';
 import { Room, Connection, ServerMessage, type GameState } from '../types.js';
 import { DatabaseService } from '../database.js';
 import { parseTransportEnvelope } from '../../shared/transport.js';
-import type { AppendRoomEventResult } from '../repositories/EventJournalRepository.js';
+import {
+  EntityVersionConflictError,
+  type AppendRoomEventResult,
+  type EntityVersionPrecondition,
+} from '../repositories/EventJournalRepository.js';
 import {
   RealtimeCoordinator,
   type DistributedRole,
@@ -33,6 +36,9 @@ const CLIENT_MESSAGE_TYPES = new Set([
   'game-state-resync-required',
 ]);
 
+const sanitizeSocketLogValue = (value: string): string =>
+  value.replace(/[\r\n\t]/g, ' ').slice(0, 160);
+
 export interface OrderedPublishOptions {
   excludeId?: string;
   identitySource?: ServerMessage;
@@ -40,6 +46,8 @@ export interface OrderedPublishOptions {
   onAccepted?: () => void;
   onAcknowledged?: () => void;
   senderReceivesEvent?: boolean;
+  entityVersion?: EntityVersionPrecondition;
+  onVersionConflict?: (currentVersion: number) => void;
 }
 
 export class SocketManager extends EventEmitter {
@@ -55,6 +63,7 @@ export class SocketManager extends EventEmitter {
     replayRequests: 0,
     replayed: 0,
     truncatedReplays: 0,
+    versionConflicts: 0,
   };
 
   private readonly HIBERNATION_TIMEOUT = 72 * 60 * 60 * 1000;
@@ -116,10 +125,24 @@ export class SocketManager extends EventEmitter {
     ws: WebSocket,
     displayName: string,
     existingId?: string,
+    requestedInstanceId?: string,
+    reconnectTrigger?: string,
   ): Connection {
     const id = existingId || uuidv4();
+    let instanceId =
+      requestedInstanceId && validateUuid(requestedInstanceId)
+        ? requestedInstanceId
+        : uuidv4();
+    const previousConnection = this.connections.get(id);
+    const safeReconnectTrigger = reconnectTrigger
+      ? sanitizeSocketLogValue(reconnectTrigger)
+      : 'connect';
+    if (previousConnection?.instanceId === instanceId) {
+      instanceId = uuidv4();
+    }
     const connection: Connection = {
       id,
+      instanceId,
       ws,
       user: {
         name: displayName,
@@ -127,9 +150,29 @@ export class SocketManager extends EventEmitter {
       },
       consecutiveMisses: 0,
       connectionQuality: 'excellent',
+      reconnectTrigger: safeReconnectTrigger,
     };
 
     this.connections.set(id, connection);
+    console.info('[WebSocket] connection registered', {
+      socketInstanceId: instanceId,
+      participantId: id,
+      reconnectTrigger: safeReconnectTrigger,
+    });
+
+    if (
+      previousConnection &&
+      previousConnection.instanceId !== instanceId &&
+      previousConnection.ws.readyState !== WebSocket.CLOSED
+    ) {
+      console.info('[WebSocket] replacing participant socket', {
+        socketInstanceId: instanceId,
+        replacedSocketInstanceId: previousConnection.instanceId,
+        participantId: id,
+        reconnectTrigger: safeReconnectTrigger,
+      });
+      previousConnection.ws.close(4000, 'Superseded by newer connection');
+    }
 
     ws.on('message', (data, isBinary) => {
       try {
@@ -143,31 +186,57 @@ export class SocketManager extends EventEmitter {
           decodedMessage,
           CLIENT_MESSAGE_TYPES,
         ) as ServerMessage;
-        this.handleMessage(id, message);
+        this.handleMessage(id, instanceId, message);
       } catch (error) {
         console.error('Failed to parse message:', error);
       }
     });
 
-    ws.on('close', () => this.handleDisconnect(id));
+    ws.on('close', (code, reason) => {
+      void this.handleDisconnect(id, instanceId, code, reason.toString());
+    });
     ws.on('error', (error) => {
-      console.error(`WebSocket error for ${id}:`, error);
-      this.handleDisconnect(id);
+      console.error('[WebSocket] server socket error', {
+        socketInstanceId: instanceId,
+        participantId: id,
+        error,
+      });
+      void this.handleDisconnect(id, instanceId, 1011, 'Socket error');
     });
 
     return connection;
   }
 
-  private handleMessage(fromId: string, message: ServerMessage) {
+  private handleMessage(
+    fromId: string,
+    instanceId: string,
+    message: ServerMessage,
+  ) {
+    const connection = this.connections.get(fromId);
+    if (!connection || connection.instanceId !== instanceId) {
+      console.warn('[WebSocket] ignored message from superseded socket', {
+        socketInstanceId: instanceId,
+        activeSocketInstanceId: connection?.instanceId || null,
+        participantId: fromId,
+        messageType: message.type,
+      });
+      return;
+    }
+
     if (message.type === 'heartbeat') {
       const data = message.data as { type: 'ping' | 'pong'; id: string };
-      if (data.type === 'pong') {
-        this.handleHeartbeatPong(fromId, data.id);
+      if (data.type === 'ping') {
+        this.sendMessage(connection, {
+          type: 'heartbeat',
+          data: { type: 'pong', id: data.id },
+          timestamp: Date.now(),
+        });
+      } else {
+        this.handleHeartbeatPong(fromId, instanceId, data.id);
       }
       return;
     }
 
-    const connection = this.connections.get(fromId);
     if (!connection?.room) return;
 
     const room = this.rooms.get(connection.room);
@@ -188,18 +257,35 @@ export class SocketManager extends EventEmitter {
     }
   }
 
-  public async handleDisconnect(id: string) {
+  public async handleDisconnect(
+    id: string,
+    instanceId: string,
+    closeCode = 1006,
+    closeReason = '',
+  ) {
     const connection = this.connections.get(id);
-    if (!connection) return;
+    const superseded = !connection || connection.instanceId !== instanceId;
+    console.info('[WebSocket] connection closed', {
+      socketInstanceId: instanceId,
+      activeSocketInstanceId: connection?.instanceId || null,
+      participantId: id,
+      closeCode,
+      closeReason: sanitizeSocketLogValue(closeReason),
+      reconnectTrigger: connection?.reconnectTrigger || null,
+      superseded,
+    });
+    if (superseded) return;
 
     if (connection.room) {
       const room = this.rooms.get(connection.room);
       if (room) {
-        this.emit('disconnect', { id, connection, room });
+        this.emit('disconnect', { id, instanceId, connection, room });
       }
     }
 
-    this.connections.delete(id);
+    if (this.connections.get(id)?.instanceId === instanceId) {
+      this.connections.delete(id);
+    }
   }
 
   public broadcastToRoom(
@@ -278,6 +364,7 @@ export class SocketManager extends EventEmitter {
           identity,
           message,
           Boolean(options.senderReceivesEvent),
+          options.entityVersion,
         );
         if (result.duplicate) {
           this.orderedEventMetrics.duplicates += 1;
@@ -297,6 +384,11 @@ export class SocketManager extends EventEmitter {
         if (!result.duplicate) await this.realtime.publishOrdered(result.event);
         return result;
       } catch (error) {
+        if (error instanceof EntityVersionConflictError) {
+          this.orderedEventMetrics.versionConflicts += 1;
+          options.onVersionConflict?.(error.currentVersion);
+          return null;
+        }
         this.orderedEventMetrics.failed += 1;
         console.error(
           `Failed to commit ordered event ${identity.eventId} in ${room.code}:`,
@@ -387,9 +479,19 @@ export class SocketManager extends EventEmitter {
     }, this.HEARTBEAT_INTERVAL);
   }
 
-  private handleHeartbeatPong(id: string, pingId: string) {
+  private handleHeartbeatPong(
+    id: string,
+    instanceId: string,
+    pingId: string,
+  ) {
     const connection = this.connections.get(id);
-    if (!connection || connection.pendingPing !== pingId) return;
+    if (
+      !connection ||
+      connection.instanceId !== instanceId ||
+      connection.pendingPing !== pingId
+    ) {
+      return;
+    }
 
     const responseTime = Date.now() - (connection.lastPing || 0);
     connection.lastPong = Date.now();
@@ -405,7 +507,12 @@ export class SocketManager extends EventEmitter {
     connection.pendingPing = undefined;
     if (connection.consecutiveMisses >= this.MAX_CONSECUTIVE_MISSES) {
       connection.connectionQuality = 'critical';
-      this.handleDisconnect(id);
+      void this.handleDisconnect(
+        id,
+        connection.instanceId,
+        4001,
+        'Heartbeat timeout',
+      );
       connection.ws.terminate();
     } else if (connection.consecutiveMisses >= 2) {
       connection.connectionQuality = 'poor';
