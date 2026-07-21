@@ -35,8 +35,10 @@ interface ApiCharacter {
   name: string;
   ownerId: string;
   data: {
-    race?: string;
-    class?: string;
+    race?: unknown;
+    species?: unknown;
+    class?: unknown;
+    characterClass?: unknown;
     level?: number;
     xp?: number;
     hp?: { current: number; max: number };
@@ -54,6 +56,21 @@ interface ApiCharacter {
   createdAt: string;
   updatedAt: string;
 }
+
+const getCharacterLabel = (value: unknown, fallback: string): string => {
+  if (typeof value === 'string') {
+    return value.trim() || fallback;
+  }
+
+  if (value && typeof value === 'object' && 'name' in value) {
+    const name = (value as { name?: unknown }).name;
+    if (typeof name === 'string') {
+      return name.trim() || fallback;
+    }
+  }
+
+  return fallback;
+};
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
@@ -351,8 +368,11 @@ export const Dashboard: React.FC = () => {
       id: c.id,
       name: c.name,
       level: data.level ?? 1,
-      klass: data.class || 'Adventurer',
-      race: data.race || 'Human',
+      klass: getCharacterLabel(
+        data.class ?? data.characterClass,
+        'Adventurer',
+      ),
+      race: getCharacterLabel(data.race ?? data.species, 'Human'),
       xp: data.xp,
       hp: deriveHp(data),
       mana: data.mana,

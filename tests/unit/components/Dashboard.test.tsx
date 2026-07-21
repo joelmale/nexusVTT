@@ -81,6 +81,62 @@ describe('Dashboard', () => {
     expect(await screen.findByText('Gimli')).toBeInTheDocument();
   });
 
+  it('renders character race objects using their display name', async () => {
+    vi.mocked(useGameStore).mockReturnValue({
+      user: { id: 'user-1', name: 'Adventurer Joel' },
+      isAuthenticated: true,
+      authChecked: true,
+      joinRoomWithCode: vi.fn(),
+      createGameRoom: vi.fn(),
+    });
+
+    mockFetch.mockImplementation((url: string) => {
+      if (url.includes('/api/campaigns')) {
+        return Promise.resolve({
+          ok: true,
+          json: () => Promise.resolve([]),
+        });
+      }
+      if (url.includes('/api/characters')) {
+        return Promise.resolve({
+          ok: true,
+          json: () =>
+            Promise.resolve([
+              {
+                id: 'ch-object-race',
+                name: 'Lyra',
+                ownerId: 'user-1',
+                data: {
+                  race: {
+                    name: 'High Elf',
+                    speed: 30,
+                    traits: [],
+                    languages: ['Common', 'Elvish'],
+                    proficiencies: [],
+                    abilityScoreIncrease: { dexterity: 2 },
+                  },
+                  class: 'Wizard',
+                  level: 4,
+                },
+                updatedAt: new Date().toISOString(),
+                createdAt: new Date().toISOString(),
+              },
+            ]),
+        });
+      }
+      return Promise.resolve({
+        ok: false,
+        status: 503,
+        json: () => Promise.resolve({ error: 'Service unavailable in test' }),
+      });
+    });
+
+    render(<Dashboard />);
+
+    expect(await screen.findByText('Lyra')).toBeInTheDocument();
+    expect(await screen.findByText('Lvl 4 High Elf Wizard')).toBeInTheDocument();
+  });
+
   it('opens a saved campaign as host instead of joining it as a player', async () => {
     const createGameRoom = vi.fn().mockResolvedValue('ABCD12');
     const joinRoomWithCode = vi.fn();
