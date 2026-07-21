@@ -95,7 +95,7 @@
     "http-proxy-middleware": "^4.2.0",
     "immer": "^11.1.15",
     "jsonwebtoken": "^9.0.3",
-    "lucide-react": "^0.562.0",
+    "lucide-react": "^1.25.0",
     "passport": "^0.7.0",
     "passport-google-oauth20": "^2.0.0",
     "passport-oauth2": "^1.8.0",
