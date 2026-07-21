@@ -26,6 +26,7 @@ ephemeral fanout, presence, and host-lease layer.
 | ----------------------------- | --------------- | ------------------------------------------------------------------------- |
 | `/metrics`                    | Prometheus text | Counters, gauges, and the durable-commit latency histogram                |
 | `/api/metrics/multiplayer`    | JSON            | Combined process, pool, queue, sync, ordering, realtime, and SLO snapshot |
+| `/api/system/health`          | JSON            | Backend database and realtime-coordinator readiness                       |
 | `/api/metrics/delta-sync`     | JSON            | Detailed commit modes, resync reasons, and patch savings                  |
 | `/api/metrics/ordered-events` | JSON            | Journal commits, duplicates, failures, replays, and version conflicts     |
 | `/api/metrics/realtime`       | JSON            | Redis connectivity, fanout, gap repair, and host-lease health             |
@@ -172,9 +173,10 @@ protected by the `staging` GitHub environment. Configure:
 
 The workflow applies these idempotent migrations in order before load:
 
-1. `2026-07-19-add-room-event-journal.sql`
-2. `2026-07-19-add-durable-game-state-commits.sql`
-3. `2026-07-19-add-room-entity-versions.sql`
+1. `2026-01-05-add-campaign-roomcode.sql`
+2. `2026-07-19-add-room-event-journal.sql`
+3. `2026-07-19-add-durable-game-state-commits.sql`
+4. `2026-07-19-add-room-entity-versions.sql`
 
 The default staging profile is 50 rooms, 4 clients per room, 100 aggregate
 operations per second, and four hours. Increase to 100 rooms/8 clients only

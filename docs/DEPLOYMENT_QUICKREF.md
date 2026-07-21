@@ -333,6 +333,8 @@ Before deploying a backend version that includes durable canonical commits:
 ```bash
 CONTAINER=$(docker ps -q -f name=nexus_postgres)
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
+  < server/migrations/2026-01-05-add-campaign-roomcode.sql
+docker exec -i "$CONTAINER" psql -U nexus -d nexus \
   < server/migrations/2026-07-19-add-room-event-journal.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
   < server/migrations/2026-07-19-add-durable-game-state-commits.sql
@@ -424,8 +426,12 @@ docker service logs nexus_backend
 
 ```bash
 curl https://app.nexusvtt.com/health
-curl https://app.nexusvtt.com/api/health
+curl https://app.nexusvtt.com/api/system/health
 ```
+
+`/health` is the frontend nginx probe. `/api/system/health` is the backend
+dependency and realtime-coordinator probe. Do not use the optional document
+service endpoint `/api/health` as backend readiness.
 
 **Check CORS (Portainer):**
 
@@ -488,7 +494,7 @@ _Portainer: nexus_frontend → Logs should show "Server running on port 80"_
 **Backend:**
 
 ```bash
-curl https://app.nexusvtt.com/health
+curl https://app.nexusvtt.com/api/system/health
 # Expected: {"status":"ok"}
 ```
 

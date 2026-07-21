@@ -59,7 +59,7 @@ test('production services are healthy and guest sessions round-trip', async ({
   expect(frontendHealth.status()).toBe(200);
   expect(await frontendHealth.text()).toContain('healthy');
 
-  const backendHealth = await request.get(`${backendUrl}/health`);
+  const backendHealth = await request.get(`${backendUrl}/api/system/health`);
   expect(backendHealth.status()).toBe(200);
   expect(await backendHealth.json()).toMatchObject({ status: 'ok' });
 

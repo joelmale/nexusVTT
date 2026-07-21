@@ -16,6 +16,21 @@ interface CustomSession extends Session {
   };
 }
 
+const DOCUMENT_ROUTE_PREFIXES = [
+  '/documents',
+  '/search',
+  '/structured-data',
+] as const;
+
+function isDocumentRoute(path: string): boolean {
+  return (
+    path === '/health' ||
+    DOCUMENT_ROUTE_PREFIXES.some(
+      (prefix) => path === prefix || path.startsWith(`${prefix}/`),
+    )
+  );
+}
+
 /**
  * Helper to check if user is authenticated
  */
@@ -54,12 +69,15 @@ export function createDocumentRoutes(
       if (req.path === '/health') {
         return res.json({ status: 'disabled' });
       }
-      return res.status(503).json({
-        error: 'Document service unavailable',
-        details: 'DOC_API_URL not configured or NexusCodex services are offline',
-      });
+      if (isDocumentRoute(req.path)) {
+        return res.status(503).json({
+          error: 'Document service unavailable',
+          details:
+            'DOC_API_URL not configured or NexusCodex services are offline',
+        });
+      }
     }
-    next();
+    return next();
   });
 
   // Document service client is guaranteed to exist past this point
@@ -101,12 +119,9 @@ export function createDocumentRoutes(
       }
 
       // Generate a signed JWT token using the VTT server's JWT_SECRET
-      const jwtSecret = process.env.JWT_SECRET || 'dev-jwt-secret-change-in-production';
-      const token = jwt.sign(
-        { userId },
-        jwtSecret,
-        { expiresIn: '1h' }
-      );
+      const jwtSecret =
+        process.env.JWT_SECRET || 'dev-jwt-secret-change-in-production';
+      const token = jwt.sign({ userId }, jwtSecret, { expiresIn: '1h' });
 
       return res.json({ token });
     } catch (error) {
@@ -333,7 +348,10 @@ export function createDocumentRoutes(
         }
       }
 
-      const updated = await client.updateDocument(String(req.params.id), req.body);
+      const updated = await client.updateDocument(
+        String(req.params.id),
+        req.body,
+      );
       return res.json(updated);
     } catch (error: unknown) {
       console.error('Failed to update document:', error);
@@ -631,7 +649,12 @@ export function createDocumentRoutes(
         }
       }
 
-      const result = await client.ask(question, { type, campaigns, tags, topK });
+      const result = await client.ask(question, {
+        type,
+        campaigns,
+        tags,
+        topK,
+      });
 
       // Post-filter citations & corresponding snippets to ensure user is authorized
       const filteredCitations = [];
@@ -695,7 +718,10 @@ export function createDocumentRoutes(
       const type = req.query.type as string | undefined;
       const name = req.query.name as string | undefined;
 
-      const data = await client.getDocumentStructuredData(documentId, { type, name });
+      const data = await client.getDocumentStructuredData(documentId, {
+        type,
+        name,
+      });
       return res.json(data);
     } catch (error: unknown) {
       console.error('Failed to get document structured data:', error);
@@ -723,7 +749,7 @@ export function createDocumentRoutes(
 
       const dataId = String(req.params.id);
       const entry = await client.getStructuredDataById(dataId);
-      
+
       // Authorize document access linked to the entry
       const doc = await client.getDocument(entry.documentId);
       if (!(await hasDocumentAccess(userId, doc))) {
