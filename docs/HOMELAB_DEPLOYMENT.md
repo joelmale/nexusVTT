@@ -252,6 +252,8 @@ PostgreSQL and apply these migrations in order:
 
 ```bash
 docker exec -i $(docker ps -q -f name=nexus_postgres) \
+  psql -U nexus -d nexus < server/migrations/2026-01-05-add-campaign-roomcode.sql
+docker exec -i $(docker ps -q -f name=nexus_postgres) \
   psql -U nexus -d nexus < server/migrations/2026-07-19-add-room-event-journal.sql
 docker exec -i $(docker ps -q -f name=nexus_postgres) \
   psql -U nexus -d nexus < server/migrations/2026-07-19-add-durable-game-state-commits.sql
@@ -259,10 +261,11 @@ docker exec -i $(docker ps -q -f name=nexus_postgres) \
   psql -U nexus -d nexus < server/migrations/2026-07-19-add-room-entity-versions.sql
 ```
 
-The second migration adds the snapshot `stateVersion` and `syncToken` anchors
-required by every backend replica. The third makes entity-version conflicts
-atomic across replicas. Deploy the schema before the application; do not run
-the new backend against an unmigrated database.
+The January migration preserves the last room code used by each campaign. The
+second July migration adds the snapshot `stateVersion` and `syncToken` anchors
+required by every backend replica. The third July migration makes
+entity-version conflicts atomic across replicas. Deploy the schema before the
+application; do not run the new backend against an unmigrated database.
 
 ## Deploy to Docker Swarm
 
@@ -525,6 +528,7 @@ git push origin main
 5. Verify deployment:
    ```bash
    curl https://app.nexusvtt.com/health
+   curl https://app.nexusvtt.com/api/system/health
    ```
 
 **Deployment complete!** 🎉
@@ -731,8 +735,13 @@ nslookup app.nexusvtt.com
 **Check backend health:**
 
 ```bash
-curl https://app.nexusvtt.com/api/health
+curl https://app.nexusvtt.com/api/system/health
 ```
+
+The public `/health` endpoint checks the frontend nginx container. The
+`/api/system/health` endpoint checks the backend database and realtime
+coordinator. `/api/health` belongs to the optional document integration and is
+not a backend readiness probe.
 
 If fails:
 

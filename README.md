@@ -134,6 +134,10 @@ npm run test:ci         # Full CI pipeline (lint + type-check + tests)
 npm run test:coverage   # Coverage report
 ```
 
+In a same-origin production deployment, `/health` is the frontend nginx probe
+and returns plain text. Use `/api/system/health` for the backend dependency and
+realtime-coordinator health response.
+
 ### Database
 
 ```bash
@@ -258,9 +262,10 @@ nginx only terminates HTTP internally (port 80). TLS is terminated by the outer 
 - Automatic failover and recovery
 - Container health monitoring
 
-For an existing database, apply all three July 19 migrations before rolling the
-new backend replicas: the ordered event journal, durable game-state commits,
-then `server/migrations/2026-07-19-add-room-entity-versions.sql`. The last table
+For an existing database, first apply
+`server/migrations/2026-01-05-add-campaign-roomcode.sql`, then apply all three
+July 19 migrations before rolling the new backend replicas: the ordered event
+journal, durable game-state commits, and room entity versions. The last table
 makes token/prop version checks atomic across replicas. New databases receive
 the same objects from `server/schema.sql`.
 

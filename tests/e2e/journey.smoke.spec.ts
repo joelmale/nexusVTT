@@ -19,7 +19,13 @@ test('a guest host rolls 3D dice and reconnects after backend downtime', async (
 
   const connectionLogs: string[] = [];
   const diceAssetFailures: string[] = [];
+  let closedSocketCount = 0;
   page.on('console', (message) => connectionLogs.push(message.text()));
+  page.on('websocket', (socket) => {
+    socket.on('close', () => {
+      closedSocketCount += 1;
+    });
+  });
   page.on('response', (response) => {
     if (
       response.url().includes('/assets/dice-box/') &&
@@ -69,6 +75,7 @@ test('a guest host rolls 3D dice and reconnects after backend downtime', async (
   const confirmedReconnectionsBeforeRestart = connectionLogs.filter((entry) =>
     entry.includes('Session reconnected:'),
   ).length;
+  const closedSocketCountBeforeRestart = closedSocketCount;
 
   let backendStopped = false;
   try {
@@ -76,12 +83,8 @@ test('a guest host rolls 3D dice and reconnects after backend downtime', async (
     backendStopped = true;
 
     await expect
-      .poll(() =>
-        connectionLogs.some((entry) =>
-          entry.includes('WebSocket disconnected'),
-        ),
-      )
-      .toBe(true);
+      .poll(() => closedSocketCount)
+      .toBeGreaterThan(closedSocketCountBeforeRestart);
     await expect
       .poll(
         () =>

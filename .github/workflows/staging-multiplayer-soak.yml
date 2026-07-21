@@ -72,12 +72,13 @@ jobs:
         if: inputs.apply_migrations
         run: sudo apt-get update && sudo apt-get install --yes postgresql-client
 
-      - name: Apply multiplayer durability migrations
+      - name: Apply required multiplayer migrations
         if: inputs.apply_migrations
         shell: bash
         run: |
           set -euo pipefail
           for migration in \
+            server/migrations/2026-01-05-add-campaign-roomcode.sql \
             server/migrations/2026-07-19-add-room-event-journal.sql \
             server/migrations/2026-07-19-add-durable-game-state-commits.sql \
             server/migrations/2026-07-19-add-room-entity-versions.sql

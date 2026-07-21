@@ -319,9 +319,9 @@ class NexusServer {
     this.setupAuthRoutes();
     this.setupApiRoutes();
     this.setupMetricsRoutes();
+    this.setupHealthRoutes();
     this.setupDocumentRoutes();
     this.setupAssetRoutes();
-    this.setupHealthRoutes();
 
     this.httpServer = this.app.listen(port, '0.0.0.0', () => {
       console.log(`🚀 Nexus server running on port ${port}`);
@@ -799,7 +799,7 @@ class NexusServer {
   }
 
   private setupHealthRoutes(): void {
-    this.app.get('/health', async (req, res) => {
+    this.app.get(['/health', '/api/system/health'], async (_req, res) => {
       const wsUrl =
         process.env.NODE_ENV === 'production'
           ? '/ws'
@@ -2160,10 +2160,7 @@ class NexusServer {
     disconnectedConnection?: Connection,
   ): Promise<void> {
     const activeConnection = this.socketManager.connections.get(uuid);
-    if (
-      activeConnection &&
-      activeConnection.instanceId !== instanceId
-    ) {
+    if (activeConnection && activeConnection.instanceId !== instanceId) {
       console.info('[WebSocket] ignored superseded disconnect', {
         socketInstanceId: instanceId,
         activeSocketInstanceId: activeConnection.instanceId,
@@ -2174,9 +2171,7 @@ class NexusServer {
 
     const connection = disconnectedConnection || activeConnection;
     const deleteConnectionIfCurrent = () => {
-      if (
-        this.socketManager.connections.get(uuid)?.instanceId === instanceId
-      ) {
+      if (this.socketManager.connections.get(uuid)?.instanceId === instanceId) {
         this.socketManager.connections.delete(uuid);
       }
     };
@@ -2196,7 +2191,7 @@ class NexusServer {
       const roomSocket = room.connections.get(uuid);
       return Boolean(
         (current && current.instanceId !== instanceId) ||
-          (roomSocket && roomSocket !== connection.ws),
+        (roomSocket && roomSocket !== connection.ws),
       );
     };
     const deleteRoomSocketIfCurrent = () => {

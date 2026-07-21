@@ -72,7 +72,7 @@ async function expectSingleInitiativeEntry(
   await expect(entries).toHaveValue(name);
 }
 
-async function editActiveSceneName(page: Page, name: string): Promise<void> {
+async function submitActiveSceneName(page: Page, name: string): Promise<void> {
   const field = page
     .locator('.scene-panel__field')
     .filter({ has: page.getByText('Scene Name', { exact: true }) });
@@ -80,11 +80,23 @@ async function editActiveSceneName(page: Page, name: string): Promise<void> {
   const input = field.locator('input[type="text"]');
   await input.fill(name);
   await input.press('Enter');
+}
+
+async function editActiveSceneName(page: Page, name: string): Promise<void> {
+  await submitActiveSceneName(page, name);
   await expect(activeScene(page)).toHaveAttribute('data-scene-name', name);
+}
+
+function sentGameStateUpdates(observation: WebSocketObservation): number {
+  return observation.sentMessages.filter(
+    (message) =>
+      message.type === 'event' && message.data.name === 'game-state-update',
+  ).length;
 }
 
 async function editSceneNameAfterResync(
   page: Page,
+  peerPage: Page,
   observation: WebSocketObservation,
   name: string,
 ): Promise<void> {
@@ -121,16 +133,35 @@ async function editSceneNameAfterResync(
       messagesOfType(observation, 'game-state-ack').length >
       acknowledgementCount
     ) {
+      await expect(activeScene(peerPage)).toHaveAttribute(
+        'data-scene-name',
+        name,
+      );
       return;
     }
 
     // The observer sees the server frame before the application finishes
-    // applying its authoritative snapshot. Wait for that rollback before
-    // retrying the original user intent against the fresh chain base.
-    await expect(activeScene(page)).not.toHaveAttribute(
-      'data-scene-name',
-      name,
-    );
+    // applying its authoritative snapshot. That snapshot can either preserve
+    // an already-canonical value or roll this optimistic edit back. Wait for
+    // one of those outcomes before deciding whether a retry is necessary.
+    await expect
+      .poll(async () => {
+        const [localName, peerName] = await Promise.all([
+          activeScene(page).getAttribute('data-scene-name'),
+          activeScene(peerPage).getAttribute('data-scene-name'),
+        ]);
+        if (localName === name && peerName === name) return 'converged';
+        if (localName !== name) return 'rolled-back';
+        return 'pending';
+      })
+      .not.toBe('pending');
+
+    if (
+      (await activeScene(page).getAttribute('data-scene-name')) === name &&
+      (await activeScene(peerPage).getAttribute('data-scene-name')) === name
+    ) {
+      return;
+    }
   }
 
   throw new Error('Scene edit did not commit after authoritative resyncs.');
@@ -394,6 +425,7 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     );
 
     const hostSocketCountBeforeRestart = hostSockets.socketUrls.length;
+    const hostClosedSocketsBeforePrimaryRestart = hostSockets.closedSocketCount;
     const playerClosedSocketsBeforePrimaryRestart =
       playerSockets.closedSocketCount;
     const hostReconnectCountBeforeRestart = eventMessages(
@@ -408,12 +440,8 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     await killSmokeService('backend');
     stoppedBackends.add('backend');
     await expect
-      .poll(() =>
-        diagnostics.host.logs.some((entry) =>
-          entry.includes('WebSocket disconnected'),
-        ),
-      )
-      .toBe(true);
+      .poll(() => hostSockets.closedSocketCount)
+      .toBeGreaterThan(hostClosedSocketsBeforePrimaryRestart);
 
     await openPanel(playerPage, 'Chat');
     await playerPage
@@ -530,6 +558,7 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     await openPanel(playerPage, 'Scene');
     await editSceneNameAfterResync(
       playerPage,
+      hostPage,
       playerSockets,
       'Shared Chain Baseline',
     );
@@ -540,10 +569,18 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
 
     const hostConflictName = `Host Conflict ${Date.now()}`;
     const playerConflictName = `Player Conflict ${Date.now()}`;
+    const hostUpdatesBeforeConflict = sentGameStateUpdates(hostSockets);
+    const playerUpdatesBeforeConflict = sentGameStateUpdates(playerSockets);
     await Promise.all([
-      editActiveSceneName(hostPage, hostConflictName),
-      editActiveSceneName(playerPage, playerConflictName),
+      submitActiveSceneName(hostPage, hostConflictName),
+      submitActiveSceneName(playerPage, playerConflictName),
     ]);
+    await expect
+      .poll(() => sentGameStateUpdates(hostSockets))
+      .toBeGreaterThan(hostUpdatesBeforeConflict);
+    await expect
+      .poll(() => sentGameStateUpdates(playerSockets))
+      .toBeGreaterThan(playerUpdatesBeforeConflict);
 
     await expect
       .poll(async () => {

@@ -274,7 +274,11 @@
 
 - **Docker Swarm**: Production deployment with Docker Swarm orchestration.
 - **NFS Storage**: Persistent storage using NFS shares for data durability.
-- **Health Checks**: Container health checks for reliability.
+- **Health Checks**: `/health` is the frontend nginx probe; use
+  `/api/system/health` for backend database and realtime-coordinator readiness.
+- **Required Migrations**: Before updating backend replicas, apply
+  `2026-01-05-add-campaign-roomcode.sql`, then the three `2026-07-19`
+  durability migrations in event-journal, game-state, entity-version order.
 - **Load Balancing**: Multiple replicas with VIP endpoint mode.
 - **Environment Variables**: Secure configuration management.
 - **Security**: HTTPS enforcement, CORS configuration, and security headers.
