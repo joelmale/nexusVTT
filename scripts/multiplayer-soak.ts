@@ -15,6 +15,7 @@ import {
   type SyncableGameState,
 } from '../shared/sync/contracts.js';
 import { hashSync } from '../shared/sync/hashSync.js';
+import { MultiplayerSoakOrderedEvents } from './multiplayerSoakOrderedEvents.js';
 
 type OperationKind = 'chat' | 'dice' | 'scene' | 'token' | 'state';
 
@@ -28,6 +29,8 @@ interface WireMessage {
   occurredAt?: number;
   serverSequence?: number;
 }
+
+type OrderedWireMessage = WireMessage & { serverSequence: number };
 
 interface GuestIdentity {
   id: string;
@@ -261,19 +264,21 @@ class LoadClient {
   private reconnectAttempt = 0;
   private pendingEvents = new Map<string, PendingEvent>();
   private seenEventIds = new Set<string>();
+  private readonly orderedEvents =
+    new MultiplayerSoakOrderedEvents<OrderedWireMessage>();
   private stateOutcomes: StateOutcome[] = [];
   private stateOutcomeWaiters: Array<(outcome: StateOutcome) => void> = [];
   private pendingStates = new Map<
     string,
     { state: SyncableGameState; startedAt: number }
   >();
+  private stateSnapshotReady = false;
+  private replayThrough: number | null = null;
   public state: SyncableGameState = createEmptySyncableGameState();
   public stateToken: StateHash = hashSync(
     createEmptySyncableGameState() as unknown as JsonValue,
   );
   public stateVersion = 0;
-  public eventCursor = 0;
-  private lastDeliveredSequence = 0;
   public readonly observedEventIds = new Set<string>();
 
   constructor(
@@ -285,6 +290,10 @@ class LoadClient {
     private readonly stats: LoadStats,
   ) {
     activeClients.add(this);
+  }
+
+  public get eventCursor(): number {
+    return this.orderedEvents.getRequestedCursor() ?? 0;
   }
 
   async connect(): Promise<void> {
@@ -300,6 +309,8 @@ class LoadClient {
   private async openSocket(): Promise<void> {
     const startedAt = Date.now();
     const url = toWebSocketUrl(this.websocketBaseUrl);
+    this.stateSnapshotReady = false;
+    this.replayThrough = null;
     if (this.role === 'host') {
       url.searchParams.set(
         this.initialConnection ? 'host' : 'reconnect',
@@ -345,6 +356,7 @@ class LoadClient {
       };
 
       socket.on('message', (data, isBinary) => {
+        if (socket !== this.socket) return;
         try {
           const parsed =
             this.config.messagePack || isBinary
@@ -366,6 +378,9 @@ class LoadClient {
       });
       socket.once('close', () => {
         clearTimeout(readyTimer);
+        if (socket !== this.socket) return;
+        this.stateSnapshotReady = false;
+        this.replayThrough = null;
         if (!settled) {
           settled = true;
           reject(
@@ -409,49 +424,56 @@ class LoadClient {
           this.installState(receivedState as SyncableGameState, undefined);
           this.reconcilePendingStateAfterReconnect();
         }
-        ready();
+        this.stateSnapshotReady = true;
+        this.finishBootstrapIfCaughtUp(ready);
       }
     }
 
     if (message.type === 'event-cursor') {
-      this.eventCursor = Math.max(
-        this.eventCursor,
-        Number(message.data.sequence ?? 0),
+      const sequence = Number(message.data.sequence ?? 0);
+      const replayThrough = Number(message.data.replayThrough ?? sequence);
+      this.replayThrough = replayThrough;
+      this.processOrderedDeliveries(
+        this.orderedEvents.establishCursor({
+          mode: message.data.mode === 'baseline' ? 'baseline' : 'resume',
+          sequence,
+        }),
       );
+      this.finishBootstrapIfCaughtUp(ready);
       return;
     }
 
     if (typeof message.serverSequence === 'number') {
-      if (message.serverSequence < this.lastDeliveredSequence) {
-        this.stats.orderingErrors += 1;
-      }
-      this.lastDeliveredSequence = Math.max(
-        this.lastDeliveredSequence,
-        message.serverSequence,
-      );
-      this.eventCursor = Math.max(this.eventCursor, message.serverSequence);
-      if (message.eventId) {
-        if (this.seenEventIds.has(message.eventId)) {
-          this.stats.duplicateDeliveries += 1;
-        } else {
-          this.seenEventIds.add(message.eventId);
-        }
-        this.observeCommittedEvent(message.eventId);
-      }
+      const result = this.orderedEvents.receive(message as OrderedWireMessage);
+      if (result.duplicate) this.stats.duplicateDeliveries += 1;
+      this.processOrderedDeliveries(result.ready);
+      this.finishBootstrapIfCaughtUp(ready);
+      return;
     }
 
     if (message.type === 'event-ack') {
       const eventId = String(message.data.eventId);
       const sequence = Number(message.data.serverSequence);
-      this.eventCursor = Math.max(this.eventCursor, sequence);
+      this.processOrderedDeliveries(
+        this.orderedEvents.acknowledge({
+          serverSequence: sequence,
+          advancesCursor: message.data.advancesCursor === true,
+        }),
+      );
       if (message.data.duplicate === true) {
         this.stats.duplicateAcknowledgements += 1;
       }
       this.observeCommittedEvent(eventId);
+      this.finishBootstrapIfCaughtUp(ready);
       return;
     }
 
     if (message.type === 'game-state-patch') {
+      // A reconnecting socket is visible to room fanout before its authoritative
+      // session snapshot is sent. Any earlier patch is already represented by
+      // that snapshot, so applying it against the stale pre-reconnect state
+      // would create a false integrity failure.
+      if (!this.stateSnapshotReady) return;
       const baseToken = String(message.data.baseToken ?? '') as StateHash;
       const newToken = String(message.data.newToken ?? '') as StateHash;
       if (baseToken !== this.stateToken) {
@@ -558,6 +580,28 @@ class LoadClient {
       this.stats.unexpectedErrors.push(
         `${this.identity.name} server error ${code}: ${String(message.data.message)}`,
       );
+    }
+  }
+
+  private processOrderedDeliveries(messages: WireMessage[]): void {
+    for (const message of messages) {
+      if (!message.eventId) continue;
+      if (this.seenEventIds.has(message.eventId)) {
+        this.stats.duplicateDeliveries += 1;
+      } else {
+        this.seenEventIds.add(message.eventId);
+      }
+      this.observeCommittedEvent(message.eventId);
+    }
+  }
+
+  private finishBootstrapIfCaughtUp(ready: () => void): void {
+    if (
+      this.stateSnapshotReady &&
+      this.replayThrough !== null &&
+      this.orderedEvents.hasReached(this.replayThrough)
+    ) {
+      ready();
     }
   }
 
@@ -1158,8 +1202,7 @@ async function main(): Promise<void> {
   const eventAckP95Ms = percentile(stats.eventAckLatenciesMs, 0.95);
   const stateAckP95Ms = percentile(stats.stateAckLatenciesMs, 0.95);
   const reconnectP95Ms = percentile(stats.reconnectLatenciesMs, 0.95);
-  const expectedCommittedEvents =
-    stats.orderedSent - stats.expectedConflicts;
+  const expectedCommittedEvents = stats.orderedSent - stats.expectedConflicts;
   const lostEvents = Math.max(
     0,
     expectedCommittedEvents - stats.orderedCommitted,
