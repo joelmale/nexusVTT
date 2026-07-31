@@ -5,6 +5,7 @@
   },
   "include": [
     "scripts/multiplayer-soak.ts",
+    "scripts/multiplayerSoakOrderedEvents.ts",
     "shared/sync/contracts.ts",
     "shared/sync/hashSync.ts"
   ]
