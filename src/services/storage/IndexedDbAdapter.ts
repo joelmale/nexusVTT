@@ -1,16 +1,17 @@
 import { Character, UserMonster, Encounter, NPC } from '../../types/dnd';
-import { IStorageService } from './IStorageService';
+import { IStorageService, SpellbookEntry } from './IStorageService';
 import { log } from '../../utils/logger';
 import { initializeCharacterResources } from '../../utils/resourceUtils';
 
 // --- IndexedDB Configuration ---
 const DB_NAME = 'NexusForge';
-const DB_VERSION = 12;
+const DB_VERSION = 13;
 const STORE_NAME = 'characters';
 const CUSTOM_MONSTERS_STORE = 'customMonsters';
 const FAVORITES_STORE = 'favoriteMonsters';
 const ENCOUNTERS_STORE = 'encounters';
 const NPCS_STORE = 'npcs';
+const SPELLBOOKS_STORE = 'spellbooks';
 
 export class IndexedDbAdapter implements IStorageService {
   private async openDB(): Promise<IDBDatabase> {
@@ -56,6 +57,13 @@ export class IndexedDbAdapter implements IStorageService {
           npcsStore.createIndex('species', 'species', { unique: false });
           npcsStore.createIndex('occupation', 'occupation', { unique: false });
           npcsStore.createIndex('createdAt', 'createdAt', { unique: false });
+        }
+
+        if (!db.objectStoreNames.contains(SPELLBOOKS_STORE)) {
+          const spellbooksStore = db.createObjectStore(SPELLBOOKS_STORE, { keyPath: 'id', autoIncrement: false });
+          spellbooksStore.createIndex('name', 'name', { unique: false });
+          spellbooksStore.createIndex('characterId', 'characterId', { unique: false });
+          spellbooksStore.createIndex('updatedAt', 'updatedAt', { unique: false });
         }
 
         if (oldVersion < 3 && oldVersion > 0) {
@@ -419,6 +427,55 @@ export class IndexedDbAdapter implements IStorageService {
     return new Promise((resolve, reject) => {
       const transaction = db.transaction([NPCS_STORE], 'readwrite');
       const objectStore = transaction.objectStore(NPCS_STORE);
+      const request = objectStore.delete(id);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve();
+    });
+  }
+
+  // ==================== Spellbooks ====================
+  async getAllSpellbooks(): Promise<SpellbookEntry[]> {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([SPELLBOOKS_STORE], 'readonly');
+      const objectStore = transaction.objectStore(SPELLBOOKS_STORE);
+      const request = objectStore.getAll();
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve((request.result as SpellbookEntry[]) || []);
+    });
+  }
+
+  async addSpellbook(spellbook: SpellbookEntry): Promise<string> {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([SPELLBOOKS_STORE], 'readwrite');
+      const objectStore = transaction.objectStore(SPELLBOOKS_STORE);
+      const request = objectStore.add(spellbook);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve(spellbook.id);
+    });
+  }
+
+  async updateSpellbook(spellbook: SpellbookEntry): Promise<void> {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([SPELLBOOKS_STORE], 'readwrite');
+      const objectStore = transaction.objectStore(SPELLBOOKS_STORE);
+      const request = objectStore.put(spellbook);
+
+      request.onerror = () => reject(request.error);
+      request.onsuccess = () => resolve();
+    });
+  }
+
+  async deleteSpellbook(id: string): Promise<void> {
+    const db = await this.openDB();
+    return new Promise((resolve, reject) => {
+      const transaction = db.transaction([SPELLBOOKS_STORE], 'readwrite');
+      const objectStore = transaction.objectStore(SPELLBOOKS_STORE);
       const request = objectStore.delete(id);
 
       request.onerror = () => reject(request.error);

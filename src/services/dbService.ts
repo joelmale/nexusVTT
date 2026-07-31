@@ -1,5 +1,5 @@
 import { Character, UserMonster, Encounter, NPC } from '../types/dnd';
-import { IStorageService } from './storage/IStorageService';
+import { IStorageService, SpellbookEntry } from './storage/IStorageService';
 import { IndexedDbAdapter } from './storage/IndexedDbAdapter';
 
 // Create a default instance for standalone mode
@@ -37,3 +37,9 @@ export const getAllNPCs = async (): Promise<NPC[]> => currentStorage.getAllNPCs(
 export const addNPC = async (npc: NPC): Promise<string> => currentStorage.addNPC(npc);
 export const updateNPC = async (npc: NPC): Promise<void> => currentStorage.updateNPC(npc);
 export const deleteNPC = async (id: string): Promise<void> => currentStorage.deleteNPC(id);
+
+export const getAllSpellbooks = async (): Promise<SpellbookEntry[]> => currentStorage.getAllSpellbooks();
+export const addSpellbook = async (spellbook: SpellbookEntry): Promise<string> => currentStorage.addSpellbook(spellbook);
+export const updateSpellbook = async (spellbook: SpellbookEntry): Promise<void> => currentStorage.updateSpellbook(spellbook);
+export const deleteSpellbook = async (id: string): Promise<void> => currentStorage.deleteSpellbook(id);
+

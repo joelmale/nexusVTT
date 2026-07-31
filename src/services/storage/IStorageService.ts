@@ -1,5 +1,21 @@
 import { Character, UserMonster, Encounter, NPC } from '../../types/dnd';
 
+/** A standalone spellbook collection (ported from spellbook-forge). */
+export interface SpellbookEntry {
+  id: string;
+  name: string;
+  description?: string;
+  /** Optional link to a Character.id for per-character spellbooks. */
+  characterId?: string;
+  /** AppSpell slugs contained in this spellbook. */
+  spells: string[];
+  /** Slugs of spells currently marked as prepared. */
+  preparedSpells: string[];
+  edition?: '2014' | '2024';
+  createdAt: number;
+  updatedAt: number;
+}
+
 export interface IStorageService {
   // Characters
   getAllCharacters(): Promise<Character[]>;
@@ -30,4 +46,10 @@ export interface IStorageService {
   addNPC(npc: NPC): Promise<string>;
   updateNPC(npc: NPC): Promise<void>;
   deleteNPC(id: string): Promise<void>;
+
+  // Spellbooks
+  getAllSpellbooks(): Promise<SpellbookEntry[]>;
+  addSpellbook(spellbook: SpellbookEntry): Promise<string>;
+  updateSpellbook(spellbook: SpellbookEntry): Promise<void>;
+  deleteSpellbook(id: string): Promise<void>;
 }

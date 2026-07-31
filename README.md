@@ -51,16 +51,13 @@ The NexusForge allows users to:
   - Armor Class (10 + DEX modifier)
   - Initiative and proficiency bonus
 - **Interactive Sheet (F5)**: Click any ability or skill to roll d20 + modifiers
-- **Spell System (F7)**: Comprehensive spell support for all caster classes
-  - 340+ spells from D&D 5e SRD (2014 + 2024 editions)
-  - Source tracking for edition identification
-  - Spell preparation for Clerics, Druids, Paladins, and Wizards
-  - Cantrip and leveled spell management
-  - Automatic spell slot calculation by level
-- **Feat System (F9)**: Complete Origin Feat support for 2024 rules
-  - All 12 background Origin Feats implemented
-  - Versatile Human extra feat selection
-  - Dynamic feat validation and application
+- **Drag-and-Drop Spellbook Manager (F10)**: Unified drag-and-drop spellbook creation and management
+  - Drag spells directly from the library into custom spellbooks using `@dnd-kit/core`
+  - Daily spell preparation toggling with prepared count trackers
+  - Session Mode view for fast prepared-only spell tracking during live sessions
+  - Multi-faceted filter bar (Edition 2014/2024, Cantrip & Levels 1-9, School chips, Ritual, Concentration, ⭐ Favorites)
+  - Standalone & per-character spellbook organization with JSON export/import
+  - Automatic migration from legacy standalone `spellbook-forge` IndexedDB storage
 - **Responsive Design (F8)**: Mobile-first design with Tailwind CSS
 
 ## Technical Stack

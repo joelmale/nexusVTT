@@ -83,10 +83,11 @@ IndexedDB (dbService.ts) or SRD Data (dataService.ts)
 
 ### Service Layer (`/src/services/`)
 
-- **dbService.ts** - IndexedDB operations (CRUD for characters)
+- **dbService.ts** - IndexedDB operations (CRUD for characters, custom monsters, encounters, NPCs, and spellbooks)
 - **dataService.ts** - SRD data loading and transformation from `/src/data/srd/`
 - **characterService.ts** - Character stat calculations, leveling, resting
 - **diceService.ts** - Dice roll logic, history management, UUID generation
+- **SpellbookManager/** - Drag-and-drop spellbook creation & management UI powered by `@dnd-kit/core`
 
 ### Custom Hooks (`/src/hooks/`)
 

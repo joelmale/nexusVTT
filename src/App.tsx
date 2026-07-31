@@ -11,6 +11,7 @@ import ManualEntryScreen from './components/ManualEntryScreen';
 import PersonalityWizard from './components/PersonalityWizard';
 import { MonsterLibrary, MonsterStatBlock, CreateMonsterModal, EmbeddableMonsterPage, EmbeddableEncounterPage } from './components/MonsterLibrary';
 import { NPCLibrary } from './components/NPCLibrary';
+import { SpellbookManager } from './components/SpellbookManager/SpellbookManager';
 import { EncounterView } from './components/EncounterView';
 import { EncounterManager } from './components/EncounterManager/EncounterManager.tsx';
 
@@ -1277,8 +1278,10 @@ const App: React.FC = () => {
               }}
             />
           )
-        ) : (
+        ) : activeTab === 'npcs' ? (
           <NPCLibrary />
+        ) : (
+          <SpellbookManager selectedCharacter={selectedCharacter} />
         )}
 
         {/* New Character Creation Modal */}

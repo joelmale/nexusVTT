@@ -1,6 +1,6 @@
 import React, { ReactNode } from 'react';
 
-export type TabId = 'characters' | 'monsters' | 'npcs';
+export type TabId = 'characters' | 'monsters' | 'npcs' | 'spellbook';
 
 interface TabItem {
   id: TabId;
@@ -21,18 +21,21 @@ const TABS: TabItem[] = [
   },
   { id: 'monsters', label: 'Monster Library', icon: '🐉' },
   { id: 'npcs', label: 'NPC Library', icon: '🧙‍♂️' },
+  { id: 'spellbook', label: 'Spellbook', icon: '📖' },
 ];
 
 const ACTIVE_TAB_CLASSES: Record<TabId, string> = {
   characters: 'text-accent-red-light border-accent-red-dark',
   monsters: 'text-accent-purple-light border-accent-purple-dark',
   npcs: 'text-accent-green-light border-accent-green-dark',
+  spellbook: 'text-accent-blue-light border-accent-blue-dark',
 };
 
 const ACTIVE_LINE_CLASSES: Record<TabId, string> = {
   characters: 'bg-accent-red-dark',
   monsters: 'bg-accent-purple-dark',
   npcs: 'bg-accent-green-dark',
+  spellbook: 'bg-accent-blue-dark',
 };
 
 export const TabNavigation: React.FC<TabNavigationProps> = ({ activeTab, onTabChange }) => {

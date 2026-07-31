@@ -1,5 +1,5 @@
 import { Character, UserMonster, Encounter, NPC } from '../../types/dnd';
-import { IStorageService } from './IStorageService';
+import { IStorageService, SpellbookEntry } from './IStorageService';
 
 /**
  * VttSocketAdapter
@@ -74,4 +74,28 @@ export class VttSocketAdapter implements IStorageService {
   async addNPC(npc: NPC): Promise<string> { return npc.id; }
   async updateNPC(_npc: NPC): Promise<void> {}
   async deleteNPC(_id: string): Promise<void> {}
+
+  // ==================== Spellbooks ====================
+  async getAllSpellbooks(): Promise<SpellbookEntry[]> {
+    if (this.vttApi?.getAllSpellbooks) {
+      return this.vttApi.getAllSpellbooks();
+    }
+    return [];
+  }
+  async addSpellbook(spellbook: SpellbookEntry): Promise<string> {
+    if (this.vttApi?.addSpellbook) {
+      return this.vttApi.addSpellbook(spellbook);
+    }
+    return spellbook.id;
+  }
+  async updateSpellbook(spellbook: SpellbookEntry): Promise<void> {
+    if (this.vttApi?.updateSpellbook) {
+      return this.vttApi.updateSpellbook(spellbook);
+    }
+  }
+  async deleteSpellbook(id: string): Promise<void> {
+    if (this.vttApi?.deleteSpellbook) {
+      return this.vttApi.deleteSpellbook(id);
+    }
+  }
 }
