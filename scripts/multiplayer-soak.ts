@@ -72,6 +72,7 @@ interface LoadStats {
   duplicateAcknowledgements: number;
   duplicateDeliveries: number;
   orderingErrors: number;
+  replayBaselineResets: number;
   stateUploads: number;
   stateAcknowledgements: number;
   stateResyncs: number;
@@ -241,6 +242,7 @@ function emptyStats(): LoadStats {
     duplicateAcknowledgements: 0,
     duplicateDeliveries: 0,
     orderingErrors: 0,
+    replayBaselineResets: 0,
     stateUploads: 0,
     stateAcknowledgements: 0,
     stateResyncs: 0,
@@ -294,6 +296,10 @@ class LoadClient {
 
   public get eventCursor(): number {
     return this.orderedEvents.getRequestedCursor() ?? 0;
+  }
+
+  public expectsEvent(serverSequence: number): boolean {
+    return this.orderedEvents.isWithinRecoveryWindow(serverSequence);
   }
 
   async connect(): Promise<void> {
@@ -432,6 +438,14 @@ class LoadClient {
     if (message.type === 'event-cursor') {
       const sequence = Number(message.data.sequence ?? 0);
       const replayThrough = Number(message.data.replayThrough ?? sequence);
+      const previousCursor = this.orderedEvents.getRequestedCursor();
+      if (
+        message.data.mode === 'baseline' &&
+        previousCursor !== null &&
+        sequence > previousCursor
+      ) {
+        this.stats.replayBaselineResets += 1;
+      }
       this.replayThrough = replayThrough;
       this.processOrderedDeliveries(
         this.orderedEvents.establishCursor({
@@ -463,7 +477,7 @@ class LoadClient {
       if (message.data.duplicate === true) {
         this.stats.duplicateAcknowledgements += 1;
       }
-      this.observeCommittedEvent(eventId);
+      this.observeCommittedEvent(eventId, sequence);
       this.finishBootstrapIfCaughtUp(ready);
       return;
     }
@@ -583,7 +597,7 @@ class LoadClient {
     }
   }
 
-  private processOrderedDeliveries(messages: WireMessage[]): void {
+  private processOrderedDeliveries(messages: OrderedWireMessage[]): void {
     for (const message of messages) {
       if (!message.eventId) continue;
       if (this.seenEventIds.has(message.eventId)) {
@@ -591,7 +605,7 @@ class LoadClient {
       } else {
         this.seenEventIds.add(message.eventId);
       }
-      this.observeCommittedEvent(message.eventId);
+      this.observeCommittedEvent(message.eventId, message.serverSequence);
     }
   }
 
@@ -655,9 +669,9 @@ class LoadClient {
     throw new Error(`${this.identity.name} could not reconnect before timeout`);
   }
 
-  private observeCommittedEvent(eventId: string): void {
+  private observeCommittedEvent(eventId: string, serverSequence: number): void {
     this.observedEventIds.add(eventId);
-    this.room.committedEventIds.add(eventId);
+    this.room.committedEvents.set(eventId, serverSequence);
     const pending = this.pendingEvents.get(eventId);
     if (!pending) return;
     clearTimeout(pending.timer);
@@ -824,7 +838,7 @@ class LoadClient {
 
 class LoadRoom {
   public clients: LoadClient[] = [];
-  public readonly committedEventIds = new Set<string>();
+  public readonly committedEvents = new Map<string, number>();
   private mutation = 0;
   private operationQueue: Promise<void> = Promise.resolve();
 
@@ -1029,10 +1043,11 @@ class LoadRoom {
           `${this.code}/${client.identity.name}: cursor ${client.eventCursor} != ${expectedCursor}`,
         );
       }
-      for (const eventId of this.committedEventIds) {
+      for (const [eventId, serverSequence] of this.committedEvents) {
+        if (!client.expectsEvent(serverSequence)) continue;
         if (!client.observedEventIds.has(eventId)) {
           failures.push(
-            `${this.code}/${client.identity.name}: missing event ${eventId}`,
+            `${this.code}/${client.identity.name}: missing event ${eventId} at sequence ${serverSequence}`,
           );
           break;
         }

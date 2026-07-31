@@ -24,6 +24,7 @@ export interface SoakOrderedReceiveResult<T> {
  */
 export class MultiplayerSoakOrderedEvents<T extends SoakOrderedMessage> {
   private lastSeenSequence: number | null = null;
+  private acceptedBaseline: number | null = null;
   private readonly buffered = new Map<number, T>();
   private readonly acknowledgedSequences = new Set<number>();
 
@@ -35,10 +36,15 @@ export class MultiplayerSoakOrderedEvents<T extends SoakOrderedMessage> {
     return this.lastSeenSequence !== null && this.lastSeenSequence >= sequence;
   }
 
+  public isWithinRecoveryWindow(sequence: number): boolean {
+    return this.acceptedBaseline === null || sequence > this.acceptedBaseline;
+  }
+
   public establishCursor(update: SoakEventCursorUpdate): T[] {
     this.assertSequence(update.sequence);
     if (update.mode === 'baseline') {
       this.lastSeenSequence = update.sequence;
+      this.acceptedBaseline = update.sequence;
       for (const sequence of this.buffered.keys()) {
         if (sequence <= update.sequence) this.buffered.delete(sequence);
       }

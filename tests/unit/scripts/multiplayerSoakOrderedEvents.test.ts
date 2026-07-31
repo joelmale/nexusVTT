@@ -70,10 +70,24 @@ describe('MultiplayerSoakOrderedEvents', () => {
     orderedEvents.establishCursor({ mode: 'baseline', sequence: 5 });
 
     expect(orderedEvents.getRequestedCursor()).toBe(5);
+    expect(orderedEvents.isWithinRecoveryWindow(5)).toBe(false);
+    expect(orderedEvents.isWithinRecoveryWindow(6)).toBe(true);
     expect(orderedEvents.receive(message(5))).toEqual({
       duplicate: true,
       ready: [],
     });
     expect(orderedEvents.hasReached(5)).toBe(true);
+  });
+
+  it('stops requiring events expired by a newer journal baseline', () => {
+    const orderedEvents = new MultiplayerSoakOrderedEvents<OrderedMessage>();
+    orderedEvents.establishCursor({ mode: 'baseline', sequence: 0 });
+    expect(orderedEvents.receive(message(1)).ready).toEqual([message(1)]);
+
+    orderedEvents.establishCursor({ mode: 'baseline', sequence: 100 });
+
+    expect(orderedEvents.isWithinRecoveryWindow(99)).toBe(false);
+    expect(orderedEvents.isWithinRecoveryWindow(100)).toBe(false);
+    expect(orderedEvents.isWithinRecoveryWindow(101)).toBe(true);
   });
 });
