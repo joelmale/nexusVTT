@@ -1,6 +1,6 @@
 # Dockerfile for Nexus VTT Backend WebSocket Server
 
-FROM node:26.5.0-alpine
+FROM node:26.7.0-alpine
 
 # Set working directory
 WORKDIR /app
