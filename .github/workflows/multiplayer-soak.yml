@@ -94,6 +94,7 @@ jobs:
       - name: Capture stack logs after failure
         if: failure()
         run: |
+          mkdir -p test-results
           docker compose \
             -p "${SOAK_PROJECT_NAME:-nexus-vtt-soak}" \
             -f docker/docker-compose.smoke.yml \

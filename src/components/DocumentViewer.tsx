@@ -161,7 +161,7 @@ export const DocumentViewer: React.FC = () => {
         pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
 
         // Load PDF document
-        const loadingTask = pdfjsLib.getDocument(currentDocumentContent);
+        const loadingTask = pdfjsLib.getDocument({ url: currentDocumentContent });
         const pdf = await loadingTask.promise;
         pdfDocRef.current = pdf;
         setTotalPages(pdf.numPages);
