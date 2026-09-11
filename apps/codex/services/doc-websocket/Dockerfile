@@ -16,8 +16,8 @@ RUN npm ci
 # Copy source code
 COPY src ./src
 
-# Copy Prisma schema (use actual file, not symlink)
-COPY prisma/schema-copy.prisma ./prisma/schema.prisma
+# Copy the service's canonical Prisma schema
+COPY prisma/schema.prisma ./prisma/schema.prisma
 
 # Generate Prisma Client
 RUN npx prisma generate

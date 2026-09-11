@@ -6,8 +6,8 @@ services:
       - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}
       - --web.enable-lifecycle
     volumes:
-      - ../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
-      - ../monitoring/alerts:/etc/prometheus/alerts:ro
+      - ../../../monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../../monitoring/alerts:/etc/prometheus/alerts:ro
       - prometheus-data:/prometheus
     networks:
       - nexus-internal
@@ -24,7 +24,7 @@ services:
       GF_USERS_ALLOW_SIGN_UP: 'false'
     volumes:
       - grafana-data:/var/lib/grafana
-      - ../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ../../../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
     networks:
       - nexus-internal
       - proxy
@@ -37,7 +37,7 @@ services:
     environment:
       OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT}
     volumes:
-      - ../monitoring/otel-collector.yml:/etc/otelcol-contrib/config.yml:ro
+      - ../../../monitoring/otel-collector.yml:/etc/otelcol-contrib/config.yml:ro
     networks:
       - nexus-internal
     restart: unless-stopped

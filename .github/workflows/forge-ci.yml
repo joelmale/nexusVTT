@@ -1,0 +1,49 @@
+name: Forge CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/forge/**'
+      - '.github/workflows/forge-ci.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'apps/forge/**'
+      - '.github/workflows/forge-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+defaults:
+  run:
+    working-directory: apps/forge
+
+jobs:
+  verify:
+    name: Type, lint, test, and build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '20'
+          cache: npm
+          cache-dependency-path: apps/forge/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm exec tsc -- --noEmit
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test with existing coverage gates
+        run: npm test -- --run --coverage
+
+      - name: Production build
+        run: npm run build

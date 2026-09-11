@@ -5,12 +5,32 @@ on:
     branches: [master]
     tags:
       - 'v*'
+    paths:
+      - 'apps/vtt/**'
+      - 'deploy/**'
+      - 'monitoring/**'
+      - '.github/workflows/ci.yml'
+      - '.husky/**'
+      - 'Makefile'
+      - 'package.json'
   pull_request:
     branches: [master]
+    paths:
+      - 'apps/vtt/**'
+      - 'deploy/**'
+      - 'monitoring/**'
+      - '.github/workflows/ci.yml'
+      - '.husky/**'
+      - 'Makefile'
+      - 'package.json'
   workflow_dispatch:
 
 env:
   NODE_VERSION: '26.5.0'
+
+defaults:
+  run:
+    working-directory: apps/vtt
 
 jobs:
   lint-and-type:
@@ -25,6 +45,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: apps/vtt/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -58,6 +79,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: apps/vtt/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -81,6 +103,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: apps/vtt/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -118,6 +141,7 @@ jobs:
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: apps/vtt/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -134,8 +158,8 @@ jobs:
         with:
           name: playwright-smoke-report
           path: |
-            playwright-report/
-            test-results/e2e/
+            apps/vtt/playwright-report/
+            apps/vtt/test-results/e2e/
           if-no-files-found: ignore
           retention-days: 14
 
@@ -166,19 +190,19 @@ jobs:
         run: |
           # Generate version tag
           SHORT_SHA=${GITHUB_SHA::7}
-          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
           else
             VERSION=$(date +%Y%m%d)-${SHORT_SHA}
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Build and push frontend
         uses: docker/build-push-action@v7
         with:
-          context: .
-          file: docker/frontend.Dockerfile
+          context: ./apps/vtt
+          file: ./apps/vtt/docker/frontend.Dockerfile
           target: production
           push: true
           tags: |
@@ -193,8 +217,8 @@ jobs:
       - name: Build and push backend
         uses: docker/build-push-action@v7
         with:
-          context: .
-          file: docker/backend.Dockerfile
+          context: ./apps/vtt
+          file: ./apps/vtt/docker/backend.Dockerfile
           push: true
           tags: |
             ghcr.io/joelmale/nexusvtt/backend:${{ steps.meta.outputs.version }}
@@ -208,8 +232,8 @@ jobs:
       - name: Build and push asset service
         uses: docker/build-push-action@v7
         with:
-          context: .
-          file: docker/asset-service.Dockerfile
+          context: ./apps/vtt
+          file: ./apps/vtt/docker/asset-service.Dockerfile
           push: true
           tags: |
             ghcr.io/joelmale/nexusvtt/asset-service:${{ steps.meta.outputs.version }}
@@ -220,8 +244,8 @@ jobs:
       - name: Build and push postgres
         uses: docker/build-push-action@v7
         with:
-          context: .
-          file: docker/postgres.Dockerfile
+          context: ./apps/vtt
+          file: ./apps/vtt/docker/postgres.Dockerfile
           push: true
           tags: |
             ghcr.io/joelmale/nexusvtt/postgres:${{ steps.meta.outputs.version }}

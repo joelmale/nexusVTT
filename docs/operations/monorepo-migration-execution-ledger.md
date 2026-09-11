@@ -18,10 +18,12 @@ retirement, or destructive cleanup unless the user gives explicit approval.
 - Gate state: Phase 0 passed. Phase 1 passed: all three source histories are
   ancestors of the migration branch, both imported subtree trees matched their
   source tips, Git fsck passed, and the intended `apps/vtt`, `apps/forge`, and
-  `apps/codex` layout is established. Build/CI path repair is in progress.
-- Exact next action: delegate disjoint VTT-local and documentation path repair,
-  while the lead creates the root orchestration manifest and audits/updates
-  shared workflows and repository-level tooling.
+  `apps/codex` layout is established. Root/VTT/Forge/WebSocket path repair and
+  their targeted validation are complete but not yet committed. Remaining
+  Codex and documentation parity work follows in the next bounded wave.
+- Exact next action: commit the validated Phase 2 parity unit, then delegate
+  disjoint Codex doc-api/processor remediation and documentation path repair
+  while the lead prepares Docker/image validation.
 
 ## Destination
 
@@ -365,6 +367,16 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   at repository root. Post-move ancestry checks for all three source tips,
   `git fsck`, and 28-commit `--follow` history for `apps/vtt/src/main.tsx`
   passed.
+- Added a dependency-free root orchestration manifest without introducing root
+  workspaces or a shared lockfile. Updated root hooks, Make targets, ignore
+  paths, active VTT workflow working directories/cache paths/artifact paths,
+  Dependabot install roots, and Docker build contexts. Added non-publishing
+  path-filtered Forge and Codex CI workflows.
+- Repaired the moved VTT's Husky setup and root-monitoring Compose mounts.
+  Fixed Forge's pre-existing filter-state type error by passing the already
+  derived complete filter state. Replaced the Codex WebSocket checkout's
+  broken symlink materialization with its canonical regular Prisma schema and
+  aligned its start script with emitted `dist/index.js`.
 
 ## Files created, moved, or modified
 
@@ -377,6 +389,10 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   retain their source histories.
 - Moved the VTT application tree into `apps/vtt`, including its nested
   `apps/generator-hub` and `services/asset-service` boundaries.
+- Created root `package.json`, `.github/workflows/forge-ci.yml`, and
+  `.github/workflows/codex-ci.yml`; modified root CI/Dependabot/tooling paths,
+  `apps/vtt/package.json`, the VTT observability overlay, Forge filter wiring,
+  and Codex WebSocket Prisma/Docker/startup files.
 - Created the execution ledger.
 
 ## Commands and important outcomes
@@ -476,30 +492,44 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   characterStore -> gameStore` cycle. Full lint found only two issues in the
   integrated dirty generator App; the migration branch fix passes targeted
   ESLint, generator type-check, and the rerun full repository lint gate.
+- Post-move VTT parity: `npm ci` from `apps/vtt` passed with patch-package and
+  13 dice themes; Husky root-hook installation passed after path repair. Lint,
+  full type-check, dice check, unit tests (596 passed/24 skipped), asset-service
+  tests (29 passed), integration tests (two passed/17 skipped), and
+  `build:all` all passed. The import-cycle result is unchanged from baseline.
+- All six active root workflows pass `actionlint`. Production, development,
+  test, and combined smoke/soak Compose rendering passed. Production rendering
+  emitted expected missing-secret warnings with no secrets supplied.
+  Production plus observability rendering resolved Prometheus and Grafana bind
+  sources to the repository-root `monitoring` directory after repair.
+- Post-fix Forge `npm ci`, TypeScript, lint, 31-file/410-test coverage, and
+  production build passed. Coverage is 66.53% statements; `remoteEntry.js` was
+  emitted. Existing audit and bundle warnings remain separately classified.
+- Post-fix Codex WebSocket `npm ci`, default `npm run prisma:generate`, and
+  TypeScript build passed using the canonical regular schema.
 
 ## Failure classification
 
-- Pre-existing/tooling failures: nested workspace `npm ci` does not form a
-  standalone install and failed in root postinstall; use the root VTT install
-  boundary. Codex docs lacks a lockfile; documented Codex root test runners are
+- Pre-existing/tooling failures: Codex docs lacks a lockfile; documented Codex root test runners are
   absent. Forge README's example maps port 8080 to container port 80 although
-  its image listens on 8080. Forge also has a pre-existing TypeScript failure
-  for missing `SpellFilterState.favoriteSlugs`; its lint, 410-test coverage
-  suite, and production build pass. Forge install reported 23 dependency audit
+  its image listens on 8080. Forge's pre-existing
+  `SpellFilterState.favoriteSlugs` TypeScript failure is fixed and all Forge
+  local gates pass. Forge install reported 23 dependency audit
   vulnerabilities (seven moderate, 16 high), plus stale Browserslist,
   cross-chunk circular export, and large-chunk build warnings.
 - Codex pre-existing failures: doc-api TypeScript build errors; doc-processor
-  four failing Jest suites; invalid doc-websocket Prisma schema proxy; no
-  WebSocket/UI tests. These failures are source-baseline, not migration
+  four failing Jest suites; no WebSocket/UI tests. The invalid WebSocket Prisma
+  proxy and start-output mismatch are fixed. Remaining failures are
+  source-baseline, not migration
   regressions, but must be repaired or explicitly dispositioned before the
   production gate.
 - Live pre-existing operational failures: multiplayer heap-utilization SLO is
   currently failing; backend Prometheus metrics are not token-protected on the
   shared Docker network; `/api/system/health` returns no explicit database
   readiness field despite the current runbook's stated expectation.
-- Migration-introduced failures: application-local/root path repair has not yet
-  run after the successful mechanical move, so build parity is not expected at
-  this intermediate commit. No regression has been accepted or hidden.
+- Migration-introduced failures: none in the VTT, Forge, root workflow, or
+  Codex WebSocket parity slices. Remaining Codex baseline failures have not yet
+  been dispositioned.
 
 ## Review findings and disposition
 

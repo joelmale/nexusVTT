@@ -1,0 +1,89 @@
+name: Codex CI
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/codex/**'
+      - '.github/workflows/codex-ci.yml'
+  pull_request:
+    branches: [master]
+    paths:
+      - 'apps/codex/**'
+      - '.github/workflows/codex-ci.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify-services:
+    name: Verify ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: doc-api
+            prisma: true
+            test: true
+          - service: doc-processor
+            prisma: true
+            test: true
+          - service: doc-websocket
+            prisma: true
+            test: false
+          - service: admin-ui
+            prisma: false
+            test: false
+          - service: dm-ui
+            prisma: false
+            test: false
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/codex/services/${{ matrix.service }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: apps/codex/services/${{ matrix.service }}
+
+      - name: Generate Prisma client
+        if: matrix.prisma
+        run: npm run prisma:generate
+        working-directory: apps/codex/services/${{ matrix.service }}
+
+      - name: Run existing tests
+        if: matrix.test
+        run: npm test -- --runInBand
+        working-directory: apps/codex/services/${{ matrix.service }}
+
+      - name: Build
+        run: npm run build
+        working-directory: apps/codex/services/${{ matrix.service }}
+
+  build-images:
+    name: Build ${{ matrix.service }} image
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [doc-api, doc-processor, doc-websocket, admin-ui, dm-ui]
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build image without publishing
+        uses: docker/build-push-action@v7
+        with:
+          context: ./apps/codex/services/${{ matrix.service }}
+          file: ./apps/codex/services/${{ matrix.service }}/Dockerfile
+          push: false
+          tags: nexuscodex/${{ matrix.service }}:ci
+          cache-from: type=gha,scope=codex-${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=codex-${{ matrix.service }}

@@ -140,12 +140,12 @@ temp/
 .gitignore.old
 
 # Asset management
-public/assets/temp/
-src/assets/temp/
+apps/vtt/public/assets/temp/
+apps/vtt/src/assets/temp/
 
 # Processed assets (user-generated, can be recreated)
-static-assets/assets/
-!static-assets/assets/.gitkeep
+apps/vtt/static-assets/assets/
+!apps/vtt/static-assets/assets/.gitkeep
 
 # User asset processing working directories
 assets-working/
@@ -153,8 +153,8 @@ processed-assets/
 raw-assets/
 
 # Development scripts output
-scripts/temp/
-scripts/output/
+apps/vtt/scripts/temp/
+apps/vtt/scripts/output/
 
 # Test coverage
 coverage/
@@ -199,7 +199,7 @@ design-files/
 # the repo. Populate this directory locally (or point TMT_ASSET_PACK_PATH /
 # ASSET_SEED_SOURCE at a copy elsewhere — NAS share, external drive, etc.)
 # and it stays untracked. See DEPLOYMENT.md's TMT seed pack section.
-asset-packs/
+apps/vtt/asset-packs/
 
 # Deployment files
 .vercel
@@ -210,7 +210,7 @@ asset-packs/
 .dockerignore.local
 docker-compose.override.yml
 docker-compose.local.yml
-docker/volumes/
+apps/vtt/docker/volumes/
 *.env
 !.env.example
 
@@ -257,6 +257,6 @@ start-dev.sh.log
 # Test results
 playwright-report/
 test-results/
-tests/e2e/visual-regression.test.ts-snapshots/
+apps/vtt/tests/e2e/visual-regression.test.ts-snapshots/
 
 assets-data/

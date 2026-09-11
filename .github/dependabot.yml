@@ -2,7 +2,7 @@ version: 2
 updates:
   # JavaScript dependencies
   - package-ecosystem: "npm"
-    directory: "/"
+    directory: "/apps/vtt"
     schedule:
       interval: "weekly"
       day: "monday"
@@ -40,11 +40,72 @@ updates:
 
   # Docker base images
   - package-ecosystem: "docker"
-    directory: "/docker"
+    directory: "/apps/vtt/docker"
     schedule:
       interval: "weekly"
       day: "monday"
       time: "04:00"
+    reviewers:
+      - "JoelN"
+
+  # Imported application install roots remain independent during migration.
+  - package-ecosystem: "npm"
+    directory: "/apps/forge"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "JoelN"
+
+  - package-ecosystem: "npm"
+    directory: "/apps/codex/services/doc-api"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "JoelN"
+
+  - package-ecosystem: "npm"
+    directory: "/apps/codex/services/doc-processor"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "JoelN"
+
+  - package-ecosystem: "npm"
+    directory: "/apps/codex/services/doc-websocket"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "JoelN"
+
+  - package-ecosystem: "npm"
+    directory: "/apps/codex/services/admin-ui"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "JoelN"
+
+  - package-ecosystem: "npm"
+    directory: "/apps/codex/services/dm-ui"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 5
     reviewers:
       - "JoelN"
 

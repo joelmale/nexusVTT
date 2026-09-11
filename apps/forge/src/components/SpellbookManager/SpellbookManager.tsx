@@ -309,7 +309,7 @@ export const SpellbookManager: React.FC<SpellbookManagerProps> = ({ selectedChar
 
         {/* Filter Controls */}
         <SpellFilterBar
-          filters={filters}
+          filters={fullFilterState}
           onChangeFilters={handleUpdateFilters}
           onResetFilters={handleResetFilters}
           availableSchools={availableSchools}

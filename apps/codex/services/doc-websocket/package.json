@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "tsx watch src/server.ts",
     "build": "tsc",
-    "start": "node dist/server.js",
+    "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
     "test": "jest",
     "test:watch": "jest --watch",
