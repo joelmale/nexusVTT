@@ -1,26 +1,20 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+	
 	<meta charset="utf-8">
 	
-	<title>Dwellings</title>
+	<title>Medieval Fantasy City Generator</title>
 	
 	<meta id="viewport" name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
 	<meta name="apple-mobile-web-app-capable" content="yes">
 	
+	
 	<link rel="shortcut icon" type="image/png" href="./favicon.png">
 	
-	<!-- Google tag (gtag.js) -->
-	<script async src="https://www.googletagmanager.com/gtag/js?id=G-MSD3Q43HH8"></script>
-	<script>
-		window.dataLayer = window.dataLayer || [];
-		function gtag(){dataLayer.push(arguments);}
-		gtag('js', new Date());
-
-		gtag('config', 'G-MSD3Q43HH8');
-	</script>
-
-	<script type="text/javascript" src="./Dwellings.js"></script>
+	
+	<script type="text/javascript" src="./mfcg.js"></script>
+	<script type="text/javascript" src="./city-bridge.js"></script>
 	
 	<script>
 		window.addEventListener ("touchmove", function (event) { event.preventDefault (); }, { capture: false, passive: false });
@@ -34,20 +28,29 @@
 		html,body { margin: 0; padding: 0; height: 100%; overflow: hidden; }
 		#openfl-content { background: #000000; width: 100%; height: 100%; }
 		@font-face {
+			font-family: 'IM FELL Great Primer Roman';
+			src: url('Assets/IMFellGreatPrimer-Regular.eot?#iefix') format('embedded-opentype'),
+			url('Assets/IMFellGreatPrimer-Regular.woff') format('woff'),
+			url('Assets/IMFellGreatPrimer-Regular.ttf') format('truetype'),
+			url('Assets/IMFellGreatPrimer-Regular.svg#IM%20FELL%20Great%20Primer%20Roman') format('svg');
+			font-weight: normal;
+			font-style: normal;
+		}
+		@font-face {
 			font-family: 'Share Tech Regular';
-			src: url('Assets/ShareTech-regular.eot?#iefix') format('embedded-opentype'),
-			url('Assets/ShareTech-regular.woff') format('woff'),
-			url('Assets/ShareTech-regular.ttf') format('truetype'),
-			url('Assets/ShareTech-regular.svg#Share%20Tech%20Regular') format('svg');
+			src: url('Assets/ShareTech-Regular.eot?#iefix') format('embedded-opentype'),
+			url('Assets/ShareTech-Regular.woff') format('woff'),
+			url('Assets/ShareTech-Regular.ttf') format('truetype'),
+			url('Assets/ShareTech-Regular.svg#Share%20Tech%20Regular') format('svg');
 			font-weight: normal;
 			font-style: normal;
 		}
 		@font-face {
 			font-family: 'Share Tech Mono';
-			src: url('Assets/ShareTechMono-regular.eot?#iefix') format('embedded-opentype'),
-			url('Assets/ShareTechMono-regular.woff') format('woff'),
-			url('Assets/ShareTechMono-regular.ttf') format('truetype'),
-			url('Assets/ShareTechMono-regular.svg#Share%20Tech%20Mono') format('svg');
+			src: url('Assets/ShareTechMono-Regular.eot?#iefix') format('embedded-opentype'),
+			url('Assets/ShareTechMono-Regular.woff') format('woff'),
+			url('Assets/ShareTechMono-Regular.ttf') format('truetype'),
+			url('Assets/ShareTechMono-Regular.svg#Share%20Tech%20Mono') format('svg');
 			font-weight: normal;
 			font-style: normal;
 		}
@@ -62,7 +65,7 @@
 	<div id="openfl-content"></div>
 	
 	<script type="text/javascript">
-		lime.embed ("Dwellings", "openfl-content", 0, 0, { parameters: {} });
+		lime.embed ("mfcg", "openfl-content", 0, 0, { parameters: {} });
 	</script>
 	
 </body>

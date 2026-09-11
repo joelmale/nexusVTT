@@ -46,6 +46,9 @@ function App() {
   let iframeSrc = '';
   if (generator === 'dungeon') iframeSrc = '/one-page-dungeon/index.html';
   if (generator === 'world') iframeSrc = '/world-map-generator/index.html';
+  if (generator === 'cave') iframeSrc = '/cave-generator/index.html';
+  if (generator === 'city') iframeSrc = '/city-generator/index.html';
+  if (generator === 'dwelling') iframeSrc = '/dwellings-generator/index.html';
 
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
@@ -54,7 +57,13 @@ function App() {
         return;
       }
 
-      if (event.data.type === 'DUNGEON_BRIDGE_READY' || event.data.type === 'VTT_GEN_READY') {
+      if (
+        event.data.type === 'DUNGEON_BRIDGE_READY' ||
+        event.data.type === 'CAVE_BRIDGE_READY' ||
+        event.data.type === 'CITY_BRIDGE_READY' ||
+        event.data.type === 'DWELLINGS_BRIDGE_READY' ||
+        event.data.type === 'VTT_GEN_READY'
+      ) {
         setLoading(false);
       }
 
@@ -92,7 +101,12 @@ function App() {
         return;
       }
 
-      if (event.data.type === 'DUNGEON_EXPORT_READY') {
+      if (
+        event.data.type === 'DUNGEON_EXPORT_READY' ||
+        event.data.type === 'CAVE_EXPORT_READY' ||
+        event.data.type === 'CITY_EXPORT_READY' ||
+        event.data.type === 'DWELLINGS_EXPORT_READY'
+      ) {
         const { blob, mimeType } = event.data.payload;
         
         let finalBlob = blob;
@@ -124,7 +138,7 @@ function App() {
             protocolVersion: '1.0',
             exportId: Math.random().toString(36).slice(2),
             importId: Math.random().toString(36).slice(2),
-            source: 'dungeon',
+            source: generator as any,
             generatorVersion: '1.0',
             byteLength: finalBlob.size,
             grid: {
