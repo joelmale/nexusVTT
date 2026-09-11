@@ -284,6 +284,12 @@
 - **Security**: HTTPS enforcement, CORS configuration, and security headers.
 - **Monitoring**: Container monitoring and logging setup.
 - **Multiplayer Observability**: Prometheus rules/configuration live in `monitoring/`; SLO and soak operations are documented in `docs/operations/multiplayer-observability.md`.
+- **NexusCodex Homelab**: The Dockhand `nexus-vtt2` stack deployment, service
+  names, validation commands, OAuth recovery requirement, and browser
+  file-transfer limitation are documented in
+  `docs/operations/nexuscodex-homelab.md`. Keep `doc-api` private while
+  `AUTH_DISABLED=true`, and never replace the stack's raw `.env` without first
+  merging its returned `content`.
 
 ## Security & Best Practices
 

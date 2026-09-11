@@ -1,0 +1,93 @@
+services:
+  postgres:
+    image: ghcr.io/joelmale/nexusvtt/postgres:latest
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nexus}
+      POSTGRES_USER: ${POSTGRES_USER:-nexus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - /mnt/docker-nas-vol1/nexusvtt/postgres:/var/lib/postgresql/data
+    networks:
+      - homelab-net
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-nexus}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - /mnt/docker-nas-vol1/nexusvtt/redis:/data
+    networks:
+      - homelab-net
+    healthcheck:
+      test: ['CMD', 'redis-cli', '--no-auth-warning', '-a', '${REDIS_PASSWORD}', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+  asset-server:
+    image: ghcr.io/joelmale/nexusvtt/asset-service:latest
+    container_name: nexus-vtt2-asset-server
+    hostname: nexus-vtt2-asset-server
+    user: "1000:1000"
+    environment:
+      NODE_ENV: production
+      PORT: 5003
+      ASSETS_PATH: /app/static-assets
+      ASSET_SERVICE_SECRET: ${ASSET_SERVICE_SECRET}
+      LIBRARY_DATA_PATH: /app/assets-data
+      LIBRARY_MANIFEST_PATH: /app/assets-data/manifests/manifest-v2.json
+    volumes:
+      - /mnt/docker-nas-vol1/nexusvtt/assets:/app/static-assets/assets
+      - /mnt/docker-nas-vol1/nexusvtt/user-assets:/app/static-assets/users
+      - /mnt/docker-nas-vol1/nexusvtt/library-assets:/app/assets-data
+      - /mnt/docker-nas-vol1/nexusvtt/tmt-seed:/seed/tmt:ro
+    networks:
+      - homelab-net
+    healthcheck:
+      test: ['CMD-SHELL', 'node -e "const port = process.env.PORT || 5003; require(''http'').get(''http://127.0.0.1:'' + port + ''/health'', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on(''error'', () => process.exit(1))"']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+  nexus-forge:
+    image: ghcr.io/joelmale/nexus-forge:latest
+    container_name: nexus-vtt2-forge
+    hostname: nexus-vtt2-forge
+    networks:
+      - homelab-net
+  frontend:
+    image: ghcr.io/joelmale/nexusvtt/frontend:latest
+    container_name: nexus-vtt2-frontend
+    hostname: nexus-vtt2-frontend
+    environment:
+      - NODE_ENV=production
+    networks:
+      - homelab-net
+  backend:
+    image: ghcr.io/joelmale/nexusvtt/backend:latest
+    environment:
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      SESSION_SECRET: ${SESSION_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
+      DISCORD_CALLBACK_URL: ${DISCORD_CALLBACK_URL}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks:
+      - homelab-net
+networks:
+  homelab-net:
+    external: true

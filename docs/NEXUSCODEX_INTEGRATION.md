@@ -1,5 +1,14 @@
 # NexusCodex Integration Documentation
 
+> **Deployment status (2026-07-21):** Health, authenticated document listing,
+> metadata, and search are deployed in the Dockhand-managed homelab stack.
+> Browser upload/content transfer still needs the public object-storage or
+> authenticated backend-proxy work described in
+> [`docs/operations/nexuscodex-homelab.md`](operations/nexuscodex-homelab.md).
+> Google and Discord OAuth credentials must also be restored after the homelab
+> environment recovery. Do not interpret older "production-ready" wording in
+> this document as validation of those two remaining paths.
+
 **Date**: 2025-10-20
 **Integration Type**: Microservices Architecture
 **Status**: ✅ Complete

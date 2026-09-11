@@ -88,7 +88,8 @@ and host leases; losing Redis cannot erase an acknowledged game-state commit.
 
 ### 📚 Document Integration
 
-- NexusCodex for rule references
+- NexusCodex for rule references; see the
+  [homelab deployment runbook](docs/operations/nexuscodex-homelab.md)
 - Document sharing and collaboration
 - PDF integration for rulebooks
 - Rich text editing capabilities
