@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { GeneratorHostMessage } from '../../../shared/generator/protocol';
+import type { GeneratorHostMessage } from '../../../shared/generator/protocol';
 
 async function rasterizeSvgToWebp(svgText: string): Promise<Blob> {
   return new Promise((resolve, reject) => {

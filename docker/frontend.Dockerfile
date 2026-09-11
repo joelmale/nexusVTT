@@ -53,7 +53,7 @@ ENV VITE_BUILD_VERSION=$COMMIT_SHA
 ENV VITE_DELTA_SYNC=$VITE_DELTA_SYNC
 
 # Build the application
-RUN npm run build
+RUN npm run build && npm run build:generator-hub
 
 
 # Stage 3: Production
@@ -63,6 +63,7 @@ COPY docker/nginx.conf /etc/nginx/nginx.conf
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/apps/generator-hub/dist /usr/share/nginx/html/generator-hub
 
 # Expose port
 EXPOSE 80

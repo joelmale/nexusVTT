@@ -113,15 +113,25 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     useState<GeneratorType>('dungeon');
   const [, setIsImporting] = useState(false);
 
-  const hubUrl = import.meta.env.VITE_GENERATOR_HUB_URL || 'http://localhost:5174';
+  const configuredHubUrl =
+    import.meta.env.VITE_GENERATOR_HUB_URL ||
+    (import.meta.env.DEV ? 'http://localhost:5174' : '/generator-hub/');
+  const hubUrl =
+    typeof window === 'undefined'
+      ? configuredHubUrl
+      : new URL(configuredHubUrl, window.location.href).toString();
+  const hubOrigin =
+    typeof window === 'undefined'
+      ? ''
+      : new URL(configuredHubUrl, window.location.href).origin;
   const iframeRef = useRef<HTMLIFrameElement>(null);
 
   // Setup Host Client
   useEffect(() => {
-    const client = new GeneratorHostClient(new URL(hubUrl).origin);
+    const client = new GeneratorHostClient(hubOrigin);
     
     const handleHostMessage = (event: MessageEvent) => {
-      if (event.origin !== new URL(hubUrl).origin) return;
+      if (event.origin !== hubOrigin) return;
       const msg = event.data as GeneratorHostMessage;
       
       if (msg.type === 'generator/export-ready') {
@@ -151,7 +161,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       window.removeEventListener('message', handleHostMessage);
       client.disconnect();
     };
-  }, [hubUrl]);
+  }, [hubOrigin, hubUrl]);
 
   // Load map from IndexedDB on mount
   useEffect(() => {

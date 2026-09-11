@@ -73,7 +73,7 @@ class CharacterSyncService {
       if (entry?.type === 'player' || update.characterId) {
         // Is it owned by this client? (i.e. playerId matches our user id)
         const isOwned = entry?.playerId === user?.id || 
-                        useCharacterStore.getState().characters.find((c: { id: string; playerId: string }) => c.id === update.characterId)?.playerId === user?.id;
+                        useCharacterStore.getState().characters.find((c) => c.id === update.characterId)?.playerId === user?.id;
                         
         if (isOwned && activeSceneId) {
           const scene = scenes.find((s: { id: string; placedTokens: unknown[] }) => s.id === activeSceneId);
