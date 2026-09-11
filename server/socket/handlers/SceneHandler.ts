@@ -15,6 +15,7 @@ export class SceneHandler extends BaseHandler {
       'scene/delete',
       'scene/reorder',
       'scene/change',
+      'camera/update',
     ];
 
     sceneEvents.forEach((event) => {
@@ -35,10 +36,16 @@ export class SceneHandler extends BaseHandler {
   ): Promise<void> {
     if (!this.enforceHostOnly(connection, room, event)) return;
 
-    // Relay to the rest of the room; the sender already applied it optimistically.
-    await this.socketManager.publishOrderedEvent(room, connection, message, {
-      excludeId: connection.id,
-    });
+    if (event === 'camera/update') {
+      // Keep camera events transient; do not add them to the durable journal.
+      this.socketManager.broadcastToRoom(room.code, message, connection.id);
+    } else {
+      // Relay to the rest of the room; the sender already applied it optimistically.
+      await this.socketManager.publishOrderedEvent(room, connection, message, {
+        excludeId: connection.id,
+      });
+    }
+
     console.log(
       `🎬 Scene event "${event}" in ${room.code} from ${connection.id}`,
     );

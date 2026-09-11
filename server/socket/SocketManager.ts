@@ -248,7 +248,12 @@ export class SocketManager extends EventEmitter {
     this.emit('message', { fromId, connection, room, message });
     this.emit(message.type, { fromId, connection, room, message });
     if (message.type === 'event' && message.data?.name) {
-      this.emit(`event:${message.data.name}`, {
+      const eventName = message.data.name as string;
+      const listeners = this.listenerCount(`event:${eventName}`);
+      if (listeners === 0 && process.env.NODE_ENV !== 'production') {
+        console.warn(`⚠️ Unhandled event "${eventName}" from ${fromId}`);
+      }
+      this.emit(`event:${eventName}`, {
         fromId,
         connection,
         room,

@@ -73,6 +73,7 @@ import { DocumentSyncHandler } from './socket/handlers/DocumentSyncHandler.js';
 import { HostHandler } from './socket/handlers/HostHandler.js';
 import { EntitySyncHandler } from './socket/handlers/EntitySyncHandler.js';
 import { CharacterHandler } from './socket/handlers/CharacterHandler.js';
+import { CombatHandler } from './socket/handlers/CombatHandler.js';
 
 // Services
 import {
@@ -342,6 +343,7 @@ class NexusServer {
     new HostHandler(this.socketManager, this.db);
     new EntitySyncHandler(this.socketManager, this.db);
     new CharacterHandler(this.socketManager, this.db);
+    new CombatHandler(this.socketManager, this.db);
 
     // Commit + broadcast host game-state uploads through the content-hash
     // token chain. This lives here (rather than in a handler) because it owns
