@@ -37,11 +37,11 @@ export const test = base.extend<{ diagnostics: BrowserDiagnostics }>({
         }
       };
       const onPageError = (error: Error) => {
-        diagnostics.pageErrors.push(error.stack ?? error.message);
+        diagnostics.pageErrors.push(error.stack || error.message);
       };
       const onRequestFailed = (request: Request) => {
         diagnostics.requestFailures.push(
-          `${request.url()} — ${request.failure()?.errorText ?? 'unknown failure'}`,
+          `${request.url()} — ${request.failure()?.errorText || 'unknown failure'}`,
         );
       };
 
@@ -54,7 +54,7 @@ export const test = base.extend<{ diagnostics: BrowserDiagnostics }>({
       // Merge Playwright's retained buffers so a production bootstrap failure
       // always leaves useful evidence, including errors raised near teardown.
       for (const error of await page.pageErrors()) {
-        const message = error.stack ?? error.message;
+        const message = error.stack || error.message;
         if (!diagnostics.pageErrors.includes(message)) {
           diagnostics.pageErrors.push(message);
         }

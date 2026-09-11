@@ -189,14 +189,14 @@ Status values: `planned`, `active`, `blocked`, `complete`, `superseded`.
 | S1.2 — test-database safety               | complete| S0           | T0                      | —               | Required before DB integration tests |
 | S1.3 — CI and publishing correctness      | complete| S1.2         | T1                      | —               |                                      |
 | S1.4 — XSS and asset boundaries           | complete| S0           | T2                      | —               | Required before Hub upload           |
-| S1.5 — WebSocket identity                 | complete| S1.2         | T2                      | Uncommitted     | Finalized WebSocket identity         |
-| S1.6 — host authorization                 | complete| S1.5         | T2 + independent review | Uncommitted     | Finalized Host authorization         |
-| S2A — IndexedDB ownership                 | complete| S0           | T1                      | Uncommitted     | Independent of Hub                   |
-| S2B.1 — Hub scaffold and protocol         | complete| S0           | T1                      | Uncommitted     |                                      |
-| S2B.2 — vendor adapter and standalone Hub | complete| S2B.1        | T1                      | Uncommitted     | Includes font decision gate          |
-| S2B.3 — secure Nexus/Hub boundary         | complete| S2B.2        | T2                      | Uncommitted     | Integrated VITE_GENERATOR_HUB_URL    |
-| S2B.4 — generated-map upload pipeline     | complete| S1.4, S2B.2  | T2 + independent review | Uncommitted     | Implemented asset-service POST       |
-| S2B.5 — Nexus importer and library        | complete| S2B.3, S2B.4 | T1                      | Uncommitted     | Implemented BaseMapImporter logic    |
+| S1.5 — WebSocket identity                 | complete| S1.2         | T2                      | 2738e8d         | Finalized WebSocket identity         |
+| S1.6 — host authorization                 | complete| S1.5         | T2 + independent review | 2738e8d         | Finalized Host authorization         |
+| S2A — IndexedDB ownership                 | complete| S0           | T1                      | 2738e8d         | Independent of Hub                   |
+| S2B.1 — Hub scaffold and protocol         | complete| S0           | T1                      | 2738e8d         |                                      |
+| S2B.2 — vendor adapter and standalone Hub | complete| S2B.1        | T1                      | 2738e8d         | Includes font decision gate          |
+| S2B.3 — secure Nexus/Hub boundary         | complete| S2B.2        | T2                      | 2738e8d         | Integrated VITE_GENERATOR_HUB_URL    |
+| S2B.4 — generated-map upload pipeline     | complete| S1.4, S2B.2  | T2 + independent review | 2738e8d         | Implemented asset-service POST       |
+| S2B.5 — Nexus importer and library        | complete| S2B.3, S2B.4 | T1                      | 2738e8d         | Implemented BaseMapImporter logic    |
 | S2B.6 — rollout and legacy cleanup        | complete| S2B.5        | T1                      | 50e840e         | Removed old path             |
 | S3.1 — authorized event relay             | planned | S1.5, S1.6   | T2                      | —               |                                      |
 | S3.2 — HP synchronization                 | planned | S3.1         | T2                      | —               |                                      |
