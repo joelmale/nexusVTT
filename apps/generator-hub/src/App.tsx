@@ -38,6 +38,15 @@ function App() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const [loading, setLoading] = useState(true);
 
+  // Determine which generator to load based on URL params
+  const urlParams = new URLSearchParams(window.location.search);
+  const generator = urlParams.get('generator') || 'dungeon';
+  const forceRasterize = urlParams.get('rasterize') === 'true';
+  
+  let iframeSrc = '';
+  if (generator === 'dungeon') iframeSrc = '/one-page-dungeon/index.html';
+  if (generator === 'world') iframeSrc = '/world-map-generator/index.html';
+
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
       // Trust the iframe we created
@@ -45,8 +54,42 @@ function App() {
         return;
       }
 
-      if (event.data.type === 'DUNGEON_BRIDGE_READY') {
+      if (event.data.type === 'DUNGEON_BRIDGE_READY' || event.data.type === 'VTT_GEN_READY') {
         setLoading(false);
+      }
+
+      // Handle World Generator
+      if (event.data.type === 'VTT_MAP_EXPORTED' && event.data.generatorId === 'world') {
+        const payload = event.data;
+        const dataUrl = payload.full?.dataUrl;
+        if (!dataUrl) return;
+
+        const res = await fetch(dataUrl);
+        const blob = await res.blob();
+
+        const msg: GeneratorHostMessage = {
+          type: 'generator/export-ready',
+          payload: {
+            protocolVersion: '1.0',
+            exportId: Math.random().toString(36).slice(2),
+            importId: Math.random().toString(36).slice(2),
+            source: 'world',
+            generatorVersion: '1.0',
+            byteLength: blob.size,
+            grid: {
+              bakedIntoImage: true
+            },
+            payload: { 
+              kind: 'raster', 
+              blob, 
+              mimeType: blob.type as 'image/webp' | 'image/png', 
+              width: payload.meta?.width || 2000, 
+              height: payload.meta?.height || 2000 
+            }
+          }
+        };
+        window.parent.postMessage(msg, '*');
+        return;
       }
 
       if (event.data.type === 'DUNGEON_EXPORT_READY') {
@@ -63,8 +106,8 @@ function App() {
           const requiresRasterization = text.includes('font-family') && 
             !text.includes('font-family="monospace"');
 
-          if (requiresRasterization) {
-            console.log('Rasterizing SVG to WebP due to font constraints');
+          if (forceRasterize || requiresRasterization) {
+            console.log('Rasterizing SVG to WebP due to font constraints or user preference');
             finalBlob = await rasterizeSvgToWebp(text);
             finalMimeType = 'image/webp';
             format = 'webp';
@@ -99,12 +142,7 @@ function App() {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, []);
-  // Determine which generator to load based on URL params
-  const urlParams = new URLSearchParams(window.location.search);
-  const generator = urlParams.get('generator') || 'dungeon';
-  
-  const iframeSrc = generator === 'dungeon' ? '/one-page-dungeon/index.html' : '';
+  }, [forceRasterize]);
 
   return (
     <div style={{ width: '100%', height: '100vh', margin: 0, padding: 0, overflow: 'hidden' }}>
@@ -116,6 +154,7 @@ function App() {
           style={{ width: '100%', height: '100%', border: 'none' }}
           sandbox="allow-scripts allow-same-origin allow-forms allow-downloads"
           title="Generator Vendor"
+          onLoad={() => setLoading(false)}
         />
       ) : (
         <div>Unknown generator: {generator}</div>

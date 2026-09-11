@@ -9,6 +9,8 @@ interface GeneratorFloatingControlsProps {
   onUploadJSON?: () => void;
   hasActiveScene: boolean;
   hasValidArtifact?: boolean;
+  forceRasterize?: boolean;
+  onForceRasterizeChange?: (value: boolean) => void;
 }
 
 export const GeneratorFloatingControls: React.FC<
@@ -20,6 +22,8 @@ export const GeneratorFloatingControls: React.FC<
   onUploadJSON,
   hasActiveScene,
   hasValidArtifact = true,
+  forceRasterize = true,
+  onForceRasterizeChange,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -271,6 +275,28 @@ export const GeneratorFloatingControls: React.FC<
                 >
                   📤 Upload JSON
                 </button>
+              )}
+
+              {onForceRasterizeChange && (
+                <label
+                  style={{
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '0.5rem',
+                    fontSize: '0.8125rem',
+                    color: '#ccc',
+                    cursor: 'pointer',
+                    padding: '0.25rem 0',
+                  }}
+                >
+                  <input
+                    type="checkbox"
+                    checked={forceRasterize}
+                    onChange={(e) => onForceRasterizeChange(e.target.checked)}
+                    style={{ cursor: 'pointer' }}
+                  />
+                  Aggressive Rasterize (WebP)
+                </label>
               )}
 
               {shortcuts[activeGenerator].length > 0 && (

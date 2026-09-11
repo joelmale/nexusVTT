@@ -202,6 +202,10 @@ Status values: `planned`, `active`, `blocked`, `complete`, `superseded`.
 | S3.2 — HP synchronization                 | planned | S3.1         | T2                      | —               |                                      |
 | S3.3 — durable co-host grants             | planned | S1.5, S1.6   | T2                      | —               |                                      |
 | S3.4 — document route and scoping         | planned | S1.2         | T1                      | —               | May run alongside Session 2          |
+| S4.1 — World Generator migration          | complete| S2B.6        | T1                      |                 | Migrated world-map-generator to Hub  |
+| S4.2 — Cave Generator migration           | planned | S4.1         | T1                      |                 |                                      |
+| S4.3 — City Generator migration           | planned | S4.2         | T1                      |                 |                                      |
+| S4.4 — Dwelling Generator migration       | planned | S4.3         | T1                      |                 |                                      |
 | S4 — backlog planning                     | planned | Sessions 1-3 | T1/T2                   | —               | Outline only                         |
 
 ## 6. Session 0 — baseline and containment

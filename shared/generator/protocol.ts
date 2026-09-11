@@ -20,7 +20,7 @@ export interface GeneratorExportArtifact {
   protocolVersion: string;
   exportId: string;
   importId: string;
-  source: 'dungeon';
+  source: 'dungeon' | 'world' | 'cave' | 'city' | 'dwelling';
   generatorVersion: string;
   payload: GeneratorExportPayload;
   byteLength: number;

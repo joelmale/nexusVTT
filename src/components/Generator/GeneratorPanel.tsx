@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BaseMapImporter } from '@/services/baseMapImporter';
-import { WorldGenerator, type WorldMapPayload } from './WorldGenerator';
 import { GeneratorFloatingControls } from './GeneratorFloatingControls';
 import { useGameStore, useActiveScene } from '@/stores/gameStore';
 import './GeneratorPanel.css';
@@ -95,14 +94,7 @@ interface GeneratorPanelProps {
 
 type GeneratorType = 'dungeon' | 'cave' | 'world' | 'city' | 'dwelling';
 
-type GeneratedMapPayload =
-  string | WorldMapPayload;
-
-function isWorldMapPayload(
-  payload: Exclude<GeneratedMapPayload, string>,
-): payload is WorldMapPayload {
-  return 'full' in payload && typeof payload.full?.dataUrl === 'string';
-}
+type GeneratedMapPayload = string;
 
 export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   onSwitchToScenes,
@@ -111,6 +103,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   const [generatedBlob, setGeneratedBlob] = useState<{ blob: Blob; filename: string } | null>(null);
   const [activeGenerator, setActiveGenerator] =
     useState<GeneratorType>('dungeon');
+  const [forceRasterize, setForceRasterize] = useState(true);
   const [, setIsImporting] = useState(false);
 
   const configuredHubUrl =
@@ -125,6 +118,40 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       ? ''
       : new URL(configuredHubUrl, window.location.href).origin;
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  const activeScene = useActiveScene();
+  const updateScene = useGameStore((state) => state.updateScene);
+  const setActiveTab = useGameStore((state) => state.setActiveTab);
+
+  const handleMapGenerated = React.useCallback(async (
+    imageDataOrData: GeneratedMapPayload,
+    format: 'webp' | 'png' = 'webp',
+    originalSize?: number,
+  ) => {
+    const generatorType = activeGenerator;
+    console.log('🗺️ Map generated from:', generatorType);
+
+    let imageData: string;
+    if (typeof imageDataOrData === 'string') {
+      if (imageDataOrData.startsWith('{')) {
+        console.warn('Blocked JSON payload from entering scene state');
+        return;
+      }
+      imageData = imageDataOrData;
+    } else {
+      imageData = '';
+    }
+
+    setGeneratedMap(imageData);
+
+    await saveGeneratorMapToIndexedDB({
+      imageData,
+      format,
+      originalSize,
+      timestamp: Date.now(),
+      generator: generatorType,
+    });
+  }, [activeGenerator]);
 
   // Setup Host Client
   useEffect(() => {
@@ -161,7 +188,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       window.removeEventListener('message', handleHostMessage);
       client.disconnect();
     };
-  }, [hubOrigin, hubUrl]);
+  }, [hubOrigin, hubUrl, handleMapGenerated]);
 
   // Load map from IndexedDB on mount
   useEffect(() => {
@@ -182,47 +209,6 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     };
     loadMap();
   }, []);
-
-  const activeScene = useActiveScene();
-  const updateScene = useGameStore((state) => state.updateScene);
-  const setActiveTab = useGameStore((state) => state.setActiveTab);
-
-
-
-  async function handleMapGenerated(
-    imageDataOrData: GeneratedMapPayload,
-    format: 'webp' | 'png' = 'webp',
-    originalSize?: number,
-  ) {
-    const generatorType =
-      typeof imageDataOrData === 'object' && isWorldMapPayload(imageDataOrData)
-        ? imageDataOrData.meta.generator
-        : 'dungeon';
-    console.log('🗺️ Map generated from:', generatorType);
-
-    let imageData: string;
-    if (typeof imageDataOrData === 'string') {
-      if (imageDataOrData.startsWith('{')) {
-        console.warn('Blocked JSON payload from entering scene state');
-        return;
-      }
-      imageData = imageDataOrData;
-    } else if (isWorldMapPayload(imageDataOrData)) {
-      imageData = imageDataOrData.full.dataUrl;
-    } else {
-      imageData = '';
-    }
-
-    setGeneratedMap(imageData);
-
-    await saveGeneratorMapToIndexedDB({
-      imageData,
-      format,
-      originalSize,
-      timestamp: Date.now(),
-      generator: generatorType,
-    });
-  };
 
   const handleApplyToScene = async () => {
     if (!activeScene || (!generatedMap && !generatedBlob)) return;
@@ -283,6 +269,8 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         onAddToScene={handleApplyToScene}
         hasActiveScene={!!activeScene}
         hasValidArtifact={!!generatedMap && !generatedMap.startsWith('{')}
+        forceRasterize={forceRasterize}
+        onForceRasterizeChange={setForceRasterize}
       />
 
       {/* Debug: Show generated map preview */}
@@ -317,11 +305,11 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         </div>
       )}
 
-      {activeGenerator === 'dungeon' && (
+      {['dungeon', 'world'].includes(activeGenerator) && (
         <iframe
           ref={iframeRef}
-          key="generator-hub-dungeon"
-          src={`${hubUrl}?generator=dungeon`}
+          key={`generator-hub-${activeGenerator}`}
+          src={`${hubUrl}?generator=${activeGenerator}&rasterize=${forceRasterize}`}
           className="generator-iframe"
           sandbox="allow-scripts allow-same-origin allow-forms allow-downloads"
           style={{
@@ -332,10 +320,6 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
           }}
           title="Generator Hub"
         />
-      )}
-
-      {activeGenerator === 'world' && (
-        <WorldGenerator onMapGenerated={handleMapGenerated} />
       )}
     </div>
   );
