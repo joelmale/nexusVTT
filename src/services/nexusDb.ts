@@ -55,22 +55,24 @@ function ensureStore(db: IDBDatabase, descriptor: StoreDescriptor) {
 /**
  * Checks if the database is missing any required stores.
  * If so, it returns true, indicating a version bump is needed for repair.
+ * Also returns the current version of the database.
  */
-async function needsRepair(): Promise<boolean> {
+async function needsRepair(): Promise<{missing: boolean, version: number}> {
   return new Promise((resolve) => {
     const request = indexedDB.open(DB_NAME);
     request.onsuccess = () => {
       const db = request.result;
       const storeNames = Array.from(db.objectStoreNames);
+      const version = db.version;
       db.close?.();
 
       const missing = Object.values(STORES).some(
         (store) => !storeNames.includes(store.name),
       );
-      resolve(missing);
+      resolve({ missing, version });
     };
     request.onerror = () => {
-      resolve(false); // If it fails to open, it will trigger an upgrade anyway or fail properly
+      resolve({ missing: false, version: DB_VERSION }); // If it fails to open, it will trigger an upgrade anyway or fail properly
     };
   });
 }
@@ -80,7 +82,11 @@ async function needsRepair(): Promise<boolean> {
  * without deleting user data (maps or game state).
  */
 export async function repairMissingStores(): Promise<void> {
-  if (await needsRepair()) {
+  const status = await needsRepair();
+  if (status.version > currentDbVersion) {
+    currentDbVersion = status.version;
+  }
+  if (status.missing) {
     console.warn(`⚠️ Database missing required stores. Bumping version for repair...`);
     currentDbVersion += 1;
   }
