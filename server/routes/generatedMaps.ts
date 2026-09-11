@@ -6,14 +6,15 @@ const upload = multer({
   storage: multer.memoryStorage(),
 });
 
-export function setupGeneratedMapsRoute(app: Application, requireAuthenticatedNonGuest: any) {
+export function setupGeneratedMapsRoute(app: Application, requireAuthenticatedNonGuest: import('express').RequestHandler) {
   app.post(
     '/api/generated-maps',
     requireAuthenticatedNonGuest,
     upload.single('file'),
     async (req: Request, res: Response) => {
       try {
-        const session = req.session as any;
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const session = req.session as Record<string, any>;
         const userId = session.passport?.user?.id;
         
         if (!userId) {
@@ -25,7 +26,8 @@ export function setupGeneratedMapsRoute(app: Application, requireAuthenticatedNo
         }
 
         const formData = new FormData();
-        const blob = new Blob([req.file.buffer], { type: req.file.mimetype });
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        const blob = new Blob([req.file.buffer as any], { type: req.file.mimetype });
         formData.append('file', blob, req.file.originalname);
         
         if (req.body.importId) formData.append('importId', req.body.importId);

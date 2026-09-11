@@ -1,29 +1,14 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { BaseMapImporter } from '@/services/baseMapImporter';
 import { WorldGenerator, type WorldMapPayload } from './WorldGenerator';
 import { GeneratorFloatingControls } from './GeneratorFloatingControls';
 import { useGameStore, useActiveScene } from '@/stores/gameStore';
 import './GeneratorPanel.css';
 import { GeneratorHostClient } from '@/services/generatorHostClient';
-import type { GeneratorHostMessage, GeneratorExportArtifact } from '../../../shared/generator/protocol';
+import type { GeneratorHostMessage } from '../../../shared/generator/protocol';
 import { openNexusDB } from '@/services/nexusDb';
 
-const DEFAULT_SANDBOX =
-  'allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-pointer-lock allow-orientation-lock allow-downloads';
 
-const iframeUrls: Record<string, string> = {
-  cave: '/cave-generator/index.html',
-  city: '/city-generator/index.html',
-  dwelling: '/dwellings-generator/index.html',
-};
-
-// Map of any extra allow permissions per generator type
-const ALLOW_MAP: Record<string, string | undefined> = {
-  city: 'cross-origin-isolated',
-  cave: undefined,
-  dwelling: undefined,
-  dungeon: undefined,
-  world: undefined,
-};
 
 const GENERATOR_MAP_STORAGE_KEY = 'nexus-generator-current-map';
 
@@ -36,7 +21,7 @@ interface GeneratorMapData {
   generator: string;
 }
 
-import { openNexusDB } from '@/services/nexusDb';
+
 
 const openGeneratorDB = async (): Promise<IDBDatabase> => {
   return openNexusDB();
@@ -126,6 +111,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   const [generatedBlob, setGeneratedBlob] = useState<{ blob: Blob; filename: string } | null>(null);
   const [activeGenerator, setActiveGenerator] =
     useState<GeneratorType>('dungeon');
+  const [, setIsImporting] = useState(false);
 
   const hubUrl = import.meta.env.VITE_GENERATOR_HUB_URL || 'http://localhost:5174';
   const iframeRef = useRef<HTMLIFrameElement>(null);

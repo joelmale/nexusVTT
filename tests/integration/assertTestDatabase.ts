@@ -12,22 +12,19 @@ export function assertTestDatabase(): void {
   }
 
   // Parse the connection string to check the database name
-  let dbName = '';
   try {
     const url = new URL(dbUrl);
-    dbName = url.pathname.replace(/^\//, '');
-  } catch (error) {
+    const dbName = url.pathname.replace(/^\//, '');
+    const isTestDb = /(^|[_-])test(db)?$/i.test(dbName);
+    if (!isTestDb) {
+      throw new Error(
+        `assertTestDatabase: DATABASE_URL "${dbUrl}" (database: "${dbName}") ` +
+        `does not appear to be a test database. Refusing to run tests to prevent data loss. ` +
+        `Database name must end with 'test' or 'testdb'.`
+      );
+    }
+  } catch {
     throw new Error(`assertTestDatabase: Invalid DATABASE_URL format: ${dbUrl}`);
   }
 
-  // Require the database name to end with test or testdb
-  const isTestDb = /(^|[_-])test(db)?$/i.test(dbName);
-  
-  if (!isTestDb) {
-    throw new Error(
-      `assertTestDatabase: DATABASE_URL "${dbUrl}" (database: "${dbName}") ` +
-      `does not appear to be a test database. Refusing to run tests to prevent data loss. ` +
-      `Database name must end with 'test' or 'testdb'.`
-    );
-  }
 }

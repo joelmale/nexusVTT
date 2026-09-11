@@ -52,7 +52,7 @@ export const Tooltip: React.FC<TooltipProps> = React.memo(
           <div
             dangerouslySetInnerHTML={{
               __html: DOMPurify.sanitize(text, {
-                ALLOWED_URI_REGEXP: /^(?:(?:(?:ht)tps?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+                ALLOWED_URI_REGEXP: /^(?:(?:(?:ht)tps?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
               }),
             }}
           />

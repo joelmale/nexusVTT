@@ -581,7 +581,7 @@ export const DiceRoller: React.FC = () => {
                   <span
                     dangerouslySetInnerHTML={{
                       __html: DOMPurify.sanitize(formatDiceRoll(roll), {
-                        ALLOWED_URI_REGEXP: /^(?:(?:(?:ht)tps?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+                        ALLOWED_URI_REGEXP: /^(?:(?:(?:ht)tps?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
                       }),
                     }}
                   />

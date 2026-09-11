@@ -25,6 +25,7 @@ export interface AuthResponse extends PublicProfile {
 /**
  * Strips sensitive data from a user object for public consumption (e.g. in room participant lists).
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function toPublicUser(user: any): PublicUser | null {
   if (!user || typeof user !== 'object' || !user.id) return null;
   
@@ -41,6 +42,7 @@ export function toPublicUser(user: any): PublicUser | null {
  * Maps a full profile for public consumption. 
  * Use when a user views another user's public profile page.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function toPublicProfile(user: any): PublicProfile | null {
   if (!user || typeof user !== 'object' || !user.id) return null;
   
@@ -55,6 +57,7 @@ export function toPublicProfile(user: any): PublicProfile | null {
  * Maps a user record for the authenticated user themselves (e.g., /auth/me).
  * Includes email and provider.
  */
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 export function toAuthResponse(user: any): AuthResponse | null {
   if (!user || typeof user !== 'object' || !user.id) return null;
   

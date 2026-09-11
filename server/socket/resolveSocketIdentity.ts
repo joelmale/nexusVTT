@@ -8,7 +8,8 @@ export interface IdentityResolutionResult {
 }
 
 export async function resolveSocketIdentity(
-  session: any,
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  session: Record<string, any>,
   db: DatabaseService
 ): Promise<IdentityResolutionResult> {
   const authUserId = session?.passport?.user;

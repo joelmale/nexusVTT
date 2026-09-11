@@ -62,7 +62,7 @@ async function needsRepair(): Promise<boolean> {
     request.onsuccess = () => {
       const db = request.result;
       const storeNames = Array.from(db.objectStoreNames);
-      db.close();
+      db.close?.();
 
       const missing = Object.values(STORES).some(
         (store) => !storeNames.includes(store.name),

@@ -1,5 +1,38 @@
 import { useEffect, useRef, useState } from 'react';
-import type { GeneratorHostMessage, GeneratorExportArtifact } from '../../../shared/generator/protocol';
+import { GeneratorHostMessage } from '../../../shared/generator/protocol';
+
+async function rasterizeSvgToWebp(svgText: string): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const blob = new Blob([svgText], { type: 'image/svg+xml' });
+    const url = URL.createObjectURL(blob);
+    
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return reject(new Error('Failed to get canvas context'));
+      
+      ctx.fillStyle = 'white'; // default background
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      
+      canvas.toBlob((webpBlob) => {
+        URL.revokeObjectURL(url);
+        if (webpBlob) resolve(webpBlob);
+        else reject(new Error('Failed to create WebP blob'));
+      }, 'image/webp', 0.9);
+    };
+    
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      reject(new Error('Failed to load SVG for rasterization'));
+    };
+    
+    img.src = url;
+  });
+}
 
 function App() {
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -17,11 +50,10 @@ function App() {
       }
 
       if (event.data.type === 'DUNGEON_EXPORT_READY') {
-        const { blob, filename, mimeType } = event.data.payload;
+        const { blob, mimeType } = event.data.payload;
         
         let finalBlob = blob;
         let finalMimeType = mimeType;
-        let finalFilename = filename;
         let format: 'svg' | 'webp' | 'png' = 'svg';
 
         // Font decision gate & rasterization
@@ -35,7 +67,6 @@ function App() {
             console.log('Rasterizing SVG to WebP due to font constraints');
             finalBlob = await rasterizeSvgToWebp(text);
             finalMimeType = 'image/webp';
-            finalFilename = filename.replace(/\.svg$/i, '.webp');
             format = 'webp';
           }
         } else if (mimeType === 'image/png') {
@@ -69,40 +100,6 @@ function App() {
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
   }, []);
-
-  const rasterizeSvgToWebp = (svgText: string): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      const img = new Image();
-      const blob = new Blob([svgText], { type: 'image/svg+xml' });
-      const url = URL.createObjectURL(blob);
-      
-      img.onload = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = img.width;
-        canvas.height = img.height;
-        const ctx = canvas.getContext('2d');
-        if (!ctx) return reject(new Error('Failed to get canvas context'));
-        
-        ctx.fillStyle = 'white'; // default background
-        ctx.fillRect(0, 0, canvas.width, canvas.height);
-        ctx.drawImage(img, 0, 0);
-        
-        canvas.toBlob((webpBlob) => {
-          URL.revokeObjectURL(url);
-          if (webpBlob) resolve(webpBlob);
-          else reject(new Error('Failed to create WebP blob'));
-        }, 'image/webp', 0.9);
-      };
-      
-      img.onerror = () => {
-        URL.revokeObjectURL(url);
-        reject(new Error('Failed to load SVG for rasterization'));
-      };
-      
-      img.src = url;
-    });
-  };
-
   // Determine which generator to load based on URL params
   const urlParams = new URLSearchParams(window.location.search);
   const generator = urlParams.get('generator') || 'dungeon';

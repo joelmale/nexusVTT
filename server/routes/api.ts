@@ -1,8 +1,4 @@
-import fs from 'fs';
-import path from 'path';
-import type express from 'express';
-import type { Session } from 'express-session';
-import type { DatabaseService } from '../database.js';
+
 import fs from 'fs';
 import path from 'path';
 import type express from 'express';
@@ -14,7 +10,7 @@ import {
   generateRandomCharacter,
 } from '../utils/mockGenerator.js';
 import { isDevMode } from '../utils/devMode.js';
-import { toAuthResponse, toPublicProfile } from '../utils/publicUser.js';
+import { toAuthResponse, } from '../utils/publicUser.js';
 import { requireAuthenticatedNonGuest } from '../middleware/assetWriteGuard.js';
 import { setupGeneratedMapsRoute } from './generatedMaps.js';
 

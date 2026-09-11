@@ -1,4 +1,4 @@
-import type { GeneratorHostMessage, GeneratorExportArtifact, StoredGeneratedMap } from '../../shared/generator/protocol';
+import type { GeneratorHostMessage, } from '../../shared/generator/protocol';
 
 export class GeneratorHostClient {
   private targetWindow: Window | null = null;

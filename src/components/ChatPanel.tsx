@@ -115,7 +115,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
         className="chat-panel__message-content"
         dangerouslySetInnerHTML={{
           __html: DOMPurify.sanitize(content, {
-            ALLOWED_URI_REGEXP: /^(?:(?:(?:ht)tps?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+            ALLOWED_URI_REGEXP: /^(?:(?:(?:ht)tps?|mailto):|[^a-z]|[a-z+.-]+(?:[^a-z+.-:]|$))/i,
           }),
         }}
       />

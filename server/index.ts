@@ -61,7 +61,7 @@ import { hashSync } from '../shared/sync/hashSync.js';
 import type { Operation } from 'fast-json-patch';
 
 // Middleware
-import { assetWriteGuard, requireAuthenticatedNonGuest } from './middleware/assetWriteGuard.js';
+import { assetWriteGuard } from './middleware/assetWriteGuard.js';
 import { toAuthResponse } from './utils/publicUser.js';
 
 // Sockets
@@ -104,7 +104,7 @@ import {
   DiceRollRequest,
 } from './diceRoller.js';
 
-interface SessionUser {
+export interface ExpressSessionUser {
   id: string;
   email: string | null;
   name: string;
