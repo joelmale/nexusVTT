@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
-import { DungeonGenerator } from './DungeonGenerator';
+import React, { useState, useEffect, useRef } from 'react';
 import { WorldGenerator, type WorldMapPayload } from './WorldGenerator';
-import { type DungeonData } from './DungeonRenderer';
 import { GeneratorFloatingControls } from './GeneratorFloatingControls';
 import { useGameStore, useActiveScene } from '@/stores/gameStore';
 import './GeneratorPanel.css';
-import { useProceduralGeneration } from '@/hooks/useProceduralGeneration';
+import { GeneratorHostClient } from '@/services/generatorHostClient';
+import type { GeneratorHostMessage, GeneratorExportArtifact } from '../../../shared/generator/protocol';
+import { openNexusDB } from '@/services/nexusDb';
 
 const DEFAULT_SANDBOX =
   'allow-scripts allow-same-origin allow-forms allow-modals allow-popups allow-pointer-lock allow-orientation-lock allow-downloads';
@@ -36,31 +36,10 @@ interface GeneratorMapData {
   generator: string;
 }
 
+import { openNexusDB } from '@/services/nexusDb';
+
 const openGeneratorDB = async (): Promise<IDBDatabase> => {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open('NexusVTT', 5); // Bump to v5 to add tempStorage
-    request.onsuccess = () => resolve(request.result);
-    request.onerror = () => reject(request.error);
-    request.onupgradeneeded = (event) => {
-      const db = (event.target as IDBOpenDBRequest).result;
-      console.log(
-        `🔧 IndexedDB upgrade for generator: v${event.oldVersion} → v5`,
-      );
-
-      // Create existing stores if they don't exist (for compatibility)
-      if (!db.objectStoreNames.contains('maps')) {
-        const mapsStore = db.createObjectStore('maps', { keyPath: 'id' });
-        mapsStore.createIndex('timestamp', 'timestamp', { unique: false });
-        mapsStore.createIndex('name', 'name', { unique: false });
-        console.log('✅ Created maps store');
-      }
-
-      if (!db.objectStoreNames.contains('tempStorage')) {
-        db.createObjectStore('tempStorage', { keyPath: 'id' });
-        console.log('✅ Created tempStorage store');
-      }
-    };
-  });
+  return openNexusDB();
 };
 
 const saveGeneratorMapToIndexedDB = async (
@@ -131,19 +110,8 @@ interface GeneratorPanelProps {
 
 type GeneratorType = 'dungeon' | 'cave' | 'world' | 'city' | 'dwelling';
 
-interface DungeonMapPayload {
-  image: string;
-  data: DungeonData;
-}
-
 type GeneratedMapPayload =
-  string | DungeonMapPayload | DungeonData | WorldMapPayload;
-
-function isDungeonMapPayload(
-  payload: Exclude<GeneratedMapPayload, string>,
-): payload is DungeonMapPayload {
-  return 'image' in payload && typeof payload.image === 'string';
-}
+  string | WorldMapPayload;
 
 function isWorldMapPayload(
   payload: Exclude<GeneratedMapPayload, string>,
@@ -155,9 +123,49 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   onSwitchToScenes,
 }) => {
   const [generatedMap, setGeneratedMap] = useState<string | null>(null);
-  const [, setDungeonData] = useState<DungeonData | null>(null);
+  const [generatedBlob, setGeneratedBlob] = useState<{ blob: Blob; filename: string } | null>(null);
   const [activeGenerator, setActiveGenerator] =
     useState<GeneratorType>('dungeon');
+
+  const hubUrl = import.meta.env.VITE_GENERATOR_HUB_URL || 'http://localhost:5174';
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  // Setup Host Client
+  useEffect(() => {
+    const client = new GeneratorHostClient(new URL(hubUrl).origin);
+    
+    const handleHostMessage = (event: MessageEvent) => {
+      if (event.origin !== new URL(hubUrl).origin) return;
+      const msg = event.data as GeneratorHostMessage;
+      
+      if (msg.type === 'generator/export-ready') {
+        const artifact = msg.payload;
+        const innerPayload = artifact.payload;
+        const format = innerPayload.mimeType === 'image/webp' ? 'webp' : 'png';
+        const filename = 'generated_map_' + artifact.exportId + (format === 'webp' ? '.webp' : '.png');
+        
+        // Save blob for server upload
+        setGeneratedBlob({ blob: innerPayload.blob, filename });
+
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          handleMapGenerated(reader.result as string, format);
+        };
+        reader.readAsDataURL(innerPayload.blob);
+      }
+    };
+
+    window.addEventListener('message', handleHostMessage);
+    
+    if (iframeRef.current?.contentWindow) {
+      client.connect(iframeRef.current.contentWindow);
+    }
+    
+    return () => {
+      window.removeEventListener('message', handleHostMessage);
+      client.disconnect();
+    };
+  }, [hubUrl]);
 
   // Load map from IndexedDB on mount
   useEffect(() => {
@@ -167,10 +175,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         if (stored) {
           setGeneratedMap(stored.imageData);
           try {
-            if (stored.imageData.startsWith('{')) {
-              const data = JSON.parse(stored.imageData);
-              if (data.grid) setDungeonData(data);
-            }
+              // Removed legacy JSON handling
           } catch {
             // Not JSON
           }
@@ -186,24 +191,13 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   const updateScene = useGameStore((state) => state.updateScene);
   const setActiveTab = useGameStore((state) => state.setActiveTab);
 
-  const { generatedData } = useProceduralGeneration();
 
-  // Sync generated data to generatedMap state
-  useEffect(() => {
-    /* Disabled per S0.3 to prevent JSON from entering pipeline
-    if (generatedData) {
-      const imgData = JSON.stringify(generatedData);
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      setGeneratedMap(imgData);
-    }
-    */
-  }, [generatedData]);
 
-  const handleMapGenerated = async (
+  async function handleMapGenerated(
     imageDataOrData: GeneratedMapPayload,
     format: 'webp' | 'png' = 'webp',
     originalSize?: number,
-  ) => {
+  ) {
     const generatorType =
       typeof imageDataOrData === 'object' && isWorldMapPayload(imageDataOrData)
         ? imageDataOrData.meta.generator
@@ -211,26 +205,19 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     console.log('🗺️ Map generated from:', generatorType);
 
     let imageData: string;
-    let data: DungeonData | null = null;
-
     if (typeof imageDataOrData === 'string') {
       if (imageDataOrData.startsWith('{')) {
         console.warn('Blocked JSON payload from entering scene state');
         return;
       }
       imageData = imageDataOrData;
-    } else if (isDungeonMapPayload(imageDataOrData)) {
-      imageData = imageDataOrData.image;
-      data = imageDataOrData.data;
     } else if (isWorldMapPayload(imageDataOrData)) {
       imageData = imageDataOrData.full.dataUrl;
     } else {
-      data = imageDataOrData;
       imageData = '';
     }
 
     setGeneratedMap(imageData);
-    setDungeonData(data);
 
     await saveGeneratorMapToIndexedDB({
       imageData,
@@ -242,19 +229,35 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   };
 
   const handleApplyToScene = async () => {
-    if (!activeScene || !generatedMap) return;
+    if (!activeScene || (!generatedMap && !generatedBlob)) return;
 
     try {
-      await updateScene(activeScene.id, {
-        backgroundImage: {
-          url: generatedMap,
-          width: 2000,
-          height: 2000,
-          offsetX: 0,
-          offsetY: 0,
-          scale: 1,
-        },
-      });
+      setIsImporting(true);
+      
+      let finalUrl = generatedMap;
+
+      if (generatedBlob) {
+        // Upload the blob through our new importer
+        const result = await BaseMapImporter.importGeneratedMap({
+          blob: generatedBlob.blob,
+          filename: generatedBlob.filename,
+        });
+        
+        finalUrl = result.sceneUrl;
+      }
+
+      if (finalUrl) {
+        await updateScene(activeScene.id, {
+          backgroundImage: {
+            url: finalUrl,
+            width: 2000,
+            height: 2000,
+            offsetX: 0,
+            offsetY: 0,
+            scale: 1,
+          },
+        });
+      }
 
       if (onSwitchToScenes) {
         onSwitchToScenes();
@@ -265,13 +268,13 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       await deleteGeneratorMapFromIndexedDB();
     } catch (err) {
       console.error('Failed to apply map to scene:', err);
+      alert('Failed to import map: ' + (err as Error).message);
     }
   };
 
   const handleGeneratorChange = (generator: GeneratorType) => {
     if (generator !== activeGenerator) {
       setGeneratedMap(null);
-      setDungeonData(null);
       setActiveGenerator(generator);
     }
   };
@@ -319,28 +322,24 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       )}
 
       {activeGenerator === 'dungeon' && (
-        <DungeonGenerator onMapGenerated={handleMapGenerated} />
-      )}
-
-      {activeGenerator === 'world' && (
-        <WorldGenerator onMapGenerated={handleMapGenerated} />
-      )}
-
-      {Object.keys(iframeUrls).includes(activeGenerator) && (
         <iframe
-          key={activeGenerator}
-          src={`${window.location.origin}${iframeUrls[activeGenerator]}`}
+          ref={iframeRef}
+          key="generator-hub-dungeon"
+          src={`${hubUrl}?generator=dungeon`}
           className="generator-iframe"
-          sandbox={DEFAULT_SANDBOX}
-          allow={ALLOW_MAP[activeGenerator]}
+          sandbox="allow-scripts allow-same-origin allow-forms allow-downloads"
           style={{
             width: '100%',
             height: '100%',
             border: 'none',
             flex: 1,
           }}
-          title={`${activeGenerator} Generator`}
+          title="Generator Hub"
         />
+      )}
+
+      {activeGenerator === 'world' && (
+        <WorldGenerator onMapGenerated={handleMapGenerated} />
       )}
     </div>
   );

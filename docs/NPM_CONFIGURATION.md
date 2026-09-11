@@ -1,424 +1,154 @@
-# Nginx Proxy Manager Configuration Guide
+# Reverse Proxy Configuration Notes
 
-Step-by-step guide for configuring Nginx Proxy Manager to route traffic to your Nexus VTT Docker Swarm deployment.
+This file name is historical. The current deployment does not require Nginx
+Proxy Manager. Use these notes for any reverse proxy that can join the Docker
+network used by the Nexus VTT frontend container.
 
-## Prerequisites
+## Current Deployment Model
 
-- ✅ Nginx Proxy Manager installed and accessible
-- ✅ Docker Swarm running with Nexus stack deployed
-- ✅ Domain `nexusvtt.com` pointing to your public IP
-- ✅ Ports 80 and 443 forwarded to NPM host
+Nexus VTT runs as a Dockhand-managed Docker Compose stack on one Docker Engine
+server.
 
-## Service Endpoints
+- Compose file: `docker/docker-compose.yml`
+- Public upstream: `frontend:80`
+- Shared proxy network: `PROXY_NETWORK`, default `homelab-net`
+- Internal backend: reached by frontend nginx as `backend:5001`
+- Not required: Docker Swarm, Portainer, or Nginx Proxy Manager
 
-After deploying the stack, these services will be available:
+## Required Routing
 
-| Service | Internal Port | Swarm Manager IP | Purpose |
-|---------|--------------|------------------|---------|
-| Frontend | 3000 | `swarm-manager-ip:3000` | React SPA |
-| Backend | 5000 | `swarm-manager-ip:5000` | API + WebSocket |
-| Assets | 8081 | `swarm-manager-ip:8081` | Static assets |
+Route the public app hostname to the frontend container:
 
----
-
-## 1. Frontend - `app.nexusvtt.com`
-
-### Create Proxy Host
-
-1. In NPM, go to **Hosts** → **Proxy Hosts** → **Add Proxy Host**
-
-2. **Details Tab:**
-   - **Domain Names:** `app.nexusvtt.com`
-   - **Scheme:** `http`
-   - **Forward Hostname/IP:** `swarm-manager-ip` (e.g., `192.168.1.100`)
-   - **Forward Port:** `3000`
-   - **Cache Assets:** ✅ Enable
-   - **Block Common Exploits:** ✅ Enable
-   - **Websockets Support:** ❌ Disable (not needed for frontend)
-
-3. **SSL Tab:**
-   - **SSL Certificate:** Request a new SSL Certificate
-   - **Force SSL:** ✅ Enable
-   - **HTTP/2 Support:** ✅ Enable
-   - **HSTS Enabled:** ✅ Enable
-   - **HSTS Subdomains:** ✅ Enable (if using www subdomain)
-   - **Email:** Your email for Let's Encrypt
-   - **I Agree to the Let's Encrypt Terms of Service:** ✅ Check
-
-4. **Advanced Tab (Optional):**
-   ```nginx
-   # Custom Nginx configuration
-   location / {
-       proxy_pass http://swarm-manager-ip:3000;
-       proxy_set_header Host $host;
-       proxy_set_header X-Real-IP $remote_addr;
-       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-       proxy_set_header X-Forwarded-Proto $scheme;
-
-       # Security headers
-       add_header X-Frame-Options "SAMEORIGIN" always;
-       add_header X-Content-Type-Options "nosniff" always;
-       add_header X-XSS-Protection "1; mode=block" always;
-       add_header Referrer-Policy "no-referrer-when-downgrade" always;
-
-       # Cache static assets
-       location ~* \.(jpg|jpeg|png|gif|ico|css|js|svg|woff|woff2|ttf|eot)$ {
-           expires 1y;
-           add_header Cache-Control "public, immutable";
-       }
-   }
-   ```
-
-5. Click **Save**
-
----
-
-## 2. Backend API - `app.nexusvtt.com/api` & `/ws`
-
-Since NPM doesn't easily handle path-based routing within the same domain, we'll configure the backend as a **location block** within the frontend proxy host.
-
-### Method 1: Update Frontend Proxy Host (Recommended)
-
-1. Edit the `app.nexusvtt.com` proxy host you just created
-
-2. Go to **Advanced Tab** and add this configuration:
-
-   ```nginx
-   # Frontend - Serve React SPA
-   location / {
-       proxy_pass http://swarm-manager-ip:3000;
-       proxy_set_header Host $host;
-       proxy_set_header X-Real-IP $remote_addr;
-       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-       proxy_set_header X-Forwarded-Proto $scheme;
-
-       # Security headers
-       add_header X-Frame-Options "SAMEORIGIN" always;
-       add_header X-Content-Type-Options "nosniff" always;
-       add_header X-XSS-Protection "1; mode=block" always;
-   }
-
-   # Backend API - HTTP endpoints
-   location /api {
-       proxy_pass http://swarm-manager-ip:5000;
-       proxy_set_header Host $host;
-       proxy_set_header X-Real-IP $remote_addr;
-       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-       proxy_set_header X-Forwarded-Proto $scheme;
-
-       # CORS headers (if needed)
-       add_header Access-Control-Allow-Origin https://app.nexusvtt.com always;
-       add_header Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" always;
-       add_header Access-Control-Allow-Headers "Authorization, Content-Type" always;
-   }
-
-   # Backend WebSocket - Critical for real-time features
-   location /ws {
-       proxy_pass http://swarm-manager-ip:5000;
-       proxy_http_version 1.1;
-
-       # WebSocket headers
-       proxy_set_header Upgrade $http_upgrade;
-       proxy_set_header Connection "upgrade";
-       proxy_set_header Host $host;
-       proxy_set_header X-Real-IP $remote_addr;
-       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-       proxy_set_header X-Forwarded-Proto $scheme;
-
-       # WebSocket timeouts (important!)
-       proxy_connect_timeout 7d;
-       proxy_send_timeout 7d;
-       proxy_read_timeout 7d;
-   }
-
-   # Auth endpoints
-   location /auth {
-       proxy_pass http://swarm-manager-ip:5000;
-       proxy_set_header Host $host;
-       proxy_set_header X-Real-IP $remote_addr;
-       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-       proxy_set_header X-Forwarded-Proto $scheme;
-   }
-
-   # Health check
-   location /health {
-       proxy_pass http://swarm-manager-ip:5000;
-       access_log off;
-   }
-   ```
-
-3. Click **Save**
-
-### Method 2: Separate Subdomain (Alternative)
-
-If you prefer a separate API subdomain (`api.nexusvtt.com`):
-
-1. Create a new proxy host:
-   - **Domain Names:** `api.nexusvtt.com`
-   - **Forward Hostname/IP:** `swarm-manager-ip`
-   - **Forward Port:** `5000`
-   - **Websockets Support:** ✅ Enable
-
-2. Update your frontend environment variable:
-   ```
-   VITE_API_URL=https://api.nexusvtt.com
-   VITE_WS_URL=wss://api.nexusvtt.com/ws
-   ```
-
----
-
-## 3. Root Domain - `nexusvtt.com` (Optional)
-
-Redirect root domain to app subdomain:
-
-1. Create a new proxy host:
-   - **Domain Names:** `nexusvtt.com`, `www.nexusvtt.com`
-   - **Scheme:** `http`
-   - **Forward Hostname/IP:** `swarm-manager-ip`
-   - **Forward Port:** `3000`
-
-2. **SSL Tab:** Request SSL for both domains
-
-3. **Advanced Tab:**
-   ```nginx
-   # Redirect to app subdomain
-   return 301 https://app.nexusvtt.com$request_uri;
-   ```
-
----
-
-**Note:** Assets are served directly by the backend server on port 5000. There is no separate asset-server service needed.
-
----
-
-## Verify Configuration
-
-### 1. Test DNS Resolution
-
-```bash
-# From your local machine
-nslookup app.nexusvtt.com
-# Should return your public IP
+```text
+https://app.nexusvtt.com -> http://frontend:80
 ```
 
-### 2. Test SSL Certificate
+The public reverse proxy should not route directly to `backend`,
+`asset-service`, `postgres`, or `redis`.
 
-```bash
-curl -I https://app.nexusvtt.com
-# Should return HTTP/2 200 with valid SSL
+The frontend container's nginx configuration handles these paths internally:
+
+| Path | Handled by |
+| --- | --- |
+| `/` | React SPA |
+| `/health` | frontend nginx health response |
+| `/api` | proxied to backend |
+| `/auth` | proxied to backend |
+| `/ws` | proxied to backend WebSocket server |
+| `/library` | proxied to backend |
+| `/library-assets` | proxied to backend |
+
+## Required Headers
+
+Configure the public proxy to preserve:
+
+```nginx
+proxy_set_header Host $host;
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
 ```
 
-### 3. Test Frontend
+For WebSocket upgrade support:
 
-Open browser:
-```
-https://app.nexusvtt.com
-```
-
-Should load the Nexus VTT login page.
-
-### 4. Test Backend API
-
-```bash
-curl https://app.nexusvtt.com/api/health
-# Should return: {"status":"ok"}
-```
-
-### 5. Test WebSocket (Optional - Requires wscat)
-
-```bash
-# Install wscat: npm install -g wscat
-wscat -c wss://app.nexusvtt.com/ws
-# Should connect successfully
-```
-
----
-
-## Common NPM Configuration Issues
-
-### Issue: 502 Bad Gateway
-
-**Cause:** NPM can't reach the backend service
-
-**Solutions:**
-1. Verify swarm services are running:
-   ```bash
-   docker service ls | grep nexus
-   ```
-
-2. Check if ports are accessible from NPM host:
-   ```bash
-   curl http://swarm-manager-ip:3000
-   curl http://swarm-manager-ip:5000/health
-   ```
-
-3. Verify NPM can resolve the swarm manager IP:
-   ```bash
-   # SSH into NPM container
-   docker exec -it npm ping swarm-manager-ip
-   ```
-
-### Issue: WebSocket Connection Failed
-
-**Cause:** WebSocket headers not configured correctly
-
-**Solution:**
-Ensure these headers are in the `/ws` location block:
 ```nginx
 proxy_http_version 1.1;
 proxy_set_header Upgrade $http_upgrade;
 proxy_set_header Connection "upgrade";
 ```
 
-### Issue: SSL Certificate Not Issued
+Longer read/send timeouts are helpful for active game sessions.
 
-**Cause:** DNS not propagated or port 80/443 blocked
+## Example Nginx Server
 
-**Solutions:**
-1. Verify DNS propagation:
-   ```bash
-   dig app.nexusvtt.com
-   ```
+Use this only as a shape reference. Adjust certificate paths, network names, and
+container names for your actual proxy.
 
-2. Ensure ports 80 and 443 are forwarded to NPM host
+```nginx
+server {
+    listen 443 ssl http2;
+    server_name app.nexusvtt.com;
 
-3. Check NPM logs:
-   - In NPM UI: **Settings** → **Logs** → **Nginx Error Log**
+    ssl_certificate /etc/letsencrypt/live/app.nexusvtt.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/app.nexusvtt.com/privkey.pem;
 
-4. Verify email is correct in SSL certificate request
+    location / {
+        proxy_pass http://frontend:80;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
 
-### Issue: CORS Errors
-
-**Cause:** Backend rejecting requests from frontend
-
-**Solution:**
-Update backend `CORS_ORIGIN` environment variable:
-```env
-CORS_ORIGIN=https://app.nexusvtt.com,https://nexusvtt.com
+    location /ws {
+        proxy_pass http://frontend:80;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+        proxy_read_timeout 86400;
+        proxy_send_timeout 86400;
+    }
+}
 ```
 
-Redeploy stack:
+## Network Checklist
+
+1. The proxy container is attached to the Docker network named by
+   `PROXY_NETWORK`.
+2. The Nexus VTT `frontend` service is attached to that same external network.
+3. The proxy target is `frontend:80`.
+4. TLS terminates at the public proxy.
+5. `/ws` supports upgrades.
+
+Create the default network if it does not exist:
+
 ```bash
-docker service update --env-add CORS_ORIGIN=https://app.nexusvtt.com nexus_backend
+docker network create homelab-net
 ```
 
----
+## Verification
 
-## Advanced NPM Configuration
-
-### Rate Limiting (DDoS Protection)
-
-Add to Advanced tab:
-
-```nginx
-# Limit requests to 100/min per IP
-limit_req_zone $binary_remote_addr zone=app_limit:10m rate=100r/m;
-
-location / {
-    limit_req zone=app_limit burst=20 nodelay;
-    proxy_pass http://swarm-manager-ip:3000;
-    # ... rest of config
-}
+```bash
+curl -I https://app.nexusvtt.com
+curl https://app.nexusvtt.com/health
+curl https://app.nexusvtt.com/api/system/health
 ```
 
-### IP Whitelisting (Admin Access)
+Browser checks:
 
-Restrict access to specific IPs:
+1. Open DevTools.
+2. Create or join a room.
+3. Confirm the WebSocket connects to `wss://app.nexusvtt.com/ws`.
+4. Confirm session cookies are present for `app.nexusvtt.com`.
 
-```nginx
-# Allow only these IPs
-allow 192.168.1.0/24;  # Your local network
-allow 1.2.3.4;         # Your VPN IP
-deny all;              # Block everyone else
-```
+## Common Failures
 
-### Custom Error Pages
+### 502 from the public proxy
 
-```nginx
-error_page 502 503 504 /50x.html;
-location = /50x.html {
-    root /usr/share/nginx/html;
-    internal;
-}
-```
+- The proxy is not attached to `PROXY_NETWORK`.
+- The upstream name is not `frontend`.
+- The frontend container is not running.
 
----
+### Frontend loads but API calls fail
 
-## NPM + Docker Swarm Network
+- The public proxy is bypassing frontend nginx and routing paths itself.
+- The backend cannot reach PostgreSQL or Redis.
+- `DATABASE_URL` or `REDIS_PASSWORD` is wrong in Dockhand.
 
-### Option 1: NPM on Same Swarm (Recommended)
+### WebSocket fails
 
-If NPM is running as a Docker container on the same swarm:
+- The public proxy is not forwarding upgrade headers.
+- The proxy timeout is too short.
+- The frontend container is stale and does not include the current
+  `docker/nginx.conf`.
 
-1. Attach NPM to the nexus overlay network:
-   ```bash
-   docker network connect nexus-network npm-container
-   ```
+### OAuth redirects fail
 
-2. Use service names instead of IPs in NPM:
-   - Frontend: `nexus_frontend:80`
-   - Backend: `nexus_backend:5000`
-
-### Option 2: NPM on Different Host
-
-If NPM is on a separate machine:
-
-1. Ensure swarm ports are published (already configured in docker-compose)
-2. Use swarm manager's IP address
-3. Ensure firewall allows NPM host to access swarm ports (3000, 5000, 8081)
-
----
-
-## Complete NPM Configuration Summary
-
-**Minimal Setup (Single Domain):**
-
-Create ONE proxy host in NPM:
-
-| Field | Value |
-|-------|-------|
-| Domain | `app.nexusvtt.com` |
-| Forward Host | `swarm-manager-ip` |
-| Forward Port | `3000` |
-| Websockets | ❌ Disabled |
-| SSL | ✅ Enabled with Let's Encrypt |
-
-**Advanced Configuration (in Advanced tab):**
-
-```nginx
-# Frontend
-location / {
-    proxy_pass http://SWARM_IP:3000;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-}
-
-# Backend API
-location ~ ^/(api|auth|health) {
-    proxy_pass http://SWARM_IP:5000;
-    proxy_set_header Host $host;
-    proxy_set_header X-Real-IP $remote_addr;
-    proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
-    proxy_set_header X-Forwarded-Proto $scheme;
-}
-
-# WebSocket
-location /ws {
-    proxy_pass http://SWARM_IP:5000;
-    proxy_http_version 1.1;
-    proxy_set_header Upgrade $http_upgrade;
-    proxy_set_header Connection "upgrade";
-    proxy_set_header Host $host;
-    proxy_connect_timeout 7d;
-    proxy_send_timeout 7d;
-    proxy_read_timeout 7d;
-}
-```
-
-Replace `SWARM_IP` with your actual swarm manager IP (e.g., `192.168.1.100`).
-
----
-
-**That's it!** Your Nexus VTT should now be accessible at `https://app.nexusvtt.com` with automatic SSL via Let's Encrypt.
+- `GOOGLE_CALLBACK_URL` or `DISCORD_CALLBACK_URL` is wrong in Dockhand.
+- The provider console does not contain the exact HTTPS callback.
+- `X-Forwarded-Proto` is not preserved, so the backend sees the request as
+  plain HTTP.

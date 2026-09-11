@@ -1,0 +1,52 @@
+{
+  "strokeThin": "0.5",
+  "fontNotes": {
+    "italic": false,
+    "bold": false,
+    "face": null,
+    "size": 20,
+    "embedded": "regular_font"
+  },
+  "hatchingSize": "0.5",
+  "shadowColor": "#FFFFFF",
+  "colorInk": "#000000",
+  "colorWater": "#DAE5E3",
+  "strokeThick": "2.0",
+  "fontStory": {
+    "italic": true,
+    "bold": false,
+    "face": null,
+    "size": 24,
+    "embedded": "regular_font"
+  },
+  "shadowDist": "0.1",
+  "hatchingDistance": "0.333",
+  "colorShading": "#000000",
+  "colorBg": "#F2F2F2",
+  "colorPaper": "#FFFFFF",
+  "hatchingStrokes": "2",
+  "fontTitle": {
+    "italic": false,
+    "bold": true,
+    "face": null,
+    "size": 48,
+    "embedded": "regular_font"
+  },
+  "strokeHatching": "0.5",
+  "fontSymbols": {
+    "italic": false,
+    "bold": true,
+    "face": null,
+    "size": 30,
+    "embedded": "regular_font"
+  },
+  "fontLegend": {
+    "italic": false,
+    "bold": false,
+    "face": null,
+    "size": 24,
+    "embedded": "regular_font"
+  },
+  "strokeNormal": "1.0",
+  "hatchingStyle": "Bricks"
+}

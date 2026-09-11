@@ -4,6 +4,7 @@ import { createDiceRoll, formatDiceRoll } from '@/utils/dice';
 import { webSocketService } from '@/services/websocket';
 import { diceSounds } from '@/services/diceSounds';
 import { initializeTheme } from '@/services/themeManager';
+import DOMPurify from 'dompurify';
 
 /**
  * @file DiceRoller.tsx
@@ -578,7 +579,11 @@ export const DiceRoller: React.FC = () => {
                 </div>
                 <div className="dice-roller__roll-result">
                   <span
-                    dangerouslySetInnerHTML={{ __html: formatDiceRoll(roll) }}
+                    dangerouslySetInnerHTML={{
+                      __html: DOMPurify.sanitize(formatDiceRoll(roll), {
+                        ALLOWED_URI_REGEXP: /^(?:(?:(?:ht)tps?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+                      }),
+                    }}
                   />
                 </div>
               </div>

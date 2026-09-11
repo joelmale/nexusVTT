@@ -10,14 +10,16 @@
     "npm": ">=11.0.0 <12"
   },
   "workspaces": [
-    "services/asset-service"
+    "services/asset-service",
+    "apps/generator-hub"
   ],
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "build:server": "tsc --project tsconfig.server.json",
     "build:asset-service": "npm run build --workspace asset-service",
-    "build:all": "npm run build && npm run build:server && npm run build:asset-service",
+    "build:generator-hub": "npm run build --workspace generator-hub",
+    "build:all": "npm run build && npm run build:server && npm run build:asset-service && npm run build:generator-hub",
     "preview": "vite preview",
     "server:dev": "tsx watch --require dotenv/config server/index.ts",
     "server:start": "node dist/server/index.js",
@@ -27,9 +29,10 @@
     "type-check:web": "tsc --noEmit",
     "type-check:server": "tsc --project tsconfig.server.json --noEmit",
     "type-check:asset-service": "npm run type-check --workspace asset-service",
+    "type-check:generator-hub": "npm run type-check --workspace generator-hub",
     "type-check:e2e": "tsc --project tsconfig.e2e.json --noEmit",
     "type-check:soak": "tsc --project tsconfig.soak.json --noEmit",
-    "type-check": "npm run type-check:web && npm run type-check:server && npm run type-check:asset-service && npm run type-check:e2e && npm run type-check:soak",
+    "type-check": "npm run type-check:web && npm run type-check:server && npm run type-check:asset-service && npm run type-check:generator-hub && npm run type-check:e2e && npm run type-check:soak",
     "check:cycles": "node scripts/check-import-cycles.js",
     "db:start": "docker compose -f docker/docker-compose.dev.yml up -d postgres-dev",
     "db:stop": "docker compose -f docker/docker-compose.dev.yml stop postgres-dev",
@@ -87,6 +90,7 @@
     "compression": "^1.8.1",
     "connect-pg-simple": "^10.0.0",
     "cors": "^2.8.6",
+    "dompurify": "^3.4.15",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "express-session": "^1.18.2",
@@ -126,6 +130,7 @@
     "@types/compression": "^1.8.1",
     "@types/connect-pg-simple": "^7.0.3",
     "@types/cors": "^2.8.19",
+    "@types/dompurify": "^3.0.5",
     "@types/express": "^5.0.6",
     "@types/express-session": "^1.18.2",
     "@types/jsonwebtoken": "^9.0.10",

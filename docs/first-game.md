@@ -1,1 +1,83 @@
-# First Game Setup\n\nThis guide will walk you through creating your first game session with Nexus VTT.\n\n## 🎯 Quick Start\n\n1. **Start Nexus VTT**\n   ```bash\n   npm run start:all\n   ```\n   \n2. **Open your browser** to http://localhost:5173\n\n3. **Enter your name** as the DM/Host\n\n4. **Click \"Host Game\"** - you'll get a room code like `FIRE`\n\n5. **Share the room code** with your players\n\n6. **Start playing!** Roll dice, create scenes, and enjoy!\n\n## 🎲 Setting Up Your First Session\n\n### Step 1: Host Setup\n\n1. **Launch the Application**\n   - Open Nexus VTT in your browser\n   - Enter your name (e.g., \"DM Sarah\")\n   - Click **\"Host Game\"**\n\n2. **Note Your Room Code**\n   - You'll see a 4-character code (e.g., `CAVE`)\n   - Share this with your players via Discord/text/email\n\n3. **Wait for Players**\n   - Players will appear in the lobby as they join\n   - You'll see their names and \"Player\" status\n\n### Step 2: Player Setup\n\n**For each player:**\n1. **Open Nexus VTT** in their browser\n2. **Enter their character name** (e.g., \"Gandalf\")\n3. **Enter the room code** from the DM\n4. **Click \"Join Game\"**\n5. **They're connected!** They'll see the same interface\n\n## 🗺️ Creating Your First Scene\n\n### Using the Scene Editor\n\n1. **Go to the Scenes Tab**\n   - Click \"Scenes\" in the navigation\n   - Click \"Create New Scene\"\n\n2. **Set Basic Information**\n   - **Scene Name**: \"Goblin Cave Entrance\"\n   - **Description**: \"A dark cave opening with moss-covered rocks\"\n\n3. **Add a Background Image**\n   \n   **Option A: Upload Your Own Image**\n   - Click \"Upload Image\"\n   - Select a map image from your computer\n   - Image is automatically optimized and stored\n   \n   **Option B: Browse Asset Library** (if you've processed assets)\n   - Click \"Browse Asset Library\"\n   - Search or browse by category\n   - Click any thumbnail to select\n\n4. **Configure Grid Settings**\n   - Enable grid if needed for tactical combat\n   - Set grid size (usually 25-50 pixels)\n   - Choose grid color and opacity\n   - Enable \"Snap to Grid\" for precise movement\n\n5. **Save the Scene**\n   - Click \"Save Scene\"\n   - Scene is now available to all players\n\n## 🎲 Using the Dice Roller\n\n### Basic Rolling\n\n1. **Go to Dice Tab**\n   - Click \"Dice\" in the navigation\n   - All players see the same dice interface\n\n2. **Roll Standard Dice**\n   - Click quick dice buttons: `d4`, `d6`, `d8`, `d10`, `d12`, `d20`\n   - Results appear instantly for all players\n   - Shows who rolled and when\n\n3. **Advanced Expressions**\n   - Type in the expression box: `2d6+3`\n   - More examples:\n     - `1d20+5` - Attack roll with modifier\n     - `3d6` - Ability score generation\n     - `1d100` - Percentile dice\n     - `4d6kh3` - Roll 4d6, keep highest 3\n\n### Dice Rolling Tips\n\n- **All rolls are shared** - Everyone sees all results\n- **Roller name is shown** - No confusion about who rolled\n- **History is maintained** - Scroll back to see previous rolls\n- **Expressions are parsed** - Complex math is handled automatically\n\n## ⚙️ Customizing Your Experience\n\n### Theme Selection\n\n1. **Go to Settings Tab**\n   - Click \"Settings\" in the navigation\n\n2. **Choose Color Scheme**\n   - View current palette with hex codes\n   - Click \"Choose Palette\" dropdown\n   - Select from preset themes:\n     - Nexus Default (blue/purple)\n     - Emerald Depths (green)\n     - Crimson Flame (red/orange)\n     - Royal Purple\n     - Ocean Breeze\n     - Golden Sunset\n     - Forest Whisper\n     - Midnight Rose\n   - Or generate random palettes\n\n3. **Other Settings**\n   - Adjust dice roll preferences\n   - Configure scene defaults\n   - Set up asset preferences\n\n## 📁 Managing Assets (Advanced)\n\n### If You Have Map Collections\n\n1. **Process Your Assets**\n   ```bash\n   # Example: Process your map folder\n   node scripts/process-assets.js /path/to/your/maps ./asset-server/assets\n   \n   # Example: From external drive\n   node scripts/process-assets.js /Volumes/MyDrive/DnD/Maps ./asset-server/assets\n   ```\n\n2. **Start Asset Server**\n   ```bash\n   cd asset-server\n   npm run dev\n   ```\n\n3. **Configure Frontend**\n   ```bash\n   # Add to .env file\n   echo \"VITE_ASSET_SERVER_URL=http://localhost:8080\" >> .env\n   ```\n\n4. **Restart Frontend**\n   ```bash\n   npm run dev\n   ```\n\n5. **Use Asset Browser**\n   - In Scene Editor, click \"Browse Asset Library\"\n   - Search, filter, and select from your processed assets\n   - Thumbnails load instantly, full images cached\n\n## 🎮 Running Your Session\n\n### During the Game\n\n1. **Scene Management**\n   - Switch between scenes as players move\n   - Edit scenes on the fly if needed\n   - Players see scene changes immediately\n\n2. **Dice Rolling**\n   - Encourage players to roll openly\n   - Use dice expressions for complex rolls\n   - History keeps track of all rolls\n\n3. **Real-time Sync**\n   - All actions sync instantly\n   - If someone disconnects, they can rejoin with the same room code\n   - Host maintains the session state\n\n### Best Practices\n\n- **Name your scenes descriptively** - \"Tavern - Ground Floor\" vs \"Scene 1\"\n- **Use grid for tactical combat** - Disable for exploration scenes\n- **Organize assets by type** - Maps separate from tokens\n- **Test your setup** before the session starts\n- **Have backup images ready** if asset server has issues\n\n## 🔧 Troubleshooting\n\n### Connection Issues\n\n**Players can't connect:**\n- Check that room code is correct (case-sensitive)\n- Ensure WebSocket server is running\n- Try refreshing browser\n\n**Images won't load:**\n- Check asset server is running on port 8080\n- Verify .env file has correct VITE_ASSET_SERVER_URL\n- Try uploading image directly instead of browsing assets\n\n### Performance Issues\n\n**Slow loading:**\n- Use smaller images (under 5MB)\n- Process assets for automatic optimization\n- Check browser developer tools for errors\n\n**High memory usage:**\n- Refresh browser occasionally during long sessions\n- Clear browser cache if needed\n- Close unused browser tabs\n\n## 🎯 Next Steps\n\n### Expand Your Game\n- **Add more scenes** for different locations\n- **Process token assets** for character representations\n- **Create handouts** for player information\n- **Set up reference materials** for quick rules lookup\n\n### Learn Advanced Features\n- **[Asset Management Guide](user/asset-management.md)** - Organize large collections\n- **[DM Guide](user/dm-guide.md)** - Advanced DM techniques\n- **[Player Guide](user/player-guide.md)** - Help for players\n\n### Customize Further\n- **[Development Guide](developer/development.md)** - Add your own features\n- **[Deployment Guide](deployment/production.md)** - Host for multiple groups\n\n---\n\n**Ready to run epic sessions?** Your players will love the smooth, modern interface and you'll appreciate the simple setup. Happy gaming! 🎲✨\n
+# First Game Setup
+
+This guide walks through a small local Nexus VTT session.
+
+## Start The App
+
+1. Install dependencies and start the local stack:
+
+   ```bash
+   npm install
+   npm run start:all
+   ```
+
+2. Open `http://localhost:5173`.
+3. Enter a display name.
+4. Start a guest game or sign in, depending on your local auth setup.
+5. Create a room and copy the room code.
+
+## Invite Players
+
+Each player should:
+
+1. Open `http://localhost:5173`.
+2. Enter a display name.
+3. Join with the room code from the host.
+4. Confirm they can see the same room state as the host.
+
+## Create A Simple Scene
+
+1. Open the scene or map tools.
+2. Add a background image from upload or from the asset library.
+3. Configure the grid if you want tactical movement.
+4. Place one or two tokens.
+5. Move a token from another browser profile or device to confirm sync.
+
+## Roll Dice
+
+Use the dice roller for quick rolls such as:
+
+```text
+1d20+5
+2d6+3
+4d6kh3
+1d100
+```
+
+Rolls are broadcast to connected players and preserved in the room history.
+
+## Add Assets
+
+For local asset processing, see [Asset Processing](assets/processing.md). The
+current tooling writes processed assets under `static-assets/assets` and serves
+library assets through the standalone asset service in `services/asset-service`.
+
+Useful commands:
+
+```bash
+node scripts/process-assets.js /path/to/assets ./static-assets/assets
+npm run generate-assets
+npm run seed:library-assets
+```
+
+## Smoke Checks
+
+During the first session, check:
+
+- Room creation succeeds.
+- A second browser can join with the room code.
+- Dice rolls appear for both clients.
+- Token or scene changes appear for both clients.
+- Uploaded or processed images render in the scene.
+
+## Troubleshooting
+
+If players cannot connect, verify the backend is running on
+`http://localhost:5001` and that the browser console is not reporting WebSocket
+errors.
+
+If images do not load, verify processed assets exist under `static-assets/assets`
+and run `npm run generate-assets` again.
+
+For deployment-oriented checks, use [Deployment Quick Reference](DEPLOYMENT_QUICKREF.md).
+For development setup, use [Development Guide](developer/development.md).

@@ -189,14 +189,14 @@ Status values: `planned`, `active`, `blocked`, `complete`, `superseded`.
 | S1.2 — test-database safety               | planned | S0           | T0                      | —               | Required before DB integration tests |
 | S1.3 — CI and publishing correctness      | planned | S1.2         | T1                      | —               |                                      |
 | S1.4 — XSS and asset boundaries           | planned | S0           | T2                      | —               | Required before Hub upload           |
-| S1.5 — WebSocket identity                 | planned | S1.2         | T2                      | —               | Serial with S1.6                     |
-| S1.6 — host authorization                 | planned | S1.5         | T2 + independent review | —               | Highest-risk Session 1 change        |
-| S2A — IndexedDB ownership                 | planned | S0           | T1                      | —               | Independent of Hub                   |
-| S2B.1 — Hub scaffold and protocol         | planned | S0           | T1                      | —               |                                      |
-| S2B.2 — vendor adapter and standalone Hub | planned | S2B.1        | T1                      | —               | Includes font decision gate          |
-| S2B.3 — secure Nexus/Hub boundary         | planned | S2B.2        | T2                      | —               |                                      |
-| S2B.4 — generated-map upload pipeline     | planned | S1.4, S2B.2  | T2 + independent review | —               |                                      |
-| S2B.5 — Nexus importer and library        | planned | S2B.3, S2B.4 | T1                      | —               |                                      |
+| S1.5 — WebSocket identity                 | complete| S1.2         | T2                      | Uncommitted     | Finalized WebSocket identity         |
+| S1.6 — host authorization                 | complete| S1.5         | T2 + independent review | Uncommitted     | Finalized Host authorization         |
+| S2A — IndexedDB ownership                 | complete| S0           | T1                      | Uncommitted     | Independent of Hub                   |
+| S2B.1 — Hub scaffold and protocol         | complete| S0           | T1                      | Uncommitted     |                                      |
+| S2B.2 — vendor adapter and standalone Hub | complete| S2B.1        | T1                      | Uncommitted     | Includes font decision gate          |
+| S2B.3 — secure Nexus/Hub boundary         | complete| S2B.2        | T2                      | Uncommitted     | Integrated VITE_GENERATOR_HUB_URL    |
+| S2B.4 — generated-map upload pipeline     | complete| S1.4, S2B.2  | T2 + independent review | Uncommitted     | Implemented asset-service POST       |
+| S2B.5 — Nexus importer and library        | complete| S2B.3, S2B.4 | T1                      | Uncommitted     | Implemented BaseMapImporter logic    |
 | S2B.6 — rollout and legacy cleanup        | planned | S2B.5        | T1                      | —               | Delete old path only here            |
 | S3.1 — authorized event relay             | planned | S1.5, S1.6   | T2                      | —               |                                      |
 | S3.2 — HP synchronization                 | planned | S3.1         | T2                      | —               |                                      |
@@ -339,6 +339,10 @@ valid authentication, user-ID mismatch, guests, and auth-before-body-buffering.
 
 Tests cover authenticated impersonation, missing query identity, deleted users,
 guest impersonation, and anonymous collision.
+
+- [x] **S1.4 — XSS & Asset Guard:** Implemented `dompurify` and strict origin separation. (Check: `npm run test:unit`)
+- [x] **S1.5 — WebSocket identity:** Resolve Guest/Anonymous correctly; fix session type.
+- [x] **S1.6 — Host authorization:** Move `Room` hydration strictly *after* authorization. (Check: `npm run test:e2e` soak)
 
 ### S1.6 Host authorization and reconnection ordering
 

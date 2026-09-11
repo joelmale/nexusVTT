@@ -5,32 +5,6 @@
  * Does NOT use external libraries to keep bundle size small
  */
 
-/**
- * Sanitize HTML to prevent XSS attacks
- *
- * Removes potentially dangerous content while preserving safe formatting
- * Currently not used as we escape HTML before parsing markdown,
- * but kept for future rich content support
- */
-export function sanitizeHTML(html: string): string {
-  // Create a temporary element to parse HTML
-  const temp = document.createElement('div');
-  temp.textContent = html;
-  let sanitized = temp.innerHTML;
-
-  // Allow specific safe tags
-  const allowedTags = ['strong', 'em', 'code', 'blockquote', 'a', 'br'];
-  const tagPattern = /<\/?([a-z][a-z0-9]*)\b[^>]*>/gi;
-
-  sanitized = sanitized.replace(tagPattern, (match, tagName) => {
-    if (allowedTags.includes(tagName.toLowerCase())) {
-      return match;
-    }
-    return ''; // Remove disallowed tags
-  });
-
-  return sanitized;
-}
 
 /**
  * Parse markdown text to HTML
@@ -66,7 +40,11 @@ export function parseMarkdown(text: string): string {
   // Links: [text](url)
   parsed = parsed.replace(
     /\[([^\]]+)\]\(([^)]+)\)/g,
-    '<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>',
+    (match, text, url) => {
+      // Escape quotes in URL to prevent breaking out of attribute
+      const safeUrl = url.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      return `<a href="${safeUrl}" target="_blank" rel="noopener noreferrer">${text}</a>`;
+    }
   );
 
   // Line breaks: \n to <br>
@@ -122,7 +100,9 @@ export function parseMentions(
 
     if (player) {
       mentions.push(player.id);
-      return `<span class="mention" data-user-id="${player.id}">@${player.name}</span>`;
+      const safeId = player.id.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      const safeName = player.name.replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+      return `<span class="mention" data-user-id="${safeId}">@${safeName}</span>`;
     }
 
     return match; // Not a valid mention

@@ -1,6 +1,25 @@
 # Deploying Nexus VTT to Google Cloud Platform (GCP)
 
-This guide provides step-by-step instructions for deploying the Nexus VTT application to Google Cloud Platform (GCP). We will use Google Kubernetes Engine (GKE) for container orchestration and other managed services for a scalable and robust setup.
+This is an experimental cloud deployment guide. The current production
+deployment is the Dockhand-managed single-server Docker Compose homelab
+described in `../DEPLOYMENT.md` and `HOMELAB_DEPLOYMENT.md`.
+
+Use this guide when evaluating Google Cloud as one of the future cloud targets.
+Keep cloud-specific choices out of the homelab runbook unless Google Cloud
+becomes the live deployment target.
+
+## Current Deployment Baseline
+
+The repository already publishes production images to GitHub Container Registry:
+
+- `ghcr.io/joelmale/nexusvtt/frontend`
+- `ghcr.io/joelmale/nexusvtt/backend`
+- `ghcr.io/joelmale/nexusvtt/asset-service`
+- `ghcr.io/joelmale/nexusvtt/postgres`
+
+For an initial GCP trial, the lowest-friction path is to reuse those images
+instead of introducing a second image registry. Artifact Registry is still a
+valid later step if you want cloud-local images.
 
 ## Table of Contents
 

@@ -1,0 +1,52 @@
+{
+  "strokeThin": "0.5",
+  "fontNotes": {
+    "italic": false,
+    "size": 20,
+    "face": null,
+    "bold": false,
+    "embedded": "regular_font"
+  },
+  "hatchingSize": "0.4",
+  "shadowColor": "#B2A097",
+  "colorInk": "#2C241D",
+  "colorWater": "#99665C",
+  "strokeThick": "3.0",
+  "fontStory": {
+    "italic": true,
+    "size": 24,
+    "face": null,
+    "bold": false,
+    "embedded": "regular_font"
+  },
+  "shadowDist": "0.3",
+  "hatchingDistance": "0.6",
+  "colorShading": "#BFBEB6",
+  "colorBg": "#D9D5C3",
+  "colorPaper": "#E5E2CF",
+  "hatchingStrokes": "3",
+  "fontTitle": {
+    "embedded": "title_font",
+    "italic": false,
+    "bold": false,
+    "face": null,
+    "size": 40
+  },
+  "strokeHatching": "0.5",
+  "fontSymbols": {
+    "italic": false,
+    "size": 30,
+    "face": null,
+    "bold": true,
+    "embedded": "title_font"
+  },
+  "fontLegend": {
+    "italic": false,
+    "size": 24,
+    "face": null,
+    "bold": false,
+    "embedded": "regular_font"
+  },
+  "strokeNormal": "1.5",
+  "hatchingStyle": "Stonework"
+}

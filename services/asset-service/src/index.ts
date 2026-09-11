@@ -12,6 +12,7 @@ import {
 } from './library';
 import type { LibraryIndex } from './library';
 import { parseAssetManifest, type AssetManifest } from '../../../shared/types';
+import { setupGeneratedMapRoute } from './routes/generatedMap';
 
 export const app = express();
 const port = process.env.PORT || 5003;
@@ -363,6 +364,8 @@ function requireNexusAuth(
   }
   next();
 }
+
+setupGeneratedMapRoute(app, requireNexusAuth, ASSETS_PATH);
 
 // TMT library endpoints (B3) — public reads per ADR-0012; /library/reload is
 // write-ish (forces a re-read from disk) so it's gated the same way uploads are.

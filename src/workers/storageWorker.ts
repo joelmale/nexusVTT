@@ -7,13 +7,14 @@
 
 import { expose } from 'comlink';
 import type { DungeonMapDB, GameStateDB, StorageStats } from '@/types/storage';
+import { openNexusDB, DB_NAME, DB_VERSION, STORES } from '@/services/nexusDb';
 
 class StorageWorkerAPI {
   private db: IDBDatabase | null = null;
-  private readonly DB_NAME = 'NexusVTT';
-  private readonly DB_VERSION = 5; // v5: Added tempStorage for generator
-  private readonly MAPS_STORE = 'maps';
-  private readonly GAMESTATE_STORE = 'gameState';
+  private readonly DB_NAME = DB_NAME;
+  private readonly DB_VERSION = DB_VERSION;
+  private readonly MAPS_STORE = STORES.MAPS.name;
+  private readonly GAMESTATE_STORE = STORES.GAME_STATE.name;
   private initPromise: Promise<void> | null = null;
 
   constructor() {
@@ -30,59 +31,17 @@ class StorageWorkerAPI {
       return this.initPromise;
     }
 
-    this.initPromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.DB_NAME, this.DB_VERSION);
-
-      request.onerror = () => {
-        console.error('[Worker] Failed to open IndexedDB:', request.error);
-        reject(request.error);
-      };
-
-      request.onsuccess = () => {
-        this.db = request.result;
+    this.initPromise = (async () => {
+      try {
+        this.db = await openNexusDB();
         console.log(
           `[Worker] ✅ IndexedDB opened successfully (v${this.db.version})`,
         );
-        resolve();
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        const oldVersion = event.oldVersion;
-
-        console.log(
-          `[Worker] 🔧 IndexedDB upgrade: v${oldVersion} → v${this.DB_VERSION}`,
-        );
-
-        // Create maps store if it doesn't exist
-        if (!db.objectStoreNames.contains(this.MAPS_STORE)) {
-          const mapsStore = db.createObjectStore(this.MAPS_STORE, {
-            keyPath: 'id',
-          });
-          mapsStore.createIndex('timestamp', 'timestamp', { unique: false });
-          mapsStore.createIndex('name', 'name', { unique: false });
-          console.log('[Worker] ✅ Created maps store');
-        }
-
-        // Create game state store if it doesn't exist
-        if (!db.objectStoreNames.contains(this.GAMESTATE_STORE)) {
-          const gameStateStore = db.createObjectStore(this.GAMESTATE_STORE, {
-            keyPath: 'id',
-          });
-          gameStateStore.createIndex('timestamp', 'timestamp', {
-            unique: false,
-          });
-          gameStateStore.createIndex('version', 'version', { unique: false });
-          console.log('[Worker] ✅ Created gameState store');
-        }
-
-        // Create tempStorage store if it doesn't exist (v5+)
-        if (!db.objectStoreNames.contains('tempStorage')) {
-          db.createObjectStore('tempStorage');
-          console.log('[Worker] ✅ Created tempStorage store');
-        }
-      };
-    });
+      } catch (error) {
+        console.error('[Worker] Failed to open IndexedDB:', error);
+        throw error;
+      }
+    })();
 
     return this.initPromise;
   }

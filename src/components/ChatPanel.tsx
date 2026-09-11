@@ -8,6 +8,7 @@ import React, { useState, useRef, useEffect, useCallback, useMemo } from 'react'
 import { useGameStore, useIsHost } from '@/stores/gameStore';
 import { chatCommandParser, allCommands } from '@/services/chatCommands';
 import { parseMarkdown, parseMentions } from '@/utils/markdownParser';
+import DOMPurify from 'dompurify';
 import { DiceRollMessage } from './DiceRollMessage';
 import type { ChatMessage as ChatMessageType } from '@/types/game';
 
@@ -112,7 +113,11 @@ const ChatMessage: React.FC<ChatMessageProps> = ({
       </div>
       <div
         className="chat-panel__message-content"
-        dangerouslySetInnerHTML={{ __html: content }}
+        dangerouslySetInnerHTML={{
+          __html: DOMPurify.sanitize(content, {
+            ALLOWED_URI_REGEXP: /^(?:(?:(?:ht)tps?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+          }),
+        }}
       />
       {message.messageType === 'whisper' && message.recipientId && (
         <div className="chat-panel__message-recipient">

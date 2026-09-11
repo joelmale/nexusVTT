@@ -1,28 +1,65 @@
-# Welcome to Nexus VTT Documentation
+# Nexus VTT Reference Index
 
-Nexus VTT is a modern, lightweight virtual tabletop application designed for seamless online tabletop role-playing experiences. This documentation provides a comprehensive guide for developers looking to contribute to the project, understand its architecture, and extend its functionality.
+This file is the entry point for generated or code-adjacent documentation.
+Use [README.md](README.md) as the curated human documentation homepage.
 
-## What is Nexus VTT?
+Generated documentation should prefer adding stable links here instead of
+expanding the human README into an exhaustive inventory.
 
-Nexus VTT is built with a focus on performance, aesthetics, and ease of use. It features a stunning glassmorphism design, real-time multiplayer capabilities, and a unique hybrid architecture that ensures a smooth and responsive user experience.
+## Source Map
 
-## Key Features
+- Frontend entry: `src/main.tsx`
+- Frontend components: `src/components/`
+- Hooks: `src/hooks/`
+- Zustand stores: `src/stores/`
+- Client services: `src/services/`
+- Server entry: `server/index.ts`
+- Server routes: `server/routes/`
+- Asset service: `services/asset-service/`
+- Shared types: `shared/types.ts`
+- Scripts: `scripts/`
+- Docker and Compose: `docker/`
 
-- **Glassmorphism Design:** A beautiful, modern interface with translucent panels and smooth animations.
-- **Real-time Multiplayer:** Create or join game sessions with a simple room code.
-- **Durable Hybrid Architecture:** Browsers provide responsive local-first
-  state, while PostgreSQL serializes acknowledged canonical state and ordered
-  multiplayer history across backend replicas.
-- **Developer-Friendly:** A modern TypeScript codebase with a clear structure and tooling.
+## Architecture References
 
-## Getting Started
+- [Architecture Overview](architecture.md)
+- [Backend Architecture](backend.md)
+- [Frontend Architecture](frontend.md)
+- [Network and Sessions](network-and-sessions.md)
+- [Routing Architecture](routing-architecture.md)
+- [Ordered Event Delivery](ordered-event-delivery.md)
+- [Delta-Sync Rollout and Metrics](delta-sync-rollout.md)
+- [Server-Authoritative Dice](SERVER_AUTHORITATIVE_DICE.md)
 
-If you're new to the project, the best place to start is the [Getting Started](./getting-started.md) guide. It will walk you through setting up your development environment and running the application for the first time.
+## Operations References
 
-## Architecture
+- [Production Deployment](../DEPLOYMENT.md)
+- [Homelab Deployment](HOMELAB_DEPLOYMENT.md)
+- [Deployment Quick Reference](DEPLOYMENT_QUICKREF.md)
+- [Reverse Proxy Configuration Notes](NPM_CONFIGURATION.md)
+- [Multiplayer Observability](operations/multiplayer-observability.md)
+- [NexusCodex Homelab Deployment](operations/nexuscodex-homelab.md)
 
-To understand how Nexus VTT works under the hood, dive into the [Architecture](./architecture.md) documentation. It provides a detailed explanation of the client-server model, state synchronization, and the overall structure of the application.
+## Asset References
 
-## Contributing
+- [Asset Guide](ASSETS-GUIDE.md)
+- [Asset Processing](assets/processing.md)
+- [Asset Setup](ASSET_SETUP.md)
+- [Default Asset Integration](DEFAULT_ASSETS_INTEGRATION.md)
+- [Asset Service Contract](roadmap/contracts/asset-service-v2.md)
 
-We welcome contributions from the community! If you're interested in contributing, please read our [Contribution Guidelines](../CONTRIBUTING.md).
+## Roadmaps And Decisions
+
+- [Active Stabilization and Generator Hub Roadmap](roadmap/STABILIZATION_GENERATOR_HUB_EXECUTION_ROADMAP.md)
+- [Architecture Decision Records](adr/)
+- [Roadmap ADRs](roadmap/ADR/)
+- [Archived 2026 A/B/C Roadmap Closeout](roadmap/archive/2026-roadmap-closeout/ROADMAP.md)
+
+## Developer References
+
+- [Getting Started](getting-started.md)
+- [Installation](installation.md)
+- [Development Guide](developer/development.md)
+- [Testing Guide](developer/testing.md)
+- [Dependency Policy](dependency-policy.md)
+- [Security Scanning](SECURITY_SCANNING.md)

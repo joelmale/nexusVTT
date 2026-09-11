@@ -42,7 +42,7 @@ function parseUserIdFromPath(reqPath: string): string | null {
  * Only once this middleware calls next() should the proxy inject the
  * shared secret and forward the request to the asset service.
  */
-export function assetWriteGuard(req: Request, res: Response, next: NextFunction): void {
+export function requireAuthenticatedNonGuest(req: Request, res: Response, next: NextFunction): void {
   if (!req.isAuthenticated()) {
     res.status(401).json({ error: 'Authentication required' });
     return;
@@ -63,12 +63,19 @@ export function assetWriteGuard(req: Request, res: Response, next: NextFunction)
     return;
   }
 
-  const pathUserId = parseUserIdFromPath(req.path);
-
-  if (!pathUserId || user.id !== pathUserId) {
-    res.status(403).json({ error: 'Forbidden: cannot act on behalf of another user' });
-    return;
-  }
-
   next();
+}
+
+export function assetWriteGuard(req: Request, res: Response, next: NextFunction): void {
+  requireAuthenticatedNonGuest(req, res, () => {
+    const user = req.user as SessionUserRecord;
+    const pathUserId = parseUserIdFromPath(req.path);
+
+    if (!pathUserId || user.id !== pathUserId) {
+      res.status(403).json({ error: 'Forbidden: cannot act on behalf of another user' });
+      return;
+    }
+
+    next();
+  });
 }

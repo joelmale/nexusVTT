@@ -61,7 +61,8 @@ import { hashSync } from '../shared/sync/hashSync.js';
 import type { Operation } from 'fast-json-patch';
 
 // Middleware
-import { assetWriteGuard } from './middleware/assetWriteGuard.js';
+import { assetWriteGuard, requireAuthenticatedNonGuest } from './middleware/assetWriteGuard.js';
+import { toAuthResponse } from './utils/publicUser.js';
 
 // Sockets
 import { SocketManager } from './socket/SocketManager.js';
@@ -113,6 +114,9 @@ interface SessionUser {
   provider: string;
 }
 
+import { resolveSocketIdentity } from './socket/resolveSocketIdentity.js';
+import { authorizeCampaignHost } from './socket/campaignAuthorization.js';
+
 interface CustomSession extends Session {
   guestUser?: {
     id: string;
@@ -120,7 +124,7 @@ interface CustomSession extends Session {
     provider: string;
   };
   passport?: {
-    user?: SessionUser;
+    user?: string;
   };
 }
 
@@ -499,17 +503,7 @@ class NexusServer {
             console.error('Login after register failed', err);
             return res.status(500).json({ error: 'Login failed' });
           }
-          res.json({
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            displayName: user.displayName || user.name,
-            provider: user.provider,
-            avatarUrl: user.avatarUrl,
-            bio: user.bio,
-            preferences: user.preferences || {},
-            isActive: user.isActive,
-          });
+          res.json(toAuthResponse(user));
         });
       } catch (error) {
         console.error('Registration failed:', error);
@@ -549,17 +543,7 @@ class NexusServer {
             return res.status(500).json({ error: 'Login failed' });
           }
 
-          res.json({
-            id: user.id,
-            email: user.email,
-            name: user.name,
-            displayName: user.displayName || user.name,
-            provider: user.provider,
-            avatarUrl: user.avatarUrl,
-            bio: user.bio,
-            preferences: user.preferences || {},
-            isActive: user.isActive,
-          });
+          res.json(toAuthResponse(user));
         });
       } catch (error) {
         console.error('Login error:', error);
@@ -632,10 +616,14 @@ class NexusServer {
         try {
           const user = req.user as { id: string };
           const profile = await this.db.getUserProfile(user.id);
-          res.json(profile || req.user);
+          if (!profile) {
+            res.status(404).json({ error: 'User profile not found' });
+            return;
+          }
+          res.json(toAuthResponse(profile));
         } catch (error) {
           console.error('Failed to fetch user profile for /auth/me:', error);
-          res.json(req.user);
+          res.status(500).json({ error: 'Failed to fetch user profile' });
         }
       } else {
         res.status(401).json({ message: 'Not authenticated' });
@@ -893,18 +881,12 @@ class NexusServer {
     // ever succeed against a local asset-service instance where the
     // operator deliberately set ASSET_SERVICE_SECRET=dev-secret. It is
     // gated to non-production and logged so it can't silently ship.
-    let assetServiceSecret = process.env.ASSET_SERVICE_SECRET;
+    const assetServiceSecret = process.env.ASSET_SERVICE_SECRET;
     if (!assetServiceSecret) {
-      if (process.env.NODE_ENV === 'production') {
-        console.error(
-          '❌ ASSET_SERVICE_SECRET is not set in production. User asset uploads/deletes will be rejected by the asset service.',
-        );
-      } else {
-        console.warn(
-          '⚠️ ASSET_SERVICE_SECRET not set — falling back to "dev-secret" for local development only.',
-        );
-        assetServiceSecret = 'dev-secret';
-      }
+      console.error(
+        '❌ ASSET_SERVICE_SECRET must be set. Asset proxy cannot mount securely.',
+      );
+      process.exit(1);
     }
 
     const userAssetProxy = createProxyMiddleware({
@@ -921,9 +903,7 @@ class NexusServer {
         ),
       on: {
         proxyReq: (proxyReq) => {
-          if (assetServiceSecret) {
-            proxyReq.setHeader('x-nexus-auth', assetServiceSecret);
-          }
+          proxyReq.setHeader('x-nexus-auth', assetServiceSecret);
         },
       },
     });
@@ -1052,56 +1032,15 @@ class NexusServer {
   }
 
   private async handleConnection(ws: WebSocket, req: RequestWithSession) {
-    const user = req.session?.passport?.user;
-    const guestUser = req.session?.guestUser;
     const url = new URL(req.url!, 'ws://localhost');
     const params = url.searchParams;
-    const userIdFromQuery = params.get('userId');
-    const userNameFromQuery = params.get('userName');
     const connectionInstanceId = params.get('connectionInstanceId');
     const reconnectTrigger = params.get('reconnectTrigger') || 'connect';
 
-    // Priority: authenticated user > guest user > query param > new UUID
-    let uuid = user?.id || guestUser?.id || userIdFromQuery || uuidv4();
-    const displayName =
-      user?.name || guestUser?.name || userNameFromQuery || 'Guest';
-    let userType = user ? 'Authenticated' : guestUser ? 'Guest' : 'Anonymous';
-
-    // To prevent identity spoofing, verify that if a userId is claimed via query param
-    // but the connection is anonymous (no active session cookie), it does not clash
-    // with an existing user in the database.
-    if (!user && !guestUser && userIdFromQuery) {
-      try {
-        const existingUser = await this.db.getUserById(userIdFromQuery);
-        if (existingUser) {
-          // Deny impersonation: generate a new UUID and treat as Anonymous
-          console.warn(
-            `⚠️ Security warning: Connection from anonymous client attempted to claim existing user ID ${userIdFromQuery}. Generating a new guest identity.`,
-          );
-          uuid = uuidv4();
-          userType = 'Anonymous';
-        }
-      } catch (error) {
-        console.warn(`Failed to verify userIdFromQuery:`, error);
-      }
-    }
-
-    // Ensure user exists in database (critical for foreign key constraints)
-    // For guest users, create them in the database if they don't exist
-    if (userType === 'Guest' || userType === 'Anonymous') {
-      try {
-        const existingUser = await this.db.getUserById(uuid);
-        if (!existingUser) {
-          console.log(
-            `🔧 Creating missing database record for user: ${uuid} (${displayName})`,
-          );
-          await this.db.createGuestUser(displayName, uuid);
-          console.log(`✅ Guest user created in database: ${uuid}`);
-        }
-      } catch (error) {
-        console.warn(`⚠️ Failed to ensure user exists in database:`, error);
-      }
-    }
+    const { uuid, displayName, userType } = await resolveSocketIdentity(
+      req.session,
+      this.db,
+    );
 
     const connection = this.socketManager.addConnection(
       ws,
@@ -1124,16 +1063,16 @@ class NexusServer {
     const host = params.get('host');
     const join = params.get('join')?.toUpperCase();
     const reconnect = params.get('reconnect')?.toUpperCase();
-    const campaignId = params.get('campaignId'); // Get campaign ID from query params
+    const campaignId = params.get('campaignId');
 
     if (host) {
-      await this.handleHostConnection(connection, host, campaignId);
+      await this.handleHostConnection(connection, userType, host, campaignId);
     } else if (reconnect) {
-      await this.handleHostReconnection(connection, reconnect, campaignId);
+      await this.handleHostReconnection(connection, userType, reconnect, campaignId);
     } else if (join) {
       await this.handleJoinConnection(connection, join);
     } else {
-      await this.handleDefaultConnection(connection, campaignId);
+      await this.handleDefaultConnection(connection, userType, campaignId);
     }
   }
 
@@ -1149,6 +1088,7 @@ class NexusServer {
    */
   private async handleHostConnection(
     connection: Connection,
+    userType: 'Authenticated' | 'Guest' | 'Anonymous',
     hostRoomCode?: string,
     campaignId?: string | null,
   ): Promise<void> {
@@ -1168,6 +1108,14 @@ class NexusServer {
           this.sendError(connection, 'Campaign not found');
           return;
         }
+
+        // Authorize BEFORE reading scenes or mutating state
+        if (!authorizeCampaignHost(connection.id, campaign)) {
+          this.sendError(connection, 'Unauthorized to host this campaign');
+          connection.ws.close(4403, 'Unauthorized');
+          return;
+        }
+
         if (!preferredRoomCode && campaign.lastRoomCode) {
           preferredRoomCode = campaign.lastRoomCode.toUpperCase();
         }
@@ -1180,6 +1128,13 @@ class NexusServer {
           );
         }
       } else {
+        // Only authenticated users can create new guest campaigns
+        if (userType === 'Anonymous') {
+          this.sendError(connection, 'Unauthorized to create campaign');
+          connection.ws.close(4403, 'Unauthorized');
+          return;
+        }
+
         console.log(`🗂️ Creating new campaign for guest DM`);
         const campaign = await this.db.createCampaign(
           connection.id,
@@ -1198,6 +1153,7 @@ class NexusServer {
         );
         await this.handleHostReconnection(
           connection,
+          userType,
           preferredRoomCode,
           campaignId,
         );
@@ -1341,72 +1297,111 @@ class NexusServer {
 
   private async handleHostReconnection(
     connection: Connection,
+    userType: 'Authenticated' | 'Guest' | 'Anonymous',
     roomCode: string,
     campaignId?: string | null,
   ) {
     const normalizedRoomCode = roomCode.toUpperCase();
-    let room = this.socketManager.rooms.get(normalizedRoomCode);
 
-    if (!room) {
-      const session = await this.db.getSessionByJoinCode(normalizedRoomCode);
-      if (session) {
-        if (campaignId && session.campaignId !== campaignId) {
-          this.sendError(connection, 'Room code belongs to another campaign');
-          return;
-        }
-        await this.db.activateSessionByJoinCode(
-          normalizedRoomCode,
-          connection.id,
-        );
-        room = await this.recoverRoomFromSession(normalizedRoomCode);
-      } else if (campaignId) {
-        const campaign = await this.db.getCampaignById(campaignId);
-        if (
-          !campaign ||
-          campaign.lastRoomCode?.toUpperCase() !== normalizedRoomCode
-        ) {
-          this.sendError(connection, 'Room not found');
-          return;
-        }
-        const created = await this.db.createSessionWithJoinCode(
-          campaignId,
-          connection.id,
-          normalizedRoomCode,
-        );
-        room = {
-          code: created.joinCode,
-          host: connection.id,
-          coHosts: new Set(),
-          players: new Set([connection.id]),
-          connections: new Map(),
-          created: Date.now(),
-          lastActivity: Date.now(),
-          status: 'active',
-          dmConnected: true,
-          hibernationTimer: undefined,
-          gameState: createEmptySyncableGameState() as unknown as GameState,
-          previousGameState: undefined,
-          stateVersion: 0,
-          entityVersions: new Map(),
-          syncToken: hashSync(
-            createEmptySyncableGameState() as unknown as JsonValue,
-          ),
-        };
-        this.socketManager.rooms.set(created.joinCode, room);
+    // 1. Resolve target
+    const session = await this.db.getSessionByJoinCode(normalizedRoomCode);
+    let resolvedCampaignId = campaignId;
+    if (session) {
+      if (campaignId && session.campaignId !== campaignId) {
+        this.sendError(connection, 'Room code belongs to another campaign');
+        connection.ws.close(4403, 'Unauthorized');
+        return;
       }
-    }
-
-    if (!room) {
+      resolvedCampaignId = session.campaignId;
+    } else if (!campaignId) {
       this.sendError(connection, 'Room not found');
+      connection.ws.close(4403, 'Room not found');
       return;
     }
 
+    const campaign = await this.db.getCampaignById(resolvedCampaignId!);
+    if (!campaign || (!session && campaign.lastRoomCode?.toUpperCase() !== normalizedRoomCode)) {
+      this.sendError(connection, 'Room not found');
+      connection.ws.close(4403, 'Room not found');
+      return;
+    }
+
+    // 2. Authorize
+    if (!authorizeCampaignHost(connection.id, campaign)) {
+      this.sendError(connection, 'Unauthorized to host this campaign');
+      connection.ws.close(4403, 'Unauthorized');
+      return;
+    }
+
+    if (userType === 'Anonymous') {
+      this.sendError(connection, 'Anonymous reconnect not allowed');
+      connection.ws.close(4403, 'Unauthorized');
+      return;
+    }
+
+    // 3. Prepare replay
     const replay = await this.prepareRoomReplay(
       normalizedRoomCode,
       connection.requestedEventCursor,
     );
     if (!replay) {
       this.sendError(connection, 'Unable to prepare room event recovery');
+      return;
+    }
+
+    // 4. Register distributed connection (using partial room state for now since room isn't fully hydrated)
+    // Wait, we need an active room to pass to registerDistributedConnection.
+    let room = this.socketManager.rooms.get(normalizedRoomCode);
+    if (!room) {
+      room = {
+        code: normalizedRoomCode,
+        host: connection.id,
+        coHosts: new Set(),
+        players: new Set([connection.id]),
+        connections: new Map(),
+        created: Date.now(),
+        lastActivity: Date.now(),
+        status: 'active',
+        dmConnected: true,
+        gameState: createEmptySyncableGameState() as unknown as GameState,
+        stateVersion: 0,
+        entityVersions: new Map(),
+        syncToken: hashSync(createEmptySyncableGameState() as unknown as JsonValue),
+      };
+      this.socketManager.rooms.set(normalizedRoomCode, room);
+    }
+    
+    room.connections.set(connection.id, connection.ws);
+    connection.room = normalizedRoomCode;
+    connection.user!.type = 'host';
+    
+    if (!(await this.socketManager.registerDistributedConnection(room, connection, 'host'))) {
+      room.connections.delete(connection.id);
+      connection.room = undefined;
+      this.sendError(connection, 'Failed to register presence');
+      return;
+    }
+
+    // 5. Commit database changes
+    if (session) {
+      await this.db.activateSessionByJoinCode(normalizedRoomCode, connection.id);
+    } else {
+      await this.db.createSessionWithJoinCode(resolvedCampaignId!, connection.id, normalizedRoomCode);
+    }
+
+    // 6. Hydrate room
+    if (session) {
+      const recoveredRoom = await this.recoverRoomFromSession(normalizedRoomCode);
+      if (recoveredRoom) {
+        room = recoveredRoom;
+      } else {
+        this.sendError(connection, 'Room not found');
+        return;
+      }
+    }
+
+    if (!room) {
+      this.sendError(connection, 'Room not found');
       return;
     }
 
@@ -1710,10 +1705,11 @@ class NexusServer {
 
   private async handleDefaultConnection(
     connection: Connection,
+    userType: 'Authenticated' | 'Guest' | 'Anonymous',
     campaignId?: string | null,
   ) {
     const roomCode = this.generateRoomCode();
-    await this.handleHostConnection(connection, roomCode, campaignId);
+    await this.handleHostConnection(connection, userType, roomCode, campaignId);
   }
 
   private handleChatMessage(

@@ -1,0 +1,52 @@
+{
+  "strokeThin": "0.3",
+  "fontNotes": {
+    "italic": false,
+    "size": 18,
+    "face": "_sans",
+    "bold": false,
+    "embedded": "regular_font"
+  },
+  "hatchingSize": "0.25",
+  "shadowColor": "#FFFFFF",
+  "colorInk": "#000000",
+  "colorWater": "#EEEEEE",
+  "strokeThick": "2.0",
+  "fontStory": {
+    "embedded": "regular_font",
+    "italic": true,
+    "bold": false,
+    "face": "_sans",
+    "size": 20
+  },
+  "shadowDist": "0.2",
+  "hatchingDistance": "0.3",
+  "colorShading": "#FFFFFF",
+  "colorBg": "#FFFFFF",
+  "colorPaper": "#FFFFFF",
+  "hatchingStrokes": "4",
+  "fontTitle": {
+    "embedded": "title_font",
+    "italic": false,
+    "bold": true,
+    "face": "_sans",
+    "size": 48
+  },
+  "strokeHatching": "0.3",
+  "fontSymbols": {
+    "embedded": "regular_font",
+    "italic": false,
+    "bold": true,
+    "face": "_sans",
+    "size": 30
+  },
+  "fontLegend": {
+    "italic": false,
+    "size": 20,
+    "face": "_sans",
+    "bold": false,
+    "embedded": "regular_font"
+  },
+  "strokeNormal": "1.0",
+  "hatchingStyle": "Default"
+}

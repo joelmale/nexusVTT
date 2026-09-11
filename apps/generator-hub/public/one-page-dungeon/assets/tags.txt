@@ -1,0 +1,34 @@
+lair: chaotic, winding, treasure, dangerous
+maze: chaotic, winding, colonnades, dangerous, flat
+labyrinth: winding, large
+catacombs: chaotic, large, wet, dangerous
+tomb: tomb, colonnades, deep
+sepulcher: tomb
+castle, citadel: deep
+crypt, mausoleum: cramped, tomb
+pyramid: ordered, square, tomb
+temple: ordered, large, spacious, round, colonnades, temple
+shrine: temple
+sanctum: temple, colonnades
+monastery: large, temple, dwelling
+abbey: large, secret, temple, dwelling
+chapel: small, compact, temple
+halls: large, spacious, chaotic, dwelling
+hall: small, spacious, chaotic, dwelling
+chambers, mansion, manor: dwelling
+house: small, compact, square, secret, dwelling
+palace: ordered, large, treasure, colonnades, dwelling, deep
+basilica: square, ordered, compact, colonnades
+dungeon: chaotic, secret, dangerous
+observatory: compact, round
+vault: secret, treasure
+prison: large, compact, square, dangerous, dwelling
+asylum: compact, square, dangerous, dwelling
+library, archive: ordered, large, compact, round
+vampire, undead: tomb
+king, queen, emperor: dwelling
+ruined, shattered, mountain, undeground, subterranean: crumbling
+sunken, underwater: flooded
+desert, frozen: dry
+swamp: wet
+chaos: chaotic

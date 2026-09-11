@@ -1,1 +1,104 @@
-# Asset Processing Guide\n\nNexus VTT uses an advanced asset processing system to optimize your images for web use while maintaining quality and organization.\n\n## 🎯 Overview\n\nThe asset processor:\n- ✅ **Converts all images to WebP** for optimal web performance\n- ✅ **Generates thumbnails** for fast browsing\n- ✅ **Creates organized folder structure** by category\n- ✅ **Extracts metadata** for searching and filtering\n- ✅ **Reduces file sizes** by ~40% while maintaining quality\n\n## 📁 Supported Structure\n\n### Input (Your Assets)\nYour assets can be organized in any folder structure:\n```\n/your/assets/\n├── maps/\n│   ├── dungeons/\n│   ├── cities/\n│   └── wilderness/\n├── tokens/\n│   ├── characters/\n│   └── monsters/\n└── art/\n    ├── character/\n    └── scene/\n```\n\n### Output (Processed Assets)\nThe processor creates a standardized structure:\n```\nasset-server/assets/\n├── manifest.json\n├── Maps/\n│   ├── assets/          # Full-size WebP images\n│   ├── thumbnails/      # 300x300 previews\n├── Tokens/\n│   ├── assets/\n│   ├── thumbnails/\n├── Art/\n│   ├── assets/\n│   ├── thumbnails/\n├── Handouts/\n├── Reference/\n```\n\n## 🚀 Processing Your Assets\n\n### Basic Usage\n\n```bash\n# Process all assets from a directory\nnode scripts/process-assets.js /path/to/your/assets ./asset-server/assets\n\n# Example with your maps\nnode scripts/process-assets.js /Volumes/PS2000w/DnD_Assets/maps ./asset-server/assets\n```\n\n### Advanced Usage\n\n```bash\n# Process different asset types\nnode scripts/process-assets.js /path/to/maps ./asset-server/assets\nnode scripts/process-assets.js /path/to/tokens ./asset-server/assets\nnode scripts/process-assets.js /path/to/character-art ./asset-server/assets\n\n# The processor will automatically categorize based on:\n# - Folder names\n# - File names\n# - Content analysis\n```\n\n## 🎨 Category Detection\n\nThe processor automatically categorizes assets:\n\n### Maps\n**Keywords**: dungeon, cave, castle, tower, city, village, forest, mountain, desert, swamp, interior, battle, map\n\n**Subcategories**:\n- `dungeons` - Underground areas, caves, crypts\n- `cities` - Towns, villages, urban areas  \n- `wilderness` - Forests, mountains, outdoor areas\n- `interiors` - Buildings, rooms, indoor spaces\n- `battlemaps` - Combat-focused tactical maps\n\n### Tokens\n**Keywords**: token, character, monster, npc, creature, object, item, player\n\n**Subcategories**:\n- `characters` - Player character tokens\n- `monsters` - Enemy and creature tokens\n- `objects` - Items, props, environmental objects\n- `npcs` - Non-player character tokens\n\n### Art\n**Keywords**: art, character, portrait, scene, concept, illustration, artwork\n\n**Subcategories**:\n- `character` - Character portraits and art\n- `scene` - Landscape and environmental art\n- `concept` - Concept art and illustrations\n- `portraits` - Close-up character images\n\n### Handouts\n**Keywords**: handout, document, letter, notice, scroll, paper, note\n\n**Subcategories**:\n- `documents` - Rules, papers, official documents\n- `letters` - In-game correspondence\n- `notices` - Posters, announcements\n- `maps` - Player handout maps\n\n### Reference\n**Keywords**: reference, rule, chart, table, guide, help, manual\n\n**Subcategories**:\n- `rules` - Game rule references\n- `charts` - Tables and charts\n- `tables` - Reference tables\n- `guides` - How-to guides\n\n## ⚙️ Processing Options\n\nYou can customize processing behavior by editing `scripts/process-assets.js`:\n\n```javascript\n// Image quality settings\nconst WEBP_QUALITY = 85;        // Full image quality (1-100)\nconst THUMBNAIL_QUALITY = 80;   // Thumbnail quality (1-100)\n\n// Size limits\nconst THUMBNAIL_SIZE = 300;     // Thumbnail dimensions (pixels)\nconst MAX_FULL_SIZE = 2048;     // Max full image size (pixels)\n\n// Supported formats\nconst SUPPORTED_FORMATS = ['.jpg', '.jpeg', '.png', '.webp', '.gif'];\n```\n\n## 📊 What Gets Processed\n\n### File Information\n- **Original size** and **processed size**\n- **Dimensions** (width × height)\n- **Format** detection and conversion\n- **Modification time** for change tracking\n\n### Metadata Generation\n- **Smart categorization** based on folder structure\n- **Keyword extraction** from filenames\n- **Tag generation** for searching\n- **Subcategory assignment** for organization\n\n### Output Files\n- **Full WebP image** - Optimized for quality and size\n- **Thumbnail WebP** - 300×300 preview image  \n- **Manifest entry** - Searchable metadata\n\n## 🔍 Processing Output\n\nAfter processing, you'll see:\n\n```\n🎨 Processing assets...\n📁 Input: /Volumes/PS2000w/DnD_Assets/maps\n📁 Output: ./asset-server/assets\n📊 Found 247 image files\n📸 Processing 1/247: ancient-temple.jpg\n📸 Processing 2/247: goblin-caves.png\n...\n✅ Asset processing complete!\n📊 Processed: 247 assets\n📂 Categories: Art, Maps, Tokens\n📄 Manifest: ./asset-server/assets/manifest.json\n```\n\n## 🎯 Performance Benefits\n\n| Metric | Before | After | Improvement |\n|--------|--------|-------|-------------|\n| **Total Size** | 77MB | ~50MB | 35% smaller |\n| **Web Performance** | Slow | Fast | 60% faster loading |\n| **Thumbnail Loading** | N/A | Instant | Immediate preview |\n| **Search & Filter** | Manual | Automated | Full metadata |\n| **Mobile Support** | Poor | Excellent | Optimized delivery |\n\n## 🔧 Troubleshooting\n\n### Sharp Installation Issues\n\n```bash\n# Reinstall Sharp if processing fails\nnpm uninstall sharp\nnpm install sharp\n\n# On macOS with M1/M2 chips\narch -arm64 npm install sharp\n```\n\n### Permission Problems\n\n```bash\n# Check file permissions\nls -la /path/to/your/assets\n\n# Fix permissions if needed\nchmod -R 755 /path/to/your/assets\n```\n\n### Large File Processing\n\n```bash\n# Increase Node.js memory limit for large collections\nnode --max-old-space-size=4096 scripts/process-assets.js /path/to/assets ./output\n```\n\n### Processing Specific Folders\n\n```bash\n# Process only maps\nnode scripts/process-assets.js /path/to/maps ./asset-server/assets\n\n# Process only tokens\nnode scripts/process-assets.js /path/to/tokens ./asset-server/assets\n\n# The processor handles multiple runs safely\n```\n\n## 📈 Best Practices\n\n### Folder Organization\n- **Use descriptive folder names** - \"dungeon-maps\" vs \"folder1\"\n- **Group similar assets** - Keep tokens separate from maps\n- **Use consistent naming** - \"character-portraits\" not \"char_pics\"\n\n### File Naming\n- **Be descriptive** - \"ancient-temple-interior.jpg\" vs \"IMG_001.jpg\"\n- **Use keywords** - Include category hints in filenames\n- **Avoid special characters** - Stick to letters, numbers, hyphens, underscores\n\n### Processing Workflow\n1. **Organize source assets** in logical folders\n2. **Run processing** on each asset type\n3. **Start asset server** to test\n4. **Process additional assets** as needed\n5. **Backup processed assets** for deployment\n\n## 🚀 Next Steps\n\n- **[Asset Server Setup](../developer/asset-server.md)** - Configure the asset server\n- **[Folder Structure](structure.md)** - Understanding the output structure\n- **[Supported Formats](formats.md)** - Image format details\n- **[Development Guide](../developer/development.md)** - Contributing to the asset system\n\n---\n\n**Need help?** Check [troubleshooting](../troubleshooting/assets.md) or [open an issue](https://github.com/your-username/nexus-vtt/issues).\n
+# Asset Processing Guide
+
+Nexus VTT has two related asset paths:
+
+- Local processed assets under `static-assets/assets`
+- Library assets served by `services/asset-service`
+
+This guide covers the local processing scripts that prepare images for browser
+use.
+
+## Processing Commands
+
+Process a folder of images into the local static asset tree:
+
+```bash
+node scripts/process-assets.js /path/to/your/assets ./static-assets/assets
+```
+
+Generate thumbnails and a default manifest:
+
+```bash
+npm run generate-assets
+```
+
+Run the individual steps when needed:
+
+```bash
+npm run generate-thumbnails
+npm run generate-default-manifest
+```
+
+Seed the TMT library data volume or local `assets-data` tree from the configured
+asset pack:
+
+```bash
+npm run seed:library-assets
+```
+
+## Expected Local Output
+
+The local static asset scripts write under:
+
+```text
+static-assets/
+  assets/
+  thumbnails/
+  manifest.json
+```
+
+The TMT library seed pack uses this shape:
+
+```text
+asset-packs/tmt/
+  manifests/manifest-v2.json
+  blobs/
+  derivatives/
+  browse/
+  staging/
+```
+
+## Supported Source Layout
+
+Source folders can be organized however you like. Descriptive folder and file
+names improve categorization:
+
+```text
+my-assets/
+  maps/
+  tokens/
+  portraits/
+  handouts/
+```
+
+The processing script uses folder names, filenames, and metadata to categorize
+assets for browsing.
+
+## Common Workflow
+
+1. Put source images somewhere outside the generated output directory.
+2. Run `node scripts/process-assets.js /path/to/source ./static-assets/assets`.
+3. Run `npm run generate-assets`.
+4. Start the app with `npm run start:all`.
+5. Confirm the assets appear in the browser.
+
+## Troubleshooting
+
+If image processing fails, reinstall dependencies:
+
+```bash
+npm install
+```
+
+For large collections, give Node more memory:
+
+```bash
+node --max-old-space-size=4096 scripts/process-assets.js /path/to/assets ./static-assets/assets
+```
+
+If assets are missing in production, check the deployment guide for
+`TMT_ASSET_PACK_PATH` and the asset-service volumes:
+
+- [Homelab Deployment](../HOMELAB_DEPLOYMENT.md)
+- [Asset Setup](../ASSET_SETUP.md)
+- [Asset Guide](../ASSETS-GUIDE.md)

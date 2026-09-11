@@ -1,7 +1,7 @@
 # Asset Service Contract — v2
 
 Status: living document. This backfills the contract doc that C1 shipped without (see
-`docs/roadmap/SESSION_BRIEFS/B3-sync-serve.md`). It documents every route currently served by
+`../archive/2026-roadmap-closeout/SESSION_BRIEFS/B3-sync-serve.md`). It documents every route currently served by
 `services/asset-service/src/index.ts` (verified against source, 2026-07-03) plus the TMT library
 endpoints added in B3 (`services/asset-service/src/library.ts`).
 

@@ -1,4 +1,5 @@
 import React, { useId, useRef } from 'react';
+import DOMPurify from 'dompurify';
 import './Tooltip.css';
 
 interface TooltipProps {
@@ -48,7 +49,13 @@ export const Tooltip: React.FC<TooltipProps> = React.memo(
           ref={popoverRef}
           className="tooltip-box popover-tooltip"
         >
-          <div dangerouslySetInnerHTML={{ __html: text }} />
+          <div
+            dangerouslySetInnerHTML={{
+              __html: DOMPurify.sanitize(text, {
+                ALLOWED_URI_REGEXP: /^(?:(?:(?:ht)tps?|mailto):|[^a-z]|[a-z+.\-]+(?:[^a-z+.\-:]|$))/i,
+              }),
+            }}
+          />
         </div>
       </div>
     );

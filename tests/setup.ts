@@ -9,6 +9,7 @@ import { cleanup } from '@testing-library/react';
 import { afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { config } from 'dotenv';
 import 'fake-indexeddb/auto';
+import { assertTestDatabase } from './integration/assertTestDatabase';
 
 // Load environment variables from .env file for tests
 config();
@@ -170,6 +171,7 @@ global.sessionStorage = sessionStorageMock as unknown as Storage;
 beforeAll(() => {
   process.env.NODE_ENV = 'test';
   process.env.VITE_WS_URL = 'ws://localhost:5001/ws';
+  assertTestDatabase();
 });
 
 // Cleanup after all tests

@@ -3,12 +3,20 @@ import path from 'path';
 import type express from 'express';
 import type { Session } from 'express-session';
 import type { DatabaseService } from '../database.js';
+import fs from 'fs';
+import path from 'path';
+import type express from 'express';
+import type { Session } from 'express-session';
+import type { DatabaseService } from '../database.js';
 import { sanitizeLog } from '../sanitizeLog.js';
 import {
   generateRandomCampaign,
   generateRandomCharacter,
 } from '../utils/mockGenerator.js';
 import { isDevMode } from '../utils/devMode.js';
+import { toAuthResponse, toPublicProfile } from '../utils/publicUser.js';
+import { requireAuthenticatedNonGuest } from '../middleware/assetWriteGuard.js';
+import { setupGeneratedMapsRoute } from './generatedMaps.js';
 
 interface ApiSession extends Session {
   guestUser?: { id: string; name: string; provider: string };
@@ -117,15 +125,7 @@ export function registerApiRoutes(
       }
 
       res.json({
-        id: profile.id,
-        email: profile.email,
-        name: profile.name,
-        displayName: profile.displayName || profile.name,
-        bio: profile.bio,
-        avatarUrl: profile.avatarUrl,
-        provider: profile.provider,
-        preferences: profile.preferences || {},
-        isActive: profile.isActive,
+        ...toAuthResponse(profile),
         createdAt: profile.createdAt,
         updatedAt: profile.updatedAt,
         lastLogin: profile.lastLogin,
@@ -185,15 +185,7 @@ export function registerApiRoutes(
       });
 
       res.json({
-        id: updated.id,
-        email: updated.email,
-        name: updated.name,
-        displayName: updated.displayName || updated.name,
-        bio: updated.bio,
-        avatarUrl: updated.avatarUrl,
-        provider: updated.provider,
-        preferences: updated.preferences || {},
-        isActive: updated.isActive,
+        ...toAuthResponse(updated),
         createdAt: updated.createdAt,
         updatedAt: updated.updatedAt,
         lastLogin: updated.lastLogin,
@@ -827,9 +819,12 @@ export function registerApiRoutes(
    * Saves a customized token image to the server
    * Body: { tokenId: string, imageData: string (base64), name: string }
    */
-  app.post('/api/tokens/save', async (req, res) => {
-    try {
-      const { tokenId, imageData, name } = req.body;
+  app.post(
+    '/api/tokens/save',
+    requireAuthenticatedNonGuest,
+    async (req, res) => {
+      try {
+        const { tokenId, imageData, name } = req.body;
 
       if (!tokenId || !imageData || !name) {
         return res.status(400).json({ error: 'Missing required fields' });
@@ -874,14 +869,13 @@ export function registerApiRoutes(
       const serverPath = `/assets/tokens/custom/${filename}`;
 
       console.log(`💾 Saved custom token: ${sanitizeLog(serverPath)}`);
-      res.json({
-        success: true,
-        path: serverPath,
-        message: 'Token saved successfully',
-      });
+      res.json({ success: true, path: serverPath });
     } catch (error) {
       console.error('Failed to save token:', error);
       res.status(500).json({ error: 'Failed to save token' });
     }
-  });
+  },
+);
+
+  setupGeneratedMapsRoute(app, requireAuthenticatedNonGuest);
 }

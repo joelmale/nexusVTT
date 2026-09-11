@@ -4,15 +4,16 @@
  */
 
 import type { DungeonMapDB, GameStateDB, StorageStats } from '@/types/storage';
+import { openNexusDB, DB_NAME, DB_VERSION, STORES } from './nexusDb';
 
 export type { DungeonMapDB, GameStateDB, StorageStats } from '@/types/storage';
 
 class DungeonMapIndexedDB {
   private db: IDBDatabase | null = null;
-  private readonly DB_NAME = 'NexusVTT';
-  private readonly DB_VERSION = 5; // v5: Added tempStorage for generator
-  private readonly MAPS_STORE = 'maps';
-  private readonly GAMESTATE_STORE = 'gameState';
+  private readonly DB_NAME = DB_NAME;
+  private readonly DB_VERSION = DB_VERSION;
+  private readonly MAPS_STORE = STORES.MAPS.name;
+  private readonly GAMESTATE_STORE = STORES.GAME_STATE.name;
   private initPromise: Promise<void> | null = null;
 
   /**
@@ -23,196 +24,9 @@ class DungeonMapIndexedDB {
       return this.initPromise;
     }
 
-    // Check if we need to delete corrupted database (if it's missing required stores)
-    try {
-      const checkRequest = indexedDB.open(this.DB_NAME);
-      await new Promise<void>((resolve) => {
-        checkRequest.onsuccess = () => {
-          const db = checkRequest.result;
-          const storeNames = Array.from(db.objectStoreNames);
-          console.log(
-            `🔍 Checking existing database: ${storeNames.length} stores found - ${storeNames.join(', ')}`,
-          );
-
-          // Check if required stores exist
-          const hasMapsStore = db.objectStoreNames.contains(this.MAPS_STORE);
-          const hasGameStateStore = db.objectStoreNames.contains(
-            this.GAMESTATE_STORE,
-          );
-
-          // If database is missing required stores, it's corrupted - need to delete and recreate
-          if (!hasMapsStore || !hasGameStateStore) {
-            console.warn(
-              `⚠️ Database exists at v${db.version} but missing required stores:`,
-            );
-            console.warn(
-              `   maps: ${hasMapsStore}, gameState: ${hasGameStateStore}`,
-            );
-            console.warn(`   Will delete and recreate database`);
-            db.close();
-
-            // Delete the corrupted database synchronously
-            const deleteRequest = indexedDB.deleteDatabase(this.DB_NAME);
-            deleteRequest.onsuccess = () => {
-              console.log(`🗑️ Deleted corrupted ${this.DB_NAME} database`);
-              resolve();
-            };
-            deleteRequest.onerror = () => {
-              console.warn(`⚠️ Could not delete corrupted database`);
-              resolve();
-            };
-            deleteRequest.onblocked = () => {
-              console.warn(
-                `⚠️ ${this.DB_NAME} deletion blocked - close all tabs and refresh`,
-              );
-              resolve();
-            };
-          } else {
-            console.log(`✅ Database has all required stores`);
-            db.close();
-            resolve();
-          }
-        };
-        checkRequest.onerror = () => resolve(); // Database doesn't exist yet
-      });
-    } catch (error) {
-      console.warn('Could not check existing database:', error);
-    }
-
-    // Migrate data from old database before deleting it
-    try {
-      const oldDbRequest = indexedDB.open('NexusDungeonMaps');
-      await new Promise<void>((resolve) => {
-        oldDbRequest.onsuccess = async () => {
-          const oldDb = oldDbRequest.result;
-          if (oldDb.objectStoreNames.contains('maps')) {
-            console.log(
-              '🔄 Migrating maps from old NexusDungeonMaps database...',
-            );
-            try {
-              const transaction = oldDb.transaction(['maps'], 'readonly');
-              const store = transaction.objectStore('maps');
-              const getAllRequest = store.getAll();
-
-              await new Promise<void>((migrateResolve) => {
-                getAllRequest.onsuccess = () => {
-                  const oldMaps = getAllRequest.result;
-                  console.log(`Found ${oldMaps.length} maps in old database`);
-                  // Store in localStorage temporarily for migration by dungeonMapService
-                  if (oldMaps.length > 0) {
-                    localStorage.setItem(
-                      'nexus_old_indexeddb_maps',
-                      JSON.stringify(oldMaps),
-                    );
-                    console.log(
-                      '💾 Stored old maps in localStorage for migration',
-                    );
-                  }
-                  migrateResolve();
-                };
-                getAllRequest.onerror = () => {
-                  console.warn('Could not read old maps:', getAllRequest.error);
-                  migrateResolve();
-                };
-              });
-            } catch (error) {
-              console.warn('Migration from old database failed:', error);
-            }
-          }
-          oldDb.close();
-          resolve();
-        };
-        oldDbRequest.onerror = () => resolve(); // Old database doesn't exist
-      });
-    } catch (error) {
-      console.warn('Could not access old database for migration:', error);
-    }
-
-    // Delete old database with old name if it exists
-    try {
-      await new Promise<void>((resolve) => {
-        const deleteRequest = indexedDB.deleteDatabase('NexusDungeonMaps');
-        deleteRequest.onsuccess = () => {
-          console.log('🗑️ Deleted old NexusDungeonMaps database');
-          resolve();
-        };
-        deleteRequest.onerror = () => resolve(); // Ignore errors
-        deleteRequest.onblocked = () => {
-          console.warn('⚠️ NexusDungeonMaps deletion blocked - close all tabs');
-          resolve();
-        };
-      });
-    } catch (error) {
-      console.warn('Could not delete old database:', error);
-    }
-
-    this.initPromise = new Promise((resolve, reject) => {
-      const request = indexedDB.open(this.DB_NAME, this.DB_VERSION);
-
-      request.onerror = () => {
-        console.error('Failed to open IndexedDB:', request.error);
-        reject(request.error);
-      };
-
-      request.onsuccess = () => {
-        this.db = request.result;
-        const storeNames = Array.from(this.db.objectStoreNames);
-        console.log(
-          `✅ DungeonMapIndexedDB initialized v${this.db.version} with stores: ${storeNames.join(', ')}`,
-        );
-
-        // Verify expected stores exist
-        if (!this.db.objectStoreNames.contains(this.MAPS_STORE)) {
-          console.error(`❌ Missing required store: ${this.MAPS_STORE}`);
-        }
-        if (!this.db.objectStoreNames.contains(this.GAMESTATE_STORE)) {
-          console.error(`❌ Missing required store: ${this.GAMESTATE_STORE}`);
-        }
-
-        resolve();
-      };
-
-      request.onupgradeneeded = (event) => {
-        const db = (event.target as IDBOpenDBRequest).result;
-        const oldVersion = event.oldVersion;
-
-        console.log(
-          `🔧 IndexedDB upgrade: v${oldVersion} → v${this.DB_VERSION}`,
-        );
-
-        // Create maps store if it doesn't exist
-        if (!db.objectStoreNames.contains(this.MAPS_STORE)) {
-          const mapsStore = db.createObjectStore(this.MAPS_STORE, {
-            keyPath: 'id',
-          });
-          mapsStore.createIndex('timestamp', 'timestamp', { unique: false });
-          mapsStore.createIndex('name', 'name', { unique: false });
-          console.log('✅ Created IndexedDB store for dungeon maps');
-        }
-
-        // Create game state store if it doesn't exist
-        if (!db.objectStoreNames.contains(this.GAMESTATE_STORE)) {
-          const gameStateStore = db.createObjectStore(this.GAMESTATE_STORE, {
-            keyPath: 'id',
-          });
-          gameStateStore.createIndex('timestamp', 'timestamp', {
-            unique: false,
-          });
-          gameStateStore.createIndex('version', 'version', { unique: false });
-          console.log('✅ Created IndexedDB store for game state');
-        }
-
-        // Create tempStorage store if it doesn't exist (v5+)
-        if (!db.objectStoreNames.contains('tempStorage')) {
-          db.createObjectStore('tempStorage');
-          console.log('✅ Created IndexedDB store for temporary storage');
-        }
-
-        console.log(
-          `✅ IndexedDB upgrade complete. Available stores: ${Array.from(db.objectStoreNames).join(', ')}`,
-        );
-      };
-    });
+    this.initPromise = (async () => {
+      this.db = await openNexusDB();
+    })();
 
     return this.initPromise;
   }

@@ -1,159 +1,165 @@
-# Nexus VTT - Production Deployment Guide
+# Nexus VTT Production Deployment
 
-## 🚨 QUICK FIX: OAuth "invalid_client" Error
+This is the canonical production deployment guide for the current homelab
+setup.
 
-**If you're seeing `TokenError: Unauthorized` with `code: 'invalid_client'` in production:**
+## Current Deployment Model
 
-Your OAuth callback URLs are set to `localhost` instead of your production domain.
+Nexus VTT currently runs as a Dockhand-managed Docker Compose stack on a single
+Docker Engine server.
 
-### Fix in 2 Minutes:
+- Orchestrator: Dockhand
+- Runtime substrate: one Docker Engine host
+- Compose file: `docker/docker-compose.yml`
+- Image registry: GitHub Container Registry at `ghcr.io/joelmale/nexusvtt`
+- CI publisher: `.github/workflows/ci.yml` on `master`, tags, and manual runs
+- Reverse proxy: an external container network, usually `homelab-net`
+- Not used: Docker Swarm, Portainer, Kubernetes, or Nginx Proxy Manager as a
+  required deployment component
 
-1. **In Portainer:** Stacks → nexusvtt → Editor
-2. **Find these lines** (around line 116-121 in the backend service):
-   ```yaml
-   # ❌ WRONG
-   - GOOGLE_CALLBACK_URL=http://localhost:5001/auth/google/callback
-   - DISCORD_CALLBACK_URL=http://localhost:5001/auth/discord/callback
-   ```
-3. **Change to:**
-   ```yaml
-   # ✅ CORRECT
-   - GOOGLE_CALLBACK_URL=https://app.nexusvtt.com/auth/google/callback
-   - DISCORD_CALLBACK_URL=https://app.nexusvtt.com/auth/discord/callback
-   ```
-4. **Click** "Update the stack"
-5. **Wait** 30 seconds for backend to restart
-6. **Test** - OAuth should work now!
+The repository builds and publishes images. Dockhand owns the live stack,
+environment variables, secrets, and redeploy action.
 
-### Also Update Google Cloud Console:
+## Runtime Topology
 
-1. Go to [Google Cloud Console → Credentials](https://console.cloud.google.com/apis/credentials)
-2. Edit your OAuth 2.0 Client ID
-3. Under "Authorized redirect URIs", add: `https://app.nexusvtt.com/auth/google/callback`
-4. Remove any `localhost` entries
-5. Save
+```text
+browser
+  -> public HTTPS reverse proxy
+  -> frontend container on the external proxy network
+  -> backend:5001 on the private Compose network
+  -> postgres, redis, asset-service
+```
 
----
+The frontend image includes nginx. It serves the React app and proxies `/api`,
+`/auth`, `/ws`, `/library`, and `/library-assets` to the backend over the
+private Compose network.
 
-## Quick Deployment Checklist
+## Images
 
-### 1. Configure Environment Variables in Portainer
+The CI pipeline builds and pushes these images:
 
-Go to your `nexusvtt_backend` service and set these environment variables:
+- `ghcr.io/joelmale/nexusvtt/frontend:<version>`
+- `ghcr.io/joelmale/nexusvtt/backend:<version>`
+- `ghcr.io/joelmale/nexusvtt/asset-service:<version>`
+- `ghcr.io/joelmale/nexusvtt/postgres:<version>`
 
-#### **Required Variables**
+Every successful push build also publishes `:latest`. Non-tag pushes use a
+date-and-short-SHA tag such as `20260911-abcdef1`; version tags strip the
+leading `v`.
 
-```bash
-NODE_ENV=production
-PORT=5000
+## Dockhand Stack Configuration
 
-# Database connection
-# IMPORTANT: Service name is "postgres" (from docker-compose.yml), not "nexusvtt_postgres"
-# Docker Swarm handles service discovery - use the service name from the compose file
-DATABASE_URL=postgresql://nexus:YOUR_POSTGRES_PASSWORD@postgres:5432/nexus
+Use `docker/docker-compose.yml` as the stack definition in Dockhand. Set the
+stack name to the live name you use operationally, such as `nexus-vtt2`.
+
+Dockhand must provide the Compose environment. Required production values:
+
+```env
+IMAGE_PREFIX=ghcr.io/joelmale/nexusvtt
+VERSION=latest
+PROXY_NETWORK=homelab-net
+
 POSTGRES_DB=nexus
 POSTGRES_USER=nexus
-POSTGRES_PASSWORD=YOUR_SECURE_PASSWORD_HERE
+POSTGRES_PASSWORD=<strong secret>
+DATABASE_URL=postgresql://nexus:<same password>@postgres:5432/nexus
 
-# Redis connection
-# Service name is "redis" (from docker-compose.yml)
-REDIS_PASSWORD=YOUR_SECURE_REDIS_PASSWORD
+REDIS_PASSWORD=<strong secret>
+JWT_SECRET=<strong secret>
+SESSION_SECRET=<strong secret>
+ASSET_SERVICE_SECRET=<strong secret>
 
-# Asset service write/reload secret
-ASSET_SERVICE_SECRET=<run: openssl rand -base64 32>
-
-# Optional: host path to the repo-owned TMT seed pack.
-# Defaults to ../asset-packs/tmt relative to docker/docker-compose.yml.
-TMT_ASSET_PACK_PATH=/path/to/nexusVTT/asset-packs/tmt
-
-# OAuth Callback URLs (MUST be absolute URLs for OAuth providers)
+CORS_ORIGIN=https://app.nexusvtt.com
 GOOGLE_CALLBACK_URL=https://app.nexusvtt.com/auth/google/callback
 DISCORD_CALLBACK_URL=https://app.nexusvtt.com/auth/discord/callback
-
-# OAuth Credentials (use your actual values from OAuth consoles)
-GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
-GOOGLE_CLIENT_SECRET=your-google-client-secret
-DISCORD_CLIENT_ID=your-discord-client-id
-DISCORD_CLIENT_SECRET=your-discord-client-secret
-
-# Security (generate new secure random strings!)
-SESSION_SECRET=<run: openssl rand -base64 32>
-JWT_SECRET=<run: openssl rand -base64 32>
 ```
 
-#### **Optional Variables** (only if needed)
+Optional provider credentials:
+
+```env
+GOOGLE_CLIENT_ID=<google oauth client id>
+GOOGLE_CLIENT_SECRET=<google oauth client secret>
+DISCORD_CLIENT_ID=<discord app client id>
+DISCORD_CLIENT_SECRET=<discord app client secret>
+```
+
+Keep secrets in Dockhand encrypted variables when possible. Do not commit live
+provider credentials, passwords, or session secrets.
+
+## Reverse Proxy
+
+The Compose file attaches only `frontend` to the external proxy network:
+
+```env
+PROXY_NETWORK=homelab-net
+```
+
+Your reverse proxy should route the public app hostname to the frontend
+container on port `80`. The frontend nginx container handles the internal API
+and WebSocket proxying, so the public reverse proxy does not need separate
+routes to `backend`.
+
+Required reverse-proxy behavior:
+
+- Terminate TLS for `https://app.nexusvtt.com`
+- Forward HTTP traffic to `frontend:80`
+- Preserve `Host`, `X-Forwarded-For`, and `X-Forwarded-Proto`
+- Allow WebSocket upgrade traffic for `/ws`
+
+See `docs/NPM_CONFIGURATION.md` for a reverse-proxy-agnostic routing note. The
+filename is historical; Nginx Proxy Manager is not required.
+
+## Deploy or Update
+
+1. Push to `master` or run the CI workflow manually.
+2. Wait for the `Build & Push to GHCR` job in `.github/workflows/ci.yml`.
+3. In Dockhand, redeploy the Nexus VTT stack with the desired `VERSION`.
+4. Use `VERSION=latest` for the rolling current image or a specific generated
+   tag for a pinned deployment.
+
+Dockhand is the deployment trigger. The GitHub workflow does not call Dockhand
+or any Portainer webhook.
+
+## Database Migrations
+
+Back up PostgreSQL before schema changes. Apply migrations before deploying a
+backend image that depends on them.
+
+From the Docker host, with the repository available:
 
 ```bash
-# Only set if you need to override defaults
-# CORS_ORIGIN=https://app.nexusvtt.com
+CONTAINER=$(docker ps -q -f name=postgres)
+
+docker exec -i "$CONTAINER" psql -U nexus -d nexus \
+  < server/migrations/2025-12-08-add-account-fields.sql
+docker exec -i "$CONTAINER" psql -U nexus -d nexus \
+  < server/migrations/2025-12-08-add-local-auth.sql
+docker exec -i "$CONTAINER" psql -U nexus -d nexus \
+  < server/migrations/2026-01-05-add-campaign-roomcode.sql
+docker exec -i "$CONTAINER" psql -U nexus -d nexus \
+  < server/migrations/2026-07-19-add-room-event-journal.sql
+docker exec -i "$CONTAINER" psql -U nexus -d nexus \
+  < server/migrations/2026-07-19-add-durable-game-state-commits.sql
+docker exec -i "$CONTAINER" psql -U nexus -d nexus \
+  < server/migrations/2026-07-19-add-room-entity-versions.sql
 ```
 
-> **Important:** `GOOGLE_CALLBACK_URL` and `DISCORD_CALLBACK_URL` **MUST** be set to absolute URLs (with https://) in production. OAuth providers require this for security.
+The 2026-07-19 migrations are part of the durable game-state contract. Do not
+run a backend that emits canonical game-state acknowledgements against an
+unmigrated database.
 
----
+## Asset Seed Pack
 
-### 2. Configure OAuth Providers
+The TMT library is not baked into the application images. The asset service
+validates the persistent `nexus-library-assets` volume at startup and seeds it
+from a host-local pack if needed:
 
-#### Google OAuth Console
-
-1. Go to [Google Cloud Console - Credentials](https://console.cloud.google.com/apis/credentials)
-2. Select your OAuth 2.0 Client ID
-3. Add authorized redirect URI:
-   ```
-   https://app.nexusvtt.com/auth/google/callback
-   ```
-4. Save changes
-
-#### Discord Developer Portal
-
-1. Go to [Discord Developer Portal - Applications](https://discord.com/developers/applications)
-2. Select your application (or create a new one)
-3. Go to **OAuth2** section
-4. Add redirect URI:
-   ```
-   https://app.nexusvtt.com/auth/discord/callback
-   ```
-5. Save changes
-6. Copy your **Client ID** and **Client Secret** for the environment variables
-
----
-
-### 3. Build and Push Docker Images
-
-**Note:** Images are automatically built and pushed to GitHub Container Registry (GHCR) via GitHub Actions when you push to `master` branch. See `.github/workflows/build-and-push.yml` for details.
-
-If you need to manually build and push:
-
-```bash
-# Navigate to project directory
-cd /Users/JoelN/Coding/nexusVTT
-
-# Build backend image
-docker build -f docker/backend.Dockerfile -t ghcr.io/joelmale/nexusvtt/backend:latest .
-
-# Build asset service image
-docker build -f docker/asset-service.Dockerfile -t ghcr.io/joelmale/nexusvtt/asset-service:latest .
-
-# Build frontend image
-docker build -f docker/frontend.Dockerfile -t ghcr.io/joelmale/nexusvtt/frontend:latest .
-
-# Push to GitHub Container Registry
-docker push ghcr.io/joelmale/nexusvtt/backend:latest
-docker push ghcr.io/joelmale/nexusvtt/asset-service:latest
-docker push ghcr.io/joelmale/nexusvtt/frontend:latest
+```env
+TMT_ASSET_PACK_PATH=/path/to/asset-packs/tmt
 ```
 
-### TMT Asset Seed Pack
-
-TMT assets are not baked into the main app image. The production `asset-service`
-starts by validating the persistent `nexus-library-assets` volume. If the volume
-is empty or incomplete, it seeds from a **host-local, gitignored** pack mounted at
-`${TMT_ASSET_PACK_PATH:-../asset-packs/tmt}`.
-
-The seed pack is not committed to the repo — bring your own copy (from an existing
-`assets-data/` volume, a NAS share, an external drive, wherever you keep it) and
-either drop it at the default path (`asset-packs/tmt/` at the repo root, already
-gitignored) or set `TMT_ASSET_PACK_PATH` to point elsewhere. Preserve this shape:
+The default is `../asset-packs/tmt` relative to `docker/docker-compose.yml`.
+The pack should contain:
 
 ```text
 asset-packs/tmt/
@@ -164,243 +170,58 @@ asset-packs/tmt/
   staging/
 ```
 
-Before deploying on a new host, verify (or trigger) the seed:
+## Health Checks
+
+After Dockhand redeploys, verify:
 
 ```bash
-npm run seed:library-assets
+curl https://app.nexusvtt.com/health
+curl https://app.nexusvtt.com/api/system/health
+curl https://app.nexusvtt.com/api/metrics/multiplayer
 ```
 
----
+`/health` is the frontend nginx probe. `/api/system/health` checks the backend,
+database, and realtime coordinator. `/api/metrics/multiplayer` is the quickest
+post-deploy multiplayer SLO snapshot.
 
-### 4. Apply Database Migrations
+Manual smoke:
 
-After deploying new images, run database migrations to update the schema. Since PostgreSQL runs in a container, you need to execute SQL files against the containerized database.
+1. Open `https://app.nexusvtt.com`.
+2. Start as a guest DM.
+3. Create a room.
+4. Join from a second browser profile or device.
+5. Confirm WebSocket sync, dice, and scene state update both clients.
 
-#### Option 1: Via Portainer Console
+## OAuth Checks
 
-1. Go to Portainer → Containers → Find your PostgreSQL container (e.g., `nexus-prod_postgres`)
-2. Click the container → **Console** tab
-3. Click "Connect" (use `/bin/bash` or `/bin/sh`)
-4. Run the migrations:
-   ```bash
-   # Inside the container
-   psql -U nexus -d nexus << 'EOF'
-   -- Paste the SQL migration content here
-   -- Or run individual commands
-   EOF
-   ```
+OAuth callback URLs must be absolute HTTPS URLs and must match provider console
+settings exactly:
 
-#### Option 2: Via Docker Command Line (from your server)
-
-```bash
-# SSH into your production server first
-ssh your-server
-
-# Find the PostgreSQL container name or ID
-docker ps | grep postgres
-
-# Option A: Copy migration files and execute
-docker cp /path/to/server/migrations/2025-12-08-add-account-fields.sql CONTAINER_NAME:/tmp/
-docker exec -it CONTAINER_NAME psql -U nexus -d nexus -f /tmp/2025-12-08-add-account-fields.sql
-
-docker cp /path/to/server/migrations/2025-12-08-add-local-auth.sql CONTAINER_NAME:/tmp/
-docker exec -it CONTAINER_NAME psql -U nexus -d nexus -f /tmp/2025-12-08-add-local-auth.sql
-
-# Option B: Pipe SQL directly via stdin
-docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2025-12-08-add-account-fields.sql
-docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2025-12-08-add-local-auth.sql
-docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2026-01-05-add-campaign-roomcode.sql
-docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2026-07-19-add-room-event-journal.sql
-docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2026-07-19-add-durable-game-state-commits.sql
-docker exec -i CONTAINER_NAME psql -U nexus -d nexus < server/migrations/2026-07-19-add-room-entity-versions.sql
+```text
+https://app.nexusvtt.com/auth/google/callback
+https://app.nexusvtt.com/auth/discord/callback
 ```
 
-#### What These Migrations Add:
+If OAuth reports `invalid_client` or `redirect_uri_mismatch`, check Dockhand
+variables first, then the Google Cloud Console or Discord Developer Portal.
 
-- **2025-12-08-add-account-fields.sql**: Extended account fields (display name, bio, avatar URL, preferences, activity flags)
-- **2025-12-08-add-local-auth.sql**: Local authentication password columns
-- **2026-01-05-add-campaign-roomcode.sql**: Last-used room code and update timestamp for campaign recovery
-- **2026-07-19-add-room-event-journal.sql**: Ordered, idempotent room event history
-- **2026-07-19-add-durable-game-state-commits.sql**: Atomic canonical snapshot version and content-hash anchors
-- **2026-07-19-add-room-entity-versions.sql**: Cross-replica token/prop version compare-and-swap anchors
+## Rollback
 
-> **Note:** These migrations are safe to run multiple times (use `IF NOT EXISTS` and conditional logic).
-> Apply the 2026-01-05 migration followed by the three 2026-07-19 migrations in
-> the listed order before updating any backend replica. Do
-> not run mixed schema versions during a rolling update.
+Use one of these rollback paths:
 
-### Multiplayer Monitoring
+- Set `VERSION` in Dockhand to the previous known-good CI tag and redeploy.
+- Restore the prior Compose definition from Dockhand history if the Compose
+  definition changed.
+- Restore PostgreSQL from backup if a data migration must be reversed.
 
-The backend exports Prometheus metrics on `/metrics` and a JSON SLO snapshot on
-`/api/metrics/multiplayer`. Keep `/metrics` on the internal network or set
-`METRICS_AUTH_TOKEN`. The optional monitoring overlay starts Prometheus and
-Grafana with the repository alert rules:
+The rollback Compose snapshot for the pre-NexusCodex stack is preserved at
+`docker/rollback/nexus-vtt2-compose-before-nexuscodex-20260721.yaml`.
 
-```bash
-docker compose -f docker/docker-compose.yml \
-  -f docker/docker-compose.observability.yml up -d
-```
+## Cloud Experiments
 
-Set `GRAFANA_ADMIN_PASSWORD` before starting it. Use the `otel` profile and an
-`OTEL_EXPORTER_OTLP_ENDPOINT` to forward the same metrics to an external
-OpenTelemetry backend. Alert thresholds, response steps, and the required
-post-deploy soak are in
-`docs/operations/multiplayer-observability.md`.
+Homelab production is Dockhand on Docker Compose. Cloud experiments are tracked
+separately so they do not contaminate the live runbook:
 
----
-
-### 5. Update Services in Portainer
-
-1. Go to Portainer → Stacks → nexusvtt
-2. For **both** `nexusvtt_backend` and `nexusvtt_frontend` services:
-   - Click "Update the service"
-   - Enable "Pull latest image"
-   - Click "Update"
-3. Wait for services to restart
-
----
-
-### 5. Verify Deployment
-
-After deployment, test these:
-
-#### WebSocket Connection
-
-1. Go to https://app.nexusvtt.com
-2. Click "Start as Guest DM"
-3. Enter a name
-4. Click "Create Game"
-5. Should connect successfully (no "Failed to create room" error)
-
-#### Google OAuth
-
-1. Go to https://app.nexusvtt.com
-2. Click the Login button
-3. Click "Google"
-4. Should redirect to Google login
-5. After login, should redirect back to https://app.nexusvtt.com/dashboard
-
-#### Check Browser Console
-
-Open DevTools (F12) and look for:
-
-- ✅ `Connected to WebSocket in production mode`
-- ✅ No errors about "localhost"
-- ✅ No "connection refused" errors
-
----
-
-## What Changed (Technical Details)
-
-### Frontend Changes
-
-- **WebSocket**: Uses `wss://app.nexusvtt.com/ws` in production (relative path)
-- **Asset Manager**: Uses relative paths like `/manifest.json` in production
-- **Document Service**: Uses relative paths like `/api/documents` in production
-
-### Backend Changes
-
-- **Trust Proxy**: Express now trusts nginx X-Forwarded-\* headers
-- **Secure Cookies**: Work correctly behind HTTPS proxy
-- **OAuth Redirects**: Use relative path `/dashboard` in production
-- **Health Endpoints**: Return relative `/ws` path in production
-
-### Infrastructure
-
-- **nginx**: Proxies `/ws`, `/api`, `/auth` to `nexusvtt_backend:5000`
-- **All services on same domain**: No CORS issues, no absolute URLs needed
-
----
-
-## Troubleshooting
-
-### WebSocket connection fails
-
-- **Check**: Browser console shows what URL it's trying to connect to
-- **Expected**: `wss://app.nexusvtt.com/ws`
-- **Fix**: Make sure `NODE_ENV=production` is set in backend service
-
-### OAuth redirects to localhost
-
-- **Check**: Network tab in DevTools, look at the redirect URL
-- **Expected**: Should redirect to `/dashboard` or `https://app.nexusvtt.com/dashboard`
-- **Fix**: Make sure `NODE_ENV=production` is set in backend service
-
-### "Connection Refused" or 502 errors
-
-- **Check**: Make sure backend service is running and healthy
-- **Check**: nginx can reach `nexusvtt_backend:5000`
-- **Fix**: Check service logs in Portainer
-
-### Session/cookies not working
-
-- **Check**: Make sure `SESSION_SECRET` is set
-- **Check**: Make sure cookies are being set (DevTools → Application → Cookies)
-- **Fix**: Verify `trust proxy` is enabled (already in code)
-
-### Google OAuth fails with "redirect_uri_mismatch"
-
-- **Fix**: Add `https://app.nexusvtt.com/auth/google/callback` to Google OAuth Console
-- **Check**: Make sure `GOOGLE_CALLBACK_URL` environment variable is set in Portainer
-
-### Discord OAuth fails with "invalid oauth2 redirect_uri"
-
-- **Fix**: Add `https://app.nexusvtt.com/auth/discord/callback` to Discord Developer Portal (OAuth2 section)
-- **Check**: Make sure `DISCORD_CALLBACK_URL` environment variable is set in Portainer
-- **Check**: URL must match exactly (including https://)
-
-### OAuth redirects to dashboard but then back to lobby ("User not authenticated")
-
-- **Symptom**: Console shows `GET /auth/me 401 (Unauthorized)`
-- **Cause**: Session cookies not being forwarded by nginx proxy
-- **Fix**: nginx config already includes cookie forwarding headers (in latest version)
-- **Check**: Make sure you've deployed the latest frontend image with updated nginx.conf
-- **Check**: In browser DevTools → Application → Cookies, verify `connect.sid` cookie is set for app.nexusvtt.com
-
-### Guest DM creation fails with "Failed to create session"
-
-- **Symptom**: WebSocket connects but server returns "Failed to create session" error
-- **Symptom**: PostgreSQL logs show foreign key constraint violation on `campaigns.dmId`
-- **Symptom**: Backend logs show "Anonymous as Guest" instead of "Guest as [Name]"
-- **Root cause**: Browser not sending session cookies because fetch API calls missing `credentials: 'include'`
-- **Fix**: Latest frontend code includes `credentials: 'include'` in all fetch calls (deploy latest frontend image)
-- **Secondary requirement**: nginx.conf must include WebSocket cookie forwarding (deploy latest frontend image)
-- **Alternative cause**: Database connection failing - check service name in DATABASE_URL
-  ```
-  DATABASE_URL=postgresql://nexus:YOUR_PASSWORD@postgres:5432/nexus
-  ```
-- **Check**: Backend service logs for specific database errors
-- **Check**: PostgreSQL service logs for foreign key violations
-- **Check**: PostgreSQL service is running and healthy
-- **Check**: Browser DevTools → Network → POST /api/guest-users → Response Headers should show `Set-Cookie: connect.sid=...`
-- **Check**: Browser DevTools → Network → WebSocket handshake → Request Headers should show `Cookie: connect.sid=...`
-
----
-
-## Environment Variable Reference
-
-See `.env.production.template` for full reference with comments.
-
-### Minimal Production Config
-
-```bash
-NODE_ENV=production
-PORT=5000
-DATABASE_URL=postgresql://nexus:password@nexusvtt_postgres:5432/nexus
-
-# OAuth Callback URLs (REQUIRED - absolute URLs for OAuth providers)
-GOOGLE_CALLBACK_URL=https://app.nexusvtt.com/auth/google/callback
-DISCORD_CALLBACK_URL=https://app.nexusvtt.com/auth/discord/callback
-
-# OAuth Credentials
-GOOGLE_CLIENT_ID=your-client-id
-GOOGLE_CLIENT_SECRET=your-client-secret
-DISCORD_CLIENT_ID=your-discord-client-id
-DISCORD_CLIENT_SECRET=your-discord-client-secret
-
-# Security
-SESSION_SECRET=generate-32-char-random-string
-JWT_SECRET=generate-32-char-random-string
-```
-
-**Note:** While most of the app uses relative URLs when behind nginx, OAuth providers (Google, Discord) **require absolute callback URLs** for security. Make sure these match exactly what you configured in the OAuth provider consoles.
+- Google Cloud: `docs/GCP_DEPLOYMENT_GUIDE.md`
+- AWS: planned
+- Azure: planned
