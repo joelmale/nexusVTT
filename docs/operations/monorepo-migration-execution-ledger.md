@@ -302,8 +302,8 @@ Application/build engineer follow-on (GPT-5.6 Terra, medium):
   commits and is not shallow.
 - Imported Forge history without squashing at `apps/forge` on the migration
   branch. Source tip `c6b13a9` is an ancestor and the imported tree matches the
-  source tree exactly. The merge commit is being amended only to correct its
-  accidental “rehearse” label.
+  source tree exactly. Merge commit `6e5f270` has the corrected
+  `chore(migration): import Forge history` label.
 
 ## Files created, moved, or modified
 
@@ -348,6 +348,12 @@ Application/build engineer follow-on (GPT-5.6 Terra, medium):
 - Migration commit `78f68e8` (`chore(generator): normalize bridge scripts`)
   removed those whitespace-only lines and recorded the first commit evidence;
   its staged diff passed `git diff --check`.
+- Phase 0 gate commit `2a99be7` (`docs(migration): close baseline recovery
+  gate`) recorded recovery, source-baseline, and generator lint remediation
+  evidence.
+- Forge no-squash import merge `6e5f270` has parents `2a99be7` and exact source
+  tip `c6b13a9`; `git merge-base --is-ancestor` passed and the subtree tree ID
+  matches the Forge source-tip tree.
 - Read-only Dockhand calls captured the live Compose template, container/image
   identities, mount destinations, restart policies, health checks, network,
   environment-variable names, and Git-registration state. Secret values were
