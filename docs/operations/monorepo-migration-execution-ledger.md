@@ -18,10 +18,11 @@ retirement, or destructive cleanup unless the user gives explicit approval.
 - Gate state: Phase 0 passed. Repository and live topology baselines, protected
   recovery artifacts, isolated restore evidence, source baselines, and the
   full-history secret scan are complete. The disposable no-squash import
-  rehearsal passed. Forge history is imported; Codex and the VTT move remain.
-- Exact next action: correct the Forge import commit label, checkpoint the
-  rehearsal/deviation evidence, then import complete Codex history without
-  tags and verify both imported tips and trees before the serial VTT move.
+  rehearsal passed. Forge and complete Codex histories are imported and
+  verified; the VTT top-level move remains.
+- Exact next action: checkpoint both imported histories and namespaced Forge
+  tags, then perform the serial VTT mechanical move into `apps/vtt` while
+  leaving root governance, workflows, documentation, and monitoring in place.
 
 ## Destination
 
@@ -170,6 +171,10 @@ and Codex were clean at baseline.
    `forge/` namespace and the four accidental unnamespaced aliases will be
    removed only after equivalent namespaced refs exist and exact targets are
    recorded. Real application history fetches now use `--no-tags`.
+8. All six Forge tags are now preserved as exact lightweight refs under
+   `forge/`. The four accidentally added non-colliding unnamespaced aliases were
+   removed with old-object safety checks after their namespaced targets matched.
+   Destination-owned `latest` and `v1.5` remain unchanged. Codex has no tags.
 
 ## Ownership and delegation wave 1
 
@@ -304,6 +309,10 @@ Application/build engineer follow-on (GPT-5.6 Terra, medium):
   branch. Source tip `c6b13a9` is an ancestor and the imported tree matches the
   source tree exactly. Merge commit `6e5f270` has the corrected
   `chore(migration): import Forge history` label.
+- Imported complete Codex history without squashing at `apps/codex`. Source tip
+  `4c583c2` is the second parent and an ancestor of merge commit `1dd2e64`; the
+  imported and source tree IDs both equal `21b1523`. The combined repository
+  has 937 reachable commits and is not shallow.
 
 ## Files created, moved, or modified
 
@@ -312,6 +321,8 @@ Application/build engineer follow-on (GPT-5.6 Terra, medium):
 - Modified `apps/generator-hub/src/App.tsx`.
 - Relocated the cave, city, and dwellings generator trees from root `public/`
   into `apps/generator-hub/public/`, including three new bridge scripts.
+- Created `apps/forge` and `apps/codex` through no-squash subtree merges that
+  retain their source histories.
 - Created the execution ledger.
 
 ## Commands and important outcomes
@@ -354,6 +365,12 @@ Application/build engineer follow-on (GPT-5.6 Terra, medium):
 - Forge no-squash import merge `6e5f270` has parents `2a99be7` and exact source
   tip `c6b13a9`; `git merge-base --is-ancestor` passed and the subtree tree ID
   matches the Forge source-tip tree.
+- Ledger checkpoint `f16630e` recorded the verified Forge import before the
+  Codex operation. Codex no-squash import merge `1dd2e64` has second parent and
+  exact source tip `4c583c2`; ancestry and subtree/source tree equality passed.
+- `git update-ref` created exact `forge/*` aliases for all six Forge tags. Four
+  accidental unnamespaced aliases were removed only after exact-target checks;
+  destination `latest` and `v1.5` remain at their original objects.
 - Read-only Dockhand calls captured the live Compose template, container/image
   identities, mount destinations, restart policies, health checks, network,
   environment-variable names, and Git-registration state. Secret values were
