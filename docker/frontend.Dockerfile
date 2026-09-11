@@ -1,7 +1,7 @@
 # Multi-stage Dockerfile for Nexus VTT Frontend
 
 # Stage 1: Development
-FROM node:26.5.0-alpine AS development
+FROM node:26.8-alpine AS development
 
 WORKDIR /app
 
@@ -26,7 +26,7 @@ CMD ["npm", "run", "dev", "--", "--host", "0.0.0.0"]
 
 
 # Stage 2: Builder
-FROM node:26.5.0-alpine AS builder
+FROM node:26.8-alpine AS builder
 
 WORKDIR /app
 
