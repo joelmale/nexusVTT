@@ -124,7 +124,7 @@
     "@eslint/config-array": "^0.23.5",
     "@eslint/js": "^10.0.1",
     "@originjs/vite-plugin-federation": "^1.4.1",
-    "@playwright/test": "^1.61.1",
+    "@playwright/test": "^1.63.0",
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/jest-dom": "^6.9.1",
