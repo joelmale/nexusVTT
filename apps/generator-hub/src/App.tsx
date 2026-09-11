@@ -1,5 +1,20 @@
 import { useEffect, useRef, useState } from 'react';
-import type { GeneratorHostMessage } from '../../../shared/generator/protocol';
+import type {
+  GeneratorExportArtifact,
+  GeneratorHostMessage,
+} from '../../../shared/generator/protocol';
+
+function isGeneratorSource(
+  value: string | null,
+): value is GeneratorExportArtifact['source'] {
+  return (
+    value === 'dungeon' ||
+    value === 'world' ||
+    value === 'cave' ||
+    value === 'city' ||
+    value === 'dwelling'
+  );
+}
 
 async function rasterizeSvgToWebp(svgText: string): Promise<Blob> {
   return new Promise((resolve, reject) => {
@@ -40,7 +55,10 @@ function App() {
 
   // Determine which generator to load based on URL params
   const urlParams = new URLSearchParams(window.location.search);
-  const generator = urlParams.get('generator') || 'dungeon';
+  const requestedGenerator = urlParams.get('generator');
+  const generator = isGeneratorSource(requestedGenerator)
+    ? requestedGenerator
+    : 'dungeon';
   const forceRasterize = urlParams.get('rasterize') === 'true';
   
   let iframeSrc = '';
@@ -138,7 +156,7 @@ function App() {
             protocolVersion: '1.0',
             exportId: Math.random().toString(36).slice(2),
             importId: Math.random().toString(36).slice(2),
-            source: generator as any,
+            source: generator,
             generatorVersion: '1.0',
             byteLength: finalBlob.size,
             grid: {
@@ -156,7 +174,7 @@ function App() {
 
     window.addEventListener('message', handleMessage);
     return () => window.removeEventListener('message', handleMessage);
-  }, [forceRasterize]);
+  }, [forceRasterize, generator]);
 
   return (
     <div style={{ width: '100%', height: '100vh', margin: 0, padding: 0, overflow: 'hidden' }}>

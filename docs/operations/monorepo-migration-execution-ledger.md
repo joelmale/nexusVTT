@@ -14,12 +14,13 @@ retirement, or destructive cleanup unless the user gives explicit approval.
 
 ## Current phase and gate
 
-- Phase: 0 — baseline and recovery evidence.
-- Gate state: in progress; repository access and local working-tree baseline
-  captured. Live deployment/recovery evidence and baseline validations remain.
-- Exact next action: commit the recovered generator-hub work, then capture
-  read-only Dockhand topology/recovery evidence while rehearsing serial history
-  imports in a disposable clone.
+- Phase: 1 — source and history migration.
+- Gate state: Phase 0 passed. Repository and live topology baselines, protected
+  recovery artifacts, isolated restore evidence, source baselines, and the
+  full-history secret scan are complete. Phase 1 has not yet modified history.
+- Exact next action: rehearse the no-squash Forge and Codex subtree imports in a
+  disposable clone, verify source-tip ancestry and path layout, then perform
+  the serial VTT move and real imports on the migration branch.
 
 ## Destination
 
@@ -43,7 +44,7 @@ retirement, or destructive cleanup unless the user gives explicit approval.
 
 The plan's VTT SHA `a0d25e3` is stale. The execution baseline uses current
 local and remote `master`, `c8b3fc9`. Forge and Codex match the inspected plan
-SHAs. Remote heads for Forge and Codex still require an execution-time check.
+SHAs, and both remote heads were reverified at the same SHAs.
 
 ## Working-tree state and preservation obligations
 
@@ -65,8 +66,48 @@ and Codex were clean at baseline.
 - Destination has no submodules and `git lfs ls-files` returned no entries.
 - Destination tags observed before migration: `latest`, `v1.5`.
 - Source repositories remain intact and will not be force-pushed or removed.
-- Production state has not been modified. Backup/restore and exact image digest
-  evidence are pending and are required before the Phase 0 gate can pass.
+- Production application state has not been modified. A protected recovery set
+  was created on the NAS at
+  `/mnt/docker-nas-vol1/nexusvtt/backups/monorepo-migration-20260911T101357Z`
+  with directory mode 0700 and file mode 0600. It contains custom-format VTT
+  and Codex database dumps, VTT asset and Redis archives, all four Codex named
+  volume archives, an online-consistent Dockhand SQLite backup and encryption
+  key, the live Compose/environment files, and `SHA256SUMS`. All remote hashes
+  passed verification.
+- Archive validation found 131,388 VTT asset entries, 1,662 Codex persistent
+  volume entries, six VTT Redis archive entries, 77 VTT dump TOC entries, and
+  113 Codex dump TOC entries. Dockhand SQLite integrity was `ok`.
+- The recovery set was copied to the protected local directory
+  `C:/Users/nelso/.codex/recovery/nexus-monorepo-20260911T101357Z/source`.
+  The interrupted 2.8 GiB asset transfer was resumed with SFTP; its local
+  SHA-256 matches the recovery manifest.
+- Isolated database restore rehearsal succeeded for Codex on PostgreSQL 16
+  (12 public tables) and VTT on PostgreSQL 17 (nine public tables). VTT required
+  PostgreSQL 17 because its custom dump has archive version 1.16, which the
+  initially attempted PostgreSQL 16 `pg_restore` cannot read. The failed empty
+  PostgreSQL 16 VTT restore container was retained as evidence. VTT restored
+  representative counts include 169 room events, ten sessions, five campaigns,
+  and nine users.
+- The Codex MinIO, Redis, Elasticsearch, and physical PostgreSQL archives and
+  the VTT Redis archive were extracted into uniquely named local Docker volumes;
+  entry counts were 80, six, 189, 1,386, and five respectively. The physical
+  PostgreSQL volume is retained only as archive-extraction evidence; the
+  database-consistent logical dump is the approved database restore path.
+- Dockhand restore rehearsal copied the database and key into a separate
+  protected directory. Source/restored hashes match, SQLite integrity is `ok`,
+  and 36 tables were detected. It was not started against the live Dockhand
+  installation.
+- The VTT asset archive was extracted into isolated volume
+  `nexus-migration-restore-vtt-assets-20260911`. It contains all four expected
+  roots (`assets`, `user-assets`, `library-assets`, and `tmt-seed`), 131,388
+  entries, and 96,848 regular files.
+- Gitleaks 8.30.1 scanned all source history with output redaction enabled. VTT
+  passed with 557 commits and no findings. Forge scanned 259 commits and raised
+  two false positives: ordinary D&D class-description strings assigned to a
+  `keyRole` property. Codex scanned its single commit and raised four documented
+  placeholder examples for access/refresh/bearer/Portainer tokens. Context was
+  inspected with values redacted and all four Codex values contain explicit
+  placeholder markers. No credential-like finding requires history rewrite.
 - Read-only Dockhand inspection on environment `HomePod` (ID 1,
   `192.168.100.20`) found the live `nexus-vtt2` stack at
   `/opt/dockhand/stacks/HomePod/nexus-vtt2/compose.yaml` with 15 running
@@ -152,6 +193,69 @@ Application/build engineer (GPT-5.6 Terra, medium):
   tracked (`run-tests.sh`, `test-stack.sh`, `docker-compose.test.yml`), a
   verified pre-existing documentation drift.
 
+## Ownership and delegation wave 2
+
+Application/build engineer (GPT-5.6 Terra, medium):
+
+- Bounded ownership of baseline verification in the clean source checkout
+  `C:/Users/nelso/Documents/Coding/nexus-forge`.
+- May run `npm ci`, TypeScript, lint, Vitest once with coverage, and production
+  build. Generated ignored `node_modules`, coverage, and `dist` output are
+  allowed; tracked files, Git refs, Docker, deployment, and every other
+  repository remain untouched.
+- Acceptance: return exact command outcomes, distinguish existing failures,
+  and confirm final tracked working-tree state.
+- Completed; no tracked files changed. Agent closed after handoff.
+
+Inventory/mechanical worker (GPT-5.6 Luna, medium):
+
+- Read-only ownership of the isolated VTT checkout at
+  `C:/Users/nelso/Documents/Coding/nexusVTT-monorepo-migration`.
+- Produce an exhaustive deterministic root path classification for the
+  mechanical move into `apps/vtt`, identifying governance/docs/workflows that
+  stay at root, existing nested workspace paths, path/link/script/config
+  references requiring follow-up, and collision risks.
+- Must not edit, install, build, test, change Git refs, inspect production, or
+  decide architecture/data safety.
+- Completed; no files changed. Agent closed after handoff.
+
+Application/build engineer follow-on (GPT-5.6 Terra, medium):
+
+- Bounded baseline verification in
+  `C:/Users/nelso/Documents/Coding/NexusCodex/services` after the Forge worker
+  completed and released its slot.
+- May run service-local `npm ci`, explicit Prisma generation, existing
+  non-integration Jest suites, TypeScript/build scripts, and UI production
+  builds. Ignored `node_modules`, generated clients, coverage, and `dist`
+  output are allowed; tracked files, Docker/shared infrastructure, Git refs,
+  docs package, production, and every other checkout remain untouched.
+- Acceptance: evidence for all five shipped packages, Prisma generation in all
+  owning services, exact baseline failures, and final tracked-tree status.
+- Completed; no tracked files changed. Agent closed after handoff.
+
+### Integrated VTT mechanical inventory
+
+- Current tree has 1,045 tracked files and 50 root entries. Existing nested
+  apps are `apps/generator-hub` (151 tracked files) and
+  `services/asset-service` (nine tracked files); target `apps/vtt` paths are
+  absent, so no destination collision exists.
+- Keep root governance and shared operations: `.claude`, editor/Git/Prettier
+  configuration, `.github`, `.husky`, `AGENTS.md`, `CLAUDE.md`, root project
+  documentation/licenses, `dev-docs`, `docs`, `monitoring`, and `Makefile`.
+- Move VTT source/config/runtime content under `apps/vtt`, including nested
+  generator-hub/asset-service, VTT Docker files, source, server, shared, public,
+  static assets, scripts, tools, patches, tests, entry/config files, and VTT
+  package manifests.
+- Lead decision for inventory's four ambiguous entries: move `.dockerignore`,
+  `.env.example`, `package.json`, and `package-lock.json` into `apps/vtt`.
+  Reason: they define the preserved VTT install/build boundary. Create a new
+  dependency-free root orchestration `package.json` separately; do not create a
+  root lockfile until workspace consolidation passes.
+- Follow-up hazards recorded for the path-repair commit: four active root
+  workflows, four image publish paths, Docker contexts, observability's root
+  `monitoring` reference, root scripts/config/docs, the generator-hub shared
+  type import, and asset-service output paths.
+
 ## Completed work
 
 - Read all three root `AGENTS.md` files and the complete migration plan.
@@ -221,7 +325,41 @@ Application/build engineer (GPT-5.6 Terra, medium):
 - Generator-hub `npm run build`: passed (16 modules; Vite build in 3.96s).
 - Targeted `npm exec oxlint -- src/App.tsx`: exit 0 with one hook dependency
   warning at `src/App.tsx:141`.
-- Full application baseline validations remain pending.
+- Forge baseline `npm ci`: passed (472 packages). `npm run lint`: passed.
+  `npm test -- --run --coverage`: passed, 31 files and 410 tests with 66.38%
+  statements. `npm run build`: passed. `npx tsc --noEmit`: failed at
+  `src/components/SpellbookManager/SpellbookManager.tsx:312` because
+  `favoriteSlugs` is missing from a value typed as `SpellFilterState`.
+  Source checkout remained free of tracked changes.
+- Codex baseline: all five service-local `npm ci` commands passed. Prisma
+  generation passed for doc-api and doc-processor but failed for doc-websocket
+  because its tracked `prisma/schema.prisma` contains a path string rather than
+  valid Prisma syntax. Doc-api Jest passed (one suite/two tests), but its build
+  failed on missing service methods, an unused variable, and an invalid health
+  status type. Doc-processor build and Prisma passed; tests had six passing and
+  four failing suites due extraction expectation drift, Jest ESM transforms,
+  and integration-like OCR environment requirements. Doc-websocket build
+  passed and has no Jest tests. Both UI production builds passed and have no
+  Jest suites. No tracked source changed.
+- Live public `/health`, `/api/system/health`, and
+  `/api/metrics/multiplayer` returned HTTP 200 on 2026-09-11. Realtime was
+  connected with zero connections, three successful state commits, no commit
+  failures/conflicts/resyncs, queue depth zero, and commit p95 25 ms. Overall
+  multiplayer SLO was noncompliant only because heap utilization was ~0.943,
+  above the configured 0.9 threshold.
+- Live backend `/metrics` returned 200 without authorization because
+  `METRICS_AUTH_TOKEN` is unset. The frontend does not proxy `/metrics` and
+  public `/metrics` serves the SPA, but the backend endpoint is accessible to
+  every container on shared `homelab-net`. This is a pre-existing protection
+  gap to resolve in the cutover configuration.
+- Full VTT baseline validation completed. `npm run type-check`, dice-asset
+  verification, unit tests (72 files passed, one skipped; 596 tests passed,
+  24 skipped), asset-service tests (29 passed), integration tests (two passed,
+  17 skipped), and `npm run build:all` passed. The baseline cycle check failed
+  on the pre-existing `characterSyncService -> initiativeStore ->
+  characterStore -> gameStore` cycle. Full lint found only two issues in the
+  integrated dirty generator App; the migration branch fix passes targeted
+  ESLint, generator type-check, and the rerun full repository lint gate.
 
 ## Failure classification
 
@@ -229,7 +367,20 @@ Application/build engineer (GPT-5.6 Terra, medium):
   standalone install and failed in root postinstall; use the root VTT install
   boundary. Codex docs lacks a lockfile; documented Codex root test runners are
   absent. Forge README's example maps port 8080 to container port 80 although
-  its image listens on 8080.
+  its image listens on 8080. Forge also has a pre-existing TypeScript failure
+  for missing `SpellFilterState.favoriteSlugs`; its lint, 410-test coverage
+  suite, and production build pass. Forge install reported 23 dependency audit
+  vulnerabilities (seven moderate, 16 high), plus stale Browserslist,
+  cross-chunk circular export, and large-chunk build warnings.
+- Codex pre-existing failures: doc-api TypeScript build errors; doc-processor
+  four failing Jest suites; invalid doc-websocket Prisma schema proxy; no
+  WebSocket/UI tests. These failures are source-baseline, not migration
+  regressions, but must be repaired or explicitly dispositioned before the
+  production gate.
+- Live pre-existing operational failures: multiplayer heap-utilization SLO is
+  currently failing; backend Prometheus metrics are not token-protected on the
+  shared Docker network; `/api/system/health` returns no explicit database
+  readiness field despite the current runbook's stated expectation.
 - Migration-introduced failures: none; source migration has not begun.
 
 ## Review findings and disposition
@@ -246,33 +397,20 @@ No independent review has run yet.
 
 ## Pending difficult-to-reverse or long-running operation
 
-Before Phase 0 history work, create a protected recovery set on the existing
-NAS backup target without stopping or mutating application data:
-
-- database-consistent custom-format `pg_dump` files for VTT and Codex;
-- read-only archives of VTT asset directories plus Codex MinIO and persistent
-  Redis/job data after an explicit Redis persistence flush;
-- search recovery evidence (archive or verified rebuild procedure);
-- an online-consistent Dockhand SQLite backup together with its
-  `.encryption_key`, live Compose, and environment files;
-- SHA-256 manifest, restrictive permissions, and an isolated restore rehearsal.
-
-Remote shell access as `joel@192.168.100.20` was verified. The NAS has roughly
-8.0 TB free. Direct host reads of database/volume paths are permission-limited,
-so backup commands will use the owning containers or read-only helper
-containers and will not print secret values. No service stop, deploy, schema
-operation, or production restore is authorized.
+Before the real history import, a disposable-clone rehearsal will exercise the
+exact no-squash subtree commands and verify ancestry and resulting paths. The
+real imports and VTT top-level move remain serial lead-owned operations. No
+migration-era backup or restore resource will be deleted without the later
+explicit cleanup approval.
 
 ## Remaining work in priority order
 
-1. Complete source inventories and remote-head/history recovery evidence.
-2. Capture sanitized read-only live Dockhand topology and exact image digests.
-3. Identify existing backup artifacts/procedures and perform isolated restore
-   rehearsal without production writes.
-4. Run baseline application checks with shared infrastructure coordinated.
-5. Rehearse history imports, then perform serial mechanical moves/imports.
-6. Restore builds and CI, rehearse isolated deployment, review, and prepare the
-   cutover package.
+1. Rehearse history imports in a disposable clone.
+2. Perform the serial VTT move and Forge/Codex history imports with migration
+   commits and post-import ancestry checks.
+3. Restore build/CI paths while preserving application-local lockfiles.
+4. Rehearse the isolated deployment, complete independent review, resolve
+   findings, and prepare the production cutover package.
 
 ## Ready-to-use resumption prompt
 
