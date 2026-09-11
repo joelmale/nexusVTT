@@ -67,6 +67,26 @@ and Codex were clean at baseline.
 - Source repositories remain intact and will not be force-pushed or removed.
 - Production state has not been modified. Backup/restore and exact image digest
   evidence are pending and are required before the Phase 0 gate can pass.
+- Read-only Dockhand inspection on environment `HomePod` (ID 1,
+  `192.168.100.20`) found the live `nexus-vtt2` stack at
+  `/opt/dockhand/stacks/HomePod/nexus-vtt2/compose.yaml` with 15 running
+  containers. VTT frontend, backend, PostgreSQL, Redis, and Forge currently
+  have Docker restart policy `no`; asset-server uses `unless-stopped`; Codex
+  services use `on-failure`.
+- The exact live VTT NAS binds remain
+  `/mnt/docker-nas-vol1/nexusvtt/{postgres,redis,assets,user-assets,library-assets,tmt-seed}`.
+  Codex uses named volumes `nexus-vtt2-codex-postgres-data`,
+  `nexus-vtt2-codex-redis-data`, `nexus-vtt2-codex-elasticsearch-data`, and
+  `nexus-vtt2-codex-minio-data`. Every service is attached to external
+  `homelab-net`.
+- Live `doc-api` command still performs `prisma generate`, then
+  `prisma db push --skip-generate`, then starts via `tsx`. No production schema
+  action is permitted during this migration without separate reconciliation
+  and approval.
+- Dockhand's saved `nexusVTT` repository entry still targets branch `main` and
+  `compose.yaml`, is unattached to an environment, and is not linked as a Git
+  stack. The live local Compose stack is therefore unaffected by repository
+  pushes at baseline.
 
 ## Decisions, assumptions, and deviations
 
@@ -187,6 +207,13 @@ Application/build engineer (GPT-5.6 Terra, medium):
   explicitly instead. The pre-commit `git diff --check` exposed whitespace-only
   lines in the three new bridge scripts; they were immediately removed in the
   working tree for the next corrective commit.
+- Migration commit `78f68e8` (`chore(generator): normalize bridge scripts`)
+  removed those whitespace-only lines and recorded the first commit evidence;
+  its staged diff passed `git diff --check`.
+- Read-only Dockhand calls captured the live Compose template, container/image
+  identities, mount destinations, restart policies, health checks, network,
+  environment-variable names, and Git-registration state. Secret values were
+  not written to the repository or ledger.
 
 ## Tests and validation
 
@@ -216,6 +243,25 @@ No independent review has run yet.
   authorized.
 - Phase 0 cannot pass until live topology, backup, restore, and baseline test
   evidence are captured or an exact external blocker is documented.
+
+## Pending difficult-to-reverse or long-running operation
+
+Before Phase 0 history work, create a protected recovery set on the existing
+NAS backup target without stopping or mutating application data:
+
+- database-consistent custom-format `pg_dump` files for VTT and Codex;
+- read-only archives of VTT asset directories plus Codex MinIO and persistent
+  Redis/job data after an explicit Redis persistence flush;
+- search recovery evidence (archive or verified rebuild procedure);
+- an online-consistent Dockhand SQLite backup together with its
+  `.encryption_key`, live Compose, and environment files;
+- SHA-256 manifest, restrictive permissions, and an isolated restore rehearsal.
+
+Remote shell access as `joel@192.168.100.20` was verified. The NAS has roughly
+8.0 TB free. Direct host reads of database/volume paths are permission-limited,
+so backup commands will use the owning containers or read-only helper
+containers and will not print secret values. No service stop, deploy, schema
+operation, or production restore is authorized.
 
 ## Remaining work in priority order
 
