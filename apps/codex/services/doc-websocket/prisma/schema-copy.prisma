@@ -1,0 +1,183 @@
+// Prisma schema for Nexus VTT Document Library
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum DocumentType {
+  rulebook
+  campaign_note
+  handout
+  map
+  character_sheet
+  homebrew
+}
+
+enum DocumentFormat {
+  pdf
+  markdown
+  html
+}
+
+enum OcrStatus {
+  pending
+  processing
+  completed
+  failed
+  not_required
+}
+
+enum AnnotationType {
+  highlight
+  note
+  drawing
+}
+
+enum StructuredDataType {
+  spell
+  item
+  monster
+  feat
+  class_feature
+  other
+}
+
+model Document {
+  id          String   @id @default(uuid())
+  title       String
+  description String   @default("")
+  type        DocumentType
+  format      DocumentFormat
+
+  // Storage
+  storageKey    String
+  fileSize      Int
+  pageCount     Int      @default(0)
+  thumbnailKey  String?
+
+  // Metadata
+  author        String   @default("")
+  uploadedBy    String   // User ID from VTT
+  uploadedAt    DateTime @default(now())
+  lastModified  DateTime @updatedAt
+
+  // Organization
+  tags          String[]
+  collections   String[]
+  campaigns     String[]
+
+  // Search & Processing
+  searchIndex   String?  // ElasticSearch document ID
+  ocrStatus     OcrStatus @default(not_required)
+
+  // Access
+  isPublic      Boolean  @default(false)
+  metadata      Json     @default("{}")
+
+  // Relations
+  references      DocumentReference[]
+  annotations     DocumentAnnotation[]
+  structuredData  StructuredData[]
+
+  @@index([uploadedBy])
+  @@index([type])
+  @@index([campaigns])
+  @@index([tags])
+  @@map("documents")
+}
+
+model DocumentReference {
+  id            String    @id @default(uuid())
+  documentId    String
+  userId        String
+  campaignId    String?
+
+  // Location within document
+  pageNumber    Int?
+  section       String?
+  textSelection Json?     // {start, end, text}
+
+  // Reference metadata
+  title         String
+  notes         String?
+  tags          String[]
+  color         String?
+  isShared      Boolean   @default(false)
+
+  createdAt     DateTime  @default(now())
+  lastAccessed  DateTime?
+
+  // Relations
+  document      Document  @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  annotations   DocumentAnnotation[]
+
+  @@index([documentId])
+  @@index([userId])
+  @@index([campaignId])
+  @@map("document_references")
+}
+
+model DocumentAnnotation {
+  id            String          @id @default(uuid())
+  documentId    String
+  referenceId   String?
+  userId        String
+  campaignId    String?
+
+  // Location on page
+  pageNumber    Int
+  position      Json            // {x, y, width?, height?}
+
+  // Annotation details
+  type          AnnotationType
+  content       String          // Note text or drawing data
+  color         String          @default("#FFFF00")
+
+  isShared      Boolean         @default(false)
+  createdAt     DateTime        @default(now())
+  modifiedAt    DateTime        @updatedAt
+
+  // Relations
+  document      Document               @relation(fields: [documentId], references: [id], onDelete: Cascade)
+  reference     DocumentReference?     @relation(fields: [referenceId], references: [id], onDelete: SetNull)
+
+  @@index([documentId])
+  @@index([userId])
+  @@index([campaignId])
+  @@index([pageNumber])
+  @@map("document_annotations")
+}
+
+model StructuredData {
+  id            String              @id @default(uuid())
+  documentId    String
+  type          StructuredDataType
+
+  // Location in document
+  pageNumber    Int?
+  section       String?
+
+  // Structured content (JSON)
+  name          String              // Spell name, item name, monster name, etc.
+  data          Json                // Full structured data (level, school, components, etc.)
+  searchText    String              // Flattened text for search
+
+  // ElasticSearch
+  searchIndex   String?             // ElasticSearch document ID
+
+  createdAt     DateTime            @default(now())
+  updatedAt     DateTime            @updatedAt
+
+  // Relations
+  document      Document            @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([documentId])
+  @@index([type])
+  @@index([name])
+  @@map("structured_data")
+}

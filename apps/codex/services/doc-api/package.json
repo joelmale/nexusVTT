@@ -1,0 +1,70 @@
+{
+  "name": "nexus-codex-doc-api",
+  "version": "1.0.0",
+  "description": "Nexus VTT Document Library API Service",
+  "main": "dist/server.js",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:migrate": "prisma migrate dev",
+    "prisma:studio": "prisma studio",
+    "prisma:push": "prisma db push",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:integration": "jest --testMatch='**/*.integration.test.ts'",
+    "db:create-admin": "tsx src/scripts/create-admin.ts",
+    "import:5e-srd": "tsx src/scripts/import-5e-srd.ts",
+    "import:5e-srd:dry-run": "tsx src/scripts/import-5e-srd.ts --dry-run",
+    "import:5e-srd:spells": "tsx src/scripts/import-5e-srd.ts --types spells",
+    "import:5e-srd:monsters": "tsx src/scripts/import-5e-srd.ts --types monsters",
+    "import:5e-srd:help": "tsx src/scripts/import-5e-srd.ts --help"
+  },
+  "keywords": [
+    "nexus",
+    "vtt",
+    "document",
+    "library"
+  ],
+  "author": "Nexus VTT",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.477.0",
+    "@aws-sdk/s3-request-presigner": "^3.477.0",
+    "@elastic/elasticsearch": "^8.11.0",
+    "@fastify/cors": "^8.4.2",
+    "@fastify/jwt": "^7.2.4",
+    "@fastify/multipart": "^8.0.0",
+    "@prisma/client": "^5.7.1",
+    "@types/prompts": "^2.4.9",
+    "bcryptjs": "^2.4.3",
+    "bullmq": "^4.17.0",
+    "dotenv": "^16.3.1",
+    "fastify": "^4.25.2",
+    "fastify-zod": "^1.4.0",
+    "file-type": "^18.7.0",
+    "ioredis": "^5.3.2",
+    "jsonwebtoken": "^9.0.2",
+    "prompts": "^2.4.2",
+    "sharp": "^0.33.3",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/jest": "^29.5.11",
+    "@types/jsonwebtoken": "^9.0.5",
+    "@types/node": "^20.10.6",
+    "@types/sharp": "^0.31.0",
+    "jest": "^29.7.0",
+    "prisma": "^5.7.1",
+    "ts-jest": "^29.1.1",
+    "tsx": "^4.20.6",
+    "typescript": "^5.3.3"
+  }
+}

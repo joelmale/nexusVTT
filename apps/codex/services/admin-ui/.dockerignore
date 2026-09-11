@@ -1,0 +1,14 @@
+# Ignore node_modules from the host
+node_modules
+
+# Ignore build output from the host
+dist
+build
+
+# Ignore Git-related files
+.git
+.gitignore
+
+# Ignore IDE and OS specific files
+.vscode
+.DS_Store
