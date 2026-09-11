@@ -1,0 +1,2020 @@
+{
+  "bard": {
+    "lore": {
+      "name": "College of Lore",
+      "description": "Bards of the College of Lore know something about most things, collecting bits of knowledge from sources as diverse as scholarly tomes and peasant tales.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Bonus Proficiencies",
+          "description": "You gain proficiency with three skills of your choice."
+        },
+        {
+          "level": 3,
+          "name": "Cutting Words",
+          "description": "When a creature you can see within 60 feet makes an attack roll, ability check, or damage roll, you can use your reaction to expend one Bardic Inspiration die and subtract it from their roll."
+        },
+        {
+          "level": 6,
+          "name": "Additional Magical Secrets",
+          "description": "Learn two spells of your choice from any class. These count as bard spells but don't count against your spells known."
+        },
+        {
+          "level": 14,
+          "name": "Peerless Skill",
+          "description": "When you make an ability check, you can expend one use of Bardic Inspiration to add the die to your roll (after rolling but before knowing success/failure)."
+        }
+      ]
+    },
+    "valor": {
+      "name": "College of Valor",
+      "description": "A battle bard who fights in the thick of combat while empowering allies with inspiration that boosts offense and defense.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Bonus Proficiencies",
+          "description": "Gain combat-ready proficiencies (armor/shields/weapons) to support frontline play."
+        },
+        {
+          "level": 3,
+          "name": "Combat Inspiration",
+          "description": "Allies can use your inspiration for weapon damage or to improve defenses against an attack."
+        },
+        {
+          "level": 6,
+          "name": "Extra Attack",
+          "description": "You can attack twice when you take the Attack action."
+        },
+        {
+          "level": 14,
+          "name": "Battle Magic",
+          "description": "After casting a bard spell, you can make a weapon attack as a bonus action (action-economy spike)."
+        }
+      ]
+    },
+    "glamour": {
+      "name": "College of Glamour",
+      "description": "The College of Glamour is the home of bards who mastered their craft in the vibrant realm of the Feywild or under the tutelage of someone who dwelled there.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Mantle of Inspiration",
+          "description": "As a bonus action, expend one Bardic Inspiration to grant up to 5 creatures temporary HP and let them use their reaction to move up to their speed without provoking opportunity attacks."
+        },
+        {
+          "level": 3,
+          "name": "Enthralling Performance",
+          "description": "Perform for at least 1 minute to charm humanoids. Charmed targets idolize you and hinder those opposing you (Wisdom save to resist)."
+        },
+        {
+          "level": 6,
+          "name": "Mantle of Majesty",
+          "description": "As a bonus action, cast Command without a spell slot. You can do this each turn for 1 minute. Once used, can't use again until long rest."
+        },
+        {
+          "level": 14,
+          "name": "Unbreakable Majesty",
+          "description": "As a bonus action, assume a magically majestic presence for 1 minute. Creatures attacking you must make Charisma saves or choose a new target."
+        }
+      ]
+    },
+    "swords": {
+      "name": "College of Swords",
+      "description": "Bards of the College of Swords are called blades, entertaining through weapon prowess. They perform stunts such as sword swallowing, knife throwing, and juggling.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Bonus Proficiencies",
+          "description": "You gain proficiency with medium armor and scimitars. Using a weapon as your spellcasting focus for bard spells."
+        },
+        {
+          "level": 3,
+          "name": "Fighting Style",
+          "description": "Choose Dueling or Two-Weapon Fighting style."
+        },
+        {
+          "level": 3,
+          "name": "Blade Flourish",
+          "description": "When you take the Attack action, your walking speed increases by 10 feet and you can expend Bardic Inspiration for special flourishes: Defensive (+die to AC), Slashing (deal die damage to nearby creature), or Mobile (+die to damage, push target)."
+        },
+        {
+          "level": 6,
+          "name": "Extra Attack",
+          "description": "You can attack twice, instead of once, whenever you take the Attack action on your turn."
+        },
+        {
+          "level": 14,
+          "name": "Master's Flourish",
+          "description": "When you use a Blade Flourish, you can roll a d6 and use it instead of expending a Bardic Inspiration die."
+        }
+      ]
+    },
+    "whispers": {
+      "name": "College of Whispers",
+      "description": "Bards of the College of Whispers use their knowledge and magic to uncover secrets and turn them against others through extortion and threats.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Psychic Blades",
+          "description": "When you hit with a weapon attack, you can expend one Bardic Inspiration to deal extra psychic damage equal to a roll of that die."
+        },
+        {
+          "level": 3,
+          "name": "Words of Terror",
+          "description": "Speak privately with a humanoid for 1 minute to frighten them for 1 hour or until harmed. Target believes you know their darkest secret (Wisdom save to resist)."
+        },
+        {
+          "level": 6,
+          "name": "Mantle of Whispers",
+          "description": "When a humanoid dies within 30 feet, you can capture its shadow as a reaction. You can use the shadow to assume the dead creature's appearance and knowledge for 1 hour."
+        },
+        {
+          "level": 14,
+          "name": "Shadow Lore",
+          "description": "Weave magic to magically charm a creature. The charmed target obeys your commands for 8 hours (Wisdom save to resist)."
+        }
+      ]
+    },
+    "creation": {
+      "name": "College of Creation",
+      "description": "Bards of the College of Creation believe the cosmos is a work of art\u2014the creation of the first dragons and gods. That creative work included harmonies that continue to resound through existence today.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Mote of Potential",
+          "description": "When you give a creature a Bardic Inspiration die, you can utter notes from the Song of Creation to create a Mote of Potential, granting additional benefits when the die is used."
+        },
+        {
+          "level": 3,
+          "name": "Performance of Creation",
+          "description": "As an action, create one nonmagical item worth up to 20 times your bard level in gold (must fit in a 5-foot cube). Item disappears after a number of hours equal to your proficiency bonus."
+        },
+        {
+          "level": 6,
+          "name": "Animating Performance",
+          "description": "As an action, animate a Large or smaller nonmagical item, turning it into a Dancing Item creature under your control for 1 hour."
+        },
+        {
+          "level": 14,
+          "name": "Creative Crescendo",
+          "description": "When you use Performance of Creation, you can create more than one item and the maximum value increases. You can create multiple nonmagical items simultaneously."
+        }
+      ]
+    },
+    "eloquence": {
+      "name": "College of Eloquence",
+      "description": "A persuasion powerhouse and debuff specialist. Extremely consistent social checks and strong inspiration reliability.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Silver Tongue",
+          "description": "Greatly improves the floor of Persuasion/Deception checks (reliability for face play)."
+        },
+        {
+          "level": 3,
+          "name": "Unsettling Words",
+          "description": "Use inspiration offensively to reduce a target\u2019s saving throw, enabling control spells."
+        },
+        {
+          "level": 6,
+          "name": "Unfailing Inspiration",
+          "description": "Allies don\u2019t waste inspiration on failures; it remains available under specific conditions."
+        },
+        {
+          "level": 6,
+          "name": "Universal Speech",
+          "description": "Temporarily enable communication across language barriers (social/intrigue utility)."
+        },
+        {
+          "level": 14,
+          "name": "Infectious Inspiration",
+          "description": "When inspiration succeeds, you can spread it to additional allies efficiently."
+        }
+      ]
+    }
+  },
+  "wizard": {
+    "abjuration": {
+      "name": "School of Abjuration",
+      "description": "The School of Abjuration emphasizes magic that blocks, banishes, or protects. Detractors of this school say that its tradition is about denial, negation, and preventing things from happening. Abjurers, however, understand that protection is not a passive state, but an active and sometimes violent one.",
+      "features": [
+        {
+          "level": 2,
+          "name": "Abjuration Savant",
+          "description": "The gold and time you must spend to copy an abjuration spell into your spellbook is halved."
+        },
+        {
+          "level": 2,
+          "name": "Arcane Ward",
+          "description": "When you cast an abjuration spell of 1st level or higher, you can simultaneously use a strand of the spell's magic to create a magical ward on yourself that lasts until you finish a long rest. The ward has hit points equal to twice your wizard level + your Intelligence modifier. Whenever you take damage, the ward takes the damage instead. If this damage reduces the ward to 0 hit points, you take any remaining damage."
+        },
+        {
+          "level": 6,
+          "name": "Projected Ward",
+          "description": "When a creature that you can see within 30 feet of you takes damage, you can use your reaction to cause your Arcane Ward to absorb that damage. If this damage reduces the ward to 0 hit points, the warded creature takes any remaining damage."
+        },
+        {
+          "level": 10,
+          "name": "Improved Abjuration",
+          "description": "When you cast an abjuration spell that requires you to make an ability check as a part of casting the spell (as in counterspell and dispel magic), you add your proficiency bonus to that ability check."
+        },
+        {
+          "level": 14,
+          "name": "Spell Resistance",
+          "description": "You have advantage on saving throws against spells and other magical effects."
+        }
+      ]
+    },
+    "conjuration": {
+      "name": "School of Conjuration",
+      "description": "As a conjurer, you favor spells that produce objects and creatures out of thin air. You can pull weapons from the ether, summon creatures of all shapes and sizes, and even teleport yourself across vast distances or planes of existence.",
+      "features": [
+        {
+          "level": 2,
+          "name": "Conjuration Savant",
+          "description": "The gold and time you must spend to copy a conjuration spell into your spellbook is halved."
+        },
+        {
+          "level": 2,
+          "name": "Minor Conjuration",
+          "description": "You can use your action to conjure up an inanimate object in your hand or on the ground in an unoccupied space that you can see within 10 feet of you. This object can be no larger than 3 feet on a side and weigh no more than 10 pounds, and its form must be that of a nonmagical object that you have seen. The object is visibly magical, radiating dim light out to 5 feet."
+        },
+        {
+          "level": 6,
+          "name": "Benign Transposition",
+          "description": "You can use your action to teleport up to 30 feet to an unoccupied space that you can see. Alternatively, you can choose a space within range that is occupied by a Small or Medium creature. If that creature is willing, you both teleport, swapping places."
+        },
+        {
+          "level": 10,
+          "name": "Focused Conjuration",
+          "description": "While you are concentrating on a conjuration spell, your concentration can't be broken as a result of taking damage."
+        },
+        {
+          "level": 14,
+          "name": "Durable Summons",
+          "description": "Any creature that you summon or create with a conjuration spell has 30 temporary hit points."
+        }
+      ]
+    },
+    "divination": {
+      "name": "School of Divination",
+      "description": "The counsel of a diviner is sought by royalty and commoners alike, for all seek a clearer understanding of the past, present, and future. As a diviner, you strive to part the veils of space, time, and consciousness so that you can see clearly. You work to master spells of discernment, remote viewing, supernatural knowledge, and foresight.",
+      "features": [
+        {
+          "level": 2,
+          "name": "Divination Savant",
+          "description": "The gold and time you must spend to copy a divination spell into your spellbook is halved."
+        },
+        {
+          "level": 2,
+          "name": "Portent",
+          "description": "When you finish a long rest, roll two d20s and record the numbers rolled. You can replace any attack roll, saving throw, or ability check made by you or a creature that you can see with one of these foretelling rolls. You must choose to do so before the roll, and you can replace a roll in this way only once per turn."
+        },
+        {
+          "level": 6,
+          "name": "Expert Divination",
+          "description": "When you cast a divination spell of 2nd level or higher using a spell slot, you regain one expended spell slot. The slot you regain must be of a level lower than the spell you cast and can't be higher than 5th level."
+        },
+        {
+          "level": 10,
+          "name": "The Third Eye",
+          "description": "You can use your action to increase your powers of perception. When you do so, choose one of the following benefits, which lasts until you are incapacitated or you take a short or long rest. You can't use the feature again until you finish a rest."
+        },
+        {
+          "level": 14,
+          "name": "Greater Portent",
+          "description": "You roll three d20s for your Portent feature, rather than two."
+        }
+      ]
+    },
+    "enchantment": {
+      "name": "School of Enchantment",
+      "description": "As a member of the School of Enchantment, you have honed your ability to magically entrance and beguile other people and monsters. Some enchanters are peacemakers who bewitch the violent to lay down their arms and charm the cruel into showing mercy. Others are tyrants who magically bind the unwilling into their service. Most enchanters fall somewhere in between.",
+      "features": [
+        {
+          "level": 2,
+          "name": "Enchantment Savant",
+          "description": "The gold and time you must spend to copy an enchantment spell into your spellbook is halved."
+        },
+        {
+          "level": 2,
+          "name": "Hypnotic Gaze",
+          "description": "Your soft words and enchanting gaze can magically enthrall another creature. As an action, choose one creature that you can see within 5 feet of you. If the target can see or hear you, it must succeed on a Wisdom saving throw against your wizard spell save DC or be charmed by you until the end of your next turn."
+        },
+        {
+          "level": 6,
+          "name": "Instinctive Charm",
+          "description": "When a creature you can see within 30 feet of you makes an attack roll against you, you can use your reaction to divert the attack, provided that another creature is within the attack's range. The attacker must make a Wisdom saving throw against your wizard spell save DC. On a failed save, the attacker must target the creature that is closest to it, not including you or itself."
+        },
+        {
+          "level": 10,
+          "name": "Split Enchantment",
+          "description": "When you cast an enchantment spell of 1st level or higher that targets only one creature, you can have it target a second creature."
+        },
+        {
+          "level": 14,
+          "name": "Alter Memories",
+          "description": "You gain the ability to make a creature unaware of your magical influence on it. When you cast an enchantment spell to charm one or more creatures, you can alter one creature's understanding so that it remains unaware of being charmed."
+        }
+      ]
+    },
+    "evocation": {
+      "name": "School of Evocation",
+      "description": "You focus your study on magic that creates powerful elemental effects such as bitter cold, searing flame, rolling thunder, crackling lightning, and burning acid. Some evokers find employment in military forces, serving as artillery to blast enemy armies from afar. Others use their spectacular power to protect the weak, while some seek their own gain as bandits, adventurers, or aspiring tyrants.",
+      "features": [
+        {
+          "level": 2,
+          "name": "Evocation Savant",
+          "description": "The gold and time you must spend to copy an evocation spell into your spellbook is halved."
+        },
+        {
+          "level": 2,
+          "name": "Sculpt Spells",
+          "description": "You can protect some creatures from the effect of your evocation spells. When you cast an evocation spell that affects other creatures that you can see, you can choose a number of them equal to 1 + the spell's level. The chosen creatures automatically succeed on their saving throws against the spell, and they take no damage if they would normally take half damage on a successful save."
+        },
+        {
+          "level": 6,
+          "name": "Potent Cantrip",
+          "description": "Your damaging cantrips affect even creatures that avoid the brunt of the effect. When a creature succeeds on a saving throw against your cantrip, the creature takes half the cantrip's damage (if any) but suffers no additional effect from the cantrip."
+        },
+        {
+          "level": 10,
+          "name": "Empowered Evocation",
+          "description": "You can add your Intelligence modifier to one damage roll of any wizard evocation spell you cast."
+        },
+        {
+          "level": 14,
+          "name": "Overchannel",
+          "description": "You can increase the power of your simpler spells. When you cast a wizard spell of 1st through 5th level that deals damage, you can deal maximum damage with that spell."
+        }
+      ]
+    },
+    "illusion": {
+      "name": "School of Illusion",
+      "description": "You focus your studies on magic that dazzles the senses, befuddles the mind, and tricks even the wisest folk. Your magic is subtle, but the illusions crafted by your keen mind make the impossible seem real. Some illusionists\u2014including many gnome wizards\u2014are benign tricksters who use their spells to entertain. Others are more sinister, using their deceptions to frighten and fool others for their personal gain.",
+      "features": [
+        {
+          "level": 2,
+          "name": "Illusion Savant",
+          "description": "The gold and time you must spend to copy an illusion spell into your spellbook is halved."
+        },
+        {
+          "level": 2,
+          "name": "Improved Minor Illusion",
+          "description": "When you cast minor illusion, you can create both a sound and an image with a single casting of the spell."
+        },
+        {
+          "level": 6,
+          "name": "Malleable Illusions",
+          "description": "When you cast an illusion spell that has a duration of 1 minute or longer, you can use your action to change the nature of that illusion (using the spell's normal parameters for the illusion), provided that you can see the illusion."
+        },
+        {
+          "level": 10,
+          "name": "Illusory Self",
+          "description": "When a creature makes an attack roll against you, you can use your reaction to interpose an illusory duplicate of yourself between the attacker and yourself. The attack automatically misses, and the illusion dissipates."
+        },
+        {
+          "level": 14,
+          "name": "Illusory Reality",
+          "description": "When you cast an illusion spell of 1st level or higher, you can choose one inanimate, nonmagical object that is part of the illusion and make that object real. You can do this on your turn as an action while the spell lasts."
+        }
+      ]
+    },
+    "necromancy": {
+      "name": "School of Necromancy",
+      "description": "The School of Necromancy explores the cosmic forces of life, death, and undeath. As you focus your studies in this tradition, you learn to manipulate the energy that animates all living things. As you progress, you learn to sap the life force from a creature as your magic destroys its body, transforming that vital energy into magical power you can manipulate.",
+      "features": [
+        {
+          "level": 2,
+          "name": "Necromancy Savant",
+          "description": "The gold and time you must spend to copy a necromancy spell into your spellbook is halved."
+        },
+        {
+          "level": 2,
+          "name": "Grim Harvest",
+          "description": "You gain the ability to reap life energy from creatures you kill with your spells. Once per turn when you kill one or more creatures with a spell of 1st level or higher, you regain hit points equal to twice the spell's level, or three times its level if the spell belongs to the School of Necromancy."
+        },
+        {
+          "level": 6,
+          "name": "Undead Thralls",
+          "description": "When you cast animate dead, you can target one additional corpse or pile of bones. Additionally, you can use animate dead as a bonus action."
+        },
+        {
+          "level": 10,
+          "name": "Inured to Undeath",
+          "description": "You have resistance to necrotic damage, and your hit point maximum can't be reduced."
+        },
+        {
+          "level": 14,
+          "name": "Command Undead",
+          "description": "You can use magic to bring undead under your control, even those created by other wizards. As an action, choose one undead that you can see within 60 feet of you. That creature must make a Charisma saving throw against your wizard spell save DC."
+        }
+      ]
+    },
+    "transmutation": {
+      "name": "School of Transmutation",
+      "description": "You are a student of spells that modify energy and matter. To you, the world is not a fixed thing, but eminently mutable, and you delight in being an agent of change. You wield the raw stuff of creation and learn to alter both physical forms and mental qualities. Your magic gives you the tools to become a smith on reality's forge.",
+      "features": [
+        {
+          "level": 2,
+          "name": "Transmutation Savant",
+          "description": "The gold and time you must spend to copy a transmutation spell into your spellbook is halved."
+        },
+        {
+          "level": 2,
+          "name": "Minor Alchemy",
+          "description": "You can temporarily alter the physical properties of one nonmagical object, changing it from one substance into another. You perform a special alchemical procedure on one object composed entirely of wood, stone, iron, copper, or silver, transforming it into a different one of those materials."
+        },
+        {
+          "level": 6,
+          "name": "Transmuter's Stone",
+          "description": "You can spend 8 hours creating a transmuter's stone that stores transmutation magic. When you create the stone, choose the benefit from the following options: Darkvision, Maximize effect of one potion, Resistance to cold damage, Resistance to fire damage, Resistance to lightning damage, Resistance to poison damage, Swim speed equal to walking speed, or Toughness (increase hit points)."
+        },
+        {
+          "level": 10,
+          "name": "Shapechanger",
+          "description": "You add polymorph and stone skin to your spellbook if they are not there already. You can cast polymorph without expending a spell slot. When you do so, you can target only yourself and transform into a beast whose challenge rating is 1 or lower."
+        },
+        {
+          "level": 14,
+          "name": "Master Transmuter",
+          "description": "You can use your action to consume the reserve of transmutation magic stored within your transmuter's stone in a single burst. When you do so, choose one of the following effects: Major Transformation, Panacea, Restore Life, or Restore Youth."
+        }
+      ]
+    },
+    "war-magic": {
+      "name": "War Magic",
+      "description": "A variety of arcane colleges specialize in training wizards for the perils of war. The tradition of War Magic blends principles of evocation and abjuration, teaching wizards to turn spells into weapons and to use their magic to bolster their own defenses.",
+      "features": [
+        {
+          "level": 2,
+          "name": "Arcane Deflection",
+          "description": "You have learned to weave your magic to fortify yourself against harm. When you are hit by an attack, you can use your reaction to gain a +2 bonus to AC against that attack, potentially causing it to miss you."
+        },
+        {
+          "level": 2,
+          "name": "Tactical Wit",
+          "description": "You can give yourself a bonus to your initiative rolls equal to your Intelligence modifier."
+        },
+        {
+          "level": 6,
+          "name": "Power Surge",
+          "description": "You can store magical energy within yourself to later empower your damaging spells. In addition, as a bonus action, you can expend one use of your Arcane Surge to gain advantage on the next weapon attack roll you make on this turn."
+        },
+        {
+          "level": 10,
+          "name": "Durable Magic",
+          "description": "Whenever you roll initiative and have no uses of Arcane Surge remaining, you regain one use."
+        },
+        {
+          "level": 14,
+          "name": "Deflecting Shroud",
+          "description": "You can cause your Arcane Deflection to deflect a ray attack that targets only you and hit a creature of your choice within 60 feet of you, instead of you."
+        }
+      ]
+    },
+    "bladesinging": {
+      "name": "Bladesinging",
+      "description": "A melee-capable wizard who enters a bladesong for defense, speed, and concentration support. Strong gish with high skill ceiling.",
+      "features": [
+        {
+          "level": 2,
+          "name": "Bladesong",
+          "description": "Activate a combat stance that boosts AC, speed, and concentration durability (limited uses)."
+        },
+        {
+          "level": 2,
+          "name": "Training in War and Song",
+          "description": "Gain armor/weapon training and performance-like competence to support the gish role."
+        },
+        {
+          "level": 6,
+          "name": "Extra Attack",
+          "description": "Attack twice, with an option to weave in a cantrip as part of the sequence (signature bladesinger flow)."
+        },
+        {
+          "level": 10,
+          "name": "Song of Defense",
+          "description": "Spend spell power to reduce incoming damage (reactive survivability)."
+        },
+        {
+          "level": 14,
+          "name": "Song of Victory",
+          "description": "Add Intelligence-based damage to weapon attacks during bladesong (offensive scaling)."
+        }
+      ]
+    },
+    "order-of-scribes": {
+      "name": "Order of Scribes",
+      "description": "A wizard obsessed with living spellbooks and magical writing. High utility, flexible damage typing for spells, and exceptional ritual/casting logistics.",
+      "features": [
+        {
+          "level": 2,
+          "name": "Awakened Spellbook",
+          "description": "Your spellbook becomes a magical companion enabling flexible casting and safer spell management."
+        },
+        {
+          "level": 2,
+          "name": "Wizardly Quill",
+          "description": "Gain a magical quill that accelerates copying/scribing and supports wizard logistics."
+        },
+        {
+          "level": 6,
+          "name": "Manifest Mind",
+          "description": "Project your book\u2019s mind to scout and cast from its position under constraints."
+        },
+        {
+          "level": 10,
+          "name": "Master Scrivener",
+          "description": "Create enhanced spell scrolls more effectively and improve the value of scroll crafting."
+        },
+        {
+          "level": 14,
+          "name": "One with the Word",
+          "description": "High-end defensive feature tied to your spellbook bond; improved survivability and recovery options."
+        }
+      ]
+    },
+    "chronurgy-magic": {
+      "name": "Chronurgy Magic",
+      "description": "Focusing on the manipulation of time, those who follow the Chronurgy tradition learn to alter the pace of reality to their liking.",
+      "features": [
+        {
+          "level": 2,
+          "name": "Chronal Shift",
+          "description": "You can magically exert limited control over the flow of time around a creature. As a reaction, after a creature you can see within 30 feet of you makes an attack roll, an ability check, or a saving throw, you can force the creature to reroll. You make this decision after you see whether the roll succeeds or fails."
+        },
+        {
+          "level": 2,
+          "name": "Temporal Awareness",
+          "description": "You can't be surprised while you are conscious."
+        },
+        {
+          "level": 6,
+          "name": "Momentary Stasis",
+          "description": "As an action, you can magically force a Large or smaller creature you can see within 60 feet of you to make a Constitution saving throw against your spell save DC. On a failed save, the creature is encased in a field of magical force until the start of your next turn or until the creature takes any damage."
+        },
+        {
+          "level": 10,
+          "name": "Arcane Abeyance",
+          "description": "When you cast a spell using a spell slot of 4th level or lower, you can condense the spell's magic into a mote. The spell is frozen in time at the moment of casting and held within a gray bead for 1 hour. This bead is a Tiny object with AC 15 and 1 hit point, and it is immune to poison and psychic damage."
+        },
+        {
+          "level": 14,
+          "name": "Convergent Future",
+          "description": "You can peer through possible futures and magically pull the one you want into existence, ensuring a particular outcome. When you or a creature you can see within 60 feet of you makes an attack roll, an ability check, or a saving throw, you can use your reaction to ignore the die roll and decide whether the number rolled is the minimum needed to succeed or one less than that number (your choice)."
+        }
+      ]
+    },
+    "graviturgy-magic": {
+      "name": "Graviturgy Magic",
+      "description": "Studying the Graviturgy tradition means seeking to understand and master the invisible forces that move the universe, especially gravity.",
+      "features": [
+        {
+          "level": 2,
+          "name": "Adjust Density",
+          "description": "As an action, you can magically alter the weight of one object or creature you can see within 30 feet of you. The object or creature must be Large or smaller. The target's weight is doubled or halved for 1 minute, or until you cast this spell again."
+        },
+        {
+          "level": 6,
+          "name": "Gravity Well",
+          "description": "When you cast a spell on a creature, you can move the target 5 feet to an unoccupied space of your choice if the target is willing to move, the spell hits it with an attack, or it fails a saving throw against the spell."
+        },
+        {
+          "level": 10,
+          "name": "Violent Attraction",
+          "description": "When another creature that you can see within 60 feet of you hits with a weapon attack, you can use your reaction to attempt to pull the weapon away. The attacker must succeed on a Strength saving throw, or it drops the weapon at its feet."
+        },
+        {
+          "level": 14,
+          "name": "Event Horizon",
+          "description": "As an action, you select a point within 60 feet of you. For 1 minute, whenever a creature enters the area within 30 feet of that point or starts its turn there, it must make a Dexterity saving throw. On a failed save, the creature is pulled 10 feet toward the point before taking actions."
+        }
+      ]
+    }
+  },
+  "rogue": {
+    "arcane-trickster": {
+      "name": "Arcane Trickster",
+      "description": "Arcane Tricksters use limited wizard spellcasting to enhance stealth, misdirection, and control.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Spellcasting",
+          "description": "Wizard spellcasting (one-third progression) focused on illusion and enchantment; Mage Hand is a required cantrip."
+        },
+        {
+          "level": 3,
+          "name": "Mage Hand Legerdemain",
+          "description": "You gain an invisible Mage Hand that can manipulate objects, pick locks, disarm traps, and steal at range; you can use it as a bonus action."
+        },
+        {
+          "level": 9,
+          "name": "Magical Ambush",
+          "description": "While hidden, creatures have disadvantage on saving throws against your spells, enabling strong control setups."
+        },
+        {
+          "level": 13,
+          "name": "Versatile Trickster",
+          "description": "Use your Mage Hand to grant yourself advantage on attack rolls, enabling reliable Sneak Attack."
+        },
+        {
+          "level": 17,
+          "name": "Spell Thief",
+          "description": "When a creature casts a spell at you, you can negate it and steal it to cast later."
+        }
+      ]
+    },
+    "assassin": {
+      "name": "Assassin",
+      "description": "Assassins specialize in ambushes and devastating first-round strikes.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Bonus Proficiencies",
+          "description": "Gain proficiency with the disguise kit and poisoner's kit."
+        },
+        {
+          "level": 3,
+          "name": "Assassinate",
+          "description": "You have advantage against creatures that haven't acted, and any hit against a surprised creature is a critical hit."
+        },
+        {
+          "level": 9,
+          "name": "Infiltration Expertise",
+          "description": "Create convincing false identities with detailed backstories for long-term infiltration."
+        },
+        {
+          "level": 13,
+          "name": "Impostor",
+          "description": "Mimic speech, writing, and behavior after brief observation."
+        },
+        {
+          "level": 17,
+          "name": "Death Strike",
+          "description": "When you surprise a creature and hit it, it makes a Constitution save; on a failure, the damage is doubled again."
+        }
+      ]
+    },
+    "thief": {
+      "name": "Thief",
+      "description": "Thieves emphasize mobility, item interaction, and environmental play.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Fast Hands",
+          "description": "Use an Object as a bonus action, including thieves' tools and certain items."
+        },
+        {
+          "level": 3,
+          "name": "Second-Story Work",
+          "description": "Climbing no longer costs extra movement, and your long jumps improve."
+        },
+        {
+          "level": 9,
+          "name": "Supreme Sneak",
+          "description": "You have advantage on Stealth checks when moving slowly."
+        },
+        {
+          "level": 13,
+          "name": "Use Magic Device",
+          "description": "Ignore class, race, and level requirements for magic items, and use scrolls without failure."
+        },
+        {
+          "level": 17,
+          "name": "Thief's Reflexes",
+          "description": "You take two turns in the first round of combat."
+        }
+      ]
+    },
+    "inquisitive": {
+      "name": "Inquisitive",
+      "description": "Inquisitives read foes and uncover secrets to keep Sneak Attack online.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Ear for Deceit",
+          "description": "Treat Insight rolls below 8 as an 8 when determining if someone is lying."
+        },
+        {
+          "level": 3,
+          "name": "Eye for Detail",
+          "description": "Use a bonus action to spot hidden creatures or notice clues."
+        },
+        {
+          "level": 3,
+          "name": "Insightful Fighting",
+          "description": "Use Insight vs Deception to enable Sneak Attack without advantage or allies."
+        },
+        {
+          "level": 9,
+          "name": "Steady Eye",
+          "description": "Gain advantage on Perception and Investigation checks when moving slowly."
+        },
+        {
+          "level": 13,
+          "name": "Unerring Eye",
+          "description": "Detect illusions and shapeshifters a limited number of times per day."
+        },
+        {
+          "level": 17,
+          "name": "Eye for Weakness",
+          "description": "Deal extra damage equal to your Wisdom modifier once per turn."
+        }
+      ]
+    },
+    "mastermind": {
+      "name": "Mastermind",
+      "description": "Masterminds coordinate allies and manipulate enemies through tactics and deception.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Master of Intrigue",
+          "description": "Gain bonus proficiencies, languages, and the ability to mimic speech patterns."
+        },
+        {
+          "level": 3,
+          "name": "Master of Tactics",
+          "description": "Use the Help action as a bonus action and from up to 30 feet away."
+        },
+        {
+          "level": 9,
+          "name": "Insightful Manipulator",
+          "description": "Study a creature to learn its capabilities after brief observation."
+        },
+        {
+          "level": 13,
+          "name": "Misdirection",
+          "description": "Redirect an attack from you to another creature when the attacker is within range."
+        },
+        {
+          "level": 17,
+          "name": "Soul of Deceit",
+          "description": "Your thoughts can't be read, and you can present false thoughts under scrutiny."
+        }
+      ]
+    },
+    "scout": {
+      "name": "Scout",
+      "description": "Scouts are mobile skirmishers with strong exploration and wilderness skills.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Skirmisher",
+          "description": "When an enemy ends its turn within 5 feet of you, you can move away as a reaction without provoking opportunity attacks."
+        },
+        {
+          "level": 3,
+          "name": "Survivalist",
+          "description": "Gain proficiency or expertise in Nature and Survival."
+        },
+        {
+          "level": 9,
+          "name": "Superior Mobility",
+          "description": "Your walking speed increases by 10 feet."
+        },
+        {
+          "level": 13,
+          "name": "Ambush Master",
+          "description": "You gain advantage on initiative, and the first target you hit grants advantage to your allies' attacks."
+        },
+        {
+          "level": 17,
+          "name": "Sudden Strike",
+          "description": "You can make an additional Sneak Attack as a bonus action against a different target."
+        }
+      ]
+    },
+    "swashbuckler": {
+      "name": "Swashbuckler",
+      "description": "Swashbucklers combine flair and agility to dominate one-on-one melee fights.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Fancy Footwork",
+          "description": "Creatures you attack can't make opportunity attacks against you for the rest of the turn."
+        },
+        {
+          "level": 3,
+          "name": "Rakish Audacity",
+          "description": "Add your Charisma modifier to initiative, and you can Sneak Attack in solo melee."
+        },
+        {
+          "level": 9,
+          "name": "Panache",
+          "description": "Charm or goad a creature through social or combat pressure."
+        },
+        {
+          "level": 13,
+          "name": "Elegant Maneuver",
+          "description": "Use a bonus action to gain advantage on Acrobatics or Athletics checks."
+        },
+        {
+          "level": 17,
+          "name": "Master Duelist",
+          "description": "Reroll a missed attack once per turn."
+        }
+      ]
+    },
+    "phantom": {
+      "name": "Phantom",
+      "description": "Phantoms draw power from the dead, spreading damage and gaining spectral boons.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Whispers of the Dead",
+          "description": "Gain a floating skill or tool proficiency after each rest."
+        },
+        {
+          "level": 3,
+          "name": "Wails from the Grave",
+          "description": "After Sneak Attack, deal necrotic damage to a second target; scales with proficiency bonus."
+        },
+        {
+          "level": 9,
+          "name": "Tokens of the Departed",
+          "description": "Collect soul trinkets from the dying to fuel subclass abilities."
+        },
+        {
+          "level": 13,
+          "name": "Ghost Walk",
+          "description": "Become partially incorporeal, gaining flight and damage resistance for a time."
+        },
+        {
+          "level": 17,
+          "name": "Death Knell",
+          "description": "Deal extra necrotic damage to low-HP enemies."
+        }
+      ]
+    },
+    "soulknife": {
+      "name": "Soulknife",
+      "description": "Soulknives manifest psionic blades and excel at stealth and mental precision.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Psychic Blades",
+          "description": "Summon finesse/thrown psychic weapons, including a bonus-action off-hand attack."
+        },
+        {
+          "level": 3,
+          "name": "Psionic Power",
+          "description": "Gain psionic dice to fuel special abilities."
+        },
+        {
+          "level": 9,
+          "name": "Soul Blades",
+          "description": "Add psionic dice to failed checks and teleport via psychic blades."
+        },
+        {
+          "level": 13,
+          "name": "Psychic Veil",
+          "description": "Become invisible for up to 1 hour without concentration."
+        },
+        {
+          "level": 17,
+          "name": "Rend Mind",
+          "description": "After Sneak Attack, you can attempt to stun the target."
+        }
+      ]
+    }
+  },
+  "barbarian": {
+    "totem-warrior": {
+      "name": "Path of the Totem Warrior",
+      "description": "A barbarian who channels animal spirits to gain powerful rage-based defenses, mobility, and party support. Totem choices create distinct playstyles (tank, scout, pack fighter).",
+      "features": [
+        {
+          "level": 3,
+          "name": "Spirit Seeker",
+          "description": "Gain ritual divination to communicate with spirits/nature (utility, information gathering)."
+        },
+        {
+          "level": 3,
+          "name": "Totem Spirit",
+          "description": "Choose an animal totem that enhances your rage and/or combat role (e.g., broader resistances, mobility, ally support)."
+        },
+        {
+          "level": 6,
+          "name": "Aspect of the Beast",
+          "description": "Gain a persistent benefit themed to an animal aspect (often exploration, carrying, perception, travel, or social intimidation)."
+        },
+        {
+          "level": 10,
+          "name": "Spirit Walker",
+          "description": "Gain a ritual to commune with nature/spirits for guidance and answers."
+        },
+        {
+          "level": 14,
+          "name": "Totemic Attunement",
+          "description": "Gain a high-impact combat feature keyed to a totem choice (e.g., control, mobility, pressure, or protection)."
+        }
+      ]
+    },
+    "wild-magic-barb": {
+      "name": "Path of Wild Magic",
+      "description": "A barbarian infused with chaotic magic that erupts during rage. Strong battlefield randomness with occasional party-support effects.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Magic Awareness",
+          "description": "Sense the presence of magic nearby (utility detection)."
+        },
+        {
+          "level": 3,
+          "name": "Wild Surge",
+          "description": "When you rage, trigger a random magical effect that shapes the fight (damage, control, buffs, etc.)."
+        },
+        {
+          "level": 6,
+          "name": "Bolstering Magic",
+          "description": "Support options that restore resources or increase reliability for yourself/allies."
+        },
+        {
+          "level": 10,
+          "name": "Unstable Backlash",
+          "description": "Change or re-trigger your rage surge effect under pressure (reactive adaptability)."
+        },
+        {
+          "level": 14,
+          "name": "Controlled Surge",
+          "description": "Roll multiple surge results and choose, reducing swinginess while keeping variety."
+        }
+      ]
+    }
+  },
+  "cleric": {
+    "knowledge": {
+      "name": "Knowledge Domain",
+      "description": "A scholar-cleric focused on mastery of lore, languages, and minds. Strong skill utility plus divination and mental manipulation tools.",
+      "features": [
+        {
+          "level": 1,
+          "name": "Blessings of Knowledge",
+          "description": "Gain extra knowledge-focused proficiencies and enhanced expertise-like capability with them."
+        },
+        {
+          "level": 2,
+          "name": "Channel Divinity: Knowledge of the Ages",
+          "description": "Temporarily gain proficiency in a chosen skill or tool (adaptable problem solving)."
+        },
+        {
+          "level": 6,
+          "name": "Channel Divinity: Read Thoughts",
+          "description": "Sense a creature\u2019s surface thoughts and potentially leverage that insight into further mental influence."
+        },
+        {
+          "level": 8,
+          "name": "Potent Spellcasting",
+          "description": "Add Wisdom modifier to your cleric cantrip damage."
+        },
+        {
+          "level": 17,
+          "name": "Visions of the Past",
+          "description": "Learn about a location or object\u2019s history by witnessing echoes of past events."
+        }
+      ]
+    },
+    "light": {
+      "name": "Light Domain",
+      "description": "A radiant/fire themed cleric who excels at blasting, revealing enemies, and countering darkness\u2014excellent vs hordes and undead.",
+      "features": [
+        {
+          "level": 1,
+          "name": "Warding Flare",
+          "description": "Use divine light to hinder attackers by imposing disadvantage (reaction-based defense)."
+        },
+        {
+          "level": 2,
+          "name": "Channel Divinity: Radiance of the Dawn",
+          "description": "Burst of radiant light that damages foes and suppresses magical darkness in the area."
+        },
+        {
+          "level": 6,
+          "name": "Improved Flare",
+          "description": "Extend your protective flare to help allies as well as yourself."
+        },
+        {
+          "level": 8,
+          "name": "Potent Spellcasting",
+          "description": "Add Wisdom modifier to your cleric cantrip damage."
+        },
+        {
+          "level": 17,
+          "name": "Corona of Light",
+          "description": "Radiant aura that makes nearby foes more vulnerable to your fire/radiant magic (harder to resist/avoid)."
+        }
+      ]
+    },
+    "nature": {
+      "name": "Nature Domain",
+      "description": "A cleric with druidic flavor: strong elemental defenses, nature utility, and control over beasts and plants.",
+      "features": [
+        {
+          "level": 1,
+          "name": "Acolyte of Nature",
+          "description": "Gain a druid cantrip and a nature-themed proficiency or affinity that reinforces wilderness utility."
+        },
+        {
+          "level": 2,
+          "name": "Channel Divinity: Charm Animals and Plants",
+          "description": "Influence beasts/plants in an area to reduce threats or create openings."
+        },
+        {
+          "level": 6,
+          "name": "Dampen Elements",
+          "description": "Grant reaction-based resistance to elemental damage for yourself or an ally."
+        },
+        {
+          "level": 8,
+          "name": "Divine Strike",
+          "description": "Add extra damage to weapon hits once per turn (scales at higher levels)."
+        },
+        {
+          "level": 17,
+          "name": "Master of Nature",
+          "description": "Command or restrain natural creatures/plants more decisively (strong control option)."
+        }
+      ]
+    },
+    "tempest": {
+      "name": "Tempest Domain",
+      "description": "A storm cleric who punishes attackers, deals heavy lightning/thunder damage, and controls the battlefield with weather-like force.",
+      "features": [
+        {
+          "level": 1,
+          "name": "Wrath of the Storm",
+          "description": "When hit, you can retaliate with thunder/lightning energy (reaction damage, limited uses)."
+        },
+        {
+          "level": 2,
+          "name": "Channel Divinity: Destructive Wrath",
+          "description": "Maximize damage of certain lightning/thunder effects (turns spikes into reliable nukes)."
+        },
+        {
+          "level": 6,
+          "name": "Thunderbolt Strike",
+          "description": "Your lightning effects can reposition creatures (push/knockback control)."
+        },
+        {
+          "level": 8,
+          "name": "Divine Strike",
+          "description": "Weapon hits gain extra thunder damage once per turn (scales later)."
+        },
+        {
+          "level": 17,
+          "name": "Stormborn",
+          "description": "Gain a strong mobility boost associated with storms (notably aerial movement)."
+        }
+      ]
+    },
+    "trickery": {
+      "name": "Trickery Domain",
+      "description": "A deception and infiltration cleric who uses illusion, stealth support, and misdirection to enable tricky plans and team advantages.",
+      "features": [
+        {
+          "level": 1,
+          "name": "Blessing of the Trickster",
+          "description": "Grant an ally enhanced stealth capability (infiltration support)."
+        },
+        {
+          "level": 2,
+          "name": "Channel Divinity: Invoke Duplicity",
+          "description": "Create an illusory double that enables misdirection and improved casting/positioning tricks."
+        },
+        {
+          "level": 6,
+          "name": "Channel Divinity: Cloak of Shadows",
+          "description": "Brief invisibility to slip away, reposition, or avoid focus."
+        },
+        {
+          "level": 8,
+          "name": "Divine Strike",
+          "description": "Add extra damage to weapon hits once per turn (poison-themed in 2014 printing)."
+        },
+        {
+          "level": 17,
+          "name": "Improved Duplicity",
+          "description": "Multiple duplicates or stronger duplication utility for broader tactical coverage."
+        }
+      ]
+    },
+    "war": {
+      "name": "War Domain",
+      "description": "A militant cleric built for weapon combat, battlefield command, and burst accuracy\u2014bridges frontline offense with cleric magic.",
+      "features": [
+        {
+          "level": 1,
+          "name": "War Priest",
+          "description": "Make additional weapon attacks as a bonus action a limited number of times (resource-based burst)."
+        },
+        {
+          "level": 2,
+          "name": "Channel Divinity: Guided Strike",
+          "description": "Add a major bonus to an attack roll after seeing the roll (turn near-misses into hits)."
+        },
+        {
+          "level": 6,
+          "name": "Channel Divinity: War God's Blessing",
+          "description": "Use the same accuracy boost to help an ally\u2019s attack."
+        },
+        {
+          "level": 8,
+          "name": "Divine Strike",
+          "description": "Add extra damage to weapon hits once per turn (scales later)."
+        },
+        {
+          "level": 17,
+          "name": "Avatar of Battle",
+          "description": "Gain strong resistance to mundane weapon damage, dramatically increasing durability."
+        }
+      ]
+    },
+    "order": {
+      "name": "Order Domain",
+      "description": "A law-and-command cleric who turns buffs into ally attacks and asserts battlefield authority. Excellent party force multiplier.",
+      "features": [
+        {
+          "level": 1,
+          "name": "Voice of Authority",
+          "description": "When you empower an ally with magic, they can make an immediate attack under defined limits."
+        },
+        {
+          "level": 2,
+          "name": "Channel Divinity: Order's Demand",
+          "description": "Compel obedience in an area; can disarm or control foes through authoritative divine pressure."
+        },
+        {
+          "level": 6,
+          "name": "Embodiment of the Law",
+          "description": "Make certain key spells faster/more efficient (action economy improvement)."
+        },
+        {
+          "level": 8,
+          "name": "Divine Strike",
+          "description": "Add extra damage to weapon hits once per turn (scales later)."
+        },
+        {
+          "level": 17,
+          "name": "Order's Wrath",
+          "description": "Enhance ally follow-up damage against enemies you\u2019ve struck with divine authority."
+        }
+      ]
+    },
+    "peace": {
+      "name": "Peace Domain",
+      "description": "A bond-focused support cleric that links allies for shared protection and accuracy. Very strong teamwork amplification.",
+      "features": [
+        {
+          "level": 1,
+          "name": "Emboldening Bond",
+          "description": "Link allies so they can add a scaling bonus to key rolls within range/conditions."
+        },
+        {
+          "level": 2,
+          "name": "Channel Divinity: Balm of Peace",
+          "description": "Move through the battlefield healing allies you pass (high-impact reposition + sustain)."
+        },
+        {
+          "level": 6,
+          "name": "Protective Bond",
+          "description": "Bonded allies can absorb hits for each other via reaction-style interception."
+        },
+        {
+          "level": 8,
+          "name": "Potent Spellcasting",
+          "description": "Add Wisdom modifier to your cleric cantrip damage."
+        },
+        {
+          "level": 17,
+          "name": "Expansive Bond",
+          "description": "Increase bond reach/coverage and make bond benefits easier to apply at scale."
+        }
+      ]
+    },
+    "twilight": {
+      "name": "Twilight Domain",
+      "description": "A dusk-and-dawn guardian cleric with powerful party protection and anti-fear/charm support. Exceptional defensive aura play.",
+      "features": [
+        {
+          "level": 1,
+          "name": "Eyes of Night",
+          "description": "Grant enhanced night vision and share it with allies under defined limits."
+        },
+        {
+          "level": 1,
+          "name": "Vigilant Blessing",
+          "description": "Give an ally (or yourself) a strong initiative/alertness edge (repeatable support)."
+        },
+        {
+          "level": 2,
+          "name": "Channel Divinity: Twilight Sanctuary",
+          "description": "Create a protective aura that grants ongoing temporary protection and counters fear/charm-like effects."
+        },
+        {
+          "level": 6,
+          "name": "Steps of Night",
+          "description": "Gain limited flight/mobility in dim light/darkness situations."
+        },
+        {
+          "level": 8,
+          "name": "Divine Strike",
+          "description": "Add extra damage to weapon hits once per turn (scales later)."
+        },
+        {
+          "level": 17,
+          "name": "Twilight Shroud",
+          "description": "Improve aura protection by reducing incoming damage for allies within the sanctuary."
+        }
+      ]
+    }
+  },
+  "monk": {
+    "four-elements": {
+      "name": "Way of the Four Elements",
+      "description": "An elemental monk who spends ki to perform spell-like disciplines: blasts, shaping, and utility drawn from the classic elements.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Disciple of the Elements",
+          "description": "Learn elemental disciplines powered by ki (includes a basic shaping option plus additional disciplines)."
+        },
+        {
+          "level": 6,
+          "name": "Elemental Disciplines (expanded)",
+          "description": "Access more potent or varied elemental techniques as you gain levels and ki."
+        },
+        {
+          "level": 11,
+          "name": "Elemental Disciplines (expanded)",
+          "description": "Additional discipline options become available; overall capability scales with ki pool."
+        },
+        {
+          "level": 17,
+          "name": "Elemental Disciplines (expanded)",
+          "description": "Highest-tier discipline options and improved ki-fueled versatility."
+        }
+      ]
+    },
+    "shadow": {
+      "name": "Way of Shadow",
+      "description": "A stealth/assassin monk with darkness tools, teleport-style movement between shadows, and strong infiltration utility.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Shadow Arts",
+          "description": "Spend ki to create darkness-like effects or stealth aids; includes a utility cantrip for distraction."
+        },
+        {
+          "level": 6,
+          "name": "Shadow Step",
+          "description": "Teleport between dim light/darkness and gain a short-lived combat advantage after arriving."
+        },
+        {
+          "level": 11,
+          "name": "Cloak of Shadows",
+          "description": "Become invisible while in darkness-like conditions and remaining still/hidden."
+        },
+        {
+          "level": 17,
+          "name": "Opportunist",
+          "description": "Punish openings by striking as a reaction when an enemy is hit nearby (extra attack opportunity)."
+        }
+      ]
+    },
+    "astral-self": {
+      "name": "Way of the Astral Self",
+      "description": "A monk who manifests an astral form to extend reach, enhance offense/defense, and gain spectral senses and presence.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Arms of the Astral Self",
+          "description": "Manifest spectral arms for reach/utility and empowered strikes using a spiritual attribute focus."
+        },
+        {
+          "level": 6,
+          "name": "Visage of the Astral Self",
+          "description": "Manifest an astral visage granting enhanced perception/communication-style benefits."
+        },
+        {
+          "level": 11,
+          "name": "Body of the Astral Self",
+          "description": "Manifest a fuller astral form that improves defense and combat presence."
+        },
+        {
+          "level": 17,
+          "name": "Awakened Astral Self",
+          "description": "Capstone improvement: stronger astral form, better economy, and enhanced combat impact."
+        }
+      ]
+    },
+    "mercy": {
+      "name": "Way of Mercy",
+      "description": "A monk who blends healing and harm using ki. Strong battlefield medic with status application and efficient support.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Hand of Harm",
+          "description": "Spend ki to add necrotic-like harm on a hit (damage spike option)."
+        },
+        {
+          "level": 3,
+          "name": "Hand of Healing",
+          "description": "Spend ki to heal as part of your martial flow (efficient in-combat healing)."
+        },
+        {
+          "level": 3,
+          "name": "Implements of Mercy",
+          "description": "Gain medicine/poison-related proficiencies and thematic tools (healer/doctor vibe)."
+        },
+        {
+          "level": 6,
+          "name": "Physician's Touch",
+          "description": "Improve your healing/harm to also cleanse or impose conditions under defined use."
+        },
+        {
+          "level": 11,
+          "name": "Flurry of Healing and Harm",
+          "description": "Integrate healing/harm into flurries more efficiently (action economy upgrade)."
+        },
+        {
+          "level": 17,
+          "name": "Hand of Ultimate Mercy",
+          "description": "High-end restorative capability that can reverse death-like outcomes under strict limits."
+        }
+      ]
+    }
+  },
+  "paladin": {
+    "ancients": {
+      "name": "Oath of the Ancients",
+      "description": "A paladin of nature and ancient light\u2014excellent defense vs magic and strong sustain through protective auras and control.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Channel Divinity: Nature's Wrath",
+          "description": "Restraining control option that hinders a foe\u2019s movement and actions."
+        },
+        {
+          "level": 3,
+          "name": "Channel Divinity: Turn the Faithless",
+          "description": "Repel certain creature types associated with unnatural forces (fey/fiends in the classic implementation)."
+        },
+        {
+          "level": 3,
+          "name": "Oath Spells",
+          "description": "Always-prepared spells emphasizing nature, restraint, and protection."
+        },
+        {
+          "level": 7,
+          "name": "Aura of Warding",
+          "description": "You and nearby allies take reduced damage from spells (major anti-magic defense)."
+        },
+        {
+          "level": 15,
+          "name": "Undying Sentinel",
+          "description": "Enhanced staying power: resist being dropped and reduce aging/attrition themes (durability bump)."
+        },
+        {
+          "level": 20,
+          "name": "Elder Champion",
+          "description": "Transform into a powerful champion form with regeneration and improved spellcasting/pressure."
+        }
+      ]
+    },
+    "vengeance": {
+      "name": "Oath of Vengeance",
+      "description": "A relentless hunter paladin built for deleting priority targets. Strong mobility, accuracy, and single-target lockdown.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Channel Divinity: Abjure Enemy",
+          "description": "Debuff/control a foe to reduce mobility and threat."
+        },
+        {
+          "level": 3,
+          "name": "Channel Divinity: Vow of Enmity",
+          "description": "Gain strong offensive focus against one target (reliable advantage/pressure)."
+        },
+        {
+          "level": 3,
+          "name": "Oath Spells",
+          "description": "Always-prepared spells focused on pursuit, control, and punishment."
+        },
+        {
+          "level": 7,
+          "name": "Relentless Avenger",
+          "description": "Reposition after opportunity attacks to stay on targets and control space."
+        },
+        {
+          "level": 15,
+          "name": "Soul of Vengeance",
+          "description": "Extra punishment against your sworn target, improving sustained DPR."
+        },
+        {
+          "level": 20,
+          "name": "Avenging Angel",
+          "description": "High-powered transformation enabling fear pressure and extreme mobility to finish hunts."
+        }
+      ]
+    },
+    "glory": {
+      "name": "Oath of Glory",
+      "description": "A heroic-athlete paladin built for mobility, ally buffing, and cinematic feats of strength. Great leader for aggressive teams.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Channel Divinity: Inspiring Smite",
+          "description": "Convert smite-like success into party-wide morale/temporary durability support."
+        },
+        {
+          "level": 3,
+          "name": "Channel Divinity: Peerless Athlete",
+          "description": "Boost physical performance for athletic stunts and movement challenges."
+        },
+        {
+          "level": 3,
+          "name": "Oath Spells",
+          "description": "Always-prepared spells emphasizing movement, inspiration, and prowess."
+        },
+        {
+          "level": 7,
+          "name": "Aura of Alacrity",
+          "description": "Increase speed for you and allies near you (team mobility aura)."
+        },
+        {
+          "level": 15,
+          "name": "Glorious Defense",
+          "description": "Turn defense into offense by protecting allies and countering attackers."
+        },
+        {
+          "level": 20,
+          "name": "Living Legend",
+          "description": "Transform into a legendary hero form with major boosts to presence, movement, and reliability."
+        }
+      ]
+    },
+    "watchers": {
+      "name": "Oath of the Watchers",
+      "description": "A sentinel paladin against extraplanar threats. Strong anti-charm/fear support, initiative aura, and banishment-style control.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Channel Divinity: Abjure the Extraplanar",
+          "description": "Repel or control extraplanar enemies (banishment/turning style pressure)."
+        },
+        {
+          "level": 3,
+          "name": "Channel Divinity: Watcher's Will",
+          "description": "Protect allies against mental domination (charm/fear-style effects) temporarily."
+        },
+        {
+          "level": 3,
+          "name": "Oath Spells",
+          "description": "Always-prepared spells focused on detection, protection, and planar defense."
+        },
+        {
+          "level": 7,
+          "name": "Aura of the Sentinel",
+          "description": "Boost initiative for yourself and nearby allies (huge first-round advantage)."
+        },
+        {
+          "level": 15,
+          "name": "Vigilant Rebuke",
+          "description": "Punish creatures that succeed with mental intrusion or control attempts against you/party."
+        },
+        {
+          "level": 20,
+          "name": "Mortal Bulwark",
+          "description": "Capstone defensive form that improves durability and interferes with planar enemy movement/control."
+        }
+      ]
+    }
+  },
+  "ranger": {
+    "beast-master": {
+      "name": "Beast Master",
+      "description": "A ranger partnered with an animal companion. Strong scouting and action-economy planning; effectiveness depends on companion management (2014 version).",
+      "features": [
+        {
+          "level": 3,
+          "name": "Ranger's Companion",
+          "description": "Gain an animal companion with rules for commands, training, and combat coordination."
+        },
+        {
+          "level": 7,
+          "name": "Exceptional Training",
+          "description": "Companion actions become more flexible; improve how you direct it in combat."
+        },
+        {
+          "level": 11,
+          "name": "Bestial Fury",
+          "description": "Companion gains improved offensive output (multiattack-style improvement)."
+        },
+        {
+          "level": 15,
+          "name": "Share Spells",
+          "description": "Certain ranger spells you cast can also affect your companion under the feature\u2019s conditions."
+        }
+      ]
+    },
+    "fey-wanderer": {
+      "name": "Fey Wanderer",
+      "description": "A ranger infused with fey magic: strong social presence, fear/charm manipulation, and extra psychic-style damage.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Dreadful Strikes",
+          "description": "Add extra damage to a target once per turn (scales with level) with fey/psychic flavor."
+        },
+        {
+          "level": 3,
+          "name": "Fey Wanderer Magic",
+          "description": "Always-prepared spells that reflect fey charm, misty movement, and nature magic."
+        },
+        {
+          "level": 3,
+          "name": "Otherworldly Glamour",
+          "description": "Improve social skills and presence; leverage Wisdom or enhance Charisma-style interactions."
+        },
+        {
+          "level": 7,
+          "name": "Beguiling Twist",
+          "description": "Redirect or exploit charm/fear effects in combat to disrupt enemies."
+        },
+        {
+          "level": 11,
+          "name": "Fey Reinforcements",
+          "description": "Summoning/ally support becomes more efficient and reliable within subclass magic theme."
+        },
+        {
+          "level": 15,
+          "name": "Misty Wanderer",
+          "description": "Gain frequent teleportation and share it with allies under conditions (mobility support)."
+        }
+      ]
+    },
+    "swarmkeeper": {
+      "name": "Swarmkeeper",
+      "description": "A ranger bonded to a mystical swarm (insects, spirits, motes). Excellent forced movement, defense, and utility options each turn.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Gathered Swarm",
+          "description": "Once per turn, your swarm can add damage, move targets, or move you (choose effect each trigger)."
+        },
+        {
+          "level": 3,
+          "name": "Swarmkeeper Magic",
+          "description": "Always-prepared spells that reflect swarms, control, and nature utility."
+        },
+        {
+          "level": 7,
+          "name": "Writhing Tide",
+          "description": "Gain limited flight/mobility by riding your swarm (situational aerial control)."
+        },
+        {
+          "level": 11,
+          "name": "Mighty Swarm",
+          "description": "Your swarm effects improve (more damage, stronger movement, better defenses)."
+        },
+        {
+          "level": 15,
+          "name": "Swarming Dispersal",
+          "description": "Defensive escape: reduce damage and reposition/teleport-like movement by dispersing into the swarm."
+        }
+      ]
+    }
+  },
+  "sorcerer": {
+    "wild-magic": {
+      "name": "Wild Magic",
+      "description": "A chaotic sorcerer whose magic surges unpredictably. Great for swingy effects, advantage manipulation, and dramatic moments.",
+      "features": [
+        {
+          "level": 1,
+          "name": "Tides of Chaos",
+          "description": "Gain a strong advantage-like benefit, then recharge it by provoking/allowing surges."
+        },
+        {
+          "level": 1,
+          "name": "Wild Magic Surge",
+          "description": "Casting spells can trigger random magical effects (surges) under defined conditions."
+        },
+        {
+          "level": 6,
+          "name": "Bend Luck",
+          "description": "Spend sorcery points to add or subtract from a nearby roll (reaction support/denial)."
+        },
+        {
+          "level": 14,
+          "name": "Controlled Chaos",
+          "description": "Reduce randomness by rolling multiple surge outcomes and choosing between them."
+        },
+        {
+          "level": 18,
+          "name": "Spell Bombardment",
+          "description": "Occasionally amplify damage by rolling additional damage dice when you hit high rolls."
+        }
+      ]
+    },
+    "aberrant-mind": {
+      "name": "Aberrant Mind",
+      "description": "A psionic/alien sorcerer with expanded spell options, strong telepathy, and efficient metamagic-like casting for certain spells.",
+      "features": [
+        {
+          "level": 1,
+          "name": "Psionic Spells",
+          "description": "Gain an expanded spell list and flexible swaps within a psionic theme."
+        },
+        {
+          "level": 1,
+          "name": "Telepathic Speech",
+          "description": "Establish temporary telepathic communication with a creature at range."
+        },
+        {
+          "level": 6,
+          "name": "Psionic Sorcery",
+          "description": "Cast certain psionic spells more efficiently using sorcery points and subtle casting style benefits."
+        },
+        {
+          "level": 14,
+          "name": "Revelation in Flesh",
+          "description": "Temporarily alter your body with aberrant adaptations (movement, senses, escape options)."
+        },
+        {
+          "level": 18,
+          "name": "Warping Implosion",
+          "description": "High-end spatial/psychic control that pulls creatures and damages/disrupts them."
+        }
+      ]
+    },
+    "clockwork-soul": {
+      "name": "Clockwork Soul",
+      "description": "A lawful-mechanistic sorcerer that imposes order: cancels advantage/disadvantage swings, gets strong defensive wards, and broad spell access.",
+      "features": [
+        {
+          "level": 1,
+          "name": "Clockwork Spells",
+          "description": "Expanded spell list with flexible swaps representing law/order themes."
+        },
+        {
+          "level": 1,
+          "name": "Restore Balance",
+          "description": "Reaction to cancel advantage/disadvantage on a roll under conditions (strong reliability tool)."
+        },
+        {
+          "level": 6,
+          "name": "Bastion of Law",
+          "description": "Convert sorcery points into protective wards that reduce damage (team or self defense)."
+        },
+        {
+          "level": 14,
+          "name": "Trance of Order",
+          "description": "Enter a state of extreme reliability: improved consistency on attacks/checks/saves for a duration."
+        },
+        {
+          "level": 18,
+          "name": "Clockwork Cavalcade",
+          "description": "Large-scale restorative/control effect that suppresses chaos and stabilizes the battlefield."
+        }
+      ]
+    }
+  },
+  "warlock": {
+    "archfey": {
+      "name": "The Archfey",
+      "description": "A fey-patron warlock who manipulates emotions, escapes danger, and controls minds\u2014excellent trickster/control caster with strong defensive \u2018panic button\u2019.",
+      "features": [
+        {
+          "level": 1,
+          "name": "Fey Presence",
+          "description": "Briefly charm or frighten creatures in a small area (encounter control)."
+        },
+        {
+          "level": 6,
+          "name": "Misty Escape",
+          "description": "When harmed, you can vanish/reposition and avoid follow-up pressure (defensive teleport/invisibility style effect)."
+        },
+        {
+          "level": 10,
+          "name": "Beguiling Defenses",
+          "description": "Gain protection against charm and reflect charm attempts back in some cases."
+        },
+        {
+          "level": 14,
+          "name": "Dark Delirium",
+          "description": "Isolate a target in a private illusion-like duel space to disable or control it."
+        }
+      ]
+    },
+    "great-old-one": {
+      "name": "The Great Old One",
+      "description": "A cosmic-horror warlock with telepathy, mental disruption, and psychic defenses\u2014strong in intrigue and mind games.",
+      "features": [
+        {
+          "level": 1,
+          "name": "Awakened Mind",
+          "description": "Telepathically communicate with creatures you can perceive (no shared language required in the classic use case)."
+        },
+        {
+          "level": 6,
+          "name": "Entropic Ward",
+          "description": "Use a defensive reaction to hinder an attacker and potentially gain an offensive opening."
+        },
+        {
+          "level": 10,
+          "name": "Thought Shield",
+          "description": "Gain psychic protection and punish psychic intrusions with reflected pain."
+        },
+        {
+          "level": 14,
+          "name": "Create Thrall",
+          "description": "Dominate a creature into a long-term servant under defined constraints."
+        }
+      ]
+    },
+    "fathomless": {
+      "name": "The Fathomless",
+      "description": "An ocean/abyss patron warlock with a tentacle companion, strong control, cold/water defenses, and mobility in aquatic environments.",
+      "features": [
+        {
+          "level": 1,
+          "name": "Gift of the Sea",
+          "description": "Gain swimming/breathing benefits and water-adaptation utility."
+        },
+        {
+          "level": 1,
+          "name": "Tentacle of the Deeps",
+          "description": "Summon a spectral tentacle that attacks and slows/controls enemies; can be repositioned."
+        },
+        {
+          "level": 6,
+          "name": "Oceanic Soul",
+          "description": "Gain resistance to cold-like effects and improved water mobility/communication under conditions."
+        },
+        {
+          "level": 10,
+          "name": "Guardian Coil",
+          "description": "Use your tentacle defensively to reduce damage to yourself or allies."
+        },
+        {
+          "level": 14,
+          "name": "Grasping Tentacles",
+          "description": "Gain powerful tentacle-based control (area restraint/slow) and improved tentacle economy."
+        }
+      ]
+    },
+    "genie": {
+      "name": "The Genie",
+      "description": "A genie-patron warlock with an elemental bent and a personal extradimensional vessel. Strong utility, damage riders, and travel options.",
+      "features": [
+        {
+          "level": 1,
+          "name": "Genie's Vessel",
+          "description": "Gain a magical vessel with an extradimensional refuge and utility interactions."
+        },
+        {
+          "level": 1,
+          "name": "Genie's Wrath",
+          "description": "Add an elemental damage rider once per turn when you hit (type depends on genie kind)."
+        },
+        {
+          "level": 6,
+          "name": "Elemental Gift",
+          "description": "Gain elemental-themed mobility/utility (often including limited flight or movement buffs)."
+        },
+        {
+          "level": 10,
+          "name": "Sanctuary Vessel",
+          "description": "Improve the vessel\u2019s refuge and allow ally use/rest benefits more effectively."
+        },
+        {
+          "level": 14,
+          "name": "Limited Wish",
+          "description": "High-end magical flexibility to replicate certain spell effects within constraints (powerful utility)."
+        }
+      ]
+    }
+  },
+  "artificer": {
+    "alchemist": {
+      "name": "Alchemist",
+      "description": "A support-focused artificer who creates experimental elixirs and boosts healing/acid/poison-style effects. Strong utility and party sustain.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Alchemist Spells",
+          "description": "Always-prepared spells keyed to healing, support, and chemical effects."
+        },
+        {
+          "level": 3,
+          "name": "Experimental Elixir",
+          "description": "Create random or chosen elixirs that grant short-term buffs (healing, mobility, defense, etc.)."
+        },
+        {
+          "level": 3,
+          "name": "Tools of the Trade",
+          "description": "Gain specialized tool proficiency and crafting competence aligned with alchemy."
+        },
+        {
+          "level": 5,
+          "name": "Alchemical Savant",
+          "description": "Boost certain spell/feature outputs (damage or healing) using Intelligence and tools synergy."
+        },
+        {
+          "level": 9,
+          "name": "Restorative Reagents",
+          "description": "Improve elixir value and grant additional healing/protective benefits when used."
+        },
+        {
+          "level": 15,
+          "name": "Chemical Mastery",
+          "description": "Gain strong resistances/immunities to common chemical harms and improved performance with your concoctions."
+        }
+      ]
+    },
+    "armorer": {
+      "name": "Armorer",
+      "description": "A power-armor artificer with modular suit modes: one defensive/taunting, one stealth/ranged. Excellent tanking or infiltration flexibility.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Arcane Armor",
+          "description": "Your armor becomes a magical platform you can don quickly and treat as a core class device."
+        },
+        {
+          "level": 3,
+          "name": "Armor Model",
+          "description": "Choose a mode (guardian-style tanking or infiltrator-style stealth/ranged) with built-in weapons/features."
+        },
+        {
+          "level": 3,
+          "name": "Armorer Spells",
+          "description": "Always-prepared spells that complement armor combat and protection."
+        },
+        {
+          "level": 5,
+          "name": "Extra Attack",
+          "description": "You can attack twice when you take the Attack action."
+        },
+        {
+          "level": 9,
+          "name": "Armor Modifications",
+          "description": "Increase infusion capacity and customization specifically tied to your armor components."
+        },
+        {
+          "level": 15,
+          "name": "Perfected Armor",
+          "description": "Your chosen armor model gains a high-impact upgrade (enhanced tanking control or stealth/ranged burst)."
+        }
+      ]
+    },
+    "artillerist": {
+      "name": "Artillerist",
+      "description": "A turret-and-explosives artificer who deploys an eldritch cannon for damage, defense, or support. Strong ranged pressure and team shielding.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Artillerist Spells",
+          "description": "Always-prepared spells emphasizing blasting and protection."
+        },
+        {
+          "level": 3,
+          "name": "Eldritch Cannon",
+          "description": "Create a magical cannon (handheld or placed) with multiple firing modes (damage/area/defense)."
+        },
+        {
+          "level": 5,
+          "name": "Arcane Firearm",
+          "description": "Boost damage for certain spellcasting using a custom focus device."
+        },
+        {
+          "level": 9,
+          "name": "Explosive Cannon",
+          "description": "Cannon becomes more potent and gains improved survivability/impact when destroyed or upgraded."
+        },
+        {
+          "level": 15,
+          "name": "Fortified Position",
+          "description": "Deploy stronger turret setups (often improved cover/defense and/or multiple cannons)."
+        }
+      ]
+    },
+    "battle-smith": {
+      "name": "Battle Smith",
+      "description": "A weapon-and-companion artificer with a steel defender. Solid frontline option, strong reaction defense, and Intelligence-based weapon synergy.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Battle Ready",
+          "description": "Use Intelligence for weapon attacks with magic weapons and gain combat proficiencies to support martial play."
+        },
+        {
+          "level": 3,
+          "name": "Battle Smith Spells",
+          "description": "Always-prepared spells focused on defense, mobility, and smiting-like pressure."
+        },
+        {
+          "level": 3,
+          "name": "Steel Defender",
+          "description": "Gain a construct companion that can attack, protect, and impose disadvantage via reactions depending on use."
+        },
+        {
+          "level": 5,
+          "name": "Extra Attack",
+          "description": "You can attack twice when you take the Attack action."
+        },
+        {
+          "level": 9,
+          "name": "Arcane Jolt",
+          "description": "Add a burst of damage or healing when you or your defender hits, limited uses per day."
+        },
+        {
+          "level": 15,
+          "name": "Improved Defender",
+          "description": "Your steel defender becomes tougher and more dangerous; overall companion scaling improves."
+        }
+      ]
+    }
+  },
+  "fighter": {
+    "psi-warrior": {
+      "name": "Psi Warrior",
+      "description": "A psionic fighter who uses mental energy for defense, force movement, and burst damage. Great control and survivability tools.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Psionic Power",
+          "description": "Gain a pool of psionic dice and multiple ways to spend them (damage, defense, movement)."
+        },
+        {
+          "level": 3,
+          "name": "Telekinetic Adept",
+          "description": "Access baseline telekinesis utilities and psionic discipline improvements."
+        },
+        {
+          "level": 7,
+          "name": "Psi-Powered Leap",
+          "description": "Gain enhanced jump/mobility fueled by psionic power."
+        },
+        {
+          "level": 7,
+          "name": "Telekinetic Thrust",
+          "description": "Add push/knockdown control tied to your psionic strikes."
+        },
+        {
+          "level": 10,
+          "name": "Guarded Mind",
+          "description": "Gain psychic defense and improved resilience against mental interference."
+        },
+        {
+          "level": 15,
+          "name": "Bulwark of Force",
+          "description": "Project force protection to allies (team defense scaling with resources)."
+        },
+        {
+          "level": 18,
+          "name": "Telekinetic Master",
+          "description": "High-end telekinetic control and free/efficient uses of key psionic effects."
+        }
+      ]
+    },
+    "rune-knight": {
+      "name": "Rune Knight",
+      "description": "A giant-rune empowered fighter with flexible rune-based reactions and a size-increase combat mode. Strong control and tanking.",
+      "features": [
+        {
+          "level": 3,
+          "name": "Giant's Might",
+          "description": "Enter a powered state (often growing larger) for extra damage and physical advantages."
+        },
+        {
+          "level": 3,
+          "name": "Rune Carver",
+          "description": "Learn magical runes that grant passive benefits and activated powers."
+        },
+        {
+          "level": 7,
+          "name": "Runic Shield",
+          "description": "Use a reaction to protect allies by interfering with enemy attacks."
+        },
+        {
+          "level": 10,
+          "name": "Great Stature",
+          "description": "Gain physical growth/strength benefits that reinforce the giant theme."
+        },
+        {
+          "level": 15,
+          "name": "Master of Runes",
+          "description": "Use rune powers more frequently (cooldown/resource improvements)."
+        },
+        {
+          "level": 18,
+          "name": "Runic Juggernaut",
+          "description": "Your giant form becomes significantly more potent (size, reach, presence)."
+        }
+      ]
+    }
+  }
+}

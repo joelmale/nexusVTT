@@ -1,0 +1,10 @@
+{
+  "BACKGROUND_DEFAULTS": {
+    "Outlander": {
+      "personality": "I'm driven by a wanderlust that led me away from home. I watch over my friends as if they were a litter of newborn pups.",
+      "ideals": "Change: Life is like the seasons, in constant change, and we must change with it. (Chaotic)",
+      "bonds": "My family, clan, or tribe is the most important thing in my life, even when they are far from me.",
+      "flaws": "I am too enamored of ale, wine, and other intoxicants."
+    }
+  }
+}

@@ -1,0 +1,1029 @@
+{
+  "metadata": {
+    "version": "1.1",
+    "description": "Comprehensive species data for D&D 5e character creation (2014 & 2024)",
+    "lastUpdated": "2025-11-29",
+    "totalSpecies": 27
+  },
+  "species": [
+    {
+      "slug": "human-2024",
+      "name": "Human",
+      "edition": "2024",
+      "source": "PHB 2024",
+      "speed": 30,
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "ability_bonuses": {},
+      "species_traits": [
+        "Resourceful",
+        "Skillful",
+        "Versatile"
+      ],
+      "description": "Humans are the most adaptable and ambitious people among the common races. In the 2024 rules, they are defined by their versatility and resilience.",
+      "typicalRoles": [
+        "Any"
+      ],
+      "sources": [
+        "PHB 2024",
+        "PHB"
+      ],
+      "core": true,
+      "expanded": false,
+      "legacy": false,
+      "legacySlugs": [
+        "human"
+      ],
+      "tags": [
+        "core"
+      ]
+    },
+    {
+      "slug": "dwarf-2024",
+      "name": "Dwarf",
+      "edition": "2024",
+      "source": "PHB 2024",
+      "speed": 30,
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "ability_bonuses": {},
+      "species_traits": [
+        "Darkvision",
+        "Dwarven Resilience",
+        "Dwarven Toughness",
+        "Stonecunning"
+      ],
+      "description": "Dwarves are solid and enduring like the mountains they love, weathering the passage of centuries with stoic endurance.",
+      "typicalRoles": [
+        "Fighter",
+        "Cleric",
+        "Paladin"
+      ],
+      "sources": [
+        "PHB 2024",
+        "PHB"
+      ],
+      "core": true,
+      "expanded": false,
+      "legacy": false,
+      "legacySlugs": [
+        "mountain-dwarf",
+        "hill-dwarf"
+      ],
+      "tags": [
+        "core"
+      ]
+    },
+    {
+      "slug": "elf-2024",
+      "name": "Elf",
+      "edition": "2024",
+      "source": "PHB 2024",
+      "speed": 30,
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "ability_bonuses": {},
+      "species_traits": [
+        "Darkvision",
+        "Elven Lineage",
+        "Fey Ancestry",
+        "Keen Senses",
+        "Trance"
+      ],
+      "description": "Elves are a magical people of otherworldly grace, living in the world but not entirely part of it.",
+      "typicalRoles": [
+        "Wizard",
+        "Rogue",
+        "Ranger",
+        "Druid"
+      ],
+      "variants": [
+        {
+          "slug": "drow-lineage",
+          "name": "Drow Lineage",
+          "description": "Descended from the Underdark.",
+          "ability_bonuses": {},
+          "species_traits": [
+            "Superior Darkvision",
+            "Drow Magic"
+          ],
+          "features": []
+        },
+        {
+          "slug": "high-elf-lineage",
+          "name": "High Elf Lineage",
+          "description": "Descended from the Feywild courts.",
+          "ability_bonuses": {},
+          "species_traits": [
+            "Cantrip",
+            "Detect Magic"
+          ],
+          "features": []
+        },
+        {
+          "slug": "wood-elf-lineage",
+          "name": "Wood Elf Lineage",
+          "description": "Descended from the primeval forests.",
+          "ability_bonuses": {},
+          "species_traits": [
+            "Fleet of Foot",
+            "Mask of the Wild"
+          ],
+          "features": []
+        }
+      ],
+      "sources": [
+        "PHB 2024",
+        "PHB"
+      ],
+      "core": true,
+      "expanded": false,
+      "legacy": false,
+      "legacySlugs": [
+        "high-elf",
+        "wood-elf",
+        "drow"
+      ],
+      "tags": [
+        "core"
+      ]
+    },
+    {
+      "slug": "halfling-2024",
+      "name": "Halfling",
+      "edition": "2024",
+      "source": "PHB 2024",
+      "speed": 30,
+      "creatureType": "Humanoid",
+      "size": "Small",
+      "ability_bonuses": {},
+      "species_traits": [
+        "Brave",
+        "Halfling Nimbleness",
+        "Lucky",
+        "Naturally Stealthy"
+      ],
+      "description": "The diminutive halflings survive in a world full of larger creatures by avoiding notice or, barring that, avoiding offense.",
+      "typicalRoles": [
+        "Rogue",
+        "Bard"
+      ],
+      "sources": [
+        "PHB 2024",
+        "PHB"
+      ],
+      "core": true,
+      "expanded": false,
+      "legacy": false,
+      "legacySlugs": [
+        "lightfoot-halfling",
+        "stout-halfling"
+      ],
+      "tags": [
+        "core"
+      ]
+    },
+    {
+      "slug": "gnome-2024",
+      "name": "Gnome",
+      "edition": "2024",
+      "source": "PHB 2024",
+      "speed": 30,
+      "creatureType": "Humanoid",
+      "size": "Small",
+      "ability_bonuses": {},
+      "species_traits": [
+        "Darkvision",
+        "Gnomish Cunning",
+        "Gnomish Lineage"
+      ],
+      "description": "A constant hum of busy activity pervades the warrens and neighborhoods where gnomes form their close-knit communities.",
+      "typicalRoles": [
+        "Wizard",
+        "Artificer",
+        "Rogue"
+      ],
+      "variants": [
+        {
+          "slug": "forest-gnome-lineage",
+          "name": "Forest Gnome Lineage",
+          "description": "Natural illusionists.",
+          "ability_bonuses": {},
+          "species_traits": [
+            "Minor Illusion",
+            "Speak with Small Beasts"
+          ],
+          "features": []
+        },
+        {
+          "slug": "rock-gnome-lineage",
+          "name": "Rock Gnome Lineage",
+          "description": "Natural tinkerers.",
+          "ability_bonuses": {},
+          "species_traits": [
+            "Mending",
+            "Prestidigitation",
+            "Tinker"
+          ],
+          "features": []
+        }
+      ],
+      "sources": [
+        "PHB 2024",
+        "PHB"
+      ],
+      "core": true,
+      "expanded": false,
+      "legacy": false,
+      "legacySlugs": [
+        "forest-gnome",
+        "rock-gnome"
+      ],
+      "tags": [
+        "core"
+      ]
+    },
+    {
+      "slug": "dragonborn-2024",
+      "name": "Dragonborn",
+      "edition": "2024",
+      "source": "PHB 2024",
+      "speed": 30,
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "ability_bonuses": {},
+      "species_traits": [
+        "Draconic Ancestry",
+        "Breath Weapon",
+        "Damage Resistance",
+        "Darkvision",
+        "Draconic Flight (cannot fly while wearing medium or heavy armor)"
+      ],
+      "description": "Born of dragons, as their name proclaims, the dragonborn walk proudly through a world that greets them with fearful incomprehension.",
+      "typicalRoles": [
+        "Paladin",
+        "Fighter",
+        "Sorcerer"
+      ],
+      "sources": [
+        "PHB 2024",
+        "PHB"
+      ],
+      "core": true,
+      "expanded": false,
+      "legacy": false,
+      "legacySlugs": [
+        "dragonborn"
+      ],
+      "tags": [
+        "core"
+      ]
+    },
+    {
+      "slug": "orc-2024",
+      "name": "Orc",
+      "edition": "2024",
+      "source": "PHB 2024",
+      "speed": 30,
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "ability_bonuses": {},
+      "species_traits": [
+        "Adrenaline Rush",
+        "Darkvision",
+        "Powerful Build",
+        "Relentless Endurance"
+      ],
+      "description": "Orcs are people of deep emotion and great passion, renowned for their unyielding endurance and determination.",
+      "typicalRoles": [
+        "Barbarian",
+        "Fighter"
+      ],
+      "sources": [
+        "PHB 2024",
+        "VGtM"
+      ],
+      "core": true,
+      "expanded": false,
+      "legacy": false,
+      "legacySlugs": [
+        "orc"
+      ],
+      "tags": [
+        "core",
+        "monstrous"
+      ]
+    },
+    {
+      "slug": "tiefling-2024",
+      "name": "Tiefling",
+      "edition": "2024",
+      "source": "PHB 2024",
+      "speed": 30,
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "ability_bonuses": {},
+      "species_traits": [
+        "Darkvision",
+        "Otherworldly Presence",
+        "Fiendish Legacy"
+      ],
+      "description": "To be greeted with stares and whispers, to suffer violence and insult on the street, to see mistrust and fear in every eye: this is the lot of the tiefling.",
+      "typicalRoles": [
+        "Warlock",
+        "Sorcerer",
+        "Bard"
+      ],
+      "variants": [
+        {
+          "slug": "abyssal-tiefling",
+          "name": "Abyssal Tiefling",
+          "description": "Descended from demons of the Abyss.",
+          "ability_bonuses": {},
+          "species_traits": [
+            "Abyssal Fortitude",
+            "Abyssal Arcana"
+          ],
+          "features": []
+        },
+        {
+          "slug": "chthonic-tiefling",
+          "name": "Chthonic Tiefling",
+          "description": "Descended from fiends of the neutral lower planes.",
+          "ability_bonuses": {},
+          "species_traits": [
+            "Chthonic Resistance",
+            "Chthonic Arcana"
+          ],
+          "features": []
+        },
+        {
+          "slug": "infernal-tiefling",
+          "name": "Infernal Tiefling",
+          "description": "Descended from devils of the Nine Hells.",
+          "ability_bonuses": {},
+          "species_traits": [
+            "Infernal Legacy",
+            "Hellish Resistance"
+          ],
+          "features": []
+        }
+      ],
+      "sources": [
+        "PHB 2024",
+        "PHB"
+      ],
+      "core": true,
+      "expanded": false,
+      "legacy": false,
+      "tags": [
+        "planar",
+        "core"
+      ],
+      "legacySlugs": [
+        "tiefling"
+      ]
+    },
+    {
+      "slug": "aasimar-2024",
+      "name": "Aasimar",
+      "edition": "2024",
+      "source": "PHB 2024",
+      "speed": 30,
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "ability_bonuses": {},
+      "species_traits": [
+        "Celestial Resistance",
+        "Darkvision",
+        "Healing Hands",
+        "Light Bearer",
+        "Celestial Revelation"
+      ],
+      "description": "Aasimar are souls touched by the power of Mount Celestia, the divine realm of law and good.",
+      "typicalRoles": [
+        "Paladin",
+        "Cleric"
+      ],
+      "sources": [
+        "PHB 2024",
+        "VGtM"
+      ],
+      "core": true,
+      "expanded": false,
+      "legacy": false,
+      "tags": [
+        "planar",
+        "core"
+      ],
+      "legacySlugs": [
+        "aasimar"
+      ]
+    },
+    {
+      "slug": "goliath-2024",
+      "name": "Goliath",
+      "edition": "2024",
+      "source": "PHB 2024",
+      "speed": 35,
+      "creatureType": "Humanoid",
+      "size": "Medium",
+      "ability_bonuses": {},
+      "species_traits": [
+        "Giant Ancestry",
+        "Large Form",
+        "Powerful Build"
+      ],
+      "description": "Goliaths are the distant descendants of giants. They are tough and resilient, with abilities inherited from their giant forebears.",
+      "typicalRoles": [
+        "Barbarian",
+        "Fighter"
+      ],
+      "variants": [
+        {
+          "slug": "cloud-giant-ancestry",
+          "name": "Cloud Giant Ancestry",
+          "description": "Legacy of Cloud Giants.",
+          "ability_bonuses": {},
+          "species_traits": [
+            "Cloud Jaunt"
+          ],
+          "features": []
+        },
+        {
+          "slug": "fire-giant-ancestry",
+          "name": "Fire Giant Ancestry",
+          "description": "Legacy of Fire Giants.",
+          "ability_bonuses": {},
+          "species_traits": [
+            "Fire's Burn"
+          ],
+          "features": []
+        },
+        {
+          "slug": "frost-giant-ancestry",
+          "name": "Frost Giant Ancestry",
+          "description": "Legacy of Frost Giants.",
+          "ability_bonuses": {},
+          "species_traits": [
+            "Frost's Chill"
+          ],
+          "features": []
+        },
+        {
+          "slug": "hill-giant-ancestry",
+          "name": "Hill Giant Ancestry",
+          "description": "Legacy of Hill Giants.",
+          "ability_bonuses": {},
+          "species_traits": [
+            "Hill's Tumble"
+          ],
+          "features": []
+        },
+        {
+          "slug": "stone-giant-ancestry",
+          "name": "Stone Giant Ancestry",
+          "description": "Legacy of Stone Giants.",
+          "ability_bonuses": {},
+          "species_traits": [
+            "Stone's Endurance"
+          ],
+          "features": []
+        },
+        {
+          "slug": "storm-giant-ancestry",
+          "name": "Storm Giant Ancestry",
+          "description": "Legacy of Storm Giants.",
+          "ability_bonuses": {},
+          "species_traits": [
+            "Storm's Thunder"
+          ],
+          "features": []
+        }
+      ],
+      "sources": [
+        "PHB 2024",
+        "VGtM"
+      ],
+      "core": true,
+      "expanded": false,
+      "legacy": false,
+      "legacySlugs": [
+        "goliath"
+      ],
+      "tags": [
+        "core"
+      ]
+    },
+    {
+      "slug": "half-elf",
+      "name": "Half-Elf",
+      "edition": "2014",
+      "source": "PHB",
+      "speed": 30,
+      "ability_bonuses": {},
+      "species_traits": [
+        "Darkvision",
+        "Fey Ancestry",
+        "Skill Versatility (2 skills)"
+      ],
+      "description": "Half-elves combine what some say are the best qualities of their elf and human parents: human curiosity, inventiveness, and ambition tempered by the refined senses, love of nature, and artistic tastes of the elves.",
+      "typicalRoles": [
+        "Bard",
+        "Fighter",
+        "Rogue",
+        "Paladin",
+        "Any"
+      ],
+      "sources": [
+        "PHB"
+      ],
+      "core": false,
+      "expanded": true,
+      "tags": [
+        "expanded",
+        "legacy"
+      ],
+      "legacy": true
+    },
+    {
+      "slug": "half-orc",
+       "name": "Half-Orc",
+       "edition": "2014",
+       "source": "PHB",
+       "speed": 30,
+       "ability_bonuses": {},
+       "species_traits": [
+         "Darkvision",
+         "Menacing (Intimidation)",
+         "Savage Attacks"
+       ],
+       "description": "Half-orcs are the short-tempered and sullen result of human and orc pairings. They are strong and tough, but they are often shunned by both races.",
+       "typicalRoles": [
+         "Barbarian",
+         "Fighter",
+         "Rogue",
+         "Paladin"
+       ],
+       "sources": [
+         "PHB"
+       ],
+       "core": false,
+       "expanded": true,
+       "tags": [
+         "expanded",
+         "legacy"
+       ],
+       "legacy": true,
+       "species_feat_options": ["relentless-endurance"]
+    },
+    {
+      "slug": "firbolg",
+      "name": "Firbolg",
+      "edition": "2014",
+      "source": "VGtM",
+      "speed": 30,
+      "ability_bonuses": {},
+      "species_traits": [
+        "Firbolg Magic",
+        "Hidden Step",
+        "Powerful Build",
+        "Speech of Beast and Leaf"
+      ],
+      "description": "Firbolgs are reclusive giant-kin who dwell in remote forests and mountains. They are peaceful and wise, but they can be terrifying when roused to anger.",
+      "typicalRoles": [
+        "Druid",
+        "Barbarian",
+        "Fighter",
+        "Cleric"
+      ],
+      "sources": [
+        "VGtM"
+      ],
+      "core": false,
+      "expanded": true,
+      "tags": [
+        "exotic",
+        "expanded"
+      ]
+    },
+    {
+      "slug": "kenku",
+      "name": "Kenku",
+      "edition": "2014",
+      "source": "VGtM",
+      "speed": 30,
+      "ability_bonuses": {},
+      "species_traits": [
+        "Expert Forgery",
+        "Kenku Training",
+        "Mimicry"
+      ],
+      "description": "Kenku are crow-like humanoids who were transformed by powerful magic. They are cunning and resourceful, but they cannot speak except by mimicking sounds they have heard.",
+      "typicalRoles": [
+        "Rogue",
+        "Bard",
+        "Monk",
+        "Wizard"
+      ],
+      "sources": [
+        "VGtM"
+      ],
+      "core": false,
+      "expanded": true,
+      "tags": [
+        "exotic",
+        "expanded"
+      ]
+    },
+    {
+      "slug": "tabaxi",
+      "name": "Tabaxi",
+      "edition": "2014",
+      "source": "VGtM",
+      "speed": 30,
+      "ability_bonuses": {},
+      "species_traits": [
+        "Darkvision",
+        "Feline Agility",
+        "Cat's Claws",
+        "Cat's Talent"
+      ],
+      "description": "Tabaxi are cat-like humanoids who hail from distant jungles. They are curious, agile, and often follow their whims.",
+      "typicalRoles": [
+        "Rogue",
+        "Bard",
+        "Druid",
+        "Fighter"
+      ],
+      "sources": [
+        "VGtM"
+      ],
+      "core": false,
+      "expanded": true,
+      "tags": [
+        "exotic",
+        "expanded"
+      ]
+    },
+    {
+      "slug": "triton",
+      "name": "Triton",
+      "edition": "2014",
+      "source": "VGtM",
+      "speed": 30,
+      "ability_bonuses": {},
+      "species_traits": [
+        "Amphibious",
+        "Control Air and Water",
+        "Emissary of the Sea",
+        "Guardians of the Depths"
+      ],
+      "description": "Tritons are fish-like humanoids who dwell in the depths of the ocean. They are guardians of the sea and often serve powerful aquatic beings.",
+      "typicalRoles": [
+        "Cleric",
+        "Fighter",
+        "Paladin",
+        "Wizard"
+      ],
+      "sources": [
+        "VGtM"
+      ],
+      "core": false,
+      "expanded": true,
+      "tags": [
+        "exotic",
+        "expanded"
+      ]
+    },
+    {
+      "slug": "bugbear",
+      "name": "Bugbear",
+      "edition": "2014",
+      "source": "VGtM",
+      "speed": 30,
+      "ability_bonuses": {},
+      "species_traits": [
+        "Darkvision",
+        "Long-Limbed",
+        "Powerful Build",
+        "Sneaky",
+        "Surprise Attack"
+      ],
+      "description": "Bugbears are hulking, furry goblinoids that tower over their goblin and hobgoblin kin. They are stealthy predators who strike from the shadows.",
+      "typicalRoles": [
+        "Rogue",
+        "Barbarian",
+        "Fighter",
+        "Ranger"
+      ],
+      "sources": [
+        "VGtM"
+      ],
+      "core": false,
+      "expanded": true,
+      "tags": [
+        "monstrous",
+        "expanded"
+      ]
+    },
+    {
+      "slug": "goblin",
+      "name": "Goblin",
+      "edition": "2014",
+      "source": "VGtM",
+      "speed": 30,
+      "ability_bonuses": {},
+      "species_traits": [
+        "Darkvision",
+        "Fury of the Small",
+        "Nimble Escape"
+      ],
+      "description": "Goblins are small, green-skinned creatures that dwell in dark, cramped places. They are cunning and vicious, but they are often cowardly.",
+      "typicalRoles": [
+        "Rogue",
+        "Wizard",
+        "Bard",
+        "Warlock"
+      ],
+      "sources": [
+        "VGtM"
+      ],
+      "core": false,
+      "expanded": true,
+      "tags": [
+        "monstrous",
+        "expanded"
+      ]
+    },
+    {
+      "slug": "hobgoblin",
+      "name": "Hobgoblin",
+      "edition": "2014",
+      "source": "VGtM",
+      "speed": 30,
+      "ability_bonuses": {},
+      "species_traits": [
+        "Darkvision",
+        "Martial Training",
+        "Saving Face"
+      ],
+      "description": "Hobgoblins are large, militaristic goblinoids that organize themselves into legions. They are disciplined warriors who value honor and tradition.",
+      "typicalRoles": [
+        "Fighter",
+        "Barbarian",
+        "Rogue",
+        "Wizard"
+      ],
+      "sources": [
+        "VGtM"
+      ],
+      "core": false,
+      "expanded": true,
+      "tags": [
+        "monstrous",
+        "expanded"
+      ]
+    },
+    {
+      "slug": "kobold",
+      "name": "Kobold",
+      "edition": "2014",
+      "source": "VGtM",
+      "speed": 30,
+      "ability_bonuses": {},
+      "species_traits": [
+        "Darkvision",
+        "Grovel, Cower, and Beg",
+        "Pack Tactics",
+        "Sunlight Sensitivity",
+        "Draconic Cry (frighten creatures within 10 ft)"
+      ],
+      "description": "Kobolds are small, reptilian humanoids that dwell in dark places. They are cowardly and subservient, but they can be surprisingly cunning.",
+      "typicalRoles": [
+        "Rogue",
+        "Wizard",
+        "Sorcerer",
+        "Warlock"
+      ],
+      "sources": [
+        "VGtM"
+      ],
+      "core": false,
+      "expanded": true,
+      "tags": [
+        "monstrous",
+        "expanded"
+      ]
+    },
+    {
+      "slug": "yuan-ti-pureblood",
+      "name": "Yuan-Ti Pureblood",
+      "edition": "2014",
+      "source": "VGtM",
+      "speed": 30,
+      "ability_bonuses": {},
+      "species_traits": [
+        "Darkvision",
+        "Innate Spellcasting"
+      ],
+      "description": "Yuan-ti purebloods are snake-like humanoids who appear mostly human. They are cunning and manipulative, with a natural affinity for magic.",
+      "typicalRoles": [
+        "Warlock",
+        "Wizard",
+        "Rogue",
+        "Sorcerer"
+      ],
+      "sources": [
+        "VGtM"
+      ],
+      "core": false,
+      "expanded": true,
+      "tags": [
+        "monstrous",
+        "expanded"
+      ]
+    },
+    {
+      "slug": "fairy",
+      "name": "Fairy",
+      "edition": "2014",
+      "source": "WGtE",
+      "speed": 30,
+      "ability_bonuses": {},
+      "species_traits": [
+        "Fairy Magic",
+        "Flight (cannot fly while wearing medium or heavy armor)"
+      ],
+      "description": "Fairies are tiny, magical beings from the Feywild. They are playful and mischievous, with a natural affinity for illusion magic.",
+      "typicalRoles": [
+        "Bard",
+        "Druid",
+        "Rogue",
+        "Wizard"
+      ],
+      "sources": [
+        "WGtE"
+      ],
+      "core": false,
+      "expanded": true,
+      "tags": [
+        "exotic",
+        "expanded"
+      ]
+    },
+    {
+      "slug": "harengon",
+      "name": "Harengon",
+      "edition": "2014",
+      "source": "WGtE",
+      "speed": 30,
+      "ability_bonuses": {},
+      "species_traits": [
+        "Hare-Trigger",
+        "Leporine Senses",
+        "Lucky Footwork",
+        "Rabbit Hop"
+      ],
+      "description": "Harengons are rabbit-like humanoids who hail from the Feywild. They are quick and lucky, with enhanced senses and agility.",
+      "typicalRoles": [
+        "Rogue",
+        "Ranger",
+        "Bard",
+        "Monk"
+      ],
+      "sources": [
+        "WGtE"
+      ],
+      "core": false,
+      "expanded": true,
+      "tags": [
+        "exotic",
+        "expanded"
+      ]
+    },
+    {
+      "slug": "loxodon",
+      "name": "Loxodon",
+      "edition": "2014",
+      "source": "GGtR",
+      "speed": 30,
+      "ability_bonuses": {},
+      "species_traits": [
+        "Powerful Build",
+        "Loxodon Serenity",
+        "Natural Armor",
+        "Trunk"
+      ],
+      "description": "Loxodons are elephant-like humanoids known for their wisdom and calm demeanor. They are peaceful and introspective.",
+      "typicalRoles": [
+        "Cleric",
+        "Druid",
+        "Monk",
+        "Paladin"
+      ],
+      "sources": [
+        "GGtR"
+      ],
+      "core": false,
+      "expanded": true,
+      "tags": [
+        "exotic",
+        "expanded"
+      ]
+    },
+    {
+      "slug": "owlin",
+      "name": "Owlin",
+      "edition": "2014",
+      "source": "Strixhaven",
+      "speed": 30,
+      "ability_bonuses": {},
+      "species_traits": [
+        "Darkvision",
+        "Flight (cannot fly while wearing medium or heavy armor)",
+        "Silent Feathers"
+      ],
+      "description": "Owlin are owl-like humanoids who can fly silently through the night. They are wise and observant.",
+      "typicalRoles": [
+        "Druid",
+        "Wizard",
+        "Rogue",
+        "Cleric"
+      ],
+      "sources": [
+        "Strixhaven"
+      ],
+      "core": false,
+      "expanded": true,
+      "tags": [
+        "exotic",
+        "expanded"
+      ]
+    },
+    {
+      "slug": "githyanki",
+      "name": "Githyanki",
+      "edition": "2014",
+      "source": "MToF",
+      "speed": 30,
+      "ability_bonuses": {},
+      "species_traits": [
+        "Decadent Mastery",
+        "Githyanki Psionics",
+        "Martial Prodigy"
+      ],
+      "description": "Githyanki are humanoid warriors from the Astral Plane. They are fierce fighters with psionic abilities.",
+      "typicalRoles": [
+        "Fighter",
+        "Wizard",
+        "Rogue",
+        "Barbarian"
+      ],
+      "sources": [
+        "MToF"
+      ],
+      "core": false,
+      "expanded": true,
+      "tags": [
+        "monstrous",
+        "expanded"
+      ],
+      "species_feat_options": ["magic-resistance", "poison-immunity"]
+    },
+    {
+      "slug": "genasi",
+      "name": "Genasi",
+      "edition": "2014",
+      "source": "EE",
+      "speed": 30,
+      "ability_bonuses": {},
+      "species_traits": [
+        "Darkvision",
+        "Fire Resistance",
+        "Reach to the Blaze"
+      ],
+      "description": "Fire genasi are humanoids infused with elemental fire. They have a fiery temper and resistance to heat.",
+      "typicalRoles": [
+        "Sorcerer",
+        "Fighter",
+        "Barbarian",
+        "Wizard"
+      ],
+      "sources": [
+        "EE"
+      ],
+      "core": false,
+      "expanded": true,
+      "tags": [
+        "elemental",
+        "planar",
+        "expanded"
+      ],
+      "legacySlugs": [
+        "fire-genasi"
+      ],
+      "legacy": false
+    }
+  ]
+}

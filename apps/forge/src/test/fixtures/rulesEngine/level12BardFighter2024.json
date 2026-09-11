@@ -1,0 +1,124 @@
+{
+  "id": "test-bard-12",
+  "name": "Test Bard/Fighter Level 12",
+  "species": "half-elf",
+  "class": "bard",
+  "level": 12,
+  "alignment": "Chaotic Good",
+  "background": "entertainer",
+  "edition": "2024",
+  "subclass": "college-of-lore",
+  "inspiration": false,
+  "proficiencyBonus": 4,
+  "armorClass": 16,
+  "hitPoints": 78,
+  "maxHitPoints": 78,
+  "hitDice": {
+    "current": 12,
+    "max": 12,
+    "dieType": 8
+  },
+  "speed": 30,
+  "initiative": 3,
+  "abilities": {
+    "STR": { "score": 10, "modifier": 0 },
+    "DEX": { "score": 16, "modifier": 3 },
+    "CON": { "score": 14, "modifier": 2 },
+    "INT": { "score": 12, "modifier": 1 },
+    "WIS": { "score": 13, "modifier": 1 },
+    "CHA": { "score": 18, "modifier": 4 }
+  },
+  "skills": {
+    "Acrobatics": { "value": 11, "proficient": true, "expertise": true },
+    "AnimalHandling": { "value": 1, "proficient": false },
+    "Arcana": { "value": 5, "proficient": true },
+    "Athletics": { "value": 4, "proficient": true },
+    "Deception": { "value": 12, "proficient": true, "expertise": true },
+    "History": { "value": 5, "proficient": true },
+    "Insight": { "value": 5, "proficient": true },
+    "Intimidation": { "value": 8, "proficient": true },
+    "Investigation": { "value": 1, "proficient": false },
+    "Medicine": { "value": 1, "proficient": false },
+    "Nature": { "value": 1, "proficient": false },
+    "Perception": { "value": 5, "proficient": true },
+    "Performance": { "value": 12, "proficient": true, "expertise": true },
+    "Persuasion": { "value": 12, "proficient": true, "expertise": true },
+    "Religion": { "value": 1, "proficient": false },
+    "SleightOfHand": { "value": 3, "proficient": false },
+    "Stealth": { "value": 3, "proficient": false },
+    "Survival": { "value": 1, "proficient": false }
+  },
+  "languages": ["Common", "Elvish", "Sylvan", "Draconic"],
+  "proficiencies": {
+    "armor": ["Light armor", "Medium armor", "Shields"],
+    "weapons": ["Simple weapons", "Hand crossbows", "Longswords", "Rapiers", "Shortswords", "Martial weapons"],
+    "tools": ["Lute", "Flute", "Drum"]
+  },
+  "expertiseSkills": ["Acrobatics", "Deception", "Performance", "Persuasion"],
+  "fightingStyle": "dueling",
+  "originFeat": "musician",
+  "selectedFeats": ["inspiring-leader"],
+  "featuresAndTraits": {
+    "personality": "I love a good insult, even one directed at me.",
+    "ideals": "Creativity",
+    "bonds": "I idolize a hero of the old tales and measure my deeds against that person's.",
+    "flaws": "I'll do anything to win fame and renown.",
+    "classFeatures": [
+      "Spellcasting",
+      "Bardic Inspiration (d10)",
+      "Jack of All Trades",
+      "Song of Rest",
+      "Expertise",
+      "Font of Inspiration",
+      "Countercharm",
+      "Cutting Words",
+      "Additional Magical Secrets",
+      "Fighting Style (Dueling)",
+      "Second Wind",
+      "Action Surge"
+    ],
+    "speciesTraits": ["Darkvision", "Fey Ancestry", "Skill Versatility"],
+    "backgroundFeatures": [
+      {
+        "name": "By Popular Demand",
+        "description": "You can always find a place to perform."
+      }
+    ],
+    "musicalInstrumentProficiencies": ["Lute", "Flute", "Drum"]
+  },
+  "spellcasting": {
+    "ability": "CHA",
+    "spellSaveDC": 16,
+    "spellAttackBonus": 8,
+    "cantripsKnown": ["vicious-mockery", "mage-hand", "prestidigitation", "minor-illusion"],
+    "spellsKnown": [
+      "cure-wounds",
+      "healing-word",
+      "thunderwave",
+      "detect-thoughts",
+      "hold-person",
+      "suggestion",
+      "counterspell",
+      "hypnotic-pattern",
+      "fireball",
+      "dimension-door",
+      "greater-invisibility",
+      "polymorph",
+      "mass-cure-wounds",
+      "animate-objects"
+    ],
+    "spellSlots": [4, 4, 3, 3, 2, 1, 0, 0, 0],
+    "usedSpellSlots": [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "spellcastingType": "known",
+    "cantripChoicesByLevel": {
+      "1": "vicious-mockery,mage-hand,prestidigitation,minor-illusion"
+    }
+  },
+  "inventory": [],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "gp": 500,
+    "pp": 25
+  }
+}

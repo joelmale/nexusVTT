@@ -1,0 +1,577 @@
+@import "tailwindcss";
+
+@theme {
+  --font-family-cinzel: 'Cinzel', serif;
+  --font-family-eb-garamond: 'EB Garamond', serif;
+  --font-family-handwriting: 'Caveat', cursive;
+  --font-family-homemade-apple: 'Homemade Apple', cursive;
+
+  /* Parchment texture for paper theme */
+  --parchment-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
+}
+
+/* ========================================
+   THEME SYSTEM - Color Variables
+   ======================================== */
+
+/* Default Theme: Dark Colorful */
+:root,
+[data-theme="dark-colorful"] {
+  /* Background colors */
+  --color-bg-primary: 17 24 39;        /* gray-900 */
+  --color-bg-secondary: 31 41 55;      /* gray-800 */
+  --color-bg-tertiary: 55 65 81;       /* gray-700 */
+  --color-bg-quaternary: 75 85 99;     /* gray-600 */
+  --color-bg-hover: 107 114 128;       /* gray-500 */
+
+  /* Text colors */
+  --color-text-primary: 243 244 246;   /* gray-100 */
+  --color-text-secondary: 229 231 235; /* gray-200 */
+  --color-text-tertiary: 209 213 219;  /* gray-300 */
+  --color-text-muted: 156 163 175;     /* gray-400 */
+  --color-text-disabled: 107 114 128;  /* gray-500 */
+
+  /* Border colors */
+  --color-border-primary: 75 85 99;    /* gray-600 */
+  --color-border-secondary: 55 65 81;  /* gray-700 */
+  --color-border-tertiary: 31 41 55;   /* gray-800 */
+
+  /* Accent colors - Red (primary brand) */
+  --color-accent-red-light: 248 113 113;   /* red-400 */
+  --color-accent-red: 220 38 38;           /* red-600 */
+  --color-accent-red-dark: 185 28 28;      /* red-700 */
+  --color-accent-red-darker: 153 27 27;    /* red-800 */
+
+  /* Accent colors - Purple */
+  --color-accent-purple-light: 192 132 252; /* purple-400 */
+  --color-accent-purple: 147 51 234;        /* purple-600 */
+  --color-accent-purple-dark: 126 34 206;   /* purple-700 */
+  --color-accent-purple-darker: 107 33 168; /* purple-800 */
+
+  /* Accent colors - Green */
+  --color-accent-green-light: 134 239 172;  /* green-300 */
+  --color-accent-green: 34 197 94;          /* green-500 */
+  --color-accent-green-dark: 22 163 74;     /* green-600 */
+  --color-accent-green-darker: 21 128 61;   /* green-700 */
+
+  /* Accent colors - Blue */
+  --color-accent-blue-light: 96 165 250;    /* blue-400 */
+  --color-accent-blue: 37 99 235;           /* blue-600 */
+  --color-accent-blue-dark: 29 78 216;      /* blue-700 */
+  --color-accent-blue-darker: 30 64 175;    /* blue-800 */
+
+  /* Accent colors - Yellow */
+  --color-accent-yellow-light: 253 224 71;  /* yellow-300 */
+  --color-accent-yellow: 234 179 8;         /* yellow-500 */
+  --color-accent-yellow-dark: 202 138 4;    /* yellow-600 */
+  --color-accent-yellow-darker: 161 98 7;   /* yellow-700 */
+
+  /* Shadow colors */
+  --color-shadow: 0 0 0;                    /* black */
+  --color-shadow-red: 153 27 27;            /* red-800 */
+  --color-shadow-purple: 107 33 168;        /* purple-800 */
+}
+
+/* Light Mode Theme */
+[data-theme="light"] {
+  /* Background colors */
+  --color-bg-primary: 255 255 255;     /* white */
+  --color-bg-secondary: 249 250 251;   /* gray-50 */
+  --color-bg-tertiary: 243 244 246;    /* gray-100 */
+  --color-bg-quaternary: 229 231 235;  /* gray-200 */
+  --color-bg-hover: 209 213 219;       /* gray-300 */
+
+  /* Text colors - Dark brown for labels */
+  --color-text-primary: 61 40 23;      /* very dark brown #3d2817 */
+  --color-text-secondary: 93 64 55;    /* dark brown #5d4037 */
+  --color-text-tertiary: 109 76 65;    /* medium brown #6d4c41 */
+  --color-text-muted: 121 85 72;       /* muted brown #795548 */
+  --color-text-disabled: 141 110 99;   /* disabled brown #8d6e63 */
+
+  /* Border colors */
+  --color-border-primary: 209 213 219; /* gray-300 */
+  --color-border-secondary: 229 231 235; /* gray-200 */
+  --color-border-tertiary: 243 244 246; /* gray-100 */
+
+  /* Accent colors - Red (primary brand) */
+  --color-accent-red-light: 252 165 165;   /* red-300 */
+  --color-accent-red: 220 38 38;           /* red-600 */
+  --color-accent-red-dark: 185 28 28;      /* red-700 */
+  --color-accent-red-darker: 153 27 27;    /* red-800 */
+
+  /* Accent colors - Purple */
+  --color-accent-purple-light: 216 180 254; /* purple-300 */
+  --color-accent-purple: 147 51 234;        /* purple-600 */
+  --color-accent-purple-dark: 126 34 206;   /* purple-700 */
+  --color-accent-purple-darker: 107 33 168; /* purple-800 */
+
+  /* Accent colors - Green */
+  --color-accent-green-light: 134 239 172;  /* green-300 */
+  --color-accent-green: 22 163 74;          /* green-600 */
+  --color-accent-green-dark: 21 128 61;     /* green-700 */
+  --color-accent-green-darker: 22 101 52;   /* green-800 */
+
+  /* Accent colors - Blue */
+  --color-accent-blue-light: 147 197 253;   /* blue-300 */
+  --color-accent-blue: 37 99 235;           /* blue-600 */
+  --color-accent-blue-dark: 29 78 216;      /* blue-700 */
+  --color-accent-blue-darker: 30 64 175;    /* blue-800 */
+
+  /* Accent colors - Yellow */
+  --color-accent-yellow-light: 253 224 71;  /* yellow-300 */
+  --color-accent-yellow: 202 138 4;         /* yellow-600 */
+  --color-accent-yellow-dark: 161 98 7;     /* yellow-700 */
+  --color-accent-yellow-darker: 133 77 14;  /* yellow-800 */
+
+  /* Shadow colors */
+  --color-shadow: 0 0 0;                    /* black */
+  --color-shadow-red: 153 27 27;            /* red-800 */
+  --color-shadow-purple: 107 33 168;        /* purple-800 */
+}
+
+/* Paper Mode Theme - Authentic Parchment Aesthetic */
+[data-theme="paper"] {
+  /* Background colors - Parchment/cream tones with texture */
+  --color-bg-primary: 252 246 227;     /* cream parchment #fcf6e3 */
+  --color-bg-secondary: 245 235 210;   /* aged paper #f5ebd2 */
+  --color-bg-tertiary: 235 225 200;    /* darker parchment #ebe1c8 */
+  --color-bg-quaternary: 225 215 190;  /* even darker parchment */
+  --color-bg-hover: 215 205 180;       /* hover state */
+
+  /* Typography - Switch to serif for authentic printed text */
+  font-family: var(--font-family-eb-garamond);
+
+  /* Text colors - Dark brown ink tones for labels */
+  --color-text-primary: 61 40 23;      /* very dark brown #3d2817 */
+  --color-text-secondary: 74 54 34;    /* dark brown ink #4a3622 */
+  --color-text-tertiary: 92 72 52;     /* medium brown #5c4834 */
+  --color-text-muted: 110 90 70;       /* muted brown */
+  --color-text-disabled: 140 120 100;  /* disabled brown */
+
+  /* Border colors - Subtle brown borders */
+  --color-border-primary: 205 195 170; /* subtle border */
+  --color-border-secondary: 215 205 180; /* lighter border */
+  --color-border-tertiary: 225 215 190; /* lightest border */
+
+  /* Accent colors - Authentic Ink Tones */
+  --color-accent-red-light: 188 108 37;    /* lighter saddle brown */
+  --color-accent-red: 139 69 19;           /* saddle brown #8b4513 (dried blood/maroon) */
+  --color-accent-red-dark: 120 60 16;      /* darker saddle brown */
+  --color-accent-red-darker: 100 50 13;    /* darkest saddle brown */
+
+  /* Accent colors - Purple (Deep ink) */
+  --color-accent-purple-light: 102 51 153; /* deep purple ink */
+  --color-accent-purple: 85 43 128;        /* darker purple ink */
+  --color-accent-purple-dark: 68 34 102;   /* darkest purple ink */
+  --color-accent-purple-darker: 51 26 77;  /* very dark purple ink */
+
+  /* Accent colors - Green (Forest ink) */
+  --color-accent-green-light: 107 142 35;  /* olive green ink */
+  --color-accent-green: 34 139 34;         /* forest green ink */
+  --color-accent-green-dark: 29 117 29;    /* darker forest ink */
+  --color-accent-green-darker: 24 95 24;   /* darkest forest ink */
+
+  /* Accent colors - Blue (Navy ink) */
+  --color-accent-blue-light: 70 130 180;  /* steel blue ink */
+  --color-accent-blue: 25 25 112;         /* midnight blue (navy ink) */
+  --color-accent-blue-dark: 20 20 90;     /* darker midnight */
+  --color-accent-blue-darker: 15 15 70;   /* darkest midnight */
+
+  /* Accent colors - Yellow (Amber ink) */
+  --color-accent-yellow-light: 218 165 32; /* goldenrod ink */
+  --color-accent-yellow: 184 134 11;       /* dark goldenrod ink */
+
+  /* Shadow colors */
+  --color-shadow: 74 54 34;                 /* brown shadow */
+  --color-shadow-red: 100 50 13;            /* saddle brown shadow */
+  --color-shadow-purple: 68 34 102;         /* purple shadow */
+
+  /* Parchment Texture Effects */
+  --parchment-texture: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='5' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.15'/%3E%3C/svg%3E");
+}
+
+
+
+/* ========================================
+   PAPER THEME ENHANCEMENTS
+   ======================================== */
+
+/* Parchment Texture Effects for Paper Theme */
+[data-theme="paper"] .bg-theme-primary,
+[data-theme="paper"] .bg-theme-secondary {
+  background-color: rgb(var(--color-bg-primary));
+  background-image: var(--parchment-texture);
+  position: relative;
+}
+
+/* Vignette effect for parchment aging */
+[data-theme="paper"] .bg-theme-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, transparent 60%, rgba(74, 54, 34, 0.08) 100%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Handwritten input styling */
+[data-theme="paper"] .input-handwritten {
+  background: transparent;
+  border-bottom: 2px solid rgb(var(--color-text-disabled));
+  outline: none;
+  text-align: center;
+  font-family: var(--font-family-handwriting);
+}
+
+[data-theme="paper"] .input-handwritten:focus {
+  border-bottom-color: rgb(var(--color-accent-red));
+}
+
+/* Enhanced heading styling */
+[data-theme="paper"] .heading-parchment {
+  font-family: var(--font-family-cinzel);
+  letter-spacing: 0.05em;
+  font-weight: 700;
+  color: rgb(var(--color-accent-red));
+  border-bottom: 1px solid rgba(74, 54, 34, 0.2);
+  padding-bottom: 0.25rem;
+  margin-bottom: 1rem;
+}
+
+/* Soften shadows for ink bleeding effect */
+[data-theme="paper"] .shadow-lg {
+  box-shadow: 0 4px 6px -1px rgba(74, 54, 34, 0.1), 0 2px 4px -1px rgba(74, 54, 34, 0.06);
+}
+
+/* Parchment Texture Effects for Paper Theme */
+[data-theme="paper"] .bg-theme-primary,
+[data-theme="paper"] .bg-theme-secondary {
+  background-color: rgb(var(--color-bg-primary));
+  background-image: var(--parchment-texture);
+  position: relative;
+}
+
+/* Vignette effect for parchment aging */
+[data-theme="paper"] .bg-theme-primary::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(circle at center, transparent 60%, rgba(74, 54, 34, 0.08) 100%);
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* Parchment container styling */
+[data-theme="paper"] .container-parchment {
+  background: transparent;
+  border: 4px double rgba(74, 54, 34, 0.3);
+  border-radius: 4px;
+}
+
+/* Parchment divider */
+[data-theme="paper"] .divider-parchment {
+  border-bottom: 2px double rgba(74, 54, 34, 0.2);
+  margin: 1rem 0;
+}
+
+/* ========================================
+   UTILITY CLASSES - Theme-Aware Styling
+   ======================================== */
+
+/* Background utilities */
+.bg-theme-primary { background-color: rgb(var(--color-bg-primary)); }
+.bg-theme-secondary { background-color: rgb(var(--color-bg-secondary)); }
+.bg-theme-tertiary { background-color: rgb(var(--color-bg-tertiary)); }
+.bg-theme-quaternary { background-color: rgb(var(--color-bg-quaternary)); }
+.bg-theme-hover { background-color: rgb(var(--color-bg-hover)); }
+
+/* Background with opacity */
+.bg-theme-secondary\/90 { background-color: rgb(var(--color-bg-secondary) / 0.9); }
+.bg-theme-secondary\/80 { background-color: rgb(var(--color-bg-secondary) / 0.8); }
+.bg-theme-secondary\/50 { background-color: rgb(var(--color-bg-secondary) / 0.5); }
+.bg-theme-secondary\/20 { background-color: rgb(var(--color-bg-secondary) / 0.2); }
+.bg-theme-tertiary\/50 { background-color: rgb(var(--color-bg-tertiary) / 0.5); }
+.bg-theme-tertiary\/30 { background-color: rgb(var(--color-bg-tertiary) / 0.3); }
+.bg-theme-tertiary\/20 { background-color: rgb(var(--color-bg-tertiary) / 0.2); }
+
+/* Text utilities */
+.text-theme-primary { color: rgb(var(--color-text-primary)); }
+.text-theme-secondary { color: rgb(var(--color-text-secondary)); }
+.text-theme-tertiary { color: rgb(var(--color-text-tertiary)); }
+.text-theme-muted { color: rgb(var(--color-text-muted)); }
+.text-theme-disabled { color: rgb(var(--color-text-disabled)); }
+.text-white { color: 255 255 255; }
+
+/* Theme-aware text colors */
+.text-theme-aware {
+  color: rgb(var(--color-text-primary));
+}
+
+/* Theme-specific overrides for text-white */
+[data-theme="paper"] .text-white,
+[data-theme="light"] .text-white {
+  color: rgb(0, 0, 0) !important;
+}
+
+/* Border utilities */
+.border-theme-primary { border-color: rgb(var(--color-border-primary)); }
+.border-theme-secondary { border-color: rgb(var(--color-border-secondary)); }
+.border-theme-tertiary { border-color: rgb(var(--color-border-tertiary)); }
+
+/* Accent - Red */
+.bg-accent-red-light { background-color: rgb(var(--color-accent-red-light)); }
+.bg-accent-red { background-color: rgb(var(--color-accent-red)); }
+.bg-accent-red-dark { background-color: rgb(var(--color-accent-red-dark)); }
+.bg-accent-red-darker { background-color: rgb(var(--color-accent-red-darker)); }
+.text-accent-red-light { color: rgb(var(--color-accent-red-light)); }
+.text-accent-red { color: rgb(var(--color-accent-red)); }
+.border-accent-red { border-color: rgb(var(--color-accent-red)); }
+.border-accent-red-dark { border-color: rgb(var(--color-accent-red-dark)); }
+
+/* Accent - Purple */
+.bg-accent-purple-light { background-color: rgb(var(--color-accent-purple-light)); }
+.bg-accent-purple { background-color: rgb(var(--color-accent-purple)); }
+.bg-accent-purple-dark { background-color: rgb(var(--color-accent-purple-dark)); }
+.bg-accent-purple-darker { background-color: rgb(var(--color-accent-purple-darker)); }
+.bg-accent-purple-darker\/20 { background-color: rgb(var(--color-accent-purple-darker) / 0.2); }
+.text-accent-purple-light { color: rgb(var(--color-accent-purple-light)); }
+.text-accent-purple { color: rgb(var(--color-accent-purple)); }
+.border-accent-purple { border-color: rgb(var(--color-accent-purple)); }
+.border-accent-purple-dark { border-color: rgb(var(--color-accent-purple-dark)); }
+
+/* Accent - Green */
+.bg-accent-green-light { background-color: rgb(var(--color-accent-green-light)); }
+.bg-accent-green { background-color: rgb(var(--color-accent-green)); }
+.bg-accent-green-dark { background-color: rgb(var(--color-accent-green-dark)); }
+.bg-accent-green-darker { background-color: rgb(var(--color-accent-green-darker)); }
+.bg-accent-green-darker\/30 { background-color: rgb(var(--color-accent-green-darker) / 0.3); }
+.bg-accent-green-darker\/20 { background-color: rgb(var(--color-accent-green-darker) / 0.2); }
+.text-accent-green-light { color: rgb(var(--color-accent-green-light)); }
+.text-accent-green { color: rgb(var(--color-accent-green)); }
+.border-accent-green { border-color: rgb(var(--color-accent-green)); }
+.border-accent-green-dark { border-color: rgb(var(--color-accent-green-dark)); }
+
+/* Accent - Blue */
+.bg-accent-blue-light { background-color: rgb(var(--color-accent-blue-light)); }
+.bg-accent-blue { background-color: rgb(var(--color-accent-blue)); }
+.bg-accent-blue-dark { background-color: rgb(var(--color-accent-blue-dark)); }
+.bg-accent-blue-darker { background-color: rgb(var(--color-accent-blue-darker)); }
+.bg-accent-blue-darker\/20 { background-color: rgb(var(--color-accent-blue-darker) / 0.2); }
+.text-accent-blue-light { color: rgb(var(--color-accent-blue-light)); }
+.text-accent-blue { color: rgb(var(--color-accent-blue)); }
+.border-accent-blue { border-color: rgb(var(--color-accent-blue)); }
+.border-accent-blue-dark { border-color: rgb(var(--color-accent-blue-dark)); }
+
+/* Accent - Yellow */
+.bg-accent-yellow-light { background-color: rgb(var(--color-accent-yellow-light)); }
+.bg-accent-yellow { background-color: rgb(var(--color-accent-yellow)); }
+.bg-accent-yellow-dark { background-color: rgb(var(--color-accent-yellow-dark)); }
+.bg-accent-yellow-darker { background-color: rgb(var(--color-accent-yellow-darker)); }
+.bg-accent-yellow-darker\/20 { background-color: rgb(var(--color-accent-yellow-darker) / 0.2); }
+.text-accent-yellow-light { color: rgb(var(--color-accent-yellow-light)); }
+.text-accent-yellow { color: rgb(var(--color-accent-yellow)); }
+.border-accent-yellow { border-color: rgb(var(--color-accent-yellow)); }
+.border-accent-yellow-dark { border-color: rgb(var(--color-accent-yellow-dark)); }
+
+/* Shadow utilities */
+.shadow-theme { box-shadow: 0 10px 15px -3px rgb(var(--color-shadow) / 0.1), 0 4px 6px -4px rgb(var(--color-shadow) / 0.1); }
+.shadow-theme-lg { box-shadow: 0 10px 15px -3px rgb(var(--color-shadow) / 0.5), 0 4px 6px -4px rgb(var(--color-shadow) / 0.5); }
+.shadow-red-theme\/50 { box-shadow: 0 10px 15px -3px rgb(var(--color-shadow-red) / 0.5), 0 4px 6px -4px rgb(var(--color-shadow-red) / 0.5); }
+.shadow-purple-theme\/50 { box-shadow: 0 10px 15px -3px rgb(var(--color-shadow-purple) / 0.5), 0 4px 6px -4px rgb(var(--color-shadow-purple) / 0.5); }
+
+/* Hover state utilities */
+.hover\:bg-theme-secondary:hover { background-color: rgb(var(--color-bg-secondary)); }
+.hover\:bg-theme-tertiary:hover { background-color: rgb(var(--color-bg-tertiary)); }
+.hover\:bg-theme-quaternary:hover { background-color: rgb(var(--color-bg-quaternary)); }
+.hover\:bg-theme-hover:hover { background-color: rgb(var(--color-bg-hover)); }
+.hover\:bg-accent-red:hover { background-color: rgb(var(--color-accent-red)); }
+.hover\:bg-accent-red-light:hover { background-color: rgb(var(--color-accent-red-light)); }
+.hover\:bg-accent-purple:hover { background-color: rgb(var(--color-accent-purple)); }
+.hover\:bg-accent-purple-light:hover { background-color: rgb(var(--color-accent-purple-light)); }
+.hover\:bg-accent-green:hover { background-color: rgb(var(--color-accent-green)); }
+.hover\:bg-accent-green-light:hover { background-color: rgb(var(--color-accent-green-light)); }
+.hover\:bg-accent-blue:hover { background-color: rgb(var(--color-accent-blue)); }
+.hover\:bg-accent-blue-light:hover { background-color: rgb(var(--color-accent-blue-light)); }
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
+    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
+    sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code {
+  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
+    monospace;
+}
+
+/* Custom Font Classes */
+.homemade-apple-regular {
+  font-family: var(--font-family-homemade-apple);
+  font-weight: 400;
+  font-style: normal;
+}
+
+.font-cinzel {
+  font-family: var(--font-family-cinzel);
+}
+
+.font-eb-garamond {
+  font-family: var(--font-family-eb-garamond);
+}
+
+.font-handwriting {
+  font-family: var(--font-family-handwriting);
+}
+
+/* ========================================
+   ANIMATIONS
+   ======================================== */
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out;
+}
+
+/* ========================================
+   CRITICAL ROLL ANIMATIONS
+   ======================================== */
+
+/* Critical Success - Scale Pulse */
+@keyframes critical-success-pulse {
+  0% { transform: scale(1); }
+  25% { transform: scale(1.15); }
+  50% { transform: scale(1.05); }
+  75% { transform: scale(1.12); }
+  100% { transform: scale(1); }
+}
+
+/* Critical Success - Glow */
+@keyframes critical-success-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px rgba(134, 239, 172, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(134, 239, 172, 0.9));
+  }
+}
+
+/* Critical Failure - Shake */
+@keyframes critical-failure-shake {
+  0%, 100% { transform: translateX(0); }
+  10%, 30%, 50%, 70%, 90% { transform: translateX(-5px); }
+  20%, 40%, 60%, 80% { transform: translateX(5px); }
+}
+
+/* Critical Failure - Red Glow */
+@keyframes critical-failure-glow {
+  0%, 100% {
+    filter: drop-shadow(0 0 5px rgba(248, 113, 113, 0.5));
+  }
+  50% {
+    filter: drop-shadow(0 0 20px rgba(248, 113, 113, 0.9));
+  }
+}
+
+/* Screen Flash - Success (Gold) */
+@keyframes screen-flash-success {
+  0% { opacity: 0; }
+  10% { opacity: 0.4; }
+  100% { opacity: 0; }
+}
+
+/* Screen Flash - Failure (Red) */
+@keyframes screen-flash-failure {
+  0% { opacity: 0; }
+  10% { opacity: 0.3; }
+  100% { opacity: 0; }
+}
+
+/* Utility Classes */
+.animate-critical-success-pulse {
+  animation: critical-success-pulse 0.8s ease-out;
+}
+
+.animate-critical-success-glow {
+  animation: critical-success-glow 1s ease-in-out;
+}
+
+.animate-critical-failure-shake {
+  animation: critical-failure-shake 0.6s ease-in-out;
+}
+
+.animate-critical-failure-glow {
+  animation: critical-failure-glow 1s ease-in-out;
+}
+
+.animate-screen-flash-success {
+  animation: screen-flash-success 0.6s ease-out;
+}
+
+.animate-screen-flash-failure {
+  animation: screen-flash-failure 0.6s ease-out;
+}
+
+/* ========================================
+   IFRAME EMBEDDABLE STYLES
+   ======================================== */
+
+/* Minimal styling for iframe embedding - removes app chrome */
+.iframe-embeddable {
+  margin: 0;
+  padding: 0;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Ensure stat blocks are readable in iframes */
+.iframe-embeddable .monster-stat-block {
+  max-width: none;
+  margin: 0;
+  border-radius: 0;
+}
+
+/* Responsive adjustments for different iframe sizes */
+@media (max-width: 600px) {
+  .iframe-embeddable .monster-stat-block {
+    font-size: 0.9rem;
+  }
+}
+
+@media (max-height: 500px) {
+  .iframe-embeddable .monster-stat-block {
+    padding: 1rem;
+  }
+}
+
+/* Print-friendly styles for VTT printing */
+@media print {
+  .iframe-embeddable {
+    background: white !important;
+    color: black !important;
+  }
+
+  .iframe-embeddable * {
+    color: black !important;
+    background: white !important;
+    box-shadow: none !important;
+  }
+}

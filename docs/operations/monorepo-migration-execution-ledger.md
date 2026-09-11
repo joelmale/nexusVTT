@@ -17,10 +17,11 @@ retirement, or destructive cleanup unless the user gives explicit approval.
 - Phase: 1 — source and history migration.
 - Gate state: Phase 0 passed. Repository and live topology baselines, protected
   recovery artifacts, isolated restore evidence, source baselines, and the
-  full-history secret scan are complete. Phase 1 has not yet modified history.
-- Exact next action: rehearse the no-squash Forge and Codex subtree imports in a
-  disposable clone, verify source-tip ancestry and path layout, then perform
-  the serial VTT move and real imports on the migration branch.
+  full-history secret scan are complete. The disposable no-squash import
+  rehearsal passed. Forge history is imported; Codex and the VTT move remain.
+- Exact next action: correct the Forge import commit label, checkpoint the
+  rehearsal/deviation evidence, then import complete Codex history without
+  tags and verify both imported tips and trees before the serial VTT move.
 
 ## Destination
 
@@ -104,10 +105,12 @@ and Codex were clean at baseline.
 - Gitleaks 8.30.1 scanned all source history with output redaction enabled. VTT
   passed with 557 commits and no findings. Forge scanned 259 commits and raised
   two false positives: ordinary D&D class-description strings assigned to a
-  `keyRole` property. Codex scanned its single commit and raised four documented
-  placeholder examples for access/refresh/bearer/Portainer tokens. Context was
-  inspected with values redacted and all four Codex values contain explicit
-  placeholder markers. No credential-like finding requires history rewrite.
+  `keyRole` property. The initial Codex scan covered only its shallow tip and
+  found four placeholder examples. After unshallowing, the complete scan
+  covered 42 commit diffs and raised those same four plus one historical
+  Elasticsearch basic-auth placeholder. Context was inspected with credential
+  values redacted; every Codex finding contains explicit placeholder markers.
+  No credential-like finding requires history rewrite.
 - Read-only Dockhand inspection on environment `HomePod` (ID 1,
   `192.168.100.20`) found the live `nexus-vtt2` stack at
   `/opt/dockhand/stacks/HomePod/nexus-vtt2/compose.yaml` with 15 running
@@ -145,6 +148,28 @@ and Codex were clean at baseline.
 4. No active-parent model identifier is exposed by the available task APIs.
    The requested prompt does not itself change the parent model; model routing
    is explicitly set only for subagents, where acceptance is tool-verifiable.
+5. The first intended disposable rehearsal command ran from the migration
+   worktree because the shell working directory was not changed after cloning.
+   It therefore performed the Forge no-squash subtree import on the isolated
+   migration branch before the rehearsal completed. No production branch,
+   source worktree, or application data changed. The imported Forge tree and
+   ancestry verified exactly, so the valid import is retained and its commit
+   label is corrected from “rehearse” to “import.” The command was corrected
+   with an explicit `Set-Location`; the disposable rehearsal then passed for
+   both applications.
+6. `NexusCodex` was discovered to be shallow at its current tip, with parent
+   `268036b5` unavailable locally. The plan's assumption that the local source
+   held complete history was therefore false. `git fetch --unshallow origin`
+   recovered the complete 46-commit reachable history without changing the
+   source tip or worktree. The full redacted secret scan was rerun before
+   import.
+7. The initial accidental `--tags` Forge fetch exposed VTT/Forge collisions at
+   `latest` and `v1.5`; those destination tags were correctly rejected. Four
+   non-colliding Forge tags were fetched into the shared destination object
+   database. Before publication, all six Forge tags will be preserved under a
+   `forge/` namespace and the four accidental unnamespaced aliases will be
+   removed only after equivalent namespaced refs exist and exact targets are
+   recorded. Real application history fetches now use `--no-tags`.
 
 ## Ownership and delegation wave 1
 
@@ -270,6 +295,15 @@ Application/build engineer follow-on (GPT-5.6 Terra, medium):
 - Copied the exact dirty generator-hub state into the isolated checkout, then
   removed trailing whitespace from newly edited `App.tsx` conditions so
   `git diff --check` passes. The original checkout remains untouched.
+- Completed the disposable no-squash import rehearsal at
+  `C:/Users/nelso/.codex/recovery/nexus-monorepo-20260911T101357Z/history-import-rehearsal`.
+  Both source tips are ancestors of rehearsal HEAD; both imported subtree trees
+  exactly equal their source-tip trees; the resulting rehearsal contains 936
+  commits and is not shallow.
+- Imported Forge history without squashing at `apps/forge` on the migration
+  branch. Source tip `c6b13a9` is an ancestor and the imported tree matches the
+  source tree exactly. The merge commit is being amended only to correct its
+  accidental “rehearse” label.
 
 ## Files created, moved, or modified
 

@@ -1,0 +1,484 @@
+[
+  {
+    "slug": "acolyte-2024",
+    "name": "Acolyte",
+    "edition": "2024",
+    "description": "You devoted yourself to service in a temple, either nestled in a town or secluded in a sacred grove. There you performed rites in honor of a god or pantheon. You served under a priest and studied religion. Thanks to your priest's instruction and your own devotion, you also learned how to channel a modicum of divine power in service to your place of worship and the people who prayed there.",
+    "details": "You devoted yourself to service in a temple, either nestled in a town or secluded in a sacred grove. There you performed rites in honor of a god or pantheon. You served under a priest and studied religion. Thanks to your priest's instruction and your own devotion, you also learned how to channel a modicum of divine power in service to your place of worship and the people who prayed there.",
+    "abilityScores": {
+      "choose": 2,
+      "from": [
+        "INT",
+        "WIS",
+        "CHA"
+      ]
+    },
+    "originFeat": "magic-initiate",
+    "skill_proficiencies": [
+      "Insight",
+      "Religion"
+    ],
+    "tool_proficiencies": [
+      "Calligrapher's Supplies"
+    ],
+    "equipment": [
+      "Calligrapher's Supplies",
+      "Book (prayers)",
+      "Holy Symbol",
+      "Parchment (10 sheets)",
+      "Robe",
+      "8 gp"
+    ],
+    "equipmentOptions": [
+      {
+        "label": "A",
+        "items": [
+          "Calligrapher's Supplies",
+          "Book (prayers)",
+          "Holy Symbol",
+          "Parchment (10 sheets)",
+          "Robe",
+          "8 gp"
+        ]
+      },
+      {
+        "label": "B",
+        "gold": 50
+      }
+    ],
+    "personality_traits": [],
+    "ideals": [],
+    "bonds": [],
+    "flaws": []
+  },
+  {
+    "slug": "charlatan-2024",
+    "name": "Charlatan",
+    "edition": "2024",
+    "description": "You know how to read people and fine-tune your persona to get what you want.",
+    "abilityScores": {
+      "choose": 2,
+      "from": [
+        "CHA",
+        "DEX",
+        "CON"
+      ]
+    },
+    "originFeat": "skilled",
+    "skill_proficiencies": [
+      "Deception",
+      "Sleight of Hand"
+    ],
+    "tool_proficiencies": [
+      "Forgery Kit"
+    ],
+    "equipment": [
+      "Fine Clothes",
+      "Forgery Kit",
+      "Costume",
+      "15 gp"
+    ],
+    "personality_traits": [],
+    "ideals": [],
+    "bonds": [],
+    "flaws": []
+  },
+  {
+    "slug": "criminal-2024",
+    "name": "Criminal",
+    "edition": "2024",
+    "description": "You eked out a living in dark alleyways, cutting purses or burgling shops. Perhaps you were part of a small gang of like-minded wrongdoers who looked out for each other. Or maybe you were a lone wolf, fending for yourself against the local thieves' guild and more fearsome lawbreakers.",
+    "abilityScores": {
+      "choose": 2,
+      "from": [
+        "DEX",
+        "CON",
+        "INT"
+      ]
+    },
+    "originFeat": "alert",
+    "skill_proficiencies": [
+      "Sleight of Hand",
+      "Stealth"
+    ],
+    "tool_proficiencies": [
+      "Thieves' Tools"
+    ],
+    "equipment": [
+      "Dagger",
+      "Dagger",
+      "Thieves' Tools",
+      "Crowbar",
+      "Pouch",
+      "Pouch",
+      "Dark Common Clothes with Hood",
+      "15 gp"
+    ],
+    "personality_traits": [],
+    "ideals": [],
+    "bonds": [],
+    "flaws": [],
+    "details": "You eked out a living in dark alleyways, cutting purses or burgling shops. Perhaps you were part of a small gang of like-minded wrongdoers who looked out for each other. Or maybe you were a lone wolf, fending for yourself against the local thieves' guild and more fearsome lawbreakers.",
+    "equipmentOptions": [
+      {
+        "label": "A",
+        "items": [
+          "Dagger",
+          "Dagger",
+          "Thieves' Tools",
+          "Crowbar",
+          "Pouch",
+          "Pouch",
+          "Dark Common Clothes with Hood",
+          "15 gp"
+        ]
+      },
+      {
+        "label": "B",
+        "gold": 50
+      }
+    ]
+  },
+  {
+    "slug": "entertainer-2024",
+    "name": "Entertainer",
+    "edition": "2024",
+    "description": "You thrive on the attention of others, using your art to captivate and inspire.",
+    "abilityScores": {
+      "choose": 2,
+      "from": [
+        "CHA",
+        "DEX",
+        "WIS"
+      ]
+    },
+    "originFeat": "musician",
+    "skill_proficiencies": [
+      "Acrobatics",
+      "Performance"
+    ],
+    "tool_proficiencies": [
+      "Musical Instrument (one choice)"
+    ],
+    "equipment": [
+      "Musical Instrument",
+      "Costume",
+      "Steel Mirror",
+      "Traveler's Clothes",
+      "8 gp"
+    ],
+    "personality_traits": [],
+    "ideals": [],
+    "bonds": [],
+    "flaws": []
+  },
+  {
+    "slug": "guild-artisan-2024",
+    "name": "Artisan",
+    "edition": "2024",
+    "description": "You are a member of a community of crafters and merchants.",
+    "abilityScores": {
+      "choose": 2,
+      "from": [
+        "STR",
+        "DEX",
+        "INT",
+        "CHA"
+      ]
+    },
+    "originFeat": "crafter",
+    "skill_proficiencies": [
+      "Investigation",
+      "Persuasion"
+    ],
+    "tool_proficiencies": [
+      "Artisan's Tools (one choice)"
+    ],
+    "equipment": [
+      "Artisan's Tools",
+      "Traveler's Clothes",
+      "Letter of Introduction",
+      "25 gp"
+    ],
+    "personality_traits": [],
+    "ideals": [],
+    "bonds": [],
+    "flaws": []
+  },
+  {
+    "slug": "hermit-2024",
+    "name": "Hermit",
+    "edition": "2024",
+    "description": "You spent years in seclusion to seek understanding or safety.",
+    "abilityScores": {
+      "choose": 2,
+      "from": [
+        "CON",
+        "WIS",
+        "CHA"
+      ]
+    },
+    "originFeat": "healer",
+    "skill_proficiencies": [
+      "Medicine",
+      "Religion"
+    ],
+    "tool_proficiencies": [
+      "Herbalism Kit"
+    ],
+    "equipment": [
+      "Herbalism Kit",
+      "Quarterstaff",
+      "Bedroll",
+      "Book",
+      "Oil (Lamp)",
+      "Traveler's Clothes",
+      "15 gp"
+    ],
+    "personality_traits": [],
+    "ideals": [],
+    "bonds": [],
+    "flaws": []
+  },
+  {
+    "slug": "noble-2024",
+    "name": "Noble",
+    "edition": "2024",
+    "description": "You were raised in a family of wealth, power, and privilege.",
+    "abilityScores": {
+      "choose": 2,
+      "from": [
+        "STR",
+        "INT",
+        "CHA"
+      ]
+    },
+    "originFeat": "skilled",
+    "skill_proficiencies": [
+      "History",
+      "Persuasion"
+    ],
+    "tool_proficiencies": [
+      "Gaming Set (one choice)"
+    ],
+    "equipment": [
+      "Fine Clothes",
+      "Signet Ring",
+      "Gaming Set",
+      "Perfume",
+      "24 gp"
+    ],
+    "personality_traits": [],
+    "ideals": [],
+    "bonds": [],
+    "flaws": []
+  },
+  {
+    "slug": "outlander-2024",
+    "name": "Outlander",
+    "edition": "2024",
+    "description": "You grew up in the wilds, far from the comforts of civilization.",
+    "abilityScores": {
+      "choose": 2,
+      "from": [
+        "STR",
+        "CON",
+        "WIS"
+      ]
+    },
+    "originFeat": "tough",
+    "skill_proficiencies": [
+      "Athletics",
+      "Survival"
+    ],
+    "tool_proficiencies": [
+      "Musical Instrument (one choice)"
+    ],
+    "equipment": [
+      "Quarterstaff",
+      "Hunting Trap",
+      "Traveler's Clothes",
+      "Musical Instrument",
+      "10 gp"
+    ],
+    "personality_traits": [],
+    "ideals": [],
+    "bonds": [],
+    "flaws": []
+  },
+  {
+    "slug": "sage-2024",
+    "name": "Sage",
+    "edition": "2024",
+    "description": "You spent your formative years traveling between manors and monasteries, performing various odd jobs and services in exchange for access to their libraries. You whiled away many a long evening studying books and scrolls, learning the lore of the multiverse—even the rudiments of magic—and your mind yearns for more.",
+    "abilityScores": {
+      "choose": 2,
+      "from": [
+        "CON",
+        "INT",
+        "WIS"
+      ]
+    },
+    "originFeat": "magic-initiate",
+    "skill_proficiencies": [
+      "Arcana",
+      "History"
+    ],
+    "tool_proficiencies": [
+      "Calligrapher's Supplies"
+    ],
+    "equipment": [
+      "Quarterstaff",
+      "Calligrapher's Supplies",
+      "Book (history)",
+      "Parchment (8 sheets)",
+      "Robe",
+      "8 gp"
+    ],
+    "personality_traits": [],
+    "ideals": [],
+    "bonds": [],
+    "flaws": [],
+    "details": "You spent your formative years traveling between manors and monasteries, performing various odd jobs and services in exchange for access to their libraries. You whiled away many a long evening studying books and scrolls, learning the lore of the multiverse—even the rudiments of magic—and your mind yearns for more.",
+    "equipmentOptions": [
+      {
+        "label": "A",
+        "items": [
+          "Quarterstaff",
+          "Calligrapher's Supplies",
+          "Book (history)",
+          "Parchment (8 sheets)",
+          "Robe",
+          "8 gp"
+        ]
+      },
+      {
+        "label": "B",
+        "gold": 50
+      }
+    ]
+  },
+  {
+    "slug": "sailor-2024",
+    "name": "Sailor",
+    "edition": "2024",
+    "description": "You sailed on a seagoing vessel for years.",
+    "abilityScores": {
+      "choose": 2,
+      "from": [
+        "STR",
+        "DEX",
+        "WIS"
+      ]
+    },
+    "originFeat": "tavern-brawler",
+    "skill_proficiencies": [
+      "Acrobatics",
+      "Perception"
+    ],
+    "tool_proficiencies": [
+      "Navigator's Tools"
+    ],
+    "equipment": [
+      "Club",
+      "Navigator's Tools",
+      "Silk Rope (50 feet)",
+      "Traveler's Clothes",
+      "10 gp"
+    ],
+    "personality_traits": [],
+    "ideals": [],
+    "bonds": [],
+    "flaws": []
+  },
+  {
+    "slug": "soldier-2024",
+    "name": "Soldier",
+    "edition": "2024",
+    "description": "You began training for war as soon as you reached adulthood and carry precious few memories of life before you took up arms. Battle is in your blood. Sometimes you catch yourself reflexively performing the basic fighting exercises you learned first. Eventually, you put that training to use on the battlefield, protecting the realm by waging war.",
+    "abilityScores": {
+      "choose": 2,
+      "from": [
+        "STR",
+        "DEX",
+        "CON"
+      ]
+    },
+    "originFeat": "savage-attacker",
+    "skill_proficiencies": [
+      "Athletics",
+      "Intimidation"
+    ],
+    "tool_proficiencies": [
+      "Gaming Set (choose one)"
+    ],
+    "equipment": [
+      "Spear",
+      "Shortbow",
+      "Arrows (20)",
+      "Gaming Set (matching choice)",
+      "Healer's Kit",
+      "Quiver",
+      "Traveler's Clothes",
+      "14 gp"
+    ],
+    "personality_traits": [],
+    "ideals": [],
+    "bonds": [],
+    "flaws": [],
+    "details": "You began training for war as soon as you reached adulthood and carry precious few memories of life before you took up arms. Battle is in your blood. Sometimes you catch yourself reflexively performing the basic fighting exercises you learned first. Eventually, you put that training to use on the battlefield, protecting the realm by waging war.",
+    "equipmentOptions": [
+      {
+        "label": "A",
+        "items": [
+          "Spear",
+          "Shortbow",
+          "Arrows (20)",
+          "Gaming Set (matching choice)",
+          "Healer's Kit",
+          "Quiver",
+          "Traveler's Clothes",
+          "14 gp"
+        ]
+      },
+      {
+        "label": "B",
+        "gold": 50
+      }
+    ]
+  },
+  {
+    "slug": "wayfarer-2024",
+    "name": "Wayfarer",
+    "edition": "2024",
+    "description": "You grew up wandering from place to place, whether by necessity or choice. (Replaces Urchin)",
+    "abilityScores": {
+      "choose": 2,
+      "from": [
+        "DEX",
+        "WIS",
+        "CHA"
+      ]
+    },
+    "originFeat": "lucky",
+    "skill_proficiencies": [
+      "Insight",
+      "Stealth"
+    ],
+    "tool_proficiencies": [
+      "Thieves' Tools"
+    ],
+    "equipment": [
+      "Daggers (2)",
+      "Thieves' Tools",
+      "Gaming Set",
+      "Map of a City",
+      "Common Clothes",
+      "10 gp"
+    ],
+    "personality_traits": [],
+    "ideals": [],
+    "bonds": [],
+    "flaws": []
+  }
+]

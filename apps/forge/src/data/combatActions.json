@@ -1,0 +1,470 @@
+{
+  "metadata": {
+    "system": "D&D 5e",
+    "version": "1.1",
+    "source": "SRD 5.1 + Custom Class Features"
+  },
+  "standardActions": [
+    {
+      "slug": "attack",
+      "name": "Attack",
+      "summary": "Perform a melee or ranged attack",
+      "description": "The most common action to take in combat. You make an attack with a weapon or an unarmed strike.",
+      "actionEconomy": "action",
+      "rollType": "attack",
+      "category": "combat"
+    },
+    {
+      "slug": "grapple",
+      "name": "Grapple",
+      "summary": "Seize a creature to reduce speed to 0",
+      "description": "Contest your Strength (Athletics) vs. target's Strength (Athletics) or Dexterity (Acrobatics). On success, target is grappled.",
+      "actionEconomy": "action",
+      "rollType": "skill",
+      "ability": "STR",
+      "skill": "Athletics",
+      "contest": "athletics_or_acrobatics",
+      "category": "special-attack"
+    },
+    {
+      "slug": "shove",
+      "name": "Shove",
+      "summary": "Push a creature prone or 5ft away",
+      "description": "Contest your Strength (Athletics) vs. target's Strength (Athletics) or Dexterity (Acrobatics). On success, push target 5ft or knock prone.",
+      "actionEconomy": "action",
+      "rollType": "skill",
+      "ability": "STR",
+      "skill": "Athletics",
+      "contest": "athletics_or_acrobatics",
+      "category": "special-attack"
+    },
+    {
+      "slug": "cast-spell",
+      "name": "Cast a Spell",
+      "summary": "Cast a spell with casting time of 1 action",
+      "description": "Cast a spell you have prepared or know. The casting time must be '1 Action'.",
+      "actionEconomy": "action",
+      "rollType": "conditional",
+      "category": "spellcasting"
+    },
+    {
+      "slug": "dash",
+      "name": "Dash",
+      "summary": "Double your movement speed",
+      "description": "You gain extra movement for the current turn. The increase equals your speed, after applying any modifiers.",
+      "actionEconomy": "action",
+      "rollType": "none",
+      "category": "tactical"
+    },
+    {
+      "slug": "disengage",
+      "name": "Disengage",
+      "summary": "Prevent opportunity attacks",
+      "description": "Your movement doesn't provoke opportunity attacks for the rest of the turn.",
+      "actionEconomy": "action",
+      "rollType": "none",
+      "category": "tactical"
+    },
+    {
+      "slug": "dodge",
+      "name": "Dodge",
+      "summary": "Focus entirely on avoiding attacks",
+      "description": "Until start of your next turn, attack rolls against you have disadvantage (if you can see attacker), and you make DEX saves with advantage.",
+      "actionEconomy": "action",
+      "rollType": "none",
+      "category": "tactical"
+    },
+    {
+      "slug": "help",
+      "name": "Help",
+      "summary": "Grant advantage to an ally",
+      "description": "You aid a friendly creature in attacking a task. The creature gains advantage on the next check it makes to perform the task, or the next attack roll against a target.",
+      "actionEconomy": "action",
+      "rollType": "none",
+      "category": "tactical"
+    },
+    {
+      "slug": "hide",
+      "name": "Hide",
+      "summary": "Attempt to become unseen",
+      "description": "You attempt to conceal yourself. You must follow the rules for hiding (breaking line of sight, etc).",
+      "actionEconomy": "action",
+      "rollType": "skill",
+      "ability": "DEX",
+      "skill": "Stealth",
+      "category": "tactical"
+    },
+    {
+      "slug": "ready",
+      "name": "Ready",
+      "summary": "Wait for a specific trigger",
+      "description": "You wait for a specific circumstance before acting. You choose the action you will take and the trigger that allows you to take it.",
+      "actionEconomy": "action",
+      "rollType": "none",
+      "category": "tactical"
+    },
+    {
+      "slug": "search",
+      "name": "Search",
+      "summary": "Devote attention to finding something",
+      "description": "Depending on the nature of your search, the DM might ask for a Perception or Investigation check.",
+      "actionEconomy": "action",
+      "rollType": "skill",
+      "ability": "INT",
+      "skill": "Investigation",
+      "category": "utility"
+    },
+    {
+      "slug": "use-object",
+      "name": "Use an Object",
+      "summary": "Interact with an object",
+      "description": "When an object requires your action for its use, you take the Use an Object action. This is also necessary if you want to interact with more than one object in a turn.",
+      "actionEconomy": "action",
+      "rollType": "none",
+      "category": "utility"
+    }
+  ],
+  "bonusActions": [
+    {
+      "slug": "offhand-attack",
+      "name": "Two-Weapon Fighting",
+      "summary": "Attack with a second light weapon",
+      "description": "When you take the Attack action and attack with a light melee weapon in one hand, you can use a bonus action to attack with a different light melee weapon in the other hand.",
+      "actionEconomy": "bonus_action",
+      "rollType": "attack",
+      "category": "combat"
+    },
+    {
+      "slug": "cast-spell-bonus",
+      "name": "Cast a Spell",
+      "summary": "Cast a spell with casting time of 1 bonus action",
+      "description": "Examples include Healing Word or Misty Step. You cannot cast another spell during the same turn, except for a cantrip with a casting time of 1 action.",
+      "actionEconomy": "bonus_action",
+      "rollType": "conditional",
+      "category": "spellcasting"
+    }
+  ],
+  "reactions": [
+    {
+      "slug": "opportunity-attack",
+      "name": "Opportunity Attack",
+      "summary": "Attack an enemy leaving your reach",
+      "description": "You can make a melee attack against a hostile creature that moves out of your reach.",
+      "actionEconomy": "reaction",
+      "rollType": "attack",
+      "category": "combat"
+    },
+    {
+      "slug": "readied-action",
+      "name": "Readied Action",
+      "summary": "Execute your Readied trigger",
+      "description": "When the trigger you defined in your 'Ready' action occurs, you can use your reaction to take that action.",
+      "actionEconomy": "reaction",
+      "rollType": "conditional",
+      "category": "tactical"
+    },
+    {
+      "slug": "cast-spell-reaction",
+      "name": "Cast a Spell",
+      "summary": "Cast a spell with casting time of Reaction",
+      "description": "Examples include Shield, Counterspell, or Feather Fall.",
+      "actionEconomy": "reaction",
+      "rollType": "conditional",
+      "category": "spellcasting"
+    }
+  ],
+  "movement": [
+    {
+      "slug": "drop-prone",
+      "name": "Drop Prone",
+      "summary": "Fall to the ground",
+      "description": "You can drop prone without using any of your speed.",
+      "actionEconomy": "free",
+      "rollType": "none",
+      "category": "movement",
+      "cost": "0 ft"
+    },
+    {
+      "slug": "stand-up",
+      "name": "Stand Up",
+      "summary": "Stand up from prone",
+      "description": "Standing up takes more effort; doing so costs an amount of movement equal to half your speed.",
+      "actionEconomy": "movement",
+      "rollType": "none",
+      "category": "movement",
+      "cost": "half_speed"
+    },
+    {
+      "slug": "free-interaction",
+      "name": "Free Interaction",
+      "summary": "Draw sword, open door, etc.",
+      "description": "You can interact with one object for free during your turn (e.g., draw a weapon, open a door). A second interaction requires the 'Use an Object' action.",
+      "actionEconomy": "free",
+      "rollType": "none",
+      "category": "utility"
+    }
+  ],
+  "classFeatureActions": [
+    {
+      "slug": "rage",
+      "name": "Rage",
+      "summary": "Enter a battle fury for extra damage and resistance",
+      "description": "Bonus action. Gain advantage on STR checks/saves, +2 damage with STR weapons, resistance to physical damage. Lasts 1 minute.",
+      "actionEconomy": "bonus_action",
+      "class": "barbarian",
+      "minLevel": 1,
+      "usageType": "limited",
+      "usesPerLevel": {
+        "1": 2,
+        "3": 3,
+        "6": 4,
+        "12": 5,
+        "17": 6,
+        "20": 999
+      },
+      "rechargeType": "long",
+      "rollType": "none",
+      "category": "class-feature"
+    },
+    {
+      "slug": "reckless-attack",
+      "name": "Reckless Attack",
+      "summary": "Attack with advantage but enemies get advantage against you",
+      "description": "When you make your first attack on your turn, you can decide to attack recklessly. Gain advantage on melee weapon attack rolls using STR this turn, but attack rolls against you have advantage until your next turn.",
+      "actionEconomy": "free",
+      "class": "barbarian",
+      "minLevel": 2,
+      "rollType": "none",
+      "category": "class-feature"
+    },
+    {
+      "slug": "frenzy",
+      "name": "Frenzy",
+      "summary": "Make an extra attack while raging",
+      "description": "While raging, you can make a single melee weapon attack as a bonus action on each of your turns. When rage ends, suffer one level of exhaustion.",
+      "actionEconomy": "bonus_action",
+      "class": "barbarian",
+      "subclass": "berserker",
+      "minLevel": 3,
+      "rollType": "attack",
+      "category": "class-feature"
+    },
+    {
+      "slug": "bardic-inspiration",
+      "name": "Bardic Inspiration",
+      "summary": "Give an ally a d6 inspiration die",
+      "description": "Bonus action. Give an ally a Bardic Inspiration die (d6) they can add to one ability check, attack roll, or saving throw within 10 minutes.",
+      "actionEconomy": "bonus_action",
+      "class": "bard",
+      "minLevel": 1,
+      "usageType": "limited",
+      "usesPerLevel": {
+        "1": "CHA"
+      },
+      "rechargeType": "long",
+      "rollType": "none",
+      "category": "class-feature"
+    },
+    {
+      "slug": "channel-divinity-turn-undead",
+      "name": "Turn Undead",
+      "summary": "Force undead to flee",
+      "description": "Action. Each undead within 30ft that can see or hear you must make a WIS save (DC 8 + proficiency + WIS) or be turned for 1 minute.",
+      "actionEconomy": "action",
+      "class": "cleric",
+      "minLevel": 2,
+      "usageType": "limited",
+      "usesPerLevel": {
+        "2": 1,
+        "6": 2,
+        "18": 3
+      },
+      "rechargeType": "short",
+      "rollType": "none",
+      "category": "class-feature"
+    },
+    {
+      "slug": "wild-shape",
+      "name": "Wild Shape",
+      "summary": "Transform into a beast",
+      "description": "Action. Transform into a beast you've seen with CR ≤ level/4. Retain mental stats, gain physical stats and HP of beast form.",
+      "actionEconomy": "action",
+      "class": "druid",
+      "minLevel": 2,
+      "usageType": "limited",
+      "usesPerLevel": {
+        "2": 2
+      },
+      "rechargeType": "short",
+      "rollType": "none",
+      "category": "class-feature"
+    },
+    {
+      "slug": "second-wind",
+      "name": "Second Wind",
+      "summary": "Regain hit points",
+      "description": "Bonus action. Regain 1d10 + fighter level HP.",
+      "actionEconomy": "bonus_action",
+      "class": "fighter",
+      "minLevel": 1,
+      "usageType": "limited",
+      "usesPerLevel": {
+        "1": 1
+      },
+      "rechargeType": "short",
+      "rollType": "healing",
+      "notation": "1d10",
+      "category": "class-feature"
+    },
+    {
+      "slug": "action-surge",
+      "name": "Action Surge",
+      "summary": "Take an additional action",
+      "description": "On your turn, take one additional action. At 17th level, can use twice before rest (but only once per turn).",
+      "actionEconomy": "free",
+      "class": "fighter",
+      "minLevel": 2,
+      "usageType": "limited",
+      "usesPerLevel": {
+        "2": 1,
+        "17": 2
+      },
+      "rechargeType": "short",
+      "rollType": "none",
+      "category": "class-feature"
+    },
+    {
+      "slug": "flurry-of-blows",
+      "name": "Flurry of Blows",
+      "summary": "Make two unarmed strikes as bonus action",
+      "description": "After taking Attack action, spend 1 ki point to make two unarmed strikes as a bonus action.",
+      "actionEconomy": "bonus_action",
+      "class": "monk",
+      "minLevel": 1,
+      "usageType": "ki",
+      "rollType": "attack",
+      "category": "class-feature"
+    },
+    {
+      "slug": "patient-defense",
+      "name": "Patient Defense",
+      "summary": "Take the Dodge action as bonus action",
+      "description": "Bonus action. Spend 1 ki point to take the Dodge action.",
+      "actionEconomy": "bonus_action",
+      "class": "monk",
+      "minLevel": 2,
+      "usageType": "ki",
+      "rollType": "none",
+      "category": "class-feature"
+    },
+    {
+      "slug": "step-of-the-wind",
+      "name": "Step of the Wind",
+      "summary": "Disengage or Dash as bonus action",
+      "description": "Bonus action. Spend 1 ki point to take Disengage or Dash action, and your jump distance is doubled.",
+      "actionEconomy": "bonus_action",
+      "class": "monk",
+      "minLevel": 2,
+      "usageType": "ki",
+      "rollType": "none",
+      "category": "class-feature"
+    },
+    {
+      "slug": "divine-smite",
+      "name": "Divine Smite",
+      "summary": "Expend spell slot for extra radiant damage",
+      "description": "When you hit with a melee weapon attack, expend a spell slot to deal extra radiant damage: 2d8 for 1st level slot, +1d8 per slot level (max 5d8). +1d8 vs undead/fiends.",
+      "actionEconomy": "free",
+      "class": "paladin",
+      "minLevel": 2,
+      "usageType": "spell-slot",
+      "rollType": "damage",
+      "category": "class-feature"
+    },
+    {
+      "slug": "lay-on-hands",
+      "name": "Lay on Hands",
+      "summary": "Touch a creature to restore HP",
+      "description": "Action. Touch a creature to restore HP (pool of paladin level × 5 HP). Can spend 5 HP from pool to cure one disease or poison.",
+      "actionEconomy": "action",
+      "class": "paladin",
+      "minLevel": 1,
+      "usageType": "pool",
+      "rollType": "healing",
+      "category": "class-feature"
+    },
+    {
+      "slug": "hunters-mark",
+      "name": "Hunter's Mark",
+      "summary": "Mark a target for extra damage",
+      "description": "Bonus action (1st level spell slot). Choose a creature within 90ft. Deal extra 1d6 damage when you hit it. Lasts 1 hour (concentration).",
+      "actionEconomy": "bonus_action",
+      "class": "ranger",
+      "minLevel": 1,
+      "usageType": "spell",
+      "rollType": "damage",
+      "category": "class-feature"
+    },
+    {
+      "slug": "sneak-attack",
+      "name": "Sneak Attack",
+      "summary": "Deal extra damage once per turn",
+      "description": "Once per turn, deal extra damage when you have advantage or an ally is within 5ft of target. Must use finesse or ranged weapon.",
+      "actionEconomy": "free",
+      "class": "rogue",
+      "minLevel": 1,
+      "damageByLevel": {
+        "1": "1d6",
+        "3": "2d6",
+        "5": "3d6",
+        "7": "4d6",
+        "9": "5d6",
+        "11": "6d6",
+        "13": "7d6",
+        "15": "8d6",
+        "17": "9d6",
+        "19": "10d6"
+      },
+      "rollType": "damage",
+      "category": "class-feature"
+    },
+    {
+      "slug": "cunning-action",
+      "name": "Cunning Action",
+      "summary": "Dash, Disengage, or Hide as bonus action",
+      "description": "Bonus action. Take Dash, Disengage, or Hide action.",
+      "actionEconomy": "bonus_action",
+      "class": "rogue",
+      "minLevel": 2,
+      "rollType": "none",
+      "category": "class-feature"
+    },
+    {
+      "slug": "eldritch-invocations",
+      "name": "Eldritch Invocations",
+      "summary": "Magical invocations granted by your patron",
+      "description": "You have learned magical invocations. At certain levels, you can choose additional invocations (see class features).",
+      "actionEconomy": "varies",
+      "class": "warlock",
+      "minLevel": 2,
+      "rollType": "none",
+      "category": "class-feature"
+    },
+    {
+      "slug": "arcane-recovery",
+      "name": "Arcane Recovery",
+      "summary": "Recover spell slots during short rest",
+      "description": "During a short rest, recover expended spell slots with combined level ≤ half wizard level (rounded up).",
+      "actionEconomy": "special",
+      "class": "wizard",
+      "minLevel": 1,
+      "usageType": "limited",
+      "usesPerLevel": {
+        "1": 1
+      },
+      "rechargeType": "long",
+      "rollType": "none",
+      "category": "class-feature"
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+name: "CodeQL Configuration"
+
+disable-default-queries: false
+queries:
+  - uses: security-and-quality
+  - uses: security-experimental
+
+query-filters:
+  # Ignore insecure randomness in name generator (not security-sensitive)
+  - exclude:
+      id: js/insecure-randomness
+      file: src/utils/nameGenerator.ts
+
+  # Ignore localStorage usage for non-sensitive game data
+  - exclude:
+      id: js/clear-text-storage-of-sensitive-data
+      file:
+        - src/components/NameGeneratorModal.tsx
+        - src/components/CharacterCreationWizard/steps/Step1Details.tsx
+
+paths-ignore:
+  - node_modules
+  - dist
+  - coverage
+  - .github
+  - docs

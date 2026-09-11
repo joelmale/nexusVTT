@@ -1,0 +1,14 @@
+{
+  "firstParts": [
+    "Aer", "Al", "Ar", "Bal", "Bel", "Bor", "Bran", "Cael", "Cor", "Dael", "Dar", "Del", "Eld", "El", "Fael", "Far", "Gal", "Gar", "Glyn", "Gor", "Hal", "Har", "Hel", "Hor", "Jor", "Kael", "Kar", "Kel", "Keth", "Kyr", "Lir", "Lor", "Mal", "Mar", "Mor", "Nal", "Nar", "Nor", "Ol", "Or", "Pael", "Par", "Per", "Quor", "Rael", "Ran", "Ril", "Ror", "Sael", "Sar", "Sel", "Sil", "Sor", "Tar", "Tel", "Tor", "Ul", "Ur", "Val", "Vor", "Wyl", "Xar", "Yor", "Zel", "Zor"
+  ],
+  "secondParts": [
+    "a", "ae", "ai", "al", "an", "ar", "ath", "el", "en", "er", "eth", "ia", "iel", "in", "is", "ith", "on", "or", "oth", "us", "ya", "yn"
+  ],
+  "titles": [
+    "Shadow", "Storm", "Light", "Dark", "Blood", "Iron", "Fire", "Ice", "Wind", "Earth", "Star", "Moon", "Sun", "Void", "Soul", "Spirit", "Heart", "Mind", "Will", "Fate", "Destiny", "Hope", "Fear", "Rage", "Peace", "War", "Death", "Life", "Time", "Space", "Dream", "Nightmare"
+  ],
+  "suffixes": [
+    "", "bane", "born", "breaker", "caller", "dawn", "eye", "fall", "fire", "fist", "forge", "fury", "guard", "hammer", "hand", "heart", "hunter", "keeper", "lord", "master", "rage", "reaver", "rider", "seeker", "shadow", "slayer", "song", "soul", "spawn", "storm", "sword", "ward", "weaver", "whisper", "wind", "wing", "wisp"
+  ]
+}

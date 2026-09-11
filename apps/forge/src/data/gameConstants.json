@@ -1,0 +1,24 @@
+{
+  "PROFICIENCY_BONUSES": [2, 2, 2, 2, 3, 3, 3, 3, 4, 4, 4, 4, 5, 5, 5, 5, 6, 6, 6, 6],
+  "SKILL_TO_ABILITY": {
+    "Acrobatics": "DEX",
+    "AnimalHandling": "WIS",
+    "Arcana": "INT",
+    "Athletics": "STR",
+    "Deception": "CHA",
+    "History": "INT",
+    "Insight": "WIS",
+    "Intimidation": "CHA",
+    "Investigation": "INT",
+    "Medicine": "WIS",
+    "Nature": "INT",
+    "Perception": "WIS",
+    "Performance": "CHA",
+    "Persuasion": "CHA",
+    "Religion": "INT",
+    "SleightOfHand": "DEX",
+    "Stealth": "DEX",
+    "Survival": "WIS"
+  },
+  "ABILITY_SCORES": ["STR", "DEX", "CON", "INT", "WIS", "CHA"]
+}

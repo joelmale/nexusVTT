@@ -1,0 +1,34 @@
+services:
+  nexus-forge:
+    image: ghcr.io/joelmale/nexus-forge:latest
+    networks:
+      - homelab-net
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        failure_action: rollback
+        order: start-first
+      rollback_config:
+        parallelism: 1
+        delay: 5s
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+        window: 120s
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.5'
+          memory: 256M
+      labels:
+        - "com.docker.swarm.service.name=nexus-forge"
+
+
+networks:
+  homelab-net:
+    external: true

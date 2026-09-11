@@ -1,0 +1,22 @@
+{
+  "ABILITY_NAMES": ["STR", "DEX", "CON", "INT", "WIS", "CHA"],
+  "STANDARD_ARRAY_SCORES": [15, 14, 13, 12, 10, 8],
+  "POINT_BUY_COSTS": {
+    "8": 0,
+    "9": 1,
+    "10": 2,
+    "11": 3,
+    "12": 4,
+    "13": 5,
+    "14": 7,
+    "15": 9
+  },
+  "ABILITY_METHOD_TITLES": {
+    "standard-array": "Standard Array",
+    "standard-roll": "4d6, Drop Lowest",
+    "classic-roll": "3d6 in Order",
+    "5d6-drop-2": "5d6, Drop Two Lowest",
+    "point-buy": "Point Buy (27 Points)",
+    "custom": "Custom Entry"
+  }
+}
