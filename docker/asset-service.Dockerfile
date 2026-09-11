@@ -8,11 +8,12 @@ RUN apk add --no-cache dumb-init
 
 COPY package*.json ./
 COPY services/asset-service/package.json ./services/asset-service/package.json
+COPY apps/generator-hub/package.json ./apps/generator-hub/package.json
 # A workspace-scoped install still invokes the root lifecycle in npm 11. The
 # root postinstall tooling is intentionally absent from this production image,
 # so suppress lifecycle scripts here and apply the shared runtime patch
 # explicitly after installation.
-RUN npm ci --workspace asset-service --include-workspace-root=false --ignore-scripts
+RUN npm ci --workspace asset-service --include-workspace-root=false --ignore-scripts --legacy-peer-deps
 
 COPY patches ./patches
 RUN npm exec -- patch-package

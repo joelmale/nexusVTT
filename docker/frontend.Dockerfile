@@ -7,6 +7,8 @@ WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
+COPY services/asset-service/package.json ./services/asset-service/package.json
+COPY apps/generator-hub/package.json ./apps/generator-hub/package.json
 COPY patches ./patches
 COPY scripts/sync-dice-assets.js ./scripts/sync-dice-assets.js
 
@@ -35,11 +37,13 @@ ARG VITE_DELTA_SYNC=false
 
 # Copy package files
 COPY package*.json ./
+COPY services/asset-service/package.json ./services/asset-service/package.json
+COPY apps/generator-hub/package.json ./apps/generator-hub/package.json
 COPY patches ./patches
 COPY scripts/sync-dice-assets.js ./scripts/sync-dice-assets.js
 
 # Install all dependencies (needed for build)
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copy source code
 COPY . .

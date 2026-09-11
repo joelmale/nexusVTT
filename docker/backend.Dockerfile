@@ -13,6 +13,8 @@ RUN apk add --no-cache dumb-init curl netcat-openbsd postgresql-client && \
 
 # Copy package files
 COPY --chown=nodejs:nodejs package*.json ./
+COPY --chown=nodejs:nodejs services/asset-service/package.json ./services/asset-service/package.json
+COPY --chown=nodejs:nodejs apps/generator-hub/package.json ./apps/generator-hub/package.json
 COPY --chown=nodejs:nodejs tsconfig*.json ./
 COPY --chown=nodejs:nodejs patches ./patches
 COPY --chown=nodejs:nodejs scripts/sync-dice-assets.js ./scripts/sync-dice-assets.js
@@ -20,7 +22,7 @@ COPY --chown=nodejs:nodejs scripts/sync-dice-assets.js ./scripts/sync-dice-asset
 USER nodejs
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --legacy-peer-deps
 
 # Copy server and shared code
 COPY --chown=nodejs:nodejs server/ ./server/
