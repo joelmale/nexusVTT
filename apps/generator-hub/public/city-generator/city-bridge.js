@@ -6,7 +6,7 @@
 
     window.saveAs = function (blob, filename) {
       console.log('Intercepted saveAs call:', filename, blob.type);
-      
+
       if (window.parent !== window) {
         window.parent.postMessage(
           {
@@ -26,7 +26,7 @@
         }
       }
     };
-    
+
     // Announce ready
     if (window.parent !== window) {
       window.parent.postMessage({ type: 'CITY_BRIDGE_READY' }, '*');
