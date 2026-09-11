@@ -14,15 +14,14 @@ retirement, or destructive cleanup unless the user gives explicit approval.
 
 ## Current phase and gate
 
-- Phase: 1 — source and history migration.
-- Gate state: Phase 0 passed. Repository and live topology baselines, protected
-  recovery artifacts, isolated restore evidence, source baselines, and the
-  full-history secret scan are complete. The disposable no-squash import
-  rehearsal passed. Forge and complete Codex histories are imported and
-  verified; the VTT top-level move remains.
-- Exact next action: checkpoint both imported histories and namespaced Forge
-  tags, then perform the serial VTT mechanical move into `apps/vtt` while
-  leaving root governance, workflows, documentation, and monitoring in place.
+- Phase: 2 — build and CI parity.
+- Gate state: Phase 0 passed. Phase 1 passed: all three source histories are
+  ancestors of the migration branch, both imported subtree trees matched their
+  source tips, Git fsck passed, and the intended `apps/vtt`, `apps/forge`, and
+  `apps/codex` layout is established. Build/CI path repair is in progress.
+- Exact next action: delegate disjoint VTT-local and documentation path repair,
+  while the lead creates the root orchestration manifest and audits/updates
+  shared workflows and repository-level tooling.
 
 ## Destination
 
@@ -175,6 +174,13 @@ and Codex were clean at baseline.
    `forge/`. The four accidentally added non-colliding unnamespaced aliases were
    removed with old-object safety checks after their namespaced targets matched.
    Destination-owned `latest` and `v1.5` remain unchanged. Codex has no tags.
+9. Phase 1's mechanical/import order differs from the plan: Forge was imported
+   first by the working-directory error, Codex was imported after the corrected
+   rehearsal, and the VTT mechanical move followed. The final trees are
+   disjoint, all operations remained serial, and source-tip ancestry/tree checks
+   passed after the move, so reverting and replaying would add history risk
+   without changing the result. The evidence-based disposition is to retain
+   the verified order and document it here.
 
 ## Ownership and delegation wave 1
 
@@ -286,6 +292,46 @@ Application/build engineer follow-on (GPT-5.6 Terra, medium):
   `monitoring` reference, root scripts/config/docs, the generator-hub shared
   type import, and asset-service output paths.
 
+## Ownership and delegation wave 3
+
+Application/build engineer (GPT-5.6 Terra, medium):
+
+- Objective: restore VTT application-local install, lint, type-check, unit-test,
+  build, nested generator-hub, asset-service, and Docker-context parity after
+  the move. Acceptance requires deterministic path fixes within `apps/vtt`, no
+  dependency upgrades, and exact command/test evidence.
+- Exclusive write ownership: `apps/vtt/**` in
+  `C:/Users/nelso/Documents/Coding/nexusVTT-monorepo-migration`.
+- Required references: the migration plan, root `AGENTS.md`, preserved VTT
+  package boundaries, and initial Docker context `apps/vtt`.
+- May install only in `apps/vtt` and run non-Docker application-local checks.
+  Must not run shared Docker resources, e2e/soak, Git operations, or edit root
+  files, workflows, docs, ledger, `apps/forge`, `apps/codex`, `deploy`, or
+  `packages`. Must request ownership before any out-of-scope edit.
+- Dispatch was accepted as agent `01a09057-2df1-7a72-b4ca-02068909a60a`, but
+  the agent immediately returned the application usage-limit error before
+  changing or verifying files. The agent was closed and ownership returned to
+  the lead.
+
+Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
+
+- Objective: mechanically update moved VTT path references in existing root
+  user/developer/operations documentation. Acceptance requires links/commands
+  to point at the new layout while retaining historical and migration-baseline
+  references where context requires them, plus an explicit verification scan.
+- Exclusive write ownership: root `README.md`, `DEPLOYMENT.md`,
+  `CSS_TROUBLESHOOTING.md`, and `dev-docs/**` plus `docs/**`, excluding
+  `docs/operations/monorepo-migration-plan.md` and
+  `docs/operations/monorepo-migration-execution-ledger.md`.
+- Must not make architecture, history, production, data-safety, or cleanup
+  decisions; edit apps, workflows, Git refs, manifests, lockfiles, deployment
+  definitions, the plan, or ledger; run installs/builds/Docker; or touch any
+  other checkout. Must request ownership before any out-of-scope edit.
+- Dispatch was accepted as agent `01a09057-2f62-7dd3-bd80-638023576498`, but
+  the agent immediately returned the same application usage-limit error before
+  changing or verifying files. The agent was closed and ownership returned to
+  the lead.
+
 ## Completed work
 
 - Read all three root `AGENTS.md` files and the complete migration plan.
@@ -313,6 +359,12 @@ Application/build engineer follow-on (GPT-5.6 Terra, medium):
   `4c583c2` is the second parent and an ancestor of merge commit `1dd2e64`; the
   imported and source tree IDs both equal `21b1523`. The combined repository
   has 937 reachable commits and is not shallow.
+- Mechanical move commit `81d0411` relocated all 927 tracked VTT application
+  files into `apps/vtt` with 927 exact 100% renames and no content changes.
+  Root governance, workflows, documentation, monitoring, and licenses remain
+  at repository root. Post-move ancestry checks for all three source tips,
+  `git fsck`, and 28-commit `--follow` history for `apps/vtt/src/main.tsx`
+  passed.
 
 ## Files created, moved, or modified
 
@@ -323,6 +375,8 @@ Application/build engineer follow-on (GPT-5.6 Terra, medium):
   into `apps/generator-hub/public/`, including three new bridge scripts.
 - Created `apps/forge` and `apps/codex` through no-squash subtree merges that
   retain their source histories.
+- Moved the VTT application tree into `apps/vtt`, including its nested
+  `apps/generator-hub` and `services/asset-service` boundaries.
 - Created the execution ledger.
 
 ## Commands and important outcomes
@@ -371,6 +425,11 @@ Application/build engineer follow-on (GPT-5.6 Terra, medium):
 - `git update-ref` created exact `forge/*` aliases for all six Forge tags. Four
   accidental unnamespaced aliases were removed only after exact-target checks;
   destination `latest` and `v1.5` remain at their original objects.
+- Source-import checkpoint `96ab51f` recorded both subtree imports and tag
+  disposition. Mechanical VTT move commit `81d0411` was made with
+  `--no-verify` because the intentionally intermediate tree has no root package
+  manifest and the still-unrepaired root hook invokes moved `scripts/*`; its
+  staged diff had only 927 `R100` entries and passed `git diff --check`.
 - Read-only Dockhand calls captured the live Compose template, container/image
   identities, mount destinations, restart policies, health checks, network,
   environment-variable names, and Git-registration state. Secret values were
@@ -438,7 +497,9 @@ Application/build engineer follow-on (GPT-5.6 Terra, medium):
   currently failing; backend Prometheus metrics are not token-protected on the
   shared Docker network; `/api/system/health` returns no explicit database
   readiness field despite the current runbook's stated expectation.
-- Migration-introduced failures: none; source migration has not begun.
+- Migration-introduced failures: application-local/root path repair has not yet
+  run after the successful mechanical move, so build parity is not expected at
+  this intermediate commit. No regression has been accepted or hidden.
 
 ## Review findings and disposition
 
@@ -446,27 +507,29 @@ No independent review has run yet.
 
 ## Blockers and pending approvals
 
-- No current access blocker.
+- No filesystem, repository, Docker, or live-read access blocker.
+- Both wave-3 delegation attempts were rejected by the application's subagent
+  usage limit before work began. This blocks additional delegated work until
+  the reported reset, but does not block lead-owned local integration. The user
+  explicitly said “continue” after the notifications. No agent transcript
+  contains unintegrated work.
 - Production approval is not requested and no production mutation is
   authorized.
-- Phase 0 cannot pass until live topology, backup, restore, and baseline test
-  evidence are captured or an exact external blocker is documented.
+- Phases 0 and 1 are complete. Phase 2 remains in progress.
 
 ## Pending difficult-to-reverse or long-running operation
 
-Before the real history import, a disposable-clone rehearsal will exercise the
-exact no-squash subtree commands and verify ancestry and resulting paths. The
-real imports and VTT top-level move remain serial lead-owned operations. No
-migration-era backup or restore resource will be deleted without the later
-explicit cleanup approval.
+No difficult-to-reverse operation is active. The next work is reversible local
+path repair. No migration-era backup or restore resource will be deleted
+without the later explicit cleanup approval.
 
 ## Remaining work in priority order
 
-1. Rehearse history imports in a disposable clone.
-2. Perform the serial VTT move and Forge/Codex history imports with migration
-   commits and post-import ancestry checks.
-3. Restore build/CI paths while preserving application-local lockfiles.
-4. Rehearse the isolated deployment, complete independent review, resolve
+1. Restore application-local and root build/CI paths while preserving all
+   application-local lockfiles; retry bounded delegation only after capacity
+   returns.
+2. Run the full build/CI parity validation matrix and classify regressions.
+3. Rehearse the isolated deployment, complete independent review, resolve
    findings, and prepare the production cutover package.
 
 ## Ready-to-use resumption prompt
@@ -476,6 +539,9 @@ Resume the Nexus monorepo migration from
 `codex/monorepo-migration`. Read this entire ledger and
 `docs/operations/monorepo-migration-plan.md`, then inspect `git status` and the
 latest ledger entries. Preserve the unrelated generator moves in the original
-`nexusVTT` checkout. Continue from the exact next action recorded above, obey
-the two-subagent concurrency cap, and do not cross the production approval
-boundary.
+`nexusVTT` checkout. `HEAD` before this checkpoint is mechanical-move commit
+`81d04117a1c4214ea690e60413d08606055db68c`; only this ledger is modified.
+Both wave-3 agents failed before making changes and were closed, so their file
+ownership has returned to the lead. Continue from the exact next action above,
+obey the two-subagent concurrency cap, retry delegation only when capacity is
+available, and do not cross the production approval boundary.
