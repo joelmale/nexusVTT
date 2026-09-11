@@ -31,16 +31,18 @@ export const DungeonGenerator: React.FC<DungeonGeneratorProps> = ({
 
   // Trigger generation on component mount (or replace with UI button as needed)
   useEffect(() => {
-    triggerGeneration('cave', defaultConfig);
+    // triggerGeneration('cave', defaultConfig); // Disabled to prevent automatic JSON generation (S0.3)
   }, [triggerGeneration, defaultConfig]);
 
   // Forward generated image data to legacy callback if needed
   useEffect(() => {
+    /* Disabled per S0.3 to prevent JSON from entering pipeline
     if (generatedData) {
       // Convert the grid/rooms to an image placeholder (for demo we just stringify)
       const imageData = JSON.stringify(generatedData);
       onMapGenerated(imageData, 'png');
     }
+    */
   }, [generatedData, onMapGenerated]);
 
   useEffect(() => {

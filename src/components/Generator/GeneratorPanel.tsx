@@ -190,11 +190,13 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
 
   // Sync generated data to generatedMap state
   useEffect(() => {
+    /* Disabled per S0.3 to prevent JSON from entering pipeline
     if (generatedData) {
       const imgData = JSON.stringify(generatedData);
       // eslint-disable-next-line react-hooks/set-state-in-effect
       setGeneratedMap(imgData);
     }
+    */
   }, [generatedData]);
 
   const handleMapGenerated = async (
@@ -212,6 +214,10 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     let data: DungeonData | null = null;
 
     if (typeof imageDataOrData === 'string') {
+      if (imageDataOrData.startsWith('{')) {
+        console.warn('Blocked JSON payload from entering scene state');
+        return;
+      }
       imageData = imageDataOrData;
     } else if (isDungeonMapPayload(imageDataOrData)) {
       imageData = imageDataOrData.image;
@@ -262,13 +268,22 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     }
   };
 
+  const handleGeneratorChange = (generator: GeneratorType) => {
+    if (generator !== activeGenerator) {
+      setGeneratedMap(null);
+      setDungeonData(null);
+      setActiveGenerator(generator);
+    }
+  };
+
   return (
     <div className="generator-panel h-full flex flex-col relative overflow-hidden bg-vtt-iron-900 border-l border-vtt-iron-700 shadow-2xl">
       <GeneratorFloatingControls
         activeGenerator={activeGenerator}
-        onGeneratorChange={setActiveGenerator}
+        onGeneratorChange={handleGeneratorChange}
         onAddToScene={handleApplyToScene}
         hasActiveScene={!!activeScene}
+        hasValidArtifact={!!generatedMap && !generatedMap.startsWith('{')}
       />
 
       {/* Debug: Show generated map preview */}

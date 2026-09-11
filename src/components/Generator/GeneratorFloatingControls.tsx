@@ -8,6 +8,7 @@ interface GeneratorFloatingControlsProps {
   onAddToScene: () => void;
   onUploadJSON?: () => void;
   hasActiveScene: boolean;
+  hasValidArtifact?: boolean;
 }
 
 export const GeneratorFloatingControls: React.FC<
@@ -18,6 +19,7 @@ export const GeneratorFloatingControls: React.FC<
   onAddToScene,
   onUploadJSON,
   hasActiveScene,
+  hasValidArtifact = true,
 }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [showShortcuts, setShowShortcuts] = useState(false);
@@ -237,18 +239,20 @@ export const GeneratorFloatingControls: React.FC<
               <button
                 onClick={onAddToScene}
                 className="glass-button primary"
-                disabled={!hasActiveScene}
+                disabled={!hasActiveScene || !hasValidArtifact}
                 style={{
                   width: '100%',
-                  cursor: hasActiveScene ? 'pointer' : 'not-allowed',
-                  opacity: hasActiveScene ? 1 : 0.5,
+                  cursor: hasActiveScene && hasValidArtifact ? 'pointer' : 'not-allowed',
+                  opacity: hasActiveScene && hasValidArtifact ? 1 : 0.5,
                   fontSize: '0.8125rem',
                   padding: '0.5rem',
                 }}
                 title={
                   !hasActiveScene
                     ? 'No active scene selected. Create or select a scene first.'
-                    : 'Add map to active scene'
+                    : !hasValidArtifact
+                      ? 'No generated map to add to scene.'
+                      : 'Add map to active scene'
                 }
               >
                 🗺️ Add to Scene

@@ -148,8 +148,9 @@ notes.
 | --------------- | ----------------------------------------------------------------------------------------------------------- | --------------------------- | -------------------------- | ---------------------------------------------- |
 | T0 — economical | File discovery, deterministic edits, documentation, formatting, targeted test execution, simple fixtures    | GPT-5.6 Luna, low/medium    | Claude Haiku 4.5 (`haiku`) | Gemini 3.8 Flash, Low                          |
 | T1 — balanced   | Normal feature work, contained refactors, test design, Hub UI and tooling, ordinary diagnosis               | GPT-5.6 Terra, medium/high  | Claude Sonnet 5 (`sonnet`) | Gemini 3.8 Flash, Medium                       |
-| T2 — advanced   | Security, realtime ordering, difficult debugging, cross-package contracts, migration and transaction design | GPT-5.6 Sol, high/xhigh     | Claude Opus 5 (`opus`)     | Gemini 3.8 Flash, High or Gemini 3.1 Pro, High |
-| T3 — frontier   | One-time architecture adjudication, unresolved high-risk design, review after a T2 failure                  | GPT-6 Astra, high/xhigh/max | Claude Fable 5.1 (`fable`) | Gemini 3.1 Pro, High with planning/boost mode  |
+| T2 — advanced | Security, realtime ordering, difficult debugging, cross-package contracts, migration and transaction design, **architectural decisions within established boundaries**  | GPT-5.6 Sol, high/xhigh     | Claude Opus 5 (`opus`)     | Gemini 3.8 Flash, High or Gemini 3.1 Pro, High |
+| T2+ — stuck case | When T2 + 2 turns of structured iteration don't resolve an architectural question | - | Use Opus 5 + forced decomposition (split problem, isolate unknowns, iterate separately) | Escalate to org review before considering frontier models |  -  |
+| T3 — escalation | Unresolved high-risk decisions after documented T2 failure | GPT-6 Astra, high/xhigh/max | Claude Opus 5 (T2 + structured iteration) | Gemini 3.1 Pro, High with planning/boost mode  |
 
 The aliases in the Claude column are preferred for interactive Claude Code work
 because they can track the provider-supported current model. Pin a full model ID
@@ -183,7 +184,7 @@ Status values: `planned`, `active`, `blocked`, `complete`, `superseded`.
 
 | Checkpoint                                | Status  | Depends on   | Recommended tier        | Commit/evidence | Notes                                |
 | ----------------------------------------- | ------- | ------------ | ----------------------- | --------------- | ------------------------------------ |
-| S0 — baseline and generator containment   | planned | —            | T1                      | —               | Preserve existing user changes       |
+| S0 — baseline and generator containment   | complete | —            | T1                      | —               | Containment implemented and verified |
 | S1.1 — public user DTO                    | planned | S0           | T1                      | —               |                                      |
 | S1.2 — test-database safety               | planned | S0           | T0                      | —               | Required before DB integration tests |
 | S1.3 — CI and publishing correctness      | planned | S1.2         | T1                      | —               |                                      |
