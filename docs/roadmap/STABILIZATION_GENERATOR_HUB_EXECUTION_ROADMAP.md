@@ -198,7 +198,7 @@ Status values: `planned`, `active`, `blocked`, `complete`, `superseded`.
 | S2B.4 — generated-map upload pipeline     | complete| S1.4, S2B.2  | T2 + independent review | c3a3742         | Implemented asset-service POST       |
 | S2B.5 — Nexus importer and library        | complete| S2B.3, S2B.4 | T1                      | c3a3742         | Implemented BaseMapImporter logic    |
 | S2B.6 — rollout and legacy cleanup        | complete| S2B.5        | T1                      | c3a3742         | Removed old path             |
-| S3.1 — authorized event relay             | planned | S1.5, S1.6   | T2                      | —               |                                      |
+| S3.1 — authorized event relay             | complete| S1.5, S1.6   | T2                      | 3258ced         |                                      |
 | S3.2 — HP synchronization                 | planned | S3.1         | T2                      | —               |                                      |
 | S3.3 — durable co-host grants             | planned | S1.5, S1.6   | T2                      | —               |                                      |
 | S3.4 — document route and scoping         | planned | S1.2         | T1                      | —               | May run alongside Session 2          |

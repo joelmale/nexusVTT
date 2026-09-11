@@ -1388,7 +1388,8 @@ class NexusServer {
     if (session) {
       await this.db.activateSessionByJoinCode(normalizedRoomCode, connection.id);
     } else {
-      await this.db.createSessionWithJoinCode(resolvedCampaignId!, connection.id, normalizedRoomCode);
+      const result = await this.db.createSessionWithJoinCode(resolvedCampaignId!, connection.id, normalizedRoomCode);
+      room.sessionId = result.sessionId;
     }
 
     // 6. Hydrate room
@@ -2516,10 +2517,19 @@ class NexusServer {
         }
       }
 
+      const hosts = await this.db.getHostsBySession(session.id);
+      const coHostsSet = new Set<string>();
+      for (const host of hosts) {
+        if (!host.isPrimary) {
+          coHostsSet.add(host.userId);
+        }
+      }
+
       const recoveredRoom: Room = {
         code: session.joinCode,
         host: session.primaryHostId,
-        coHosts: new Set<string>(),
+        coHosts: coHostsSet,
+        sessionId: session.id,
         players: new Set<string>(),
         connections: new Map(),
         created: session.createdAt

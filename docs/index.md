@@ -39,6 +39,7 @@ expanding the human README into an exhaustive inventory.
 - [Reverse Proxy Configuration Notes](NPM_CONFIGURATION.md)
 - [Multiplayer Observability](operations/multiplayer-observability.md)
 - [NexusCodex Homelab Deployment](operations/nexuscodex-homelab.md)
+- [Cloud Deployment Options](cloud/)
 
 ## Asset References
 
@@ -51,8 +52,8 @@ expanding the human README into an exhaustive inventory.
 ## Roadmaps And Decisions
 
 - [Active Stabilization and Generator Hub Roadmap](roadmap/STABILIZATION_GENERATOR_HUB_EXECUTION_ROADMAP.md)
-- [Architecture Decision Records](adr/)
-- [Roadmap ADRs](roadmap/ADR/)
+- [Canonical Architecture Decision Records](adr/)
+- [Historical Roadmap ADRs](roadmap/ADR/)
 - [Archived 2026 A/B/C Roadmap Closeout](roadmap/archive/2026-roadmap-closeout/ROADMAP.md)
 
 ## Developer References

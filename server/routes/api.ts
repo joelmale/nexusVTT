@@ -212,7 +212,7 @@ export function registerApiRoutes(
         return res.status(401).json({ error: 'Authentication required' });
       }
 
-      const { allowSpectators, shareCharacterSheets, logSessions, ...rest } =
+      const { allowSpectators, shareCharacterSheets, logSessions, hpSync, ...rest } =
         req.body || {};
 
       const invalid =
@@ -220,7 +220,8 @@ export function registerApiRoutes(
           typeof allowSpectators !== 'boolean') ||
         (shareCharacterSheets !== undefined &&
           typeof shareCharacterSheets !== 'boolean') ||
-        (logSessions !== undefined && typeof logSessions !== 'boolean');
+        (logSessions !== undefined && typeof logSessions !== 'boolean') ||
+        (hpSync !== undefined && typeof hpSync !== 'boolean');
 
       if (invalid) {
         return res
@@ -235,6 +236,7 @@ export function registerApiRoutes(
         ...(allowSpectators !== undefined ? { allowSpectators } : {}),
         ...(shareCharacterSheets !== undefined ? { shareCharacterSheets } : {}),
         ...(logSessions !== undefined ? { logSessions } : {}),
+        ...(hpSync !== undefined ? { hpSync } : {}),
         ...rest,
       };
 

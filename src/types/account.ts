@@ -22,5 +22,6 @@ export interface UserPreferences {
   allowSpectators?: boolean;
   shareCharacterSheets?: boolean;
   logSessions?: boolean;
+  hpSync?: boolean;
   [key: string]: unknown;
 }

@@ -15,7 +15,7 @@ full authoritative tuple so the browser can rebase.
 
 ## Network Architecture
 
-### Production Stack (Docker Swarm)
+### Production Stack (Dockhand + Docker Compose)
 
 ```
                     ┌─────────────────────────┐
@@ -44,7 +44,7 @@ full authoritative tuple so the browser can rebase.
 ┌───────────────┐                  ┌──────────────────┐
 │  Static Files │                  │  Backend Server  │
 │  - index.html │                  │  (Express + WS)  │
-│  - *.js, *.css│                  │  Port: 5000      │
+│  - *.js, *.css│                  │  Port: 5001      │
 │  - assets/    │                  └────────┬─────────┘
 └───────────────┘                           │
                                             │
@@ -57,13 +57,14 @@ full authoritative tuple so the browser can rebase.
                 └──────────────┘    └─────────────┘  └──────────┘
 ```
 
-### Service Discovery (Docker Swarm)
+### Service Discovery (Docker Compose)
 
-All services communicate using **Docker Swarm's internal DNS**:
+Services communicate using Docker Compose network DNS:
 
-- Service names from `docker-compose.yml` become DNS entries
+- Service names from `docker/docker-compose.yml` become DNS entries
 - Example: `postgres` resolves to the PostgreSQL service IP
-- Stack prefix (`nexusvtt_`) is only for container names, not DNS
+- Dockhand/Compose stack prefixes affect container and volume names, not the
+  service names used inside the stack
 
 **Key Point:** Use service names from the compose file, not stack-prefixed names!
 
@@ -89,17 +90,17 @@ nginx routes requests based on URL path:
 ```nginx
 location /ws {
     # WebSocket connections
-    proxy_pass http://nexusvtt_backend:5000;
+    proxy_pass http://backend:5001;
 }
 
 location /api {
     # REST API calls
-    proxy_pass http://nexusvtt_backend:5000;
+    proxy_pass http://backend:5001;
 }
 
 location /auth {
     # OAuth and authentication
-    proxy_pass http://nexusvtt_backend:5000;
+    proxy_pass http://backend:5001;
 }
 
 location / {
@@ -121,7 +122,7 @@ GET https://app.nexusvtt.com/assets/logo.png
 
 ```
 GET https://app.nexusvtt.com/api/campaigns
-→ nginx proxies to http://nexusvtt_backend:5000/api/campaigns
+→ nginx proxies to http://backend:5001/api/campaigns
 → Backend handles request
 → nginx returns response to browser
 ```
@@ -131,7 +132,7 @@ GET https://app.nexusvtt.com/api/campaigns
 ```
 WSS wss://app.nexusvtt.com/ws
 → nginx upgrades to WebSocket
-→ Proxies to ws://nexusvtt_backend:5000/ws
+→ Proxies to ws://backend:5001/ws
 → Persistent connection maintained
 ```
 
@@ -215,7 +216,7 @@ session({
 # Critical: Forward cookies in BOTH directions
 
 location /api {
-    proxy_pass http://nexusvtt_backend:5000;
+    proxy_pass http://backend:5001;
 
     # Browser → Backend: Forward Cookie header
     proxy_set_header Cookie $http_cookie;

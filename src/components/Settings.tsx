@@ -502,8 +502,8 @@ export const Settings: React.FC = () => {
           </SettingItem>
 
           <SettingItem
-            label="Snap to Grid by Default"
-            description="Enable grid snapping when creating new scenes"
+            label="Snap to Grid"
+            description="Automatically align tokens and drawings to the grid"
           >
             <label className="setting-toggle">
               <input
@@ -511,6 +511,22 @@ export const Settings: React.FC = () => {
                 checked={settings.snapToGridByDefault}
                 onChange={(e) =>
                   handleSettingChange('snapToGridByDefault', e.target.checked)
+                }
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </SettingItem>
+
+          <SettingItem
+            label="Sync Token HP"
+            description="Automatically update token bars when combat HP changes"
+          >
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.hpSync ?? true}
+                onChange={(e) =>
+                  handleSettingChange('hpSync', e.target.checked)
                 }
               />
               <span className="toggle-slider"></span>

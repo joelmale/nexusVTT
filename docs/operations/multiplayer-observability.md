@@ -85,11 +85,10 @@ docker compose \
   --profile otel up -d otel-collector
 ```
 
-For Docker Swarm with DNS round-robin, replace the static `backend:5001`
-Prometheus target with a `dns_sd_configs` entry for `tasks.backend` so every
-replica is scraped independently. Keep a stable `BACKEND_INSTANCE_ID` per
-replica and aggregate counters with `sum without(instance)` only when the query
-calls for a fleet total.
+For a Dockhand/Compose stack with more than one backend container, give each
+replica a stable `BACKEND_INSTANCE_ID` and configure Prometheus to scrape every
+backend endpoint explicitly. Aggregate counters with `sum without(instance)`
+only when the query calls for a fleet total.
 
 ## Alert response
 

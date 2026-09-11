@@ -39,6 +39,10 @@ export class OrderedEventClient {
   private buffered = new Map<number, OrderedTransportEnvelope>();
   private acknowledgedSequences = new Set<number>();
 
+  public get clientId(): string | undefined {
+    return this.context?.userId;
+  }
+
   configure(roomCode: string, userId: string): void {
     const next = { roomCode: roomCode.toUpperCase(), userId };
     if (

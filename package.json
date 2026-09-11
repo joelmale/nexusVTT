@@ -34,6 +34,7 @@
     "type-check:soak": "tsc --project tsconfig.soak.json --noEmit",
     "type-check": "npm run type-check:web && npm run type-check:server && npm run type-check:asset-service && npm run type-check:generator-hub && npm run type-check:e2e && npm run type-check:soak",
     "check:cycles": "node scripts/check-import-cycles.js",
+    "check:docs": "node scripts/validate-docs.js",
     "db:start": "docker compose -f docker/docker-compose.dev.yml up -d postgres-dev",
     "db:stop": "docker compose -f docker/docker-compose.dev.yml stop postgres-dev",
     "db:down": "docker compose -f docker/docker-compose.dev.yml down",

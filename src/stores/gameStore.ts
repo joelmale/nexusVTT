@@ -538,6 +538,7 @@ const initialState: GameState & {
     allowSpectators: true,
     shareCharacterSheets: false,
     logGameSessions: true,
+    hpSync: true,
 
     // Performance Settings
     maxTokensPerScene: 100,

@@ -535,6 +535,7 @@ export const useCharacterStore = create<CharacterStore>()(
           initiativeModifier: character.initiative || 0,
           dexterityModifier: character.abilities?.DEX?.modifier || 0,
           playerId: character.playerId,
+          characterId: character.id,
         });
       }
     },

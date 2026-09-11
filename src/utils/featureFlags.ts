@@ -15,6 +15,7 @@
 const STORAGE_KEY = 'nexus-flags';
 const DEFAULT_FLAGS: Record<string, boolean> = {
   'floating-panels': true,
+  'max-hp-sync': false,
 };
 
 type FlagListener = () => void;

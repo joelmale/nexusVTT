@@ -37,11 +37,11 @@ export class HostHandler extends BaseHandler {
     return typeof target === 'string' && target.length > 0 ? target : null;
   }
 
-  private handleAddCoHost(
+  private async handleAddCoHost(
     connection: Connection,
     room: Room,
     message: ServerEventMessage,
-  ): void {
+  ): Promise<void> {
     if (!this.isPrimaryHost(connection, room)) {
       this.sendError(connection, 'Only the host can grant DM privileges', 403);
       return;
@@ -53,6 +53,16 @@ export class HostHandler extends BaseHandler {
     }
     if (targetUserId === room.host || room.coHosts.has(targetUserId)) {
       return; // Already a host/co-host; nothing to do.
+    }
+
+    if (room.sessionId) {
+      try {
+        await this.db.addCoHost(targetUserId, room.sessionId);
+      } catch (error) {
+        console.error('Failed to persist co-host addition:', error);
+        this.sendError(connection, 'Failed to add co-host in database', 500);
+        return;
+      }
     }
 
     room.coHosts.add(targetUserId);
@@ -80,11 +90,11 @@ export class HostHandler extends BaseHandler {
     });
   }
 
-  private handleRemoveCoHost(
+  private async handleRemoveCoHost(
     connection: Connection,
     room: Room,
     message: ServerEventMessage,
-  ): void {
+  ): Promise<void> {
     if (!this.isPrimaryHost(connection, room)) {
       this.sendError(connection, 'Only the host can revoke DM privileges', 403);
       return;
@@ -93,6 +103,16 @@ export class HostHandler extends BaseHandler {
     if (!targetUserId || !room.coHosts.has(targetUserId)) {
       this.sendError(connection, 'Invalid target user for co-host removal', 403);
       return;
+    }
+
+    if (room.sessionId) {
+      try {
+        await this.db.removeCoHost(targetUserId, room.sessionId);
+      } catch (error) {
+        console.error('Failed to persist co-host removal:', error);
+        this.sendError(connection, 'Failed to remove co-host in database', 500);
+        return;
+      }
     }
 
     room.coHosts.delete(targetUserId);

@@ -90,18 +90,33 @@ export function createDocumentRoutes(
   async function hasDocumentAccess(
     userId: string,
     document: Document,
+    allowedCampaigns?: Set<string>
   ): Promise<boolean> {
     if (document.isPublic || document.uploadedBy === userId) {
       return true;
     }
     if (document.campaigns && Array.isArray(document.campaigns)) {
-      for (const campaignId of document.campaigns) {
-        if (await db.isUserAuthorizedForCampaign(userId, campaignId)) {
-          return true;
+      if (allowedCampaigns) {
+        for (const campaignId of document.campaigns) {
+          if (allowedCampaigns.has(campaignId)) return true;
+        }
+      } else {
+        for (const campaignId of document.campaigns) {
+          if (await db.isUserAuthorizedForCampaign(userId, campaignId)) {
+            return true;
+          }
         }
       }
     }
     return false;
+  }
+
+  /**
+   * Helper to fetch all campaigns a user is authorized for.
+   */
+  async function getUserAllowedCampaigns(userId: string): Promise<Set<string>> {
+    const campaigns = await db.getCampaignsByUser(userId);
+    return new Set(campaigns.map(c => c.id));
   }
 
   /**
@@ -200,6 +215,8 @@ export function createDocumentRoutes(
         }
       }
 
+      const allowedCampaigns = await getUserAllowedCampaigns(userId);
+
       const params = {
         skip: req.query.skip ? parseInt(req.query.skip as string) : undefined,
         limit: req.query.limit
@@ -216,7 +233,7 @@ export function createDocumentRoutes(
       // Post-filter documents to prevent BOLA and leaks
       const filteredDocuments = [];
       for (const doc of result.documents) {
-        if (await hasDocumentAccess(userId, doc)) {
+        if (await hasDocumentAccess(userId, doc, allowedCampaigns)) {
           filteredDocuments.push(doc);
         }
       }
@@ -422,6 +439,8 @@ export function createDocumentRoutes(
         return res.status(400).json({ error: 'Search query is required' });
       }
 
+      const allowedCampaigns = await getUserAllowedCampaigns(userId);
+
       const params = {
         query,
         type: req.query.type as DocumentType | undefined,
@@ -457,7 +476,7 @@ export function createDocumentRoutes(
       for (const resItem of result.results) {
         try {
           const doc = await client.getDocument(resItem.documentId);
-          if (await hasDocumentAccess(userId, doc)) {
+          if (await hasDocumentAccess(userId, doc, allowedCampaigns)) {
             filteredResults.push(resItem);
           }
         } catch {
@@ -498,6 +517,8 @@ export function createDocumentRoutes(
         return res.status(400).json({ error: 'Search query is required' });
       }
 
+      const allowedCampaigns = await getUserAllowedCampaigns(userId);
+
       const campaign = req.query.campaign as string | undefined;
       if (campaign) {
         const authorized = await db.isUserAuthorizedForCampaign(
@@ -519,7 +540,7 @@ export function createDocumentRoutes(
       for (const resItem of result.results) {
         try {
           const doc = await client.getDocument(resItem.documentId);
-          if (await hasDocumentAccess(userId, doc)) {
+          if (await hasDocumentAccess(userId, doc, allowedCampaigns)) {
             filteredResults.push(resItem);
           }
         } catch {
@@ -559,6 +580,8 @@ export function createDocumentRoutes(
         return res.status(400).json({ error: 'Search query is required' });
       }
 
+      const allowedCampaigns = await getUserAllowedCampaigns(userId);
+
       const params = {
         query,
         type: req.query.type as DocumentType | undefined,
@@ -593,7 +616,7 @@ export function createDocumentRoutes(
       for (const resItem of result.results) {
         try {
           const doc = await client.getDocument(resItem.documentId);
-          if (await hasDocumentAccess(userId, doc)) {
+          if (await hasDocumentAccess(userId, doc, allowedCampaigns)) {
             filteredResults.push(resItem);
           }
         } catch {
@@ -634,6 +657,8 @@ export function createDocumentRoutes(
         return res.status(400).json({ error: 'Question is required' });
       }
 
+      const allowedCampaigns = await getUserAllowedCampaigns(userId);
+
       // Verify campaign authorization for any campaigns specified
       if (campaigns && Array.isArray(campaigns)) {
         for (const campaignId of campaigns) {
@@ -664,7 +689,7 @@ export function createDocumentRoutes(
         const citation = result.citations[i];
         try {
           const doc = await client.getDocument(citation.documentId);
-          if (await hasDocumentAccess(userId, doc)) {
+          if (await hasDocumentAccess(userId, doc, allowedCampaigns)) {
             filteredCitations.push(citation);
             if (result.snippets[i] !== undefined) {
               filteredSnippets.push(result.snippets[i]);
@@ -697,7 +722,7 @@ export function createDocumentRoutes(
    * GET /api/documents/:id/structured-data - Get all structured data for a document
    * Requires authentication
    */
-  router.get('/:id/structured-data', async (req: Request, res: Response) => {
+  router.get('/documents/:id/structured-data', async (req: Request, res: Response) => {
     try {
       if (!isAuthenticated(req)) {
         return res.status(401).json({ error: 'Authentication required' });
@@ -781,6 +806,8 @@ export function createDocumentRoutes(
         return res.status(401).json({ error: 'User ID not found' });
       }
 
+      const allowedCampaigns = await getUserAllowedCampaigns(userId);
+
       const params = {
         documentId: req.query.documentId as string | undefined,
         type: req.query.type as string | undefined,
@@ -793,7 +820,7 @@ export function createDocumentRoutes(
       // If filtering by documentId, check authorization
       if (params.documentId) {
         const doc = await client.getDocument(params.documentId);
-        if (!(await hasDocumentAccess(userId, doc))) {
+        if (!(await hasDocumentAccess(userId, doc, allowedCampaigns))) {
           return res.status(403).json({ error: 'Access denied' });
         }
       }
@@ -805,7 +832,7 @@ export function createDocumentRoutes(
       for (const item of data) {
         try {
           const doc = await client.getDocument(item.documentId);
-          if (await hasDocumentAccess(userId, doc)) {
+          if (await hasDocumentAccess(userId, doc, allowedCampaigns)) {
             filtered.push(item);
           }
         } catch {

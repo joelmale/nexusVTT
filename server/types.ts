@@ -23,6 +23,7 @@ export interface Room {
   code: string;
   host: string;
   coHosts: Set<string>; // Support for multiple co-hosts
+  sessionId?: string;
   players: Set<string>;
   connections: Map<string, WebSocket>;
   created: number;

@@ -13,6 +13,7 @@ const defaultPreferences: UserPreferences = {
   allowSpectators: false,
   shareCharacterSheets: false,
   logSessions: false,
+  hpSync: true,
 };
 
 export const useUserPreferences = (): UseUserPreferencesResult => {

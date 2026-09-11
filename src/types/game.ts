@@ -175,6 +175,7 @@ export interface UserSettings {
   allowSpectators: boolean;
   shareCharacterSheets: boolean;
   logGameSessions: boolean;
+  hpSync: boolean;
 
   // Performance Settings
   maxTokensPerScene: number;

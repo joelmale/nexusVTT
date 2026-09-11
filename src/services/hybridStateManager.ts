@@ -204,6 +204,7 @@ export class HybridStateManager {
         highContrast: false,
         screenReaderMode: false,
         keyboardNavigation: true,
+        hpSync: true,
       },
       chat: {
         messages: [],

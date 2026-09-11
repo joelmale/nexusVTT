@@ -12,6 +12,8 @@ code-adjacent reference material, use [Reference Index](index.md).
 ## Architecture and development
 
 - [Architecture Overview](architecture.md)
+- [Canonical ADRs](adr/)
+- [Historical Roadmap ADRs](roadmap/ADR/)
 - [Backend Architecture](backend.md)
 - [Frontend Architecture](frontend.md)
 - [Network and Sessions](network-and-sessions.md)
@@ -45,7 +47,7 @@ only after the snapshot/token/version tuple commits.
 - [Deployment Quick Reference](DEPLOYMENT_QUICKREF.md)
 - [Reverse Proxy Configuration Notes](NPM_CONFIGURATION.md)
 - [NexusCodex Homelab Deployment](operations/nexuscodex-homelab.md)
-- [GCP Deployment](GCP_DEPLOYMENT_GUIDE.md)
+- [Cloud Deployment Options](cloud/)
 - [Security Scanning](SECURITY_SCANNING.md)
 
 ## Archived project history
