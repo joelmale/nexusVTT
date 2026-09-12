@@ -109,6 +109,16 @@ updates:
     reviewers:
       - "JoelN"
 
+  - package-ecosystem: "npm"
+    directory: "/apps/codex/docs"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+      time: "04:00"
+    open-pull-requests-limit: 5
+    reviewers:
+      - "JoelN"
+
   # GitHub Actions
   - package-ecosystem: "github-actions"
     directory: "/"

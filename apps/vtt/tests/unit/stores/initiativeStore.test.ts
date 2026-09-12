@@ -1,4 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
+
+const { syncStats } = vi.hoisted(() => ({ syncStats: vi.fn() }));
+
+vi.mock('@/services/characterSyncService', () => ({
+  characterSyncService: { syncStats },
+}));
+
 import { useInitiativeStore } from '../../../src/stores/initiativeStore';
 import { STANDARD_CONDITIONS } from '../../../src/types/initiative';
 
@@ -6,6 +13,7 @@ describe('initiativeStore', () => {
   beforeEach(() => {
     // Reset store before each test
     useInitiativeStore.getState().reset();
+    syncStats.mockClear();
   });
 
   describe('Initial State', () => {
@@ -221,22 +229,43 @@ describe('initiativeStore', () => {
       });
     });
 
-    it('should apply damage correctly with temp HP', () => {
+    it('syncs damage after updating HP and temporary HP', async () => {
       const store = useInitiativeStore.getState();
       store.applyDamage(entryId, 8);
 
       const entry = store.getEntry(entryId);
       expect(entry?.tempHP).toBe(0); // 5 temp HP absorbed 5 damage
       expect(entry?.currentHP).toBe(22); // Remaining 3 damage applied to current HP
+
+      await vi.waitFor(() => {
+        expect(syncStats).toHaveBeenCalledWith('initiative', {
+          initiativeEntryId: entryId,
+          characterId: undefined,
+          tokenId: undefined,
+          stats: { currentHP: 22, tempHP: 0 },
+        });
+      });
     });
 
-    it('should apply healing correctly', () => {
+    it('syncs healing after updating HP', async () => {
       const store = useInitiativeStore.getState();
-      store.applyDamage(entryId, 10); // 5 temp HP absorbed, 5 damage to current HP => currentHP 20
+      store.setHP(entryId, 20);
+      await vi.waitFor(() => expect(syncStats).toHaveBeenCalledTimes(1));
+      syncStats.mockClear();
+
       store.applyHealing(entryId, 5); // Heal 5 up to max => currentHP 25
 
       const entry = store.getEntry(entryId);
       expect(entry?.currentHP).toBe(25);
+
+      await vi.waitFor(() => {
+        expect(syncStats).toHaveBeenCalledWith('initiative', {
+          initiativeEntryId: entryId,
+          characterId: undefined,
+          tokenId: undefined,
+          stats: { currentHP: 25 },
+        });
+      });
     });
 
     it('should not heal above max HP', () => {
@@ -253,6 +282,36 @@ describe('initiativeStore', () => {
 
       const entry = store.getEntry(entryId);
       expect(entry?.currentHP).toBe(0);
+    });
+
+    it('syncs a direct HP update after updating state', async () => {
+      const store = useInitiativeStore.getState();
+      store.setHP(entryId, 12);
+
+      expect(store.getEntry(entryId)?.currentHP).toBe(12);
+      await vi.waitFor(() => {
+        expect(syncStats).toHaveBeenCalledWith('initiative', {
+          initiativeEntryId: entryId,
+          characterId: undefined,
+          tokenId: undefined,
+          stats: { currentHP: 12 },
+        });
+      });
+    });
+
+    it('syncs temporary HP after updating state', async () => {
+      const store = useInitiativeStore.getState();
+      store.addTempHP(entryId, 8);
+
+      expect(store.getEntry(entryId)?.tempHP).toBe(8);
+      await vi.waitFor(() => {
+        expect(syncStats).toHaveBeenCalledWith('initiative', {
+          initiativeEntryId: entryId,
+          characterId: undefined,
+          tokenId: undefined,
+          stats: { tempHP: 8 },
+        });
+      });
     });
   });
 

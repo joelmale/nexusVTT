@@ -6,13 +6,13 @@
   "scripts": {
     "install:vtt": "npm ci --prefix apps/vtt",
     "install:forge": "npm ci --prefix apps/forge",
-    "install:codex": "npm ci --prefix apps/codex/services/doc-api && npm ci --prefix apps/codex/services/doc-processor && npm ci --prefix apps/codex/services/doc-websocket && npm ci --prefix apps/codex/services/admin-ui && npm ci --prefix apps/codex/services/dm-ui",
+    "install:codex": "npm ci --prefix apps/codex/services/doc-api && npm ci --prefix apps/codex/services/doc-processor && npm ci --prefix apps/codex/services/doc-websocket && npm ci --prefix apps/codex/services/admin-ui && npm ci --prefix apps/codex/services/dm-ui && npm ci --prefix apps/codex/docs",
     "build:vtt": "npm --prefix apps/vtt run build:all",
     "build:forge": "npm --prefix apps/forge run build",
-    "build:codex": "npm --prefix apps/codex/services/doc-api run build && npm --prefix apps/codex/services/doc-processor run build && npm --prefix apps/codex/services/doc-websocket run build && npm --prefix apps/codex/services/admin-ui run build && npm --prefix apps/codex/services/dm-ui run build",
+    "build:codex": "npm --prefix apps/codex/services/doc-api run build && npm --prefix apps/codex/services/doc-processor run build && npm --prefix apps/codex/services/doc-websocket run build && npm --prefix apps/codex/services/admin-ui run build && npm --prefix apps/codex/services/dm-ui run build && npm --prefix apps/codex/docs run build",
     "test:vtt": "npm --prefix apps/vtt run test:ci",
     "test:forge": "npm --prefix apps/forge run lint && npm --prefix apps/forge run test -- --run --coverage",
-    "test:codex": "npm --prefix apps/codex/services/doc-api test -- --runInBand src/services/__tests__/processing-quality.service.test.ts && npm --prefix apps/codex/services/doc-processor test -- --runInBand && npm --prefix apps/codex/services/doc-websocket test -- --runInBand --passWithNoTests",
+    "test:codex": "npm --prefix apps/codex/services/doc-api test -- --runInBand src/services/__tests__/processing-quality.service.test.ts && npm --prefix apps/codex/services/doc-processor test -- --runInBand && npm --prefix apps/codex/services/doc-websocket test -- --runInBand --passWithNoTests && npm --prefix apps/codex/docs run typecheck",
     "test:codex:integration": "npm --prefix apps/codex/services/doc-api test -- --runInBand"
   }
 }

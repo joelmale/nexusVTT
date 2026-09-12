@@ -27,7 +27,7 @@ npm run start:all  # Starts PostgreSQL, Redis, and both services
 - **Backend:** Express.js + WebSocket + PostgreSQL + Redis
 - **State Management:** Zustand with immer + IndexedDB persistence
 - **Authentication:** OAuth2 (Google/Discord) + PostgreSQL-backed sessions
-- **Deployment:** Docker Swarm + Nginx Proxy Manager
+- **Deployment:** production cutover is pending; see the deployment status below
 
 PostgreSQL is the durable authority for canonical game state and ordered
 multiplayer history. Redis provides cross-replica fanout, expiring presence,
@@ -226,11 +226,17 @@ cd apps/vtt
 npm run start:all  # Local development with Docker
 ```
 
-### Production (Docker Swarm)
+### Production status
 
-```bash
-docker stack deploy -c apps/vtt/docker/docker-compose.yml nexus
-```
+> **STOP: `apps/vtt/docker/docker-compose.yml` is local/component development
+> only. It is not the production, Dockhand, or Swarm stack and must not be used
+> with `docker stack deploy` or a production Docker host.**
+
+The production package is not complete. Do not deploy from this repository until
+the not-yet-complete `deploy/homelab/compose.yaml` package and its execution
+ledger entry are ready. Track the remaining work in
+[`docs/operations/monorepo-migration-execution-ledger.md`](./docs/operations/monorepo-migration-execution-ledger.md);
+Phase 3 is not complete.
 
 ### Configuration
 
@@ -252,13 +258,13 @@ Copy `.env.example` to `.env` and fill in the values before starting. The full r
 | `DISCORD_CLIENT_SECRET` | Discord application client secret                            | —                                                |
 | `DISCORD_CALLBACK_URL`  | Absolute HTTPS URL registered in your Discord application    | `https://app.nexusvtt.com/auth/discord/callback` |
 
-#### Optional / deployment variables
+#### Optional / local container variables
 
 | Variable         | Default                     | Description                                                                                                                                                                                             |
 | ---------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `SECURE_COOKIES` | `true` (production)         | Set to `false` only in non-TLS local environments. Controls the `Secure` flag on session cookies. **Note:** `FORCE_HTTPS` no longer exists — it was removed as it only accidentally disabled this flag. |
-| `IMAGE_PREFIX`   | `ghcr.io/joelmale/nexusvtt` | Container registry prefix used by docker-compose                                                                                                                                                        |
-| `VERSION`        | `latest`                    | Image tag to deploy. CI automatically pushes `latest` and a date+SHA tag on every master merge. Pin to a specific tag (e.g. `20260611-63d0651`) for reproducible deploys.                               |
+| `IMAGE_PREFIX`   | `ghcr.io/joelmale/nexusvtt` | Container registry prefix used by local/component Compose                                                                                                                                              |
+| `VERSION`        | `latest`                    | Image tag used by local/component Compose; production use is pending the homelab deployment package.                                                                                                   |
 | `POSTGRES_USER`  | `nexus`                     | Postgres username                                                                                                                                                                                       |
 | `POSTGRES_DB`    | `nexus`                     | Postgres database name                                                                                                                                                                                  |
 | `CORS_ORIGIN`    | `http://localhost:5173`     | Comma-separated list of allowed CORS origins                                                                                                                                                            |
@@ -267,7 +273,7 @@ Copy `.env.example` to `.env` and fill in the values before starting. The full r
 
 nginx only terminates HTTP internally (port 80). TLS is terminated by the outer reverse proxy (Traefik, Cloudflare, etc.), which must forward `X-Forwarded-Proto: https` — nginx passes this through unchanged to the backend. The backend is configured with `trust proxy: 1` so `req.protocol` and session cookie security are derived from that header, not the internal connection.
 
-### Infrastructure
+### Infrastructure (planned production work)
 
 - Multi-replica services for high availability
 - Load balancing with VIP endpoint mode
@@ -286,7 +292,7 @@ snapshot at `/api/metrics/multiplayer`. Start the optional Prometheus/Grafana
 overlay with:
 
 ```bash
-docker compose -f apps/vtt/docker/docker-compose.yml \
+docker compose -f apps/vtt/docker/docker-compose.dev.yml \
   -f apps/vtt/docker/docker-compose.observability.yml up -d
 ```
 

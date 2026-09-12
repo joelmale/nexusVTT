@@ -87,7 +87,7 @@ const config: Config = {
           items: [
             {
               label: 'Getting Started',
-              to: '/docs/index',
+              to: '/docs/',
             },
             {
               label: 'API Reference',

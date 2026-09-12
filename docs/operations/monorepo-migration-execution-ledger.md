@@ -1,6 +1,6 @@
 # Nexus monorepo migration execution ledger
 
-Last updated: 2026-09-11 (America/New_York)
+Last updated: 2026-09-12 (America/New_York)
 
 ## Objective and stopping boundary
 
@@ -14,7 +14,8 @@ retirement, or destructive cleanup unless the user gives explicit approval.
 
 ## Current phase and gate
 
-- Phase: 2 — build/CI parity; registry-pull gate blocked.
+- Phase: 2 — build/CI parity; review remediation is locally validated and the
+  registry-pull gate remains blocked on credentials/package access.
 - Gate state: Phase 0 passed. Phase 1 passed: all three source histories are
   ancestors of the migration branch, both imported subtree trees matched their
   source tips, Git fsck passed, and the intended `apps/vtt`, `apps/forge`, and
@@ -40,9 +41,18 @@ retirement, or destructive cleanup unless the user gives explicit approval.
   pull was denied. The same run reproduced the pre-existing VTT static import
   cycle; wave 5 then removed it with one application-local dynamic boundary,
   and lead reruns of the cycle, type, lint, and targeted test checks pass.
-- Exact next action: obtain explicit approval for the package-access and
-  Dockhand credential changes needed to publish/pull all candidates. Do not
-  begin Phase 3 until this Phase 2 blocker is cleared.
+  Draft PR 230's complete VTT, Forge, and Codex checks passed at `ead14d5`.
+  Wave 7 now resolves the six interim-review findings in the repository:
+  same-SHA candidate dependencies, Forge ARM64 publication, an always-present
+  aggregate PR check, Codex docs install/build coverage, observable
+  character-sync failure handling, and production-guidance safeguards. These
+  changes are locally validated but not yet committed or checked by the PR at
+  this ledger update.
+- Exact next action: commit and push the review-remediation unit, require its
+  aggregate PR check to pass, then obtain explicit approval for the
+  package-access and Dockhand credential changes needed to publish and pull a
+  complete new exact-SHA candidate set. Do not begin Phase 3 until this Phase 2
+  blocker is cleared.
 
 ## Destination
 
@@ -51,6 +61,7 @@ retirement, or destructive cleanup unless the user gives explicit approval.
 - Baseline SHA: `c8b3fc93c65c2a4cd5f37612b4e625f65f47d936`
 - Remote `origin/master` verified at the same SHA on 2026-09-11.
 - Migration branch: `codex/monorepo-migration`
+- Draft PR: `https://github.com/joelmale/nexusVTT/pull/230`
 - Isolated checkout:
   `C:/Users/nelso/Documents/Coding/nexusVTT-monorepo-migration`
 - Migration plan is tracked at
@@ -251,6 +262,32 @@ and Codex were clean at baseline.
     Actions access or replacing the saved live registry credential requires
     explicit approval and a least-privilege package token; neither setting was
     changed during diagnosis.
+17. The three application workflows are now coordinated through one root PR
+    workflow: Forge and Codex are reusable/manual workflows, while the root
+    workflow invokes them and emits `Monorepo required` after every applicable
+    gate. The root PR trigger has no path filter so the required result is
+    present even for documentation-only changes. Root `master` push filtering
+    remains, and VTT image publication is additionally release-scope-gated;
+    version-tag pushes retain their prior unconditional publication behavior.
+    Reason: independent review found that separate path-filtered checks could
+    disappear and falsely satisfy branch protection.
+18. Candidate publication now depends on successful VTT, Forge, and Codex
+    validation of the same exact input SHA, and Forge restores its source
+    `linux/amd64,linux/arm64` manifest parity through QEMU. Existing
+    `candidate-ac59d8a` tags are retained as evidence but are superseded for
+    promotion purposes because they predate the cycle and review repairs.
+19. Codex docs remains an independent installation root. Its new lockfile pins
+    Webpack `5.105.4`, the last release before Webpack's new compiler validation
+    exposed the `webpackbar` 6/Docusaurus 3.9.2 incompatibility. Webpack 5.109.0
+    reproduced the failure; 5.105.4 passed compilation. A real `/docs/index`
+    broken link was corrected to `/docs/`. This compatibility pin avoids a
+    Docusaurus dependency-family upgrade during mechanical migration and is
+    recorded in root scripts, Codex CI, and Dependabot.
+20. Until Phase 3 creates and validates `deploy/homelab/compose.yaml`, root
+    production documentation and Make targets explicitly block use of the
+    VTT component Compose file with Dockhand or Swarm. Unsafe deploy, push,
+    Swarm removal/status, production log, and production shell targets were
+    removed while local development commands remain.
 
 ## Ownership and delegation wave 1
 
@@ -457,6 +494,75 @@ Application/build engineer (GPT-5.6 Terra, medium):
   `apps/vtt/src/stores/initiativeStore.ts`, completed the required handoff, and
   was closed after lead review returned ownership.
 
+## Ownership and delegation wave 6
+
+Independent reviewer (GPT-5.6 Terra, high), initial read-only review:
+
+- Objective: independently audit completed Phase 0–2 work against the migration
+  plan and identify correctness, compatibility, history-integrity, test,
+  Docker/Compose, CI-trigger, persistence/data-loss, deployment, rollback, or
+  undocumented-deviation hazards. Acceptance requires prioritized findings
+  with exact file/line or command evidence, plus explicit confirmation of areas
+  reviewed where no issue was found.
+- Read-only scope: the complete isolated checkout
+  `C:/Users/nelso/Documents/Coding/nexusVTT-monorepo-migration`, its Git history,
+  the migration plan, and this ledger. The reviewer may run read-only Git and
+  text inspection commands only.
+- Must leave every file, Git ref, worktree, generated output, package install,
+  Docker resource, workflow/run, registry/package setting, Dockhand/live system,
+  and source checkout untouched. No builds, tests, installs, network mutation,
+  deployment, production access, or subagents.
+- This is an interim Phase 0–2 review; independent review must run again after
+  the Phase 3 rehearsal and production-cutover package are complete.
+- Dispatch accepted as agent `01a09339-8354-7273-9ff7-2d40da610c69` with the
+  requested GPT-5.6 Terra/high override. The reviewer returned six actionable
+  findings without modifying any file or external state and was closed after
+  its evidence was integrated below.
+
+## Ownership and delegation wave 7
+
+Application/build engineer (GPT-5.6 Terra, medium):
+
+- Objective: make the lazy initiative-to-character sync boundary observable
+  and covered without restoring the static cycle. Acceptance requires explicit
+  import-failure handling and focused tests proving damage, healing, set-HP,
+  and temporary-HP operations invoke the sync service after lazy loading, plus
+  cycle, type, lint, and targeted tests passing.
+- Exclusive write ownership:
+  `apps/vtt/src/stores/initiativeStore.ts` and directly relevant initiative
+  store tests under `apps/vtt/tests/unit/**`. Any other edit requires an
+  ownership request.
+- Must leave all other source, root/workflow/manifest/lockfile,
+  Docker/deployment/monitoring, Git/external/live state, and generated outputs
+  untouched. No installs, Docker, commits, production access, or subagents.
+
+Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
+
+- Objective: remove unsafe operator guidance that presents the component-local
+  VTT Compose file as the production/Dockhand/Swarm definition. Acceptance
+  requires prominent local-only labeling, removal/blocking of dangerous
+  production commands, and deterministic stale-reference checks.
+- Exclusive write ownership: root `README.md`, root `DEPLOYMENT.md`, and root
+  `Makefile` only.
+- Must leave applications, workflows, manifests/lockfiles, migration plan and
+  ledger, Docker/deploy/monitoring definitions, Git/external/live state, and all
+  other files untouched. No architecture/history/data-safety decisions,
+  installs, builds, Docker, commits, or subagents.
+
+The application assignment was accepted as agent
+`01a09401-736f-7402-b8db-79aa9b84ae0b` with the requested GPT-5.6
+Terra/medium override. It changed only the initiative store and two focused
+test files. The lead reviewed the diff, reran ESLint, 25 focused tests, the
+284-module cycle check, and the complete VTT type check successfully. The
+agent was closed and ownership returned to the lead.
+
+The documentation assignment was accepted as agent
+`01a09401-74d6-7ae0-afab-013c379846ff` with the requested GPT-5.6 Luna/medium
+override. It changed only `README.md`, `DEPLOYMENT.md`, and `Makefile`; the
+lead reviewed the diff and deterministic reference scan. `make help` could not
+run because GNU Make is unavailable on this Windows host. The agent was closed
+and ownership returned to the lead.
+
 ## Completed work
 
 - Read all three root `AGENTS.md` files and the complete migration plan.
@@ -536,6 +642,24 @@ Application/build engineer (GPT-5.6 Terra, medium):
   loading `characterSyncService` only at the initiative store's existing
   outbound sync hook. Initiative state mutations remain synchronous; no
   durable persistence, WebSocket, database, or acknowledgement path changed.
+- Committed the verified cycle repair and its ledger evidence as `ead14d5`
+  (`fix(vtt): remove character sync import cycle`) and pushed the migration
+  branch. The normal pre-commit hook passed layout, Tailwind-collision, and
+  staged ESLint checks.
+- Opened draft PR 230. Its body records the exact source SHAs and unresolved
+  Phase 2/production boundaries. PR-triggered jobs have no package-write
+  permission and the candidate-only job is skipped for pull requests.
+- Draft PR 230 completed all checks at `ead14d5`: VTT lint/type/cycle, three
+  unit shards, asset service, integration, managed production E2E smoke,
+  Forge CI, and Codex CI all passed. Runs `34664818960`, `34664818977`, and
+  `34664818979` succeeded.
+- Wave-7 review remediation is implemented and lead-reviewed. The initiative
+  sync repair caches its dynamic import, logs a load or sync-call failure, and
+  avoids repeated failed loads. Root production docs and Make targets no longer
+  advertise the component VTT Compose input as production-safe. The unified
+  root workflow validates all applications at one SHA, restores Forge ARM64
+  candidates, and provides one aggregate required result. Codex docs now has
+  an isolated lockfile and root/CI/Dependabot coverage.
 
 ## Files created, moved, or modified
 
@@ -557,7 +681,15 @@ Application/build engineer (GPT-5.6 Terra, medium):
   `apps/vtt/scripts/prepare-husky.js`.
 - Created the execution ledger.
 - Extended `.github/workflows/ci.yml` with a manual exact-SHA candidate-only
-  image publication path; normal master/tag publication remains unchanged.
+  image publication path. Subsequent review remediation couples candidates to
+  all same-SHA checks, restores Forge ARM64, adds the aggregate required job,
+  and limits normal master publication to VTT release-scope changes while tag
+  publication remains unchanged.
+- Created `apps/codex/docs/package-lock.json` and
+  `apps/vtt/tests/unit/stores/initiativeStore.syncFailure.test.ts`; modified
+  Codex docs/root manifests, Dependabot, reusable Forge/Codex workflows, root
+  operator docs/Make targets, and the VTT initiative sync boundary/tests for
+  the accepted review findings.
 
 ## Commands and important outcomes
 
@@ -773,6 +905,30 @@ Application/build engineer (GPT-5.6 Terra, medium):
   `initiativeStore`, `characterStore`, and `gameStore` unit suites pass all 59
   tests. `git diff --check` passes. Only the outbound no-op sync hook is now
   deferred to module loading.
+- Wave-7 focused VTT validation passes: targeted ESLint; two initiative-store
+  files with 25 tests; no cycles across 284 modules; and the complete VTT type
+  check. A first lead invocation from the repository root used incorrect npm
+  execution paths and produced no valid test result; it was immediately rerun
+  from `apps/vtt` and passed, so it is a command-invocation error rather than a
+  source failure.
+- Codex docs `npm ci` and typecheck pass. Webpack 5.109.0 reproduced the
+  Docusaurus/webpackbar schema failure; exact 5.105.4 compiled successfully and
+  then exposed a pre-existing `/docs/index` footer link. After correcting the
+  link, docs build passed. Root `npm run build:codex` passes all five services
+  plus docs; root `npm run test:codex` passes doc-api's two focused tests,
+  processor's 43 tests, the explicit WebSocket no-test gate, and docs typecheck.
+  The docs lock reports 26 existing audit findings (8 moderate, 18 high), not
+  changed under this migration.
+- Official actionlint 1.7.12 passes every active root workflow after the unified
+  required gate and reusable workflow changes. The first release-download
+  glob used the wrong Windows architecture spelling and a second direct
+  wildcard invocation was not expanded by PowerShell; the corrected official
+  `windows_amd64` binary repository scan passed with exit 0. Documentation
+  scans find the old production commands only in explicit prohibitions, and
+  `git diff --check` passes.
+- Draft PR 230 was created against `master` from
+  `codex/monorepo-migration`; GitHub reports it as draft. Its CI, Forge CI, and
+  Codex CI checks started, while the candidate publisher is correctly skipped.
 
 ## Failure classification
 
@@ -802,15 +958,39 @@ Application/build engineer (GPT-5.6 Terra, medium):
 
 ## Review findings and disposition
 
-No independent review has run yet.
+Interim independent Phase 0–2 review completed in wave 6. All six findings are
+accepted; none is waived:
+
+1. P1: candidate publication lacked same-SHA validation dependencies, and the
+   published `ac59d8a` candidates predate the cycle fix. Repository fix locally
+   validated; final disposition requires the new aggregate PR check and a full
+   candidate run from the resulting exact commit.
+2. P1: Forge candidate publication lost source ARM64 parity. Repository fix
+   locally validated with actionlint; final disposition requires the new
+   dual-platform candidate manifest.
+3. P1: root operator docs/Make target presented the generic VTT-only Compose
+   file as production-safe. Resolved locally by wave 7 and lead review.
+4. P1: no always-running aggregate required CI result existed. Resolved locally
+   with the unfiltered PR trigger and `Monorepo required` aggregate; remote run
+   remains required.
+5. P2: `apps/codex/docs` had no isolated lockfile/build/CI/Dependabot mapping.
+   Resolved locally; clean install, typecheck, build, and root orchestration pass.
+6. P2: lazy character sync had no import-failure handling or focused side-effect
+   test. Resolved locally; failure handling, sync payload tests, cycle check,
+   typecheck, and focused tests pass.
+
+The reviewer independently found no issue in source-tip ancestry, `git fsck`,
+Forge tag namespacing, VTT move history, VTT Docker context paths, or
+non-publishing PR behavior. Final independent review remains required after
+these findings, Phase 3, and the cutover package are complete.
 
 ## Blockers and pending approvals
 
 - No filesystem, repository, Docker, or live-read access blocker.
 - Both wave-3 delegation attempts were rejected by the application's subagent
-  usage limit before work began. Wave 4 was later accepted with the requested
-  model overrides. The documentation worker is complete and closed after its
-  evidence was integrated; the Codex application worker remains active.
+  usage limit before work began. Later waves were accepted with the requested
+  model overrides. All agents are complete and closed; no delegated ownership
+  remains active.
 - GitHub package Actions access must be granted from the destination
   `nexusVTT` repository to the existing `nexus-forge` and five
   `nexuscodex-*` packages before their immutable candidate tags can publish.
@@ -837,12 +1017,17 @@ explicit cleanup approval.
 
 ## Remaining work in priority order
 
-1. With explicit approval, grant destination Actions access to the six legacy
+1. Commit and push the locally passing review-remediation unit; verify draft PR
+   230's new `Monorepo required` result and all underlying same-SHA checks.
+2. With explicit approval, grant destination Actions access to the six legacy
    packages and replace Dockhand's invalid GHCR credential with a dedicated
-   read-only package token; rerun candidate publication and pull; close Phase 2.
-2. Rehearse the isolated deployment with disposable data and unique resources.
-3. Prepare the production Git cutover package without mutating production.
-4. Complete independent review, resolve findings, and rerun affected checks.
+   read-only package token; rerun complete exact-SHA candidate publication,
+   verify all registry digests/labels including Forge ARM64, independently pull
+   through Dockhand, and close Phase 2.
+3. Rehearse the isolated deployment with disposable data and unique resources.
+4. Prepare the production Git cutover package without mutating production.
+5. Complete final independent review, resolve findings, and rerun affected
+   checks.
 
 ## Ready-to-use resumption prompt
 
@@ -851,9 +1036,10 @@ Resume the Nexus monorepo migration from
 `codex/monorepo-migration`. Read this entire ledger and
 `docs/operations/monorepo-migration-plan.md`, then inspect `git status` and the
 latest ledger entries. Preserve the user-authorized generator moves in the
-original `nexusVTT` checkout. `HEAD` is exact traceability commit
-`ac59d8a987e451d02e0206610ddf15e6ff1201d9`; only this post-commit ledger update
-should be modified. All prior agents are complete and closed, so ownership has
-returned to the lead. Continue from the exact Phase 2 registry-pull action
+original `nexusVTT` checkout. Wave-7 review remediation is locally validated
+but is uncommitted at this checkpoint; review its diff, commit it atomically,
+push the migration branch, and verify draft PR 230's aggregate same-SHA gate.
+All prior agents are complete and closed, so ownership has returned to the
+lead. Then continue from the exact Phase 2 registry/package approval action
 above, obey the two-subagent concurrency cap, and do not cross the production
 approval boundary.

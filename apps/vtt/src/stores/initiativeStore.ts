@@ -10,6 +10,31 @@ import type {
 } from '@/types/initiative';
 import { createInitiativeEntry } from '@/types/initiative';
 
+type CharacterSyncServiceModule = typeof import('@/services/characterSyncService');
+
+let characterSyncServiceModulePromise: Promise<CharacterSyncServiceModule> | null =
+  null;
+let characterSyncServiceLoadFailed = false;
+
+function loadCharacterSyncService(): Promise<CharacterSyncServiceModule> | null {
+  if (characterSyncServiceLoadFailed) {
+    return null;
+  }
+
+  if (!characterSyncServiceModulePromise) {
+    characterSyncServiceModulePromise = import('@/services/characterSyncService');
+    void characterSyncServiceModulePromise.catch((error: unknown) => {
+      characterSyncServiceLoadFailed = true;
+      console.error(
+        'Failed to load character sync service for initiative stat sync.',
+        error,
+      );
+    });
+  }
+
+  return characterSyncServiceModulePromise;
+}
+
 function syncInitiativeStats(update: {
   initiativeEntryId: string;
   characterId?: string;
@@ -19,10 +44,20 @@ function syncInitiativeStats(update: {
     tempHP?: number;
   };
 }): void {
-  void import('@/services/characterSyncService').then(
+  const characterSyncServiceModule = loadCharacterSyncService();
+  if (!characterSyncServiceModule) {
+    return;
+  }
+
+  void characterSyncServiceModule.then(
     ({ characterSyncService }) => {
-      characterSyncService.syncStats('initiative', update);
+      try {
+        characterSyncService.syncStats('initiative', update);
+      } catch (error) {
+        console.error('Failed to sync initiative stats to character.', error);
+      }
     },
+    () => undefined,
   );
 }
 
