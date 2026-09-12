@@ -18,6 +18,7 @@ COPY --chown=nodejs:nodejs apps/generator-hub/package.json ./apps/generator-hub/
 COPY --chown=nodejs:nodejs tsconfig*.json ./
 COPY --chown=nodejs:nodejs patches ./patches
 COPY --chown=nodejs:nodejs scripts/sync-dice-assets.js ./scripts/sync-dice-assets.js
+COPY --chown=nodejs:nodejs scripts/prepare-husky.js ./scripts/prepare-husky.js
 
 USER nodejs
 

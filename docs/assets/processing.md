@@ -2,8 +2,8 @@
 
 Nexus VTT has two related asset paths:
 
-- Local processed assets under `static-assets/assets`
-- Library assets served by `services/asset-service`
+- Local processed assets under `apps/vtt/static-assets/assets`
+- Library assets served by `apps/vtt/services/asset-service`
 
 This guide covers the local processing scripts that prepare images for browser
 use.
@@ -13,6 +13,7 @@ use.
 Process a folder of images into the local static asset tree:
 
 ```bash
+cd apps/vtt
 node scripts/process-assets.js /path/to/your/assets ./static-assets/assets
 ```
 
@@ -41,7 +42,7 @@ npm run seed:library-assets
 The local static asset scripts write under:
 
 ```text
-static-assets/
+apps/vtt/static-assets/
   assets/
   thumbnails/
   manifest.json
@@ -77,7 +78,7 @@ assets for browsing.
 ## Common Workflow
 
 1. Put source images somewhere outside the generated output directory.
-2. Run `node scripts/process-assets.js /path/to/source ./static-assets/assets`.
+2. Run `cd apps/vtt && node scripts/process-assets.js /path/to/source ./static-assets/assets`.
 3. Run `npm run generate-assets`.
 4. Start the app with `npm run start:all`.
 5. Confirm the assets appear in the browser.
@@ -93,7 +94,7 @@ npm install
 For large collections, give Node more memory:
 
 ```bash
-node --max-old-space-size=4096 scripts/process-assets.js /path/to/assets ./static-assets/assets
+node --max-old-space-size=4096 apps/vtt/scripts/process-assets.js /path/to/assets ./apps/vtt/static-assets/assets
 ```
 
 If assets are missing in production, check the deployment guide for

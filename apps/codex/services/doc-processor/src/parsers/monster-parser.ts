@@ -59,8 +59,8 @@ export class MonsterParser {
       const blockEnd = findBlockEnd(text, blockStart);
       const block = text.substring(blockStart, blockEnd);
 
-      monster.ac = extractField(block, /Armor Class\s+(\d+(?:\s+\([^)]+\))?)/);
-      monster.hp = extractField(block, /Hit Points\s+([\d\s+d()]+)/);
+      monster.ac = extractField(block, /Armor Class:?\s+(\d+(?:\s+\([^)]+\))?)/);
+      monster.hp = extractField(block, /Hit Points:?\s+([\d\s+d()]+)/);
       monster.speed = extractField(block, /Speed\s+([^\n]+)/);
       monster.cr = extractField(block, /Challenge\s+([\d/]+)/);
 

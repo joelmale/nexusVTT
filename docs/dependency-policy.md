@@ -10,7 +10,7 @@ package owns the lockfile for every npm workspace.
   package because of a transitive deprecation warning.
 - Permit install scripts only for reviewed packages in `allowScripts`.
   `esbuild` and `sharp` require their platform installers; the dice package's
-  copy script is disabled because `scripts/sync-dice-assets.js` performs a
+  copy script is disabled because `apps/vtt/scripts/sync-dice-assets.js` performs a
   deterministic, validated sync.
 - Keep `patch-package` patches documented and remove them when upstream fixes
   are available.

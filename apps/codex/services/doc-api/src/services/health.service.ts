@@ -6,7 +6,7 @@ import { buildProcessingSummary, ProcessingDocumentSnapshot } from './processing
 
 export interface ServiceHealth {
   name: string;
-  status: 'healthy' | 'unhealthy' | 'unknown';
+  status: 'healthy' | 'degraded' | 'unhealthy' | 'unknown';
   responseTime?: number;
   lastChecked: Date;
   details?: Record<string, any>;

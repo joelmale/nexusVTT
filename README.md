@@ -10,6 +10,7 @@
 ## Quick Start
 
 ```bash
+cd apps/vtt
 npm install
 npm run start:all  # Starts PostgreSQL, Redis, and both services
 ```
@@ -103,9 +104,13 @@ and host leases; losing Redis cannot erase an acknowledged game-state commit.
 
 ## 📦 Commands
 
+VTT commands run from `apps/vtt`; change into that directory before using the
+commands in this section.
+
 ### Development
 
 ```bash
+cd apps/vtt
 npm run dev              # Frontend only (hot reload)
 npm run server:dev       # Backend only (watch mode)
 npm run start:all        # Full stack with PostgreSQL
@@ -115,6 +120,7 @@ npm run docker:dev       # Docker Compose development
 ### Building
 
 ```bash
+cd apps/vtt
 npm run build           # Frontend build
 npm run build:server    # Backend build
 npm run build:all       # Both builds
@@ -124,6 +130,7 @@ npm run preview         # Preview built frontend
 ### Testing
 
 ```bash
+cd apps/vtt
 npm run test            # All tests
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
@@ -142,6 +149,7 @@ realtime-coordinator health response.
 ### Database
 
 ```bash
+cd apps/vtt
 npm run db:start        # Start PostgreSQL
 npm run db:stop         # Stop PostgreSQL
 npm run db:reset        # Reset database
@@ -151,6 +159,7 @@ npm run db:shell        # Open psql shell
 ### Assets
 
 ```bash
+cd apps/vtt
 npm run organize-assets     # Organize asset files
 npm run generate-assets     # Generate thumbnails and manifest
 npm run optimize-images     # Optimize image files
@@ -159,6 +168,7 @@ npm run optimize-images     # Optimize image files
 ### Docker
 
 ```bash
+cd apps/vtt
 npm run docker:dev          # Development environment
 npm run docker:dev:build    # Build and start dev
 npm run docker:dev:down     # Stop dev environment
@@ -212,13 +222,14 @@ npm run docker:dev:down     # Stop dev environment
 ### Development
 
 ```bash
+cd apps/vtt
 npm run start:all  # Local development with Docker
 ```
 
 ### Production (Docker Swarm)
 
 ```bash
-docker stack deploy -c docker/docker-compose.yml nexus
+docker stack deploy -c apps/vtt/docker/docker-compose.yml nexus
 ```
 
 ### Configuration
@@ -264,19 +275,19 @@ nginx only terminates HTTP internally (port 80). TLS is terminated by the outer 
 - Container health monitoring
 
 For an existing database, first apply
-`server/migrations/2026-01-05-add-campaign-roomcode.sql`, then apply all three
+`apps/vtt/server/migrations/2026-01-05-add-campaign-roomcode.sql`, then apply all three
 July 19 migrations before rolling the new backend replicas: the ordered event
 journal, durable game-state commits, and room entity versions. The last table
 makes token/prop version checks atomic across replicas. New databases receive
-the same objects from `server/schema.sql`.
+the same objects from `apps/vtt/server/schema.sql`.
 
 The backend exposes a Prometheus endpoint at `/metrics` and a structured SLO
 snapshot at `/api/metrics/multiplayer`. Start the optional Prometheus/Grafana
 overlay with:
 
 ```bash
-docker compose -f docker/docker-compose.yml \
-  -f docker/docker-compose.observability.yml up -d
+docker compose -f apps/vtt/docker/docker-compose.yml \
+  -f apps/vtt/docker/docker-compose.observability.yml up -d
 ```
 
 See [Multiplayer Reliability Operations](./docs/operations/multiplayer-observability.md)
@@ -345,8 +356,8 @@ MIT - see [LICENSE](./LICENSE).
 ### First-Time Setup
 
 1. Clone the repository
-2. Install dependencies: `npm install`
-3. Start development environment: `npm run start:all`
+2. Install dependencies: `cd apps/vtt && npm install`
+3. Start development environment: `cd apps/vtt && npm run start:all`
 4. Access frontend at http://localhost:5173
 5. Create account via OAuth or email
 

@@ -24,7 +24,9 @@ describe('Document Routes Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      expect(Array.isArray(response.json())).toBe(true);
+      const body = response.json();
+      expect(Array.isArray(body.documents)).toBe(true);
+      expect(body.pagination).toMatchObject({ total: 0, skip: 0 });
     });
 
     it('should filter by type', async () => {
@@ -34,8 +36,8 @@ describe('Document Routes Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      const documents = response.json();
-      documents.forEach((doc: any) => {
+      const body = response.json();
+      body.documents.forEach((doc: any) => {
         expect(doc.type).toBe('rulebook');
       });
     });
@@ -65,8 +67,9 @@ describe('Document Routes Integration Tests', () => {
       });
 
       expect(response.statusCode).toBe(200);
-      const documents = response.json();
-      expect(documents.length).toBeLessThanOrEqual(5);
+      const body = response.json();
+      expect(body.documents.length).toBeLessThanOrEqual(5);
+      expect(body.pagination.limit).toBe(5);
     });
   });
 

@@ -1,6 +1,11 @@
-import { fileTypeFromBuffer } from 'file-type';
 import sharp from 'sharp';
 import { s3Service } from './s3.service';
+
+const loadFileTypeFromBuffer = async () => {
+  const modulePath = 'file-type';
+  const module = await new Function('path', 'return import(path)')(modulePath);
+  return module.fileTypeFromBuffer as (buffer: Buffer) => Promise<{ mime: string; ext: string } | undefined>;
+};
 
 export interface FilePreview {
   mimeType: string;
@@ -41,6 +46,7 @@ export class FilePreviewService {
       const fileBuffer = Buffer.from(await response.Body?.transformToByteArray() || new Uint8Array());
 
       // Detect file type
+      const fileTypeFromBuffer = await loadFileTypeFromBuffer();
       const fileType = await fileTypeFromBuffer(fileBuffer);
       if (!fileType) {
         throw new Error('Unable to detect file type');

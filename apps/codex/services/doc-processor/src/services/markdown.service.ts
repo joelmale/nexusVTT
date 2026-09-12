@@ -1,5 +1,18 @@
-import { unified } from 'unified';
-import remarkParse from 'remark-parse';
+const dynamicImport = new Function('specifier', 'return import(specifier)') as (
+  specifier: string,
+) => Promise<unknown>;
+
+const loadMarkdownParser = async () => {
+  const [unifiedModule, remarkParseModule] = await Promise.all([
+    dynamicImport('unified') as Promise<typeof import('unified')>,
+    dynamicImport('remark-parse') as Promise<typeof import('remark-parse')>,
+  ]);
+
+  return {
+    unified: unifiedModule.unified,
+    remarkParse: remarkParseModule.default,
+  };
+};
 
 class MarkdownService {
   /**
@@ -7,6 +20,7 @@ class MarkdownService {
    */
   async extractText(markdown: string): Promise<string> {
     try {
+      const { unified, remarkParse } = await loadMarkdownParser();
       // Parse markdown to AST
       const processor = unified().use(remarkParse);
       const tree = processor.parse(markdown);
@@ -27,6 +41,7 @@ class MarkdownService {
    */
   async extractHeadings(markdown: string): Promise<Array<{ level: number; text: string }>> {
     try {
+      const { unified, remarkParse } = await loadMarkdownParser();
       const processor = unified().use(remarkParse);
       const tree = processor.parse(markdown);
 
@@ -44,7 +59,7 @@ class MarkdownService {
    * Recursively extract text from AST nodes
    */
   private extractTextNodes(node: any, textNodes: string[]): void {
-    if (node.type === 'text') {
+    if (node.type === 'text' || node.type === 'code' || node.type === 'inlineCode') {
       textNodes.push(node.value);
     }
 
@@ -78,8 +93,9 @@ class MarkdownService {
   /**
    * Validate markdown file
    */
-  isValidMarkdown(content: string): boolean {
+  async isValidMarkdown(content: string): Promise<boolean> {
     try {
+      const { unified, remarkParse } = await loadMarkdownParser();
       const processor = unified().use(remarkParse);
       processor.parse(content);
       return true;

@@ -1,7 +1,9 @@
-import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-
-// @ts-ignore
-pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
+const loadPdfJs = async () => {
+  const modulePath = 'pdfjs-dist/legacy/build/pdf.mjs';
+  const pdfjsLib = await new Function('path', 'return import(path)')(modulePath) as typeof import('pdfjs-dist/legacy/build/pdf.mjs');
+  pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
+  return pdfjsLib;
+};
 
 type PDFTextItem = {
   str: string;
@@ -79,6 +81,7 @@ const sortLinesTopDown = (lines: LineGroup[]) =>
 
 export class LayoutService {
   async extractTextWithLayout(buffer: Buffer): Promise<LayoutExtractionResult> {
+    const pdfjsLib = await loadPdfJs();
     const uint8Array = new Uint8Array(buffer);
     const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
     const pdfDocument = await loadingTask.promise;

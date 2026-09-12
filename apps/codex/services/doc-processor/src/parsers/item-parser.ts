@@ -8,7 +8,7 @@ export interface ItemData {
   description?: string;
 }
 
-const ITEM_PATTERN = /([A-Z][a-zA-Z\s,']+)\n(Weapon|Armor|Wondrous item|Potion|Ring|Rod|Staff|Wand)[,\s]+([a-z\s]+)/gm;
+const ITEM_PATTERN = /([A-Z][a-zA-Z\s,']+)\n(Weapon(?:\s*\([^\n)]+\))?|Armor(?:\s*\([^\n)]+\))?|Wondrous item|Potion|Ring|Rod|Staff|Wand)\s*,\s*([a-z\s]+)/gm;
 
 const findBlockEnd = (text: string, start: number): number => {
   const remaining = text.substring(start);

@@ -12,9 +12,9 @@ This repo uses a minimal GitHub Actions setup to keep feedback fast and focused.
 - Manual dispatch
 
 **Jobs**
-- Lint & Type Check: `npm run lint` and `npm run type-check`.
-- Unit Tests (sharded 1/3): `npm run test:unit -- --shard=N/3`.
-- Integration Tests: `docker compose -f docker/docker-compose.test.yml up --build --abort-on-container-exit`.
+- Lint & Type Check: `cd apps/vtt && npm run lint` and `npm run type-check`.
+- Unit Tests (sharded 1/3): `cd apps/vtt && npm run test:unit -- --shard=N/3`.
+- Integration Tests: `docker compose -f apps/vtt/docker/docker-compose.test.yml up --build --abort-on-container-exit`.
 
 **Notes**
 - Unit tests are sharded across 3 jobs to keep runtime low.

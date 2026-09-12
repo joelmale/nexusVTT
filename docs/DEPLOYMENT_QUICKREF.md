@@ -7,7 +7,7 @@ deployment.
 
 - Dockhand manages the live stack.
 - The stack runs on one Docker Engine server.
-- The stack uses `docker/docker-compose.yml`.
+- The stack uses `apps/vtt/docker/docker-compose.yml`.
 - Images come from `ghcr.io/joelmale/nexusvtt`.
 - GitHub Actions publishes images from `.github/workflows/ci.yml`.
 - `master` is the CI branch.
@@ -97,17 +97,17 @@ Run after a backup and before deploying backend code that requires the schema:
 CONTAINER=$(docker ps -q -f name=postgres)
 
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2025-12-08-add-account-fields.sql
+  < apps/vtt/server/migrations/2025-12-08-add-account-fields.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2025-12-08-add-local-auth.sql
+  < apps/vtt/server/migrations/2025-12-08-add-local-auth.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2026-01-05-add-campaign-roomcode.sql
+  < apps/vtt/server/migrations/2026-01-05-add-campaign-roomcode.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2026-07-19-add-room-event-journal.sql
+  < apps/vtt/server/migrations/2026-07-19-add-room-event-journal.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2026-07-19-add-durable-game-state-commits.sql
+  < apps/vtt/server/migrations/2026-07-19-add-durable-game-state-commits.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2026-07-19-add-room-entity-versions.sql
+  < apps/vtt/server/migrations/2026-07-19-add-room-entity-versions.sql
 ```
 
 ## Reverse Proxy

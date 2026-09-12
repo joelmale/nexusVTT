@@ -104,28 +104,28 @@ Heading 2
   });
 
   describe('isValidMarkdown', () => {
-    it('should return true for valid markdown', () => {
+    it('should return true for valid markdown', async () => {
       const markdown = '# Hello\n\nThis is valid.';
-      expect(markdownService.isValidMarkdown(markdown)).toBe(true);
+      await expect(markdownService.isValidMarkdown(markdown)).resolves.toBe(true);
     });
 
-    it('should return true for empty string', () => {
-      expect(markdownService.isValidMarkdown('')).toBe(true);
+    it('should return true for empty string', async () => {
+      await expect(markdownService.isValidMarkdown('')).resolves.toBe(true);
     });
 
-    it('should return true for plain text', () => {
+    it('should return true for plain text', async () => {
       const text = 'This is just plain text without any markdown.';
-      expect(markdownService.isValidMarkdown(text)).toBe(true);
+      await expect(markdownService.isValidMarkdown(text)).resolves.toBe(true);
     });
 
-    it('should return true for markdown with formatting', () => {
+    it('should return true for markdown with formatting', async () => {
       const markdown = `
 # Title
 **Bold** and *italic*
 - List item
 [Link](https://example.com)
       `;
-      expect(markdownService.isValidMarkdown(markdown)).toBe(true);
+      await expect(markdownService.isValidMarkdown(markdown)).resolves.toBe(true);
     });
   });
 });

@@ -11,6 +11,7 @@ COPY services/asset-service/package.json ./services/asset-service/package.json
 COPY apps/generator-hub/package.json ./apps/generator-hub/package.json
 COPY patches ./patches
 COPY scripts/sync-dice-assets.js ./scripts/sync-dice-assets.js
+COPY scripts/prepare-husky.js ./scripts/prepare-husky.js
 
 # Install all dependencies (including dev dependencies)
 RUN npm install
@@ -41,6 +42,7 @@ COPY services/asset-service/package.json ./services/asset-service/package.json
 COPY apps/generator-hub/package.json ./apps/generator-hub/package.json
 COPY patches ./patches
 COPY scripts/sync-dice-assets.js ./scripts/sync-dice-assets.js
+COPY scripts/prepare-husky.js ./scripts/prepare-husky.js
 
 # Install all dependencies (needed for build)
 RUN npm ci --legacy-peer-deps

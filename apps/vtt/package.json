@@ -71,7 +71,7 @@
     "analyze": "vite build --mode analyze",
     "sync:dice-assets": "node scripts/sync-dice-assets.js",
     "check:dice-assets": "node scripts/sync-dice-assets.js --check",
-    "prepare": "cd ../.. && node apps/vtt/node_modules/husky/bin.js",
+    "prepare": "node scripts/prepare-husky.js",
     "postinstall": "patch-package && npm run sync:dice-assets"
   },
   "lint-staged": {

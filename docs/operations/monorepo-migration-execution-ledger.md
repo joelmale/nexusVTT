@@ -19,11 +19,13 @@ retirement, or destructive cleanup unless the user gives explicit approval.
   ancestors of the migration branch, both imported subtree trees matched their
   source tips, Git fsck passed, and the intended `apps/vtt`, `apps/forge`, and
   `apps/codex` layout is established. Root/VTT/Forge/WebSocket path repair and
-  their targeted validation are complete but not yet committed. Remaining
-  Codex and documentation parity work follows in the next bounded wave.
-- Exact next action: commit the validated Phase 2 parity unit, then delegate
-  disjoint Codex doc-api/processor remediation and documentation path repair
-  while the lead prepares Docker/image validation.
+  their targeted validation are committed at `ef70312`. Wave-4 Codex and
+  documentation work is integrated and lead-reviewed; all ten application
+  image contexts, aggregate Codex build, deterministic tests, isolated doc-api
+  integration tests, Compose renders, and active workflow lint now pass.
+  Phase 2 validation is complete and its coherent parity commit is pending.
+- Exact next action: stage, verify, and commit the completed Phase 2 parity
+  unit, update this ledger with its SHA, then begin Phase 3 rehearsal design.
 
 ## Destination
 
@@ -183,6 +185,30 @@ and Codex were clean at baseline.
    passed after the move, so reverting and replaying would add history risk
    without changing the result. The evidence-based disposition is to retain
    the verified order and document it here.
+10. VTT's moved Husky `prepare` command cannot assume the repository root is
+    present during application-context Docker builds. A small context-aware
+    helper now installs the root hook in a Git checkout and explicitly skips
+    Husky when the build context contains no `.git`. Both VTT install behavior
+    and image behavior were verified; dependencies and runtime behavior are
+    unchanged.
+11. Wave 4 mechanically repaired current VTT file and command paths in 29
+    owned documentation files. Historical, rollback, NAS, URL, migration-plan,
+    and ledger references were excluded from blind rewriting. Two unrelated
+    pre-existing README links (`docs/api-docs.md` and `docs/adr.md`) remain
+    broken and are classified separately rather than masked by this migration.
+12. Lead review rejected the Codex processor handoff's initial Jest-only
+    Markdown parser shim because it weakened coverage of production behavior.
+    The service now loads the actual ESM-only `unified`, `remark-parse`, and
+    PDF.js packages from its CommonJS output; Jest runs with VM-module support,
+    and all 43 tests exercise the real Markdown parser. `isValidMarkdown`
+    became asynchronous; there are no internal callers, and this keeps its
+    parser-based contract instead of replacing it with a permissive stub.
+13. Isolated doc-api integration testing exposed pre-existing API/test drift
+    and a real empty-index search defect: the list route returns paginated
+    `{documents, pagination}` data, while tests expected an array, and searches
+    sorted on `uploadedAt` although index creation/reindexing omitted that
+    field. Tests now assert the current response contract; index management now
+    maps/reindexes `uploadedAt`, and search tolerates an unmapped date field.
 
 ## Ownership and delegation wave 1
 
@@ -334,6 +360,31 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   changing or verifying files. The agent was closed and ownership returned to
   the lead.
 
+## Ownership and delegation wave 4
+
+Application/build engineer (GPT-5.6 Terra, medium):
+
+- Objective: repair the pre-existing Codex doc-api TypeScript failures and
+  doc-processor deterministic unit-test failures without schema redesign or
+  dependency upgrades. Acceptance requires both Prisma generations and builds,
+  doc-api's existing Jest suite, and every environment-independent processor
+  suite to pass, with environment-required tests explicitly classified.
+- Exclusive write ownership: `apps/codex/services/doc-api/**` and
+  `apps/codex/services/doc-processor/**`.
+- Must leave WebSocket/UI services, root/workflows/docs/ledger, Docker/shared
+  infrastructure, Git refs/history, other apps, and production untouched. No
+  Docker, integration services, schema push/migration, or subagents.
+
+Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
+
+- Objective and ownership repeat the failed wave-3 documentation assignment:
+  mechanically repair moved VTT paths in root `README.md`, `DEPLOYMENT.md`,
+  `CSS_TROUBLESHOOTING.md`, `dev-docs/**`, and `docs/**`, excluding the migration
+  plan and this ledger. Acceptance requires stale-reference and link checks.
+- Must leave applications, workflows, manifests, lockfiles, deployment files,
+  Git state, other checkouts, and live systems untouched. No architecture,
+  history, production/data-safety decisions, Docker, installs, or subagents.
+
 ## Completed work
 
 - Read all three root `AGENTS.md` files and the complete migration plan.
@@ -377,6 +428,29 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   derived complete filter state. Replaced the Codex WebSocket checkout's
   broken symlink materialization with its canonical regular Prisma schema and
   aligned its start script with emitted `dist/index.js`.
+- Committed this first build/CI parity unit as `ef70312`
+  (`chore(monorepo): restore initial build and CI paths`). The repaired root
+  pre-commit hook ran successfully: layout validation, Tailwind collision
+  validation, and lint-staged all completed without error.
+- Completed and lead-reviewed wave 4's deterministic documentation path
+  repair across 29 owned files. Its `git diff --check`, changed-target
+  existence check, and stale-reference inventory passed; no application,
+  workflow, manifest, lockfile, deployment, Git-ref, or live-system state was
+  touched by that worker.
+- Added a context-aware VTT Husky prepare helper and copied it before install
+  in both frontend and backend Docker build stages. All four VTT image contexts
+  now build successfully from `apps/vtt`.
+- Integrated the wave-4 Codex doc-api/processor handoff after lead review.
+  Doc-api compilation/service gaps, parser expectation drift, ESM runtime
+  loading, deterministic test setup, current route fixtures, and the
+  Elasticsearch timestamp contract are repaired without dependency upgrades
+  or schema changes.
+- Updated Codex CI so the doc-api job provisions isolated PostgreSQL 16 and
+  Elasticsearch 8.11 service containers, initializes only its empty test
+  schema, runs all 32 tests, and remains non-publishing. Other services retain
+  their lightweight matrix. Root Codex orchestration now separates the
+  deterministic suite from the explicit infrastructure-backed integration
+  command and treats WebSocket's verified no-test state as non-failing.
 
 ## Files created, moved, or modified
 
@@ -393,6 +467,9 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   `.github/workflows/codex-ci.yml`; modified root CI/Dependabot/tooling paths,
   `apps/vtt/package.json`, the VTT observability overlay, Forge filter wiring,
   and Codex WebSocket Prisma/Docker/startup files.
+- Modified 29 root/VTT documentation files to use the monorepo paths; modified
+  VTT frontend/backend Dockerfiles and package lifecycle wiring; created
+  `apps/vtt/scripts/prepare-husky.js`.
 - Created the execution ledger.
 
 ## Commands and important outcomes
@@ -450,6 +527,14 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   identities, mount destinations, restart policies, health checks, network,
   environment-variable names, and Git-registration state. Secret values were
   not written to the repository or ledger.
+- The initial VTT backend image build failed because the moved package's Husky
+  lifecycle referenced an unavailable root path. After introducing the
+  context-aware helper, a second backend attempt showed that the helper itself
+  had to be copied before `npm ci`; the Docker copy order was corrected and the
+  third backend attempt passed. The frontend independently exposed the same
+  missing pre-install copy in its builder stage; adding that explicit copy made
+  its next build pass. These failed attempts created no running resources and
+  no published images.
 
 ## Tests and validation
 
@@ -507,6 +592,43 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   emitted. Existing audit and bundle warnings remain separately classified.
 - Post-fix Codex WebSocket `npm ci`, default `npm run prisma:generate`, and
   TypeScript build passed using the canonical regular schema.
+- Post-fix Codex doc-api Prisma generation and TypeScript build passed. Its
+  focused unit suite passed two tests. With isolated PostgreSQL 16 on loopback
+  port 5433 and Elasticsearch 8.11 on loopback port 9201, Prisma schema push to
+  the empty test database passed and the full doc-api suite passed all three
+  suites and 32 tests. The expected 404 update case emits a Prisma not-found
+  diagnostic while still passing.
+- Post-fix Codex doc-processor Prisma generation and TypeScript build passed.
+  After lead removal of the weakened parser shim, the full real-parser suite
+  passed all ten suites and 43 tests under Jest VM-module support.
+- VTT application-context image builds passed for backend, frontend,
+  asset-service, and PostgreSQL. Local immutable image IDs are respectively
+  `sha256:8a5e0b0576a0ca692954672fae1f40e5d4bad0597eab22596b58f54d8eba59ec`,
+  `sha256:878ae4707c821f108d94fa3dc66f2417b085b90596ad7dabb70da1370736ac2a`,
+  `sha256:286c0b5475a28ec0c1a63f1f15d0f076a66e28dc54dcc572d4d5226b7f5c166e`,
+  and `sha256:431aa9caf9f9d039bce407ae0e8fd4647619ccb4d60fde4bc093d3ecbd87ba45`.
+  No image was pushed or used by production.
+- Forge and all five Codex application-context image builds passed. Local
+  immutable image IDs are Forge
+  `sha256:567fbf5df77dde052f5cd18a90c82975443f60fda52b307f756a6a22d18b8ee4`;
+  doc-api
+  `sha256:b3eff1bcc766a59011ece0fb6d59766eadd8654b9a3abbb171a452f26207ebbc`;
+  doc-processor
+  `sha256:7fff7ae2d5c3053b4682e91d95d03bbfdbcb99fed7f1c651d19107fe7a726bc3`;
+  doc-websocket
+  `sha256:9ffff9efbbdbd61e446248a28ddbef7b08a1f7fd37e1f2a4be94ddc30bc947ff`;
+  admin-ui
+  `sha256:9fe6a60053677a33339fd4b34195bea4b6554ea7ee29e1c928029f565d74baf7`;
+  and dm-ui
+  `sha256:169c80133bab8839e5c657a33ba5aa3a2f74f314553f49a7396e9239f24d3335`.
+  No image was pushed or used by production. Existing dependency-audit,
+  Browserslist, bundle-size, and Forge cross-chunk warnings remain classified
+  separately; the processor's native dependency image took several minutes in
+  recursive ownership/export but completed successfully.
+- Dockerized `actionlint` passed all active root workflows after the isolated
+  Codex service job was added. Root `npm run build:codex` passed all five
+  service builds. Root `npm run test:codex` passed the two doc-api deterministic
+  tests, all 43 processor tests, and the WebSocket no-test check.
 
 ## Failure classification
 
@@ -527,9 +649,10 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   currently failing; backend Prometheus metrics are not token-protected on the
   shared Docker network; `/api/system/health` returns no explicit database
   readiness field despite the current runbook's stated expectation.
-- Migration-introduced failures: none in the VTT, Forge, root workflow, or
-  Codex WebSocket parity slices. Remaining Codex baseline failures have not yet
-  been dispositioned.
+- Migration-introduced failures: the VTT frontend/backend Docker install-layer
+  Husky failures were introduced by the move and are fixed. No open regression
+  remains in the VTT, Forge, root workflow, or Codex WebSocket parity slices.
+  Remaining Codex baseline failures are being dispositioned in wave 4.
 
 ## Review findings and disposition
 
@@ -539,26 +662,27 @@ No independent review has run yet.
 
 - No filesystem, repository, Docker, or live-read access blocker.
 - Both wave-3 delegation attempts were rejected by the application's subagent
-  usage limit before work began. This blocks additional delegated work until
-  the reported reset, but does not block lead-owned local integration. The user
-  explicitly said “continue” after the notifications. No agent transcript
-  contains unintegrated work.
+  usage limit before work began. Wave 4 was later accepted with the requested
+  model overrides. The documentation worker is complete and closed after its
+  evidence was integrated; the Codex application worker remains active.
 - Production approval is not requested and no production mutation is
   authorized.
 - Phases 0 and 1 are complete. Phase 2 remains in progress.
 
 ## Pending difficult-to-reverse or long-running operation
 
-No difficult-to-reverse operation is active. The next work is reversible local
-path repair. No migration-era backup or restore resource will be deleted
-without the later explicit cleanup approval.
+No difficult-to-reverse operation is active. The isolated doc-api test
+containers `nexus-migration-docapi-pg-20260911` and
+`nexus-migration-docapi-es-20260911` were removed after passing evidence was
+recorded; they had no named volumes and contained only disposable test data.
+No production network, volume, image tag, or data was in scope. No
+migration-era backup or restore resource will be deleted without the later
+explicit cleanup approval.
 
 ## Remaining work in priority order
 
-1. Restore application-local and root build/CI paths while preserving all
-   application-local lockfiles; retry bounded delegation only after capacity
-   returns.
-2. Run the full build/CI parity validation matrix and classify regressions.
+1. Integrate and independently verify the wave-4 Codex doc-api/processor work.
+2. Finish Forge/Codex image builds and close the full build/CI parity gate.
 3. Rehearse the isolated deployment, complete independent review, resolve
    findings, and prepare the production cutover package.
 

@@ -3,22 +3,25 @@
 This file is the entry point for generated or code-adjacent documentation.
 Use [README.md](README.md) as the curated human documentation homepage.
 
+VTT application paths and commands below are relative to `apps/vtt` unless a
+repository-root path is stated explicitly.
+
 Generated documentation should prefer adding stable links here instead of
 expanding the human README into an exhaustive inventory.
 
 ## Source Map
 
-- Frontend entry: `src/main.tsx`
-- Frontend components: `src/components/`
-- Hooks: `src/hooks/`
-- Zustand stores: `src/stores/`
-- Client services: `src/services/`
-- Server entry: `server/index.ts`
-- Server routes: `server/routes/`
-- Asset service: `services/asset-service/`
-- Shared types: `shared/types.ts`
-- Scripts: `scripts/`
-- Docker and Compose: `docker/`
+- Frontend entry: `apps/vtt/src/main.tsx`
+- Frontend components: `apps/vtt/src/components/`
+- Hooks: `apps/vtt/src/hooks/`
+- Zustand stores: `apps/vtt/src/stores/`
+- Client services: `apps/vtt/src/services/`
+- Server entry: `apps/vtt/server/index.ts`
+- Server routes: `apps/vtt/server/routes/`
+- Asset service: `apps/vtt/services/asset-service/`
+- Shared types: `apps/vtt/shared/types.ts`
+- Scripts: `apps/vtt/scripts/`
+- Docker and Compose: `apps/vtt/docker/`
 
 ## Architecture References
 

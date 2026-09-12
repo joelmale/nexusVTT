@@ -9,15 +9,15 @@ Successfully integrated a two-tier asset system for Nexus VTT:
 ## What Was Implemented
 
 ### 1. Manifest Generator Script ✅
-**File:** `scripts/generate-default-manifest.js`
+**File:** `apps/vtt/scripts/generate-default-manifest.js`
 
 Auto-generates metadata for bundled assets:
-- Scans `public/assets/defaults/tokens/` and `base_maps/`
+- Scans `apps/vtt/public/assets/defaults/tokens/` and `base_maps/`
 - Extracts metadata from filenames
 - Auto-categorizes tokens (PC, NPC, monster)
 - Auto-detects token sizes (tiny to gargantuan)
 - Extracts grid dimensions from map filenames
-- Generates `public/assets/defaults/manifest.json`
+- Generates `apps/vtt/public/assets/defaults/manifest.json`
 
 **Usage:**
 ```bash
@@ -25,7 +25,7 @@ npm run generate-default-manifest
 ```
 
 ### 2. Token Asset Manager Updates ✅
-**File:** `src/services/tokenAssets.ts`
+**File:** `apps/vtt/src/services/tokenAssets.ts`
 
 Enhanced to load from manifest:
 - Fetches `/assets/defaults/manifest.json` on init
@@ -45,7 +45,7 @@ Enhanced to load from manifest:
 - Tiefling Cleric
 
 ### 3. Base Map Asset Manager ✅
-**File:** `src/services/baseMapAssets.ts`
+**File:** `apps/vtt/src/services/baseMapAssets.ts`
 
 New service for managing base maps:
 - Singleton pattern (like tokenAssetManager)
@@ -65,7 +65,7 @@ New service for managing base maps:
 - Sinister Woodland (44x32)
 
 ### 4. Base Map Browser Component ✅
-**File:** `src/components/Scene/BaseMapBrowser.tsx`
+**File:** `apps/vtt/src/components/Scene/BaseMapBrowser.tsx`
 
 New modal component:
 - Grid view of bundled maps
@@ -75,7 +75,7 @@ New modal component:
 - Consistent styling with AssetBrowser
 
 ### 5. Scene Editor Integration ✅
-**File:** `src/components/Scene/SceneEditor.tsx`
+**File:** `apps/vtt/src/components/Scene/SceneEditor.tsx`
 
 Added base map selection:
 - New button: "Browse Base Maps"
@@ -86,7 +86,7 @@ Added base map selection:
 ### 6. Documentation ✅
 
 **Files Created:**
-- `public/assets/defaults/README.md` - How to add/manage assets
+- `apps/vtt/public/assets/defaults/README.md` - How to add/manage assets
 - `DEFAULT_ASSETS_INTEGRATION.md` - This file
 
 **Files Updated:**
@@ -95,7 +95,7 @@ Added base map selection:
 ## File Structure
 
 ```
-public/assets/defaults/
+apps/vtt/public/assets/defaults/
 ├── README.md                    # Documentation for adding assets
 ├── manifest.json                # Auto-generated asset metadata
 ├── base_maps/                   # 9 battle maps (WebP format)
@@ -127,7 +127,7 @@ public/assets/defaults/
 
 ### Adding Tokens
 
-1. **Add PNG files to** `public/assets/defaults/tokens/`
+1. **Add PNG files to** `apps/vtt/public/assets/defaults/tokens/`
 2. **Use descriptive names:** `ElfRanger.png`, `GoblinWarrior.png`
 3. **Regenerate manifest:**
    ```bash
@@ -137,7 +137,7 @@ public/assets/defaults/
 
 ### Adding Base Maps
 
-1. **Add images to** `public/assets/defaults/base_maps/`
+1. **Add images to** `apps/vtt/public/assets/defaults/base_maps/`
 2. **Include grid size in filename:** `Tavern Interior - 23x16.webp`
 3. **Regenerate manifest:**
    ```bash

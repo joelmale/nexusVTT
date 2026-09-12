@@ -10,7 +10,7 @@ Docker Engine server.
 
 - Orchestrator: Dockhand
 - Runtime substrate: one Docker Engine host
-- Compose file: `docker/docker-compose.yml`
+- Compose file: `apps/vtt/docker/docker-compose.yml`
 - Image registry: GitHub Container Registry at `ghcr.io/joelmale/nexusvtt`
 - CI publisher: `.github/workflows/ci.yml` on `master`, tags, and manual runs
 - Reverse proxy: an external container network, usually `homelab-net`
@@ -49,7 +49,7 @@ leading `v`.
 
 ## Dockhand Stack Configuration
 
-Use `docker/docker-compose.yml` as the stack definition in Dockhand. Set the
+Use `apps/vtt/docker/docker-compose.yml` as the stack definition in Dockhand. Set the
 stack name to the live name you use operationally, such as `nexus-vtt2`.
 
 Dockhand must provide the Compose environment. Required production values:
@@ -131,17 +131,17 @@ From the Docker host, with the repository available:
 CONTAINER=$(docker ps -q -f name=postgres)
 
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2025-12-08-add-account-fields.sql
+  < apps/vtt/server/migrations/2025-12-08-add-account-fields.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2025-12-08-add-local-auth.sql
+  < apps/vtt/server/migrations/2025-12-08-add-local-auth.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2026-01-05-add-campaign-roomcode.sql
+  < apps/vtt/server/migrations/2026-01-05-add-campaign-roomcode.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2026-07-19-add-room-event-journal.sql
+  < apps/vtt/server/migrations/2026-07-19-add-room-event-journal.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2026-07-19-add-durable-game-state-commits.sql
+  < apps/vtt/server/migrations/2026-07-19-add-durable-game-state-commits.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2026-07-19-add-room-entity-versions.sql
+  < apps/vtt/server/migrations/2026-07-19-add-room-entity-versions.sql
 ```
 
 The 2026-07-19 migrations are part of the durable game-state contract. Do not
@@ -158,7 +158,7 @@ from a host-local pack if needed:
 TMT_ASSET_PACK_PATH=/path/to/asset-packs/tmt
 ```
 
-The default is `../asset-packs/tmt` relative to `docker/docker-compose.yml`.
+The default is `../asset-packs/tmt` relative to `apps/vtt/docker/docker-compose.yml`.
 The pack should contain:
 
 ```text

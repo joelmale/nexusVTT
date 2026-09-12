@@ -12,10 +12,10 @@
     "build": "tsc",
     "start": "node dist/index.js",
     "prisma:generate": "prisma generate",
-    "test": "jest",
-    "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage",
-    "test:integration": "jest --testMatch='**/*.integration.test.ts'"
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage",
+    "test:integration": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --testMatch='**/*.integration.test.ts'"
   },
   "keywords": [
     "nexus",

@@ -119,6 +119,23 @@ class LoggingService {
 
     return { total, hits };
   }
+
+  async getLogs(jobId: string): Promise<LogEntry[]> {
+    if (!this.client) {
+      return [];
+    }
+
+    const response = await this.client.search({
+      index: this.index,
+      size: 100,
+      sort: [{ '@timestamp': { order: 'asc' } }],
+      query: {
+        term: { 'meta.jobId.keyword': jobId },
+      },
+    });
+
+    return response.hits.hits.map((hit) => hit._source as LogEntry);
+  }
 }
 
 export const loggingService = new LoggingService();

@@ -1,6 +1,6 @@
 # Backend Architecture
 
-The `server/` runtime is an Express 5 API and WebSocket collaboration service.
+The `apps/vtt/server/` runtime is an Express 5 API and WebSocket collaboration service.
 It authenticates requests, validates realtime envelopes, enforces host/co-host
 authority, serializes durable work in PostgreSQL, and coordinates backend
 replicas through Redis.
@@ -8,7 +8,7 @@ replicas through Redis.
 ## Structure
 
 ```text
-server/
+apps/vtt/server/
 ├── index.ts                    # Process, HTTP, and room lifecycle
 ├── database.ts                 # Repository composition
 ├── schema.sql                  # New-database schema
@@ -64,7 +64,7 @@ See [Ordered Event Delivery](./ordered-event-delivery.md).
 
 ## Verification
 
-Run `npm run test:ci` for static and Vitest coverage. Run `npm run test:e2e` for
+Run these commands from `apps/vtt`: `npm run test:ci` for static and Vitest coverage. Run `npm run test:e2e` for
 the managed two-replica browser suite, including concurrent writer conflict
 recovery and a backend `SIGKILL` immediately after a durable state ACK.
 Run `npm run test:soak:chaos` for multi-room cross-replica load, database-backed

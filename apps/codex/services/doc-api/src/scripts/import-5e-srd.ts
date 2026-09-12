@@ -316,7 +316,7 @@ class SRDImporter {
         });
 
         // Create structured data
-        const structured = await prisma.structuredData.create({
+        await prisma.structuredData.create({
           data: {
             documentId: doc.id,
             type: parsed.structuredData.type,

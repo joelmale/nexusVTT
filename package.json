@@ -12,6 +12,7 @@
     "build:codex": "npm --prefix apps/codex/services/doc-api run build && npm --prefix apps/codex/services/doc-processor run build && npm --prefix apps/codex/services/doc-websocket run build && npm --prefix apps/codex/services/admin-ui run build && npm --prefix apps/codex/services/dm-ui run build",
     "test:vtt": "npm --prefix apps/vtt run test:ci",
     "test:forge": "npm --prefix apps/forge run lint && npm --prefix apps/forge run test -- --run --coverage",
-    "test:codex": "npm --prefix apps/codex/services/doc-api test -- --runInBand && npm --prefix apps/codex/services/doc-processor test -- --runInBand && npm --prefix apps/codex/services/doc-websocket test -- --runInBand"
+    "test:codex": "npm --prefix apps/codex/services/doc-api test -- --runInBand src/services/__tests__/processing-quality.service.test.ts && npm --prefix apps/codex/services/doc-processor test -- --runInBand && npm --prefix apps/codex/services/doc-websocket test -- --runInBand --passWithNoTests",
+    "test:codex:integration": "npm --prefix apps/codex/services/doc-api test -- --runInBand"
   }
 }

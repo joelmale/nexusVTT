@@ -12,6 +12,30 @@ class ElasticSearchService {
     this.index = env.ELASTICSEARCH_INDEX;
   }
 
+  async indexDocument(document: Record<string, unknown>): Promise<string> {
+    try {
+      const response = await this.client.index({
+        index: this.index,
+        document,
+      });
+      return response._id;
+    } catch (error: any) {
+      throw new Error(`Indexing failed: ${error.message}`);
+    }
+  }
+
+  async updateDocument(documentId: string, document: Record<string, unknown>): Promise<void> {
+    try {
+      await this.client.update({
+        index: this.index,
+        id: documentId,
+        doc: document,
+      });
+    } catch (error: any) {
+      throw new Error(`Update failed: ${error.message}`);
+    }
+  }
+
   /**
    * Delete a document from the index
    */
@@ -282,7 +306,7 @@ class ElasticSearchService {
           },
           sort: [
             { _score: { order: 'desc' as const } },
-            { uploadedAt: { order: 'desc' as const } },
+            { uploadedAt: { order: 'desc' as const, unmapped_type: 'date' } },
           ],
         },
       });

@@ -78,7 +78,7 @@ export class SpellParser {
     while ((match = SPELL_PATTERN.exec(text)) !== null) {
       const name = match[1].trim();
       const levelSchool = match[2];
-      const levelMatch = levelSchool.match(/(\d+)(?:st|nd|rd|th)-level\s+(\w+)/);
+      const levelMatch = levelSchool.match(/(\d+(?:st|nd|rd|th)-level)\s+(\w+)/);
       const isCantrip = levelSchool.toLowerCase().includes('cantrip');
 
       const blockStart = match.index;

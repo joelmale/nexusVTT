@@ -127,6 +127,7 @@ export class ElasticSearchManagementService {
             campaigns: true,
             collections: true,
             searchIndex: true,
+            uploadedAt: true,
           },
         });
 
@@ -142,6 +143,7 @@ export class ElasticSearchManagementService {
               tags: doc.tags,
               campaigns: doc.campaigns,
               collections: doc.collections,
+              uploadedAt: doc.uploadedAt,
               content: '', // Would need to fetch from ElasticSearch or extract from file
             };
 
@@ -204,6 +206,7 @@ export class ElasticSearchManagementService {
               tags: { type: 'keyword' },
               campaigns: { type: 'keyword' },
               collections: { type: 'keyword' },
+              uploadedAt: { type: 'date' },
             },
           },
         },
