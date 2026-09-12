@@ -1,0 +1,13 @@
+{
+  "SPELLCASTING_TYPE_MAP": {
+    "bard": "known",
+    "sorcerer": "known",
+    "warlock": "known",
+    "ranger": "known",
+    "cleric": "prepared",
+    "druid": "prepared",
+    "paladin": "prepared",
+    "artificer": "prepared",
+    "wizard": "wizard"
+  }
+}

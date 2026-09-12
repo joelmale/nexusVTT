@@ -1,0 +1,105 @@
+[
+  {
+    "name": "Burglar's Pack",
+    "level": 1,
+    "startingGold": 16,
+    "items": [
+      { "name": "Backpack", "slug": "backpack", "quantity": 1, "equipped": false },
+      { "name": "Ball bearings (1,000)", "slug": "ball-bearings", "quantity": 1, "equipped": false },
+      { "name": "String (10 feet)", "slug": "string", "quantity": 1, "equipped": false },
+      { "name": "Bell", "slug": "bell", "quantity": 1, "equipped": false },
+      { "name": "Candles", "slug": "candle", "quantity": 5, "equipped": false },
+      { "name": "Crowbar", "slug": "crowbar", "quantity": 1, "equipped": false },
+      { "name": "Hammer", "slug": "hammer", "quantity": 1, "equipped": false },
+      { "name": "Pitons", "slug": "piton", "quantity": 10, "equipped": false },
+      { "name": "Lantern", "slug": "hooded-lantern", "quantity": 1, "equipped": false },
+      { "name": "Oil flasks", "slug": "oil-flask", "quantity": 2, "equipped": false },
+      { "name": "Rations (1 day)", "slug": "rations-1-day", "quantity": 5, "equipped": false },
+      { "name": "Tinderbox", "slug": "tinderbox", "quantity": 1, "equipped": false },
+      { "name": "Waterskin", "slug": "waterskin", "quantity": 1, "equipped": false },
+      { "name": "Rope (50 feet)", "slug": "hempen-rope-50-feet", "quantity": 1, "equipped": false }
+    ]
+  },
+  {
+    "name": "Diplomat's Pack",
+    "startingGold": 39,
+    "recommendedFor": ["noble", "bard", "paladin"],
+    "description": "A pack for those who need to impress and document their journeys.",
+    "items": [
+      { "name": "Chest", "slug": "chest", "quantity": 1, "equipped": false },
+      { "name": "Map case (scroll case)", "slug": "map-or-scroll-case", "quantity": 2, "equipped": false },
+      { "name": "Fine clothes", "slug": "fine-clothes", "quantity": 1, "equipped": false },
+      { "name": "Ink", "slug": "ink-1-ounce-bottle", "quantity": 1, "equipped": false },
+      { "name": "Ink pen", "slug": "ink-pen", "quantity": 1, "equipped": false },
+      { "name": "Lamp", "slug": "lamp", "quantity": 1, "equipped": false },
+      { "name": "Oil flasks", "slug": "oil-flask", "quantity": 2, "equipped": false },
+      { "name": "Paper (5 sheets)", "slug": "paper-one-sheet", "quantity": 5, "equipped": false },
+      { "name": "Perfume", "slug": "perfume-vial", "quantity": 1, "equipped": false },
+      { "name": "Sealing wax", "slug": "sealing-wax", "quantity": 1, "equipped": false },
+      { "name": "Soap", "slug": "soap", "quantity": 1, "equipped": false }
+    ]
+  },
+  {
+    "name": "Dungeoneer's Pack",
+    "startingGold": 12,
+    "recommendedFor": ["fighter", "rogue", "ranger"],
+    "description": "Essential gear for dungeon exploration and survival.",
+    "items": [
+      { "name": "Backpack", "slug": "backpack", "quantity": 1, "equipped": false },
+      { "name": "Crowbar", "slug": "crowbar", "quantity": 1, "equipped": false },
+      { "name": "Hammer", "slug": "hammer", "quantity": 1, "equipped": false },
+      { "name": "Pitons", "slug": "piton", "quantity": 10, "equipped": false },
+      { "name": "Torches", "slug": "torch", "quantity": 10, "equipped": false },
+      { "name": "Tinderbox", "slug": "tinderbox", "quantity": 1, "equipped": false },
+      { "name": "Rations (1 day)", "slug": "rations-1-day", "quantity": 10, "equipped": false },
+      { "name": "Waterskin", "slug": "waterskin", "quantity": 1, "equipped": false },
+      { "name": "Rope (50 feet)", "slug": "hempen-rope-50-feet", "quantity": 1, "equipped": false }
+    ]
+  },
+  {
+    "name": "Explorer's Pack",
+    "startingGold": 10,
+    "recommendedFor": ["ranger", "druid", "barbarian"],
+    "description": "Perfect for wilderness adventures and long journeys.",
+    "items": [
+      { "name": "Backpack", "slug": "backpack", "quantity": 1, "equipped": false },
+      { "name": "Tent (two-person)", "slug": "tent", "quantity": 1, "equipped": false },
+      { "name": "Mess kit", "slug": "mess-kit", "quantity": 1, "equipped": false },
+      { "name": "Tinderbox", "slug": "tinderbox", "quantity": 1, "equipped": false },
+      { "name": "Torches", "slug": "torch", "quantity": 10, "equipped": false },
+      { "name": "Rations (1 day)", "slug": "rations-1-day", "quantity": 10, "equipped": false },
+      { "name": "Waterskin", "slug": "waterskin", "quantity": 1, "equipped": false },
+      { "name": "Rope (50 feet)", "slug": "hempen-rope-50-feet", "quantity": 1, "equipped": false }
+    ]
+  },
+  {
+    "name": "Priest's Pack",
+    "startingGold": 19,
+    "recommendedFor": ["cleric", "paladin", "druid"],
+    "description": "Sacred items and supplies for divine practitioners.",
+    "items": [
+      { "name": "Backpack", "slug": "backpack", "quantity": 1, "equipped": false },
+      { "name": "Blanket", "slug": "blanket", "quantity": 1, "equipped": false },
+      { "name": "Candles", "slug": "candle", "quantity": 10, "equipped": false },
+      { "name": "Tinderbox", "slug": "tinderbox", "quantity": 1, "equipped": false },
+      { "name": "Alms box", "slug": "alms-box", "quantity": 1, "equipped": false },
+      { "name": "Incense (2 blocks)", "slug": "incense", "quantity": 2, "equipped": false },
+      { "name": "Censer", "slug": "censer", "quantity": 1, "equipped": false },
+      { "name": "Vestments", "slug": "vestments", "quantity": 1, "equipped": false },
+      { "name": "Rations (1 day)", "quantity": 2 },
+      { "name": "Waterskin", "quantity": 1 }
+    ]
+  },
+  {
+    "name": "Scholar's Pack",
+    "items": [
+      { "name": "Backpack", "quantity": 1 },
+      { "name": "Book of lore", "quantity": 1 },
+      { "name": "Ink", "quantity": 1 },
+      { "name": "Ink pen", "quantity": 1 },
+      { "name": "Parchment (10 sheets)", "quantity": 10 },
+      { "name": "Sand", "quantity": 1 },
+      { "name": "Small knife", "quantity": 1 }
+    ]
+  }
+]

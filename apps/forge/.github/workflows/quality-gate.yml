@@ -1,0 +1,122 @@
+name: Quality Gate
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+
+jobs:
+  code-quality:
+    name: Code Quality
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Type checking
+      run: npx tsc --noEmit
+
+    - name: Linting
+      run: npm run lint
+
+  test-quality:
+    name: Test Quality
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Run tests with coverage
+      run: npm run test -- --run --coverage
+
+
+
+  build-quality:
+    name: Build Quality
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Build application
+      run: npm run build
+
+    - name: Check bundle size
+      uses: preactjs/compressed-size-action@v2
+      with:
+        pattern: "dist/assets/*.js"
+        compression: gzip
+
+  security-quality:
+    name: Security Quality
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Security audit
+      run: npm audit --audit-level moderate
+
+  dependency-quality:
+    name: Dependency Quality
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+
+    - name: Setup Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
+
+    - name: Install dependencies
+      run: npm ci
+
+    - name: Check for unused dependencies
+      run: npx depcheck --ignores="@types/*,eslint*,vite*,vitest*,@3d-dice/dice-parser-interface,@3d-dice/dice-ui,@size-limit/preset-app,@tailwindcss/postcss,@testing-library/user-event,@vitest/coverage-v8,autoprefixer,postcss,tailwindcss"
+
+    - name: Check for outdated dependencies
+      run: npm outdated || true

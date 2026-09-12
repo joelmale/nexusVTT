@@ -1,0 +1,88 @@
+{
+  "starting_wealth": [
+    {
+      "class_id": "barbarian",
+      "dice_count": 2,
+      "dice_sides": 4,
+      "multiplier": 10,
+      "average_gp": 50
+    },
+    {
+      "class_id": "bard",
+      "dice_count": 5,
+      "dice_sides": 4,
+      "multiplier": 10,
+      "average_gp": 125
+    },
+    {
+      "class_id": "cleric",
+      "dice_count": 5,
+      "dice_sides": 4,
+      "multiplier": 10,
+      "average_gp": 125
+    },
+    {
+      "class_id": "druid",
+      "dice_count": 2,
+      "dice_sides": 4,
+      "multiplier": 10,
+      "average_gp": 50
+    },
+    {
+      "class_id": "fighter",
+      "dice_count": 5,
+      "dice_sides": 4,
+      "multiplier": 10,
+      "average_gp": 125
+    },
+    {
+      "class_id": "monk",
+      "dice_count": 5,
+      "dice_sides": 4,
+      "multiplier": 1,
+      "average_gp": 12
+    },
+    {
+      "class_id": "paladin",
+      "dice_count": 5,
+      "dice_sides": 4,
+      "multiplier": 10,
+      "average_gp": 125
+    },
+    {
+      "class_id": "ranger",
+      "dice_count": 5,
+      "dice_sides": 4,
+      "multiplier": 10,
+      "average_gp": 125
+    },
+    {
+      "class_id": "rogue",
+      "dice_count": 4,
+      "dice_sides": 4,
+      "multiplier": 10,
+      "average_gp": 100
+    },
+    {
+      "class_id": "sorcerer",
+      "dice_count": 3,
+      "dice_sides": 4,
+      "multiplier": 10,
+      "average_gp": 75
+    },
+    {
+      "class_id": "warlock",
+      "dice_count": 4,
+      "dice_sides": 4,
+      "multiplier": 10,
+      "average_gp": 100
+    },
+    {
+      "class_id": "wizard",
+      "dice_count": 4,
+      "dice_sides": 4,
+      "multiplier": 10,
+      "average_gp": 100
+    }
+  ]
+}

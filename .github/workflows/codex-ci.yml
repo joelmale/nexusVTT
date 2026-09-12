@@ -1,0 +1,181 @@
+name: Codex CI
+
+on:
+  workflow_call:
+    inputs:
+      source_sha:
+        description: 'Exact source SHA to verify'
+        required: false
+        type: string
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: 'Exact source SHA to verify'
+        required: false
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify-doc-api:
+    name: Verify doc-api
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: nexus_vtt_test
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: postgres
+        ports:
+          - 5433:5432
+        options: >-
+          --health-cmd "pg_isready -U postgres -d nexus_vtt_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+      elasticsearch:
+        image: elasticsearch:8.11.0
+        env:
+          discovery.type: single-node
+          xpack.security.enabled: false
+          ES_JAVA_OPTS: -Xms512m -Xmx512m
+        ports:
+          - 9201:9200
+        options: >-
+          --health-cmd "curl --fail http://localhost:9200/_cluster/health"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 12
+    defaults:
+      run:
+        working-directory: apps/codex/services/doc-api
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/codex/services/doc-api/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Initialize isolated test database
+        run: npx prisma db push --skip-generate
+        env:
+          DATABASE_URL: postgresql://postgres:postgres@localhost:5433/nexus_vtt_test
+
+      - name: Run tests
+        run: npm test -- --runInBand
+
+      - name: Build
+        run: npm run build
+
+  verify-services:
+    name: Verify ${{ matrix.service }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - service: doc-processor
+            prisma: true
+            test: true
+          - service: doc-websocket
+            prisma: true
+            test: false
+          - service: admin-ui
+            prisma: false
+            test: false
+          - service: dm-ui
+            prisma: false
+            test: false
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/codex/services/${{ matrix.service }}/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: apps/codex/services/${{ matrix.service }}
+
+      - name: Generate Prisma client
+        if: matrix.prisma
+        run: npm run prisma:generate
+        working-directory: apps/codex/services/${{ matrix.service }}
+
+      - name: Run existing tests
+        if: matrix.test
+        run: npm test -- --runInBand
+        working-directory: apps/codex/services/${{ matrix.service }}
+
+      - name: Build
+        run: npm run build
+        working-directory: apps/codex/services/${{ matrix.service }}
+
+  verify-docs:
+    name: Verify docs
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/codex/docs
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: apps/codex/docs/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Type check
+        run: npm run typecheck
+
+      - name: Build documentation
+        run: npm run build
+
+  build-images:
+    name: Build ${{ matrix.service }} image
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        service: [doc-api, doc-processor, doc-websocket, admin-ui, dm-ui]
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+
+      - uses: docker/setup-buildx-action@v4
+
+      - name: Build image without publishing
+        uses: docker/build-push-action@v7
+        with:
+          context: ./apps/codex/services/${{ matrix.service }}
+          file: ./apps/codex/services/${{ matrix.service }}/Dockerfile
+          push: false
+          tags: nexuscodex/${{ matrix.service }}:ci
+          build-args: |
+            VERSION=ci-${{ github.sha }}
+            COMMIT_SHA=${{ github.sha }}
+          cache-from: type=gha,scope=codex-${{ matrix.service }}
+          cache-to: type=gha,mode=max,scope=codex-${{ matrix.service }}

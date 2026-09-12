@@ -22,6 +22,7 @@ cd nexusVTT
 Install dependencies:
 
 ```bash
+cd apps/vtt
 npm install
 ```
 
@@ -44,6 +45,7 @@ REDIS_PASSWORD=change-this-redis-password
 Start PostgreSQL for development:
 
 ```bash
+cd apps/vtt
 npm run db:start
 ```
 
@@ -62,6 +64,7 @@ Open:
 ## Common Commands
 
 ```bash
+cd apps/vtt
 npm run dev
 npm run server:dev
 npm run start:all
@@ -83,6 +86,7 @@ npm run db:shell
 Asset helpers:
 
 ```bash
+cd apps/vtt
 node scripts/process-assets.js /path/to/assets ./static-assets/assets
 npm run generate-assets
 npm run seed:library-assets

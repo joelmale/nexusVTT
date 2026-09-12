@@ -5,26 +5,79 @@ on:
     branches: [master]
     tags:
       - 'v*'
+    paths:
+      - 'apps/vtt/**'
+      - 'apps/forge/**'
+      - 'apps/codex/**'
+      - 'deploy/**'
+      - 'monitoring/**'
+      - '.github/workflows/ci.yml'
+      - '.github/workflows/forge-ci.yml'
+      - '.github/workflows/codex-ci.yml'
+      - '.github/dependabot.yml'
+      - '.husky/**'
+      - 'Makefile'
+      - 'package.json'
   pull_request:
     branches: [master]
   workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: 'Exact 40-character commit SHA to publish as candidate-only images'
+        required: false
+        type: string
+
+permissions:
+  contents: read
 
 env:
   NODE_VERSION: '26.5.0'
 
+defaults:
+  run:
+    working-directory: apps/vtt
+
 jobs:
+  changes:
+    name: Detect release scope
+    runs-on: ubuntu-latest
+    outputs:
+      vtt: ${{ steps.filter.outputs.vtt }}
+    steps:
+      - name: Checkout exact validation source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.candidate_sha || github.sha }}
+
+      - name: Detect VTT release changes
+        id: filter
+        uses: dorny/paths-filter@v4
+        with:
+          filters: |
+            vtt:
+              - 'apps/vtt/**'
+              - 'deploy/**'
+              - 'monitoring/**'
+              - '.github/workflows/ci.yml'
+              - '.husky/**'
+              - 'Makefile'
+              - 'package.json'
+
   lint-and-type:
     name: Lint & Type Check
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.candidate_sha || github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: apps/vtt/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -52,12 +105,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.candidate_sha || github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: apps/vtt/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -75,12 +131,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.candidate_sha || github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: apps/vtt/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -96,6 +155,8 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.candidate_sha || github.sha }}
 
       - name: Run integration tests with Docker Compose
         run: docker compose -f docker/docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test
@@ -112,12 +173,15 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.candidate_sha || github.sha }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
+          cache-dependency-path: apps/vtt/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -134,22 +198,40 @@ jobs:
         with:
           name: playwright-smoke-report
           path: |
-            playwright-report/
-            test-results/e2e/
+            apps/vtt/playwright-report/
+            apps/vtt/test-results/e2e/
           if-no-files-found: ignore
           retention-days: 14
+
+  forge-checks:
+    name: Forge checks
+    uses: ./.github/workflows/forge-ci.yml
+    with:
+      source_sha: ${{ inputs.candidate_sha || github.sha }}
+
+  codex-checks:
+    name: Codex checks
+    uses: ./.github/workflows/codex-ci.yml
+    with:
+      source_sha: ${{ inputs.candidate_sha || github.sha }}
 
   build-and-push:
     name: Build & Push to GHCR
     runs-on: ubuntu-latest
-    needs: [unit-tests, asset-service-tests, integration-tests, e2e-smoke]
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    needs:
+      [changes, unit-tests, asset-service-tests, integration-tests, e2e-smoke]
+    if: >-
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) ||
+      (github.event_name == 'push' && needs.changes.outputs.vtt == 'true') ||
+      (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == '')
     permissions:
       contents: read
       packages: write
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.candidate_sha || github.sha }}
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v4
@@ -166,19 +248,19 @@ jobs:
         run: |
           # Generate version tag
           SHORT_SHA=${GITHUB_SHA::7}
-          if [[ $GITHUB_REF == refs/tags/v* ]]; then
+          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             VERSION=${GITHUB_REF#refs/tags/v}
           else
             VERSION=$(date +%Y%m%d)-${SHORT_SHA}
           fi
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "short_sha=$SHORT_SHA" >> $GITHUB_OUTPUT
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "short_sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
 
       - name: Build and push frontend
         uses: docker/build-push-action@v7
         with:
-          context: .
-          file: docker/frontend.Dockerfile
+          context: ./apps/vtt
+          file: ./apps/vtt/docker/frontend.Dockerfile
           target: production
           push: true
           tags: |
@@ -188,13 +270,13 @@ jobs:
           cache-to: type=gha,mode=max,scope=frontend-homelab
           build-args: |
             VERSION=${{ steps.meta.outputs.version }}
-            COMMIT_SHA=${{ steps.meta.outputs.short_sha }}
+            COMMIT_SHA=${{ github.sha }}
 
       - name: Build and push backend
         uses: docker/build-push-action@v7
         with:
-          context: .
-          file: docker/backend.Dockerfile
+          context: ./apps/vtt
+          file: ./apps/vtt/docker/backend.Dockerfile
           push: true
           tags: |
             ghcr.io/joelmale/nexusvtt/backend:${{ steps.meta.outputs.version }}
@@ -208,23 +290,195 @@ jobs:
       - name: Build and push asset service
         uses: docker/build-push-action@v7
         with:
-          context: .
-          file: docker/asset-service.Dockerfile
+          context: ./apps/vtt
+          file: ./apps/vtt/docker/asset-service.Dockerfile
           push: true
           tags: |
             ghcr.io/joelmale/nexusvtt/asset-service:${{ steps.meta.outputs.version }}
             ghcr.io/joelmale/nexusvtt/asset-service:latest
           cache-from: type=gha,scope=asset-service-homelab
           cache-to: type=gha,mode=max,scope=asset-service-homelab
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+            COMMIT_SHA=${{ github.sha }}
 
       - name: Build and push postgres
         uses: docker/build-push-action@v7
         with:
-          context: .
-          file: docker/postgres.Dockerfile
+          context: ./apps/vtt
+          file: ./apps/vtt/docker/postgres.Dockerfile
           push: true
           tags: |
             ghcr.io/joelmale/nexusvtt/postgres:${{ steps.meta.outputs.version }}
             ghcr.io/joelmale/nexusvtt/postgres:latest
           cache-from: type=gha,scope=postgres-homelab
           cache-to: type=gha,mode=max,scope=postgres-homelab
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+            COMMIT_SHA=${{ github.sha }}
+
+  candidate-images:
+    name: Candidate ${{ matrix.name }}
+    if: github.event_name == 'workflow_dispatch' && inputs.candidate_sha != ''
+    needs:
+      [unit-tests, asset-service-tests, integration-tests, e2e-smoke, forge-checks, codex-checks]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: vtt-frontend
+            context: ./apps/vtt
+            file: ./apps/vtt/docker/frontend.Dockerfile
+            image: ghcr.io/joelmale/nexusvtt/frontend
+            platforms: linux/amd64
+          - name: vtt-backend
+            context: ./apps/vtt
+            file: ./apps/vtt/docker/backend.Dockerfile
+            image: ghcr.io/joelmale/nexusvtt/backend
+            platforms: linux/amd64
+          - name: vtt-asset-service
+            context: ./apps/vtt
+            file: ./apps/vtt/docker/asset-service.Dockerfile
+            image: ghcr.io/joelmale/nexusvtt/asset-service
+            platforms: linux/amd64
+          - name: vtt-postgres
+            context: ./apps/vtt
+            file: ./apps/vtt/docker/postgres.Dockerfile
+            image: ghcr.io/joelmale/nexusvtt/postgres
+            platforms: linux/amd64
+          - name: forge
+            context: ./apps/forge
+            file: ./apps/forge/Dockerfile
+            image: ghcr.io/joelmale/nexus-forge
+            platforms: linux/amd64,linux/arm64
+          - name: codex-doc-api
+            context: ./apps/codex/services/doc-api
+            file: ./apps/codex/services/doc-api/Dockerfile
+            image: ghcr.io/joelmale/nexuscodex-doc-api
+            platforms: linux/amd64
+          - name: codex-doc-processor
+            context: ./apps/codex/services/doc-processor
+            file: ./apps/codex/services/doc-processor/Dockerfile
+            image: ghcr.io/joelmale/nexuscodex-doc-processor
+            platforms: linux/amd64
+          - name: codex-doc-websocket
+            context: ./apps/codex/services/doc-websocket
+            file: ./apps/codex/services/doc-websocket/Dockerfile
+            image: ghcr.io/joelmale/nexuscodex-doc-websocket
+            platforms: linux/amd64
+          - name: codex-admin-ui
+            context: ./apps/codex/services/admin-ui
+            file: ./apps/codex/services/admin-ui/Dockerfile
+            image: ghcr.io/joelmale/nexuscodex-admin-ui
+            platforms: linux/amd64
+          - name: codex-dm-ui
+            context: ./apps/codex/services/dm-ui
+            file: ./apps/codex/services/dm-ui/Dockerfile
+            image: ghcr.io/joelmale/nexuscodex-dm-ui
+            platforms: linux/amd64
+    steps:
+      - name: Checkout exact candidate source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.candidate_sha }}
+
+      - name: Verify exact candidate source
+        id: source
+        shell: bash
+        run: |
+          SOURCE_SHA=$(git rev-parse HEAD)
+          if [[ ! "${{ inputs.candidate_sha }}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo 'candidate_sha must be a full lowercase 40-character Git SHA' >&2
+            exit 1
+          fi
+          if [[ "$SOURCE_SHA" != "${{ inputs.candidate_sha }}" ]]; then
+            echo 'checked-out source does not match candidate_sha' >&2
+            exit 1
+          fi
+          echo "sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SOURCE_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up QEMU for Forge ARM64 parity
+        if: matrix.name == 'forge'
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push immutable candidate
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          platforms: ${{ matrix.platforms }}
+          push: true
+          tags: ${{ matrix.image }}:candidate-${{ steps.source.outputs.short_sha }}
+          build-args: |
+            VERSION=monorepo-${{ steps.source.outputs.short_sha }}
+            COMMIT_SHA=${{ steps.source.outputs.sha }}
+          cache-from: type=gha,scope=candidate-${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=candidate-${{ matrix.name }}
+
+  required:
+    name: Monorepo required
+    if: always()
+    needs:
+      - changes
+      - lint-and-type
+      - unit-tests
+      - asset-service-tests
+      - integration-tests
+      - e2e-smoke
+      - forge-checks
+      - codex-checks
+      - build-and-push
+      - candidate-images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require every applicable gate
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
+          CHANGES_RESULT: ${{ needs.changes.result }}
+          LINT_RESULT: ${{ needs.lint-and-type.result }}
+          UNIT_RESULT: ${{ needs.unit-tests.result }}
+          ASSET_RESULT: ${{ needs.asset-service-tests.result }}
+          INTEGRATION_RESULT: ${{ needs.integration-tests.result }}
+          E2E_RESULT: ${{ needs.e2e-smoke.result }}
+          FORGE_RESULT: ${{ needs.forge-checks.result }}
+          CODEX_RESULT: ${{ needs.codex-checks.result }}
+          PUBLISH_RESULT: ${{ needs.build-and-push.result }}
+          CANDIDATE_RESULT: ${{ needs.candidate-images.result }}
+        run: |
+          for result in \
+            "$CHANGES_RESULT" "$LINT_RESULT" "$UNIT_RESULT" \
+            "$ASSET_RESULT" "$INTEGRATION_RESULT" "$E2E_RESULT" \
+            "$FORGE_RESULT" "$CODEX_RESULT"; do
+            if [[ "$result" != 'success' ]]; then
+              echo "required validation result was $result" >&2
+              exit 1
+            fi
+          done
+
+          if [[ "$EVENT_NAME" == 'workflow_dispatch' && -n "$CANDIDATE_SHA" ]]; then
+            [[ "$CANDIDATE_RESULT" == 'success' && "$PUBLISH_RESULT" == 'skipped' ]]
+          elif [[ "$EVENT_NAME" == 'workflow_dispatch' ]]; then
+            [[ "$PUBLISH_RESULT" == 'success' && "$CANDIDATE_RESULT" == 'skipped' ]]
+          elif [[ "$EVENT_NAME" == 'push' ]]; then
+            [[ "$PUBLISH_RESULT" =~ ^(success|skipped)$ && "$CANDIDATE_RESULT" == 'skipped' ]]
+          else
+            [[ "$PUBLISH_RESULT" == 'skipped' && "$CANDIDATE_RESULT" == 'skipped' ]]
+          fi

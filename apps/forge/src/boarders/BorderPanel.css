@@ -1,0 +1,215 @@
+/* ============================================
+   BASE STYLES FOR BORDER COMPONENTS
+   ============================================ */
+
+.border-panel {
+  box-sizing: border-box;
+  font-family: 'Crimson Text', 'Georgia', serif;
+}
+
+.border-panel * {
+  box-sizing: border-box;
+}
+
+/* SVG Elements Base Styles */
+.corner-svg,
+.edge-svg,
+.ornament-svg,
+.shape-svg {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+/* Ensure edges stretch properly */
+.edge svg {
+  width: 100%;
+  height: 100%;
+}
+
+/* ============================================
+   THEMED VARIANTS
+   ============================================ */
+
+/* Ornate Theme */
+.border-panel--ornate {
+  --border-color: #2c2416;
+  --bg-color: rgba(245, 245, 220, 0.05);
+}
+
+/* Shield Theme */
+.border-panel--shield {
+  --border-color: #4a4a4a;
+  --bg-color: rgba(192, 192, 192, 0.05);
+}
+
+/* Simple Theme */
+.border-panel--simple {
+  --border-color: #333333;
+  --bg-color: transparent;
+}
+
+/* Rounded Theme */
+.border-panel--rounded {
+  --border-color: #5a5a5a;
+  --bg-color: rgba(255, 255, 255, 0.02);
+}
+
+/* Decorative Theme */
+.border-panel--decorative {
+  --border-color: #8B4513;
+  --bg-color: rgba(139, 69, 19, 0.03);
+}
+
+/* ============================================
+   SPECIALIZED COMPONENTS
+   ============================================ */
+
+/* Stat Block */
+.stat-block {
+  transition: transform 0.2s ease;
+}
+
+.stat-block:hover {
+  transform: translateY(-2px);
+}
+
+.stat-block .border-panel__content {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Shield Block */
+.shield-block {
+  filter: drop-shadow(2px 2px 4px rgba(0, 0, 0, 0.2));
+  transition: transform 0.2s ease;
+}
+
+.shield-block:hover {
+  transform: scale(1.05);
+}
+
+/* Titled Panel */
+.titled-panel {
+  margin-top: 20px;
+}
+
+/* Scroll Panel */
+.scroll-panel {
+  background: linear-gradient(
+    to bottom,
+    rgba(245, 245, 220, 0.8),
+    rgba(245, 245, 220, 0.9),
+    rgba(245, 245, 220, 0.8)
+  );
+}
+
+.scroll-panel:before {
+  content: '';
+  position: absolute;
+  top: 10px;
+  bottom: 10px;
+  left: 20px;
+  right: 20px;
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(0, 0, 0, 0.02) 20%,
+    rgba(0, 0, 0, 0.02) 80%,
+    transparent
+  );
+  pointer-events: none;
+}
+
+/* ============================================
+   ANIMATIONS
+   ============================================ */
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.border-panel {
+  animation: fadeIn 0.3s ease-out;
+}
+
+/* Ornament animations */
+.ornament {
+  animation: pulse 4s ease-in-out infinite;
+}
+
+@keyframes pulse {
+  0%, 100% {
+    opacity: 0.6;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+/* ============================================
+   RESPONSIVE ADJUSTMENTS
+   ============================================ */
+
+@media (max-width: 768px) {
+  .border-panel {
+    --corner-size: 30px !important;
+  }
+  
+  .stat-block--large {
+    width: 100px !important;
+    height: 120px !important;
+  }
+}
+
+/* ============================================
+   DARK MODE SUPPORT
+   ============================================ */
+
+@media (prefers-color-scheme: dark) {
+  .border-panel {
+    --border-color: #d4af37;
+    --bg-color: rgba(212, 175, 55, 0.05);
+  }
+  
+  .border-panel__background {
+    background-color: var(--bg-color);
+  }
+  
+  .shield-block,
+  .stat-block {
+    color: var(--border-color);
+  }
+}
+
+/* ============================================
+   UTILITY CLASSES
+   ============================================ */
+
+.border-panel--glow {
+  filter: drop-shadow(0 0 10px rgba(212, 175, 55, 0.5));
+}
+
+.border-panel--shadow {
+  filter: drop-shadow(2px 2px 8px rgba(0, 0, 0, 0.3));
+}
+
+.border-panel--no-bg .border-panel__background {
+  background-color: transparent !important;
+}
+
+.border-panel--thick svg {
+  stroke-width: 3;
+}
+
+.border-panel--thin svg {
+  stroke-width: 1;
+}

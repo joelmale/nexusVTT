@@ -1,0 +1,97 @@
+{
+  "id": "test-rogue-8",
+  "name": "Test Rogue Level 8",
+  "species": "halfling",
+  "selectedSpeciesVariant": "lightfoot",
+  "class": "rogue",
+  "level": 8,
+  "alignment": "Chaotic Neutral",
+  "background": "criminal",
+  "edition": "2014",
+  "subclass": "thief",
+  "inspiration": false,
+  "proficiencyBonus": 3,
+  "armorClass": 15,
+  "hitPoints": 52,
+  "maxHitPoints": 52,
+  "hitDice": {
+    "current": 8,
+    "max": 8,
+    "dieType": 8
+  },
+  "speed": 25,
+  "initiative": 4,
+  "abilities": {
+    "STR": { "score": 10, "modifier": 0 },
+    "DEX": { "score": 18, "modifier": 4 },
+    "CON": { "score": 14, "modifier": 2 },
+    "INT": { "score": 13, "modifier": 1 },
+    "WIS": { "score": 12, "modifier": 1 },
+    "CHA": { "score": 14, "modifier": 2 }
+  },
+  "skills": {
+    "Acrobatics": { "value": 10, "proficient": true, "expertise": true },
+    "AnimalHandling": { "value": 1, "proficient": false },
+    "Arcana": { "value": 1, "proficient": false },
+    "Athletics": { "value": 0, "proficient": false },
+    "Deception": { "value": 8, "proficient": true, "expertise": true },
+    "History": { "value": 1, "proficient": false },
+    "Insight": { "value": 4, "proficient": true },
+    "Intimidation": { "value": 2, "proficient": false },
+    "Investigation": { "value": 7, "proficient": true, "expertise": true },
+    "Medicine": { "value": 1, "proficient": false },
+    "Nature": { "value": 1, "proficient": false },
+    "Perception": { "value": 7, "proficient": true, "expertise": true },
+    "Performance": { "value": 2, "proficient": false },
+    "Persuasion": { "value": 5, "proficient": true },
+    "Religion": { "value": 1, "proficient": false },
+    "SleightOfHand": { "value": 7, "proficient": true },
+    "Stealth": { "value": 7, "proficient": true },
+    "Survival": { "value": 1, "proficient": false }
+  },
+  "languages": ["Common", "Halfling", "Thieves' Cant"],
+  "proficiencies": {
+    "armor": ["Light armor"],
+    "weapons": ["Simple weapons", "Hand crossbows", "Longswords", "Rapiers", "Shortswords"],
+    "tools": ["Thieves' tools", "Disguise kit"]
+  },
+  "expertiseSkills": ["Acrobatics", "Deception", "Investigation", "Perception"],
+  "selectedFeats": ["alert"],
+  "featEffects": {
+    "initiativeBonus": 5,
+    "cantBeSurprised": true,
+    "noAdvantageFromUnseen": true
+  },
+  "featuresAndTraits": {
+    "personality": "I always have a plan for what to do when things go wrong.",
+    "ideals": "Freedom",
+    "bonds": "Someone I loved died because of a mistake I made.",
+    "flaws": "When I see something valuable, I can't think about anything but how to steal it.",
+    "classFeatures": [
+      "Expertise",
+      "Sneak Attack",
+      "Thieves' Cant",
+      "Cunning Action",
+      "Roguish Archetype",
+      "Uncanny Dodge",
+      "Evasion",
+      "Fast Hands",
+      "Second-Story Work"
+    ],
+    "speciesTraits": ["Lucky", "Brave", "Halfling Nimbleness", "Naturally Stealthy"],
+    "backgroundFeatures": [
+      {
+        "name": "Criminal Contact",
+        "description": "You have a reliable contact who acts as your liaison to a network of other criminals."
+      }
+    ],
+    "musicalInstrumentProficiencies": []
+  },
+  "inventory": [],
+  "currency": {
+    "cp": 50,
+    "sp": 100,
+    "gp": 250,
+    "pp": 5
+  }
+}

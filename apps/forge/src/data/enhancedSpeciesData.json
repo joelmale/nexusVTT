@@ -1,0 +1,440 @@
+{
+  "human": {
+    "detailedDescription": "Humans are the most adaptable and ambitious people among the common races. Whatever drives them, humans are the innovators, the achievers, and the pioneers of the worlds. Humans receive no feat from their species, but their backgrounds provide them with exceptional versatility.",
+    "traits": [
+      "Resourceful (Heroic Inspiration on Long Rest)",
+      "Skillful (Extra skill proficiency)",
+      "Versatile (Extra Origin Feat)"
+    ],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "speciesFeat": "versatile",
+    "typicalRoles": ["Fighter", "Wizard", "Rogue", "Cleric", "Any"],
+    "roleplayingTips": [
+      "Embrace your ambition and drive to achieve great things",
+      "Use your adaptability to fit into any social situation",
+      "Seek out new experiences and opportunities for growth"
+    ]
+  },
+  "elf": {
+    "detailedDescription": "Elves are a magical people of otherworldly grace, living in the world but not entirely part of it. They live in places of ethereal beauty, in the midst of ancient forests or in silvery spires glittering with faerie light, where soft music drifts through the air and gentle fragrances waft on the breeze.",
+    "traits": [
+      "Darkvision (60 ft)",
+      "Fey Ancestry (Advantage vs Charmed)",
+      "Keen Senses (Proficiency in one: Insight, Perception, or Survival)",
+      "Trance (4-hour Long Rest)"
+    ],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "lineages": {
+      "High Elf": {
+        "traits": ["Prestidigitation cantrip (can swap daily)"],
+        "spells": ["Detect Magic", "Misty Step"]
+      },
+      "Wood Elf": {
+        "baseSpeed": 35,
+        "traits": ["Speed (35 ft)"],
+        "spells": ["Druidcraft", "Longstrider", "Pass Without Trace"]
+      },
+      "Drow": {
+        "traits": ["Superior Darkvision (120 ft)"],
+        "spells": ["Dancing Lights", "Faerie Fire", "Darkness"]
+      }
+    },
+    "typicalRoles": ["Wizard", "Ranger", "Druid", "Bard", "Rogue"],
+    "roleplayingTips": [
+      "Embrace your long lifespan and patient perspective",
+      "Show reverence for nature and ancient traditions",
+      "Balance your grace with occasional aloofness"
+    ]
+  },
+  "dwarf": {
+    "detailedDescription": "Bold and hardy, dwarves are known as skilled warriors, miners, and workers of stone and metal. Though they stand well under 5 feet tall, dwarves are so broad and compact that they can weigh as much as a human standing nearly two feet taller. Their courage and endurance are also easily a match for any of the larger folk.",
+    "traits": [
+      "Darkvision (120 ft)",
+      "Dwarven Resilience (Resistance to Poison, Advantage on saves vs Poisoned)",
+      "Dwarven Toughness (+1 HP per level)",
+      "Stonecunning (Tremorsense 60 ft on stone surfaces)"
+    ],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {
+      "hpPerLevel": 1
+    },
+    "lineages": {
+      "Hill Dwarf (Legacy)": {
+        "traits": [
+          "Darkvision",
+          "Dwarven Resilience",
+          "Stonecunning",
+          "Dwarven Combat Training",
+          "Tool Proficiency"
+        ]
+      },
+      "Mountain Dwarf (Legacy)": {
+        "traits": [
+          "Darkvision",
+          "Dwarven Resilience",
+          "Stonecunning",
+          "Dwarven Combat Training",
+          "Tool Proficiency"
+        ]
+      }
+    },
+    "speciesFeat": null,
+    "typicalRoles": ["Fighter", "Cleric", "Barbarian", "Paladin"],
+    "roleplayingTips": [
+      "Show pride in your craftsmanship and heritage",
+      "Demonstrate courage and stubborn determination",
+      "Value tradition and clan loyalty above all"
+    ]
+  },
+  "halfling": {
+    "detailedDescription": "The diminutive halflings survive in a world full of larger creatures by avoiding notice or, barring that, avoiding offense. Standing about 3 feet tall, they appear relatively harmless—and so they have managed to survive for centuries in the shadow of empires and on the edges of wars and political strife.",
+    "traits": [
+      "Brave (Advantage on saves vs Frightened)",
+      "Nimbleness (Move through spaces of larger creatures)",
+      "Luck (Reroll natural 1s on d20 tests)",
+      "Naturally Stealthy (Hide behind larger creatures)"
+    ],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "lineages": {
+      "Lightfoot (Legacy)": {
+        "traits": ["Lucky", "Brave", "Halfling Nimbleness", "Naturally Stealthy"]
+      },
+      "Stout (Legacy)": {
+        "traits": ["Lucky", "Brave", "Halfling Nimbleness", "Stout Resilience (poison advantage)"]
+      }
+    },
+    "speciesFeat": null,
+    "typicalRoles": ["Rogue", "Bard", "Druid", "Ranger"],
+    "roleplayingTips": [
+      "Use your small size and unassuming nature to your advantage",
+      "Show cheerfulness and optimism even in difficult times",
+      "Value home, family, and simple pleasures"
+    ]
+  },
+  "gnome": {
+    "detailedDescription": "A constant hum of busy activity pervades the warrens and neighborhoods where gnomes form their close-knit communities. Louder sounds punctuate the hum: a crunch of grinding gears here, a hammer ringing on metal there, a wizened cough or a huff of exasperation at a failed experiment elsewhere.",
+    "traits": [
+      "Darkvision (60 ft)",
+      "Gnomish Cunning (Advantage on Int, Wis, Cha saves)"
+    ],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "lineages": {
+      "Forest Gnome": {
+        "spells": ["Minor Illusion", "Speak with Animals"]
+      },
+      "Rock Gnome": {
+        "spells": ["Mending", "Prestidigitation"],
+        "traits": ["Clockwork Devices (create tiny mechanical items)"]
+      }
+    },
+    "typicalRoles": ["Wizard", "Artificer", "Bard", "Rogue"],
+    "roleplayingTips": [
+      "Embrace your curiosity and love of invention",
+      "Show enthusiasm for learning and experimentation",
+      "Balance your cleverness with occasional forgetfulness"
+    ]
+  },
+  "half-elf": {
+    "detailedDescription": "Walking in two worlds but truly belonging to neither, half-elves combine what some say are the best qualities of their elf and human parents: human curiosity, inventiveness, and ambition tempered by the refined senses, love of nature, and artistic tastes of the elves.",
+    "traits": [
+      "Skill Versatility (Proficiency in two skills of your choice)"
+    ],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "speciesFeat": "prodigy",
+    "typicalRoles": ["Bard", "Paladin", "Ranger", "Rogue", "Any"],
+    "roleplayingTips": [
+      "Navigate the balance between elven grace and human ambition",
+      "Use your diplomatic skills to bridge different cultures",
+      "Embrace your unique heritage as a strength"
+    ]
+  },
+  "half-orc": {
+    "detailedDescription": "Some half-orcs rise to become proud leaders of orc communities. Some venture into the world to prove their worth among humans and other civilized races. Many of these become adventurers, achieving greatness through their martial prowess and the strength of their convictions.",
+    "traits": [
+      "Darkvision (60 ft)",
+      "Menacing (Proficiency in Intimidation)",
+      "Relentless Endurance (Once per Long Rest, survive 0 HP with 1 HP)"
+    ],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "speciesFeatOptions": ["orcish-fury", "relentless-endurance"],
+    "typicalRoles": ["Barbarian", "Fighter", "Paladin", "Ranger"],
+    "roleplayingTips": [
+      "Embrace your physical strength and combat prowess",
+      "Show honor and courage in battle",
+      "Balance your orcish heritage with civilized society"
+    ]
+  },
+  "tiefling": {
+    "detailedDescription": "To be greeted with stares and whispers, to suffer violence and insult on the street, to see mistrust and fear in every eye: this is the lot of the tiefling. And to twist the knife, tieflings know that this is because a pact struck generations ago infused their bloodline with the essence of Asmodeus, the overlord of the Nine Hells.",
+    "traits": [
+      "Darkvision (60 ft)",
+      "Otherworldly Presence (Thaumaturgy cantrip)"
+    ],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "fiendishLegacies": {
+      "Abyssal": {
+        "resistance": "Poison",
+        "spells": ["Poison Spray", "Ray of Sickness", "Hold Person"]
+      },
+      "Chthonic": {
+        "resistance": "Necrotic",
+        "spells": ["Chill Touch", "False Life", "Ray of Enfeeblement"]
+      },
+      "Infernal": {
+        "resistance": "Fire",
+        "spells": ["Fire Bolt", "Hellish Rebuke", "Darkness"]
+      }
+    },
+    "typicalRoles": ["Warlock", "Sorcerer", "Rogue", "Bard"],
+    "roleplayingTips": [
+      "Embrace your infernal heritage with confidence",
+      "Use your charisma to overcome prejudice",
+      "Seek to prove that you're more than your appearance"
+    ]
+  },
+  "dragonborn": {
+    "detailedDescription": "Born of dragons, as their name proclaims, the dragonborn walk proudly through a world that greets them with fearful incomprehension. Shaped by draconic gods or the dragons themselves, dragonborn originally hatched from dragon eggs as a unique race, combining the best attributes of dragons and humanoids.",
+    "traits": [
+      "Breath Weapon (1d10 damage, choose cone or line)",
+      "Damage Resistance (based on draconic ancestry)",
+      "Darkvision (60 ft)",
+      "Draconic Flight (Level 5, spectral wings)"
+    ],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "ancestries": {
+      "Black": "Acid",
+      "Blue": "Lightning",
+      "Brass": "Fire",
+      "Bronze": "Lightning",
+      "Copper": "Acid",
+      "Gold": "Fire",
+      "Green": "Poison",
+      "Red": "Fire",
+      "Silver": "Cold",
+      "White": "Cold"
+    },
+    "speciesFeatOptions": ["draconic-resistance", "draconic-senses"],
+    "typicalRoles": ["Fighter", "Paladin", "Sorcerer", "Barbarian"],
+    "roleplayingTips": [
+      "Embrace your draconic heritage with pride",
+      "Show honor and courage in all your dealings",
+      "Use your breath weapon strategically in combat"
+    ]
+  },
+  "aasimar": {
+    "detailedDescription": "Aasimars are mortals who carry a spark of the Upper Planes within their souls. They are often born to virtuous parents and display signs of their celestial heritage from a young age, such as an innate sense of justice or an unexplained ability to heal the wounded.",
+    "traits": [
+      "Celestial Resistance (Necrotic and Radiant damage)",
+      "Darkvision (60 ft)",
+      "Healing Hands (Action to heal creature you touch)",
+      "Light Bearer (Light cantrip)",
+      "Celestial Revelation (Level 3, choose effect each time)"
+    ],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "celestialRevelationOptions": [
+      "Heavenly Wings (gain fly speed)",
+      "Inner Radiance (shed light and deal radiant damage)",
+      "Necrotic Shroud (enemies must save or be frightened)"
+    ],
+    "speciesFeat": null,
+    "typicalRoles": ["Paladin", "Cleric", "Bard", "Fighter"],
+    "roleplayingTips": [
+      "Embrace your celestial heritage with grace",
+      "Use your healing abilities to help others",
+      "Balance divine light with mortal understanding"
+    ]
+  },
+  "genasi": {
+    "detailedDescription": "Genasi are beings touched by the elemental planes. Each carries the influence of air, earth, fire, or water, shaping their appearance and innate talents.",
+    "traits": [
+      "Darkvision (60 ft)",
+      "Elemental Resistance (based on ancestry)",
+      "Reach to the Element (element-themed utility)"
+    ],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "ancestries": {
+      "Air": "Lightning",
+      "Earth": "Acid",
+      "Fire": "Fire",
+      "Water": "Cold"
+    },
+    "typicalRoles": ["Sorcerer", "Fighter", "Barbarian", "Wizard"],
+    "roleplayingTips": [
+      "Lean into your elemental origin when describing appearance and quirks",
+      "Show how your element shapes your temperament",
+      "Use your resistance and utility to solve problems creatively"
+    ]
+  },
+  "goliath": {
+    "detailedDescription": "Goliaths are proud, spiritual people who revere the power of nature and the primal forces of the world. They are nomads who live on the fringes of civilization, maintaining a deep connection to the natural world and the spirits that inhabit it.",
+    "traits": [
+      "Speed (35 ft)",
+      "Large Form (Level 5, become Large size)",
+      "Powerful Build (advantage ending grapple, larger for carrying)"
+    ],
+    "baseSpeed": 35,
+    "mechanicalBonuses": {},
+    "giantAncestry": {
+      "Cloud": "Teleport 30 ft as Bonus Action",
+      "Fire": "Extra 1d10 Fire damage on hit",
+      "Frost": "Extra 1d6 Cold damage + slow enemy",
+      "Hill": "Knock enemy Prone on hit",
+      "Stone": "Reduce damage by 1d12 + Con as Reaction",
+      "Storm": "Deal 1d8 Thunder damage to attacker as Reaction"
+    },
+    "speciesFeat": null,
+    "typicalRoles": ["Barbarian", "Fighter", "Ranger", "Druid"],
+    "roleplayingTips": [
+      "Show reverence for nature and ancestral spirits",
+      "Embrace your physical strength and endurance",
+      "Live in harmony with the natural world"
+    ]
+  },
+  "orc": {
+    "detailedDescription": "Orcs are fierce, competitive warriors who live by a code of honor and strength. They are often seen as brutish by other races, but they possess a deep cultural tradition of storytelling, craftsmanship, and spiritual connection to their ancestors.",
+    "traits": [
+      "Adrenaline Rush (Bonus Action Dash + Temp HP)",
+      "Darkvision (120 ft)",
+      "Relentless Endurance (Once per Long Rest, survive 0 HP)"
+    ],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "speciesFeat": null,
+    "typicalRoles": ["Barbarian", "Fighter", "Shaman", "Warrior"],
+    "roleplayingTips": [
+      "Embrace your competitive spirit and warrior culture",
+      "Show honor and courage in battle",
+      "Value strength, tradition, and ancestral wisdom"
+    ]
+  },
+  "firbolg": {
+    "detailedDescription": "Firbolgs are reclusive giant-kin who dwell in remote forests and mountains. They are peaceful and wise, but they can be terrifying when roused to anger.",
+    "traits": [
+      "Firbolg Magic",
+      "Hidden Step",
+      "Powerful Build",
+      "Speech of Beast and Leaf"
+    ],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "typicalRoles": ["Druid", "Cleric", "Ranger", "Barbarian"]
+  },
+  "kenku": {
+    "detailedDescription": "Kenku are crow-like humanoids who were transformed by powerful magic. They are cunning and resourceful, but they cannot speak except by mimicking sounds they have heard.",
+    "traits": ["Expert Forgery", "Kenku Training", "Mimicry"],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "typicalRoles": ["Rogue", "Bard", "Ranger"]
+  },
+  "tabaxi": {
+    "detailedDescription": "Tabaxi are cat-like humanoids who hail from distant jungles. They are curious, agile, and often follow their whims.",
+    "traits": ["Darkvision", "Feline Agility", "Cat's Claws", "Cat's Talent"],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "typicalRoles": ["Rogue", "Monk", "Ranger", "Bard"]
+  },
+  "triton": {
+    "detailedDescription": "Tritons are fish-like humanoids who dwell in the depths of the ocean. They are guardians of the sea and often serve powerful aquatic beings.",
+    "traits": ["Amphibious", "Control Air and Water", "Emissary of the Sea", "Guardians of the Depths"],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "typicalRoles": ["Paladin", "Cleric", "Fighter"]
+  },
+  "bugbear": {
+    "detailedDescription": "Bugbears are hulking, furry goblinoids that tower over their goblin and hobgoblin kin. They are stealthy predators who strike from the shadows.",
+    "traits": ["Darkvision", "Long-Limbed", "Powerful Build", "Sneaky", "Surprise Attack"],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "typicalRoles": ["Rogue", "Barbarian", "Fighter"]
+  },
+  "goblin": {
+    "detailedDescription": "Goblins are small, green-skinned creatures that dwell in dark, cramped places. They are cunning and vicious, but they are often cowardly.",
+    "traits": ["Darkvision", "Fury of the Small", "Nimble Escape"],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "typicalRoles": ["Rogue", "Ranger", "Bard"]
+  },
+  "hobgoblin": {
+    "detailedDescription": "Hobgoblins are large, militaristic goblinoids that organize themselves into legions. They are disciplined warriors who value honor and tradition.",
+    "traits": ["Darkvision", "Martial Training", "Saving Face"],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "typicalRoles": ["Fighter", "Paladin", "Warlock"]
+  },
+  "kobold": {
+    "detailedDescription": "Kobolds are small, reptilian humanoids that dwell in dark places. They are cowardly and subservient, but they can be surprisingly cunning.",
+    "traits": ["Darkvision", "Grovel, Cower, and Beg", "Pack Tactics", "Sunlight Sensitivity"],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "typicalRoles": ["Rogue", "Sorcerer", "Artificer"]
+  },
+  "yuan-ti-pureblood": {
+    "detailedDescription": "Yuan-ti purebloods are snake-like humanoids who appear mostly human. They are cunning and manipulative, with a natural affinity for magic.",
+    "traits": ["Darkvision", "Innate Spellcasting", "Magic Resistance", "Poison Immunity"],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "typicalRoles": ["Warlock", "Sorcerer", "Rogue"]
+  },
+  "fairy": {
+    "detailedDescription": "Fairies are tiny, magical beings from the Feywild. They are playful and mischievous, with a natural affinity for illusion magic.",
+    "traits": ["Fairy Magic", "Flight"],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "typicalRoles": ["Bard", "Sorcerer", "Druid"]
+  },
+  "harengon": {
+    "detailedDescription": "Harengons are rabbit-like humanoids who hail from the Feywild. They are quick and lucky, with enhanced senses and agility.",
+    "traits": ["Hare-Trigger", "Leporine Senses", "Lucky Footwork", "Rabbit Hop"],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "typicalRoles": ["Rogue", "Ranger", "Monk"]
+  },
+  "loxodon": {
+    "detailedDescription": "Loxodons are elephant-like humanoids known for their wisdom and calm demeanor. They are peaceful and introspective.",
+    "traits": ["Powerful Build", "Loxodon Serenity", "Natural Armor", "Trunk"],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "typicalRoles": ["Cleric", "Druid", "Paladin"]
+  },
+  "owlin": {
+    "detailedDescription": "Owlin are owl-like humanoids who can fly silently through the night. They are wise and observant.",
+    "traits": ["Darkvision", "Flight", "Silent Feathers"],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "typicalRoles": ["Rogue", "Wizard", "Ranger"]
+  },
+  "githyanki": {
+    "detailedDescription": "Githyanki are humanoid warriors from the Astral Plane. They are fierce fighters with psionic abilities.",
+    "traits": ["Decadent Mastery", "Githyanki Psionics", "Martial Prodigy"],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "typicalRoles": ["Fighter", "Warlock", "Wizard"]
+  },
+  "genasi": {
+    "detailedDescription": "Genasi are beings touched by the elemental planes. Each carries the influence of air, earth, fire, or water, shaping their appearance and innate talents.",
+    "traits": [
+      "Darkvision (60 ft)",
+      "Elemental Resistance (based on ancestry)",
+      "Reach to the Element (element-themed utility)"
+    ],
+    "baseSpeed": 30,
+    "mechanicalBonuses": {},
+    "ancestries": {
+      "Air": "Lightning",
+      "Earth": "Acid",
+      "Fire": "Fire",
+      "Water": "Cold"
+    },
+    "typicalRoles": ["Sorcerer", "Fighter", "Barbarian", "Wizard"]
+  }
+}

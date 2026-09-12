@@ -10,6 +10,7 @@
 ## Quick Start
 
 ```bash
+cd apps/vtt
 npm install
 npm run start:all  # Starts PostgreSQL, Redis, and both services
 ```
@@ -26,7 +27,7 @@ npm run start:all  # Starts PostgreSQL, Redis, and both services
 - **Backend:** Express.js + WebSocket + PostgreSQL + Redis
 - **State Management:** Zustand with immer + IndexedDB persistence
 - **Authentication:** OAuth2 (Google/Discord) + PostgreSQL-backed sessions
-- **Deployment:** Docker Swarm + Nginx Proxy Manager
+- **Deployment:** production cutover is pending; see the deployment status below
 
 PostgreSQL is the durable authority for canonical game state and ordered
 multiplayer history. Redis provides cross-replica fanout, expiring presence,
@@ -103,9 +104,13 @@ and host leases; losing Redis cannot erase an acknowledged game-state commit.
 
 ## 📦 Commands
 
+VTT commands run from `apps/vtt`; change into that directory before using the
+commands in this section.
+
 ### Development
 
 ```bash
+cd apps/vtt
 npm run dev              # Frontend only (hot reload)
 npm run server:dev       # Backend only (watch mode)
 npm run start:all        # Full stack with PostgreSQL
@@ -115,6 +120,7 @@ npm run docker:dev       # Docker Compose development
 ### Building
 
 ```bash
+cd apps/vtt
 npm run build           # Frontend build
 npm run build:server    # Backend build
 npm run build:all       # Both builds
@@ -124,6 +130,7 @@ npm run preview         # Preview built frontend
 ### Testing
 
 ```bash
+cd apps/vtt
 npm run test            # All tests
 npm run test:unit       # Unit tests only
 npm run test:integration # Integration tests
@@ -142,6 +149,7 @@ realtime-coordinator health response.
 ### Database
 
 ```bash
+cd apps/vtt
 npm run db:start        # Start PostgreSQL
 npm run db:stop         # Stop PostgreSQL
 npm run db:reset        # Reset database
@@ -151,6 +159,7 @@ npm run db:shell        # Open psql shell
 ### Assets
 
 ```bash
+cd apps/vtt
 npm run organize-assets     # Organize asset files
 npm run generate-assets     # Generate thumbnails and manifest
 npm run optimize-images     # Optimize image files
@@ -159,6 +168,7 @@ npm run optimize-images     # Optimize image files
 ### Docker
 
 ```bash
+cd apps/vtt
 npm run docker:dev          # Development environment
 npm run docker:dev:build    # Build and start dev
 npm run docker:dev:down     # Stop dev environment
@@ -212,14 +222,21 @@ npm run docker:dev:down     # Stop dev environment
 ### Development
 
 ```bash
+cd apps/vtt
 npm run start:all  # Local development with Docker
 ```
 
-### Production (Docker Swarm)
+### Production status
 
-```bash
-docker stack deploy -c docker/docker-compose.yml nexus
-```
+> **STOP: `apps/vtt/docker/docker-compose.yml` is local/component development
+> only. It is not the production, Dockhand, or Swarm stack and must not be used
+> with `docker stack deploy` or a production Docker host.**
+
+The production package is not complete. Do not deploy from this repository until
+the not-yet-complete `deploy/homelab/compose.yaml` package and its execution
+ledger entry are ready. Track the remaining work in
+[`docs/operations/monorepo-migration-execution-ledger.md`](./docs/operations/monorepo-migration-execution-ledger.md);
+Phase 3 is not complete.
 
 ### Configuration
 
@@ -241,13 +258,13 @@ Copy `.env.example` to `.env` and fill in the values before starting. The full r
 | `DISCORD_CLIENT_SECRET` | Discord application client secret                            | —                                                |
 | `DISCORD_CALLBACK_URL`  | Absolute HTTPS URL registered in your Discord application    | `https://app.nexusvtt.com/auth/discord/callback` |
 
-#### Optional / deployment variables
+#### Optional / local container variables
 
 | Variable         | Default                     | Description                                                                                                                                                                                             |
 | ---------------- | --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `SECURE_COOKIES` | `true` (production)         | Set to `false` only in non-TLS local environments. Controls the `Secure` flag on session cookies. **Note:** `FORCE_HTTPS` no longer exists — it was removed as it only accidentally disabled this flag. |
-| `IMAGE_PREFIX`   | `ghcr.io/joelmale/nexusvtt` | Container registry prefix used by docker-compose                                                                                                                                                        |
-| `VERSION`        | `latest`                    | Image tag to deploy. CI automatically pushes `latest` and a date+SHA tag on every master merge. Pin to a specific tag (e.g. `20260611-63d0651`) for reproducible deploys.                               |
+| `IMAGE_PREFIX`   | `ghcr.io/joelmale/nexusvtt` | Container registry prefix used by local/component Compose                                                                                                                                              |
+| `VERSION`        | `latest`                    | Image tag used by local/component Compose; production use is pending the homelab deployment package.                                                                                                   |
 | `POSTGRES_USER`  | `nexus`                     | Postgres username                                                                                                                                                                                       |
 | `POSTGRES_DB`    | `nexus`                     | Postgres database name                                                                                                                                                                                  |
 | `CORS_ORIGIN`    | `http://localhost:5173`     | Comma-separated list of allowed CORS origins                                                                                                                                                            |
@@ -256,7 +273,7 @@ Copy `.env.example` to `.env` and fill in the values before starting. The full r
 
 nginx only terminates HTTP internally (port 80). TLS is terminated by the outer reverse proxy (Traefik, Cloudflare, etc.), which must forward `X-Forwarded-Proto: https` — nginx passes this through unchanged to the backend. The backend is configured with `trust proxy: 1` so `req.protocol` and session cookie security are derived from that header, not the internal connection.
 
-### Infrastructure
+### Infrastructure (planned production work)
 
 - Multi-replica services for high availability
 - Load balancing with VIP endpoint mode
@@ -264,19 +281,19 @@ nginx only terminates HTTP internally (port 80). TLS is terminated by the outer 
 - Container health monitoring
 
 For an existing database, first apply
-`server/migrations/2026-01-05-add-campaign-roomcode.sql`, then apply all three
+`apps/vtt/server/migrations/2026-01-05-add-campaign-roomcode.sql`, then apply all three
 July 19 migrations before rolling the new backend replicas: the ordered event
 journal, durable game-state commits, and room entity versions. The last table
 makes token/prop version checks atomic across replicas. New databases receive
-the same objects from `server/schema.sql`.
+the same objects from `apps/vtt/server/schema.sql`.
 
 The backend exposes a Prometheus endpoint at `/metrics` and a structured SLO
 snapshot at `/api/metrics/multiplayer`. Start the optional Prometheus/Grafana
 overlay with:
 
 ```bash
-docker compose -f docker/docker-compose.yml \
-  -f docker/docker-compose.observability.yml up -d
+docker compose -f apps/vtt/docker/docker-compose.dev.yml \
+  -f apps/vtt/docker/docker-compose.observability.yml up -d
 ```
 
 See [Multiplayer Reliability Operations](./docs/operations/multiplayer-observability.md)
@@ -345,8 +362,8 @@ MIT - see [LICENSE](./LICENSE).
 ### First-Time Setup
 
 1. Clone the repository
-2. Install dependencies: `npm install`
-3. Start development environment: `npm run start:all`
+2. Install dependencies: `cd apps/vtt && npm install`
+3. Start development environment: `cd apps/vtt && npm run start:all`
 4. Access frontend at http://localhost:5173
 5. Create account via OAuth or email
 

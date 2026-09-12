@@ -11,7 +11,7 @@ server.
 
 - Runtime: single Docker Engine host
 - Stack manager: Dockhand
-- Compose file: `docker/docker-compose.yml`
+- Compose file: `apps/vtt/docker/docker-compose.yml`
 - Images: `ghcr.io/joelmale/nexusvtt/*`
 - CI image publisher: `.github/workflows/ci.yml`
 - Branch used by CI: `master`
@@ -24,7 +24,7 @@ Actions publishes images but does not automatically call Dockhand.
 
 ## Services
 
-`docker/docker-compose.yml` defines:
+`apps/vtt/docker/docker-compose.yml` defines:
 
 | Service | Image | Role |
 | --- | --- | --- |
@@ -45,7 +45,7 @@ Persistent data lives in named Docker volumes:
 ## First-Time Dockhand Setup
 
 1. Create or select the Dockhand stack for Nexus VTT.
-2. Point the stack to `docker/docker-compose.yml`.
+2. Point the stack to `apps/vtt/docker/docker-compose.yml`.
 3. Set the stack environment variables listed below.
 4. Confirm the external proxy network exists on the Docker host.
 5. Deploy the stack.
@@ -151,17 +151,17 @@ deploying backend images that depend on them:
 CONTAINER=$(docker ps -q -f name=postgres)
 
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2025-12-08-add-account-fields.sql
+  < apps/vtt/server/migrations/2025-12-08-add-account-fields.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2025-12-08-add-local-auth.sql
+  < apps/vtt/server/migrations/2025-12-08-add-local-auth.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2026-01-05-add-campaign-roomcode.sql
+  < apps/vtt/server/migrations/2026-01-05-add-campaign-roomcode.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2026-07-19-add-room-event-journal.sql
+  < apps/vtt/server/migrations/2026-07-19-add-room-event-journal.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2026-07-19-add-durable-game-state-commits.sql
+  < apps/vtt/server/migrations/2026-07-19-add-durable-game-state-commits.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
-  < server/migrations/2026-07-19-add-room-entity-versions.sql
+  < apps/vtt/server/migrations/2026-07-19-add-room-entity-versions.sql
 ```
 
 The durable game-state migrations must be applied together and in order.

@@ -1,5 +1,10 @@
 # Repository Guidelines
 
+This is now a monorepo. Unless a path is explicitly described as repository
+root, the VTT paths and commands in this document are relative to `apps/vtt`.
+Run VTT npm commands from `apps/vtt` (or use the root orchestration scripts).
+Forge lives in `apps/forge`; Codex lives in `apps/codex`.
+
 ## Project Structure & Modules
 
 - **Frontend Entry**: App entry in `src/main.tsx`; UI components split into `src/components` (organized by feature or type), `src/actions` (game actions), `src/hooks` (custom React hooks), `src/stores` (Zustand state management), `src/services` (API calls and utilities), and `src/utils` (helper functions).

@@ -3,9 +3,12 @@
 Nexus VTT uses Vitest for unit and integration coverage and Playwright for
 production-like browser smoke tests.
 
+Run VTT commands from `apps/vtt`.
+
 ## Fast feedback
 
 ```bash
+cd apps/vtt
 npm run lint
 npm run type-check
 npm run test:unit
@@ -32,7 +35,7 @@ npm run test:e2e
 ```
 
 This command builds and starts an isolated production stack from
-`docker/docker-compose.smoke.yml`, runs Playwright, and removes the test
+`apps/vtt/docker/docker-compose.smoke.yml`, runs Playwright, and removes the test
 containers, network, and temporary PostgreSQL data afterward. It does not use
 developer OAuth credentials or the development database.
 
@@ -69,7 +72,7 @@ To inspect a running smoke stack after a test, set `E2E_KEEP_STACK=1` before
 the command. Remove it afterward with:
 
 ```bash
-docker compose -p nexus-vtt-e2e -f docker/docker-compose.smoke.yml down --volumes
+docker compose -p nexus-vtt-e2e -f apps/vtt/docker/docker-compose.smoke.yml down --volumes
 ```
 
 `npm run test:e2e:local` runs Playwright against an already-running target.
@@ -87,9 +90,9 @@ Playwright report whether the suite passes or fails.
 For repository-level transaction coverage with a real database, run:
 
 ```bash
-docker compose -p nexus-vtt-db-test -f docker/docker-compose.test.yml up \
+docker compose -p nexus-vtt-db-test -f apps/vtt/docker/docker-compose.test.yml up \
   --build --abort-on-container-exit --exit-code-from test
-docker compose -p nexus-vtt-db-test -f docker/docker-compose.test.yml down \
+docker compose -p nexus-vtt-db-test -f apps/vtt/docker/docker-compose.test.yml down \
   --volumes --remove-orphans
 ```
 

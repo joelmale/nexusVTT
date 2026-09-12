@@ -45,7 +45,7 @@ This ensures:
 
 ## Components
 
-### 1. Server-Side (`server/diceRoller.ts`)
+### 1. Server-Side (`apps/vtt/server/diceRoller.ts`)
 
 #### `createServerDiceRoll()`
 Generates cryptographically secure dice rolls using Node.js `crypto.randomBytes()`.
@@ -109,7 +109,7 @@ This method ensures:
 - Cryptographically secure randomness
 - Uniform distribution
 
-### 2. WebSocket Server (`server/index.ts`)
+### 2. WebSocket Server (`apps/vtt/server/index.ts`)
 
 #### Event Handling
 ```typescript
@@ -144,7 +144,7 @@ private handleDiceRollRequest(fromUuid: string, connection: Connection, data: an
 }
 ```
 
-### 3. Client-Side 3D Dice (`src/components/DiceBox3D.tsx`)
+### 3. Client-Side 3D Dice (`apps/vtt/src/components/DiceBox3D.tsx`)
 
 Uses `@3d-dice/dice-box` library for realistic 3D physics-based dice animations.
 
@@ -180,7 +180,7 @@ await diceBox.roll(diceNotation, {
 });
 ```
 
-### 4. Dice Roller Component (`src/components/DiceRoller.tsx`)
+### 4. Dice Roller Component (`apps/vtt/src/components/DiceRoller.tsx`)
 
 #### Request Flow
 ```typescript
@@ -343,7 +343,7 @@ const Box = new DiceBox('#dice-box-container', {
 
 To add custom dice models:
 
-1. Place 3D models in `public/assets/dice/models/`
+1. Place 3D models in `apps/vtt/public/assets/dice/models/`
 2. Update DiceBox configuration:
 ```typescript
 const Box = new DiceBox('#dice-box-container', {

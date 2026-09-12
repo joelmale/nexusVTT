@@ -1,0 +1,2002 @@
+[
+  {
+    "roll": 1,
+    "description": "A mummified goblin hand that is surprisingly well preserved with well trimmed nails",
+    "short_name": "Mummified Goblin Hand",
+    "source": "Player's Handbook",
+    "type": "Oddity",
+    "tags": ["creepy", "organic", "goblin", "body part", "severed"],
+    "roleplay_prompt": "Is this a grim trophy, a good luck charm, or a warning? How do you feel when you look at it?",
+    "dm_hook": "The hand's original owner was a goblin shaman. His spirit is bound to the hand and occasionally whispers cryptic (and not always helpful) advice."
+  },
+  {
+    "roll": 2,
+    "description": "A piece of crystal that faintly glows in the moonlight with a soft, pulsing light",
+    "short_name": "Moon-Glowing Crystal",
+    "source": "Player's Handbook",
+    "type": "Magical-Seeming",
+    "tags": ["gemstone", "light", "moon", "natural"],
+    "roleplay_prompt": "What do you do on nights of the full moon? Do you trust the crystal, or does its glow make you uneasy?",
+    "dm_hook": "The crystal is a 'tear' from a moon deity. It can be used as a special component to power a lost ritual or as a key to a fey crossing that only opens in moonlight."
+  },
+  {
+    "roll": 3,
+    "description": "A gold coin minted in an unknown land with unfamiliar symbols and a slightly worn surface",
+    "short_name": "Unknown Gold Coin",
+    "source": "Player's Handbook",
+    "type": "Currency",
+    "tags": ["gold", "coin", "foreign", "mysterious"],
+    "roleplay_prompt": "Who is the strange figure on the coin? Do you use it to make decisions (e.g., 'heads or tails')?",
+    "dm_hook": "This coin is legal tender in one specific, hard-to-reach place (like the City of Brass, a lost kingdom, or a fey market). It's also a recognition token for a secret society."
+  },
+  {
+    "roll": 4,
+    "description": "A diary written in a language you don't know with strange symbols and an ornate cover",
+    "short_name": "Unknown Diary",
+    "source": "Player's Handbook",
+    "type": "Document",
+    "tags": ["book", "secret", "coded", "language"],
+    "roleplay_prompt": "Are you actively trying to get this translated? What do you *think* it says?",
+    "dm_hook": "The diary is written in Thieves' Cant, Infernal, or Druidic. If translated, it reveals a minor plot hook (like the location of a small buried treasure) or a terrible secret about a local noble."
+  },
+  {
+    "roll": 5,
+    "description": "A brass ring that never tarnishes",
+    "short_name": "Untarnishing Brass Ring",
+    "source": "Player's Handbook",
+    "type": "Jewelry",
+    "tags": ["ring", "metal", "durable", "magical-seeming"],
+    "roleplay_prompt": "Do you wear this ring? Did it belong to someone important to you?",
+    "dm_hook": "The ring is not magical, but it's made of a rare, pure metal (like Celestial brass) that is immune to acid and rust. A dwarf artisan or a wizard would pay well for it."
+  },
+  {
+    "roll": 6,
+    "description": "An old chess piece made from glass",
+    "short_name": "Glass Chess Piece",
+    "source": "Player's Handbook",
+    "type": "Toy",
+    "tags": ["game", "glass", "brittle", "sentimental"],
+    "roleplay_prompt": "What piece is it (king, pawn, etc.)? Does it represent someone or something in your life?",
+    "dm_hook": "The piece is part of a legendary, incomplete set. If the other pieces are gathered, they can be used to challenge a powerful entity (like a lich or a fey lord) to a game for high stakes."
+  },
+  {
+    "roll": 7,
+    "description": "A pair of knucklebone dice, each with a skull symbol on the 6",
+    "short_name": "Skull Knucklebone Dice",
+    "source": "Player's Handbook",
+    "type": "Toy",
+    "tags": ["game", "bone", "creepy", "gambling"],
+    "roleplay_prompt": "Are you a gambler? Do you believe these dice are lucky or cursed?",
+    "dm_hook": "The dice are loaded. They don't roll 6s more often, but when a 'skull' (a 6) is rolled, the roller feels a cold chill. If someone gambles for their soul, these dice ensure the house wins."
+  },
+  {
+    "roll": 8,
+    "description": "A small idol depicting a nightmarish creature",
+    "short_name": "Nightmarish Idol",
+    "source": "Player's Handbook",
+    "type": "Relic",
+    "tags": ["statue", "creepy", "aberration", "religious"],
+    "roleplay_prompt": "Why do you keep something so unsettling? Do you try to hide it from others?",
+    "dm_hook": "The idol is a minor focus item for a Great Old One or a fiend. Sleeping near it gives the character strange dreams that are actually cryptic (and distorted) prophecies."
+  },
+  {
+    "roll": 9,
+    "description": "A rope necklace from which dangles four mummified elf fingers",
+    "short_name": "Mummified Elf Fingers",
+    "source": "Player's Handbook",
+    "type": "Jewelry",
+    "tags": ["creepy", "body part", "elf", "gruesome", "trophy"],
+    "roleplay_prompt": "Are these the fingers of your enemies, or a loved one? Do you know the story behind them?",
+    "dm_hook": "A drow assassin is missing these fingers from their 'perfect' collection and wants them back. The fingers will twitch if they are near a specific location (a hidden tomb, a portal, etc.)."
+  },
+  {
+    "roll": 10,
+    "description": "The deed for a parcel of land in a realm unknown to you",
+    "short_name": "Unknown Land Deed",
+    "source": "Player's Handbook",
+    "type": "Document",
+    "tags": ["deed", "land", "legal", "mysterious"],
+    "roleplay_prompt": "Do you dream of one day finding this land and settling down? Or do you think the deed is a prank?",
+    "dm_hook": "The deed is for a 10-foot-square plot of land in a very significant place (e.g., the Nine Hells, the Feywild, or the courtyard of a lich's castle). The deed is magically binding."
+  },
+  {
+    "roll": 11,
+    "description": "A 1-ounce block made from an unknown material",
+    "short_name": "Unknown Material Block",
+    "source": "Player's Handbook",
+    "type": "Oddity",
+    "tags": ["mysterious", "material", "lightweight", "block", "unknown"],
+    "roleplay_prompt": "Is it perfectly smooth or rough? Cold or warm? What do you *think* it's made of?",
+    "dm_hook": "The material is a rare metal like Adamantine or Mithral in its raw, unrefined state. An expert artisan or smith would recognize it and offer a significant sum for it."
+  },
+  {
+    "roll": 12,
+    "description": "A small cloth doll skewered with needles",
+    "short_name": "Needled Cloth Doll",
+    "source": "Player's Handbook",
+    "type": "Effigy",
+    "tags": ["creepy", "doll", "voodoo", "cursed-seeming", "needles"],
+    "roleplay_prompt": "Does this doll represent someone you hate, someone you want to protect, or did you just find it? Do you ever move the needles?",
+    "dm_hook": "The doll is weakly linked to a hag or a minor fiend. If the needles are removed, the creature feels a sharp pain and becomes aware of the doll's location, seeking out whoever 'freed' it."
+  },
+  {
+    "roll": 13,
+    "description": "A tooth from an unknown beast",
+    "short_name": "Unknown Beast Tooth",
+    "source": "Player's Handbook",
+    "type": "Trophy",
+    "tags": ["beast", "tooth", "trophy", "organic", "monster part"],
+    "roleplay_prompt": "Did you pull this from a creature you slew? Or did you find it? Is it a prized possession or a grim reminder?",
+    "dm_hook": "The tooth belongs to a creature that is not native to the region. A sage or scholar would be terrified to see it, as it signals the arrival of a dangerous, invasive monster (like a Bulette or Gorgon)."
+  },
+  {
+    "roll": 14,
+    "description": "An enormous scale, perhaps from a dragon",
+    "short_name": "Enormous Scale",
+    "source": "Player's Handbook",
+    "type": "Trophy",
+    "tags": ["dragon", "scale", "trophy", "enormous", "monster part"],
+    "roleplay_prompt": "What color is the scale? Do you believe it's from a good or evil dragon? Does it inspire you or frighten you?",
+    "dm_hook": "The scale is an 'ancestor scale' of a specific dragon. If shown to that dragon, it might grant the player favor... or enrage the dragon, who sees it as a theft from one of its kin."
+  },
+  {
+    "roll": 15,
+    "description": "A bright green feather",
+    "short_name": "Bright Green Feather",
+    "source": "Player's Handbook",
+    "type": "Token",
+    "tags": ["feather", "green", "natural", "colorful", "bird"],
+    "roleplay_prompt": "Is this from a mundane (but beautiful) bird, or do you believe it's from something more (a Couatl, a Harpy)?",
+    "dm_hook": "The feather is from a Couatl, a celestial protector. It's a divine feather and, if planted in soil, will sprout into a simple, beautiful tree that wards off minor undead from its immediate vicinity."
+  },
+  {
+    "roll": 16,
+    "description": "An old divination card bearing your likeness",
+    "short_name": "Personal Divination Card",
+    "source": "Player's Handbook",
+    "type": "Personal",
+    "tags": ["card", "tarot", "divination", "portrait", "personal", "fated"],
+    "roleplay_prompt": "What card is it (The Fool, The Magician, Death)? Do you see it as your destiny or a warning to be defied?",
+    "dm_hook": "A Vistani fortune-teller created this card and is searching for the 'fated one' (the player) to deliver a crucial prophecy. The card acts as a magical beacon for them."
+  },
+  {
+    "roll": 17,
+    "description": "A glass orb filled with moving smoke",
+    "short_name": "Smoky Glass Orb",
+    "source": "Player's Handbook",
+    "type": "Magical-Seeming",
+    "tags": ["orb", "glass", "smoke", "mysterious", "contained"],
+    "roleplay_prompt": "Does the smoke ever form shapes or faces? Do you ever whisper secrets to it?",
+    "dm_hook": "The orb contains a trapped smoke mephit. If the orb is ever broken (intentionally or accidentally), the mephit is released. It will either be grateful (and serve for 1 day) or furious (and attack)."
+  },
+  {
+    "roll": 18,
+    "description": "A 1-pound egg with a bright red shell",
+    "short_name": "Bright Red Egg",
+    "source": "Player's Handbook",
+    "type": "Oddity",
+    "tags": ["egg", "red", "heavy", "mysterious", "organic"],
+    "roleplay_prompt": "What do you keep it in? Are you trying to hatch it? What do you *hope* comes out?",
+    "dm_hook": "The egg is a Pseudodragon egg (or a rare Cockatrice egg). If kept warm and safe for a long time, it will eventually hatch, and the creature will imprint on the character."
+  },
+  {
+    "roll": 19,
+    "description": "A pipe that blows bubbles",
+    "short_name": "Bubble Pipe",
+    "source": "Player's Handbook",
+    "type": "Toy",
+    "tags": ["pipe", "toy", "bubbles", "charming", "mundane"],
+    "roleplay_prompt": "Do you use this to relax, or to amuse children and friends? What does the soap solution smell like?",
+    "dm_hook": "The pipe's bubbles are faintly magical. If one lands on a creature, it has a 1-in-20 chance of casting a harmless, random cantrip effect (like *Prestidigitation* - a shower of sparkles, or a faint musical note)."
+  },
+  {
+    "roll": 20,
+    "description": "A glass jar containing a weird bit of flesh floating in pickling fluid",
+    "short_name": "Pickled Flesh Jar",
+    "source": "Player's Handbook",
+    "type": "Specimen",
+    "tags": ["jar", "creepy", "flesh", "preserved", "organic", "pickled"],
+    "roleplay_prompt": "Where did you get this? Was it from a mad wizard's lab? Does the flesh ever twitch?",
+    "dm_hook": "This is a small, preserved piece of a gibbering mouther (or a troll). A scholar would pay to study it, or a cultist might see it as a holy relic of their patron."
+  },
+  {
+    "roll": 21,
+    "description": "A tiny gnome-crafted music box that plays a song you dimly remember from your childhood",
+    "short_name": "Childhood Music Box",
+    "source": "Player's Handbook",
+    "type": "Toy",
+    "tags": ["gnomish", "mechanical", "auditory", "sentimental", "childhood", "clockwork"],
+    "roleplay_prompt": "What is the song? What faint memory does it almost unlock, and is it a good one or a bad one?",
+    "dm_hook": "The song is the key to a gnomish puzzle box or a password to enter a hidden gnome enclave. Later, the party might hear the full song in a city, leading them to someone from the character's past."
+  },
+  {
+    "roll": 22,
+    "description": "A small wooden statuette of a smug halfling",
+    "short_name": "Smug Halfling Statuette",
+    "source": "Player's Handbook",
+    "type": "Effigy",
+    "tags": ["statue", "wooden", "halfling", "smug", "art"],
+    "roleplay_prompt": "Does this represent someone you know? Or is it just an amusing carving you found?",
+    "dm_hook": "The halfling depicted is a famous (or infamous) local figure (a mayor, a guild master). If the character shows it to them, they might be amused and grant a favor, or offended and demand its confiscation."
+  },
+  {
+    "roll": 23,
+    "description": "A brass orb etched with strange runes",
+    "short_name": "Runic Brass Orb",
+    "source": "Player's Handbook",
+    "type": "Magical-Seeming",
+    "tags": ["orb", "brass", "runes", "mysterious", "etched"],
+    "roleplay_prompt": "Have you tried to decipher the runes? Do they feel warm or cold when you trace them?",
+    "dm_hook": "The runes are a single, powerful command word in Primordial (e.g., 'Ignite', 'Quench', 'Shake'). If the word is spoken, the orb performs that one action... once. Then it's just a brass orb."
+  },
+  {
+    "roll": 24,
+    "description": "A multicolored stone disk",
+    "short_name": "Multicolored Stone Disk",
+    "source": "Player's Handbook",
+    "type": "Oddity",
+    "tags": ["stone", "colorful", "disk", "ancient", "pattern"],
+    "roleplay_prompt": "Is it a game piece? A holy symbol? A coaster? What do the colors remind you of?",
+    "dm_hook": "The disk is a key for a 'color-matching' puzzle lock on an ancient tomb or dungeon. The sequence of colors on the disk is the solution."
+  },
+  {
+    "roll": 25,
+    "description": "A tiny silver icon of a raven",
+    "short_name": "Silver Raven Icon",
+    "source": "Player's Handbook",
+    "type": "Relic",
+    "tags": ["silver", "icon", "raven", "religious-seeming", "bird"],
+    "roleplay_prompt": "Does this represent a god (like the Raven Queen), a symbol of a group, or just a bird you admire?",
+    "dm_hook": "Followers of the Raven Queen (or a secret society like the 'Ebon Talon') recognize this icon. Showing it might grant passage to a restricted area or mark the character as an ally (or an enemy)."
+  },
+  {
+    "roll": 26,
+    "description": "A bag containing forty-seven humanoid teeth, one of which is rotten",
+    "short_name": "Bag of Teeth",
+    "source": "Player's Handbook",
+    "type": "Oddity",
+    "tags": ["creepy", "bag", "teeth", "trophy", "body part", "rotten", "collection"],
+    "roleplay_prompt": "Why 47? Are you collecting them? Did you find them? What's the story behind the rotten one?",
+    "dm_hook": "A specific hag needs *exactly* 47 humanoid teeth for a ritual. She can sense the bag and will try to barter, beg, or steal it from the character."
+  },
+  {
+    "roll": 27,
+    "description": "A shard of obsidian that always feels warm to the touch",
+    "short_name": "Warm Obsidian Shard",
+    "source": "Player's Handbook",
+    "type": "Magical-Seeming",
+    "tags": ["obsidian", "warm", "shard", "stone", "magical-seeming"],
+    "roleplay_prompt": "Do you use it as a hand-warmer? Where did you find it—a volcano, a battlefield?",
+    "dm_hook": "The shard is a piece of a dormant fire elemental's 'heart' or a fragment from the Plane of Fire. If brought near a large, magical fire, it will glow brightly and hum."
+  },
+  {
+    "roll": 28,
+    "description": "A dragon's bony talon hanging from a plain leather necklace",
+    "short_name": "Dragon Talon Necklace",
+    "source": "Player's Handbook",
+    "type": "Trophy",
+    "tags": ["dragon", "talon", "bone", "necklace", "trophy", "jewelry"],
+    "roleplay_prompt": "Is this from a dragon you defeated, or one you admired? Or was it a gift?",
+    "dm_hook": "The talon is from a specific dragon cult's 'sacred beast'. Members of the cult will see this as a grave insult and attack on sight, while rival cults might see the character as a hero."
+  },
+  {
+    "roll": 29,
+    "description": "A pair of old socks",
+    "short_name": "Old Socks",
+    "source": "Player's Handbook",
+    "type": "Personal Effect",
+    "tags": ["clothing", "mundane", "old", "sentimental", "worn"],
+    "roleplay_prompt": "Why on earth are you keeping these? Do they belong to someone you miss? Are they just... comfy?",
+    "dm_hook": "These socks are surprisingly durable and never get holes. A gnome tinkerer would be fascinated by the 'lost art' of their weave and offer to trade a minor invention for them."
+  },
+  {
+    "roll": 30,
+    "description": "A blank book whose pages refuse to hold ink, chalk, graphite, or any other substance or marking",
+    "short_name": "Unwritable Book",
+    "source": "Player's Handbook",
+    "type": "Magical-Seeming",
+    "tags": ["book", "blank", "magical-seeming", "invulnerable", "document", "unmarkable"],
+    "roleplay_prompt": "How many different things have you *tried* to write in this book? What's your theory on why it stays blank?",
+    "dm_hook": "The book can absorb *one* magical scroll written on its pages, consuming the writing and the scroll. The book is then destroyed, but the magical effect is nullified."
+  },
+  {
+    "roll": 31,
+    "description": "A silver badge in the shape of a five-pointed star",
+    "short_name": "Silver Star Badge",
+    "source": "Player's Handbook",
+    "type": "Insignia",
+    "tags": ["badge", "silver", "star", "insignia", "official-seeming"],
+    "roleplay_prompt": "Is this a symbol of rank you earned? Or did you 'find' it? Do you wear it proudly or keep it hidden?",
+    "dm_hook": "This is the badge of a disbanded (and disgraced) order of knights or guards. An old veteran might recognize it and help the character, or a corrupt official might see it and try to arrest them."
+  },
+  {
+    "roll": 32,
+    "description": "A knife that belonged to a relative",
+    "short_name": "Relative's Knife",
+    "source": "Player's Handbook",
+    "type": "Personal Effect",
+    "tags": ["weapon", "knife", "sentimental", "family", "heirloom", "tool"],
+    "roleplay_prompt": "Which relative? A beloved parent or a despised uncle? Is it a tool, a weapon, or just a memory?",
+    "dm_hook": "The knife has a small, barely visible maker's mark on the hilt. This smith is still in business and, upon seeing the knife, will tell the character a secret about the relative who originally bought it."
+  },
+  {
+    "roll": 33,
+    "description": "A glass vial filled with nail clippings",
+    "short_name": "Vial of Nail Clippings",
+    "source": "Player's Handbook",
+    "type": "Oddity",
+    "tags": ["creepy", "vial", "body part", "clippings", "collection"],
+    "roleplay_prompt": "Are... are these *your* nail clippings? Or someone else's? Why are you saving them?",
+    "dm_hook": "These clippings are a key component for a *Clone* spell or a powerful scrying ritual. A wizard or hag who learns of this vial will become *very* interested in acquiring it."
+  },
+  {
+    "roll": 34,
+    "description": "A rectangular metal device with two tiny metal cups on one end that throws sparks when wet",
+    "short_name": "Sparking Metal Device",
+    "source": "Player's Handbook",
+    "type": "Tool",
+    "tags": ["metal", "device", "sparks", "mysterious", "technology", "broken"],
+    "roleplay_prompt": "What do you *think* this is? A piece of gnomish technology? A broken tool? Have you ever shocked yourself with it?",
+    "dm_hook": "This is a broken component from a Gnomish 'elemental lighter' or a 'defibrillator'. A gnome tinkerer would recognize it and ask the character to help find the other missing pieces."
+  },
+  {
+    "roll": 35,
+    "description": "A white, sequined glove sized for a human",
+    "short_name": "Sequined White Glove",
+    "source": "Player's Handbook",
+    "type": "Personal Effect",
+    "tags": ["clothing", "glove", "fancy", "sequined", "single", "performer"],
+    "roleplay_prompt": "Where is the other glove? Did this belong to a famous performer, a noble, or a lost love?",
+    "dm_hook": "The glove is a famous performer's signature item. A bard or noble would recognize it instantly. The performer (or their 'biggest fan') might desperately want it back."
+  },
+  {
+    "roll": 36,
+    "description": "A vest with one hundred tiny pockets",
+    "short_name": "Vest of 100 Pockets",
+    "source": "Player's Handbook",
+    "type": "Clothing",
+    "tags": ["clothing", "vest", "pockets", "storage", "impractical"],
+    "roleplay_prompt": "Have you tried to fill all 100 pockets? What's the weirdest thing you've kept in one of them?",
+    "dm_hook": "A previous owner, a paranoid wizard, hid one tiny, important item in one of the pockets and sewed it shut. If the character *finally* checks all 100 pockets (e.g., with an Investigation check), they find a tiny key or a rolled-up note."
+  },
+  {
+    "roll": 37,
+    "description": "A small, weightless stone block",
+    "short_name": "Weightless Stone Block",
+    "source": "Player's Handbook",
+    "type": "Magical-Seeming",
+    "tags": ["stone", "weightless", "magical-seeming", "block", "ethereal"],
+    "roleplay_prompt": "How does it feel to hold something with form but no substance? Do you use it in pranks?",
+    "dm_hook": "The stone is from the Ethereal Plane. It's not magical, but it's an 'ethereal anchor'. An Ethereal creature (like a Phase Spider or Ghost) touching it has its movement speed halved."
+  },
+  {
+    "roll": 38,
+    "description": "A tiny sketch portrait of a goblin",
+    "short_name": "Goblin Sketch",
+    "source": "Player's Handbook",
+    "type": "Personal Effect",
+    "tags": ["art", "portrait", "goblin", "sketch", "drawing"],
+    "roleplay_prompt": "Is this goblin someone you knew? A friend? A foe? Is the portrait flattering or a caricature?",
+    "dm_hook": "The goblin in the sketch is 'Greebo', a goblin who 'made it big' and is now a minor, surprisingly well-spoken guild member in a big city. He'd be shocked to see a portrait of his 'humble beginnings'."
+  },
+  {
+    "roll": 39,
+    "description": "An empty glass vial that smells of perfume when opened",
+    "short_name": "Perfumed Glass Vial",
+    "source": "Player's Handbook",
+    "type": "Container",
+    "tags": ["vial", "glass", "perfume", "scent", "empty", "memory"],
+    "roleplay_prompt": "What does the perfume smell like? Does it remind you of a person or a place?",
+    "dm_hook": "The scent is an 'Olfactory Memory' and is magically tied to a specific noble's hidden safe-room. It's the only clue to finding the room, as the scent is overpowering when near its source."
+  },
+  {
+    "roll": 40,
+    "description": "A gemstone that looks like a lump of coal when examined by anyone but you",
+    "short_name": "Hidden Gemstone",
+    "source": "Player's Handbook",
+    "type": "Magical-Seeming",
+    "tags": ["gemstone", "secret", "personal", "illusion", "coal", "hidden"],
+    "roleplay_prompt": "What does the gemstone *really* look like? A diamond? An emerald? Do you ever show people the 'lump of coal' and laugh internally?",
+    "dm_hook": "The gem is a 'Gem of True-Sight (minor)'. It's not a gem *at all*—it's a lump of coal. The 'gem' the character sees is a personal illusion, hinting that the *character* has a drop of magical or fey blood."
+  },
+  {
+    "roll": 41,
+    "description": "A scrap of cloth from an old banner",
+    "short_name": "Old Banner Scrap",
+    "source": "Player's Handbook",
+    "type": "Insignia",
+    "tags": ["cloth", "banner", "history", "scrap", "symbol", "military"],
+    "roleplay_prompt": "What's the symbol on the banner? A charging lion? A closed fist? Do you know the organization it represents?",
+    "dm_hook": "The banner is from a famous, defeated mercenary company. An old, grizzled veteran in a tavern will recognize it and tell the character a story (and a plot hook) about the company's 'last stand' and their 'lost treasure'."
+  },
+  {
+    "roll": 42,
+    "description": "A rank insignia from a lost legionnaire",
+    "short_name": "Lost Legion Insignia",
+    "source": "Player's Handbook",
+    "type": "Insignia",
+    "tags": ["insignia", "military", "rank", "lost", "ancient", "roman-seeming"],
+    "roleplay_prompt": "Did you find this on a skeleton? Was it a family heirloom? Do you feel a sense of duty when you hold it?",
+    "dm_hook": "The 'lost legion' isn't just disbanded—they are *literally* lost, trapped in another plane (like the Shadowfell or Avernus). The insignia acts as a key to a one-way portal to their location."
+  },
+  {
+    "roll": 43,
+    "description": "A tiny silver bell without a clapper",
+    "short_name": "Clapperless Silver Bell",
+    "source": "Player's Handbook",
+    "type": "Magical-Seeming",
+    "tags": ["bell", "silver", "silent", "tiny", "broken"],
+    "roleplay_prompt": "Why keep a broken bell? Do you ever shake it, just to *see* if it will ring?",
+    "dm_hook": "The bell *does* ring, but only in the presence of an invisible creature (like a fey, a ghost, or someone using an *Invisibility* spell). It makes no sound, but the character can feel it vibrating."
+  },
+  {
+    "roll": 44,
+    "description": "A mechanical canary inside a gnomish lamp",
+    "short_name": "Mechanical Canary Lamp",
+    "source": "Player's Handbook",
+    "type": "Tool",
+    "tags": ["mechanical", "gnomish", "bird", "lamp", "clockwork", "safety"],
+    "roleplay_prompt": "Does the canary sing? Does the lamp work? Is it a beautiful piece of art or a frustrating, broken gadget?",
+    "dm_hook": "The canary was designed to sing when it detects 'bad air' (poison gas). It's a gnomish safety device. It will start chirping loudly if the party enters an area with poison traps or bad air."
+  },
+  {
+    "roll": 45,
+    "description": "A tiny chest carved to look like it has numerous feet on the bottom",
+    "short_name": "Footed Tiny Chest",
+    "source": "Player's Handbook",
+    "type": "Container",
+    "tags": ["box", "chest", "carved", "feet", "oddity", "container"],
+    "roleplay_prompt": "What do you keep in this tiny chest? Does the carving remind you of a specific creature?",
+    "dm_hook": "This is a 'practice box' made by an apprentice wizard learning the *Leomund's Secret Chest* spell. It is a non-magical, but high-quality, copy of a *Chest of a Thousand Legs*. A wizard might find it amusing."
+  },
+  {
+    "roll": 46,
+    "description": "A dead sprite inside a clear glass bottle",
+    "short_name": "Bottled Dead Sprite",
+    "source": "Player's Handbook",
+    "type": "Specimen",
+    "tags": ["creepy", "sprite", "fey", "dead", "bottle", "preserved"],
+    "roleplay_prompt": "How did it get in there? Do you feel sorry for it, or see it as a fascinating curiosity?",
+    "dm_hook": "The sprite isn't dead, it's in magical 'suspended animation' (a *Sequester* spell). If the bottle is broken, the sprite is freed. It's either immensely grateful (and grants a 'sprite's boon' - one-time use of *Invisibility*) or furious at its capture."
+  },
+  {
+    "roll": 47,
+    "description": "A metal can that has no opening but sounds as if it is filled with liquid, sand, spiders, or broken glass (your choice)",
+    "short_name": "Sealed Metal Can",
+    "source": "Player's Handbook",
+    "type": "Container",
+    "tags": ["mysterious", "container", "metal", "sealed", "auditory", "choice"],
+    "roleplay_prompt": "What do *you* think is in it? Are you tempted to cut it open? What's stopping you?",
+    "dm_hook": "The can is sealed with Gnomish 'canning' technology. Inside is... Gnomish Ale. It's *hundreds* of years old and incredibly potent. A dwarf or a connoisseur would pay a fortune for 'pre-war' Gnomish Ale."
+  },
+  {
+    "roll": 48,
+    "description": "A glass orb filled with water, in which swims a clockwork goldfish",
+    "short_name": "Clockwork Goldfish Orb",
+    "source": "Player's Handbook",
+    "type": "Toy",
+    "tags": ["orb", "clockwork", "fish", "toy", "gnomish", "mechanical", "water"],
+    "roleplay_prompt": "Do you have to wind it up? Do you talk to the fish? Does it have a name?",
+    "dm_hook": "The 'goldfish' is a gnomish key. The pattern it swims in (e.g., three circles left, two right) is the combination to a lock. A gnome tinkerer will recognize the 'swim-pattern' immediately."
+  },
+  {
+    "roll": 49,
+    "description": "A silver spoon with an 'M' engraved on the handle",
+    "short_name": "Engraved Silver Spoon",
+    "source": "Player's Handbook",
+    "type": "Personal Effect",
+    "tags": ["silver", "utensil", "spoon", "engraved", "initial", "noble-seeming"],
+    "roleplay_prompt": "Who is 'M'? A family member? A lost love? Or do you just *really* like soup?",
+    "dm_hook": "The spoon is part of a stolen, noble set. The 'M' stands for 'Malakar', a powerful noble family. A servant or guard of that family would recognize the crest and accuse the player of theft."
+  },
+  {
+    "roll": 50,
+    "description": "A whistle made from gold-colored wood",
+    "short_name": "Gold-Wood Whistle",
+    "source": "Player's Handbook",
+    "type": "Toy",
+    "tags": ["whistle", "wood", "gold", "auditory", "toy", "instrument"],
+    "roleplay_prompt": "What does it sound like? A bird? A train? Does it even make a sound?",
+    "dm_hook": "The 'gold-colored wood' is Gildedwood, which only grows in the Feywild. The whistle's sound is unsettling to dogs and wolves (they have disadvantage on attacks against the whistler) but *attracts* fey creatures."
+  },
+  {
+    "roll": 51,
+    "description": "A dead scarab beetle the size of your hand",
+    "short_name": "Giant Dead Scarab",
+    "source": "Player's Handbook",
+    "type": "Specimen",
+    "tags": ["insect", "dead", "scarab", "large", "specimen", "beetle"],
+    "roleplay_prompt": "Is it beautiful? Is it terrifying? Where did you find such a huge bug?",
+    "dm_hook": "This is a 'lesser' scarab from a desert tomb. A cleric or paladin would recognize it as a symbol of an old, dark god. It's a bad omen, or it can be crushed to find a tiny, magical (but cursed) gem inside."
+  },
+  {
+    "roll": 52,
+    "description": "Two toy soldiers, one with a missing head",
+    "short_name": "Broken Toy Soldiers",
+    "source": "Player's Handbook",
+    "type": "Toy",
+    "tags": ["toy", "soldier", "broken", "sentimental", "childhood", "set"],
+    "roleplay_prompt": "Do you still play with these? Do they represent you and a friend/sibling? What happened to the head?",
+    "dm_hook": "These soldiers are from a set belonging to a lost child (who is now a ghost). The ghost is looking for its 'captain' (the one with the head) and will follow the character, causing minor, spooky inconveniences."
+  },
+  {
+    "roll": 53,
+    "description": "A small box filled with different-sized buttons",
+    "short_name": "Box of Buttons",
+    "source": "Player's Handbook",
+    "type": "Container",
+    "tags": ["box", "buttons", "sewing", "collection", "mundane", "crafting"],
+    "roleplay_prompt": "Is this a collection? Did it belong to a tailor or a beloved grandparent? Do you ever look for a specific button in it?",
+    "dm_hook": "One of the buttons is not a button. It's a 'Button of Disguise', a tiny magic item from a spy. If sewn onto a garment, it allows the wearer to cast *Disguise Self* (once) by twisting it."
+  },
+  {
+    "roll": 54,
+    "description": "A candle that can't be lit",
+    "short_name": "Unlightable Candle",
+    "source": "Player's Handbook",
+    "type": "Magical-Seeming",
+    "tags": ["candle", "unlightable", "magical-seeming", "stubborn", "wax"],
+    "roleplay_prompt": "How many times have you tried to light this? Magical fire? Dragon fire? What's your next attempt?",
+    "dm_hook": "The candle is 'self-extinguishing'. It *can* be lit, but it *instantly* puts itself out. However, it can be used to *instantly* extinguish one non-magical fire (the size of a torch) by touching the candle to it."
+  },
+  {
+    "roll": 55,
+    "description": "A tiny cage with no door",
+    "short_name": "Doorless Tiny Cage",
+    "source": "Player's Handbook",
+    "type": "Oddity",
+    "tags": ["cage", "tiny", "no door", "sealed", "mysterious", "trap"],
+    "roleplay_prompt": "How did anything get *in* here? What do you *think* it's meant to hold?",
+    "dm_hook": "This is a 'spirit cage'. It's not meant to hold physical things. If a *Magic Mouth* or *Unseen Servant* spell is cast *on* the cage, it 'catches' the spell, holding it indefinitely until the cage is broken."
+  },
+  {
+    "roll": 56,
+    "description": "An old key",
+    "short_name": "Old Key",
+    "source": "Player's Handbook",
+    "type": "Tool",
+    "tags": ["key", "old", "metal", "lock", "mysterious"],
+    "roleplay_prompt": "What do you think this key opens? A treasure chest? A dungeon? Your childhood home?",
+    "dm_hook": "The key opens *a* lock. Not a specific, important one. It opens a random, mundane lock in the next town the party visits (a door, a footlocker, a gate). This could be very convenient... or very incriminating."
+  },
+  {
+    "roll": 57,
+    "description": "An indecipherable treasure map",
+    "short_name": "Indecipherable Map",
+    "source": "Player's Handbook",
+    "type": "Document",
+    "tags": ["map", "treasure", "indecipherable", "coded", "secret", "drawing"],
+    "roleplay_prompt": "Is it the language? The symbols? Is it just a child's scribble? What's your best guess at what it leads to?",
+    "dm_hook": "The map isn't a *place*, it's a *person*. It's a coded diagram of a specific noble's family tree, and the 'treasure' is the location of the secret, illegitimate heir who could claim the entire family fortune."
+  },
+  {
+    "roll": 58,
+    "description": "A hilt from a broken sword",
+    "short_name": "Broken Sword Hilt",
+    "source": "Player's Handbook",
+    "type": "Relic",
+    "tags": ["sword", "hilt", "broken", "weapon", "heirloom-seeming", "fragment"],
+    "roleplay_prompt": "Is this all that's left of a legendary blade? Or a family sword? Do you ever dream of reforging it?",
+    "dm_hook": "The hilt is from a 'Moonblade'. While the blade is shattered, the hilt retains a sliver of its power. Once per day, the wielder can speak the command word, and a blade of pure, dim light (deals 1d4 radiant damage) will extend from it for 1 minute."
+  },
+  {
+    "roll": 59,
+    "description": "A rabbit's foot",
+    "short_name": "Rabbit's Foot",
+    "source": "Player's Handbook",
+    "type": "Token",
+    "tags": ["good luck", "charm", "rabbit", "body part", "token", "creepy"],
+    "roleplay_prompt": "Do you genuinely believe this is lucky? Or is it a grim reminder of... well, an unlucky rabbit?",
+    "dm_hook": "This 'rabbit's foot' is actually a minorly cursed item. The DM can (once, ever) force the player to re-roll a *successful* ability check, attack roll, or saving throw. The foot then crumbles to dust."
+  },
+  {
+    "roll": 60,
+    "description": "A glass eye",
+    "short_name": "Glass Eye",
+    "source": "Player's Handbook",
+    "type": "Oddity",
+    "tags": ["creepy", "glass", "eye", "prosthetic", "body part"],
+    "roleplay_prompt": "Whose eye was this? Do you use it in pranks? Does it ever seem to... watch you?",
+    "dm_hook": "The eye is a 'Slightly-Seeing Eye'. If the character holds it and uses an action to look through it, they can see *exactly* 10 seconds into the future. This ability can be used once, and the eye then becomes a mundane glass eye."
+  },
+  {
+    "roll": 61,
+    "description": "A cameo carved in the likeness of a hideous person",
+    "short_name": "Hideous Cameo",
+    "source": "Player's Handbook",
+    "type": "Jewelry",
+    "tags": ["cameo", "art", "hideous", "personal", "carving"],
+    "roleplay_prompt": "Who is the person in the cameo? A relative? A despised enemy? Or is it so ugly you find it beautiful?",
+    "dm_hook": "The 'hideous person' is a specific medusa. If the character ever meets her, she will recognize the cameo (it's of her mother) and may spare the party... or demand it."
+  },
+  {
+    "roll": 62,
+    "description": "A silver skull the size of a coin",
+    "short_name": "Silver Skull Coin",
+    "source": "Player's Handbook",
+    "type": "Token",
+    "tags": ["silver", "skull", "coin", "creepy", "memento"],
+    "roleplay_prompt": "Is this a memento mori? A symbol of a group? Or just a morbid piece of currency?",
+    "dm_hook": "This is a 'Charon's Obol' from a lost, death-worshipping cult. If placed on the eyes of a corpse, it allows the user to ask the deceased one question (as *Speak with Dead*)."
+  },
+  {
+    "roll": 63,
+    "description": "An alabaster mask",
+    "short_name": "Alabaster Mask",
+    "source": "Player's Handbook",
+    "type": "Clothing",
+    "tags": ["mask", "alabaster", "white", "clothing", "noble-seeming"],
+    "roleplay_prompt": "Is the mask's expression neutral, smiling, or sad? When (if ever) do you wear it?",
+    "dm_hook": "The mask is from a famous, tragic play. A noble or bard will recognize it. If worn during a performance, it grants advantage on the Charisma (Performance) check."
+  },
+  {
+    "roll": 64,
+    "description": "A pyramid of sticky black incense that smells very bad",
+    "short_name": "Foul Black Incense",
+    "source": "Player's Handbook",
+    "type": "Oddity",
+    "tags": ["incense", "black", "smelly", "pyramid", "sticky", "ritual-seeming"],
+    "roleplay_prompt": "Why do you keep something that smells so awful? Have you ever been tempted to burn it?",
+    "dm_hook": "The incense is 'Troll-Stench'. If burned, the smell is so foul that it keeps all non-troll beasts (like dogs, wolves, bears) at bay in a 30-foot radius. Trolls, however, are attracted to it."
+  },
+  {
+    "roll": 65,
+    "description": "A nightcap that, when worn, gives you pleasant dreams",
+    "short_name": "Pleasant Dreams Nightcap",
+    "source": "Player's Handbook",
+    "type": "Clothing",
+    "tags": ["clothing", "nightcap", "comfort", "sleep", "sentimental", "magical-seeming"],
+    "roleplay_prompt": "What are the pleasant dreams about? A lost home? A future victory? A loved one?",
+    "dm_hook": "The cap doesn't just give pleasant dreams; it *prevents* magical nightmares (like those from the *Dream* spell or a hag's influence). It's a minor warding item."
+  },
+  {
+    "roll": 66,
+    "description": "A single caltrop made from bone",
+    "short_name": "Bone Caltrop",
+    "source": "Player's Handbook",
+    "type": "Tool",
+    "tags": ["caltrop", "bone", "creepy", "single", "weapon"],
+    "roleplay_prompt": "Where did this come from? A trap? A creature? Why keep just one?",
+    "dm_hook": "The caltrop is made from the bone of a creature from the Nine Hells. If it deals damage to a creature, the wound cannot be magically healed for 1 minute (it still closes on a short/long rest)."
+  },
+  {
+    "roll": 67,
+    "description": "A gold monocle frame without the lens",
+    "short_name": "Lensless Gold Monocle",
+    "source": "Player's Handbook",
+    "type": "Jewelry",
+    "tags": ["gold", "monocle", "frame", "broken", "noble-seeming"],
+    "roleplay_prompt": "Do you wear this? Do you ever look through the empty frame and pretend it helps you see better?",
+    "dm_hook": "This is a 'Frame of Scrutiny'. When a creature looks through it at another creature, they have advantage on one Wisdom (Insight) check to determine if the target is lying. This ability recharges at dawn."
+  },
+  {
+    "roll": 68,
+    "description": "A 1-inch cube, each side painted a different color",
+    "short_name": "Multicolored Cube",
+    "source": "Player's Handbook",
+    "type": "Toy",
+    "tags": ["cube", "toy", "colorful", "puzzle-seeming", "six-sided"],
+    "roleplay_prompt": "What are the six colors? Do you use this as a die? Does it have a 'lucky' side?",
+    "dm_hook": "The cube is a key. The party will find a lock with six colored buttons. The cube must be placed in the lock, and the buttons pressed in the order the colors appear on the cube (e.g., top, bottom, front, back, left, right)."
+  },
+  {
+    "roll": 69,
+    "description": "A crystal knob from a door",
+    "short_name": "Crystal Doorknob",
+    "source": "Player's Handbook",
+    "type": "Relic",
+    "tags": ["crystal", "doorknob", "fragment", "fancy", "broken"],
+    "roleplay_prompt": "Was this from a door you opened, or a door you failed to? Is it a reminder of a place you can't return to?",
+    "dm_hook": "The knob is from a door that was magically sealed. If the knob is touched to a magically locked (but not barred) door, it will absorb the magic and open the door. The knob shatters afterward."
+  },
+  {
+    "roll": 70,
+    "description": "A small packet filled with pink dust",
+    "short_name": "Packet of Pink Dust",
+    "source": "Player's Handbook",
+    "type": "Oddity",
+    "tags": ["packet", "dust", "pink", "mysterious", "potion-seeming"],
+    "roleplay_prompt": "What do you *think* this dust is? A love potion? A prank? Have you ever tasted it?",
+    "dm_hook": "The dust is 'Pixie's Prank'. If thrown on a creature, they must make a DC 10 Wisdom save or be struck by an overwhelming, uncontrollable urge to laugh for one minute (as *Tasha's Hideous Laughter*)."
+  },
+  {
+    "roll": 71,
+    "description": "A fragment of a beautiful song, written as musical notes on two pieces of parchment",
+    "short_name": "Song Fragment",
+    "source": "Player's Handbook",
+    "type": "Document",
+    "tags": ["music", "song", "fragment", "art", "sentimental", "parchment"],
+    "roleplay_prompt": "Can you play or sing this fragment? What do you think the full song is about?",
+    "dm_hook": "The song is a 'Siren's Lullaby'. If a bard (or someone with musical proficiency) plays it, any creature who hears it must make a DC 12 Wisdom save or become charmed by the player for 1 minute."
+  },
+  {
+    "roll": 72,
+    "description": "A silver teardrop earring made from a real teardrop",
+    "short_name": "Silver Teardrop Earring",
+    "source": "Player's Handbook",
+    "type": "Jewelry",
+    "tags": ["silver", "earring", "teardrop", "magical-seeming", "sentimental", "sad"],
+    "roleplay_prompt": "Whose tear was this? A lover's? A saint's? A fey's? Is it a sad memory or a beautiful one?",
+    "dm_hook": "This is a 'Tear of Regret'. If the earring is crushed (destroying it), the character can undo one spoken sentence from the last 10 minutes, as if it were never said."
+  },
+  {
+    "roll": 73,
+    "description": "The shell of an egg painted with scenes of human misery in disturbing detail",
+    "short_name": "Painted Misery Eggshell",
+    "source": "Player's Handbook",
+    "type": "Relic",
+    "tags": ["creepy", "egg", "shell", "art", "painted", "morbid", "misery"],
+    "roleplay_prompt": "Why would you keep something so dark? Does the art fascinate you? Do you try to keep it hidden?",
+    "dm_hook": "This is a 'Misery Egg', an item used by hags. If the egg is broken, a *shadow* demon is summoned, but it is not hostile. It will follow its 'liberator' (the character) around for 24 hours, whispering depressing (and true) secrets about everyone they meet."
+  },
+  {
+    "roll": 74,
+    "description": "A fan that, when unfolded, shows a sleeping cat",
+    "short_name": "Sleeping Cat Fan",
+    "source": "Player's Handbook",
+    "type": "Personal Effect",
+    "tags": ["fan", "art", "cat", "charming", "personal", "clothing"],
+    "roleplay_prompt": "Does the cat look like one you used to know? Is it a calming object for you?",
+    "dm_hook": "The fan is a 'Catnapper's Fan'. If fanned in front of a willing creature's face, it helps them fall asleep. It grants advantage on any check made to help someone rest or fall into a peaceful sleep."
+  },
+  {
+    "roll": 75,
+    "description": "A set of bone pipes",
+    "short_name": "Bone Pipes",
+    "source": "Player's Handbook",
+    "type": "Instrument",
+    "tags": ["bone", "instrument", "music", "creepy", "pipes"],
+    "roleplay_prompt": "What kind of bones are they made from? What does the music sound like? Is it beautiful or haunting?",
+    "dm_hook": "The bone pipes are made from the bones of a satyr. When played, the music is so haunting that it can calm wild beasts. It grants advantage on Wisdom (Animal Handling) checks."
+  },
+  {
+    "roll": 76,
+    "description": "A four-leaf clover pressed inside a book discussing manners and etiquette",
+    "short_name": "Pressed Four-Leaf Clover",
+    "source": "Player's Handbook",
+    "type": "Token",
+    "tags": ["good luck", "clover", "book", "pressed", "nature", "token"],
+    "roleplay_prompt": "Do you believe the clover is lucky? Or is the *book* the real treasure?",
+    "dm_hook": "The four-leaf clover is genuinely, magically lucky. Once, and only once, the character can choose to turn a failed saving throw into a success. The clover then crumbles to dust."
+  },
+  {
+    "roll": 77,
+    "description": "A sheet of parchment upon which is drawn a complex mechanical contraption",
+    "short_name": "Contraption Schematic",
+    "source": "Player's Handbook",
+    "type": "Document",
+    "tags": ["schematic", "drawing", "mechanical", "gnomish-seeming", "invention", "complex"],
+    "roleplay_prompt": "What do you think this machine does? Are you trying to build it?",
+    "dm_hook": "This is a legitimate schematic for a 'Clockwork Crossbow-Loader'. If given to a gnome tinkerer or a master smith along with 50 gp, they can build an attachment for a crossbow that makes it self-loading (ignoring the 'loading' property)."
+  },
+  {
+    "roll": 78,
+    "description": "An ornate scabbard that fits no blade you have found so far",
+    "short_name": "Ornate Scabbard",
+    "source": "Player's Handbook",
+    "type": "Relic",
+    "tags": ["scabbard", "ornate", "empty", "sword-seeming", "mysterious"],
+    "roleplay_prompt": "What kind of blade do you think it *was* for? Are you on a quest to find the sword that fits?",
+    "dm_hook": "The scabbard is for a 'Blade of Light'. The sword is gone, but the scabbard retains its power. Once per day, the user can use an action to draw from the scabbard, creating a +1 *shortsword* made of pure light. The blade lasts for 1 minute."
+  },
+  {
+    "roll": 79,
+    "description": "An invitation to a party where a murder happened",
+    "short_name": "Murder Party Invitation",
+    "source": "Player's Handbook",
+    "type": "Document",
+    "tags": ["invitation", "document", "party", "murder", "mystery", "creepy"],
+    "roleplay_prompt": "Were you *at* the party? Are you a suspect? Or did you just find this and keep it as a morbid souvenir?",
+    "dm_hook": "The invitation is to a noble's party *that hasn't happened yet*. The 'murder' is a prophecy. The character now has a choice: attend the party to stop the murder or stay away."
+  },
+  {
+    "roll": 80,
+    "description": "A bronze pentacle with an etching of a rat's head in its center",
+    "short_name": "Rat Head Pentacle",
+    "source": "Player's Handbook",
+    "type": "Relic",
+    "tags": ["pentacle", "bronze", "rat", "ritual-seeming", "creepy", "warlock-seeming"],
+    "roleplay_prompt": "Does this feel evil to you? Or is it a symbol of protection? Do you feel a connection to rats?",
+    "dm_hook": "This is a 'Summoner's Token' for a specific wererat clan. If shown to a wererat, they will recognize the character as an 'ally of the pack' and will not be hostile, instead offering to trade secrets."
+  },
+  {
+    "roll": 81,
+    "description": "A purple handkerchief embroidered with the name of a powerful archmage",
+    "short_name": "Archmage's Handkerchief",
+    "source": "Player's Handbook",
+    "type": "Personal Effect",
+    "tags": ["cloth", "purple", "embroidered", "mage", "personal"],
+    "roleplay_prompt": "Whose name is it? (e.g., 'Mordenkainen', 'Tasha', 'Bigby'). How did you get it? Did you steal it, or was it a gift?",
+    "dm_hook": "The archmage *wants it back*. Not because it's valuable, but because it's *his*. He keeps scrying on the character to find it, resulting in the character having strange dreams of an old man muttering, 'Where did I leave that...'"
+  },
+  {
+    "roll": 82,
+    "description": "Half of a floorplan for a temple, castle, or some other structure",
+    "short_name": "Half Floorplan",
+    "source": "Player's Handbook",
+    "type": "Document",
+    "tags": ["map", "floorplan", "document", "half", "secret", "castle", "temple"],
+    "roleplay_prompt": "Which half do you have? The front entrance? The treasure room? Are you looking for the other half?",
+    "dm_hook": "The floorplan is for the local thieves' guild headquarters, showing all their traps and secret entrances. The *other* half of the map is tattooed on the back of a high-ranking guild member."
+  },
+  {
+    "roll": 83,
+    "description": "A piece of charcoal that writes in blood",
+    "short_name": "Blood-Writing Charcoal",
+    "source": "Player's Handbook",
+    "type": "Magical-Seeming",
+    "tags": ["charcoal", "writing", "blood", "creepy", "magical-seeming", "cursed-seeming"],
+    "roleplay_prompt": "Whose blood is it? Have you ever used it to write something? What did you write?",
+    "dm_hook": "The 'blood' is magical ink. If used to write a *Magic Mouth* spell, the spell does not cost a 10 gp component. The charcoal is consumed in the process."
+  },
+  {
+    "roll": 84,
+    "description": "A glass bottle containing a tiny ship that never sinks",
+    "short_name": "Unsinkable Ship Bottle",
+    "source": "Player's Handbook",
+    "type": "Toy",
+    "tags": ["toy", "bottle", "ship", "unsinkable", "magical-seeming"],
+    "roleplay_prompt": "Do you shake the bottle to test it? Do you see it as a metaphor for your own resilience?",
+    "dm_hook": "The bottle is a 'Bottle of Buoyancy'. If the cork is removed and the bottle is thrown into water, it will instantly right one capsized boat of up to 50 feet in length. The bottle is consumed."
+  },
+  {
+    "roll": 85,
+    "description": "A ship-in-a-bottle that, when opened, releases a puff of smoke",
+    "short_name": "Smoky Ship Bottle",
+    "source": "Player's Handbook",
+    "type": "Container",
+    "tags": ["toy", "bottle", "ship", "smoke", "magical-seeming", "container"],
+    "roleplay_prompt": "What does the smoke smell like? (e.g., brimstone, salt air, perfume). Have you opened it, or did someone tell you what happens?",
+    "dm_hook": "The 'smoke' is actually a trapped air elemental. The *first* time the bottle is opened, the elemental is released. It will create a 30-foot-radius *Fog Cloud* and then disappear."
+  },
+  {
+    "roll": 86,
+    "description": "A small wooden box containing a living caterpillar",
+    "short_name": "Living Caterpillar Box",
+    "source": "Player's Handbook",
+    "type": "Pet",
+    "tags": ["box", "caterpillar", "living", "pet", "nature"],
+    "roleplay_prompt": "Does the caterpillar have a name? What do you feed it? What do you hope it turns into?",
+    "dm_hook": "The caterpillar is a 'Slik-Spinner'. It doesn't eat leaves, it eats *magic*. If it's on a character's person when they are hit by a level 1-2 spell, it has a 50% chance of 'eating' the spell (as *Counterspell*). The caterpillar then instantly becomes a chrysalis."
+  },
+  {
+    "roll": 87,
+    "description": "A silver locket with a portrait of a loved one",
+    "short_name": "Loved One's Locket",
+    "source": "Player's Handbook",
+    "type": "Personal",
+    "tags": ["locket", "silver", "portrait", "sentimental", "family", "love"],
+    "roleplay_prompt": "Who is in the locket? A parent? A sibling? A lost love? Are they still alive?",
+    "dm_hook": "The portrait is *not* of a loved one, but of a specific, high-ranking member of a secret society (like the Zhentarim or Harpers). The locket is a 'pass-sign'. If the character shows it to another member, they will be mistaken for a 'new recruit' or spy."
+  },
+  {
+    "roll": 88,
+    "description": "A book that tells the story of a legendary hero's rise and fall, with the last chapter missing",
+    "short_name": "Incomplete Hero's Book",
+    "source": "Player's Handbook",
+    "type": "Document",
+    "tags": ["book", "story", "hero", "missing", "incomplete", "history"],
+    "roleplay_prompt": "Are you trying to find the last chapter? How do you *think* the story ends?",
+    "dm_hook": "The hero in the book is real, and the 'last chapter' is their *tomb*. The book describes the path to the tomb, but the final, crucial directions are missing. The 'fall' of the hero was a ruse; they are a lich, and the book is a trap."
+  },
+  {
+    "roll": 89,
+    "description": "A vial of dragon's blood",
+    "short_name": "Vial of Dragon's Blood",
+    "source": "Player's Handbook",
+    "type": "Specimen",
+    "tags": ["vial", "blood", "dragon", "potion-seeming", "component"],
+    "roleplay_prompt": "What color dragon? How did you get it? Are you saving it for something, or are you too afraid to use it?",
+    "dm_hook": "The 'dragon's blood' is a fake, created by a con-artist alchemist. However, it's highly flammable. It can be used as a 'bomb' (as *Alchemist's Fire*). If a *real* dragon sees it, it will laugh at the obvious fake."
+  },
+  {
+    "roll": 90,
+    "description": "An ancient arrow of elven design",
+    "short_name": "Ancient Elven Arrow",
+    "source": "Player's Handbook",
+    "type": "Relic",
+    "tags": ["arrow", "elven", "ancient", "weapon", "relic"],
+    "roleplay_prompt": "Does it have a name? Do you feel a sense of history when you hold it?",
+    "dm_hook": "This is an 'Arrow of Warning'. If the character holds the arrow, it will vibrate gently if a dragon is within 1 mile. It does not indicate direction or type."
+  },
+  {
+    "roll": 91,
+    "description": "A needle that never bends",
+    "short_name": "Unbending Needle",
+    "source": "Player's Handbook",
+    "type": "Tool",
+    "tags": ["needle", "unbreakable", "sewing", "tool", "magical-seeming"],
+    "roleplay_prompt": "What have you tried to sew with it? Have you ever tried to break it?",
+    "dm_hook": "The needle is made of pure Adamantine. It can be used as a 'key' to pick *any* mundane lock (one-time use, as it gets stuck) or as a +1 Dagger (that deals 1d4-1, min 1, piercing damage)."
+  },
+  {
+    "roll": 92,
+    "description": "An ornate brooch of dwarven design",
+    "short_name": "Ornate Dwarven Brooch",
+    "source": "Player's Handbook",
+    "type": "Jewelry",
+    "tags": ["brooch", "dwarven", "ornate", "jewelry", "clan-seeming"],
+    "roleplay_prompt": "Does it bear a clan symbol? Do you wear it, or is it too heavy?",
+    "dm_hook": "The brooch is a 'Clan-Mark'. A dwarf will recognize it and (depending on the clan) either offer the character free drinks and lodging, or spit at their feet and refuse to serve them."
+  },
+  {
+    "roll": 93,
+    "description": "An empty wine bottle bearing a pretty label that says, 'The Wizard of Wines Winery, Red Dragon Crush, 331422-W'",
+    "short_name": "Wizard of Wines Bottle",
+    "source": "Player's Handbook",
+    "type": "Container",
+    "tags": ["bottle", "wine", "label", "container", "empty", "reference"],
+    "roleplay_prompt": "Was the wine good? Do you keep the bottle as a memory, or do you just like the label?",
+    "dm_hook": "This is a direct reference to the *Curse of Strahd* adventure. The \"331422-W\" is a code. An alchemist or scholar will recognize it as a formula for a *Potion of Fire Resistance*."
+  },
+  {
+    "roll": 94,
+    "description": "A mosaic tile with a multicolored, glazed surface",
+    "short_name": "Glazed Mosaic Tile",
+    "source": "Player's Handbook",
+    "type": "Relic",
+    "tags": ["tile", "mosaic", "colorful", "art", "fragment"],
+    "roleplay_prompt": "What do you think the full mosaic looked like? Do you ever try to find other tiles like it?",
+    "dm_hook": "The tile is from a specific, ruined temple. If the character brings the tile to the temple, it will glow with a soft light, revealing a hidden inscription on a nearby wall that was previously invisible."
+  },
+  {
+    "roll": 95,
+    "description": "A petrified mouse",
+    "short_name": "Petrified Mouse",
+    "source": "Player's Handbook",
+    "type": "Oddity",
+    "tags": ["petrified", "mouse", "statue", "creepy", "oddity"],
+    "roleplay_prompt": "Do you feel sorry for it? Or is it just a weird paperweight? Did a basilisk get it?",
+    "dm_hook": "This is not a *petrified* mouse, it's a *toy* mouse that was the 'familiar' of a child-wizard. If the character is kind to a child in need, the mouse will animate for 1 minute and give them a 'squeak' of thanks."
+  },
+  {
+    "roll": 96,
+    "description": "A black pirate flag adorned with a dragon's skull and crossbones",
+    "short_name": "Dragon Skull Flag",
+    "source": "Player's Handbook",
+    "type": "Insignia",
+    "tags": ["flag", "pirate", "dragon", "skull", "insignia", "cloth"],
+    "roleplay_prompt": "Did you take this from a ship you defeated? Or do you just *wish* you were a pirate?",
+    "dm_hook": "This is the flag of the 'Dragon's Fang', a notoriously unlucky pirate ship. Any sailor will recognize it and refuse to let the character on their ship, believing the flag will bring a curse."
+  },
+  {
+    "roll": 97,
+    "description": "A tiny mechanical crab or spider that moves about when it's not being observed",
+    "short_name": "Moving Mechanical Spider",
+    "source": "Player's Handbook",
+    "type": "Toy",
+    "tags": ["mechanical", "toy", "crab", "spider", "clockwork", "magical-seeming", "creepy"],
+    "roleplay_prompt": "Have you ever *almost* caught it moving? Do you try to set 'traps' to see it? Is it a friend or just... weird?",
+    "dm_hook": "The mechanical creature is a 'Spy-der' from a gnome tinkerer. It's not moving randomly; it's trying to get *away* and report back to its master. Once per adventure, it will disappear and show up later, followed by a very curious gnome."
+  },
+  {
+    "roll": 98,
+    "description": "A glass jar containing lard with a label that reads, 'Griffon Grease'",
+    "short_name": "Jar of Griffon Grease",
+    "source": "Player's Handbook",
+    "type": "Oddity",
+    "tags": ["jar", "lard", "grease", "griffon", "fake", "oddity"],
+    "roleplay_prompt": "What do you *use* this for? Waterproofing boots? Cooking? Do you believe it's real griffon grease?",
+    "dm_hook": "It's not lard; it's *actually* Griffon Grease. If applied to a non-magical object weighing 1 lb or less, the object will float 1 inch off the ground for 1 hour. There is enough for 3 uses."
+  },
+  {
+    "roll": 99,
+    "description": "A wooden box with a ceramic bottom that holds a living worm with a head on each end of its body",
+    "short_name": "Two-Headed Worm",
+    "source": "Player's Handbook",
+    "type": "Pet",
+    "tags": ["pet", "worm", "box", "creepy", "oddity", "living"],
+    "roleplay_prompt": "What do you call it? How do you feed it? Do the heads ever argue with each other?",
+    "dm_hook": "This is a 'Scribe's Worm'. If you place it on a piece of parchment, it will 'eat' the words on the page. If you then place it on a *blank* page, it will 'regurgitate' the words, perfectly copying the text. It's a living copy machine."
+  },
+  {
+    "roll": 100,
+    "description": "A metal urn containing the ashes of a hero",
+    "short_name": "Hero's Ashes",
+    "source": "Player's Handbook",
+    "type": "Relic",
+    "tags": ["urn", "ashes", "hero", "relic", "death", "sentimental"],
+    "roleplay_prompt": "Who was the hero? Are you tasked with protecting their ashes, or just carrying a burden?",
+    "dm_hook": "The 'hero' was a coward who fled a great battle. If the ashes are scattered on the battlefield, the hero's ghost will appear, apologize, and point the party to the *real* hero's 'lost treasure' as thanks for freeing him."
+  },
+  {
+    "roll": 101,
+    "description": "A glass vial containing a drop of blood from a celestial",
+    "short_name": "Celestial Blood Vial",
+    "source": "Player's Handbook (Alternate)",
+    "type": "Relic",
+    "tags": ["vial", "blood", "celestial", "holy", "relic", "component"],
+    "roleplay_prompt": "Does the blood glow? How did you come to possess something so holy? Do you feel worthy of it?",
+    "dm_hook": "The blood is a powerful holy reagent. If used as a component for a *Lesser Restoration* or *Protection from Evil and Good* spell, the spell is cast at one level higher (or its duration is doubled)."
+  },
+  {
+    "roll": 102,
+    "description": "A glass bottle with a small, preserved fairy inside",
+    "short_name": "Preserved Fairy Bottle",
+    "source": "Player's Handbook (Alternate)",
+    "type": "Specimen",
+    "tags": ["bottle", "fairy", "fey", "preserved", "creepy", "specimen"],
+    "roleplay_prompt": "Is the fairy's expression peaceful or one of terror? Do you keep it as a curiosity or a grim warning?",
+    "dm_hook": "The fairy is not dead, only trapped in stasis. If the bottle is broken, the fairy is freed and will grant the character a 'Fey's Boon' (one-time use of the *Misty Step* ability) before vanishing."
+  },
+  {
+    "roll": 103,
+    "description": "A tiny, living tree that grows in a small pot",
+    "short_name": "Tiny Living Tree",
+    "source": "Player's Handbook (Alternate)",
+    "type": "Pet",
+    "tags": ["tree", "living", "pot", "nature", "plant", "charming"],
+    "roleplay_prompt": "Do you talk to the tree? Have you given it a name? How do you make sure it gets sunlight?",
+    "dm_hook": "The tree is a 'sapling' of an Awakened Tree. It cannot talk, but it *understands* Common and Elvish. It will rustle its leaves in simple 'yes' or 'no' patterns to answer questions."
+  },
+  {
+    "roll": 104,
+    "description": "An iron holy symbol devoted to an unknown god",
+    "short_name": "Unknown Holy Symbol",
+    "source": "Player's Handbook (Alternate)",
+    "type": "Relic",
+    "tags": ["holy symbol", "iron", "unknown", "god", "religious", "creepy"],
+    "roleplay_prompt": "What does the symbol look like (a broken wheel, a grasping tentacle)? Do you ever pray to it, just to see what happens?",
+    "dm_hook": "The 'unknown god' is a long-dead, forgotten deity of 'Lost Causes'. Once, and only once, when the character has 0 hit points, the holy symbol will crumble to dust, and the character will instantly stabilize."
+  },
+  {
+    "roll": 105,
+    "description": "A delicate silver cameo with pictures of twin children opposite one another",
+    "short_name": "Twin Children Cameo",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Jewelry",
+    "tags": ["silver", "cameo", "twins", "sentimental", "art", "fey"],
+    "roleplay_prompt": "Are the children happy or sad? Do you know who they are, or is their identity a mystery to you?",
+    "dm_hook": "The cameo is a 'fey-twin' locket. If the locket is ever near its twin (who is also in the world), it grows warm. The twins are now adults and are looking for this last memento of their childhood."
+  },
+  {
+    "roll": 106,
+    "description": "A golden pendant charm shaped like a leprechaun",
+    "short_name": "Leprechaun Pendant",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Jewelry",
+    "tags": ["gold", "pendant", "leprechaun", "fey", "good luck", "jewelry"],
+    "roleplay_prompt": "Do you wear this for luck? Or as a reminder of a fey creature you once met?",
+    "dm_hook": "This charm is a 'Leprechaun's Dues'. A real leprechaun owes the *original* owner of this charm a favor. If the character finds him, he will be grumpy about honoring a debt to a stranger."
+  },
+  {
+    "roll": 107,
+    "description": "A tiny wooden box containing a croquet set sized for pixies or sprites",
+    "short_name": "Pixie Croquet Set",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Toy",
+    "tags": ["toy", "game", "pixie", "fey", "tiny", "croquet", "whimsical"],
+    "roleplay_prompt": "Have you ever tried to play a game with it? What's stopping you from just... losing all the pieces?",
+    "dm_hook": "If a game of croquet is completed (e.g., a successful DC 15 Sleight of Hand check), the set resets, and a single *Goodberry* appears in the box."
+  },
+  {
+    "roll": 108,
+    "description": "A tiny pair of sharp, iron scissors",
+    "short_name": "Tiny Iron Scissors",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Tool",
+    "tags": ["iron", "scissors", "tiny", "fey-bane", "sharp", "tool"],
+    "roleplay_prompt": "Why iron? Is it a tool for sewing, or a weapon against tiny fey?",
+    "dm_hook": "These 'cold iron' scissors can cut things that are not physical. Once, they can be used to cut a magical bond (like a *Hold Person* spell's effect) or a 1st-level fey illusion."
+  },
+  {
+    "roll": 109,
+    "description": "A chess piece shaped like a dancing satyr wearing a bishop's hat",
+    "short_name": "Satyr Chess Piece",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Toy",
+    "tags": ["game", "chess", "satyr", "fey", "whimsical", "art", "toy"],
+    "roleplay_prompt": "Does this piece represent you—a serious role (bishop) but a wild heart (satyr)? What happened to the rest of the set?",
+    "dm_hook": "The piece is from a fey-chess set. If placed on a real chessboard, it will animate and dance. It's a key to a fey's puzzle—the 'satyr-bishop' always moves diagonally, but *also* celebrates after."
+  },
+  {
+    "roll": 110,
+    "description": "A saltshaker shaped like a wizard's tower",
+    "short_name": "Wizard Tower Saltshaker",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Container",
+    "tags": ["container", "salt", "kitchen", "wizard", "tower", "whimsical"],
+    "roleplay_prompt": "Do you keep it full of salt? Or something else... like glitter or 'magic' dust?",
+    "dm_hook": "The salt from this shaker is unusually potent. A pinch of it can preserve any organic food item (like a single meal) from spoiling for one week. It has 1d4+1 pinches left."
+  },
+  {
+    "roll": 111,
+    "description": "A crystal orb that allows an elf who holds it to sleep",
+    "short_name": "Elven Sleep Orb",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Magical-Seeming",
+    "tags": ["crystal", "orb", "elf", "sleep", "trance", "magical-seeming", "fey"],
+    "roleplay_prompt": "If you're an elf, is this a comfort or a crutch? If you're not, what happens when *you* hold it?",
+    "dm_hook": "This orb allows an elf to truly sleep and dream, instead of just entering a trance. The dreams it provides are vivid, prophetic, and grant the elf a single *Omen* (as the Divination wizard feature) upon waking."
+  },
+  {
+    "roll": 112,
+    "description": "A pendant that shows the phases of the moon",
+    "short_name": "Moon Phase Pendant",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Jewelry",
+    "tags": ["pendant", "jewelry", "moon", "phases", "magical-seeming", "celestial"],
+    "roleplay_prompt": "Does the pendant's phase match the *actual* moon, or does it show its own cycle? Do you feel a connection to it?",
+    "dm_hook": "The pendant *always* shows the correct phase of the moon, even underground or on another plane. It's a reliable timepiece for werewolves, druids, and astronomers."
+  },
+  {
+    "roll": 113,
+    "description": "A large iron fingernail",
+    "short_name": "Large Iron Fingernail",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Oddity",
+    "tags": ["iron", "fingernail", "creepy", "fey-bane", "oddity", "sharp", "fragment"],
+    "roleplay_prompt": "Is this... from a creature? Or a statue? Or is it a tool, like a pick or a scraper?",
+    "dm_hook": "This is a fingernail from a 'Hag's Iron-Bound Child'. The nail is 'cold iron' and can be used as an improvised dagger that is particularly painful to fey (deals +1d4 psychic damage to any fey creature it hits)."
+  },
+  {
+    "roll": 114,
+    "description": "A tiny electrum whistle that only Fey can hear",
+    "short_name": "Fey-Hearing Whistle",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Instrument",
+    "tags": ["whistle", "fey", "silent", "auditory", "electrum", "instrument", "tool"],
+    "roleplay_prompt": "Do you ever blow it just to see if anyone (or anything) reacts? Have they?",
+    "dm_hook": "If blown in a forest or wild area, there is a 1-in-6 chance that a curious (but not necessarily friendly) fey creature (like a pixie or a sprite) will be drawn to the sound to investigate."
+  },
+  {
+    "roll": 115,
+    "description": "A wooden jigsaw puzzle piece as big as a saucer",
+    "short_name": "Large Puzzle Piece",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Toy",
+    "tags": ["toy", "puzzle", "wood", "large", "fragment", "mystery", "key-seeming"],
+    "roleplay_prompt": "What's the picture on the piece? A bit of sky? An eye? Are you looking for the rest of the puzzle?",
+    "dm_hook": "The puzzle depicts a map to a fey crossing. This single piece is the 'key'—when placed on the ground at the crossing's location, the portal opens."
+  },
+  {
+    "roll": 116,
+    "description": "A spool of glistening silver thread",
+    "short_name": "Silver Thread Spool",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Tool",
+    "tags": ["thread", "silver", "glistening", "sewing", "tool", "fey-seeming", "crafting"],
+    "roleplay_prompt": "Is it thread *made* of silver, or just silvery? What are you saving it for? A special garment?",
+    "dm_hook": "This is 'Moon-Spider Silk'. It's as strong as a steel wire (can hold 100 lbs). It can also be used as a special spell component for *Alarm* or *Web*, making the spell's DC 1 higher."
+  },
+  {
+    "roll": 117,
+    "description": "A sheet of music that goblins find upsetting",
+    "short_name": "Goblin-Upsetting Music",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Document",
+    "tags": ["music", "document", "goblin", "auditory", "whimsical", "fey"],
+    "roleplay_prompt": "Have you tried to play it? Is it complex and beautiful, or just... *bad*? What do you think goblins hate about it?",
+    "dm_hook": "The music is a fey lullaby. If played, any goblinoid (goblins, bugbears, hobgoblins) that can hear it must make a DC 11 Wisdom save or become Frightened of the musician for 1 minute."
+  },
+  {
+    "roll": 118,
+    "description": "A rotten ogre's tooth with the Elvish glyph for 'moon' etched into it",
+    "short_name": "Glyphed Ogre Tooth",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Trophy",
+    "tags": ["ogre", "tooth", "trophy", "rotten", "elvish", "moon", "glyph", "creepy"],
+    "roleplay_prompt": "Why keep such a disgusting thing? Is the Elvish glyph the important part, or the tooth?",
+    "dm_hook": "The tooth is a 'curse-ward' from an elven tribe. It's not rotten; it's *absorbing* rot. Once, when the character would take necrotic damage, the tooth can be held up to absorb it (up to 10 points). The tooth then crumbles."
+  },
+  {
+    "roll": 119,
+    "description": "A vitrified eye of a displacer beast",
+    "short_name": "Displacer Beast Eye",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Specimen",
+    "tags": ["eye", "displacer beast", "vitrified", "specimen", "monster part", "creepy", "fey"],
+    "roleplay_prompt": "Does it still seem to... *shimmer*? Do you feel like it's watching you from just... *over there*?",
+    "dm_hook": "The eye is a 'Fey-Lens'. If a character looks through it (it's solid glass, so they can't *see*), they can see 1d4 invisible things within 60 feet (creatures, objects, etc.) for 1 minute. This can be used once."
+  },
+  {
+    "roll": 120,
+    "description": "A tiny duskwood coffin containing the ashes of a troll",
+    "short_name": "Troll Ash Coffin",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Relic",
+    "tags": ["coffin", "tiny", "ashes", "troll", "duskwood", "creepy", "trophy", "fey"],
+    "roleplay_prompt": "How... how did someone get the *ashes* of a troll? Isn't that impossible? What's the story here?",
+    "dm_hook": "The ashes are a 'Regeneration Null'. If these ashes are sprinkled on a creature that can regenerate (like another troll), it loses its regeneration trait for 1 hour. There is only enough for one use."
+  },
+  {
+    "roll": 121,
+    "description": "An old invitation to a banquet in the Summer Court",
+    "short_name": "Summer Court Invitation",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Document",
+    "tags": ["invitation", "fey", "summer court", "document", "noble", "ancient", "feywild"],
+    "roleplay_prompt": "Is the invitation for *you*? Is the party date long past, or... yet to come? Are you going to try and go?",
+    "dm_hook": "The invitation is ancient, but in the Feywild, time is strange. The 'party' is still going. If the character finds their way to the Summer Court, this invitation will grant them entry and the 'status' of a guest... for one night."
+  },
+  {
+    "roll": 122,
+    "description": "A gossamer shawl that glows faintly in moonlight",
+    "short_name": "Moon-Glowing Shawl",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Clothing",
+    "tags": ["clothing", "shawl", "gossamer", "fey", "moon", "light", "beautiful"],
+    "roleplay_prompt": "Is it warm, or just beautiful? Do you feel more graceful when you wear it?",
+    "dm_hook": "The shawl is made of 'Moon-Moth' silk. If worn in direct moonlight, the wearer can, as a bonus action, become invisible for 1 minute. This invisibility ends if they attack or cast a spell. This power can be used once, and the shawl loses its glow."
+  },
+  {
+    "roll": 123,
+    "description": "A ball-and-cup toy that plays a jingle when the ball lands in the cup",
+    "short_name": "Jingling Ball-and-Cup",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Toy",
+    "tags": ["toy", "game", "jingle", "auditory", "whimsical", "fey-seeming"],
+    "roleplay_prompt": "Are you good at it? Or do you just keep trying to hear the little jingle? Is the sound annoying or charming?",
+    "dm_hook": "The jingle is a 'Fey-Mark'. If the character succeeds at the toy (a DC 15 Sleight of Hand check), the jingle plays. Any fey creature hearing it must make a DC 10 Charisma save or be charmed by the character's 'impressive skill' for 1 minute."
+  },
+  {
+    "roll": 124,
+    "description": "A sprite's skull covered in ink fingerprints",
+    "short_name": "Inked Sprite Skull",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Oddity",
+    "tags": ["skull", "sprite", "fey", "creepy", "ink", "body part", "mystery"],
+    "roleplay_prompt": "Whose fingerprints are those? Why were they 'booking' a sprite? Is this a grim trophy or a clue in a tiny mystery?",
+    "dm_hook": "The fingerprints belong to a 'Fey-Detective' (a quickling or a redcap). The sprite wasn't murdered; it was a 'material witness'. If the skull is shown to a fey creature, they will recognize the 'detective's' mark and become very secretive."
+  },
+  {
+    "roll": 125,
+    "description": "A silver fork with the outer tines bent sideways",
+    "short_name": "Bent Silver Fork",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Tool",
+    "tags": ["utensil", "silver", "fork", "bent", "whimsical", "tool", "kitchen"],
+    "roleplay_prompt": "Did you bend it, or did you find it this way? What could you *possibly* eat with this?",
+    "dm_hook": "This is a 'Dowsing Fork'. It's not for food; it's for finding... *pie*. If the character holds the fork, it will tug them in the direction of the nearest (and tastiest) pie within 500 feet."
+  },
+  {
+    "roll": 126,
+    "description": "A soot-stained sock in which a nugget of coal magically appears each day",
+    "short_name": "Magic Coal Sock",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Magical-Seeming",
+    "tags": ["clothing", "sock", "soot", "coal", "magic", "daily", "whimsical"],
+    "roleplay_prompt": "Is this... a fey's idea of a 'naughty' list? What do you do with all the coal? Is it a single sock, or a pair?",
+    "dm_hook": "This is a 'Hearth-Warming' sock. The piece of coal it produces each day is magical. If thrown into a non-magical fire, the fire instantly becomes warm, cozy, and casts bright light in a 60-foot radius (and dim for 60 more). It burns for 1 hour."
+  },
+  {
+    "roll": 127,
+    "description": "A tiny wooden stool that gives splinters to those who hold it",
+    "short_name": "Splintering Stool",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Oddity",
+    "tags": ["wood", "stool", "tiny", "splinters", "cursed-seeming", "oddity", "fey"],
+    "roleplay_prompt": "Why would you *hold* this? Is it a prank item? Have you gotten a splinter from it?",
+    "dm_hook": "The stool is a 'Redcap's Curse'. Any creature (except a redcap) that *holds* it (not sits on it) must make a DC 10 Con save or get a splinter. The splinter deals 1 psychic damage and makes the creature grumpy (disadvantage on Charisma checks) until it's removed."
+  },
+  {
+    "roll": 128,
+    "description": "A tiny clockwork dragonfly that slowly beats its wings when wound up",
+    "short_name": "Clockwork Dragonfly",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Toy",
+    "tags": ["clockwork", "toy", "dragonfly", "mechanical", "gnomish-seeming", "flying", "fey"],
+    "roleplay_prompt": "How long does it fly for? Does it make a buzzing sound? Is it a friend, a pet, or just a beautiful object?",
+    "dm_hook": "The dragonfly is a 'Fey-Seeker'. When wound up, it doesn't fly randomly. It flies 30 feet in the direction of the nearest fey creature or fey crossing. After 1 minute, it lands."
+  },
+  {
+    "roll": 129,
+    "description": "A toy unicorn made of wood, painted with bright colors",
+    "short_name": "Painted Toy Unicorn",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Toy",
+    "tags": ["toy", "unicorn", "wood", "painted", "colorful", "charming", "fey"],
+    "roleplay_prompt": "Did you have this as a child? Or did you 'win' it from a fey? Is it a symbol of hope for you?",
+    "dm_hook": "The toy's horn is made from a *real* unicorn horn shaving. If the horn is broken off (destroying the toy), the dust can be sprinkled into a potion or liquid to create a *Potion of Poison Resistance* (1 hour)."
+  },
+  {
+    "roll": 130,
+    "description": "A pixie plushie that sings when you squeeze it",
+    "short_name": "Singing Pixie Plushie",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Toy",
+    "tags": ["toy", "plushie", "pixie", "auditory", "sings", "whimsical", "fey"],
+    "roleplay_prompt": "What song does it sing? Is it a sweet lullaby or a mischievous fey tune? Do you squeeze it often?",
+    "dm_hook": "The song it sings is a 'Song of Rest'. If the plushie is squeezed while the party takes a short rest, everyone in the party gains 1 extra hit point from any hit dice they spend."
+  },
+  {
+    "roll": 131,
+    "description": "A bronze compass that spins wildly near fey",
+    "short_name": "Fey-Spinning Compass",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Tool",
+    "tags": ["compass", "bronze", "fey", "detector", "tool", "spinning"],
+    "roleplay_prompt": "Is it a useful warning, or just an annoying, broken compass most of the time? How 'near' does a fey have to be?",
+    "dm_hook": "The compass doesn't just spin; it spins *faster* the *more* powerful the fey is. A pixie makes it jitter. An Archfey would make it spin fast enough to whistle. It's a 'power-level' detector for fey."
+  },
+  {
+    "roll": 132,
+    "description": "A bag of buttons that look like tiny berries",
+    "short_name": "Berry Buttons",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Container",
+    "tags": ["buttons", "bag", "berries", "sewing", "whimsical", "fey-seeming", "crafting"],
+    "roleplay_prompt": "Do they look *exactly* like berries? Have you ever been tempted to eat one?",
+    "dm_hook": "One of the buttons is not a button; it's a *Goodberry* that never rots. It can be eaten once, and the next day, a new *Goodberry* button appears in the bag."
+  },
+  {
+    "roll": 133,
+    "description": "A stick that looks like a tiny, gnarled wand",
+    "short_name": "Gnarled Wand-Stick",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Token",
+    "tags": ["stick", "wood", "wand", "gnarled", "fey-seeming", "druidic-seeming", "token"],
+    "roleplay_prompt": "Do you ever 'wave' it and pretend to cast spells? Or do you *genuinely* believe it has a spark of magic?",
+    "dm_hook": "It's just a stick. ... But, if a *Shillelagh* spell is cast on it, the spell lasts for 1 hour instead of 1 minute."
+  },
+  {
+    "roll": 134,
+    "description": "A round, smooth stone that hums when stroked",
+    "short_name": "Humming Stone",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Oddity",
+    "tags": ["stone", "smooth", "auditory", "hums", "oddity", "pet-like", "fey-seeming"],
+    "roleplay_prompt": "Is the humming comforting, like a cat's purr? What 'tune' does it hum?",
+    "dm_hook": "The stone is a 'Fey-Lure'. If stroked and left on the ground in the wild, it will hum. After 10 minutes, 1d4 non-hostile, curious beasts (squirrels, rabbits, a deer) will be gathered around it."
+  },
+  {
+    "roll": 135,
+    "description": "A teacup made from a varnished mushroom cap",
+    "short_name": "Mushroom Teacup",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Tool",
+    "tags": ["teacup", "mushroom", "kitchen", "fey", "natural", "whimsical", "utensil"],
+    "roleplay_prompt": "Do you use it for tea? Or do you worry that drinking from it might be... unwise? Does it smell like a mushroom?",
+    "dm_hook": "Any liquid (water, tea, wine) drunk from this teacup has a 50% chance of tasting *delicious*... and a 50% chance of tasting like fresh soil and worms."
+  },
+  {
+    "roll": 136,
+    "description": "A rock that floats and is small enough to hide in your closed fist",
+    "short_name": "Floating Rock",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Oddity",
+    "tags": ["rock", "stone", "floating", "magical-seeming", "lightweight", "fey"],
+    "roleplay_prompt": "How does it float? Is it 'light as a feather' or does it just... ignore gravity? What do you use it for?",
+    "dm_hook": "The rock is a 'Fey-Anchor'. It floats in the Material Plane, but in the Feywild, it has immense, unmovable weight (500 lbs). It can be used to anchor a rope or block a door (in the Feywild only)."
+  },
+  {
+    "roll": 137,
+    "description": "A tiny bottle filled with rainwater collected from the Feywild",
+    "short_name": "Feywild Rainwater",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Potion-Seeming",
+    "tags": ["bottle", "water", "rain", "feywild", "potion-seeming", "pure", "component"],
+    "roleplay_prompt": "What do you plan to do with it? Drink it? Water a plant? Save it for a special occasion?",
+    "dm_hook": "If a character drinks this water, they 'attune' to the Feywild for 1 hour. During this time, they have advantage on all saving throws against fey charms and illusions."
+  },
+  {
+    "roll": 138,
+    "description": "An opalescent conch shell that laughs when you hold it to your ear",
+    "short_name": "Laughing Conch Shell",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Oddity",
+    "tags": ["shell", "conch", "auditory", "laughs","fey", "ocean", "whimsical", "oddity"],
+    "roleplay_prompt": "What kind of laugh is it? A joyful giggle? A mocking cackle? Is it your friend or does it laugh *at* you?",
+    "dm_hook": "The conch doesn't laugh randomly. It laughs whenever someone tells a *really bad lie* (DM's discretion, usually a roll of 5 or less on Deception). It's a 'bad-lie-detector'."
+  },
+  {
+    "roll": 139,
+    "description": "A single butterfly wing in a tiny jar",
+    "short_name": "Jarred Butterfly Wing",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Specimen",
+    "tags": ["butterfly", "wing", "jar", "specimen", "beautiful", "fey-seeming", "fragment"],
+    "roleplay_prompt": "What color is the wing? Is it a beautiful specimen, or a sad reminder of something fragile?",
+    "dm_hook": "The wing is from a 'Feywild Blink-Moth'. The dust from the wing (which is all in the jar) can be used as a material component for a *Blink* or *Misty Step* spell, replacing 50gp of its material cost (if any)."
+  },
+  {
+    "roll": 140,
+    "description": "A locket that contains a tiny, sleeping blink dog",
+    "short_name": "Blink Dog Locket",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Pet",
+    "tags": ["locket", "pet", "blink dog", "sleeping", "magical-seeming", "tiny", "fey"],
+    "roleplay_prompt": "Is the dog *alive*? Does it ever twitch or 'teleport' inside the locket? Do you protect it?",
+    "dm_hook": "The blink dog is in magical stasis. If the locket is ever opened in the Feywild, the dog will be released. It's just a puppy. It will be friendly to the character and act as a loyal (but weak) pet, 'blinking' away from all danger."
+  },
+  {
+    "roll": 141,
+    "description": "A jar of iridescent beetle shells",
+    "short_name": "Iridescent Beetle Shells",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Specimen",
+    "tags": ["jar", "insect", "beetle", "iridescent", "beautiful", "collection", "crafting"],
+    "roleplay_prompt": "Are they just pretty, or are you collecting them for a purpose (like making paint, or as spell components)?",
+    "dm_hook": "The shells are from 'Flash-Beetles'. The jar contains 1d6+3 shells. A shell can be crushed as a bonus action to create a bright flash of light. Any creature within 10 feet must make a DC 10 Con save or be blinded for 1 round."
+  },
+  {
+    "roll": 142,
+    "description": "A wooden bird that flaps its wings when you whistle a certain tune",
+    "short_name": "Whistling Wooden Bird",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Toy",
+    "tags": ["toy", "wood", "bird", "auditory", "music", "whimsical", "mechanical-seeming"],
+    "roleplay_prompt": "Do you know the tune? Or is it a 'guess-and-check' whistle? Is it a good bird, or an annoying one?",
+    "dm_hook": "The 'tune' is a single, specific note. If the character whistles the *exact* note (e.g., a successful DC 13 Charisma (Performance) check), the bird will fly from their hand, fly in a 30-foot circle, and then 'point' its beak in the direction of the nearest *food*."
+  },
+  {
+    "roll": 143,
+    "description": "A tiny wooden sylph figurehead from a model ship",
+    "short_name": "Sylph Figurehead",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Token",
+    "tags": ["sylph", "fey", "figurehead", "ship", "wood", "art", "token", "elemental"],
+    "roleplay_prompt": "Is this from a model ship you owned? Or did you find it washed up on a tiny shore?",
+    "dm_hook": "The figurehead is a 'Sylph's-Breath'. If held, the character can, as an action, blow into it to create a 15-foot cone of strong *Wind* (as the *Gust of Wind* spell, but only the 'push' effect, not the full spell). It can be used once."
+  },
+  {
+    "roll": 144,
+    "description": "A tiny pumpkin-shaped cauldron carved out of bog oak",
+    "short_name": "Pumpkin Cauldron",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Oddity",
+    "tags": ["pumpkin", "cauldron", "tiny", "wood", "whimsical", "hag-seeming", "fey"],
+    "roleplay_prompt": "Is this a toy, or a 'practice' cauldron for a tiny hag? What do you 'brew' in it?",
+    "dm_hook": "This is a 'Hag's-Taster'. Any potion placed inside it (it holds 1 ounce) is 'tasted' by the cauldron. The character instantly knows the potion's *effects* (as *Identify*, but only for potions)."
+  },
+  {
+    "roll": 145,
+    "description": "A bar of soap that smells like something memorable from your childhood",
+    "short_name": "Childhood Scented Soap",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Personal",
+    "tags": ["soap", "scent", "memory", "childhood", "sentimental", "personal", "fey"],
+    "roleplay_prompt": "What is the smell? (e.g., 'fresh-cut grass', 'a bakery', 'a specific perfume'). Is it a good memory, or one that makes you sad?",
+    "dm_hook": "The soap's scent is a 'Memory-Trigger'. Once, the character can use the soap to wash their face. They are overcome with a powerful, happy memory, and instantly heal 1d4 psychic damage and gain advantage on their next Wisdom saving throw."
+  },
+  {
+    "roll": 146,
+    "description": "A piece of orange parchment folded to look like a knight",
+    "short_name": "Origami Knight",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Toy",
+    "tags": ["origami", "knight", "paper", "orange", "toy", "art", "fey-seeming"],
+    "roleplay_prompt": "Did you fold this? Or did you find it? Does it represent a 'noble quest' for you?",
+    "dm_hook": "The 'parchment' is a fey contract. If the knight is unfolded (destroying it), it reveals a simple, magical contract. It reads: 'I, the bearer, will perform one (1) noble deed.' If the character signs it, the next *truly* noble deed they perform will be rewarded by the fey (e.g., with a *Charm*)."
+  },
+  {
+    "roll": 147,
+    "description": "Tinted glasses so dark that they can't be seen through",
+    "short_name": "Blackout Glasses",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Clothing",
+    "tags": ["glasses", "dark", "clothing", "useless", "whimsical", "fey", "blindfold"],
+    "roleplay_prompt": "Why keep glasses you can't see through? Is it a fashion statement? Or do they help with... something else?",
+    "dm_hook": "They can't be seen *through*. But they *can* be seen *with*. The glasses are 'Banshee-Shades'. They are opaque to normal light, but they allow the wearer to see 60 feet into the Ethereal Plane. They are, however, still blind to the Material Plane while wearing them."
+  },
+  {
+    "roll": 148,
+    "description": "An 8-inch-long glass ant figurine",
+    "short_name": "Glass Ant Figurine",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Art",
+    "tags": ["glass", "ant", "insect", "figurine", "art", "large", "brittle", "fey"],
+    "roleplay_prompt": "It's... an 8-inch glass ant. Is this... art? Is it a warning? It's just so *weird*.",
+    "dm_hook": "The ant is a 'Fomorian's-Tear'. It's a piece from a giant-sized fey art collection. A Fomorian or a fey noble might recognize it as 'stolen art' and demand its return, or reward the character for finding an 'ancient relic' of their people."
+  },
+  {
+    "roll": 149,
+    "description": "A piece of parchment bearing a child's drawing of an oni",
+    "short_name": "Child's Oni Drawing",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Document",
+    "tags": ["drawing", "child", "art", "oni", "creepy", "monster", "fey"],
+    "roleplay_prompt": "Is the drawing... *good*? Is it a child's nightmare, or a drawing of their 'imaginary friend'?",
+    "dm_hook": "The drawing is a 'Fey-Ward'. The child who drew it had a *real* encounter with an Oni and survived. The drawing acts as a minor ward. If an Oni (or other fey) sees it, it must make a DC 10 Charisma save or be 'unsettled' and unable to attack the *bearer* of the drawing for 1 round."
+  },
+  {
+    "roll": 150,
+    "description": "A tiny hourglass without sand in it",
+    "short_name": "Sandless Hourglass",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Oddity",
+    "tags": ["hourglass", "empty", "no sand", "time", "oddity", "symbolic", "fey"],
+    "roleplay_prompt": "Is it a symbol that 'time is up'? Or that 'time doesn't matter'? Have you tried to put sand *in* it?",
+    "dm_hook": "The hourglass is from the Feywild. It doesn't measure *time*; it measures *promises*. If two creatures hold the hourglass and one makes a promise to the other, the 'sand' (invisible) will begin to flow. It will run out (visibly) when the promise is broken."
+  },
+  {
+    "roll": 151,
+    "description": "An empty vial with corked ends at the top and bottom",
+    "short_name": "Double-Corked Vial",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Container",
+    "tags": ["vial", "double-corked", "mysterious", "fey", "container", "oddity"],
+    "roleplay_prompt": "What's it for? Trapping a whisper? Holding two different liquids? How do you decide which end is 'up'?",
+    "dm_hook": "The vial is a 'Fey-Exchange' bottle. If a liquid is put in one end (e.g., water), a different, related liquid comes out the other (e.g., mud, or sweet tea). It has 1d4 uses before it's just a weird bottle."
+  },
+  {
+    "roll": 152,
+    "description": "A pair of green leprechaun boots tied together by their laces",
+    "short_name": "Leprechaun Boots",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Clothing",
+    "tags": ["boots", "leprechaun", "green", "fey", "tiny", "clothing", "luck"],
+    "roleplay_prompt": "Did you 'win' these? Or just find them? Do you ever try to put them on your fingers and make them dance?",
+    "dm_hook": "If the boots are worn by a tiny creature (like a familiar or a sprite), that creature has its movement speed doubled and can't be tracked... but it also has a 50% chance of disobeying any order to do something boring."
+  },
+  {
+    "roll": 153,
+    "description": "A smoking pipe made from a tree root",
+    "short_name": "Tree Root Pipe",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Tool",
+    "tags": ["pipe", "smoking", "root", "wood", "natural", "druidic-seeming", "fey"],
+    "roleplay_prompt": "What kind of root is it? What does the smoke smell like? (e.g., 'fresh soil', 'burning leaves').",
+    "dm_hook": "The smoke from this pipe is 'Truth-Smoke'. If a creature is enveloped in the smoke (in a 5-foot cube), they are compelled to speak only the truth for 1 minute (as *Zone of Truth*). The pipe has 1d4 uses."
+  },
+  {
+    "roll": 154,
+    "description": "A red cap that droops down to one's shoulders when worn",
+    "short_name": "Drooping Red Cap",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Clothing",
+    "tags": ["cap", "red", "redcap", "fey", "creepy", "clothing", "long"],
+    "roleplay_prompt": "Do you *know* what a 'Redcap' is? Are you wearing this in tribute, or in ignorance? Does it... feel damp?",
+    "dm_hook": "The cap is a (non-magical) Redcap's cap. Any *other* Redcap who sees the character wearing it will either see them as a 'fellow' (and be non-hostile) or as a 'poser' (and attack with fury). It's a 50/50 risk."
+  },
+  {
+    "roll": 155,
+    "description": "A mask that helps you remember your dreams if you wear it while you sleep",
+    "short_name": "Dream-Remembering Mask",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Clothing",
+    "tags": ["mask", "dream", "sleep", "memory", "magical-seeming", "fey", "clothing"],
+    "roleplay_prompt": "What's the most important dream you've remembered? Was it a good one, or a nightmare you wish you'd forgotten?",
+    "dm_hook": "The mask *works*. If the character wears it while taking a long rest, the DM can give them a cryptic, prophetic dream (a plot hook) and the character will remember *every* detail of it perfectly upon waking."
+  },
+  {
+    "roll": 156,
+    "description": "A vial of 100-year-old elven wine",
+    "short_name": "Aged Elven Wine",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Potion-Seeming",
+    "tags": ["wine", "elven", "ancient", "potion-seeming", "vial", "fey"],
+    "roleplay_prompt": "Are you saving this for a special occasion? Or are you too afraid to drink it, in case it's *too* magical?",
+    "dm_hook": "This is 'Starlight Wine'. If a creature drinks it, they are filled with elven grace. They gain the effects of the *Cat's Grace* spell (Advantage on Dexterity checks) for 1 hour. It is a prized gift among elves."
+  },
+  {
+    "roll": 157,
+    "description": "A walnut shell with a tiny painting of a pixie on the inside",
+    "short_name": "Pixie Painting Walnut",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Art",
+    "tags": ["art", "painting", "tiny", "walnut", "pixie", "fey", "charming", "secret"],
+    "roleplay_prompt": "Who is the pixie in the painting? Is it a portrait of a specific fey, or just a beautiful piece of art?",
+    "dm_hook": "The pixie in the painting is *real* and has been scrying *through* the painting. The next time the character opens it, the pixie might wink or whisper a tiny, cryptic secret ('The key is under the...')."
+  },
+  {
+    "roll": 158,
+    "description": "A flower that never wilts",
+    "short_name": "Unwilting Flower",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Token",
+    "tags": ["flower", "unwilting", "eternal", "magical-seeming", "fey", "token", "sentimental", "nature"],
+    "roleplay_prompt": "Who gave you this? Or where did you pick it? Is it a symbol of undying love, or just a biological curiosity?",
+    "dm_hook": "The flower is a 'Feywild Rose'. It's not just unwilting; it's *unkillable*. If a petal is plucked, it grows back in 1 minute. A single petal can be used as a material component for any 1st-level spell (replacing a cost of up to 1 gp)."
+  },
+  {
+    "roll": 159,
+    "description": "A music box that plays a tune that only you can hear",
+    "short_name": "Personal Music Box",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Toy",
+    "tags": ["music box", "auditory", "personal", "secret", "fey", "toy", "magical-seeming"],
+    "roleplay_prompt": "What does the tune sound like? Is it comforting to have a song only you can hear, or is it a bit... maddening?",
+    "dm_hook": "The song is a 'Fey-Key'. It's the audible 'password' to a specific magical door or fey creature's grove. If the character plays the box, the door will open for them, and *only* them."
+  },
+  {
+    "roll": 160,
+    "description": "A small pouch filled with colorful, odorless dust",
+    "short_name": "Colorful Dust Pouch",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Potion-Seeming",
+    "tags": ["pouch", "dust", "colorful", "odorless", "fey", "potion-seeming", "magical-seeming"],
+    "roleplay_prompt": "What do you *think* this is? Pixie dust? Crushed flowers? A failed potion? Have you tried to use it?",
+    "dm_hook": "This is 'Prism Dust'. If thrown on a creature or object, it creates a harmless, 1-minute *Faerie Fire* effect (the target is outlined in a random, shifting color). It has 1d4+1 uses."
+  },
+  {
+    "roll": 161,
+    "description": "An empty bag labeled 'Candy'",
+    "short_name": "Empty 'Candy' Bag",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Container",
+    "tags": ["bag", "empty", "candy", "whimsical", "fey", "container", "sad"],
+    "roleplay_prompt": "The ultimate tragedy. An empty candy bag. Do you keep it in the *hope* that it will one day magically refill?",
+    "dm_hook": "The bag is a 'Hag's-Lure'. A hag gave this to a child. It's not empty; it *smells* faintly of candy to any creature with a Good alignment. Any Evil creature (like a hag) within 100 feet knows the bag's (and the bearer's) exact location."
+  },
+  {
+    "roll": 162,
+    "description": "A tinted glass monocle that makes things look green",
+    "short_name": "Green-Tinted Monocle",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Jewelry",
+    "tags": ["monocle", "green", "tinted", "fey", "clothing", "whimsical", "jewelry"],
+    "roleplay_prompt": "Does it *just* make things look green? Or does it make the world... *better*? Do you wear it for fashion?",
+    "dm_hook": "The monocle is a 'Goblin-Lens'. It makes everything look green, *except* for illusions. Illusions (magical or non-magical) are revealed as hazy, grey outlines when viewed through the monocle."
+  },
+  {
+    "roll": 163,
+    "description": "A black executioner's hood sized for a pixie or sprite",
+    "short_name": "Pixie Executioner Hood",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Clothing",
+    "tags": ["hood", "executioner", "black", "pixie", "tiny", "creepy", "fey", "clothing"],
+    "roleplay_prompt": "This is... dark. A pixie executioner? Is this a trophy? A warning? Or just the most morbid doll clothing ever?",
+    "dm_hook": "This hood belongs to 'Grizzle,' the (self-proclaimed) Pixie Executioner. He's not evil; he just executes... *bad puns*. He's hunting for his hood and will accuse the character of 'stealing his... *head*...-wear'."
+  },
+  {
+    "roll": 164,
+    "description": "A piano key carved from a satyr's horn",
+    "short_name": "Satyr Horn Piano Key",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Relic",
+    "tags": ["piano", "key", "satyr", "horn", "fey", "music", "instrument", "relic", "creepy"],
+    "roleplay_prompt": "A piano key... from a satyr's horn. Is this... art? Or desecration? Does it make a sound when you tap it?",
+    "dm_hook": "The key is from a 'Fey-Piano'. If the key is struck (e.g., against a hard surface), it plays a single, beautiful note. Any fey creature that hears it must make a DC 12 Wisdom save or be *charmed* by the sound for 1 minute."
+  },
+  {
+    "roll": 165,
+    "description": "A tiny wooden lute with cat hairs for strings",
+    "short_name": "Cat Hair Lute",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Instrument",
+    "tags": ["lute", "tiny", "instrument", "cat", "fey", "whimsical", "toy", "music"],
+    "roleplay_prompt": "A lute with cat-hair strings. Does it sound... *good*? Does it sound like a cat's meow?",
+    "dm_hook": "The lute is a 'Cat-Call'. If played (no skill required), it makes a sound that is irresistible to *cats*. All non-hostile, mundane cats within 300 feet will be drawn to the sound. It can also calm a hostile cat (like a Panther) with a DC 13 Performance check."
+  },
+  {
+    "roll": 166,
+    "description": "An iron needle with an eye that refuses to let thread pass through it",
+    "short_name": "Unthreadable Iron Needle",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Tool",
+    "tags": ["iron", "needle", "fey-bane", "stubborn", "tool", "sewing", "magical-seeming"],
+    "roleplay_prompt": "A needle that won't be threaded. Is it broken? Cursed? Or is it just... *stubborn*?",
+    "dm_hook": "The needle is a 'Fey-Stitch'. It cannot be threaded by mortal thread. But if held, it will *magically* stitch a 'Fey-Ward' onto a piece of clothing (takes 1 hour). The clothing, when worn, grants advantage on one saving throw vs. a fey's magic. The needle then vanishes."
+  },
+  {
+    "roll": 167,
+    "description": "A tiny sundial that casts a shadow only in moonlight",
+    "short_name": "Moondial",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Tool",
+    "tags": ["sundial", "moon", "tiny", "fey", "tool", "time", "magical-seeming"],
+    "roleplay_prompt": "A sundial for the moon... a 'moondial'? Does it actually... work? How do you use it?",
+    "dm_hook": "The 'Moondial' *works*. It accurately tells the time (if you can read a sundial) as long as there is *any* moonlight. It's a favorite of fey, druids, and... wereravens."
+  },
+  {
+    "roll": 168,
+    "description": "A wooden pan flute that attracts harmless local fauna when played",
+    "short_name": "Fauna-Attracting Flute",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Instrument",
+    "tags": ["instrument", "flute", "wood", "fey", "nature", "charming", "druidic-seeming", "music"],
+    "roleplay_prompt": "What kind of fauna does it attract? Squirrels? Birds? Or... just, like, *slugs*? Do you play it often?",
+    "dm_hook": "The flute is a 'Fauna-Friend'. If played for 1 minute, 1d4 tiny, harmless beasts (mice, birds, rabbits) will arrive and be friendly for 1 hour. They can't fight, but they *can* act as simple spies (e.g., 'Did you see anyone go by?')."
+  },
+  {
+    "roll": 169,
+    "description": "A silvered pinecone",
+    "short_name": "Silvered Pinecone",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Token",
+    "tags": ["pinecone", "silvered", "fey", "token", "nature", "metal", "art"],
+    "roleplay_prompt": "Is it a real pinecone dipped in silver, or a silver... pinecone? Is it a trophy from a fey-hunt?",
+    "dm_hook": "This is a 'Fey-Grenade'. If thrown (range 20/60), it explodes in a 10-foot radius. It deals no damage, but all creatures in the blast are covered in glittering, harmless silver dust and smell strongly of pine. It's a 'prank-bomb'."
+  },
+  {
+    "roll": 170,
+    "description": "A flask of spectral glowworms that change color to reflect your mood",
+    "short_name": "Mood Glowworms",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Pet",
+    "tags": ["flask", "glowworm", "spectral", "light", "mood", "pet", "fey", "emotional"],
+    "roleplay_prompt": "What color are they *most* of the time? (e.t., 'Red for angry', 'Blue for sad'). Is it helpful, or just... embarrassing?",
+    "dm_hook": "The glowworms are 'Empathy-Worms'. They don't just reflect the *bearer's* mood; they reflect the mood of the *strongest* emotion within 30 feet. They are a 'mood-detector' for a room. (e.g., they turn 'red' when the 'calm' king is secretly furious)."
+  },
+  {
+    "roll": 171,
+    "description": "A wooden apple painted blue",
+    "short_name": "Blue Wooden Apple",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Token",
+    "tags": ["apple", "wood", "blue", "fake", "fey", "whimsical", "token", "art"],
+    "roleplay_prompt": "A blue apple. Is it a fey's idea of a joke? Or is it a symbol for... 'the impossible'?",
+    "dm_hook": "The apple is a 'Fey-Snack'. It's not *just* wood. If a creature *tries* to eat it (and fails, it's wood), they are magically filled, as if they had eaten 1 *Goodberry*. This can be attempted once. Then it's just a blue wooden apple."
+  },
+  {
+    "roll": 172,
+    "description": "A tuning fork that sounds the tone for the F key",
+    "short_name": "F-Key Tuning Fork",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Tool",
+    "tags": ["tuning fork", "F", "music", "tool", "auditory", "instrument"],
+    "roleplay_prompt": "Why 'F'? Is it your favorite note? Or is it to 'Pay Respects'?",
+    "dm_hook": "The tuning fork is 'F-tuned' for *Fey*. If struck, it rings at a frequency that is *painful* to fey creatures. Any fey within 10 feet must make a DC 10 Con save or have disadvantage on their next attack roll."
+  },
+  {
+    "roll": 173,
+    "description": "Nunchaku sized for a pixie or sprite",
+    "short_name": "Pixie Nunchaku",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Weapon",
+    "tags": ["weapon", "nunchaku", "tiny", "pixie", "fey", "whimsical", "toy"],
+    "roleplay_prompt": "Pixie-chucks. Are they... effective? Or just adorable? Have you ever tried to *use* them?",
+    "dm_hook": "These are 'Sprocket's-Whirly-Ma-Gigs'. They are a +1 *Dart* (but they are nunchaku). You can throw *one* of the sticks (range 20/60). It deals 1d4+1 bludgeoning damage... and then the *other* stick (and the chain) flies back to your hand."
+  },
+  {
+    "roll": 174,
+    "description": "A copper coin with a smiling satyr's face on one side and a skull on the other",
+    "short_name": "Satyr/Skull Coin",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Currency",
+    "tags": ["coin", "copper", "satyr", "skull", "fey", "creepy", "whimsical", "choice"],
+    "roleplay_prompt": "The ultimate fey coin. 'Fun' or 'Death'? Which side do you call? Which side comes up more often?",
+    "dm_hook": "This is a 'Satyr's-Bet'. Once, the character can flip the coin to make a 'bet' with fate. If they call it right (50/50), they gain advantage on their *next* d20 roll. If they call it wrong, they have disadvantage. The coin then vanishes."
+  },
+  {
+    "roll": 175,
+    "description": "A severed chicken's foot attached to a leather cord",
+    "short_name": "Severed Chicken Foot",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Token",
+    "tags": ["chicken", "foot", "severed", "creepy", "fey-seeming", "hag-seeming", "token", "trophy"],
+    "roleplay_prompt": "Is this... a good luck charm? Or a hag's... *take-out*? What's the story here?",
+    "dm_hook": "This is a 'Hag's-Helping-Hand'. The foot is not a charm; it's a *debt*. A hag *gave* this to someone. If the character meets a hag, she will recognize the 'debt-marker' and *demand* the character do a 'simple' favor for her... or else."
+  },
+  {
+    "roll": 176,
+    "description": "A collection of baby teeth in a tiny wooden box",
+    "short_name": "Box of Baby Teeth",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Oddity",
+    "tags": ["teeth", "baby", "box", "creepy", "fey", "hag-seeming", "collection", "body part"],
+    "roleplay_prompt": "Are these... *your* baby teeth? Or just... a collection? This is... *very* creepy.",
+    "dm_hook": "This is a 'Hag's-Tit-for-Tat'. The box contains 1d6+4 teeth. A hag (or fey) will *desperately* want these. They are a prime bartering component. A hag would trade a *Common Potion* (e.g., *Healing*) for the *entire* box."
+  },
+  {
+    "roll": 177,
+    "description": "A pinwheel whirligig that spins even when there's no wind",
+    "short_name": "Windless Pinwheel",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Toy",
+    "tags": ["toy", "pinwheel", "wind", "magical-seeming", "fey", "whimsical"],
+    "roleplay_prompt": "It spins... without wind. Is that comforting? Or a little... unsettling? Does it ever stop?",
+    "dm_hook": "The pinwheel is a 'Breath-Catcher'. It's spinning because it's *full*. The character can, as an action, *unleash* the wind stored in it. This acts as a single *Gust* cantrip. The pinwheel then stops spinning until it's left in a *very* windy area for 1 hour."
+  },
+  {
+    "roll": 178,
+    "description": "A child's parasol covered in moss and leaves",
+    "short_name": "Mossy Child's Parasol",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Clothing",
+    "tags": ["parasol", "moss", "leaves", "fey", "natural", "druidic-seeming", "clothing", "child"],
+    "roleplay_prompt": "A tiny umbrella... of *moss*. Is it still waterproof? Or is it just a piece of 'natural art'?",
+    "dm_hook": "The parasol is a 'Fey-Shade'. If held over the character's head, it grants them advantage on saving throws against any 'sun'-based attacks (like a Vampire's *Sunlight Sensitivity*... or just a really hot day)."
+  },
+  {
+    "roll": 179,
+    "description": "A wooden magnifying glass missing its lens",
+    "short_name": "Lensless Magnifying Glass",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Tool",
+    "tags": ["tool", "magnifying glass", "lens", "broken", "useless", "fey-seeming", "whimsical"],
+    "roleplay_prompt": "A magnifying glass... with no glass. Is this a fey's idea of a 'metaphor'? Or just... broken?",
+    "dm_hook": "The 'lens' isn't missing; it's *invisible*. If the character looks through the empty frame, they are looking through a 'Fey-Lens'. They can read *any* text, even if it's in a language they don't know (as *Comprehend Languages*, but only for text)."
+  },
+  {
+    "roll": 180,
+    "description": "A glossy mushroom with a red, bell-shaped cap that jingles",
+    "short_name": "Jingling Mushroom",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Oddity",
+    "tags": ["mushroom", "jingles", "auditory", "bell", "fey", "whimsical", "natural", "oddity"],
+    "roleplay_prompt": "A mushroom... that jingles. Is it a plant? An animal? A musical instrument? Have you... shaken it?",
+    "dm_hook": "This is a 'Jingle-Cap'. If the mushroom is shaken, it releases a cloud of spores in a 5-foot radius. Any creature in the cloud must make a DC 10 Con save or be *unable to stop giggling* for 1 minute (they can still act, but all Stealth checks are made at disadvantage)."
+  },
+  {
+    "roll": 181,
+    "description": "A pouch of seeds that smell like home",
+    "short_name": "Seeds of Home",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Token",
+    "tags": ["seeds", "pouch", "home", "scent", "sentimental", "personal", "fey", "nature"],
+    "roleplay_prompt": "What does 'home' smell like to you? (e.g., 'a fireplace', 'the sea', 'a library'). Do you ever plan to plant them?",
+    "dm_hook": "The seeds are 'Heart's-Home' seeds. If planted (they require 1 day to sprout), they will grow into a 3-foot-tall, beautiful (but non-magical) flower that smells *exactly* like the character's 'home'. The flower provides a sense of peace. Any character who takes a short rest within 10 feet of it regains 1 extra hit point."
+  },
+  {
+    "roll": 182,
+    "description": "A petrified robin's egg",
+    "short_name": "Petrified Robin's Egg",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Oddity",
+    "tags": ["egg", "petrified", "robin", "stone", "nature", "oddity", "fey-seeming"],
+    "roleplay_prompt": "Is it a sad object, a life that never was? Or is it just... a really cool, egg-shaped rock?",
+    "dm_hook": "The egg is petrified... *mostly*. If it is ever placed in a *Gorgon's* 'petrifying-breath' (or a similar petrifying effect), it *absorbs* the effect (saving the bearer). The egg then cracks open, revealing a (now living) *Cockatrice* chick. It is *not* friendly."
+  },
+  {
+    "roll": 183,
+    "description": "A wooden spoon with a hole in the center",
+    "short_name": "Holey Wooden Spoon",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Tool",
+    "tags": ["spoon", "wood", "hole", "useless", "whimsical", "fey", "kitchen", "utensil"],
+    "roleplay_prompt": "A spoon with a hole. A 'fey-spork'? A punishment? Or... for straining tea?",
+    "dm_hook": "This is a 'Quickling's-Spoon'. It's not for *eating*. It's for *stirring*. If used to stir any non-magical liquid (a potion, a vat of soup), it does so at an *incredible* speed, mixing it perfectly in 1 second (what would normally take 1 minute)."
+  },
+  {
+    "roll": 184,
+    "description": "A paper wasp nest in a jar",
+    "short_name": "Jarred Wasp Nest",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Specimen",
+    "tags": ["wasp nest", "paper", "jar", "specimen", "creepy", "fey-seeming"],
+    "roleplay_prompt": "Why... why would you *keep* this? Are they *alive*? Do you ever tap on the glass?",
+    "dm_hook": "The wasps are 'Paper-Wasps'. They're not alive. If the nest is broken, the 'wasps' (which are origami) will fly out and attack one target of the character's choice. This acts as a *Magic Missile* spell, but it deals 1d4 *paper-cut* (slashing) damage per 'wasp' (missile)."
+  },
+  {
+    "roll": 185,
+    "description": "A sprig of rosemary wrapped with ribbon at one end",
+    "short_name": "Rosemary Sprig",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Token",
+    "tags": ["rosemary", "herb", "ribbon", "token", "fey", "remembrance", "nature"],
+    "roleplay_prompt": "Rosemary... 'for remembrance'. Is this a memento from a funeral? A wedding? Or just... a nice-smelling herb?",
+    "dm_hook": "This is 'Rosemary of Remembrance'. If the character smells the sprig, they can perfectly recall *one* conversation or *one* page of text they have seen in their lifetime. They remember it word-for-word. The sprig then crumbles to dust."
+  },
+  {
+    "roll": 186,
+    "description": "A tiny, unfurnished dollhouse sized for a pixie",
+    "short_name": "Unfurnished Pixie Dollhouse",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Toy",
+    "tags": ["toy", "dollhouse", "pixie", "tiny", "fey", "unfurnished", "whimsical"],
+    "roleplay_prompt": "An *unfurnished* dollhouse. Are you planning on decorating it? Or is it a... 'fixer-upper' for a pixie?",
+    "dm_hook": "The dollhouse is a 'Pixie's-Home'. If a pixie (or sprite) is in trouble, they can *teleport* to this dollhouse (if it's within 1 mile). This is a 'safe-house'. One day, the character might find a tiny, terrified sprite hiding inside."
+  },
+  {
+    "roll": 187,
+    "description": "A paintbrush made entirely of ceramic—even the bristles",
+    "short_name": "Ceramic Paintbrush",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Tool",
+    "tags": ["paintbrush", "ceramic", "art", "useless", "fey", "whimsical", "brittle", "tool"],
+    "roleplay_prompt": "A ceramic... paintbrush. It's beautiful, but... useless. Or *is* it? What happens if you dip it in paint?",
+    "dm_hook": "The brush is a 'Memory-Painter'. It cannot paint with *paint*. But if the character *thinks* of a memory, and 'paints' (with the dry brush) on a surface, a faint, illusory, monochrome image of that memory will appear for 1 minute."
+  },
+  {
+    "roll": 188,
+    "description": "A candlestick whose candlelight looks like a tiny, dancing fairy",
+    "short_name": "Fairy Candlestick",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Light Source",
+    "tags": ["candlestick", "light", "fairy", "illusion", "magical-seeming", "fey", "whimsical"],
+    "roleplay_prompt": "A candle... that's a fairy. Is it a *real* fairy? Or just a beautiful, magical light? Do you... talk to it?",
+    "dm_hook": "The 'candle' is a permanent *Minor Illusion* of a flame (that looks like a fairy). It provides dim light in a 5-foot radius. The 'fairy' will also *react* to its surroundings (e.g., 'cowering' if a 'big, scary' creature approaches, or 'dancing' if it hears music)."
+  },
+  {
+    "roll": 189,
+    "description": "Spectacle frames in the shape of butterfly wings",
+    "short_name": "Butterfly Spectacles",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Clothing",
+    "tags": ["glasses", "butterfly", "wings", "fey", "whimsical", "clothing", "art"],
+    "roleplay_prompt": "Are these... *fashion*? Or do they help you 'see' the world in a more... *fey* way? Do you wear them?",
+    "dm_hook": "These are 'Butterfly-Specs'. If worn, the character can see the *emotions* of other creatures as faint, colorful auras (as the *Detect Emotion* spell, but only the 'surface' emotions, and it's always on). However, they also have disadvantage on all checks to see *tiny* things."
+  },
+  {
+    "roll": 190,
+    "description": "A set of false wooden teeth",
+    "short_name": "False Wooden Teeth",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Clothing",
+    "tags": ["teeth", "wood", "false", "creepy", "fey", "clothing", "whimsical"],
+    "roleplay_prompt": "Whose... were these? A hag's? A gnome's? Have you ever... tried them on?",
+    "dm_hook": "These are 'Fey-Chewers'. If the character *wears* the teeth (it's... gross), they can, as an action, *chew* through any non-magical wood (like a wooden door, or a staff) in 1 minute. The teeth are then destroyed."
+  },
+  {
+    "roll": 191,
+    "description": "A tiny book of fairytales",
+    "short_name": "Tiny Fairytale Book",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Document",
+    "tags": ["book", "tiny", "fairytale", "fey", "whimsical", "document", "child"],
+    "roleplay_prompt": "What's the story in the book? 'The Pixie Who Lost Her Sneeze'? 'The Grumpy Redcap'? Is it... a *good* story?",
+    "dm_hook": "The book is a 'Fey-Tale'. If read aloud (takes 1 minute), it tells a *prophetic* (but very simple) fairytale about the party's *immediate* future. (e.g., 'The three adventurers... met a *big, mean* troll under a... *bridge*!')."
+  },
+  {
+    "roll": 192,
+    "description": "A rucksack in which one potato magically appears each day at dawn",
+    "short_name": "Magic Potato Rucksack",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Container",
+    "tags": ["rucksack", "potato", "magic", "daily", "food", "fey", "whimsical", "container"],
+    "roleplay_prompt": "A... potato. Every... day. Is this... the *best* magic item? Or the *worst*? What do you *do* with all the potatoes?",
+    "dm_hook": "It's not *a* potato. It's the *same* potato. If the potato is removed, a new one appears. If the original is eaten/destroyed, it reappears in the bag. The 'Potato-Sack' is a curse of... *minor inconvenience* from a fey. It will *always* be full of *one* potato."
+  },
+  {
+    "roll": 193,
+    "description": "A pixie's winter jacket lined with fox fur",
+    "short_name": "Pixie's Fox-Fur Jacket",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Clothing",
+    "tags": ["clothing", "jacket", "pixie", "tiny", "fey", "fox", "fur", "whimsical"],
+    "roleplay_prompt": "A *fox-fur* jacket... for a *pixie*. Isn't that like... a human wearing a... *dragon-skin* jacket? It's... a *statement*.",
+    "dm_hook": "The jacket is a 'Fox-Friend's' gift. If worn (by a tiny creature, or a familiar), it grants the wearer the Cunning Action (Dash or Disengage only) ability, once. The jacket then loses its magic."
+  },
+  {
+    "roll": 194,
+    "description": "A tasseled wine charm shaped like a sprite",
+    "short_name": "Sprite Wine Charm",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Token",
+    "tags": ["token", "wine", "charm", "sprite", "fey", "kitchen", "whimsical", "art"],
+    "roleplay_prompt": "Is it to 'charm' your wine? Or just... to 'charm' the *sprite*? Or... just to know *which* glass is yours?",
+    "dm_hook": "The 'Wine-Sprite' charm *hates* poison. If it is placed on the rim of a cup, it will *vibrate* and 'squeak' (a tiny 'eee!') if *any* poison is added to the drink. It's a tiny, paranoid poison-detector."
+  },
+  {
+    "roll": 195,
+    "description": "A weak magnetic wand",
+    "short_name": "Weak Magnetic Wand",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Tool",
+    "tags": ["wand", "magnetic", "weak", "tool", "fey", "whimsical", "useless-seeming"],
+    "roleplay_prompt": "A *weak* magnet. What's the point? Can it pick up... *paperclips*? Needles? Is it just a frustrating toy?",
+    "dm_hook": "It's weak to *metal*. But it's *not* weak to *cold iron*. It's a 'Fey-Finder's' wand. It will *strongly* pull towards any 'cold iron' (the bane of fey) within 15 feet. It's a fey's 'metal detector' for their one weakness."
+  },
+  {
+    "roll": 196,
+    "description": "A glass jar containing a swarm of agitated, harmless fireflies",
+    "short_name": "Agitated Fireflies Jar",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Light Source",
+    "tags": ["jar", "fireflies", "light", "agitated", "fey", "pet", "whimsical", "light source"],
+    "roleplay_prompt": "Why are they 'agitated'? Are you... *shaking* the jar? (Don't shake the jar.) Or are they just... angry?",
+    "dm_hook": "They aren't *fireflies*. They're 'Fey-Sparks'. If the jar is opened, the 'fireflies' will fly out and swarm one target of the character's choice. This acts as *Faerie Fire*. The 'fireflies' then vanish."
+  },
+  {
+    "roll": 197,
+    "description": "A tiny, clay golem that is missing an arm",
+    "short_name": "Broken Clay Golem",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Toy",
+    "tags": ["golem", "clay", "tiny", "broken", "fey", "toy", "whimsical", "art"],
+    "roleplay_prompt": "A tiny, broken golem. Do you feel... *sorry* for it? Are you trying to find its... *arm*?",
+    "dm_hook": "The golem is a 'Child's-Protector'. It's missing an arm, but its *heart* is still there. If the character is (or is with) a *child* (or child-like creature) who is in *danger*, the tiny golem will animate. It has 1 HP, AC 10, and will *bravely* run at the 'threat', 'punching' it (for 0 damage). It's a *distraction*."
+  },
+  {
+    "roll": 198,
+    "description": "A small box of cake crumbs that never seems to be empty",
+    "short_name": "Endless Cake Crumbs",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Food",
+    "tags": ["box", "cake", "crumbs", "infinite", "food", "fey", "whimsical", "magical-seeming"],
+    "roleplay_prompt": "It... *never*... runs out... of *crumbs*? Is this... a *dream*? Or a *nightmare*? (You can never get a full... *bite*.)",
+    "dm_hook": "This is a 'Crum-Box'. The crumbs are *delicious*... but they provide 0 sustenance. However, if eaten, they *perfectly* mimic the taste of 'the *best* cake you've *ever* had'. It's a 'morale-booster'. Any creature who eats a 'pinch' of crumbs gains 1 temporary hit point."
+  },
+  {
+    "roll": 199,
+    "description": "A living, desk-sized map of the Feywild that is hopelessly out of date",
+    "short_name": "Outdated Feywild Map",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Document",
+    "tags": ["map", "feywild", "living", "out of date", "document", "magical-seeming", "fey", "tool"],
+    "roleplay_prompt": "A 'living' map... that's 'out of date'. Does it... *change*? Does it... *lie*? How 'hopelessly' out of date is it?",
+    "dm_hook": "The map is *not* out of date. The *Feywild*... *is* out of date (from the map's perspective). The map shows the Feywild as it *was* 1,000 years ago. This is useless... *unless*... the party needs to find an *ancient, lost ruin* (which the map shows as a 'New, shiny castle')."
+  },
+  {
+    "roll": 200,
+    "description": "A small, velvet pouch that whispers compliments when opened",
+    "short_name": "Complimenting Pouch",
+    "source": "The Wild Beyond the Witchlight",
+    "type": "Container",
+    "tags": ["pouch", "velvet", "auditory", "whispers", "compliments", "fey", "whimsical", "container", "magical-seeming"],
+    "roleplay_prompt": "What... *kind*... of compliments? ('My, your *hair* looks... *flammable* today.') Or... nice ones? ('You are... *adequate*.')",
+    "dm_hook": "The pouch is a 'Sycophant's-Sack'. It *only* whispers compliments... when the character *fails* at something. (e.g., 'Rolls a 1'. Pouch: 'My, what a *bold* attempt!'). It's *infuriatingly* supportive... at the *worst* times. It's a fey's prank."
+  }
+]

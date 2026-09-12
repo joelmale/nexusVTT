@@ -1,0 +1,396 @@
+[
+  {
+    "index": "path-of-the-world-tree",
+    "class": { "index": "barbarian", "name": "Barbarian", "url": "/api/2024/classes/barbarian" },
+    "name": "Path of the World Tree",
+    "subclass_flavor": "Primal Path",
+    "desc": ["(NEW: Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/path-of-the-world-tree/levels",
+    "url": "/api/2024/subclasses/path-of-the-world-tree"
+  },
+  {
+    "index": "path-of-the-wild-heart",
+    "class": { "index": "barbarian", "name": "Barbarian", "url": "/api/2024/classes/barbarian" },
+    "name": "Path of the Wild Heart",
+    "subclass_flavor": "Primal Path",
+    "desc": ["(RENAMED: Formerly Totem Warrior. Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/path-of-the-wild-heart/levels",
+    "url": "/api/2024/subclasses/path-of-the-wild-heart"
+  },
+  {
+    "index": "path-of-the-berserker-2024",
+    "class": { "index": "barbarian", "name": "Barbarian", "url": "/api/2024/classes/barbarian" },
+    "name": "Path of the Berserker",
+    "subclass_flavor": "Primal Path",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/path-of-the-berserker-2024/levels",
+    "url": "/api/2024/subclasses/path-of-the-berserker-2024"
+  },
+  {
+    "index": "path-of-the-zealot-2024",
+    "class": { "index": "barbarian", "name": "Barbarian", "url": "/api/2024/classes/barbarian" },
+    "name": "Path of the Zealot",
+    "subclass_flavor": "Primal Path",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/path-of-the-zealot-2024/levels",
+    "url": "/api/2024/subclasses/path-of-the-zealot-2024"
+  },
+  {
+    "index": "college-of-dance",
+    "class": { "index": "bard", "name": "Bard", "url": "/api/2024/classes/bard" },
+    "name": "College of Dance",
+    "subclass_flavor": "Bard College",
+    "desc": ["(NEW: Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/college-of-dance/levels",
+    "url": "/api/2024/subclasses/college-of-dance"
+  },
+  {
+    "index": "college-of-glamour-2024",
+    "class": { "index": "bard", "name": "Bard", "url": "/api/2024/classes/bard" },
+    "name": "College of Glamour",
+    "subclass_flavor": "Bard College",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/college-of-glamour-2024/levels",
+    "url": "/api/2024/subclasses/college-of-glamour-2024"
+  },
+  {
+    "index": "college-of-lore-2024",
+    "class": { "index": "bard", "name": "Bard", "url": "/api/2024/classes/bard" },
+    "name": "College of Lore",
+    "subclass_flavor": "Bard College",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/college-of-lore-2024/levels",
+    "url": "/api/2024/subclasses/college-of-lore-2024"
+  },
+  {
+    "index": "college-of-valor-2024",
+    "class": { "index": "bard", "name": "Bard", "url": "/api/2024/classes/bard" },
+    "name": "College of Valor",
+    "subclass_flavor": "Bard College",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/college-of-valor-2024/levels",
+    "url": "/api/2024/subclasses/college-of-valor-2024"
+  },
+  {
+    "index": "life-domain-2024",
+    "class": { "index": "cleric", "name": "Cleric", "url": "/api/2024/classes/cleric" },
+    "name": "Life Domain",
+    "subclass_flavor": "Divine Domain",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/life-domain-2024/levels",
+    "url": "/api/2024/subclasses/life-domain-2024"
+  },
+  {
+    "index": "light-domain-2024",
+    "class": { "index": "cleric", "name": "Cleric", "url": "/api/2024/classes/cleric" },
+    "name": "Light Domain",
+    "subclass_flavor": "Divine Domain",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/light-domain-2024/levels",
+    "url": "/api/2024/subclasses/light-domain-2024"
+  },
+  {
+    "index": "trickery-domain-2024",
+    "class": { "index": "cleric", "name": "Cleric", "url": "/api/2024/classes/cleric" },
+    "name": "Trickery Domain",
+    "subclass_flavor": "Divine Domain",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/trickery-domain-2024/levels",
+    "url": "/api/2024/subclasses/trickery-domain-2024"
+  },
+  {
+    "index": "war-domain-2024",
+    "class": { "index": "cleric", "name": "Cleric", "url": "/api/2024/classes/cleric" },
+    "name": "War Domain",
+    "subclass_flavor": "Divine Domain",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/war-domain-2024/levels",
+    "url": "/api/2024/subclasses/war-domain-2024"
+  },
+  {
+    "index": "circle-of-the-sea",
+    "class": { "index": "druid", "name": "Druid", "url": "/api/2024/classes/druid" },
+    "name": "Circle of the Sea",
+    "subclass_flavor": "Druid Circle",
+    "desc": ["(NEW: Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/circle-of-the-sea/levels",
+    "url": "/api/2024/subclasses/circle-of-the-sea"
+  },
+  {
+    "index": "circle-of-the-land-2024",
+    "class": { "index": "druid", "name": "Druid", "url": "/api/2024/classes/druid" },
+    "name": "Circle of the Land",
+    "subclass_flavor": "Druid Circle",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/circle-of-the-land-2024/levels",
+    "url": "/api/2024/subclasses/circle-of-the-land-2024"
+  },
+  {
+    "index": "circle-of-the-moon-2024",
+    "class": { "index": "druid", "name": "Druid", "url": "/api/2024/classes/druid" },
+    "name": "Circle of the Moon",
+    "subclass_flavor": "Druid Circle",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/circle-of-the-moon-2024/levels",
+    "url": "/api/2024/subclasses/circle-of-the-moon-2024"
+  },
+  {
+    "index": "circle-of-the-stars-2024",
+    "class": { "index": "druid", "name": "Druid", "url": "/api/2024/classes/druid" },
+    "name": "Circle of the Stars",
+    "subclass_flavor": "Druid Circle",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/circle-of-the-stars-2024/levels",
+    "url": "/api/2024/subclasses/circle-of-the-stars-2024"
+  },
+  {
+    "index": "battle-master-2024",
+    "class": { "index": "fighter", "name": "Fighter", "url": "/api/2024/classes/fighter" },
+    "name": "Battle Master",
+    "subclass_flavor": "Martial Archetype",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/battle-master-2024/levels",
+    "url": "/api/2024/subclasses/battle-master-2024"
+  },
+  {
+    "index": "champion-2024",
+    "class": { "index": "fighter", "name": "Fighter", "url": "/api/2024/classes/fighter" },
+    "name": "Champion",
+    "subclass_flavor": "Martial Archetype",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/champion-2024/levels",
+    "url": "/api/2024/subclasses/champion-2024"
+  },
+  {
+    "index": "eldritch-knight-2024",
+    "class": { "index": "fighter", "name": "Fighter", "url": "/api/2024/classes/fighter" },
+    "name": "Eldritch Knight",
+    "subclass_flavor": "Martial Archetype",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/eldritch-knight-2024/levels",
+    "url": "/api/2024/subclasses/eldritch-knight-2024"
+  },
+  {
+    "index": "psi-warrior-2024",
+    "class": { "index": "fighter", "name": "Fighter", "url": "/api/2024/classes/fighter" },
+    "name": "Psi Warrior",
+    "subclass_flavor": "Martial Archetype",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/psi-warrior-2024/levels",
+    "url": "/api/2024/subclasses/psi-warrior-2024"
+  },
+  {
+    "index": "warrior-of-the-elements",
+    "class": { "index": "monk", "name": "Monk", "url": "/api/2024/classes/monk" },
+    "name": "Warrior of the Elements",
+    "subclass_flavor": "Monastic Tradition",
+    "desc": ["(REPLACED: Formerly Way of the Four Elements. Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/warrior-of-the-elements/levels",
+    "url": "/api/2024/subclasses/warrior-of-the-elements"
+  },
+  {
+    "index": "warrior-of-mercy-2024",
+    "class": { "index": "monk", "name": "Monk", "url": "/api/2024/classes/monk" },
+    "name": "Warrior of Mercy",
+    "subclass_flavor": "Monastic Tradition",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/warrior-of-mercy-2024/levels",
+    "url": "/api/2024/subclasses/warrior-of-mercy-2024"
+  },
+  {
+    "index": "warrior-of-the-open-hand-2024",
+    "class": { "index": "monk", "name": "Monk", "url": "/api/2024/classes/monk" },
+    "name": "Warrior of the Open Hand",
+    "subclass_flavor": "Monastic Tradition",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/warrior-of-the-open-hand-2024/levels",
+    "url": "/api/2024/subclasses/warrior-of-the-open-hand-2024"
+  },
+  {
+    "index": "warrior-of-shadow-2024",
+    "class": { "index": "monk", "name": "Monk", "url": "/api/2024/classes/monk" },
+    "name": "Warrior of Shadow",
+    "subclass_flavor": "Monastic Tradition",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/warrior-of-shadow-2024/levels",
+    "url": "/api/2024/subclasses/warrior-of-shadow-2024"
+  },
+  {
+    "index": "oath-of-devotion-2024",
+    "class": { "index": "paladin", "name": "Paladin", "url": "/api/2024/classes/paladin" },
+    "name": "Oath of Devotion",
+    "subclass_flavor": "Sacred Oath",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/oath-of-devotion-2024/levels",
+    "url": "/api/2024/subclasses/oath-of-devotion-2024"
+  },
+  {
+    "index": "oath-of-glory-2024",
+    "class": { "index": "paladin", "name": "Paladin", "url": "/api/2024/classes/paladin" },
+    "name": "Oath of Glory",
+    "subclass_flavor": "Sacred Oath",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/oath-of-glory-2024/levels",
+    "url": "/api/2024/subclasses/oath-of-glory-2024"
+  },
+  {
+    "index": "oath-of-the-ancients-2024",
+    "class": { "index": "paladin", "name": "Paladin", "url": "/api/2024/classes/paladin" },
+    "name": "Oath of the Ancients",
+    "subclass_flavor": "Sacred Oath",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/oath-of-the-ancients-2024/levels",
+    "url": "/api/2024/subclasses/oath-of-the-ancients-2024"
+  },
+  {
+    "index": "oath-of-vengeance-2024",
+    "class": { "index": "paladin", "name": "Paladin", "url": "/api/2024/classes/paladin" },
+    "name": "Oath of Vengeance",
+    "subclass_flavor": "Sacred Oath",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/oath-of-vengeance-2024/levels",
+    "url": "/api/2024/subclasses/oath-of-vengeance-2024"
+  },
+  {
+    "index": "beast-master-2024",
+    "class": { "index": "ranger", "name": "Ranger", "url": "/api/2024/classes/ranger" },
+    "name": "Beast Master",
+    "subclass_flavor": "Ranger Archetype",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/beast-master-2024/levels",
+    "url": "/api/2024/subclasses/beast-master-2024"
+  },
+  {
+    "index": "fey-wanderer-2024",
+    "class": { "index": "ranger", "name": "Ranger", "url": "/api/2024/classes/ranger" },
+    "name": "Fey Wanderer",
+    "subclass_flavor": "Ranger Archetype",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/fey-wanderer-2024/levels",
+    "url": "/api/2024/subclasses/fey-wanderer-2024"
+  },
+  {
+    "index": "gloom-stalker-2024",
+    "class": { "index": "ranger", "name": "Ranger", "url": "/api/2024/classes/ranger" },
+    "name": "Gloom Stalker",
+    "subclass_flavor": "Ranger Archetype",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/gloom-stalker-2024/levels",
+    "url": "/api/2024/subclasses/gloom-stalker-2024"
+  },
+  {
+    "index": "hunter-2024",
+    "class": { "index": "ranger", "name": "Ranger", "url": "/api/2024/classes/ranger" },
+    "name": "Hunter",
+    "subclass_flavor": "Ranger Archetype",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/hunter-2024/levels",
+    "url": "/api/2024/subclasses/hunter-2024"
+  },
+  {
+    "index": "arcane-trickster-2024",
+    "class": { "index": "rogue", "name": "Rogue", "url": "/api/2024/classes/rogue" },
+    "name": "Arcane Trickster",
+    "subclass_flavor": "Roguish Archetype",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/arcane-trickster-2024/levels",
+    "url": "/api/2024/subclasses/arcane-trickster-2024"
+  },
+  {
+    "index": "assassin-2024",
+    "class": { "index": "rogue", "name": "Rogue", "url": "/api/2024/classes/rogue" },
+    "name": "Assassin",
+    "subclass_flavor": "Roguish Archetype",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/assassin-2024/levels",
+    "url": "/api/2024/subclasses/assassin-2024"
+  },
+  {
+    "index": "soulknife-2024",
+    "class": { "index": "rogue", "name": "Rogue", "url": "/api/2024/classes/rogue" },
+    "name": "Soulknife",
+    "subclass_flavor": "Roguish Archetype",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/soulknife-2024/levels",
+    "url": "/api/2024/subclasses/soulknife-2024"
+  },
+  {
+    "index": "thief-2024",
+    "class": { "index": "rogue", "name": "Rogue", "url": "/api/2024/classes/rogue" },
+    "name": "Thief",
+    "subclass_flavor": "Roguish Archetype",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/thief-2024/levels",
+    "url": "/api/2024/subclasses/thief-2024"
+  },
+  {
+    "index": "aberrant-sorcery",
+    "class": { "index": "sorcerer", "name": "Sorcerer", "url": "/api/2024/classes/sorcerer" },
+    "name": "Aberrant Sorcery",
+    "subclass_flavor": "Sorcerous Origin",
+    "desc": ["(RENAMED: Formerly Aberrant Mind. Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/aberrant-sorcery/levels",
+    "url": "/api/2024/subclasses/aberrant-sorcery"
+  },
+  {
+    "index": "clockwork-sorcery",
+    "class": { "index": "sorcerer", "name": "Sorcerer", "url": "/api/2024/classes/sorcerer" },
+    "name": "Clockwork Sorcery",
+    "subclass_flavor": "Sorcerous Origin",
+    "desc": ["(RENAMED: Formerly Clockwork Soul. Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/clockwork-sorcery/levels",
+    "url": "/api/2024/subclasses/clockwork-sorcery"
+  },
+  {
+    "index": "draconic-sorcery",
+    "class": { "index": "sorcerer", "name": "Sorcerer", "url": "/api/2024/classes/sorcerer" },
+    "name": "Draconic Sorcery",
+    "subclass_flavor": "Sorcerous Origin",
+    "desc": ["(RENAMED: Formerly Draconic Bloodline. Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/draconic-sorcery/levels",
+    "url": "/api/2024/subclasses/draconic-sorcery"
+  },
+  {
+    "index": "wild-magic-sorcery",
+    "class": { "index": "sorcerer", "name": "Sorcerer", "url": "/api/2024/classes/sorcerer" },
+    "name": "Wild Magic Sorcery",
+    "subclass_flavor": "Sorcerous Origin",
+    "desc": ["(RENAMED: Formerly Wild Magic. Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/wild-magic-sorcery/levels",
+    "url": "/api/2024/subclasses/wild-magic-sorcery"
+  },
+  {
+    "index": "archfey-patron-2024",
+    "class": { "index": "warlock", "name": "Warlock", "url": "/api/2024/classes/warlock" },
+    "name": "Archfey Patron",
+    "subclass_flavor": "Otherworldly Patron",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/archfey-patron-2024/levels",
+    "url": "/api/2024/subclasses/archfey-patron-2024"
+  },
+  {
+    "index": "celestial-patron-2024",
+    "class": { "index": "warlock", "name": "Warlock", "url": "/api/2024/classes/warlock" },
+    "name": "Celestial Patron",
+    "subclass_flavor": "Otherworldly Patron",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/celestial-patron-2024/levels",
+    "url": "/api/2024/subclasses/celestial-patron-2024"
+  },
+  {
+    "index": "fiend-patron-2024",
+    "class": { "index": "warlock", "name": "Warlock", "url": "/api/2024/classes/warlock" },
+    "name": "Fiend Patron",
+    "subclass_flavor": "Otherworldly Patron",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/fiend-patron-2024/levels",
+    "url": "/api/2024/subclasses/fiend-patron-2024"
+  },
+  {
+    "index": "great-old-one-patron-2024",
+    "class": { "index": "warlock", "name": "Warlock", "url": "/api/2024/classes/warlock" },
+    "name": "Great Old One Patron",
+    "subclass_flavor": "Otherworldly Patron",
+    "desc": ["(Paste description from 2024 PHB)"],
+    "subclass_levels": "/api/2024/subclasses/great-old-one-patron-2024/levels",
+    "url": "/api/2024/subclasses/great-old-one-patron-

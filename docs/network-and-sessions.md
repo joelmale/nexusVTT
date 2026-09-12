@@ -61,7 +61,7 @@ full authoritative tuple so the browser can rebase.
 
 Services communicate using Docker Compose network DNS:
 
-- Service names from `docker/docker-compose.yml` become DNS entries
+- Service names from `apps/vtt/docker/docker-compose.yml` become DNS entries
 - Example: `postgres` resolves to the PostgreSQL service IP
 - Dockhand/Compose stack prefixes affect container and volume names, not the
   service names used inside the stack
@@ -194,7 +194,7 @@ Nexus VTT uses **server-side sessions** stored in PostgreSQL via `express-sessio
 **Backend (Express):**
 
 ```typescript
-// server/index.ts
+// apps/vtt/server/index.ts
 session({
   store: sessionStore, // PostgreSQL session store
   secret: process.env.SESSION_SECRET,
@@ -350,7 +350,7 @@ Cookie: connect.sid=s%3A...  // ← Must be included!
 ### Backend Session Reading
 
 ```typescript
-// server/index.ts - handleConnection()
+// apps/vtt/server/index.ts - handleConnection()
 private async handleConnection(ws: WebSocket, req: RequestWithSession) {
   const user = req.session?.passport?.user;
   const guestUser = req.session?.guestUser;
@@ -498,7 +498,7 @@ DELETE FROM session WHERE expire < NOW();
 Backend must trust nginx proxy to read correct client IP and protocol:
 
 ```typescript
-// server/index.ts
+// apps/vtt/server/index.ts
 app.set('trust proxy', 1);
 ```
 
@@ -606,5 +606,5 @@ const ws = new WebSocket('wss://app.nexusvtt.com/ws');
 
 - [DEPLOYMENT.md](../DEPLOYMENT.md) - Production deployment guide
 - [CLAUDE.md](../CLAUDE.md) - Full architecture overview
-- [server/schema.sql](../server/schema.sql) - Database schema
-- [docker/nginx.conf](../docker/nginx.conf) - nginx configuration
+- [apps/vtt/server/schema.sql](../apps/vtt/server/schema.sql) - Database schema
+- [apps/vtt/docker/nginx.conf](../apps/vtt/docker/nginx.conf) - nginx configuration

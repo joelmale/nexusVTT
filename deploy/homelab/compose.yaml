@@ -1,0 +1,240 @@
+name: nexus-vtt2
+
+services:
+  postgres:
+    image: ghcr.io/joelmale/nexusvtt/postgres@sha256:08b7399e0881d8650ddd67c0adbab8b0a4c166a5b8d49e62e13f94ab342f9385
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-nexus}
+      POSTGRES_USER: ${POSTGRES_USER:-nexus}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - /mnt/docker-nas-vol1/nexusvtt/postgres:/var/lib/postgresql/data
+    networks: [homelab-net]
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-nexus}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
+    volumes:
+      - /mnt/docker-nas-vol1/nexusvtt/redis:/data
+    networks: [homelab-net]
+    healthcheck:
+      test: ['CMD', 'redis-cli', '--no-auth-warning', '-a', '${REDIS_PASSWORD}', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  asset-server:
+    image: ghcr.io/joelmale/nexusvtt/asset-service@sha256:ae34ae1bb7be46dd70051899eee9e4d6af265e30c7ce9905ef4556bc4b96e71d
+    container_name: nexus-vtt2-asset-server
+    hostname: nexus-vtt2-asset-server
+    user: '1000:1000'
+    environment:
+      NODE_ENV: production
+      PORT: 5003
+      ASSETS_PATH: /app/static-assets
+      ASSET_SERVICE_SECRET: ${ASSET_SERVICE_SECRET}
+      LIBRARY_DATA_PATH: /app/assets-data
+      LIBRARY_MANIFEST_PATH: /app/assets-data/manifests/manifest-v2.json
+    volumes:
+      - /mnt/docker-nas-vol1/nexusvtt/assets:/app/static-assets/assets
+      - /mnt/docker-nas-vol1/nexusvtt/user-assets:/app/static-assets/users
+      - /mnt/docker-nas-vol1/nexusvtt/library-assets:/app/assets-data
+      - /mnt/docker-nas-vol1/nexusvtt/tmt-seed:/seed/tmt:ro
+    networks: [homelab-net]
+    healthcheck:
+      test: ['CMD-SHELL', 'node -e "const port = process.env.PORT || 5003; require(''http'').get(''http://127.0.0.1:'' + port + ''/health'', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on(''error'', () => process.exit(1))"']
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  nexus-forge:
+    image: ghcr.io/joelmale/nexus-forge@sha256:d1d5019db84a0f21fd10de436da17c9ac6df52223cdfb3e69455349cccf348f0
+    container_name: nexus-vtt2-forge
+    hostname: nexus-vtt2-forge
+    networks: [homelab-net]
+
+  frontend:
+    image: ghcr.io/joelmale/nexusvtt/frontend@sha256:d6938c26e23111a3625c91d9730b0be33b54eabcf9526680fef9390aaeaa70cb
+    container_name: nexus-vtt2-frontend
+    hostname: nexus-vtt2-frontend
+    environment:
+      NODE_ENV: production
+    networks: [homelab-net]
+
+  backend:
+    image: ghcr.io/joelmale/nexusvtt/backend@sha256:70a1786cffb560ed11abde34dd98fbd739455abcf34058d3722a21b1f2ef1016
+    environment:
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      NODE_ENV: production
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      SESSION_SECRET: ${SESSION_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
+      DISCORD_CALLBACK_URL: ${DISCORD_CALLBACK_URL}
+      DOC_API_URL: http://doc-api:3000
+      ASSET_API_URL: http://asset-server:5003
+      ASSET_SERVICE_SECRET: ${ASSET_SERVICE_SECRET}
+      METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
+      MULTIPLAYER_SLO_COMMIT_P95_MS: ${MULTIPLAYER_SLO_COMMIT_P95_MS:-250}
+      MULTIPLAYER_SLO_RESYNC_RATE_RATIO: ${MULTIPLAYER_SLO_RESYNC_RATE_RATIO:-0.01}
+      MULTIPLAYER_SLO_QUEUE_DEPTH: ${MULTIPLAYER_SLO_QUEUE_DEPTH:-100}
+      MULTIPLAYER_SLO_HEAP_UTILIZATION_RATIO: ${MULTIPLAYER_SLO_HEAP_UTILIZATION_RATIO:-0.9}
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+      asset-server: { condition: service_healthy }
+    networks: [homelab-net]
+
+  codex-postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${CODEX_POSTGRES_DB:-doclib}
+      POSTGRES_USER: ${CODEX_POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${CODEX_POSTGRES_PASSWORD}
+    volumes:
+      - codex-postgres-data:/var/lib/postgresql/data
+    networks: [homelab-net]
+    deploy:
+      placement:
+        constraints: [node.role == manager]
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  codex-redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --requirepass ${CODEX_REDIS_PASSWORD}
+    volumes:
+      - codex-redis-data:/data
+    networks: [homelab-net]
+    deploy:
+      restart_policy: { condition: on-failure }
+
+  codex-elasticsearch:
+    image: elasticsearch:8.11.0
+    environment:
+      discovery.type: single-node
+      xpack.security.enabled: 'false'
+      ES_JAVA_OPTS: -Xms512m -Xmx512m
+    volumes:
+      - codex-elasticsearch-data:/usr/share/elasticsearch/data
+    networks: [homelab-net]
+    deploy:
+      resources:
+        limits: { memory: 1G }
+      restart_policy: { condition: on-failure }
+
+  codex-minio:
+    image: minio/minio:latest
+    command: server /data --console-address ':9001'
+    environment:
+      MINIO_ROOT_USER: ${CODEX_MINIO_ROOT_USER}
+      MINIO_ROOT_PASSWORD: ${CODEX_MINIO_ROOT_PASSWORD}
+    volumes:
+      - codex-minio-data:/data
+    networks: [homelab-net]
+    deploy:
+      restart_policy: { condition: on-failure }
+
+  doc-api:
+    image: ghcr.io/joelmale/nexuscodex-doc-api@sha256:418f55be5f67fedec5aff08606ebfe1ec1b112831ec57da8f7ce610c79e17a9c
+    environment: &codex-api-environment
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${CODEX_POSTGRES_USER:-postgres}:${CODEX_POSTGRES_PASSWORD:-postgres}@codex-postgres:5432/${CODEX_POSTGRES_DB:-doclib}
+      REDIS_URL: redis://:${CODEX_REDIS_PASSWORD}@codex-redis:6379
+      ELASTICSEARCH_URL: http://codex-elasticsearch:9200
+      S3_ENDPOINT: http://codex-minio:9000
+      S3_ACCESS_KEY: ${CODEX_MINIO_ROOT_USER:-minioadmin}
+      S3_SECRET_KEY: ${CODEX_MINIO_ROOT_PASSWORD:-minioadmin}
+      S3_BUCKET: documents
+      S3_REGION: us-east-1
+      S3_FORCE_PATH_STYLE: 'true'
+      JWT_SECRET: ${CODEX_JWT_SECRET}
+      AUTH_DISABLED: 'true'
+      EMBEDDINGS_PROVIDER: hash
+    networks: [homelab-net]
+    depends_on: [codex-postgres, codex-redis, codex-elasticsearch, codex-minio]
+    deploy:
+      replicas: 1
+      update_config: { parallelism: 1, delay: 10s, order: start-first }
+      restart_policy: { condition: on-failure, delay: 5s, max_attempts: 3 }
+
+  doc-processor:
+    image: ghcr.io/joelmale/nexuscodex-doc-processor@sha256:47c3d72cf5f70326fce9a154625a5c6466256b5214d5030d5a7a912302b6739d
+    environment:
+      <<: *codex-api-environment
+      PORT: null
+      JWT_SECRET: null
+      AUTH_DISABLED: null
+      EMBEDDINGS_PROVIDER: null
+    networks: [homelab-net]
+    depends_on: [codex-postgres, codex-redis, codex-elasticsearch, codex-minio]
+    deploy:
+      replicas: 1
+      restart_policy: { condition: on-failure, delay: 5s, max_attempts: 3 }
+
+  doc-websocket:
+    image: ghcr.io/joelmale/nexuscodex-doc-websocket@sha256:da014e1fdc704b1f8b1821432787e7100aa8eb7640a0366d57f72b082023ad6c
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATABASE_URL: postgresql://${CODEX_POSTGRES_USER:-postgres}:${CODEX_POSTGRES_PASSWORD:-postgres}@codex-postgres:5432/${CODEX_POSTGRES_DB:-doclib}
+      REDIS_URL: redis://:${CODEX_REDIS_PASSWORD}@codex-redis:6379
+      SESSION_TTL: 3600
+      JWT_SECRET: ${CODEX_JWT_SECRET}
+      ELASTICSEARCH_URL: http://codex-elasticsearch:9200
+    networks: [homelab-net]
+    depends_on: [codex-postgres, codex-redis]
+    deploy:
+      replicas: 1
+      restart_policy: { condition: on-failure }
+
+  admin-ui:
+    image: ghcr.io/joelmale/nexuscodex-admin-ui@sha256:0050ae256014d9fa82f579bc1a7a2e1b68c0714fad13667bcce3aa30bad9c0cc
+    environment:
+      VITE_DOC_API_URL: /api
+      VITE_WEBSOCKET_URL: /ws
+    networks: [homelab-net]
+    depends_on: [doc-api]
+    deploy:
+      replicas: 1
+      restart_policy: { condition: on-failure }
+
+  dm-ui:
+    image: ghcr.io/joelmale/nexuscodex-dm-ui@sha256:b6a51741eb3a0739c1a3ba78ad0338e20f86253f718a2dcef8903ce5a7af60e4
+    environment:
+      VITE_DOC_API_URL: /api
+      VITE_WEBSOCKET_URL: /ws
+    networks: [homelab-net]
+    depends_on: [doc-api]
+    deploy:
+      replicas: 1
+      restart_policy: { condition: on-failure }
+
+networks:
+  homelab-net:
+    external: true
+
+volumes:
+  codex-postgres-data:
+    name: nexus-vtt2-codex-postgres-data
+  codex-redis-data:
+    name: nexus-vtt2-codex-redis-data
+  codex-elasticsearch-data:
+    name: nexus-vtt2-codex-elasticsearch-data
+  codex-minio-data:
+    name: nexus-vtt2-codex-minio-data

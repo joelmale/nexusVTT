@@ -29,12 +29,15 @@ jobs:
         with:
           node-version: '26.5.0'
           cache: 'npm'
+          cache-dependency-path: apps/vtt/package-lock.json
 
       - name: Install dependencies
         run: npm ci
+        working-directory: apps/vtt
 
       - name: Build (gives CodeQL full TypeScript type information)
         run: npm run build
+        working-directory: apps/vtt
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
@@ -59,7 +62,7 @@ jobs:
           format: 'sarif'
           output: 'trivy-fs.sarif'
           severity: 'CRITICAL,HIGH,MEDIUM'
-          skip-dirs: 'public,node_modules/.cache'
+          skip-dirs: 'apps/vtt/public,node_modules/.cache'
 
       - name: Upload Trivy filesystem results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
@@ -88,8 +91,8 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v7
         with:
-          context: .
-          file: docker/${{ matrix.image }}.Dockerfile
+          context: ./apps/vtt
+          file: ./apps/vtt/docker/${{ matrix.image }}.Dockerfile
           push: false
           load: true
           tags: nexus-vtt/${{ matrix.image }}:scan
@@ -104,7 +107,7 @@ jobs:
 
       - name: Upload Trivy results to GitHub Security
         uses: github/codeql-action/upload-sarif@v4
-        if: always() && hashFiles('trivy-${{ matrix.image }}.sarif') != ''
+        if: ${{ always() && hashFiles(format('trivy-{0}.sarif', matrix.image)) != '' }}
         with:
           sarif_file: 'trivy-${{ matrix.image }}.sarif'
           category: 'trivy-container-${{ matrix.image }}'
@@ -138,7 +141,7 @@ jobs:
           scan-ref: '.'
           format: 'cyclonedx'
           output: 'sbom-filesystem.cdx.json'
-          skip-dirs: 'public,node_modules/.cache'
+          skip-dirs: 'apps/vtt/public,node_modules/.cache'
 
       - name: Upload filesystem SBOM as artifact
         uses: actions/upload-artifact@v7
@@ -154,8 +157,8 @@ jobs:
       - name: Build frontend image for SBOM
         uses: docker/build-push-action@v7
         with:
-          context: .
-          file: docker/frontend.Dockerfile
+          context: ./apps/vtt
+          file: ./apps/vtt/docker/frontend.Dockerfile
           target: production
           push: false
           load: true
@@ -164,8 +167,8 @@ jobs:
       - name: Build backend image for SBOM
         uses: docker/build-push-action@v7
         with:
-          context: .
-          file: docker/backend.Dockerfile
+          context: ./apps/vtt
+          file: ./apps/vtt/docker/backend.Dockerfile
           push: false
           load: true
           tags: nexus-vtt/backend:sbom
