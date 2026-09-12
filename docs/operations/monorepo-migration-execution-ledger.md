@@ -113,6 +113,10 @@ retirement, or destructive cleanup unless the user gives explicit approval.
 - Baseline branch: `master`
 - Baseline SHA: `c8b3fc93c65c2a4cd5f37612b4e625f65f47d936`
 - Remote `origin/master` verified at the same SHA on 2026-09-11.
+- Current `origin/master` advanced on 2026-09-12 to
+  `b58a9a0db595a37b0350bed0800ebad11272135b` through commits `4de9131`
+  and `b58a9a0`; the original migration baseline above remains the recovery
+  boundary.
 - Migration branch: `codex/monorepo-migration`
 - Draft PR: `https://github.com/joelmale/nexusVTT/pull/230`
 - Isolated checkout:
@@ -911,6 +915,23 @@ Application/build engineer (GPT-5.6 Terra, medium):
   (`fix(codex): generate Prisma client during image build`). Repository
   pre-commit layout and Tailwind checks passed. No image has yet been published
   from this commit; the previous doc-api digest remains blocked for rehearsal.
+- Commits `86b3a54`, `2b08094`, and ledger checkpoint `4b65ea8` were pushed to
+  `origin/codex/monorepo-migration`. Trigger inspection reconfirmed branch
+  pushes cannot run the production publisher, which is restricted to
+  `master`; candidate publication requires an explicit full-SHA dispatch.
+  GitHub updated draft PR 230 to head
+  `4b65ea802ccd8ba9260676351db51f1aaf89d5ae` but reported it `DIRTY` and did
+  not schedule PR checks because `origin/master` advanced by two commits.
+- Fresh fetch verifies current `origin/master` at
+  `b58a9a0db595a37b0350bed0800ebad11272135b`, two commits ahead of the original
+  baseline. Those commits finalize the same generator-hub work the user had
+  previously authorized for migration, but tree OIDs show additional changes
+  beyond the earlier captured dirty state in generator-hub, GeneratorPanel,
+  and its roadmap. Per the user's standing instruction to integrate all paused
+  work, the lead will merge `origin/master` into the migration branch with a
+  normal merge commit, map any conflicts into `apps/vtt`, preserve both
+  histories, and rerun affected generator/VTT checks before candidate dispatch.
+  No rebase, squash, force-push, or `master` rewrite is permitted.
 
 ## Completed work
 
