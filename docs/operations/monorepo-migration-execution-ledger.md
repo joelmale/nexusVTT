@@ -14,8 +14,9 @@ retirement, or destructive cleanup unless the user gives explicit approval.
 
 ## Current phase and gate
 
-- Phase: 2 — build/CI parity; review remediation is locally validated and the
-  registry-pull gate remains blocked on credentials/package access.
+- Phase: 2 — build/CI parity; review remediation underlying gates pass, the
+  aggregate gate needs one workflow-directory correction, and the registry
+  pull remains blocked on credentials/package access.
 - Gate state: Phase 0 passed. Phase 1 passed: all three source histories are
   ancestors of the migration branch, both imported subtree trees matched their
   source tips, Git fsck passed, and the intended `apps/vtt`, `apps/forge`, and
@@ -47,10 +48,15 @@ retirement, or destructive cleanup unless the user gives explicit approval.
   aggregate PR check, Codex docs install/build coverage, observable
   character-sync failure handling, and production-guidance safeguards. These
   changes are locally validated and committed at exact SHA
-  `371cfec52c4ce5c49c0ec020161d9ca8e8338e65`, but are not yet pushed or
-  checked by the PR at this ledger update.
-- Exact next action: push the review-remediation unit, require its aggregate PR
-  check to pass, then obtain explicit approval for the
+  `371cfec52c4ce5c49c0ec020161d9ca8e8338e65`. The branch was pushed with
+  ledger commit `4921497c5ee21f92cb38a6c04766809d206c5005`; unified PR run
+  `34675467094` passed every VTT, Forge, Codex, docs, integration, and managed
+  E2E job. Its aggregate job alone failed before running the script because the
+  workflow-wide `apps/vtt` default directory does not exist without checkout.
+  The corrective step-level repository working directory is now pending local
+  validation and commit.
+- Exact next action: validate, commit, and push the aggregate-directory fix;
+  require the aggregate PR check to pass, then obtain explicit approval for the
   package-access and Dockhand credential changes needed to publish and pull a
   complete new exact-SHA candidate set. Do not begin Phase 3 until this Phase 2
   blocker is cleared.
@@ -931,6 +937,14 @@ and ownership returned to the lead.
   `windows_amd64` binary repository scan passed with exit 0. Documentation
   scans find the old production commands only in explicit prohibitions, and
   `git diff --check` passes.
+- Unified PR run `34675467094` at exact SHA `4921497c5ee21f92cb38a6c04766809d206c5005`
+  passed every underlying application, image-build, docs, integration, and E2E
+  gate. `Monorepo required` failed before its script started because the
+  inherited `apps/vtt` working directory was absent in that checkout-free job.
+  This is a migration-introduced workflow failure; the job now selects
+  `${{ github.workspace }}` explicitly. The workflow default token is also
+  narrowed to read-only contents; only the two publisher jobs retain explicit
+  package-write permission.
 - Draft PR 230 was created against `master` from
   `codex/monorepo-migration`; GitHub reports it as draft. Its CI, Forge CI, and
   Codex CI checks started, while the candidate publisher is correctly skipped.
@@ -1022,8 +1036,9 @@ explicit cleanup approval.
 
 ## Remaining work in priority order
 
-1. Push the locally committed review-remediation unit; verify draft PR 230's
-   new `Monorepo required` result and all underlying same-SHA checks.
+1. Validate, commit, and push the aggregate working-directory correction;
+   verify draft PR 230's new `Monorepo required` result and all underlying
+   same-SHA checks.
 2. With explicit approval, grant destination Actions access to the six legacy
    packages and replace Dockhand's invalid GHCR credential with a dedicated
    read-only package token; rerun complete exact-SHA candidate publication,
@@ -1041,9 +1056,11 @@ Resume the Nexus monorepo migration from
 `codex/monorepo-migration`. Read this entire ledger and
 `docs/operations/monorepo-migration-plan.md`, then inspect `git status` and the
 latest ledger entries. Preserve the user-authorized generator moves in the
-original `nexusVTT` checkout. Wave-7 review remediation is locally validated
-and committed at `371cfec52c4ce5c49c0ec020161d9ca8e8338e65`; push the
-migration branch and verify draft PR 230's aggregate same-SHA gate.
+original `nexusVTT` checkout. Wave-7 review remediation is committed at
+`371cfec52c4ce5c49c0ec020161d9ca8e8338e65` and its underlying unified PR
+run passed, but the checkout-free aggregate job inherited a missing `apps/vtt`
+working directory. Validate, commit, and push the pending workflow correction,
+then verify draft PR 230's aggregate same-SHA gate.
 All prior agents are complete and closed, so ownership has returned to the
 lead. Then continue from the exact Phase 2 registry/package approval action
 above, obey the two-subagent concurrency cap, and do not cross the production
