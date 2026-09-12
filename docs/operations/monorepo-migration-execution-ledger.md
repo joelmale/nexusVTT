@@ -46,10 +46,11 @@ retirement, or destructive cleanup unless the user gives explicit approval.
   same-SHA candidate dependencies, Forge ARM64 publication, an always-present
   aggregate PR check, Codex docs install/build coverage, observable
   character-sync failure handling, and production-guidance safeguards. These
-  changes are locally validated but not yet committed or checked by the PR at
-  this ledger update.
-- Exact next action: commit and push the review-remediation unit, require its
-  aggregate PR check to pass, then obtain explicit approval for the
+  changes are locally validated and committed at exact SHA
+  `371cfec52c4ce5c49c0ec020161d9ca8e8338e65`, but are not yet pushed or
+  checked by the PR at this ledger update.
+- Exact next action: push the review-remediation unit, require its aggregate PR
+  check to pass, then obtain explicit approval for the
   package-access and Dockhand credential changes needed to publish and pull a
   complete new exact-SHA candidate set. Do not begin Phase 3 until this Phase 2
   blocker is cleared.
@@ -660,6 +661,10 @@ and ownership returned to the lead.
   root workflow validates all applications at one SHA, restores Forge ARM64
   candidates, and provides one aggregate required result. Codex docs now has
   an isolated lockfile and root/CI/Dependabot coverage.
+- Committed the complete interim-review remediation as exact SHA
+  `371cfec52c4ce5c49c0ec020161d9ca8e8338e65`
+  (`fix(monorepo): resolve interim migration review`). Its pre-commit layout,
+  Tailwind-collision, staged ESLint, and diff checks passed.
 
 ## Files created, moved, or modified
 
@@ -1017,8 +1022,8 @@ explicit cleanup approval.
 
 ## Remaining work in priority order
 
-1. Commit and push the locally passing review-remediation unit; verify draft PR
-   230's new `Monorepo required` result and all underlying same-SHA checks.
+1. Push the locally committed review-remediation unit; verify draft PR 230's
+   new `Monorepo required` result and all underlying same-SHA checks.
 2. With explicit approval, grant destination Actions access to the six legacy
    packages and replace Dockhand's invalid GHCR credential with a dedicated
    read-only package token; rerun complete exact-SHA candidate publication,
@@ -1037,8 +1042,8 @@ Resume the Nexus monorepo migration from
 `docs/operations/monorepo-migration-plan.md`, then inspect `git status` and the
 latest ledger entries. Preserve the user-authorized generator moves in the
 original `nexusVTT` checkout. Wave-7 review remediation is locally validated
-but is uncommitted at this checkpoint; review its diff, commit it atomically,
-push the migration branch, and verify draft PR 230's aggregate same-SHA gate.
+and committed at `371cfec52c4ce5c49c0ec020161d9ca8e8338e65`; push the
+migration branch and verify draft PR 230's aggregate same-SHA gate.
 All prior agents are complete and closed, so ownership has returned to the
 lead. Then continue from the exact Phase 2 registry/package approval action
 above, obey the two-subagent concurrency cap, and do not cross the production
