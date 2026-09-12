@@ -14,7 +14,7 @@ retirement, or destructive cleanup unless the user gives explicit approval.
 
 ## Current phase and gate
 
-- Phase: 2 — build/CI parity, narrow traceability subgate reopened.
+- Phase: 2 — build/CI parity, final registry-pull traceability check pending.
 - Gate state: Phase 0 passed. Phase 1 passed: all three source histories are
   ancestors of the migration branch, both imported subtree trees matched their
   source tips, Git fsck passed, and the intended `apps/vtt`, `apps/forge`, and
@@ -28,11 +28,15 @@ retirement, or destructive cleanup unless the user gives explicit approval.
   aggregate Codex build, deterministic tests, isolated doc-api integration
   tests, Compose renders, and active workflow lint pass. A lead self-audit
   found that image source/revision labels and the Forge CI image-build job were
-  still missing, so the traceability portion of the gate is correctly reopened
-  before Phase 3.
-- Exact next action: commit the OCI-label and non-publishing CI build repair,
-  rebuild all ten images against that exact commit SHA, verify their labels,
-  and close Phase 2 again before deriving the rehearsal Compose definition.
+  still missing. Those repairs are committed at `ac59d8a`; all ten local
+  candidate images have since rebuilt and their loaded-image metadata verifies
+  the exact full commit SHA. The plan's remaining Phase 2 requirement is a
+  controlled GHCR candidate publication and independent pull by Dockhand; no
+  production tag or deployment may be changed by that check.
+- Exact next action: verify workflow/push side effects and registry
+  authentication, publish only immutable candidate tags for `ac59d8a`, then
+  prove Dockhand can pull one candidate before deriving the rehearsal Compose
+  definition.
 
 ## Destination
 
@@ -471,8 +475,9 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
 - Added uniform OCI source/version/revision labels to all ten final image
   stages, propagated exact GitHub SHAs through VTT/Forge/Codex CI builds, and
   added the missing non-publishing Forge CI image-build job. Dockerized
-  `actionlint` passes the updated workflows; image rebuild/label inspection is
-  pending the stable commit SHA.
+  `actionlint` passes the updated workflows. The repair is committed at exact
+  SHA `ac59d8a987e451d02e0206610ddf15e6ff1201d9`; all ten exact-revision images
+  rebuilt successfully and loaded-image inspection verified every label.
 
 ## Files created, moved, or modified
 
@@ -651,6 +656,27 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   Codex service job was added. Root `npm run build:codex` passed all five
   service builds. Root `npm run test:codex` passed the two doc-api deterministic
   tests, all 43 processor tests, and the WebSocket no-test check.
+- Exact candidate rebuilds from commit
+  `ac59d8a987e451d02e0206610ddf15e6ff1201d9` passed for all ten shipped image
+  contexts. Loaded-image inspection verified source
+  `https://github.com/joelmale/nexusVTT`, version `monorepo-ac59d8a`, and that
+  exact full revision on every image. Local immutable IDs are:
+
+  | Candidate | Local immutable image ID |
+  | --- | --- |
+  | VTT frontend | `sha256:5834b1f5af0db7bc1bbbca7334b436797baec0d152accaf8f8c1d96a45505553` |
+  | VTT backend | `sha256:df2386361bc041a6b00b74e16680187f475c6cc023886c30a289cfc19079a319` |
+  | VTT asset service | `sha256:73adf534c58d0326372fdb3010d10fd950083c6ea4e36d824deb017fb2a1be83` |
+  | VTT PostgreSQL | `sha256:1aadf00e7b0ec2c1f1ea8d5c886814fd13eb8140f84a1ad32d0e2f48619d60d8` |
+  | Forge | `sha256:fdcecab6668a20f8afd341352a18569d1438c58e4ff95f314b394e8c80656982` |
+  | Codex doc-api | `sha256:efd9432c2aa33a340108d55cbdc4e9fd4b5c12a19a6b3fc9633b9f684a6f42f7` |
+  | Codex doc-websocket | `sha256:cba6b2eaf492e7da6008b836d816d858568d46c59e19471edb5756ca1ca503fc` |
+  | Codex doc-processor | `sha256:ebe5a4dc665ed6af8cab4442fd047cf8c9e498a87ef2d8ded1cc21bb8775a3c8` |
+  | Codex admin UI | `sha256:bae3470980db10c6b6931018c6ca309ddbf885acc480bc6b6c8288c1afdbd988` |
+  | Codex DM UI | `sha256:2d314de0d612e78fad7c6aecbfe1990afa74a9df206a9f4d21d340fbe2e95df1` |
+
+  These are local manifest-list IDs with local repository digests, not yet
+  registry digests. No image was pushed or used by production.
 
 ## Failure classification
 
@@ -689,8 +715,9 @@ No independent review has run yet.
   evidence was integrated; the Codex application worker remains active.
 - Production approval is not requested and no production mutation is
   authorized.
-- Phases 0 and 1 are complete. Phase 2's functional checks pass, but its
-  traceability subgate is reopened; Phase 3 has not started.
+- Phases 0 and 1 are complete. Phase 2's functional checks and local
+  exact-revision image traceability pass; the plan-required controlled GHCR
+  pull check remains before the gate can close. Phase 3 has not started.
 
 ## Pending difficult-to-reverse or long-running operation
 
@@ -704,9 +731,11 @@ explicit cleanup approval.
 
 ## Remaining work in priority order
 
-1. Rehearse the isolated deployment with disposable data and unique resources.
-2. Prepare the production Git cutover package without mutating production.
-3. Complete independent review, resolve findings, and rerun affected checks.
+1. Publish immutable `ac59d8a` candidate tags without moving production tags
+   and verify a Dockhand-side pull; close Phase 2.
+2. Rehearse the isolated deployment with disposable data and unique resources.
+3. Prepare the production Git cutover package without mutating production.
+4. Complete independent review, resolve findings, and rerun affected checks.
 
 ## Ready-to-use resumption prompt
 
@@ -715,9 +744,9 @@ Resume the Nexus monorepo migration from
 `codex/monorepo-migration`. Read this entire ledger and
 `docs/operations/monorepo-migration-plan.md`, then inspect `git status` and the
 latest ledger entries. Preserve the user-authorized generator moves in the
-original `nexusVTT` checkout. `HEAD` is Phase 2 parity commit
-`ea1e50bb98eeec38ac64c250730b21306630c5d7`; only this post-commit ledger update
-should be modified. All wave-4 agents are complete and closed, so ownership has
-returned to the lead. Continue from the exact Phase 3 action above, obey the
-two-subagent concurrency cap, and do not cross the production approval
-boundary.
+original `nexusVTT` checkout. `HEAD` is exact traceability commit
+`ac59d8a987e451d02e0206610ddf15e6ff1201d9`; only this post-commit ledger update
+should be modified. All prior agents are complete and closed, so ownership has
+returned to the lead. Continue from the exact Phase 2 registry-pull action
+above, obey the two-subagent concurrency cap, and do not cross the production
+approval boundary.
