@@ -14,7 +14,7 @@ retirement, or destructive cleanup unless the user gives explicit approval.
 
 ## Current phase and gate
 
-- Phase: 2 — build and CI parity.
+- Phase: 3 — isolated deployment rehearsal.
 - Gate state: Phase 0 passed. Phase 1 passed: all three source histories are
   ancestors of the migration branch, both imported subtree trees matched their
   source tips, Git fsck passed, and the intended `apps/vtt`, `apps/forge`, and
@@ -23,9 +23,13 @@ retirement, or destructive cleanup unless the user gives explicit approval.
   documentation work is integrated and lead-reviewed; all ten application
   image contexts, aggregate Codex build, deterministic tests, isolated doc-api
   integration tests, Compose renders, and active workflow lint now pass.
-  Phase 2 validation is complete and its coherent parity commit is pending.
-- Exact next action: stage, verify, and commit the completed Phase 2 parity
-  unit, update this ledger with its SHA, then begin Phase 3 rehearsal design.
+  Phase 2 passed and is committed at `ea1e50b`: wave-4 Codex and documentation
+  work is integrated and lead-reviewed; all ten application image contexts,
+  aggregate Codex build, deterministic tests, isolated doc-api integration
+  tests, Compose renders, and active workflow lint pass.
+- Exact next action: derive a sanitized isolated rehearsal Compose definition
+  from the verified live service identities, mounts, volumes, network, and
+  image contracts without reusing production data or ports.
 
 ## Destination
 
@@ -451,6 +455,9 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   their lightweight matrix. Root Codex orchestration now separates the
   deterministic suite from the explicit infrastructure-backed integration
   command and treats WebSocket's verified no-test state as non-failing.
+- Committed the complete build/CI parity milestone as `ea1e50b`
+  (`chore(monorepo): complete build and CI parity`). Its normal pre-commit hook
+  passed layout validation, Tailwind collision validation, and staged ESLint.
 
 ## Files created, moved, or modified
 
@@ -667,7 +674,7 @@ No independent review has run yet.
   evidence was integrated; the Codex application worker remains active.
 - Production approval is not requested and no production mutation is
   authorized.
-- Phases 0 and 1 are complete. Phase 2 remains in progress.
+- Phases 0, 1, and 2 are complete. Phase 3 is in progress.
 
 ## Pending difficult-to-reverse or long-running operation
 
@@ -681,10 +688,9 @@ explicit cleanup approval.
 
 ## Remaining work in priority order
 
-1. Integrate and independently verify the wave-4 Codex doc-api/processor work.
-2. Finish Forge/Codex image builds and close the full build/CI parity gate.
-3. Rehearse the isolated deployment, complete independent review, resolve
-   findings, and prepare the production cutover package.
+1. Rehearse the isolated deployment with disposable data and unique resources.
+2. Prepare the production Git cutover package without mutating production.
+3. Complete independent review, resolve findings, and rerun affected checks.
 
 ## Ready-to-use resumption prompt
 
@@ -692,10 +698,10 @@ Resume the Nexus monorepo migration from
 `C:/Users/nelso/Documents/Coding/nexusVTT-monorepo-migration` on branch
 `codex/monorepo-migration`. Read this entire ledger and
 `docs/operations/monorepo-migration-plan.md`, then inspect `git status` and the
-latest ledger entries. Preserve the unrelated generator moves in the original
-`nexusVTT` checkout. `HEAD` before this checkpoint is mechanical-move commit
-`81d04117a1c4214ea690e60413d08606055db68c`; only this ledger is modified.
-Both wave-3 agents failed before making changes and were closed, so their file
-ownership has returned to the lead. Continue from the exact next action above,
-obey the two-subagent concurrency cap, retry delegation only when capacity is
-available, and do not cross the production approval boundary.
+latest ledger entries. Preserve the user-authorized generator moves in the
+original `nexusVTT` checkout. `HEAD` is Phase 2 parity commit
+`ea1e50bb98eeec38ac64c250730b21306630c5d7`; only this post-commit ledger update
+should be modified. All wave-4 agents are complete and closed, so ownership has
+returned to the lead. Continue from the exact Phase 3 action above, obey the
+two-subagent concurrency cap, and do not cross the production approval
+boundary.
