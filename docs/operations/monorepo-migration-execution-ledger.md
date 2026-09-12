@@ -227,6 +227,15 @@ and Codex were clean at baseline.
     is reopened until uniform labels are built and inspected from an exact
     commit. This is a documentation/state correction, not an assertion that an
     unverified gate passed.
+15. The authenticated GitHub CLI token can push Git but lacks GHCR's
+    `write:packages` scope. Two direct candidate pushes failed with
+    `permission_denied` before either manifest was created. Rather than widen a
+    developer credential, the existing root CI workflow now has an explicit
+    manual `candidate_sha` path that checks out a full exact SHA and uses the
+    job-scoped package token to publish only `candidate-<short-sha>` tags. Its
+    condition suppresses the normal publisher, including every `latest` tag,
+    whenever `candidate_sha` is present. This is a material implementation
+    adjustment required to complete the plan's controlled GHCR pull gate.
 
 ## Ownership and delegation wave 1
 
@@ -498,6 +507,8 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   VTT frontend/backend Dockerfiles and package lifecycle wiring; created
   `apps/vtt/scripts/prepare-husky.js`.
 - Created the execution ledger.
+- Extended `.github/workflows/ci.yml` with a manual exact-SHA candidate-only
+  image publication path; normal master/tag publication remains unchanged.
 
 ## Commands and important outcomes
 
@@ -677,6 +688,13 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
 
   These are local manifest-list IDs with local repository digests, not yet
   registry digests. No image was pushed or used by production.
+- `git push --set-upstream origin codex/monorepo-migration` published only the
+  migration branch. Its push matches no workflow branch trigger; GitHub did not
+  start a workflow or deployment. Direct GHCR pushes for VTT frontend and
+  backend then failed with `permission_denied` because the CLI token lacks the
+  expected package-write scope. No candidate manifest was created and no
+  production tag moved. Dockerized `actionlint` passes the guarded CI workflow
+  used for the package-token fallback.
 
 ## Failure classification
 

@@ -24,6 +24,11 @@ on:
       - 'Makefile'
       - 'package.json'
   workflow_dispatch:
+    inputs:
+      candidate_sha:
+        description: 'Exact 40-character commit SHA to publish as candidate-only images'
+        required: false
+        type: string
 
 env:
   NODE_VERSION: '26.5.0'
@@ -167,7 +172,9 @@ jobs:
     name: Build & Push to GHCR
     runs-on: ubuntu-latest
     needs: [unit-tests, asset-service-tests, integration-tests, e2e-smoke]
-    if: github.event_name == 'push' || github.event_name == 'workflow_dispatch'
+    if: >-
+      github.event_name == 'push' ||
+      (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == '')
     permissions:
       contents: read
       packages: write
@@ -258,3 +265,99 @@ jobs:
           build-args: |
             VERSION=${{ steps.meta.outputs.version }}
             COMMIT_SHA=${{ github.sha }}
+
+  candidate-images:
+    name: Candidate ${{ matrix.name }}
+    if: github.event_name == 'workflow_dispatch' && inputs.candidate_sha != ''
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: vtt-frontend
+            context: ./apps/vtt
+            file: ./apps/vtt/docker/frontend.Dockerfile
+            image: ghcr.io/joelmale/nexusvtt/frontend
+          - name: vtt-backend
+            context: ./apps/vtt
+            file: ./apps/vtt/docker/backend.Dockerfile
+            image: ghcr.io/joelmale/nexusvtt/backend
+          - name: vtt-asset-service
+            context: ./apps/vtt
+            file: ./apps/vtt/docker/asset-service.Dockerfile
+            image: ghcr.io/joelmale/nexusvtt/asset-service
+          - name: vtt-postgres
+            context: ./apps/vtt
+            file: ./apps/vtt/docker/postgres.Dockerfile
+            image: ghcr.io/joelmale/nexusvtt/postgres
+          - name: forge
+            context: ./apps/forge
+            file: ./apps/forge/Dockerfile
+            image: ghcr.io/joelmale/nexus-forge
+          - name: codex-doc-api
+            context: ./apps/codex/services/doc-api
+            file: ./apps/codex/services/doc-api/Dockerfile
+            image: ghcr.io/joelmale/nexuscodex-doc-api
+          - name: codex-doc-processor
+            context: ./apps/codex/services/doc-processor
+            file: ./apps/codex/services/doc-processor/Dockerfile
+            image: ghcr.io/joelmale/nexuscodex-doc-processor
+          - name: codex-doc-websocket
+            context: ./apps/codex/services/doc-websocket
+            file: ./apps/codex/services/doc-websocket/Dockerfile
+            image: ghcr.io/joelmale/nexuscodex-doc-websocket
+          - name: codex-admin-ui
+            context: ./apps/codex/services/admin-ui
+            file: ./apps/codex/services/admin-ui/Dockerfile
+            image: ghcr.io/joelmale/nexuscodex-admin-ui
+          - name: codex-dm-ui
+            context: ./apps/codex/services/dm-ui
+            file: ./apps/codex/services/dm-ui/Dockerfile
+            image: ghcr.io/joelmale/nexuscodex-dm-ui
+    steps:
+      - name: Checkout exact candidate source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.candidate_sha }}
+
+      - name: Verify exact candidate source
+        id: source
+        shell: bash
+        run: |
+          SOURCE_SHA=$(git rev-parse HEAD)
+          if [[ ! "${{ inputs.candidate_sha }}" =~ ^[0-9a-f]{40}$ ]]; then
+            echo 'candidate_sha must be a full lowercase 40-character Git SHA' >&2
+            exit 1
+          fi
+          if [[ "$SOURCE_SHA" != "${{ inputs.candidate_sha }}" ]]; then
+            echo 'checked-out source does not match candidate_sha' >&2
+            exit 1
+          fi
+          echo "sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+          echo "short_sha=${SOURCE_SHA:0:7}" >> "$GITHUB_OUTPUT"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push immutable candidate
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          push: true
+          tags: ${{ matrix.image }}:candidate-${{ steps.source.outputs.short_sha }}
+          build-args: |
+            VERSION=monorepo-${{ steps.source.outputs.short_sha }}
+            COMMIT_SHA=${{ steps.source.outputs.sha }}
+          cache-from: type=gha,scope=candidate-${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=candidate-${{ matrix.name }}
