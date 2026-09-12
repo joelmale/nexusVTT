@@ -23,6 +23,8 @@ services:
     hostname: nexus-migration-phase3-e078895-asset-server
     environment:
       ASSET_SERVICE_SECRET: ${REHEARSAL_ASSET_SERVICE_SECRET:-nexus-rehearsal-assets}
+      ASSET_SEED_MANIFEST: manifest-v2.json
+      LIBRARY_MANIFEST_PATH: /app/assets-data/manifest-v2.json
     volumes: !override
       - rehearsal-assets:/app/static-assets/assets
       - rehearsal-user-assets:/app/static-assets/users

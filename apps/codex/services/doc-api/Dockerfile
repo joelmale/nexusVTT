@@ -22,6 +22,7 @@ COPY --from=deps /app/node_modules ./node_modules
 COPY package.json .
 COPY tsconfig.json .
 COPY prisma ./prisma
+RUN npx prisma generate
 COPY src ./src
 
 # Production image, copy all the files and run
@@ -57,4 +58,4 @@ LABEL org.opencontainers.image.title="Nexus Codex Document API" \
       org.opencontainers.image.revision="$COMMIT_SHA"
 
 # Run database migrations and start server
-CMD ["sh", "-c", "npx prisma generate && npx prisma db push --skip-generate && npx tsx src/server.ts"]
+CMD ["sh", "-c", "npx prisma db push --skip-generate && npx tsx src/server.ts"]

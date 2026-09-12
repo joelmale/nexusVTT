@@ -44,3 +44,10 @@ because the live `RELEASE.2025-09-07T16-13-09Z` image is locally retained but
 its upstream repository is no longer pullable from the host. Do not substitute
 a newer MinIO image during this migration; restoring pullability is a separate
 cutover prerequisite.
+
+The fresh-data rehearsal uses a one-record sanitized asset fixture in its
+disposable TMT seed volume. Its manifest is at the volume root because the
+Dockhand volume browser cannot create nested directories through its current
+file-write endpoint; the rehearsal-only `ASSET_SEED_MANIFEST` and
+`LIBRARY_MANIFEST_PATH` overrides point the unchanged candidate entrypoint and
+service to that location. Production keeps its existing nested NAS paths.

@@ -760,6 +760,152 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   rehearsal network, only exact-prefix volumes/identities, only disposable
   credentials, and immutable image references. No Docker or Dockhand resource
   was created by these checks.
+- Phase 3 preflight and inventory were committed atomically at
+  `86b3a54` (`chore(deploy): harden phase 3 rehearsal preflight`). The commit
+  added eight deployment/operations files or updates; the repository
+  pre-commit layout and Tailwind collision checks passed.
+- Immediately before fresh rehearsal registration, read-only Dockhand lists
+  confirmed zero stack, container, network, or volume occurrence of the exact
+  `nexus-migration-phase3-e078895` prefix. The production stack remained out of
+  scope. Registration will use the already validated, fully rendered Compose
+  with disposable values and `start: false`; stored-definition verification
+  must pass before starting it.
+- Dockhand registered `nexus-migration-phase3-e078895` with `start: false`.
+  Readback found the expected namespace and no production NAS path or
+  `homelab-net`; Dockhand then showed one matching stack and zero matching
+  containers, networks, or volumes. This proves registration alone made no
+  Docker resource. Starting this isolated stack is now the next guarded step;
+  only its exact-prefix network, volumes, and containers may be created.
+- Dockhand start job `712dad4e-19ee-4a8f-af83-916b29a95e2f` created all 15
+  exact-prefix containers, one internal exact-prefix bridge network, and ten
+  exact-prefix volumes with no published ports. Fourteen services started;
+  `asset-server` restarted and left dependent `backend` created. Logs identify
+  one deterministic fresh-data fixture gap: the deliberately empty isolated
+  TMT seed volume lacks `manifests/manifest-v2.json`. This is not a candidate
+  image or production regression; the production service relies on its NAS
+  seed mount. The bounded fix is to place one sanitized fixture manifest and
+  sample image files only in the disposable rehearsal TMT seed volume, allow
+  the candidate entrypoint to seed the isolated library volume, and then
+  restart/revalidate the rehearsal. No production storage will be read or
+  written.
+- The Dockhand `create_container_file` wrapper omitted the API's required file
+  type, and direct nested-path write correctly failed because `/volume/manifests`
+  did not exist. After these two focused attempts, execution was reassessed
+  instead of retried. The safe adjustment is a flat, one-record sanitized
+  fixture at the disposable volume root plus rehearsal-only
+  `ASSET_SEED_MANIFEST=manifest-v2.json` and
+  `LIBRARY_MANIFEST_PATH=/app/assets-data/manifest-v2.json`. This exercises the
+  unchanged candidate seed/start path without requiring a remote shell or any
+  production asset copy. Production Compose remains unchanged.
+- The volume-browser helper mounted the in-use read-only seed mount as
+  read-only, so both the root manifest write and sample upload were rejected
+  without changing data; the browse helper was released successfully. The
+  revised bounded method is a standalone exact-prefix Redis helper with
+  `networkMode: none` and only the disposable TMT volume mounted read-write.
+  Its sole purpose is Docker file-copy access; it will be deleted immediately
+  after readback verifies the two sanitized files. This is isolated fixture
+  preparation, not application or production mutation.
+- Dockhand accepted the standalone-container request but silently ignored its
+  requested named-volume and `networkMode: none`; inspect showed only Redis's
+  own anonymous `/data` volume. Both attempted writes therefore failed because
+  `/volume` did not exist. The helper was stopped and deleted without touching
+  rehearsal or production data; its Docker-created anonymous Redis volume is
+  retained as migration-era evidence pending cleanup approval. The next method
+  uses a tiny exact-prefix Compose helper stack, whose rendered external-volume
+  attachment and `network_mode: none` can be read back before writing. This is
+  a tooling adaptation after focused evidence, not a relaxation of isolation.
+- The exact-prefix helper Compose stack successfully mounted only the
+  rehearsal TMT seed volume read-write with `network_mode: none`. It wrote and
+  read back `manifest-v2.json` (one active sanitized asset) plus a 68-byte
+  sample PNG, then was stopped and retained for later approved cleanup.
+  Dockhand stored the updated rehearsal Compose, but `start_stack` did not
+  recreate the already-restarting asset container; logs continued to show the
+  old nested manifest path. The next bounded action is
+  `update_stack_compose(restart: true)` against the isolated rehearsal only,
+  which is Dockhand's explicit redeploy path for a changed definition.
+- Redeploy job `95b66b2f-4a77-4df7-9c9e-be9555af6c82` recreated the isolated
+  stack and proved the candidate reads the flat fixture: logs advanced to
+  `Seeding library assets from /seed/tmt to /app/assets-data`. It then failed
+  with `EACCES` on the new root-owned library volume. Production runs the
+  service as UID/GID 1000 against pre-owned NAS directories; a fresh named
+  volume does not reproduce that prerequisite. The bounded parity action is a
+  one-shot root helper with `network_mode: none` that changes ownership only on
+  the three disposable rehearsal asset volumes to 1000:1000. The helper and
+  volumes remain exact-prefix resources and will be retained, stopped, after
+  verification pending cleanup approval.
+- Permission helper job `27eab3b9-0968-4d71-ac48-8089c1157e9f` exited 0.
+  The next automatic restart seeded the library and made `asset-server`
+  healthy. `doc-api` then exposed a genuine release blocker: its Dockerfile
+  runs `npx prisma generate` at container startup, which attempted to download
+  a query engine from `binaries.prisma.sh` and exited under the intentionally
+  internal rehearsal network. The Dockerfile copies schema only after `npm ci`
+  and never generates the application client in its builder stage. This is a
+  pre-existing image behavior discovered by the migration gate, but shipping
+  it would violate offline/reproducible startup and the plan's explicit Prisma
+  generation requirement. Production is unaffected.
+- The isolated rehearsal was stopped with job
+  `6c4e64a0-4551-4f4a-9908-85a60bf47062` while the image repair is prepared;
+  all 15 rehearsal containers and exact-prefix volumes/network are retained.
+  Read-only post-stop inspection confirms the production `nexus-vtt2` stack
+  still has all 15 services running, its four existing healthchecks healthy,
+  zero restarts, and approximately 38 hours of unchanged uptime. No production
+  resource was restarted or reconfigured.
+
+## Ownership and delegation wave 10
+
+Application/build engineer (GPT-5.6 Terra, medium):
+
+- Objective: repair Codex doc-api image generation so its Prisma client and
+  required engine are generated during image build and container startup does
+  not contact `binaries.prisma.sh`. Acceptance requires builder-stage
+  generation after the schema is copied, retention of the existing
+  `prisma db push --skip-generate` startup safety behavior, and no unrelated
+  runtime or dependency change.
+- Exclusive write ownership:
+  `apps/codex/services/doc-api/Dockerfile` only.
+- Relevant evidence: isolated fresh-data container logs show repeated
+  `getaddrinfo EAI_AGAIN binaries.prisma.sh` from runtime `npx prisma generate`;
+  the current builder copies schema but does not run generation.
+- Required verification: inspect resulting stages and run the narrowest safe
+  static/build validation available without mutating Dockhand or the active
+  rehearsal. Return exact commands/outcomes and a concise handoff.
+- Must leave every other file, Git state, workflows, manifests, lockfiles,
+  local/shared Docker resources, Dockhand/live systems, registry, secrets,
+  and recovery data untouched. No commits or subagents. Lead retains all
+  integration, image publication, and deployment ownership.
+
+### Wave 10 disposition
+
+- The requested Terra/medium override was accepted. The worker changed only
+  `apps/codex/services/doc-api/Dockerfile`: it now runs `npx prisma generate`
+  in the builder after copying the schema, keeps the generated `node_modules`
+  transfer to the runner, removes runtime generation, and preserves startup
+  `prisma db push --skip-generate`. Static ordering assertions and
+  `git diff --check` passed. The worker created no Docker/Dockhand resource and
+  was closed; ownership returned to the lead.
+- Lead diff review accepts the two-line Dockerfile repair. The next validation
+  is a local image build followed by an owner-controlled no-network startup
+  against disposable PostgreSQL. If that passes, the change and fresh-volume
+  fixture adjustment will be committed, pushed, run through unified CI, and
+  published as a new immutable candidate before the remote rehearsal resumes.
+- Lead local build of `nexus-migration-doc-api-prisma:precommit` passed. The
+  build log shows `npx prisma generate` succeeded in the builder and generated
+  Prisma Client 5.22.0; the runner exported successfully. Before commit, the
+  next narrow gate is a local internal-network startup with an exact-prefix,
+  tmpfs-backed disposable PostgreSQL 16 container and no published ports. It
+  must complete `prisma db push --skip-generate` without any
+  `binaries.prisma.sh` request. These local test resources will be stopped and
+  retained pending cleanup approval.
+- The local no-egress Prisma check passed its intended boundary. On internal
+  network `nexus-migration-phase3-e078895-local-prisma-net` with no host ports,
+  the rebuilt doc-api ran `prisma db push --skip-generate`, reported the
+  database in sync in 187 ms, created 12 public tables on tmpfs-backed
+  PostgreSQL 16, remained running, and made no `binaries.prisma.sh` or runtime
+  download attempt. Its HTTP listener did not become ready because the narrow
+  check intentionally omitted Redis, Elasticsearch, and MinIO; logs show the
+  expected unavailable dependency DNS error. Both local containers were
+  stopped and retained. Full readiness remains assigned to the remote
+  15-service rehearsal after immutable publication.
 
 ## Completed work
 
