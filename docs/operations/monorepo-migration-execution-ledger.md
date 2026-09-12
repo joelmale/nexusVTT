@@ -14,9 +14,8 @@ retirement, or destructive cleanup unless the user gives explicit approval.
 
 ## Current phase and gate
 
-- Phase: 2 — build/CI parity; review remediation underlying gates pass, the
-  aggregate gate needs one workflow-directory correction, and the registry
-  pull remains blocked on credentials/package access.
+- Phase: 3 — isolated deployment rehearsal. Phase 2 build/CI parity and its
+  controlled candidate-publication/independent-pull gate are complete.
 - Gate state: Phase 0 passed. Phase 1 passed: all three source histories are
   ancestors of the migration branch, both imported subtree trees matched their
   source tips, Git fsck passed, and the intended `apps/vtt`, `apps/forge`, and
@@ -53,13 +52,48 @@ retirement, or destructive cleanup unless the user gives explicit approval.
   `34675467094` passed every VTT, Forge, Codex, docs, integration, and managed
   E2E job. Its aggregate job alone failed before running the script because the
   workflow-wide `apps/vtt` default directory does not exist without checkout.
-  The corrective step-level repository working directory is now pending local
-  validation and commit.
-- Exact next action: validate, commit, and push the aggregate-directory fix;
-  require the aggregate PR check to pass, then obtain explicit approval for the
-  package-access and Dockhand credential changes needed to publish and pull a
-  complete new exact-SHA candidate set. Do not begin Phase 3 until this Phase 2
-  blocker is cleared.
+  The correction was committed and pushed at exact SHA
+  `e0788951a107729a74dd2b6b8929620414e3b887`. Unified run `34675759548`
+  then passed every underlying job and `Monorepo required`; both publisher jobs
+  were skipped for the PR as designed.
+- Approved GitHub package access was applied through each package's current
+  **Manage Actions access** UI after the historical REST route returned 404.
+  Visible post-change rows verify `joelmale/nexusVTT` (repository ID
+  `1062838159`) on `nexus-forge` and all five `nexuscodex-*` packages.
+  GitHub assigned new rows the default Read role. Candidate run `34696523919`
+  proved that Read is insufficient for package publication. All six grants
+  were then changed and visibly reverified at the least sufficient Write role.
+  Failed-job attempt 2 passed all six publishers and the aggregate gate. All
+  ten `candidate-e078895` registry indexes and OCI labels are independently
+  verified, including both Forge architectures.
+  Existing source-repository access remains intact; no package visibility or
+  source association changed.
+- The approved dedicated classic PAT named `Nexus Dockhand GHCR read-only`
+  was created with only `read:packages` and a 2026-10-12 expiry, tested by
+  Dockhand as authenticated user `joelmale`, and saved to registry entry 2.
+  Its value was never written to the repository, terminal output, tool output,
+  or chat. MCP readback shows `hasCredentials: true` and `updatedAt`
+  `2026-09-12T15:04:50.324Z`; an authenticated MCP registry search found
+  `joelmale/nexusvtt/backend`.
+- The independent Dockhand pull of
+  `ghcr.io/joelmale/nexusvtt/backend:candidate-e078895` completed. Dockhand's
+  local image inventory reports zero containers and exact repo digest
+  `sha256:70a1786cffb560ed11abde34dd98fbd739455abcf34058d3722a21b1f2ef1016`,
+  matching the independently inspected GHCR candidate index. Its OCI labels
+  report source `https://github.com/joelmale/nexusVTT`, revision
+  `e0788951a107729a74dd2b6b8929620414e3b887`, and version
+  `monorepo-e078895`. No container was created, started, or replaced.
+- Phase 2 gate: **passed**. Rotate the Dockhand credential before 2026-10-12.
+- Exact next action: begin the Phase 3 isolated deployment rehearsal with
+  disposable data, unique resources, and no production stack mutation.
+- Phase 3 local resource boundary before execution: any rehearsal resource
+  must use the `nexus-migration-phase3-e078895` Compose project/name prefix,
+  isolated bridge network, disposable fresh-data volumes, and the already
+  restored read-only source data copied into separate writable rehearsal
+  volumes where mutation checks are required. The existing production
+  `nexus-vtt2` stack, `homelab-net`, NAS binds, named volumes, public routes,
+  and containers are out of scope. Resource creation/removal and Compose
+  execution remain lead-only; wave-8 agents may only render configurations.
 
 ## Destination
 
@@ -570,6 +604,70 @@ lead reviewed the diff and deterministic reference scan. `make help` could not
 run because GNU Make is unavailable on this Windows host. The agent was closed
 and ownership returned to the lead.
 
+## Ownership and delegation wave 8
+
+Application/build engineer (GPT-5.6 Terra, medium):
+
+- Objective: implement the bounded Compose adaptation for Phase 3 from the
+  sanitized live `nexus-vtt2` definition. Acceptance requires a production
+  source definition plus an isolated rehearsal override under
+  `deploy/homelab/`; the production definition must preserve all live service,
+  image, endpoint, mount, volume, network, and container identities, while the
+  rehearsal must replace every explicit bind mount, named volume, container
+  name, hostname, network, and externally routed endpoint with disposable,
+  non-production equivalents. Both rendered Compose configurations must pass
+  deterministic validation without contacting production.
+- Exclusive write ownership: `deploy/homelab/compose.yaml`,
+  `deploy/homelab/compose.rehearsal.yaml`, `deploy/homelab/.env.example`, and
+  `deploy/homelab/README.md`. This is an explicit bounded transfer of the
+  lead's deployment-file ownership for draft implementation only; the lead
+  retains all live operations, release manifests, integration, and final
+  deployment decisions.
+- Relevant references: complete migration plan, execution ledger, live
+  Dockhand stack `nexus-vtt2` on environment 1 via read-only inspection, and
+  application Dockerfiles under `apps/**`. The agent may perform read-only
+  Dockhand inspection and local `docker compose config`; it may not create,
+  start, stop, update, or remove any Docker/Dockhand resource.
+- Must leave every application, root/shared workflow or manifest/lockfile,
+  docs outside its four owned files, Git refs/history, source checkout,
+  generated output, package installation, registry/package setting, secret,
+  and live system untouched. No commits or subagents.
+- Required handoff: changed files, result, exact commands/outcomes, validation
+  evidence, unresolved issues, and recommended next action.
+
+Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
+
+- Objective: produce a deterministic Phase 3 identity/isolation inventory and
+  checklist from the current live `nexus-vtt2` Compose state and migration
+  plan. Acceptance requires every service/image, explicit container name and
+  hostname, bind mount, named volume, network, public/internal endpoint, secret
+  reference, and schema/startup behavior to be enumerated, with mechanical
+  checks the lead can apply to both production and rehearsal renders.
+- Exclusive write ownership:
+  `docs/operations/monorepo-migration-phase3-inventory.md` only.
+- Required verification: read-only Dockhand Compose inspection, comparison to
+  the migration plan and current `apps/**` Docker contexts, and deterministic
+  path/reference scans. Report unknowns; do not make architecture,
+  history-integrity, production, schema, or data-safety decisions.
+- Must leave all other files, Git refs/history, installs/generated outputs,
+  Docker resources, registry/package settings, workflows, source checkouts,
+  secrets, and live systems untouched. No commits or subagents.
+- Required handoff: changed file, result, commands/outcomes, validation
+  evidence, unresolved issues, and recommended next action.
+
+Both requested overrides were accepted at dispatch: application/build agent
+`01a09629-300b-76c1-98be-ad35f7d6466e` on GPT-5.6 Terra/medium and inventory
+agent `01a09629-313d-70c1-bca3-b2dd08129b16` on GPT-5.6 Luna/medium. Both then
+reported the account usage limit with a retry time of 13:40 local time and
+returned no handoff. Checkpoint inspection found that the Terra agent had
+nevertheless completed its four scoped `deploy/homelab/` draft files before
+the error; Luna produced no inventory file. Neither touched external state.
+The lead preserved the bounded Terra work, corrected one YAML quoting error in
+the asset-service healthcheck, and verified both production and rehearsal
+renders with `docker compose config --quiet` (exit 0). Both agents were closed
+and ownership returned to the lead. Per checkpoint mode, no replacement agent,
+Docker resource creation, or long validation was started.
+
 ## Completed work
 
 - Read all three root `AGENTS.md` files and the complete migration plan.
@@ -671,6 +769,11 @@ and ownership returned to the lead.
   `371cfec52c4ce5c49c0ec020161d9ca8e8338e65`
   (`fix(monorepo): resolve interim migration review`). Its pre-commit layout,
   Tailwind-collision, staged ESLint, and diff checks passed.
+- Committed the aggregate working-directory correction and default read-only
+  workflow token as exact SHA `e0788951a107729a74dd2b6b8929620414e3b887`
+  (`fix(ci): run aggregate gate from workspace`), then pushed it. Unified PR
+  run `34675759548` passed, including `Monorepo required`; no image was
+  published.
 
 ## Files created, moved, or modified
 
@@ -945,6 +1048,60 @@ and ownership returned to the lead.
   `${{ github.workspace }}` explicitly. The workflow default token is also
   narrowed to read-only contents; only the two publisher jobs retain explicit
   package-write permission.
+- Corrected unified PR run `34675759548` at exact SHA
+  `e0788951a107729a74dd2b6b8929620414e3b887` passed every VTT, Forge, Codex,
+  docs, non-publishing image build, integration, and managed production E2E
+  job. `Monorepo required` passed in three seconds after checking every result;
+  candidate and normal GHCR publishers were both skipped.
+- GitHub package-scope authorization completed for account `joelmale` and
+  `write:packages` was verified. A historical REST access-grant route returned
+  HTTP 404 before any mutation; current official documentation directed the
+  operation to package settings. The approved UI operation then added
+  `joelmale/nexusVTT` to **Manage Actions access** for `nexus-forge`,
+  `nexuscodex-doc-api`, `nexuscodex-doc-processor`,
+  `nexuscodex-doc-websocket`, `nexuscodex-admin-ui`, and
+  `nexuscodex-dm-ui`. Each package's resulting access list was read back and
+  contained `nexusVTT`. The initial handoff incorrectly described these new
+  rows as Admin; a direct role read showed GitHub had defaulted each new row to
+  Read. Candidate run `34696523919` passed its complete validation dependency
+  chain, then all five completed Codex publishers failed at GHCR with
+  `permission_denied: write_package`; the Forge publisher was still building
+  at this checkpoint. The four VTT candidates published and the normal
+  publisher remained skipped. This is an external permission configuration
+  failure, not a source/build regression. Corrective action is to set exactly
+  these six destination-repository rows to Write, the least role that permits
+  publication, then rerun the guarded exact-SHA workflow.
+- The six package rows were changed to Write and read back visibly. Failed-job
+  rerun attempt 2 of `34696523919` then passed all six publishers and
+  `Monorepo required`; all previously successful validation and VTT publisher
+  jobs remained successful, and the normal publisher remained skipped.
+  Independent registry inspection verified exact source
+  `https://github.com/joelmale/nexusVTT`, version `monorepo-e078895`, and full
+  revision `e0788951a107729a74dd2b6b8929620414e3b887` on every shipped image.
+  The immutable candidate index digests are:
+
+  | Candidate | GHCR index digest |
+  | --- | --- |
+  | VTT frontend | `sha256:d6938c26e23111a3625c91d9730b0be33b54eabcf9526680fef9390aaeaa70cb` |
+  | VTT backend | `sha256:70a1786cffb560ed11abde34dd98fbd739455abcf34058d3722a21b1f2ef1016` |
+  | VTT asset service | `sha256:ae34ae1bb7be46dd70051899eee9e4d6af265e30c7ce9905ef4556bc4b96e71d` |
+  | VTT PostgreSQL | `sha256:08b7399e0881d8650ddd67c0adbab8b0a4c166a5b8d49e62e13f94ab342f9385` |
+  | Forge | `sha256:d1d5019db84a0f21fd10de436da17c9ac6df52223cdfb3e69455349cccf348f0` |
+  | Codex doc-api | `sha256:418f55be5f67fedec5aff08606ebfe1ec1b112831ec57da8f7ce610c79e17a9c` |
+  | Codex doc-processor | `sha256:47c3d72cf5f70326fce9a154625a5c6466256b5214d5030d5a7a912302b6739d` |
+  | Codex doc-websocket | `sha256:da014e1fdc704b1f8b1821432787e7100aa8eb7640a0366d57f72b082023ad6c` |
+  | Codex admin UI | `sha256:0050ae256014d9fa82f579bc1a7a2e1b68c0714fad13667bcce3aa30bad9c0cc` |
+  | Codex DM UI | `sha256:b6a51741eb3a0739c1a3ba78ad0338e20f86253f718a2dcef8903ce5a7af60e4` |
+
+  All images expose `linux/amd64`. Forge additionally exposes `linux/arm64`;
+  its amd64 manifest is
+  `sha256:9f72837f3748047f8ed6f6c444d4e0c2135c01cdd2dd90519ca58df3cec420d2`
+  and arm64 manifest is
+  `sha256:b3f4d7abdc1f2328e30ac568264ea47c75a9f284543b4f1fe172a71e03865bbb`.
+  Both platform configs carry the expected three OCI labels. The first compact
+  checker treated the multi-platform Forge index's absent single default image
+  config as a failure; the corrected per-platform inspection passed and is the
+  authoritative result.
 - Draft PR 230 was created against `master` from
   `codex/monorepo-migration`; GitHub reports it as draft. Its CI, Forge CI, and
   Codex CI checks started, while the candidate publisher is correctly skipped.
@@ -982,16 +1139,16 @@ accepted; none is waived:
 
 1. P1: candidate publication lacked same-SHA validation dependencies, and the
    published `ac59d8a` candidates predate the cycle fix. Repository fix locally
-   validated; final disposition requires the new aggregate PR check and a full
-   candidate run from the resulting exact commit.
+   and remotely validated by the aggregate PR check; final disposition requires
+   a full candidate run from the resulting exact commit.
 2. P1: Forge candidate publication lost source ARM64 parity. Repository fix
    locally validated with actionlint; final disposition requires the new
    dual-platform candidate manifest.
 3. P1: root operator docs/Make target presented the generic VTT-only Compose
    file as production-safe. Resolved locally by wave 7 and lead review.
-4. P1: no always-running aggregate required CI result existed. Resolved locally
-   with the unfiltered PR trigger and `Monorepo required` aggregate; remote run
-   remains required.
+4. P1: no always-running aggregate required CI result existed. Resolved with
+   the unfiltered PR trigger and passing `Monorepo required` aggregate in run
+   `34675759548`.
 5. P2: `apps/codex/docs` had no isolated lockfile/build/CI/Dependabot mapping.
    Resolved locally; clean install, typecheck, build, and root orchestration pass.
 6. P2: lazy character sync had no import-failure handling or focused side-effect
@@ -1010,14 +1167,25 @@ these findings, Phase 3, and the cutover package are complete.
   usage limit before work began. Later waves were accepted with the requested
   model overrides. All agents are complete and closed; no delegated ownership
   remains active.
-- GitHub package Actions access must be granted from the destination
-  `nexusVTT` repository to the existing `nexus-forge` and five
-  `nexuscodex-*` packages before their immutable candidate tags can publish.
-  This is a cloud permission change and is pending explicit user approval.
+- GitHub package Actions access from the destination `nexusVTT` repository to
+  the existing `nexus-forge` and five `nexuscodex-*` packages was explicitly
+  approved and completed on 2026-09-12. Immediately before mutation, the authenticated account
+  was verified as `joelmale`; the API listed all six target packages and the
+  token reported `write:packages` scope. A first REST attempt against the
+  historical package-repository-access route returned HTTP 404 on the first
+  package, before any setting changed. Current GitHub documentation exposes
+  package metadata/version REST routes but directs Actions-access grants
+  through each package's **Manage Actions access** UI; execution therefore
+  moved to the approved web settings path rather than retrying an obsolete
+  endpoint. All six resulting access lists visibly contained `nexusVTT`.
 - Dockhand's saved GHCR credential is invalid. Completing the pull gate needs a
   new least-privilege `read:packages` credential saved to Dockhand; this is a
-  live credential change and sensitive-token transmission, pending explicit
-  user approval and token availability.
+  live credential change and sensitive-token transmission. The user explicitly
+  approved replacement on 2026-09-12; token creation/installation is pending.
+- The first approved GitHub device flow remained pending after the browser
+  step, so the stale wait was cancelled without altering the existing login.
+  The second flow completed successfully. The transient device codes were
+  intentionally not persisted.
 - Production cutover approval is not requested and no production mutation is
   authorized.
 - Phases 0 and 1 are complete. Phase 2's functional checks and local
@@ -1026,7 +1194,22 @@ these findings, Phase 3, and the cutover package are complete.
 
 ## Pending difficult-to-reverse or long-running operation
 
-No difficult-to-reverse operation is active. The isolated doc-api test
+Guarded manual `CI Pipeline` run `34696523919` completed for exact
+already-pushed SHA
+`e0788951a107729a74dd2b6b8929620414e3b887`. Its dependency graph reruns the
+full required validation before publishing only immutable
+`candidate-e078895` tags; the normal publisher was skipped. Every validation
+dependency passed. The four VTT publishers passed; Forge and all five Codex
+publishers failed only with `permission_denied: write_package` because the new
+GitHub access rows had defaulted to Read. All six are now visibly Write. The
+failed-job rerun was dispatched with `gh run rerun 34696523919 --failed`.
+Attempt 2 passed the six publishers and downstream aggregate while preserving
+all successful validation and VTT jobs. Registry metadata verification passes
+for all ten candidates. No production tag or deployment was in scope. The
+approved dedicated `read:packages` credential is installed in Dockhand registry
+entry 2, expires 2026-10-12, and was never logged. The independent exact-image
+pull passed with matching digest and source-revision labels. The
+isolated doc-api test
 containers `nexus-migration-docapi-pg-20260911` and
 `nexus-migration-docapi-es-20260911` were removed after passing evidence was
 recorded; they had no named volumes and contained only disposable test data.
@@ -1036,17 +1219,12 @@ explicit cleanup approval.
 
 ## Remaining work in priority order
 
-1. Validate, commit, and push the aggregate working-directory correction;
-   verify draft PR 230's new `Monorepo required` result and all underlying
-   same-SHA checks.
-2. With explicit approval, grant destination Actions access to the six legacy
-   packages and replace Dockhand's invalid GHCR credential with a dedicated
-   read-only package token; rerun complete exact-SHA candidate publication,
-   verify all registry digests/labels including Forge ARM64, independently pull
-   through Dockhand, and close Phase 2.
-3. Rehearse the isolated deployment with disposable data and unique resources.
-4. Prepare the production Git cutover package without mutating production.
-5. Complete final independent review, resolve findings, and rerun affected
+1. Lead-review the four rendered `deploy/homelab/` drafts and complete the
+   missing deterministic Phase 3 inventory after the reported usage reset;
+   redispatch only the missing bounded work if model routing is available.
+2. Rehearse the isolated deployment with disposable data and unique resources.
+3. Prepare the production Git cutover package without mutating production.
+4. Complete final independent review, resolve findings, and rerun affected
    checks.
 
 ## Ready-to-use resumption prompt
@@ -1057,10 +1235,20 @@ Resume the Nexus monorepo migration from
 `docs/operations/monorepo-migration-plan.md`, then inspect `git status` and the
 latest ledger entries. Preserve the user-authorized generator moves in the
 original `nexusVTT` checkout. Wave-7 review remediation is committed at
-`371cfec52c4ce5c49c0ec020161d9ca8e8338e65` and its underlying unified PR
-run passed, but the checkout-free aggregate job inherited a missing `apps/vtt`
-working directory. Validate, commit, and push the pending workflow correction,
-then verify draft PR 230's aggregate same-SHA gate.
+`371cfec52c4ce5c49c0ec020161d9ca8e8338e65`; its correction commit is
+`e0788951a107729a74dd2b6b8929620414e3b887`, and unified PR run
+`34675759548` passes including `Monorepo required`. Candidate run
+`34696523919` attempt 2 publishes and verifies all ten immutable candidates.
+The dedicated Dockhand `read:packages` token is installed in registry entry 2
+and expires 2026-10-12. Dockhand independently pulled the backend candidate and
+verified exact digest/revision parity without creating a container. Phase 2 is
+passed. Wave-8 Terra/medium and Luna/medium dispatches were accepted but both
+ended with the account usage-limit error and no handoff. Terra's four scoped
+Compose draft files were present and preserved; Luna produced no inventory.
+The lead fixed one YAML quoting defect and both Compose renders now pass.
+Resume after the reported 13:40 local reset by lead-reviewing the drafts and
+completing the missing inventory, then execute the Phase 3 isolated rehearsal;
+do not mutate the production `nexus-vtt2` stack.
 All prior agents are complete and closed, so ownership has returned to the
 lead. Then continue from the exact Phase 2 registry/package approval action
 above, obey the two-subagent concurrency cap, and do not cross the production

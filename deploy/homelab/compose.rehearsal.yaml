@@ -1,0 +1,106 @@
+name: nexus-vtt2-rehearsal
+
+services:
+  postgres:
+    volumes: !override
+      - rehearsal-vtt-postgres-data:/var/lib/postgresql/data
+    networks: !override [rehearsal-net]
+  redis:
+    volumes: !override
+      - rehearsal-vtt-redis-data:/data
+    networks: !override [rehearsal-net]
+  asset-server:
+    container_name: nexus-vtt2-rehearsal-asset-server
+    hostname: nexus-vtt2-rehearsal-asset-server
+    volumes: !override
+      - rehearsal-assets:/app/static-assets/assets
+      - rehearsal-user-assets:/app/static-assets/users
+      - rehearsal-library-assets:/app/assets-data
+      - rehearsal-tmt-seed:/seed/tmt:ro
+    networks: !override [rehearsal-net]
+  nexus-forge:
+    container_name: nexus-vtt2-rehearsal-forge
+    hostname: nexus-vtt2-rehearsal-forge
+    networks: !override [rehearsal-net]
+  frontend:
+    container_name: nexus-vtt2-rehearsal-frontend
+    hostname: nexus-vtt2-rehearsal-frontend
+    networks: !override [rehearsal-net]
+  backend:
+    environment:
+      CORS_ORIGIN: ${REHEARSAL_CORS_ORIGIN:-http://nexus-vtt2-rehearsal.invalid}
+      DATABASE_URL: ${REHEARSAL_DATABASE_URL:-postgresql://nexus-rehearsal:nexus-rehearsal@postgres:5432/nexus_rehearsal}
+      JWT_SECRET: ${REHEARSAL_JWT_SECRET:-nexus-vtt2-rehearsal-jwt}
+      SESSION_SECRET: ${REHEARSAL_SESSION_SECRET:-nexus-vtt2-rehearsal-session}
+      GOOGLE_CLIENT_ID: ${REHEARSAL_GOOGLE_CLIENT_ID:-rehearsal-disabled}
+      GOOGLE_CLIENT_SECRET: ${REHEARSAL_GOOGLE_CLIENT_SECRET:-rehearsal-disabled}
+      GOOGLE_CALLBACK_URL: ${REHEARSAL_GOOGLE_CALLBACK_URL:-http://nexus-vtt2-rehearsal.invalid/auth/google/callback}
+      DISCORD_CLIENT_ID: ${REHEARSAL_DISCORD_CLIENT_ID:-rehearsal-disabled}
+      DISCORD_CLIENT_SECRET: ${REHEARSAL_DISCORD_CLIENT_SECRET:-rehearsal-disabled}
+      DISCORD_CALLBACK_URL: ${REHEARSAL_DISCORD_CALLBACK_URL:-http://nexus-vtt2-rehearsal.invalid/auth/discord/callback}
+      ASSET_SERVICE_SECRET: ${REHEARSAL_ASSET_SERVICE_SECRET:-nexus-vtt2-rehearsal-assets}
+      METRICS_AUTH_TOKEN: ${REHEARSAL_METRICS_AUTH_TOKEN:-nexus-vtt2-rehearsal-metrics}
+    networks: !override [rehearsal-net]
+  codex-postgres:
+    volumes: !override
+      - rehearsal-codex-postgres-data:/var/lib/postgresql/data
+    networks: !override [rehearsal-net]
+  codex-redis:
+    volumes: !override
+      - rehearsal-codex-redis-data:/data
+    networks: !override [rehearsal-net]
+  codex-elasticsearch:
+    volumes: !override
+      - rehearsal-codex-elasticsearch-data:/usr/share/elasticsearch/data
+    networks: !override [rehearsal-net]
+  codex-minio:
+    volumes: !override
+      - rehearsal-codex-minio-data:/data
+    networks: !override [rehearsal-net]
+  doc-api:
+    environment:
+      DATABASE_URL: postgresql://${REHEARSAL_CODEX_POSTGRES_USER:-nexus-rehearsal}:${REHEARSAL_CODEX_POSTGRES_PASSWORD:-nexus-rehearsal}@codex-postgres:5432/${REHEARSAL_CODEX_POSTGRES_DB:-doclib_rehearsal}
+      REDIS_URL: redis://:${REHEARSAL_CODEX_REDIS_PASSWORD:-nexus-rehearsal}@codex-redis:6379
+      S3_ACCESS_KEY: ${REHEARSAL_CODEX_MINIO_ROOT_USER:-nexus-rehearsal}
+      S3_SECRET_KEY: ${REHEARSAL_CODEX_MINIO_ROOT_PASSWORD:-nexus-rehearsal}
+      JWT_SECRET: ${REHEARSAL_CODEX_JWT_SECRET:-nexus-vtt2-rehearsal-codex-jwt}
+    networks: !override [rehearsal-net]
+  doc-processor:
+    environment:
+      DATABASE_URL: postgresql://${REHEARSAL_CODEX_POSTGRES_USER:-nexus-rehearsal}:${REHEARSAL_CODEX_POSTGRES_PASSWORD:-nexus-rehearsal}@codex-postgres:5432/${REHEARSAL_CODEX_POSTGRES_DB:-doclib_rehearsal}
+      REDIS_URL: redis://:${REHEARSAL_CODEX_REDIS_PASSWORD:-nexus-rehearsal}@codex-redis:6379
+      S3_ACCESS_KEY: ${REHEARSAL_CODEX_MINIO_ROOT_USER:-nexus-rehearsal}
+      S3_SECRET_KEY: ${REHEARSAL_CODEX_MINIO_ROOT_PASSWORD:-nexus-rehearsal}
+    networks: !override [rehearsal-net]
+  doc-websocket:
+    environment:
+      DATABASE_URL: postgresql://${REHEARSAL_CODEX_POSTGRES_USER:-nexus-rehearsal}:${REHEARSAL_CODEX_POSTGRES_PASSWORD:-nexus-rehearsal}@codex-postgres:5432/${REHEARSAL_CODEX_POSTGRES_DB:-doclib_rehearsal}
+      REDIS_URL: redis://:${REHEARSAL_CODEX_REDIS_PASSWORD:-nexus-rehearsal}@codex-redis:6379
+      JWT_SECRET: ${REHEARSAL_CODEX_JWT_SECRET:-nexus-vtt2-rehearsal-codex-jwt}
+    networks: !override [rehearsal-net]
+  admin-ui:
+    networks: !override [rehearsal-net]
+  dm-ui:
+    networks: !override [rehearsal-net]
+
+networks:
+  homelab-net: !reset {}
+  rehearsal-net:
+    name: nexus-vtt2-rehearsal-net
+    internal: true
+
+volumes:
+  codex-postgres-data: !reset {}
+  codex-redis-data: !reset {}
+  codex-elasticsearch-data: !reset {}
+  codex-minio-data: !reset {}
+  rehearsal-vtt-postgres-data: { name: nexus-vtt2-rehearsal-vtt-postgres-data }
+  rehearsal-vtt-redis-data: { name: nexus-vtt2-rehearsal-vtt-redis-data }
+  rehearsal-assets: { name: nexus-vtt2-rehearsal-assets }
+  rehearsal-user-assets: { name: nexus-vtt2-rehearsal-user-assets }
+  rehearsal-library-assets: { name: nexus-vtt2-rehearsal-library-assets }
+  rehearsal-tmt-seed: { name: nexus-vtt2-rehearsal-tmt-seed }
+  rehearsal-codex-postgres-data: { name: nexus-vtt2-rehearsal-codex-postgres-data }
+  rehearsal-codex-redis-data: { name: nexus-vtt2-rehearsal-codex-redis-data }
+  rehearsal-codex-elasticsearch-data: { name: nexus-vtt2-rehearsal-codex-elasticsearch-data }
+  rehearsal-codex-minio-data: { name: nexus-vtt2-rehearsal-codex-minio-data }
