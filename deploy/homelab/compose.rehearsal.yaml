@@ -1,17 +1,28 @@
-name: nexus-vtt2-rehearsal
+name: nexus-migration-phase3-e078895
 
 services:
   postgres:
+    environment:
+      POSTGRES_DB: ${REHEARSAL_POSTGRES_DB:-nexus_rehearsal}
+      POSTGRES_USER: ${REHEARSAL_POSTGRES_USER:-nexus_rehearsal}
+      POSTGRES_PASSWORD: ${REHEARSAL_POSTGRES_PASSWORD:-nexus-rehearsal}
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${REHEARSAL_POSTGRES_USER:-nexus_rehearsal}']
     volumes: !override
       - rehearsal-vtt-postgres-data:/var/lib/postgresql/data
     networks: !override [rehearsal-net]
   redis:
+    command: redis-server --appendonly yes --requirepass ${REHEARSAL_REDIS_PASSWORD:-nexus-rehearsal}
+    healthcheck:
+      test: ['CMD', 'redis-cli', '--no-auth-warning', '-a', '${REHEARSAL_REDIS_PASSWORD:-nexus-rehearsal}', 'ping']
     volumes: !override
       - rehearsal-vtt-redis-data:/data
     networks: !override [rehearsal-net]
   asset-server:
-    container_name: nexus-vtt2-rehearsal-asset-server
-    hostname: nexus-vtt2-rehearsal-asset-server
+    container_name: nexus-migration-phase3-e078895-asset-server
+    hostname: nexus-migration-phase3-e078895-asset-server
+    environment:
+      ASSET_SERVICE_SECRET: ${REHEARSAL_ASSET_SERVICE_SECRET:-nexus-rehearsal-assets}
     volumes: !override
       - rehearsal-assets:/app/static-assets/assets
       - rehearsal-user-assets:/app/static-assets/users
@@ -19,33 +30,39 @@ services:
       - rehearsal-tmt-seed:/seed/tmt:ro
     networks: !override [rehearsal-net]
   nexus-forge:
-    container_name: nexus-vtt2-rehearsal-forge
-    hostname: nexus-vtt2-rehearsal-forge
+    container_name: nexus-migration-phase3-e078895-forge
+    hostname: nexus-migration-phase3-e078895-forge
     networks: !override [rehearsal-net]
   frontend:
-    container_name: nexus-vtt2-rehearsal-frontend
-    hostname: nexus-vtt2-rehearsal-frontend
+    container_name: nexus-migration-phase3-e078895-frontend
+    hostname: nexus-migration-phase3-e078895-frontend
     networks: !override [rehearsal-net]
   backend:
     environment:
-      CORS_ORIGIN: ${REHEARSAL_CORS_ORIGIN:-http://nexus-vtt2-rehearsal.invalid}
-      DATABASE_URL: ${REHEARSAL_DATABASE_URL:-postgresql://nexus-rehearsal:nexus-rehearsal@postgres:5432/nexus_rehearsal}
-      JWT_SECRET: ${REHEARSAL_JWT_SECRET:-nexus-vtt2-rehearsal-jwt}
-      SESSION_SECRET: ${REHEARSAL_SESSION_SECRET:-nexus-vtt2-rehearsal-session}
+      CORS_ORIGIN: ${REHEARSAL_CORS_ORIGIN:-http://nexus-migration-phase3-e078895.invalid}
+      DATABASE_URL: postgresql://${REHEARSAL_POSTGRES_USER:-nexus_rehearsal}:${REHEARSAL_POSTGRES_PASSWORD:-nexus-rehearsal}@postgres:5432/${REHEARSAL_POSTGRES_DB:-nexus_rehearsal}
+      REDIS_URL: redis://:${REHEARSAL_REDIS_PASSWORD:-nexus-rehearsal}@redis:6379
+      JWT_SECRET: ${REHEARSAL_JWT_SECRET:-nexus-migration-phase3-e078895-jwt}
+      SESSION_SECRET: ${REHEARSAL_SESSION_SECRET:-nexus-migration-phase3-e078895-session}
       GOOGLE_CLIENT_ID: ${REHEARSAL_GOOGLE_CLIENT_ID:-rehearsal-disabled}
       GOOGLE_CLIENT_SECRET: ${REHEARSAL_GOOGLE_CLIENT_SECRET:-rehearsal-disabled}
-      GOOGLE_CALLBACK_URL: ${REHEARSAL_GOOGLE_CALLBACK_URL:-http://nexus-vtt2-rehearsal.invalid/auth/google/callback}
+      GOOGLE_CALLBACK_URL: ${REHEARSAL_GOOGLE_CALLBACK_URL:-http://nexus-migration-phase3-e078895.invalid/auth/google/callback}
       DISCORD_CLIENT_ID: ${REHEARSAL_DISCORD_CLIENT_ID:-rehearsal-disabled}
       DISCORD_CLIENT_SECRET: ${REHEARSAL_DISCORD_CLIENT_SECRET:-rehearsal-disabled}
-      DISCORD_CALLBACK_URL: ${REHEARSAL_DISCORD_CALLBACK_URL:-http://nexus-vtt2-rehearsal.invalid/auth/discord/callback}
-      ASSET_SERVICE_SECRET: ${REHEARSAL_ASSET_SERVICE_SECRET:-nexus-vtt2-rehearsal-assets}
-      METRICS_AUTH_TOKEN: ${REHEARSAL_METRICS_AUTH_TOKEN:-nexus-vtt2-rehearsal-metrics}
+      DISCORD_CALLBACK_URL: ${REHEARSAL_DISCORD_CALLBACK_URL:-http://nexus-migration-phase3-e078895.invalid/auth/discord/callback}
+      ASSET_SERVICE_SECRET: ${REHEARSAL_ASSET_SERVICE_SECRET:-nexus-rehearsal-assets}
+      METRICS_AUTH_TOKEN: ${REHEARSAL_METRICS_AUTH_TOKEN:-nexus-migration-phase3-e078895-metrics}
     networks: !override [rehearsal-net]
   codex-postgres:
+    environment:
+      POSTGRES_DB: ${REHEARSAL_CODEX_POSTGRES_DB:-doclib_rehearsal}
+      POSTGRES_USER: ${REHEARSAL_CODEX_POSTGRES_USER:-nexus_rehearsal}
+      POSTGRES_PASSWORD: ${REHEARSAL_CODEX_POSTGRES_PASSWORD:-nexus-rehearsal}
     volumes: !override
       - rehearsal-codex-postgres-data:/var/lib/postgresql/data
     networks: !override [rehearsal-net]
   codex-redis:
+    command: redis-server --appendonly yes --requirepass ${REHEARSAL_CODEX_REDIS_PASSWORD:-nexus-rehearsal}
     volumes: !override
       - rehearsal-codex-redis-data:/data
     networks: !override [rehearsal-net]
@@ -54,6 +71,10 @@ services:
       - rehearsal-codex-elasticsearch-data:/usr/share/elasticsearch/data
     networks: !override [rehearsal-net]
   codex-minio:
+    pull_policy: never
+    environment:
+      MINIO_ROOT_USER: ${REHEARSAL_CODEX_MINIO_ROOT_USER:-nexus-rehearsal}
+      MINIO_ROOT_PASSWORD: ${REHEARSAL_CODEX_MINIO_ROOT_PASSWORD:-nexus-rehearsal}
     volumes: !override
       - rehearsal-codex-minio-data:/data
     networks: !override [rehearsal-net]
@@ -63,7 +84,7 @@ services:
       REDIS_URL: redis://:${REHEARSAL_CODEX_REDIS_PASSWORD:-nexus-rehearsal}@codex-redis:6379
       S3_ACCESS_KEY: ${REHEARSAL_CODEX_MINIO_ROOT_USER:-nexus-rehearsal}
       S3_SECRET_KEY: ${REHEARSAL_CODEX_MINIO_ROOT_PASSWORD:-nexus-rehearsal}
-      JWT_SECRET: ${REHEARSAL_CODEX_JWT_SECRET:-nexus-vtt2-rehearsal-codex-jwt}
+      JWT_SECRET: ${REHEARSAL_CODEX_JWT_SECRET:-nexus-migration-phase3-e078895-codex-jwt}
     networks: !override [rehearsal-net]
   doc-processor:
     environment:
@@ -71,12 +92,13 @@ services:
       REDIS_URL: redis://:${REHEARSAL_CODEX_REDIS_PASSWORD:-nexus-rehearsal}@codex-redis:6379
       S3_ACCESS_KEY: ${REHEARSAL_CODEX_MINIO_ROOT_USER:-nexus-rehearsal}
       S3_SECRET_KEY: ${REHEARSAL_CODEX_MINIO_ROOT_PASSWORD:-nexus-rehearsal}
+      JWT_SECRET: ${REHEARSAL_CODEX_JWT_SECRET:-nexus-migration-phase3-e078895-codex-jwt}
     networks: !override [rehearsal-net]
   doc-websocket:
     environment:
       DATABASE_URL: postgresql://${REHEARSAL_CODEX_POSTGRES_USER:-nexus-rehearsal}:${REHEARSAL_CODEX_POSTGRES_PASSWORD:-nexus-rehearsal}@codex-postgres:5432/${REHEARSAL_CODEX_POSTGRES_DB:-doclib_rehearsal}
       REDIS_URL: redis://:${REHEARSAL_CODEX_REDIS_PASSWORD:-nexus-rehearsal}@codex-redis:6379
-      JWT_SECRET: ${REHEARSAL_CODEX_JWT_SECRET:-nexus-vtt2-rehearsal-codex-jwt}
+      JWT_SECRET: ${REHEARSAL_CODEX_JWT_SECRET:-nexus-migration-phase3-e078895-codex-jwt}
     networks: !override [rehearsal-net]
   admin-ui:
     networks: !override [rehearsal-net]
@@ -86,7 +108,7 @@ services:
 networks:
   homelab-net: !reset {}
   rehearsal-net:
-    name: nexus-vtt2-rehearsal-net
+    name: nexus-migration-phase3-e078895-net
     internal: true
 
 volumes:
@@ -94,13 +116,13 @@ volumes:
   codex-redis-data: !reset {}
   codex-elasticsearch-data: !reset {}
   codex-minio-data: !reset {}
-  rehearsal-vtt-postgres-data: { name: nexus-vtt2-rehearsal-vtt-postgres-data }
-  rehearsal-vtt-redis-data: { name: nexus-vtt2-rehearsal-vtt-redis-data }
-  rehearsal-assets: { name: nexus-vtt2-rehearsal-assets }
-  rehearsal-user-assets: { name: nexus-vtt2-rehearsal-user-assets }
-  rehearsal-library-assets: { name: nexus-vtt2-rehearsal-library-assets }
-  rehearsal-tmt-seed: { name: nexus-vtt2-rehearsal-tmt-seed }
-  rehearsal-codex-postgres-data: { name: nexus-vtt2-rehearsal-codex-postgres-data }
-  rehearsal-codex-redis-data: { name: nexus-vtt2-rehearsal-codex-redis-data }
-  rehearsal-codex-elasticsearch-data: { name: nexus-vtt2-rehearsal-codex-elasticsearch-data }
-  rehearsal-codex-minio-data: { name: nexus-vtt2-rehearsal-codex-minio-data }
+  rehearsal-vtt-postgres-data: { name: nexus-migration-phase3-e078895-vtt-postgres-data }
+  rehearsal-vtt-redis-data: { name: nexus-migration-phase3-e078895-vtt-redis-data }
+  rehearsal-assets: { name: nexus-migration-phase3-e078895-assets }
+  rehearsal-user-assets: { name: nexus-migration-phase3-e078895-user-assets }
+  rehearsal-library-assets: { name: nexus-migration-phase3-e078895-library-assets }
+  rehearsal-tmt-seed: { name: nexus-migration-phase3-e078895-tmt-seed }
+  rehearsal-codex-postgres-data: { name: nexus-migration-phase3-e078895-codex-postgres-data }
+  rehearsal-codex-redis-data: { name: nexus-migration-phase3-e078895-codex-redis-data }
+  rehearsal-codex-elasticsearch-data: { name: nexus-migration-phase3-e078895-codex-elasticsearch-data }
+  rehearsal-codex-minio-data: { name: nexus-migration-phase3-e078895-codex-minio-data }

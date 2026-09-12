@@ -84,8 +84,9 @@ retirement, or destructive cleanup unless the user gives explicit approval.
   `e0788951a107729a74dd2b6b8929620414e3b887`, and version
   `monorepo-e078895`. No container was created, started, or replaced.
 - Phase 2 gate: **passed**. Rotate the Dockhand credential before 2026-10-12.
-- Exact next action: begin the Phase 3 isolated deployment rehearsal with
-  disposable data, unique resources, and no production stack mutation.
+- Exact next action: create the fresh-data Phase 3 rehearsal only after the
+  final pre-creation Dockhand absence check confirms that the exact
+  `nexus-migration-phase3-e078895` namespace is unused.
 - Phase 3 local resource boundary before execution: any rehearsal resource
   must use the `nexus-migration-phase3-e078895` Compose project/name prefix,
   isolated bridge network, disposable fresh-data volumes, and the already
@@ -99,6 +100,12 @@ retirement, or destructive cleanup unless the user gives explicit approval.
   layout/Tailwind checks passed; both Compose renders had already passed. This
   commit contains no application source change and does not alter or deploy a
   live stack.
+- Checkpoint commit `b2eb52dca37fd67a9bcbdf0adb9ebad331ad8043` is the
+  clean local and remote branch HEAD. Draft PR 230 remains open against
+  `master`. CI run `34713614787` passed every VTT, Forge, Codex, docs,
+  integration, managed production E2E, and `Monorepo required` job; normal and
+  candidate publishers both skipped. This confirms the Phase 3 draft push did
+  not publish an image or deploy production.
 
 ## Destination
 
@@ -673,6 +680,87 @@ renders with `docker compose config --quiet` (exit 0). Both agents were closed
 and ownership returned to the lead. Per checkpoint mode, no replacement agent,
 Docker resource creation, or long validation was started.
 
+## Ownership and delegation wave 9
+
+Application/build engineer (GPT-5.6 Terra, medium):
+
+- Objective: implement a deterministic, read-only isolation validator for the
+  production-plus-rehearsal Compose render. Acceptance requires a PowerShell
+  script that renders with `.env.example`, fails on any production NAS bind,
+  production Codex volume, production container/hostname, `homelab-net`,
+  production public callback/origin, published port, mutable application tag,
+  or missing unique rehearsal namespace, and passes against the current draft.
+- Exclusive write ownership:
+  `deploy/homelab/validate-rehearsal-isolation.ps1` only.
+- Required verification: run the validator from repository root and report its
+  exact outcome. The script must not create, pull, start, stop, update, or
+  remove any Docker/Dockhand resource and must not print secret values.
+- Must leave all other files, Git state, applications, workflows, manifests,
+  lockfiles, live systems, registry/package settings, secrets, and recovery
+  data untouched. No commits or subagents.
+
+Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
+
+- Objective and constraints are the uncompleted wave-8 inventory assignment.
+  Produce only `docs/operations/monorepo-migration-phase3-inventory.md` from
+  current read-only live state and repository evidence, with complete service,
+  image, mount, volume, network, endpoint, environment-key, startup/schema,
+  candidate-digest, and isolation mappings plus mechanical checks and explicit
+  unknowns. Do not make architecture, production, history, schema, or
+  data-safety decisions.
+- Required verification: read-only Dockhand Compose inspection and comparison
+  with the current production/rehearsal renders and application Dockerfiles.
+- Must leave all other files, Git state, Docker resources, live systems,
+  registry/package settings, secrets, and recovery data untouched. No commits
+  or subagents.
+
+### Wave 9 disposition and Phase 3 preflight
+
+- Both requested model overrides were accepted. The Terra worker completed
+  `deploy/homelab/validate-rehearsal-isolation.ps1`; its original validator
+  passed read-only. The Luna worker completed
+  `docs/operations/monorepo-migration-phase3-inventory.md`; read-only Dockhand
+  inventory, both Compose renders, and `git diff --check` passed. Both agents
+  returned bounded handoffs and were closed; ownership returned to the lead.
+- Lead review found that the first rehearsal draft and validator used the
+  broader `nexus-vtt2-rehearsal` namespace instead of the exact ledger boundary
+  `nexus-migration-phase3-e078895`. The override, validator, documentation,
+  explicit identities, network, and all ten volume names were corrected before
+  any resource was created.
+- Lead review also found inherited production interpolation paths in VTT
+  PostgreSQL, both Redis commands, the VTT Redis healthcheck, asset service,
+  Codex PostgreSQL, MinIO, and `doc-processor.JWT_SECRET`. Every rehearsal
+  credential/contact interpolation is now `REHEARSAL_*`; the validator rejects
+  any non-`REHEARSAL_*` interpolation in the override and any rendered
+  `replace-with-production` placeholder. This was a required isolation repair,
+  not a runtime refactor.
+- Exact live-host infrastructure images were recorded and pinned without an
+  upgrade: PostgreSQL 16
+  `sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685`,
+  Redis 7
+  `sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf`,
+  Elasticsearch 8.11.0
+  `sha256:2cadca6c21de5802b085f25532bba11cb893589b64ca8c94d62ac69eec923fad`,
+  and MinIO release `RELEASE.2025-09-07T16-13-09Z`
+  `sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e`.
+  The live MinIO image is locally retained on HomePod, but its remote repository
+  did not resolve. The rehearsal override therefore uses `pull_policy: never`;
+  replacing MinIO with a newer image is explicitly outside this migration.
+- The custom VTT PostgreSQL candidate remains PostgreSQL 18, matching the live
+  PostgreSQL 18.6 major version. Its immutable candidate digest was already
+  verified in Phase 2.
+- Added the release manifest
+  `deploy/homelab/releases/candidate-e078895.yaml`, covering all 15 services,
+  exact digests, source/test SHA, schema obligations, validation state, and the
+  MinIO recovery constraint.
+- Post-repair preflight: production Compose render passed, combined rehearsal
+  render passed, strengthened isolation validator passed, and `git diff
+  --check` passed. The render contains 15 services, no host-published ports, no
+  production NAS bind or Codex named volume, only the internal isolated
+  rehearsal network, only exact-prefix volumes/identities, only disposable
+  credentials, and immutable image references. No Docker or Dockhand resource
+  was created by these checks.
+
 ## Completed work
 
 - Read all three root `AGENTS.md` files and the complete migration plan.
@@ -1183,53 +1271,42 @@ these findings, Phase 3, and the cutover package are complete.
   through each package's **Manage Actions access** UI; execution therefore
   moved to the approved web settings path rather than retrying an obsolete
   endpoint. All six resulting access lists visibly contained `nexusVTT`.
-- Dockhand's saved GHCR credential is invalid. Completing the pull gate needs a
-  new least-privilege `read:packages` credential saved to Dockhand; this is a
-  live credential change and sensitive-token transmission. The user explicitly
-  approved replacement on 2026-09-12; token creation/installation is pending.
+- Dockhand registry entry 2 now has the approved dedicated `read:packages`
+  credential. Authentication, registry search, exact candidate pull, local
+  digest, and OCI revision verification passed. Rotate it before 2026-10-12.
 - The first approved GitHub device flow remained pending after the browser
   step, so the stale wait was cancelled without altering the existing login.
   The second flow completed successfully. The transient device codes were
   intentionally not persisted.
 - Production cutover approval is not requested and no production mutation is
   authorized.
-- Phases 0 and 1 are complete. Phase 2's functional checks and local
-  exact-revision image traceability pass, and four VTT candidates are published;
-  the controlled Dockhand pull requirement remains. Phase 3 has not started.
+- Phases 0, 1, and 2 are complete. All ten exact-revision candidates are
+  published and the controlled Dockhand pull passed. Phase 3 definition,
+  inventory, release manifest, and strengthened isolation preflight pass; no
+  rehearsal stack or production mutation has yet occurred.
 
 ## Pending difficult-to-reverse or long-running operation
 
-Guarded manual `CI Pipeline` run `34696523919` completed for exact
-already-pushed SHA
-`e0788951a107729a74dd2b6b8929620414e3b887`. Its dependency graph reruns the
-full required validation before publishing only immutable
-`candidate-e078895` tags; the normal publisher was skipped. Every validation
-dependency passed. The four VTT publishers passed; Forge and all five Codex
-publishers failed only with `permission_denied: write_package` because the new
-GitHub access rows had defaulted to Read. All six are now visibly Write. The
-failed-job rerun was dispatched with `gh run rerun 34696523919 --failed`.
-Attempt 2 passed the six publishers and downstream aggregate while preserving
-all successful validation and VTT jobs. Registry metadata verification passes
-for all ten candidates. No production tag or deployment was in scope. The
-approved dedicated `read:packages` credential is installed in Dockhand registry
-entry 2, expires 2026-10-12, and was never logged. The independent exact-image
-pull passed with matching digest and source-revision labels. The
-isolated doc-api test
-containers `nexus-migration-docapi-pg-20260911` and
-`nexus-migration-docapi-es-20260911` were removed after passing evidence was
-recorded; they had no named volumes and contained only disposable test data.
-No production network, volume, image tag, or data was in scope. No
-migration-era backup or restore resource will be deleted without the later
-explicit cleanup approval.
+The next guarded operation is creation of the isolated fresh-data stack named
+`nexus-migration-phase3-e078895` on Dockhand environment 1. Immediately before
+creation, re-run the local isolation validator and confirm that no existing
+Dockhand stack, container, network, or volume uses that exact prefix. The
+rendered stack must use its one internal network, ten disposable volumes, no
+NAS bind, no production named volume, no published port, no public callback,
+only disposable credentials, and the immutable manifest images. No production
+stack, network, volume, route, tag, secret, or data is in scope. Later teardown
+must preserve volumes until rollback evidence is complete; no migration-era
+backup or restore resource may be deleted without explicit cleanup approval.
 
 ## Remaining work in priority order
 
-1. Lead-review the four rendered `deploy/homelab/` drafts and complete the
-   missing deterministic Phase 3 inventory after the reported usage reset;
-   redispatch only the missing bounded work if model routing is available.
-2. Rehearse the isolated deployment with disposable data and unique resources.
-3. Prepare the production Git cutover package without mutating production.
-4. Complete final independent review, resolve findings, and rerun affected
+1. Create and validate the fresh-data isolated rehearsal using only exact-prefix
+   resources.
+2. Prove Codex zero-diff schema behavior and VTT compatibility against writable
+   copies of restored data; stop on any hidden schema mutation.
+3. Run the relevant full validation matrix and isolated rollback rehearsal.
+4. Prepare the production Git cutover package without mutating production.
+5. Complete final independent review, resolve findings, and rerun affected
    checks.
 
 ## Ready-to-use resumption prompt
@@ -1247,14 +1324,13 @@ original `nexusVTT` checkout. Wave-7 review remediation is committed at
 The dedicated Dockhand `read:packages` token is installed in registry entry 2
 and expires 2026-10-12. Dockhand independently pulled the backend candidate and
 verified exact digest/revision parity without creating a container. Phase 2 is
-passed. Wave-8 Terra/medium and Luna/medium dispatches were accepted but both
-ended with the account usage-limit error and no handoff. Terra's four scoped
-Compose draft files were present and preserved; Luna produced no inventory.
-The lead fixed one YAML quoting defect and both Compose renders now pass.
-Resume after the reported 13:40 local reset by lead-reviewing the drafts and
-completing the missing inventory, then execute the Phase 3 isolated rehearsal;
-do not mutate the production `nexus-vtt2` stack.
-All prior agents are complete and closed, so ownership has returned to the
-lead. Then continue from the exact Phase 2 registry/package approval action
-above, obey the two-subagent concurrency cap, and do not cross the production
-approval boundary.
+passed. Wave 9 produced and lead-reviewed the Phase 3 inventory and isolation
+validator. The production/rehearsal Compose sources now pin exact image
+digests, use only the exact `nexus-migration-phase3-e078895` isolated namespace,
+and prevent production credential inheritance. The strengthened preflight and
+both renders pass; the release manifest is
+`deploy/homelab/releases/candidate-e078895.yaml`. No rehearsal resource has yet
+been created. Re-run the preflight and Dockhand absence checks, then create and
+validate the fresh-data rehearsal. Preserve all existing restore evidence and
+do not mutate the production `nexus-vtt2` stack. All prior agents are closed;
+obey the two-subagent cap and do not cross the production approval boundary.

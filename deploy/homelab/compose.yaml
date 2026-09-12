@@ -18,7 +18,7 @@ services:
       retries: 5
 
   redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
     command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD}
     volumes:
       - /mnt/docker-nas-vol1/nexusvtt/redis:/data
@@ -98,7 +98,7 @@ services:
     networks: [homelab-net]
 
   codex-postgres:
-    image: postgres:16-alpine
+    image: postgres:16-alpine@sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
     environment:
       POSTGRES_DB: ${CODEX_POSTGRES_DB:-doclib}
       POSTGRES_USER: ${CODEX_POSTGRES_USER:-postgres}
@@ -115,7 +115,7 @@ services:
         max_attempts: 3
 
   codex-redis:
-    image: redis:7-alpine
+    image: redis:7-alpine@sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
     command: redis-server --appendonly yes --requirepass ${CODEX_REDIS_PASSWORD}
     volumes:
       - codex-redis-data:/data
@@ -124,7 +124,7 @@ services:
       restart_policy: { condition: on-failure }
 
   codex-elasticsearch:
-    image: elasticsearch:8.11.0
+    image: elasticsearch:8.11.0@sha256:2cadca6c21de5802b085f25532bba11cb893589b64ca8c94d62ac69eec923fad
     environment:
       discovery.type: single-node
       xpack.security.enabled: 'false'
@@ -138,7 +138,7 @@ services:
       restart_policy: { condition: on-failure }
 
   codex-minio:
-    image: minio/minio:latest
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z@sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
     command: server /data --console-address ':9001'
     environment:
       MINIO_ROOT_USER: ${CODEX_MINIO_ROOT_USER}
