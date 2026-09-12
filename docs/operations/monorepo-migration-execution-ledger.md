@@ -94,6 +94,11 @@ retirement, or destructive cleanup unless the user gives explicit approval.
   `nexus-vtt2` stack, `homelab-net`, NAS binds, named volumes, public routes,
   and containers are out of scope. Resource creation/removal and Compose
   execution remain lead-only; wave-8 agents may only render configurations.
+- Phase 2 closure evidence and the initial Phase 3 Homelab Compose drafts were
+  committed at `469a6ece50cfa721785d6d3abfebd7607e6c9b20`. The pre-commit
+  layout/Tailwind checks passed; both Compose renders had already passed. This
+  commit contains no application source change and does not alter or deploy a
+  live stack.
 
 ## Destination
 
