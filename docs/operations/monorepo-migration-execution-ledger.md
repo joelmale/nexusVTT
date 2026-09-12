@@ -906,6 +906,11 @@ Application/build engineer (GPT-5.6 Terra, medium):
   expected unavailable dependency DNS error. Both local containers were
   stopped and retained. Full readiness remains assigned to the remote
   15-service rehearsal after immutable publication.
+- The Prisma build/startup repair and rehearsal fixture-path adaptation were
+  committed at exact SHA `2b08094617ddc676414254bd85e00f44a1c5a50c`
+  (`fix(codex): generate Prisma client during image build`). Repository
+  pre-commit layout and Tailwind checks passed. No image has yet been published
+  from this commit; the previous doc-api digest remains blocked for rehearsal.
 
 ## Completed work
 
