@@ -18,6 +18,9 @@ RUN npm run build
 # Production stage
 FROM nginx:alpine
 
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
+
 # Copy built assets from builder
 COPY --from=builder /app/dist /usr/share/nginx/html
 
@@ -30,6 +33,11 @@ RUN chmod +x /docker-entrypoint.sh
 
 # Expose port 80
 EXPOSE 80
+
+LABEL org.opencontainers.image.title="Nexus Codex DM UI" \
+      org.opencontainers.image.source="https://github.com/joelmale/nexusVTT" \
+      org.opencontainers.image.version="$VERSION" \
+      org.opencontainers.image.revision="$COMMIT_SHA"
 
 # Start nginx
 CMD ["/docker-entrypoint.sh"]

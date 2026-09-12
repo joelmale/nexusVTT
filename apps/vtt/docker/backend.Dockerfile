@@ -2,6 +2,9 @@
 
 FROM node:26.5.0-alpine
 
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
+
 # Set working directory
 WORKDIR /app
 
@@ -47,6 +50,11 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
+
+LABEL org.opencontainers.image.title="Nexus VTT Backend" \
+      org.opencontainers.image.source="https://github.com/joelmale/nexusVTT" \
+      org.opencontainers.image.version="$VERSION" \
+      org.opencontainers.image.revision="$COMMIT_SHA"
 
 # Start the built server
 CMD ["npm", "run", "server:start"]

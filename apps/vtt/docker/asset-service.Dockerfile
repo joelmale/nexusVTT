@@ -2,6 +2,9 @@
 
 FROM node:26.5.0-alpine
 
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
+
 WORKDIR /app
 
 RUN apk add --no-cache dumb-init
@@ -44,5 +47,10 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "const port = process.env.PORT || 5003; require('http').get('http://127.0.0.1:' + port + '/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 ENTRYPOINT ["dumb-init", "--"]
+
+LABEL org.opencontainers.image.title="Nexus VTT Asset Service" \
+      org.opencontainers.image.source="https://github.com/joelmale/nexusVTT" \
+      org.opencontainers.image.version="$VERSION" \
+      org.opencontainers.image.revision="$COMMIT_SHA"
 
 CMD ["sh", "-c", "node /app/scripts/ensure-library-assets.cjs --source \"$ASSET_SEED_SOURCE\" --target \"$LIBRARY_DATA_PATH\" && npm start --workspace asset-service"]

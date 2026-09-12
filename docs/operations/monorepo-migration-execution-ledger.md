@@ -14,7 +14,7 @@ retirement, or destructive cleanup unless the user gives explicit approval.
 
 ## Current phase and gate
 
-- Phase: 3 — isolated deployment rehearsal.
+- Phase: 2 — build/CI parity, narrow traceability subgate reopened.
 - Gate state: Phase 0 passed. Phase 1 passed: all three source histories are
   ancestors of the migration branch, both imported subtree trees matched their
   source tips, Git fsck passed, and the intended `apps/vtt`, `apps/forge`, and
@@ -23,13 +23,16 @@ retirement, or destructive cleanup unless the user gives explicit approval.
   documentation work is integrated and lead-reviewed; all ten application
   image contexts, aggregate Codex build, deterministic tests, isolated doc-api
   integration tests, Compose renders, and active workflow lint now pass.
-  Phase 2 passed and is committed at `ea1e50b`: wave-4 Codex and documentation
+  Phase 2 functional parity is committed at `ea1e50b`: wave-4 Codex and documentation
   work is integrated and lead-reviewed; all ten application image contexts,
   aggregate Codex build, deterministic tests, isolated doc-api integration
-  tests, Compose renders, and active workflow lint pass.
-- Exact next action: derive a sanitized isolated rehearsal Compose definition
-  from the verified live service identities, mounts, volumes, network, and
-  image contracts without reusing production data or ports.
+  tests, Compose renders, and active workflow lint pass. A lead self-audit
+  found that image source/revision labels and the Forge CI image-build job were
+  still missing, so the traceability portion of the gate is correctly reopened
+  before Phase 3.
+- Exact next action: commit the OCI-label and non-publishing CI build repair,
+  rebuild all ten images against that exact commit SHA, verify their labels,
+  and close Phase 2 again before deriving the rehearsal Compose definition.
 
 ## Destination
 
@@ -213,6 +216,13 @@ and Codex were clean at baseline.
     sorted on `uploadedAt` although index creation/reindexing omitted that
     field. Tests now assert the current response contract; index management now
     maps/reindexes `uploadedAt`, and search tolerates an unmapped date field.
+14. The first Phase 2 closeout was premature on image traceability: all ten
+    contexts built, but most final images did not embed OCI source/revision
+    labels, the VTT asset/PostgreSQL workflow omitted build metadata, and Forge
+    CI did not build its image. Functional evidence remains valid, but the gate
+    is reopened until uniform labels are built and inspected from an exact
+    commit. This is a documentation/state correction, not an assertion that an
+    unverified gate passed.
 
 ## Ownership and delegation wave 1
 
@@ -458,6 +468,11 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
 - Committed the complete build/CI parity milestone as `ea1e50b`
   (`chore(monorepo): complete build and CI parity`). Its normal pre-commit hook
   passed layout validation, Tailwind collision validation, and staged ESLint.
+- Added uniform OCI source/version/revision labels to all ten final image
+  stages, propagated exact GitHub SHAs through VTT/Forge/Codex CI builds, and
+  added the missing non-publishing Forge CI image-build job. Dockerized
+  `actionlint` passes the updated workflows; image rebuild/label inspection is
+  pending the stable commit SHA.
 
 ## Files created, moved, or modified
 
@@ -674,7 +689,8 @@ No independent review has run yet.
   evidence was integrated; the Codex application worker remains active.
 - Production approval is not requested and no production mutation is
   authorized.
-- Phases 0, 1, and 2 are complete. Phase 3 is in progress.
+- Phases 0 and 1 are complete. Phase 2's functional checks pass, but its
+  traceability subgate is reopened; Phase 3 has not started.
 
 ## Pending difficult-to-reverse or long-running operation
 

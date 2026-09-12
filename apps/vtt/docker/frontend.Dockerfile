@@ -61,11 +61,19 @@ RUN npm run build && npm run build:generator-hub
 # Stage 3: Production
 FROM nginx:alpine AS production
 
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
+
 COPY docker/nginx.conf /etc/nginx/nginx.conf
 
 # Copy built application from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
 COPY --from=builder /app/apps/generator-hub/dist /usr/share/nginx/html/generator-hub
+
+LABEL org.opencontainers.image.title="Nexus VTT Frontend" \
+      org.opencontainers.image.source="https://github.com/joelmale/nexusVTT" \
+      org.opencontainers.image.version="$VERSION" \
+      org.opencontainers.image.revision="$COMMIT_SHA"
 
 # Expose port
 EXPOSE 80

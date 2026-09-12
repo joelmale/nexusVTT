@@ -212,7 +212,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=frontend-homelab
           build-args: |
             VERSION=${{ steps.meta.outputs.version }}
-            COMMIT_SHA=${{ steps.meta.outputs.short_sha }}
+            COMMIT_SHA=${{ github.sha }}
 
       - name: Build and push backend
         uses: docker/build-push-action@v7
@@ -240,6 +240,9 @@ jobs:
             ghcr.io/joelmale/nexusvtt/asset-service:latest
           cache-from: type=gha,scope=asset-service-homelab
           cache-to: type=gha,mode=max,scope=asset-service-homelab
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+            COMMIT_SHA=${{ github.sha }}
 
       - name: Build and push postgres
         uses: docker/build-push-action@v7
@@ -252,3 +255,6 @@ jobs:
             ghcr.io/joelmale/nexusvtt/postgres:latest
           cache-from: type=gha,scope=postgres-homelab
           cache-to: type=gha,mode=max,scope=postgres-homelab
+          build-args: |
+            VERSION=${{ steps.meta.outputs.version }}
+            COMMIT_SHA=${{ github.sha }}

@@ -43,6 +43,9 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
+
 ENV NODE_ENV=production
 
 # Create a non-root user
@@ -59,6 +62,11 @@ COPY --from=builder /app/package.json ./package.json
 RUN chown -R worker:nodejs /app
 
 USER worker
+
+LABEL org.opencontainers.image.title="Nexus Codex Document Processor" \
+      org.opencontainers.image.source="https://github.com/joelmale/nexusVTT" \
+      org.opencontainers.image.version="$VERSION" \
+      org.opencontainers.image.revision="$COMMIT_SHA"
 
 # Start the worker
 CMD ["node", "dist/index.js"]

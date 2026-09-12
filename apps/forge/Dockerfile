@@ -32,11 +32,19 @@ RUN --mount=type=cache,target=/app/node_modules/.vite \
 # Stage 2: Serve with Nginx (Distroless)
 FROM cgr.dev/chainguard/nginx:latest
 
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
+
 # Copy custom nginx config
 COPY nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy built files from builder stage
 COPY --from=builder /app/dist /usr/share/nginx/html
+
+LABEL org.opencontainers.image.title="Nexus Forge" \
+      org.opencontainers.image.source="https://github.com/joelmale/nexusVTT" \
+      org.opencontainers.image.version="$VERSION" \
+      org.opencontainers.image.revision="$COMMIT_SHA"
 
 # Expose port 8080 (unprivileged)
 EXPOSE 8080

@@ -28,6 +28,9 @@ COPY src ./src
 FROM base AS runner
 WORKDIR /app
 
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
+
 ENV NODE_ENV=production
 
 # Create a non-root user
@@ -47,6 +50,11 @@ RUN chown -R fastify:nodejs /app
 USER fastify
 
 EXPOSE 3000
+
+LABEL org.opencontainers.image.title="Nexus Codex Document API" \
+      org.opencontainers.image.source="https://github.com/joelmale/nexusVTT" \
+      org.opencontainers.image.version="$VERSION" \
+      org.opencontainers.image.revision="$COMMIT_SHA"
 
 # Run database migrations and start server
 CMD ["sh", "-c", "npx prisma generate && npx prisma db push --skip-generate && npx tsx src/server.ts"]
