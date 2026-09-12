@@ -134,7 +134,7 @@ function App() {
             protocolVersion: '1.0',
             exportId: Math.random().toString(36).slice(2),
             importId: Math.random().toString(36).slice(2),
-            source: generator as any,
+            source: generator as GeneratorHostMessage['payload']['source'],
             generatorVersion: '1.0',
             byteLength: finalBlob.size,
             grid: {
@@ -151,24 +151,31 @@ function App() {
     };
 
     window.addEventListener('message', handleMessage);
-    return () => window.removeEventListener('message', handleMessage);
-  }, [forceRasterize]);
+    
+    return () => {
+      window.removeEventListener('message', handleMessage);
+    };
+  }, [forceRasterize, generator]);
 
   return (
-    <div style={{ width: '100%', height: '100vh', margin: 0, padding: 0, overflow: 'hidden' }}>
-      {loading && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>Loading Generator...</div>}
-      {iframeSrc ? (
-        <iframe
-          ref={iframeRef}
-          src={iframeSrc}
-          style={{ width: '100%', height: '100%', border: 'none' }}
-          sandbox="allow-scripts allow-same-origin allow-forms allow-downloads"
-          title="Generator Vendor"
-          onLoad={() => setLoading(false)}
-        />
-      ) : (
-        <div>Unknown generator: {generator}</div>
+    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }}>
+      {loading && (
+        <div style={{ 
+          position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, 
+          display: 'flex', alignItems: 'center', justifyContent: 'center', 
+          backgroundColor: '#111827', color: 'white' 
+        }}>
+          Loading Generator...
+        </div>
       )}
+      <iframe
+        ref={iframeRef}
+        src={iframeSrc}
+        style={{ flex: 1, border: 'none' }}
+        sandbox="allow-scripts allow-same-origin allow-forms allow-downloads"
+        title="Generator Content"
+        onLoad={() => setLoading(false)}
+      />
     </div>
   );
 }

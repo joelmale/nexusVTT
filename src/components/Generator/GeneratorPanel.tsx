@@ -305,7 +305,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         </div>
       )}
 
-      {['dungeon', 'world'].includes(activeGenerator) && (
+      {['dungeon', 'world', 'cave', 'city', 'dwelling'].includes(activeGenerator) && (
         <iframe
           ref={iframeRef}
           key={`generator-hub-${activeGenerator}`}
