@@ -14,7 +14,7 @@ retirement, or destructive cleanup unless the user gives explicit approval.
 
 ## Current phase and gate
 
-- Phase: 2 — build/CI parity, final registry-pull traceability check pending.
+- Phase: 2 — build/CI parity; registry-pull gate blocked.
 - Gate state: Phase 0 passed. Phase 1 passed: all three source histories are
   ancestors of the migration branch, both imported subtree trees matched their
   source tips, Git fsck passed, and the intended `apps/vtt`, `apps/forge`, and
@@ -32,11 +32,17 @@ retirement, or destructive cleanup unless the user gives explicit approval.
   candidate images have since rebuilt and their loaded-image metadata verifies
   the exact full commit SHA. The plan's remaining Phase 2 requirement is a
   controlled GHCR candidate publication and independent pull by Dockhand; no
-  production tag or deployment may be changed by that check.
-- Exact next action: verify workflow/push side effects and registry
-  authentication, publish only immutable candidate tags for `ac59d8a`, then
-  prove Dockhand can pull one candidate before deriving the rehearsal Compose
-  definition.
+  production tag or deployment may be changed by that check. Workflow run
+  `34664250908` published all four VTT candidates without moving `latest`, but
+  Forge and the five Codex package writes were denied because those existing
+  packages do not grant the destination repository Actions access. Dockhand's
+  saved GHCR credential independently fails authentication and its candidate
+  pull was denied. The same run reproduced the pre-existing VTT static import
+  cycle; wave 5 then removed it with one application-local dynamic boundary,
+  and lead reruns of the cycle, type, lint, and targeted test checks pass.
+- Exact next action: obtain explicit approval for the package-access and
+  Dockhand credential changes needed to publish/pull all candidates. Do not
+  begin Phase 3 until this Phase 2 blocker is cleared.
 
 ## Destination
 
@@ -236,6 +242,15 @@ and Codex were clean at baseline.
     condition suppresses the normal publisher, including every `latest` tag,
     whenever `candidate_sha` is present. This is a material implementation
     adjustment required to complete the plan's controlled GHCR pull gate.
+16. Candidate workflow run `34664250908` proved that the new guarded path does
+    not move `latest`, but existing package permissions are repository-scoped:
+    all four VTT candidates published, while Forge and all five Codex packages
+    rejected the destination repository's job token. Dockhand's configured
+    GHCR registry entry (ID 2) also fails an authenticated search, and a direct
+    pull of the published backend candidate was denied. Altering GitHub package
+    Actions access or replacing the saved live registry credential requires
+    explicit approval and a least-privilege package token; neither setting was
+    changed during diagnosis.
 
 ## Ownership and delegation wave 1
 
@@ -412,6 +427,36 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   Git state, other checkouts, and live systems untouched. No architecture,
   history, production/data-safety decisions, Docker, installs, or subagents.
 
+## Ownership and delegation wave 5
+
+Application/build engineer (GPT-5.6 Terra, medium):
+
+- Objective: remove the single static VTT import cycle reported by both local
+  and GitHub CI checks—`characterSyncService -> initiativeStore ->
+  characterStore -> gameStore`—without changing observable game-state,
+  initiative, character-sync, or durable persistence behavior. Acceptance
+  requires `npm run check:cycles`, `npm run type-check`, and directly relevant
+  unit tests to pass.
+- Exclusive write ownership:
+  `apps/vtt/src/services/characterSyncService.ts`,
+  `apps/vtt/src/stores/initiativeStore.ts`,
+  `apps/vtt/src/stores/characterStore.ts`,
+  `apps/vtt/src/stores/gameStore.ts`,
+  `apps/vtt/src/stores/gameEventHandlers.ts`, and directly relevant targeted
+  tests under `apps/vtt/tests/unit/**`. Any other edit requires an ownership
+  request before it is made.
+- Must leave repository-root files and workflows, manifests and lockfiles,
+  Docker/deployment/monitoring files, all other applications, Git refs and
+  history, generated outputs, shared infrastructure, and live systems
+  untouched. No dependency install, Docker, production access, commits, or
+  subagents.
+- Required handoff: concise changed-file list, result, commands/outcomes,
+  validation evidence, unresolved issues, and recommended next action.
+- Dispatch accepted as agent `01a09333-fe0f-7020-b17d-8d0c8ab8d856` with the
+  requested GPT-5.6 Terra/medium override. The worker changed only
+  `apps/vtt/src/stores/initiativeStore.ts`, completed the required handoff, and
+  was closed after lead review returned ownership.
+
 ## Completed work
 
 - Read all three root `AGENTS.md` files and the complete migration plan.
@@ -487,6 +532,10 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   `actionlint` passes the updated workflows. The repair is committed at exact
   SHA `ac59d8a987e451d02e0206610ddf15e6ff1201d9`; all ten exact-revision images
   rebuilt successfully and loaded-image inspection verified every label.
+- Removed the pre-existing four-module VTT static import cycle by dynamically
+  loading `characterSyncService` only at the initiative store's existing
+  outbound sync hook. Initiative state mutations remain synchronous; no
+  durable persistence, WebSocket, database, or acknowledgement path changed.
 
 ## Files created, moved, or modified
 
@@ -619,7 +668,9 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   13 dice themes; Husky root-hook installation passed after path repair. Lint,
   full type-check, dice check, unit tests (596 passed/24 skipped), asset-service
   tests (29 passed), integration tests (two passed/17 skipped), and
-  `build:all` all passed. The import-cycle result is unchanged from baseline.
+  `build:all` all passed. At that milestone the import-cycle result was
+  unchanged from baseline; wave 5 subsequently removed the cycle and its
+  focused checks pass.
 - All six active root workflows pass `actionlint`. Production, development,
   test, and combined smoke/soak Compose rendering passed. Production rendering
   emitted expected missing-secret warnings with no secrets supplied.
@@ -695,6 +746,33 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   expected package-write scope. No candidate manifest was created and no
   production tag moved. Dockerized `actionlint` passes the guarded CI workflow
   used for the package-token fallback.
+- Guarded workflow run `34664250908` checked out and verified exact source
+  `ac59d8a987e451d02e0206610ddf15e6ff1201d9` in every candidate matrix job.
+  It published the four VTT tags below. Local registry inspection can pull the
+  backend tag and confirms the expected source/version/full-revision OCI
+  labels. Forge and all five Codex pushes failed only at GHCR authorization
+  with `permission_denied: write_package` after their builds completed.
+
+  | Published candidate | GHCR index digest |
+  | --- | --- |
+  | `ghcr.io/joelmale/nexusvtt/frontend:candidate-ac59d8a` | `sha256:00d67e257017dbe77d23e0e40f084086d26d08ea73b61271582aeeb4a52ac4f2` |
+  | `ghcr.io/joelmale/nexusvtt/backend:candidate-ac59d8a` | `sha256:51bd87240ca3cecf5571b144fc9b7bf700fbad48ca19df536bac44cfb1a568a4` |
+  | `ghcr.io/joelmale/nexusvtt/asset-service:candidate-ac59d8a` | `sha256:808e97ad2f1a2f2092fafd9e9848e2db6c7230b7908909f6b049ed8dd1cf488e` |
+  | `ghcr.io/joelmale/nexusvtt/postgres:candidate-ac59d8a` | `sha256:3396c45eba620980c9c6344a40f058401aa43cc3d97791e1cbf5f0bd39ba017b` |
+
+- The same workflow's normal `Build & Push to GHCR` job was skipped, proving
+  no normal version or `latest` tag was published. Its VTT lint/type job passed
+  install, lint, and type-check, then failed at the already-baselined static
+  import cycle; dependent unit/integration/E2E jobs were consequently skipped.
+- Dockhand environment 1 rejected a pull of the published backend candidate.
+  Registry entry 2 is configured for `ghcr.io` with credentials, but a
+  read-only registry search returns `Authentication failed. Check the registry
+  credentials.` No container, stack, registry setting, or image tag changed.
+- Wave-5 and lead reruns both report no static import cycles across 284 VTT
+  modules. Full configured VTT type-check passes; targeted ESLint passes; and
+  `initiativeStore`, `characterStore`, and `gameStore` unit suites pass all 59
+  tests. `git diff --check` passes. Only the outbound no-op sync hook is now
+  deferred to module loading.
 
 ## Failure classification
 
@@ -717,8 +795,10 @@ Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
   readiness field despite the current runbook's stated expectation.
 - Migration-introduced failures: the VTT frontend/backend Docker install-layer
   Husky failures were introduced by the move and are fixed. No open regression
-  remains in the VTT, Forge, root workflow, or Codex WebSocket parity slices.
-  Remaining Codex baseline failures are being dispositioned in wave 4.
+  remains in the VTT, Forge, root workflow, or Codex parity slices. Wave 4
+  repaired the blocking Codex baseline failures; the intentionally testless
+  WebSocket/UI services remain explicitly reported rather than disguised as
+  tested.
 
 ## Review findings and disposition
 
@@ -731,11 +811,19 @@ No independent review has run yet.
   usage limit before work began. Wave 4 was later accepted with the requested
   model overrides. The documentation worker is complete and closed after its
   evidence was integrated; the Codex application worker remains active.
-- Production approval is not requested and no production mutation is
+- GitHub package Actions access must be granted from the destination
+  `nexusVTT` repository to the existing `nexus-forge` and five
+  `nexuscodex-*` packages before their immutable candidate tags can publish.
+  This is a cloud permission change and is pending explicit user approval.
+- Dockhand's saved GHCR credential is invalid. Completing the pull gate needs a
+  new least-privilege `read:packages` credential saved to Dockhand; this is a
+  live credential change and sensitive-token transmission, pending explicit
+  user approval and token availability.
+- Production cutover approval is not requested and no production mutation is
   authorized.
 - Phases 0 and 1 are complete. Phase 2's functional checks and local
-  exact-revision image traceability pass; the plan-required controlled GHCR
-  pull check remains before the gate can close. Phase 3 has not started.
+  exact-revision image traceability pass, and four VTT candidates are published;
+  the controlled Dockhand pull requirement remains. Phase 3 has not started.
 
 ## Pending difficult-to-reverse or long-running operation
 
@@ -749,8 +837,9 @@ explicit cleanup approval.
 
 ## Remaining work in priority order
 
-1. Publish immutable `ac59d8a` candidate tags without moving production tags
-   and verify a Dockhand-side pull; close Phase 2.
+1. With explicit approval, grant destination Actions access to the six legacy
+   packages and replace Dockhand's invalid GHCR credential with a dedicated
+   read-only package token; rerun candidate publication and pull; close Phase 2.
 2. Rehearse the isolated deployment with disposable data and unique resources.
 3. Prepare the production Git cutover package without mutating production.
 4. Complete independent review, resolve findings, and rerun affected checks.

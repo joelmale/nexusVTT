@@ -9,7 +9,22 @@ import type {
   CombatRound,
 } from '@/types/initiative';
 import { createInitiativeEntry } from '@/types/initiative';
-import { characterSyncService } from '@/services/characterSyncService';
+
+function syncInitiativeStats(update: {
+  initiativeEntryId: string;
+  characterId?: string;
+  tokenId?: string;
+  stats: {
+    currentHP?: number;
+    tempHP?: number;
+  };
+}): void {
+  void import('@/services/characterSyncService').then(
+    ({ characterSyncService }) => {
+      characterSyncService.syncStats('initiative', update);
+    },
+  );
+}
 
 interface InitiativeStore extends InitiativeState {
   // Core Combat Actions
@@ -382,7 +397,7 @@ export const useInitiativeStore = create<InitiativeStore>()(
       // AFTER state update: trigger sync
       const entry = get().entries.find((e) => e.id === entryId);
       if (entry) {
-        characterSyncService.syncStats('initiative', {
+        syncInitiativeStats({
           initiativeEntryId: entryId,
           characterId: entry.characterId,
           tokenId: entry.tokenId,
@@ -415,7 +430,7 @@ export const useInitiativeStore = create<InitiativeStore>()(
       // AFTER state update: trigger sync
       const entry = get().entries.find((e) => e.id === entryId);
       if (entry) {
-        characterSyncService.syncStats('initiative', {
+        syncInitiativeStats({
           initiativeEntryId: entryId,
           characterId: entry.characterId,
           tokenId: entry.tokenId,
@@ -438,7 +453,7 @@ export const useInitiativeStore = create<InitiativeStore>()(
       // AFTER state update: trigger sync
       const entry = get().entries.find((e) => e.id === entryId);
       if (entry) {
-        characterSyncService.syncStats('initiative', {
+        syncInitiativeStats({
           initiativeEntryId: entryId,
           characterId: entry.characterId,
           tokenId: entry.tokenId,
@@ -470,7 +485,7 @@ export const useInitiativeStore = create<InitiativeStore>()(
       // AFTER state update: trigger sync
       const entry = get().entries.find((e) => e.id === entryId);
       if (entry) {
-        characterSyncService.syncStats('initiative', {
+        syncInitiativeStats({
           initiativeEntryId: entryId,
           characterId: entry.characterId,
           tokenId: entry.tokenId,
