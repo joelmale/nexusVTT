@@ -7,7 +7,7 @@ WORKDIR /app
 COPY package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --workspace=apps/codex/services/admin-ui --include-workspace-root
 
 # Copy source code
 COPY . .

@@ -4,7 +4,7 @@ import {
   normalizeIsoTimestamp,
   normalizeSkillKey,
 } from '@/utils/characterNormalization';
-import { createEmptyCharacter } from '@/types/character';
+import { createEmptyCharacter } from '@nexus/character-contracts';
 
 const NOW = '2026-01-01T00:00:00.000Z';
 

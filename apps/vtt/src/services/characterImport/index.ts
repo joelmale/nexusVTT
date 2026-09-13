@@ -14,4 +14,4 @@ export type {
   ImportMetadata,
   ImportResult,
   BatchImportResult,
-} from './forgeTypes';
+} from '@nexus/character-contracts';

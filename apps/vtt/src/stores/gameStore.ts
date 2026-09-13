@@ -29,7 +29,7 @@ import type {
   ConnectionState,
 } from '@/types/game';
 import type { FogShape } from '@/types/fog';
-import type { Character } from '@/types/character';
+import type { Character } from '@nexus/character-contracts';
 import type { InitiativeState } from '@/types/initiative';
 import { v4 as uuidv4 } from 'uuid';
 import { defaultColorSchemes, applyColorScheme } from '@/utils/colorSchemes';

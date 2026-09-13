@@ -3,9 +3,9 @@
  * Handles importing characters from various sources with support for batch imports
  */
 
-import type { Character } from '@/types/character';
+import type { Character } from '@nexus/character-contracts';
 import { normalizeCharacter } from '@/utils/characterNormalization';
-import type { ForgeCharacter, ImportResult, BatchImportResult } from './forgeTypes';
+import type { ForgeCharacter, ImportResult, BatchImportResult } from '@nexus/character-contracts';
 import { ForgeCharacterAdapter } from './forgeAdapter';
 
 export class CharacterImportService {

@@ -12,7 +12,7 @@ import type {
   CharacterClass,
   CharacterRace,
   CharacterBackground,
-} from '@/types/character';
+} from '@nexus/character-contracts';
 import {
   PLACEHOLDER_WEAPONS,
   PLACEHOLDER_ARMOR,

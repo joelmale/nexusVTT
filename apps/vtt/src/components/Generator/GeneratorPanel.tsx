@@ -7,8 +7,6 @@ import { GeneratorHostClient } from '@/services/generatorHostClient';
 import type { GeneratorHostMessage } from '../../../shared/generator/protocol';
 import { openNexusDB } from '@/services/nexusDb';
 
-
-
 const GENERATOR_MAP_STORAGE_KEY = 'nexus-generator-current-map';
 
 // IndexedDB helper for temporary generator map storage
@@ -19,8 +17,6 @@ interface GeneratorMapData {
   timestamp: number;
   generator: string;
 }
-
-
 
 const openGeneratorDB = async (): Promise<IDBDatabase> => {
   return openNexusDB();
@@ -100,7 +96,10 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   onSwitchToScenes,
 }) => {
   const [generatedMap, setGeneratedMap] = useState<string | null>(null);
-  const [generatedBlob, setGeneratedBlob] = useState<{ blob: Blob; filename: string } | null>(null);
+  const [generatedBlob, setGeneratedBlob] = useState<{
+    blob: Blob;
+    filename: string;
+  } | null>(null);
   const [activeGenerator, setActiveGenerator] =
     useState<GeneratorType>('dungeon');
   const [forceRasterize, setForceRasterize] = useState(true);
@@ -123,50 +122,56 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   const updateScene = useGameStore((state) => state.updateScene);
   const setActiveTab = useGameStore((state) => state.setActiveTab);
 
-  const handleMapGenerated = React.useCallback(async (
-    imageDataOrData: GeneratedMapPayload,
-    format: 'webp' | 'png' = 'webp',
-    originalSize?: number,
-  ) => {
-    const generatorType = activeGenerator;
-    console.log('🗺️ Map generated from:', generatorType);
+  const handleMapGenerated = React.useCallback(
+    async (
+      imageDataOrData: GeneratedMapPayload,
+      format: 'webp' | 'png' = 'webp',
+      originalSize?: number,
+    ) => {
+      const generatorType = activeGenerator;
+      console.log('🗺️ Map generated from:', generatorType);
 
-    let imageData: string;
-    if (typeof imageDataOrData === 'string') {
-      if (imageDataOrData.startsWith('{')) {
-        console.warn('Blocked JSON payload from entering scene state');
-        return;
+      let imageData: string;
+      if (typeof imageDataOrData === 'string') {
+        if (imageDataOrData.startsWith('{')) {
+          console.warn('Blocked JSON payload from entering scene state');
+          return;
+        }
+        imageData = imageDataOrData;
+      } else {
+        imageData = '';
       }
-      imageData = imageDataOrData;
-    } else {
-      imageData = '';
-    }
 
-    setGeneratedMap(imageData);
+      setGeneratedMap(imageData);
 
-    await saveGeneratorMapToIndexedDB({
-      imageData,
-      format,
-      originalSize,
-      timestamp: Date.now(),
-      generator: generatorType,
-    });
-  }, [activeGenerator]);
+      await saveGeneratorMapToIndexedDB({
+        imageData,
+        format,
+        originalSize,
+        timestamp: Date.now(),
+        generator: generatorType,
+      });
+    },
+    [activeGenerator],
+  );
 
   // Setup Host Client
   useEffect(() => {
     const client = new GeneratorHostClient(hubOrigin);
-    
+
     const handleHostMessage = (event: MessageEvent) => {
       if (event.origin !== hubOrigin) return;
       const msg = event.data as GeneratorHostMessage;
-      
+
       if (msg.type === 'generator/export-ready') {
         const artifact = msg.payload;
         const innerPayload = artifact.payload;
         const format = innerPayload.mimeType === 'image/webp' ? 'webp' : 'png';
-        const filename = 'generated_map_' + artifact.exportId + (format === 'webp' ? '.webp' : '.png');
-        
+        const filename =
+          'generated_map_' +
+          artifact.exportId +
+          (format === 'webp' ? '.webp' : '.png');
+
         // Save blob for server upload
         setGeneratedBlob({ blob: innerPayload.blob, filename });
 
@@ -179,11 +184,11 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     };
 
     window.addEventListener('message', handleHostMessage);
-    
+
     if (iframeRef.current?.contentWindow) {
       client.connect(iframeRef.current.contentWindow);
     }
-    
+
     return () => {
       window.removeEventListener('message', handleHostMessage);
       client.disconnect();
@@ -198,7 +203,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         if (stored) {
           setGeneratedMap(stored.imageData);
           try {
-              // Removed legacy JSON handling
+            // Removed legacy JSON handling
           } catch {
             // Not JSON
           }
@@ -215,7 +220,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
 
     try {
       setIsImporting(true);
-      
+
       let finalUrl = generatedMap;
 
       if (generatedBlob) {
@@ -224,7 +229,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
           blob: generatedBlob.blob,
           filename: generatedBlob.filename,
         });
-        
+
         finalUrl = result.sceneUrl;
       }
 
@@ -305,7 +310,9 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         </div>
       )}
 
-      {['dungeon', 'world'].includes(activeGenerator) && (
+      {['dungeon', 'world', 'cave', 'city', 'dwelling'].includes(
+        activeGenerator,
+      ) && (
         <iframe
           ref={iframeRef}
           key={`generator-hub-${activeGenerator}`}

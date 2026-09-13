@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DocumentTypeEnum } from './document';
+import { DocumentTypeEnum } from '@nexus/document-contracts';
 
 export const SearchQuerySchema = z.object({
   query: z.string().min(1),

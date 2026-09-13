@@ -16,7 +16,7 @@ COPY apps/generator-hub/package.json ./apps/generator-hub/package.json
 # root postinstall tooling is intentionally absent from this production image,
 # so suppress lifecycle scripts here and apply the shared runtime patch
 # explicitly after installation.
-RUN npm ci --workspace asset-service --include-workspace-root=false --ignore-scripts --legacy-peer-deps
+RUN npm ci --workspace=apps/vtt/services/asset-service --include-workspace-root --workspace asset-service --include-workspace-root=false --ignore-scripts --legacy-peer-deps
 
 COPY patches ./patches
 RUN npm exec -- patch-package
@@ -33,7 +33,8 @@ RUN addgroup -g 1001 -S nodejs && \
     mkdir -p /app/static-assets/assets /app/static-assets/users /app/assets-data && \
     chown -R nodejs:nodejs /app
 
-USER nodejs
+USER node
+WORKDIR /app/apps/vtt/services/asset-servicejs
 
 ENV PORT=5003
 ENV ASSETS_PATH=/app/static-assets

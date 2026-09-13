@@ -12,7 +12,7 @@ import type {
   CharacterRace,
   CharacterBackground,
   PersonalityData,
-} from '@/types/character';
+} from '@nexus/character-contracts';
 
 export interface CodeGenerationOptions {
   includeComments?: boolean;
@@ -126,7 +126,7 @@ export class CodeGenerator {
   CharacterRace,
   CharacterBackground,
   PersonalityData,
-} from '@/types/character';
+} from '@nexus/character-contracts';
 
 `;
 

@@ -170,7 +170,7 @@ jobs:
       - name: Build image without publishing
         uses: docker/build-push-action@v7
         with:
-          context: ./apps/codex/services/${{ matrix.service }}
+          context: . matrix.service }}
           file: ./apps/codex/services/${{ matrix.service }}/Dockerfile
           push: false
           tags: nexuscodex/${{ matrix.service }}:ci

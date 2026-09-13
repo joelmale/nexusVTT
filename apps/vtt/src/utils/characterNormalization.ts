@@ -1,9 +1,9 @@
-import type { AbilityKey, AbilityScores, Character, SkillMap } from '@/types/character';
+import type { AbilityKey, AbilityScores, Character, SkillMap } from '@nexus/character-contracts';
 import {
   calculateAbilityModifier,
   calculateProficiencyBonus,
   createEmptyCharacter,
-} from '@/types/character';
+} from '@nexus/character-contracts';
 
 export const normalizeSkillKey = (name: string): string => {
   const map: Record<string, string> = {

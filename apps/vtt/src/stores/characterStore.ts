@@ -11,7 +11,7 @@ import type {
   CharacterImportSource,
   CharacterExportFormat,
   SkillMap,
-} from '@/types/character';
+} from '@nexus/character-contracts';
 import type { PlayerCharacter } from '@/types/game';
 import { useInitiativeStore } from '@/stores/initiativeStore';
 import { getGameStoreContext } from '@/stores/gameStoreContext';
@@ -20,7 +20,7 @@ import {
   calculateAbilityModifier,
   calculateProficiencyBonus,
   STANDARD_SKILLS,
-} from '@/types/character';
+} from '@nexus/character-contracts';
 
 interface CharacterState {
   // Characters

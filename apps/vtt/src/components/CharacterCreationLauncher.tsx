@@ -1,5 +1,5 @@
 import React, { useState, Suspense } from 'react';
-import type { Character } from '@/types/character';
+import type { Character } from '@nexus/character-contracts';
 import { CharacterCreationContext } from './CharacterCreationContext';
 
 // Lazy load the heavy CharacterCreationWizard

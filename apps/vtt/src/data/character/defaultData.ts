@@ -9,7 +9,7 @@ import type {
   Spell,
   Tool,
   Weapon,
-} from '@/types/character';
+} from '@nexus/character-contracts';
 
 // D&D 5e Weapons Data
 export const PLACEHOLDER_WEAPONS: Weapon[] = [

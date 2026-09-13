@@ -226,17 +226,13 @@ cd apps/vtt
 npm run start:all  # Local development with Docker
 ```
 
-### Production status
+### Production Deployment
 
-> **STOP: `apps/vtt/docker/docker-compose.yml` is local/component development
-> only. It is not the production, Dockhand, or Swarm stack and must not be used
-> with `docker stack deploy` or a production Docker host.**
+The production stack is deployed via Dockhand using the `deploy/homelab/compose.yaml` configuration.
 
-The production package is not complete. Do not deploy from this repository until
-the not-yet-complete `deploy/homelab/compose.yaml` package and its execution
-ledger entry are ready. Track the remaining work in
-[`docs/operations/monorepo-migration-execution-ledger.md`](./docs/operations/monorepo-migration-execution-ledger.md);
-Phase 3 is not complete.
+> **Note:** `apps/vtt/docker/docker-compose.yml` is for local/component development only. It is not the production stack and should not be used in Dockhand or Swarm.
+
+The monorepo migration is complete. Refer to [DEPLOYMENT.md](./DEPLOYMENT.md) and [`docs/operations/nexuscodex-homelab.md`](./docs/operations/nexuscodex-homelab.md) for production topology details and required environment variables.
 
 ### Configuration
 

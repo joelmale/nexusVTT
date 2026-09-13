@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { Character } from '@/types/character';
+import type { Character } from '@nexus/character-contracts';
 import type { PlacedToken } from '@/types/token';
 import type { InitiativeEntry } from '@/types/initiative';
 import { useGameStore } from '@/stores/gameStore';

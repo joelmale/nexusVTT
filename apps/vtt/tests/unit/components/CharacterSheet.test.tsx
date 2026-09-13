@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { CharacterSheet } from '@/components/CharacterSheet';
 import { useCharacterStore } from '@/stores/characterStore';
-import type { Character } from '@/types/character';
+import type { Character } from '@nexus/character-contracts';
 
 // Mock the character store
 vi.mock('@/stores/characterStore', () => ({
@@ -11,9 +11,9 @@ vi.mock('@/stores/characterStore', () => ({
 }));
 
 // Mock the character types
-vi.mock('@/types/character', async () => {
-  const actual = await vi.importActual<typeof import('@/types/character')>(
-    '@/types/character',
+vi.mock('@nexus/character-contracts', async () => {
+  const actual = await vi.importActual<typeof import('@nexus/character-contracts')>(
+    '@nexus/character-contracts',
   );
   return {
     ...actual,

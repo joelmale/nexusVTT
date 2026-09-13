@@ -5,8 +5,8 @@ import {
   calculatePassivePerception,
   createEmptyCharacter,
   STANDARD_SKILLS
-} from '@/types/character';
-import type { AbilityScores } from '@/types/character';
+} from '@nexus/character-contracts';
+import type { AbilityScores } from '@nexus/character-contracts';
 
 describe('Character Utility Functions', () => {
   describe('calculateAbilityModifier', () => {

@@ -259,7 +259,7 @@ jobs:
       - name: Build and push frontend
         uses: docker/build-push-action@v7
         with:
-          context: ./apps/vtt
+          context: .
           file: ./apps/vtt/docker/frontend.Dockerfile
           target: production
           push: true
@@ -275,7 +275,7 @@ jobs:
       - name: Build and push backend
         uses: docker/build-push-action@v7
         with:
-          context: ./apps/vtt
+          context: .
           file: ./apps/vtt/docker/backend.Dockerfile
           push: true
           tags: |
@@ -290,7 +290,7 @@ jobs:
       - name: Build and push asset service
         uses: docker/build-push-action@v7
         with:
-          context: ./apps/vtt
+          context: .
           file: ./apps/vtt/docker/asset-service.Dockerfile
           push: true
           tags: |
@@ -305,7 +305,7 @@ jobs:
       - name: Build and push postgres
         uses: docker/build-push-action@v7
         with:
-          context: ./apps/vtt
+          context: .
           file: ./apps/vtt/docker/postgres.Dockerfile
           push: true
           tags: |
@@ -331,52 +331,52 @@ jobs:
       matrix:
         include:
           - name: vtt-frontend
-            context: ./apps/vtt
+            context: .
             file: ./apps/vtt/docker/frontend.Dockerfile
             image: ghcr.io/joelmale/nexusvtt/frontend
             platforms: linux/amd64
           - name: vtt-backend
-            context: ./apps/vtt
+            context: .
             file: ./apps/vtt/docker/backend.Dockerfile
             image: ghcr.io/joelmale/nexusvtt/backend
             platforms: linux/amd64
           - name: vtt-asset-service
-            context: ./apps/vtt
+            context: .
             file: ./apps/vtt/docker/asset-service.Dockerfile
             image: ghcr.io/joelmale/nexusvtt/asset-service
             platforms: linux/amd64
           - name: vtt-postgres
-            context: ./apps/vtt
+            context: .
             file: ./apps/vtt/docker/postgres.Dockerfile
             image: ghcr.io/joelmale/nexusvtt/postgres
             platforms: linux/amd64
           - name: forge
-            context: ./apps/forge
+            context: .
             file: ./apps/forge/Dockerfile
             image: ghcr.io/joelmale/nexus-forge
             platforms: linux/amd64,linux/arm64
           - name: codex-doc-api
-            context: ./apps/codex/services/doc-api
+            context: .
             file: ./apps/codex/services/doc-api/Dockerfile
             image: ghcr.io/joelmale/nexuscodex-doc-api
             platforms: linux/amd64
           - name: codex-doc-processor
-            context: ./apps/codex/services/doc-processor
+            context: .
             file: ./apps/codex/services/doc-processor/Dockerfile
             image: ghcr.io/joelmale/nexuscodex-doc-processor
             platforms: linux/amd64
           - name: codex-doc-websocket
-            context: ./apps/codex/services/doc-websocket
+            context: .
             file: ./apps/codex/services/doc-websocket/Dockerfile
             image: ghcr.io/joelmale/nexuscodex-doc-websocket
             platforms: linux/amd64
           - name: codex-admin-ui
-            context: ./apps/codex/services/admin-ui
+            context: .
             file: ./apps/codex/services/admin-ui/Dockerfile
             image: ghcr.io/joelmale/nexuscodex-admin-ui
             platforms: linux/amd64
           - name: codex-dm-ui
-            context: ./apps/codex/services/dm-ui
+            context: .
             file: ./apps/codex/services/dm-ui/Dockerfile
             image: ghcr.io/joelmale/nexuscodex-dm-ui
             platforms: linux/amd64

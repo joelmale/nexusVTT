@@ -6,7 +6,7 @@
  */
 
 import React, { useEffect } from 'react';
-import type { Character } from '@/types/character';
+import type { Character } from '@nexus/character-contracts';
 
 interface CharacterSheetPopupProps {
   character: Character;

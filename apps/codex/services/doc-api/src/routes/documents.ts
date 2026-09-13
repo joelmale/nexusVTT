@@ -13,7 +13,7 @@ import {
   UpdateDocumentInput,
   ListDocumentsQuery,
   BulkCreateDocumentInput,
-} from '../types/document';
+} from '@nexus/document-contracts';
 
 export async function documentRoutes(fastify: FastifyInstance) {
   /**

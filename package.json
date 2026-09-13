@@ -3,6 +3,19 @@
   "version": "0.0.0",
   "private": true,
   "description": "Repository-level orchestration for the Nexus applications",
+  "workspaces": [
+    "packages/*",
+    "apps/vtt",
+    "apps/vtt/apps/generator-hub",
+    "apps/vtt/services/asset-service",
+    "apps/forge",
+    "apps/codex/services/admin-ui",
+    "apps/codex/services/dm-ui",
+    "apps/codex/services/doc-api",
+    "apps/codex/services/doc-processor",
+    "apps/codex/services/doc-websocket",
+    "apps/codex/docs"
+  ],
   "scripts": {
     "install:vtt": "npm ci --prefix apps/vtt",
     "install:forge": "npm ci --prefix apps/forge",

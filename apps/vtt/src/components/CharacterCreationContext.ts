@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Character } from '@/types/character';
+import type { Character } from '@nexus/character-contracts';
 
 // Context for sharing character creation launcher across components
 export interface CharacterCreationContextType {

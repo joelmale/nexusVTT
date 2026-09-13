@@ -21,30 +21,34 @@ async function rasterizeSvgToWebp(svgText: string): Promise<Blob> {
     const img = new Image();
     const blob = new Blob([svgText], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
-    
+
     img.onload = () => {
       const canvas = document.createElement('canvas');
       canvas.width = img.width;
       canvas.height = img.height;
       const ctx = canvas.getContext('2d');
       if (!ctx) return reject(new Error('Failed to get canvas context'));
-      
+
       ctx.fillStyle = 'white'; // default background
       ctx.fillRect(0, 0, canvas.width, canvas.height);
       ctx.drawImage(img, 0, 0);
-      
-      canvas.toBlob((webpBlob) => {
-        URL.revokeObjectURL(url);
-        if (webpBlob) resolve(webpBlob);
-        else reject(new Error('Failed to create WebP blob'));
-      }, 'image/webp', 0.9);
+
+      canvas.toBlob(
+        (webpBlob) => {
+          URL.revokeObjectURL(url);
+          if (webpBlob) resolve(webpBlob);
+          else reject(new Error('Failed to create WebP blob'));
+        },
+        'image/webp',
+        0.9,
+      );
     };
-    
+
     img.onerror = () => {
       URL.revokeObjectURL(url);
       reject(new Error('Failed to load SVG for rasterization'));
     };
-    
+
     img.src = url;
   });
 }
@@ -60,7 +64,7 @@ function App() {
     ? requestedGenerator
     : 'dungeon';
   const forceRasterize = urlParams.get('rasterize') === 'true';
-  
+
   let iframeSrc = '';
   if (generator === 'dungeon') iframeSrc = '/one-page-dungeon/index.html';
   if (generator === 'world') iframeSrc = '/world-map-generator/index.html';
@@ -86,7 +90,10 @@ function App() {
       }
 
       // Handle World Generator
-      if (event.data.type === 'VTT_MAP_EXPORTED' && event.data.generatorId === 'world') {
+      if (
+        event.data.type === 'VTT_MAP_EXPORTED' &&
+        event.data.generatorId === 'world'
+      ) {
         const payload = event.data;
         const dataUrl = payload.full?.dataUrl;
         if (!dataUrl) return;
@@ -104,16 +111,16 @@ function App() {
             generatorVersion: '1.0',
             byteLength: blob.size,
             grid: {
-              bakedIntoImage: true
+              bakedIntoImage: true,
             },
-            payload: { 
-              kind: 'raster', 
-              blob, 
-              mimeType: blob.type as 'image/webp' | 'image/png', 
-              width: payload.meta?.width || 2000, 
-              height: payload.meta?.height || 2000 
-            }
-          }
+            payload: {
+              kind: 'raster',
+              blob,
+              mimeType: blob.type as 'image/webp' | 'image/png',
+              width: payload.meta?.width || 2000,
+              height: payload.meta?.height || 2000,
+            },
+          },
         };
         window.parent.postMessage(msg, '*');
         return;
@@ -126,7 +133,7 @@ function App() {
         event.data.type === 'DWELLINGS_EXPORT_READY'
       ) {
         const { blob, mimeType } = event.data.payload;
-        
+
         let finalBlob = blob;
         let finalMimeType = mimeType;
         let format: 'svg' | 'webp' | 'png' = 'svg';
@@ -135,11 +142,14 @@ function App() {
         if (mimeType === 'image/svg+xml') {
           const text = await blob.text();
           // Extremely basic check - if it references fonts not standard, we rasterize
-          const requiresRasterization = text.includes('font-family') && 
+          const requiresRasterization =
+            text.includes('font-family') &&
             !text.includes('font-family="monospace"');
 
           if (forceRasterize || requiresRasterization) {
-            console.log('Rasterizing SVG to WebP due to font constraints or user preference');
+            console.log(
+              'Rasterizing SVG to WebP due to font constraints or user preference',
+            );
             finalBlob = await rasterizeSvgToWebp(text);
             finalMimeType = 'image/webp';
             format = 'webp';
@@ -160,14 +170,25 @@ function App() {
             generatorVersion: '1.0',
             byteLength: finalBlob.size,
             grid: {
-              bakedIntoImage: true
+              bakedIntoImage: true,
             },
-            payload: format === 'svg' 
-              ? { kind: 'svg-master', blob: finalBlob, mimeType: 'image/svg+xml' }
-              : { kind: 'raster', blob: finalBlob, mimeType: finalMimeType as 'image/webp' | 'image/png', width: 2000, height: 2000 }
-          }
+            payload:
+              format === 'svg'
+                ? {
+                    kind: 'svg-master',
+                    blob: finalBlob,
+                    mimeType: 'image/svg+xml',
+                  }
+                : {
+                    kind: 'raster',
+                    blob: finalBlob,
+                    mimeType: finalMimeType as 'image/webp' | 'image/png',
+                    width: 2000,
+                    height: 2000,
+                  },
+          },
         };
-        
+
         window.parent.postMessage(msg, '*');
       }
     };
@@ -177,20 +198,40 @@ function App() {
   }, [forceRasterize, generator]);
 
   return (
-    <div style={{ width: '100%', height: '100vh', margin: 0, padding: 0, overflow: 'hidden' }}>
-      {loading && <div style={{ position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)' }}>Loading Generator...</div>}
-      {iframeSrc ? (
-        <iframe
-          ref={iframeRef}
-          src={iframeSrc}
-          style={{ width: '100%', height: '100%', border: 'none' }}
-          sandbox="allow-scripts allow-same-origin allow-forms allow-downloads"
-          title="Generator Vendor"
-          onLoad={() => setLoading(false)}
-        />
-      ) : (
-        <div>Unknown generator: {generator}</div>
+    <div
+      style={{
+        width: '100%',
+        height: '100%',
+        display: 'flex',
+        flexDirection: 'column',
+      }}
+    >
+      {loading && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            bottom: 0,
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: '#111827',
+            color: 'white',
+          }}
+        >
+          Loading Generator...
+        </div>
       )}
+      <iframe
+        ref={iframeRef}
+        src={iframeSrc}
+        style={{ flex: 1, border: 'none' }}
+        sandbox="allow-scripts allow-same-origin allow-forms allow-downloads"
+        title="Generator Content"
+        onLoad={() => setLoading(false)}
+      />
     </div>
   );
 }

@@ -15,7 +15,7 @@ import { useCharacters } from '@/stores/characterStore';
 import { CharacterSheetPopup } from './CharacterSheetPopup';
 import { QuickCharacterEntry } from './QuickCharacterEntry';
 import { CharacterImportModal } from './CharacterImportModal';
-import type { Character } from '@/types/character';
+import type { Character } from '@nexus/character-contracts';
 import type { PlayerCharacter } from '@/types/game';
 import './PlayerSetupPage.css';
 

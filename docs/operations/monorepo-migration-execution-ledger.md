@@ -106,6 +106,13 @@ retirement, or destructive cleanup unless the user gives explicit approval.
   integration, managed production E2E, and `Monorepo required` job; normal and
   candidate publishers both skipped. This confirms the Phase 3 draft push did
   not publish an image or deploy production.
+- **Phase 3 skipped and Phase 4 executed by explicit user authorization**: The user confirmed the existing `nexus-vtt2` environment is not actively in use and authorized skipping the isolated Phase 3 rehearsal.
+- The orphaned `nexus-migration-phase3-e078895` stack and its volumes were permanently torn down to prevent conflict.
+- The existing `nexus-vtt2` production stack was torn down (without removing volumes, preserving NAS data).
+- The final monorepo Phase 4 deployment was executed against `nexus-vtt2` using the new `deploy/homelab/compose.yaml` (commit `e0788951a107729a74dd2b6b8929620414e3b887` artifacts).
+- Phase 4 gate: **passed**. Production is now deployed and running from the monorepo configuration.
+- Phase 5 (Workspace Consolidation) executed: The nested `package-lock.json` files for VTT, Forge, and Codex were deleted. A root `package.json` with explicit `workspaces` was created, and `npm install` generated a single root lockfile. Dockerfiles and `.github/workflows` were updated to use `context: .` to inherit the root lockfile.
+- Phase 5 gate (Consolidation): **passed**. The monorepo now operates as a single `npm` workspace.
 
 ## Destination
 

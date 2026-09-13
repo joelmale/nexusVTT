@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { act } from 'react';
 import { useCharacterStore } from '@/stores/characterStore';
-import type { Character } from '@/types/character';
+import type { Character } from '@nexus/character-contracts';
 import {
   createEmptyCharacter,
   calculateAbilityModifier,
-} from '@/types/character';
+} from '@nexus/character-contracts';
 vi.mock('@/services/linearFlowStorage', () => ({
   getLinearFlowStorage: vi.fn(() => ({
     saveCharacter: vi.fn(),
@@ -14,8 +14,8 @@ vi.mock('@/services/linearFlowStorage', () => ({
 }));
 
 // Mock the character types utilities
-vi.mock('@/types/character', async () => {
-  const actual = await vi.importActual('@/types/character');
+vi.mock('@nexus/character-contracts', async () => {
+  const actual = await vi.importActual('@nexus/character-contracts');
   return {
     ...actual,
     createEmptyCharacter: vi.fn(),

@@ -12,8 +12,8 @@ import type {
   CharacterClass,
   CharacterBackground,
   Equipment,
-} from '@/types/character';
-import { CHARACTER_CLASSES, CHARACTER_RACES } from '@/types/character';
+} from '@nexus/character-contracts';
+import { CHARACTER_CLASSES, CHARACTER_RACES } from '@nexus/character-contracts';
 
 // =============================================================================
 // CORE DICE ROLLING UTILITIES

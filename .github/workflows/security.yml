@@ -91,7 +91,7 @@ jobs:
       - name: Build Docker image
         uses: docker/build-push-action@v7
         with:
-          context: ./apps/vtt
+          context: .
           file: ./apps/vtt/docker/${{ matrix.image }}.Dockerfile
           push: false
           load: true
@@ -157,7 +157,7 @@ jobs:
       - name: Build frontend image for SBOM
         uses: docker/build-push-action@v7
         with:
-          context: ./apps/vtt
+          context: .
           file: ./apps/vtt/docker/frontend.Dockerfile
           target: production
           push: false
@@ -167,7 +167,7 @@ jobs:
       - name: Build backend image for SBOM
         uses: docker/build-push-action@v7
         with:
-          context: ./apps/vtt
+          context: .
           file: ./apps/vtt/docker/backend.Dockerfile
           push: false
           load: true

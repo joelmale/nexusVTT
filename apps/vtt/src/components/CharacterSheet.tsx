@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useCharacterStore } from '@/stores/characterStore';
-import { calculatePassivePerception } from '@/types/character';
-import type { Character, AbilityKey } from '@/types/character';
+import { calculatePassivePerception } from '@nexus/character-contracts';
+import type { Character, AbilityKey } from '@nexus/character-contracts';
 
 const formatSlug = (slug: string): string =>
   slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());

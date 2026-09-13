@@ -8,10 +8,22 @@ FROM base AS deps
 WORKDIR /app
 
 # Copy package files
-COPY package.json package-lock.json* ./
+# Copy root package files
+COPY package.json package-lock.json ./
+# Copy all workspace package.json files to preserve workspace structure for npm ci
+COPY apps/vtt/package.json ./apps/vtt/
+COPY apps/vtt/apps/generator-hub/package.json ./apps/vtt/apps/generator-hub/
+COPY apps/vtt/services/asset-service/package.json ./apps/vtt/services/asset-service/
+COPY apps/forge/package.json ./apps/forge/
+COPY apps/codex/services/admin-ui/package.json ./apps/codex/services/admin-ui/
+COPY apps/codex/services/dm-ui/package.json ./apps/codex/services/dm-ui/
+COPY apps/codex/services/doc-api/package.json ./apps/codex/services/doc-api/
+COPY apps/codex/services/doc-processor/package.json ./apps/codex/services/doc-processor/
+COPY apps/codex/services/doc-websocket/package.json ./apps/codex/services/doc-websocket/
+COPY apps/codex/docs/package.json ./apps/codex/docs/
 
 # Install dependencies
-RUN npm ci
+RUN npm ci --workspace=apps/codex/services/doc-api --include-workspace-root
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -19,11 +31,23 @@ WORKDIR /app
 # Force rebuild v3
 RUN echo "Force rebuild at $(date)"
 COPY --from=deps /app/node_modules ./node_modules
-COPY package.json .
-COPY tsconfig.json .
-COPY prisma ./prisma
+# Copy root package files
+COPY package.json package-lock.json ./
+# Copy all workspace package.json files to preserve workspace structure for npm ci
+COPY apps/vtt/package.json ./apps/vtt/
+COPY apps/vtt/apps/generator-hub/package.json ./apps/vtt/apps/generator-hub/
+COPY apps/vtt/services/asset-service/package.json ./apps/vtt/services/asset-service/
+COPY apps/forge/package.json ./apps/forge/
+COPY apps/codex/services/admin-ui/package.json ./apps/codex/services/admin-ui/
+COPY apps/codex/services/dm-ui/package.json ./apps/codex/services/dm-ui/
+COPY apps/codex/services/doc-api/package.json ./apps/codex/services/doc-api/
+COPY apps/codex/services/doc-processor/package.json ./apps/codex/services/doc-processor/
+COPY apps/codex/services/doc-websocket/package.json ./apps/codex/services/doc-websocket/
+COPY apps/codex/docs/package.json ./apps/codex/docs/
+COPY apps/codex/services/doc-api/tsconfig.json ./apps/codex/services/doc-api/
+COPY apps/codex/services/doc-api/prisma ./apps/codex/services/doc-api/prisma
 RUN npx prisma generate
-COPY src ./src
+COPY apps/codex/services/doc-api/src ./apps/codex/services/doc-api/src
 
 # Production image, copy all the files and run
 FROM base AS runner
@@ -40,15 +64,16 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 # Copy necessary files
 COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/src ./src
-COPY --from=builder /app/prisma ./prisma
+COPY --from=builder /app/apps/codex/services/doc-api/src ./apps/codex/services/doc-api/src
+COPY --from=builder /app/apps/codex/services/doc-api/prisma ./apps/codex/services/doc-api/prisma
 COPY --from=builder /app/package.json ./package.json
-COPY --from=builder /app/tsconfig.json ./tsconfig.json
+COPY --from=builder /app/apps/codex/services/doc-api/tsconfig.json ./apps/codex/services/doc-api/tsconfig.json
 
 # Change ownership
 RUN chown -R fastify:nodejs /app
 
 USER fastify
+WORKDIR /app/apps/codex/services/doc-api
 
 EXPOSE 3000
 
@@ -58,4 +83,4 @@ LABEL org.opencontainers.image.title="Nexus Codex Document API" \
       org.opencontainers.image.revision="$COMMIT_SHA"
 
 # Run database migrations and start server
-CMD ["sh", "-c", "npx prisma db push --skip-generate && npx tsx src/server.ts"]
+CMD ["sh", "-c", "npx prisma migrate deploy && npx tsx apps/codex/services/doc-api/src/server.ts"]

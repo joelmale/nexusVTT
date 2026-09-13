@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { getDataManager } from '@/utils/dataManager';
 import { DataTable } from './DataTable';
 import { DataModal } from './DataModal';
-import type { Weapon, Armor } from '@/types/character';
+import type { Weapon, Armor } from '@nexus/character-contracts';
 
 export const AdminPage: React.FC = () => {
   // Hooks must be called before any conditional returns

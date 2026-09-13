@@ -1,4 +1,4 @@
-import type { Character } from '@/types/character';
+import type { Character } from '@nexus/character-contracts';
 import type { Scene } from '@/types/game';
 import type { InitiativeState } from '@/types/initiative';
 import { useCharacterStore } from '@/stores/characterStore';

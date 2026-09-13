@@ -45,7 +45,7 @@ COPY scripts/sync-dice-assets.js ./scripts/sync-dice-assets.js
 COPY scripts/prepare-husky.js ./scripts/prepare-husky.js
 
 # Install all dependencies (needed for build)
-RUN npm ci --legacy-peer-deps
+RUN npm ci --workspace=apps/vtt --include-workspace-root --legacy-peer-deps
 
 # Copy source code
 COPY . .

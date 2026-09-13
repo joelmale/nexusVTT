@@ -63,7 +63,7 @@ jobs:
 
       - uses: docker/build-push-action@v7
         with:
-          context: ./apps/forge
+          context: .
           file: ./apps/forge/Dockerfile
           push: false
           tags: nexus-forge:ci

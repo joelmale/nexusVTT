@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useCharacterStore } from '@/stores/characterStore';
 import { useGameStore } from '@/stores/gameStore';
-import type { Character } from '@/types/character';
+import type { Character } from '@nexus/character-contracts';
 import { CharacterSheetPopup } from './CharacterSheetPopup';
 import { useCharacterCreationLauncher } from '@/hooks';
 import './CharacterSelectionModal.css';

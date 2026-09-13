@@ -23,10 +23,11 @@ COPY --chown=nodejs:nodejs patches ./patches
 COPY --chown=nodejs:nodejs scripts/sync-dice-assets.js ./scripts/sync-dice-assets.js
 COPY --chown=nodejs:nodejs scripts/prepare-husky.js ./scripts/prepare-husky.js
 
-USER nodejs
+USER node
+WORKDIR /app/apps/vttjs
 
 # Install dependencies
-RUN npm ci --legacy-peer-deps
+RUN npm ci --workspace=apps/vtt --include-workspace-root --legacy-peer-deps
 
 # Copy server and shared code
 COPY --chown=nodejs:nodejs server/ ./server/

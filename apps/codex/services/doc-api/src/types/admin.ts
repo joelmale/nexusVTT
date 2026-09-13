@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { DocumentTypeEnum } from './document';
+import { DocumentTypeEnum } from '@nexus/document-contracts';
 
 // Admin document list query schema with enhanced filters
 export const AdminListDocumentsQuerySchema = z.object({

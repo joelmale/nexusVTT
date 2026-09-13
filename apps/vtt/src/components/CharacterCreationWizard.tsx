@@ -13,7 +13,7 @@ import {
   getAvailableBackgrounds,
   getAvailableAlignments,
 } from '@/utils/characterGenerator';
-import type { Character, AbilityScores } from '@/types/character';
+import type { Character, AbilityScores } from '@nexus/character-contracts';
 
 interface CharacterCreationWizardProps {
   playerId: string;

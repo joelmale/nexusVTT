@@ -7,7 +7,7 @@ import { useSession, useIsHost, useGameStore } from '@/stores/gameStore';
 import { useCharacters, useCharacterCreation } from '@/stores/characterStore';
 import { useCharacterCreationLauncher } from '@/hooks';
 import { useInitiativeStore } from '@/stores/initiativeStore';
-import type { Character } from '@/types/character';
+import type { Character } from '@nexus/character-contracts';
 import type { Player, Session } from '@/types/game';
 
 // Mock the store hooks

@@ -21,8 +21,8 @@ RUN --mount=type=cache,target=/root/.npm \
     npm cache clean --force
 
 # Copy source code in smaller chunks for better layer caching
-COPY src ./src/
-COPY public ./public/
+COPY apps/forge/src ./apps/forge/src/
+COPY apps/forge/public ./apps/forge/public/
 COPY index.html ./
 
 # Build with cache mount

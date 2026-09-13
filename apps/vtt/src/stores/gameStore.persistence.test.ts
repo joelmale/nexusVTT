@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import type { Scene, User } from '@/types/game';
-import type { Character } from '@/types/character';
-import { createEmptyCharacter } from '@/types/character';
+import type { Character } from '@nexus/character-contracts';
+import { createEmptyCharacter } from '@nexus/character-contracts';
 import type { InitiativeState } from '@/types/initiative';
 import { createInitiativeEntry } from '@/types/initiative';
 import type {

@@ -2,10 +2,10 @@
  * Schema adapter for transforming 5e Character Forge exports to NexusVTT format
  */
 
-import type { Character, SkillMap } from '@/types/character';
-import { createEmptyCharacter } from '@/types/character';
+import type { Character, SkillMap } from '@nexus/character-contracts';
+import { createEmptyCharacter } from '@nexus/character-contracts';
 import { normalizeSkillKey } from '@/utils/characterNormalization';
-import type { ForgeCharacter, ImportMetadata } from './forgeTypes';
+import type { ForgeCharacter, ImportMetadata } from '@nexus/character-contracts';
 
 export class ForgeCharacterAdapter {
   /**
