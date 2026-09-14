@@ -43,7 +43,7 @@
                          "@fastify/multipart":  "^8.0.0",
                          "@prisma/client":  "^5.7.1",
                          "@types/prompts":  "^2.4.9",
-                         "bcryptjs":  "^2.4.3",
+                         "bcryptjs":  "^3.0.3",
                          "bullmq":  "^4.17.0",
                          "dotenv":  "^16.3.1",
                          "fastify":  "^4.25.2",
