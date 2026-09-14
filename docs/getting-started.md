@@ -22,8 +22,9 @@ Before you begin, ensure you have the following installed:
 
 2.  **Install Dependencies**
 
-    ```bash
-    npm install
+```bash
+cd apps/vtt
+npm install
     ```
 
 3.  **Configure Environment**
@@ -37,12 +38,13 @@ Before you begin, ensure you have the following installed:
     In a separate terminal, run the following command to start the PostgreSQL container:
 
     ```bash
-    docker compose -f docker/docker-compose.dev.yml up -d postgres-dev
+    docker compose -f apps/vtt/docker/docker-compose.dev.yml up -d postgres-dev
     ```
 
 5.  **Run the Application**
     Once the database is running, use this command to start the frontend and backend servers:
     ```bash
+    cd apps/vtt
     npm run start:all
     ```
 

@@ -1,0 +1,445 @@
+[
+  {
+    "index": "war-magic",
+    "class": {
+      "index": "wizard",
+      "name": "Wizard",
+      "url": "/api/2014/classes/wizard"
+    },
+    "name": "War Magic",
+    "subclass_flavor": "Arcane Tradition",
+    "desc": [
+      "A variety of arcane colleges specialize in training wizards for the perils of war. The tradition of War Magic blends principles of evocation and abjuration, teaching wizards to turn spells into weapons and to use their magic to bolster their own defenses."
+    ],
+    "subclass_levels": "/api/2018/subclasses/war-magic/levels",
+    "url": "/api/2018/subclasses/war-magic"
+  },
+  {
+    "index": "ancestral-guardian",
+    "class": {
+      "index": "barbarian",
+      "name": "Barbarian",
+      "url": "/api/2014/classes/barbarian"
+    },
+    "name": "Ancestral Guardian",
+    "subclass_flavor": "Primal Path",
+    "desc": [
+      "Some barbarians hail from cultures that revere their ancestors. These tribes teach that the warriors of the past linger in the world as ethereal guardians. When a barbarian who follows this path rages, the barbarian's ancestors return to guide and protect the barbarian and the barbarian's allies."
+    ],
+    "url": "/api/2014/subclasses/ancestral-guardian"
+  },
+  {
+    "index": "storm-herald",
+    "class": {
+      "index": "barbarian",
+      "name": "Barbarian",
+      "url": "/api/2014/classes/barbarian"
+    },
+    "name": "Storm Herald",
+    "subclass_flavor": "Primal Path",
+    "desc": [
+      "All barbarians harbor a fury that must be unleashed, and some who follow the Path of the Storm Herald find that fury in the storms that rage around them. These barbarians can call upon the power of thunder and lightning to fuel their rage, and they learn to transform that power into a thunderous roar that can deafen their foes."
+    ],
+    "url": "/api/2014/subclasses/storm-herald"
+  },
+  {
+    "index": "zealot",
+    "class": {
+      "index": "barbarian",
+      "name": "Barbarian",
+      "url": "/api/2014/classes/barbarian"
+    },
+    "name": "Zealot",
+    "subclass_flavor": "Primal Path",
+    "desc": [
+      "Some barbarians draw on their devotion to a god or pantheon for their rage. These barbarians are zealots--warriors who channel their rage into powerful attacks in the name of their deity. The gods grant these barbarians extraordinary resilience, so they can continue their crusade even in the face of overwhelming odds."
+    ],
+    "url": "/api/2014/subclasses/zealot"
+  },
+  {
+    "index": "glamour",
+    "class": {
+      "index": "bard",
+      "name": "Bard",
+      "url": "/api/2014/classes/bard"
+    },
+    "name": "Glamour",
+    "subclass_flavor": "Bard College",
+    "desc": [
+      "The College of Glamour is the home of bards who mastered their craft in the vibrant, deadly realm of the Feywild or under the tutelage of someone connected to it. These bards learn to use their magic to delight and captivate others. The bards of this college are regarded with a mixture of awe and fear. Their performances are the stuff of legend. These bards are gleefully, sometimes recklessly, rebellious."
+    ],
+    "url": "/api/2014/subclasses/glamour"
+  },
+  {
+    "index": "swords",
+    "class": {
+      "index": "bard",
+      "name": "Bard",
+      "url": "/api/2014/classes/bard"
+    },
+    "name": "Swords",
+    "subclass_flavor": "Bard College",
+    "desc": [
+      "Bards of the College of Swords are called blades, and they entertain through daring feats of weapon prowess. Blades perform stunts such as sword swallowing, knife throwing and juggling, and some use magic to conjure illusions of startling displays. However, most blades hone their skills with real weapons, and they are known for their ability to perform feats of martial prowess and swordplay."
+    ],
+    "url": "/api/2014/subclasses/swords"
+  },
+  {
+    "index": "whispers",
+    "class": {
+      "index": "bard",
+      "name": "Bard",
+      "url": "/api/2014/classes/bard"
+    },
+    "name": "Whispers",
+    "subclass_flavor": "Bard College",
+    "desc": [
+      "Most folk are happy to welcome a bard into their midst. Bards of the College of Whispers use this to their advantage. They appear to be like any other bard, sharing news, singing songs, and telling tales to the audiences they gather. In truth, the College of Whispers teaches its students that they are wolves among sheep. These bards use their knowledge and magic to uncover secrets and turn them against others through extortion and terror."
+    ],
+    "url": "/api/2014/subclasses/whispers"
+  },
+  {
+    "index": "forge",
+    "class": {
+      "index": "cleric",
+      "name": "Cleric",
+      "url": "/api/2014/classes/cleric"
+    },
+    "name": "Forge",
+    "subclass_flavor": "Divine Domain",
+    "desc": [
+      "The gods of the forge teach that with patience and care, a skilled creation can be crafted that will last for ages to come. Clerics of the Forge Domain prize artisanal excellence, scholarly dedication, and the love of creating beautiful things with one's own hands. They also believe that nothing is perfect and that through crafting, one can achieve perfection."
+    ],
+    "url": "/api/2014/subclasses/forge"
+  },
+  {
+    "index": "grave",
+    "class": {
+      "index": "cleric",
+      "name": "Cleric",
+      "url": "/api/2014/classes/cleric"
+    },
+    "name": "Grave",
+    "subclass_flavor": "Divine Domain",
+    "desc": [
+      "Clerics of the Grave domain have a calling that puts them on the edge between life and death. These clerics seek out the dead and undead, turning them back to the earth from which they came. They also seek to preserve the dignity of the dead and ensure that the living are not troubled by the undead."
+    ],
+    "url": "/api/2014/subclasses/grave"
+  },
+  {
+    "index": "dreams",
+    "class": {
+      "index": "druid",
+      "name": "Druid",
+      "url": "/api/2014/classes/druid"
+    },
+    "name": "Dreams",
+    "subclass_flavor": "Druid Circle",
+    "desc": [
+      "Druids who are members of the Circle of Dreams hail from regions that have strong ties to the Feywild and its dreamlike realms. These druids draw power from the wild, verdant power of nature and the realm of dreams. They seek to protect the balance between waking and sleeping, and they often have close ties to fey creatures."
+    ],
+    "url": "/api/2014/subclasses/dreams"
+  },
+  {
+    "index": "shepherd",
+    "class": {
+      "index": "druid",
+      "name": "Druid",
+      "url": "/api/2014/classes/druid"
+    },
+    "name": "Shepherd",
+    "subclass_flavor": "Druid Circle",
+    "desc": [
+      "Druids of the Circle of the Shepherd commune with the spirits of beasts and the natural world. These druids can call upon the power of nature to create spiritual beasts that aid them in battle. These druids are often found protecting the wild places of the world, and they have a special affinity for animals and beasts."
+    ],
+    "url": "/api/2014/subclasses/shepherd"
+  },
+  {
+    "index": "arcane-archer",
+    "class": {
+      "index": "fighter",
+      "name": "Fighter",
+      "url": "/api/2014/classes/fighter"
+    },
+    "name": "Arcane Archer",
+    "subclass_flavor": "Martial Archetype",
+    "desc": [
+      "An Arcane Archer studies a unique elven method of archery that weaves magic into attacks to produce supernatural effects. Arcane Archers are some of the most elite warriors among the elves. They stand watch over the fringes of elven domains, keeping a keen eye out for trespassers and using magic-infused arrows to defeat monsters and invaders before they can reach elven settlements."
+    ],
+    "url": "/api/2014/subclasses/arcane-archer"
+  },
+  {
+    "index": "cavalier",
+    "class": {
+      "index": "fighter",
+      "name": "Fighter",
+      "url": "/api/2014/classes/fighter"
+    },
+    "name": "Cavalier",
+    "subclass_flavor": "Martial Archetype",
+    "desc": [
+      "The archetypal Cavalier excels at mounted combat. Usually born among the nobility and trained at a young age to ride and fight from horseback, a Cavalier is equally adept at using a lance, sword, or pistol from the saddle. Cavaliers are often found in the service of a lord or lady, or they might be free knights wandering the land in search of adventure."
+    ],
+    "url": "/api/2014/subclasses/cavalier"
+  },
+  {
+    "index": "samurai",
+    "class": {
+      "index": "fighter",
+      "name": "Fighter",
+      "url": "/api/2014/classes/fighter"
+    },
+    "name": "Samurai",
+    "subclass_flavor": "Martial Archetype",
+    "desc": [
+      "The Samurai is a fighter who draws on an implacable fighting spirit to overcome enemies. A Samurai's resolve is nearly unbreakable, and the promise of battle is a personal challenge that cannot be ignored. The way of the samurai is an ancient tradition, and samurais are often bound by a code of honor that guides their actions in life."
+    ],
+    "url": "/api/2014/subclasses/samurai"
+  },
+  {
+    "index": "drunken-master",
+    "class": {
+      "index": "monk",
+      "name": "Monk",
+      "url": "/api/2014/classes/monk"
+    },
+    "name": "Drunken Master",
+    "subclass_flavor": "Monastic Tradition",
+    "desc": [
+      "The Way of the Drunken Master teaches its students to move with the unpredictable and yet inevitable movements of a drunkard. A drunken master sways, tottering on unsteady feet, to present what seems like an incompetent combatant out of position to defend themselves. The drunken master's movements appear random, but they are actually carefully orchestrated to confuse and evade attackers."
+    ],
+    "url": "/api/2014/subclasses/drunken-master"
+  },
+  {
+    "index": "kensei",
+    "class": {
+      "index": "monk",
+      "name": "Monk",
+      "url": "/api/2014/classes/monk"
+    },
+    "name": "Kensei",
+    "subclass_flavor": "Monastic Tradition",
+    "desc": [
+      "Monks of the Way of Kensei train relentlessly with their weapons, to the point where the weapon becomes an extension of the body. Founded on a mastery of sword combat, the tradition has expanded to include many different weapons. A kensei sees a weapon in everything: the leg of a chair, a porter's pole, a ladle's handle, or a roll of parchment."
+    ],
+    "url": "/api/2014/subclasses/kensei"
+  },
+  {
+    "index": "sun-soul",
+    "class": {
+      "index": "monk",
+      "name": "Monk",
+      "url": "/api/2014/classes/monk"
+    },
+    "name": "Sun Soul",
+    "subclass_flavor": "Monastic Tradition",
+    "desc": [
+      "Monks of the Way of the Sun Soul learn to channel the life-giving power of the sun. They draw on the power of the sun to fuel their ki, and they can project that power outward in a radiant burst that can blind or burn their foes. These monks are often found in sunny regions, and they are known for their bright, optimistic outlook on life."
+    ],
+    "url": "/api/2014/subclasses/sun-soul"
+  },
+  {
+    "index": "conquest",
+    "class": {
+      "index": "paladin",
+      "name": "Paladin",
+      "url": "/api/2014/classes/paladin"
+    },
+    "name": "Conquest",
+    "subclass_flavor": "Sacred Oath",
+    "desc": [
+      "The Oath of Conquest calls to paladins who seek glory in battle and the subjugation of their enemies. It isn't enough for these paladins to establish order. They must crush the forces of chaos. Sometimes called knight tyrants or iron mongers, those who swear this oath gather into grim orders that serve gods or philosophies of war and well-ordered might."
+    ],
+    "url": "/api/2014/subclasses/conquest"
+  },
+  {
+    "index": "redemption",
+    "class": {
+      "index": "paladin",
+      "name": "Paladin",
+      "url": "/api/2014/classes/paladin"
+    },
+    "name": "Redemption",
+    "subclass_flavor": "Sacred Oath",
+    "desc": [
+      "The Oath of Redemption sets a paladin on a difficult path, one that requires a holy warrior to use violence only as a last resort. Paladins who dedicate themselves to this oath believe that any person can be redeemed and that the path of benevolence and justice is one that anyone can walk. These paladins are living proof that the best way to fight evil is to become an example of good."
+    ],
+    "url": "/api/2014/subclasses/redemption"
+  },
+  {
+    "index": "gloom-stalker",
+    "class": {
+      "index": "ranger",
+      "name": "Ranger",
+      "url": "/api/2014/classes/ranger"
+    },
+    "name": "Gloom Stalker",
+    "subclass_flavor": "Ranger Archetype",
+    "desc": [
+      "Gloom Stalkers are at home in the darkest places: deep under the earth, in gloomy alleyways, in primeval forests, and wherever else the light dims. Most folk enter such places with trepidation, but a Gloom Stalker ventures boldly into the darkness, seeking to snuff out the evil there. Such rangers are often found in the Underdark, but they will go any place where evil lurks in the shadows."
+    ],
+    "url": "/api/2014/subclasses/gloom-stalker"
+  },
+  {
+    "index": "horizon-walker",
+    "class": {
+      "index": "ranger",
+      "name": "Ranger",
+      "url": "/api/2014/classes/ranger"
+    },
+    "name": "Horizon Walker",
+    "subclass_flavor": "Ranger Archetype",
+    "desc": [
+      "Horizon Walkers guard the world against threats that originate from other planes or that seek to ravage the mortal realm with otherworldly magic. They seek out planar portals and keep watch over them, venturing to the Inner and Outer Planes as needed to pursue their foes. These rangers are also known as Planar Rangers or Rangers of the Planes."
+    ],
+    "url": "/api/2014/subclasses/horizon-walker"
+  },
+  {
+    "index": "monster-slayer",
+    "class": {
+      "index": "ranger",
+      "name": "Ranger",
+      "url": "/api/2014/classes/ranger"
+    },
+    "name": "Monster Slayer",
+    "subclass_flavor": "Ranger Archetype",
+    "desc": [
+      "You have dedicated yourself to hunting down creatures of the night and wielders of grim magic. A Monster Slayer seeks out vampires, dragons, evil fey, fiends, and other dark creatures of the world to destroy them for the benefit of the world. Your determination to rid the world of such creatures has led you to become a master of tactics and spells designed to fight these creatures."
+    ],
+    "url": "/api/2014/subclasses/monster-slayer"
+  },
+  {
+    "index": "inquisitive",
+    "class": {
+      "index": "rogue",
+      "name": "Rogue",
+      "url": "/api/2014/classes/rogue"
+    },
+    "name": "Inquisitive",
+    "subclass_flavor": "Roguish Archetype",
+    "desc": [
+      "Investigator who reads enemies and uncovers secrets to land Sneak Attack.",
+      "Theme: Investigator and lie-detector. Fantasy: Detective, interrogator, Sherlock-style rogue. Primary stats: Dexterity, Wisdom.",
+      "Inquisitives excel at observation, insight, and maintaining Sneak Attack without relying on allies."
+    ],
+    "url": "/api/2014/subclasses/inquisitive"
+  },
+  {
+    "index": "mastermind",
+    "class": {
+      "index": "rogue",
+      "name": "Rogue",
+      "url": "/api/2014/classes/rogue"
+    },
+    "name": "Mastermind",
+    "subclass_flavor": "Roguish Archetype",
+    "desc": [
+      "Tactical coordinator who manipulates foes and empowers allies.",
+      "Theme: Tactical coordinator. Fantasy: Spymaster, chessmaster, battlefield manipulator. Primary stats: Dexterity, Intelligence, Charisma.",
+      "Masterminds shine in team play, leveraging deception and battlefield control to set up decisive advantages."
+    ],
+    "url": "/api/2014/subclasses/mastermind"
+  },
+  {
+    "index": "scout",
+    "class": {
+      "index": "rogue",
+      "name": "Rogue",
+      "url": "/api/2014/classes/rogue"
+    },
+    "name": "Scout",
+    "subclass_flavor": "Roguish Archetype",
+    "desc": [
+      "Mobile skirmisher and explorer built for the wilderness.",
+      "Theme: Skirmisher and explorer. Fantasy: Ranger-adjacent wilderness rogue. Primary stats: Dexterity, Wisdom.",
+      "Scouts are evasive, fast, and excellent at reconnaissance and ranged pressure in natural environments."
+    ],
+    "url": "/api/2014/subclasses/scout"
+  },
+  {
+    "index": "swashbuckler",
+    "class": {
+      "index": "rogue",
+      "name": "Rogue",
+      "url": "/api/2014/classes/rogue"
+    },
+    "name": "Swashbuckler",
+    "subclass_flavor": "Roguish Archetype",
+    "desc": [
+      "Duelist and daredevil who dominates in one-on-one melee fights.",
+      "Theme: Duelist and daredevil. Fantasy: Pirate, fencer, charismatic swordsman. Primary stats: Dexterity, Charisma.",
+      "Swashbucklers blend mobility, charm, and reliable Sneak Attack to control the flow of melee combat."
+    ],
+    "url": "/api/2014/subclasses/swashbuckler"
+  },
+  {
+    "index": "divine-soul",
+    "class": {
+      "index": "sorcerer",
+      "name": "Sorcerer",
+      "url": "/api/2014/classes/sorcerer"
+    },
+    "name": "Divine Soul",
+    "subclass_flavor": "Sorcerous Origin",
+    "desc": [
+      "Your innate magic comes from a divine source--whether it is a god, an angel, a celestial being, or some other divine entity. You might have been blessed by a deity, or you might be the descendant of a celestial being. Whatever the source, your magic is infused with divine power, and you can use it to heal, protect, and smite your enemies."
+    ],
+    "url": "/api/2014/subclasses/divine-soul"
+  },
+  {
+    "index": "shadow-magic",
+    "class": {
+      "index": "sorcerer",
+      "name": "Sorcerer",
+      "url": "/api/2014/classes/sorcerer"
+    },
+    "name": "Shadow Magic",
+    "subclass_flavor": "Sorcerous Origin",
+    "desc": [
+      "Your innate magic comes from the Shadowfell, the plane of shadow. You might have been born in a place where the veil between the Material Plane and the Shadowfell is thin, or you might have been exposed to shadow magic as a child. Whatever the source, your magic is infused with the power of shadows, and you can use it to conceal yourself, teleport through darkness, and summon shadowy creatures."
+    ],
+    "url": "/api/2014/subclasses/shadow-magic"
+  },
+  {
+    "index": "storm-sorcery",
+    "class": {
+      "index": "sorcerer",
+      "name": "Sorcerer",
+      "url": "/api/2014/classes/sorcerer"
+    },
+    "name": "Storm Sorcery",
+    "subclass_flavor": "Sorcerous Origin",
+    "desc": [
+      "Your innate magic comes from the power of storms. You might have been born during a terrible storm, or you might have been struck by lightning as a child. Whatever the source, your magic is infused with the power of thunder and lightning, and you can use it to summon storms, hurl bolts of lightning, and fly on the winds."
+    ],
+    "url": "/api/2014/subclasses/storm-sorcery"
+  },
+  {
+    "index": "celestial",
+    "class": {
+      "index": "warlock",
+      "name": "Warlock",
+      "url": "/api/2014/classes/warlock"
+    },
+    "name": "Celestial",
+    "subclass_flavor": "Otherworldly Patron",
+    "desc": [
+      "Your patron is a powerful celestial being, such as an angel, a unicorn, or a benevolent deity. You have been blessed with divine power, and you can use it to heal, protect, and smite your enemies. Your patron might have chosen you because of your pure heart, or they might have chosen you to help you fulfill a divine purpose."
+    ],
+    "url": "/api/2014/subclasses/celestial"
+  },
+  {
+    "index": "hexblade",
+    "class": {
+      "index": "warlock",
+      "name": "Warlock",
+      "url": "/api/2014/classes/warlock"
+    },
+    "name": "Hexblade",
+    "subclass_flavor": "Otherworldly Patron",
+    "desc": [
+      "You have made your pact with a mysterious entity from the Shadowfell--a force that manifests in sentient magic weapons carved from the stuff of shadow. The mighty sword Blackrazor is the most notable of these weapons, and its influence has spread across the multiverse to other sentient blades, each of which serves as a conduit to the shadowy force behind the Hexblade."
+    ],
+    "url": "/api/2014/subclasses/hexblade"
+  }
+]

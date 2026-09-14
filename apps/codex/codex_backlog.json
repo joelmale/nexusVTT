@@ -1,0 +1,400 @@
+{
+  "backlog_version": "1.0",
+  "program": {
+    "name": "NexusCodex Intelligent Codex Upgrade",
+    "principles": [
+      "Gameplay-first latency targets; DM actions must feel instant",
+      "Citations everywhere: every answer references doc/page/chunk",
+      "Progressive enhancement: ship value early; avoid big-bang rewrites",
+      "Resumable pipelines: long jobs must checkpoint and resume",
+      "Model-optional: provider interface supports local or API embeddings/LLMs"
+    ],
+    "global_agent_rules": [
+      "Make small, reviewable commits",
+      "Preserve existing API contracts unless task explicitly changes them",
+      "Add tests for new parsing, retrieval, or schema logic",
+      "Use feature flags for expensive/risky behavior",
+      "Log timings and counts (pages, chunks, entities, links)",
+      "Never fail silently: store failure reason and continue where possible",
+      "Output PR-style summary: what changed, why, how to verify, rollback plan"
+    ],
+    "recommended_codex_settings": {
+      "sandbox_mode": "workspace-write",
+      "approval_policy": "on-request",
+      "notes": [
+        "Use stricter approvals for commands that touch secrets, deployment, or destructive DB ops."
+      ]
+    }
+  },
+  "phases": [
+    {
+      "id": "P0",
+      "name": "Program Setup & Baselines",
+      "goal": "Establish measurement, documentation, and safe agent operating mode",
+      "tasks": [
+        {
+          "id": "P0-T1",
+          "title": "Add ingestion benchmark harness",
+          "type": "code",
+          "priority": "P0",
+          "dependencies": [],
+          "deliverables": [
+            "scripts/benchmark-ingest.(ts|js) that runs representative ingestion flow and logs per-stage timings",
+            "README instructions for running benchmark"
+          ],
+          "acceptance_criteria": [
+            "One command runs benchmark and prints timings for render/ocr/extract/index/assets (as applicable)",
+            "Output includes doc id/hash and per-stage duration"
+          ],
+          "agent_prompt": "Task: Add a benchmark harness for document ingestion.\n\nSteps:\n1) Create a script at /scripts/benchmark-ingest.ts (or .js) that ingests a sample document and logs timing for each stage (render, ocr, extract, index, assets).\n2) If the repo already has an ingest pipeline, reuse it; do not rewrite business logic.\n3) Add a README section describing how to run the benchmark and interpret results.\n\nConstraints:\n- Minimal dependencies.\n- No production behavior changes.\n\nOutput:\n- PR-style summary of changes\n- Exact command(s) to run\n- Example output",
+          "risk": "low",
+          "estimated_effort_days": 2
+        },
+        {
+          "id": "P0-T2",
+          "title": "Create docs/upgrade-plan.md + ADR folder",
+          "type": "docs",
+          "priority": "P0",
+          "dependencies": [],
+          "deliverables": [
+            "docs/upgrade-plan.md containing roadmap and baseline metric placeholders",
+            "docs/adr/0001-*.md template"
+          ],
+          "acceptance_criteria": [
+            "Plan explains how metrics will be tracked and where to find them",
+            "ADR template exists and is referenced"
+          ],
+          "agent_prompt": "Task: Create program documentation scaffolding.\n\n1) Add /docs/upgrade-plan.md summarizing the upgrade phases and referencing the benchmark script.\n2) Add /docs/adr/ with a lightweight ADR template (context, decision, consequences).\n\nConstraints:\n- No code changes beyond docs.\n\nOutput:\n- PR-style summary and links to new docs",
+          "risk": "low",
+          "estimated_effort_days": 1
+        }
+      ]
+    },
+    {
+      "id": "P1",
+      "name": "Performance & Pipeline Hardening",
+      "goal": "Make ingestion reliable enough for mid-session usage via staged jobs, checkpointing, and reduced queue blocking",
+      "tasks": [
+        {
+          "id": "P1-T1",
+          "title": "Refactor ingestion into staged jobs with checkpoint/resume",
+          "type": "code",
+          "priority": "P0",
+          "dependencies": ["P0-T1"],
+          "deliverables": [
+            "BullMQ (or equivalent) staged flow: ingest -> render -> ocr -> extract -> index -> assets",
+            "Checkpoint metadata per document hash to resume on failure",
+            "Progress logging per stage"
+          ],
+          "acceptance_criteria": [
+            "If a stage fails, rerun resumes from last completed stage (no repeating earlier stages)",
+            "Heavy asset generation (thumbnails/page images) does not block extraction/indexing"
+          ],
+          "agent_prompt": "Task: Implement staged ingestion + checkpointing.\n\nSteps:\n1) Identify current ingestion worker/entrypoint(s).\n2) Refactor into staged flow: ingest -> render -> ocr -> extract -> index -> assets.\n3) Add checkpointing keyed by documentId + contentHash.\n4) Ensure reruns resume at the last successful stage.\n5) Separate asset generation into a lower-priority queue or stage.\n\nConstraints:\n- Preserve external API contracts.\n- Add tests: checkpoint resume and stage ordering.\n\nOutput:\n- PR-style summary\n- How to reproduce a failure and validate resume",
+          "risk": "medium",
+          "estimated_effort_days": 6
+        },
+        {
+          "id": "P1-T2",
+          "title": "Parallel OCR worker pool + fast-path detection",
+          "type": "code",
+          "priority": "P0",
+          "dependencies": ["P1-T1"],
+          "deliverables": [
+            "Fast-path: detect text-based PDFs and skip OCR",
+            "Parallel OCR worker pool for scanned PDFs",
+            "Config flags for pool size and thresholds"
+          ],
+          "acceptance_criteria": [
+            "Text PDFs ingest with OCR disabled",
+            "Scanned PDFs OCR time improves materially vs baseline (target 3–5x)",
+            "Pool size configurable via env/config"
+          ],
+          "agent_prompt": "Task: Add OCR fast-path + parallel OCR pool.\n\nSteps:\n1) Add detection to classify documents as text-based vs scanned/image-based.\n2) For text-based PDFs: skip OCR.\n3) For scanned PDFs: parallelize OCR using a worker pool with configurable size.\n4) Add logging: pages processed, per-page OCR time summary.\n\nConstraints:\n- Feature-flag expensive behavior.\n- Add tests: classification and pool concurrency behavior.\n\nOutput:\n- PR-style summary + benchmark delta notes",
+          "risk": "medium",
+          "estimated_effort_days": 5
+        },
+        {
+          "id": "P1-T3",
+          "title": "Batch DB writes to avoid write amplification",
+          "type": "code",
+          "priority": "P1",
+          "dependencies": ["P1-T1"],
+          "deliverables": [
+            "Replace per-entity inserts with batch operations (e.g., createMany)",
+            "Add/verify indexes for common lookups during ingestion"
+          ],
+          "acceptance_criteria": [
+            "Structured entity extraction does not perform N round-trips for N entities",
+            "Logs show batch operations in use"
+          ],
+          "agent_prompt": "Task: Reduce DB write amplification in ingestion.\n\nSteps:\n1) Find places where structured entities are inserted one-by-one.\n2) Convert to batch inserts where safe (createMany / bulk insert patterns).\n3) Add/verify indexes supporting ingestion and lookup patterns.\n4) Add a regression test or benchmark assertion (e.g., ensure inserts are batched).\n\nOutput:\n- PR-style summary + instructions to verify via logs",
+          "risk": "low",
+          "estimated_effort_days": 3
+        }
+      ]
+    },
+    {
+      "id": "P2",
+      "name": "Layout-aware Extraction & Parser Modularization",
+      "goal": "Stop fragile regex from being the critical path; improve multi-column and stat-block parsing",
+      "tasks": [
+        {
+          "id": "P2-T1",
+          "title": "Layout-aware PDF text reconstruction",
+          "type": "code",
+          "priority": "P0",
+          "dependencies": ["P1-T1"],
+          "deliverables": [
+            "Layout service that reconstructs reading order using PDF text positions",
+            "Column detection and stable per-page block ordering",
+            "Stored layout metadata and extraction confidence"
+          ],
+          "acceptance_criteria": [
+            "Representative multi-column pages no longer scramble text",
+            "Metadata includes per-page parse confidence and failure reasons"
+          ],
+          "agent_prompt": "Task: Implement layout-aware extraction.\n\nSteps:\n1) Use existing PDF tooling (PDF.js or repo standard) to read positioned text items.\n2) Reconstruct reading order; detect columns and order blocks logically.\n3) Emit per-page layout metadata and parseConfidence.\n4) Add 2–3 fixtures and tests to validate column order.\n\nConstraints:\n- Keep API contracts stable; store new metadata fields as additive.\n\nOutput:\n- PR-style summary + how to run tests",
+          "risk": "medium",
+          "estimated_effort_days": 7
+        },
+        {
+          "id": "P2-T2",
+          "title": "Modular parsers + confidence scoring + fallback storage",
+          "type": "code",
+          "priority": "P1",
+          "dependencies": ["P2-T1"],
+          "deliverables": [
+            "Parsers: MonsterParser, SpellParser (at minimum) with clear interfaces",
+            "Confidence scoring on extracted entities",
+            "Fallback path storing low-confidence entities as needs_review (still searchable)"
+          ],
+          "acceptance_criteria": [
+            "Parsers are unit-tested and independently runnable",
+            "Low-confidence outputs are not dropped; marked needs_review with reason"
+          ],
+          "agent_prompt": "Task: Modularize extraction into parsers with confidence + fallback.\n\nSteps:\n1) Refactor extraction into dedicated parsers (MonsterParser, SpellParser).\n2) Each parser returns {entity, confidence, raw_snippet, failure_reason?}.\n3) If confidence below threshold, store as needs_review but include in search index.\n4) Add unit tests for both parsers.\n\nOutput:\n- PR-style summary + parser usage docs",
+          "risk": "medium",
+          "estimated_effort_days": 6
+        }
+      ]
+    },
+    {
+      "id": "P3",
+      "name": "Chunk Store + Hybrid Semantic Search (BM25 + Vectors)",
+      "goal": "Enable robust retrieval with stable citations before full RAG",
+      "tasks": [
+        {
+          "id": "P3-T1",
+          "title": "Introduce chunk storage model and chunking pipeline",
+          "type": "code",
+          "priority": "P0",
+          "dependencies": ["P2-T1"],
+          "deliverables": [
+            "document_chunks store: docId, chunkId, pageStart, pageEnd, content, hash, source",
+            "Chunking strategy with overlap and heading-aware boundaries when possible",
+            "Dedupe on reingest using content hash"
+          ],
+          "acceptance_criteria": [
+            "Every chunk has stable citation fields",
+            "Re-ingesting same doc hash does not duplicate chunks"
+          ],
+          "agent_prompt": "Task: Add chunk store and chunking pipeline.\n\nSteps:\n1) Create a document_chunks table (or equivalent store) with citation-ready metadata.\n2) Implement chunker with overlap; prefer heading boundaries where available.\n3) Add dedupe via contentHash/chunkHash.\n4) Add tests for chunk boundary behavior.\n\nOutput:\n- PR-style summary + migration notes",
+          "risk": "medium",
+          "estimated_effort_days": 6
+        },
+        {
+          "id": "P3-T2",
+          "title": "Embeddings provider interface and embedding generation",
+          "type": "code",
+          "priority": "P1",
+          "dependencies": ["P3-T1"],
+          "deliverables": [
+            "Embeddings provider abstraction (local or API-backed)",
+            "Embedding generation for chunks with rate limiting / batching",
+            "Config flags for provider and dimensions"
+          ],
+          "acceptance_criteria": [
+            "Embeddings can be generated and stored for chunks",
+            "Provider can be swapped via config without code changes"
+          ],
+          "agent_prompt": "Task: Implement embeddings provider interface.\n\nSteps:\n1) Create an EmbeddingsProvider interface.\n2) Implement at least one provider (choose repo standard; stub allowed if no provider configured).\n3) Generate/store embeddings for chunks; add batching and backoff.\n4) Add docs for configuring provider.\n\nOutput:\n- PR-style summary + config instructions",
+          "risk": "medium",
+          "estimated_effort_days": 5
+        },
+        {
+          "id": "P3-T3",
+          "title": "Hybrid semantic search endpoint returning ranked chunks + citations",
+          "type": "code",
+          "priority": "P0",
+          "dependencies": ["P3-T2"],
+          "deliverables": [
+            "GET /api/search/semantic?q=...&topK=...",
+            "Hybrid scoring method (RRF or weighted BM25+vector)",
+            "Filters for campaign/document type/system/source"
+          ],
+          "acceptance_criteria": [
+            "Natural language queries return relevant chunks",
+            "All results include citations with doc/page/chunkId"
+          ],
+          "agent_prompt": "Task: Build /api/search/semantic.\n\nSteps:\n1) Implement endpoint returning ranked chunks + citations.\n2) Use hybrid retrieval (BM25 + vector similarity) with a tunable mixing strategy.\n3) Add filters (campaign, docType, system, sourceBook).\n4) Add integration test ensuring citations are always present.\n\nOutput:\n- PR-style summary + example queries",
+          "risk": "medium",
+          "estimated_effort_days": 6
+        }
+      ]
+    },
+    {
+      "id": "P4",
+      "name": "RAG Q&A with Strict Grounding + Citations",
+      "goal": "Provide Ask-the-Codex answers grounded only in retrieved chunks",
+      "tasks": [
+        {
+          "id": "P4-T1",
+          "title": "Implement /api/search/ask with strict grounding and structured citations",
+          "type": "code",
+          "priority": "P0",
+          "dependencies": ["P3-T3"],
+          "deliverables": [
+            "POST /api/search/ask endpoint",
+            "Strict grounding prompt (answer only from provided chunks)",
+            "Response schema: answer, citations[], snippets[], confidence, followups[]"
+          ],
+          "acceptance_criteria": [
+            "If evidence is insufficient, endpoint returns 'insufficient sources' without fabricated rules",
+            "Citations correspond to retrieved chunks",
+            "Optional reranker is feature-flagged"
+          ],
+          "agent_prompt": "Task: Implement strict grounded RAG endpoint.\n\nSteps:\n1) Add POST /api/search/ask: {question, topK?, filters?}.\n2) Retrieve chunks via hybrid search; optionally rerank (flag).\n3) Generate answer with strict grounding instructions.\n4) Return structured citations: {documentId, title?, pageStart, pageEnd, chunkId, confidence}.\n5) Add evaluation harness with a small set of golden questions to assert citations exist.\n\nOutput:\n- PR-style summary + how to run eval harness",
+          "risk": "high",
+          "estimated_effort_days": 8
+        }
+      ]
+    },
+    {
+      "id": "P5",
+      "name": "Canonical Entity Registry + Cross-Document Linking + Graph",
+      "goal": "Make entities connected and queryable across documents",
+      "tasks": [
+        {
+          "id": "P5-T1",
+          "title": "Create canonical entity registry models and resolver",
+          "type": "code",
+          "priority": "P0",
+          "dependencies": ["P2-T2", "P3-T1"],
+          "deliverables": [
+            "DB models: entities, entity_aliases, entity_links with indexes",
+            "Deterministic resolver: normalization + alias matching + confidence",
+            "Link structuredData records to canonical entity IDs"
+          ],
+          "acceptance_criteria": [
+            "Same entity across docs resolves to canonical entity ID (or explicit versioning rule)",
+            "Ambiguity is captured with confidence and not silently merged"
+          ],
+          "agent_prompt": "Task: Implement canonical entity registry.\n\nSteps:\n1) Add entities/entity_aliases/entity_links models with indexes.\n2) Implement resolver with name normalization + alias matching; return confidence.\n3) During ingestion, upsert canonical entities and attach entityId to structured data.\n4) Add tests for deterministic resolution, duplicates, and ambiguous cases.\n\nOutput:\n- PR-style summary + migration notes + resolver docs",
+          "risk": "high",
+          "estimated_effort_days": 10
+        },
+        {
+          "id": "P5-T2",
+          "title": "Reference extraction + resolution worker to create typed links",
+          "type": "code",
+          "priority": "P1",
+          "dependencies": ["P5-T1"],
+          "deliverables": [
+            "Unresolved reference store (mentions) with provenance (doc/page/snippet)",
+            "Resolution worker that links mentions -> canonical entities and writes typed edges",
+            "Confidence scoring and failure reasons"
+          ],
+          "acceptance_criteria": [
+            "Monster spellcasting text creates monster->spell edges",
+            "Edges include provenance (doc/page) and confidence"
+          ],
+          "agent_prompt": "Task: Implement cross-document reference extraction and linking.\n\nSteps:\n1) Extract entity mentions from relevant text fields (stat blocks, descriptions).\n2) Store unresolved references with provenance and context snippet.\n3) Build resolution worker: resolve to canonical entity IDs and create typed edges (monster->spell, rule->condition, etc.).\n4) Add tests for edge creation and provenance.\n\nOutput:\n- PR-style summary + how to inspect entity graph for a sample entity",
+          "risk": "high",
+          "estimated_effort_days": 9
+        }
+      ]
+    },
+    {
+      "id": "P6",
+      "name": "Global Command Palette UX",
+      "goal": "Make search, entities, and Ask-Codex fast and discoverable during play",
+      "tasks": [
+        {
+          "id": "P6-T1",
+          "title": "Implement command palette (Cmd/Ctrl+K) integrating keyword search, semantic search, and ask",
+          "type": "code",
+          "priority": "P1",
+          "dependencies": ["P3-T3", "P4-T1"],
+          "deliverables": [
+            "Command palette UI with grouped results (Docs/Rules/Entities/Ask)",
+            "Quick actions: open, copy link, bookmark (push-to-VTT stub OK until P7)",
+            "Basic e2e or component tests"
+          ],
+          "acceptance_criteria": [
+            "Palette opens with keyboard shortcut",
+            "Queries show semantic results with citations",
+            "Ask mode returns answer + citations"
+          ],
+          "agent_prompt": "Task: Add Global Command Palette.\n\nSteps:\n1) Implement Cmd/Ctrl+K palette component.\n2) Integrate existing keyword search plus /api/search/semantic and /api/search/ask.\n3) Group results by type with badges and actions.\n4) Add basic tests (component/e2e).\n\nConstraints:\n- Keep changes isolated to new components.\n\nOutput:\n- PR-style summary + screenshots instructions",
+          "risk": "medium",
+          "estimated_effort_days": 7
+        }
+      ]
+    },
+    {
+      "id": "P7",
+      "name": "VTT Integration + Real-time Entity Push",
+      "goal": "One-click push monsters/spells/items to VTTs with permissions and provenance",
+      "tasks": [
+        {
+          "id": "P7-T1",
+          "title": "Define VTTEntity schema + conversion adapters + push events",
+          "type": "code",
+          "priority": "P1",
+          "dependencies": ["P5-T1", "P6-T1"],
+          "deliverables": [
+            "System-agnostic VTTEntity schema (validated)",
+            "Websocket events: vtt:register, vtt:entity:push, vtt:state:update",
+            "REST fallback: /api/vtt/export/:entityId?format=foundry",
+            "At least one adapter (Foundry recommended)"
+          ],
+          "acceptance_criteria": [
+            "Only DM/presenter can push entities",
+            "Payload validates and includes provenance/citations",
+            "A reference receiver/test harness confirms payload shape"
+          ],
+          "agent_prompt": "Task: Implement VTT integration hooks.\n\nSteps:\n1) Define VTTEntity schema and validators.\n2) Add websocket events for VTT registration and entity push.\n3) Add REST export endpoint for offline/manual imports.\n4) Implement at least one adapter (Foundry) and a minimal test harness to validate payload.\n5) Add permission checks and logging.\n\nOutput:\n- PR-style summary + local test instructions + example payload",
+          "risk": "high",
+          "estimated_effort_days": 12
+        }
+      ]
+    },
+    {
+      "id": "P8",
+      "name": "Quality Gates, Evaluation, and Scaling",
+      "goal": "Prevent regressions and make the system operationally maintainable",
+      "tasks": [
+        {
+          "id": "P8-T1",
+          "title": "Automated eval suite for retrieval, RAG grounding, and ingestion regression",
+          "type": "code",
+          "priority": "P2",
+          "dependencies": ["P4-T1", "P1-T1"],
+          "deliverables": [
+            "CI job running eval suite",
+            "Golden query set for retrieval and ask endpoints",
+            "Regression thresholds for ingestion stage timings"
+          ],
+          "acceptance_criteria": [
+            "CI fails when citations missing in ask results",
+            "CI flags significant ingestion slowdowns vs baseline"
+          ],
+          "agent_prompt": "Task: Build evaluation and regression gates.\n\nSteps:\n1) Add an eval runner that:\n   - runs a list of retrieval queries and checks top results include citations\n   - runs a list of ask queries and asserts structured citations present\n2) Add ingestion regression checks using benchmark harness.\n3) Wire into CI.\n\nOutput:\n- PR-style summary + how to run eval locally",
+          "risk": "medium",
+          "estimated_effort_days": 6
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,109 @@
+{
+  "id": "test-wizard-3",
+  "name": "Test Wizard Level 3",
+  "species": "gnome",
+  "class": "wizard",
+  "level": 3,
+  "alignment": "Neutral Good",
+  "background": "sage",
+  "edition": "2014",
+  "subclass": "school-of-evocation",
+  "inspiration": false,
+  "proficiencyBonus": 2,
+  "armorClass": 12,
+  "hitPoints": 16,
+  "maxHitPoints": 16,
+  "hitDice": {
+    "current": 3,
+    "max": 3,
+    "dieType": 6
+  },
+  "speed": 25,
+  "initiative": 2,
+  "abilities": {
+    "STR": { "score": 8, "modifier": -1 },
+    "DEX": { "score": 14, "modifier": 2 },
+    "CON": { "score": 13, "modifier": 1 },
+    "INT": { "score": 16, "modifier": 3 },
+    "WIS": { "score": 12, "modifier": 1 },
+    "CHA": { "score": 10, "modifier": 0 }
+  },
+  "skills": {
+    "Acrobatics": { "value": 2, "proficient": false },
+    "AnimalHandling": { "value": 1, "proficient": false },
+    "Arcana": { "value": 5, "proficient": true },
+    "Athletics": { "value": -1, "proficient": false },
+    "Deception": { "value": 0, "proficient": false },
+    "History": { "value": 5, "proficient": true },
+    "Insight": { "value": 3, "proficient": true },
+    "Intimidation": { "value": 0, "proficient": false },
+    "Investigation": { "value": 5, "proficient": true },
+    "Medicine": { "value": 1, "proficient": false },
+    "Nature": { "value": 3, "proficient": false },
+    "Perception": { "value": 1, "proficient": false },
+    "Performance": { "value": 0, "proficient": false },
+    "Persuasion": { "value": 0, "proficient": false },
+    "Religion": { "value": 3, "proficient": false },
+    "SleightOfHand": { "value": 2, "proficient": false },
+    "Stealth": { "value": 2, "proficient": false },
+    "Survival": { "value": 1, "proficient": false }
+  },
+  "languages": ["Common", "Gnomish", "Draconic", "Elvish"],
+  "proficiencies": {
+    "armor": [],
+    "weapons": ["Daggers", "Darts", "Slings", "Quarterstaffs", "Light crossbows"],
+    "tools": []
+  },
+  "featuresAndTraits": {
+    "personality": "I'm used to helping out those who aren't as smart as I am.",
+    "ideals": "Knowledge",
+    "bonds": "I have an ancient text that holds terrible secrets.",
+    "flaws": "I overlook obvious solutions in favor of complicated ones.",
+    "classFeatures": ["Spellcasting", "Arcane Recovery", "Evocation Savant", "Sculpt Spells"],
+    "speciesTraits": ["Darkvision", "Gnome Cunning", "Natural Illusionist"],
+    "backgroundFeatures": [
+      {
+        "name": "Researcher",
+        "description": "When you attempt to learn or recall a piece of lore, if you do not know that information, you often know where and from whom you can obtain it."
+      }
+    ],
+    "musicalInstrumentProficiencies": []
+  },
+  "spellcasting": {
+    "ability": "INT",
+    "spellSaveDC": 13,
+    "spellAttackBonus": 5,
+    "cantripsKnown": ["fire-bolt", "mage-hand", "prestidigitation"],
+    "spellbook": [
+      "detect-magic",
+      "magic-missile",
+      "shield",
+      "burning-hands",
+      "mage-armor",
+      "identify",
+      "misty-step",
+      "scorching-ray"
+    ],
+    "preparedSpells": [
+      "detect-magic",
+      "magic-missile",
+      "shield",
+      "mage-armor",
+      "misty-step",
+      "scorching-ray"
+    ],
+    "spellSlots": [3, 4, 2, 0, 0, 0, 0, 0, 0],
+    "usedSpellSlots": [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "spellcastingType": "wizard",
+    "cantripChoicesByLevel": {
+      "1": "fire-bolt,mage-hand,prestidigitation"
+    }
+  },
+  "inventory": [],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "gp": 25,
+    "pp": 0
+  }
+}

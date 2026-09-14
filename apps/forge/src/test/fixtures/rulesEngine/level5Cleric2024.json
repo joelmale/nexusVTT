@@ -1,0 +1,111 @@
+{
+  "id": "test-cleric-5",
+  "name": "Test Cleric Level 5",
+  "species": "human-2024",
+  "class": "cleric",
+  "level": 5,
+  "alignment": "Lawful Good",
+  "background": "acolyte",
+  "edition": "2024",
+  "subclass": "life-domain",
+  "divineOrder": "thaumaturge",
+  "inspiration": false,
+  "proficiencyBonus": 3,
+  "armorClass": 18,
+  "hitPoints": 38,
+  "maxHitPoints": 38,
+  "hitDice": {
+    "current": 5,
+    "max": 5,
+    "dieType": 8
+  },
+  "speed": 30,
+  "initiative": 0,
+  "abilities": {
+    "STR": { "score": 14, "modifier": 2 },
+    "DEX": { "score": 10, "modifier": 0 },
+    "CON": { "score": 14, "modifier": 2 },
+    "INT": { "score": 12, "modifier": 1 },
+    "WIS": { "score": 16, "modifier": 3 },
+    "CHA": { "score": 13, "modifier": 1 }
+  },
+  "skills": {
+    "Acrobatics": { "value": 0, "proficient": false },
+    "AnimalHandling": { "value": 3, "proficient": false },
+    "Arcana": { "value": 4, "proficient": false },
+    "Athletics": { "value": 2, "proficient": false },
+    "Deception": { "value": 1, "proficient": false },
+    "History": { "value": 1, "proficient": false },
+    "Insight": { "value": 6, "proficient": true },
+    "Intimidation": { "value": 1, "proficient": false },
+    "Investigation": { "value": 1, "proficient": false },
+    "Medicine": { "value": 6, "proficient": true },
+    "Nature": { "value": 1, "proficient": false },
+    "Perception": { "value": 3, "proficient": false },
+    "Performance": { "value": 1, "proficient": false },
+    "Persuasion": { "value": 4, "proficient": true },
+    "Religion": { "value": 7, "proficient": true },
+    "SleightOfHand": { "value": 0, "proficient": false },
+    "Stealth": { "value": 0, "proficient": false },
+    "Survival": { "value": 3, "proficient": false }
+  },
+  "languages": ["Common", "Celestial"],
+  "proficiencies": {
+    "armor": ["Light armor", "Medium armor", "Shields"],
+    "weapons": ["Simple weapons"],
+    "tools": []
+  },
+  "originFeat": "magic-initiate-cleric",
+  "featuresAndTraits": {
+    "personality": "I see omens in every event and action.",
+    "ideals": "Faith",
+    "bonds": "I would die to recover an ancient relic of my faith.",
+    "flaws": "I put too much trust in those who wield power within my temple's hierarchy.",
+    "classFeatures": [
+      "Spellcasting",
+      "Divine Order",
+      "Channel Divinity",
+      "Destroy Undead",
+      "Life Domain Spells",
+      "Disciple of Life",
+      "Preserve Life"
+    ],
+    "speciesTraits": ["Resourceful", "Skillful", "Versatile"],
+    "backgroundFeatures": [
+      {
+        "name": "Shelter of the Faithful",
+        "description": "You and your companions can expect free healing and care at a temple, shrine, or other establishment of your faith."
+      }
+    ],
+    "musicalInstrumentProficiencies": []
+  },
+  "spellcasting": {
+    "ability": "WIS",
+    "spellSaveDC": 14,
+    "spellAttackBonus": 6,
+    "cantripsKnown": ["light", "sacred-flame", "spare-the-dying", "thaumaturgy"],
+    "preparedSpells": [
+      "bless",
+      "cure-wounds",
+      "healing-word",
+      "sanctuary",
+      "spiritual-weapon",
+      "lesser-restoration",
+      "beacon-of-hope",
+      "revivify"
+    ],
+    "spellSlots": [4, 4, 3, 2, 0, 0, 0, 0, 0],
+    "usedSpellSlots": [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "spellcastingType": "prepared",
+    "cantripChoicesByLevel": {
+      "1": "light,sacred-flame,spare-the-dying,thaumaturgy"
+    }
+  },
+  "inventory": [],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "gp": 50,
+    "pp": 0
+  }
+}

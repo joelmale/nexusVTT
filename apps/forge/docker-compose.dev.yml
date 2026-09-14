@@ -1,0 +1,13 @@
+services:
+  nexus-forge:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: builder  # Use builder stage for development
+      args:
+        BUILDKIT_INLINE_CACHE: 1
+      cache_from:
+        - joelmale/nexus-forge:latest
+    environment:
+      - DOCKER_BUILDKIT=1
+    command: ["npm", "run", "preview"]  # Serve built files instead of nginx

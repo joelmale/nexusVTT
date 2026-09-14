@@ -40,7 +40,7 @@ Artifact Registry mirroring is optional for later.
 6. Start the stack:
 
    ```bash
-   docker compose -f docker/docker-compose.yml up -d
+   docker compose -f apps/vtt/docker/docker-compose.yml up -d
    ```
 
 7. Put a TLS reverse proxy in front of `frontend:80`.
@@ -70,5 +70,5 @@ Before treating a GCP deployment as viable:
 1. Apply database migrations in order.
 2. Confirm OAuth callbacks match the public hostname.
 3. Confirm `/ws` WebSocket upgrades work through the load balancer.
-4. Run `npm run test:e2e`.
+4. Run `cd apps/vtt && npm run test:e2e`.
 5. Run the managed multiplayer soak profile against the public URL.

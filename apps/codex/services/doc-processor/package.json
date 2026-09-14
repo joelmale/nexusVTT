@@ -1,0 +1,63 @@
+{
+  "name": "nexus-codex-doc-processor",
+  "version": "1.0.0",
+  "description": "Nexus VTT Document Processing Worker",
+  "main": "dist/index.js",
+  "engines": {
+    "node": ">=22.0.0",
+    "npm": ">=10.0.0"
+  },
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "tsc",
+    "start": "node dist/index.js",
+    "prisma:generate": "prisma generate",
+    "test": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js",
+    "test:watch": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --watch",
+    "test:coverage": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --coverage",
+    "test:integration": "node --experimental-vm-modules ./node_modules/jest/bin/jest.js --testMatch='**/*.integration.test.ts'"
+  },
+  "keywords": [
+    "nexus",
+    "vtt",
+    "document",
+    "processing"
+  ],
+  "author": "Nexus VTT",
+  "license": "MIT",
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.477.0",
+    "@elastic/elasticsearch": "^8.11.0",
+    "@napi-rs/canvas": "^0.1.76",
+    "@prisma/client": "^5.7.1",
+    "babel-plugin-istanbul": "^7.0.1",
+    "bullmq": "^5.61.0",
+    "canvas": "^3.2.0",
+    "dotenv": "^16.3.1",
+    "ioredis": "^5.3.2",
+    "pdf-parse": "^1.1.1",
+    "pdfjs-dist": "^5.4.296",
+    "remark": "^15.0.1",
+    "remark-parse": "^11.0.0",
+    "remark-stringify": "^11.0.0",
+    "sharp": "^0.33.1",
+    "tesseract.js": "^5.0.4",
+    "test-exclude": "^7.0.1",
+    "unified": "^11.0.4",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "@types/jest": "^29.5.11",
+    "@types/node": "^20.10.6",
+    "@types/pdf-parse": "^1.1.4",
+    "@types/pdfjs-dist": "^2.10.377",
+    "jest": "^30.2.0",
+    "prisma": "^5.7.1",
+    "ts-jest": "^29.4.5",
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.3"
+  },
+  "overrides": {
+    "glob": "^10.4.5"
+  }
+}

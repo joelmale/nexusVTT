@@ -1,0 +1,48 @@
+{
+  "STEP_TITLES": [
+    "Character Level",
+    "Basic Identity",
+    "Choose Species",
+    "Choose Class & Subclass",
+    "Determine Abilities",
+    "High-Level Setup",
+    "Ability Score Improvements",
+    "Choose Fighting Style",
+    "Select Spells",
+    "Choose Feats",
+    "Select Languages",
+    "Select Equipment",
+    "Customize Equipment",
+    "Final Details & Personality"
+  ],
+  "initialCreationData": {
+    "name": "",
+    "level": 1,
+    "edition": "2024",
+    "speciesSlug": "",
+    "classSlug": "",
+    "abilities": { "STR": 0, "DEX": 0, "CON": 0, "INT": 0, "WIS": 0, "CHA": 0 },
+    "abilityScoreMethod": "standard-array",
+    "background": "Outlander",
+    "alignment": "Neutral Good",
+    "selectedSkills": [],
+    "selectedMusicalInstruments": [],
+    "equipmentChoices": [],
+    "equipmentChoice": null,
+    "equipmentGold": 0,
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [],
+      "selectedSpells": []
+    },
+    "startingInventory": [],
+    "subclassSlug": null,
+    "selectedFightingStyle": null,
+    "selectedFeats": [],
+    "knownLanguages": [],
+    "personality": "I'm quiet until I have something important to say.",
+    "ideals": "Honesty. The truth must be preserved.",
+    "bonds": "I owe my life to the individual who saved me.",
+    "flaws": "I trust no one and question everything."
+  }
+}

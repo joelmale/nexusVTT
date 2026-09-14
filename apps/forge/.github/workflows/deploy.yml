@@ -1,0 +1,77 @@
+name: Build & Deploy
+
+on:
+  workflow_run:
+    workflows: ["Quality Gate"]
+    types: [completed]
+
+permissions:
+  contents: read
+  packages: write
+  id-token: write
+  attestations: write
+
+jobs:
+  # Docker build and push
+  build-and-push:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    if: |
+      github.event.workflow_run.conclusion == 'success' &&
+      (github.event.workflow_run.head_branch == 'master' || github.event.workflow_run.head_branch == 'main')
+
+    steps:
+    - name: Checkout code
+      uses: actions/checkout@v4
+      with:
+        ref: ${{ github.event.workflow_run.head_sha }}
+
+    - name: Set up QEMU
+      uses: docker/setup-qemu-action@v3
+
+    - name: Set up Docker Buildx
+      uses: docker/setup-buildx-action@v3
+      with:
+        buildkitd-flags: --allow-insecure-entitlement security.insecure
+
+    - name: Log in to GHCR
+      uses: docker/login-action@v3
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Extract metadata
+      id: meta
+      uses: docker/metadata-action@v5
+      with:
+        images: |
+          ghcr.io/${{ github.repository_owner }}/nexus-forge
+        tags: |
+          type=ref,event=branch
+          type=ref,event=tag
+          type=sha,prefix={{branch}}-
+          type=raw,value=latest,enable={{is_default_branch}}
+
+    - name: Build and push Docker image
+      id: build
+      uses: docker/build-push-action@v6
+      with:
+        context: .
+        platforms: linux/amd64,linux/arm64
+        push: true
+        tags: ${{ steps.meta.outputs.tags }}
+        labels: ${{ steps.meta.outputs.labels }}
+        cache-from: |
+          type=gha,scope=build
+        cache-to: type=gha,mode=max,scope=build
+        build-args: |
+          BUILDKIT_INLINE_CACHE=1
+        provenance: false
+        sbom: false
+
+    - name: Generate artifact attestation
+      uses: actions/attest-build-provenance@v1
+      with:
+        subject-digest: ${{ steps.build.outputs.digest }}
+        subject-name: ghcr.io/${{ github.repository_owner }}/nexus-forge

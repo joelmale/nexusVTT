@@ -8,7 +8,10 @@
 
 ## Start the project
 
+Run the commands in this guide from `apps/vtt`.
+
 ```bash
+cd apps/vtt
 npm install
 npm run start:all
 ```
@@ -19,18 +22,19 @@ The frontend runs at `http://localhost:5173` and the backend at
 
 ## Repository boundaries
 
-- `src/components/`: feature UI and colocated styles
-- `src/hooks/`: reusable UI orchestration
-- `src/stores/`: Zustand domain stores
-- `src/services/`: browser/network adapters
-- `server/routes/`: HTTP endpoints
-- `server/socket/handlers/`: feature-specific realtime handling
-- `server/repositories/`: PostgreSQL access and transactions
-- `shared/`: runtime contracts shared across process boundaries
-- `services/asset-service/`: independent asset workspace
+- `apps/vtt/src/components/`: feature UI and colocated styles
+- `apps/vtt/src/hooks/`: reusable UI orchestration
+- `apps/vtt/src/stores/`: Zustand domain stores
+- `apps/vtt/src/services/`: browser/network adapters
+- `apps/vtt/server/routes/`: HTTP endpoints
+- `apps/vtt/server/socket/handlers/`: feature-specific realtime handling
+- `apps/vtt/server/repositories/`: PostgreSQL access and transactions
+- `apps/vtt/shared/`: runtime contracts shared across process boundaries
+- `apps/vtt/services/asset-service/`: independent asset workspace
 
-Use `@/` imports for `src/`. Keep shared contracts independent of both
-`src/` and `server/`, and validate unknown transport data at the boundary.
+Use `@/` imports for `apps/vtt/src/`. Keep shared contracts independent of
+both `apps/vtt/src/` and `apps/vtt/server/`, and validate unknown transport
+data at the boundary.
 
 ## Realtime changes
 
@@ -57,7 +61,7 @@ npm run build:all
 ```
 
 Database integration cases need `DATABASE_URL`; CI supplies it through
-`docker/docker-compose.test.yml`. Realtime or recovery changes also require:
+`apps/vtt/docker/docker-compose.test.yml`. Realtime or recovery changes also require:
 
 ```bash
 npm run test:e2e
@@ -70,7 +74,7 @@ a backend immediately after a game-state ACK.
 
 ## Database changes
 
-Update `server/schema.sql` for new databases and add an idempotent SQL file in
-`server/migrations/` for existing installations. Apply schema changes before a
+Update `apps/vtt/server/schema.sql` for new databases and add an idempotent SQL file in
+`apps/vtt/server/migrations/` for existing installations. Apply schema changes before a
 rolling backend deployment. Never depend solely on startup repair for a planned
 production migration.

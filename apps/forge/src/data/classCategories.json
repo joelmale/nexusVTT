@@ -1,0 +1,26 @@
+[
+  {
+    "name": "⚔️ Martial Classes",
+    "icon": "⚔️",
+    "description": "Warriors who excel in physical combat, discipline, and martial prowess. These classes focus on strength, skill, and tactical mastery.",
+    "classSlugs": ["barbarian", "fighter", "monk", "rogue"]
+  },
+   {
+    "name": "🔮 Arcane Classes",
+    "icon": "🔮",
+    "description": "Spellcasters who master magical forces through study, innate talent, or otherworldly pacts. These classes wield powerful magic and arcane knowledge.",
+    "classSlugs": ["artificer", "bard", "sorcerer", "warlock", "wizard"]
+   },
+  {
+    "name": "✨ Divine Classes",
+    "icon": "✨",
+    "description": "Champions of faith who draw power from deities and divine forces. These classes combine martial skill with divine magic and spiritual guidance.",
+    "classSlugs": ["cleric", "paladin"]
+  },
+  {
+    "name": "🌿 Primal Classes",
+    "icon": "🌿",
+    "description": "Guardians of nature who commune with the wilderness and wield primal forces. These classes protect the natural world and harness its raw power.",
+    "classSlugs": ["druid", "ranger"]
+  }
+]

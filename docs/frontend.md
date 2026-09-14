@@ -4,10 +4,10 @@ This document provides a detailed overview of the frontend architecture of Nexus
 
 ## Project Structure
 
-The frontend code is located in the `src` directory and follows a standard React project structure:
+The frontend code is located in the `apps/vtt/src` directory and follows a standard React project structure:
 
 ```
-src/
+apps/vtt/src/
 ├── assets/            # Static assets like images and icons
 ├── components/        # React components
 ├── stores/            # Zustand state management
@@ -27,7 +27,7 @@ The UI is built with a modular component architecture. The main components are:
 
 ## State Management
 
-State management is handled by Zustand, a small and fast state management library for React. The main store is defined in `src/stores/gameStore.ts`.
+State management is handled by Zustand, a small and fast state management library for React. The main store is defined in `apps/vtt/src/stores/gameStore.ts`.
 
 ### `useGameStore`
 
@@ -50,7 +50,7 @@ The store also includes actions for updating the state, such as:
 
 ## WebSocket Service
 
-The WebSocket service in `src/utils/websocket.ts` manages the connection to the server.
+The WebSocket service in `apps/vtt/src/utils/websocket.ts` manages the connection to the server.
 
 ### `WebSocketService`
 

@@ -1,0 +1,129 @@
+{
+  "id": "test-paladin-20",
+  "name": "Test Paladin Level 20",
+  "species": "dragonborn",
+  "class": "paladin",
+  "level": 20,
+  "alignment": "Lawful Good",
+  "background": "noble",
+  "edition": "2014",
+  "subclass": "oath-of-devotion",
+  "inspiration": false,
+  "proficiencyBonus": 6,
+  "armorClass": 20,
+  "hitPoints": 180,
+  "maxHitPoints": 180,
+  "hitDice": {
+    "current": 20,
+    "max": 20,
+    "dieType": 10
+  },
+  "speed": 30,
+  "initiative": 1,
+  "abilities": {
+    "STR": { "score": 20, "modifier": 5 },
+    "DEX": { "score": 12, "modifier": 1 },
+    "CON": { "score": 18, "modifier": 4 },
+    "INT": { "score": 10, "modifier": 0 },
+    "WIS": { "score": 14, "modifier": 2 },
+    "CHA": { "score": 18, "modifier": 4 }
+  },
+  "skills": {
+    "Acrobatics": { "value": 1, "proficient": false },
+    "AnimalHandling": { "value": 2, "proficient": false },
+    "Arcana": { "value": 0, "proficient": false },
+    "Athletics": { "value": 11, "proficient": true },
+    "Deception": { "value": 4, "proficient": false },
+    "History": { "value": 6, "proficient": true },
+    "Insight": { "value": 8, "proficient": true },
+    "Intimidation": { "value": 10, "proficient": true },
+    "Investigation": { "value": 0, "proficient": false },
+    "Medicine": { "value": 8, "proficient": true },
+    "Nature": { "value": 0, "proficient": false },
+    "Perception": { "value": 8, "proficient": true },
+    "Performance": { "value": 4, "proficient": false },
+    "Persuasion": { "value": 10, "proficient": true },
+    "Religion": { "value": 0, "proficient": false },
+    "SleightOfHand": { "value": 1, "proficient": false },
+    "Stealth": { "value": 1, "proficient": false },
+    "Survival": { "value": 2, "proficient": false }
+  },
+  "languages": ["Common", "Draconic", "Celestial"],
+  "proficiencies": {
+    "armor": ["Light armor", "Medium armor", "Heavy armor", "Shields"],
+    "weapons": ["Simple weapons", "Martial weapons"],
+    "tools": ["Gaming set (playing cards)"]
+  },
+  "selectedFightingStyle": "defense",
+  "fightingStyle": "defense",
+  "selectedFeats": ["great-weapon-master", "polearm-master", "sentinel", "resilient-dex", "heavy-armor-master"],
+  "featEffects": {
+    "greatWeaponMaster": true,
+    "polearmMaster": true
+  },
+  "featuresAndTraits": {
+    "personality": "I take great pains to always look my best.",
+    "ideals": "Responsibility",
+    "bonds": "I will face any challenge to win the approval of my family.",
+    "flaws": "I secretly believe that everyone is beneath me.",
+    "classFeatures": [
+      "Divine Sense",
+      "Lay on Hands",
+      "Fighting Style",
+      "Spellcasting",
+      "Divine Smite",
+      "Divine Health",
+      "Sacred Oath",
+      "Extra Attack",
+      "Aura of Protection",
+      "Aura of Courage",
+      "Improved Divine Smite",
+      "Cleansing Touch",
+      "Aura Improvements",
+      "Sacred Oath Feature",
+      "Holy Nimbus"
+    ],
+    "speciesTraits": ["Draconic Ancestry (Gold)", "Breath Weapon", "Damage Resistance (Fire)"],
+    "backgroundFeatures": [
+      {
+        "name": "Position of Privilege",
+        "description": "Thanks to your noble birth, people are inclined to think the best of you."
+      }
+    ],
+    "musicalInstrumentProficiencies": []
+  },
+  "spellcasting": {
+    "ability": "CHA",
+    "spellSaveDC": 18,
+    "spellAttackBonus": 10,
+    "cantripsKnown": [],
+    "preparedSpells": [
+      "bless",
+      "cure-wounds",
+      "protection-from-evil-and-good",
+      "shield-of-faith",
+      "lesser-restoration",
+      "zone-of-truth",
+      "beacon-of-hope",
+      "dispel-magic",
+      "revivify",
+      "death-ward",
+      "freedom-of-movement",
+      "banishment",
+      "geas",
+      "raise-dead",
+      "flame-strike"
+    ],
+    "spellSlots": [0, 4, 3, 3, 3, 2, 0, 0, 0],
+    "usedSpellSlots": [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    "spellcastingType": "prepared",
+    "cantripChoicesByLevel": {}
+  },
+  "inventory": [],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "gp": 5000,
+    "pp": 500
+  }
+}

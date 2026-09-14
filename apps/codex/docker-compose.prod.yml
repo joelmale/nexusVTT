@@ -1,0 +1,192 @@
+version: '3.8'
+
+# Production Docker Compose file
+# Uses pre-built images from GitHub Container Registry (GHCR)
+# Optimized for Docker Swarm deployment via Portainer
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-doclib}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    networks:
+      - homelab-net
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  # Redis
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes
+    volumes:
+      - redis-data:/data
+    networks:
+      - homelab-net
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  # ElasticSearch
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    volumes:
+      - elasticsearch-data:/usr/share/elasticsearch/data
+    networks:
+      - homelab-net
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+      restart_policy:
+        condition: on-failure
+
+  # MinIO (S3-compatible storage)
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin}
+    volumes:
+      - minio-data:/data
+    networks:
+      - homelab-net
+    deploy:
+      restart_policy:
+        condition: on-failure
+
+  # Document API Service
+  doc-api:
+    image: ghcr.io/${GITHUB_REPO_OWNER:-joelmale}/nexuscodex-doc-api:${IMAGE_TAG:-latest}
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-doclib}
+      REDIS_URL: redis://redis:6379
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      S3_BUCKET: documents
+      S3_REGION: us-east-1
+      S3_FORCE_PATH_STYLE: "true"
+      JWT_SECRET: ${JWT_SECRET:-change-me-in-production}
+    networks:
+      - homelab-net
+    depends_on:
+      - postgres
+      - redis
+      - elasticsearch
+      - minio
+    deploy:
+      replicas: 2
+      update_config:
+        parallelism: 1
+        delay: 10s
+        order: start-first
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  # Document Processor (Background Worker)
+  doc-processor:
+    image: ghcr.io/${GITHUB_REPO_OWNER:-joelmale}/nexuscodex-doc-processor:${IMAGE_TAG:-latest}
+    environment:
+      NODE_ENV: production
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-doclib}
+      REDIS_URL: redis://redis:6379
+      ELASTICSEARCH_URL: http://elasticsearch:9200
+      S3_ENDPOINT: http://minio:9000
+      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-minioadmin}
+      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-minioadmin}
+      S3_BUCKET: documents
+      S3_REGION: us-east-1
+      S3_FORCE_PATH_STYLE: "true"
+    networks:
+      - homelab-net
+    depends_on:
+      - postgres
+      - redis
+      - elasticsearch
+      - minio
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+        delay: 5s
+        max_attempts: 3
+
+  # WebSocket Service
+  doc-websocket:
+    image: ghcr.io/${GITHUB_REPO_OWNER:-joelmale}/nexuscodex-doc-websocket:${IMAGE_TAG:-latest}
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-doclib}
+      REDIS_URL: redis://redis:6379
+      SESSION_TTL: 3600
+    networks:
+      - homelab-net
+    depends_on:
+      - postgres
+      - redis
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  # Admin UI
+  admin-ui:
+    image: ghcr.io/${GITHUB_REPO_OWNER:-joelmale}/nexuscodex-admin-ui:${IMAGE_TAG:-latest}
+    environment:
+      VITE_DOC_API_URL: ${DOC_API_URL:-http://localhost:3005}
+      VITE_WEBSOCKET_URL: ${WEBSOCKET_URL:-ws://localhost:3002}
+    networks:
+      - homelab-net
+    depends_on:
+      - doc-api
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+  # DM UI (Campaign Planner)
+  dm-ui:
+    image: ghcr.io/${GITHUB_REPO_OWNER:-joelmale}/nexuscodex-dm-ui:${IMAGE_TAG:-latest}
+    environment:
+      VITE_DOC_API_URL: ${DOC_API_URL:-http://localhost:3005}
+      VITE_WEBSOCKET_URL: ${WEBSOCKET_URL:-ws://localhost:3002}
+    networks:
+      - homelab-net
+    depends_on:
+      - doc-api
+    deploy:
+      replicas: 1
+      restart_policy:
+        condition: on-failure
+
+networks:
+  homelab-net:
+    external: true
+
+volumes:
+  postgres-data:
+  redis-data:
+  elasticsearch-data:
+  minio-data:

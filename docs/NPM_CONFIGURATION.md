@@ -9,7 +9,7 @@ network used by the Nexus VTT frontend container.
 Nexus VTT runs as a Dockhand-managed Docker Compose stack on one Docker Engine
 server.
 
-- Compose file: `docker/docker-compose.yml`
+- Compose file: `apps/vtt/docker/docker-compose.yml`
 - Public upstream: `frontend:80`
 - Shared proxy network: `PROXY_NETWORK`, default `homelab-net`
 - Internal backend: reached by frontend nginx as `backend:5001`
@@ -144,7 +144,7 @@ Browser checks:
 - The public proxy is not forwarding upgrade headers.
 - The proxy timeout is too short.
 - The frontend container is stale and does not include the current
-  `docker/nginx.conf`.
+  `apps/vtt/docker/nginx.conf`.
 
 ### OAuth redirects fail
 

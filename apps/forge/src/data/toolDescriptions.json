@@ -1,0 +1,491 @@
+{
+  "artisans-tools": {
+    "alchemist-supplies": {
+      "name": "Alchemist's Supplies",
+      "category": "Artisan's Tools",
+      "commonUses": "Chemicals, mixtures, reactions",
+      "typicalAbilities": ["Intelligence", "Dexterity"],
+      "uses": [
+        "Identify substances, acids, poisons, or alchemical residues",
+        "Create nonmagical items like smoke, adhesive, solvent, or simple explosives",
+        "Safely neutralize or stabilize volatile mixtures"
+      ],
+      "specialUse": "You can attempt to analyze magical potions to determine ingredients or risks without consuming them.",
+      "engineTags": ["crafting", "chemical", "analysis"]
+    },
+    "brewers-supplies": {
+      "name": "Brewer's Supplies",
+      "category": "Artisan's Tools",
+      "commonUses": "Fermentation, alcohol, preservation",
+      "typicalAbilities": ["Wisdom", "Constitution"],
+      "uses": [
+        "Brew beer, ale, spirits, or medicinal tonics",
+        "Judge quality, potency, or contamination",
+        "Use alcohol to preserve food or sterilize wounds"
+      ],
+      "specialUse": "During a long rest, you can improve morale or comfort for a small group, granting a minor narrative benefit.",
+      "engineTags": ["crafting", "food", "social"]
+    },
+    "calligrapher-supplies": {
+      "name": "Calligrapher's Supplies",
+      "category": "Artisan's Tools",
+      "commonUses": "Writing, documents, symbols",
+      "typicalAbilities": ["Dexterity", "Intelligence"],
+      "uses": [
+        "Draft official documents, contracts, or proclamations",
+        "Detect forgeries or alterations",
+        "Create convincing copies or encoded messages"
+      ],
+      "specialUse": "You can enhance the perceived authority or legitimacy of written material.",
+      "engineTags": ["social", "knowledge", "forgery"]
+    },
+    "carpenter-tools": {
+      "name": "Carpenter's Tools",
+      "category": "Artisan's Tools",
+      "commonUses": "Woodworking, structures",
+      "typicalAbilities": ["Strength", "Dexterity"],
+      "uses": [
+        "Build or repair wooden objects, furniture, or structures",
+        "Identify weak points in wooden constructions",
+        "Create temporary fortifications or supports"
+      ],
+      "specialUse": "You can reinforce structures to resist damage longer than normal.",
+      "engineTags": ["construction", "environment"]
+    },
+    "cartographer-tools": {
+      "name": "Cartographer's Tools",
+      "category": "Artisan's Tools",
+      "commonUses": "Maps, navigation",
+      "typicalAbilities": ["Intelligence", "Wisdom"],
+      "uses": [
+        "Create accurate maps of explored areas",
+        "Identify errors, omissions, or intentional distortions in maps",
+        "Estimate distance, scale, and travel time"
+      ],
+      "specialUse": "While navigating using your own maps, reduce the chance of becoming lost.",
+      "engineTags": ["navigation", "exploration"]
+    },
+    "cobbler-tools": {
+      "name": "Cobbler's Tools",
+      "category": "Artisan's Tools",
+      "commonUses": "Footwear, travel gear",
+      "typicalAbilities": ["Dexterity"],
+      "uses": [
+        "Repair or modify shoes and boots",
+        "Adapt footwear for terrain or climate",
+        "Identify wear patterns that reveal travel history"
+      ],
+      "specialUse": "You can improve footwear to reduce fatigue during long travel.",
+      "engineTags": ["travel", "maintenance"]
+    },
+    "cook-utensils": {
+      "name": "Cook's Utensils",
+      "category": "Artisan's Tools",
+      "commonUses": "Food preparation",
+      "typicalAbilities": ["Wisdom"],
+      "uses": [
+        "Prepare meals from limited ingredients",
+        "Identify spoiled or poisoned food",
+        "Stretch rations efficiently"
+      ],
+      "specialUse": "A well-prepared meal can improve rest quality or morale.",
+      "engineTags": ["survival", "support"]
+    },
+    "glassblower-tools": {
+      "name": "Glassblower's Tools",
+      "category": "Artisan's Tools",
+      "commonUses": "Glass objects, lenses",
+      "typicalAbilities": ["Dexterity"],
+      "uses": [
+        "Craft bottles, vials, lenses, or glass components",
+        "Identify flaws or weaknesses in glass",
+        "Repair delicate glasswork"
+      ],
+      "specialUse": "You can create specialized containers for alchemical or magical substances.",
+      "engineTags": ["crafting", "precision"]
+    },
+    "jeweler-tools": {
+      "name": "Jeweler's Tools",
+      "category": "Artisan's Tools",
+      "commonUses": "Gems, fine metalwork",
+      "typicalAbilities": ["Dexterity"],
+      "uses": [
+        "Appraise gems and jewelry",
+        "Detect counterfeits or hidden flaws",
+        "Cut or reset gems"
+      ],
+      "specialUse": "You can modify jewelry to conceal compartments or inscriptions.",
+      "engineTags": ["crafting", "valuation"]
+    },
+    "leatherworker-tools": {
+      "name": "Leatherworker's Tools",
+      "category": "Artisan's Tools",
+      "commonUses": "Leather goods, armor",
+      "typicalAbilities": ["Dexterity"],
+      "uses": [
+        "Craft or repair leather armor and gear",
+        "Modify items for comfort or concealment",
+        "Identify creature hides by origin"
+      ],
+      "specialUse": "You can reinforce leather armor without increasing bulk.",
+      "engineTags": ["crafting", "equipment"]
+    },
+    "mason-tools": {
+      "name": "Mason's Tools",
+      "category": "Artisan's Tools",
+      "commonUses": "Stonework, structures",
+      "typicalAbilities": ["Strength"],
+      "uses": [
+        "Cut, shape, or repair stone",
+        "Identify structural weaknesses in stone buildings",
+        "Estimate age or origin of stonework"
+      ],
+      "specialUse": "You can help structures resist collapse longer.",
+      "engineTags": ["construction", "environment"]
+    },
+    "painter-supplies": {
+      "name": "Painter's Supplies",
+      "category": "Artisan's Tools",
+      "commonUses": "Art, visual communication",
+      "typicalAbilities": ["Dexterity", "Wisdom"],
+      "uses": [
+        "Create paintings, murals, or disguises",
+        "Identify artistic style, origin, or symbolism",
+        "Convey messages visually"
+      ],
+      "specialUse": "You can subtly embed meaning or propaganda into artwork.",
+      "engineTags": ["art", "communication"]
+    },
+    "potter-tools": {
+      "name": "Potter's Tools",
+      "category": "Artisan's Tools",
+      "commonUses": "Ceramics, containers",
+      "typicalAbilities": ["Dexterity"],
+      "uses": [
+        "Craft pots, jars, tiles, or bricks",
+        "Identify origin or age of ceramics",
+        "Repair cracked pottery"
+      ],
+      "specialUse": "You can create containers designed to break or seal deliberately.",
+      "engineTags": ["crafting", "storage"]
+    },
+    "smith-tools": {
+      "name": "Smith's Tools",
+      "category": "Artisan's Tools",
+      "commonUses": "Metalwork",
+      "typicalAbilities": ["Strength"],
+      "uses": [
+        "Forge weapons, armor, or tools",
+        "Repair metal equipment",
+        "Identify metal quality or craftsmanship"
+      ],
+      "specialUse": "You can reinforce metal items against breakage.",
+      "engineTags": ["crafting", "equipment"]
+    },
+    "tinker-tools": {
+      "name": "Tinker's Tools",
+      "category": "Artisan's Tools",
+      "commonUses": "Mechanisms, gadgets",
+      "typicalAbilities": ["Dexterity", "Intelligence"],
+      "uses": [
+        "Build or repair small mechanical devices",
+        "Improvise simple machines",
+        "Identify traps or clockwork"
+      ],
+      "specialUse": "You can create temporary mechanical solutions from scrap.",
+      "engineTags": ["mechanical", "problem-solving"]
+    },
+    "weaver-tools": {
+      "name": "Weaver's Tools",
+      "category": "Artisan's Tools",
+      "commonUses": "Cloth, textiles",
+      "typicalAbilities": ["Dexterity"],
+      "uses": [
+        "Craft clothing, rope, or nets",
+        "Identify fabric quality or origin",
+        "Repair torn garments"
+      ],
+      "specialUse": "You can modify clothing for concealment or symbolism.",
+      "engineTags": ["crafting", "social"]
+    },
+    "woodcarver-tools": {
+      "name": "Woodcarver's Tools",
+      "category": "Artisan's Tools",
+      "commonUses": "Carving, decoration",
+      "typicalAbilities": ["Dexterity"],
+      "uses": [
+        "Create wooden figures, tools, or symbols",
+        "Identify carving styles or makers",
+        "Conceal markings or messages in carvings"
+      ],
+      "specialUse": "You can produce symbolic items that convey cultural meaning.",
+      "engineTags": ["art", "crafting"]
+    }
+  },
+  "gaming-sets": {
+    "dice-set": {
+      "name": "Dice Set",
+      "category": "Gaming Set",
+      "commonUses": "Games of chance or strategy",
+      "typicalAbilities": ["Wisdom", "Charisma"],
+      "uses": [
+        "Play games, gamble, or entertain",
+        "Recognize cheating techniques",
+        "Read opponents' habits"
+      ],
+      "specialUse": "You can gain insight into NPC attitudes during extended play.",
+      "engineTags": ["social", "insight"]
+    },
+    "dragonchess-set": {
+      "name": "Dragonchess Set",
+      "category": "Gaming Set",
+      "commonUses": "Games of chance or strategy",
+      "typicalAbilities": ["Wisdom", "Charisma"],
+      "uses": [
+        "Play games, gamble, or entertain",
+        "Recognize cheating techniques",
+        "Read opponents' habits"
+      ],
+      "specialUse": "You can gain insight into NPC attitudes during extended play.",
+      "engineTags": ["social", "insight"]
+    },
+    "playing-card-set": {
+      "name": "Playing Card Set",
+      "category": "Gaming Set",
+      "commonUses": "Games of chance or strategy",
+      "typicalAbilities": ["Wisdom", "Charisma"],
+      "uses": [
+        "Play games, gamble, or entertain",
+        "Recognize cheating techniques",
+        "Read opponents' habits"
+      ],
+      "specialUse": "You can gain insight into NPC attitudes during extended play.",
+      "engineTags": ["social", "insight"]
+    },
+    "three-dragon-ante-set": {
+      "name": "Three-Dragon Ante Set",
+      "category": "Gaming Set",
+      "commonUses": "Games of chance or strategy",
+      "typicalAbilities": ["Wisdom", "Charisma"],
+      "uses": [
+        "Play games, gamble, or entertain",
+        "Recognize cheating techniques",
+        "Read opponents' habits"
+      ],
+      "specialUse": "You can gain insight into NPC attitudes during extended play.",
+      "engineTags": ["social", "insight"]
+    }
+  },
+  "musical-instruments": {
+    "bagpipes": {
+      "name": "Bagpipes",
+      "category": "Musical Instrument",
+      "commonUses": "Performance, expression",
+      "typicalAbilities": ["Charisma"],
+      "uses": [
+        "Perform music to entertain or inspire",
+        "Communicate emotion or culture",
+        "Identify musical styles or traditions"
+      ],
+      "specialUse": "A successful performance can influence mood or attention.",
+      "engineTags": ["performance", "social"]
+    },
+    "drum": {
+      "name": "Drum",
+      "category": "Musical Instrument",
+      "commonUses": "Performance, expression",
+      "typicalAbilities": ["Charisma"],
+      "uses": [
+        "Perform music to entertain or inspire",
+        "Communicate emotion or culture",
+        "Identify musical styles or traditions"
+      ],
+      "specialUse": "A successful performance can influence mood or attention.",
+      "engineTags": ["performance", "social"]
+    },
+    "dulcimer": {
+      "name": "Dulcimer",
+      "category": "Musical Instrument",
+      "commonUses": "Performance, expression",
+      "typicalAbilities": ["Charisma"],
+      "uses": [
+        "Perform music to entertain or inspire",
+        "Communicate emotion or culture",
+        "Identify musical styles or traditions"
+      ],
+      "specialUse": "A successful performance can influence mood or attention.",
+      "engineTags": ["performance", "social"]
+    },
+    "flute": {
+      "name": "Flute",
+      "category": "Musical Instrument",
+      "commonUses": "Performance, expression",
+      "typicalAbilities": ["Charisma"],
+      "uses": [
+        "Perform music to entertain or inspire",
+        "Communicate emotion or culture",
+        "Identify musical styles or traditions"
+      ],
+      "specialUse": "A successful performance can influence mood or attention.",
+      "engineTags": ["performance", "social"]
+    },
+    "lute": {
+      "name": "Lute",
+      "category": "Musical Instrument",
+      "commonUses": "Performance, expression",
+      "typicalAbilities": ["Charisma"],
+      "uses": [
+        "Perform music to entertain or inspire",
+        "Communicate emotion or culture",
+        "Identify musical styles or traditions"
+      ],
+      "specialUse": "A successful performance can influence mood or attention.",
+      "engineTags": ["performance", "social"]
+    },
+    "lyre": {
+      "name": "Lyre",
+      "category": "Musical Instrument",
+      "commonUses": "Performance, expression",
+      "typicalAbilities": ["Charisma"],
+      "uses": [
+        "Perform music to entertain or inspire",
+        "Communicate emotion or culture",
+        "Identify musical styles or traditions"
+      ],
+      "specialUse": "A successful performance can influence mood or attention.",
+      "engineTags": ["performance", "social"]
+    },
+    "horn": {
+      "name": "Horn",
+      "category": "Musical Instrument",
+      "commonUses": "Performance, expression",
+      "typicalAbilities": ["Charisma"],
+      "uses": [
+        "Perform music to entertain or inspire",
+        "Communicate emotion or culture",
+        "Identify musical styles or traditions"
+      ],
+      "specialUse": "A successful performance can influence mood or attention.",
+      "engineTags": ["performance", "social"]
+    },
+    "pan-flute": {
+      "name": "Pan Flute",
+      "category": "Musical Instrument",
+      "commonUses": "Performance, expression",
+      "typicalAbilities": ["Charisma"],
+      "uses": [
+        "Perform music to entertain or inspire",
+        "Communicate emotion or culture",
+        "Identify musical styles or traditions"
+      ],
+      "specialUse": "A successful performance can influence mood or attention.",
+      "engineTags": ["performance", "social"]
+    },
+    "shawm": {
+      "name": "Shawm",
+      "category": "Musical Instrument",
+      "commonUses": "Performance, expression",
+      "typicalAbilities": ["Charisma"],
+      "uses": [
+        "Perform music to entertain or inspire",
+        "Communicate emotion or culture",
+        "Identify musical styles or traditions"
+      ],
+      "specialUse": "A successful performance can influence mood or attention.",
+      "engineTags": ["performance", "social"]
+    },
+    "viol": {
+      "name": "Viol",
+      "category": "Musical Instrument",
+      "commonUses": "Performance, expression",
+      "typicalAbilities": ["Charisma"],
+      "uses": [
+        "Perform music to entertain or inspire",
+        "Communicate emotion or culture",
+        "Identify musical styles or traditions"
+      ],
+      "specialUse": "A successful performance can influence mood or attention.",
+      "engineTags": ["performance", "social"]
+    }
+  },
+  "other-tools": {
+    "disguise-kit": {
+      "name": "Disguise Kit",
+      "category": "Specialist Tool",
+      "commonUses": "Deception, infiltration",
+      "typicalAbilities": ["Charisma", "Dexterity"],
+      "uses": [
+        "Create convincing disguises",
+        "Alter your appearance or identity",
+        "Detect others in disguise"
+      ],
+      "specialUse": "You can impersonate specific individuals with enough preparation.",
+      "engineTags": ["social", "deception"]
+    },
+    "forgery-kit": {
+      "name": "Forgery Kit",
+      "category": "Specialist Tool",
+      "commonUses": "Documents, seals, signatures",
+      "typicalAbilities": ["Dexterity", "Intelligence"],
+      "uses": [
+        "Create fake documents or seals",
+        "Detect forged materials",
+        "Replicate handwriting or official marks"
+      ],
+      "specialUse": "You can create documents that withstand casual inspection.",
+      "engineTags": ["social", "forgery", "knowledge"]
+    },
+    "herbalism-kit": {
+      "name": "Herbalism Kit",
+      "category": "Specialist Tool",
+      "commonUses": "Medicine, nature",
+      "typicalAbilities": ["Wisdom", "Intelligence"],
+      "uses": [
+        "Identify plants and their properties",
+        "Create herbal remedies or antitoxins",
+        "Treat poisoning or disease naturally"
+      ],
+      "specialUse": "You can stabilize dying creatures using natural remedies.",
+      "engineTags": ["healing", "nature", "survival"]
+    },
+    "navigator-tools": {
+      "name": "Navigator's Tools",
+      "category": "Specialist Tool",
+      "commonUses": "Navigation, seafaring",
+      "typicalAbilities": ["Wisdom", "Intelligence"],
+      "uses": [
+        "Plot courses using stars, charts, and instruments",
+        "Predict weather patterns",
+        "Avoid getting lost at sea or in wilderness"
+      ],
+      "specialUse": "You can navigate accurately even in poor conditions.",
+      "engineTags": ["navigation", "travel", "exploration"]
+    },
+    "poisoner-kit": {
+      "name": "Poisoner's Kit",
+      "category": "Specialist Tool",
+      "commonUses": "Toxins, assassination",
+      "typicalAbilities": ["Intelligence", "Dexterity"],
+      "uses": [
+        "Create or apply poisons",
+        "Identify poisonous substances",
+        "Handle toxins safely"
+      ],
+      "specialUse": "You can extract or neutralize natural poisons from creatures.",
+      "engineTags": ["crafting", "chemical", "stealth"]
+    },
+    "thieves-tools": {
+      "name": "Thieves' Tools",
+      "category": "Specialist Tool",
+      "commonUses": "Locks, traps, mechanisms",
+      "typicalAbilities": ["Dexterity"],
+      "uses": [
+        "Pick locks",
+        "Disarm traps",
+        "Sabotage mechanisms"
+      ],
+      "specialUse": "You can assess the difficulty of locks and traps before attempting them.",
+      "engineTags": ["stealth", "mechanical", "problem-solving"]
+    }
+  }
+}

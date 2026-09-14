@@ -1,0 +1,195 @@
+{
+  "shop_inventory": [
+    {
+      "id": "padded_armor",
+      "name": "Padded Armor",
+      "category": "Armor",
+      "cost_gp": 5,
+      "ac": 11,
+      "description": "Light armor made of quilted layers"
+    },
+    {
+      "id": "leather_armor",
+      "name": "Leather Armor",
+      "category": "Armor",
+      "cost_gp": 10,
+      "ac": 11,
+      "description": "Armor made of flexible leather"
+    },
+    {
+      "id": "studded_leather",
+      "name": "Studded Leather Armor",
+      "category": "Armor",
+      "cost_gp": 45,
+      "ac": 12,
+      "description": "Leather armor reinforced with metal studs"
+    },
+    {
+      "id": "hide_armor",
+      "name": "Hide Armor",
+      "category": "Armor",
+      "cost_gp": 10,
+      "ac": 12,
+      "description": "Armor made from thick animal hides"
+    },
+    {
+      "id": "chain_shirt",
+      "name": "Chain Shirt",
+      "category": "Armor",
+      "cost_gp": 50,
+      "ac": 13,
+      "description": "Flexible armor made of interlocking metal rings"
+    },
+    {
+      "id": "scale_mail",
+      "name": "Scale Mail",
+      "category": "Armor",
+      "cost_gp": 50,
+      "ac": 14,
+      "description": "Armor made of overlapping metal scales"
+    },
+    {
+      "id": "breastplate",
+      "name": "Breastplate",
+      "category": "Armor",
+      "cost_gp": 400,
+      "ac": 14,
+      "description": "Metal armor covering the torso"
+    },
+    {
+      "id": "chain_mail",
+      "name": "Chain Mail",
+      "category": "Armor",
+      "cost_gp": 75,
+      "ac": 16,
+      "description": "Heavy armor made of interlocking metal rings"
+    },
+    {
+      "id": "shield",
+      "name": "Shield",
+      "category": "Armor",
+      "cost_gp": 10,
+      "ac": 2,
+      "description": "A sturdy wooden or metal shield"
+    },
+    {
+      "id": "dagger",
+      "name": "Dagger",
+      "category": "Weapon",
+      "cost_gp": 2,
+      "description": "A small, sharp blade for close combat"
+    },
+    {
+      "id": "mace",
+      "name": "Mace",
+      "category": "Weapon",
+      "cost_gp": 5,
+      "description": "A blunt weapon with a heavy head"
+    },
+    {
+      "id": "quarterstaff",
+      "name": "Quarterstaff",
+      "category": "Weapon",
+      "cost_gp": 0.2,
+      "description": "A long wooden staff, versatile for defense and attack"
+    },
+    {
+      "id": "shortsword",
+      "name": "Shortsword",
+      "category": "Weapon",
+      "cost_gp": 10,
+      "description": "A balanced one-handed sword"
+    },
+    {
+      "id": "longsword",
+      "name": "Longsword",
+      "category": "Weapon",
+      "cost_gp": 15,
+      "description": "A versatile two-handed sword"
+    },
+    {
+      "id": "greatsword",
+      "name": "Greatsword",
+      "category": "Weapon",
+      "cost_gp": 50,
+      "description": "A large, heavy two-handed sword"
+    },
+    {
+      "id": "greataxe",
+      "name": "Greataxe",
+      "category": "Weapon",
+      "cost_gp": 30,
+      "description": "A large, heavy axe requiring two hands"
+    },
+    {
+      "id": "rapier",
+      "name": "Rapier",
+      "category": "Weapon",
+      "cost_gp": 25,
+      "description": "A slender, pointed sword for finesse attacks"
+    },
+    {
+      "id": "shortbow",
+      "name": "Shortbow",
+      "category": "Weapon",
+      "cost_gp": 25,
+      "description": "A compact bow for ranged attacks"
+    },
+    {
+      "id": "longbow",
+      "name": "Longbow",
+      "category": "Weapon",
+      "cost_gp": 50,
+      "description": "A powerful bow for ranged attacks"
+    },
+    {
+      "id": "burglars_pack",
+      "name": "Burglar's Pack",
+      "category": "Adventuring Gear",
+      "cost_gp": 16,
+      "description": "A pack containing thieves' tools and adventuring essentials"
+    },
+    {
+      "id": "diplomats_pack",
+      "name": "Diplomat's Pack",
+      "category": "Adventuring Gear",
+      "cost_gp": 39,
+      "description": "A pack for those who need to impress and document journeys"
+    },
+    {
+      "id": "dungeoneers_pack",
+      "name": "Dungeoneer's Pack",
+      "category": "Adventuring Gear",
+      "cost_gp": 12,
+      "description": "Essential gear for dungeon exploration and survival"
+    },
+    {
+      "id": "entertainers_pack",
+      "name": "Entertainer's Pack",
+      "category": "Adventuring Gear",
+      "cost_gp": 40,
+      "description": "A pack for bards and performers"
+    },
+    {
+      "id": "explorers_pack",
+      "name": "Explorer's Pack",
+      "category": "Adventuring Gear",
+      "cost_gp": 10,
+      "description": "Basic adventuring supplies for overland travel"
+    },
+    {
+      "id": "priests_pack",
+      "name": "Priest's Pack",
+      "category": "Adventuring Gear",
+      "cost_gp": 19,
+      "description": "A pack for clerics and religious figures"
+    },
+    {
+      "id": "scholars_pack",
+      "name": "Scholar's Pack",
+      "category": "Adventuring Gear",
+      "cost_gp": 40,
+      "description": "A pack for wizards and scholars"
+    }
+  ]
+}

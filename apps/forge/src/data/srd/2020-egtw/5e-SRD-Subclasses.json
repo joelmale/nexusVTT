@@ -1,0 +1,32 @@
+[
+  {
+    "index": "chronurgy-magic",
+    "class": {
+      "index": "wizard",
+      "name": "Wizard",
+      "url": "/api/2014/classes/wizard"
+    },
+    "name": "Chronurgy Magic",
+    "subclass_flavor": "Arcane Tradition",
+    "desc": [
+      "You focus your studies on the schools of magic that manipulate time. You learn to alter the pace of reality, allowing you to deftly dodge attacks and subtly influence the outcome of events. Your power also allows you to peer into the future, revealing moments of triumph and tragedy that are yet to come."
+    ],
+    "subclass_levels": "/api/2020-egtw/subclasses/chronurgy-magic/levels",
+    "url": "/api/2020-egtw/subclasses/chronurgy-magic"
+  },
+  {
+    "index": "graviturgy-magic",
+    "class": {
+      "index": "wizard",
+      "name": "Wizard",
+      "url": "/api/2014/classes/wizard"
+    },
+    "name": "Graviturgy Magic",
+    "subclass_flavor": "Arcane Tradition",
+    "desc": [
+      "You have learned to manipulate the forces of gravity, allowing you to move creatures and objects, and even alter their weight and density. Your power allows you to bend the battlefield to your will, making it difficult for your enemies to move and easy for your allies to advance."
+    ],
+    "subclass_levels": "/api/2020-egtw/subclasses/graviturgy-magic/levels",
+    "url": "/api/2020-egtw/subclasses/graviturgy-magic"
+  }
+]

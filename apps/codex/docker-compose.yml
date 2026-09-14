@@ -1,0 +1,173 @@
+services:
+  doc-api:
+    build: ./services/doc-api
+    ports:
+      - "3005:3000"
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/doclib
+      - REDIS_URL=redis://redis:6379
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - AUTH_DISABLED=true
+      - S3_ENDPOINT=http://minio:9000
+      - S3_PUBLIC_ENDPOINT=http://localhost:9000
+      - S3_ACCESS_KEY=admin
+      - S3_SECRET_KEY=password
+      - S3_BUCKET=documents
+      - S3_REGION=us-east-1
+    volumes:
+      - ./services/doc-api/src:/app/src
+      - ./services/doc-api/prisma:/app/prisma
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  doc-processor:
+    build: ./services/doc-processor
+    environment:
+      - NODE_ENV=development
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/doclib
+      - REDIS_URL=redis://redis:6379
+      - ELASTICSEARCH_URL=http://elasticsearch:9200
+      - S3_ENDPOINT=http://minio:9000
+      - S3_ACCESS_KEY=admin
+      - S3_SECRET_KEY=password
+      - S3_BUCKET=documents
+      - S3_REGION=us-east-1
+    volumes:
+      - ./services/doc-processor/src:/app/src
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+      minio:
+        condition: service_started
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+  doc-websocket:
+    build: ./services/doc-websocket
+    ports:
+      - "3002:3002"
+    environment:
+      - NODE_ENV=development
+      - PORT=3002
+      - DATABASE_URL=postgresql://user:pass@postgres:5432/doclib
+      - REDIS_URL=redis://redis:6379
+      - SESSION_TTL=3600
+    volumes:
+      - ./services/doc-websocket/src:/app/src
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    restart: unless-stopped
+
+  admin-ui:
+    build: ./services/admin-ui
+    ports:
+      - "3001:80"
+    depends_on:
+      - doc-api
+    environment:
+      - VITE_API_URL=http://localhost:3005
+    volumes:
+      - ./services/admin-ui:/app
+      - /app/node_modules
+
+  dm-ui:
+    build: ./services/dm-ui
+    ports:
+      - "3003:80"
+    depends_on:
+      - doc-api
+    environment:
+      - VITE_DOC_API_URL=http://localhost:3005
+      - VITE_WEBSOCKET_URL=ws://localhost:3002
+    volumes:
+      - ./services/dm-ui:/app
+      - /app/node_modules
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      - POSTGRES_DB=doclib
+      - POSTGRES_USER=user
+      - POSTGRES_PASSWORD=pass
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U user -d doclib"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    command: redis-server --appendonly yes
+
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=admin
+      - MINIO_ROOT_PASSWORD=password
+    volumes:
+      - minio_data:/data
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  elasticsearch:
+    image: elasticsearch:8.11.0
+    environment:
+      - discovery.type=single-node
+      - xpack.security.enabled=false
+      - "ES_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200"
+    volumes:
+      - elasticsearch_data:/usr/share/elasticsearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -f http://localhost:9200/_cluster/health || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+
+  kibana:
+    image: kibana:8.11.0
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - XPACK_SECURITY_ENABLED=false
+    ports:
+      - "5601:5601"
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
+  redis_data:
+  minio_data:
+  elasticsearch_data:

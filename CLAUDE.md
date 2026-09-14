@@ -2,6 +2,11 @@
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
 
+> Monorepo note: VTT source and VTT-local commands now live under `apps/vtt`.
+> Paths in this document that begin with `src/`, `server/`, `shared/`,
+> `scripts/`, `tests/`, `docker/`, `public/`, or `static-assets/` are relative
+> to `apps/vtt` unless explicitly identified as repository-root paths.
+
 # Nexus VTT - High-Level Architecture
 
 ## Overview

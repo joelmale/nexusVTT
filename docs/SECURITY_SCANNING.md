@@ -154,7 +154,7 @@ The security workflow runs:
 **Cause:** Docker build errors
 
 **Fix:**
-1. Test Docker builds locally: `docker build -f docker/backend.Dockerfile .`
+1. Test Docker builds locally: `docker build -f apps/vtt/docker/backend.Dockerfile apps/vtt`
 2. Check the workflow logs for build errors
 3. Fix any Dockerfile issues
 

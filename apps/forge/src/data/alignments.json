@@ -1,0 +1,110 @@
+[
+  {
+    "index": "lawful-good",
+    "name": "Lawful Good",
+    "abbreviation": "LG",
+    "category": "🌟 The Good Alignments",
+    "examples": [
+      "A paladin who adheres strictly to their religious and knightly oath to protect the innocent and uphold justice.",
+      "A just king or judge who follows the letter of the law to maintain peace and order, even when it is difficult."
+    ],
+    "short_desc": "Lawful good (LG) creatures can be counted on to do the right thing as expected by society. Gold dragons, paladins, and most dwarves are lawful good.",
+    "long_desc": "A Lawful Good character acts as a model citizen, believing that a well-ordered society with a strong code of conduct is the best way to ensure the most people are safe and happy. They often follow laws, traditions, and authority, but will break a law if it's necessary to uphold a greater good (e.g., saving an innocent life)."
+  },
+  {
+    "index": "neutral-good",
+    "name": "Neutral Good",
+    "abbreviation": "NG",
+    "category": "🌟 The Good Alignments",
+    "examples": [
+      "A cleric who travels the land helping the poor and sick, ignoring political boundaries and refusing to join any standing military or order.",
+      "A kind-hearted adventurer who fights monsters and protects villagers simply because it's the right thing to do, without following a specific code or relying on complicated schemes."
+    ],
+    "short_desc": "Neutral good (NG) folk do the best they can to help others according to their needs. Many celestials, some cloud giants, and most gnomes are neutral good.",
+    "long_desc": "A Neutral Good character believes in doing good above all else, but does not feel bound to either strict rules (Law) or complete freedom (Chaos). They will use the best method available—whether it's following the law or breaking it—to help others."
+  },
+  {
+    "index": "chaotic-good",
+    "name": "Chaotic Good",
+    "abbreviation": "CG",
+    "category": "🌟 The Good Alignments",
+    "examples": [
+      "A swashbuckling rogue who steals from corrupt nobles and gives the money to the poor, actively flouting the local laws for a noble cause (a \"Robin Hood\" figure).",
+      "A rebel wizard who forms a secret resistance to overthrow an unjust tyrant, prioritizing personal liberty over the established—but evil—order."
+    ],
+    "short_desc": "Chaotic good (CG) creatures act as their conscience directs, with little regard for what others expect. Copper dragons, many elves, and unicorns are chaotic good.",
+    "long_desc": "A Chaotic Good character strongly believes in the triumph of good over evil, but views laws, governments, and traditions as oppressive and restrictive. They champion individual freedom and act according to their own moral compass, which often means defying corrupt authority or disrupting unfair systems."
+  },
+  {
+    "index": "lawful-neutral",
+    "name": "Lawful Neutral",
+    "abbreviation": "LN",
+    "category": "⚖️ The Neutral Alignments",
+    "examples": [
+      "A soldier who always follows the orders of their commanding officer, regardless of whether they agree with the specific mission.",
+      "A monk dedicated to a specific, strict spiritual tradition whose rules dictate their every action and purpose."
+    ],
+    "short_desc": "Lawful neutral (LN) individuals act in accordance with law, tradition, or personal codes. Many monks and some wizards are lawful neutral.",
+    "long_desc": "A Lawful Neutral character values tradition, discipline, honor, and obedience to a code more than any moral outcome. They believe that strong laws and order are necessary for existence, and they follow those laws impartially, whether they lead to good or evil."
+  },
+  {
+    "index": "neutral",
+    "name": "True Neutral",
+    "abbreviation": "N",
+    "category": "⚖️ The Neutral Alignments",
+    "examples": [
+      "A druid who strives to protect the balance of nature, seeing civilization and destructive monsters as equally harmful extremes that must be kept in check.",
+      "A mercenary who works only for the highest bidder, acting solely out of self-interest and not caring about the justice or wickedness of their client."
+    ],
+    "short_desc": "Neutral (N) is the alignment of those who prefer to steer clear of moral questions and don't take sides, doing what seems best at the time. Lizardfolk, most druids, and many humans are neutral.",
+    "long_desc": "A True Neutral character—sometimes called \"Neutral Neutral\"—is defined by a commitment to true impartiality, balance, and survival, often focusing on their own skin or simple needs. They view all extremes (good/evil, law/chaos) as dangerous and will ally with or oppose any side if it serves their current goal or maintains the balance of power."
+  },
+  {
+    "index": "chaotic-neutral",
+    "name": "Chaotic Neutral",
+    "abbreviation": "CN",
+    "category": "⚖️ The Neutral Alignments",
+    "examples": [
+      "A jester or trickster who pulls pranks and causes chaos for fun, sometimes helping people and sometimes hindering them, based only on what amuses them.",
+      "A wild barbarian who lives outside of society, constantly seeking new experiences and thrills, and caring little for the consequences of their actions on others."
+    ],
+    "short_desc": "Chaotic neutral (CN) creatures follow their whims, holding their personal freedom above all else. Many barbarians and rogues, and some bards, are chaotic neutral.",
+    "long_desc": "A Chaotic Neutral character is an individualist and a free spirit who follows their every whim. They are largely motivated by self-interest and personal freedom, with no strong compulsion toward good or evil. They are unpredictable and simply do whatever they feel like doing at the moment."
+  },
+  {
+    "index": "lawful-evil",
+    "name": "Lawful Evil",
+    "abbreviation": "LE",
+    "category": "😈 The Evil Alignments",
+    "examples": [
+      "A tyrant who uses oppressive laws and fear to control their kingdom and enrich themselves, upholding the letter of the law while violating its spirit.",
+      "A devil who follows a strict hierarchy and honors all contracts, knowing that every deal is a path to the corruption and eventual damnation of souls."
+    ],
+    "short_desc": "Lawful evil (LE) creatures methodically take what they want, within the limits of a code of tradition, loyalty, or order. Devils, blue dragons, and hobgoblins are lawful evil.",
+    "long_desc": "A Lawful Evil character acts within a set of personal or systemic rules, but uses that system to achieve self-serving, evil goals. They believe in the power of hierarchy and control, often using laws, tradition, or oaths to secure power and impose their will on others. They can be relied upon to keep their word, but only if it serves their interests."
+  },
+  {
+    "index": "neutral-evil",
+    "name": "Neutral Evil",
+    "abbreviation": "NE",
+    "category": "😈 The Evil Alignments",
+    "examples": [
+      "A crime boss who runs an organization for personal gain, forming temporary alliances when useful and breaking them when they are no longer beneficial.",
+      "A power-hungry wizard who pursues forbidden knowledge and dark magic, seeing others as tools or obstacles to be eliminated in their quest for magical supremacy."
+    ],
+    "short_desc": "Neutral evil (NE) is the alignment of those who do whatever they can get away with, without compassion or qualms. Many drow, some cloud giants, and goblins are neutral evil.",
+    "long_desc": "A Neutral Evil character is concerned with their own well-being, power, and advancement above all else. They are typically unburdened by loyalty or rules, using whatever method—organized crime, deception, or outright violence—to get what they want. They kill, steal, and deceive without remorse if it benefits them."
+  },
+  {
+    "index": "chaotic-evil",
+    "name": "Chaotic Evil",
+    "abbreviation": "CE",
+    "category": "😈 The Evil Alignments",
+    "examples": [
+      "A demon whose sole purpose is to destroy and corrupt, delighting in senseless violence and suffering.",
+      "A crazed cultist or homicidal maniac who seeks only to burn down society and murder as many people as possible, without any coherent plan or goal beyond destruction."
+    ],
+    "short_desc": "Chaotic evil (CE) creatures act with arbitrary violence, spurred by their greed, hatred, or bloodlust. Demons, red dragons, and orcs are chaotic evil.",
+    "long_desc": "A Chaotic Evil character represents the destructive force of pure, malicious self-interest and sadism. They are motivated by the desire to cause pain, spread chaos, and destroy beauty or goodness. They are brutal, arbitrary, and unpredictable, often acting alone or in loose bands of monstrous thugs."
+  }
+]

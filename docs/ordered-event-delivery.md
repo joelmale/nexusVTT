@@ -59,7 +59,7 @@ reconstructed.
 ## Durable and transient traffic
 
 Durable traffic includes chat plus character, dice, drawing, fog, prop, scene,
-and token mutations listed in `shared/events/contracts.ts`. Presence, typing,
+and token mutations listed in `apps/vtt/shared/events/contracts.ts`. Presence, typing,
 cursor, heartbeat, targeted UI messages, and canonical snapshot/delta traffic
 remain outside the journal because they are transient or already have a
 separate integrity protocol.
@@ -78,7 +78,7 @@ Before deploying to an existing database, apply these migrations in order:
 `2026-07-19-add-room-event-journal.sql`,
 `2026-07-19-add-durable-game-state-commits.sql`, then
 `2026-07-19-add-room-entity-versions.sql`. New databases receive the same
-schema from `server/schema.sql`; startup also creates missing journal/version
+schema from `apps/vtt/server/schema.sql`; startup also creates missing journal/version
 objects and state-anchor columns defensively.
 Runtime counters for commits, duplicates, failures, replay volume, and
 truncated replay windows are available from `GET /api/metrics/ordered-events`.

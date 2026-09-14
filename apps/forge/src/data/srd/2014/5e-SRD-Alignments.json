@@ -1,0 +1,65 @@
+[
+    {
+        "index": "lawful-good",
+        "name": "Lawful Good",
+        "abbreviation": "LG",
+        "desc": "A Lawful Good character acts as a model citizen, believing that a well-ordered society with a strong code of conduct is the best way to ensure the most people are safe and happy. They often follow laws, traditions, and authority, but will break a law if it's necessary to uphold a greater good (e.g., saving an innocent life).",
+        "url": "/api/2014/alignments/lawful-good"
+    },
+    {
+        "index": "neutral-good",
+        "name": "Neutral Good",
+        "abbreviation": "NG",
+        "desc": "A Neutral Good character believes in doing good above all else, but does not feel bound to either strict rules (Law) or complete freedom (Chaos). They will use the best method available\u2014whether it's following the law or breaking it\u2014to help others.",
+        "url": "/api/2014/alignments/neutral-good"
+    },
+    {
+        "index": "chaotic-good",
+        "name": "Chaotic Good",
+        "abbreviation": "CG",
+        "desc": "A Chaotic Good character strongly believes in the triumph of good over evil, but views laws, governments, and traditions as oppressive and restrictive. They champion individual freedom and act according to their own moral compass, which often means defying corrupt authority or disrupting unfair systems.",
+        "url": "/api/2014/alignments/chaotic-good"
+    },
+    {
+        "index": "lawful-neutral",
+        "name": "Lawful Neutral",
+        "abbreviation": "LN",
+        "desc": "A Lawful Neutral character values tradition, discipline, honor, and obedience to a code more than any moral outcome. They believe that strong laws and order are necessary for existence, and they follow those laws impartially, whether they lead to good or evil.",
+        "url": "/api/2014/alignments/lawful-neutral"
+    },
+    {
+        "index": "neutral",
+        "name": "Neutral",
+        "abbreviation": "N",
+        "desc": "A True Neutral character\u2014sometimes called \"Neutral Neutral\"\u2014is defined by a commitment to true impartiality, balance, and survival, often focusing on their own skin or simple needs. They view all extremes (good/evil, law/chaos) as dangerous and will ally with or oppose any side if it serves their current goal or maintains the balance of power.",
+        "url": "/api/2014/alignments/neutral"
+    },
+    {
+        "index": "chaotic-neutral",
+        "name": "Chaotic Neutral",
+        "abbreviation": "CN",
+        "desc": "A Chaotic Neutral character is an individualist and a free spirit who follows their every whim. They are largely motivated by self-interest and personal freedom, with no strong compulsion toward good or evil. They are unpredictable and simply do whatever they feel like doing at the moment.",
+        "url": "/api/2014/alignments/chaotic-neutral"
+    },
+    {
+        "index": "lawful-evil",
+        "name": "Lawful Evil",
+        "abbreviation": "LE",
+        "desc": "A Lawful Evil character acts within a set of personal or systemic rules, but uses that system to achieve self-serving, evil goals. They believe in the power of hierarchy and control, often using laws, tradition, or oaths to secure power and impose their will on others. They can be relied upon to keep their word, but only if it serves their interests.",
+        "url": "/api/2014/alignments/lawful-evil"
+    },
+    {
+        "index": "neutral-evil",
+        "name": "Neutral Evil",
+        "abbreviation": "NE",
+        "desc": "A Neutral Evil character is concerned with their own well-being, power, and advancement above all else. They are typically unburdened by loyalty or rules, using whatever method\u2014organized crime, deception, or outright violence\u2014to get what they want. They kill, steal, and deceive without remorse if it benefits them.",
+        "url": "/api/2014/alignments/neutral-evil"
+    },
+    {
+        "index": "chaotic-evil",
+        "name": "Chaotic Evil",
+        "abbreviation": "CE",
+        "desc": "A Chaotic Evil character represents the destructive force of pure, malicious self-interest and sadism. They are motivated by the desire to cause pain, spread chaos, and destroy beauty or goodness. They are brutal, arbitrary, and unpredictable, often acting alone or in loose bands of monstrous thugs.",
+        "url": "/api/2014/alignments/chaotic-evil"
+    }
+]

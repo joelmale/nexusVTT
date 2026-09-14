@@ -121,6 +121,7 @@ if (link) {
 3. Restart dev server:
    ```bash
    # Stop server (Ctrl+C)
+   cd apps/vtt
    npm run dev
    ```
 
@@ -142,7 +143,7 @@ if (link) {
 **Fix:**
 1. Check file actually replaced:
    ```bash
-   ls -lh src/styles/initiative-tracker.css
+   ls -lh apps/vtt/src/styles/initiative-tracker.css
    ```
    Should show ~18KB
 2. Check no duplicate imports in `main.css`
@@ -192,12 +193,12 @@ If this makes it look better, it confirms the CSS file isn't loading properly.
 
 **Sometimes the CSS file has wrong permissions:**
 ```bash
-ls -la src/styles/initiative-tracker.css
+ls -la apps/vtt/src/styles/initiative-tracker.css
 ```
 
 **If it shows weird permissions, fix them:**
 ```bash
-chmod 644 src/styles/initiative-tracker.css
+chmod 644 apps/vtt/src/styles/initiative-tracker.css
 ```
 
 ## Nuclear Option: Clear Everything
@@ -210,6 +211,7 @@ rm -rf node_modules/.vite
 rm -rf dist
 
 # Restart
+cd apps/vtt
 npm run dev
 ```
 
@@ -226,7 +228,7 @@ If still not working, check these and report:
 
 2. **CSS File Size:**
    ```bash
-   ls -lh src/styles/initiative-tracker.css
+   ls -lh apps/vtt/src/styles/initiative-tracker.css
    ```
 
 3. **Loaded CSS Content:**

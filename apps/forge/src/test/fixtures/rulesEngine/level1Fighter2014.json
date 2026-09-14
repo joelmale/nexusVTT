@@ -1,0 +1,79 @@
+{
+  "id": "test-fighter-1",
+  "name": "Test Fighter Level 1",
+  "species": "human",
+  "class": "fighter",
+  "level": 1,
+  "alignment": "Lawful Good",
+  "background": "soldier",
+  "edition": "2014",
+  "inspiration": false,
+  "proficiencyBonus": 2,
+  "armorClass": 16,
+  "hitPoints": 12,
+  "maxHitPoints": 12,
+  "hitDice": {
+    "current": 1,
+    "max": 1,
+    "dieType": 10
+  },
+  "speed": 30,
+  "initiative": 1,
+  "abilities": {
+    "STR": { "score": 16, "modifier": 3 },
+    "DEX": { "score": 13, "modifier": 1 },
+    "CON": { "score": 14, "modifier": 2 },
+    "INT": { "score": 10, "modifier": 0 },
+    "WIS": { "score": 12, "modifier": 1 },
+    "CHA": { "score": 8, "modifier": -1 }
+  },
+  "skills": {
+    "Acrobatics": { "value": 1, "proficient": false },
+    "AnimalHandling": { "value": 1, "proficient": false },
+    "Arcana": { "value": 0, "proficient": false },
+    "Athletics": { "value": 5, "proficient": true },
+    "Deception": { "value": -1, "proficient": false },
+    "History": { "value": 0, "proficient": false },
+    "Insight": { "value": 1, "proficient": false },
+    "Intimidation": { "value": 1, "proficient": true },
+    "Investigation": { "value": 0, "proficient": false },
+    "Medicine": { "value": 1, "proficient": false },
+    "Nature": { "value": 0, "proficient": false },
+    "Perception": { "value": 3, "proficient": true },
+    "Performance": { "value": -1, "proficient": false },
+    "Persuasion": { "value": -1, "proficient": false },
+    "Religion": { "value": 0, "proficient": false },
+    "SleightOfHand": { "value": 1, "proficient": false },
+    "Stealth": { "value": 1, "proficient": false },
+    "Survival": { "value": 1, "proficient": false }
+  },
+  "languages": ["Common"],
+  "proficiencies": {
+    "armor": ["Light armor", "Medium armor", "Heavy armor", "Shields"],
+    "weapons": ["Simple weapons", "Martial weapons"],
+    "tools": ["Dice set", "Vehicles (land)"]
+  },
+  "featuresAndTraits": {
+    "personality": "I face problems head-on.",
+    "ideals": "Greater Good",
+    "bonds": "I would lay down my life for the people I served with.",
+    "flaws": "I obey authority without question.",
+    "classFeatures": ["Fighting Style", "Second Wind"],
+    "speciesTraits": [],
+    "backgroundFeatures": [
+      {
+        "name": "Military Rank",
+        "description": "You have a military rank from your career as a soldier."
+      }
+    ],
+    "musicalInstrumentProficiencies": []
+  },
+  "fightingStyle": "defense",
+  "inventory": [],
+  "currency": {
+    "cp": 0,
+    "sp": 0,
+    "gp": 10,
+    "pp": 0
+  }
+}

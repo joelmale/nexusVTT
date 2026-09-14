@@ -1,0 +1,459 @@
+[
+  {
+    "index": "order-of-scribes",
+    "class": {
+      "index": "wizard",
+      "name": "Wizard",
+      "url": "/api/2014/classes/wizard"
+    },
+    "name": "Order of Scribes",
+    "subclass_flavor": "Arcane Tradition",
+    "desc": [
+      "A wizard obsessed with living spellbooks and magical writing. High utility, flexible damage typing for spells, and exceptional ritual/casting logistics."
+    ],
+    "subclass_levels": "/api/2020/subclasses/order-of-scribes/levels",
+    "url": "/api/2020/subclasses/order-of-scribes"
+  },
+  {
+    "index": "bladesinging",
+    "class": {
+      "index": "wizard",
+      "name": "Wizard",
+      "url": "/api/2014/classes/wizard"
+    },
+    "name": "Bladesinging",
+    "subclass_flavor": "Arcane Tradition",
+    "desc": [
+      "A melee-capable wizard who enters a bladesong for defense, speed, and concentration support. Strong gish with high skill ceiling."
+    ],
+    "subclass_levels": "/api/2020/subclasses/bladesinging/levels",
+    "url": "/api/2020/subclasses/bladesinging"
+  },
+  {
+    "index": "alchemist",
+    "class": {
+      "index": "artificer",
+      "name": "Artificer",
+      "url": "/api/2014/classes/artificer"
+    },
+    "name": "Alchemist",
+    "subclass_flavor": "Artificer Specialist",
+    "desc": [
+      "A support-focused artificer who creates experimental elixirs and boosts healing/acid/poison-style effects. Strong utility and party sustain."
+    ],
+    "url": "/api/2014/subclasses/alchemist"
+  },
+  {
+    "index": "armorer",
+    "class": {
+      "index": "artificer",
+      "name": "Artificer",
+      "url": "/api/2014/classes/artificer"
+    },
+    "name": "Armorer",
+    "subclass_flavor": "Artificer Specialist",
+    "desc": [
+      "A power-armor artificer with modular suit modes: one defensive/taunting, one stealth/ranged. Excellent tanking or infiltration flexibility."
+    ],
+    "url": "/api/2014/subclasses/armorer"
+  },
+  {
+    "index": "artillerist",
+    "class": {
+      "index": "artificer",
+      "name": "Artificer",
+      "url": "/api/2014/classes/artificer"
+    },
+    "name": "Artillerist",
+    "subclass_flavor": "Artificer Specialist",
+    "desc": [
+      "A turret-and-explosives artificer who deploys an eldritch cannon for damage, defense, or support. Strong ranged pressure and team shielding."
+    ],
+    "url": "/api/2014/subclasses/artillerist"
+  },
+  {
+    "index": "battle-smith",
+    "class": {
+      "index": "artificer",
+      "name": "Artificer",
+      "url": "/api/2014/classes/artificer"
+    },
+    "name": "Battle Smith",
+    "subclass_flavor": "Artificer Specialist",
+    "desc": [
+      "A weapon-and-companion artificer with a steel defender. Solid frontline option, strong reaction defense, and Intelligence-based weapon synergy."
+    ],
+    "url": "/api/2014/subclasses/battle-smith"
+  },
+  {
+    "index": "beast",
+    "class": {
+      "index": "barbarian",
+      "name": "Barbarian",
+      "url": "/api/2014/classes/barbarian"
+    },
+    "name": "Beast",
+    "subclass_flavor": "Primal Path",
+    "desc": [
+      "Barbarians who walk the Path of the Beast draw on the feral power of wild creatures. The beast rages within you, granting you the strength and ferocity of a wild animal. You can transform into a beast, gaining the abilities and instincts of the creature you become."
+    ],
+    "url": "/api/2014/subclasses/beast"
+  },
+  {
+    "index": "wild-magic-barb",
+    "class": {
+      "index": "barbarian",
+      "name": "Barbarian",
+      "url": "/api/2014/classes/barbarian"
+    },
+    "name": "Wild Magic",
+    "subclass_flavor": "Primal Path",
+    "desc": [
+      "A barbarian infused with chaotic magic that erupts during rage. Strong battlefield randomness with occasional party-support effects."
+    ],
+    "url": "/api/2014/subclasses/wild-magic-barb"
+  },
+  {
+    "index": "creation",
+    "class": {
+      "index": "bard",
+      "name": "Bard",
+      "url": "/api/2014/classes/bard"
+    },
+    "name": "Creation",
+    "subclass_flavor": "Bard College",
+    "desc": [
+      "Bards of the College of Creation are masters of art and music. They can weave magic into their creations, bringing them to life or infusing them with magical properties. These bards are often found in places where art and creativity flourish, and they use their magic to inspire others and create beautiful works."
+    ],
+    "url": "/api/2014/subclasses/creation"
+  },
+  {
+    "index": "eloquence",
+    "class": {
+      "index": "bard",
+      "name": "Bard",
+      "url": "/api/2014/classes/bard"
+    },
+    "name": "Eloquence",
+    "subclass_flavor": "Bard College",
+    "desc": [
+      "A persuasion powerhouse and debuff specialist. Extremely consistent social checks and strong inspiration reliability."
+    ],
+    "url": "/api/2014/subclasses/eloquence"
+  },
+  {
+    "index": "order",
+    "class": {
+      "index": "cleric",
+      "name": "Cleric",
+      "url": "/api/2014/classes/cleric"
+    },
+    "name": "Order",
+    "subclass_flavor": "Divine Domain",
+    "desc": [
+      "A law-and-command cleric who turns buffs into ally attacks and asserts battlefield authority. Excellent party force multiplier."
+    ],
+    "url": "/api/2014/subclasses/order"
+  },
+  {
+    "index": "peace",
+    "class": {
+      "index": "cleric",
+      "name": "Cleric",
+      "url": "/api/2014/classes/cleric"
+    },
+    "name": "Peace",
+    "subclass_flavor": "Divine Domain",
+    "desc": [
+      "A bond-focused support cleric that links allies for shared protection and accuracy. Very strong teamwork amplification."
+    ],
+    "url": "/api/2014/subclasses/peace"
+  },
+  {
+    "index": "twilight",
+    "class": {
+      "index": "cleric",
+      "name": "Cleric",
+      "url": "/api/2014/classes/cleric"
+    },
+    "name": "Twilight",
+    "subclass_flavor": "Divine Domain",
+    "desc": [
+      "A dusk-and-dawn guardian cleric with powerful party protection and anti-fear/charm support. Exceptional defensive aura play."
+    ],
+    "url": "/api/2014/subclasses/twilight"
+  },
+  {
+    "index": "spores",
+    "class": {
+      "index": "druid",
+      "name": "Druid",
+      "url": "/api/2014/classes/druid"
+    },
+    "name": "Spores",
+    "subclass_flavor": "Druid Circle",
+    "desc": [
+      "Druids of the Circle of Spores find beauty in decay. They see within mold and other fungi the ability to transform lifeless material into abundant, albeit somewhat strange, life. These druids believe that life and death are parts of a grand cycle, with one leading to the other and then back again. Death isn't the end of life, but instead a change of state that sees life shift into a new form.",
+      "Druids of this circle have a complex relationship with the undead. They see death and decay as essential parts of the multiverse, yet they believe the natural cycle of death should remain free from undead influence. Unlike most druids, these mystics tap into energies normally associated with death magic, weaving fungal spores with necromantic energy to create their unique brand of druidic magic."
+    ],
+    "url": "/api/2014/subclasses/spores"
+  },
+  {
+    "index": "stars",
+    "class": {
+      "index": "druid",
+      "name": "Druid",
+      "url": "/api/2014/classes/druid"
+    },
+    "name": "Stars",
+    "subclass_flavor": "Druid Circle",
+    "desc": [
+      "The Circle of Stars allows druids to draw on the power of starlight. These druids have tracked heavenly patterns since time immemorial, discovering secrets hidden amid the constellations. By revealing and understanding these secrets, the Circle of the Stars seeks to harness the powers of the cosmos.",
+      "Many druids of this circle keep records of the constellations and the stars' effects on the world. Some groups document these observations at megalithic sites, which serve as enigmatic libraries of lore. These repositories might take the form of stone circles, pyramids, petroglyphs, and underground temples\u2014any construction durable enough to protect the circle's secrets even against a great cataclysm."
+    ],
+    "url": "/api/2014/subclasses/stars"
+  },
+  {
+    "index": "wildfire",
+    "class": {
+      "index": "druid",
+      "name": "Druid",
+      "url": "/api/2014/classes/druid"
+    },
+    "name": "Wildfire",
+    "subclass_flavor": "Druid Circle",
+    "desc": [
+      "Druids within the Circle of Wildfire understand that destruction is sometimes the precursor of creation, such as when a forest fire promotes later growth. These druids bond with a primal spirit that harbors both destructive and creative power, allowing the druids to create controlled flames that burn away one thing but give life to another.",
+      "The druids of this circle are keepers of lore and creation, wielders of flame and renewal. They view fire as a force of change and transformation, capable of both destruction and rebirth. Through their bond with a wildfire spirit, these druids channel the essence of flame to protect the natural world and promote new growth from the ashes of the old."
+    ],
+    "url": "/api/2014/subclasses/wildfire"
+  },
+  {
+    "index": "psi-warrior",
+    "class": {
+      "index": "fighter",
+      "name": "Fighter",
+      "url": "/api/2014/classes/fighter"
+    },
+    "name": "Psi Warrior",
+    "subclass_flavor": "Martial Archetype",
+    "desc": [
+      "A psionic fighter who uses mental energy for defense, force movement, and burst damage. Great control and survivability tools."
+    ],
+    "url": "/api/2014/subclasses/psi-warrior"
+  },
+  {
+    "index": "rune-knight",
+    "class": {
+      "index": "fighter",
+      "name": "Fighter",
+      "url": "/api/2014/classes/fighter"
+    },
+    "name": "Rune Knight",
+    "subclass_flavor": "Martial Archetype",
+    "desc": [
+      "A giant-rune empowered fighter with flexible rune-based reactions and a size-increase combat mode. Strong control and tanking."
+    ],
+    "url": "/api/2014/subclasses/rune-knight"
+  },
+  {
+    "index": "astral-self",
+    "class": {
+      "index": "monk",
+      "name": "Monk",
+      "url": "/api/2014/classes/monk"
+    },
+    "name": "Astral Self",
+    "subclass_flavor": "Monastic Tradition",
+    "desc": [
+      "A monk who manifests an astral form to extend reach, enhance offense/defense, and gain spectral senses and presence."
+    ],
+    "url": "/api/2014/subclasses/astral-self"
+  },
+  {
+    "index": "mercy",
+    "class": {
+      "index": "monk",
+      "name": "Monk",
+      "url": "/api/2014/classes/monk"
+    },
+    "name": "Mercy",
+    "subclass_flavor": "Monastic Tradition",
+    "desc": [
+      "A monk who blends healing and harm using ki. Strong battlefield medic with status application and efficient support."
+    ],
+    "url": "/api/2014/subclasses/mercy"
+  },
+  {
+    "index": "glory",
+    "class": {
+      "index": "paladin",
+      "name": "Paladin",
+      "url": "/api/2014/classes/paladin"
+    },
+    "name": "Glory",
+    "subclass_flavor": "Sacred Oath",
+    "desc": [
+      "A heroic-athlete paladin built for mobility, ally buffing, and cinematic feats of strength. Great leader for aggressive teams."
+    ],
+    "url": "/api/2014/subclasses/glory"
+  },
+  {
+    "index": "watchers",
+    "class": {
+      "index": "paladin",
+      "name": "Paladin",
+      "url": "/api/2014/classes/paladin"
+    },
+    "name": "Watchers",
+    "subclass_flavor": "Sacred Oath",
+    "desc": [
+      "A sentinel paladin against extraplanar threats. Strong anti-charm/fear support, initiative aura, and banishment-style control."
+    ],
+    "url": "/api/2014/subclasses/watchers"
+  },
+  {
+    "index": "fey-wanderer",
+    "class": {
+      "index": "ranger",
+      "name": "Ranger",
+      "url": "/api/2014/classes/ranger"
+    },
+    "name": "Fey Wanderer",
+    "subclass_flavor": "Ranger Archetype",
+    "desc": [
+      "A ranger infused with fey magic: strong social presence, fear/charm manipulation, and extra psychic-style damage."
+    ],
+    "url": "/api/2014/subclasses/fey-wanderer"
+  },
+  {
+    "index": "swarmkeeper",
+    "class": {
+      "index": "ranger",
+      "name": "Ranger",
+      "url": "/api/2014/classes/ranger"
+    },
+    "name": "Swarmkeeper",
+    "subclass_flavor": "Ranger Archetype",
+    "desc": [
+      "A ranger bonded to a mystical swarm (insects, spirits, motes). Excellent forced movement, defense, and utility options each turn."
+    ],
+    "url": "/api/2014/subclasses/swarmkeeper"
+  },
+  {
+    "index": "phantom",
+    "class": {
+      "index": "rogue",
+      "name": "Rogue",
+      "url": "/api/2014/classes/rogue"
+    },
+    "name": "Phantom",
+    "subclass_flavor": "Roguish Archetype",
+    "desc": [
+      "Death-touched rogue who draws power from lingering souls.",
+      "Theme: Death-touched rogue. Fantasy: Spirit medium, soul collector. Primary stats: Dexterity.",
+      "Phantoms siphon life force and wield ghostly talents to spread damage and gain spectral advantages."
+    ],
+    "url": "/api/2014/subclasses/phantom"
+  },
+  {
+    "index": "soulknife",
+    "class": {
+      "index": "rogue",
+      "name": "Rogue",
+      "url": "/api/2014/classes/rogue"
+    },
+    "name": "Soulknife",
+    "subclass_flavor": "Roguish Archetype",
+    "desc": [
+      "Psionic assassin who manifests psychic blades and mental prowess.",
+      "Theme: Psionic assassin. Fantasy: Mind-blade wielder, psychic operative. Primary stats: Dexterity, Intelligence.",
+      "Soulknives replace weapons with psionic blades, thriving on stealth, mobility, and skill reliability."
+    ],
+    "url": "/api/2014/subclasses/soulknife"
+  },
+  {
+    "index": "aberrant-mind",
+    "class": {
+      "index": "sorcerer",
+      "name": "Sorcerer",
+      "url": "/api/2014/classes/sorcerer"
+    },
+    "name": "Aberrant Mind",
+    "subclass_flavor": "Sorcerous Origin",
+    "desc": [
+      "A psionic/alien sorcerer with expanded spell options, strong telepathy, and efficient metamagic-like casting for certain spells."
+    ],
+    "url": "/api/2014/subclasses/aberrant-mind"
+  },
+  {
+    "index": "clockwork-soul",
+    "class": {
+      "index": "sorcerer",
+      "name": "Sorcerer",
+      "url": "/api/2014/classes/sorcerer"
+    },
+    "name": "Clockwork Soul",
+    "subclass_flavor": "Sorcerous Origin",
+    "desc": [
+      "A lawful-mechanistic sorcerer that imposes order: cancels advantage/disadvantage swings, gets strong defensive wards, and broad spell access."
+    ],
+    "url": "/api/2014/subclasses/clockwork-soul"
+  },
+  {
+    "index": "fathomless",
+    "class": {
+      "index": "warlock",
+      "name": "Warlock",
+      "url": "/api/2014/classes/warlock"
+    },
+    "name": "Fathomless",
+    "subclass_flavor": "Otherworldly Patron",
+    "desc": [
+      "An ocean/abyss patron warlock with a tentacle companion, strong control, cold/water defenses, and mobility in aquatic environments."
+    ],
+    "url": "/api/2014/subclasses/fathomless"
+  },
+  {
+    "index": "genie",
+    "class": {
+      "index": "warlock",
+      "name": "Warlock",
+      "url": "/api/2014/classes/warlock"
+    },
+    "name": "Genie",
+    "subclass_flavor": "Otherworldly Patron",
+    "desc": [
+      "A genie-patron warlock with an elemental bent and a personal extradimensional vessel. Strong utility, damage riders, and travel options."
+    ],
+    "url": "/api/2014/subclasses/genie"
+  },
+  {
+    "index": "bladesinging",
+    "class": {
+      "index": "wizard",
+      "name": "Wizard",
+      "url": "/api/2014/classes/wizard"
+    },
+    "name": "Bladesinging",
+    "subclass_flavor": "Arcane Tradition",
+    "desc": [
+      "A melee-capable wizard who enters a bladesong for defense, speed, and concentration support. Strong gish with high skill ceiling."
+    ],
+    "url": "/api/2014/subclasses/bladesinging"
+  },
+  {
+    "index": "order-of-scribes",
+    "class": {
+      "index": "wizard",
+      "name": "Wizard",
+      "url": "/api/2014/classes/wizard"
+    },
+    "name": "Order of Scribes",
+    "subclass_flavor": "Arcane Tradition",
+    "desc": [
+      "A wizard obsessed with living spellbooks and magical writing. High utility, flexible damage typing for spells, and exceptional ritual/casting logistics."
+    ],
+    "url": "/api/2014/subclasses/order-of-scribes"
+  }
+]

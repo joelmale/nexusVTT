@@ -124,7 +124,7 @@ including a rejected attempt, is already counted in `totalUploads`.
 Only after both stages pass, update `VITE_DELTA_SYNC` default in code:
 
 ```typescript
-// server/index.ts or client config
+// apps/vtt/server/index.ts or client config
 const DELTA_SYNC_ENABLED = process.env.VITE_DELTA_SYNC === 'true'; // change default
 ```
 
@@ -141,7 +141,7 @@ If integrity-mismatch is nonzero at any time:
 
 ## Implementation Details
 
-### Metrics Accumulator (server/index.ts)
+### Metrics Accumulator (apps/vtt/server/index.ts)
 
 - **Field:** `NexusServer.deltaSyncMetrics`
 - **Type:** Strongly typed (no `any`)
@@ -173,10 +173,10 @@ healthScore = (resync['integrity-mismatch'] === 0) &&
 
 ## References
 
-- **Delta-sync contracts:** `shared/sync/contracts.ts`
-- **Server hashing:** `shared/sync/hashSync.ts`
-- **Client hashing:** `shared/sync/hashState.ts` (client-only async variant)
-- **Metrics endpoint:** `server/index.ts` (`/api/metrics/delta-sync`)
-- **Durable CAS:** `server/repositories/SessionRepository.ts`
-- **Schema migration:** `server/migrations/2026-07-19-add-durable-game-state-commits.sql`
+- **Delta-sync contracts:** `apps/vtt/shared/sync/contracts.ts`
+- **Server hashing:** `apps/vtt/shared/sync/hashSync.ts`
+- **Client hashing:** `apps/vtt/shared/sync/hashState.ts` (client-only async variant)
+- **Metrics endpoint:** `apps/vtt/server/index.ts` (`/api/metrics/delta-sync`)
+- **Durable CAS:** `apps/vtt/server/repositories/SessionRepository.ts`
+- **Schema migration:** `apps/vtt/server/migrations/2026-07-19-add-durable-game-state-commits.sql`
 - **Combined SLOs and alerts:** `docs/operations/multiplayer-observability.md`

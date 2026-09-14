@@ -64,8 +64,8 @@ Start the production stack with the optional monitoring overlay:
 
 ```bash
 docker compose \
-  -f docker/docker-compose.yml \
-  -f docker/docker-compose.observability.yml \
+  -f apps/vtt/docker/docker-compose.yml \
+  -f apps/vtt/docker/docker-compose.observability.yml \
   up -d
 ```
 
@@ -80,8 +80,8 @@ HTTPS OTLP/gRPC `OTEL_EXPORTER_OTLP_ENDPOINT` and enable the profile:
 
 ```bash
 docker compose \
-  -f docker/docker-compose.yml \
-  -f docker/docker-compose.observability.yml \
+  -f apps/vtt/docker/docker-compose.yml \
+  -f apps/vtt/docker/docker-compose.observability.yml \
   --profile otel up -d otel-collector
 ```
 
@@ -112,7 +112,7 @@ only when the query calls for a fleet total.
 The default harness targets an already-running stack:
 
 ```bash
-npm run test:soak -- \
+cd apps/vtt && npm run test:soak -- \
   --base-url http://127.0.0.1:4173 \
   --rooms 50 \
   --clients-per-room 4 \
@@ -124,7 +124,7 @@ The managed runner builds an isolated two-backend stack, spreads clients
 between both backend ports, writes a JSON report, and tears the stack down:
 
 ```bash
-npm run test:soak:managed -- \
+cd apps/vtt && npm run test:soak:managed -- \
   --rooms 50 \
   --clients-per-room 4 \
   --duration 2h \
@@ -134,7 +134,7 @@ npm run test:soak:managed -- \
 Add deterministic failure injection with:
 
 ```bash
-npm run test:soak:chaos -- \
+cd apps/vtt && npm run test:soak:chaos -- \
   --rooms 50 \
   --clients-per-room 4 \
   --duration 2h \

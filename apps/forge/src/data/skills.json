@@ -1,0 +1,110 @@
+[
+  {
+    "name": "Acrobatics",
+    "ability": "Dexterity",
+    "description": "Covers your ability to stay on your feet in tricky situations, such as when you're trying to run across a sheet of ice, balance on a tightrope, or stay upright on a rocking ship.",
+    "example": "I want to try and run across the ice without falling."
+  },
+  {
+    "name": "Animal Handling",
+    "ability": "Wisdom",
+    "description": "Measures your ability to calm a domesticated animal, keep a mount from getting spooked, or intuit an animal's intentions.",
+    "example": "I want to try to calm down the spooked horse."
+  },
+  {
+    "name": "Arcana",
+    "ability": "Intelligence",
+    "description": "Measures your ability to recall lore about spells, magic items, eldritch symbols, magical traditions, the planes of existence, and the inhabitants of those planes.",
+    "example": "Do I recognize the magical runes carved into this door?"
+  },
+  {
+    "name": "Athletics",
+    "ability": "Strength",
+    "description": "Covers difficult situations you encounter while climbing, jumping, or swimming.",
+    "example": "I attempt to climb the sheer cliff wall."
+  },
+  {
+    "name": "Deception",
+    "ability": "Charisma",
+    "description": "Determines whether you can convincingly hide the truth, either verbally or through your actions.",
+    "example": "I tell the guard I'm just a merchant from out of town."
+  },
+  {
+    "name": "History",
+    "ability": "Intelligence",
+    "description": "Measures your ability to recall lore about historical events, legendary people, ancient kingdoms, past disputes, recent wars, and lost civilizations.",
+    "example": "Do I know the history of this ancient castle?"
+  },
+  {
+    "name": "Insight",
+    "ability": "Wisdom",
+    "description": "Decides whether you can determine the true intentions of a creature, such as searching out a lie or predicting someone's next move.",
+    "example": "I watch his face closely to see if he is lying to us."
+  },
+  {
+    "name": "Intimidation",
+    "ability": "Charisma",
+    "description": "Used when you attempt to influence someone through overt threats, hostile actions, and physical violence.",
+    "example": "I slam my fist on the table and demand answers."
+  },
+  {
+    "name": "Investigation",
+    "ability": "Intelligence",
+    "description": "Used when you look around for clues and make deductions based on those clues.",
+    "example": "I search the room for a hidden lever or secret door."
+  },
+  {
+    "name": "Medicine",
+    "ability": "Wisdom",
+    "description": "Lets you try to stabilize a dying companion or diagnose an illness.",
+    "example": "I check his wounds to see what kind of weapon caused them."
+  },
+  {
+    "name": "Nature",
+    "ability": "Intelligence",
+    "description": "Measures your ability to recall lore about terrain, plants and animals, the weather, and natural cycles.",
+    "example": "What kind of berries are these, and are they poisonous?"
+  },
+  {
+    "name": "Perception",
+    "ability": "Wisdom",
+    "description": "Lets you spot, hear, or otherwise detect the presence of something. It measures your general awareness of your surroundings and the keenness of your senses.",
+    "example": "I listen at the door to hear if anyone is inside."
+  },
+  {
+    "name": "Performance",
+    "ability": "Charisma",
+    "description": "Determines how well you can delight an audience with music, dance, acting, storytelling, or some other form of entertainment.",
+    "example": "I play a song on my lute to entertain the tavern crowd."
+  },
+  {
+    "name": "Persuasion",
+    "ability": "Charisma",
+    "description": "Used when you attempt to influence someone or a group of people with tact, social graces, or good nature.",
+    "example": "I try to convince the king that our cause is just."
+  },
+  {
+    "name": "Religion",
+    "ability": "Intelligence",
+    "description": "Measures your ability to recall lore about deities, rites and prayers, religious hierarchies, holy symbols, and the practices of secret cults.",
+    "example": "Which god does this temple belong to?"
+  },
+  {
+    "name": "Sleight of Hand",
+    "ability": "Dexterity",
+    "description": "Used whenever you attempt an act of legerdemain or manual trickery, such as planting something on someone else or concealing an object on your person.",
+    "example": "I try to pick the noble's pocket while bumping into him."
+  },
+  {
+    "name": "Stealth",
+    "ability": "Dexterity",
+    "description": "Used when you attempt to conceal yourself from enemies, slink past guards, slip away without being noticed, or sneak up on someone without being seen or heard.",
+    "example": "I try to move silently through the shadows behind the guards."
+  },
+  {
+    "name": "Survival",
+    "ability": "Wisdom",
+    "description": "Used to follow tracks, hunt wild game, guide your group through frozen wastelands, identify signs that owlbears live nearby, predict the weather, or avoid quicksand.",
+    "example": "I look for tracks to follow the goblin war party."
+  }
+]

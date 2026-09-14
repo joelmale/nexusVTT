@@ -110,19 +110,19 @@ The `docker-compose.yml` reads `VERSION` from the environment. To pin to a speci
 
 ```bash
 # On the swarm manager node
-VERSION=v1.2.0 docker stack deploy -c docker/docker-compose.yml nexus-vtt2
+VERSION=v1.2.0 docker stack deploy -c apps/vtt/docker/docker-compose.yml nexus-vtt2
 ```
 
 To roll back to the previous version:
 
 ```bash
-VERSION=v1.1.0 docker stack deploy -c docker/docker-compose.yml nexus-vtt2
+VERSION=v1.1.0 docker stack deploy -c apps/vtt/docker/docker-compose.yml nexus-vtt2
 ```
 
 To return to continuous `latest` deploys:
 
 ```bash
-docker stack deploy -c docker/docker-compose.yml nexus-vtt2
+docker stack deploy -c apps/vtt/docker/docker-compose.yml nexus-vtt2
 # VERSION defaults to 'latest' if unset
 ```
 

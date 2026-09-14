@@ -3,10 +3,12 @@
 This guide covers the current Nexus VTT asset setup. The old `asset-server/`
 package is no longer part of the repository.
 
+Run the commands below from `apps/vtt`.
+
 ## Current Model
 
-- Local generated assets live under `static-assets/`.
-- The standalone asset service lives in `services/asset-service/`.
+- Local generated assets live under `apps/vtt/static-assets/`.
+- The standalone asset service lives in `apps/vtt/services/asset-service/`.
 - Production serves asset-service images from
   `ghcr.io/joelmale/nexusvtt/asset-service`.
 - The TMT library seed pack is host-local and configured with
@@ -17,6 +19,7 @@ package is no longer part of the repository.
 Process a source folder into the local static asset tree:
 
 ```bash
+cd apps/vtt
 node scripts/process-assets.js /path/to/assets ./static-assets/assets
 ```
 
@@ -29,7 +32,7 @@ npm run generate-assets
 The generated tree uses:
 
 ```text
-static-assets/
+apps/vtt/static-assets/
   assets/
   thumbnails/
   manifest.json

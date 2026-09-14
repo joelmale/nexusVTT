@@ -1,0 +1,168 @@
+{
+  "SPECIES_LANGUAGE_MAP": {
+    "human-2024": [
+      "Common"
+    ],
+    "dwarf-2024": [
+      "Dwarvish",
+      "Common"
+    ],
+    "elf-2024": [
+      "Elvish",
+      "Common"
+    ],
+    "halfling-2024": [
+      "Halfling",
+      "Common"
+    ],
+    "gnome-2024": [
+      "Gnomish",
+      "Common"
+    ],
+    "dragonborn-2024": [
+      "Draconic",
+      "Common"
+    ],
+    "orc-2024": [
+      "Orc",
+      "Common"
+    ],
+    "tiefling-2024": [
+      "Infernal",
+      "Common"
+    ],
+    "aasimar-2024": [
+      "Celestial",
+      "Common"
+    ],
+    "goliath-2024": [
+      "Giant",
+      "Common"
+    ],
+    "half-elf": [
+      "Common",
+      "Elvish"
+    ],
+    "half-orc": [
+      "Common",
+      "Orc"
+    ],
+    "firbolg": [
+      "Elvish",
+      "Common"
+    ],
+    "kenku": [
+      "Auran",
+      "Common"
+    ],
+    "tabaxi": [
+      "Common"
+    ],
+    "triton": [
+      "Primordial",
+      "Common"
+    ],
+    "bugbear": [
+      "Goblin",
+      "Common"
+    ],
+    "goblin": [
+      "Goblin",
+      "Common"
+    ],
+    "hobgoblin": [
+      "Goblin",
+      "Common"
+    ],
+    "kobold": [
+      "Draconic",
+      "Common"
+    ],
+    "yuan-ti-pureblood": [
+      "Abyssal",
+      "Draconic",
+      "Common"
+    ],
+    "fairy": [
+      "Sylvan",
+      "Common"
+    ],
+    "harengon": [
+      "Sylvan",
+      "Common"
+    ],
+    "loxodon": [
+      "Common"
+    ],
+    "owlin": [
+      "Common"
+    ],
+    "githyanki": [
+      "Gith",
+      "Common"
+    ],
+    "genasi": [
+      "Primordial",
+      "Common"
+    ],
+    "human": [
+      "Common"
+    ],
+    "mountain-dwarf": [
+      "Dwarvish",
+      "Common"
+    ],
+    "hill-dwarf": [
+      "Dwarvish",
+      "Common"
+    ],
+    "high-elf": [
+      "Elvish",
+      "Common"
+    ],
+    "wood-elf": [
+      "Elvish",
+      "Common"
+    ],
+    "drow": [
+      "Elvish",
+      "Common"
+    ],
+    "lightfoot-halfling": [
+      "Halfling",
+      "Common"
+    ],
+    "stout-halfling": [
+      "Halfling",
+      "Common"
+    ],
+    "forest-gnome": [
+      "Gnomish",
+      "Common"
+    ],
+    "rock-gnome": [
+      "Gnomish",
+      "Common"
+    ],
+    "dragonborn": [
+      "Draconic",
+      "Common"
+    ],
+    "tiefling": [
+      "Infernal",
+      "Common"
+    ],
+    "aasimar": [
+      "Celestial",
+      "Common"
+    ],
+    "goliath": [
+      "Giant",
+      "Common"
+    ],
+    "orc": [
+      "Orc",
+      "Common"
+    ]
+  }
+}

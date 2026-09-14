@@ -1,0 +1,339 @@
+{
+  "barbarian": {
+    "category": "Martial",
+    "abilityPriorities": [
+      "STR",
+      "CON",
+      "DEX",
+      "WIS",
+      "CHA",
+      "INT"
+    ],
+    "detailedDescription": "Barbarians are fierce warriors who draw on primal rage to enhance their combat abilities. They are often seen as brutish and uncivilized by those who don't understand their ways, but they possess deep wisdom about the natural world and their place in it.",
+    "roleplayingTips": [
+      "Embrace your primal instincts and connection to nature",
+      "Show respect for the wilderness and its dangers",
+      "Let your rage guide you in battle, but control it when among allies"
+    ],
+    "keyFeatures": [
+      "Rage",
+      "Unarmored Defense",
+      "Reckless Attack",
+      "Extra Attack"
+    ],
+    "icon": "⚔️",
+    "themeColor": "#8B4513"
+  },
+  "bard": {
+    "category": "Arcane",
+    "abilityPriorities": [
+      "CHA",
+      "DEX",
+      "CON",
+      "INT",
+      "WIS",
+      "STR"
+    ],
+    "detailedDescription": "Bards are versatile performers whose music and magic inspire allies and confound enemies. They are the keepers of lore, the chroniclers of history, and the entertainers who bring joy and inspiration to the world.",
+    "roleplayingTips": [
+      "Use your performance skills to gather information and influence others",
+      "Share stories and songs that preserve history and culture",
+      "Balance your love of performance with the serious responsibilities of adventuring"
+    ],
+    "keyFeatures": [
+      "Bardic Inspiration",
+      "Spellcasting",
+      "Jack of All Trades",
+      "Song of Rest"
+    ],
+    "icon": "🎭",
+    "themeColor": "#9370DB"
+  },
+  "cleric": {
+    "category": "Divine",
+    "abilityPriorities": [
+      "WIS",
+      "CON",
+      "STR",
+      "CHA",
+      "DEX",
+      "INT"
+    ],
+    "detailedDescription": "Clerics are divine spellcasters who wield the power of their deity to heal, protect, and smite their enemies. They are the mortal representatives of gods, carrying out divine will while serving as spiritual guides to their communities.",
+    "roleplayingTips": [
+      "Act as a spiritual guide and moral compass for your party",
+      "Demonstrate the teachings and values of your deity through actions",
+      "Balance divine power with humility and wisdom"
+    ],
+    "keyFeatures": [
+      "Divine Domain",
+      "Spellcasting",
+      "Divine Intervention",
+      "Turn Undead"
+    ],
+    "icon": "✨",
+    "themeColor": "#FFD700"
+  },
+  "druid": {
+    "category": "Primal",
+    "abilityPriorities": [
+      "WIS",
+      "CON",
+      "DEX",
+      "INT",
+      "STR",
+      "CHA"
+    ],
+    "detailedDescription": "Druids are guardians of nature who can shapeshift into animals and command the elements. They protect the natural world from those who would harm it, maintaining the delicate balance between civilization and wilderness.",
+    "roleplayingTips": [
+      "Show reverence for nature and all living things",
+      "Protect the wilderness from those who would exploit it",
+      "Embrace the cycles of life, death, and rebirth"
+    ],
+    "keyFeatures": [
+      "Druidcraft",
+      "Wild Shape",
+      "Spellcasting",
+      "Circle Spells"
+    ],
+    "icon": "🌿",
+    "themeColor": "#228B22"
+  },
+  "fighter": {
+    "category": "Martial",
+    "abilityPriorities": [
+      "STR",
+      "CON",
+      "DEX",
+      "WIS",
+      "INT",
+      "CHA"
+    ],
+    "detailedDescription": "Fighters are masters of martial combat, skilled with a wide variety of weapons and armor. They are versatile warriors who excel in any form of combat, from swordplay to archery to unarmed fighting.",
+    "roleplayingTips": [
+      "Demonstrate discipline and dedication to your martial training",
+      "Protect your allies and stand firm against overwhelming odds",
+      "Seek to master new fighting techniques and weapons"
+    ],
+    "keyFeatures": [
+      "Fighting Style",
+      "Second Wind",
+      "Action Surge",
+      "Extra Attack"
+    ],
+    "icon": "⚔️",
+    "themeColor": "#B22222"
+  },
+  "monk": {
+    "category": "Martial",
+    "abilityPriorities": [
+      "DEX",
+      "WIS",
+      "CON",
+      "STR",
+      "INT",
+      "CHA"
+    ],
+    "detailedDescription": "Monks are martial artists who harness ki energy to perform superhuman feats. They follow ancient traditions of physical and mental discipline, seeking enlightenment through perfect mastery of body and mind.",
+    "roleplayingTips": [
+      "Maintain discipline and focus in all your actions",
+      "Seek enlightenment through meditation and self-improvement",
+      "Use your ki abilities with precision and restraint"
+    ],
+    "keyFeatures": [
+      "Unarmored Defense",
+      "Martial Arts",
+      "Ki",
+      "Flurry of Blows"
+    ],
+    "icon": "🥋",
+    "themeColor": "#FF6347"
+  },
+  "paladin": {
+    "category": "Divine",
+    "abilityPriorities": [
+      "STR",
+      "CHA",
+      "CON",
+      "WIS",
+      "DEX",
+      "INT"
+    ],
+    "detailedDescription": "Paladins are holy warriors bound by sacred oaths to uphold justice and righteousness. They combine martial prowess with divine magic, serving as beacons of hope and champions against evil.",
+    "roleplayingTips": [
+      "Uphold your sacred oath with unwavering dedication",
+      "Protect the innocent and stand against tyranny and evil",
+      "Inspire others with your courage and moral strength"
+    ],
+    "keyFeatures": [
+      "Divine Sense",
+      "Lay on Hands",
+      "Divine Smite",
+      "Aura of Protection"
+    ],
+    "icon": "🛡️",
+    "themeColor": "#FFD700"
+  },
+  "ranger": {
+    "category": "Primal",
+    "abilityPriorities": [
+      "DEX",
+      "WIS",
+      "CON",
+      "STR",
+      "INT",
+      "CHA"
+    ],
+    "detailedDescription": "Rangers are skilled hunters and explorers who protect the wilderness from threats. They are experts in tracking, survival, and ranged combat, often forming deep bonds with animal companions.",
+    "roleplayingTips": [
+      "Protect the wilderness and its inhabitants from harm",
+      "Use your knowledge of nature to guide and protect your allies",
+      "Form bonds with animals and respect the natural world"
+    ],
+    "keyFeatures": [
+      "Favored Enemy",
+      "Natural Explorer",
+      "Primeval Awareness",
+      "Hunter's Mark"
+    ],
+    "icon": "🏹",
+    "themeColor": "#8B4513"
+  },
+  "rogue": {
+    "category": "Martial",
+    "abilityPriorities": [
+      "DEX",
+      "CON",
+      "INT",
+      "WIS",
+      "CHA",
+      "STR"
+    ],
+    "detailedDescription": "Rogues are cunning experts in stealth, deception, and precision strikes. They operate in the shadows, using skill and cunning to overcome obstacles and achieve their goals.",
+    "roleplayingTips": [
+      "Use stealth and cunning to achieve your objectives",
+      "Navigate social situations with charm and deception when needed",
+      "Strike precisely when the moment is right"
+    ],
+    "keyFeatures": [
+      "Sneak Attack",
+      "Cunning Action",
+      "Uncanny Dodge",
+      "Evasion"
+    ],
+    "icon": "🗡️",
+    "themeColor": "#2F4F4F"
+  },
+  "sorcerer": {
+    "category": "Arcane",
+    "abilityPriorities": [
+      "CHA",
+      "CON",
+      "DEX",
+      "INT",
+      "WIS",
+      "STR"
+    ],
+    "detailedDescription": "Sorcerers wield raw magical power that flows through their bloodline. Their magic is instinctive and powerful, drawing from innate talent rather than studied knowledge.",
+    "roleplayingTips": [
+      "Embrace the wild, instinctive nature of your magic",
+      "Explore the source of your magical bloodline",
+      "Balance raw power with wisdom in its application"
+    ],
+    "keyFeatures": [
+      "Spellcasting",
+      "Sorcery Points",
+      "Flexible Casting",
+      "Metamagic"
+    ],
+    "icon": "🔮",
+    "themeColor": "#8A2BE2"
+  },
+  "warlock": {
+    "category": "Arcane",
+    "abilityPriorities": [
+      "CHA",
+      "CON",
+      "DEX",
+      "WIS",
+      "INT",
+      "STR"
+    ],
+    "detailedDescription": "Warlocks gain magical power through pacts with otherworldly entities. Their magic is granted by patrons who demand service in return, creating complex relationships of power and obligation.",
+    "roleplayingTips": [
+      "Navigate the complex relationship with your otherworldly patron",
+      "Balance the benefits of your pact with its demands and costs",
+      "Use your unique magical abilities strategically"
+    ],
+    "keyFeatures": [
+      "Otherworldly Patron",
+      "Pact Magic",
+      "Eldritch Invocations",
+      "Pact Boon"
+    ],
+    "icon": "🌑",
+    "themeColor": "#4B0082"
+  },
+  "wizard": {
+    "category": "Arcane",
+    "abilityPriorities": [
+      "INT",
+      "CON",
+      "DEX",
+      "WIS",
+      "CHA",
+      "STR"
+    ],
+    "detailedDescription": "Wizards are supreme magic-users, defined and united as a class by the spells they cast. Drawing on the subtle weave of magic that permeates the cosmos, wizards cast spells of explosive fire, arcing lightning, subtle deception, and brute-force mind control.",
+    "roleplayingTips": [
+      "Embrace your scholarly nature and thirst for knowledge",
+      "Show curiosity about magical phenomena and ancient mysteries",
+      "Balance your pursuit of power with wisdom and caution"
+    ],
+    "keyFeatures": [
+      "Spellcasting",
+      "Arcane Recovery",
+      "Spellbook",
+      "Arcane Tradition"
+    ],
+    "icon": "🧙",
+    "themeColor": "#4169E1"
+  },
+  "artificer": {
+    "category": "Arcane",
+    "abilityPriorities": [
+      "INT",
+      "CON",
+      "DEX",
+      "WIS",
+      "STR",
+      "CHA"
+    ],
+    "detailedDescription": "Artificers are inventors who infuse magic into everyday objects, creating powerful tools and weapons. Masters of invention who see magic as just another tool for their creations, they excel at creating temporary magical items and infusing existing items with magical properties.",
+    "roleplayingTips": [
+      "Show enthusiasm for invention and experimentation",
+      "Demonstrate curiosity about how things work and how to improve them",
+      "Balance creativity with practicality in your magical tinkering"
+    ],
+    "keyFeatures": [
+      "Magical Tinkering",
+      "Spellcasting",
+      "Infuse Item",
+      "Artificer Specialist"
+    ],
+    "icon": "⚙️",
+    "themeColor": "#708090"
+  },
+  "rogue-phantom": {
+    "description": "Phantoms draw power from lingering souls, wielding ghostly talents that siphon vitality, mark foes for doom, and blur the line between life and death."
+  },
+  "rogue-soulknife": {
+    "description": "Soulknives manifest psionic blades and mental prowess, striking silently with psychic force and bolstering their stealth with psionic talents."
+  },
+  "rogue-assassin": {
+    "description": "Assassins specialize in infiltration and striking first, excelling at disguise, poison, and eliminating targets before they can react."
+  },
+  "rogue-arcane-trickster": {
+    "description": "Arcane Tricksters blend rogue agility with illusion and enchantment magic, using spells to distract, disable, and bypass obstacles."
+  }
+}

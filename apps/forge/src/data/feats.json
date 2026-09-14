@@ -1,0 +1,1501 @@
+[
+  {
+    "slug": "actor",
+    "name": "Actor",
+    "source": "PHB",
+    "year": 2014,
+    "category": "general",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 4
+    },
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "CHA"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Advantage on Deception and Performance checks when mimicking",
+      "Mimic the speech of a person or sounds made by a creature"
+    ],
+    "description": "Skilled at mimicry and dramatics, you gain the following benefits:\n\n• Increase your Charisma score by 1, to a maximum of 20.\n• You have advantage on Charisma (Deception) and Charisma (Performance) checks when trying to pass yourself off as a different person.\n• You can mimic the speech of another person or the sounds made by other creatures. You must have heard the person speaking, or heard the creature make the sound, for at least 1 minute. A successful Wisdom (Insight) check contested by your Charisma (Deception) check allows a listener to determine that the effect is faked."
+  },
+  {
+    "slug": "alert",
+    "name": "Alert",
+    "source": "PHB",
+    "year": 2014,
+    "category": "general",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "+5 bonus to initiative",
+      "You can't be surprised while conscious",
+      "Creatures you don't see don't gain advantage on attack rolls against you"
+    ],
+    "description": "Always on the lookout for danger, you gain the following benefits:\n\n• You gain a +5 bonus to initiative.\n• You can't be surprised while you are conscious.\n• Other creatures don't gain advantage on attack rolls against you as a result of being unseen by you."
+  },
+  {
+    "slug": "artificer-initiate",
+    "name": "Artificer Initiate",
+    "source": "TCoE",
+    "year": 2014,
+    "prerequisite": null,
+    "benefits": [
+      "Learn one artificer cantrip",
+      "Learn one 1st-level artificer spell (cast without slot 1/long rest)",
+      "Proficiency with one type of artisan's tools"
+    ],
+    "description": "You've learned some of an artificer's inventiveness:\n\n• You learn one cantrip of your choice from the artificer spell list, and you learn one 1st-level spell of your choice from that list. Intelligence is your spellcasting ability for these spells.\n• You can cast this feat's 1st-level spell without a spell slot, and you must finish a long rest before you can cast it in this way again. You can also cast the spell using any spell slots you have.\n• You gain proficiency with one type of artisan's tools of your choice, and you can use that type of tool as a spellcasting focus for any spell you cast that uses Intelligence as its spellcasting ability.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "athlete",
+    "name": "Athlete",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": null,
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "STR",
+        "DEX"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Standing up costs only 5 feet of movement",
+      "Climbing doesn't cost extra movement",
+      "Running jump with only 5-foot run-up"
+    ],
+    "description": "You have undergone extensive physical training to gain the following benefits:\n\n• Increase your Strength or Dexterity score by 1, to a maximum of 20.\n• When you are prone, standing up uses only 5 feet of your movement.\n• Climbing doesn't cost you extra movement.\n• You can make a running long jump or a running high jump after moving only 5 feet on foot, rather than 10 feet.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "bountiful-luck",
+    "name": "Bountiful Luck",
+    "source": "XGtE",
+    "year": 2014,
+    "prerequisite": "Halfling",
+    "benefits": [
+      "Let an ally within 30 ft reroll a 1 on d20"
+    ],
+    "description": "Your people have extraordinary luck, which you have learned to mystically lend to your companions when you see them falter. You're not sure how you do it; you just wish it, and it happens. Surely a sign of fortune's favor!\n\n• When an ally you can see within 30 feet of you rolls a 1 on the d20 for an attack roll, an ability check, or a saving throw, you can use your reaction to let the ally reroll the die. The ally must use the new roll.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "charger",
+    "name": "Charger",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": null,
+    "benefits": [
+      "Make melee attack with +5 bonus as part of Dash action",
+      "Shove as bonus action if you move at least 10 feet"
+    ],
+    "description": "When you use your action to Dash, you can use a bonus action to make one melee weapon attack or to shove a creature. If you move at least 10 feet in a straight line immediately before taking this bonus action, you either gain a +5 bonus to the attack's damage roll (if you chose to make a melee attack and hit) or push the target up to 10 feet away from you (if you chose to shove and you succeed).",
+    "category": "fighting_style",
+    "prerequisites": {
+      "level": 2
+    }
+  },
+  {
+    "slug": "chef",
+    "name": "Chef",
+    "source": "TCoE",
+    "year": 2014,
+    "prerequisite": null,
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "CON",
+        "WIS"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Proficiency with cook's utensils",
+      "Cook treats that grant temporary HP during short rest",
+      "Cook meals that grant extra HP during long rest"
+    ],
+    "description": "Time spent mastering the culinary arts has paid off, granting you the following benefits:\n\n• Increase your Constitution or Wisdom score by 1, to a maximum of 20.\n• You gain proficiency with cook's utensils if you don't already have it.\n• As part of a short rest, you can cook special food, provided you have ingredients and cook's utensils on hand. You can prepare enough of this food for a number of creatures equal to 4 + your proficiency bonus. At the end of the short rest, any creature who eats the food and spends one or more Hit Dice to regain hit points regains an extra 1d8 hit points.\n• With one hour of work or when you finish a long rest, you can cook a number of treats equal to your proficiency bonus. These special treats last 8 hours after being made. A creature can use a bonus action to eat one of those treats to gain temporary hit points equal to your proficiency bonus.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "crossbow-expert",
+    "name": "Crossbow Expert",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": null,
+    "benefits": [
+      "Ignore loading property of crossbows",
+      "No disadvantage on ranged attacks within 5 feet",
+      "Bonus action attack with hand crossbow after one-handed attack"
+    ],
+    "description": "Thanks to extensive practice with the crossbow, you gain the following benefits:\n\n• You ignore the loading quality of crossbows with which you are proficient.\n• Being within 5 feet of a hostile creature doesn't impose disadvantage on your ranged attack rolls.\n• When you use the Attack action and attack with a one-handed weapon, you can use a bonus action to attack with a hand crossbow you are holding.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "crusher",
+    "name": "Crusher",
+    "source": "TCoE",
+    "year": 2014,
+    "prerequisite": null,
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "STR",
+        "CON"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Move creature 5 feet when you hit with bludgeoning damage",
+      "Attacks against target have advantage after critical hit with bludgeoning damage"
+    ],
+    "description": "You are practiced in the art of crushing your enemies, granting you the following benefits:\n\n• Increase your Strength or Constitution by 1, to a maximum of 20.\n• Once per turn, when you hit a creature with an attack that deals bludgeoning damage, you can move it 5 feet to an unoccupied space, provided the target is no more than one size larger than you.\n• When you score a critical hit that deals bludgeoning damage to a creature, attack rolls against that creature are made with advantage until the start of your next turn.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "defensive-duelist",
+    "name": "Defensive Duelist",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": "Dexterity 13 or higher",
+    "benefits": [
+      "Add proficiency bonus to AC as reaction when wielding finesse weapon"
+    ],
+    "description": "When you are wielding a finesse weapon with which you are proficient and another creature hits you with a melee attack, you can use your reaction to add your proficiency bonus to your AC for that attack, potentially causing the attack to miss you.",
+    "category": "fighting_style",
+    "prerequisites": {
+      "level": 2
+    }
+  },
+  {
+    "slug": "dragon-fear",
+    "name": "Dragon Fear",
+    "source": "XGtE",
+    "year": 2014,
+    "prerequisite": "Dragonborn",
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "STR",
+        "CON",
+        "CHA"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Breath Weapon can frighten instead of dealing damage"
+    ],
+    "description": "When angered, you radiate menace. You gain the following benefits:\n\n• Increase your Strength, Constitution, or Charisma score by 1, to a maximum of 20.\n• Instead of exhaling destructive energy, you can expend a use of your Breath Weapon trait to roar, forcing each creature of your choice within 30 feet of you to make a Wisdom saving throw (DC 8 + your proficiency bonus + your Charisma modifier). A target automatically succeeds on the save if it can't hear or see you. On a failed save, a target becomes frightened of you for 1 minute. If the frightened target takes any damage, it can repeat the saving throw, ending the effect on itself on a success.",
+    "category": "origin",
+    "prerequisites": {
+      "level": 1
+    }
+  },
+  {
+    "slug": "dragon-hide",
+    "name": "Dragon Hide",
+    "source": "XGtE",
+    "year": 2014,
+    "prerequisite": "Dragonborn",
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "STR",
+        "CON",
+        "CHA"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "AC becomes 13 + Dexterity modifier",
+      "Retractable claws deal 1d4 + Strength modifier slashing damage"
+    ],
+    "description": "You manifest scales and claws reminiscent of your draconic ancestors. You gain the following benefits:\n\n• Increase your Strength, Constitution, or Charisma score by 1, to a maximum of 20.\n• Your scales harden. While you aren't wearing armor, you can calculate your AC as 13 + your Dexterity modifier. You can use a shield and still gain this benefit.\n• You can grow retractable claws from the tips of your fingers. Extending or retracting the claws requires no action. The claws are natural weapons, which you can use to make unarmed strikes. If you hit with them, you deal slashing damage equal to 1d4 + your Strength modifier, instead of the normal bludgeoning damage for an unarmed strike.",
+    "category": "origin",
+    "prerequisites": {
+      "level": 1
+    }
+  },
+  {
+    "slug": "drow-high-magic",
+    "name": "Drow High Magic",
+    "source": "XGtE",
+    "year": 2014,
+    "prerequisite": "Elf (drow)",
+    "benefits": [
+      "Cast detect magic at will",
+      "Cast levitate and dispel magic once per long rest each"
+    ],
+    "description": "You learn more of the magic typical of dark elves. You learn the detect magic spell and can cast it at will, without expending a spell slot. You also learn levitate and dispel magic, each of which you can cast once without expending a spell slot. You regain the ability to cast those two spells in this way when you finish a long rest. Charisma is your spellcasting ability for all three spells.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "dual-wielder",
+    "name": "Dual Wielder",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": null,
+    "benefits": [
+      "+1 AC while wielding melee weapon in each hand",
+      "Two-weapon fighting with non-light weapons",
+      "Draw or stow two weapons at once"
+    ],
+    "description": "You master fighting with two weapons, gaining the following benefits:\n\n• You gain a +1 bonus to AC while you are wielding a separate melee weapon in each hand.\n• You can use two-weapon fighting even when the one-handed melee weapons you are wielding aren't light.\n• You can draw or stow two one-handed weapons when you would normally be able to draw or stow only one.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "dungeon-delver",
+    "name": "Dungeon Delver",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": null,
+    "benefits": [
+      "Advantage on Perception and Investigation checks to detect secret doors",
+      "Advantage on saving throws to avoid or resist traps",
+      "Resistance to damage from traps",
+      "Search for traps while traveling at normal pace"
+    ],
+    "description": "Alert to the hidden traps and secret doors found in many dungeons, you gain the following benefits:\n\n• You have advantage on Wisdom (Perception) and Intelligence (Investigation) checks made to detect the presence of secret doors.\n• You have advantage on saving throws made to avoid or resist traps.\n• You have resistance to the damage dealt by traps.\n• Traveling at a fast pace doesn't impose the normal −5 penalty on your passive Wisdom (Perception) score.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "durable",
+    "name": "Durable",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": null,
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "CON"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Regain minimum of 2 × Constitution modifier hit points per Hit Die spent"
+    ],
+    "description": "Hardy and resilient, you gain the following benefits:\n\n• Increase your Constitution score by 1, to a maximum of 20.\n• When you roll a Hit Die to regain hit points, the minimum number of hit points you regain from the roll equals twice your Constitution modifier (minimum of 2).",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "dwarf-fortitude",
+    "name": "Dwarven Fortitude",
+    "source": "XGtE",
+    "year": 2014,
+    "prerequisite": "Dwarf",
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "CON"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Spend Hit Die to heal when taking Dodge action"
+    ],
+    "description": "You have the blood of dwarf heroes flowing through your veins. You gain the following benefits:\n\n• Increase your Constitution score by 1, to a maximum of 20.\n• Whenever you take the Dodge action in combat, you can spend one Hit Die to heal yourself. Roll the die, add your Constitution modifier, and regain a number of hit points equal to the total (minimum of 1).",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "eldritch-adept",
+    "name": "Eldritch Adept",
+    "source": "TCoE",
+    "year": 2014,
+    "prerequisite": "Spellcasting or Pact Magic feature",
+    "benefits": [
+      "Learn one Eldritch Invocation"
+    ],
+    "description": "Studying occult lore, you have unlocked eldritch power within yourself: you learn one Eldritch Invocation option of your choice from the warlock class. If the invocation has a prerequisite of any kind, you can choose that invocation only if you're a warlock who meets the prerequisite.\n\nWhenever you gain a level, you can replace the invocation with another one from the warlock class.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "elemental-adept",
+    "name": "Elemental Adept",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": "The ability to cast at least one spell",
+    "benefits": [
+      "Spells ignore resistance to chosen damage type (acid, cold, fire, lightning, or thunder)",
+      "Treat any 1 on damage dice as 2 for chosen element"
+    ],
+    "description": "When you gain this feat, choose one of the following damage types: acid, cold, fire, lightning, or thunder.\n\nSpells you cast ignore resistance to damage of the chosen type. In addition, when you roll damage for a spell you cast that deals damage of that type, you can treat any 1 on a damage die as a 2.\n\nYou can select this feat multiple times. Each time you do so, you must choose a different damage type.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "elven-accuracy",
+    "name": "Elven Accuracy",
+    "source": "XGtE",
+    "year": 2014,
+    "prerequisite": "Elf or half-elf",
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "DEX",
+        "INT",
+        "WIS",
+        "CHA"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Reroll one attack die when you have advantage (Dexterity, Intelligence, Wisdom, or Charisma based)"
+    ],
+    "description": "The accuracy of elves is legendary, especially that of elf archers and spellcasters. You have uncanny aim with attacks that rely on precision rather than brute force. You gain the following benefits:\n\n• Increase your Dexterity, Intelligence, Wisdom, or Charisma score by 1, to a maximum of 20.\n• Whenever you have advantage on an attack roll using Dexterity, Intelligence, Wisdom, or Charisma, you can reroll one of the dice once.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "fade-away",
+    "name": "Fade Away",
+    "source": "XGtE",
+    "year": 2014,
+    "prerequisite": "Gnome",
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "DEX",
+        "INT"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Become invisible as reaction when taking damage"
+    ],
+    "description": "Your people are clever, with a knack for illusion magic. You have learned a magical trick for fading away when you suffer harm. You gain the following benefits:\n\n• Increase your Dexterity or Intelligence score by 1, to a maximum of 20.\n• Immediately after you take damage, you can use a reaction to magically become invisible until the end of your next turn or until you attack, deal damage, or force someone to make a saving throw. Once you use this ability, you can't do so again until you finish a short or long rest.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "fey-teleportation",
+    "name": "Fey Teleportation",
+    "source": "XGtE",
+    "year": 2014,
+    "prerequisite": "Elf (high)",
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "INT",
+        "CHA"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Learn to speak, read, and write Sylvan",
+      "Cast misty step once per short rest"
+    ],
+    "description": "Your study of high elven lore has unlocked fey power that few other elves possess, except your eladrin cousins. Drawing on your fey ancestry, you can momentarily stride through the Feywild to shorten your path from one place to another. You gain the following benefits:\n\n• Increase your Intelligence or Charisma score by 1, to a maximum of 20.\n• You learn to speak, read, and write Sylvan.\n• You learn the misty step spell and can cast it once without expending a spell slot. You regain the ability to cast it in this way when you finish a short or long rest. Intelligence is your spellcasting ability for this spell.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "fey-touched",
+    "name": "Fey Touched",
+    "source": "TCoE",
+    "year": 2014,
+    "prerequisite": null,
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "INT",
+        "WIS",
+        "CHA"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Learn misty step",
+      "Learn one 1st-level divination or enchantment spell"
+    ],
+    "description": "Your exposure to the Feywild's magic has changed you, granting you the following benefits:\n\n• Increase your Intelligence, Wisdom, or Charisma score by 1, to a maximum of 20.\n• You learn the misty step spell and one 1st-level spell of your choice. The 1st-level spell must be from the divination or enchantment school of magic. You can cast each of these spells without expending a spell slot. Once you cast either of these spells in this way, you can't cast that spell in this way again until you finish a long rest. You can also cast these spells using spell slots you have of the appropriate level. The spells' spellcasting ability is the ability increased by this feat.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "fighting-initiate",
+    "name": "Fighting Initiate",
+    "source": "TCoE",
+    "year": 2014,
+    "prerequisite": "Proficiency with a martial weapon",
+    "benefits": [
+      "Learn one Fighting Style from fighter class"
+    ],
+    "description": "Your martial training has helped you develop a particular style of fighting. As a result, you learn one Fighting Style option of your choice from the fighter class. If you already have a style, the one you choose must be different.\n\nWhenever you reach a level that grants the Ability Score Improvement feature, you can replace this feat's fighting style with another one from the fighter class that you don't have.",
+    "category": "fighting_style",
+    "prerequisites": {
+      "level": 2
+    }
+  },
+  {
+    "slug": "flames-of-phlegethos",
+    "name": "Flames of Phlegethos",
+    "source": "XGtE",
+    "year": 2014,
+    "prerequisite": "Tiefling",
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "INT",
+        "CHA"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Reroll any 1 on fire spell damage dice",
+      "Flames wreath you when you cast fire spell (1d4 damage to adjacent creatures)"
+    ],
+    "description": "You learn to call on hellfire to serve your commands. You gain the following benefits:\n\n• Increase your Intelligence or Charisma score by 1, to a maximum of 20.\n• When you roll fire damage for a spell you cast, you can reroll any roll of 1 on the fire damage dice, but you must use the new roll, even if it is another 1.\n• Whenever you cast a spell that deals fire damage, you can cause flames to wreathe you until the end of your next turn. The flames don't harm you or your possessions, and they shed bright light out to 30 feet and dim light for an additional 30 feet. While the flames are present, any creature within 5 feet of you that hits you with a melee attack takes 1d4 fire damage.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "gift-of-the-chromatic-dragon",
+    "name": "Gift of the Chromatic Dragon",
+    "source": "FToD",
+    "year": 2014,
+    "prerequisite": null,
+    "benefits": [
+      "Add 1d4 acid, cold, fire, lightning, or poison damage for 1 minute (bonus action)",
+      "Gain resistance to one of those damage types as reaction"
+    ],
+    "description": "You've manifested some of the power of chromatic dragons, granting you the following benefits:\n\nChromatic Infusion. As a bonus action, you can touch a simple or martial weapon and infuse it with one of the following damage types: acid, cold, fire, lightning, or poison. For the next minute, the weapon deals an extra 1d4 damage of the chosen type when it hits. After you use this bonus action, you can't do so again until you finish a long rest.\n\nReactive Resistance. When you take acid, cold, fire, lightning, or poison damage, you can use your reaction to give yourself resistance to that instance of damage. You can use this reaction a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest.",
+    "category": "origin",
+    "prerequisites": {
+      "level": 1
+    }
+  },
+  {
+    "slug": "gift-of-the-gem-dragon",
+    "name": "Gift of the Gem Dragon",
+    "source": "FToD",
+    "year": 2014,
+    "prerequisite": null,
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "INT",
+        "WIS",
+        "CHA"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Deal 2d8 force damage and push 10 feet as reaction (proficiency bonus per day)"
+    ],
+    "description": "You've manifested some of the power of gem dragons, granting you the following benefits:\n\n• Increase your Intelligence, Wisdom, or Charisma score by 1, to a maximum of 20.\n• When you take damage from a creature that is within 10 feet of you, you can use your reaction to emanate telekinetic energy. The creature that dealt damage to you must make a Strength saving throw (DC equals 8 + your proficiency bonus + the ability modifier of the score increased by this feat). On a failed save, the creature takes 2d8 force damage and is pushed up to 10 feet away from you. On a successful save, the creature takes half as much damage and isn't pushed. You can use this reaction a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest.",
+    "category": "origin",
+    "prerequisites": {
+      "level": 1
+    }
+  },
+  {
+    "slug": "gift-of-the-metallic-dragon",
+    "name": "Gift of the Metallic Dragon",
+    "source": "FToD",
+    "year": 2014,
+    "prerequisite": null,
+    "benefits": [
+      "Cast cure wounds once per long rest",
+      "Manifest protective wings as reaction (add proficiency bonus to AC)"
+    ],
+    "description": "You've manifested some of the power of metallic dragons, granting you the following benefits:\n\nCure Wounds. You learn the cure wounds spell. You can cast this spell without expending a spell slot. Once you cast this spell in this way, you can't do so again until you finish a long rest. You can also cast this spell using spell slots you have. The spell's spellcasting ability is Intelligence, Wisdom, or Charisma when you cast it with this feat (choose when you gain the feat).\n\nProtective Wings. You can manifest protective wings that can shield you or others. When you or another creature you can see within 5 feet of you is hit by an attack roll, you can use your reaction to manifest spectral wings from your back for a moment. You grant a bonus to the target's AC equal to your proficiency bonus against that attack roll, potentially causing it to miss. You can use this reaction a number of times equal to your proficiency bonus, and you regain all expended uses when you finish a long rest.",
+    "category": "origin",
+    "prerequisites": {
+      "level": 1
+    }
+  },
+  {
+    "slug": "grappler",
+    "name": "Grappler",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": "Strength 13 or higher",
+    "benefits": [
+      "Advantage on attack rolls against creatures you're grappling",
+      "Can restrain a creature grappled by you"
+    ],
+    "description": "You've developed the skills necessary to hold your own in close-quarters grappling. You gain the following benefits:\n\n• You have advantage on attack rolls against a creature you are grappling.\n• You can use your action to try to pin a creature grappled by you. To do so, make another grapple check. If you succeed, you and the creature are both restrained until the grapple ends.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "great-weapon-master",
+    "name": "Great Weapon Master",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": null,
+    "benefits": [
+      "Bonus action attack after critical hit or reducing creature to 0 HP with melee weapon",
+      "Take −5 penalty to attack roll to add +10 to damage with heavy weapon"
+    ],
+    "description": "You've learned to put the weight of a weapon to your advantage, letting its momentum empower your strikes. You gain the following benefits:\n\n• On your turn, when you score a critical hit with a melee weapon or reduce a creature to 0 hit points with one, you can make one melee weapon attack as a bonus action.\n• Before you make a melee attack with a heavy weapon that you are proficient with, you can choose to take a −5 penalty to the attack roll. If the attack hits, you add +10 to the attack's damage.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "gunner",
+    "name": "Gunner",
+    "source": "TCoE",
+    "year": 2014,
+    "prerequisite": null,
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "DEX"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Proficiency with firearms",
+      "Ignore loading property of firearms",
+      "No disadvantage on ranged attacks within 5 feet"
+    ],
+    "description": "You have a quick hand and keen eye when employing firearms, granting you the following benefits:\n\n• Increase your Dexterity score by 1, to a maximum of 20.\n• You gain proficiency with firearms.\n• You ignore the loading property of firearms.\n• Being within 5 feet of a hostile creature doesn't impose disadvantage on your ranged attack rolls.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "athlete",
+    "name": "Athlete",
+    "source": "PHB",
+    "year": 2014,
+    "category": "general",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 4
+    },
+    "benefits": [
+      "Climb and swim speed increases",
+      "Running long jump and high jump distances increase"
+    ],
+    "description": "You have undergone extensive physical training to gain the following benefits:\n\n• Increase your Strength or Dexterity score by 1, to a maximum of 20.\n• When you are prone, standing up uses only 5 feet of your movement.\n• Climbing doesn't cost you extra movement.\n• You can make a running long jump or a running high jump after moving only 5 feet on foot, rather than 10 feet."
+  },
+  {
+    "slug": "heavily-armored",
+    "name": "Heavily Armored",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": "Proficiency with medium armor",
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "STR"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Proficiency with heavy armor"
+    ],
+    "description": "You have trained to master the use of heavy armor, gaining the following benefits:\n\n• Increase your Strength score by 1, to a maximum of 20.\n• You gain proficiency with heavy armor.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "heavy-armor-master",
+    "name": "Heavy Armor Master",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": "Proficiency with heavy armor",
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "STR"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Reduce bludgeoning, piercing, and slashing damage by 3 while wearing heavy armor"
+    ],
+    "description": "You can use your armor to deflect strikes that would kill others. You gain the following benefits:\n\n• Increase your Strength score by 1, to a maximum of 20.\n• While you are wearing heavy armor, bludgeoning, piercing, and slashing damage that you take from non magical weapons is reduced by 3.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "infernal-constitution",
+    "name": "Infernal Constitution",
+    "source": "XGtE",
+    "year": 2014,
+    "prerequisite": "Tiefling",
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "CON"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Resistance to cold and poison damage",
+      "Advantage on saving throws against being poisoned"
+    ],
+    "description": "Fiendish blood runs strong in you, unlocking a resilience akin to that possessed by some fiends. You gain the following benefits:\n\n• Increase your Constitution score by 1, to a maximum of 20.\n• You have resistance to cold damage and poison damage.\n• You have advantage on saving throws against being poisoned.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "inspiring-leader",
+    "name": "Inspiring Leader",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": "Charisma 13 or higher",
+    "benefits": [
+      "Grant temporary HP equal to level + Charisma modifier to up to 6 creatures"
+    ],
+    "description": "You can spend 10 minutes inspiring your companions, shoring up their resolve to fight. When you do so, choose up to six friendly creatures (which can include yourself) within 30 feet of you who can see or hear you and who can understand you. Each creature can gain temporary hit points equal to your level + your Charisma modifier. A creature can't gain temporary hit points from this feat again until it has finished a short or long rest.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "keen-mind",
+    "name": "Keen Mind",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": null,
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "INT"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Always know which way is north",
+      "Always know number of hours until sunrise/sunset",
+      "Accurately recall anything seen or heard within past month"
+    ],
+    "description": "You have a mind that can track time, direction, and detail with uncanny precision. You gain the following benefits:\n\n• Increase your Intelligence score by 1, to a maximum of 20.\n• You always know which way is north.\n• You always know the number of hours left before the next sunrise or sunset.\n• You can accurately recall anything you have seen or heard within the past month.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "lightly-armored",
+    "name": "Lightly Armored",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": null,
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "STR",
+        "DEX"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Proficiency with light armor"
+    ],
+    "description": "You have trained to master the use of light armor, gaining the following benefits:\n\n• Increase your Strength or Dexterity score by 1, to a maximum of 20.\n• You gain proficiency with light armor.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "linguist",
+    "name": "Linguist",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": null,
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "INT"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Learn three languages",
+      "Create written ciphers"
+    ],
+    "description": "You have studied languages and codes, gaining the following benefits:\n\n• Increase your Intelligence score by 1, to a maximum of 20.\n• You learn three languages of your choice.\n• You can ably create written ciphers. Others can't decipher a code you create unless you teach them, they succeed on an Intelligence check (DC equal to your Intelligence score + your proficiency bonus), or they use magic to decipher it.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "lucky",
+    "name": "Lucky",
+    "source": "PHB",
+    "year": 2014,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "3 luck points per long rest",
+      "Spend luck point to reroll d20",
+      "Spend luck point to force reroll against you"
+    ],
+    "description": "You have inexplicable luck that seems to kick in at just the right moment.\n\nYou have 3 luck points. Whenever you make an attack roll, an ability check, or a saving throw, you can spend one luck point to roll an additional d20. You can choose to spend one of your luck points after you roll the die, but before the outcome is determined. You choose which of the d20s is used for the attack roll, ability check, or saving throw.\n\nYou can also spend one luck point when an attack roll is made against you. Roll a d20, and then choose whether the attack uses the attacker's roll or yours.\n\nIf more than one creature spends a luck point to influence the same roll, they cancel out, and no additional dice are rolled. You regain your expended luck points when you finish a long rest."
+  },
+  {
+    "slug": "mage-slayer",
+    "name": "Mage Slayer",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": null,
+    "benefits": [
+      "Reaction melee attack against spellcaster within 5 feet",
+      "Advantage on saving throws against spells cast by creatures within 5 feet",
+      "Impose disadvantage on concentration saves after hitting with melee attack"
+    ],
+    "description": "You have practiced techniques useful in melee combat against spellcasters, gaining the following benefits:\n\n• When a creature within 5 feet of you casts a spell, you can use your reaction to make a melee weapon attack against that creature.\n• When you damage a creature that is concentrating on a spell, that creature has disadvantage on the saving throw it makes to maintain its concentration.\n• You have advantage on saving throws against spells cast by creatures within 5 feet of you.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "fighting-initiate",
+    "name": "Fighting Initiate",
+    "source": "TCoE",
+    "year": 2014,
+    "category": "general",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 4
+    },
+    "benefits": [
+      "Learn one Fighting Style from fighter class",
+      "Can change fighting style when leveling"
+    ],
+    "description": "Your martial training has helped you develop a particular style of fighting. As a result, you learn one Fighting Style option of your choice from the fighter class. If you already have a style, the one you choose must be different.\n\nWhenever you reach a level that grants the Ability Score Improvement feature, you can replace this feat's fighting style with another one from the fighter class that you don't have."
+  },
+  {
+    "slug": "artificer-initiate",
+    "name": "Artificer Initiate",
+    "source": "FToD",
+    "year": 2014,
+    "category": "general",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 4
+    },
+    "benefits": [
+      "Learn two artificer infusions",
+      "Create artificer infusions using your own spellcasting ability"
+    ],
+    "description": "You have learned some of an artificer's inventive magic. You gain the following benefits:\n\n• You learn two artificer infusions of your choice from the Artificer Infusions section of the artificer class in the Player's Handbook or another source. You can use each of the infusions once per long rest.\n\n• Whenever you gain a level, you can replace one of your infusions with another one from the same source.\n\n• You can use your spellcasting ability instead of your Intelligence for the infusions."
+  },
+  {
+    "slug": "medium-armor-master",
+    "name": "Medium Armor Master",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": "Proficiency with medium armor",
+    "benefits": [
+      "No disadvantage on Stealth checks wearing medium armor",
+      "Dexterity bonus maximum increases to +3 instead of +2"
+    ],
+    "description": "You have practiced moving in medium armor to gain the following benefits:\n\n• Wearing medium armor doesn't impose disadvantage on your Dexterity (Stealth) checks.\n• When you wear medium armor, you can add 3, rather than 2, to your AC if you have a Dexterity of 16 or higher.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "metamagic-adept",
+    "name": "Metamagic Adept",
+    "source": "TCoE",
+    "year": 2014,
+    "prerequisite": "Spellcasting or Pact Magic feature",
+    "benefits": [
+      "Learn two metamagic options",
+      "Gain 2 sorcery points"
+    ],
+    "description": "You've learned how to exert your will on your spells to alter how they function:\n\n• You learn two Metamagic options of your choice from the sorcerer class. You can use only one Metamagic option on a spell when you cast it, unless the option says otherwise. Whenever you reach a level that grants the Ability Score Improvement feature, you can replace one of these Metamagic options with another one from the sorcerer class.\n• You gain 2 sorcery points to spend on Metamagic (these points are added to any sorcery points you have from another source but can be used only on Metamagic). You regain all spent sorcery points when you finish a long rest.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "mobile",
+    "name": "Mobile",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": null,
+    "benefits": [
+      "Speed increases by 10 feet",
+      "Dash on difficult terrain without extra movement",
+      "Don't provoke opportunity attacks from creatures you attack in melee"
+    ],
+    "description": "You are exceptionally speedy and agile. You gain the following benefits:\n\n• Your speed increases by 10 feet.\n• When you use the Dash action, difficult terrain doesn't cost you extra movement on that turn.\n• When you make a melee attack against a creature, you don't provoke opportunity attacks from that creature for the rest of the turn, whether you hit or not.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "moderately-armored",
+    "name": "Moderately Armored",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": "Proficiency with light armor",
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "STR",
+        "DEX"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Proficiency with medium armor and shields"
+    ],
+    "description": "You have trained to master the use of medium armor and shields, gaining the following benefits:\n\n• Increase your Strength or Dexterity score by 1, to a maximum of 20.\n• You gain proficiency with medium armor and shields.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "mounted-combatant",
+    "name": "Mounted Combatant",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": null,
+    "benefits": [
+      "Advantage on melee attacks against unmounted creatures smaller than mount",
+      "Force attack to target you instead of mount",
+      "Mount takes no damage on successful Dex save (half damage on fail)"
+    ],
+    "description": "You are a dangerous foe to face while mounted. While you are mounted and aren't incapacitated, you gain the following benefits:\n\n• You have advantage on melee attack rolls against any unmounted creature that is smaller than your mount.\n• You can force an attack targeted at your mount to target you instead.\n• If your mount is subjected to an effect that allows it to make a Dexterity saving throw to take only half damage, it instead takes no damage if it succeeds on the saving throw, and only half damage if it fails.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "observant",
+    "name": "Observant",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": null,
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "INT",
+        "WIS"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Read lips",
+      "+5 bonus to passive Perception and Investigation"
+    ],
+    "description": "Quick to notice details of your environment, you gain the following benefits:\n\n• Increase your Intelligence or Wisdom score by 1, to a maximum of 20.\n• If you can see a creature's mouth while it is speaking a language you understand, you can interpret what it's saying by reading its lips.\n• You have a +5 bonus to your passive Wisdom (Perception) and passive Intelligence (Investigation) scores.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "orcish-fury",
+    "name": "Orcish Fury",
+    "source": "XGtE",
+    "year": 2014,
+    "prerequisite": "Half-orc",
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "STR",
+        "CON"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Add one weapon damage die when you hit with attack",
+      "Use reaction to attack after using Relentless Endurance"
+    ],
+    "description": "Your inner fury burns tirelessly. You gain the following benefits:\n\n• Increase your Strength or Constitution score by 1, to a maximum of 20.\n• When you hit with an attack using a simple or martial weapon, you can roll one of the weapon's damage dice an additional time and add it as extra damage of the weapon's damage type. Once you use this ability, you can't use it again until you finish a short or long rest.\n• Immediately after you use your Relentless Endurance trait, you can use your reaction to make one weapon attack.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "piercer",
+    "name": "Piercer",
+    "source": "TCoE",
+    "year": 2014,
+    "prerequisite": null,
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "STR",
+        "DEX"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Reroll one damage die when dealing piercing damage",
+      "One additional damage die on critical hit with piercing damage"
+    ],
+    "description": "You have achieved a penetrating precision in combat, granting you the following benefits:\n\n• Increase your Strength or Dexterity score by 1, to a maximum of 20.\n• Once per turn, when you hit a creature with an attack that deals piercing damage, you can reroll one of the attack's damage dice, and you must use the new roll.\n• When you score a critical hit that deals piercing damage to a creature, you can roll one additional damage die when determining the extra piercing damage the target takes.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "poisoner",
+    "name": "Poisoner",
+    "source": "TCoE",
+    "year": 2014,
+    "prerequisite": null,
+    "benefits": [
+      "Proficiency with poisoner's kit",
+      "Apply poison as bonus action",
+      "Attacks ignore resistance to poison damage"
+    ],
+    "description": "You can prepare and deliver deadly poisons, granting you the following benefits:\n\n• When you make a damage roll that deals poison damage, it ignores resistance to poison damage.\n• You can apply poison to a weapon or piece of ammunition as a bonus action, instead of an action.\n• You gain proficiency with the poisoner's kit if you don't already have it. With one hour of work using a poisoner's kit and expending 50 gp worth of materials, you can create a number of doses of potent poison equal to your proficiency bonus. Once applied to a weapon or piece of ammunition, the poison retains its potency for 1 minute or until you hit with the weapon or ammunition. When a creature takes damage from the coated weapon or ammunition, that creature must succeed on a DC 14 Constitution saving throw or take 2d8 poison damage and become poisoned until the end of your next turn.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "polearm-master",
+    "name": "Polearm Master",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": null,
+    "benefits": [
+      "Bonus action attack with opposite end of polearm (1d4 bludgeoning)",
+      "Opportunity attack when creature enters your reach"
+    ],
+    "description": "You can keep your enemies at bay with reach weapons. You gain the following benefits:\n\n• When you take the Attack action and attack with only a glaive, halberd, quarterstaff, or spear, you can use a bonus action to make a melee attack with the opposite end of the weapon. This attack uses the same ability modifier as the primary attack. The weapon's damage die for this attack is a d4, and it deals bludgeoning damage.\n• While you are wielding a glaive, halberd, pike, quarterstaff, or spear, other creatures provoke an opportunity attack from you when they enter your reach.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "prodigy",
+    "name": "Prodigy",
+    "source": "XGtE",
+    "year": 2014,
+    "prerequisite": "Half-elf, half-orc, or human",
+    "benefits": [
+      "Proficiency in one skill, one tool, or one language",
+      "Expertise in one skill you have proficiency in"
+    ],
+    "description": "You have a knack for learning new things. You gain the following benefits:\n\n• You gain one skill proficiency of your choice, one tool proficiency of your choice, and fluency in one language of your choice.\n• Choose one skill in which you have proficiency. You gain expertise with that skill, which means your proficiency bonus is doubled for any ability check you make with it. The skill you choose must be one that isn't already benefiting from a feature, such as Expertise, that doubles your proficiency bonus.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "resilient",
+    "name": "Resilient",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": null,
+    "abilityScoreIncrease": {
+      "choices": 1,
+      "options": [
+        "STR",
+        "DEX",
+        "CON",
+        "INT",
+        "WIS",
+        "CHA"
+      ],
+      "amount": 1
+    },
+    "benefits": [
+      "Proficiency in saving throws using chosen ability"
+    ],
+    "description": "Choose one ability score. You gain the following benefits:\n\n• Increase the chosen ability score by 1, to a maximum of 20.\n• You gain proficiency in saving throws using the chosen ability.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "ritual-caster",
+    "name": "Ritual Caster",
+    "source": "PHB",
+    "year": 2014,
+    "prerequisite": "Intelligence or Wisdom 13 or higher",
+    "benefits": [
+      "Learn two 1st-level ritual spells",
+      "Can add ritual spells to ritual book"
+    ],
+    "description": "You have learned a number of spells that you can cast as rituals. These spells are written in a ritual book, which you must have in hand while casting one of them.\n\nWhen you choose this feat, you acquire a ritual book holding two 1st-level spells of your choice. Choose one of the following classes: bard, cleric, druid, sorcerer, warlock, or wizard. You must choose your spells from that class's spell list, and the spells you choose must have the ritual tag. The class you choose also determines your spellcasting ability for these spells: Charisma for bard, sorcerer, or warlock; Wisdom for cleric or druid; or Intelligence for wizard.\n\nIf you come across a spell in written form, such as a magical spell scroll or a wizard's spellbook, you might be able to add it to your ritual book. The spell must be on the spell list for the class you chose, the spell's level can be no higher than half your level (rounded up), and it must have the ritual tag. The process of copying the spell into your ritual book takes 2 hours per level of the spell, and costs 50 gp per level. The cost represents material components you expend as you experiment with the spell to master it, as well as the fine inks you need to record it.",
+    "category": "general",
+    "prerequisites": {
+      "level": 4
+    }
+  },
+  {
+    "slug": "boon-of-combat-prowess",
+    "name": "Boon of Combat Prowess",
+    "source": "DMG",
+    "year": 2014,
+    "prerequisite": null,
+    "benefits": [
+      "You have advantage on all attack rolls"
+    ],
+    "description": "You have advantage on all attack rolls.",
+    "category": "origin",
+    "prerequisites": {
+      "level": 1
+    }
+  },
+  {
+    "slug": "actor",
+    "name": "Actor",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "+1 Charisma",
+      "Advantage on Deception and Performance checks when mimicking",
+      "Can mimic speech and sounds after hearing them for 1 minute"
+    ],
+    "description": "Skilled at mimicry and dramatics, you gain the following benefits:\n\n• Increase your Charisma score by 1, to a maximum of 20.\n• You have advantage on Charisma (Deception) and Charisma (Performance) checks when trying to pass yourself off as a different person.\n• You can mimic the speech of another person or the sounds made by other creatures. You must have heard the person speaking, or heard the creature make the sound, for at least 1 minute. A successful Wisdom (Insight) check contested by your Charisma (Deception) check allows a listener to determine that the effect is faked."
+  },
+  {
+    "slug": "chef",
+    "name": "Chef",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Cook's utensils proficiency",
+      "Can prepare special meals that grant benefits",
+      "Can prepare a feast for up to 12 people"
+    ],
+    "description": "Time and effort spent mastering the culinary arts has paid off. You gain the following benefits:\n\n• You gain proficiency with cook's utensils if you don't already have it.\n• As an action, you can inspect a drink or plate of food within 5 feet of you and determine whether it is poisoned, provided that you can see and smell it.\n• During a short rest, you can prepare a special meal that helps you and your companions. You and up to five other creatures can eat the meal to gain benefits. The meal takes 1 hour to prepare and requires 10 gp of ingredients. After eating, each creature gains one of the following benefits of your choice: a +2 bonus to a saving throw, resistance to poison damage for 1 hour, or advantage on Wisdom (Perception) checks for 1 hour."
+  },
+  {
+    "slug": "criminal",
+    "name": "Criminal",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Thieves' tools proficiency",
+      "Criminal contact in any city",
+      "Can find fences and underworld contacts"
+    ],
+    "description": "You are a member of the criminal underworld. You gain the following benefits:\n\n• You gain proficiency with thieves' tools if you don't already have it.\n• You have a contact in the criminal underworld who can provide information about criminal activities in any city. You know how to contact this individual and how to send and receive messages through them.\n• You are able to find a fence (someone who buys stolen goods) in any city, provided that the city has a population of at least 1,000."
+  },
+  {
+    "slug": "entertainer",
+    "name": "Entertainer",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Musical instrument proficiency",
+      "Can perform for free lodging and food",
+      "Local figure status in towns where you've performed"
+    ],
+    "description": "You are a gifted performer. You gain the following benefits:\n\n• You gain proficiency with one musical instrument of your choice.\n• You can always find a place to perform, usually in an inn or tavern but possibly with a circus, at a theater, or even in a noble's court. At such a place, you receive free lodging and food of a modest or comfortable standard (depending on the quality of the establishment), as long as you perform each night. In addition, your performance makes you something of a local figure. When strangers recognize you in a town where you have performed, they typically take a liking to you."
+  },
+  {
+    "slug": "guild-artisan",
+    "name": "Guild Artisan",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Artisan's tools proficiency",
+      "Guild membership with contacts and resources",
+      "Can find guild-sponsored lodging"
+    ],
+    "description": "You are a member of a guild. You gain the following benefits:\n\n• You gain proficiency with one type of artisan's tools of your choice.\n• You have a guild letter of introduction that indicates your membership. Presenting this letter gains you access to guild facilities and guild members who can provide assistance. Guild members will provide food and lodging, and will expedite any tasks related to your profession.\n• You can find a place to stay in any city that has a guildhall for your profession. You and your companions can stay at the guildhall for free for up to 3 days."
+  },
+  {
+    "slug": "noble",
+    "name": "Noble",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Position of privilege in society",
+      "Can secure audience with local nobility",
+      "Retainers available for service"
+    ],
+    "description": "You are a member of the nobility. You gain the following benefits:\n\n• You have a position of privilege in society. You are welcome in high society, and people assume you have the right to be wherever you are. The common folk make every effort to accommodate you and avoid your displeasure, and other people of high birth treat you as a member of the same social sphere. You can secure an audience with a local noble if you need to.\n• You gain proficiency in one language of your choice.\n• You have a retainer: a loyal servant who attends to your needs. Your retainer is a commoner who bears a signet ring emblazoned with your family crest. While in a city or town, you can direct your retainer to purchase goods or hire workers on your behalf."
+  },
+  {
+    "slug": "outlander",
+    "name": "Outlander",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Wanderer - can find food and fresh water",
+      "Favored Enemy - choose a creature type for advantage on attacks and checks",
+      "Can always recall the general layout of terrain and settlements"
+    ],
+    "description": "You grew up in the wilds, far from civilization and the comforts of town and technology. You gain the following benefits:\n\n• You are proficient in one skill of your choice from among Animal Handling, Athletics, Nature, Stealth, or Survival.\n• You can find food and fresh water for yourself and up to five other people each day, provided that the land offers berries, small game, water, and so forth.\n• You can recall the general layout of terrain, settlements, and other features nearby. In addition, you can find hidden water sources in deserts or wastelands."
+  },
+  {
+    "slug": "sage",
+    "name": "Sage",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Researcher - can find lore in libraries",
+      "Arcane Recovery - regain expended spell slot",
+      "Can decipher ancient scripts and languages"
+    ],
+    "description": "You have studied extensively and are an expert on a particular field of knowledge. You gain the following benefits:\n\n• You gain proficiency in two skills of your choice from among Arcana, History, Nature, Religion, or Investigation.\n• You can identify the properties of any magic item you examine (such as whether it's cursed, what its properties are, and so on) after examining it for 1 minute.\n• You can cast the Identify spell twice per long rest without expending a spell slot."
+  },
+  {
+    "slug": "sailor",
+    "name": "Sailor",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Bad Reputation - advantage on Intimidation checks",
+      "Ship's Passage - can secure free passage on ships",
+      "Can always find work on a ship"
+    ],
+    "description": "You have spent time at sea on a sailing ship or naval vessel. You gain the following benefits:\n\n• You gain proficiency with vehicles (water) and navigator's tools if you don't already have them.\n• You have advantage on Dexterity (Acrobatics) checks made to keep your balance while on a slippery deck and on Strength (Athletics) checks made to climb a ship's rigging.\n• You can always find a place on a ship willing to take you and your companions on a voyage. In return for your work as a crew member, you and your companions receive free passage and food for the voyage."
+  },
+  {
+    "slug": "soldier",
+    "name": "Soldier",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Military Rank - can exert authority over lower-ranking soldiers",
+      "Weapon Proficiency - martial weapons and armor",
+      "Can requisition simple equipment from military allies"
+    ],
+    "description": "You have military training and discipline. You gain the following benefits:\n\n• You gain proficiency with two weapons of your choice from among the martial weapons.\n• You gain proficiency with one type of armor of your choice from among light, medium, or heavy armor.\n• You have advantage on initiative rolls.\n• You can requisition simple equipment or horses for temporary use during your adventures by providing an official-looking document from your military."
+  },
+  {
+    "slug": "urchin",
+    "name": "Urchin",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "City Secrets - know hidden paths and passages in cities",
+      "Sneak Attack - extra damage when attacking with advantage or when enemy is flanked",
+      "Can find food and shelter in cities"
+    ],
+    "description": "You grew up on the streets, surviving by your wits and cunning. You gain the following benefits:\n\n• You gain proficiency in two skills of your choice from among Deception, Sleight of Hand, Stealth, or Persuasion.\n• You can find secret entrances, hidden passages, and areas to hide in any city you visit. In addition, you can find food and shelter for yourself and up to four other people for free in any city, provided that the city has a population of at least 1,000."
+  },
+   {
+    "slug": "versatile",
+    "name": "Versatile",
+    "source": "PHB",
+    "year": 2024,
+    "category": "species",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Gain one additional Origin Feat"
+    ],
+    "description": "Humans are incredibly versatile. You gain one additional Origin Feat of your choice."
+  },
+  {
+    "slug": "skilled",
+    "name": "Skilled",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Proficiency in one skill",
+      "Expertise in one skill you have proficiency in"
+    ],
+    "description": "You have exceptional training in a skill. You gain the following benefits:\n\n• You gain proficiency in one skill of your choice.\n• Choose one skill in which you have proficiency. You gain expertise with that skill, which means your proficiency bonus is doubled for any ability check you make with it. The skill you choose must be one that isn't already benefiting from a feature, such as Expertise, that doubles your proficiency bonus."
+  },
+  {
+    "slug": "musician",
+    "name": "Musician",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Proficiency with one musical instrument",
+      "Can perform for free lodging and food",
+      "Local figure status in towns where you've performed"
+    ],
+    "description": "You are a gifted performer. You gain the following benefits:\n\n• You gain proficiency with one musical instrument of your choice.\n• You can always find a place to perform, usually in an inn or tavern but possibly with a circus, at a theater, or even in a noble's court. At such a place, you receive free lodging and food of a modest or comfortable standard (depending on the quality of the establishment), as long as you perform each night. In addition, your performance makes you something of a local figure. When strangers recognize you in a town where you have performed, they typically take a liking to you."
+  },
+  {
+    "slug": "crafter",
+    "name": "Crafter",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Proficiency with one type of artisan's tools",
+      "Can craft items for half the normal cost",
+      "Can sell crafted items for profit"
+    ],
+    "description": "You are skilled at crafting items. You gain the following benefits:\n\n• You gain proficiency with one type of artisan's tools of your choice.\n• You can craft nonmagical items in half the time and for half the cost of normal. You must have the appropriate tools and materials.\n• When you sell a crafted item, you can sell it for its full market value instead of half."
+  },
+  {
+    "slug": "healer",
+    "name": "Healer",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Proficiency with healer's kit",
+      "Can stabilize creatures with bonus action",
+      "Can cure diseases and poison with rest"
+    ],
+    "description": "You have a knack for helping others recover from wounds and ailments. You gain the following benefits:\n\n• You gain proficiency with the healer's kit if you don't already have it.\n• As an action, you can spend one use of a healer's kit to stabilize a creature that has 0 hit points, without needing to make a Wisdom (Medicine) check.\n• When you finish a short or long rest, you can tend to one creature. That creature can remove one disease or one poison affecting it. You must have access to a healer's kit to use this benefit."
+  },
+  {
+    "slug": "tough",
+    "name": "Tough",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Maximum hit points increase by 2 per level",
+      "Hit point maximum increases by 2"
+    ],
+    "description": "Your body is exceptionally resilient. You gain the following benefits:\n\n• Your hit point maximum increases by 2, and it increases by 2 every time you gain a level.\n• You have advantage on saving throws against being poisoned."
+  },
+  {
+    "slug": "tavern-brawler",
+    "name": "Tavern Brawler",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Proficiency with improvised weapons and unarmed strikes",
+      "Can use Strength for unarmed strikes",
+      "Can grapple as bonus action after unarmed strike hit"
+    ],
+    "description": "Accustomed to rough-and-tumble fighting using whatever weapons happen to be at hand, you gain the following benefits:\n\n• You gain proficiency with improvised weapons and unarmed strikes.\n• Your unarmed strike uses a d4 for damage.\n• When you hit a creature with an unarmed strike or an improvised weapon on your turn, you can use a bonus action to attempt to grapple the target."
+  },
+  {
+    "slug": "savage-attacker",
+    "name": "Savage Attacker",
+    "source": "PHB",
+    "year": 2024,
+    "category": "origin",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Reroll weapon damage dice once per turn",
+      "Can choose the higher roll"
+    ],
+    "description": "You have trained to deal particularly damaging blows. You gain the following benefits:\n\n• Once per turn when you roll damage for a melee weapon attack, you can reroll the weapon's damage dice and use either total.\n• You have advantage on Strength (Athletics) checks to grapple."
+  },
+  {
+    "slug": "magic-initiate",
+    "name": "Magic Initiate",
+    "source": "PHB",
+    "year": 2014,
+    "category": "general",
+    "prerequisite": null,
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Learn two cantrips",
+      "Learn one 1st-level spell",
+      "Cast the 1st-level spell once per long rest"
+    ],
+    "description": "Choose a class: bard, cleric, druid, sorcerer, warlock, or wizard. You learn two cantrips of your choice from that class's spell list.\n\nIn addition, choose one 1st-level spell from that same list. You learn that spell and can cast it at its lowest level. Once you cast it, you must finish a long rest before you can cast it again using this feat.\n\nYour spellcasting ability for these spells depends on the class you chose: Charisma for bard, sorcerer, or warlock; Wisdom for cleric or druid; or Intelligence for wizard."
+  },
+  {
+    "slug": "relentless-endurance",
+    "name": "Relentless Endurance",
+    "source": "species",
+    "year": 2014,
+    "category": "species",
+    "prerequisite": "Half-Orc",
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "When reduced to 0 hit points but not killed outright, drop to 1 hit point instead"
+    ],
+    "description": "When you are reduced to 0 hit points but not killed outright, you can drop to 1 hit point instead. You can't use this feature again until you finish a long rest."
+  },
+  {
+    "slug": "magic-resistance",
+    "name": "Magic Resistance",
+    "source": "species",
+    "year": 2014,
+    "category": "species",
+    "prerequisite": "Yuan-ti Pureblood",
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Advantage on saving throws against spells and other magical effects"
+    ],
+    "description": "You have advantage on saving throws against spells and other magical effects."
+  },
+  {
+    "slug": "poison-immunity",
+    "name": "Poison Immunity",
+    "source": "species",
+    "year": 2014,
+    "category": "species",
+    "prerequisite": "Yuan-ti Pureblood",
+    "prerequisites": {
+      "level": 1
+    },
+    "benefits": [
+      "Immunity to poison damage and the poisoned condition"
+    ],
+    "description": "You are immune to poison damage and the poisoned condition."
+  }
+]

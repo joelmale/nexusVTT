@@ -1,0 +1,104 @@
+release: candidate-e078895
+status: rehearsal-pending
+tested_source_sha: e0788951a107729a74dd2b6b8929620414e3b887
+manifest_recorded_at: '2026-09-12'
+source_imports:
+  vtt: c8b3fc93c65c2a4cd5f37612b4e625f65f47d936
+  forge: c6b13a9169dadea32bd80c8bc9f3d463b5f0d822
+  codex: 4c583c2e82cc71b6fff732f876c1763e82cd4ccb
+
+services:
+  postgres:
+    image: ghcr.io/joelmale/nexusvtt/postgres
+    digest: sha256:08b7399e0881d8650ddd67c0adbab8b0a4c166a5b8d49e62e13f94ab342f9385
+    source_sha: e0788951a107729a74dd2b6b8929620414e3b887
+    schema: PostgreSQL 18; initializes apps/vtt/server/schema.sql only on an empty data directory
+  redis:
+    image: redis:7-alpine
+    digest: sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+    source_sha: external-live-image
+    schema: none
+  asset-server:
+    image: ghcr.io/joelmale/nexusvtt/asset-service
+    digest: sha256:ae34ae1bb7be46dd70051899eee9e4d6af265e30c7ce9905ef4556bc4b96e71d
+    source_sha: e0788951a107729a74dd2b6b8929620414e3b887
+    schema: existing asset, user-asset, library, and read-only seed paths must remain compatible
+  nexus-forge:
+    image: ghcr.io/joelmale/nexus-forge
+    digest: sha256:d1d5019db84a0f21fd10de436da17c9ac6df52223cdfb3e69455349cccf348f0
+    source_sha: e0788951a107729a74dd2b6b8929620414e3b887
+    schema: none
+    platforms:
+      linux/amd64: sha256:9f72837f3748047f8ed6f6c444d4e0c2135c01cdd2dd90519ca58df3cec420d2
+      linux/arm64: sha256:b3f4d7abdc1f2328e30ac568264ea47c75a9f284543b4f1fe172a71e03865bbb
+  frontend:
+    image: ghcr.io/joelmale/nexusvtt/frontend
+    digest: sha256:d6938c26e23111a3625c91d9730b0be33b54eabcf9526680fef9390aaeaa70cb
+    source_sha: e0788951a107729a74dd2b6b8929620414e3b887
+    schema: none
+  backend:
+    image: ghcr.io/joelmale/nexusvtt/backend
+    digest: sha256:70a1786cffb560ed11abde34dd98fbd739455abcf34058d3722a21b1f2ef1016
+    source_sha: e0788951a107729a74dd2b6b8929620414e3b887
+    schema: required VTT durability migrations must already be present; runtime local-auth migration remains idempotent
+  codex-postgres:
+    image: postgres:16-alpine
+    digest: sha256:cf78e76683b9ca8c5733cbbdce6c9262b45b6767934dd0a95e671f9a0fc20685
+    source_sha: external-live-image
+    schema: candidate Prisma schema must be proven non-mutating against restored data before cutover
+  codex-redis:
+    image: redis:7-alpine
+    digest: sha256:ff02b58f971e7d7d156a1267e283fcbbeee91773b6aa36c49dac28ecfe28eadf
+    source_sha: external-live-image
+    schema: none
+  codex-elasticsearch:
+    image: elasticsearch:8.11.0
+    digest: sha256:2cadca6c21de5802b085f25532bba11cb893589b64ca8c94d62ac69eec923fad
+    source_sha: external-live-image
+    schema: existing index compatibility must pass restored-data rehearsal
+  codex-minio:
+    image: minio/minio:RELEASE.2025-09-07T16-13-09Z
+    digest: sha256:14cea493d9a34af32f524e538b8346cf79f3321eff8e708c1e2960462bd8936e
+    source_sha: external-live-image
+    schema: existing bucket and object compatibility must pass restored-data rehearsal
+  doc-api:
+    image: ghcr.io/joelmale/nexuscodex-doc-api
+    digest: sha256:418f55be5f67fedec5aff08606ebfe1ec1b112831ec57da8f7ce610c79e17a9c
+    source_sha: e0788951a107729a74dd2b6b8929620414e3b887
+    schema: startup runs prisma db push; zero-diff proof is mandatory before production use
+  doc-processor:
+    image: ghcr.io/joelmale/nexuscodex-doc-processor
+    digest: sha256:47c3d72cf5f70326fce9a154625a5c6466256b5214d5030d5a7a912302b6739d
+    source_sha: e0788951a107729a74dd2b6b8929620414e3b887
+    schema: shares the Codex PostgreSQL, Elasticsearch, and MinIO compatibility requirements
+  doc-websocket:
+    image: ghcr.io/joelmale/nexuscodex-doc-websocket
+    digest: sha256:da014e1fdc704b1f8b1821432787e7100aa8eb7640a0366d57f72b082023ad6c
+    source_sha: e0788951a107729a74dd2b6b8929620414e3b887
+    schema: shares the Codex PostgreSQL compatibility requirement
+  admin-ui:
+    image: ghcr.io/joelmale/nexuscodex-admin-ui
+    digest: sha256:0050ae256014d9fa82f579bc1a7a2e1b68c0714fad13667bcce3aa30bad9c0cc
+    source_sha: e0788951a107729a74dd2b6b8929620414e3b887
+    schema: none
+  dm-ui:
+    image: ghcr.io/joelmale/nexuscodex-dm-ui
+    digest: sha256:b6a51741eb3a0739c1a3ba78ad0338e20f86253f718a2dcef8903ce5a7af60e4
+    source_sha: e0788951a107729a74dd2b6b8929620414e3b887
+    schema: none
+
+validation:
+  phase2_ci_run_34713614787: passed
+  candidate_registry_indexes_and_labels: passed
+  independent_dockhand_pull_backend: passed
+  production_compose_render: passed
+  rehearsal_isolation_preflight: passed
+  fresh_database_rehearsal: pending
+  restored_data_rehearsal: pending
+  isolated_rollback_rehearsal: pending
+  final_independent_review: pending
+
+known_constraints:
+  - No production tag was moved; application digests are immutable candidate indexes.
+  - The live MinIO digest is retained locally but its upstream repository was not pullable during Phase 3 preparation.
+  - Production promotion is blocked until schema, restored-data, rollback, review, backup, and restore gates pass.
