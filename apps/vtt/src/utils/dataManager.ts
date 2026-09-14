@@ -33,6 +33,37 @@ export interface ValidationResult {
   errors: string[];
 }
 
+// Allowed literal values, mirrored from @nexus/character-contracts. Imported
+// data is untrusted JSON, so the unions have to be checked at runtime even
+// though TypeScript already narrows them at compile time.
+const VALID_RARITIES: readonly string[] = [
+  'common',
+  'uncommon',
+  'rare',
+  'very rare',
+  'legendary',
+];
+
+const VALID_EQUIPMENT_TYPES: readonly string[] = [
+  'weapon',
+  'armor',
+  'tool',
+  'consumable',
+  'treasure',
+  'other',
+];
+
+const VALID_FEATURE_RESETS: readonly string[] = [
+  'short-rest',
+  'long-rest',
+  'dawn',
+  'week',
+];
+
+function isNonNegativeNumber(value: unknown): boolean {
+  return typeof value === 'number' && Number.isFinite(value) && value >= 0;
+}
+
 export interface AllData {
   weapons: Weapon[];
   armor: Armor[];
@@ -84,6 +115,10 @@ export interface DataManager {
   // Validation
   validateWeapon(weapon: Weapon): ValidationResult;
   validateArmor(armor: Armor): ValidationResult;
+  validateTool(tool: Tool): ValidationResult;
+  validateSpell(spell: Spell): ValidationResult;
+  validateEquipment(equipment: Equipment): ValidationResult;
+  validateFeature(feature: Feature): ValidationResult;
   validateAllData(): ValidationResult[];
 }
 
@@ -226,7 +261,67 @@ class DataManagerImpl implements DataManager {
         }
       }
 
-      // Add validation for other data types...
+      if (data.tools) {
+        const toolErrors = data.tools
+          .map((t) => this.validateTool(t))
+          .filter((r) => !r.isValid);
+        if (toolErrors.length > 0) {
+          errors.push(`${toolErrors.length} invalid tools`);
+        } else {
+          this.tools = data.tools;
+        }
+      }
+
+      if (data.spells) {
+        const spellErrors = data.spells
+          .map((s) => this.validateSpell(s))
+          .filter((r) => !r.isValid);
+        if (spellErrors.length > 0) {
+          errors.push(`${spellErrors.length} invalid spells`);
+        } else {
+          this.spells = data.spells;
+        }
+      }
+
+      if (data.equipment) {
+        const equipmentErrors = data.equipment
+          .map((e) => this.validateEquipment(e))
+          .filter((r) => !r.isValid);
+        if (equipmentErrors.length > 0) {
+          errors.push(`${equipmentErrors.length} invalid equipment items`);
+        } else {
+          this.equipment = data.equipment;
+        }
+      }
+
+      if (data.features) {
+        const featureErrors = data.features
+          .map((f) => this.validateFeature(f))
+          .filter((r) => !r.isValid);
+        if (featureErrors.length > 0) {
+          errors.push(`${featureErrors.length} invalid features`);
+        } else {
+          this.features = data.features;
+        }
+      }
+
+      // Collections without a dedicated validator are still assigned - dropping
+      // them silently was the original round-trip data loss.
+      if (data.personality) {
+        this.personality = data.personality;
+      }
+
+      if (data.classes) {
+        this.classes = data.classes;
+      }
+
+      if (data.races) {
+        this.races = data.races;
+      }
+
+      if (data.backgrounds) {
+        this.backgrounds = data.backgrounds;
+      }
 
       return {
         isValid: errors.length === 0,
@@ -491,6 +586,106 @@ class DataManagerImpl implements DataManager {
     return { isValid: errors.length === 0, errors };
   }
 
+  validateTool(tool: Tool): ValidationResult {
+    const errors: string[] = [];
+
+    if (!tool.id?.trim()) errors.push('ID is required');
+    if (!tool.name?.trim()) errors.push('Name is required');
+    if (!tool.category?.trim()) errors.push('Category is required');
+
+    if (tool.rarity !== undefined && !VALID_RARITIES.includes(tool.rarity)) {
+      errors.push(`Rarity must be one of: ${VALID_RARITIES.join(', ')}`);
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+
+  validateSpell(spell: Spell): ValidationResult {
+    const errors: string[] = [];
+
+    if (!spell.id?.trim()) errors.push('ID is required');
+    if (!spell.name?.trim()) errors.push('Name is required');
+    if (!spell.school?.trim()) errors.push('School is required');
+    if (!spell.castingTime?.trim()) errors.push('Casting time is required');
+    if (!spell.range?.trim()) errors.push('Range is required');
+    if (!spell.duration?.trim()) errors.push('Duration is required');
+
+    if (!Number.isInteger(spell.level) || spell.level < 0 || spell.level > 9) {
+      errors.push('Level must be an integer between 0 and 9');
+    }
+
+    if (typeof spell.concentration !== 'boolean') {
+      errors.push('Concentration must be a boolean');
+    }
+
+    if (typeof spell.ritual !== 'boolean') {
+      errors.push('Ritual must be a boolean');
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+
+  validateEquipment(equipment: Equipment): ValidationResult {
+    const errors: string[] = [];
+
+    if (!equipment.id?.trim()) errors.push('ID is required');
+    if (!equipment.name?.trim()) errors.push('Name is required');
+
+    if (!VALID_EQUIPMENT_TYPES.includes(equipment.type)) {
+      errors.push(`Type must be one of: ${VALID_EQUIPMENT_TYPES.join(', ')}`);
+    }
+
+    if (!isNonNegativeNumber(equipment.quantity)) {
+      errors.push('Quantity must be a non-negative number');
+    }
+
+    if (!isNonNegativeNumber(equipment.weight)) {
+      errors.push('Weight must be a non-negative number');
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+
+  validateFeature(feature: Feature): ValidationResult {
+    const errors: string[] = [];
+
+    if (!feature.id?.trim()) errors.push('ID is required');
+    if (!feature.name?.trim()) errors.push('Name is required');
+    if (!feature.source?.trim()) errors.push('Source is required');
+    if (!feature.description?.trim()) errors.push('Description is required');
+
+    if (feature.uses) {
+      const { total, used, resetOn } = feature.uses;
+
+      if (!isNonNegativeNumber(total)) {
+        errors.push('Uses total must be a non-negative number');
+      }
+
+      if (!isNonNegativeNumber(used)) {
+        errors.push('Uses used must be a non-negative number');
+      }
+
+      if (
+        isNonNegativeNumber(total) &&
+        isNonNegativeNumber(used) &&
+        used > total
+      ) {
+        errors.push('Uses used cannot exceed uses total');
+      }
+
+      if (!VALID_FEATURE_RESETS.includes(resetOn)) {
+        errors.push(
+          `Uses resetOn must be one of: ${VALID_FEATURE_RESETS.join(', ')}`,
+        );
+      }
+    }
+
+    return { isValid: errors.length === 0, errors };
+  }
+
+  // Note: ValidationResult carries no item identity, so the results below are
+  // anonymous - a caller cannot tell which entry failed. Widening the exported
+  // interface is a separate change.
   validateAllData(): ValidationResult[] {
     const results: ValidationResult[] = [];
 
@@ -504,7 +699,25 @@ class DataManagerImpl implements DataManager {
       results.push(this.validateArmor(armor));
     });
 
-    // TODO: Add validation for other data types
+    // Validate all tools
+    this.tools.forEach((tool) => {
+      results.push(this.validateTool(tool));
+    });
+
+    // Validate all spells
+    this.spells.forEach((spell) => {
+      results.push(this.validateSpell(spell));
+    });
+
+    // Validate all equipment
+    this.equipment.forEach((equipment) => {
+      results.push(this.validateEquipment(equipment));
+    });
+
+    // Validate all features
+    this.features.forEach((feature) => {
+      results.push(this.validateFeature(feature));
+    });
 
     return results;
   }
