@@ -3,8 +3,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 
-const root = process.cwd();
-const docsRoot = path.join(root, 'docs');
+const workspaceRoot = process.cwd();
+const repositoryRoot = path.resolve(workspaceRoot, '../..');
+const docsRoot = path.join(repositoryRoot, 'apps/docs/vtt');
 
 const markdownFiles = [];
 
@@ -34,11 +35,11 @@ const stalePatterns = [
 ];
 
 function relative(file) {
-  return path.relative(root, file).replaceAll(path.sep, '/');
+  return path.relative(repositoryRoot, file).replaceAll(path.sep, '/');
 }
 
 function shouldSkipStaleScan(file) {
-  return relative(file).startsWith('docs/roadmap/archive/');
+  return relative(file).startsWith('apps/docs/vtt/roadmap/archive/');
 }
 
 for (const file of markdownFiles) {
@@ -53,6 +54,7 @@ for (const file of markdownFiles) {
     const rawTarget = match[1].split('#')[0];
     if (
       !rawTarget ||
+      rawTarget.startsWith('/') ||
       /^[a-z][a-z0-9+.-]*:/i.test(rawTarget) ||
       rawTarget.startsWith('mailto:')
     ) {

@@ -136,37 +136,6 @@ jobs:
         run: npm run build
         working-directory: apps/codex/services/${{ matrix.service }}
 
-  verify-docs:
-    name: 'docs: typecheck'
-    runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/codex/docs
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.source_sha || github.sha }}
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: '26.5.0'
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-        working-directory: ${{ github.workspace }}
-
-      - name: Build shared contracts
-        run: npm run build:contracts
-        working-directory: ${{ github.workspace }}
-
-      - name: Type check
-        run: npm run typecheck
-
-      - name: Build documentation
-        run: npm run build
-
   build-images:
     name: '${{ matrix.service }}: image build'
     runs-on: ubuntu-latest

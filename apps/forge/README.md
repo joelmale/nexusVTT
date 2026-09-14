@@ -4,19 +4,20 @@ A single-page, fully responsive React/TypeScript application for creating, manag
 
 ## Quality Gates
 
-| Gate | Status |
-|------|--------|
-| Quality Gate | ![Quality Gate](https://github.com/joelmale/NexusForge/actions/workflows/quality-gate.yml/badge.svg?branch=master) |
-| Test Coverage | ![Test Coverage](https://codecov.io/gh/joelmale/NexusForge/branch/master/graph/badge.svg) |
-| Bundle Size (CI) | ![Bundle Size](https://img.shields.io/badge/bundle%20size-checked%20in%20CI-2ea44f) |
-| Security | ![Security](https://github.com/joelmale/NexusForge/actions/workflows/codeql.yml/badge.svg?branch=master) |
-| Build & Deploy | ![Build & Deploy](https://github.com/joelmale/NexusForge/actions/workflows/deploy.yml/badge.svg?branch=master) |
-| Multi-Platform | ![Multi-Platform](https://img.shields.io/badge/platforms-amd64%20arm64-blue) |
-| BuildKit | ![BuildKit](https://img.shields.io/badge/buildkit-enabled-green) |
+| Gate             | Status                                                                                                             |
+| ---------------- | ------------------------------------------------------------------------------------------------------------------ |
+| Quality Gate     | ![Quality Gate](https://github.com/joelmale/NexusForge/actions/workflows/quality-gate.yml/badge.svg?branch=master) |
+| Test Coverage    | ![Test Coverage](https://codecov.io/gh/joelmale/NexusForge/branch/master/graph/badge.svg)                          |
+| Bundle Size (CI) | ![Bundle Size](https://img.shields.io/badge/bundle%20size-checked%20in%20CI-2ea44f)                                |
+| Security         | ![Security](https://github.com/joelmale/NexusForge/actions/workflows/codeql.yml/badge.svg?branch=master)           |
+| Build & Deploy   | ![Build & Deploy](https://github.com/joelmale/NexusForge/actions/workflows/deploy.yml/badge.svg?branch=master)     |
+| Multi-Platform   | ![Multi-Platform](https://img.shields.io/badge/platforms-amd64%20arm64-blue)                                       |
+| BuildKit         | ![BuildKit](https://img.shields.io/badge/buildkit-enabled-green)                                                   |
 
 ## Overview
 
 The NexusForge allows users to:
+
 - Create D&D 5e characters using a step-by-step wizard
 - Store unlimited characters locally in your browser
 - View interactive character sheets with dice rolling
@@ -26,6 +27,7 @@ The NexusForge allows users to:
 ## Key Features
 
 ### Client-Side First
+
 - **100% Local Storage**: All data stored in IndexedDB - nothing leaves your device
 - **Cross-Platform**: Works on desktop browsers, iPhones, iPads, and Android devices
 - **Offline Capable**: Once loaded, works without internet connection
@@ -62,17 +64,18 @@ The NexusForge allows users to:
 
 ## Technical Stack
 
-| Component | Technology | Purpose |
-|-----------|------------|---------|
+| Component    | Technology            | Purpose                            |
+| ------------ | --------------------- | ---------------------------------- |
 | **Frontend** | React 18 + TypeScript | UI components and state management |
-| **Styling** | Tailwind CSS | Responsive, mobile-first design |
-| **Storage** | IndexedDB | Client-side persistent storage |
-| **Icons** | Lucide React | Beautiful, consistent iconography |
-| **Backup** | JSON Export/Import | User-controlled data portability |
+| **Styling**  | Tailwind CSS          | Responsive, mobile-first design    |
+| **Storage**  | IndexedDB             | Client-side persistent storage     |
+| **Icons**    | Lucide React          | Beautiful, consistent iconography  |
+| **Backup**   | JSON Export/Import    | User-controlled data portability   |
 
 ## Browser Compatibility
 
 Works on all modern browsers with IndexedDB support:
+
 - ✅ Chrome/Edge (Desktop & Mobile)
 - ✅ Firefox (Desktop & Mobile)
 - ✅ Safari (Desktop, iPhone, iPad)
@@ -89,17 +92,20 @@ Works on all modern browsers with IndexedDB support:
 ### Local Development
 
 1. Clone the repository:
+
 ```bash
 git clone https://github.com/joelmale/NexusForge.git
 cd NexusForge
 ```
 
 2. Install dependencies:
+
 ```bash
 npm install
 ```
 
 3. Run the development server:
+
 ```bash
 npm run dev
 ```
@@ -107,15 +113,18 @@ npm run dev
 4. Open your browser to `http://localhost:3000`
 
 5. Build for production:
+
 ```bash
 npm run build
 ```
 
 ### Docker Deployment
 
-See [DEPLOYMENT.md](./DEPLOYMENT.md) for complete Docker Swarm deployment instructions.
+The repository ships a production `Dockerfile` and Compose definitions for
+local container validation.
 
 **Quick Start with Docker:**
+
 ```bash
 # Build the image
 docker build -t nexus-forge .
@@ -128,6 +137,7 @@ docker stack deploy -c docker-compose.yml character-forge
 ```
 
 **🚀 Build Optimizations:**
+
 - **90% smaller build context** (~30MB vs 352MB)
 - **Multi-platform support** (AMD64 + ARM64)
 - **BuildKit optimizations** with cache mounts
@@ -135,20 +145,19 @@ docker stack deploy -c docker-compose.yml character-forge
 - **Development mode** with `docker-compose.dev.yml`
 
 **🏗️ CI/CD Pipeline:**
+
 - **Automated builds** on push to master/main
 - **Multi-platform images** for all architectures
 - **Quality gates** with linting, testing, and security scans
 - **PR validation** with build checks
 - **Release automation** with GitHub releases
 
-See [DOCKER_OPTIMIZATIONS.md](./DOCKER_OPTIMIZATIONS.md) for technical details.
-
 **Live Demo:** https://character.nexusvtt.com
 
 ## Documentation
 
-- [Character Sheet Guide](./docs/character-sheet.md)
-- [Character Creation Wizard Guide](./docs/character-creation.md)
+- [Character Sheet Guide](../docs/forge/character-sheet.md)
+- [Character Creation Wizard Guide](../docs/forge/character-creation.md)
 
 ## Usage
 
@@ -207,7 +216,7 @@ Characters are stored with the following structure:
 
 ```typescript
 interface Character {
-  id: string;                    // UUID
+  id: string; // UUID
   name: string;
   race: string;
   class: string;
@@ -222,7 +231,12 @@ interface Character {
   speed: number;
   initiative: number;
   abilities: {
-    STR, DEX, CON, INT, WIS, CHA: {
+    STR;
+    DEX;
+    CON;
+    INT;
+    WIS;
+    CHA: {
       score: number;
       modifier: number;
     };
@@ -244,11 +258,13 @@ interface Character {
 ## Current Content
 
 ### Races
+
 - **Human**: +1 to all abilities, Speed 30ft
 - **Dwarf (Hill)**: +2 CON, +1 WIS, +1 HP per level, Speed 25ft
 - **Elf (High)**: +2 DEX, +1 INT, Darkvision, Fey Ancestry, Speed 30ft
 
 ### Classes
+
 - **Fighter**: d10 hit die, STR/CON saves, Athletics & Acrobatics proficiency
 - **Wizard**: d6 hit die, INT/WIS saves, Arcana & History proficiency
 - **Rogue**: d8 hit die, DEX/INT saves, Multiple skill proficiencies
@@ -270,6 +286,7 @@ interface Character {
 ## Privacy & Data
 
 **Your data never leaves your device.** The NexusForge:
+
 - ❌ Does NOT send data to any server
 - ❌ Does NOT require internet after loading
 - ❌ Does NOT track users

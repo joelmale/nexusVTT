@@ -9,6 +9,7 @@ on:
       - 'apps/vtt/**'
       - 'apps/forge/**'
       - 'apps/codex/**'
+      - 'apps/docs/**'
       - 'packages/**'
       - 'scripts/**'
       - 'deploy/**'
@@ -282,6 +283,30 @@ jobs:
     with:
       source_sha: ${{ inputs.candidate_sha || github.sha }}
 
+  docs-checks:
+    name: Documentation checks
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.candidate_sha || github.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ github.workspace }}
+
+      - name: Type-check and build documentation
+        run: npm run test:docs
+        working-directory: ${{ github.workspace }}
+
   build-and-push:
     name: Publish release images to GHCR
     runs-on: ubuntu-latest
@@ -516,6 +541,7 @@ jobs:
       - e2e-smoke
       - forge-checks
       - codex-checks
+      - docs-checks
       - build-and-push
       - candidate-images
     runs-on: ubuntu-latest
@@ -534,12 +560,14 @@ jobs:
           E2E_RESULT: ${{ needs.e2e-smoke.result }}
           FORGE_RESULT: ${{ needs.forge-checks.result }}
           CODEX_RESULT: ${{ needs.codex-checks.result }}
+          DOCS_RESULT: ${{ needs.docs-checks.result }}
           PUBLISH_RESULT: ${{ needs.build-and-push.result }}
           CANDIDATE_RESULT: ${{ needs.candidate-images.result }}
         run: |
           for result in \
             "$CHANGES_RESULT" "$LINT_RESULT" "$UNIT_RESULT" \
-            "$ASSET_RESULT" "$INTEGRATION_RESULT" "$E2E_RESULT"; do
+            "$ASSET_RESULT" "$INTEGRATION_RESULT" "$E2E_RESULT" \
+            "$DOCS_RESULT"; do
             if [[ "$result" != 'success' ]]; then
               echo "required validation result was $result" >&2
               exit 1
