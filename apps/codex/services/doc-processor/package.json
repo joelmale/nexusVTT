@@ -47,7 +47,7 @@
     "zod": "^3.22.4"
   },
   "devDependencies": {
-    "@types/jest": "^29.5.11",
+    "@types/jest": "^30.0.0",
     "@types/node": "^20.10.6",
     "@types/pdf-parse": "^1.1.4",
     "@types/pdfjs-dist": "^2.10.377",
