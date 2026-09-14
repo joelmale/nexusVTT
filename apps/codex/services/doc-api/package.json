@@ -53,7 +53,7 @@
                          "jsonwebtoken":  "^9.0.2",
                          "prompts":  "^2.4.2",
                          "sharp":  "^0.33.3",
-                         "zod":  "^3.22.4",
+                         "zod":  "^4.6.2",
                          "@nexus/document-contracts":  "*"
                      },
     "devDependencies":  {
