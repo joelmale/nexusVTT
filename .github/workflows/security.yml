@@ -3,9 +3,12 @@ name: Security Scan
 on:
   push:
     branches: [master]
-  # CodeQL and the Trivy filesystem scan gate pull requests. The image-building
-  # jobs below stay on master and releases -- they cost a full Docker build each
-  # and add nothing a PR can act on.
+  # Pull requests run CodeQL and both Trivy scans. The container scan has to run
+  # here even though it costs two image builds: it uploads SARIF under the
+  # trivy-container-backend and trivy-container-frontend categories, and code
+  # scanning fails a PR whose configurations do not match the base branch's
+  # ("2 configurations not found"). Only the SBOM job is skipped below, which
+  # uploads artifacts rather than SARIF and so declares no category.
   pull_request:
     branches: [master]
   release:
@@ -76,7 +79,6 @@ jobs:
 
   container-scan:
     name: Container Security Scan
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
