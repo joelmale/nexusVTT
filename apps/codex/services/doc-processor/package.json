@@ -40,7 +40,7 @@
     "remark": "^15.0.1",
     "remark-parse": "^11.0.0",
     "remark-stringify": "^11.0.0",
-    "sharp": "^0.33.1",
+    "sharp": "^0.35.4",
     "tesseract.js": "^5.0.4",
     "test-exclude": "^7.0.1",
     "unified": "^11.0.4",
