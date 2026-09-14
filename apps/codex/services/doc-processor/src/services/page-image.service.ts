@@ -85,7 +85,7 @@ class PageImageService {
 
       return images;
     } finally {
-      await pdfDocument.destroy();
+      await loadingTask.destroy();
     }
   }
 
@@ -134,7 +134,7 @@ class PageImageService {
 
       return images;
     } finally {
-      await pdfDocument.destroy();
+      await loadingTask.destroy();
     }
   }
 }
