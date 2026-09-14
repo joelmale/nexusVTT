@@ -64,14 +64,28 @@ updates:
       - dependency-name: 'react-dom'
         update-types: ['version-update:semver-major']
 
+  # Every Dockerfile location in the monorepo. Base-image bumps are grouped so
+  # a shared Node release lands as one PR instead of one per service.
   - package-ecosystem: 'docker'
-    directory: '/apps/vtt/docker'
+    directories:
+      - '/apps/vtt/docker'
+      - '/apps/forge'
+      - '/apps/codex/services/admin-ui'
+      - '/apps/codex/services/dm-ui'
+      - '/apps/codex/services/doc-api'
+      - '/apps/codex/services/doc-processor'
+      - '/apps/codex/services/doc-websocket'
     schedule:
       interval: 'weekly'
       day: 'monday'
       time: '04:00'
+    open-pull-requests-limit: 5
     reviewers:
       - 'JoelN'
+    groups:
+      base-images:
+        patterns:
+          - '*'
 
   - package-ecosystem: 'github-actions'
     directory: '/'

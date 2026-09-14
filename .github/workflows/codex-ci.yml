@@ -58,7 +58,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '26.5.0'
           cache: npm
           cache-dependency-path: package-lock.json
 
@@ -110,7 +110,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '26.5.0'
           cache: npm
           cache-dependency-path: package-lock.json
 
@@ -149,7 +149,7 @@ jobs:
 
       - uses: actions/setup-node@v7
         with:
-          node-version: '22'
+          node-version: '26.5.0'
           cache: npm
           cache-dependency-path: package-lock.json
 
