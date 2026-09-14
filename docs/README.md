@@ -26,8 +26,20 @@ code-adjacent reference material, use [Reference Index](index.md).
 
 - [Ordered Event Delivery](ordered-event-delivery.md)
 - [Delta-Sync Rollout and Metrics](delta-sync-rollout.md)
-- [Server-Authoritative Dice](SERVER_AUTHORITATIVE_DICE.md)
+- [WebSocket Protocol](vtt/realtime/websocket-protocol.md)
 - [Multiplayer Reliability Operations](operations/multiplayer-observability.md)
+
+## VTT tabletop features
+
+- [Grid and Coordinate Systems](vtt/features/grid-and-coordinates.md)
+- [Scenes and Maps](vtt/features/scenes-and-maps.md)
+- [Tokens](vtt/features/tokens.md)
+- [Fog of War](vtt/features/fog-of-war.md)
+- [Drawing and Ink](vtt/features/drawing-and-ink.md)
+- [Props](vtt/features/props.md)
+- [Initiative and Combat](vtt/features/initiative-and-combat.md)
+- [Dice](vtt/features/dice.md)
+- [Scene Layer Stack](vtt/internals/layer-stack.md)
 
 PostgreSQL is the durable authority for canonical snapshots, sync tokens,
 versions, Express sessions, and ordered event history. Redis provides ephemeral

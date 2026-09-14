@@ -44,8 +44,8 @@ See [Architecture Overview](../../docs/architecture.md) and
 - **Real-time multiplayer** — host and player roles, synchronized sessions,
   durable ACKs, and compare-and-swap conflict recovery across backend replicas
 - **Scene editor** — maps, grid, tokens, props, drawing tools, and paintable fog
-- **Server-authoritative dice** — cryptographically seeded rolls validated
-  server-side ([details](../../docs/SERVER_AUTHORITATIVE_DICE.md))
+- **Server-authoritative dice** — cryptographically secure rolls validated
+  server-side ([details](../../docs/vtt/features/dice.md))
 - **OAuth** — Google and Discord, with PostgreSQL-backed sessions
 - **Progressive Web App** — service worker, offline capability, installable
 - **Hybrid state** — local-first IndexedDB with real-time server sync
