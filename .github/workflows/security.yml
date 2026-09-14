@@ -29,15 +29,13 @@ jobs:
         with:
           node-version: '26.5.0'
           cache: 'npm'
-          cache-dependency-path: apps/vtt/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
-        working-directory: apps/vtt
 
       - name: Build (gives CodeQL full TypeScript type information)
-        run: npm run build
-        working-directory: apps/vtt
+        run: npm run build:vtt
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
