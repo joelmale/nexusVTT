@@ -157,7 +157,7 @@
                             "glob":  "^13.0.6",
                             "globals":  "^17.6.0",
                             "hermes-estree":  "^0.36.1",
-                            "hermes-parser":  "^0.36.1",
+                            "hermes-parser":  "^0.37.0",
                             "husky":  "^9.1.7",
                             "jsdom":  "^29.1.1",
                             "lint-staged":  "^17.5.0",
