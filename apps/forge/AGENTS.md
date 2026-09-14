@@ -4,6 +4,15 @@
 - `src/` holds React/TypeScript code: `components/` for UI, `hooks/` for shared logic, `context/` for providers, `services/` for data access (IndexedDB, dice, equipment), `utils/` for calculators/helpers, and `data/` for JSON/TS rules content. Entry is `src/main.tsx` rendering `AppWithProviders`.
 - `public/` contains static assets (dice textures, sounds, themes); `docs/` has user-facing guides; `scripts/` carries Docker/build helpers. Build output lives in `dist/`.
 
+## Architecture & Key Files
+- **Shape**: a 100% client-side SPA — no backend, no accounts. All data lives in the browser's IndexedDB, so there is no server to consult for state.
+- **State**: global state uses React Context providers in `src/context/` — `CharacterContext`, `DiceContext`, `MonsterContext`, `ThemeContext`. Custom hooks in `src/hooks/` expose it; components should consume the hooks rather than the contexts directly.
+- **Persistence**: `src/services/dbService.ts` is the single IndexedDB abstraction and owns schema migrations. Route all reads/writes through it.
+- **3D dice**: built on `@3d-dice/dice-box`; the integration point is `src/components/DiceSystem/DiceBox3D.tsx`.
+- **Styling**: Tailwind CSS v4 (utility-first), plus the custom SVG border system in `src/boarders/`. Note this differs from the VTT, which is CSS Modules + design tokens per ADR-0006 — do not carry conventions between the two apps.
+- **Entry points**: `src/AppWithProviders.tsx` (root, wraps all providers) → `src/App.tsx` (layout and tab routing).
+- **Main views**: `src/components/CharacterSheet/CharacterSheet.tsx`, `src/components/MonsterLibrary/MonsterLibrary.tsx`, `src/components/EncounterView/EncounterView.tsx`.
+
 ## Build, Test, and Development Commands
 ```bash
 npm run dev        # Start Vite dev server

@@ -712,7 +712,8 @@ Benefits:
 The core event system uses a dispatch pattern:
 
 ```typescript
-// Event handlers registry (gameStore.ts around line 600-900)
+// Event handlers registry (exported from src/stores/gameEventHandlers.ts,
+// consumed by applyEvent in src/stores/gameStore.ts)
 const eventHandlers: Record<string, (state: GameState, data: any) => void> = {
   'session/created': (state, data) => {
     /* update state */
@@ -762,21 +763,43 @@ User drags token:
 
 ### Version Conflict Resolution
 
-**Location:** `/server/index.ts` around line 1338
+**Location:** `server/socket/handlers/EntitySyncHandler.ts` (request path) and
+`server/repositories/EventJournalRepository.ts` (durable compare-and-swap).
+
+Per invariant 7, the authoritative check is a SQL compare-and-swap against
+`room_entity_versions` inside the same transaction that appends `room_events`.
+The in-memory `room.entityVersions` map is a cache updated *after* the database
+accepts the write — it is never the decision point, because replicas can accept
+concurrently.
 
 ```typescript
-// Track entity versions (per room)
-room.entityVersions = new Map<string, number>();
+// EntitySyncHandler: attach the expected version to the ordered publish
+const entityVersion =
+  VERSIONED_EVENTS.has(name) && entityId && typeof payload.expectedVersion === 'number'
+    ? { entityId, expectedVersion: payload.expectedVersion }
+    : undefined;
 
-// On update receipt:
-const currentVersion = room.entityVersions.get(entityId) || 0;
-if (expectedVersion < currentVersion) {
-  // Conflict detected - reject update
-  sendMessage(connection, { type: 'error', code: 409 });
-  return;
-}
-// Accept update and increment version
-room.entityVersions.set(entityId, expectedVersion + 1);
+await this.socketManager.publishOrderedEvent(room, connection, relayed, {
+  entityVersion,
+  onVersionConflict: (currentVersion) => {
+    this.sendError(connection, `Update rejected due to version conflict ...`, 409);
+  },
+  onAccepted: () => {
+    // Cache only — the CAS below already decided the outcome.
+    room.entityVersions.set(entityId, payload.expectedVersion + 1);
+  },
+});
+```
+
+```sql
+-- EventJournalRepository: the actual conflict decision
+INSERT INTO room_entity_versions ("sessionId", "entityId", version, "updatedAt")
+VALUES ($1, $2, $3::bigint + 1, NOW())
+ON CONFLICT ("sessionId", "entityId") DO UPDATE
+SET version = $3::bigint + 1, "updatedAt" = NOW()
+WHERE room_entity_versions.version <= $3::bigint
+RETURNING version;
+-- No row returned => EntityVersionConflictError with the current version.
 ```
 
 ### Service Layer Isolation
@@ -930,7 +953,7 @@ Voice infrastructure in place but not implemented:
 
 ```
 src/
-├── stores/          # Zustand stores (gameStore is monolithic)
+├── stores/          # Zustand stores (gameStore + scene/ slices)
 ├── components/      # React components
 │   ├── Scene/       # Canvas and scene-related
 │   ├── Tokens/      # Token management UI
@@ -1017,10 +1040,14 @@ Located alongside implementation:
 
 ## 12. Known Quirks & Important Notes
 
-1. **gameStore is monolithic** (97KB+)
-   - Contains all game state in single Zustand store
-   - Could be split into multiple stores if it grows further
-   - Currently practical due to interconnected state
+1. **gameStore is large** (~125KB / ~3,650 lines)
+   - Coordinates session, user, chat, connection, and UI state
+   - Scene domain state is **already extracted** into slices under
+     `src/stores/scene/` (background, camera, drawings, fog, grid, props,
+     tokens); `gameStore` composes them rather than owning them
+   - Characters, documents, initiative, tokens, and UI stacking live in their
+     own stores — see section 1 for the full list
+   - Remaining split candidates are chat and connection state
 
 2. **Room codes are 4 characters**
    - Format: ABCD (uppercase alphanumeric)
@@ -1032,10 +1059,16 @@ Located alongside implementation:
    - Server broadcasts to others (creating double-apply on sender)
    - Handled by update confirmations
 
-4. **Drawings don't persist to PostgreSQL**
-   - Only stored in IndexedDB
-   - Lost when switching sessions
-   - Could be added to sessionGameState if needed
+4. **Drawings persist to PostgreSQL as part of scenes**
+   - `Scene.drawings` (`src/types/game.ts`) travels inside the canonical
+     snapshot built by `buildGameStateProjection()`
+     (`src/services/gameStateProjection.ts`)
+   - `SessionRepository.commitGameState()` writes that snapshot to
+     `sessions."gameState"` and mirrors `gameState.scenes` to
+     `campaigns.scenes` in the same transaction
+   - IndexedDB (`src/services/drawingPersistence.ts`) is a local cache for
+     offline reads, not the durable record
+   - Drawings therefore survive reconnect and session switching
 
 5. **Character data is browser-local**
    - Stored in characterStore (not persisted to server)
@@ -1058,13 +1091,13 @@ Located alongside implementation:
 
 **Potential improvements:**
 
-1. **Split gameStore** into domain-specific stores (sceneStore, tokenStore, chatStore)
-2. **Drawing persistence to PostgreSQL** for session recovery
-3. **WebRTC voice integration** (infrastructure in place)
-4. **Offline-first with local app** (service worker ready)
-5. **Real-time collaboration cursors** (RemoteCursors can show more detail)
-6. **Asset caching strategy** (SW + IndexedDB)
-7. **Performance monitoring** (connection quality metrics started)
+1. **Finish splitting gameStore** — scene slices are done; chat and connection
+   state are the remaining candidates
+2. **WebRTC voice integration** (infrastructure in place)
+3. **Offline-first with local app** (service worker ready)
+4. **Real-time collaboration cursors** (RemoteCursors can show more detail)
+5. **Asset caching strategy** (SW + IndexedDB)
+6. **Performance monitoring** (connection quality metrics started)
 
 ---
 

@@ -66,17 +66,21 @@ Forge lives in `apps/forge`; Codex lives in `apps/codex`.
 
 ## Code Style & Naming
 
-- **Language**: TypeScript everywhere; strict mode enabled; avoid `any` (warned by ESLint).
+- **Language**: TypeScript everywhere; `strict` mode enabled. `any` is forbidden — `@typescript-eslint/no-explicit-any` is set to `error`, not warn, so it fails the build. Type payloads, event handlers, worker proxy signatures, and props explicitly; use strict generics when extending vendor types.
 - **React**: Prefer functional components with hooks; use React 19 features.
 - **Imports**:
   - Use absolute imports with `@/` alias for `src/` (configured in `tsconfig.json` paths).
   - Group imports: React imports first, then third-party libraries, then local imports.
   - Sort imports alphabetically within groups.
   - Avoid default exports for components; use named exports.
+  - **Icons**: never destructure from the `lucide-react` root — it defeats
+    tree-shaking and slows Vite HMR. Import the direct component path instead.
+    The codebase already follows this (31 direct-path imports vs 5 legacy
+    root imports).
   - Example:
     ```typescript
     import React, { useState } from 'react';
-    import { Button } from 'lucide-react';
+    import Sword from 'lucide-react/dist/esm/icons/sword'; // not { Sword } from 'lucide-react'
     import { useAuth } from '@/hooks/useAuth';
     import { CharacterCard } from '@/components/CharacterCard';
     ```
@@ -113,10 +117,15 @@ Forge lives in `apps/forge`; Codex lives in `apps/codex`.
     ```
 
 ````
-- **Styling**:
+- **Styling** (see ADR-0006, accepted 2026-07-02):
+  - Net-new components use **CSS Modules** (`Component.module.css`) consuming
+    `var(--token)` values from `src/styles/design-tokens.css`. There is no
+    Tailwind migration — do not introduce Tailwind utilities in new code.
+  - Never hardcode colors. `design-tokens.css` is the only source of token
+    values; do not copy hex values into docs or components, where they rot.
+  - The single z-index scale lives in `src/utils/z-scale.ts`, mirrored as CSS
+    variables in `design-tokens.css`.
   - Use glassmorphism with existing CSS variables (e.g., `--glass-bg`, `--glass-border`).
-  - Keep styles scoped; prefer CSS modules or styled-components if needed.
-  - Follow theme consistency; avoid hardcoded colors.
 - **Zustand Stores**:
   - One store per domain (`src/stores/`); colocate related utilities.
   - Use immer for immutable updates.
@@ -318,6 +327,19 @@ Forge lives in `apps/forge`; Codex lives in `apps/codex`.
 - **API Optimization**: Implement efficient data fetching and pagination.
 - **Frontend Optimization**: Use React.memo, lazy loading, and performance profiling.
 - **Asset Optimization**: Optimize static assets for faster loading times.
+- **Web Worker Offloading**: Heavy or blocking work must not run on the main
+  React thread. Storage/IndexedDB operations go through the Comlink-wrapped
+  worker in `src/services/storageWorkerClient.ts` → `src/workers/storageWorker.ts`.
+  Route new long-running algorithms (map parsing, noise loops, geometry
+  generation) off-thread the same way rather than adding main-thread work.
+- **Canvas Boundary Rule**: Do not use top-layer popovers or DOM overlays for
+  elements anchored to entities moving inside the scene canvas (token health
+  bars, floating combat text). Keep canvas-anchored labels synchronous with the
+  canvas positioning loop to avoid rendering jitter. See the layer stack in
+  ADR-0005.
+- **Native Overlays**: For ordinary dropdowns, context menus, and static
+  toolbars, prefer the native HTML Popover API (`popover="auto"` /
+  `popovertarget`) over hand-rolled state and window event listeners.
 
 ## Troubleshooting & Debugging
 
@@ -372,8 +394,6 @@ Forge lives in `apps/forge`; Codex lives in `apps/codex`.
 - **WebSocket Disconnections**: Verify server connectivity and network configuration.
 - **Asset Loading Issues**: Check asset generation scripts and file permissions.
 - **Performance Problems**: Use profiling tools to identify bottlenecks.
-
-## Future Enhancements
 
 ## Future Enhancements
 
