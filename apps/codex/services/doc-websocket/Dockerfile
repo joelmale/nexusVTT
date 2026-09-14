@@ -1,5 +1,5 @@
 # Build stage
-FROM node:26.5.0-alpine AS builder
+FROM node:26.8-alpine AS builder
 
 # Install OpenSSL for Prisma
 RUN apk add --no-cache openssl
@@ -20,7 +20,7 @@ RUN npm run prisma:generate --workspace=nexus-codex-doc-websocket && \
     npm run build --workspace=nexus-codex-doc-websocket
 
 # Production stage
-FROM node:26.5.0-alpine
+FROM node:26.8-alpine
 
 ARG VERSION=dev
 ARG COMMIT_SHA=unknown
