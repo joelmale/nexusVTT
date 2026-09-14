@@ -18,7 +18,11 @@ COPY apps/vtt/services/asset-service/package.json ./apps/vtt/services/asset-serv
 RUN npm ci --workspace=asset-service --include-workspace-root --ignore-scripts --legacy-peer-deps
 
 COPY apps/vtt/patches ./apps/vtt/patches
-RUN npm exec --workspace=asset-service -- patch-package --patch-dir /workspace/apps/vtt/patches
+# Run from /workspace, the WORKDIR: patch-package rejects an absolute
+# --patch-dir, and it resolves packages relative to its cwd -- parseurl is
+# hoisted to /workspace/node_modules, not the service's own tree, so
+# `npm exec --workspace=asset-service` would look in the wrong place.
+RUN npx patch-package --patch-dir apps/vtt/patches
 
 COPY apps/vtt/services/asset-service/tsconfig.json ./apps/vtt/services/asset-service/tsconfig.json
 COPY apps/vtt/services/asset-service/src ./apps/vtt/services/asset-service/src
