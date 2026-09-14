@@ -566,10 +566,13 @@ class DataManagerImpl implements DataManager {
     if (!weapon.type) errors.push('Type is required');
     if (!weapon.damage) errors.push('Damage is required');
 
-    // Validate damage format (e.g., "1d8", "2d6+2")
-    const damagePattern = /^\d+d\d+(\+\d+)?$/;
+    // Damage is either dice ("1d8", "2d6+2") or a flat amount: a Blowgun
+    // deals exactly 1, and a Net deals 0.
+    const damagePattern = /^(\d+d\d+(\+\d+)?|\d+)$/;
     if (weapon.damage && !damagePattern.test(weapon.damage)) {
-      errors.push('Damage must be in format like "1d8" or "2d6+2"');
+      errors.push(
+        'Damage must be dice like "1d8" or "2d6+2", or a flat number like "1"',
+      );
     }
 
     return { isValid: errors.length === 0, errors };
@@ -580,8 +583,16 @@ class DataManagerImpl implements DataManager {
 
     if (!armor.name?.trim()) errors.push('Name is required');
     if (!armor.type) errors.push('Type is required');
-    if (armor.ac === undefined || armor.ac < 10)
+
+    // A shield contributes an AC bonus (+2), worn armor a base AC (11-18), so
+    // the two cannot share a single lower bound.
+    if (typeof armor.ac !== 'number' || Number.isNaN(armor.ac)) {
+      errors.push('AC is required');
+    } else if (armor.type === 'shield') {
+      if (armor.ac < 0) errors.push('Shield AC bonus must be 0 or higher');
+    } else if (armor.ac < 10) {
       errors.push('AC must be 10 or higher');
+    }
 
     return { isValid: errors.length === 0, errors };
   }

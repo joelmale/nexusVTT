@@ -142,14 +142,10 @@ describe('dataManager', () => {
       const fresh = getDataManager();
       const result = fresh.importData(exported);
 
-      // The shipped defaults contain three entries that the pre-existing
-      // weapon/armor validators reject (Blowgun "1", Net "0", Shield ac 2), so
-      // those two collections are refused. Every other collection must still
-      // survive the round trip.
-      expect(result.errors).toEqual([
-        '2 invalid weapons',
-        '1 invalid armor items',
-      ]);
+      expect(result).toEqual({ isValid: true, errors: [] });
+      expect(fresh.exportData()).toBe(exported);
+      expect(fresh.getWeapons()).toEqual(manager.getWeapons());
+      expect(fresh.getArmor()).toEqual(manager.getArmor());
       expect(fresh.getTools()).toEqual(manager.getTools());
       expect(fresh.getSpells()).toEqual(manager.getSpells());
       expect(fresh.getEquipment()).toEqual(manager.getEquipment());
@@ -254,6 +250,96 @@ describe('dataManager', () => {
 
       expect(result.errors).toEqual(['1 invalid spells']);
       expect(manager.getTools()).toEqual([validTool]);
+    });
+  });
+
+  describe('validateWeapon', () => {
+    it('accepts dice damage', () => {
+      expect(manager.validateWeapon(validWeapon).isValid).toBe(true);
+      expect(
+        manager.validateWeapon({ ...validWeapon, damage: '2d6+2' }).isValid,
+      ).toBe(true);
+    });
+
+    it('accepts flat damage, as a Blowgun (1) and a Net (0) carry', () => {
+      expect(
+        manager.validateWeapon({ ...validWeapon, damage: '1' }).isValid,
+      ).toBe(true);
+      expect(
+        manager.validateWeapon({ ...validWeapon, damage: '0' }).isValid,
+      ).toBe(true);
+    });
+
+    it('still rejects damage that is neither dice nor a number', () => {
+      const result = manager.validateWeapon({
+        ...validWeapon,
+        damage: 'lots',
+      });
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors.join(' ')).toMatch(/Damage must be dice/);
+    });
+
+    it('accepts every shipped default weapon', () => {
+      const invalid = manager
+        .getWeapons()
+        .map((weapon) => manager.validateWeapon(weapon))
+        .filter((result) => !result.isValid);
+
+      expect(invalid).toEqual([]);
+    });
+  });
+
+  describe('validateArmor', () => {
+    it('accepts worn armor with a base AC', () => {
+      expect(manager.validateArmor(validArmor).isValid).toBe(true);
+    });
+
+    it('accepts a shield carrying an AC bonus rather than a base AC', () => {
+      expect(
+        manager.validateArmor({
+          id: 'shield',
+          name: 'Shield',
+          type: 'shield',
+          ac: 2,
+        }).isValid,
+      ).toBe(true);
+    });
+
+    it('still requires a base AC of 10 or higher for worn armor', () => {
+      const result = manager.validateArmor({ ...validArmor, ac: 2 });
+
+      expect(result.isValid).toBe(false);
+      expect(result.errors).toContain('AC must be 10 or higher');
+    });
+
+    it('rejects a negative shield bonus', () => {
+      const result = manager.validateArmor({
+        id: 'shield',
+        name: 'Shield',
+        type: 'shield',
+        ac: -1,
+      });
+
+      expect(result.errors).toContain('Shield AC bonus must be 0 or higher');
+    });
+
+    it('reports a missing AC', () => {
+      const result = manager.validateArmor({
+        ...validArmor,
+        ac: undefined,
+      } as unknown as Armor);
+
+      expect(result.errors).toContain('AC is required');
+    });
+
+    it('accepts every shipped default armor entry', () => {
+      const invalid = manager
+        .getArmor()
+        .map((armor) => manager.validateArmor(armor))
+        .filter((result) => !result.isValid);
+
+      expect(invalid).toEqual([]);
     });
   });
 
@@ -494,12 +580,10 @@ describe('dataManager', () => {
       expect(manager.validateAllData()).toHaveLength(expected);
     });
 
-    it('flags only the three known-invalid default entries', () => {
-      // Pre-existing data/validator mismatch in the shipped defaults, kept
-      // visible here rather than fixed: see the default round trip test above.
+    it('reports the shipped default data set as valid', () => {
       expect(
         manager.validateAllData().filter((result) => !result.isValid),
-      ).toHaveLength(3);
+      ).toEqual([]);
     });
 
     it('surfaces invalid entries that were added after import', () => {
