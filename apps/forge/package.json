@@ -38,7 +38,7 @@
   "devDependencies": {
     "@eslint/js": "^9.15.0",
     "@originjs/vite-plugin-federation": "^1.4.1",
-    "@size-limit/preset-app": "^12.0.0",
+    "@size-limit/preset-app": "^13.0.3",
     "@tailwindcss/postcss": "^4.1.17",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.0",
