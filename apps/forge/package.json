@@ -29,7 +29,7 @@
     "@tiptap/react": "^3.14.0",
     "@tiptap/starter-kit": "^3.14.0",
     "loglevel": "^1.9.2",
-    "lucide-react": "^0.561.0",
+    "lucide-react": "^1.45.0",
     "react": "^19.2.3",
     "react-dom": "^19.2.3",
     "react-router-dom": "^7.11.0",
