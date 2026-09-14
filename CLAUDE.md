@@ -768,21 +768,27 @@ User drags token:
 
 Per invariant 7, the authoritative check is a SQL compare-and-swap against
 `room_entity_versions` inside the same transaction that appends `room_events`.
-The in-memory `room.entityVersions` map is a cache updated *after* the database
+The in-memory `room.entityVersions` map is a cache updated _after_ the database
 accepts the write — it is never the decision point, because replicas can accept
 concurrently.
 
 ```typescript
 // EntitySyncHandler: attach the expected version to the ordered publish
 const entityVersion =
-  VERSIONED_EVENTS.has(name) && entityId && typeof payload.expectedVersion === 'number'
+  VERSIONED_EVENTS.has(name) &&
+  entityId &&
+  typeof payload.expectedVersion === 'number'
     ? { entityId, expectedVersion: payload.expectedVersion }
     : undefined;
 
 await this.socketManager.publishOrderedEvent(room, connection, relayed, {
   entityVersion,
   onVersionConflict: (currentVersion) => {
-    this.sendError(connection, `Update rejected due to version conflict ...`, 409);
+    this.sendError(
+      connection,
+      `Update rejected due to version conflict ...`,
+      409,
+    );
   },
   onAccepted: () => {
     // Cache only — the CAS below already decided the outcome.
