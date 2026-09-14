@@ -137,7 +137,7 @@ Existing deployments apply the 2026-07-19 migrations in this order:
 
 Prometheus/OpenTelemetry configuration lives in `monitoring/`. The backend
 exports `/metrics`; `/api/metrics/multiplayer` includes the current SLO
-evaluation. See `docs/operations/multiplayer-observability.md` before changing
+evaluation. See `apps/docs/vtt/operations/multiplayer-observability.md` before changing
 thresholds or failure-injection behavior.
 
 **Auto-Start Feature:** `start:all` checks the local infrastructure before

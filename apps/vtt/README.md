@@ -36,8 +36,8 @@ PostgreSQL is the durable authority. Redis is never the durable record; losing
 it cannot erase an acknowledged game-state commit. A canonical state ACK is sent
 only after the snapshot, sync token, and version tuple commits.
 
-See [Architecture Overview](../../docs/architecture.md) and
-[Network and Sessions](../../docs/network-and-sessions.md).
+See [Architecture Overview](../docs/vtt/architecture.md) and
+[Network and Sessions](../docs/vtt/network-and-sessions.md).
 
 ## Features
 
@@ -45,7 +45,7 @@ See [Architecture Overview](../../docs/architecture.md) and
   durable ACKs, and compare-and-swap conflict recovery across backend replicas
 - **Scene editor** — maps, grid, tokens, props, drawing tools, and paintable fog
 - **Server-authoritative dice** — cryptographically secure rolls validated
-  server-side ([details](../../docs/vtt/features/dice.md))
+  server-side ([details](../docs/vtt/features/dice.md))
 - **OAuth** — Google and Discord, with PostgreSQL-backed sessions
 - **Progressive Web App** — service worker, offline capability, installable
 - **Hybrid state** — local-first IndexedDB with real-time server sync
@@ -124,7 +124,7 @@ npm run optimize-images     # Optimize image files
   convergence. Chaos mode restarts both backends, interrupts Redis, and injects
   PostgreSQL latency through Toxiproxy.
 
-See the [Testing Guide](../../docs/developer/testing.md).
+See the [Testing Guide](../docs/vtt/developer/testing.md).
 
 ## Security
 
@@ -144,7 +144,7 @@ repository root.
 > Swarm.
 
 See [DEPLOYMENT.md](../../DEPLOYMENT.md) and
-[NexusCodex Homelab Deployment](../../docs/operations/nexuscodex-homelab.md)
+[NexusCodex Homelab Deployment](../docs/codex/operations/nexuscodex-homelab.md)
 for production topology.
 
 ### Health endpoints
@@ -216,7 +216,7 @@ docker compose -f docker/docker-compose.dev.yml \
   -f docker/docker-compose.observability.yml up -d
 ```
 
-See [Multiplayer Reliability Operations](../../docs/operations/multiplayer-observability.md)
+See [Multiplayer Reliability Operations](../docs/vtt/operations/multiplayer-observability.md)
 for SLOs, alerts, OpenTelemetry export, load profiles, and the staging runbook.
 
 ## Troubleshooting
@@ -229,11 +229,11 @@ for SLOs, alerts, OpenTelemetry export, load profiles, and the staging runbook.
 
 ## Documentation
 
-- [Architecture Overview](../../docs/architecture.md)
-- [Frontend Architecture](../../docs/frontend.md)
-- [Backend Architecture](../../docs/backend.md)
-- [Network and Sessions](../../docs/network-and-sessions.md)
-- [Ordered Event Delivery](../../docs/ordered-event-delivery.md)
-- [Delta-Sync Rollout](../../docs/delta-sync-rollout.md)
-- [Asset Guide](../../docs/ASSETS-GUIDE.md)
-- [Architecture Decision Records](../../docs/adr/)
+- [Architecture Overview](../docs/vtt/architecture.md)
+- [Frontend Architecture](../docs/vtt/frontend.md)
+- [Backend Architecture](../docs/vtt/backend.md)
+- [Network and Sessions](../docs/vtt/network-and-sessions.md)
+- [Ordered Event Delivery](../docs/vtt/ordered-event-delivery.md)
+- [Delta-Sync Rollout](../docs/vtt/delta-sync-rollout.md)
+- [Asset Guide](../docs/vtt/ASSETS-GUIDE.md)
+- [Architecture Decision Records](../docs/vtt/adr/)

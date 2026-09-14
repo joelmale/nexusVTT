@@ -11,7 +11,7 @@ Forge lives in `apps/forge`; Codex lives in `apps/codex`.
 - **Backend**: Runtime lives in `server/` (Express.js with WebSocket support, PostgreSQL database helpers), with build output in `dist/server`.
 - **Shared Types**: Shared types between frontend and asset server in `shared/types.ts`.
 - **Tests**: Unit tests in `tests/unit/**` (component and utility tests); integration tests in `tests/integration/**` (end-to-end flows, database interactions).
-- **Documentation**: Developer and operations docs live in `docs/`, with deployment guidance in `DEPLOYMENT.md`. Scripts in `scripts/` cover asset management, smoke orchestration, and multiplayer soak testing.
+- **Documentation**: The unified Docusaurus application and its platform, VTT, Forge, and Codex content live in `apps/docs/`, with deployment guidance in `DEPLOYMENT.md`. Scripts in `scripts/` cover asset management, smoke orchestration, and multiplayer soak testing.
 - **Configuration**: TypeScript configs (`tsconfig.json`, `tsconfig.node.json`, `tsconfig.server.json`); ESLint (`eslint.config.js`); Prettier (`.prettierrc`); Vite config (`vite.config.ts`); Docker compose files in `docker/`.
 - **Other**: Patches in `patches/`; GitHub workflows in `.github/workflows/`; Husky pre-commit hooks in `.husky/`; Docker configurations for production deployment.
 
@@ -297,11 +297,11 @@ Forge lives in `apps/forge`; Codex lives in `apps/codex`.
 - **Environment Variables**: Secure configuration management.
 - **Security**: HTTPS enforcement, CORS configuration, and security headers.
 - **Monitoring**: Container monitoring and logging setup.
-- **Multiplayer Observability**: Prometheus rules/configuration live in `monitoring/`; SLO and soak operations are documented in `docs/operations/multiplayer-observability.md`.
+- **Multiplayer Observability**: Prometheus rules/configuration live in `monitoring/`; SLO and soak operations are documented in `apps/docs/vtt/operations/multiplayer-observability.md`.
 - **NexusCodex Homelab**: The Dockhand `nexus-vtt2` stack deployment, service
   names, validation commands, OAuth recovery requirement, and browser
   file-transfer limitation are documented in
-  `docs/operations/nexuscodex-homelab.md`. Keep `doc-api` private while
+  `apps/docs/codex/operations/nexuscodex-homelab.md`. Keep `doc-api` private while
   `AUTH_DISABLED=true`, and never replace the stack's raw `.env` without first
   merging its returned `content`.
 

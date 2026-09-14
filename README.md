@@ -52,7 +52,7 @@ The apps are separate deployables that meet at explicit, versioned contracts in
 - **Codex → VTT.** Documents reach the browser through the VTT backend, not
   directly, and are typed by `@nexus/document-contracts`. Codex is a document
   service and deliberately does not own asset responsibilities — see
-  [NexusCodex Integration](docs/NEXUSCODEX_INTEGRATION.md).
+  [NexusCodex Integration](apps/docs/platform/integrations/NEXUSCODEX_INTEGRATION.md).
 
 ## Repository layout
 
@@ -72,7 +72,7 @@ packages/
   character-contracts/    @nexus/character-contracts — shared character schema
   document-contracts/     @nexus/document-contracts — shared document schema
 deploy/homelab/           Production Compose stack (Dockhand)
-docs/                     Architecture, operations, and ADRs
+  docs/                   Unified Docusaurus documentation application
 monitoring/               Prometheus, Grafana, and alert rules
 ```
 
@@ -124,17 +124,17 @@ list of targets (`dev`, `build`, `test`, `clean`, `health-check`).
 
 ## Documentation
 
-Start at the [documentation index](docs/README.md).
+Start at the [documentation application](apps/docs/README.md).
 
-| Topic        | Entry point                                                               |
-| ------------ | ------------------------------------------------------------------------- |
-| Architecture | [Architecture Overview](docs/architecture.md)                             |
-| Realtime     | [Network and Sessions](docs/network-and-sessions.md)                      |
-| Decisions    | [Architecture Decision Records](docs/adr/)                                |
-| Development  | [Developer Guide](docs/developer/development.md)                          |
-| Testing      | [Testing Guide](docs/developer/testing.md)                                |
-| Deployment   | [DEPLOYMENT.md](DEPLOYMENT.md) · [Homelab](docs/HOMELAB_DEPLOYMENT.md)    |
-| Operations   | [Multiplayer Observability](docs/operations/multiplayer-observability.md) |
+| Topic        | Entry point                                                                        |
+| ------------ | ---------------------------------------------------------------------------------- |
+| Architecture | [Architecture Overview](apps/docs/vtt/architecture.md)                             |
+| Realtime     | [Network and Sessions](apps/docs/vtt/network-and-sessions.md)                      |
+| Decisions    | [Architecture Decision Records](apps/docs/vtt/adr/)                                |
+| Development  | [Developer Guide](apps/docs/vtt/developer/development.md)                          |
+| Testing      | [Testing Guide](apps/docs/vtt/developer/testing.md)                                |
+| Deployment   | [DEPLOYMENT.md](DEPLOYMENT.md) · [Homelab](apps/docs/vtt/HOMELAB_DEPLOYMENT.md)    |
+| Operations   | [Multiplayer Observability](apps/docs/vtt/operations/multiplayer-observability.md) |
 
 Contributor and agent conventions — structure, commands, code style, testing
 gates, and PR expectations — live in [AGENTS.md](AGENTS.md).

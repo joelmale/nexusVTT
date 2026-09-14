@@ -32,7 +32,7 @@ export interface LibraryManifest {
 // search fields, built once at load time. See index.test.ts /
 // library.test.ts for the latency measurement backing this choice: a
 // precomputed-lowercase linear scan over 16k entries runs in ~1-3ms warm
-// (measured on a dev laptop; see docs/roadmap/contracts/asset-service-v2.md
+// (measured on a dev laptop; see apps/docs/vtt/roadmap/contracts/asset-service-v2.md
 // "Search implementation" section), comfortably under the <100ms budget.
 // An inverted index was considered and rejected as unnecessary complexity
 // at this corpus size — revisit if the library grows an order of magnitude.

@@ -3,7 +3,7 @@
 ## Project Structure & Module Organization
 
 - `src/` holds React/TypeScript code: `components/` for UI, `hooks/` for shared logic, `context/` for providers, `services/` for data access (IndexedDB, dice, equipment), `utils/` for calculators/helpers, and `data/` for JSON/TS rules content. Entry is `src/main.tsx` rendering `AppWithProviders`.
-- `public/` contains static assets (dice textures, sounds, themes); `docs/` has user-facing guides; `scripts/` carries Docker/build helpers. Build output lives in `dist/`.
+- `public/` contains static assets (dice textures, sounds, themes); user-facing guides live in `../docs/forge/`; `scripts/` carries Docker/build helpers. Build output lives in `dist/`.
 
 ## Architecture & Key Files
 

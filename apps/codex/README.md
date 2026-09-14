@@ -29,6 +29,7 @@ A production-ready microservices platform for managing, processing, and collabor
 ## Features
 
 ### 📚 Document Management
+
 - **Multi-format Support**: PDF and Markdown documents
 - **S3-Compatible Storage**: MinIO for development, Google Cloud Storage/AWS S3/Cloudflare R2 for production
 - **Smart Upload**: Client-side uploads via pre-signed URLs (no server bottleneck)
@@ -37,12 +38,14 @@ A production-ready microservices platform for managing, processing, and collabor
 - **Organizational Tools**: Tags, collections, and campaign-specific grouping
 
 ### 🔍 Intelligent Search
+
 - **Full-Text Search**: ElasticSearch-powered search across all document content
 - **Quick Lookup**: Fast access to spells, monsters, items, and feats
 - **Structured Data**: Automatically extracted D&D 5e content with searchable fields
 - **Smart Filtering**: Filter by document type, campaign, tags, or content type
 
 ### 🎮 Real-Time Collaboration
+
 - **Synchronized Viewing**: DMs and players view documents together in real-time
 - **Page Navigation Sync**: Optional synchronized page changes and scrolling
 - **DM Push Controls**: Force page navigation or push bookmarks to players
@@ -50,6 +53,7 @@ A production-ready microservices platform for managing, processing, and collabor
 - **Live Annotations**: Real-time highlights, notes, and drawings shared across participants
 
 ### 🤖 Automated Processing
+
 - **Text Extraction**: Automatic OCR for image-based PDFs using Tesseract.js
 - **Structured Parsing**: Extract spells, monsters, items, and feats from rulebooks
 - **Background Workers**: Non-blocking job queue (BullMQ) for heavy processing
@@ -57,6 +61,7 @@ A production-ready microservices platform for managing, processing, and collabor
 - **Markdown Support**: Process and index Markdown campaign notes
 
 ### 📍 Bookmarks & Annotations
+
 - **Document References**: Save page numbers, sections, and text selections
 - **Persistent Annotations**: Highlights, text notes, and drawings
 - **Shared Content**: Mark bookmarks and annotations as visible to campaign members
@@ -64,6 +69,7 @@ A production-ready microservices platform for managing, processing, and collabor
 - **Linked References**: Connect annotations to bookmarks for context
 
 ### 🎛️ Admin Dashboard
+
 - **System Health Monitoring**: Real-time monitoring of all microservices with performance metrics
 - **Document Management**: Advanced filtering, bulk operations, validation, and cleanup tools
 - **Queue Management**: Monitor processing jobs, view logs, retry failures, and clean old jobs
@@ -116,6 +122,7 @@ NexusCodex is built as a distributed microservices architecture with four micros
 ### Services
 
 **doc-api** (REST API)
+
 - Document CRUD operations
 - Search endpoints (full-text and quick search)
 - Reference/bookmark management
@@ -124,6 +131,7 @@ NexusCodex is built as a distributed microservices architecture with four micros
 - Job queue producer (BullMQ)
 
 **doc-processor** (Background Worker)
+
 - PDF/Markdown text extraction
 - Thumbnail generation
 - OCR for image-based documents
@@ -132,6 +140,7 @@ NexusCodex is built as a distributed microservices architecture with four micros
 - Job queue consumer (BullMQ)
 
 **doc-websocket** (Real-time Service)
+
 - WebSocket server for live collaboration
 - Session management (Redis-backed)
 - Event broadcasting (page sync, annotations)
@@ -139,6 +148,7 @@ NexusCodex is built as a distributed microservices architecture with four micros
 - DM control features
 
 **admin-ui** (Admin Dashboard)
+
 - React + Vite web application
 - System health monitoring and performance analytics
 - Document management and validation tools
@@ -168,8 +178,8 @@ NexusCodex is built as a distributed microservices architecture with four micros
 
 ```bash
 # Clone the repository
-git clone https://github.com/your-org/NexusCodex.git
-cd NexusCodex
+git clone https://github.com/joelmale/nexusVTT.git
+cd nexusVTT/apps/codex
 
 # Start all services
 docker compose up -d
@@ -180,12 +190,13 @@ docker compose up -d
 ```
 
 **Service URLs:**
+
 - REST API: http://localhost:3000
 - Admin Dashboard: http://localhost:3001
 - WebSocket: ws://localhost:3002/ws
 - MinIO Console: http://localhost:9001 (login: admin/password)
 - ElasticSearch: http://localhost:9200
-- **📚 Documentation**: http://localhost:3003 (run `./scripts/docs.sh`)
+- **📚 Documentation**: http://localhost:3003 (run `npm run start:docs -- --port 3003` from the repository root)
 
 ### Upload Your First Document
 
@@ -236,11 +247,8 @@ NexusCodex includes comprehensive developer documentation built with Docusaurus.
 ### View Documentation
 
 ```bash
-# Start the documentation website
-./scripts/docs.sh
-
-# Or manually
-cd docs && npm install && npm start
+# From the repository root
+npm run start:docs -- --port 3003
 ```
 
 The documentation site will be available at: http://localhost:3003
@@ -258,7 +266,7 @@ The documentation site will be available at: http://localhost:3003
 
 ## Architecture ICD
 
-- [Architecture & Interface Control Document](docs/architecture-icd.md)
+- [Architecture & Interface Control Document](../docs/codex/architecture-icd.md)
 
 ### Building Documentation
 
@@ -283,67 +291,68 @@ The built documentation can be deployed to any static hosting service (Netlify, 
 
 ### Document Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/documents` | Create document record and get S3 upload URL |
-| `GET` | `/api/documents` | List documents with filtering (type, campaign, tags, search) |
-| `GET` | `/api/documents/:id` | Get document metadata |
-| `GET` | `/api/documents/:id/content` | Stream document file (supports Range headers) |
-| `PUT` | `/api/documents/:id` | Update document metadata |
-| `DELETE` | `/api/documents/:id` | Delete document and all associated data |
+| Method   | Endpoint                     | Description                                                  |
+| -------- | ---------------------------- | ------------------------------------------------------------ |
+| `POST`   | `/api/documents`             | Create document record and get S3 upload URL                 |
+| `GET`    | `/api/documents`             | List documents with filtering (type, campaign, tags, search) |
+| `GET`    | `/api/documents/:id`         | Get document metadata                                        |
+| `GET`    | `/api/documents/:id/content` | Stream document file (supports Range headers)                |
+| `PUT`    | `/api/documents/:id`         | Update document metadata                                     |
+| `DELETE` | `/api/documents/:id`         | Delete document and all associated data                      |
 
 ### Search Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/search` | Full-text search with filters (query, type, campaigns, tags) |
-| `GET` | `/api/search/quick` | Quick search with structured results and snippets |
+| Method | Endpoint            | Description                                                  |
+| ------ | ------------------- | ------------------------------------------------------------ |
+| `GET`  | `/api/search`       | Full-text search with filters (query, type, campaigns, tags) |
+| `GET`  | `/api/search/quick` | Quick search with structured results and snippets            |
 
 ### Reference/Bookmark Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/references` | Create a bookmark/reference |
-| `GET` | `/api/references` | List references (filter by documentId, userId, campaignId) |
-| `GET` | `/api/references/:id` | Get specific reference |
-| `PUT` | `/api/references/:id` | Update reference (title, notes, tags) |
-| `DELETE` | `/api/references/:id` | Delete reference |
+| Method   | Endpoint              | Description                                                |
+| -------- | --------------------- | ---------------------------------------------------------- |
+| `POST`   | `/api/references`     | Create a bookmark/reference                                |
+| `GET`    | `/api/references`     | List references (filter by documentId, userId, campaignId) |
+| `GET`    | `/api/references/:id` | Get specific reference                                     |
+| `PUT`    | `/api/references/:id` | Update reference (title, notes, tags)                      |
+| `DELETE` | `/api/references/:id` | Delete reference                                           |
 
 ### Annotation Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/documents/:id/annotations` | Create annotation (highlight, note, drawing) |
-| `GET` | `/api/documents/:id/annotations` | Get annotations (filter by pageNumber, type, isShared) |
-| `GET` | `/api/annotations/:id` | Get specific annotation |
-| `PUT` | `/api/annotations/:id` | Update annotation (content, color, position) |
-| `DELETE` | `/api/annotations/:id` | Delete annotation |
+| Method   | Endpoint                         | Description                                            |
+| -------- | -------------------------------- | ------------------------------------------------------ |
+| `POST`   | `/api/documents/:id/annotations` | Create annotation (highlight, note, drawing)           |
+| `GET`    | `/api/documents/:id/annotations` | Get annotations (filter by pageNumber, type, isShared) |
+| `GET`    | `/api/annotations/:id`           | Get specific annotation                                |
+| `PUT`    | `/api/annotations/:id`           | Update annotation (content, color, position)           |
+| `DELETE` | `/api/annotations/:id`           | Delete annotation                                      |
 
 ### Structured Data Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/documents/:id/structured-data` | Get extracted game content (filter by type, name) |
-| `GET` | `/api/structured-data` | List all structured data with filtering |
-| `GET` | `/api/structured-data/:id` | Get specific structured data entry |
-| `DELETE` | `/api/structured-data/:id` | Delete structured data entry |
+| Method   | Endpoint                             | Description                                       |
+| -------- | ------------------------------------ | ------------------------------------------------- |
+| `GET`    | `/api/documents/:id/structured-data` | Get extracted game content (filter by type, name) |
+| `GET`    | `/api/structured-data`               | List all structured data with filtering           |
+| `GET`    | `/api/structured-data/:id`           | Get specific structured data entry                |
+| `DELETE` | `/api/structured-data/:id`           | Delete structured data entry                      |
 
 ### Processing Endpoints
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/documents/:id/process` | Trigger document processing (extraction, OCR, indexing) |
-| `GET` | `/api/documents/:id/processing-status` | Get processing status and results |
+| Method | Endpoint                               | Description                                             |
+| ------ | -------------------------------------- | ------------------------------------------------------- |
+| `POST` | `/api/documents/:id/process`           | Trigger document processing (extraction, OCR, indexing) |
+| `GET`  | `/api/documents/:id/processing-status` | Get processing status and results                       |
 
 ### Health Check
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/health` | Service health (doc-api and doc-websocket) |
+| Method | Endpoint  | Description                                |
+| ------ | --------- | ------------------------------------------ |
+| `GET`  | `/health` | Service health (doc-api and doc-websocket) |
 
 ### Example Request/Response
 
 **Create Document:**
+
 ```bash
 curl -X POST http://localhost:3000/api/documents \
   -H "Content-Type: application/json" \
@@ -361,6 +370,7 @@ curl -X POST http://localhost:3000/api/documents \
 ```
 
 **Response:**
+
 ```json
 {
   "id": "550e8400-e29b-41d4-a716-446655440000",
@@ -378,11 +388,13 @@ curl -X POST http://localhost:3000/api/documents \
 ```
 
 **Quick Search (Spell):**
+
 ```bash
 curl "http://localhost:3000/api/search/quick?term=fireball&type=spell"
 ```
 
 **Response:**
+
 ```json
 {
   "query": "fireball",
@@ -421,6 +433,7 @@ The admin dashboard (http://localhost:3001) provides a comprehensive interface f
 ### Authentication
 
 **Login:**
+
 ```bash
 curl -X POST http://localhost:3000/api/auth/login \
   -H "Content-Type: application/json" \
@@ -428,6 +441,7 @@ curl -X POST http://localhost:3000/api/auth/login \
 ```
 
 **Response:**
+
 ```json
 {
   "user": {
@@ -444,112 +458,113 @@ curl -X POST http://localhost:3000/api/auth/login \
 ```
 
 Use the `accessToken` in the Authorization header for all admin requests:
+
 ```bash
 curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" http://localhost:3000/api/admin/...
 ```
 
 ### Admin Document Management
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/admin/documents` | List all documents with advanced filtering |
-| `GET` | `/api/admin/stats` | System statistics (total docs, storage, queue stats) |
-| `PATCH` | `/api/admin/documents/:id` | Update document metadata |
-| `DELETE` | `/api/admin/documents/:id` | Delete document with full cleanup |
-| `POST` | `/api/admin/documents/:id/reprocess` | Retry failed document processing |
-| `POST` | `/api/admin/documents/bulk-update` | Update multiple documents |
-| `POST` | `/api/admin/documents/bulk-delete` | Delete multiple documents |
+| Method   | Endpoint                             | Description                                          |
+| -------- | ------------------------------------ | ---------------------------------------------------- |
+| `GET`    | `/api/admin/documents`               | List all documents with advanced filtering           |
+| `GET`    | `/api/admin/stats`                   | System statistics (total docs, storage, queue stats) |
+| `PATCH`  | `/api/admin/documents/:id`           | Update document metadata                             |
+| `DELETE` | `/api/admin/documents/:id`           | Delete document with full cleanup                    |
+| `POST`   | `/api/admin/documents/:id/reprocess` | Retry failed document processing                     |
+| `POST`   | `/api/admin/documents/bulk-update`   | Update multiple documents                            |
+| `POST`   | `/api/admin/documents/bulk-delete`   | Delete multiple documents                            |
 
 ### Admin Queue Management
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/admin/queue/stats` | Job queue statistics |
-| `GET` | `/api/admin/queue/jobs` | List jobs with filters |
-| `POST` | `/api/admin/queue/jobs/:id/retry` | Retry failed job |
-| `DELETE` | `/api/admin/queue/jobs/:id` | Remove job from queue |
-| `POST` | `/api/admin/queue/clean` | Clean old completed/failed jobs |
-| `GET` | `/api/admin/queue/jobs/:id/logs` | Get processing logs for a job |
+| Method   | Endpoint                          | Description                     |
+| -------- | --------------------------------- | ------------------------------- |
+| `GET`    | `/api/admin/queue/stats`          | Job queue statistics            |
+| `GET`    | `/api/admin/queue/jobs`           | List jobs with filters          |
+| `POST`   | `/api/admin/queue/jobs/:id/retry` | Retry failed job                |
+| `DELETE` | `/api/admin/queue/jobs/:id`       | Remove job from queue           |
+| `POST`   | `/api/admin/queue/clean`          | Clean old completed/failed jobs |
+| `GET`    | `/api/admin/queue/jobs/:id/logs`  | Get processing logs for a job   |
 
 ### Admin Search & Deduplication
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `POST` | `/api/admin/search/advanced` | Multi-field search with faceted filtering |
-| `GET` | `/api/admin/search/similar/:id` | Find similar documents |
-| `GET` | `/api/admin/search/facets` | Get available filter options |
-| `GET` | `/api/admin/duplicates` | List potential duplicate documents |
-| `POST` | `/api/admin/duplicates/merge` | Merge duplicate documents |
-| `GET` | `/api/admin/duplicates/stats` | Duplicate statistics |
+| Method | Endpoint                        | Description                               |
+| ------ | ------------------------------- | ----------------------------------------- |
+| `POST` | `/api/admin/search/advanced`    | Multi-field search with faceted filtering |
+| `GET`  | `/api/admin/search/similar/:id` | Find similar documents                    |
+| `GET`  | `/api/admin/search/facets`      | Get available filter options              |
+| `GET`  | `/api/admin/duplicates`         | List potential duplicate documents        |
+| `POST` | `/api/admin/duplicates/merge`   | Merge duplicate documents                 |
+| `GET`  | `/api/admin/duplicates/stats`   | Duplicate statistics                      |
 
 ### Admin Tag Management
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/admin/tags` | List all tags with usage statistics |
-| `POST` | `/api/admin/tags` | Create tag metadata |
-| `PATCH` | `/api/admin/tags/:id` | Update tag metadata |
-| `DELETE` | `/api/admin/tags/:id` | Delete tag |
-| `POST` | `/api/admin/tags/merge` | Merge multiple tags |
-| `GET` | `/api/admin/tags/unused` | Get unused tags |
+| Method   | Endpoint                 | Description                         |
+| -------- | ------------------------ | ----------------------------------- |
+| `GET`    | `/api/admin/tags`        | List all tags with usage statistics |
+| `POST`   | `/api/admin/tags`        | Create tag metadata                 |
+| `PATCH`  | `/api/admin/tags/:id`    | Update tag metadata                 |
+| `DELETE` | `/api/admin/tags/:id`    | Delete tag                          |
+| `POST`   | `/api/admin/tags/merge`  | Merge multiple tags                 |
+| `GET`    | `/api/admin/tags/unused` | Get unused tags                     |
 
 ### Admin Validation & Data Quality
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/admin/validation/orphaned` | Find documents with missing S3 files |
-| `GET` | `/api/admin/validation/metadata` | Find metadata inconsistencies |
-| `GET` | `/api/admin/validation/elastic` | Find ElasticSearch inconsistencies |
-| `GET` | `/api/admin/validation/issues` | Find all data quality issues |
-| `POST` | `/api/admin/validation/fix` | Auto-fix common issues |
-| `GET` | `/api/admin/validation/health` | Overall system health score |
+| Method | Endpoint                         | Description                          |
+| ------ | -------------------------------- | ------------------------------------ |
+| `GET`  | `/api/admin/validation/orphaned` | Find documents with missing S3 files |
+| `GET`  | `/api/admin/validation/metadata` | Find metadata inconsistencies        |
+| `GET`  | `/api/admin/validation/elastic`  | Find ElasticSearch inconsistencies   |
+| `GET`  | `/api/admin/validation/issues`   | Find all data quality issues         |
+| `POST` | `/api/admin/validation/fix`      | Auto-fix common issues               |
+| `GET`  | `/api/admin/validation/health`   | Overall system health score          |
 
 ### Admin Processing Quality
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/admin/processing/summary` | Processing quality summary (text coverage, OCR, indexing) |
-| `GET` | `/api/admin/processing/issues` | List processing quality issues |
-| `GET` | `/api/admin/processing/report/:id` | Per-document processing report |
-| `GET` | `/api/admin/processing/search-check/:id?q=...` | Searchability probe for a document |
+| Method | Endpoint                                       | Description                                               |
+| ------ | ---------------------------------------------- | --------------------------------------------------------- |
+| `GET`  | `/api/admin/processing/summary`                | Processing quality summary (text coverage, OCR, indexing) |
+| `GET`  | `/api/admin/processing/issues`                 | List processing quality issues                            |
+| `GET`  | `/api/admin/processing/report/:id`             | Per-document processing report                            |
+| `GET`  | `/api/admin/processing/search-check/:id?q=...` | Searchability probe for a document                        |
 
 ### Admin Health Monitoring
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/admin/health` | Comprehensive system health status |
-| `GET` | `/api/admin/health/services/:service` | Health of specific service |
-| `GET` | `/api/admin/health/check` | Simple health check for monitoring |
-| `GET` | `/api/admin/metrics` | Current performance metrics |
-| `GET` | `/api/admin/metrics/history` | Metrics history with time range |
-| `GET` | `/api/admin/metrics/summary/:period` | Metrics summary (1h, 24h, 7d, 30d) |
-| `GET` | `/api/admin/metrics/recent` | Recent metrics |
-| `GET` | `/api/admin/alerts` | Active system alerts |
-| `GET` | `/api/admin/alerts/history` | Alert history |
-| `POST` | `/api/admin/alerts/:id/acknowledge` | Acknowledge an alert |
-| `POST` | `/api/admin/alerts/:id/resolve` | Resolve an alert |
-| `GET` | `/api/admin/alerts/rules` | Get alert rules configuration |
-| `PUT` | `/api/admin/alerts/rules` | Update alert rules |
+| Method | Endpoint                              | Description                        |
+| ------ | ------------------------------------- | ---------------------------------- |
+| `GET`  | `/api/admin/health`                   | Comprehensive system health status |
+| `GET`  | `/api/admin/health/services/:service` | Health of specific service         |
+| `GET`  | `/api/admin/health/check`             | Simple health check for monitoring |
+| `GET`  | `/api/admin/metrics`                  | Current performance metrics        |
+| `GET`  | `/api/admin/metrics/history`          | Metrics history with time range    |
+| `GET`  | `/api/admin/metrics/summary/:period`  | Metrics summary (1h, 24h, 7d, 30d) |
+| `GET`  | `/api/admin/metrics/recent`           | Recent metrics                     |
+| `GET`  | `/api/admin/alerts`                   | Active system alerts               |
+| `GET`  | `/api/admin/alerts/history`           | Alert history                      |
+| `POST` | `/api/admin/alerts/:id/acknowledge`   | Acknowledge an alert               |
+| `POST` | `/api/admin/alerts/:id/resolve`       | Resolve an alert                   |
+| `GET`  | `/api/admin/alerts/rules`             | Get alert rules configuration      |
+| `PUT`  | `/api/admin/alerts/rules`             | Update alert rules                 |
 
 ### Admin User Management
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/admin/users` | List all users |
-| `POST` | `/api/admin/users` | Create new user |
-| `GET` | `/api/admin/users/:id` | Get user details |
-| `PATCH` | `/api/admin/users/:id` | Update user |
-| `DELETE` | `/api/admin/users/:id` | Delete user |
+| Method   | Endpoint               | Description      |
+| -------- | ---------------------- | ---------------- |
+| `GET`    | `/api/admin/users`     | List all users   |
+| `POST`   | `/api/admin/users`     | Create new user  |
+| `GET`    | `/api/admin/users/:id` | Get user details |
+| `PATCH`  | `/api/admin/users/:id` | Update user      |
+| `DELETE` | `/api/admin/users/:id` | Delete user      |
 
 ### Admin ElasticSearch Management
 
-| Method | Endpoint | Description |
-|--------|----------|-------------|
-| `GET` | `/api/admin/elasticsearch/health` | ElasticSearch cluster health |
-| `POST` | `/api/admin/elasticsearch/reindex` | Reindex all documents |
-| `POST` | `/api/admin/elasticsearch/recreate` | Recreate index with new mapping |
-| `POST` | `/api/admin/elasticsearch/optimize` | Optimize index performance |
-| `DELETE` | `/api/admin/elasticsearch/clear` | Clear all indexed documents |
+| Method   | Endpoint                            | Description                     |
+| -------- | ----------------------------------- | ------------------------------- |
+| `GET`    | `/api/admin/elasticsearch/health`   | ElasticSearch cluster health    |
+| `POST`   | `/api/admin/elasticsearch/reindex`  | Reindex all documents           |
+| `POST`   | `/api/admin/elasticsearch/recreate` | Recreate index with new mapping |
+| `POST`   | `/api/admin/elasticsearch/optimize` | Optimize index performance      |
+| `DELETE` | `/api/admin/elasticsearch/clear`    | Clear all indexed documents     |
 
 ---
 
@@ -560,6 +575,7 @@ Connect to `ws://localhost:3002/ws` for real-time collaboration features.
 ### Event Format
 
 All events follow this structure:
+
 ```json
 {
   "type": "event:name",
@@ -571,70 +587,70 @@ All events follow this structure:
 
 **Client → Server:**
 
-| Event | Description | Payload |
-|-------|-------------|---------|
-| `doc:session:create` | Create viewing session | `{ documentId, campaignId, roomCode, presenter, syncSettings? }` |
-| `doc:session:join` | Join existing session | `{ sessionId, userId }` |
-| `doc:session:leave` | Leave session | `{ sessionId }` |
-| `doc:session:update-settings` | Update sync settings | `{ sessionId, syncSettings }` |
+| Event                         | Description            | Payload                                                          |
+| ----------------------------- | ---------------------- | ---------------------------------------------------------------- |
+| `doc:session:create`          | Create viewing session | `{ documentId, campaignId, roomCode, presenter, syncSettings? }` |
+| `doc:session:join`            | Join existing session  | `{ sessionId, userId }`                                          |
+| `doc:session:leave`           | Leave session          | `{ sessionId }`                                                  |
+| `doc:session:update-settings` | Update sync settings   | `{ sessionId, syncSettings }`                                    |
 
 **Server → Client:**
 
-| Event | Description | Payload |
-|-------|-------------|---------|
-| `session:created` | Session created | `{ session }` |
-| `session:joined` | User joined | `{ session?, userId }` |
-| `session:left` | User left | `{ userId }` |
-| `session:updated` | Settings updated | `{ syncSettings }` |
+| Event             | Description      | Payload                |
+| ----------------- | ---------------- | ---------------------- |
+| `session:created` | Session created  | `{ session }`          |
+| `session:joined`  | User joined      | `{ session?, userId }` |
+| `session:left`    | User left        | `{ userId }`           |
+| `session:updated` | Settings updated | `{ syncSettings }`     |
 
 ### Navigation Sync
 
 **Client → Server:**
 
-| Event | Description | Payload |
-|-------|-------------|---------|
-| `doc:page:change` | Navigate to page | `{ sessionId, page }` |
+| Event             | Description          | Payload                   |
+| ----------------- | -------------------- | ------------------------- |
+| `doc:page:change` | Navigate to page     | `{ sessionId, page }`     |
 | `doc:scroll:sync` | Sync scroll position | `{ sessionId, position }` |
 
 **Server → Client:**
 
-| Event | Description | Payload |
-|-------|-------------|---------|
-| `page:changed` | Page changed (broadcast) | `{ page }` |
+| Event           | Description               | Payload        |
+| --------------- | ------------------------- | -------------- |
+| `page:changed`  | Page changed (broadcast)  | `{ page }`     |
 | `scroll:synced` | Scroll synced (broadcast) | `{ position }` |
 
 ### DM Controls
 
 **Client → Server:**
 
-| Event | Description | Payload |
-|-------|-------------|---------|
-| `doc:push:page` | Force page for all viewers | `{ sessionId, page }` |
-| `doc:push:reference` | Push bookmark to viewers | `{ sessionId, referenceId }` |
+| Event                | Description                | Payload                      |
+| -------------------- | -------------------------- | ---------------------------- |
+| `doc:push:page`      | Force page for all viewers | `{ sessionId, page }`        |
+| `doc:push:reference` | Push bookmark to viewers   | `{ sessionId, referenceId }` |
 
 **Server → Client:**
 
-| Event | Description | Payload |
-|-------|-------------|---------|
-| `page:pushed` | Page force-pushed | `{ page }` |
-| `reference:pushed` | Reference pushed | `{ referenceId }` |
+| Event              | Description       | Payload           |
+| ------------------ | ----------------- | ----------------- |
+| `page:pushed`      | Page force-pushed | `{ page }`        |
+| `reference:pushed` | Reference pushed  | `{ referenceId }` |
 
 ### Real-time Annotations
 
 **Client → Server:**
 
-| Event | Description | Payload |
-|-------|-------------|---------|
-| `doc:annotation:create` | Create annotation | `{ sessionId, annotation }` |
+| Event                   | Description       | Payload                                |
+| ----------------------- | ----------------- | -------------------------------------- |
+| `doc:annotation:create` | Create annotation | `{ sessionId, annotation }`            |
 | `doc:annotation:update` | Update annotation | `{ sessionId, annotationId, updates }` |
-| `doc:annotation:delete` | Delete annotation | `{ sessionId, annotationId }` |
+| `doc:annotation:delete` | Delete annotation | `{ sessionId, annotationId }`          |
 
 **Server → Client:**
 
-| Event | Description | Payload |
-|-------|-------------|---------|
-| `annotation:created` | Annotation created | `{ annotation }` |
-| `annotation:updated` | Annotation updated | `{ annotation }` |
+| Event                | Description        | Payload            |
+| -------------------- | ------------------ | ------------------ |
+| `annotation:created` | Annotation created | `{ annotation }`   |
+| `annotation:updated` | Annotation updated | `{ annotation }`   |
 | `annotation:deleted` | Annotation deleted | `{ annotationId }` |
 
 ### Example WebSocket Client
@@ -644,20 +660,22 @@ const ws = new WebSocket('ws://localhost:3002/ws');
 
 ws.onopen = () => {
   // Create session as DM
-  ws.send(JSON.stringify({
-    type: 'doc:session:create',
-    data: {
-      documentId: 'doc-123',
-      campaignId: 'campaign-456',
-      roomCode: 'GAME42',
-      presenter: 'dm-user-id',
-      syncSettings: {
-        syncScroll: true,
-        syncPage: true,
-        syncHighlight: true
-      }
-    }
-  }));
+  ws.send(
+    JSON.stringify({
+      type: 'doc:session:create',
+      data: {
+        documentId: 'doc-123',
+        campaignId: 'campaign-456',
+        roomCode: 'GAME42',
+        presenter: 'dm-user-id',
+        syncSettings: {
+          syncScroll: true,
+          syncPage: true,
+          syncHighlight: true,
+        },
+      },
+    }),
+  );
 };
 
 ws.onmessage = (event) => {
@@ -679,22 +697,26 @@ ws.onmessage = (event) => {
 };
 
 // Join session as player
-ws.send(JSON.stringify({
-  type: 'doc:session:join',
-  data: {
-    sessionId: 'session-789',
-    userId: 'player-user-id'
-  }
-}));
+ws.send(
+  JSON.stringify({
+    type: 'doc:session:join',
+    data: {
+      sessionId: 'session-789',
+      userId: 'player-user-id',
+    },
+  }),
+);
 
 // DM pushes page to all players
-ws.send(JSON.stringify({
-  type: 'doc:push:page',
-  data: {
-    sessionId: 'session-789',
-    page: 42
-  }
-}));
+ws.send(
+  JSON.stringify({
+    type: 'doc:push:page',
+    data: {
+      sessionId: 'session-789',
+      page: 42,
+    },
+  }),
+);
 ```
 
 ---
@@ -731,6 +753,7 @@ node scripts/benchmark-ingest.js --file /path/to/document.pdf --api http://local
 ```
 
 Example output:
+
 ```
 [benchmark] api=http://localhost:3005
 [benchmark] file=/path/to/document.pdf size=123456 format=pdf
@@ -788,6 +811,7 @@ docker compose build doc-api
 Each service requires a `.env` file. See examples below:
 
 **services/doc-api/.env:**
+
 ```env
 NODE_ENV=development
 PORT=3000
@@ -808,6 +832,7 @@ MAX_FILE_SIZE=104857600
 ```
 
 **services/doc-processor/.env:**
+
 ```env
 NODE_ENV=development
 DATABASE_URL=postgresql://user:pass@localhost:5432/doclib
@@ -824,6 +849,7 @@ S3_FORCE_PATH_STYLE=true
 ```
 
 **services/doc-websocket/.env:**
+
 ```env
 NODE_ENV=development
 PORT=3002
@@ -880,7 +906,8 @@ cd services/doc-api && npm run test:integration
 
 ### Manual Testing
 
-See [TESTING.md](TESTING.md) for comprehensive manual testing guides including:
+Manual validation should cover:
+
 - Document upload/download workflows
 - Search functionality testing
 - WebSocket connection testing
@@ -899,6 +926,7 @@ Quick searchability probe (admin API):
 ### Production Considerations
 
 **Security:**
+
 - Set `xpack.security.enabled=true` in ElasticSearch (currently disabled for dev)
 - Use strong database credentials (not `user:pass`)
 - Enable S3/CloudFlare R2 authentication
@@ -906,20 +934,23 @@ Quick searchability probe (admin API):
 - Use HTTPS/WSS in production
 
 **Environment:**
+
 - Set `NODE_ENV=production`
 - Use production-grade PostgreSQL (GCP Cloud SQL, AWS RDS, etc.)
 - Use managed Redis (GCP Memorystore, AWS ElastiCache, etc.)
 - Use managed ElasticSearch (AWS OpenSearch, Elastic Cloud)
 - Use production object storage (GCS, AWS S3, or Cloudflare R2) instead of MinIO
-- See [DEPLOYMENT_GCP.md](DEPLOYMENT_GCP.md) for Google Cloud Platform deployment guide
+- See the [deployment guide](../docs/codex/deployment.md) for production configuration
 
 **Scaling:**
+
 - Run multiple `doc-api` instances behind a load balancer
 - Run multiple `doc-processor` workers for parallel processing
 - Use Redis Cluster for high availability
 - Configure ElasticSearch cluster with replicas
 
 **Monitoring:**
+
 - Add application logging (Pino, Winston)
 - Set up health check monitoring
 - Monitor BullMQ queue depth and job failures
@@ -986,7 +1017,7 @@ NexusCodex/
 ├── run-tests.sh                    # Test runner
 ├── README.md                       # This file
 ├── CLAUDE.md                       # Development guide for Claude Code
-├── TESTING.md                      # Comprehensive testing guide
+├── ../docs/codex/                 # Unified Codex documentation
 └── LICENSE
 ```
 
@@ -995,12 +1026,14 @@ NexusCodex/
 ## Tech Stack
 
 **Backend:**
+
 - Node.js 22 + TypeScript 5.3
 - Fastify 4 (REST API)
 - Express + ws (WebSocket)
 - Prisma ORM (PostgreSQL)
 
 **Processing:**
+
 - BullMQ (Redis-backed job queue)
 - pdf-parse (text extraction)
 - Tesseract.js (OCR)
@@ -1008,12 +1041,14 @@ NexusCodex/
 - remark + unified (Markdown)
 
 **Storage:**
+
 - PostgreSQL 16 (metadata)
 - ElasticSearch 8 (full-text search)
 - Redis 7 (queue + sessions)
 - S3-Compatible Storage (MinIO / GCS / S3 / R2)
 
 **DevOps:**
+
 - Docker + Docker Compose
 - Jest (testing)
 - tsx (development hot reload)
@@ -1028,7 +1063,7 @@ Contributions are welcome! Please follow these guidelines:
 2. **Write tests** for new features or bug fixes
 3. **Run the test suite** and ensure all tests pass
 4. **Follow TypeScript best practices** and use Zod for validation
-5. **Update documentation** (README, CLAUDE.md, TESTING.md)
+5. **Update documentation** in `apps/docs/codex/`
 6. **Submit a pull request** with a clear description
 
 ### Development Workflow
@@ -1059,9 +1094,10 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ## Support
 
 For issues, questions, or feature requests:
-- **GitHub Issues**: [Open an issue](https://github.com/your-org/NexusCodex/issues)
+
+- **GitHub Issues**: [Open an issue](https://github.com/joelmale/nexusVTT/issues)
 - **Documentation**: See [CLAUDE.md](CLAUDE.md) for architecture details
-- **Testing Guide**: See [TESTING.md](TESTING.md) for testing strategies
+- **Testing Guide**: See [AGENTS.md](AGENTS.md) for current test commands and suites
 
 ---
 
@@ -1070,6 +1106,7 @@ For issues, questions, or feature requests:
 Built with ❤️ for the Nexus VTT community.
 
 Special thanks to:
+
 - The D&D community for inspiration
 - Open source maintainers of our dependencies
 - Contributors and testers

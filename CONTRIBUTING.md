@@ -50,7 +50,8 @@ Thank you for your interest in contributing to Nexus VTT! This document provides
 - `shared/` - Runtime-validated contracts used across processes
 - `tests/integration/` - Database and cross-process behavior
 
-See [docs/architecture.md](docs/architecture.md) for dependency rules and the
+See [the VTT architecture guide](apps/docs/vtt/architecture.md) for dependency
+rules and the
 target feature organization.
 
 ## Development Guidelines
