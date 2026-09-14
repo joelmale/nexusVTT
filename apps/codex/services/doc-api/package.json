@@ -46,7 +46,7 @@
                          "bcryptjs":  "^2.4.3",
                          "bullmq":  "^4.17.0",
                          "dotenv":  "^16.3.1",
-                         "fastify":  "^4.25.2",
+                         "fastify":  "^5.12.1",
                          "fastify-zod":  "^1.4.0",
                          "file-type":  "^18.7.0",
                          "ioredis":  "^5.3.2",
