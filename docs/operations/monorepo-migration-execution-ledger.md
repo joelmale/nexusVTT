@@ -1,8 +1,97 @@
 # Nexus monorepo migration execution ledger
 
-Last updated: 2026-09-12 (America/New_York)
+Last updated: 2026-09-14 (America/New_York)
 
-## Objective and stopping boundary
+Status: **migration merged; execution ledger closed and reconciled**
+
+Closure policy: preserve this file as an immutable historical audit and
+recovery record. Do not delete it or append routine post-migration progress.
+Future work belongs in its own issue, pull request, or operational record. Amend
+this ledger only to correct a material factual error, and identify the
+correction explicitly.
+
+## Final reconciliation (authoritative current state)
+
+This section supersedes any later historical section that describes the
+migration as active, awaiting Phase 3, or still using the
+`codex/monorepo-migration` branch. The detailed execution record is retained
+below for recovery and audit evidence.
+
+- Pull request 230, `chore: migrate Nexus applications into monorepo`, was
+  merged into `master` at
+  `a75bd2052e2629f126d8adadd64bbf2a416724e1` on 2026-09-13. Local `master`
+  and `origin/master` both resolved to that commit during the 2026-09-14
+  reconciliation.
+- The `codex/monorepo-migration` branch is absent from both local refs and
+  `origin`. It must not be recreated merely to resume this historical ledger.
+- The original destination baseline
+  `c8b3fc93c65c2a4cd5f37612b4e625f65f47d936`, Forge source tip
+  `c6b13a9169dadea32bd80c8bc9f3d463b5f0d822`, and Codex source tip
+  `4c583c2e82cc71b6fff732f876c1763e82cd4ccb` are all ancestors of `master`.
+  The Forge and Codex history-import commits, `6e5f270` and `1dd2e64`, are
+  also ancestors of `master`.
+- The merged tree contains `apps/vtt`, `apps/forge`, `apps/codex`, `packages`,
+  `deploy`, and `docs`. Legacy root application directories such as `src`,
+  `server`, `public`, `static-assets`, and `docker` are absent. Workspace
+  consolidation produced one tracked root `package-lock.json`.
+- Phase 0, Phase 1, and Phase 2 passed according to the evidence below. The
+  existing ledger records that the user explicitly authorized skipping the
+  isolated Phase 3 rehearsal, after which Phase 4 production deployment and
+  Phase 5 workspace consolidation were executed and marked passed. This
+  reconciliation verified Git state and repository layout only; it did not
+  independently rerun historical CI, deployment, production, backup, restore,
+  or runtime checks.
+- The main checkout was clean on `docs/agent-file-consolidation` at
+  `fba2353ba2339ef5d3f0af2011de09acecbe982c`, three commits ahead of
+  `master`, before this ledger edit.
+- The old directory
+  `C:/Users/nelso/Documents/Coding/nexusVTT-monorepo-migration` still exists as
+  a worktree, but it now hosts the separate `phase-6` follow-up branch rather
+  than the deleted migration branch. Local and remote `phase-6` were clean and
+  synchronized at `9649c34cb14ff47b4cbb0e83935054a06a71089d`, nine commits
+  ahead of `master`, during reconciliation. No branch or worktree was removed
+  by this ledger cleanup.
+
+### `tests/integration` disposition
+
+The target-tree section of the migration plan labels future paths as proposals
+and describes root `tests/integration` as a home for **new cross-application
+tests and fixtures**. It separately says the existing VTT suites remain under
+`apps/vtt/tests`. The merged repository follows the latter rule:
+`apps/vtt/tests/integration` exists and is wired through the VTT package and CI,
+while no root `tests` tree exists. Codex services retain their own integration
+scripts.
+
+This is not evidence that application tests were lost during migration. Do not
+create an empty root directory simply to match the illustrative tree. Create
+`tests/integration` in a focused follow-up only when the first genuine
+cross-application scenario and its root runner are added. Good first candidates
+are Forge character export to VTT import and VTT-to-Codex document contract
+round trips. Until then, keep application-local integration tests with their
+owners and treat the root directory as an optional, unimplemented proposal.
+
+### Reconciliation commands and outcomes
+
+- `git ls-remote --heads origin master phase-6 codex/monorepo-migration`
+  returned `master` and `phase-6` only; the migration branch is deleted on the
+  remote.
+- Local ref and worktree inspection found no local migration branch. It found
+  the clean main checkout on `docs/agent-file-consolidation` and the clean
+  former migration worktree on `phase-6`.
+- `git merge-base --is-ancestor` passed for the destination baseline, both
+  verified source tips, and both history-import commits against `master`.
+- `git ls-tree` and filesystem checks confirmed the application/package/deploy
+  layout, the single root lockfile, and the absence of legacy root application
+  directories.
+- Test inventory and script/workflow inspection confirmed that VTT integration
+  tests remain under `apps/vtt/tests/integration`; no tracked root `tests` tree
+  exists on either `master` or `phase-6`.
+- `git diff --check` passed for this ledger update. `npx prettier --check`
+  reports the legacy ledger as nonconforming; applying it would rewrite nearly
+  the entire historical file, largely because of existing formatting and line
+  endings, so that unrelated cosmetic rewrite was intentionally excluded.
+
+## Historical objective and stopping boundary
 
 Execute the approved Nexus monorepo migration plan through every reversible
 pre-production gate: preserve source history, establish `apps/vtt`,
@@ -12,7 +101,11 @@ production cutover package. Stop before any production cutover, live schema
 change, merge to `master`, production-impacting image publication, source-repo
 retirement, or destructive cleanup unless the user gives explicit approval.
 
-## Current phase and gate
+## Historical phase and gate record (superseded)
+
+The following chronology is retained verbatim as execution evidence. Its
+present-tense status and next-action statements are no longer current; use the
+final reconciliation above instead.
 
 - Phase: 3 — isolated deployment rehearsal. Phase 2 build/CI parity and its
   controlled candidate-publication/independent-pull gate are complete.
@@ -124,10 +217,13 @@ retirement, or destructive cleanup unless the user gives explicit approval.
   `b58a9a0db595a37b0350bed0800ebad11272135b` through commits `4de9131`
   and `b58a9a0`; the original migration baseline above remains the recovery
   boundary.
-- Migration branch: `codex/monorepo-migration`
-- Draft PR: `https://github.com/joelmale/nexusVTT/pull/230`
-- Isolated checkout:
-  `C:/Users/nelso/Documents/Coding/nexusVTT-monorepo-migration`
+- Migration branch: `codex/monorepo-migration` (deleted locally and remotely
+  after merge)
+- Pull request: `https://github.com/joelmale/nexusVTT/pull/230` (merged as
+  `a75bd2052e2629f126d8adadd64bbf2a416724e1`)
+- Former isolated-checkout path:
+  `C:/Users/nelso/Documents/Coding/nexusVTT-monorepo-migration` (currently a
+  `phase-6` follow-up worktree, not a migration-branch checkout)
 - Migration plan is tracked at
   `docs/operations/monorepo-migration-plan.md` in the isolated checkout.
 
@@ -143,7 +239,7 @@ The plan's VTT SHA `a0d25e3` is stale. The execution baseline uses current
 local and remote `master`, `c8b3fc9`. Forge and Codex match the inspected plan
 SHAs, and both remote heads were reverified at the same SHAs.
 
-## Working-tree state and preservation obligations
+## Historical baseline working-tree state and preservation obligations
 
 The original VTT checkout contains a modified generator-hub `App.tsx`, deletions
 under `public/{cave,city,dwellings}-generator/`, corresponding untracked files
@@ -1432,7 +1528,10 @@ Forge tag namespacing, VTT move history, VTT Docker context paths, or
 non-publishing PR behavior. Final independent review remains required after
 these findings, Phase 3, and the cutover package are complete.
 
-## Blockers and pending approvals
+## Historical blockers and pending approvals (superseded)
+
+This section records the state at the time of execution. It is not the current
+approval boundary; see the final reconciliation and current follow-up sections.
 
 - No filesystem, repository, Docker, or live-read access blocker.
 - Both wave-3 delegation attempts were rejected by the application's subagent
@@ -1464,7 +1563,7 @@ these findings, Phase 3, and the cutover package are complete.
   inventory, release manifest, and strengthened isolation preflight pass; no
   rehearsal stack or production mutation has yet occurred.
 
-## Pending difficult-to-reverse or long-running operation
+## Historical pending difficult-to-reverse operation (superseded)
 
 The next guarded operation is creation of the isolated fresh-data stack named
 `nexus-migration-phase3-e078895` on Dockhand environment 1. Immediately before
@@ -1477,7 +1576,7 @@ stack, network, volume, route, tag, secret, or data is in scope. Later teardown
 must preserve volumes until rollback evidence is complete; no migration-era
 backup or restore resource may be deleted without explicit cleanup approval.
 
-## Remaining work in priority order
+## Superseded remaining work list
 
 1. Create and validate the fresh-data isolated rehearsal using only exact-prefix
    resources.
@@ -1488,7 +1587,7 @@ backup or restore resource may be deleted without explicit cleanup approval.
 5. Complete final independent review, resolve findings, and rerun affected
    checks.
 
-## Ready-to-use resumption prompt
+## Superseded resumption prompt (historical)
 
 Resume the Nexus monorepo migration from
 `C:/Users/nelso/Documents/Coding/nexusVTT-monorepo-migration` on branch
@@ -1513,3 +1612,32 @@ been created. Re-run the preflight and Dockhand absence checks, then create and
 validate the fresh-data rehearsal. Preserve all existing restore evidence and
 do not mutate the production `nexus-vtt2` stack. All prior agents are closed;
 obey the two-subagent cap and do not cross the production approval boundary.
+
+## Post-migration follow-up snapshot at closure
+
+The migration ledger is closed. Remaining repository work is ordinary
+post-migration follow-up and must not be represented as resuming the deleted
+migration branch:
+
+1. Review and decide how to integrate `phase-6`, currently at `9649c34` and
+   nine commits ahead of `master`. Its changes address monorepo CI, workspace
+   dependency behavior, container runtimes, and contract-module output.
+2. Review and decide how to integrate `docs/agent-file-consolidation`, which
+   was three commits ahead of `master` before this ledger cleanup.
+3. Rotate the dedicated Dockhand GHCR read credential before its recorded
+   2026-10-12 expiry.
+4. Retain source repositories and recovery material until the agreed
+   stabilization and rollback-retention boundary is satisfied. Archival or
+   destructive cleanup still requires explicit approval.
+5. Add root `tests/integration` only with a real cross-application test runner,
+   fixtures, CI ownership, and at least one end-to-end contract scenario. An
+   empty structural placeholder is not recommended.
+
+## Closure handoff
+
+Work from `C:/Users/nelso/Documents/Coding/nexusVTT`. Do not recreate
+`codex/monorepo-migration`; PR 230 is merged at `a75bd205`. Inspect both current
+follow-up branches and their working trees before integration. Treat
+`phase-6` and `docs/agent-file-consolidation` as independent post-migration
+review units. Preserve this closed ledger without further routine updates;
+track subsequent work separately.
