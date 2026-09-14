@@ -127,7 +127,7 @@ export class LayoutService {
         pages,
       };
     } finally {
-      await pdfDocument.destroy();
+      await loadingTask.destroy();
     }
   }
 }

@@ -23,7 +23,7 @@ defaults:
 
 jobs:
   verify:
-    name: Type, lint, test, and build
+    name: type-check, lint, test, build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
@@ -57,7 +57,7 @@ jobs:
         run: npm run build
 
   build-image:
-    name: Build image without publishing
+    name: image build
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7

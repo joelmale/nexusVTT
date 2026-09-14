@@ -123,7 +123,16 @@ export async function observeWebSocketMessages(
       return;
     }
     activeRoutes.add(route);
-    route.onClose(() => activeRoutes.delete(route));
+    // Closure is counted here, not on the page's WebSocket event. Once a socket
+    // is intercepted by routeWebSocket, Playwright owns the connection: frame
+    // events still surface, but `socket.on('close')` does not fire, so counting
+    // there leaves closedSocketCount permanently at zero. The route is the only
+    // reliable close signal under interception, and routeWebSocket(/.*/) above
+    // matches every socket the page opens, so nothing escapes this path.
+    route.onClose(() => {
+      activeRoutes.delete(route);
+      observation.closedSocketCount += 1;
+    });
     route.connectToServer();
   });
 
@@ -166,9 +175,6 @@ export async function observeWebSocketMessages(
 
   page.on('websocket', (socket) => {
     observation.socketUrls.push(socket.url());
-    socket.on('close', () => {
-      observation.closedSocketCount += 1;
-    });
     socket.on('framereceived', ({ payload }) => {
       const text =
         typeof payload === 'string' ? payload : payload.toString('utf8');
