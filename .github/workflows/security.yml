@@ -3,6 +3,11 @@ name: Security Scan
 on:
   push:
     branches: [master]
+  # CodeQL and the Trivy filesystem scan gate pull requests. The image-building
+  # jobs below stay on master and releases -- they cost a full Docker build each
+  # and add nothing a PR can act on.
+  pull_request:
+    branches: [master]
   release:
     types: [published]
 
@@ -71,6 +76,7 @@ jobs:
 
   container-scan:
     name: Container Security Scan
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -119,6 +125,7 @@ jobs:
 
   sbom:
     name: Generate CycloneDX SBOMs
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     # SBOMs are generated on every master push and on releases.
     # To consume them for vulnerability tracking, upload to Dependency-Track
