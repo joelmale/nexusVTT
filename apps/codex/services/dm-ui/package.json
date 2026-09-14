@@ -29,7 +29,7 @@
     "@lexical/markdown": "^0.17.1",
     "d3": "^7.9.0",
     "fuse.js": "^7.0.0",
-    "date-fns": "^3.6.0",
+    "date-fns": "^4.4.0",
     "react-big-calendar": "^1.13.4",
     "react-arborist": "^3.4.0",
     "react-zoom-pan-pinch": "^3.6.1",
