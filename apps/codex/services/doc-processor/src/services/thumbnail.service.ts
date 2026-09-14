@@ -50,7 +50,7 @@ class ThumbnailService {
         .toBuffer();
 
       // Cleanup
-      await pdfDocument.destroy();
+      await loadingTask.destroy();
 
       return jpegBuffer;
     } catch (error: any) {
