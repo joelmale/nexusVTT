@@ -19,7 +19,7 @@ permissions:
 
 jobs:
   verify-doc-api:
-    name: Verify doc-api
+    name: 'doc-api: tests (Postgres + Elasticsearch)'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -85,7 +85,7 @@ jobs:
         run: npm run build
 
   verify-services:
-    name: Verify ${{ matrix.service }}
+    name: '${{ matrix.service }}: tests'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -137,7 +137,7 @@ jobs:
         working-directory: apps/codex/services/${{ matrix.service }}
 
   verify-docs:
-    name: Verify docs
+    name: 'docs: typecheck'
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -168,7 +168,7 @@ jobs:
         run: npm run build
 
   build-images:
-    name: Build ${{ matrix.service }} image
+    name: '${{ matrix.service }}: image build'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false

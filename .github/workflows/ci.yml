@@ -42,32 +42,62 @@ defaults:
 
 jobs:
   changes:
-    name: Detect release scope
+    name: Detect changed workspaces
     runs-on: ubuntu-latest
     outputs:
       vtt: ${{ steps.filter.outputs.vtt }}
+      forge: ${{ steps.filter.outputs.forge }}
+      codex: ${{ steps.filter.outputs.codex }}
     steps:
       - name: Checkout exact validation source
         uses: actions/checkout@v7
         with:
           ref: ${{ inputs.candidate_sha || github.sha }}
 
-      - name: Detect VTT release changes
+      - name: Detect changed workspaces
         id: filter
         uses: dorny/paths-filter@v4
         with:
+          # Every filter repeats the shared root surface on purpose. npm resolves
+          # all workspaces from one lockfile and hoists packages to the root, so a
+          # change there breaks workspaces whose own files are untouched -- that is
+          # exactly how the hoisted parseurl, the contracts' module format, the
+          # undeclared multer and the jsdom resolution all reached us. A root
+          # dependency change therefore means "assume everything is affected".
           filters: |
             vtt:
               - 'apps/vtt/**'
               - 'deploy/**'
               - 'monitoring/**'
-              - '.github/workflows/ci.yml'
               - '.husky/**'
               - 'Makefile'
               - 'package.json'
+              - 'package-lock.json'
+              - '.npmrc'
+              - 'packages/**'
+              - 'scripts/**'
+              - '.github/workflows/ci.yml'
+            forge:
+              - 'apps/forge/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - '.npmrc'
+              - 'packages/**'
+              - 'scripts/**'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/forge-ci.yml'
+            codex:
+              - 'apps/codex/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - '.npmrc'
+              - 'packages/**'
+              - 'scripts/**'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/codex-ci.yml'
 
   lint-and-type:
-    name: Lint & Type Check
+    name: 'VTT: lint and type-check'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout code
@@ -107,7 +137,7 @@ jobs:
         run: npm run check:dice-assets
 
   unit-tests:
-    name: Unit Tests
+    name: 'VTT: unit tests'
     runs-on: ubuntu-latest
     needs: lint-and-type
     strategy:
@@ -142,7 +172,7 @@ jobs:
           NODE_OPTIONS: --max-old-space-size=4096
 
   asset-service-tests:
-    name: Asset Service Tests
+    name: 'VTT: asset-service tests'
     runs-on: ubuntu-latest
     needs: lint-and-type
     steps:
@@ -170,7 +200,7 @@ jobs:
         run: npm run test:asset-service
 
   integration-tests:
-    name: Integration Tests
+    name: 'VTT: integration tests'
     runs-on: ubuntu-latest
     needs: lint-and-type
     timeout-minutes: 15
@@ -188,7 +218,7 @@ jobs:
         run: docker compose -f docker/docker-compose.test.yml down -v
 
   e2e-smoke:
-    name: Production E2E Smoke
+    name: 'VTT: E2E smoke (managed stack)'
     runs-on: ubuntu-latest
     needs: lint-and-type
     timeout-minutes: 30
@@ -231,19 +261,29 @@ jobs:
           retention-days: 14
 
   forge-checks:
-    name: Forge checks
+    name: Forge
+    needs: [changes]
+    # A manual dispatch is never gated: candidate-images and the release path
+    # both need this job, and a skipped dependency skips them too.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.forge == 'true'
     uses: ./.github/workflows/forge-ci.yml
     with:
       source_sha: ${{ inputs.candidate_sha || github.sha }}
 
   codex-checks:
-    name: Codex checks
+    name: Codex
+    needs: [changes]
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.codex == 'true'
     uses: ./.github/workflows/codex-ci.yml
     with:
       source_sha: ${{ inputs.candidate_sha || github.sha }}
 
   build-and-push:
-    name: Build & Push to GHCR
+    name: Publish release images to GHCR
     runs-on: ubuntu-latest
     needs:
       [changes, unit-tests, asset-service-tests, integration-tests, e2e-smoke]
@@ -345,7 +385,7 @@ jobs:
             COMMIT_SHA=${{ github.sha }}
 
   candidate-images:
-    name: Candidate ${{ matrix.name }}
+    name: 'Candidate image: ${{ matrix.name }}'
     if: github.event_name == 'workflow_dispatch' && inputs.candidate_sha != ''
     needs:
       [
@@ -465,7 +505,7 @@ jobs:
           cache-to: type=gha,mode=max,scope=candidate-${{ matrix.name }}
 
   required:
-    name: Monorepo required
+    name: All required checks
     if: always()
     needs:
       - changes
@@ -499,9 +539,18 @@ jobs:
         run: |
           for result in \
             "$CHANGES_RESULT" "$LINT_RESULT" "$UNIT_RESULT" \
-            "$ASSET_RESULT" "$INTEGRATION_RESULT" "$E2E_RESULT" \
-            "$FORGE_RESULT" "$CODEX_RESULT"; do
+            "$ASSET_RESULT" "$INTEGRATION_RESULT" "$E2E_RESULT"; do
             if [[ "$result" != 'success' ]]; then
+              echo "required validation result was $result" >&2
+              exit 1
+            fi
+          done
+
+          # Forge and Codex are path-gated. 'skipped' means nothing in their
+          # workspace -- nor in the shared root dependency surface -- changed on
+          # this commit, which is a pass. Any other non-success still fails.
+          for result in "$FORGE_RESULT" "$CODEX_RESULT"; do
+            if [[ "$result" != 'success' && "$result" != 'skipped' ]]; then
               echo "required validation result was $result" >&2
               exit 1
             fi
