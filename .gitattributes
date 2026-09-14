@@ -1,2 +1,10 @@
 # Auto detect text files and perform LF normalization
 * text=auto
+
+# Files executed inside Linux containers must keep LF in the working tree.
+# With core.autocrlf=true a Windows checkout rewrites them to CRLF, Docker
+# copies that in, and the kernel then fails to exec `#!/bin/sh\r`.
+*.sh text eol=lf
+Dockerfile text eol=lf
+*.Dockerfile text eol=lf
+docker-entrypoint* text eol=lf

@@ -162,15 +162,19 @@ metric deltas, and concrete convergence failures.
 and accepts manual sizing inputs. It uploads the report and, on failure, the
 named Compose stack logs.
 
-`.github/workflows/staging-multiplayer-soak.yml` is intentionally manual and
-protected by the `staging` GitHub environment. Configure:
+There is no staging soak workflow at present. `staging-multiplayer-soak.yml`
+was removed on 2026-09-14: it had never run once, because the `staging` GitHub
+environment it depended on was never configured. Reinstating it needs, at
+minimum:
 
 - environment variable `STAGING_BASE_URL`;
 - optional `STAGING_BACKEND_URLS` as comma-separated direct backend URLs;
 - secret `STAGING_DATABASE_URL` for migration execution;
 - optional secret `STAGING_METRICS_TOKEN`.
 
-The workflow applies these idempotent migrations in order before load:
+Run the soak against staging by hand (`npm run test:soak -- --websocket-url
+...`) until that environment exists. Apply these idempotent migrations in order
+before load:
 
 1. `2026-01-05-add-campaign-roomcode.sql`
 2. `2026-07-19-add-room-event-journal.sql`

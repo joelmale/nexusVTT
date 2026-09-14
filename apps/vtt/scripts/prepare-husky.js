@@ -12,7 +12,15 @@ if (!existsSync(join(repositoryRoot, '.git'))) {
   process.exit(0);
 }
 
-const huskyBin = join(applicationRoot, 'node_modules', 'husky', 'bin.js');
+const huskyBin = [
+  join(repositoryRoot, 'node_modules', 'husky', 'bin.js'),
+  join(applicationRoot, 'node_modules', 'husky', 'bin.js'),
+].find(existsSync);
+
+if (!huskyBin) {
+  throw new Error('Could not find the Husky executable in this workspace.');
+}
+
 const result = spawnSync(process.execPath, [huskyBin], {
   cwd: repositoryRoot,
   stdio: 'inherit',
