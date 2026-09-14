@@ -22,27 +22,46 @@ export const CreateNPCModal: React.FC<CreateNPCModalProps> = ({
   const [species, setSpecies] = useState(editingNPC?.species || '');
   const [occupation, setOccupation] = useState(editingNPC?.occupation || '');
   const [alignment, setAlignment] = useState(editingNPC?.alignment || '');
-  const [personalityTraits, setPersonalityTraits] = useState<string[]>(editingNPC?.personalityTraits || []);
-  const [abilityScores, setAbilityScores] = useState<Record<string, number>>(editingNPC?.abilityScores || {
-    STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10
-  });
-  const [relationshipStatus, setRelationshipStatus] = useState(editingNPC?.relationshipStatus || '');
-  const [sexualOrientation, setSexualOrientation] = useState(editingNPC?.sexualOrientation || '');
+  const [personalityTraits, setPersonalityTraits] = useState<string[]>(
+    editingNPC?.personalityTraits || [],
+  );
+  const [abilityScores, setAbilityScores] = useState<Record<string, number>>(
+    editingNPC?.abilityScores || {
+      STR: 10,
+      DEX: 10,
+      CON: 10,
+      INT: 10,
+      WIS: 10,
+      CHA: 10,
+    },
+  );
+  const [relationshipStatus, setRelationshipStatus] = useState(
+    editingNPC?.relationshipStatus || '',
+  );
+  const [sexualOrientation, setSexualOrientation] = useState(
+    editingNPC?.sexualOrientation || '',
+  );
   const [plotHook, setPlotHook] = useState(editingNPC?.plotHook || '');
   const [notes, setNotes] = useState(editingNPC?.notes || '');
 
   // Reset form when modal opens/closes or editing NPC changes
   useEffect(() => {
     if (isOpen) {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
       setName(editingNPC?.name || '');
       setSpecies(editingNPC?.species || '');
       setOccupation(editingNPC?.occupation || '');
       setAlignment(editingNPC?.alignment || '');
       setPersonalityTraits(editingNPC?.personalityTraits || []);
-      setAbilityScores(editingNPC?.abilityScores || {
-        STR: 10, DEX: 10, CON: 10, INT: 10, WIS: 10, CHA: 10
-      });
+      setAbilityScores(
+        editingNPC?.abilityScores || {
+          STR: 10,
+          DEX: 10,
+          CON: 10,
+          INT: 10,
+          WIS: 10,
+          CHA: 10,
+        },
+      );
       setRelationshipStatus(editingNPC?.relationshipStatus || '');
       setSexualOrientation(editingNPC?.sexualOrientation || '');
       setPlotHook(editingNPC?.plotHook || '');
@@ -117,7 +136,10 @@ export const CreateNPCModal: React.FC<CreateNPCModalProps> = ({
               </button>
             )}
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-white/10 rounded-lg transition-colors">
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-white/10 rounded-lg transition-colors"
+          >
             <X className="w-6 h-6 text-white" />
           </button>
         </div>
@@ -132,7 +154,9 @@ export const CreateNPCModal: React.FC<CreateNPCModalProps> = ({
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
-                <label className="block text-sm font-semibold text-theme-tertiary mb-2">Name *</label>
+                <label className="block text-sm font-semibold text-theme-tertiary mb-2">
+                  Name *
+                </label>
                 <input
                   type="text"
                   value={name}
@@ -143,7 +167,9 @@ export const CreateNPCModal: React.FC<CreateNPCModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-theme-tertiary mb-2">Species</label>
+                <label className="block text-sm font-semibold text-theme-tertiary mb-2">
+                  Species
+                </label>
                 <input
                   type="text"
                   value={species}
@@ -154,7 +180,9 @@ export const CreateNPCModal: React.FC<CreateNPCModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-theme-tertiary mb-2">Occupation</label>
+                <label className="block text-sm font-semibold text-theme-tertiary mb-2">
+                  Occupation
+                </label>
                 <input
                   type="text"
                   value={occupation}
@@ -165,7 +193,9 @@ export const CreateNPCModal: React.FC<CreateNPCModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-theme-tertiary mb-2">Alignment</label>
+                <label className="block text-sm font-semibold text-theme-tertiary mb-2">
+                  Alignment
+                </label>
                 <input
                   type="text"
                   value={alignment}
@@ -176,7 +206,9 @@ export const CreateNPCModal: React.FC<CreateNPCModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-theme-tertiary mb-2">Relationship Status</label>
+                <label className="block text-sm font-semibold text-theme-tertiary mb-2">
+                  Relationship Status
+                </label>
                 <input
                   type="text"
                   value={relationshipStatus}
@@ -187,7 +219,9 @@ export const CreateNPCModal: React.FC<CreateNPCModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-sm font-semibold text-theme-tertiary mb-2">Sexual Orientation</label>
+                <label className="block text-sm font-semibold text-theme-tertiary mb-2">
+                  Sexual Orientation
+                </label>
                 <input
                   type="text"
                   value={sexualOrientation}
@@ -202,14 +236,18 @@ export const CreateNPCModal: React.FC<CreateNPCModalProps> = ({
             <div className="grid grid-cols-3 md:grid-cols-6 gap-4">
               {Object.entries(abilityScores).map(([ability, score]) => (
                 <div key={ability}>
-                  <label className="block text-sm font-semibold text-theme-tertiary mb-2 text-center">{ability}</label>
+                  <label className="block text-sm font-semibold text-theme-tertiary mb-2 text-center">
+                    {ability}
+                  </label>
                   <input
                     type="number"
                     value={score}
-                    onChange={(e) => setAbilityScores(prev => ({
-                      ...prev,
-                      [ability]: parseInt(e.target.value) || 10
-                    }))}
+                    onChange={(e) =>
+                      setAbilityScores((prev) => ({
+                        ...prev,
+                        [ability]: parseInt(e.target.value) || 10,
+                      }))
+                    }
                     className="w-full px-3 py-2 bg-theme-secondary text-white rounded-lg border border-theme-secondary focus:outline-none focus:ring-2 focus:ring-purple-500 text-center"
                     min="1"
                     max="30"
@@ -220,10 +258,16 @@ export const CreateNPCModal: React.FC<CreateNPCModalProps> = ({
 
             {/* Personality Traits */}
             <div>
-              <label className="block text-sm font-semibold text-theme-tertiary mb-2">Personality Traits</label>
+              <label className="block text-sm font-semibold text-theme-tertiary mb-2">
+                Personality Traits
+              </label>
               <textarea
                 value={personalityTraits.join('\n')}
-                onChange={(e) => setPersonalityTraits(e.target.value.split('\n').filter(t => t.trim()))}
+                onChange={(e) =>
+                  setPersonalityTraits(
+                    e.target.value.split('\n').filter((t) => t.trim()),
+                  )
+                }
                 className="w-full px-3 py-2 bg-theme-secondary text-white rounded-lg border border-theme-secondary focus:outline-none focus:ring-2 focus:ring-purple-500"
                 placeholder="Enter personality traits (one per line)"
                 rows={3}
@@ -232,7 +276,9 @@ export const CreateNPCModal: React.FC<CreateNPCModalProps> = ({
 
             {/* Plot Hook */}
             <div>
-              <label className="block text-sm font-semibold text-theme-tertiary mb-2">Plot Hook</label>
+              <label className="block text-sm font-semibold text-theme-tertiary mb-2">
+                Plot Hook
+              </label>
               <textarea
                 value={plotHook}
                 onChange={(e) => setPlotHook(e.target.value)}

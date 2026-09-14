@@ -49,10 +49,10 @@ jobs:
       SOAK_CHAOS_LATENCY_DURATION_MS: '60000'
       SOAK_KEEP_STACK: '1'
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Set up Node.js 26
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: 26.5.0
           cache: npm

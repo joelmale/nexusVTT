@@ -27,14 +27,20 @@ export default tseslint.config(
       'no-console': 'warn',
       'no-debugger': 'error',
       'no-unused-vars': 'off', // Use TypeScript version
-      '@typescript-eslint/no-unused-vars': ['error', { argsIgnorePattern: '^_' }],
+      '@typescript-eslint/no-unused-vars': [
+        'error',
+        { argsIgnorePattern: '^_' },
+      ],
       '@typescript-eslint/explicit-function-return-type': 'off',
       '@typescript-eslint/no-explicit-any': 'warn',
       // React specific rules
       'react-hooks/exhaustive-deps': 'error',
+      // Existing initialization and external-state synchronization effects are
+      // intentional; migrate them incrementally before enabling this new rule.
+      'react-hooks/set-state-in-effect': 'off',
       'react/prop-types': 'off', // TypeScript handles this
       // General best practices
-      'eqeqeq': ['error', 'always'],
+      eqeqeq: ['error', 'always'],
       'no-duplicate-imports': 'error',
       'prefer-template': 'error',
     },

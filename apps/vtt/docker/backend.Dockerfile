@@ -6,35 +6,29 @@ ARG VERSION=dev
 ARG COMMIT_SHA=unknown
 
 # Set working directory
-WORKDIR /app
+WORKDIR /workspace
 
 # Install runtime tools and create the non-root build/runtime user up front.
 RUN apk add --no-cache dumb-init curl netcat-openbsd postgresql-client && \
     addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 && \
-    chown nodejs:nodejs /app
+    chown nodejs:nodejs /workspace
 
-# Copy package files
-COPY --chown=nodejs:nodejs package*.json ./
-COPY --chown=nodejs:nodejs services/asset-service/package.json ./services/asset-service/package.json
-COPY --chown=nodejs:nodejs apps/generator-hub/package.json ./apps/generator-hub/package.json
-COPY --chown=nodejs:nodejs tsconfig*.json ./
-COPY --chown=nodejs:nodejs patches ./patches
-COPY --chown=nodejs:nodejs scripts/sync-dice-assets.js ./scripts/sync-dice-assets.js
-COPY --chown=nodejs:nodejs scripts/prepare-husky.js ./scripts/prepare-husky.js
+COPY --chown=nodejs:nodejs package.json package-lock.json ./
+COPY --chown=nodejs:nodejs apps/vtt ./apps/vtt
+COPY --chown=nodejs:nodejs packages ./packages
 
-USER node
-WORKDIR /app/apps/vttjs
+USER nodejs
+WORKDIR /workspace
 
-# Install dependencies
-RUN npm ci --workspace=apps/vtt --include-workspace-root --legacy-peer-deps
+RUN npm ci \
+    --workspace=nexus-vtt \
+    --workspace=@nexus/character-contracts \
+    --include-workspace-root \
+    --legacy-peer-deps
 
-# Copy server and shared code
-COPY --chown=nodejs:nodejs server/ ./server/
-COPY --chown=nodejs:nodejs shared/ ./shared/
-
-# Build the server
-RUN npm run build:server
+RUN npm run build --workspace=@nexus/character-contracts && \
+    npm run build:server --workspace=nexus-vtt
 
 # Default port — must match the server default (index.ts) and the health check below.
 # Override with PORT env var in docker-compose / Dockhand environment.
@@ -57,5 +51,6 @@ LABEL org.opencontainers.image.title="Nexus VTT Backend" \
       org.opencontainers.image.version="$VERSION" \
       org.opencontainers.image.revision="$COMMIT_SHA"
 
-# Start the built server
+WORKDIR /workspace/apps/vtt
+
 CMD ["npm", "run", "server:start"]

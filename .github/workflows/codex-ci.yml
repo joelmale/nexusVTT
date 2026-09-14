@@ -60,10 +60,15 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: apps/codex/services/doc-api/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
+        working-directory: ${{ github.workspace }}
+
+      - name: Build shared contracts
+        run: npm run build:contracts
+        working-directory: ${{ github.workspace }}
 
       - name: Generate Prisma client
         run: npm run prisma:generate
@@ -107,11 +112,15 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: apps/codex/services/${{ matrix.service }}/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
-        working-directory: apps/codex/services/${{ matrix.service }}
+        working-directory: ${{ github.workspace }}
+
+      - name: Build shared contracts
+        run: npm run build:contracts
+        working-directory: ${{ github.workspace }}
 
       - name: Generate Prisma client
         if: matrix.prisma
@@ -142,10 +151,15 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: apps/codex/docs/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
+        working-directory: ${{ github.workspace }}
+
+      - name: Build shared contracts
+        run: npm run build:contracts
+        working-directory: ${{ github.workspace }}
 
       - name: Type check
         run: npm run typecheck
@@ -170,7 +184,7 @@ jobs:
       - name: Build image without publishing
         uses: docker/build-push-action@v7
         with:
-          context: . matrix.service }}
+          context: .
           file: ./apps/codex/services/${{ matrix.service }}/Dockerfile
           push: false
           tags: nexuscodex/${{ matrix.service }}:ci

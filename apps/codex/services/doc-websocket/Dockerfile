@@ -6,24 +6,18 @@ RUN apk add --no-cache openssl
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-COPY apps/codex/services/doc-websocket/tsconfig.json ./apps/codex/services/doc-websocket//
+COPY package.json package-lock.json ./
+COPY apps/codex/services/doc-websocket/package.json ./apps/codex/services/doc-websocket/
 
-# Install dependencies
-RUN npm ci --workspace=apps/codex/services/doc-websocket --include-workspace-root
+RUN npm ci --workspace=nexus-codex-doc-websocket --include-workspace-root
 
-# Copy source code
+COPY apps/codex/services/doc-websocket/package.json ./apps/codex/services/doc-websocket/
+COPY apps/codex/services/doc-websocket/tsconfig.json ./apps/codex/services/doc-websocket/
+COPY apps/codex/services/doc-websocket/prisma ./apps/codex/services/doc-websocket/prisma
 COPY apps/codex/services/doc-websocket/src ./apps/codex/services/doc-websocket/src
 
-# Copy the service's canonical Prisma schema
-COPY prisma/schema.prisma ./prisma/schema.prisma
-
-# Generate Prisma Client
-RUN npx prisma generate
-
-# Build TypeScript
-RUN npm run build
+RUN npm run prisma:generate --workspace=nexus-codex-doc-websocket && \
+    npm run build --workspace=nexus-codex-doc-websocket
 
 # Production stage
 FROM node:22-alpine
@@ -36,13 +30,9 @@ RUN apk add --no-cache openssl
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
-
-# Install production dependencies only
-RUN npm ci --workspace=apps/codex/services/doc-websocket --include-workspace-root --omit=dev
-
-# Copy built application and Prisma files from builder
+COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/package.json ./package.json
+COPY --from=builder /app/apps/codex/services/doc-websocket/package.json ./apps/codex/services/doc-websocket/package.json
 COPY --from=builder /app/apps/codex/services/doc-websocket/dist ./apps/codex/services/doc-websocket/dist
 COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma
 COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma
@@ -59,5 +49,6 @@ LABEL org.opencontainers.image.title="Nexus Codex Document WebSocket" \
       org.opencontainers.image.version="$VERSION" \
       org.opencontainers.image.revision="$COMMIT_SHA"
 
-# Run the application
+WORKDIR /app/apps/codex/services/doc-websocket
+
 CMD ["node", "dist/index.js"]

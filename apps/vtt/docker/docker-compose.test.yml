@@ -4,11 +4,11 @@
 services:
   test:
     image: node:26.5.0-alpine
-    working_dir: /app
-    command: sh -c "npm ci && npm run test:integration"
+    working_dir: /workspace
+    command: sh -c "npm ci && npm run build:contracts && npm run test:integration --workspace=nexus-vtt"
     volumes:
-      - ../:/app
-      - /app/node_modules
+      - ../../../:/workspace
+      - /workspace/node_modules
     environment:
       - NODE_ENV=test
       - CI=true

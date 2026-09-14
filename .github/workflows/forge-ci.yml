@@ -34,10 +34,15 @@ jobs:
         with:
           node-version: '20'
           cache: npm
-          cache-dependency-path: apps/forge/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
+        working-directory: ${{ github.workspace }}
+
+      - name: Build shared contracts
+        run: npm run build:contracts
+        working-directory: ${{ github.workspace }}
 
       - name: Type check
         run: npm exec tsc -- --noEmit

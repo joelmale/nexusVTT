@@ -27,8 +27,8 @@ services:
 
   asset-service:
     build:
-      context: ..
-      dockerfile: docker/asset-service.Dockerfile
+      context: ../../..
+      dockerfile: apps/vtt/docker/asset-service.Dockerfile
     command: ['npm', 'start', '--workspace', 'asset-service']
     environment:
       NODE_ENV: production
@@ -55,8 +55,8 @@ services:
 
   backend:
     build:
-      context: ..
-      dockerfile: docker/backend.Dockerfile
+      context: ../../..
+      dockerfile: apps/vtt/docker/backend.Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
@@ -99,8 +99,8 @@ services:
 
   backend-peer:
     build:
-      context: ..
-      dockerfile: docker/backend.Dockerfile
+      context: ../../..
+      dockerfile: apps/vtt/docker/backend.Dockerfile
     depends_on:
       postgres:
         condition: service_healthy
@@ -143,8 +143,8 @@ services:
 
   frontend:
     build:
-      context: ..
-      dockerfile: docker/frontend.Dockerfile
+      context: ../../..
+      dockerfile: apps/vtt/docker/frontend.Dockerfile
       args:
         COMMIT_SHA: smoke
         VITE_DELTA_SYNC: 'true'

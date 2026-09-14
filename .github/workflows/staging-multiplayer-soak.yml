@@ -48,7 +48,7 @@ jobs:
       STAGING_DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
       METRICS_AUTH_TOKEN: ${{ secrets.STAGING_METRICS_TOKEN }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v7
 
       - name: Validate staging configuration
         shell: bash
@@ -64,7 +64,7 @@ jobs:
           fi
 
       - name: Set up Node.js 26
-        uses: actions/setup-node@v5
+        uses: actions/setup-node@v7
         with:
           node-version: 26.5.0
           cache: npm

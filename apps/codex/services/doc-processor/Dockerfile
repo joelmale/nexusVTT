@@ -23,20 +23,9 @@ RUN apt-get update && \
 FROM base AS deps
 WORKDIR /app
 
-# Copy root package files
 COPY package.json package-lock.json ./
-# Copy all workspace package.json files to preserve workspace structure for npm ci
-COPY apps/vtt/package.json ./apps/vtt/
-COPY apps/vtt/apps/generator-hub/package.json ./apps/vtt/apps/generator-hub/
-COPY apps/vtt/services/asset-service/package.json ./apps/vtt/services/asset-service/
-COPY apps/forge/package.json ./apps/forge/
-COPY apps/codex/services/admin-ui/package.json ./apps/codex/services/admin-ui/
-COPY apps/codex/services/dm-ui/package.json ./apps/codex/services/dm-ui/
-COPY apps/codex/services/doc-api/package.json ./apps/codex/services/doc-api/
 COPY apps/codex/services/doc-processor/package.json ./apps/codex/services/doc-processor/
-COPY apps/codex/services/doc-websocket/package.json ./apps/codex/services/doc-websocket/
-COPY apps/codex/docs/package.json ./apps/codex/docs/
-RUN npm ci --workspace=apps/codex/services/doc-processor --include-workspace-root
+RUN npm ci --workspace=nexus-codex-doc-processor --include-workspace-root
 
 # Rebuild the source code only when needed
 FROM base AS builder
@@ -45,11 +34,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma Client
-RUN npx prisma generate
-
-# Build TypeScript
-RUN npm run build
+RUN npm run prisma:generate --workspace=nexus-codex-doc-processor && \
+    npm run build --workspace=nexus-codex-doc-processor
 
 # Production image, copy all the files and run
 FROM base AS runner
@@ -68,12 +54,14 @@ RUN addgroup --system --gid 1001 nodejs && \
 COPY --from=builder /app/node_modules ./node_modules
 COPY --from=builder /app/apps/codex/services/doc-processor/dist ./apps/codex/services/doc-processor/dist
 COPY --from=builder /app/apps/codex/services/doc-processor/prisma ./apps/codex/services/doc-processor/prisma
+COPY --from=builder /app/apps/codex/services/doc-processor/package.json ./apps/codex/services/doc-processor/package.json
 COPY --from=builder /app/package.json ./package.json
 
 # Change ownership
 RUN chown -R worker:nodejs /app
 
 USER worker
+WORKDIR /app/apps/codex/services/doc-processor
 
 LABEL org.opencontainers.image.title="Nexus Codex Document Processor" \
       org.opencontainers.image.source="https://github.com/joelmale/nexusVTT" \

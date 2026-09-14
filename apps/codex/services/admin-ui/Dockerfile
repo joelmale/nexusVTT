@@ -3,17 +3,14 @@ FROM node:22-alpine AS build
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+COPY package.json package-lock.json ./
+COPY apps/codex/services/admin-ui/package.json ./apps/codex/services/admin-ui/
 
-# Install dependencies
-RUN npm ci --workspace=apps/codex/services/admin-ui --include-workspace-root
+RUN npm ci --workspace=admin-ui --include-workspace-root
 
-# Copy source code
-COPY . .
+COPY apps/codex/services/admin-ui ./apps/codex/services/admin-ui
 
-# Build the app
-RUN npm run build
+RUN npm run build --workspace=admin-ui
 
 # Production stage
 FROM nginx:alpine
@@ -22,10 +19,9 @@ ARG VERSION=dev
 ARG COMMIT_SHA=unknown
 
 # Copy built app from build stage
-COPY --from=build /app/dist /usr/share/nginx/html
+COPY --from=build /app/apps/codex/services/admin-ui/dist /usr/share/nginx/html
 
-# Copy nginx config
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY apps/codex/services/admin-ui/nginx.conf /etc/nginx/conf.d/default.conf
 
 EXPOSE 80
 

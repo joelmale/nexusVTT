@@ -1,21 +1,38 @@
 import { createHash } from 'node:crypto';
+import { existsSync } from 'node:fs';
 import { access, copyFile, mkdir, readFile, readdir } from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const repositoryRoot = path.resolve(
+const applicationRoot = path.resolve(
   path.dirname(fileURLToPath(import.meta.url)),
   '..',
 );
-const sourceRoot = path.join(
-  repositoryRoot,
-  'node_modules',
-  '@3d-dice',
-  'dice-box',
-  'dist',
-  'assets',
-);
-const targetRoot = path.join(repositoryRoot, 'public', 'assets', 'dice-box');
+const repositoryRoot = path.resolve(applicationRoot, '..', '..');
+const sourceRoot = [
+  path.join(
+    repositoryRoot,
+    'node_modules',
+    '@3d-dice',
+    'dice-box',
+    'dist',
+    'assets',
+  ),
+  path.join(
+    applicationRoot,
+    'node_modules',
+    '@3d-dice',
+    'dice-box',
+    'dist',
+    'assets',
+  ),
+].find((candidate) => existsSync(candidate));
+
+if (!sourceRoot) {
+  throw new Error('Could not find the @3d-dice/dice-box asset directory.');
+}
+
+const targetRoot = path.join(applicationRoot, 'public', 'assets', 'dice-box');
 const checkOnly = process.argv.includes('--check');
 
 function hash(buffer) {

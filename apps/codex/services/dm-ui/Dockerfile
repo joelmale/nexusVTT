@@ -3,17 +3,14 @@ FROM node:22-alpine AS builder
 
 WORKDIR /app
 
-# Copy package files
-COPY package*.json ./
+COPY package.json package-lock.json ./
+COPY apps/codex/services/dm-ui/package.json ./apps/codex/services/dm-ui/
 
-# Install dependencies
-RUN npm ci --workspace=apps/codex/services/dm-ui --include-workspace-root
+RUN npm ci --workspace=@nexuscodex/dm-ui --include-workspace-root
 
-# Copy source code
-COPY . .
+COPY apps/codex/services/dm-ui ./apps/codex/services/dm-ui
 
-# Build the application
-RUN npm run build
+RUN npm run build --workspace=@nexuscodex/dm-ui
 
 # Production stage
 FROM nginx:alpine
@@ -22,13 +19,13 @@ ARG VERSION=dev
 ARG COMMIT_SHA=unknown
 
 # Copy built assets from builder
-COPY --from=builder /app/dist /usr/share/nginx/html
+COPY --from=builder /app/apps/codex/services/dm-ui/dist /usr/share/nginx/html
 
 # Copy nginx configuration
-COPY nginx.conf /etc/nginx/conf.d/default.conf
+COPY apps/codex/services/dm-ui/nginx.conf /etc/nginx/conf.d/default.conf
 
 # Copy entrypoint for runtime config
-COPY docker-entrypoint.sh /docker-entrypoint.sh
+COPY apps/codex/services/dm-ui/docker-entrypoint.sh /docker-entrypoint.sh
 RUN chmod +x /docker-entrypoint.sh
 
 # Expose port 80
