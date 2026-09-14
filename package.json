@@ -17,15 +17,43 @@
     "apps/codex/docs"
   ],
   "scripts": {
-    "install:vtt": "npm ci --prefix apps/vtt",
-    "install:forge": "npm ci --prefix apps/forge",
-    "install:codex": "npm ci --prefix apps/codex/services/doc-api && npm ci --prefix apps/codex/services/doc-processor && npm ci --prefix apps/codex/services/doc-websocket && npm ci --prefix apps/codex/services/admin-ui && npm ci --prefix apps/codex/services/dm-ui && npm ci --prefix apps/codex/docs",
-    "build:vtt": "npm --prefix apps/vtt run build:all",
-    "build:forge": "npm --prefix apps/forge run build",
-    "build:codex": "npm --prefix apps/codex/services/doc-api run build && npm --prefix apps/codex/services/doc-processor run build && npm --prefix apps/codex/services/doc-websocket run build && npm --prefix apps/codex/services/admin-ui run build && npm --prefix apps/codex/services/dm-ui run build && npm --prefix apps/codex/docs run build",
-    "test:vtt": "npm --prefix apps/vtt run test:ci",
-    "test:forge": "npm --prefix apps/forge run lint && npm --prefix apps/forge run test -- --run --coverage",
-    "test:codex": "npm --prefix apps/codex/services/doc-api test -- --runInBand src/services/__tests__/processing-quality.service.test.ts && npm --prefix apps/codex/services/doc-processor test -- --runInBand && npm --prefix apps/codex/services/doc-websocket test -- --runInBand --passWithNoTests && npm --prefix apps/codex/docs run typecheck",
-    "test:codex:integration": "npm --prefix apps/codex/services/doc-api test -- --runInBand"
+    "install:all": "npm ci",
+    "install:vtt": "npm ci --workspace=nexus-vtt --workspace=generator-hub --workspace=asset-service --include-workspace-root",
+    "install:forge": "npm ci --workspace=nexus-forge --include-workspace-root",
+    "install:codex": "npm ci --workspace=nexus-codex-doc-api --workspace=nexus-codex-doc-processor --workspace=nexus-codex-doc-websocket --workspace=admin-ui --workspace=@nexuscodex/dm-ui --workspace=docs --include-workspace-root",
+    "build:contracts": "npm run build --workspace=@nexus/character-contracts && npm run build --workspace=@nexus/document-contracts",
+    "build:vtt": "npm run build:contracts && npm run build:all --workspace=nexus-vtt",
+    "build:forge": "npm run build:contracts && npm run build --workspace=nexus-forge",
+    "build:codex": "npm run build:contracts && npm run prisma:generate --workspace=nexus-codex-doc-api && npm run build --workspace=nexus-codex-doc-api && npm run prisma:generate --workspace=nexus-codex-doc-processor && npm run build --workspace=nexus-codex-doc-processor && npm run prisma:generate --workspace=nexus-codex-doc-websocket && npm run build --workspace=nexus-codex-doc-websocket && npm run build --workspace=admin-ui && npm run build --workspace=@nexuscodex/dm-ui && npm run build --workspace=docs",
+    "type-check": "npm run build:contracts && npm run type-check --workspace=nexus-vtt && npm exec --workspace=nexus-forge tsc -- --noEmit && npm run build:codex",
+    "check:workspace-lock": "node scripts/validate-workspace-lock.mjs",
+    "branches:audit": "node scripts/branch-hygiene.mjs",
+    "test:vtt": "npm run test:ci --workspace=nexus-vtt",
+    "test:forge": "npm run lint --workspace=nexus-forge && npm run test --workspace=nexus-forge -- --run --coverage",
+    "test:codex": "npm run test --workspace=nexus-codex-doc-api -- --runInBand src/services/__tests__/processing-quality.service.test.ts && npm run test --workspace=nexus-codex-doc-processor -- --runInBand && npm run test --workspace=nexus-codex-doc-websocket -- --runInBand --passWithNoTests && npm run typecheck --workspace=docs",
+    "test:codex:integration": "npm run test --workspace=nexus-codex-doc-api -- --runInBand"
+  },
+  "overrides": {
+    "@types/express": "5.0.6",
+    "@types/express-serve-static-core": "5.1.3"
+  },
+  "devDependencies": {
+    "ajv": "^8.20.0"
+  },
+  "allowScripts": {
+    "@3d-dice/dice-box@1.1.4": false,
+    "@parcel/watcher@2.6.0": true,
+    "@prisma/client@5.22.0": true,
+    "@prisma/engines@5.22.0": true,
+    "canvas@3.2.3": true,
+    "core-js-pure@3.50.0": false,
+    "core-js@3.50.0": false,
+    "esbuild@0.28.2": true,
+    "fsevents@2.3.3": true,
+    "msgpackr-extract@3.0.4": true,
+    "prisma@5.22.0": true,
+    "sharp@0.33.5": true,
+    "tesseract.js@5.1.1": false,
+    "unrs-resolver@1.12.2": true
   }
 }

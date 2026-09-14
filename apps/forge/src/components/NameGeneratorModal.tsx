@@ -1,6 +1,11 @@
 import React, { useState, useCallback, useMemo, useLayoutEffect } from 'react';
 import { X, Shuffle, Heart, History, Volume2, BookOpen } from 'lucide-react';
-import { generateName, generateNames, getAvailableRaces, GeneratedName } from '../utils/nameGenerator';
+import {
+  generateName,
+  generateNames,
+  getAvailableRaces,
+  GeneratedName,
+} from '../utils/nameGenerator';
 
 interface NameGeneratorModalProps {
   isOpen: boolean;
@@ -20,14 +25,19 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
   onClose,
   currentSpecies, // Renamed from currentRace
   currentGender = 'any',
-  onNameSelect
+  onNameSelect,
 }) => {
-  const [userSelectedName, setUserSelectedName] = useState<GeneratedName | null>(null);
+  const [userSelectedName, setUserSelectedName] =
+    useState<GeneratedName | null>(null);
   const [nameOptions, setNameOptions] = useState<GeneratedName[]>([]);
   const [nameHistory, setNameHistory] = useState<NameHistoryItem[]>([]);
   const [favorites, setFavorites] = useState<NameHistoryItem[]>([]);
-  const [selectedSpecies, setSelectedSpecies] = useState<string>(currentSpecies || ''); // Renamed from selectedRace
-  const [selectedGender, setSelectedGender] = useState<'male' | 'female' | 'any'>(currentGender);
+  const [selectedSpecies, setSelectedSpecies] = useState<string>(
+    currentSpecies || '',
+  ); // Renamed from selectedRace
+  const [selectedGender, setSelectedGender] = useState<
+    'male' | 'female' | 'any'
+  >(currentGender);
   const [showHistory, setShowHistory] = useState(false);
   const [hasInitialized, setHasInitialized] = useState(false);
 
@@ -38,11 +48,17 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
         race: selectedSpecies || undefined,
         gender: selectedGender,
         includeMeaning: true,
-        includePronunciation: true
+        includePronunciation: true,
       });
     }
     return null;
-  }, [isOpen, selectedSpecies, selectedGender, userSelectedName, hasInitialized]);
+  }, [
+    isOpen,
+    selectedSpecies,
+    selectedGender,
+    userSelectedName,
+    hasInitialized,
+  ]);
 
   // Current name is either user selected or initial
   const currentName = userSelectedName || initialName;
@@ -76,7 +92,10 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
    * - localStorage is appropriate for user preferences/game data
    */
   const saveHistory = (history: NameHistoryItem[]) => {
-    localStorage.setItem('nameGenerator_history', JSON.stringify(history.slice(-50))); // Keep last 50
+    localStorage.setItem(
+      'nameGenerator_history',
+      JSON.stringify(history.slice(-50)),
+    ); // Keep last 50
   };
 
   const generateNewName = useCallback(() => {
@@ -84,7 +103,7 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
       race: selectedSpecies || undefined, // Update property name if generateName supports it, otherwise map
       gender: selectedGender,
       includeMeaning: true,
-      includePronunciation: true
+      includePronunciation: true,
     });
 
     setUserSelectedName(name);
@@ -97,7 +116,7 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
       gender: name.gender,
       race: name.race,
       timestamp: Date.now(),
-      isFavorite: false
+      isFavorite: false,
     };
 
     const newHistory = [historyItem, ...nameHistory];
@@ -108,7 +127,7 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
   // Handle initial name generation and history
   useLayoutEffect(() => {
     if (isOpen && !hasInitialized && initialName) {
-      setHasInitialized(true); // eslint-disable-line react-hooks/set-state-in-effect
+      setHasInitialized(true);
 
       // Add to history
       const historyItem: NameHistoryItem = {
@@ -118,7 +137,7 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
         gender: initialName.gender,
         race: initialName.race,
         timestamp: Date.now(),
-        isFavorite: false
+        isFavorite: false,
       };
 
       const newHistory = [historyItem, ...nameHistory];
@@ -141,13 +160,11 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
     localStorage.setItem('nameGenerator_favorites', JSON.stringify(favorites));
   };
 
-
-
   const generateNameOptions = () => {
     const options = generateNames(6, {
       race: selectedSpecies || undefined, // Update property name
       gender: selectedGender,
-      includeMeaning: true
+      includeMeaning: true,
     });
     setNameOptions(options);
   };
@@ -158,10 +175,12 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
   };
 
   const toggleFavorite = (nameItem: NameHistoryItem) => {
-    const isFavorite = favorites.some(fav => fav.name === nameItem.name);
+    const isFavorite = favorites.some((fav) => fav.name === nameItem.name);
 
     if (isFavorite) {
-      const newFavorites = favorites.filter(fav => fav.name !== nameItem.name);
+      const newFavorites = favorites.filter(
+        (fav) => fav.name !== nameItem.name,
+      );
       setFavorites(newFavorites);
       saveFavorites(newFavorites);
     } else {
@@ -186,7 +205,9 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
     <div className="fixed inset-0 backdrop-blur-md flex items-center justify-center z-50">
       <div className="bg-theme-secondary rounded-lg p-6 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
         <div className="flex justify-between items-center mb-6">
-          <h2 className="text-2xl font-bold text-theme-primary">Name Generator</h2>
+          <h2 className="text-2xl font-bold text-theme-primary">
+            Name Generator
+          </h2>
           <button
             onClick={onClose}
             className="text-theme-muted hover:text-theme-primary transition-colors"
@@ -198,7 +219,9 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
         {/* Controls */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
           <div>
-            <label className="block text-sm font-medium text-theme-tertiary mb-2">Species</label>
+            <label className="block text-sm font-medium text-theme-tertiary mb-2">
+              Species
+            </label>
             <select
               value={selectedSpecies}
               onChange={(e) => setSelectedSpecies(e.target.value)}
@@ -206,16 +229,22 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
             >
               <option value="">Any Species</option>
               {availableSpecies.map((race: string) => (
-                <option key={race} value={race}>{race}</option>
+                <option key={race} value={race}>
+                  {race}
+                </option>
               ))}
             </select>
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-theme-tertiary mb-2">Gender</label>
+            <label className="block text-sm font-medium text-theme-tertiary mb-2">
+              Gender
+            </label>
             <select
               value={selectedGender}
-              onChange={(e) => setSelectedGender(e.target.value as 'male' | 'female' | 'any')}
+              onChange={(e) =>
+                setSelectedGender(e.target.value as 'male' | 'female' | 'any')
+              }
               className="w-full p-2 bg-theme-tertiary text-theme-primary rounded border border-theme-primary"
             >
               <option value="any">Any</option>
@@ -246,7 +275,9 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
         {currentName && (
           <div className="bg-theme-tertiary rounded-lg p-4 mb-6">
             <div className="flex items-center justify-between mb-2">
-              <h3 className="text-xl font-bold text-theme-primary">{currentName.name}</h3>
+              <h3 className="text-xl font-bold text-theme-primary">
+                {currentName.name}
+              </h3>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => speakName(currentName.name)}
@@ -256,17 +287,19 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
                   <Volume2 className="w-4 h-4" />
                 </button>
                 <button
-                  onClick={() => toggleFavorite({
-                    name: currentName.name,
-                    meaning: currentName.meaning,
-                    pronunciation: currentName.pronunciation,
-                    gender: currentName.gender,
-                    race: currentName.race,
-                    timestamp: Date.now(),
-                    isFavorite: false
-                  })}
+                  onClick={() =>
+                    toggleFavorite({
+                      name: currentName.name,
+                      meaning: currentName.meaning,
+                      pronunciation: currentName.pronunciation,
+                      gender: currentName.gender,
+                      race: currentName.race,
+                      timestamp: Date.now(),
+                      isFavorite: false,
+                    })
+                  }
                   className={`p-2 transition-colors ${
-                    favorites.some(fav => fav.name === currentName.name)
+                    favorites.some((fav) => fav.name === currentName.name)
                       ? 'text-accent-red-light hover:text-red-300'
                       : 'text-theme-muted hover:text-theme-primary'
                   }`}
@@ -284,13 +317,29 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
             </div>
 
             <div className="text-sm text-theme-tertiary space-y-1">
-              {currentName.race && <p><span className="font-medium">Species:</span> {currentName.race}</p>}
-              {currentName.gender && <p><span className="font-medium">Gender:</span> {currentName.gender}</p>}
+              {currentName.race && (
+                <p>
+                  <span className="font-medium">Species:</span>{' '}
+                  {currentName.race}
+                </p>
+              )}
+              {currentName.gender && (
+                <p>
+                  <span className="font-medium">Gender:</span>{' '}
+                  {currentName.gender}
+                </p>
+              )}
               {currentName.pronunciation && (
-                <p><span className="font-medium">Pronunciation:</span> {currentName.pronunciation}</p>
+                <p>
+                  <span className="font-medium">Pronunciation:</span>{' '}
+                  {currentName.pronunciation}
+                </p>
               )}
               {currentName.meaning && showMeaning && (
-                <p><span className="font-medium">Meaning:</span> {currentName.meaning}</p>
+                <p>
+                  <span className="font-medium">Meaning:</span>{' '}
+                  {currentName.meaning}
+                </p>
               )}
             </div>
 
@@ -308,12 +357,16 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
         {/* Name Options */}
         {nameOptions.length > 0 && (
           <div className="mb-6">
-            <h4 className="text-lg font-bold text-theme-primary mb-3">Name Options</h4>
+            <h4 className="text-lg font-bold text-theme-primary mb-3">
+              Name Options
+            </h4>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
               {nameOptions.map((name, index) => (
                 <div key={index} className="bg-theme-tertiary rounded p-3">
                   <div className="flex items-center justify-between">
-                    <span className="text-theme-primary font-medium">{name.name}</span>
+                    <span className="text-theme-primary font-medium">
+                      {name.name}
+                    </span>
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => speakName(name.name)}
@@ -330,7 +383,9 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
                     </div>
                   </div>
                   {name.meaning && (
-                    <p className="text-xs text-theme-muted mt-1">{name.meaning}</p>
+                    <p className="text-xs text-theme-muted mt-1">
+                      {name.meaning}
+                    </p>
                   )}
                 </div>
               ))}
@@ -341,18 +396,28 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
         {/* History and Favorites Tabs */}
         <div className="flex border-b border-theme-primary mb-4">
           <button
-            onClick={() => { setShowHistory(true); setShowFavorites(false); }}
+            onClick={() => {
+              setShowHistory(true);
+              setShowFavorites(false);
+            }}
             className={`px-4 py-2 text-sm font-medium transition-colors ${
-              showHistory ? 'text-theme-primary border-b-2 border-blue-500' : 'text-theme-muted hover:text-theme-primary'
+              showHistory
+                ? 'text-theme-primary border-b-2 border-blue-500'
+                : 'text-theme-muted hover:text-theme-primary'
             }`}
           >
             <History className="w-4 h-4 inline mr-2" />
             History ({nameHistory.length})
           </button>
           <button
-            onClick={() => { setShowFavorites(true); setShowHistory(false); }}
+            onClick={() => {
+              setShowFavorites(true);
+              setShowHistory(false);
+            }}
             className={`px-4 py-2 text-sm font-medium transition-colors ${
-              showFavorites ? 'text-theme-primary border-b-2 border-red-500' : 'text-theme-muted hover:text-theme-primary'
+              showFavorites
+                ? 'text-theme-primary border-b-2 border-red-500'
+                : 'text-theme-muted hover:text-theme-primary'
             }`}
           >
             <Heart className="w-4 h-4 inline mr-2" />
@@ -364,11 +429,16 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
         {(showHistory || showFavorites) && (
           <div className="max-h-60 overflow-y-auto">
             {(showHistory ? nameHistory : favorites).map((item, index) => (
-              <div key={index} className="flex items-center justify-between py-2 border-b border-theme-secondary">
+              <div
+                key={index}
+                className="flex items-center justify-between py-2 border-b border-theme-secondary"
+              >
                 <div className="flex-1">
                   <span className="text-theme-primary">{item.name}</span>
                   {item.meaning && (
-                    <span className="text-xs text-theme-muted ml-2">({item.meaning})</span>
+                    <span className="text-xs text-theme-muted ml-2">
+                      ({item.meaning})
+                    </span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
@@ -382,7 +452,7 @@ const NameGeneratorModal: React.FC<NameGeneratorModalProps> = ({
                     <button
                       onClick={() => toggleFavorite(item)}
                       className={`p-1 transition-colors ${
-                        favorites.some(fav => fav.name === item.name)
+                        favorites.some((fav) => fav.name === item.name)
                           ? 'text-accent-red-light hover:text-red-300'
                           : 'text-theme-muted hover:text-theme-primary'
                       }`}

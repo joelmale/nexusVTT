@@ -3,12 +3,17 @@
 
 services:
   test:
-    image: node:26.5.0-alpine
-    working_dir: /app
-    command: sh -c "npm ci && npm run test:integration"
+    # Debian, not Alpine. The full workspace install pulls in doc-processor's
+    # canvas, which publishes no musl prebuild -- on Alpine it falls back to a
+    # node-gyp source build and dies for want of Python. The install must stay
+    # unscoped: vitest is hoisted to the root and resolves jsdom upward from
+    # there, so omitting any workspace that supplies it breaks the suite.
+    image: node:26.5.0-bookworm-slim
+    working_dir: /workspace
+    command: sh -c "npm ci && npm run build:contracts && npm run test:integration --workspace=nexus-vtt"
     volumes:
-      - ../:/app
-      - /app/node_modules
+      - ../../../:/workspace
+      - /workspace/node_modules
     environment:
       - NODE_ENV=test
       - CI=true

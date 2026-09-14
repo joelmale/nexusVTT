@@ -3,6 +3,14 @@ name: Security Scan
 on:
   push:
     branches: [master]
+  # Pull requests run CodeQL and both Trivy scans. The container scan has to run
+  # here even though it costs two image builds: it uploads SARIF under the
+  # trivy-container-backend and trivy-container-frontend categories, and code
+  # scanning fails a PR whose configurations do not match the base branch's
+  # ("2 configurations not found"). Only the SBOM job is skipped below, which
+  # uploads artifacts rather than SARIF and so declares no category.
+  pull_request:
+    branches: [master]
   release:
     types: [published]
 
@@ -29,15 +37,13 @@ jobs:
         with:
           node-version: '26.5.0'
           cache: 'npm'
-          cache-dependency-path: apps/vtt/package-lock.json
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
         run: npm ci
-        working-directory: apps/vtt
 
       - name: Build (gives CodeQL full TypeScript type information)
-        run: npm run build
-        working-directory: apps/vtt
+        run: npm run build:vtt
 
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@v4
@@ -121,6 +127,7 @@ jobs:
 
   sbom:
     name: Generate CycloneDX SBOMs
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     # SBOMs are generated on every master push and on releases.
     # To consume them for vulnerability tracking, upload to Dependency-Track
