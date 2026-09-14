@@ -34,7 +34,7 @@
     "react-arborist": "^3.4.0",
     "react-zoom-pan-pinch": "^3.6.1",
     "file-saver": "^2.0.5",
-    "nanoid": "^5.0.7",
+    "nanoid": "^6.0.0",
     "clsx": "^2.1.1",
     "tailwind-merge": "^2.5.2",
     "lucide-react": "^0.445.0",
