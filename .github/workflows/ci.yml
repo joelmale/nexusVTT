@@ -9,6 +9,8 @@ on:
       - 'apps/vtt/**'
       - 'apps/forge/**'
       - 'apps/codex/**'
+      - 'packages/**'
+      - 'scripts/**'
       - 'deploy/**'
       - 'monitoring/**'
       - '.github/workflows/ci.yml'

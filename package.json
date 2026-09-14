@@ -28,10 +28,10 @@
     "type-check": "npm run build:contracts && npm run type-check --workspace=nexus-vtt && npm exec --workspace=nexus-forge tsc -- --noEmit && npm run build:codex",
     "check:workspace-lock": "node scripts/validate-workspace-lock.mjs",
     "branches:audit": "node scripts/branch-hygiene.mjs",
-    "test:vtt": "npm --prefix apps/vtt run test:ci",
-    "test:forge": "npm --prefix apps/forge run lint && npm --prefix apps/forge run test -- --run --coverage",
-    "test:codex": "npm --prefix apps/codex/services/doc-api test -- --runInBand src/services/__tests__/processing-quality.service.test.ts && npm --prefix apps/codex/services/doc-processor test -- --runInBand && npm --prefix apps/codex/services/doc-websocket test -- --runInBand --passWithNoTests && npm --prefix apps/codex/docs run typecheck",
-    "test:codex:integration": "npm --prefix apps/codex/services/doc-api test -- --runInBand"
+    "test:vtt": "npm run test:ci --workspace=nexus-vtt",
+    "test:forge": "npm run lint --workspace=nexus-forge && npm run test --workspace=nexus-forge -- --run --coverage",
+    "test:codex": "npm run test --workspace=nexus-codex-doc-api -- --runInBand src/services/__tests__/processing-quality.service.test.ts && npm run test --workspace=nexus-codex-doc-processor -- --runInBand && npm run test --workspace=nexus-codex-doc-websocket -- --runInBand --passWithNoTests && npm run typecheck --workspace=docs",
+    "test:codex:integration": "npm run test --workspace=nexus-codex-doc-api -- --runInBand"
   },
   "overrides": {
     "@types/express": "5.0.6",
