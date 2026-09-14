@@ -72,7 +72,7 @@
     "sync:dice-assets": "node scripts/sync-dice-assets.js",
     "check:dice-assets": "node scripts/sync-dice-assets.js --check",
     "prepare": "node scripts/prepare-husky.js",
-    "postinstall": "patch-package \u0026\u0026 npm run sync:dice-assets"
+    "postinstall": "node scripts/apply-patches.js \u0026\u0026 npm run sync:dice-assets"
   },
   "lint-staged": {
     "*.{js,jsx,ts,tsx}": [
