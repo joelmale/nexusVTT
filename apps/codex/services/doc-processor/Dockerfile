@@ -1,4 +1,4 @@
-FROM node:22-bookworm-slim AS base
+FROM node:26.5.0-bookworm-slim AS base
 
 # Install build dependencies for native modules (canvas, sharp) and OpenSSL for Prisma
 RUN apt-get update && \
@@ -32,6 +32,10 @@ FROM base AS builder
 WORKDIR /app
 
 COPY --from=deps /app/node_modules ./node_modules
+# Dependencies that could not hoist (bullmq@5 here, because doc-api pins
+# bullmq@4 at the root) install into the workspace's own node_modules.
+# Copying only /app/node_modules silently drops them.
+COPY --from=deps /app/apps/codex/services/doc-processor/node_modules ./apps/codex/services/doc-processor/node_modules
 COPY . .
 
 RUN npm run prisma:generate --workspace=nexus-codex-doc-processor && \
@@ -52,6 +56,7 @@ RUN addgroup --system --gid 1001 nodejs && \
 
 # Copy necessary files
 COPY --from=builder /app/node_modules ./node_modules
+COPY --from=builder /app/apps/codex/services/doc-processor/node_modules ./apps/codex/services/doc-processor/node_modules
 COPY --from=builder /app/apps/codex/services/doc-processor/dist ./apps/codex/services/doc-processor/dist
 COPY --from=builder /app/apps/codex/services/doc-processor/prisma ./apps/codex/services/doc-processor/prisma
 COPY --from=builder /app/apps/codex/services/doc-processor/package.json ./apps/codex/services/doc-processor/package.json
