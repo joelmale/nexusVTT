@@ -1,14 +1,14 @@
 import React, { useState, useCallback } from 'react';
 import { ArrowLeft, ArrowRight, Heart, Shield, Zap, Sparkles } from 'lucide-react';
-import { generateCharacterProfile, CharacterProfile } from '../data/characterProfiles';
+import { generateCharacterProfile, CharacterProfile } from '@nexus/character-creator/data/characterProfiles';
 import PersonalitySummary from './PersonalitySummary';
 import CharacterFinalization from './CharacterFinalization';
 import { loadClasses, getAllSpecies, BACKGROUNDS, getCantripsByClass, getLeveledSpellsByClass } from '../services/dataService';
 import { CharacterCreationData, SpellSelectionData, SkillName, Edition } from '../types/dnd';
 import { getSpellcastingType } from '../utils/spellUtils';
-import { SPELL_LEARNING_RULES } from '../data/spellLearning';
+import { SPELL_LEARNING_RULES } from '@nexus/character-creator/data/spellLearning';
 import { assignAbilityScoresByClass } from '../utils/abilityScoreUtils';
-import cantripsData from '../data/cantrips.json';
+import cantripsData from '@nexus/character-creator/data/cantrips.json';
 import { generateQuickStartEquipment } from '../services/equipmentService';
 import { rollRandomTrinket } from '../utils/trinketUtils';
 import { log } from '../utils/logger';

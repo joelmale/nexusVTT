@@ -6,7 +6,7 @@
 
 import React from 'react';
 import { Character, LevelUpChoices } from '../../../types/dnd';
-import { LevelUpData } from '../../../data/classProgression';
+import { LevelUpData } from '@nexus/character-creator/data/classProgression';
 
 interface StepConfirmProps {
   character: Character;

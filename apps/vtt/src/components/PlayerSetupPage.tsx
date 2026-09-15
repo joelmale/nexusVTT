@@ -15,6 +15,7 @@ import { useCharacters } from '@/stores/characterStore';
 import { CharacterSheetPopup } from './CharacterSheetPopup';
 import { QuickCharacterEntry } from './QuickCharacterEntry';
 import { CharacterImportModal } from './CharacterImportModal';
+import { useCharacterCreationLauncher } from '@/hooks';
 import type { Character } from '@nexus/character-contracts';
 import type { PlayerCharacter } from '@/types/game';
 import './PlayerSetupPage.css';
@@ -54,6 +55,8 @@ export const PlayerSetupPage: React.FC = () => {
   const navigate = useNavigate();
 
   const { characters, deleteCharacter } = useCharacters();
+  const { startCharacterCreation, LauncherComponent } =
+    useCharacterCreationLauncher();
 
   const [selectedCharacterId, setSelectedCharacterId] = useState<string | null>(
     null,
@@ -210,8 +213,20 @@ export const PlayerSetupPage: React.FC = () => {
     reader.readAsDataURL(file);
   };
 
+  /**
+   * Opens the shared character creator in-app. It used to send players to the
+   * separately hosted Forge and ask them to export/import JSON; the creator is
+   * now a build-time workspace import, so the character is saved here directly.
+   */
   const handleOpenCharacterForge = () => {
-    window.open('https://5e-character-builder.com', '_blank');
+    startCharacterCreation(
+      user.id,
+      'modal',
+      (characterId: string, character?: Character) => {
+        setSelectedCharacterId(characterId);
+        if (character) setPlayerName(character.name);
+      },
+    );
   };
 
   return (
@@ -466,14 +481,14 @@ export const PlayerSetupPage: React.FC = () => {
                     color: '#ffffff',
                   }}
                 >
-                  I need to build a character
+                  I need to build a full character, step by step
                 </p>
                 <button
                   onClick={handleOpenCharacterForge}
                   className="glass-button secondary"
                   style={{ width: '100%' }}
                 >
-                  Open Forge ↗
+                  Open Character Forge
                 </button>
                 <small style={{ opacity: 0.6, color: '#ffffff' }}>
                   ⏱️ 15+ minutes
@@ -650,6 +665,9 @@ export const PlayerSetupPage: React.FC = () => {
         onClose={() => setShowImportModal(false)}
         onImportComplete={handleImportComplete}
       />
+
+      {/* Shared character creator (lazy-loaded on demand) */}
+      {LauncherComponent}
 
       {/* Character Sheet Popup */}
       {popupCharacter && (

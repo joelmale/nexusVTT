@@ -2,6 +2,14 @@ import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import federation from '@originjs/vite-plugin-federation';
 import { createRequire } from 'node:module';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const dirname = path.dirname(fileURLToPath(import.meta.url));
+const characterCreatorSrc = path.resolve(
+  dirname,
+  '../../packages/character-creator/src',
+);
 
 const require = createRequire(import.meta.url);
 
@@ -29,6 +37,21 @@ export default defineConfig({
       shared: ['react', 'react-dom', 'react-router-dom']
     })
   ],
+  resolve: {
+    alias: [
+      // Build-time workspace import of the shared character creator. Keeping
+      // this an alias (rather than a federated remote) means Forge and the VTT
+      // compile the same source and share one rules implementation.
+      {
+        find: /^@nexus\/character-creator$/,
+        replacement: path.join(characterCreatorSrc, 'index.ts'),
+      },
+      {
+        find: /^@nexus\/character-creator\/(.*)$/,
+        replacement: path.join(characterCreatorSrc, '$1'),
+      },
+    ],
+  },
   define: {
     'import.meta.env.VITE_APP_VERSION': JSON.stringify(getVersion()),
   },

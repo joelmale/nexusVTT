@@ -1,5 +1,5 @@
 import { generateUUID } from './diceService';
-import levelConstantsData from '../data/levelConstants.json';
+import levelConstantsData from '@nexus/character-creator/data/levelConstants.json';
 import {
   loadSpecies,
   loadClasses,
@@ -17,7 +17,7 @@ import {
 } from '../services/dataService';
 import { initializeCharacterResources } from '../utils/resourceUtils';
 import { addItemToInventoryByName } from '../utils/equipmentMatching';
-// import { CANTRIPS_KNOWN_BY_CLASS } from '../data/cantrips';
+// import { CANTRIPS_KNOWN_BY_CLASS } from '@nexus/character-creator/data/cantrips';
 import {
     CharacterCreationData,
     Character,

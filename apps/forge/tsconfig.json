@@ -15,8 +15,14 @@
     "strict": true,
     "noUnusedLocals": false,
     "noUnusedParameters": false,
-    "noFallthroughCasesInSwitch": true
+    "noFallthroughCasesInSwitch": true,
+
+    "baseUrl": ".",
+    "paths": {
+      "@nexus/character-creator": ["../../packages/character-creator/src/index.ts"],
+      "@nexus/character-creator/*": ["../../packages/character-creator/src/*"]
+    }
   },
-  "include": ["src"],
+  "include": ["src", "../../packages/character-creator/src"],
   "references": [{ "path": "./tsconfig.node.json" }]
 }

@@ -14,7 +14,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { createPortal } from 'react-dom';
 import { Character, LevelUpChoices } from '../../types/dnd';
-import { LevelUpData } from '../../data/classProgression';
+import { LevelUpData } from '@nexus/character-creator/data/classProgression';
 import { calculateLevelUpData, getLevelUpSteps, applyLevelUp } from '../../utils/levelUpUtils';
 
 // Step components (to be implemented)

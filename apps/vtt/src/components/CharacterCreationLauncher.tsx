@@ -2,10 +2,11 @@ import React, { useState, Suspense } from 'react';
 import type { Character } from '@nexus/character-contracts';
 import { CharacterCreationContext } from './CharacterCreationContext';
 
-// Lazy load the heavy CharacterCreationWizard
-const CharacterCreationWizard = React.lazy(() =>
-  import('./CharacterCreationWizard').then((module) => ({
-    default: module.CharacterCreationWizard,
+// The shared creator pulls in the full 5e rules dataset, so it is always
+// loaded lazily — nothing of it reaches the initial VTT bundle.
+const SharedCharacterCreator = React.lazy(() =>
+  import('./SharedCharacterCreator').then((module) => ({
+    default: module.SharedCharacterCreator,
   })),
 );
 
@@ -21,46 +22,20 @@ export const CharacterCreationProvider: React.FC<{
     onCancel?: () => void;
   } | null>(null);
 
-  const startCharacterCreation = async (
+  const startCharacterCreation = (
     playerId: string,
     context: 'fullpage' | 'modal' = 'modal',
     onComplete: (characterId: string, character?: Character) => void,
     onCancel?: () => void,
   ) => {
-    console.time('🎭 Character Creation Setup');
-
-    // Preload related styles that might be needed soon
-
-    try {
-      // Load theme first (critical) - this ensures CSS variables are available
-      console.time('🎨 Theme Loading');
-      await Promise.resolve();
-      console.timeEnd('🎨 Theme Loading');
-
-      // Load wizard styles with enhanced error handling
-      console.time('🧙‍♂️ Wizard Loading');
-      await Promise.resolve();
-      console.timeEnd('🧙‍♂️ Wizard Loading');
-
-      console.timeEnd('🎭 Character Creation Setup');
-
-      setLauncher({
-        playerId,
-        context,
-        onComplete,
-        onCancel,
-      });
-    } catch (error) {
-      console.error('❌ Failed to load character creation styles:', error);
-      // Still try to open the wizard - it might work with fallbacks
-      console.warn('⚠️ Attempting to open wizard with degraded styling');
-      setLauncher({
-        playerId,
-        context,
-        onComplete,
-        onCancel,
-      });
-    }
+    // The creator ships its own scoped stylesheet inside the lazy chunk, so
+    // there is nothing to preload here — Suspense covers the load.
+    setLauncher({
+      playerId,
+      context,
+      onComplete,
+      onCancel,
+    });
   };
 
   const closeLauncher = () => {
@@ -139,7 +114,7 @@ export const CharacterCreationLauncher: React.FC<
         </div>
       }
     >
-      <CharacterCreationWizard
+      <SharedCharacterCreator
         playerId={playerId}
         onComplete={handleComplete}
         onCancel={handleCancel}

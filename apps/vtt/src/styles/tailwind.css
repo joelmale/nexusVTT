@@ -15,6 +15,10 @@
 /* 1. Pull in all Tailwind v4 layers ---------------------------------------- */
 @import "tailwindcss";
 
+/* The shared character creator lives outside this app's root, so Tailwind is
+   told explicitly to scan it for utility classes. */
+@source "../../../../packages/character-creator/src";
+
 /* 2. Map design tokens into Tailwind's theme system ------------------------- */
 @theme {
   /* ── Colors ────────────────────────────────────────────────────────────── */

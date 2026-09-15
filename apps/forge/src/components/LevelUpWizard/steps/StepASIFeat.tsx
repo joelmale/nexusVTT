@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { Character, LevelUpChoices, AbilityName, ABILITY_SCORES } from '../../../types/dnd';
-import { LevelUpData } from '../../../data/classProgression';
+import { LevelUpData } from '@nexus/character-creator/data/classProgression';
 import { loadFeats, resolveSpeciesSlug } from '../../../services/dataService';
 import { getAvailableFeatsForCharacter } from '../../../utils/featUtils';
 

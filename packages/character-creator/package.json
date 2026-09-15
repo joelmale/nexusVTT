@@ -1,0 +1,38 @@
+{
+  "name": "@nexus/character-creator",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Shared D&D 5e character creation wizard and rules data for Nexus Forge and Nexus VTT",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./styles.css": "./dist/creator.css",
+    "./*": "./src/*"
+  },
+  "files": [
+    "src",
+    "dist"
+  ],
+  "scripts": {
+    "prepare": "node scripts/build-styles.mjs",
+    "build": "node scripts/build-styles.mjs",
+    "build:styles": "node scripts/build-styles.mjs",
+    "type-check": "tsc --noEmit"
+  },
+  "peerDependencies": {
+    "react": ">=18",
+    "react-dom": ">=18"
+  },
+  "dependencies": {
+    "@nexus/character-contracts": "1.0.0",
+    "loglevel": "^1.9.2",
+    "lucide-react": "^0.561.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.1.17",
+    "postcss": "^8.4.49",
+    "typescript": "^5.7.2"
+  }
+}

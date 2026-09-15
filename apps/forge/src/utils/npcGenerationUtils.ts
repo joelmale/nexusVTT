@@ -1,8 +1,8 @@
-import nameData from '../data/nameData.json';
-import backgrounds from '../data/backgrounds.json';
-import characterTraits from '../data/characterTraits.json';
-import alignments from '../data/alignments.json';
-import enhancedSpeciesData from '../data/enhancedSpeciesData.json';
+import nameData from '@nexus/character-creator/data/nameData.json';
+import backgrounds from '@nexus/character-creator/data/backgrounds.json';
+import characterTraits from '@nexus/character-creator/data/characterTraits.json';
+import alignments from '@nexus/character-creator/data/alignments.json';
+import enhancedSpeciesData from '@nexus/character-creator/data/enhancedSpeciesData.json';
 import { NPC } from '../types/dnd';
 
 // Utility function to get random item from array

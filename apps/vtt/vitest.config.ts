@@ -13,6 +13,15 @@ export default defineConfig({
       '@/types': path.resolve(__dirname, './src/types'),
       '@/utils': path.resolve(__dirname, './src/utils'),
       '@/services': path.resolve(__dirname, './src/services'),
+      // Shared character creator (build-time workspace import).
+      '@nexus/character-creator/styles.css': path.resolve(
+        __dirname,
+        '../../packages/character-creator/dist/creator.css',
+      ),
+      '@nexus/character-creator': path.resolve(
+        __dirname,
+        '../../packages/character-creator/src/index.ts',
+      ),
     },
   },
   test: {

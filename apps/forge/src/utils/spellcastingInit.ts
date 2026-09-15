@@ -1,6 +1,6 @@
 import { Character, SpellLearningRules } from '../types/dnd';
-import { SPELL_SLOT_TABLES } from '../data/spellSlots';
-import { SPELL_LEARNING_RULES } from '../data/spellLearning';
+import { SPELL_SLOT_TABLES } from '@nexus/character-creator/data/spellSlots';
+import { SPELL_LEARNING_RULES } from '@nexus/character-creator/data/spellLearning';
 import { getCantripsByClass, getLeveledSpellsByClass, AppSpell } from '../services/dataService';
 import { calculateSpellSaveDC, calculateSpellAttackBonus } from './spellUtils';
 

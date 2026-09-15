@@ -105,6 +105,12 @@ export interface Spellcasting {
   spellSlots: number[];
   usedSpellSlots: number[];
   spellcastingType: 'known' | 'prepared' | 'wizard';
+  /** Spells granted by feats, with their own casting rules. */
+  featGrantedSpells?: FeatGrantedSpell[];
+  /** Which cantrip was chosen at each level, for level-up auditing. */
+  cantripChoicesByLevel?: Record<number, string>;
+  /** Which spell was learned at each level, for level-up auditing. */
+  spellChoicesByLevel?: Record<number, string>;
 }
 
 export interface InventoryItem {
@@ -112,6 +118,54 @@ export interface InventoryItem {
   name?: string;
   equipped?: boolean;
   quantity: number;
+  /** Magic-item attunement state (preserved from Forge creation/exports). */
+  attuned?: boolean;
+  /** Free-text player notes carried across from Forge. */
+  notes?: string;
+  /** Rolled trinket detail, when the item is a trinket. */
+  trinket?: CharacterTrinket;
+  weight?: number;
+  description?: string;
+  type?: string;
+}
+
+/** A rolled trinket, as produced by the shared character creator. */
+export interface CharacterTrinket {
+  roll: number;
+  description: string;
+  short_name: string;
+  source: string;
+  type: string;
+  tags: string[];
+  roleplay_prompt: string;
+  dm_hook: string;
+}
+
+/** Class/species/background proficiency groups. */
+export interface CharacterProficiencies {
+  armor?: string[];
+  weapons?: string[];
+  tools?: string[];
+}
+
+/** A class or subclass feature reference from SRD data. */
+export interface SrdFeatureRef {
+  name: string;
+  slug: string;
+  level: number;
+  source: 'class' | 'subclass' | string;
+}
+
+/**
+ * Spells granted by a feat, which cast under their own rules rather than
+ * consuming ordinary spell slots.
+ */
+export interface FeatGrantedSpell {
+  spellSlug: string;
+  spellcastingAbility: AbilityKey;
+  usesPerDay?: number;
+  rechargeType: 'at-will' | 'long-rest' | 'short-rest';
+  featSlug: string;
 }
 
 export interface EquippedWeapon {
@@ -253,16 +307,60 @@ export interface Character {
     flaws?: string;
     classFeatures?: string[];
     racialTraits?: string[];
+    /** Alias kept alongside `racialTraits`; the creator speaks "species". */
+    speciesTraits?: string[];
     backgroundFeatures?: Array<{ name: string; description: string }>;
+    musicalInstrumentProficiencies?: string[];
     notes?: string;
   };
   selectedFeats?: string[];
   feats?: string[];
+  /**
+   * SRD feature references. Characters created before the shared creator
+   * landed may carry plain name strings; the creator emits structured refs.
+   */
   srdFeatures?: {
-    classFeatures?: string[];
-    subclassFeatures?: string[];
+    classFeatures?: Array<SrdFeatureRef | string>;
+    subclassFeatures?: Array<SrdFeatureRef | string>;
   };
   subclass?: string | null;
+  /** Stable slug for the class, independent of display name. */
+  classSlug?: string;
+  /** Species variant/lineage selections (e.g. Variant Human). */
+  selectedSpeciesVariant?: string;
+  selectedLineage?: string;
+  /** Armour/weapon/tool proficiency groups. */
+  proficiencies?: CharacterProficiencies;
+  /** 2024 heroic inspiration, tracked separately from 2014 inspiration. */
+  heroicInspiration?: boolean;
+  /** 2024 level-1 class choices. */
+  divineOrder?: 'protector' | 'thaumaturge';
+  primalOrder?: 'magician' | 'warden';
+  pactBoon?: 'blade' | 'chain' | 'tome';
+  /** Skills/tools with doubled proficiency. */
+  expertiseSkills?: string[];
+  /** Mastered weapon slugs (2024 weapon mastery). */
+  weaponMastery?: string[];
+  /** Fighting style slug and the resolved display name. */
+  fightingStyle?: string;
+  selectedFightingStyle?: string | null;
+  eldritchInvocations?: string[];
+  /** Origin feats granted by background or species. */
+  backgroundFeat?: string;
+  originFeat?: string;
+  /** Per-feat follow-up choices, e.g. Elemental Adept damage type. */
+  featChoices?: Record<string, Record<string, string | number | boolean | string[]>>;
+  /** Derived feat bonuses and toggles. */
+  featEffects?: Record<string, unknown>;
+  /** Record of level-up choices. */
+  levelHistory?: unknown[];
+  /** Equipped armour slug. */
+  equippedArmor?: string;
+  /** Rolled trinket from creation. */
+  trinket?: CharacterTrinket;
+  /** Per-rest resource counters. */
+  secondWindUses?: number;
+  actionSurgeUsed?: number;
   spellcasting?: Spellcasting;
   inventory?: InventoryItem[];
   currency?: {
@@ -540,15 +638,25 @@ export interface ForgeSpell {
   known?: boolean;
 }
 
+/**
+ * An inventory entry in a Forge export.
+ *
+ * Forge's canonical model keys items by `equipmentSlug`. Older exports (and
+ * hand-written JSON) used `id`/`name`, so both shapes are accepted and the
+ * import adapter resolves a slug from whichever is present.
+ */
 export interface ForgeEquippedItem {
+  equipmentSlug?: string;
   id?: string;
-  name: string;
+  name?: string;
   quantity: number;
   weight?: number;
   equipped?: boolean;
   attuned?: boolean;
+  notes?: string;
   description?: string;
   type?: string;
+  trinket?: CharacterTrinket;
 }
 
 export interface ForgeCharacter {
@@ -612,11 +720,27 @@ export interface ForgeCharacter {
 
   // Proficiencies
   languages?: string[];
-  proficiencies?: {
-    armor?: string[];
-    weapons?: string[];
-    tools?: string[];
-  };
+  proficiencies?: CharacterProficiencies;
+  classSlug?: string;
+  selectedLineage?: string;
+  heroicInspiration?: boolean;
+  divineOrder?: 'protector' | 'thaumaturge';
+  primalOrder?: 'magician' | 'warden';
+  pactBoon?: 'blade' | 'chain' | 'tome';
+  expertiseSkills?: string[];
+  weaponMastery?: string[];
+  fightingStyle?: string;
+  selectedFightingStyle?: string | null;
+  eldritchInvocations?: string[];
+  secondWindUses?: number;
+  actionSurgeUsed?: number;
+  backgroundFeat?: string;
+  originFeat?: string;
+  featChoices?: Record<string, Record<string, string | number | boolean | string[]>>;
+  featEffects?: Record<string, unknown>;
+  levelHistory?: unknown[];
+  equippedArmor?: string;
+  trinket?: CharacterTrinket;
 
   // Features and Traits
   featuresAndTraits?: {
@@ -627,10 +751,11 @@ export interface ForgeCharacter {
     classFeatures?: string[];
     speciesTraits?: string[];
     backgroundFeatures?: Array<{ name: string; description: string }>;
+    musicalInstrumentProficiencies?: string[];
   };
   srdFeatures?: {
-    classFeatures?: string[];
-    subclassFeatures?: string[];
+    classFeatures?: Array<SrdFeatureRef | string>;
+    subclassFeatures?: Array<SrdFeatureRef | string>;
   };
 
   // Spellcasting
@@ -645,6 +770,9 @@ export interface ForgeCharacter {
     spellSlots: number[];
     usedSpellSlots: number[];
     spellcastingType: 'known' | 'prepared' | 'wizard';
+    featGrantedSpells?: FeatGrantedSpell[];
+    cantripChoicesByLevel?: Record<number, string>;
+    spellChoicesByLevel?: Record<number, string>;
   };
 
   // Inventory
@@ -656,11 +784,11 @@ export interface ForgeCharacter {
     gp: number;
     pp: number;
   };
-  equippedWeapons?: Array<{
-    weaponSlug?: string;
-    equipped?: boolean;
-    quantity?: number;
-  }>;
+  /**
+   * Forge's canonical model stores equipped weapons as equipment slugs; older
+   * exports used objects. Both are accepted and normalised on import.
+   */
+  equippedWeapons?: Array<string | EquippedWeapon>;
 
   // Character Advancement
   subclass?: string | null;

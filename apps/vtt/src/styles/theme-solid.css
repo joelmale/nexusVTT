@@ -49,10 +49,18 @@
   --shadow-glass-xl: 0 12px 30px rgba(0, 0, 0, 0.5);
 }
 
-/* Global backdrop-filter removal for performance */
-.theme-solid *,
-.theme-solid *::before,
-.theme-solid *::after {
+/*
+ * Global backdrop-filter removal for performance.
+ *
+ * The shared character creator (@nexus/character-creator) renders into a
+ * portal on <body> and ships its own scoped stylesheet, so it is excluded
+ * from this app's blanket element theming — otherwise these `!important`
+ * rules would repaint a component this app does not own. See
+ * `.nexus-character-creator` in the package's creator.css.
+ */
+.theme-solid *:not(.nexus-character-creator *):not(.nexus-character-creator),
+.theme-solid *:not(.nexus-character-creator *):not(.nexus-character-creator)::before,
+.theme-solid *:not(.nexus-character-creator *):not(.nexus-character-creator)::after {
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
 }
@@ -60,7 +68,7 @@
 /* ========================================================================== BUTTON STYLES ========================================================================== */
 
 /* Button solid overrides - use color scheme */
-.theme-solid button:not(.unstyled) {
+.theme-solid button:not(.unstyled):not(.nexus-character-creator *):not(.nexus-character-creator) {
   background: var(--solid-bg-secondary) !important;
   border: 1px solid var(--solid-border);
 }
@@ -106,7 +114,7 @@
     0 4px 6px -4px rgba(107, 114, 128, 0.5) !important;
 }
 
-.theme-solid button::before {
+.theme-solid button:not(.nexus-character-creator *):not(.nexus-character-creator)::before {
   display: none; /* Remove shine animation */
 }
 
@@ -228,7 +236,7 @@
     0 4px 6px -4px rgba(107, 114, 128, 0.5) !important;
 }
 
-.theme-solid button::before {
+.theme-solid button:not(.nexus-character-creator *):not(.nexus-character-creator)::before {
   display: none; /* Remove shine animation */
 }
 
@@ -640,7 +648,7 @@
 .theme-solid .brand-title,
 .theme-solid .roller-name,
 .theme-solid .layout-header h1,
-.theme-solid h1 {
+.theme-solid h1:not(.nexus-character-creator *):not(.nexus-character-creator) {
   background: linear-gradient(
     135deg,
     var(--solid-text) 0%,
@@ -809,7 +817,7 @@
 .theme-solid .brand-title,
 .theme-solid .roller-name,
 .theme-solid .layout-header h1,
-.theme-solid h1 {
+.theme-solid h1:not(.nexus-character-creator *):not(.nexus-character-creator) {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
   background: linear-gradient(

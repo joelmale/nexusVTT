@@ -3,8 +3,8 @@ import { X, Check, Sparkles, BookOpen } from 'lucide-react';
 import { SpellSelectionData } from '../types/dnd';
 import { AppSpell, getCantripsByClass, getLeveledSpellsByClass } from '../services/dataService';
 import { getSpellcastingType } from '../utils/spellUtils';
-import { SPELL_LEARNING_RULES } from '../data/spellLearning';
-import cantripsData from '../data/cantrips.json';
+import { SPELL_LEARNING_RULES } from '@nexus/character-creator/data/spellLearning';
+import cantripsData from '@nexus/character-creator/data/cantrips.json';
 
 interface SpellEditModalProps {
   classSlug: string;
