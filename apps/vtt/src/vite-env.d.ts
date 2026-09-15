@@ -18,6 +18,14 @@ interface ImportMetaEnv {
    * falls back to import.meta.env.DEV. See src/utils/devMode.ts.
    */
   readonly VITE_DEV_MODE?: string;
+  /**
+   * Opt-in switch for the developer tooling UI (Quick Start, Quick DM/Player,
+   * Admin Panel, seeding, clear-all). DEFAULTS TO OFF -- set to 'true' to show
+   * it. Deliberately not inferred from import.meta.env.DEV, because this
+   * tooling writes and deletes real data. The server gate is ENABLE_DEV_TOOLS.
+   * See src/utils/devMode.ts.
+   */
+  readonly VITE_ENABLE_DEV_TOOLS?: string;
 }
 
 interface ImportMeta {

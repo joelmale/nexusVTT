@@ -242,3 +242,95 @@ export function generateRandomCharacter(ownerId: string): Omit<CharacterRecord, 
     data: characterData
   };
 }
+
+// ─── Scene Generation ────────────────────────────────────────────────────────
+
+const SCENE_NAMES = [
+  "The Sunless Citadel",
+  "Goblin Ambush",
+  "The Cragmaw Hideout",
+  "Ruins of Thundertree",
+  "The Whispering Crypt",
+  "Blackwater Crossing",
+  "The Shattered Spire",
+  "Emberfall Tavern",
+  "The Drowned Vault",
+  "Wyrmrest Barrows"
+];
+
+/**
+ * Shape accepted by the client's `gameStore.createScene()`, which is typed as
+ * `Omit<Scene, 'id' | 'createdAt' | 'updatedAt' | 'roomCode'>` and injects those
+ * four fields itself.
+ *
+ * Source of truth for the full Scene interface is `src/types/game.ts` (the
+ * `Scene` interface). It is redeclared structurally here because the server
+ * tsconfig (`tsconfig.server.json`) deliberately excludes `src/`, so the client
+ * types are not importable from server code. The unit test for this generator
+ * asserts the contract so drift surfaces as a test failure rather than at
+ * runtime.
+ */
+export interface GeneratedScenePayload {
+  name: string;
+  description: string;
+  visibility: 'private' | 'shared' | 'public';
+  isEditable: boolean;
+  createdBy: string;
+  gridSettings: {
+    enabled: boolean;
+    type: 'square' | 'hex';
+    size: number;
+    color: string;
+    opacity: number;
+    snapToGrid: boolean;
+    showToPlayers: boolean;
+  };
+  lightingSettings: {
+    enabled: boolean;
+    globalIllumination: boolean;
+    ambientLight: number;
+    darkness: number;
+  };
+  drawings: never[];
+  placedTokens: never[];
+  placedProps: never[];
+  isActive: boolean;
+  playerCount: number;
+}
+
+/**
+ * Builds a blank, grid-enabled scene for dev seeding.
+ *
+ * Deliberately has no `backgroundImage`: an empty gridded canvas is the fastest
+ * useful surface to test tokens, drawings and fog against, and map generation is
+ * already covered by the generator hub.
+ */
+export function generateRandomScene(createdBy: string): GeneratedScenePayload {
+  return {
+    name: getRandomElement(SCENE_NAMES),
+    description: 'Seeded development scene.',
+    visibility: 'shared',
+    isEditable: true,
+    createdBy,
+    gridSettings: {
+      enabled: true,
+      type: 'square',
+      size: 50,
+      color: '#ffffff',
+      opacity: 0.2,
+      snapToGrid: true,
+      showToPlayers: true,
+    },
+    lightingSettings: {
+      enabled: false,
+      globalIllumination: true,
+      ambientLight: 1,
+      darkness: 0,
+    },
+    drawings: [],
+    placedTokens: [],
+    placedProps: [],
+    isActive: true,
+    playerCount: 0,
+  };
+}

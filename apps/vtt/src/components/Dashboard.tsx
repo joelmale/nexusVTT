@@ -7,6 +7,8 @@ import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { useCharacterCreationLauncher } from '@/hooks';
+import { clearAll, seedData } from '@/services/devSeed';
+import { isDevToolsEnabled } from '@/utils/devMode';
 import type { GameConfig, PlayerCharacter } from '@/types/game';
 
 // Import our new Atomic components
@@ -87,6 +89,7 @@ export const Dashboard: React.FC = () => {
   const [campaigns, setCampaigns] = useState<ApiCampaign[]>([]);
   const [characters, setCharacters] = useState<ApiCharacter[]>([]);
   const [loading, setLoading] = useState(true);
+  const [seeding, setSeeding] = useState(false);
 
   // Session Modal State
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
@@ -295,13 +298,36 @@ export const Dashboard: React.FC = () => {
   };
 
   const handleClearAll = async () => {
-    if (confirm('Clear all local game data and sessions?')) {
-      try {
-        await fetch('/api/dev/clear-all', { method: 'POST' });
-        await fetchDashboardData();
-      } catch (err) {
-        console.error(err);
+    if (
+      !confirm(
+        'Permanently delete ALL campaigns and characters on this account? This cannot be undone.',
+      )
+    ) {
+      return;
+    }
+    try {
+      const result = await clearAll();
+      if (!result.success && result.errors.length) {
+        console.error('Clear all reported errors:', result.errors);
+        alert(`Cleared with errors: ${result.errors.join('; ')}`);
       }
+      await fetchDashboardData();
+    } catch (err) {
+      console.error('Failed to clear data:', err);
+      alert(err instanceof Error ? err.message : 'Failed to clear data');
+    }
+  };
+
+  const handleSeedData = async () => {
+    setSeeding(true);
+    try {
+      await seedData({ campaigns: 3, characters: 4 });
+      await fetchDashboardData();
+    } catch (err) {
+      console.error('Failed to seed test data:', err);
+      alert(err instanceof Error ? err.message : 'Failed to seed test data');
+    } finally {
+      setSeeding(false);
     }
   };
 
@@ -404,6 +430,8 @@ export const Dashboard: React.FC = () => {
         onImport={() => alert('Importing JSON sheets...')}
         onExport={() => alert('Exporting sheets...')}
         onClearAll={handleClearAll}
+        onSeedData={isDevToolsEnabled() ? handleSeedData : undefined}
+        seeding={seeding}
         onPlayCampaign={handlePlayCampaign}
         onCreateCampaign={handleCreateCampaign}
         onEditCampaign={handleEditCampaign}

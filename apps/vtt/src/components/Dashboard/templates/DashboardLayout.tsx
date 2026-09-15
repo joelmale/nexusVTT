@@ -21,6 +21,9 @@ interface DashboardLayoutProps {
   onImport?: () => void;
   onExport?: () => void;
   onClearAll?: () => void;
+  /** Dev-only seeding; absent in production so the button never renders. */
+  onSeedData?: () => void;
+  seeding?: boolean;
 
   onPlayCampaign?: (campaign: Campaign) => void;
   onEditCampaign?: (campaign: Campaign) => void;
@@ -46,6 +49,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onImport,
   onExport,
   onClearAll,
+  onSeedData,
+  seeding = false,
 
   onPlayCampaign,
   onEditCampaign,
@@ -101,6 +106,8 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
         onImport={onImport}
         onExport={onExport}
         onClearAll={onClearAll}
+        onSeedData={onSeedData}
+        seeding={seeding}
         className="relative z-10"
       />
 

@@ -5,6 +5,7 @@ import Map from 'lucide-react/dist/esm/icons/map';
 import Download from 'lucide-react/dist/esm/icons/download';
 import Upload from 'lucide-react/dist/esm/icons/upload';
 import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
+import Wand2 from 'lucide-react/dist/esm/icons/wand-2';
 
 interface ActionBarProps {
   onCreateCharacter?: () => void;
@@ -12,6 +13,12 @@ interface ActionBarProps {
   onImport?: () => void;
   onExport?: () => void;
   onClearAll?: () => void;
+  /**
+   * Dev-only seeding. The dashboard passes this only when dev mode is active,
+   * so the button is absent (not merely disabled) in production builds.
+   */
+  onSeedData?: () => void;
+  seeding?: boolean;
   className?: string;
 }
 
@@ -21,6 +28,8 @@ export const ActionBar: React.FC<ActionBarProps> = ({
   onImport,
   onExport,
   onClearAll,
+  onSeedData,
+  seeding = false,
   className = '',
 }) => {
   return (
@@ -38,7 +47,7 @@ export const ActionBar: React.FC<ActionBarProps> = ({
         `,
       }}
     >
-      {/* Left side actions */}
+      {/* Left side: primary actions */}
       <div className="flex flex-wrap items-center gap-2">
         <Button
           variant="bronze"
@@ -54,14 +63,27 @@ export const ActionBar: React.FC<ActionBarProps> = ({
         >
           Join Game
         </Button>
+        {onSeedData && (
+          <Button
+            variant="bronze"
+            onClick={onSeedData}
+            disabled={seeding}
+            icon={<Wand2 size={14} className="text-[#f1e6d3]" />}
+            title="Populate this account with randomly generated campaigns and characters"
+          >
+            {seeding ? 'Seeding…' : 'Seed Test Data'}
+          </Button>
+        )}
       </div>
 
-      {/* Right side utilities */}
+      {/* Right side: data utilities. Import pulls data IN (upload a sheet),
+          Export sends it OUT (download a file) — the icons previously read the
+          opposite way round. */}
       <div className="flex flex-wrap items-center gap-2">
         <Button
           variant="ghost"
           onClick={onImport}
-          icon={<Download size={14} />}
+          icon={<Upload size={14} />}
           className="text-xs"
         >
           Import
@@ -70,20 +92,29 @@ export const ActionBar: React.FC<ActionBarProps> = ({
         <Button
           variant="ghost"
           onClick={onExport}
-          icon={<Upload size={14} />}
+          icon={<Download size={14} />}
           className="text-xs"
         >
           Export
         </Button>
-        <div className="w-[1px] h-4 bg-[#8c6b4a]/30" />
-        <Button
-          variant="ghost"
-          onClick={onClearAll}
-          icon={<Trash2 size={14} />}
-          className="text-xs hover:!text-red-400"
-        >
-          Clear All
-        </Button>
+
+        {/* Destructive actions are separated by a heavier rule and carry a
+            persistent danger colour, rather than sitting flush with the
+            reversible utilities and only turning red on hover. */}
+        {onClearAll && (
+          <>
+            <div className="w-[2px] h-5 bg-[#2a1708]/50 mx-1" />
+            <Button
+              variant="ghost"
+              onClick={onClearAll}
+              icon={<Trash2 size={14} />}
+              className="text-xs !text-[#7f1d1d] hover:!text-red-500"
+              title="Permanently delete all campaigns and characters on this account"
+            >
+              Clear All
+            </Button>
+          </>
+        )}
       </div>
     </section>
   );

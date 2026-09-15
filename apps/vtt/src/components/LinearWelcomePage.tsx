@@ -10,10 +10,11 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
+import { useQuickStart } from '@/hooks/useQuickStart';
 import { PopoverMenu } from './PopoverMenu';
 import { useShallow } from 'zustand/react/shallow';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.webp';
-import { isDevMode } from '@/utils/devMode';
+import { isDevToolsEnabled } from '@/utils/devMode';
 
 interface Campaign {
   id: string;
@@ -42,6 +43,7 @@ export const LinearWelcomePage: React.FC = () => {
   const login = useGameStore((s) => s.login);
   const logout = useGameStore((s) => s.logout);
   const navigate = useNavigate();
+  const quickStartDev = useQuickStart();
   // Uncontrolled inputs — avoids re-rendering the entire page on every keystroke.
   // We only track a cheap boolean so submit buttons can stay disabled when empty.
   const playerNameRef = useRef<HTMLInputElement>(null);
@@ -996,12 +998,24 @@ export const LinearWelcomePage: React.FC = () => {
             </fieldset>
           </form>
 
-          {/* Development Tools - gated by the unified dev-mode flag */}
-          {isDevMode() && (
+          {/* Development Tools - opt-in via VITE_ENABLE_DEV_TOOLS (default off).
+              Deliberately a stronger gate than isDevMode(): these actions write
+              and delete real campaigns and characters. */}
+          {isDevToolsEnabled() && (
             <div className="dev-tools">
               <hr className="dev-divider" />
               <h4 className="dev-title">⚡ Development Tools</h4>
               <div className="dev-buttons">
+                <button
+                  onClick={() => void quickStartDev.start()}
+                  disabled={quickStartDev.isSeeding}
+                  className="dev-btn glass-button primary small"
+                  title="Seed a campaign, character, room, scene and token, then jump straight to the canvas"
+                >
+                  {quickStartDev.isSeeding
+                    ? `⏳ ${quickStartDev.phase ?? 'starting'}...`
+                    : '⚡ Quick Start'}
+                </button>
                 <button
                   onClick={() => dev_quickDM()}
                   className="dev-btn glass-button secondary small"
@@ -1026,6 +1040,12 @@ export const LinearWelcomePage: React.FC = () => {
                   ⚙️ Admin Panel
                 </button>
               </div>
+              {quickStartDev.error && (
+                <div className="error-message glass-panel error" role="alert">
+                  <span className="error-icon">⚠️</span>
+                  {quickStartDev.error}
+                </div>
+              )}
             </div>
           )}
         </div>

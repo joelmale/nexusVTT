@@ -11,14 +11,15 @@ For the monorepo overview and the other Nexus apps, see the
 ```bash
 cd apps/vtt
 npm install
-npm run start:all  # PostgreSQL, Redis, frontend, and backend
+npm run start:all  # PostgreSQL, generator hub, frontend, and backend
 ```
 
-| Service  | URL                   |
-| -------- | --------------------- |
-| Frontend | http://localhost:5173 |
-| Backend  | http://localhost:5001 |
-| Database | `localhost:5432`      |
+| Service       | URL                   |
+| ------------- | --------------------- |
+| Frontend      | http://localhost:5173 |
+| Generator Hub | http://localhost:5174 |
+| Backend       | http://localhost:5001 |
+| Database      | `localhost:5432`      |
 
 `start:all` checks the local infrastructure before starting the application
 processes.

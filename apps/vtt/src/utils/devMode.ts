@@ -20,3 +20,21 @@ export function isDevMode(): boolean {
   if (flag === 'false') return false;
   return import.meta.env.DEV === true;
 }
+
+/**
+ * Opt-in switch for the lobby/dashboard developer tooling (Quick Start, Quick
+ * DM/Player, Admin Panel, test-data seeding and the clear-all teardown).
+ *
+ * DEFAULTS TO OFF. Unlike `isDevMode()`, this does NOT fall back to
+ * `import.meta.env.DEV`: this tooling creates and deletes real campaigns and
+ * characters, so it must be switched on deliberately rather than appearing in
+ * every dev build.
+ *
+ * Enable with `VITE_ENABLE_DEV_TOOLS=true`. The server has an independent gate
+ * (`ENABLE_DEV_TOOLS`, see server/utils/devMode.ts); BOTH must be set for the
+ * tooling to appear and function. Keeping them separate means a stale client
+ * build can never reach a server that has the routes disabled.
+ */
+export function isDevToolsEnabled(): boolean {
+  return import.meta.env.VITE_ENABLE_DEV_TOOLS === 'true';
+}

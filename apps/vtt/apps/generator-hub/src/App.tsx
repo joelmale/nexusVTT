@@ -1,12 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
-import type {
-  GeneratorExportArtifact,
-  GeneratorHostMessage,
-} from '../../../shared/generator/protocol';
+import type { GeneratorHostMessage } from '../../../shared/generator/protocol';
+import { getGeneratorUrl, type GeneratorSource } from './generatorUrl';
 
-function isGeneratorSource(
-  value: string | null,
-): value is GeneratorExportArtifact['source'] {
+function isGeneratorSource(value: string | null): value is GeneratorSource {
   return (
     value === 'dungeon' ||
     value === 'world' ||
@@ -65,12 +61,7 @@ function App() {
     : 'dungeon';
   const forceRasterize = urlParams.get('rasterize') === 'true';
 
-  let iframeSrc = '';
-  if (generator === 'dungeon') iframeSrc = '/one-page-dungeon/index.html';
-  if (generator === 'world') iframeSrc = '/world-map-generator/index.html';
-  if (generator === 'cave') iframeSrc = '/cave-generator/index.html';
-  if (generator === 'city') iframeSrc = '/city-generator/index.html';
-  if (generator === 'dwelling') iframeSrc = '/dwellings-generator/index.html';
+  const iframeSrc = getGeneratorUrl(generator, window.location.href);
 
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {

@@ -8,14 +8,38 @@ import { sanitizeLog } from '../sanitizeLog.js';
 import {
   generateRandomCampaign,
   generateRandomCharacter,
+  generateRandomScene,
 } from '../utils/mockGenerator.js';
-import { isDevMode } from '../utils/devMode.js';
+import { isDevToolsEnabled } from '../utils/devMode.js';
 import { toAuthResponse, } from '../utils/publicUser.js';
 import { requireAuthenticatedNonGuest } from '../middleware/assetWriteGuard.js';
 import { setupGeneratedMapsRoute } from './generatedMaps.js';
 
 interface ApiSession extends Session {
   guestUser?: { id: string; name: string; provider: string };
+}
+
+/**
+ * Resolves the acting user for DEV-ONLY seeding routes, accepting guests.
+ *
+ * Passport's `req.isAuthenticated()` is true only for OAuth (Google/Discord)
+ * logins. Guests are created by POST /api/guest-users, which stores
+ * `req.session.guestUser` and never calls `req.login()` -- see the ground-truth
+ * note in server/middleware/assetWriteGuard.ts. Guests are the fastest way into
+ * the app, so the dev seeding routes accept them too.
+ *
+ * DO NOT reuse this in production routes. It is safe here ONLY because every
+ * caller is wrapped in `isDevToolsEnabled()` (ENABLE_DEV_TOOLS, default off),
+ * which remains the security boundary.
+ * Production identity checks must keep using `req.isAuthenticated()` /
+ * `requireAuthenticatedNonGuest`.
+ */
+function resolveDevUserId(req: express.Request): string | null {
+  if (req.isAuthenticated?.()) {
+    return (req.user as { id: string }).id;
+  }
+  const guest = (req.session as ApiSession)?.guestUser;
+  return guest?.id ?? null;
 }
 
 type CharacterRecord = {
@@ -358,18 +382,21 @@ export function registerApiRoutes(
   });
 
   /**
-   * POST /api/dev/populate-mock-data
-   * Dev-only endpoint to populate mock campaigns and characters.
-   * Gated by the unified dev-mode flag (DEV_MODE, default NODE_ENV!==production).
+   * Developer tooling routes: quick start, mock-data seeding, and teardown.
+   *
+   * Gated by ENABLE_DEV_TOOLS, which DEFAULTS TO OFF and is deliberately not
+   * inferred from NODE_ENV -- these routes write and delete real rows and accept
+   * guest identities, so they must be switched on explicitly.
    */
-  if (isDevMode()) {
+  if (isDevToolsEnabled()) {
     app.post('/api/dev/populate-mock-data', async (req, res) => {
       try {
-        if (!req.isAuthenticated()) {
+        const userId = resolveDevUserId(req);
+        if (!userId) {
           return res.status(401).json({ error: 'Authentication required' });
         }
 
-        const user = req.user as { id: string };
+        const user = { id: userId };
 
         // Configurable counts (default 3 campaigns / 4 characters), clamped to
         // a sane range so a bad request can't ask for thousands of inserts.
@@ -428,6 +455,107 @@ export function registerApiRoutes(
       } catch (error) {
         console.error('Failed to populate mock data:', error);
         res.status(500).json({ error: 'Failed to populate mock data' });
+      }
+    });
+
+    /**
+     * POST /api/dev/quick-start
+     * Dev-only. Seeds exactly one campaign + one character and returns them
+     * along with a scene payload, in a single round trip, so the client can go
+     * straight from the lobby to a populated canvas.
+     *
+     * The scene is RETURNED, not persisted here: the client must create it
+     * through `gameStore.createScene()` after the room exists, so it picks up
+     * the room code and joins the normal sync path.
+     */
+    app.post('/api/dev/quick-start', async (req, res) => {
+      try {
+        const userId = resolveDevUserId(req);
+        if (!userId) {
+          return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        const campData = generateRandomCampaign(userId);
+        const campaign = await db.createCampaign(
+          userId,
+          campData.name,
+          campData.description ?? undefined,
+        );
+
+        const charData = generateRandomCharacter(userId);
+        const character = await db.createCharacter(
+          userId,
+          charData.name,
+          charData.data,
+        );
+
+        const scene = generateRandomScene(userId);
+
+        console.log(
+          `⚡ Quick start seeded for user ${sanitizeLog(userId)}: campaign ${sanitizeLog(campaign.id)}, character ${sanitizeLog(character.id)}`,
+        );
+
+        res.json({ campaign, character, scene });
+      } catch (error) {
+        console.error('Quick start seeding failed:', error);
+        res.status(500).json({ error: 'Quick start seeding failed' });
+      }
+    });
+
+    /**
+     * POST /api/dev/clear-all
+     * Dev-only. Deletes every campaign and character owned by the caller, so a
+     * seeded environment can be reset without touching the database by hand.
+     * Scoped to the caller: it never deletes another user's rows.
+     */
+    app.post('/api/dev/clear-all', async (req, res) => {
+      try {
+        const userId = resolveDevUserId(req);
+        if (!userId) {
+          return res.status(401).json({ error: 'Authentication required' });
+        }
+
+        const campaigns = await db.getCampaignsByUser(userId);
+        let deletedCampaigns = 0;
+        const errors: string[] = [];
+
+        // Isolate each delete so one failure can't abort the whole teardown.
+        for (const campaign of campaigns) {
+          try {
+            await db.deleteCampaign(campaign.id);
+            deletedCampaigns++;
+          } catch (err) {
+            console.error(`Clear campaign ${campaign.id} failed:`, err);
+            errors.push(`campaign ${campaign.id}: ${(err as Error).message}`);
+          }
+        }
+
+        let deletedCharacters = 0;
+        try {
+          const characters = await db.getCharactersByUser(userId);
+          deletedCharacters = characters.length;
+          await db.deleteCharactersByUser(userId);
+        } catch (err) {
+          console.error('Clear characters failed:', err);
+          errors.push(`characters: ${(err as Error).message}`);
+          deletedCharacters = 0;
+        }
+
+        console.log(
+          `🧹 Cleared dev data for user ${sanitizeLog(userId)}: ${deletedCampaigns} campaigns, ${deletedCharacters} characters`,
+        );
+
+        res.json({
+          success: errors.length === 0,
+          deleted: {
+            campaigns: deletedCampaigns,
+            characters: deletedCharacters,
+          },
+          errors,
+        });
+      } catch (error) {
+        console.error('Failed to clear dev data:', error);
+        res.status(500).json({ error: 'Failed to clear dev data' });
       }
     });
   }

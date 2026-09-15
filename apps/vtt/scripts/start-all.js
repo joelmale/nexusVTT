@@ -173,10 +173,14 @@ async function ensurePostgres() {
 }
 
 // Find available port starting from preferred port
-async function findAvailablePort(startPort, maxAttempts = 10) {
+async function findAvailablePort(
+  startPort,
+  maxAttempts = 10,
+  reservedPorts = new Set(),
+) {
   for (let i = 0; i < maxAttempts; i++) {
     const port = startPort + i;
-    if (await checkPort(port)) {
+    if (!reservedPorts.has(port) && (await checkPort(port))) {
       return port;
     }
   }
@@ -241,6 +245,9 @@ VITE_ASSET_SERVER_URL=${viteAssetServerUrl || `http://localhost:${ports.websocke
 # WebSocket Server URL (must start with VITE_ to be available in browser)
 VITE_WS_PORT=${ports.websocket}
 
+# Generator Hub URL
+VITE_GENERATOR_HUB_URL=http://localhost:${ports.generatorHub}
+
 # Optional proxy overrides for Vite dev server
 VITE_API_PROXY_URL=${viteApiProxyUrl}
 VITE_WS_PROXY_URL=${viteWsProxyUrl}
@@ -288,6 +295,7 @@ class IntelligentStarter {
     this.isShuttingDown = false;
     this.defaultPorts = {
       frontend: 5173,
+      generatorHub: 5174,
       websocket: 5001,
       assetService: 5003,
     };
@@ -409,14 +417,18 @@ class IntelligentStarter {
       `${colors.cyan}🔍 Auto-selecting available ports...${colors.reset}\n`
     );
 
-    const ports = {
-      frontend: await findAvailablePort(this.defaultPorts.frontend),
-      websocket: await findAvailablePort(this.defaultPorts.websocket),
-      assetService: await findAvailablePort(this.defaultPorts.assetService),
-    };
+    const reservedPorts = new Set();
+    const ports = {};
+
+    for (const [service, defaultPort] of Object.entries(this.defaultPorts)) {
+      const port = await findAvailablePort(defaultPort, 10, reservedPorts);
+      ports[service] = port;
+      reservedPorts.add(port);
+    }
 
     console.log(`${colors.green}✅ Selected ports:${colors.reset}`);
     console.log(`   Frontend:  ${ports.frontend}`);
+    console.log(`   Generator: ${ports.generatorHub}`);
     console.log(`   Backend:   ${ports.websocket} (WebSocket + Assets)`);
     console.log(`   Assets:    ${ports.assetService}\n`);
 
@@ -427,6 +439,14 @@ class IntelligentStarter {
     console.log(`${colors.cyan}📝 Manual port selection:${colors.reset}\n`);
 
     const ports = { ...this.defaultPorts };
+    const conflictingServices = new Set(
+      portStatus.conflicts.map(({ service }) => service),
+    );
+    const reservedPorts = new Set(
+      Object.entries(ports)
+        .filter(([service]) => !conflictingServices.has(service))
+        .map(([, port]) => port),
+    );
 
     for (const conflict of portStatus.conflicts) {
       const newPort = await getUserInput(
@@ -438,19 +458,29 @@ class IntelligentStarter {
         console.log(
           `${colors.red}Invalid port number. Using auto-selected port.${colors.reset}`
         );
-        ports[conflict.service] = await findAvailablePort(conflict.port);
-      } else if (!(await checkPort(portNum))) {
-        console.log(
-          `${colors.red}Port ${portNum} is also in use. Using auto-selected port.${colors.reset}`
+        ports[conflict.service] = await findAvailablePort(
+          conflict.port,
+          10,
+          reservedPorts,
         );
-        ports[conflict.service] = await findAvailablePort(portNum);
+      } else if (reservedPorts.has(portNum) || !(await checkPort(portNum))) {
+        console.log(
+          `${colors.red}Port ${portNum} is unavailable. Using auto-selected port.${colors.reset}`
+        );
+        ports[conflict.service] = await findAvailablePort(
+          portNum,
+          10,
+          reservedPorts,
+        );
       } else {
         ports[conflict.service] = portNum;
       }
+      reservedPorts.add(ports[conflict.service]);
     }
 
     console.log(`${colors.green}✅ Final port selection:${colors.reset}`);
     console.log(`   Frontend:  ${ports.frontend}`);
+    console.log(`   Generator: ${ports.generatorHub}`);
     console.log(`   Backend:   ${ports.websocket} (WebSocket + Assets)`);
     console.log(`   Assets:    ${ports.assetService}\n`);
 
@@ -541,6 +571,23 @@ class IntelligentStarter {
         },
       },
       {
+        name: "Generator Hub",
+        command: "npm",
+        args: [
+          "run",
+          "dev",
+          "--",
+          "--host",
+          "0.0.0.0",
+          "--port",
+          ports.generatorHub.toString(),
+        ],
+        cwd: path.join(__dirname, "../apps/generator-hub"),
+        prefix: "🗺️  [GENERATOR]",
+        color: colors.green,
+        env: {},
+      },
+      {
         name: "Frontend",
         command: "npm",
         args: ["run", "dev"],
@@ -568,6 +615,7 @@ class IntelligentStarter {
         `\n${colors.bright}✅ All services started successfully!${colors.reset}`
       );
       console.log(`🌐 Frontend: http://localhost:${ports.frontend}`);
+      console.log(`🗺️  Generator: http://localhost:${ports.generatorHub}`);
       console.log(`🔌 Backend:  http://localhost:${ports.websocket} (WebSocket + Assets)`);
       console.log(`🗂️  Assets:   http://localhost:${ports.assetService}`);
       console.log(
