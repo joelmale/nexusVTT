@@ -124,7 +124,8 @@ list of targets (`dev`, `build`, `test`, `clean`, `health-check`).
 
 ## Documentation
 
-Start at the [documentation application](apps/docs/README.md).
+Browse the [published Nexus documentation](https://joelmale.github.io/nexusVTT/)
+or start locally at the [documentation application](apps/docs/README.md).
 
 | Topic        | Entry point                                                                        |
 | ------------ | ---------------------------------------------------------------------------------- |
