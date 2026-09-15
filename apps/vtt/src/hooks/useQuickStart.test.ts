@@ -31,6 +31,9 @@ const createScene = vi.fn(() => {
 const autoPlaceCharacterToken = vi.fn(async () => {
   calls.push('token');
 });
+const setActiveScene = vi.fn(() => {
+  calls.push('activate');
+});
 
 vi.mock('@/stores/gameStore', () => ({
   useGameStore: {
@@ -40,6 +43,7 @@ vi.mock('@/stores/gameStore', () => ({
       setUser: vi.fn(),
       createGameRoom,
       createScene,
+      setActiveScene,
       autoPlaceCharacterToken,
     }),
   },
@@ -47,6 +51,13 @@ vi.mock('@/stores/gameStore', () => ({
 
 vi.mock('@/stores/characterStore', () => ({
   useCharacterStore: { setState: vi.fn() },
+}));
+
+const initialize = vi.fn(async () => {
+  calls.push('assets');
+});
+vi.mock('@/services/tokenAssets', () => ({
+  tokenAssetManager: { initialize: () => initialize() },
 }));
 
 vi.mock('@nexus/character-contracts', () => ({
@@ -78,7 +89,13 @@ describe('useQuickStart', () => {
       await result.current.start();
     });
 
-    expect(calls).toEqual(['room', 'scene', 'token']);
+    // The room's default "Scene 1" is already active, so the seeded scene must
+    // be activated explicitly before the token is placed -- otherwise the user
+    // lands on an empty scene and never sees it.
+    // 'assets' before 'token': the token library must be warm or the spawn
+    // primitive silently falls back to an imageless placeholder.
+    expect(calls).toEqual(['room', 'scene', 'activate', 'assets', 'token']);
+    expect(setActiveScene).toHaveBeenCalledWith('scene-1');
     expect(createGameRoom).toHaveBeenCalledWith(
       expect.objectContaining({ campaignId: 'camp-1', name: 'Seeded Campaign' }),
       false,

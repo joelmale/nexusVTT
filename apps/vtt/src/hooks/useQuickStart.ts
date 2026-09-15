@@ -120,13 +120,28 @@ export function useQuickStart() {
       );
 
       // 4. Scene — needs the session from step 3.
+      //
+      // createGameRoom() already creates a default "Scene 1" and marks it
+      // active, and createScene() only auto-activates when activeSceneId is
+      // null. So the seeded scene must be activated explicitly, or the user
+      // lands on the empty default and never sees the placed token.
       current = 'scene';
       setPhase(current);
       const createdScene = useGameStore.getState().createScene(scene);
+      useGameStore.getState().setActiveScene(createdScene.id);
 
       // 5. Token — reuses the existing spawn primitive.
+      //
+      // Wait for the token library first: autoPlaceCharacterToken resolves the
+      // art via tokenAssetManager.getDefaultTokenForCharacter(), which silently
+      // falls back to an imageless placeholder when the library has not loaded
+      // yet. Quick start fires on page load, so without this the race is the
+      // common case and the token renders as nothing. initialize() is
+      // idempotent, so this is a no-op once the library is warm.
       current = 'token';
       setPhase(current);
+      const { tokenAssetManager } = await import('@/services/tokenAssets');
+      await tokenAssetManager.initialize();
       await useGameStore
         .getState()
         .autoPlaceCharacterToken(character.id, createdScene.id);
