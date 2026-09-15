@@ -118,8 +118,16 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
   const selectedClass = allClasses.find(c => c.slug === data.classSlug);
 
   // Equipment mode state
+  // `background-choice` is a fork, not a finished state: `allChoicesMade` has no
+  // true branch for it. Resume the mode the player's saved choice implies, so
+  // revisiting the step does not strand them behind a gate they already passed.
   const [equipmentMode, setEquipmentMode] = React.useState<'quickstart' | 'buy' | 'choices' | 'background-choice'>(
-    data.edition === '2024' ? 'background-choice' : 'quickstart'
+    () => {
+      if (data.edition !== '2024') return 'quickstart';
+      if (data.equipmentChoice === 'background') return 'quickstart';
+      if (data.equipmentChoice === 'gold') return 'buy';
+      return 'background-choice';
+    }
   );
 
   // Background equipment choice state
@@ -205,6 +213,53 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
     }
   };
 
+  /**
+   * Fills in every outstanding equipment decision at random.
+   *
+   * This previously did nothing, which made the button dead UI: on the 2024
+   * flow it looked like the way past the "make all equipment choices" gate and
+   * never was.
+   */
+  const randomizeEquipment = () => {
+    // 2024 opens on a fork between the background kit and 50 gp. Resolve it
+    // first, because neither of the later modes is reachable until it is.
+    if (equipmentMode === 'background-choice') {
+      const takeBackground = Math.random() < 0.5;
+      if (takeBackground) {
+        setBackgroundChoice('background');
+        updateData({ equipmentChoice: 'background' });
+        setEquipmentMode('quickstart');
+      } else {
+        setBackgroundChoice('gold');
+        updateData({ equipmentChoice: 'gold', equipmentGold: 50 });
+        setStartingGold(50);
+        setGoldRolled(true);
+        setEquipmentMode('buy');
+      }
+      return;
+    }
+
+    if (equipmentMode === 'choices') {
+      const choices = data.equipmentChoices || [];
+      updateData({
+        equipmentChoices: choices.map((choice) => ({
+          ...choice,
+          selected:
+            choice.selected !== null && choice.selected !== undefined
+              ? choice.selected
+              : Math.floor(Math.random() * Math.max(choice.options?.length || 1, 1)),
+        })),
+      });
+      return;
+    }
+
+    if (equipmentMode === 'buy' && !goldRolled) {
+      setStartingGold(data.equipmentGold || 50);
+      setGoldRolled(true);
+      updateData({ equipmentChoice: 'gold', equipmentGold: data.equipmentGold || 50 });
+    }
+  };
+
   return (
     <div className='space-y-6'>
       <div className='flex justify-between items-start'>
@@ -215,10 +270,7 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
           </p>
         </div>
         <RandomizeButton
-          onClick={() => {
-            // Randomize equipment choices - this would need implementation
-
-          }}
+          onClick={randomizeEquipment}
           title="Randomize equipment choices"
         />
       </div>

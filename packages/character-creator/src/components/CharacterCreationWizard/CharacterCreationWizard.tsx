@@ -51,10 +51,15 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
     setError
   } = useCreationSubmission({ onComplete, edition });
 
-  const { nextStep, prevStep, skipToStep, getNextStepLabel } = useWizardNavigation(currentStep, setCurrentStep, creationData);
+  const { nextStep, prevStep, skipToStep, getNextStepLabel, visibleStepIndices } = useWizardNavigation(currentStep, setCurrentStep, creationData);
   
   // Get dynamic step titles based on edition
   const stepTitles = getStepTitles(creationData.edition || edition || '2014');
+
+  // Announce the position within the steps this character will actually be
+  // asked, matching what the progress bar shows.
+  const visibleStepCount = visibleStepIndices.length || stepTitles.length;
+  const stepPosition = Math.max(visibleStepIndices.indexOf(currentStep) + 1, 1);
 
   // Reset wizard when it opens
   useEffect(() => {
@@ -166,7 +171,7 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
       <div
         role="dialog"
         aria-modal="true"
-        aria-label={`Create a character — step ${currentStep + 1} of ${stepTitles.length}: ${stepTitles[currentStep] ?? ''}`}
+        aria-label={`Create a character — step ${stepPosition} of ${visibleStepCount}: ${stepTitles[currentStep] ?? ''}`}
         tabIndex={-1}
         className="bg-theme-secondary rounded-2xl shadow-2xl w-full max-w-5xl transition-all transform duration-300 scale-100 my-4 sm:my-8 flex flex-col max-h-[calc(100vh-2rem)] sm:max-h-[calc(100vh-4rem)]"
         onClick={(e) => e.stopPropagation()}
@@ -174,7 +179,7 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
         {/* Fixed Header */}
         <div className="flex-shrink-0 p-4 sm:p-6 md:p-8 pb-4">
           <WizardHeader currentStep={currentStep} stepTitles={stepTitles} onClose={handleCancel} />
-          <WizardProgressBar currentStep={currentStep} stepTitles={stepTitles} />
+          <WizardProgressBar currentStep={currentStep} stepTitles={stepTitles} visibleStepIndices={visibleStepIndices} />
         </div>
 
         {/* Error Display */}

@@ -1,4 +1,4 @@
-import { useCallback } from 'react';
+import { useCallback, useMemo } from 'react';
 import { CharacterCreationData } from '../../../types/dnd';
 import { getStepTitles } from '../constants/wizard.constants';
 import { hasSpellcastingAtLevel } from '../../../utils/spellUtils';
@@ -75,7 +75,28 @@ export const useWizardNavigation = (
     return 'Complete';
   }, [currentStep, creationData, stepTitles]);
 
-  return { nextStep, prevStep, skipToStep, getNextStepLabel };
+  /**
+   * The steps that will actually render for this character.
+   *
+   * Most of the fourteen are conditional — a level-1 Fighter never sees
+   * High-Level Setup, ASI, Spells or Feats — so counting all fourteen
+   * overstates the work by a third before the player has answered anything.
+   */
+  const visibleStepIndices = useMemo(
+    () =>
+      stepTitles
+        .map((_, index) => index)
+        .filter((index) => shouldShowStep(index, creationData)),
+    [stepTitles, creationData]
+  );
+
+  return {
+    nextStep,
+    prevStep,
+    skipToStep,
+    getNextStepLabel,
+    visibleStepIndices,
+  };
 };
 
 // Helper function to determine if a step should be shown
