@@ -122,7 +122,7 @@ services:
     command: redis-server --appendonly yes
 
   minio:
-    image: minio/minio:latest
+    image: quay.io/minio/minio:latest
     command: server /data --console-address ":9001"
     ports:
       - "9000:9000"
