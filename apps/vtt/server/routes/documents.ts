@@ -48,6 +48,34 @@ function getUserId(req: Request): string | null {
   return (req.session as CustomSession)?.guestUser?.id || null;
 }
 
+function getQueryString(val: unknown): string | undefined {
+  return typeof val === 'string' ? val.trim() : undefined;
+}
+
+function getQueryInt(val: unknown): number | undefined {
+  if (typeof val === 'string') {
+    const parsed = parseInt(val, 10);
+    return isNaN(parsed) ? undefined : parsed;
+  }
+  return undefined;
+}
+
+function getQueryArray(val: unknown): string[] | undefined {
+  if (Array.isArray(val)) {
+    return val
+      .filter((item): item is string => typeof item === 'string')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  if (typeof val === 'string') {
+    return val
+      .split(',')
+      .map((s) => s.trim())
+      .filter(Boolean);
+  }
+  return undefined;
+}
+
 /**
  * Create document routes
  * @param documentClient - DocumentServiceClient instance
@@ -202,7 +230,7 @@ export function createDocumentRoutes(
         return res.status(401).json({ error: 'User ID not found' });
       }
 
-      const campaign = req.query.campaign as string | undefined;
+      const campaign = getQueryString(req.query.campaign);
       if (campaign) {
         const authorized = await db.isUserAuthorizedForCampaign(
           userId,
@@ -218,14 +246,12 @@ export function createDocumentRoutes(
       const allowedCampaigns = await getUserAllowedCampaigns(userId);
 
       const params = {
-        skip: req.query.skip ? parseInt(req.query.skip as string) : undefined,
-        limit: req.query.limit
-          ? parseInt(req.query.limit as string)
-          : undefined,
-        type: req.query.type as DocumentType | undefined,
+        skip: getQueryInt(req.query.skip),
+        limit: getQueryInt(req.query.limit),
+        type: getQueryString(req.query.type) as DocumentType | undefined,
         campaign: campaign,
-        tag: req.query.tag as string,
-        search: req.query.search as string,
+        tag: getQueryString(req.query.tag),
+        search: getQueryString(req.query.search),
       };
 
       const result = await client.listDocuments(params);
@@ -434,7 +460,7 @@ export function createDocumentRoutes(
         return res.status(401).json({ error: 'User ID not found' });
       }
 
-      const query = req.query.query as string;
+      const query = getQueryString(req.query.query);
       if (!query) {
         return res.status(400).json({ error: 'Search query is required' });
       }
@@ -443,15 +469,11 @@ export function createDocumentRoutes(
 
       const params = {
         query,
-        type: req.query.type as DocumentType | undefined,
-        campaigns: req.query.campaigns
-          ? (req.query.campaigns as string).split(',')
-          : undefined,
-        tags: req.query.tags
-          ? (req.query.tags as string).split(',')
-          : undefined,
-        from: req.query.from ? parseInt(req.query.from as string) : undefined,
-        size: req.query.size ? parseInt(req.query.size as string) : undefined,
+        type: getQueryString(req.query.type) as DocumentType | undefined,
+        campaigns: getQueryArray(req.query.campaigns),
+        tags: getQueryArray(req.query.tags),
+        from: getQueryInt(req.query.from),
+        size: getQueryInt(req.query.size),
       };
 
       // Verify campaign authorization for any campaigns specified in search
@@ -512,14 +534,14 @@ export function createDocumentRoutes(
         return res.status(401).json({ error: 'User ID not found' });
       }
 
-      const query = req.query.query as string;
+      const query = getQueryString(req.query.query);
       if (!query) {
         return res.status(400).json({ error: 'Search query is required' });
       }
 
       const allowedCampaigns = await getUserAllowedCampaigns(userId);
 
-      const campaign = req.query.campaign as string | undefined;
+      const campaign = getQueryString(req.query.campaign);
       if (campaign) {
         const authorized = await db.isUserAuthorizedForCampaign(
           userId,
@@ -532,7 +554,7 @@ export function createDocumentRoutes(
         }
       }
 
-      const size = req.query.size ? parseInt(req.query.size as string) : 5;
+      const size = getQueryInt(req.query.size) ?? 5;
       const result = await client.quickSearch(query, campaign, size);
 
       // Post-filter quick search results
@@ -575,7 +597,7 @@ export function createDocumentRoutes(
         return res.status(401).json({ error: 'User ID not found' });
       }
 
-      const query = req.query.query as string;
+      const query = getQueryString(req.query.query);
       if (!query) {
         return res.status(400).json({ error: 'Search query is required' });
       }
@@ -584,14 +606,10 @@ export function createDocumentRoutes(
 
       const params = {
         query,
-        type: req.query.type as DocumentType | undefined,
-        campaigns: req.query.campaigns
-          ? (req.query.campaigns as string).split(',')
-          : undefined,
-        tags: req.query.tags
-          ? (req.query.tags as string).split(',')
-          : undefined,
-        topK: req.query.topK ? parseInt(req.query.topK as string) : undefined,
+        type: getQueryString(req.query.type) as DocumentType | undefined,
+        campaigns: getQueryArray(req.query.campaigns),
+        tags: getQueryArray(req.query.tags),
+        topK: getQueryInt(req.query.topK),
       };
 
       // Verify campaign authorization for any campaigns specified in search
@@ -740,8 +758,8 @@ export function createDocumentRoutes(
         return res.status(403).json({ error: 'Access denied' });
       }
 
-      const type = req.query.type as string | undefined;
-      const name = req.query.name as string | undefined;
+      const type = getQueryString(req.query.type);
+      const name = getQueryString(req.query.name);
 
       const data = await client.getDocumentStructuredData(documentId, {
         type,
@@ -809,12 +827,12 @@ export function createDocumentRoutes(
       const allowedCampaigns = await getUserAllowedCampaigns(userId);
 
       const params = {
-        documentId: req.query.documentId as string | undefined,
-        type: req.query.type as string | undefined,
-        name: req.query.name as string | undefined,
-        search: req.query.search as string | undefined,
-        limit: req.query.limit as string | undefined,
-        offset: req.query.offset as string | undefined,
+        documentId: getQueryString(req.query.documentId),
+        type: getQueryString(req.query.type),
+        name: getQueryString(req.query.name),
+        search: getQueryString(req.query.search),
+        limit: getQueryString(req.query.limit),
+        offset: getQueryString(req.query.offset),
       };
 
       // If filtering by documentId, check authorization

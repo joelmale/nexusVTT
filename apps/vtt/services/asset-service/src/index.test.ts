@@ -163,6 +163,49 @@ describe('asset-service user asset routes', () => {
     });
   });
 
+  describe('GET /search query parameter safety', () => {
+    beforeAll(async () => {
+      const assetsDir = path.join(tmpAssetsPath, 'assets');
+      fs.mkdirSync(assetsDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(assetsDir, 'manifest.json'),
+        JSON.stringify({
+          version: '1.0.0',
+          generatedAt: new Date().toISOString(),
+          totalAssets: 1,
+          categories: ['items'],
+          assets: [
+            {
+              id: '1',
+              name: 'Sword of Justice',
+              category: 'items',
+              tags: ['weapon'],
+              thumbnail: 'thumb.png',
+              fullImage: 'full.png',
+              dimensions: { width: 100, height: 100 },
+              fileSize: 1024,
+              format: 'png',
+            },
+          ],
+        }),
+      );
+      const { loadLegacyManifest } = await import('./index');
+      loadLegacyManifest();
+    });
+
+    it('rejects array query parameter tampering with 400', async () => {
+      const res = await request(app).get('/search?q[]=a&q[]=b');
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'Query must be at least 2 characters' });
+    });
+
+    it('rejects short query strings with 400', async () => {
+      const res = await request(app).get('/search?q=a');
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'Query must be at least 2 characters' });
+    });
+  });
+
   describe('unmatched routes and error handling', () => {
     it('returns a JSON 404 for unknown routes', async () => {
       const res = await request(app).get('/this-route-does-not-exist');

@@ -27,18 +27,21 @@ app.use(express.json());
 
 // Load manifest
 let manifest: AssetManifest | null = null;
-try {
-  if (fs.existsSync(MANIFEST_PATH)) {
-    manifest = parseAssetManifest(
-      JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8')) as unknown,
-    );
-    console.log(`Loaded manifest with ${manifest.totalAssets || 0} assets.`);
-  } else {
-    console.warn(`Manifest not found at ${MANIFEST_PATH}`);
+export function loadLegacyManifest(): void {
+  try {
+    if (fs.existsSync(MANIFEST_PATH)) {
+      manifest = parseAssetManifest(
+        JSON.parse(fs.readFileSync(MANIFEST_PATH, 'utf-8')) as unknown,
+      );
+      console.log(`Loaded manifest with ${manifest.totalAssets || 0} assets.`);
+    } else {
+      console.warn(`Manifest not found at ${MANIFEST_PATH}`);
+    }
+  } catch (error) {
+    console.error('Failed to load manifest:', error);
   }
-} catch (error) {
-  console.error('Failed to load manifest:', error);
 }
+loadLegacyManifest();
 
 // TMT library (B3): separate manifest-v2.json produced by tools/tmt-ingest/{normalize,derivatives,sync}.mjs.
 // Loaded lazily/reloadably so a sync run doesn't require restarting the service.
@@ -110,12 +113,12 @@ app.get('/search', (req, res) => {
   if (!manifest) {
     return res.status(503).json({ error: 'Manifest not loaded' });
   }
-  const query = String(req.query.q ?? '');
-  if (!query || query.length < 2) {
+  if (typeof req.query.q !== 'string' || req.query.q.trim().length < 2) {
     return res
       .status(400)
       .json({ error: 'Query must be at least 2 characters' });
   }
+  const query = req.query.q.trim();
   const lowercaseQuery = query.toLowerCase();
   const results = manifest.assets.filter(
     (asset) =>
@@ -133,8 +136,12 @@ app.get('/category/:category', (req, res) => {
     return res.status(503).json({ error: 'Manifest not loaded' });
   }
   const category = req.params.category;
-  const page = parseInt(req.query.page as string) || 0;
-  const limit = Math.min(parseInt(req.query.limit as string) || 20, 100);
+  const page =
+    typeof req.query.page === 'string' ? parseInt(req.query.page, 10) || 0 : 0;
+  const limit = Math.min(
+    typeof req.query.limit === 'string' ? parseInt(req.query.limit, 10) || 20 : 20,
+    100,
+  );
   let filteredAssets = manifest.assets;
   if (category !== 'all') {
     filteredAssets = manifest.assets.filter(
