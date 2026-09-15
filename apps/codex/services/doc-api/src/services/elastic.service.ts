@@ -81,30 +81,28 @@ class ElasticSearchService {
       const response = await this.client.search({
         index: this.index,
         size,
-        body: {
-          query: {
-            bool: {
-              must: [
-                {
-                  multi_match: {
-                    query,
-                    fields: ['title^3', 'description^2', 'content'],
-                    type: 'best_fields',
-                    fuzziness: 'AUTO',
-                  },
+        query: {
+          bool: {
+            must: [
+              {
+                multi_match: {
+                  query,
+                  fields: ['title^3', 'description^2', 'content'],
+                  type: 'best_fields',
+                  fuzziness: 'AUTO',
                 },
-              ],
-              filter: [{ term: { documentId } }],
-            },
-          },
-          highlight: {
-            fields: {
-              title: {},
-              description: {},
-              content: {
-                fragment_size: 150,
-                number_of_fragments: 3,
               },
+            ],
+            filter: [{ term: { documentId } }],
+          },
+        },
+        highlight: {
+          fields: {
+            title: {},
+            description: {},
+            content: {
+              fragment_size: 150,
+              number_of_fragments: 3,
             },
           },
         },
@@ -205,25 +203,23 @@ class ElasticSearchService {
         index: this.index,
         from: params.from || 0,
         size: params.size || 20,
-        body: {
-          query: {
-            bool: {
-              must: must.length > 0 ? must : [{ match_all: {} }],
-              filter: filter.length > 0 ? filter : undefined,
-            },
+        query: {
+          bool: {
+            must: must.length > 0 ? must : [{ match_all: {} }],
+            filter: filter.length > 0 ? filter : undefined,
           },
-          highlight: {
-            fields: {
-              title: {},
-              description: {},
-              content: {
-                fragment_size: 150,
-                number_of_fragments: 3,
-              },
-            },
-          },
-          sort,
         },
+        highlight: {
+          fields: {
+            title: {},
+            description: {},
+            content: {
+              fragment_size: 150,
+              number_of_fragments: 3,
+            },
+          },
+        },
+        sort,
       });
 
       return {
@@ -287,28 +283,26 @@ class ElasticSearchService {
         index: this.index,
         from: params.from || 0,
         size: params.size || 20,
-        body: {
-          query: {
-            bool: {
-              must: must.length > 0 ? must : [{ match_all: {} }],
-              filter: filter.length > 0 ? filter : undefined,
-            },
+        query: {
+          bool: {
+            must: must.length > 0 ? must : [{ match_all: {} }],
+            filter: filter.length > 0 ? filter : undefined,
           },
-          highlight: {
-            fields: {
-              title: {},
-              description: {},
-              content: {
-                fragment_size: 150,
-                number_of_fragments: 3,
-              },
-            },
-          },
-          sort: [
-            { _score: { order: 'desc' as const } },
-            { uploadedAt: { order: 'desc' as const, unmapped_type: 'date' } },
-          ],
         },
+        highlight: {
+          fields: {
+            title: {},
+            description: {},
+            content: {
+              fragment_size: 150,
+              number_of_fragments: 3,
+            },
+          },
+        },
+        sort: [
+          { _score: { order: 'desc' as const } },
+          { uploadedAt: { order: 'desc' as const, unmapped_type: 'date' } },
+        ],
       });
 
       return {

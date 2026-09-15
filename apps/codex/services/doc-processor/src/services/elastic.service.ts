@@ -22,24 +22,22 @@ class ElasticSearchService {
       if (!indexExists) {
         await this.client.indices.create({
           index: this.index,
-          body: {
-            mappings: {
-              properties: {
-                documentId: { type: 'keyword' },
-                title: { type: 'text', analyzer: 'english' },
-                description: { type: 'text' },
-                content: { type: 'text', analyzer: 'english' },
-                tags: { type: 'keyword' },
-                type: { type: 'keyword' },
-                campaigns: { type: 'keyword' },
-                collections: { type: 'keyword' },
-                uploadedAt: { type: 'date' },
-              },
+          mappings: {
+            properties: {
+              documentId: { type: 'keyword' },
+              title: { type: 'text', analyzer: 'english' },
+              description: { type: 'text' },
+              content: { type: 'text', analyzer: 'english' },
+              tags: { type: 'keyword' },
+              type: { type: 'keyword' },
+              campaigns: { type: 'keyword' },
+              collections: { type: 'keyword' },
+              uploadedAt: { type: 'date' },
             },
-            settings: {
-              number_of_shards: 1,
-              number_of_replicas: 0,
-            },
+          },
+          settings: {
+            number_of_shards: 1,
+            number_of_replicas: 0,
           },
         });
 
@@ -145,28 +143,26 @@ class ElasticSearchService {
         index: this.index,
         from: params.from || 0,
         size: params.size || 20,
-        body: {
-          query: {
-            bool: {
-              must: must.length > 0 ? must : [{ match_all: {} }],
-              filter: filter.length > 0 ? filter : undefined,
-            },
+        query: {
+          bool: {
+            must: must.length > 0 ? must : [{ match_all: {} }],
+            filter: filter.length > 0 ? filter : undefined,
           },
-          highlight: {
-            fields: {
-              title: {},
-              description: {},
-              content: {
-                fragment_size: 150,
-                number_of_fragments: 3,
-              },
-            },
-          },
-          sort: [
-            { _score: { order: 'desc' as const } },
-            { uploadedAt: { order: 'desc' as const } },
-          ],
         },
+        highlight: {
+          fields: {
+            title: {},
+            description: {},
+            content: {
+              fragment_size: 150,
+              number_of_fragments: 3,
+            },
+          },
+        },
+        sort: [
+          { _score: { order: 'desc' as const } },
+          { uploadedAt: { order: 'desc' as const } },
+        ],
       });
 
       return {

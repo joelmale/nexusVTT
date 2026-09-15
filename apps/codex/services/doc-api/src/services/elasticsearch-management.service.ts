@@ -151,7 +151,7 @@ export class ElasticSearchManagementService {
             await this.client.index({
               index: indexName,
               id: doc.id,
-              body: searchDoc,
+              document: searchDoc,
             });
 
             // Update document with search index reference
@@ -195,19 +195,17 @@ export class ElasticSearchManagementService {
       // Create new index with basic mapping
       await this.client.indices.create({
         index: index as string,
-        body: {
-          mappings: {
-            properties: {
-              title: { type: 'text', analyzer: 'standard' },
-              description: { type: 'text', analyzer: 'standard' },
-              content: { type: 'text', analyzer: 'standard' },
-              type: { type: 'keyword' },
-              author: { type: 'text' },
-              tags: { type: 'keyword' },
-              campaigns: { type: 'keyword' },
-              collections: { type: 'keyword' },
-              uploadedAt: { type: 'date' },
-            },
+        mappings: {
+          properties: {
+            title: { type: 'text', analyzer: 'standard' },
+            description: { type: 'text', analyzer: 'standard' },
+            content: { type: 'text', analyzer: 'standard' },
+            type: { type: 'keyword' },
+            author: { type: 'text' },
+            tags: { type: 'keyword' },
+            campaigns: { type: 'keyword' },
+            collections: { type: 'keyword' },
+            uploadedAt: { type: 'date' },
           },
         },
       });
@@ -239,16 +237,14 @@ export class ElasticSearchManagementService {
     try {
       const response = await this.client.search({
         index: env.ELASTICSEARCH_INDEX,
-        body: {
-          query: { match_all: {} },
-          size: 0,
-          aggs: {
-            types: {
-              terms: { field: 'type' },
-            },
-            tags: {
-              terms: { field: 'tags' },
-            },
+        query: { match_all: {} },
+        size: 0,
+        aggs: {
+          types: {
+            terms: { field: 'type' },
+          },
+          tags: {
+            terms: { field: 'tags' },
           },
         },
       });
@@ -270,9 +266,7 @@ export class ElasticSearchManagementService {
     try {
       await this.client.deleteByQuery({
         index: indexName,
-        body: {
-          query: { match_all: {} },
-        },
+        query: { match_all: {} },
       });
     } catch (error) {
       console.error('Failed to clear index:', error);
