@@ -34,7 +34,7 @@ afterEach(() => {
 describe('FloatingPanel', () => {
   it('renders children into #portal-root', () => {
     render(
-      <FloatingPanel isOpen={true} onClose={() => {}} label="Test Panel">
+      <FloatingPanel panelId="tokens" isOpen={true} onClose={() => {}} label="Test Panel">
         <div>panel content</div>
       </FloatingPanel>,
     );
@@ -45,7 +45,7 @@ describe('FloatingPanel', () => {
 
   it('sets role="dialog" and aria-label from the label prop', () => {
     render(
-      <FloatingPanel isOpen={true} onClose={() => {}} label="Tokens">
+      <FloatingPanel panelId="tokens" isOpen={true} onClose={() => {}} label="Tokens">
         <div>content</div>
       </FloatingPanel>,
     );
@@ -57,7 +57,7 @@ describe('FloatingPanel', () => {
 
   it('sets data-state="closed" and aria-hidden when isOpen is false', () => {
     render(
-      <FloatingPanel isOpen={false} onClose={() => {}} label="Tokens">
+      <FloatingPanel panelId="tokens" isOpen={false} onClose={() => {}} label="Tokens">
         <div>content</div>
       </FloatingPanel>,
     );
@@ -70,7 +70,7 @@ describe('FloatingPanel', () => {
   it('calls onClose when Escape is pressed while open', () => {
     const onClose = vi.fn();
     render(
-      <FloatingPanel isOpen={true} onClose={onClose} label="Tokens">
+      <FloatingPanel panelId="tokens" isOpen={true} onClose={onClose} label="Tokens">
         <div>content</div>
       </FloatingPanel>,
     );
@@ -87,7 +87,7 @@ describe('FloatingPanel', () => {
   it('does not call onClose on Escape while closed', () => {
     const onClose = vi.fn();
     render(
-      <FloatingPanel isOpen={false} onClose={onClose} label="Tokens">
+      <FloatingPanel panelId="tokens" isOpen={false} onClose={onClose} label="Tokens">
         <div>content</div>
       </FloatingPanel>,
     );
@@ -109,7 +109,7 @@ describe('FloatingPanel', () => {
     expect(document.activeElement).toBe(opener);
 
     const { rerender } = render(
-      <FloatingPanel isOpen={true} onClose={() => {}} label="Tokens">
+      <FloatingPanel panelId="tokens" isOpen={true} onClose={() => {}} label="Tokens">
         <div>content</div>
       </FloatingPanel>,
     );
@@ -121,7 +121,7 @@ describe('FloatingPanel', () => {
     // Closing restores focus to the opener.
     act(() => {
       rerender(
-        <FloatingPanel isOpen={false} onClose={() => {}} label="Tokens">
+        <FloatingPanel panelId="tokens" isOpen={false} onClose={() => {}} label="Tokens">
           <div>content</div>
         </FloatingPanel>,
       );

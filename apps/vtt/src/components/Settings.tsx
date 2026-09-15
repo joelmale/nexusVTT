@@ -234,6 +234,7 @@ export const Settings: React.FC = () => {
     setColorScheme,
     setEnableGlassmorphism,
     setEnableTailwindDashboard,
+    setPersistOpenPanels,
     resetSettings,
   } = useGameStore();
   const settings = useSettings();
@@ -442,6 +443,24 @@ export const Settings: React.FC = () => {
               <span className="toggle-slider"></span>
             </label>
           </SettingItem>
+
+          <div className="setting-item">
+            <div className="setting-label">
+              <span className="setting-icon">💾</span>
+              Remember Open Panels
+            </div>
+            <label className="setting-toggle">
+              <input
+                type="checkbox"
+                checked={settings.persistOpenPanels}
+                onChange={(e) => {
+                  setPersistOpenPanels(e.target.checked);
+                  setHasUnsavedChanges(true);
+                }}
+              />
+              <span className="toggle-slider"></span>
+            </label>
+          </div>
 
           <SettingItem
             label="Master Volume"

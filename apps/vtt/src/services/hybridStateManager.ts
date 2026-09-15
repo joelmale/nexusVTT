@@ -183,6 +183,7 @@ export class HybridStateManager {
         },
         theme: 'auto',
         enableGlassmorphism: true,
+        persistOpenPanels: true,
         reducedMotion: false,
         fontSize: 'medium',
         enableSounds: true,

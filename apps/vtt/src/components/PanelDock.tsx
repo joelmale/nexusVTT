@@ -13,29 +13,25 @@ export interface PanelDockPanel<T extends string = string> {
 
 interface PanelDockProps<T extends string = string> {
   panels: PanelDockPanel<T>[];
-  /** Currently selected panel id (may or may not be open - see `isOpen`). */
-  activePanel: T;
-  /** Whether the FloatingPanel is currently open (drives aria-pressed). */
-  isOpen: boolean;
+  /** Array of currently open panel IDs. */
+  activePanels: T[];
   onSelect: (panel: T) => void;
 }
 
 /**
- * A6b: Top-right floating panel selector dock.
+ * Top-right floating panel selector dock.
  *
- * Defaults to a compact pill showing "Panels" with the active panel icon.
- * Expands on hover to reveal the full icon row.
+ * Expands on hover to reveal the full icon row. Click icons to toggle floating panels on/off.
  */
 export function PanelDock<T extends string = string>({
   panels,
-  activePanel,
-  isOpen,
+  activePanels,
   onSelect,
 }: PanelDockProps<T>) {
   const [isExpanded, setIsExpanded] = useState(false);
   const hoverTimeoutRef = useRef<number | undefined>(undefined);
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
-  const [focusedId, setFocusedId] = useState<T>(activePanel);
+  const [focusedId, setFocusedId] = useState<T>(panels[0]?.id);
 
   const { onPointerDown, panelRef } = useDraggablePanel({
     id: 'panelDock',
@@ -61,9 +57,6 @@ export function PanelDock<T extends string = string>({
   useEffect(() => {
     return () => window.clearTimeout(hoverTimeoutRef.current);
   }, []);
-
-  // ── Active panel info ──
-  const activePanelData = panels.find((p) => p.id === activePanel);
 
   // ── Roving tabindex ──
   const focusButton = (id: T) => {
@@ -123,10 +116,10 @@ export function PanelDock<T extends string = string>({
         ⠿
       </div>
 
-      {/* Compact view: label + active panel icon */}
+      {/* Compact view: label */}
       <div className={styles.compactView}>
         <span className={styles.label}>
-          {activePanelData?.icon || '📋'} Panels
+          📋 Panels
         </span>
       </div>
 
@@ -136,7 +129,7 @@ export function PanelDock<T extends string = string>({
       {/* Expanded: icon buttons */}
       <div className={styles.expandedView}>
         {panels.map((panel, index) => {
-          const isActive = panel.id === activePanel && isOpen;
+          const isActive = activePanels.includes(panel.id);
           const isRovingTarget = panel.id === focusedId;
 
           return (

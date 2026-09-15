@@ -177,6 +177,7 @@ interface GameStore extends GameState {
   updateSettings: (settings: Partial<UserSettings>) => void;
   setColorScheme: (colorScheme: ColorScheme) => void;
   setEnableGlassmorphism: (enabled: boolean) => void;
+  setPersistOpenPanels: (enabled: boolean) => void;
   setEnableTailwindDashboard: (enabled: boolean) => void;
   resetSettings: () => void;
 
@@ -517,6 +518,7 @@ const initialState: GameState & {
     colorScheme: defaultColorSchemes[1], // Emerald Depths
     theme: 'dark',
     enableGlassmorphism: false,
+    persistOpenPanels: true,
     reducedMotion: false,
     fontSize: 'medium',
 
@@ -1920,6 +1922,12 @@ export const useGameStore = create<GameStore>()(
       setEnableGlassmorphism: (enabled) => {
         set((state) => {
           state.settings.enableGlassmorphism = enabled;
+          saveSettingsToStorage(state.settings);
+        });
+      },
+      setPersistOpenPanels: (enabled) => {
+        set((state) => {
+          state.settings.persistOpenPanels = enabled;
           saveSettingsToStorage(state.settings);
         });
       },

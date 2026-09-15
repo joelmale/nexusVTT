@@ -154,6 +154,7 @@ export interface UserSettings {
   colorScheme: ColorScheme;
   theme: 'auto' | 'dark' | 'light';
   enableGlassmorphism: boolean;
+  persistOpenPanels: boolean;
   reducedMotion: boolean;
   fontSize: 'small' | 'medium' | 'large';
 

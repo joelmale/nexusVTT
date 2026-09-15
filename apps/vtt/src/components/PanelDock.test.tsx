@@ -22,8 +22,7 @@ describe('PanelDock', () => {
     render(
       <PanelDock
         panels={panels}
-        activePanel="tokens"
-        isOpen={true}
+        activePanels={['tokens']}
         onSelect={() => {}}
       />,
     );
@@ -37,8 +36,7 @@ describe('PanelDock', () => {
     render(
       <PanelDock
         panels={panels}
-        activePanel="scene"
-        isOpen={true}
+        activePanels={['scene']}
         onSelect={() => {}}
       />,
     );
@@ -56,8 +54,7 @@ describe('PanelDock', () => {
     render(
       <PanelDock
         panels={panels}
-        activePanel="scene"
-        isOpen={false}
+        activePanels={[]}
         onSelect={() => {}}
       />,
     );
@@ -71,8 +68,7 @@ describe('PanelDock', () => {
     render(
       <PanelDock
         panels={panels}
-        activePanel="tokens"
-        isOpen={true}
+        activePanels={['tokens']}
         onSelect={onSelect}
       />,
     );
@@ -85,8 +81,7 @@ describe('PanelDock', () => {
     render(
       <PanelDock
         panels={panels}
-        activePanel="tokens"
-        isOpen={true}
+        activePanels={['tokens']}
         onSelect={() => {}}
       />,
     );
