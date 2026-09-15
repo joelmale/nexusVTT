@@ -9,7 +9,7 @@ for (const argument of process.argv.slice(2)) {
 }
 
 const remote = argumentsByName.get('--remote')?.at(-1) ?? 'origin';
-const base = argumentsByName.get('--base')?.at(-1) ?? `${remote}/master`;
+const base = argumentsByName.get('--base')?.at(-1) ?? `${remote}/main`;
 const apply = argumentsByName.has('--apply');
 const allowlist = new Set(
   (argumentsByName.get('--allow') ?? [])

@@ -142,7 +142,7 @@ gates, and PR expectations — live in [AGENTS.md](AGENTS.md).
 
 ## Contributing
 
-1. Create a feature branch from `master`
+1. Create a feature branch from `main`
 2. Make your changes, with tests
 3. Run lint and type-check for the app you touched
 4. Open a pull request

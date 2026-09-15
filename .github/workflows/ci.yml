@@ -2,7 +2,7 @@ name: CI Pipeline
 
 on:
   push:
-    branches: [master]
+    branches: [main]
     tags:
       - 'v*'
     paths:
@@ -28,7 +28,7 @@ on:
       - 'package.json'
       - 'package-lock.json'
   pull_request:
-    branches: [master]
+    branches: [main]
   workflow_dispatch:
     inputs:
       candidate_sha:

@@ -2,7 +2,7 @@ name: Security Scan
 
 on:
   push:
-    branches: [master]
+    branches: [main]
   # Pull requests run CodeQL and both Trivy scans. The container scan has to run
   # here even though it costs two image builds: it uploads SARIF under the
   # trivy-container-backend and trivy-container-frontend categories, and code
@@ -10,7 +10,7 @@ on:
   # ("2 configurations not found"). Only the SBOM job is skipped below, which
   # uploads artifacts rather than SARIF and so declares no category.
   pull_request:
-    branches: [master]
+    branches: [main]
   release:
     types: [published]
 
@@ -129,7 +129,7 @@ jobs:
     name: Generate CycloneDX SBOMs
     if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
-    # SBOMs are generated on every master push and on releases.
+    # SBOMs are generated on every main push and on releases.
     # To consume them for vulnerability tracking, upload to Dependency-Track
     # (https://dependencytrack.org) — it ingests CycloneDX JSON natively and
     # shows a dashboard of CVEs over time per project component.

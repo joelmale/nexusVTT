@@ -10,13 +10,13 @@ deployment.
 - The stack uses `apps/vtt/docker/docker-compose.yml`.
 - Images come from `ghcr.io/joelmale/nexusvtt`.
 - GitHub Actions publishes images from `.github/workflows/ci.yml`.
-- `master` is the CI branch.
+- `main` is the CI branch.
 - Dockhand redeploys the stack; GitHub Actions does not call Dockhand.
 - Docker Swarm and Portainer are not part of the current deployment.
 
 ## Deploy Latest
 
-1. Push or merge to `master`.
+1. Push or merge to `main`.
 2. Wait for GitHub Actions: `CI Pipeline` -> `Build & Push to GHCR`.
 3. In Dockhand, redeploy the Nexus VTT stack.
 4. Keep `VERSION=latest`, or set a specific generated tag first.
