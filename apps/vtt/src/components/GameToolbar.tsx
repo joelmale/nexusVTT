@@ -441,22 +441,16 @@ export const GameToolbar: React.FC = () => {
       onPointerDownCapture={() => bringToFront('gameToolbar')}
       className="layout-toolbar-inner"
     >
-      {!isCollapsed && (
+      {!isCollapsed && hoveredTool && (
         <div id="toolbar-info-banner">
-          {hoveredTool ? (
-            <>
-              <span>
-                {hoveredTool.tooltip &&
-                hoveredTool.tooltip !== hoveredTool.label
-                  ? `${hoveredTool.label}: ${hoveredTool.tooltip}`
-                  : hoveredTool.label}
-              </span>
-              {hoveredTool.shortcut && (
-                <span className="shortcut">{hoveredTool.shortcut}</span>
-              )}
-            </>
-          ) : (
-            <span>Hover over a tool for information.</span>
+          <span>
+            {hoveredTool.tooltip &&
+            hoveredTool.tooltip !== hoveredTool.label
+              ? `${hoveredTool.label}: ${hoveredTool.tooltip}`
+              : hoveredTool.label}
+          </span>
+          {hoveredTool.shortcut && (
+            <span className="shortcut">{hoveredTool.shortcut}</span>
           )}
         </div>
       )}

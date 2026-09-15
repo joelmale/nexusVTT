@@ -178,6 +178,7 @@ export default defineConfig(({ command, mode }) => {
             /^\/dwellings-generator/,
             /^\/one-page-dungeon/,
             /^\/world-map-generator/,
+            /^\/generator-hub/,
           ],
         },
         devOptions: {
