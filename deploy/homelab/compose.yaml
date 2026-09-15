@@ -8,7 +8,8 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       PGDATA: /var/lib/postgresql/data/pgdata
     volumes:
-    - /mnt/docker-nas-vol1/nexusvtt/postgres:/var/lib/postgresql/data
+    # PostgreSQL major versions cannot share a data directory.
+    - /mnt/docker-nas-vol1/nexusvtt/postgres18:/var/lib/postgresql/data
     networks:
     - nexus-internal-net
     healthcheck:
