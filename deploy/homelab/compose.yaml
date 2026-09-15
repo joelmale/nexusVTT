@@ -1,7 +1,7 @@
 name: nexus-vtt2
 services:
   postgres:
-    image: ghcr.io/joelmale/nexusvtt/postgres@sha256:08b7399e0881d8650ddd67c0adbab8b0a4c166a5b8d49e62e13f94ab342f9385
+    image: ghcr.io/joelmale/nexusvtt/postgres@sha256:6e7b3f4342443beb9dfb4abfac205e1a3dd7bb7e636c8f2972626c0d2a8abf5c
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nexus}
       POSTGRES_USER: ${POSTGRES_USER:-nexus}
@@ -40,7 +40,7 @@ services:
       retries: 5
     restart: unless-stopped
   asset-server:
-    image: ghcr.io/joelmale/nexusvtt/asset-service@sha256:ae34ae1bb7be46dd70051899eee9e4d6af265e30c7ce9905ef4556bc4b96e71d
+    image: ghcr.io/joelmale/nexusvtt/asset-service@sha256:281be6bccff64bdacd620e3758802926691396bde91eac6091cd067020a055ab
     container_name: nexus-vtt2-asset-server
     hostname: nexus-vtt2-asset-server
     user: 1000:1000
@@ -70,14 +70,14 @@ services:
       retries: 3
     restart: unless-stopped
   nexus-forge:
-    image: ghcr.io/joelmale/nexus-forge@sha256:d1d5019db84a0f21fd10de436da17c9ac6df52223cdfb3e69455349cccf348f0
+    image: ghcr.io/joelmale/nexus-forge@sha256:cd106b959eca4a298d78163eda24fc3684ae2ba5eb67f7611db6e977f65b8c30
     container_name: nexus-vtt2-forge
     hostname: nexus-vtt2-forge
     networks:
     - homelab-net
     restart: unless-stopped
   frontend:
-    image: ghcr.io/joelmale/nexusvtt/frontend@sha256:d6938c26e23111a3625c91d9730b0be33b54eabcf9526680fef9390aaeaa70cb
+    image: ghcr.io/joelmale/nexusvtt/frontend@sha256:80b3bfba5f49abab980b630676f2b9503ced95c01d6707d246f26beafd1c88af
     container_name: nexus-vtt2-frontend
     hostname: nexus-vtt2-frontend
     environment:
@@ -86,7 +86,7 @@ services:
     - homelab-net
     restart: unless-stopped
   backend:
-    image: ghcr.io/joelmale/nexusvtt/backend@sha256:70a1786cffb560ed11abde34dd98fbd739455abcf34058d3722a21b1f2ef1016
+    image: ghcr.io/joelmale/nexusvtt/backend@sha256:6d1d55745a731c1483d155e97c532ee2098735f1a04de4ca5b912b3bb58b4e57
     environment:
       CORS_ORIGIN: ${CORS_ORIGIN}
       NODE_ENV: production
@@ -175,7 +175,7 @@ services:
     - nexus-internal-net
     restart: on-failure
   doc-api:
-    image: ghcr.io/joelmale/nexuscodex-doc-api@sha256:418f55be5f67fedec5aff08606ebfe1ec1b112831ec57da8f7ce610c79e17a9c
+    image: ghcr.io/joelmale/nexuscodex-doc-api@sha256:60b281a2557a958635e5792a96bc7fdb85a6bea3941cc116865730c2ed787569
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -202,7 +202,7 @@ services:
     - codex-minio
     restart: on-failure
   doc-processor:
-    image: ghcr.io/joelmale/nexuscodex-doc-processor@sha256:47c3d72cf5f70326fce9a154625a5c6466256b5214d5030d5a7a912302b6739d
+    image: ghcr.io/joelmale/nexuscodex-doc-processor@sha256:3a0739bbe8d852cd709a0b8e09fa2f45a58c63d09916c7c631379b8f1f5e67c6
     environment:
       NODE_ENV: production
       PORT: null
@@ -228,7 +228,7 @@ services:
     - codex-minio
     restart: on-failure
   doc-websocket:
-    image: ghcr.io/joelmale/nexuscodex-doc-websocket@sha256:da014e1fdc704b1f8b1821432787e7100aa8eb7640a0366d57f72b082023ad6c
+    image: ghcr.io/joelmale/nexuscodex-doc-websocket@sha256:31fae96dd44c7dc430f6e7e69cfaa78f2d2fe6351f65f89e989e785b2d52705f
     environment:
       NODE_ENV: production
       PORT: 3002
@@ -245,7 +245,7 @@ services:
     - codex-redis
     restart: on-failure
   admin-ui:
-    image: ghcr.io/joelmale/nexuscodex-admin-ui@sha256:0050ae256014d9fa82f579bc1a7a2e1b68c0714fad13667bcce3aa30bad9c0cc
+    image: ghcr.io/joelmale/nexuscodex-admin-ui@sha256:c7e02c41d84a8d69c11f9364c03dd8cdd21af8ca0dd491698cf9d841e3b4c864
     environment:
       VITE_DOC_API_URL: /api
       VITE_WEBSOCKET_URL: /ws
@@ -255,7 +255,7 @@ services:
     - doc-api
     restart: on-failure
   dm-ui:
-    image: ghcr.io/joelmale/nexuscodex-dm-ui@sha256:b6a51741eb3a0739c1a3ba78ad0338e20f86253f718a2dcef8903ce5a7af60e4
+    image: ghcr.io/joelmale/nexuscodex-dm-ui@sha256:94aa6200ef791281b55476cb6d7e7323a16aa01fe20f1b34c61b8486beda47c1
     environment:
       VITE_DOC_API_URL: /api
       VITE_WEBSOCKET_URL: /ws
