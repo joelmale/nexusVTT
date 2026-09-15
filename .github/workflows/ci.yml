@@ -12,7 +12,12 @@ on:
       - 'apps/docs/**'
       - 'packages/**'
       - 'scripts/**'
-      - 'deploy/**'
+      # 'deploy/**' is deliberately absent. That tree holds deployment
+      # manifests (image digests, compose topology) which cannot change image
+      # contents, so rebuilding on them publishes images nobody asked for and
+      # immediately staleness-races the digests the manifest just pinned.
+      # Pull requests have no paths filter, so deploy changes are still
+      # validated there.
       - 'monitoring/**'
       - '.github/workflows/ci.yml'
       - '.github/workflows/forge-ci.yml'
