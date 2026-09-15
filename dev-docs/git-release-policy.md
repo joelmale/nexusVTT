@@ -3,11 +3,11 @@
 ## Branching Model
 
 ```
-master  ←  the single deployable branch
+main  ←  the single deployable branch
            every merge here triggers CI + image build
 ```
 
-Feature branches are optional for large changes but not required. Small fixes can go directly to master. The rule: **master must always be deployable**.
+Feature branches are optional for large changes but not required. Small fixes can go directly to main. The rule: **main must always be deployable**.
 
 ---
 
@@ -16,10 +16,10 @@ Feature branches are optional for large changes but not required. Small fixes ca
 ```bash
 git add <files>
 git commit -m "type: short description"
-git push origin master
+git push origin main
 ```
 
-Every push to master automatically:
+Every push to main automatically:
 
 - Runs CodeQL analysis, Trivy filesystem scan, and container scans (`security.yml`)
 - Builds and pushes Docker images to GHCR tagged with `date+sha` **and** `latest` (`build-and-push.yml`)
@@ -132,8 +132,8 @@ docker stack deploy -c apps/vtt/docker/docker-compose.yml nexus-vtt2
 
 | Tag format | Created by | Use case |
 |---|---|---|
-| `latest` | Every master push | Homelab continuous deploy |
-| `20260611-53eaf57` | Every master push | Point-in-time reference, safe rollback without a named release |
+| `latest` | Every main push | Homelab continuous deploy |
+| `20260611-53eaf57` | Every main push | Point-in-time reference, safe rollback without a named release |
 | `v1.2.0` | `git push origin v1.2.0` | Formal versioned release |
 
 The date+sha tags never move — they are permanent references to the exact build that ran at that commit. `latest` always moves forward.
@@ -142,7 +142,7 @@ The date+sha tags never move — they are permanent references to the exact buil
 
 ## SBOM & Vulnerability Tracking
 
-CycloneDX SBOMs are generated on every master push (90-day artifacts) and permanently attached to tagged releases.
+CycloneDX SBOMs are generated on every main push (90-day artifacts) and permanently attached to tagged releases.
 
 To use them for longitudinal CVE tracking:
 
@@ -158,6 +158,6 @@ GitHub's native dependency graph only supports SPDX format, not CycloneDX. If yo
 
 | Workflow | Triggers | What it does |
 |---|---|---|
-| `security.yml` | push to master, release published | CodeQL, Trivy fs scan, container scans, SBOM generation |
-| `build-and-push.yml` | push to master, push `v*` tag, manual | Build + push all three Docker images to GHCR |
+| `security.yml` | push to main, release published | CodeQL, Trivy fs scan, container scans, SBOM generation |
+| `build-and-push.yml` | push to main, push `v*` tag, manual | Build + push all three Docker images to GHCR |
 | `ci.yml` | push, pull_request | Lint, type-check, unit + integration tests |
