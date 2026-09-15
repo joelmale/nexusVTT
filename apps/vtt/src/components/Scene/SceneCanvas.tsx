@@ -46,7 +46,7 @@ import { tokenAssetManager } from '@/services/tokenAssets';
 import { propAssetManager } from '@/services/propAssets';
 import { createPlacedToken } from '@/types/token';
 import { createPlacedProp } from '@/types/prop';
-import { CameraGestureEngine } from '@/utils/cameraGestureEngine';
+import { CameraGestureEngine, isZoomWheelEvent } from '@/utils/cameraGestureEngine';
 import { FogGestureEngine } from '@/utils/fogGestureEngine';
 import { sceneUtils } from '@/utils/sceneUtils';
 import { hitTestDrawings, createHitTestContext } from './inkHitTest';
@@ -481,15 +481,29 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     });
   });
 
-  const handleWheel = useCallback(
-    (e: React.WheelEvent) => {
-      if (activeTool !== 'pan' && activeTool !== 'select') return; // Only zoom when in pan/select mode
-      if (!isHost && followDM) return; // Players can't zoom when following DM
+  // Native wheel listener attached with passive: false to suppress browser page-zoom
+  useEffect(() => {
+    const svgEl = svgRef.current;
+    if (!svgEl) return;
 
-      cameraGestureEngine.wheelZoom(e.deltaY);
-    },
-    [isHost, followDM, activeTool, cameraGestureEngine],
-  );
+    const handleWheelNative = (e: WheelEvent) => {
+      e.preventDefault();
+
+      if (activeTool !== 'pan' && activeTool !== 'select') return;
+      if (!isHost && followDM) return;
+
+      if (isZoomWheelEvent(e)) {
+        cameraGestureEngine.wheelZoom(e.deltaY, e.clientX, e.clientY, e.deltaMode);
+      } else {
+        cameraGestureEngine.wheelPan(e.deltaX, e.deltaY, e.deltaMode);
+      }
+    };
+
+    svgEl.addEventListener('wheel', handleWheelNative, { passive: false });
+    return () => {
+      svgEl.removeEventListener('wheel', handleWheelNative);
+    };
+  }, [activeTool, isHost, followDM, cameraGestureEngine]);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
@@ -853,10 +867,26 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
           sceneUtils.cameraTransform(liveCamera, svgSize.width, svgSize.height),
         );
       },
+      getViewportRect: () => {
+        const rect = svgRef.current?.getBoundingClientRect();
+        if (rect) return rect;
+        return {
+          width: svgSize.width,
+          height: svgSize.height,
+          left: svgViewportOffset.x,
+          top: svgViewportOffset.y,
+        };
+      },
       minZoom: 0.1,
       maxZoom: 5.0,
     });
   });
+
+  useEffect(() => {
+    return () => {
+      cameraGestureEngine.dispose();
+    };
+  }, [cameraGestureEngine]);
 
   // Handle prop drop from PropPanel
   const handlePropDrop = useCallback(
@@ -1116,7 +1146,6 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
             className="scene-canvas"
             width="100%"
             height="100%"
-            onWheel={handleWheel}
             onMouseDown={handleMouseDown}
             onMouseMove={handleMouseMove}
             onMouseUp={handleMouseUp}

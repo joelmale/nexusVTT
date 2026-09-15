@@ -1,6 +1,11 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { CameraGestureEngine } from './cameraGestureEngine';
+import {
+  CameraGestureEngine,
+  isZoomWheelEvent,
+  type ViewportRect,
+} from './cameraGestureEngine';
 import { cameraRef } from './cameraRef';
+import { sceneUtils } from './sceneUtils';
 import type { Camera } from '@/types/game';
 
 /**
@@ -31,18 +36,27 @@ function makeEngine(overrides?: {
   onCommit?: (c: Camera) => void;
   onBroadcast?: (c: Camera) => void;
   applyTransform?: (c: Camera) => void;
+  getViewportRect?: () => ViewportRect;
+  minZoom?: number;
+  maxZoom?: number;
 }) {
   const engine = new CameraGestureEngine();
   const storeCamera = overrides?.storeCamera ?? { x: 0, y: 0, zoom: 1 };
   const onCommit = overrides?.onCommit ?? vi.fn();
   const onBroadcast = overrides?.onBroadcast ?? vi.fn();
   const applyTransform = overrides?.applyTransform ?? vi.fn();
+  const getViewportRect =
+    overrides?.getViewportRect ??
+    (() => ({ width: 800, height: 600, left: 0, top: 0 }));
 
   engine.sync({
     getStoreCamera: () => storeCamera,
     onCommit,
     onBroadcast,
     applyTransform,
+    getViewportRect,
+    minZoom: overrides?.minZoom,
+    maxZoom: overrides?.maxZoom,
   });
 
   return { engine, storeCamera, onCommit, onBroadcast, applyTransform };
@@ -169,15 +183,119 @@ describe('CameraGestureEngine - wheel zoom', () => {
     vi.useRealTimers();
   });
 
-  it('clamps zoom to [0.1, 5.0] and preserves center-anchored math (no cursor position used)', () => {
+  it('clamps zoom to [0.1, 5.0] and preserves center-anchored math when cursor position is omitted', () => {
     const transforms: Camera[] = [];
     const { engine } = makeEngine({
       storeCamera: { x: 3, y: 4, zoom: 4.9 },
       applyTransform: (c) => transforms.push(c),
     });
 
-    engine.wheelZoom(-100); // zoom in: 4.9 * 1.1 = 5.39 -> clamped to 5.0
+    engine.wheelZoom(-100); // zoom in: 4.9 * exp(0.1) ≈ 5.41 -> clamped to 5.0
     expect(transforms[0]).toEqual({ x: 3, y: 4, zoom: 5.0 });
+  });
+
+  it('keeps the world point under the cursor invariant across a zoom', () => {
+    const viewport = { width: 1000, height: 800, left: 100, top: 50 };
+    const { engine, storeCamera } = makeEngine({
+      storeCamera: { x: 200, y: -150, zoom: 1 },
+      getViewportRect: () => viewport,
+    });
+
+    const clientX = 400;
+    const clientY = 350;
+    const sx = clientX - viewport.left; // 300
+    const sy = clientY - viewport.top; // 300
+
+    const worldBefore = sceneUtils.screenToWorld(
+      sx,
+      sy,
+      storeCamera,
+      viewport.width,
+      viewport.height,
+    );
+
+    engine.wheelZoom(-100, clientX, clientY);
+
+    const liveCamera = cameraRef.get();
+    expect(liveCamera.zoom).toBeGreaterThan(1);
+
+    const worldAfter = sceneUtils.screenToWorld(
+      sx,
+      sy,
+      liveCamera,
+      viewport.width,
+      viewport.height,
+    );
+
+    expect(worldAfter.x).toBeCloseTo(worldBefore.x, 5);
+    expect(worldAfter.y).toBeCloseTo(worldBefore.y, 5);
+  });
+
+  it('scales zoom change with deltaY magnitude', () => {
+    const { engine: engineSmall } = makeEngine({
+      storeCamera: { x: 0, y: 0, zoom: 1 },
+    });
+    engineSmall.wheelZoom(-50);
+    const zoomSmall = cameraRef.get().zoom;
+
+    cameraRef.reset();
+    const { engine: engineLarge } = makeEngine({
+      storeCamera: { x: 0, y: 0, zoom: 1 },
+    });
+    engineLarge.wheelZoom(-200);
+    const zoomLarge = cameraRef.get().zoom;
+
+    expect(zoomLarge).toBeGreaterThan(zoomSmall);
+  });
+
+  it('normalises deltaMode (pixels, lines, pages)', () => {
+    const { engine: enginePixels } = makeEngine({
+      storeCamera: { x: 0, y: 0, zoom: 1 },
+    });
+    enginePixels.wheelZoom(-160, undefined, undefined, 0); // 160 px
+    const zoomPixels = cameraRef.get().zoom;
+
+    cameraRef.reset();
+    const { engine: engineLines } = makeEngine({
+      storeCamera: { x: 0, y: 0, zoom: 1 },
+    });
+    engineLines.wheelZoom(-10, undefined, undefined, 1); // 10 lines * 16 = 160 px
+    const zoomLines = cameraRef.get().zoom;
+
+    expect(zoomLines).toBeCloseTo(zoomPixels, 5);
+
+    cameraRef.reset();
+    const { engine: enginePages } = makeEngine({
+      storeCamera: { x: 0, y: 0, zoom: 1 },
+      getViewportRect: () => ({ width: 800, height: 600, left: 0, top: 0 }),
+    });
+    enginePages.wheelZoom(-1, undefined, undefined, 2); // 1 page = 600 px
+    const zoomPages = cameraRef.get().zoom;
+
+    cameraRef.reset();
+    const { engine: engineEquivalent } = makeEngine({
+      storeCamera: { x: 0, y: 0, zoom: 1 },
+    });
+    engineEquivalent.wheelZoom(-600, undefined, undefined, 0);
+    const zoomEquivalent = cameraRef.get().zoom;
+
+    expect(zoomPages).toBeCloseTo(zoomEquivalent, 5);
+  });
+
+  it('clamps zoom at both minZoom and maxZoom', () => {
+    const { engine } = makeEngine({
+      storeCamera: { x: 0, y: 0, zoom: 1 },
+      minZoom: 0.2,
+      maxZoom: 3.0,
+    });
+
+    // Zoom way out
+    engine.wheelZoom(10000);
+    expect(cameraRef.get().zoom).toBe(0.2);
+
+    // Zoom way in
+    engine.wheelZoom(-10000);
+    expect(cameraRef.get().zoom).toBe(3.0);
   });
 
   it('treats a burst of wheel ticks as a single gesture (one commit)', () => {
@@ -197,3 +315,53 @@ describe('CameraGestureEngine - wheel zoom', () => {
     vi.useRealTimers();
   });
 });
+
+describe('isZoomWheelEvent', () => {
+  it('dispatches ctrlKey/metaKey as zoom', () => {
+    expect(isZoomWheelEvent({ ctrlKey: true, deltaX: 0, deltaY: 5 })).toBe(true);
+    expect(isZoomWheelEvent({ metaKey: true, deltaX: 10, deltaY: 5 })).toBe(true);
+  });
+
+  it('dispatches non-zero deltaMode as zoom', () => {
+    expect(isZoomWheelEvent({ deltaX: 0, deltaY: 3, deltaMode: 1 })).toBe(true);
+    expect(isZoomWheelEvent({ deltaX: 0, deltaY: 1, deltaMode: 2 })).toBe(true);
+  });
+
+  it('dispatches discrete mouse wheel notches as zoom', () => {
+    expect(isZoomWheelEvent({ deltaX: 0, deltaY: 100, deltaMode: 0 })).toBe(true);
+    expect(isZoomWheelEvent({ deltaX: 0, deltaY: -120, deltaMode: 0 })).toBe(true);
+    expect(isZoomWheelEvent({ deltaX: 0, deltaY: 50, deltaMode: 0 })).toBe(true);
+  });
+
+  it('dispatches trackpad scroll with small deltaY or non-zero deltaX as pan', () => {
+    expect(isZoomWheelEvent({ deltaX: 0, deltaY: 15, deltaMode: 0 })).toBe(false);
+    expect(isZoomWheelEvent({ deltaX: 10, deltaY: 0, deltaMode: 0 })).toBe(false);
+    expect(isZoomWheelEvent({ deltaX: 5, deltaY: 60, deltaMode: 0 })).toBe(false);
+  });
+});
+
+describe('CameraGestureEngine - wheel pan', () => {
+  it('pans the camera by delta / zoom and commits on idle', () => {
+    vi.useFakeTimers();
+    let commitCount = 0;
+    const commitCamera: Camera[] = [];
+    const { engine } = makeEngine({
+      storeCamera: { x: 10, y: 20, zoom: 2 },
+      onCommit: (c) => {
+        commitCount += 1;
+        commitCamera.push(c);
+      },
+    });
+
+    engine.wheelPan(20, 40); // 20/2 = 10, 40/2 = 20
+    expect(commitCount).toBe(0);
+    expect(cameraRef.get()).toEqual({ x: 20, y: 40, zoom: 2 });
+
+    vi.advanceTimersByTime(200);
+    expect(commitCount).toBe(1);
+    expect(commitCamera[0]).toEqual({ x: 20, y: 40, zoom: 2 });
+
+    vi.useRealTimers();
+  });
+});
+

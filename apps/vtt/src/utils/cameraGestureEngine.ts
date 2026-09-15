@@ -1,8 +1,18 @@
 import type { Camera } from '@/types/game';
 import { cameraRef } from '@/utils/cameraRef';
+import { sceneUtils } from '@/utils/sceneUtils';
 
 const BROADCAST_THROTTLE_MS = 150;
 const WHEEL_IDLE_MS = 200;
+export const WHEEL_MOUSE_THRESHOLD = 50;
+const ZOOM_SENSITIVITY = 0.001;
+
+export interface ViewportRect {
+  width: number;
+  height: number;
+  left?: number;
+  top?: number;
+}
 
 export interface CameraGestureEngineOptions {
   /** Read the current authoritative (store) camera. */
@@ -13,9 +23,39 @@ export interface CameraGestureEngineOptions {
   onBroadcast: (camera: Camera) => void;
   /** Imperatively write the transform attribute for the given camera. */
   applyTransform: (camera: Camera) => void;
+  /** Viewport rectangle provider for cursor-anchored zoom calculations. */
+  getViewportRect?: () => ViewportRect;
   /** Zoom clamp bounds. */
   minZoom?: number;
   maxZoom?: number;
+}
+
+/**
+ * Discriminates between a zoom gesture (ctrl/pinch or discrete mouse wheel tick)
+ * and a pan gesture (two-finger trackpad scroll with non-trivial deltaX or small deltaY).
+ */
+export function isZoomWheelEvent(e: {
+  ctrlKey?: boolean;
+  metaKey?: boolean;
+  deltaX: number;
+  deltaY: number;
+  deltaMode?: number;
+}): boolean {
+  return (
+    Boolean(e.ctrlKey || e.metaKey) ||
+    (e.deltaMode !== undefined && e.deltaMode !== 0) ||
+    (Math.abs(e.deltaY) >= WHEEL_MOUSE_THRESHOLD && e.deltaX === 0)
+  );
+}
+
+let activeEngine: CameraGestureEngine | null = null;
+
+function setActiveEngine(engine: CameraGestureEngine | null) {
+  activeEngine = engine;
+}
+
+export function getActiveCameraGestureEngine(): CameraGestureEngine | null {
+  return activeEngine;
 }
 
 /**
@@ -55,14 +95,28 @@ export class CameraGestureEngine {
   private onCommit: (camera: Camera) => void = () => {};
   private onBroadcast: (camera: Camera) => void = () => {};
   private applyTransform: (camera: Camera) => void = () => {};
+  private getViewportRect: () => ViewportRect = () => ({
+    width: 800,
+    height: 600,
+    left: 0,
+    top: 0,
+  });
   private minZoom = 0.1;
   private maxZoom = 5.0;
 
+  constructor() {
+    setActiveEngine(this);
+  }
+
   sync(opts: CameraGestureEngineOptions) {
+    setActiveEngine(this);
     this.getStoreCamera = opts.getStoreCamera;
     this.onCommit = opts.onCommit;
     this.onBroadcast = opts.onBroadcast;
     this.applyTransform = opts.applyTransform;
+    if (opts.getViewportRect) {
+      this.getViewportRect = opts.getViewportRect;
+    }
     this.minZoom = opts.minZoom ?? 0.1;
     this.maxZoom = opts.maxZoom ?? 5.0;
   }
@@ -156,17 +210,104 @@ export class CameraGestureEngine {
     this.endGestureIfIdle();
   }
 
-  // ---- Wheel zoom (center-anchored, matches existing behavior exactly) ----
+  // ---- Wheel and zoom ----
 
-  wheelZoom(deltaY: number) {
+  private normalizeWheelDelta(
+    delta: number,
+    deltaMode: number,
+    pageSize: number,
+  ): number {
+    if (deltaMode === 1) {
+      return delta * 16;
+    }
+    if (deltaMode === 2) {
+      return delta * (pageSize || 800);
+    }
+    return delta;
+  }
+
+  private applyZoom(newZoom: number, clientX?: number, clientY?: number) {
+    this.ensureSeeded();
+    const clampedZoom = Math.max(this.minZoom, Math.min(this.maxZoom, newZoom));
+
+    const rect = this.getViewportRect();
+    const vw = rect.width > 0 ? rect.width : 800;
+    const vh = rect.height > 0 ? rect.height : 600;
+    const rectLeft = rect.left ?? 0;
+    const rectTop = rect.top ?? 0;
+
+    const sx = clientX !== undefined ? clientX - rectLeft : vw / 2;
+    const sy = clientY !== undefined ? clientY - rectTop : vh / 2;
+
+    const worldAtCursor = sceneUtils.screenToWorldLive(sx, sy, vw, vh);
+
+    const nextCamera: Camera = {
+      x: worldAtCursor.x - (sx - vw / 2) / clampedZoom,
+      y: worldAtCursor.y - (sy - vh / 2) / clampedZoom,
+      zoom: clampedZoom,
+    };
+
+    cameraRef.set(nextCamera);
+    this.scheduleFrame(nextCamera);
+    this.maybeBroadcast(nextCamera);
+
+    this.wheelGestureActive = true;
+    if (this.wheelIdleTimer !== null) {
+      clearTimeout(this.wheelIdleTimer);
+    }
+    this.wheelIdleTimer = setTimeout(() => {
+      this.wheelIdleTimer = null;
+      this.wheelGestureActive = false;
+      this.endGestureIfIdle();
+    }, WHEEL_IDLE_MS);
+  }
+
+  wheelZoom(
+    deltaY: number,
+    clientX?: number,
+    clientY?: number,
+    deltaMode = 0,
+  ) {
+    this.ensureSeeded();
+    const currentZoom = cameraRef.get().zoom;
+    const rect = this.getViewportRect();
+    const vh = rect.height > 0 ? rect.height : 600;
+    const normalizedDelta = this.normalizeWheelDelta(deltaY, deltaMode, vh);
+    const zoomFactor = Math.exp(-normalizedDelta * ZOOM_SENSITIVITY);
+    this.applyZoom(currentZoom * zoomFactor, clientX, clientY);
+  }
+
+  stepZoom(factor: number, clientX?: number, clientY?: number) {
     this.ensureSeeded();
     const current = cameraRef.get();
-    const zoomFactor = deltaY > 0 ? 0.9 : 1.1;
-    const newZoom = Math.max(
-      this.minZoom,
-      Math.min(this.maxZoom, current.zoom * zoomFactor),
-    );
-    const next: Camera = { ...current, zoom: newZoom };
+    this.applyZoom(current.zoom * factor, clientX, clientY);
+  }
+
+  setCamera(camera: Camera) {
+    this.ensureSeeded();
+    cameraRef.set(camera);
+    this.scheduleFrame(camera);
+    this.maybeBroadcast(camera);
+    this.endGestureIfIdle();
+  }
+
+  wheelPan(deltaX: number, deltaY: number, deltaMode = 0) {
+    this.ensureSeeded();
+    const current = cameraRef.get();
+    const rect = this.getViewportRect();
+    const vw = rect.width > 0 ? rect.width : 800;
+    const vh = rect.height > 0 ? rect.height : 600;
+    const normX = this.normalizeWheelDelta(deltaX, deltaMode, vw);
+    const normY = this.normalizeWheelDelta(deltaY, deltaMode, vh);
+
+    const scaledDeltaX = normX / current.zoom;
+    const scaledDeltaY = normY / current.zoom;
+
+    const next: Camera = {
+      ...current,
+      x: current.x + scaledDeltaX,
+      y: current.y + scaledDeltaY,
+    };
     cameraRef.set(next);
     this.scheduleFrame(next);
     this.maybeBroadcast(next);
@@ -183,6 +324,9 @@ export class CameraGestureEngine {
   }
 
   dispose() {
+    if (activeEngine === this) {
+      setActiveEngine(null);
+    }
     if (this.rafId !== null) {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;

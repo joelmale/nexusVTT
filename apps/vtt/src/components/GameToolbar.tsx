@@ -37,6 +37,7 @@ import {
 } from 'lucide-react';
 import { useSceneFog } from '@/stores/scene';
 import { useActiveScene } from '@/stores/gameStore';
+import { getActiveCameraGestureEngine } from '@/utils/cameraGestureEngine';
 
 interface ToolbarItem {
   id: string;
@@ -102,18 +103,32 @@ export const GameToolbar: React.FC = () => {
   const zIndex = useStackZIndex('gameToolbar');
   const bringToFront = useUIStackStore((state) => state.bringToFront);
 
-  const handleZoomIn = useCallback(
-    () => updateCamera({ zoom: Math.min(5.0, camera.zoom * 1.2) }),
-    [camera.zoom, updateCamera],
-  );
-  const handleZoomOut = useCallback(
-    () => updateCamera({ zoom: Math.max(0.1, camera.zoom / 1.2) }),
-    [camera.zoom, updateCamera],
-  );
-  const handleZoomReset = useCallback(
-    () => updateCamera({ x: 0, y: 0, zoom: 0.54 }),
-    [updateCamera],
-  );
+  const handleZoomIn = useCallback(() => {
+    const engine = getActiveCameraGestureEngine();
+    if (engine) {
+      engine.stepZoom(1.2);
+    } else {
+      updateCamera({ zoom: Math.min(5.0, camera.zoom * 1.2) });
+    }
+  }, [camera.zoom, updateCamera]);
+
+  const handleZoomOut = useCallback(() => {
+    const engine = getActiveCameraGestureEngine();
+    if (engine) {
+      engine.stepZoom(1 / 1.2);
+    } else {
+      updateCamera({ zoom: Math.max(0.1, camera.zoom / 1.2) });
+    }
+  }, [camera.zoom, updateCamera]);
+
+  const handleZoomReset = useCallback(() => {
+    const engine = getActiveCameraGestureEngine();
+    if (engine) {
+      engine.setCamera({ x: 0, y: 0, zoom: 0.54 });
+    } else {
+      updateCamera({ x: 0, y: 0, zoom: 0.54 });
+    }
+  }, [updateCamera]);
 
   const toolGroups: ToolbarGroup[] = useMemo(
     () => [
