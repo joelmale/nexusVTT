@@ -65,4 +65,6 @@ persistence: it hands the finished character to whichever app is hosting it.
 - Forge saves it to its local IndexedDB (`src/services/dbService.ts`).
 - Nexus VTT converts it to the shared character contract and saves it to the player's account.
 
-See [ADR-0002](../vtt/adr/0002-shared-character-creator.md) for the rationale and boundaries.
+See ADR-0002, "One shared character creator, imported at build time"
+(`apps/docs/vtt/adr/0002-shared-character-creator.md`), for the rationale and the
+boundaries between the package and its host applications.

@@ -26,6 +26,17 @@ const OUT_DIR = path.join(pkgRoot, 'dist');
 const OUT = path.join(OUT_DIR, 'creator.css');
 const SCOPE = '.nexus-character-creator';
 
+// This script also runs as the package's `prepare` hook, so that a fresh
+// `npm install` leaves the scoped stylesheet ready for `npm run dev`. Container
+// builds install from manifests before copying sources, so the source file can
+// legitimately be absent at install time; the real build runs again afterwards.
+if (!fs.existsSync(SOURCE)) {
+  console.log(
+    '[character-creator] sources not present yet; skipping stylesheet build.',
+  );
+  process.exit(0);
+}
+
 /** At-rules whose child rules are ordinary selectors and must be scoped. */
 const SCOPED_AT_RULES = new Set(['media', 'supports', 'layer', 'container']);
 
