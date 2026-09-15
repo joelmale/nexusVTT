@@ -5,9 +5,10 @@ deployment.
 
 ## Current Model
 
-- Dockhand manages the live stack.
+- Dockhand manages the live stack (`nexus-vtt2`).
 - The stack runs on one Docker Engine server.
-- The stack uses `apps/vtt/docker/docker-compose.yml`.
+- The unified production homelab stack uses `deploy/homelab/compose.yaml` (includes VTT, Forge, and Codex).
+- Standalone VTT deployments use `apps/vtt/docker/docker-compose.yml`.
 - Images come from `ghcr.io/joelmale/nexusvtt`.
 - GitHub Actions publishes images from `.github/workflows/ci.yml`.
 - `main` is the CI branch.
@@ -18,7 +19,7 @@ deployment.
 
 1. Push or merge to `main`.
 2. Wait for GitHub Actions: `CI Pipeline` -> `Build & Push to GHCR`.
-3. In Dockhand, redeploy the Nexus VTT stack.
+3. In Dockhand, redeploy the `nexus-vtt2` stack.
 4. Keep `VERSION=latest`, or set a specific generated tag first.
 
 ## Required Dockhand Variables

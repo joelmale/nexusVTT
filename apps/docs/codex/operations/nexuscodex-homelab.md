@@ -95,11 +95,7 @@ Also update `DocumentServiceClient.getDocumentContentUrl()` before declaring
 file viewing complete: it currently builds a URL from the internal
 `DOC_API_URL`, which a browser cannot resolve.
 
-## Rollback and Dockhand caution
-
-The pre-integration Compose definition is preserved at
-[`docker/rollback/nexus-vtt2-compose-before-nexuscodex-20260721.yaml`](https://github.com/joelmale/nexusVTT/blob/master/docker/rollback/nexus-vtt2-compose-before-nexuscodex-20260721.yaml).
-Restoring it does not delete the four Codex volumes.
+## Dockhand caution
 
 The installed Dockhand API returns raw environment data as
 `{ "content": "..." }`. Any automation updating `/env/raw` must read that
