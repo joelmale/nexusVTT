@@ -13,6 +13,7 @@ RUN npm ci \
     --workspace=nexus-vtt \
     --workspace=generator-hub \
     --workspace=@nexus/character-contracts \
+    --workspace=@nexus/character-creator \
     --include-workspace-root \
     --legacy-peer-deps
 
@@ -39,6 +40,7 @@ RUN npm ci \
     --workspace=nexus-vtt \
     --workspace=generator-hub \
     --workspace=@nexus/character-contracts \
+    --workspace=@nexus/character-creator \
     --include-workspace-root \
     --legacy-peer-deps
 
@@ -47,6 +49,7 @@ ENV VITE_BUILD_VERSION=$COMMIT_SHA
 ENV VITE_DELTA_SYNC=$VITE_DELTA_SYNC
 
 RUN npm run build --workspace=@nexus/character-contracts && \
+    npm run build --workspace=@nexus/character-creator && \
     npm run build --workspace=nexus-vtt && \
     npm run build --workspace=generator-hub
 

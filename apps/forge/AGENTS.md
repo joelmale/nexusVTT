@@ -12,6 +12,7 @@
 - **Persistence**: `src/services/dbService.ts` is the single IndexedDB abstraction and owns schema migrations. Route all reads/writes through it.
 - **3D dice**: built on `@3d-dice/dice-box`; the integration point is `src/components/DiceSystem/DiceBox3D.tsx`.
 - **Styling**: Tailwind CSS v4 (utility-first), plus the custom SVG border system in `src/boarders/`. Note this differs from the VTT, which is CSS Modules + design tokens per ADR-0006 — do not carry conventions between the two apps.
+- **Shared character creator**: the creation wizard, the 5e rules data (`data/`, `types/dnd.ts`, `services/dataService.ts`, most of `utils/`) and `rulesEngine/` now live in the `@nexus/character-creator` workspace package and are shared with the VTT. Forge keeps one-line re-export shims at the old paths, so existing imports still work — but edit the package, not the shim. Tests for moved modules live beside them in the package and run from Forge's Vitest (`vitest.config.ts` `include`).
 - **Entry points**: `src/AppWithProviders.tsx` (root, wraps all providers) → `src/App.tsx` (layout and tab routing).
 - **Main views**: `src/components/CharacterSheet/CharacterSheet.tsx`, `src/components/MonsterLibrary/MonsterLibrary.tsx`, `src/components/EncounterView/EncounterView.tsx`.
 

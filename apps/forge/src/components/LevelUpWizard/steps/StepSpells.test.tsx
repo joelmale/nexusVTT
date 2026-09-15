@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { StepSpells } from './StepSpells';
-import { LevelUpData } from '../../../data/classProgression';
+import { LevelUpData } from '@nexus/character-creator/data/classProgression';
 import { Character, LevelUpChoices } from '../../../types/dnd';
 import { loadSpells } from '../../../services/dataService';
 

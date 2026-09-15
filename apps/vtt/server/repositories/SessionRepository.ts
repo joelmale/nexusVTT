@@ -5,6 +5,7 @@ import {
   type SyncableGameState,
 } from '../../shared/sync/contracts.js';
 import { hashSync } from '../../shared/sync/hashSync.js';
+import { generateSecureJoinCode } from '../utils/secureCode.js';
 import {
   BaseRepository,
   SessionRecord,
@@ -57,15 +58,13 @@ export class SessionRepository extends BaseRepository {
   }
 
   private async generateUniqueJoinCode(): Promise<string> {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let attempts = 0;
     const maxAttempts = 100;
 
     while (attempts < maxAttempts) {
-      let code = '';
-      for (let i = 0; i < 4; i++) {
-        code += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
+      // A join code is the only credential needed to enter a session, so it is
+      // drawn from the OS CSPRNG rather than Math.random().
+      const code = generateSecureJoinCode(4);
 
       const exists = await this.pool.query(
         'SELECT 1 FROM sessions WHERE "joinCode" = $1',

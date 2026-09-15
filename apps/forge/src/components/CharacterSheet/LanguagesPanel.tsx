@@ -1,7 +1,7 @@
 import React from 'react';
 import { Languages } from 'lucide-react';
 import { Character } from '../../types/dnd';
-import { LANGUAGES } from '../../data/languages';
+import { LANGUAGES } from '@nexus/character-creator/data/languages';
 
 interface LanguagesPanelProps {
   character: Character;

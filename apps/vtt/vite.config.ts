@@ -186,13 +186,37 @@ export default defineConfig(({ command, mode }) => {
       }),
     ].filter(Boolean),
     resolve: {
-      alias: {
-        '@': path.resolve(__dirname, './src'),
-        '@/components': path.resolve(__dirname, './src/components'),
-        '@/stores': path.resolve(__dirname, './src/stores'),
-        '@/types': path.resolve(__dirname, './src/types'),
-        '@/utils': path.resolve(__dirname, './src/utils'),
-      },
+      alias: [
+        // Shared character creator — a build-time workspace import, so the VTT
+        // compiles the same source as Forge and never depends on the Forge
+        // service being reachable at runtime.
+        {
+          find: '@nexus/character-creator/styles.css',
+          replacement: path.resolve(
+            __dirname,
+            '../../packages/character-creator/dist/creator.css',
+          ),
+        },
+        {
+          find: /^@nexus\/character-creator$/,
+          replacement: path.resolve(
+            __dirname,
+            '../../packages/character-creator/src/index.ts',
+          ),
+        },
+        {
+          find: /^@nexus\/character-creator\/(.*)$/,
+          replacement: path.resolve(
+            __dirname,
+            '../../packages/character-creator/src/$1',
+          ),
+        },
+        { find: '@/components', replacement: path.resolve(__dirname, './src/components') },
+        { find: '@/stores', replacement: path.resolve(__dirname, './src/stores') },
+        { find: '@/types', replacement: path.resolve(__dirname, './src/types') },
+        { find: '@/utils', replacement: path.resolve(__dirname, './src/utils') },
+        { find: '@', replacement: path.resolve(__dirname, './src') },
+      ],
     },
     server: {
       port: parseInt(process.env.PORT || '5173'),

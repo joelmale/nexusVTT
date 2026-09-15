@@ -1,3 +1,3 @@
-import featureDescriptionsData from '../data/featureDescriptions.json';
-
-export const featureDescriptions: Record<string, { description: string; source?: string }> = featureDescriptionsData;
+// Re-export shim: this module now lives in the shared character-creator
+// workspace package so Nexus Forge and Nexus VTT share one implementation.
+export * from '@nexus/character-creator/utils/featureDescriptions';

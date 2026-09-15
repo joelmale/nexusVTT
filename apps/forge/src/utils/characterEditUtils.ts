@@ -1,7 +1,7 @@
 import { Character } from '../types/dnd';
 import { getModifier } from '../services/dataService';
 import { getSpellcastingType } from '../utils/spellUtils';
-import { SPELL_SLOTS_BY_CLASS } from '../data/spellSlots';
+import { SPELL_SLOTS_BY_CLASS } from '@nexus/character-creator/data/spellSlots';
 
 // Define the simplified spellcasting type from the form
 interface FormSpellcasting {

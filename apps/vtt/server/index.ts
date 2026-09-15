@@ -45,6 +45,7 @@ import type {
 
 // Shared types
 import { parseAssetManifest, type AssetManifest } from '../shared/types.js';
+import { generateSecureJoinCode } from './utils/secureCode.js';
 import type { EventReplayWindow } from '../shared/events/contracts.js';
 
 // Delta-sync contracts + synchronous hashing (server-only)
@@ -2684,13 +2685,12 @@ class NexusServer {
   }
 
   private generateRoomCode(): string {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    // A room code is the only credential needed to join a room, so it is drawn
+    // from the OS CSPRNG rather than Math.random(), whose stream is
+    // reconstructable from a handful of observed outputs.
     let result: string;
     do {
-      result = '';
-      for (let i = 0; i < 4; i++) {
-        result += chars.charAt(Math.floor(Math.random() * chars.length));
-      }
+      result = generateSecureJoinCode(4);
     } while (this.socketManager.rooms.has(result));
     return result;
   }

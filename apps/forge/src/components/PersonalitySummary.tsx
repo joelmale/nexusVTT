@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { ArrowLeft, ArrowRight, Edit3, Sparkles, Heart, Shield, Zap, HelpCircle, Pencil } from 'lucide-react';
-import { CharacterProfile } from '../data/characterProfiles';
+import { CharacterProfile } from '@nexus/character-creator/data/characterProfiles';
 import { loadClasses, getAllSpecies, BACKGROUNDS, getModifier, getCantripsByClass, getLeveledSpellsByClass } from '../services/dataService';
 import { SpellSelectionData, Edition } from '../types/dnd';
 import { getSpellcastingType } from '../utils/spellUtils';

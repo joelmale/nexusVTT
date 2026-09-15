@@ -1,6 +1,6 @@
 import React from 'react';
 import { Shield, Sword, Hammer, Languages } from 'lucide-react';
-import { LANGUAGES } from '../../data/languages';
+import { LANGUAGES } from '@nexus/character-creator/data/languages';
 import { loadClasses, BACKGROUNDS } from '../../services/dataService';
 import { Character } from '../../types/dnd';
 

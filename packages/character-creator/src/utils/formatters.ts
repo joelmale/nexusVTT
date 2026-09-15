@@ -1,0 +1,1 @@
+export const formatModifier = (mod: number): string => mod >= 0 ? `+${mod}` : `${mod}`;

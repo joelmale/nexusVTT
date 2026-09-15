@@ -6,7 +6,7 @@
 
 import React, { useState } from 'react';
 import { Character, LevelUpChoices } from '../../../types/dnd';
-import { LevelUpData } from '../../../data/classProgression';
+import { LevelUpData } from '@nexus/character-creator/data/classProgression';
 import { rollHitPoints } from '../../../utils/levelUpUtils';
 
 interface StepHPProps {

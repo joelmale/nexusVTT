@@ -43,6 +43,13 @@ interface CharacterState {
 interface CharacterStore extends CharacterState {
   // Character Management
   createCharacter: (playerId: string) => string;
+  /**
+   * Persists a character produced by the shared creator.
+   *
+   * Account persistence runs first so a failed save leaves no ghost character
+   * in the store; the creator surfaces the thrown error and stays open.
+   */
+  saveCreatedCharacter: (character: Character) => Promise<string>;
   createQuickCharacter: (
     data: {
       name: string;
@@ -228,6 +235,75 @@ export const useCharacterStore = create<CharacterStore>()(
       });
 
       return character.id!;
+    },
+
+    saveCreatedCharacter: async (character) => {
+      const { userId, isAuthenticated } = getGameStoreContext();
+      const owned: Character = {
+        ...character,
+        playerId: character.playerId || userId,
+      };
+
+      // 1. Account persistence first. The server de-duplicates by content key,
+      //    so a retry after a transient failure cannot create a second copy.
+      if (isAuthenticated) {
+        const response = await fetch('/api/characters', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          credentials: 'include',
+          body: JSON.stringify({ name: owned.name, data: owned }),
+        });
+
+        if (!response.ok) {
+          const body = await response.json().catch(() => ({}));
+          throw new Error(
+            body.error ||
+              `Failed to save ${owned.name} to your account (HTTP ${response.status}).`,
+          );
+        }
+      }
+
+      // 2. Commit to the in-memory store.
+      set((state) => {
+        const existing = state.characters.findIndex((c) => c.id === owned.id);
+        if (existing >= 0) {
+          state.characters[existing] = owned;
+        } else {
+          state.characters.push(owned);
+        }
+        state.activeCharacterId = owned.id;
+        state.creationState = null;
+      });
+
+      // 3. Local cache. A cache miss must not fail the creation.
+      try {
+        const { getLinearFlowStorage } =
+          await import('@/services/linearFlowStorage');
+        const storage = getLinearFlowStorage();
+        const characterForStorage: PlayerCharacter = {
+          id: owned.id,
+          name: owned.name,
+          race: owned.race || owned.species || '',
+          class: owned.class || '',
+          background: owned.background || '',
+          level: owned.level,
+          stats: {
+            strength: owned.abilities?.STR?.score || 10,
+            dexterity: owned.abilities?.DEX?.score || 10,
+            constitution: owned.abilities?.CON?.score || 10,
+            intelligence: owned.abilities?.INT?.score || 10,
+            wisdom: owned.abilities?.WIS?.score || 10,
+            charisma: owned.abilities?.CHA?.score || 10,
+          },
+          createdAt: Date.parse(owned.createdAt || '') || Date.now(),
+          playerId: storage['getBrowserId'](),
+        };
+        storage.saveCharacter(characterForStorage);
+      } catch (error) {
+        console.error('❌ Failed to cache character in IndexedDB:', error);
+      }
+
+      return owned.id;
     },
 
     createQuickCharacter: async (data, playerId) => {
@@ -924,6 +1000,7 @@ export const useCharacterCreation = () => {
   return {
     creationState: store.creationState,
     startCharacterCreation: store.startCharacterCreation,
+    saveCreatedCharacter: store.saveCreatedCharacter,
     updateCreationState: store.updateCreationState,
     nextCreationStep: store.nextCreationStep,
     previousCreationStep: store.previousCreationStep,

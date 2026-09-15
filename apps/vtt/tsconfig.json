@@ -23,9 +23,16 @@
       "vite/client",
       "node"
     ],
+    "baseUrl": ".",
     "paths": {
       "@/*": [
         "./src/*"
+      ],
+      "@nexus/character-creator": [
+        "../../packages/character-creator/src/index.ts"
+      ],
+      "@nexus/character-creator/*": [
+        "../../packages/character-creator/src/*"
       ]
     }
   },

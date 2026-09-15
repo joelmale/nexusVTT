@@ -3,7 +3,10 @@ import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import { Plus, Trash2, BookOpen, Shield, Download, Upload, Settings } from 'lucide-react';
 // REFACTORED: Loader2 import removed - was unused
-import { CharacterCreationWizard } from './components/CharacterCreationWizard';
+import {
+  CharacterCreationWizard,
+  type CharacterCreationResult,
+} from '@nexus/character-creator';
 import { LevelUpWizard } from './components/LevelUpWizard/LevelUpWizard';
 import { CharacterSheet } from './components/CharacterSheet';
 import NewCharacterModal from './components/NewCharacterModal';
@@ -299,6 +302,27 @@ const App: React.FC = () => {
   useEffect(() => {
     loadCharacters();
   }, [loadCharacters]);
+
+  /**
+   * Forge owns its own persistence: the shared creator hands back a finished
+   * character and this handler writes it to Forge's IndexedDB. Throwing here
+   * keeps the wizard open with the player's work intact.
+   */
+  const handleCreatorComplete = useCallback(
+    async (result: CharacterCreationResult) => {
+      const { addCharacter } = await import('./services/dbService');
+      await addCharacter(result.character);
+      await loadCharacters();
+      setIsWizardOpen(false);
+      setCreationMethod(null);
+      setRollResult({
+        text: `${result.character.name} created.`,
+        value: null,
+      });
+    },
+    [loadCharacters],
+  );
+
 
   // Toggle character selection for export
   const toggleCharacterSelection = useCallback((id: string) => {
@@ -1311,15 +1335,11 @@ const App: React.FC = () => {
         <CharacterCreationWizard
           isOpen={isWizardOpen}
           edition={selectedEdition}
-          onClose={() => {
+          onCancel={() => {
             setIsWizardOpen(false);
             setCreationMethod(null);
           }}
-          onCharacterCreated={() => {
-            loadCharacters();
-            setCreationMethod(null);
-          }}
-          setRollResult={setRollResult}
+          onComplete={handleCreatorComplete}
         />
 
         {/* Personality Wizard */}

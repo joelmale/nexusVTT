@@ -5,6 +5,16 @@ root, the VTT paths and commands in this document are relative to `apps/vtt`.
 Run VTT npm commands from `apps/vtt` (or use the root orchestration scripts).
 Forge lives in `apps/forge`; Codex lives in `apps/codex`.
 
+**Shared character creation**: the D&D 5e character creation wizard is shared by
+Forge and the VTT and lives in `packages/character-creator`
+(`@nexus/character-creator`). Do not add a second creator to either app. The
+package owns the wizard UI, rules data and calculators; it owns no persistence,
+account identity or multiplayer state, and hands hosts a typed
+`CharacterCreationResult`. Its stylesheet is scoped to `.nexus-character-creator`
+— any new blanket element rule in VTT global CSS (e.g. `.theme-solid button`)
+must exclude that subtree, or it will restyle a component the VTT does not own.
+See `apps/docs/vtt/adr/0002-shared-character-creator.md`.
+
 ## Project Structure & Modules
 
 - **Frontend Entry**: App entry in `src/main.tsx`; UI components split into `src/components` (organized by feature or type), `src/actions` (game actions), `src/hooks` (custom React hooks), `src/stores` (Zustand state management), `src/services` (API calls and utilities), and `src/utils` (helper functions).

@@ -9,6 +9,27 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 # Nexus VTT - High-Level Architecture
 
+## Shared character creation
+
+The D&D 5e character creation wizard is **shared** between Nexus Forge and Nexus
+VTT and lives in `packages/character-creator` (`@nexus/character-creator`). Both
+apps import it at build time via tsconfig `paths` + Vite aliases — not via module
+federation, so VTT character creation does not depend on the Forge service being
+reachable.
+
+- The package owns the wizard UI, the 5e rules data and the character
+  calculators. It owns **no** persistence, account identity or multiplayer state.
+- It hands hosts a typed `CharacterCreationResult`; a rejected `onComplete` keeps
+  the wizard open with the player's answers intact.
+- `toNexusCharacter()` in the package is the single conversion into the
+  `@nexus/character-contracts` model, used by both the live creator and the Forge
+  JSON import path.
+- Its stylesheet is scoped to `.nexus-character-creator`. Blanket element rules in
+  VTT global CSS must exclude that subtree.
+
+Do not add a second character creator to either app. See
+`apps/docs/vtt/adr/0002-shared-character-creator.md`.
+
 ## Overview
 
 Nexus VTT is a web-based virtual tabletop with local-first browser stores and a

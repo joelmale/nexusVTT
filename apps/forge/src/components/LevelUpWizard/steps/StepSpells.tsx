@@ -6,12 +6,12 @@
 
 import React, { useMemo, useState } from 'react';
 import { Character, LevelUpChoices } from '../../../types/dnd';
-import { LevelUpData } from '../../../data/classProgression';
+import { LevelUpData } from '@nexus/character-creator/data/classProgression';
 import { loadSpells, AppSpell } from '../../../services/dataService';
-import { SPELL_SLOTS_BY_CLASS } from '../../../data/spellSlots';
+import { SPELL_SLOTS_BY_CLASS } from '@nexus/character-creator/data/spellSlots';
 import { getHighestSpellSlotLevel, normalizeSpellSlots } from '../../../utils/spellSlotUtils';
-import { evaluatePredicate } from '../../../rulesEngine/evaluators/predicates';
-import { BaseFacts } from '../../../rulesEngine/types/baseFacts';
+import { evaluatePredicate } from '@nexus/character-creator/rulesEngine/evaluators/predicates';
+import { BaseFacts } from '@nexus/character-creator/rulesEngine/types/baseFacts';
 
 interface StepSpellsProps {
   character: Character;

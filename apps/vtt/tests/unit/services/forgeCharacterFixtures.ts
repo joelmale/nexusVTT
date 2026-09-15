@@ -1,0 +1,568 @@
+/**
+ * Representative characters in the shared creator's model, used to prove that
+ * conversion into the VTT contract preserves player-visible data.
+ *
+ * These mirror what `calculateCharacterStats()` emits: a 2014 martial, a 2014
+ * spellcaster, a 2024 character exercising the new origin/mastery fields, a
+ * higher-level character with expertise and progression, and a legacy-shaped
+ * JSON export from before the inventory model settled.
+ */
+
+import type { ForgeCharacter } from '@nexus/character-contracts';
+
+type AnyForgeCharacter = ForgeCharacter & Record<string, unknown>;
+
+const abilities = (
+  str: number,
+  dex: number,
+  con: number,
+  int: number,
+  wis: number,
+  cha: number,
+) => ({
+  STR: { score: str, modifier: Math.floor((str - 10) / 2) },
+  DEX: { score: dex, modifier: Math.floor((dex - 10) / 2) },
+  CON: { score: con, modifier: Math.floor((con - 10) / 2) },
+  INT: { score: int, modifier: Math.floor((int - 10) / 2) },
+  WIS: { score: wis, modifier: Math.floor((wis - 10) / 2) },
+  CHA: { score: cha, modifier: Math.floor((cha - 10) / 2) },
+});
+
+const blankSkills = (
+  overrides: Record<string, { value: number; proficient: boolean; expertise?: boolean }> = {},
+) => {
+  const names = [
+    'Acrobatics',
+    'AnimalHandling',
+    'Arcana',
+    'Athletics',
+    'Deception',
+    'History',
+    'Insight',
+    'Intimidation',
+    'Investigation',
+    'Medicine',
+    'Nature',
+    'Perception',
+    'Performance',
+    'Persuasion',
+    'Religion',
+    'SleightOfHand',
+    'Stealth',
+    'Survival',
+  ];
+  const result: Record<string, { value: number; proficient: boolean; expertise?: boolean }> = {};
+  for (const name of names) {
+    result[name] = { value: 0, proficient: false };
+  }
+  return { ...result, ...overrides };
+};
+
+/** 2014 martial: Human Fighter 1 with a fighting style and starting kit. */
+export const fighter2014: AnyForgeCharacter = {
+  id: 'fixture-fighter-2014',
+  name: 'Bren Halloway',
+  species: 'human',
+  class: 'Fighter',
+  classSlug: 'fighter',
+  level: 1,
+  alignment: 'Lawful Good',
+  background: 'soldier',
+  edition: '2014',
+  inspiration: false,
+  proficiencyBonus: 2,
+  armorClass: 18,
+  hitPoints: 12,
+  maxHitPoints: 12,
+  temporaryHitPoints: 0,
+  hitDice: { current: 1, max: 1, dieType: 10 },
+  speed: 30,
+  initiative: 1,
+  abilities: abilities(16, 13, 15, 10, 12, 8),
+  skills: blankSkills({
+    Athletics: { value: 5, proficient: true },
+    Intimidation: { value: 1, proficient: true },
+  }),
+  languages: ['Common', 'Orc'],
+  proficiencies: {
+    armor: ['Light Armor', 'Medium Armor', 'Heavy Armor', 'Shields'],
+    weapons: ['Simple Weapons', 'Martial Weapons'],
+    tools: ["Smith's Tools"],
+  },
+  selectedFightingStyle: 'Defense',
+  fightingStyle: 'defense',
+  featuresAndTraits: {
+    personality: 'I am always polite and respectful.',
+    ideals: 'Greater Good.',
+    bonds: 'I fight for those who cannot fight for themselves.',
+    flaws: 'I obey the law, even when it produces misery.',
+    classFeatures: ['Fighting Style', 'Second Wind'],
+    speciesTraits: ['Extra Language'],
+    backgroundFeatures: [
+      { name: 'Military Rank', description: 'You have a military rank.' },
+    ],
+    musicalInstrumentProficiencies: [],
+  },
+  srdFeatures: {
+    classFeatures: [
+      { name: 'Second Wind', slug: 'second-wind', level: 1, source: 'class' },
+    ],
+    subclassFeatures: [],
+  },
+  inventory: [
+    { equipmentSlug: 'chain-mail', quantity: 1, equipped: true },
+    { equipmentSlug: 'longsword', quantity: 1, equipped: true },
+    { equipmentSlug: 'shield', quantity: 1, equipped: true },
+    {
+      equipmentSlug: 'healers-kit',
+      quantity: 1,
+      equipped: false,
+      notes: 'Gift from the company medic.',
+    },
+  ],
+  equippedArmor: 'chain-mail',
+  equippedWeapons: ['longsword'],
+  currency: { cp: 0, sp: 0, gp: 10, pp: 0 },
+  secondWindUses: 1,
+  resources: [
+    { slug: 'second-wind', name: 'Second Wind', current: 1, max: 1, resetOn: 'short-rest' },
+  ],
+  experiencePoints: 0,
+  createdAt: '2026-01-01T00:00:00.000Z',
+  updatedAt: '2026-01-01T00:00:00.000Z',
+};
+
+/** 2014 spellcaster: High Elf Wizard 5 with a spellbook and prepared spells. */
+export const wizard2014: AnyForgeCharacter = {
+  id: 'fixture-wizard-2014',
+  name: 'Sylveth Moonwhisper',
+  species: 'elf',
+  selectedSpeciesVariant: 'high-elf',
+  class: 'Wizard',
+  classSlug: 'wizard',
+  level: 5,
+  alignment: 'Neutral Good',
+  background: 'sage',
+  edition: '2014',
+  inspiration: true,
+  proficiencyBonus: 3,
+  armorClass: 12,
+  hitPoints: 27,
+  maxHitPoints: 32,
+  temporaryHitPoints: 5,
+  hitDice: { current: 3, max: 5, dieType: 6 },
+  speed: 30,
+  initiative: 2,
+  abilities: abilities(8, 14, 14, 18, 12, 10),
+  skills: blankSkills({
+    Arcana: { value: 7, proficient: true },
+    History: { value: 7, proficient: true },
+    Investigation: { value: 7, proficient: true },
+  }),
+  languages: ['Common', 'Elvish', 'Draconic'],
+  proficiencies: { armor: [], weapons: ['Quarterstaff'], tools: [] },
+  featuresAndTraits: {
+    personality: 'I speak in riddles.',
+    ideals: 'Knowledge.',
+    bonds: 'My library is my life.',
+    flaws: 'I am easily distracted by a new theory.',
+    classFeatures: ['Arcane Recovery', 'Arcane Tradition'],
+    speciesTraits: ['Darkvision', 'Fey Ancestry', 'Trance', 'Cantrip'],
+    backgroundFeatures: [
+      { name: 'Researcher', description: 'You know where to find lore.' },
+    ],
+    musicalInstrumentProficiencies: [],
+  },
+  subclass: 'evocation',
+  srdFeatures: {
+    classFeatures: [
+      { name: 'Arcane Recovery', slug: 'arcane-recovery', level: 1, source: 'class' },
+    ],
+    subclassFeatures: [
+      { name: 'Sculpt Spells', slug: 'sculpt-spells', level: 2, source: 'subclass' },
+    ],
+  },
+  spellcasting: {
+    ability: 'INT',
+    spellSaveDC: 15,
+    spellAttackBonus: 7,
+    cantripsKnown: ['fire-bolt', 'mage-hand', 'prestidigitation', 'light'],
+    spellbook: [
+      'magic-missile',
+      'shield',
+      'burning-hands',
+      'misty-step',
+      'scorching-ray',
+      'fireball',
+      'counterspell',
+    ],
+    preparedSpells: ['magic-missile', 'shield', 'misty-step', 'fireball'],
+    spellSlots: [0, 4, 3, 2, 0, 0, 0, 0, 0, 0],
+    usedSpellSlots: [0, 1, 0, 1, 0, 0, 0, 0, 0, 0],
+    spellcastingType: 'wizard',
+    cantripChoicesByLevel: { 1: 'fire-bolt', 4: 'light' },
+    spellChoicesByLevel: { 3: 'fireball' },
+    featGrantedSpells: [],
+  },
+  inventory: [
+    { equipmentSlug: 'quarterstaff', quantity: 1, equipped: true },
+    { equipmentSlug: 'spellbook', quantity: 1, equipped: false },
+    {
+      equipmentSlug: 'cloak-of-protection',
+      quantity: 1,
+      equipped: true,
+      attuned: true,
+    },
+  ],
+  equippedWeapons: ['quarterstaff'],
+  currency: { cp: 0, sp: 5, gp: 42, pp: 1 },
+  experiencePoints: 6500,
+  conditions: [],
+  deathSaves: { successes: 0, failures: 0 },
+  createdAt: '2026-01-02T00:00:00.000Z',
+  updatedAt: '2026-02-02T00:00:00.000Z',
+};
+
+/** 2024 rules: Cleric 3 with Divine Order, an origin feat and weapon mastery. */
+export const cleric2024: AnyForgeCharacter = {
+  id: 'fixture-cleric-2024',
+  name: 'Ondra Vael',
+  species: 'human',
+  class: 'Cleric',
+  classSlug: 'cleric',
+  level: 3,
+  alignment: 'Lawful Neutral',
+  background: 'acolyte',
+  edition: '2024',
+  inspiration: false,
+  heroicInspiration: true,
+  proficiencyBonus: 2,
+  armorClass: 16,
+  hitPoints: 24,
+  maxHitPoints: 24,
+  hitDice: { current: 3, max: 3, dieType: 8 },
+  speed: 30,
+  initiative: 0,
+  abilities: abilities(14, 10, 14, 10, 17, 12),
+  skills: blankSkills({
+    Religion: { value: 2, proficient: true },
+    Insight: { value: 5, proficient: true },
+  }),
+  languages: ['Common', 'Celestial'],
+  proficiencies: {
+    armor: ['Light Armor', 'Medium Armor', 'Shields', 'Heavy Armor'],
+    weapons: ['Simple Weapons', 'Martial Weapons'],
+    tools: [],
+  },
+  divineOrder: 'protector',
+  weaponMastery: ['mace', 'warhammer'],
+  backgroundFeat: 'magic-initiate',
+  originFeat: 'magic-initiate',
+  selectedFeats: ['magic-initiate'],
+  featChoices: { 'magic-initiate': { spellList: 'cleric' } },
+  featEffects: { inspiringLeader: false },
+  subclass: 'life-domain',
+  featuresAndTraits: {
+    personality: 'I quote scripture constantly.',
+    ideals: 'Tradition.',
+    bonds: 'I owe my life to my temple.',
+    flaws: 'I judge others harshly.',
+    classFeatures: ['Divine Order', 'Channel Divinity'],
+    speciesTraits: ['Resourceful', 'Skillful', 'Versatile'],
+    backgroundFeatures: [
+      { name: 'Shelter of the Faithful', description: 'Temples will shelter you.' },
+    ],
+    musicalInstrumentProficiencies: [],
+  },
+  srdFeatures: {
+    classFeatures: [
+      { name: 'Divine Order', slug: 'divine-order', level: 1, source: 'class' },
+      { name: 'Channel Divinity', slug: 'channel-divinity', level: 2, source: 'class' },
+    ],
+    subclassFeatures: [
+      { name: 'Disciple of Life', slug: 'disciple-of-life', level: 3, source: 'subclass' },
+    ],
+  },
+  spellcasting: {
+    ability: 'WIS',
+    spellSaveDC: 13,
+    spellAttackBonus: 5,
+    cantripsKnown: ['sacred-flame', 'guidance', 'thaumaturgy'],
+    preparedSpells: ['bless', 'cure-wounds', 'spiritual-weapon'],
+    spellSlots: [0, 4, 2, 0, 0, 0, 0, 0, 0, 0],
+    usedSpellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+    spellcastingType: 'prepared',
+    featGrantedSpells: [
+      {
+        spellSlug: 'detect-magic',
+        spellcastingAbility: 'WIS',
+        usesPerDay: 1,
+        rechargeType: 'long-rest',
+        featSlug: 'magic-initiate',
+      },
+    ],
+    cantripChoicesByLevel: { 1: 'sacred-flame' },
+  },
+  inventory: [
+    { equipmentSlug: 'scale-mail', quantity: 1, equipped: true },
+    { equipmentSlug: 'mace', quantity: 1, equipped: true },
+    { equipmentSlug: 'shield', quantity: 1, equipped: true },
+  ],
+  equippedArmor: 'scale-mail',
+  equippedWeapons: ['mace'],
+  currency: { cp: 0, sp: 0, gp: 15, pp: 0 },
+  trinket: {
+    roll: 42,
+    description: 'A silver holy symbol worn smooth by prayer.',
+    short_name: 'Worn holy symbol',
+    source: 'PHB',
+    type: 'religious',
+    tags: ['religious', 'heirloom'],
+    roleplay_prompt: 'Who gave it to you?',
+    dm_hook: 'The symbol glows faintly near undead.',
+  },
+  experiencePoints: 900,
+  createdAt: '2026-03-01T00:00:00.000Z',
+  updatedAt: '2026-03-01T00:00:00.000Z',
+};
+
+/** Higher-level creation: Rogue 8 with expertise, feats and level history. */
+export const rogue2024Level8: AnyForgeCharacter = {
+  id: 'fixture-rogue-8',
+  name: 'Kessa Quill',
+  species: 'halfling',
+  selectedSpeciesVariant: 'lightfoot',
+  selectedLineage: 'lightfoot',
+  class: 'Rogue',
+  classSlug: 'rogue',
+  level: 8,
+  alignment: 'Chaotic Neutral',
+  background: 'criminal',
+  edition: '2024',
+  inspiration: false,
+  proficiencyBonus: 3,
+  armorClass: 16,
+  hitPoints: 52,
+  maxHitPoints: 52,
+  hitDice: { current: 8, max: 8, dieType: 8 },
+  speed: 25,
+  initiative: 5,
+  abilities: abilities(8, 20, 14, 13, 12, 14),
+  skills: blankSkills({
+    Stealth: { value: 11, proficient: true, expertise: true },
+    SleightOfHand: { value: 11, proficient: true, expertise: true },
+    Deception: { value: 5, proficient: true },
+    Perception: { value: 4, proficient: true },
+  }),
+  expertiseSkills: ['Stealth', 'Sleight of Hand'],
+  weaponMastery: ['dagger', 'shortsword', 'shortbow'],
+  languages: ['Common', 'Halfling', 'Thieves Cant'],
+  proficiencies: {
+    armor: ['Light Armor'],
+    weapons: ['Simple Weapons', 'Hand Crossbows', 'Longswords', 'Rapiers', 'Shortswords'],
+    tools: ["Thieves' Tools"],
+  },
+  subclass: 'thief',
+  selectedFeats: ['alert', 'skulker'],
+  feats: ['alert', 'skulker'],
+  featChoices: {},
+  featEffects: { initiativeBonus: 3, cantBeSurprised: true },
+  levelHistory: [
+    { level: 4, choice: 'feat', value: 'alert' },
+    { level: 8, choice: 'feat', value: 'skulker' },
+  ],
+  featuresAndTraits: {
+    personality: 'I always have an escape plan.',
+    ideals: 'Freedom.',
+    bonds: 'I protect my crew.',
+    flaws: 'I cannot resist a locked box.',
+    classFeatures: ['Sneak Attack', 'Cunning Action', 'Uncanny Dodge', 'Evasion'],
+    speciesTraits: ['Lucky', 'Brave', 'Halfling Nimbleness', 'Naturally Stealthy'],
+    backgroundFeatures: [
+      { name: 'Criminal Contact', description: 'You have a reliable contact.' },
+    ],
+    musicalInstrumentProficiencies: [],
+  },
+  srdFeatures: {
+    classFeatures: [
+      { name: 'Sneak Attack', slug: 'sneak-attack', level: 1, source: 'class' },
+      { name: 'Evasion', slug: 'evasion', level: 7, source: 'class' },
+    ],
+    subclassFeatures: [
+      { name: 'Fast Hands', slug: 'fast-hands', level: 3, source: 'subclass' },
+    ],
+  },
+  inventory: [
+    { equipmentSlug: 'studded-leather-armor', quantity: 1, equipped: true },
+    { equipmentSlug: 'rapier', quantity: 1, equipped: true },
+    { equipmentSlug: 'dagger', quantity: 2, equipped: true },
+    { equipmentSlug: 'thieves-tools', quantity: 1, equipped: false },
+  ],
+  equippedArmor: 'studded-leather-armor',
+  equippedWeapons: ['rapier', 'dagger'],
+  currency: { cp: 12, sp: 30, ep: 2, gp: 220, pp: 4 },
+  experiencePoints: 34000,
+  createdAt: '2026-04-01T00:00:00.000Z',
+  updatedAt: '2026-04-05T00:00:00.000Z',
+};
+
+/**
+ * A legacy JSON export: inventory entries keyed by `id`/`name` and
+ * `equippedWeapons` as objects, as written by older Forge builds. Importing
+ * these must keep working.
+ */
+export const legacyForgeExport: AnyForgeCharacter = {
+  id: 'fixture-legacy-export',
+  name: 'Old Save Olrin',
+  species: 'dwarf',
+  race: 'Dwarf',
+  class: 'Cleric',
+  level: 2,
+  alignment: 'Lawful Good',
+  background: 'acolyte',
+  edition: '2014',
+  proficiencyBonus: 2,
+  armorClass: 16,
+  hitPoints: 17,
+  maxHitPoints: 17,
+  hitDice: { current: 2, max: 2, dieType: 8 },
+  speed: 25,
+  initiative: 0,
+  inspiration: false,
+  abilities: abilities(14, 10, 16, 10, 16, 8),
+  skills: blankSkills({ Medicine: { value: 5, proficient: true } }),
+  languages: ['Common', 'Dwarvish'],
+  featuresAndTraits: {
+    personality: 'Steady.',
+    ideals: 'Faith.',
+    bonds: 'My clan.',
+    flaws: 'Stubborn.',
+    classFeatures: ['Channel Divinity'],
+    speciesTraits: ['Darkvision', 'Dwarven Resilience'],
+    backgroundFeatures: [],
+  },
+  inventory: [
+    { id: 'Scale Mail', name: 'Scale Mail', quantity: 1, equipped: true, weight: 45 },
+    { name: 'Warhammer', quantity: 1, equipped: true, weight: 2, type: 'weapon' },
+  ],
+  equippedWeapons: [{ weaponSlug: 'warhammer', equipped: true, quantity: 1 }],
+  currency: { cp: 0, sp: 0, gp: 5, pp: 0 },
+  createdAt: '2025-06-01T00:00:00.000Z',
+  updatedAt: '2025-06-01T00:00:00.000Z',
+  _export: {
+    version: '1.0.0',
+    timestamp: 1748736000000,
+    sourceApp: '5e Character Forge',
+    exportFormat: 'json',
+  },
+};
+
+/**
+ * A golden fixture captured verbatim from the shared creator running inside
+ * Nexus Forge (2014 ruleset, Half-Orc Artificer 1). Unlike the hand-written
+ * fixtures above, this is exactly what `calculateCharacterStats()` produced,
+ * so it guards against the conversion drifting from real creator output.
+ */
+export const golden2014Artificer: AnyForgeCharacter = {
+  id: '48bd6534-bf98-4b4f-b19a-714982ef0358',
+  name: 'Keth the Keen',
+  species: 'Half-Orc',
+  class: 'Artificer',
+  classSlug: 'artificer',
+  level: 1,
+  alignment: 'Neutral Good',
+  background: 'outlander-2024',
+  edition: '2014',
+  inspiration: false,
+  proficiencyBonus: 2,
+  armorClass: 10,
+  hitPoints: 7,
+  maxHitPoints: 7,
+  hitDice: { current: 1, max: 1, dieType: 8 },
+  speed: 30,
+  initiative: 0,
+  abilities: {
+    CHA: { score: 15, modifier: 2 },
+    INT: { score: 14, modifier: 2 },
+    STR: { score: 13, modifier: 1 },
+    WIS: { score: 12, modifier: 1 },
+    DEX: { score: 10, modifier: 0 },
+    CON: { score: 8, modifier: -1 },
+  },
+  skills: {
+    Acrobatics: { proficient: false, value: 0 },
+    AnimalHandling: { proficient: false, value: 1 },
+    Arcana: { proficient: true, value: 4 },
+    Athletics: { proficient: true, value: 3 },
+    Deception: { proficient: false, value: 2 },
+    History: { proficient: false, value: 2 },
+    Insight: { proficient: false, value: 1 },
+    Intimidation: { proficient: false, value: 2 },
+    Investigation: { proficient: false, value: 2 },
+    Medicine: { proficient: false, value: 1 },
+    Nature: { proficient: false, value: 2 },
+    Perception: { proficient: true, value: 3 },
+    Performance: { proficient: false, value: 2 },
+    Persuasion: { proficient: false, value: 2 },
+    Religion: { proficient: false, value: 2 },
+    SleightOfHand: { proficient: false, value: 0 },
+    Stealth: { proficient: false, value: 0 },
+    Survival: { proficient: true, value: 3 },
+  },
+  languages: ['Slaad', 'Deep Speech', 'Gnomish'],
+  featuresAndTraits: {
+    personality: "I'm always polite and respectful.",
+    ideals:
+      'Noble Obligation. It is my duty to protect and care for the people beneath me. (Good)',
+    bonds:
+      'I owe my survival to another urchin who taught me to live on the streets.',
+    flaws: 'My hatred of my enemies is blind and unreasoning.',
+    classFeatures: [],
+    speciesTraits: ['Darkvision', 'Menacing (Intimidation)', 'Savage Attacks'],
+    backgroundFeatures: [
+      { name: 'Background Feature', description: 'A feature from your background.' },
+    ],
+    musicalInstrumentProficiencies: [],
+  },
+  proficiencies: {
+    armor: ['Light Armor', 'Medium Armor', 'Shields'],
+    weapons: ['Simple Weapons'],
+    tools: ["Thieves' Tools", "Tinker's Tools", 'Musical Instrument (one choice)'],
+  },
+  selectedFeats: [],
+  spellcasting: {
+    ability: 'INT',
+    spellSaveDC: 12,
+    spellAttackBonus: 4,
+    cantripsKnown: [],
+    spellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    usedSpellSlots: [0, 0, 0, 0, 0, 0, 0, 0, 0],
+    spellcastingType: 'prepared',
+    cantripChoicesByLevel: { 1: '' },
+    spellsKnown: [],
+    preparedSpells: [],
+  },
+  srdFeatures: { classFeatures: [], subclassFeatures: [] },
+  subclass: 'battle-smith',
+  experiencePoints: 0,
+  feats: [],
+  inventory: [
+    { equipmentSlug: 'quarterstaff', quantity: 1, equipped: false },
+    { equipmentSlug: 'hunting-trap', quantity: 2, equipped: false },
+    { equipmentSlug: 'unknown-travelers-clothes', quantity: 1, equipped: false },
+    { equipmentSlug: 'unknown-musical-instrument', quantity: 1, equipped: false },
+    { equipmentSlug: 'unknown-10-gp', quantity: 1, equipped: false },
+    { equipmentSlug: 'staff', quantity: 1, equipped: false },
+    { equipmentSlug: 'trophy-from-animal', quantity: 1, equipped: false },
+    { equipmentSlug: 'travelers-clothes', quantity: 1, equipped: false },
+    { equipmentSlug: 'pouch', quantity: 1, equipped: false },
+  ],
+  originFeat: 'tough',
+  currency: { cp: 0, sp: 0, gp: 0, pp: 0 },
+  equippedWeapons: [],
+  temporaryHitPoints: 0,
+  deathSaves: { successes: 0, failures: 0 },
+  conditions: [],
+  createdAt: '2026-09-15T15:01:13.582Z',
+  updatedAt: '2026-09-15T15:01:13.582Z',
+};

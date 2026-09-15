@@ -4,15 +4,21 @@
     {
       "name": "vite",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "dev"],
+      "runtimeArgs": ["run", "dev", "--workspace", "nexus-vtt"],
       "port": 5173,
       "autoPort": true
     },
     {
       "name": "server",
       "runtimeExecutable": "npm",
-      "runtimeArgs": ["run", "server:dev"],
+      "runtimeArgs": ["run", "server:dev", "--workspace", "nexus-vtt"],
       "port": 5001
+    },
+    {
+      "name": "forge",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--workspace", "nexus-forge"],
+      "port": 3000
     }
   ]
 }
