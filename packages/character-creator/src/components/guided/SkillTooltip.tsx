@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import skillsData from '@nexus/character-creator/data/skills.json';
+import skillsData from '../../data/skills.json';
 
 interface SkillTooltipProps {
   skillName: string;

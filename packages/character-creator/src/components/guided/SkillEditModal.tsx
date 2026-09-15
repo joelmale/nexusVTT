@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { X, Check, Lock } from 'lucide-react';
-import { loadClasses, BACKGROUNDS } from '../services/dataService';
-import skillsData from '@nexus/character-creator/data/skills.json';
+import { loadClasses, BACKGROUNDS } from '../../services/dataService';
+import skillsData from '../../data/skills.json';
 
 interface SkillEditModalProps {
   classSlug: string;

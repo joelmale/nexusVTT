@@ -1,8 +1,9 @@
 import React, { useCallback } from 'react';
 import {
-  CharacterCreationWizard,
+  CharacterCreator,
   createdCharacterToNexus,
   type CharacterCreationResult,
+  type CreationMode,
 } from '@nexus/character-creator';
 import '@nexus/character-creator/styles.css';
 import type { Character } from '@nexus/character-contracts';
@@ -30,6 +31,11 @@ interface SharedCharacterCreatorProps {
   onCancel: () => void;
   /** Kept for launch-context parity; the shared creator is always modal. */
   isModal?: boolean;
+  /**
+   * Which door opens first. Defaults to the guided flow — a player arriving at
+   * "I need to build a character" should not have to meet point-buy first.
+   */
+  initialMode?: CreationMode;
 }
 
 /**
@@ -46,6 +52,7 @@ export const SharedCharacterCreator: React.FC<SharedCharacterCreatorProps> = ({
   playerId,
   onComplete,
   onCancel,
+  initialMode = 'guided',
 }) => {
   const { saveCreatedCharacter } = useCharacterCreation();
   const theme = useTheme();
@@ -68,8 +75,10 @@ export const SharedCharacterCreator: React.FC<SharedCharacterCreatorProps> = ({
     // configured default (2024, the current ruleset), matching Forge. The VTT
     // has no ruleset picker yet, so hard-coding one here would silently force
     // players onto a ruleset they did not choose.
-    <CharacterCreationWizard
+    <CharacterCreator
       isOpen
+      initialMode={initialMode}
+      allowModeSwitch
       theme={resolveCreatorTheme(theme)}
       onCancel={onCancel}
       onComplete={handleComplete}

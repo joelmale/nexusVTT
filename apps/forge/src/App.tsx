@@ -5,13 +5,13 @@ import { Plus, Trash2, BookOpen, Shield, Download, Upload, Settings } from 'luci
 // REFACTORED: Loader2 import removed - was unused
 import {
   CharacterCreationWizard,
+  GuidedCharacterCreator,
   type CharacterCreationResult,
 } from '@nexus/character-creator';
 import { LevelUpWizard } from './components/LevelUpWizard/LevelUpWizard';
 import { CharacterSheet } from './components/CharacterSheet';
 import NewCharacterModal from './components/NewCharacterModal';
 import ManualEntryScreen from './components/ManualEntryScreen';
-import PersonalityWizard from './components/PersonalityWizard';
 import { MonsterLibrary, MonsterStatBlock, CreateMonsterModal, EmbeddableMonsterPage, EmbeddableEncounterPage } from './components/MonsterLibrary';
 import { NPCLibrary } from './components/NPCLibrary';
 import { SpellbookManager } from './components/SpellbookManager/SpellbookManager';
@@ -42,7 +42,7 @@ import { APP_VERSION } from './version';
 // REFACTORED: Language utilities moved to languageUtils.ts for the wizard
 // Still used here in main App for character sheet display - can be removed once main app is refactored
 
-import { Ability, Character, CharacterCreationData, Equipment, EquippedItem, Feature, Monster, UserMonster, Edition } from './types/dnd';
+import { Ability, Character, Equipment, EquippedItem, Feature, Monster, UserMonster, Edition } from './types/dnd';
 
 import { useDiceContext, useLayout } from './hooks';
 import { TabNavigation, TabId } from './components/TabNavigation';
@@ -699,55 +699,6 @@ const App: React.FC = () => {
     setCreationMethod('personality');
   }, []);
 
-  const handlePersonalityComplete = useCallback(async (characterData: CharacterCreationData) => {
-    // Validate received data
-    if (!characterData) {
-      setRollResult({
-        text: 'Error: No character data received.',
-        value: null
-      });
-      return;
-    }
-
-    if (!characterData.speciesSlug || !characterData.classSlug) {
-      setRollResult({
-        text: 'Error: Missing required character data.',
-        value: null
-      });
-      return;
-    }
-
-    // Create the character directly from the summary screen
-    try {
-      const { calculateCharacterStats } = await import('./utils/characterCreationUtils');
-      const { addCharacter } = await import('./services/dbService');
-      const { generateUUID } = await import('./services/diceService');
-
-      const character = calculateCharacterStats(characterData);
-
-      const characterWithId = {
-        ...character,
-        id: generateUUID()
-      };
-
-      await addCharacter(characterWithId);
-
-      await loadCharacters();
-
-      setCreationMethod(null);
-
-      setRollResult({
-        text: `Character "${characterWithId.name || 'Unnamed Hero'}" created successfully from personality profile!`,
-        value: null
-      });
-    } catch (error) {
-      setRollResult({
-        text: `Error creating character from personality profile: ${error instanceof Error ? error.message : 'Unknown error'}`,
-        value: null
-      });
-    }
-  }, [loadCharacters]);
-
   const handleBackToModal = useCallback(() => {
     setCreationMethod(null);
     setIsNewCharacterModalOpen(true);
@@ -1343,13 +1294,14 @@ const App: React.FC = () => {
         />
 
         {/* Personality Wizard */}
+        {/* Guided (personality-led) creation — same completion contract as the
+            full wizard, so both doors save through handleCreatorComplete. */}
         {creationMethod === 'personality' && (
-          <PersonalityWizard
-            isOpen={creationMethod === 'personality'}
+          <GuidedCharacterCreator
+            isOpen
             edition={selectedEdition}
-            onClose={() => setCreationMethod(null)}
-            onComplete={handlePersonalityComplete}
-            onBack={handleBackToModal}
+            onCancel={handleBackToModal}
+            onComplete={handleCreatorComplete}
           />
         )}
 
