@@ -10,7 +10,7 @@ import {
   generateRandomCharacter,
   generateRandomScene,
 } from '../utils/mockGenerator.js';
-import { isDevToolsEnabled } from '../utils/devMode.js';
+import { isDevMode } from '../utils/devMode.js';
 import { toAuthResponse, } from '../utils/publicUser.js';
 import { requireAuthenticatedNonGuest } from '../middleware/assetWriteGuard.js';
 import { setupGeneratedMapsRoute } from './generatedMaps.js';
@@ -29,8 +29,8 @@ interface ApiSession extends Session {
  * the app, so the dev seeding routes accept them too.
  *
  * DO NOT reuse this in production routes. It is safe here ONLY because every
- * caller is wrapped in `isDevToolsEnabled()` (ENABLE_DEV_TOOLS, default off),
- * which remains the security boundary.
+ * caller is wrapped in `isDevMode()` (DEV_MODE), which remains the security
+ * boundary.
  * Production identity checks must keep using `req.isAuthenticated()` /
  * `requireAuthenticatedNonGuest`.
  */
@@ -382,13 +382,32 @@ export function registerApiRoutes(
   });
 
   /**
+   * GET /api/client-config
+   * Runtime configuration for the browser client.
+   *
+   * Registered UNCONDITIONALLY and must stay that way: the client asks this
+   * endpoint whether the dev tooling is on, so it has to answer either way.
+   *
+   * This exists because VITE_* variables are compiled into the bundle at image
+   * BUILD time (see docker/frontend.Dockerfile -- the builder stage runs
+   * `npm run build` and only the static output is copied into nginx). A
+   * build-time flag cannot be toggled by an operator setting an environment
+   * variable on a running container, so the client reads this instead. One
+   * DEV_MODE variable on the backend now drives both the routes below and the
+   * UI that calls them, with no rebuild.
+   */
+  app.get('/api/client-config', (_req, res) => {
+    res.json({ devToolsEnabled: isDevMode() });
+  });
+
+  /**
    * Developer tooling routes: quick start, mock-data seeding, and teardown.
    *
-   * Gated by ENABLE_DEV_TOOLS, which DEFAULTS TO OFF and is deliberately not
-   * inferred from NODE_ENV -- these routes write and delete real rows and accept
-   * guest identities, so they must be switched on explicitly.
+   * Gated by DEV_MODE (default: NODE_ENV !== 'production'), so they are absent
+   * from a production deployment unless an operator sets DEV_MODE=true. These
+   * routes write and DELETE real rows and accept guest identities.
    */
-  if (isDevToolsEnabled()) {
+  if (isDevMode()) {
     app.post('/api/dev/populate-mock-data', async (req, res) => {
       try {
         const userId = resolveDevUserId(req);

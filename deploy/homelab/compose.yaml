@@ -90,6 +90,16 @@ services:
     environment:
       CORS_ORIGIN: ${CORS_ORIGIN}
       NODE_ENV: production
+      # Developer tooling switch: registers the /api/dev/* seeding and
+      # teardown routes, and (via GET /api/client-config) reveals the
+      # matching UI. Defaults to false, so the tooling is absent unless an
+      # operator opts in. Set DEV_MODE=true in the stack environment and
+      # restart the backend; no image rebuild is needed.
+      #
+      # NOTE: VITE_DEV_MODE cannot do this. VITE_* values are compiled into
+      # the frontend bundle at image build time, which is why setting it on
+      # a running container has no effect.
+      DEV_MODE: ${DEV_MODE:-false}
       DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
       JWT_SECRET: ${JWT_SECRET}

@@ -11,9 +11,8 @@ const navigate = vi.fn();
 vi.mock('react-router-dom', () => ({ useNavigate: () => navigate }));
 
 const devToolsEnabled = vi.fn(() => true);
-vi.mock('@/utils/devMode', () => ({
-  isDevToolsEnabled: () => devToolsEnabled(),
-  isDevMode: () => true,
+vi.mock('@/utils/devToolsFlag', () => ({
+  fetchDevToolsEnabled: async () => devToolsEnabled(),
 }));
 
 const quickStartApi = vi.fn();
@@ -105,7 +104,7 @@ describe('useQuickStart', () => {
     expect(result.current.error).toBeNull();
   });
 
-  it('does nothing when the dev tools flag is off', async () => {
+  it('does nothing when the server reports dev tools off', async () => {
     devToolsEnabled.mockReturnValue(false);
     const { result } = renderHook(() => useQuickStart());
 

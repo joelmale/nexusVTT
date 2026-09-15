@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { useCharacterCreationLauncher } from '@/hooks';
 import { clearAll, seedData } from '@/services/devSeed';
-import { isDevToolsEnabled } from '@/utils/devMode';
+import { useDevToolsEnabled } from '@/utils/devToolsFlag';
 import type { GameConfig, PlayerCharacter } from '@/types/game';
 
 // Import our new Atomic components
@@ -90,6 +90,9 @@ export const Dashboard: React.FC = () => {
   const [characters, setCharacters] = useState<ApiCharacter[]>([]);
   const [loading, setLoading] = useState(true);
   const [seeding, setSeeding] = useState(false);
+  // Both seeding and clear-all call /api/dev/*, so they are hidden unless the
+  // backend reports those routes registered.
+  const devToolsEnabled = useDevToolsEnabled();
 
   // Session Modal State
   const [sessionModalOpen, setSessionModalOpen] = useState(false);
@@ -429,8 +432,8 @@ export const Dashboard: React.FC = () => {
         onJoinGame={handleJoinGame}
         onImport={() => alert('Importing JSON sheets...')}
         onExport={() => alert('Exporting sheets...')}
-        onClearAll={handleClearAll}
-        onSeedData={isDevToolsEnabled() ? handleSeedData : undefined}
+        onClearAll={devToolsEnabled ? handleClearAll : undefined}
+        onSeedData={devToolsEnabled ? handleSeedData : undefined}
         seeding={seeding}
         onPlayCampaign={handlePlayCampaign}
         onCreateCampaign={handleCreateCampaign}

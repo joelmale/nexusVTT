@@ -14,7 +14,8 @@ import { useQuickStart } from '@/hooks/useQuickStart';
 import { PopoverMenu } from './PopoverMenu';
 import { useShallow } from 'zustand/react/shallow';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.webp';
-import { isDevToolsEnabled } from '@/utils/devMode';
+import { isDevMode } from '@/utils/devMode';
+import { useDevToolsEnabled } from '@/utils/devToolsFlag';
 
 interface Campaign {
   id: string;
@@ -44,6 +45,8 @@ export const LinearWelcomePage: React.FC = () => {
   const logout = useGameStore((s) => s.logout);
   const navigate = useNavigate();
   const quickStartDev = useQuickStart();
+  // Server-reported: whether the /api/dev/* seeding routes actually exist.
+  const devToolsEnabled = useDevToolsEnabled();
   // Uncontrolled inputs — avoids re-rendering the entire page on every keystroke.
   // We only track a cheap boolean so submit buttons can stay disabled when empty.
   const playerNameRef = useRef<HTMLInputElement>(null);
@@ -998,24 +1001,31 @@ export const LinearWelcomePage: React.FC = () => {
             </fieldset>
           </form>
 
-          {/* Development Tools - opt-in via VITE_ENABLE_DEV_TOOLS (default off).
-              Deliberately a stronger gate than isDevMode(): these actions write
-              and delete real campaigns and characters. */}
-          {isDevToolsEnabled() && (
+          {/* Development Tools.
+              Shown in a local dev build (isDevMode), or wherever the backend
+              reports DEV_MODE on -- the latter is what makes the block visible
+              on a deployed server, where a production bundle has isDevMode()
+              false and VITE_DEV_MODE baked in at build time. */}
+          {(isDevMode() || devToolsEnabled) && (
             <div className="dev-tools">
               <hr className="dev-divider" />
               <h4 className="dev-title">⚡ Development Tools</h4>
               <div className="dev-buttons">
-                <button
-                  onClick={() => void quickStartDev.start()}
-                  disabled={quickStartDev.isSeeding}
-                  className="dev-btn glass-button primary small"
-                  title="Seed a campaign, character, room, scene and token, then jump straight to the canvas"
-                >
-                  {quickStartDev.isSeeding
-                    ? `⏳ ${quickStartDev.phase ?? 'starting'}...`
-                    : '⚡ Quick Start'}
-                </button>
+                {/* Quick Start calls /api/dev/*, so it appears only when the
+                    backend confirms those routes are registered. The buttons
+                    beside it are client-only and need no such check. */}
+                {devToolsEnabled && (
+                  <button
+                    onClick={() => void quickStartDev.start()}
+                    disabled={quickStartDev.isSeeding}
+                    className="dev-btn glass-button primary small"
+                    title="Seed a campaign, character, room, scene and token, then jump straight to the canvas"
+                  >
+                    {quickStartDev.isSeeding
+                      ? `⏳ ${quickStartDev.phase ?? 'starting'}...`
+                      : '⚡ Quick Start'}
+                  </button>
+                )}
                 <button
                   onClick={() => dev_quickDM()}
                   className="dev-btn glass-button secondary small"

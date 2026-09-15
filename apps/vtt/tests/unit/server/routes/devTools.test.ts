@@ -6,7 +6,7 @@ import type { DatabaseService } from '../../../../server/database.js';
 
 /**
  * The dev tooling routes are registered at module-call time based on
- * ENABLE_DEV_TOOLS, so each test sets the env var and then re-imports the
+ * DEV_MODE, so each test sets the env var and then re-imports the
  * module with a fresh registry.
  */
 async function startApp(opts: {
@@ -15,7 +15,7 @@ async function startApp(opts: {
   authUser?: { id: string };
   db?: Partial<DatabaseService>;
 }): Promise<{ baseUrl: string; server: Server; db: Partial<DatabaseService> }> {
-  process.env.ENABLE_DEV_TOOLS = opts.enabled ? 'true' : 'false';
+  process.env.DEV_MODE = opts.enabled ? 'true' : 'false';
 
   vi.resetModules();
   const { registerApiRoutes } = await import('../../../../server/routes/api.js');
@@ -64,7 +64,7 @@ async function startApp(opts: {
 
 describe('dev tooling routes', () => {
   let server: Server | undefined;
-  const originalFlag = process.env.ENABLE_DEV_TOOLS;
+  const originalFlag = process.env.DEV_MODE;
 
   afterEach(async () => {
     if (server) {
@@ -73,14 +73,14 @@ describe('dev tooling routes', () => {
       );
       server = undefined;
     }
-    process.env.ENABLE_DEV_TOOLS = originalFlag;
+    process.env.DEV_MODE = originalFlag;
   });
 
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  describe('when ENABLE_DEV_TOOLS is not enabled (the default)', () => {
+  describe('when DEV_MODE=false', () => {
     it('does not register the dev routes at all', async () => {
       const app = await startApp({
         enabled: false,
@@ -99,7 +99,7 @@ describe('dev tooling routes', () => {
     });
   });
 
-  describe('when ENABLE_DEV_TOOLS=true', () => {
+  describe('when DEV_MODE=true', () => {
     it('seeds a campaign, character and scene for a GUEST user', async () => {
       const app = await startApp({
         enabled: true,

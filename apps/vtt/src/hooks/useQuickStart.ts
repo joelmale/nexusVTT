@@ -3,8 +3,9 @@
  * @description Orchestrates one-click dev seeding: identity -> seeded campaign
  * and character -> live room -> scene -> placed token -> canvas.
  *
- * DEV ONLY. Callers must gate their affordance on `isDevToolsEnabled()`
- * (VITE_ENABLE_DEV_TOOLS, default off).
+ * DEV ONLY. Callers must also gate their affordance on `useDevToolsEnabled()`;
+ * this guard is the backstop. Enabled by DEV_MODE on the BACKEND, reported to
+ * the client at runtime by GET /api/client-config.
  *
  * Step order is load-bearing:
  *   - the room must exist before the scene, because `createScene()` throws when
@@ -25,7 +26,7 @@ import type { Character } from '@nexus/character-contracts';
 import { useGameStore } from '@/stores/gameStore';
 import { useCharacterStore } from '@/stores/characterStore';
 import { quickStart } from '@/services/devSeed';
-import { isDevToolsEnabled } from '@/utils/devMode';
+import { fetchDevToolsEnabled } from '@/utils/devToolsFlag';
 import type { SeededCharacter } from '@/services/devSeed';
 
 export type QuickStartPhase =
@@ -68,7 +69,8 @@ export function useQuickStart() {
   const [error, setError] = useState<string | null>(null);
 
   const start = useCallback(async () => {
-    if (!isDevToolsEnabled() || isSeeding) return;
+    if (isSeeding) return;
+    if (!(await fetchDevToolsEnabled())) return;
 
     setIsSeeding(true);
     setError(null);
