@@ -1,17 +1,17 @@
 import React, { useState, useCallback } from 'react';
 import { ArrowLeft, ArrowRight, Heart, Shield, Zap, Sparkles } from 'lucide-react';
-import { generateCharacterProfile, CharacterProfile } from '@nexus/character-creator/data/characterProfiles';
+import { generateCharacterProfile, CharacterProfile } from '../../data/characterProfiles';
 import PersonalitySummary from './PersonalitySummary';
 import CharacterFinalization from './CharacterFinalization';
-import { loadClasses, getAllSpecies, BACKGROUNDS, getCantripsByClass, getLeveledSpellsByClass } from '../services/dataService';
-import { CharacterCreationData, SpellSelectionData, SkillName, Edition } from '../types/dnd';
-import { getSpellcastingType } from '../utils/spellUtils';
-import { SPELL_LEARNING_RULES } from '@nexus/character-creator/data/spellLearning';
-import { assignAbilityScoresByClass } from '../utils/abilityScoreUtils';
-import cantripsData from '@nexus/character-creator/data/cantrips.json';
-import { generateQuickStartEquipment } from '../services/equipmentService';
-import { rollRandomTrinket } from '../utils/trinketUtils';
-import { log } from '../utils/logger';
+import { loadClasses, getAllSpecies, BACKGROUNDS, getCantripsByClass, getLeveledSpellsByClass } from '../../services/dataService';
+import { CharacterCreationData, SpellSelectionData, SkillName, Edition } from '../../types/dnd';
+import { getSpellcastingType } from '../../utils/spellUtils';
+import { SPELL_LEARNING_RULES } from '../../data/spellLearning';
+import { assignAbilityScoresByClass } from '../../utils/abilityScoreUtils';
+import cantripsData from '../../data/cantrips.json';
+import { generateQuickStartEquipment } from '../../services/equipmentService';
+import { rollRandomTrinket } from '../../utils/trinketUtils';
+import { log } from '../../utils/logger';
 
 type CantripsKnownData = Record<string, Record<string, number>>;
 
@@ -20,6 +20,11 @@ interface PersonalityWizardProps {
   onClose: () => void;
   onComplete: (characterData: CharacterCreationData) => void;
   onBack: () => void;
+  /**
+   * Label for the back affordance. Hosts use it to say where back goes:
+   * a chooser modal in Forge, the full wizard in the VTT.
+   */
+  backLabel?: string;
   edition: Edition;
 }
 
@@ -30,7 +35,7 @@ type CombatChoice = 'frontline' | 'skirmisher' | 'overwhelming' | 'tactical' | n
 type SocialChoice = 'leader' | 'supporter' | 'independent' | 'mediator' | 'enforcer' | 'counselor' | null;
 type WorldChoice = 'guardian' | 'revolutionary' | 'pragmatist' | 'spiritual' | 'free_spirit' | 'justice' | null;
 
-const PersonalityWizard: React.FC<PersonalityWizardProps> = ({ isOpen, onClose: _onClose, onComplete, onBack, edition }) => {
+const PersonalityWizard: React.FC<PersonalityWizardProps> = ({ isOpen, onClose: _onClose, onComplete, onBack, backLabel = 'Back to Options', edition }) => {
   const [currentStep, setCurrentStep] = useState<number>(0);
   const [selectedPath, setSelectedPath] = useState<PathChoice>(null);
   // Use a ref to store choices synchronously
@@ -235,9 +240,21 @@ const PersonalityWizard: React.FC<PersonalityWizardProps> = ({ isOpen, onClose: 
     const selectedClassData = allClasses.find(c => c.name === baseClassName);
     const selectedSpeciesData = allSpecies.find(s => s.name === baseSpeciesName);
 
-    if (!selectedClassData || !selectedSpeciesData) {
-      log.error('PersonalityWizard missing class/species data', { selectedClass, selectedSpecies });
-      alert('Error: Could not find class or species data. Please try again.');
+    // Backgrounds are chosen by display name ("Noble") but every downstream
+    // consumer keys off the slug ("noble-2024"), so resolve the record here.
+    const selectedBackgroundData = BACKGROUNDS.find(
+      bg => bg.name === selectedBackground,
+    );
+
+    if (!selectedClassData || !selectedSpeciesData || !selectedBackgroundData) {
+      log.error('PersonalityWizard missing class/species/background data', {
+        selectedClass,
+        selectedSpecies,
+        selectedBackground,
+      });
+      alert(
+        'Error: Could not find class, species or background data. Please try again.',
+      );
       return;
     }
 
@@ -251,8 +268,7 @@ const PersonalityWizard: React.FC<PersonalityWizardProps> = ({ isOpen, onClose: 
       const defaultSkills = selectedClassData.skill_proficiencies?.slice(0, numSkills) || [];
 
       // Get background skills
-      const backgroundData = BACKGROUNDS.find(bg => bg.name === selectedBackground);
-      const backgroundSkills = backgroundData?.skill_proficiencies || [];
+      const backgroundSkills = selectedBackgroundData.skill_proficiencies || [];
 
       // Combine and deduplicate skills
       selectedSkills = [...new Set([...defaultSkills, ...backgroundSkills])];
@@ -275,7 +291,7 @@ const PersonalityWizard: React.FC<PersonalityWizardProps> = ({ isOpen, onClose: 
       classSlug: selectedClassData.slug,
       abilities,
       abilityScoreMethod: 'standard-array' as const,
-      background: selectedBackground || '',
+      background: selectedBackgroundData.slug,
       alignment: finalizationData.alignment,
       edition: '2024',
 
@@ -324,7 +340,7 @@ const PersonalityWizard: React.FC<PersonalityWizardProps> = ({ isOpen, onClose: 
             className="flex items-center space-x-2 px-4 py-2 bg-theme-tertiary hover:bg-theme-quaternary rounded-lg text-white transition-colors"
           >
             <ArrowLeft className="w-4 h-4" />
-            <span>Back to Options</span>
+            <span>{backLabel}</span>
           </button>
           <h1 className="text-3xl font-bold text-accent-purple-light">Personality Wizard</h1>
           <div className="w-32"></div> {/* Spacer for centering */}

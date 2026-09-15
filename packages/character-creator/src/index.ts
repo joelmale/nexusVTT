@@ -8,8 +8,18 @@
  * to do with it.
  */
 
+// The host-facing entry point: opens the guided door by default and lets the
+// player switch to the full wizard without losing the session.
+export { CharacterCreator } from './components/CharacterCreator';
+export type {
+  CharacterCreatorProps as CharacterCreatorComponentProps,
+  CreationMode,
+} from './components/CharacterCreator';
+
+// The individual doors, for hosts that present their own chooser.
 export { CharacterCreationWizard } from './components/CharacterCreationWizard';
-export { CharacterCreationWizard as CharacterCreator } from './components/CharacterCreationWizard';
+export { GuidedCharacterCreator } from './components/guided/GuidedCharacterCreator';
+export { default as PersonalityWizard } from './components/guided/PersonalityWizard';
 
 export {
   CHARACTER_CREATOR_ROOT_CLASS,
