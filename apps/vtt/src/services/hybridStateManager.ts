@@ -1208,10 +1208,18 @@ export class HybridStateManager {
   // =============================================================================
 
   private generateRoomCode(): string {
+    // A room code is the only credential needed to join a room, so it comes
+    // from the Web Crypto CSPRNG rather than Math.random(). Values above the
+    // largest whole multiple of the alphabet length are rejected so every
+    // character stays uniformly distributed rather than modulo-biased.
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const limit = Math.floor(256 / chars.length) * chars.length;
     let result = '';
-    for (let i = 0; i < 6; i++) {
-      result += chars.charAt(Math.floor(Math.random() * chars.length));
+    const buffer = new Uint8Array(1);
+    while (result.length < 6) {
+      crypto.getRandomValues(buffer);
+      if (buffer[0] >= limit) continue;
+      result += chars.charAt(buffer[0] % chars.length);
     }
     return result;
   }
