@@ -61,20 +61,21 @@ export const WindowPortal: React.FC<WindowPortalProps> = ({
       if ('documentPictureInPicture' in window) {
         try {
           // @ts-expect-error: documentPictureInPicture API is experimental
-          pipWindow.current = await window.documentPictureInPicture.requestWindow({
+          const pip: Window = await window.documentPictureInPicture.requestWindow({
             width,
             height,
           });
+          pipWindow.current = pip;
           
           if (!isMounted) {
-            pipWindow.current.close();
+            pip.close();
             return;
           }
 
-          copyStyles(document, pipWindow.current.document);
-          pipWindow.current.document.body.appendChild(div);
+          copyStyles(document, pip.document);
+          pip.document.body.appendChild(div);
           
-          pipWindow.current.addEventListener('pagehide', () => {
+          pip.addEventListener('pagehide', () => {
             if (isMounted) onClose();
           });
           
