@@ -4,6 +4,6 @@
     "composite": false,
     "types": ["node", "@playwright/test"]
   },
-  "include": ["playwright.config.ts", "tests/e2e/**/*.ts"],
+  "include": ["playwright.config.ts", "tests/e2e/**/*.ts", "tests/ui/**/*.ts"],
   "references": []
 }
