@@ -2,7 +2,7 @@ import React from 'react';
 import { PlayerBar, PlayerActions } from './PlayerBar';
 import ConnectionStatus from './ConnectionStatus';
 import { useDraggablePanel } from '@/hooks/useDraggablePanel';
-import { useUIStackStore, useStackZIndex } from '@/stores/uiStackStore';
+import { useUIStackStore, useStackZIndex, useFocusMode } from '@/stores/uiStackStore';
 
 interface PlayerClusterFloatingProps {
   leaveRoom: () => void;
@@ -20,11 +20,14 @@ export const PlayerClusterFloating: React.FC<PlayerClusterFloatingProps> = ({ le
   });
 
   const zIndex = useStackZIndex('playerCluster');
+  const focusMode = useFocusMode();
   const bringToFront = useUIStackStore((state) => state.bringToFront);
 
   return (
     <div
       ref={panelRef}
+      data-chrome
+      inert={focusMode || undefined}
       className="player-cluster-floating"
       data-collapsed={isCollapsed ? 'true' : undefined}
       onPointerDownCapture={() => bringToFront('playerCluster')}

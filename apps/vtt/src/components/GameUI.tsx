@@ -22,7 +22,11 @@ import { FloatingPanel } from './FloatingPanel';
 import { AtlasDock } from './Atlas/AtlasDock';
 import ConnectionStatus from './ConnectionStatus';
 import { applyColorScheme } from '@/utils/colorSchemes';
-import { useUIStackStore } from '@/stores/uiStackStore';
+import { useUIStackStore, DOCK_ZONES } from '@/stores/uiStackStore';
+import { useFocusModeController } from '@/hooks/useFocusMode';
+import { useReducedMotionSync } from '@/hooks/useReducedMotion';
+import { useDockLayoutSync } from '@/hooks/useDocking';
+import { DockRegion } from './DockRegion';
 import { ContextPanel } from './ContextPanel';
 
 // Lazy load heavy panels
@@ -49,6 +53,12 @@ export const GameUI: React.FC = () => {
 
   const activePanels = useUIStackStore(state => state.activePanels);
   const togglePanel = useUIStackStore(state => state.togglePanel);
+
+  // Immersive mode (press F) and the in-app reduced-motion setting. Both
+  // mirror a flag onto <html> so CSS can reach portal-mounted chrome too.
+  useFocusModeController();
+  useReducedMotionSync();
+  useDockLayoutSync();
 
   const isGeneratorOpen = activePanels.includes('generator');
   const closeGenerator = useCallback(() => {
@@ -141,10 +151,14 @@ export const GameUI: React.FC = () => {
   }
 
   return (
-    <div
-      className="game-layout"
-      data-floating-panels={true}
-    >
+    <div className="game-layout">
+      {/* Dock region hosts. Docked FloatingPanels portal into these, which is
+          what makes a dock reserve real layout space and reflow the canvas
+          (see .game-layout's --dock-* grid tracks). Empty regions collapse. */}
+      {DOCK_ZONES.map((zone) => (
+        <DockRegion key={zone} zone={zone} />
+      ))}
+
       <PlayerClusterFloating leaveRoom={leaveRoom} />
 
       <PanelDock
@@ -157,7 +171,8 @@ export const GameUI: React.FC = () => {
 
       {/* Main Game Canvas */}
       <ErrorBoundary name="Main Canvas" key={activeScene?.id || 'no-scene'}>
-        <div className="layout-scene">
+        {/* tabIndex -1: focus is parked here when focus mode marks chrome inert */}
+        <div className="layout-scene" tabIndex={-1}>
           {/* Scene Content */}
           <div className="scene-content scene-content-relative">
             {activeScene ? (
@@ -176,6 +191,9 @@ export const GameUI: React.FC = () => {
           </div>
 
           {/* Floating Toolbar */}
+          {/* data-chrome lives on .layout-toolbar-inner (GameToolbar's own
+              root), not here: this wrapper is purely grid positioning, and
+              tagging both would double-fade and leave this one without inert. */}
           <div className="layout-toolbar">
             <Suspense
               fallback={
@@ -220,7 +238,6 @@ export const GameUI: React.FC = () => {
       <GeneratorOverlay
         isOpen={isGeneratorOpen}
         onClose={closeGenerator}
-        floatingPanelsEnabled={true}
       >
         <ErrorBoundary name="Generator Panel">
           <Suspense

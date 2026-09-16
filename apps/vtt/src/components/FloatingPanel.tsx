@@ -1,10 +1,21 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useCallback, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { Portal } from './Portal';
 import { WindowPortal } from './WindowPortal';
 import styles from './FloatingPanel.module.css';
 import { useDraggablePanel } from '@/hooks/useDraggablePanel';
 import { useResizablePanel } from '@/hooks/useResizablePanel';
-import { useUIStackStore, useStackZIndex, PanelId } from '@/stores/uiStackStore';
+import { useLayoutWorkspaceStore } from '@/stores/layoutWorkspaceStore';
+import { DockZoneOverlay } from './DockZoneOverlay';
+import { useDockDrag, useDockHost } from '@/hooks/useDocking';
+import {
+  useUIStackStore,
+  useStackZIndex,
+  useIsTopmostPanel,
+  useFocusMode,
+  useDockZone,
+  PanelId,
+} from '@/stores/uiStackStore';
 
 interface FloatingPanelProps {
   panelId: PanelId;
@@ -34,19 +45,37 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
   const isPoppedOut = useUIStackStore((state) => state.poppedOutPanels.includes(panelId));
   const popOutPanel = useUIStackStore((state) => state.popOutPanel);
   const restorePanel = useUIStackStore((state) => state.restorePanel);
+  const activePanels = useUIStackStore((state) => state.activePanels);
+  const bringToFront = useUIStackStore((state) => state.bringToFront);
+  const dockZone = useDockZone(panelId);
+  // Registered by GameUI via a callback ref - see useDockHostRef on why this
+  // is not a document.querySelector during render.
+  const dockHost = useDockHost(dockZone);
+  const undockPanel = useUIStackStore((state) => state.undockPanel);
+  const { onDragMove, onDragEnd, isDragging, activeZone } = useDockDrag(panelId);
+
+  const cascadeIndex = Math.max(0, activePanels.indexOf(panelId));
+  const cascadeOffset = (cascadeIndex % 8) * 28;
 
   const {
     onPointerDown,
     isCollapsed,
     toggleCollapsed,
     shiftPosition,
+    setPosition,
+    setCollapsed,
     panelRef,
   } = useDraggablePanel({
     id: panelId,
-    defaultPosition: { x: window.innerWidth - 320 - 16, y: 84 },
+    defaultPosition: {
+      x: Math.max(16, window.innerWidth - 320 - 16 - cascadeOffset),
+      y: Math.max(16, 84 + cascadeOffset),
+    },
+    onDragMove,
+    onDragEnd,
   });
 
-  const { size, onResizeStart, edgeCursor } = useResizablePanel({
+  const { size, setSizeClamped, onResizeStart, edgeCursor } = useResizablePanel({
     id: panelId,
     defaultSize: { width: 320, height: 600 },
     minWidth: 260,
@@ -57,31 +86,82 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
   });
 
   const zIndex = useStackZIndex(panelId);
-  const bringToFront = useUIStackStore((state) => state.bringToFront);
+  const isTopmost = useIsTopmostPanel(panelId);
+  const focusMode = useFocusMode();
 
-  // Capture the opener's focus when opening, and restore it on close.
   useEffect(() => {
-    if (isOpen && !isPoppedOut) {
-      previouslyFocusedRef.current =
-        document.activeElement instanceof HTMLElement
-          ? document.activeElement
-          : null;
+    bringToFront(panelId);
+  }, [bringToFront, panelId]);
 
-      const id = window.requestAnimationFrame(() => {
-        panelRef.current?.focus();
-      });
-      return () => window.cancelAnimationFrame(id);
-    }
+  // Apply a restored layout workspace to an already-mounted panel.
+  //
+  // Panels that mount *after* the apply pick their geometry up from
+  // localStorage in the drag/resize hooks' own mount effects; this covers the
+  // ones already on screen, imperatively, so nothing remounts and no panel
+  // loses its scroll position or in-progress input.
+  useEffect(() => {
+    let seen = useLayoutWorkspaceStore.getState().applySeq;
+    return useLayoutWorkspaceStore.subscribe((state) => {
+      if (state.applySeq === seen) return;
+      seen = state.applySeq;
 
-    if (!isOpen) {
-      previouslyFocusedRef.current?.focus();
+      const geometry = state.pendingGeometry[panelId];
+      if (!geometry) return;
+
+      // Size first, then position on the next frame: useDraggablePanel's
+      // ResizeObserver compensates x for width changes on right-anchored
+      // panels, and would otherwise shift the panel after we placed it.
+      if (geometry.size) setSizeClamped(geometry.size);
+      if (typeof geometry.collapsed === 'boolean') {
+        setCollapsed(geometry.collapsed);
+      }
+      requestAnimationFrame(() => setPosition(geometry.position));
+    });
+  }, [panelId, setPosition, setSizeClamped, setCollapsed]);
+
+  // Capture the opener's focus on mount and restore it on unmount.
+  //
+  // Panels are mounted/unmounted by GameUI as `activePanels` changes rather
+  // than toggling `isOpen`, so the restore has to hang off unmount - keying it
+  // on `isOpen` flipping to false would never run.
+  useEffect(() => {
+    if (isPoppedOut) return undefined;
+
+    // Capture the node now: by cleanup time React has already detached the
+    // ref, so `panelRef.current` would be null.
+    const panelNode = panelRef.current;
+
+    previouslyFocusedRef.current =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+
+    const id = window.requestAnimationFrame(() => {
+      panelRef.current?.focus();
+    });
+
+    return () => {
+      window.cancelAnimationFrame(id);
+      const opener = previouslyFocusedRef.current;
       previouslyFocusedRef.current = null;
-    }
-    return undefined;
-  }, [isOpen, isPoppedOut, panelRef]);
+      // Only pull focus back if it is still inside this panel - otherwise the
+      // user has already moved on and we would be stealing it.
+      if (opener && opener.isConnected) {
+        const active = document.activeElement;
+        if (!active || active === document.body || panelNode?.contains(active)) {
+          opener.focus();
+        }
+      }
+    };
+  }, [isPoppedOut, panelRef]);
 
+  // Escape closes only the topmost panel.
+  //
+  // Every mounted FloatingPanel registers its own window listener, and
+  // `stopPropagation` does nothing between listeners bound to the same target -
+  // without this guard a single Escape would close every open panel at once.
   useEffect(() => {
-    if (!isOpen || isPoppedOut) return;
+    if (!isOpen || isPoppedOut || !isTopmost || focusMode) return;
 
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
@@ -92,22 +172,29 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
 
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isOpen, isPoppedOut, onClose]);
+  }, [isOpen, isPoppedOut, isTopmost, focusMode, onClose]);
+
+  const handlePopOutClose = useCallback(() => {
+    restorePanel(panelId);
+  }, [restorePanel, panelId]);
+
 
   if (isPoppedOut) {
     if (!isOpen) return null;
-    
+
     return (
       <WindowPortal
         title={label}
         width={size.width}
         height={size.height}
-        onClose={() => {
-          restorePanel(panelId);
-        }}
+        onClose={handlePopOutClose}
       >
-        <div style={{ display: 'flex', flexDirection: 'column', height: '100vh', width: '100vw' }}>
-          <div className={styles.bodyWrapper} data-collapsed={false} style={{ flexGrow: 1, minHeight: 0 }}>
+        <div className={styles.poppedOutRoot}>
+          <div
+            className={styles.bodyWrapper}
+            data-collapsed={false}
+            style={{ flexGrow: 1, minHeight: 0 }}
+          >
             <div className={styles.body}>{children}</div>
           </div>
         </div>
@@ -115,18 +202,62 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
     );
   }
 
+  if (dockZone) {
+    if (!dockHost) return null;
+
+    return createPortal(
+      <div
+        className={styles.dockedPanel}
+        data-chrome
+        inert={focusMode || undefined}
+        role="dialog"
+        aria-modal="false"
+        aria-label={label}
+      >
+        <div className={styles.titleBar}>
+          <span className={styles.titleLabel}>{label}</span>
+          <div className={styles.titleActions}>
+            <button
+              className={styles.actionButton}
+              onClick={() => undockPanel(panelId)}
+              title="Undock panel"
+              aria-label="Undock panel"
+            >
+              ⇱
+            </button>
+            <button
+              className={styles.actionButton}
+              onClick={onClose}
+              title="Close panel"
+              aria-label="Close panel"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+        <div className={styles.bodyWrapper} data-collapsed={false}>
+          <div className={styles.body}>{children}</div>
+        </div>
+      </div>,
+      dockHost,
+    );
+  }
+
   return (
+    <>
+      <DockZoneOverlay isDragging={isDragging} activeZone={activeZone} />
     <Portal>
       <div
         ref={panelRef}
         className={styles.panel}
+        data-chrome
         data-state={isOpen ? 'open' : 'closed'}
         role="dialog"
         aria-modal="false"
         aria-label={label}
         aria-hidden={!isOpen}
         tabIndex={-1}
-        inert={isOpen ? undefined : true}
+        inert={!isOpen || focusMode || undefined}
         style={{
           zIndex,
           width: size.width,
@@ -196,5 +327,6 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
         </div>
       </div>
     </Portal>
+    </>
   );
 };

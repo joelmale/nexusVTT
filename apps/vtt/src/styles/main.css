@@ -29,6 +29,7 @@
 
 /* 3. LAYOUTS */
 @import './layout-consolidated.css' layer(layouts);
+@import './focus-mode.css' layer(layouts);
 
 /* 4. COMPONENTS */
 /* High-priority components */

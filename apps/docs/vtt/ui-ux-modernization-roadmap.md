@@ -35,7 +35,7 @@ This plan reorders the work so the cheap, universal fixes land first, then the p
 
 ---
 
-## Item 2 — Touch gestures on canvas (pan/zoom only)
+## ~~Item 2 — Touch gestures on canvas (pan/zoom only)~~ *(Completed)*
 
 **Problem.** There is no touch handling on the scene canvas — no `onTouch*`, no pinch, no `touch-action` on `.scene-canvas`. A player on an iPad cannot pan or zoom.
 
@@ -53,7 +53,7 @@ This plan reorders the work so the cheap, universal fixes land first, then the p
 
 ---
 
-## Item 3 — Harden the multi-panel system that already landed
+## ~~Item 3 — Harden the multi-panel system that already landed~~ *(Completed)*
 
 The wiring is correct and the direction is right. These are the defects found reviewing the working tree. Type-check passes and all 18 unit tests pass, but those tests were only updated for renamed props — there is **no coverage of any new behaviour**.
 
@@ -91,7 +91,7 @@ Follow `uiStackStore.test.ts`. Add: `togglePanel` add/remove; persistence gated 
 
 ---
 
-## Item 6 — Extend `TokenContextMenu`
+## ~~Item 6 — Extend `TokenContextMenu`~~ *(Completed)*
 
 The menu already exists and is mounted (`TokenRenderer.tsx:300`); the gap is its contents, not its mechanism. Current actions: visibility (host-only), initiative toggle, rotate +45°, Edit, Delete.
 
@@ -113,7 +113,7 @@ The menu already exists and is mounted (`TokenRenderer.tsx:300`); the gap is its
 
 ---
 
-## Item 7 — Docking zones (do last, scope deliberately)
+## ~~Item 7 — Docking zones~~ *(Completed)*
 
 The review framed this as an enhancement to `useDraggablePanel` edge detection. It is not — it is a **second layout mode**. Floating panels are portal-mounted, `position: fixed`, and clamped against `window.innerWidth`. A docked panel has to reserve layout space and reflow the canvas, which means reintroducing a grid column — the very thing item 3 just deleted.
 
@@ -125,7 +125,7 @@ Sketch: detect edge proximity during drag and render a translucent drop-zone ove
 
 ---
 
-## Item 4 — Focus mode (hotkey toggle)
+## ~~Item 4 — Focus mode (hotkey toggle)~~ *(Completed)*
 
 **State.** Transient field on `uiStackStore` — `focusMode: boolean` plus `toggleFocusMode()`. Deliberately **not** persisted: reloading into a chrome-less UI with no visible way out is a trap.
 
@@ -141,7 +141,7 @@ Sketch: detect edge proximity during drag and render a translucent drop-zone ove
 
 ---
 
-## Item 5 — Layout workspaces (named presets)
+## ~~Item 5 — Layout workspaces (named presets)~~ *(Completed)*
 
 Nearly free once item 3 is stable.
 
@@ -194,3 +194,78 @@ npm run type-check && npm run lint && npm run check:cycles && npm run test:unit
 3. **Items 4 and 6** are independent and can be slotted anywhere. 
 4. **Item 5** follows Item 3.
 5. **Item 7** should not start until 3 and 5 have settled.
+
+---
+
+## Status — all seven items complete
+
+Every item on this roadmap has landed. The consolidated design rationale, including the
+decisions that differ from the original proposal and the traps found along the way, is
+recorded in [ADR-0003](./adr/0003-floating-panel-system.md).
+
+**Decisions taken during implementation**
+
+| Item | Notable choice |
+| --- | --- |
+| 2 | Native `TouchEvent` with `{ passive: false }`, `preventDefault()` on the two-finger branch only — a blanket `touch-action: none` would break the mouse-compat events `DrawingTools`/`MeasurementTool`/`TerrainTool`/`PropRenderer`/`SelectionOverlay` rely on. Pinch is **not** gated on the active tool, so a tablet user can zoom while drawing. |
+| 3 | Pop-out is repaired and kept, but never rehydrates on load (no transient activation). `stackZIndex` compresses rather than clamps. Escape is scoped to the topmost panel. |
+| 4 | Hotkey `F`; flag mirrored onto `<html>` because `#portal-root` is a sibling of `#root`. Escape exit uses capture + `stopImmediatePropagation` to avoid the five other window Escape listeners. `settings.reducedMotion` is now consumed. |
+| 5 | Restore is imperative via new `setPosition`/`setSizeClamped`/`setCollapsed` setters plus an `applySeq` counter — no remount, no lost panel state. Size is applied before position to defeat the right-anchor `ResizeObserver` compensation. |
+| 6 | Damage/conditions delegate to `initiativeStore`; disabled with an explanatory tooltip when the token has no entry. Menu moved from `--z-tool-ui` (60) to `--z-popover` (75). |
+| 7 | Implemented as a real second layout mode: `--dock-left/right-width` and `--dock-bottom-height` grid tracks that default to `0px`. Verified that cursor-anchored zoom still anchors with **zero pixel drift** against a 320px dock offset. |
+
+**E2E status — a pre-existing failure, measured.** `npm run test:e2e` does **not** pass, on this
+branch *or* on a clean checkout. Measured on the same machine, same suite:
+
+| Tree | Result |
+| --- | --- |
+| `HEAD` with these changes stashed (baseline) | 4 passed, **2 failed** |
+| This branch | 6 passed, **1 failed** |
+
+Both failure modes pre-date this work and reproduce on the baseline:
+
+1. **`Target crashed`** — the Chromium renderer dies, reproducibly, when panels are opened and
+   closed repeatedly (the crash always lands on the *re-open* click, on more than one panel).
+   Cause unknown. It is not the 3D dice canvas, which is a global overlay mounted once
+   regardless of panels, and no leaked subscription or selector loop was found in the panel
+   mount path. **This needs its own investigation** — it is reachable by a real user, not just
+   by the test harness.
+2. **Click interception** — panels float and overlap by design, so a panel opened earlier can
+   cover one opened later and swallow its clicks.
+
+`openPanel()` in `tests/e2e/support/flows.ts` is idempotent (clicking an already-open tab would
+toggle it shut), and a new `closePanel()` lets a test put away a panel it has finished with —
+which is how `multiplayer.smoke.spec.ts` now avoids the interception. Deliberately *not* done:
+closing and re-opening a panel to raise it, or closing every other panel on each call. Both make
+the renderer crash far more likely, and one of them took the suite from 1 failure to 2.
+
+**Bugs fixed in passing**
+
+- `GameToolbar`'s shortcut handler ignored modifiers, so `Ctrl+R` matched the "R" tool and suppressed browser reload (likewise `Ctrl+E`/`Ctrl+O`). Now guarded by `utils/hotkeys.ts`.
+- `AtlasDock` persisted its drag position under `atlasPill` while reading its z-index as `atlasDock`.
+- `WorkspaceMenu`'s popover was clipped by the PanelDock's `overflow: hidden`; it is portal-mounted and anchored from JS.
+
+**Known limitation, not fixed**
+
+`initiativeStore.addCondition` overwrites a condition's `id` with a fresh `crypto.randomUUID()`
+when storing it, so applied conditions can only be matched by **name**, and the store's own
+dedupe (`c.id !== condition.id`) never matches. `TokenContextMenu` works around this; the store
+itself is untouched.
+
+**Verification**
+
+`npm run type-check`, `npm run lint`, `npm run check:cycles` and `npm run test:unit` (309 tests,
+34 files) all pass, and `npm run build` succeeds. Focus mode, multi-panel + cascade,
+topmost-only Escape, docking with canvas reflow, anchored zoom under a dock offset, and the
+workspace save→undock→restore round trip were all exercised against the running app.
+
+`npm run test:e2e` is covered under **E2E status** above: it fails on this branch and fails
+worse on the baseline, for reasons that pre-date this work.
+
+Two things could not be verified in the preview pane and need a real browser or device:
+
+- **Tear-off windows** — the preview pane blocks `window.open`. The bounded failure path was
+  confirmed (the "Pop-up blocked" log fires exactly twice, from StrictMode's double mount,
+  rather than looping), and `WindowPortal.test.tsx` covers the create-once contract directly.
+- **Touch pinch/pan** — jsdom cannot catch a broken `touch-action` / mouse-compat path. The
+  engine maths is unit-tested; the gesture itself needs a tablet.

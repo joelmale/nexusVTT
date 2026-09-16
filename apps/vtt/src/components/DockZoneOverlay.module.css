@@ -1,0 +1,72 @@
+/*
+ * Dock drop zones — shown only while a floating panel is being dragged.
+ * Sits just below the chrome band so a dragged panel stays visible above it.
+ */
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: calc(var(--z-cursors) + 1);
+  pointer-events: none; /* Hit-testing is done in JS against the pointer. */
+}
+
+.zone {
+  position: fixed;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  background: color-mix(in srgb, var(--color-primary, #6366f1) 12%, transparent);
+  border: 2px dashed
+    color-mix(in srgb, var(--color-primary, #6366f1) 45%, transparent);
+  opacity: 0;
+  transition:
+    opacity var(--transition-fast, 120ms) ease,
+    background var(--transition-fast, 120ms) ease;
+}
+
+.zone[data-zone='left'] {
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: var(--dock-zone-size, 280px);
+  border-radius: 0 var(--border-radius-lg, 12px) var(--border-radius-lg, 12px) 0;
+}
+
+.zone[data-zone='right'] {
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: var(--dock-zone-size, 280px);
+  border-radius: var(--border-radius-lg, 12px) 0 0 var(--border-radius-lg, 12px);
+}
+
+.zone[data-zone='bottom'] {
+  right: 0;
+  bottom: 0;
+  left: 0;
+  height: var(--dock-zone-height, 220px);
+  border-radius: var(--border-radius-lg, 12px) var(--border-radius-lg, 12px) 0 0;
+}
+
+/* Visible but faint whenever a drag is in flight, so the targets are
+   discoverable; solid once the pointer is actually over one. */
+.overlay .zone {
+  opacity: 0.35;
+}
+
+.zone[data-active] {
+  opacity: 1;
+  background: color-mix(in srgb, var(--color-primary, #6366f1) 26%, transparent);
+  border-style: solid;
+}
+
+.hint {
+  padding: 4px 10px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  text-transform: capitalize;
+  color: var(--text-primary, #fff);
+  background: var(--surface-primary, rgba(20, 20, 24, 0.8));
+  border-radius: var(--border-radius-md, 8px);
+}

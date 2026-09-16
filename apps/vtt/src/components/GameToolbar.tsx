@@ -12,7 +12,7 @@ import {
   useActiveTool,
 } from '@/stores/gameStore';
 import { useDraggablePanel } from '@/hooks/useDraggablePanel';
-import { useUIStackStore, useStackZIndex } from '@/stores/uiStackStore';
+import { useUIStackStore, useStackZIndex, useFocusMode } from '@/stores/uiStackStore';
 import {
   Circle,
   Eraser,
@@ -38,6 +38,7 @@ import {
 import { useSceneFog } from '@/stores/scene';
 import { useActiveScene } from '@/stores/gameStore';
 import { getActiveCameraGestureEngine } from '@/utils/cameraGestureEngine';
+import { isGlobalShortcut } from '@/utils/hotkeys';
 
 interface ToolbarItem {
   id: string;
@@ -101,6 +102,7 @@ export const GameToolbar: React.FC = () => {
     });
 
   const zIndex = useStackZIndex('gameToolbar');
+  const focusMode = useFocusMode();
   const bringToFront = useUIStackStore((state) => state.bringToFront);
 
   const handleZoomIn = useCallback(() => {
@@ -373,13 +375,10 @@ export const GameToolbar: React.FC = () => {
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (
-        e.target instanceof HTMLInputElement ||
-        e.target instanceof HTMLTextAreaElement ||
-        e.target instanceof HTMLSelectElement
-      ) {
-        return;
-      }
+      // isGlobalShortcut also rejects modifier combos: without that check
+      // Ctrl+R matched the "R" tool and preventDefault()'d browser reload
+      // (likewise Ctrl+E / Ctrl+O).
+      if (!isGlobalShortcut(e)) return;
 
       const key = e.key.toUpperCase();
       const allTools = [
@@ -452,6 +451,8 @@ export const GameToolbar: React.FC = () => {
   return (
     <div
       ref={panelRef}
+      data-chrome
+      inert={focusMode || undefined}
       style={{ zIndex }}
       onPointerDownCapture={() => bringToFront('gameToolbar')}
       className="layout-toolbar-inner"

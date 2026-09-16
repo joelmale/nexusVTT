@@ -17,6 +17,13 @@ export interface UseDraggablePanelOptions {
   snapThreshold?: number;
   /** Edge that remains fixed when the panel changes width. */
   resizeAnchor?: 'left' | 'right';
+  /**
+   * Called on every drag frame with the live POINTER position (client coords),
+   * and on drag end. Used by the docking layer to offer drop zones - the
+   * pointer, not the panel's clamped top-left, is what the user aims with.
+   */
+  onDragMove?: (clientX: number, clientY: number) => void;
+  onDragEnd?: (clientX: number, clientY: number) => void;
 }
 
 export interface UseDraggablePanelResult {
@@ -28,6 +35,15 @@ export interface UseDraggablePanelResult {
   toggleCollapsed: () => void;
   /** Shift the panel's position by a delta (useful for resizing from top/left) */
   shiftPosition: (dx: number, dy: number) => void;
+  /**
+   * Move the panel to an absolute position (layout workspace restore).
+   * Absolute sibling of `shiftPosition`: same ref write, same DOM write, same
+   * localStorage write - it does NOT convert position to React state, because
+   * the ref exists specifically so dragging never re-renders.
+   */
+  setPosition: (pos: PanelPosition) => void;
+  /** Set the collapsed state directly (layout workspace restore). */
+  setCollapsed: (collapsed: boolean) => void;
   /** Ref to attach to the main panel container that gets moved */
   panelRef: React.RefObject<HTMLDivElement | null>;
 }
@@ -38,8 +54,19 @@ export function useDraggablePanel({
   edgeMargin = 20,
   snapThreshold = 15,
   resizeAnchor = 'left',
+  onDragMove,
+  onDragEnd,
 }: UseDraggablePanelOptions): UseDraggablePanelResult {
   const panelRef = useRef<HTMLDivElement>(null);
+
+  // Held in refs so handlePointerDown does not need them as deps (it would
+  // otherwise be recreated whenever a caller passes an inline arrow).
+  const onDragMoveRef = useRef(onDragMove);
+  const onDragEndRef = useRef(onDragEnd);
+  useEffect(() => {
+    onDragMoveRef.current = onDragMove;
+    onDragEndRef.current = onDragEnd;
+  }, [onDragMove, onDragEnd]);
 
   // Initialize state from localStorage
   const [isCollapsed, setIsCollapsed] = useState(() => {
@@ -157,18 +184,52 @@ export function useDraggablePanel({
     }
   }, []);
 
+  const persistPosition = useCallback(() => {
+    try {
+      localStorage.setItem(
+        `nexus-ui-${id}-pos`,
+        JSON.stringify(positionRef.current),
+      );
+    } catch {
+      // Ignore quota errors
+    }
+  }, [id]);
+
   const shiftPosition = useCallback(
     (dx: number, dy: number) => {
       const newX = positionRef.current.x + dx;
       const newY = positionRef.current.y + dy;
       positionRef.current = { x: newX, y: newY };
       applyPosition(newX, newY);
-      localStorage.setItem(
-        `nexus-ui-${id}-pos`,
-        JSON.stringify(positionRef.current),
-      );
+      persistPosition();
     },
-    [id, applyPosition],
+    [applyPosition, persistPosition],
+  );
+
+  const setPosition = useCallback(
+    (pos: PanelPosition) => {
+      const rect = panelRef.current?.getBoundingClientRect();
+      const next = rect ? clampPosition(pos, rect) : pos;
+      positionRef.current = { ...next };
+      applyPosition(next.x, next.y);
+      persistPosition();
+    },
+    [applyPosition, persistPosition, clampPosition],
+  );
+
+  const setCollapsed = useCallback(
+    (collapsed: boolean) => {
+      setIsCollapsed(collapsed);
+      try {
+        localStorage.setItem(
+          `nexus-ui-${id}-collapsed`,
+          JSON.stringify(collapsed),
+        );
+      } catch {
+        // Ignore quota errors
+      }
+    },
+    [id],
   );
 
   const handlePointerDown = useCallback(
@@ -222,6 +283,7 @@ export function useDraggablePanel({
 
           positionRef.current = { x: newX, y: newY };
           applyPosition(newX, newY);
+          onDragMoveRef.current?.(moveEvent.clientX, moveEvent.clientY);
         });
       };
 
@@ -244,6 +306,8 @@ export function useDraggablePanel({
           `nexus-ui-${id}-pos`,
           JSON.stringify(positionRef.current),
         );
+
+        onDragEndRef.current?.(upEvent.clientX, upEvent.clientY);
       };
 
       window.addEventListener('pointermove', handlePointerMove);
@@ -258,6 +322,8 @@ export function useDraggablePanel({
     isCollapsed,
     toggleCollapsed,
     shiftPosition,
+    setPosition,
+    setCollapsed,
     panelRef,
   };
 }

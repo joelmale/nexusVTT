@@ -15,8 +15,6 @@ import { GeneratorOverlay } from './GeneratorOverlay';
  *  - focus moves into the overlay on open and restores on close
  *  - Tab cycles focus within the overlay (focus trap) instead of escaping
  *    to the rest of the page
- *  - data-floating-panels reflects the floatingPanelsEnabled prop (drives
- *    the inset:0 vs. header-carve-out styling in GeneratorPanel.css)
  */
 
 beforeEach(() => {
@@ -126,27 +124,5 @@ describe('GeneratorOverlay', () => {
 
     fireEvent.keyDown(window, { key: 'Tab' });
     expect(document.activeElement).toBe(closeButton);
-  });
-
-  it('sets data-floating-panels when floatingPanelsEnabled is true', () => {
-    render(
-      <GeneratorOverlay isOpen={true} onClose={() => {}} floatingPanelsEnabled>
-        <div>content</div>
-      </GeneratorOverlay>,
-    );
-
-    const dialog = screen.getByRole('dialog', { name: /map generator/i });
-    expect(dialog.getAttribute('data-floating-panels')).toBe('true');
-  });
-
-  it('omits data-floating-panels when floatingPanelsEnabled is false/undefined', () => {
-    render(
-      <GeneratorOverlay isOpen={true} onClose={() => {}}>
-        <div>content</div>
-      </GeneratorOverlay>,
-    );
-
-    const dialog = screen.getByRole('dialog', { name: /map generator/i });
-    expect(dialog.hasAttribute('data-floating-panels')).toBe(false);
   });
 });

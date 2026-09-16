@@ -365,3 +365,127 @@ describe('CameraGestureEngine - wheel pan', () => {
   });
 });
 
+
+describe('CameraGestureEngine - pinch', () => {
+  const tp = (clientX: number, clientY: number) => ({ clientX, clientY });
+
+  it('commits exactly once, at pinchEnd, with zero writes mid-gesture', () => {
+    let commitCount = 0;
+    const { engine } = makeEngine({
+      onCommit: () => {
+        commitCount += 1;
+      },
+    });
+
+    engine.pinchStart(tp(300, 300), tp(500, 300)); // spread 200, centroid (400,300)
+    expect(commitCount).toBe(0);
+
+    engine.pinchMove(tp(250, 300), tp(550, 300)); // spread 300
+    engine.pinchMove(tp(200, 300), tp(600, 300)); // spread 400
+    expect(commitCount).toBe(0);
+
+    engine.pinchEnd();
+    expect(commitCount).toBe(1);
+  });
+
+  it('scales zoom by the ratio of finger spread', () => {
+    const { engine } = makeEngine({ storeCamera: { x: 0, y: 0, zoom: 1 } });
+
+    engine.pinchStart(tp(300, 300), tp(500, 300)); // spread 200
+    engine.pinchMove(tp(200, 300), tp(600, 300)); // spread 400 -> 2x
+
+    expect(cameraRef.get().zoom).toBeCloseTo(2, 5);
+    engine.pinchEnd();
+  });
+
+  it('keeps the world point under the centroid fixed while zooming', () => {
+    const vw = 800;
+    const vh = 600;
+    const { engine } = makeEngine({
+      storeCamera: { x: 0, y: 0, zoom: 1 },
+      getViewportRect: () => ({ width: vw, height: vh, left: 0, top: 0 }),
+    });
+
+    // Centroid sits at viewport (400, 200) - off-centre on the y axis so a
+    // centre-anchored implementation would visibly fail this.
+    const worldBefore = sceneUtils.screenToWorld(
+      400,
+      200,
+      { x: 0, y: 0, zoom: 1 },
+      vw,
+      vh,
+    );
+
+    engine.pinchStart(tp(300, 200), tp(500, 200)); // spread 200, centroid (400,200)
+    engine.pinchMove(tp(200, 200), tp(600, 200)); // spread 400, same centroid
+
+    const after = cameraRef.get();
+    const worldAfter = sceneUtils.screenToWorld(400, 200, after, vw, vh);
+
+    expect(worldAfter.x).toBeCloseTo(worldBefore.x, 5);
+    expect(worldAfter.y).toBeCloseTo(worldBefore.y, 5);
+    engine.pinchEnd();
+  });
+
+  it('pans when the centroid moves without the spread changing', () => {
+    const { engine } = makeEngine({ storeCamera: { x: 0, y: 0, zoom: 1 } });
+
+    engine.pinchStart(tp(300, 300), tp(500, 300)); // centroid (400,300)
+    engine.pinchMove(tp(340, 320), tp(540, 320)); // centroid (440,320), spread unchanged
+
+    const after = cameraRef.get();
+    expect(after.zoom).toBeCloseTo(1, 5);
+    // Dragging fingers right/down moves the camera left/up by the same amount.
+    expect(after.x).toBeCloseTo(-40, 5);
+    expect(after.y).toBeCloseTo(-20, 5);
+    engine.pinchEnd();
+  });
+
+  it('respects the zoom clamp', () => {
+    const { engine } = makeEngine({
+      storeCamera: { x: 0, y: 0, zoom: 4 },
+      maxZoom: 5,
+    });
+
+    engine.pinchStart(tp(300, 300), tp(500, 300)); // spread 200
+    engine.pinchMove(tp(100, 300), tp(700, 300)); // spread 600 -> 3x -> 12, clamped
+
+    expect(cameraRef.get().zoom).toBe(5);
+    engine.pinchEnd();
+  });
+
+  it('reports isGestureActive during a pinch and blocks commit while active', () => {
+    let commitCount = 0;
+    const { engine } = makeEngine({
+      onCommit: () => {
+        commitCount += 1;
+      },
+    });
+
+    expect(engine.isGestureActive).toBe(false);
+    engine.pinchStart(tp(300, 300), tp(500, 300));
+    expect(engine.isGestureActive).toBe(true);
+
+    // A pan ending mid-pinch must NOT commit - the pinch is still running.
+    engine.startPan(100, 100);
+    engine.endPan();
+    expect(commitCount).toBe(0);
+
+    engine.pinchEnd();
+    expect(engine.isGestureActive).toBe(false);
+    expect(commitCount).toBe(1);
+  });
+
+  it('ignores pinchMove and pinchEnd without a pinchStart', () => {
+    let commitCount = 0;
+    const { engine } = makeEngine({
+      onCommit: () => {
+        commitCount += 1;
+      },
+    });
+
+    engine.pinchMove(tp(0, 0), tp(10, 10));
+    engine.pinchEnd();
+    expect(commitCount).toBe(0);
+  });
+});

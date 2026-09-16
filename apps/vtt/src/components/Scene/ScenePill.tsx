@@ -4,7 +4,7 @@ import type { Scene } from '@/types/game';
 import { sceneUtils } from '@/utils/sceneUtils';
 import styles from './ScenePill.module.css';
 import { useDraggablePanel } from '@/hooks/useDraggablePanel';
-import { useUIStackStore, useStackZIndex } from '@/stores/uiStackStore';
+import { useUIStackStore, useStackZIndex, useFocusMode } from '@/stores/uiStackStore';
 
 interface ScenePillProps {
   scenes: Scene[];
@@ -39,6 +39,7 @@ export const ScenePill: React.FC<ScenePillProps> = ({
   });
 
   const zIndex = useStackZIndex('scenePill');
+  const focusMode = useFocusMode();
   const bringToFront = useUIStackStore((state) => state.bringToFront);
 
   const activeScene = scenes.find((s) => s.id === activeSceneId) || null;
@@ -87,6 +88,8 @@ export const ScenePill: React.FC<ScenePillProps> = ({
   return (
     <div
       ref={panelRef}
+      data-chrome
+      inert={focusMode || undefined}
       className={`${styles.container} ${isExpanded ? styles.expanded : ''}`}
       onPointerDownCapture={() => bringToFront('scenePill')}
       onMouseEnter={handleMouseEnter}

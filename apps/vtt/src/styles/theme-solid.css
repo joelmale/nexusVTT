@@ -647,7 +647,6 @@
 
 .theme-solid .brand-title,
 .theme-solid .roller-name,
-.theme-solid .layout-header h1,
 .theme-solid h1:not(.nexus-character-creator *):not(.nexus-character-creator) {
   background: linear-gradient(
     135deg,
@@ -816,7 +815,6 @@
 
 .theme-solid .brand-title,
 .theme-solid .roller-name,
-.theme-solid .layout-header h1,
 .theme-solid h1:not(.nexus-character-creator *):not(.nexus-character-creator) {
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;

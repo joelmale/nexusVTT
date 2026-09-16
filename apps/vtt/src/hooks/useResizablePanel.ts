@@ -33,6 +33,8 @@ type Edge =
 interface UseResizablePanelResult {
   /** Current size state */
   size: PanelSize;
+  /** Set the size directly, clamped (layout workspace restore). */
+  setSizeClamped: (size: PanelSize) => void;
   /** Pointer-down handler factory — call with the edge name, attach to the resize handle */
   onResizeStart: (edge: Edge) => (e: React.PointerEvent) => void;
   /** CSS cursor for a given edge */
@@ -161,5 +163,12 @@ export function useResizablePanel({
 
   const edgeCursor = useCallback((edge: Edge) => EDGE_CURSORS[edge], []);
 
-  return { size, onResizeStart, edgeCursor };
+  // Size is already React state and the effect above persists every change,
+  // so restoring a workspace only needs a clamped setter.
+  const setSizeClamped = useCallback(
+    (next: PanelSize) => setSize(clamp(next)),
+    [clamp],
+  );
+
+  return { size, setSizeClamped, onResizeStart, edgeCursor };
 }

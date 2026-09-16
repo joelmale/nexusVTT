@@ -3,7 +3,7 @@ import styles from './AtlasDock.module.css';
 import { useAtlasAssets } from '@/hooks/useAtlasAssets';
 import { useDockToCanvasDrag } from '@/hooks/useDockToCanvasDrag';
 import { useDraggablePanel } from '@/hooks/useDraggablePanel';
-import { useUIStackStore, useStackZIndex } from '@/stores/uiStackStore';
+import { useUIStackStore, useStackZIndex, useFocusMode } from '@/stores/uiStackStore';
 import { Portal } from '@/components/Portal';
 
 type DockState = 'closed' | 'peek' | 'open';
@@ -83,8 +83,12 @@ export const AtlasDock: React.FC = () => {
     overCanvas
   } = useDockToCanvasDrag();
 
+  // Single id for a single element: the drag/persistence id used to be
+  // 'atlasPill' while the z-index was looked up as 'atlasDock', so the pill
+  // was absent from DEFAULT_STACK and from any layout snapshot keyed by panel
+  // id. Aligning them resets a previously saved pill position exactly once.
   const { panelRef: pillRef, onPointerDown: pillDragStart } = useDraggablePanel({
-    id: 'atlasPill',
+    id: 'atlasDock',
     defaultPosition: {
       x: 20,
       y: typeof window !== 'undefined' ? window.innerHeight - 80 : 800
@@ -93,6 +97,7 @@ export const AtlasDock: React.FC = () => {
 
   const bringToFront = useUIStackStore((state) => state.bringToFront);
   const pillZIndex = useStackZIndex('atlasDock');
+  const focusMode = useFocusMode();
 
   // Handle escape key to close dock
   useEffect(() => {
@@ -135,6 +140,8 @@ export const AtlasDock: React.FC = () => {
             display: dockState === 'closed' ? 'block' : 'none'
           }}
           className={styles.draggablePillContainer}
+          data-chrome
+          inert={focusMode || undefined}
         >
             <button 
               className={styles.pillButton} 
@@ -147,7 +154,7 @@ export const AtlasDock: React.FC = () => {
               <div 
                 className={styles.dragHandle} 
                 onPointerDownCapture={(e) => {
-                  bringToFront('atlasPill');
+                  bringToFront('atlasDock');
                   pillDragStart(e);
                 }}
                 onClick={(e) => {
@@ -162,7 +169,11 @@ export const AtlasDock: React.FC = () => {
         </div>
       </Portal>
 
-      <div className={styles.dockContainer}>
+      <div
+        className={styles.dockContainer}
+        data-chrome
+        inert={focusMode || undefined}
+      >
 
 
       <div className={`${styles.dockPanel} ${panelStateClass}`}>

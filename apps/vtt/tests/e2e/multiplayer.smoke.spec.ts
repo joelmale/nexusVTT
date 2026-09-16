@@ -2,6 +2,7 @@ import { expect, test, type BrowserContext, type Page } from '@playwright/test';
 import {
   createGuestHostSession,
   createGuestPlayerSession,
+  closePanel,
   openPanel,
 } from './support/flows';
 import {
@@ -332,6 +333,14 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     await hostPage.getByPlaceholder('Init').fill('17');
     await hostPage.getByRole('button', { name: 'Add', exact: true }).click();
     await expectSingleInitiativeEntry(playerPage, combatantName);
+
+    // Panels float over the map and overlap, so put these away now that the
+    // assertions are done - otherwise they sit on top of the Chat panel used
+    // later in this test and intercept its clicks.
+    await closePanel(hostPage, 'Initiative');
+    await closePanel(playerPage, 'Initiative');
+    await closePanel(hostPage, 'Dice');
+    await closePanel(playerPage, 'Dice');
 
     // Creating a second public scene also activates it. Active-scene changes
     // must enter the delta pipeline, then both clients return to Scene 1.

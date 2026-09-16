@@ -61,3 +61,19 @@ select {
     scroll-behavior: auto !important;
   }
 }
+
+/* Same treatment, driven by the in-app `settings.reducedMotion` toggle rather
+   than the OS preference. The attribute is mirrored onto <html> by
+   hooks/useReducedMotion.ts. */
+html[data-reduced-motion='true']:focus-within {
+  scroll-behavior: auto;
+}
+
+html[data-reduced-motion='true'] *,
+html[data-reduced-motion='true'] *::before,
+html[data-reduced-motion='true'] *::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
+  scroll-behavior: auto !important;
+}

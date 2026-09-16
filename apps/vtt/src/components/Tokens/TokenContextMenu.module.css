@@ -1,6 +1,8 @@
 .contextMenuWrapper {
   position: fixed;
-  z-index: var(--z-tool-ui, 999);
+  /* --z-popover (75), NOT --z-tool-ui (60): 60 is the BOTTOM of the floating
+     chrome band, so the menu used to render underneath any raised panel. */
+  z-index: var(--z-popover, 75);
   pointer-events: auto;
   /* Glassmorphism */
   background: var(--glass-bg, rgba(30, 30, 30, 0.7));
@@ -10,8 +12,9 @@
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
   display: flex;
-  flex-direction: row;
-  align-items: center;
+  /* Column, so a submenu stacks under the action row rather than beside it. */
+  flex-direction: column;
+  align-items: stretch;
   padding: 4px;
   gap: 4px;
   /* Animation */
@@ -20,6 +23,20 @@
   animation: menuAppear 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
   /* Keep centered above the token by default */
   transform-origin: bottom center;
+}
+
+/* Flipped below the token because the menu would have clipped the viewport
+   top - animate downward from the other origin. */
+.contextMenuWrapper[data-flipped] {
+  transform: translateY(-10px) translateX(-50%);
+  transform-origin: top center;
+}
+
+.actionRow {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
 }
 
 @keyframes menuAppear {
@@ -74,4 +91,101 @@
   height: 24px;
   background: var(--glass-border, rgba(255, 255, 255, 0.1));
   margin: 0 4px;
+}
+
+/* ==========================================================================
+   SUBMENUS — damage/heal and conditions
+   ========================================================================== */
+
+.submenu {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px 4px 2px;
+  border-top: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+}
+
+.submenuRow {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.hpReadout {
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+  color: var(--text-secondary, rgba(255, 255, 255, 0.7));
+}
+
+.amountInput {
+  width: 56px;
+  padding: 4px 6px;
+  font-size: 0.8125rem;
+  text-align: center;
+  color: var(--text-primary, #fff);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.15));
+  border-radius: 6px;
+}
+
+.submenuBtn {
+  padding: 4px 8px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  color: var(--text-primary, #fff);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.15));
+  border-radius: 6px;
+}
+
+.submenuBtn:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.16);
+}
+
+.submenuBtn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.conditionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+}
+
+.conditionBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 6px;
+  font-size: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-primary, #fff);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 6px;
+}
+
+.conditionBtn:hover {
+  background: rgba(255, 255, 255, 0.12);
+}
+
+.conditionBtn.active {
+  background: rgba(255, 255, 255, 0.16);
+  border-color: var(--color-primary, #6366f1);
+}
+
+.conditionLabel {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actionBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
 }

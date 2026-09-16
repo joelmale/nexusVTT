@@ -7,17 +7,12 @@
   overflow: hidden;
 }
 
-/* Generator Overlay - Full screen overlay for generator.
-   Flag off (default): carved out below the legacy header (top: header
-   height). Flag on (A6b's floating-panels - the header row no longer
-   exists): overlay covers the full viewport (inset: 0), set via the
-   data-floating-panels attribute GameUI.tsx applies to this element. */
+/* Generator Overlay - full-viewport overlay for the generator.
+   There is no header row to carve out any more (see .game-layout in
+   layout-consolidated.css), so this covers the whole viewport. */
 .generator-overlay {
   position: fixed;
-  top: var(--header-height, 60px);
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background: rgba(0, 0, 0, 0.7);
   -webkit-backdrop-filter: blur(8px);
   backdrop-filter: blur(8px);
@@ -26,11 +21,6 @@
   align-items: flex-start;
   justify-content: center;
   padding: 2rem;
-}
-
-.generator-overlay[data-floating-panels='true'] {
-  inset: 0;
-  top: 0;
 }
 
 .generator-overlay-content {

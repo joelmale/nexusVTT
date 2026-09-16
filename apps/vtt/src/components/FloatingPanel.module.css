@@ -212,3 +212,44 @@
     transition: none;
   }
 }
+
+/* ==========================================================================
+   POPPED-OUT ROOT — the panel when it lives in its own OS window.
+   Fills the popup and carries the panel's surface treatment, but none of the
+   floating chrome (no fixed positioning, no shadow, no rounded corners, and
+   no opacity/data-state gating — the window itself is the affordance).
+   ========================================================================== */
+.poppedOutRoot {
+  display: flex;
+  flex-direction: column;
+  width: 100vw;
+  height: 100vh;
+  overflow: hidden;
+
+  background: var(--surface-primary);
+  color: var(--text-primary);
+}
+
+/* ==========================================================================
+   DOCKED PANEL — the panel when it occupies a real layout track rather than
+   floating. No fixed positioning, no drag handle, no resize handles: the grid
+   track owns its geometry.
+   ========================================================================== */
+.dockedPanel {
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 0;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+
+  background: var(--surface-primary);
+  color: var(--text-primary);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+/* Sibling docked panels in the bottom region sit side by side. */
+.dockedPanel + .dockedPanel {
+  border-left: 1px solid var(--border-primary);
+}

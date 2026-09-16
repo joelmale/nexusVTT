@@ -2,7 +2,7 @@
  * Minimal feature-flag utility.
  *
  * Flags are stored as a single JSON object under one localStorage key
- * (`nexus-flags`), e.g. `{"floating-panels": false}`. Defaults live in
+ * (`nexus-flags`), e.g. `{"max-hp-sync": true}`. Defaults live in
  * `DEFAULT_FLAGS`; explicit localStorage values always win.
  *
  * `useFlag(name)` re-renders the calling component when the flag changes -
@@ -14,7 +14,6 @@
 
 const STORAGE_KEY = 'nexus-flags';
 const DEFAULT_FLAGS: Record<string, boolean> = {
-  'floating-panels': true,
   'max-hp-sync': false,
 };
 

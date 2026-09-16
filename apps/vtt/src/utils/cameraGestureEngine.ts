@@ -7,6 +7,12 @@ const WHEEL_IDLE_MS = 200;
 export const WHEEL_MOUSE_THRESHOLD = 50;
 const ZOOM_SENSITIVITY = 0.001;
 
+/** Minimal shape shared by PointerEvent and Touch - all pinch math needs. */
+export interface TouchPoint {
+  clientX: number;
+  clientY: number;
+}
+
 export interface ViewportRect {
   width: number;
   height: number;
@@ -85,6 +91,12 @@ export class CameraGestureEngine {
   private wheelIdleTimer: ReturnType<typeof setTimeout> | null = null;
   private wheelGestureActive = false;
 
+  private pinchActive = false;
+  /** World point anchored under the two-finger centroid for the whole pinch. */
+  private pinchWorldAnchor: { x: number; y: number } = { x: 0, y: 0 };
+  private pinchStartSpread = 0;
+  private pinchStartZoom = 1;
+
   private rafId: number | null = null;
   private frameScheduled = false;
   private pendingCamera: Camera | null = null;
@@ -122,7 +134,7 @@ export class CameraGestureEngine {
   }
 
   get isGestureActive(): boolean {
-    return this.panActive || this.wheelGestureActive;
+    return this.panActive || this.wheelGestureActive || this.pinchActive;
   }
 
   private ensureSeeded() {
@@ -157,7 +169,7 @@ export class CameraGestureEngine {
   }
 
   private endGestureIfIdle() {
-    if (this.panActive || this.wheelGestureActive) return;
+    if (this.panActive || this.wheelGestureActive || this.pinchActive) return;
 
     // Flush any pending frame synchronously so the commit uses the latest
     // value rather than a stale one from the last flushed frame.
@@ -207,6 +219,74 @@ export class CameraGestureEngine {
   endPan() {
     if (!this.panActive) return;
     this.panActive = false;
+    this.endGestureIfIdle();
+  }
+
+  // ---- Pinch (two-finger pan + zoom, tracked together) ----
+
+  /**
+   * Viewport-relative centroid and spread for a two-finger gesture.
+   * Client coords in, viewport-local coords out.
+   */
+  private pinchGeometry(
+    a: TouchPoint,
+    b: TouchPoint,
+  ): { sx: number; sy: number; spread: number; vw: number; vh: number } {
+    const rect = this.getViewportRect();
+    const vw = rect.width > 0 ? rect.width : 800;
+    const vh = rect.height > 0 ? rect.height : 600;
+    const rectLeft = rect.left ?? 0;
+    const rectTop = rect.top ?? 0;
+
+    const sx = (a.clientX + b.clientX) / 2 - rectLeft;
+    const sy = (a.clientY + b.clientY) / 2 - rectTop;
+    const spread = Math.hypot(a.clientX - b.clientX, a.clientY - b.clientY);
+
+    return { sx, sy, spread, vw, vh };
+  }
+
+  /**
+   * Begin a pinch. Unlike `startPan`, zoom is NOT frozen for the gesture -
+   * `movePan` anchors on `panStartCamera.zoom`, which would compute the wrong
+   * world delta while the pinch is also scaling. Instead we anchor the world
+   * point under the initial centroid and re-solve the camera on every move.
+   */
+  pinchStart(a: TouchPoint, b: TouchPoint) {
+    this.ensureSeeded();
+    const { sx, sy, spread, vw, vh } = this.pinchGeometry(a, b);
+
+    this.pinchActive = true;
+    this.pinchStartSpread = spread > 0 ? spread : 1;
+    this.pinchStartZoom = cameraRef.get().zoom;
+    this.pinchWorldAnchor = sceneUtils.screenToWorldLive(sx, sy, vw, vh);
+  }
+
+  pinchMove(a: TouchPoint, b: TouchPoint) {
+    if (!this.pinchActive) return;
+    const { sx, sy, spread, vw, vh } = this.pinchGeometry(a, b);
+
+    const scale = spread / this.pinchStartSpread;
+    const clampedZoom = Math.max(
+      this.minZoom,
+      Math.min(this.maxZoom, this.pinchStartZoom * scale),
+    );
+
+    // Keep the anchored world point under the *current* centroid, so the
+    // gesture pans and zooms in one solve.
+    const next: Camera = {
+      x: this.pinchWorldAnchor.x - (sx - vw / 2) / clampedZoom,
+      y: this.pinchWorldAnchor.y - (sy - vh / 2) / clampedZoom,
+      zoom: clampedZoom,
+    };
+
+    cameraRef.set(next);
+    this.scheduleFrame(next);
+    this.maybeBroadcast(next);
+  }
+
+  pinchEnd() {
+    if (!this.pinchActive) return;
+    this.pinchActive = false;
     this.endGestureIfIdle();
   }
 
@@ -327,6 +407,7 @@ export class CameraGestureEngine {
     if (activeEngine === this) {
       setActiveEngine(null);
     }
+    this.pinchActive = false;
     if (this.rafId !== null) {
       cancelAnimationFrame(this.rafId);
       this.rafId = null;

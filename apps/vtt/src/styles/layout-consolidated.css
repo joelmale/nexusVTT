@@ -11,7 +11,7 @@
    MAIN LAYOUT GRID
    ============================================================================= */
 
-/* Game Layout Container - Header, dynamic content/sidebar split */
+/* Game Layout Container - single full-viewport scene cell */
 .game-layout {
   width: 100vw;
   height: 100vh;
@@ -19,48 +19,83 @@
   top: 0;
   left: 0;
   display: grid !important;
-  grid-template-rows: var(--header-height) 1fr;
-  grid-template-columns: 1fr var(--sidebar-width, 300px);
+
+  /* Chrome (toolbar, docks, floating panels) is portal-mounted and floats over
+     the map, so by default this is a single full-viewport scene cell. There is
+     no reserved sidebar column and no header row - both belonged to the legacy
+     layout removed with the `floating-panels` flag.
+
+     Docking (item 7) is the one thing that reserves real layout space: a panel
+     dropped on an edge sets the matching --dock-* width/height, the track
+     opens, and the scene cell shrinks. The widths default to 0px so an
+     undocked layout is byte-identical to the single-cell case.
+
+     minmax(0, 1fr) rather than a bare 1fr keeps the scene track from expanding
+     past the viewport when a child's intrinsic min-content size exceeds it. */
+  grid-template-columns:
+    var(--dock-left-width, 0px)
+    minmax(0, 1fr)
+    var(--dock-right-width, 0px);
+  grid-template-rows:
+    minmax(0, 1fr)
+    var(--dock-bottom-height, 0px);
   grid-template-areas:
-    'header header'
-    'scene panel';
+    'dock-left scene      dock-right'
+    'dock-bottom dock-bottom dock-bottom';
+
   background: var(--bg-primary);
   overflow: hidden;
-  /* Smooth transition for width changes */
-  transition: grid-template-columns 0.1s ease-out;
+
+  /* Animate the reflow, but never during a drag (see [data-docking]). */
+  transition:
+    grid-template-columns var(--transition-base, 200ms) ease,
+    grid-template-rows var(--transition-base, 200ms) ease;
 }
 
-/* Collapsed sidebar state - minimal width */
-.game-layout[data-panel-expanded='false'] {
-  grid-template-columns: 1fr var(--sidebar-width, 60px);
-  grid-template-areas:
-    'header header'
-    'scene panel';
+/* Suppress the reflow animation while a dock drag is in flight - the canvas
+   would otherwise chase the pointer. */
+.game-layout[data-docking] {
+  transition: none;
 }
 
-/* A6a (feature flag `floating-panels`, ADR-0007): the map owns the
-   viewport - drop the reserved sidebar column entirely. The panel column
-   from `data-panel-expanded` above is superseded whenever this attribute
-   is present (ContextPanel instead renders inside a portal-mounted
-   FloatingPanel, absolutely positioned over the scene - see
-   FloatingPanel.module.css). Canvas rect must be invariant across all
-   panel-open/closed states under this flag.
-
-   A6b: the header row is dropped too - GameUI does not render
-   .layout-header at all under this flag, so the grid goes to a single
-   row/single column. minmax(0, 1fr) on both axes keeps the same
-   overflow-safety discipline as the A6a column fix (a bare 1fr track can
-   expand past the viewport when a child's intrinsic min-content size
-   exceeds it). */
-.game-layout[data-floating-panels] {
-  grid-template-rows: minmax(0, 1fr);
-  grid-template-columns: minmax(0, 1fr);
-  grid-template-areas: 'scene';
-}
-
-.game-layout[data-floating-panels] .layout-scene {
+.game-layout .layout-scene {
   min-width: 0;
   min-height: 0;
+}
+
+/* =============================================================================
+   DOCK REGIONS
+   Hosts for panels docked to an edge. Empty regions collapse to a zero-width
+   track, so they cost nothing when unused.
+   ============================================================================= */
+
+.dock-region {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--surface-primary);
+}
+
+.dock-region:empty {
+  display: none;
+}
+
+.dock-region[data-zone='left'] {
+  grid-area: dock-left;
+  border-right: 1px solid var(--border-primary);
+}
+
+.dock-region[data-zone='right'] {
+  grid-area: dock-right;
+  border-left: 1px solid var(--border-primary);
+}
+
+.dock-region[data-zone='bottom'] {
+  grid-area: dock-bottom;
+  flex-direction: row;
+  border-top: 1px solid var(--border-primary);
 }
 
 .game-layout-empty {
@@ -69,25 +104,6 @@
   align-items: center;
   justify-content: center;
   background: var(--bg-primary);
-}
-
-/* =============================================================================
-   LAYOUT HEADER
-   ============================================================================= */
-
-.layout-header {
-  grid-area: header;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  -webkit-backdrop-filter: var(--glass-blur);
-  background: var(--surface-primary);
-  backdrop-filter: var(--glass-blur);
-  border-bottom: 1px solid var(--border-primary);
-  padding: var(--spacing-2) var(--spacing-4);
-  z-index: var(--z-sticky);
-  gap: var(--spacing-4);
-  min-height: var(--header-height);
 }
 
 .header-left {
@@ -149,22 +165,6 @@
   display: block;
   -webkit-user-select: none;
   user-select: none;
-}
-
-/* =============================================================================
-   SCENE TABS
-   ============================================================================= */
-
-.scene-tab-bar {
-  grid-area: scene-tabs;
-  display: flex;
-  align-items: center;
-  background: var(--surface-primary);
-  border-bottom: 1px solid var(--border-primary);
-  -webkit-backdrop-filter: var(--glass-blur-subtle);
-  backdrop-filter: var(--glass-blur-subtle);
-  padding: var(--spacing-1) var(--spacing-4);
-  min-height: var(--spacing-12);
 }
 
 .scene-tabs {
@@ -276,54 +276,6 @@
   color: white;
 }
 
-/* =============================================================================
-   PANEL AREA
-   ============================================================================= */
-
-.layout-panel {
-  grid-area: panel;
-  background: var(--surface-primary);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  border-left: 1px solid var(--border-primary);
-  display: grid;
-  grid-template-rows: auto 1fr;
-  overflow: hidden;
-  position: relative;
-  box-shadow: -4px 0 20px rgba(0, 0, 0, 0.1);
-  z-index: var(--z-panel);
-  height: 100%;
-  max-height: 100vh;
-}
-
-/* Panel width is now controlled by CSS Grid via --sidebar-width variable */
-
-.layout-panel.positioned {
-  position: fixed !important;
-  bottom: auto !important;
-  right: auto !important;
-  height: 600px;
-  max-height: calc(100vh - 20px);
-  border-radius: var(--border-radius-lg);
-  border: 1px solid var(--border-primary);
-  box-shadow: var(--shadow-glass-xl);
-}
-
-.layout-panel.dragging {
-  opacity: 0.9;
-  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.3);
-  transform: scale(1.02);
-  transition: none !important;
-  height: 100%;
-  max-height: 100vh;
-}
-
-.layout-panel.resetting {
-  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
-  height: 100%;
-  max-height: 100vh;
-}
-
 /* Panel Drag Handle */
 .panel-drag-handle {
   padding: var(--spacing-3);
@@ -371,166 +323,6 @@
   height: 100px;
 }
 
-/* Panel Resize Handle */
-.sidebar-resize-handle {
-  position: absolute;
-  left: -6px;
-  top: 0;
-  bottom: 0;
-  width: 12px;
-  cursor: ew-resize;
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.1) 25%,
-    rgba(255, 255, 255, 0.2) 50%,
-    rgba(255, 255, 255, 0.1) 75%,
-    transparent
-  );
-  border-left: 2px solid rgba(255, 255, 255, 0.1);
-  transition: all var(--transition-base);
-  z-index: 10;
-}
-
-.sidebar-resize-handle::before {
-  content: '';
-  position: absolute;
-  left: 50%;
-  top: 50%;
-  transform: translate(-50%, -50%);
-  width: 4px;
-  height: 40px;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    rgba(255, 255, 255, 0.3) 20%,
-    rgba(255, 255, 255, 0.6) 50%,
-    rgba(255, 255, 255, 0.3) 80%,
-    transparent
-  );
-  border-radius: 2px;
-  opacity: 0.7;
-  transition: all var(--transition-base);
-}
-
-.sidebar-resize-handle:hover {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.15) 25%,
-    rgba(255, 255, 255, 0.3) 50%,
-    rgba(255, 255, 255, 0.15) 75%,
-    transparent
-  );
-  border-left-color: rgba(255, 255, 255, 0.3);
-  box-shadow: 0 0 10px rgba(255, 255, 255, 0.1);
-}
-
-.sidebar-resize-handle:hover::before {
-  opacity: 1;
-  height: 60px;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    rgba(255, 255, 255, 0.5) 20%,
-    rgba(255, 255, 255, 0.8) 50%,
-    rgba(255, 255, 255, 0.5) 80%,
-    transparent
-  );
-}
-
-.sidebar-resize-handle:active {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(255, 255, 255, 0.2) 25%,
-    rgba(255, 255, 255, 0.4) 50%,
-    rgba(255, 255, 255, 0.2) 75%,
-    transparent
-  );
-  border-left-color: rgba(255, 255, 255, 0.5);
-  box-shadow: 0 0 15px rgba(255, 255, 255, 0.2);
-}
-
-.sidebar-resize-handle:active::before {
-  opacity: 1;
-  transform: translate(-50%, -50%) scale(1.1);
-}
-
-.sidebar-resize-handle.dragging {
-  background: linear-gradient(
-    90deg,
-    transparent,
-    rgba(99, 102, 241, 0.3) 25%,
-    rgba(99, 102, 241, 0.5) 50%,
-    rgba(99, 102, 241, 0.3) 75%,
-    transparent
-  );
-  border-left-color: rgba(99, 102, 241, 0.6);
-}
-
-.sidebar-resize-handle.dragging::before {
-  opacity: 1;
-  background: linear-gradient(
-    to bottom,
-    transparent,
-    rgba(99, 102, 241, 0.6) 20%,
-    rgba(99, 102, 241, 0.9) 50%,
-    rgba(99, 102, 241, 0.6) 80%,
-    transparent
-  );
-}
-
-/* =============================================================================
-   HORIZONTAL PANEL TABS
-   ============================================================================= */
-
-.horizontal-panel-tabs {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-1);
-  list-style: none;
-  margin: 0;
-  padding: 0;
-}
-
-.horizontal-panel-tab {
-  position: relative;
-}
-
-.horizontal-panel-tab label {
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  padding: var(--spacing-2) var(--spacing-3);
-  border-radius: var(--border-radius);
-  background: transparent;
-  color: var(--text-secondary);
-  cursor: pointer;
-  transition: all var(--transition-fast);
-  border: 1px solid transparent;
-  font-size: var(--text-sm);
-  font-weight: var(--font-medium);
-  -webkit-user-select: none;
-  user-select: none;
-}
-
-.horizontal-panel-tab input[type='radio'] {
-  display: none;
-}
-
-.horizontal-panel-tab input[type='radio']:checked + span,
-.horizontal-panel-tab input[type='radio']:checked ~ span {
-  background: var(--surface-primary);
-  color: var(--text-primary);
-  border-color: var(--border-primary);
-}
-
-.horizontal-panel-tab:hover label {
-  background: var(--surface-hover);
-  color: var(--text-primary);
-}
-
 .panel-icon {
   font-size: var(--text-base);
   width: var(--spacing-5);
@@ -542,25 +334,6 @@
   font-size: var(--text-sm);
   font-weight: var(--font-medium);
   white-space: nowrap;
-}
-
-/* Panel Toggle Button */
-.horizontal-panel-toggle {
-  margin-left: var(--spacing-2);
-}
-
-.horizontal-panel-toggle button {
-  padding: var(--spacing-2) var(--spacing-3);
-  background: var(--surface-primary);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius);
-  color: var(--text-primary);
-  cursor: pointer;
-  transition: all var(--transition-base);
-}
-
-.horizontal-panel-toggle button:hover {
-  background: var(--surface-hover);
 }
 
 .toggle-icon {
@@ -1048,32 +821,6 @@
   z-index: var(--z-overlay);
 }
 
-/* A6b: top-left floating cluster replacing .layout-header's .header-left
-   under the `floating-panels` flag. Same glass tokens/z-band as
-   PanelDock.module.css (.dock) so the two corner clusters read as one
-   family. PlayerBar/PlayerActions internals are unchanged - this is only
-   a positioning wrapper. */
-.player-cluster-floating {
-  position: fixed;
-  top: 0;
-  left: 0;
-  z-index: var(--z-tool-ui);
-
-  display: flex;
-  align-items: center;
-  gap: var(--spacing-3);
-  padding: var(--spacing-2);
-
-  background: var(--surface-primary);
-  -webkit-backdrop-filter: var(--glass-blur);
-  backdrop-filter: var(--glass-blur);
-  border: 1px solid var(--border-primary);
-  border-radius: var(--border-radius-lg);
-  box-shadow: var(--shadow-glass-lg);
-  
-  transition: transform var(--transition-base), padding var(--transition-base);
-}
-
 .player-cluster-floating[data-collapsed='true'] {
   padding: 0;
 }
@@ -1312,8 +1059,7 @@
    ============================================================================= */
 
 /* Visual feedback for draggable elements */
-.game-toolbar:not(.dragging):hover,
-.layout-panel:not(.dragging):hover {
+.game-toolbar:not(.dragging):hover {
   box-shadow: 0 6px 24px rgba(0, 0, 0, 0.15);
   height: 100%;
   max-height: 100vh;
@@ -1333,18 +1079,11 @@
 
 @media (prefers-reduced-motion: reduce) {
   .game-toolbar,
-  .layout-panel,
   .scene-tab,
-  .horizontal-panel-tab,
   .toolbar-btn,
   .panel-drag-handle,
   .toolbar-drag-handle {
     transition: none !important;
-  }
-
-  .layout-panel {
-    height: 100%;
-    max-height: 100vh;
   }
 
   .toolbar-drag-handle::after,
@@ -1355,7 +1094,6 @@
 
 /* Focus styles */
 .scene-tab:focus-visible,
-.horizontal-panel-tab:focus-visible,
 .toolbar-btn:focus-visible {
   outline: 2px solid var(--color-primary);
   outline-offset: 2px;

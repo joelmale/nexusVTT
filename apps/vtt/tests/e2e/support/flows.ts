@@ -64,10 +64,44 @@ export async function createGuestPlayerSession(
   return { roomCode, webSocket };
 }
 
+/**
+ * Open `name` if it is not already open.
+ *
+ * Idempotent: panels are independently toggleable now, so clicking the tab of
+ * an already-open panel would close it.
+ *
+ * Panels overlap by design, so a panel opened earlier can cover one opened
+ * later and intercept its clicks. Use `closePanel` to put away a panel the
+ * test has finished with, rather than closing and re-opening the target to
+ * raise it - cycling panels through mount/unmount crashes the renderer.
+ */
 export async function openPanel(page: Page, name: string): Promise<void> {
   const panelDock = page.getByRole('tablist', { name: 'Panels' });
   await panelDock.hover();
+
   const tab = page.getByRole('tab', { name, exact: true });
   await expect(tab).toBeVisible();
-  await tab.click();
+
+  const isPressed =
+    (await tab.getAttribute('aria-pressed')) === 'true' ||
+    (await tab.getAttribute('aria-selected')) === 'true';
+  if (!isPressed) {
+    await tab.click();
+  }
+}
+
+/** Close `name` if it is open, so it stops covering other panels. */
+export async function closePanel(page: Page, name: string): Promise<void> {
+  const panelDock = page.getByRole('tablist', { name: 'Panels' });
+  await panelDock.hover();
+
+  const tab = page.getByRole('tab', { name, exact: true });
+  await expect(tab).toBeVisible();
+
+  const isPressed =
+    (await tab.getAttribute('aria-pressed')) === 'true' ||
+    (await tab.getAttribute('aria-selected')) === 'true';
+  if (isPressed) {
+    await tab.click();
+  }
 }

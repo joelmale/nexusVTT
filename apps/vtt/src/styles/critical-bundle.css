@@ -22,6 +22,7 @@
 
 /* 3. LAYOUTS - Core page structure */
 @import './layout-consolidated.css' layer(layouts);
+@import './focus-mode.css' layer(layouts);
 
 /* 4. CRITICAL COMPONENTS - Always-visible UI elements */
 @import './welcome-page.css' layer(critical-components);

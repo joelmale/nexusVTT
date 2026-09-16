@@ -1,0 +1,39 @@
+/*
+ * Focus mode — immersive view that hides every piece of floating chrome and
+ * leaves only the map.
+ *
+ * Every chrome root carries a plain `data-chrome` DOM attribute rather than a
+ * class, so a single rule reaches both global-class chrome (the toolbar, the
+ * player cluster) and CSS-module chrome (FloatingPanel, PanelDock, ScenePill,
+ * AtlasDock) whose class names are hashed at build time.
+ *
+ * The flag lives on <html> because `#portal-root` is a sibling of `#root`:
+ * portal-mounted chrome is NOT inside `.game-layout`, so only a document-level
+ * ancestor can match everything. See hooks/useFocusMode.ts.
+ */
+
+:root {
+  --focus-mode-duration: 180ms;
+}
+
+[data-chrome] {
+  transition:
+    opacity var(--focus-mode-duration) ease,
+    transform var(--focus-mode-duration) ease,
+    visibility 0s linear 0s;
+}
+
+html[data-focus-mode='on'] [data-chrome] {
+  opacity: 0;
+  pointer-events: none;
+  /* Delay `visibility` until the fade finishes, so the element animates out
+     and only then leaves the tab order. `inert` (set in JS) covers the gap. */
+  visibility: hidden;
+  transition-delay: 0s, 0s, var(--focus-mode-duration);
+}
+
+/*
+ * Specificity note: FloatingPanel.module.css has `.panel[data-state='open']
+ * { opacity: 1 }` at (0,2,0). The selector above is (0,2,1) and therefore
+ * wins. Keep it that way if either rule changes.
+ */

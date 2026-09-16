@@ -1,0 +1,172 @@
+/*
+ * WorkspaceMenu — layout preset picker, rendered inside the PanelDock.
+ * Sits in the popover band so it draws above raised chrome panels.
+ */
+
+.container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.trigger {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  font-size: 1rem;
+  line-height: 1;
+  cursor: pointer;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-md);
+  transition: background var(--transition-fast), border-color var(--transition-fast);
+}
+
+.trigger:hover {
+  background: var(--surface-hover);
+  border-color: var(--border-primary);
+}
+
+.trigger:focus-visible {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.menu {
+  /* Portal-mounted and anchored from JS: the PanelDock clips overflow, so the
+     menu cannot live inside it. */
+  position: fixed;
+  z-index: var(--z-popover);
+
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  width: 260px;
+  padding: 12px;
+
+  background: var(--surface-primary);
+  -webkit-backdrop-filter: var(--glass-blur);
+  backdrop-filter: var(--glass-blur);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--shadow-glass-xl);
+}
+
+.heading {
+  font-size: 0.75rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--text-secondary);
+}
+
+.empty {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.list {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.applyButton {
+  flex: 1 1 auto;
+  padding: 6px 8px;
+  text-align: left;
+  font-size: 0.875rem;
+  cursor: pointer;
+  color: var(--text-primary);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--border-radius-md);
+}
+
+.applyButton:hover {
+  background: var(--surface-hover);
+}
+
+.applyButton[data-active] {
+  border-color: var(--color-primary);
+}
+
+.deleteButton {
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  background: transparent;
+  border: none;
+  border-radius: var(--border-radius-sm);
+}
+
+.deleteButton:hover {
+  color: var(--color-danger, #e5484d);
+  background: var(--surface-hover);
+}
+
+.saveRow {
+  display: flex;
+  gap: 4px;
+}
+
+.input {
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: 6px 8px;
+  font-size: 0.8125rem;
+  color: var(--text-primary);
+  background: var(--surface-hover);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+}
+
+.saveButton {
+  flex: 0 0 auto;
+  padding: 6px 10px;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  color: var(--text-primary);
+  background: var(--surface-hover);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+}
+
+.saveButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.resetButton {
+  padding: 6px 8px;
+  font-size: 0.75rem;
+  cursor: pointer;
+  color: var(--text-secondary);
+  background: transparent;
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-md);
+}
+
+.resetButton:hover {
+  color: var(--color-danger, #e5484d);
+}

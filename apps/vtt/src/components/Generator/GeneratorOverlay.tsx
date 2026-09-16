@@ -5,11 +5,6 @@ interface GeneratorOverlayProps {
   isOpen: boolean;
   /** Called on Escape or the manual close button. */
   onClose: () => void;
-  /** `true` under the `floating-panels` flag - the legacy header carve-out
-   * (top: var(--header-height)) no longer applies, so the overlay should
-   * cover the full viewport (inset: 0). Flag off (default/undefined):
-   * unchanged legacy behavior via GeneratorPanel.css. */
-  floatingPanelsEnabled?: boolean;
   children: React.ReactNode;
 }
 
@@ -22,14 +17,11 @@ interface GeneratorOverlayProps {
  * modal (aria-modal="true") rather than FloatingPanel's non-modal dialog.
  *
  * This is a hygiene fix, not a layout change - it is mounted unconditionally
- * by GameUI.tsx (not flag-gated); only the inset/top styling branches on
- * `floatingPanelsEnabled` via the `data-floating-panels` attribute consumed
- * in GeneratorPanel.css.
+ * by GameUI.tsx.
  */
 export const GeneratorOverlay: React.FC<GeneratorOverlayProps> = ({
   isOpen,
   onClose,
-  floatingPanelsEnabled,
   children,
 }) => {
   const overlayRef = useRef<HTMLDivElement>(null);
@@ -109,7 +101,6 @@ export const GeneratorOverlay: React.FC<GeneratorOverlayProps> = ({
     <div
       ref={overlayRef}
       className="generator-overlay"
-      data-floating-panels={floatingPanelsEnabled ? 'true' : undefined}
       role="dialog"
       aria-modal="true"
       aria-label="Map generator"

@@ -1,9 +1,10 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
 import { Tooltip } from './Tooltip';
 import styles from './PanelDock.module.css';
+import { WorkspaceMenu } from './WorkspaceMenu';
 
 import { useDraggablePanel } from '@/hooks/useDraggablePanel';
-import { useUIStackStore, useStackZIndex } from '@/stores/uiStackStore';
+import { useUIStackStore, useStackZIndex, useFocusMode } from '@/stores/uiStackStore';
 
 export interface PanelDockPanel<T extends string = string> {
   id: T;
@@ -40,6 +41,7 @@ export function PanelDock<T extends string = string>({
   });
 
   const zIndex = useStackZIndex('panelDock');
+  const focusMode = useFocusMode();
   const bringToFront = useUIStackStore((state) => state.bringToFront);
 
   // ── Hover expand / collapse ──
@@ -94,6 +96,8 @@ export function PanelDock<T extends string = string>({
   return (
     <div
       ref={panelRef}
+      data-chrome
+      inert={focusMode || undefined}
       className={`${styles.dock} ${isExpanded ? styles.expanded : ''}`}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
@@ -161,6 +165,9 @@ export function PanelDock<T extends string = string>({
             </Tooltip>
           );
         })}
+
+        {/* Layout workspaces live with the panel controls, not in Settings. */}
+        <WorkspaceMenu />
       </div>
     </div>
   );

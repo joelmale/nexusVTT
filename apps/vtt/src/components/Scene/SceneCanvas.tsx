@@ -505,6 +505,60 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     };
   }, [activeTool, isHost, followDM, cameraGestureEngine]);
 
+  // Two-finger pinch/pan for touch devices.
+  //
+  // Deliberately native TouchEvents with `{ passive: false }` rather than a
+  // blanket `touch-action: none`: single-touch must keep falling through to
+  // the browser's synthesized mouse-compat events, which DrawingTools,
+  // MeasurementTool, TerrainTool, PropRenderer and SelectionOverlay all
+  // depend on. `preventDefault()` is therefore called ONLY on the two-finger
+  // branch, which is enough to suppress browser page pan/zoom without
+  // breaking any single-finger interaction.
+  //
+  // Unlike wheel zoom this is not gated on the active tool - two fingers are
+  // unambiguous, and a tablet user must be able to zoom while a drawing tool
+  // is selected.
+  useEffect(() => {
+    const svgEl = svgRef.current;
+    if (!svgEl) return;
+
+    let pinching = false;
+
+    const handleTouchStart = (e: TouchEvent) => {
+      if (e.touches.length !== 2) return;
+      if (!isHost && followDM) return; // Players can't move the camera when following DM
+
+      e.preventDefault();
+      pinching = true;
+      cameraGestureEngine.pinchStart(e.touches[0], e.touches[1]);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (!pinching || e.touches.length !== 2) return;
+      e.preventDefault();
+      cameraGestureEngine.pinchMove(e.touches[0], e.touches[1]);
+    };
+
+    const endPinch = () => {
+      if (!pinching) return;
+      pinching = false;
+      cameraGestureEngine.pinchEnd();
+    };
+
+    svgEl.addEventListener('touchstart', handleTouchStart, { passive: false });
+    svgEl.addEventListener('touchmove', handleTouchMove, { passive: false });
+    svgEl.addEventListener('touchend', endPinch);
+    svgEl.addEventListener('touchcancel', endPinch);
+
+    return () => {
+      svgEl.removeEventListener('touchstart', handleTouchStart);
+      svgEl.removeEventListener('touchmove', handleTouchMove);
+      svgEl.removeEventListener('touchend', endPinch);
+      svgEl.removeEventListener('touchcancel', endPinch);
+      endPinch();
+    };
+  }, [isHost, followDM, cameraGestureEngine]);
+
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (e.button === 0) {
