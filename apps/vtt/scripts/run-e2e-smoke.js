@@ -35,7 +35,19 @@ function resolvePlaywrightCli() {
 }
 
 const playwrightCli = resolvePlaywrightCli();
-const playwrightArgs = process.argv.slice(2);
+// This script owns the managed Docker stack, so it runs the stack-backed
+// `chromium` project only. The `ui` project drives a plain Vite dev server that
+// playwright.config.ts starts itself, and that webServer is disabled once
+// E2E_BASE_URL is set below -- so without this filter the UI specs would run
+// here against a server that was never started. Honour an explicit --project
+// from the caller.
+const passthroughArgs = process.argv.slice(2);
+const hasProjectFilter = passthroughArgs.some(
+  (argument) => argument === '--project' || argument.startsWith('--project='),
+);
+const playwrightArgs = hasProjectFilter
+  ? passthroughArgs
+  : ['--project=chromium', ...passthroughArgs];
 const keepStack = process.env.E2E_KEEP_STACK === '1';
 
 let activeChild = null;
