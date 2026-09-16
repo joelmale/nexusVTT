@@ -3,11 +3,71 @@ import DiceBox from '@3d-dice/dice-box';
 import { useGameStore, useSettings } from '@/stores/gameStore';
 import { diceSounds } from '@/services/diceSounds';
 
+/**
+ * Feature-detect WebGL without stranding the probe context. Browsers cap the
+ * number of live WebGL contexts, so a probe that is never released costs a real
+ * slot for the lifetime of the page.
+ */
+const hasWebGLSupport = (): boolean => {
+  const probeCanvas = document.createElement('canvas');
+  const probeGl = (probeCanvas.getContext('webgl') ||
+    probeCanvas.getContext(
+      'experimental-webgl',
+    )) as WebGLRenderingContext | null;
+
+  if (!probeGl) {
+    return false;
+  }
+
+  try {
+    probeGl.getExtension('WEBGL_lose_context')?.loseContext();
+  } catch {
+    // Losing the probe context is best-effort.
+  }
+
+  return true;
+};
+
+/**
+ * dice-box exposes no dispose(), so release what it owns by hand: stop the dice,
+ * drop the WebGL context that the Babylon engine is rendering into, and detach
+ * the canvas it created.
+ */
+const disposeDiceBox = (diceBox: DiceBox | null): void => {
+  if (!diceBox) {
+    return;
+  }
+
+  try {
+    diceBox.clear();
+  } catch (error) {
+    console.warn('🎲 Error clearing dice box:', error);
+  }
+
+  const canvas = (diceBox as unknown as { canvas?: HTMLCanvasElement }).canvas;
+  if (!canvas) {
+    return;
+  }
+
+  try {
+    const gl = (canvas.getContext('webgl2') ||
+      canvas.getContext('webgl')) as WebGLRenderingContext | null;
+    gl?.getExtension('WEBGL_lose_context')?.loseContext();
+  } catch (error) {
+    console.warn('🎲 Error releasing dice box WebGL context:', error);
+  }
+
+  canvas.remove();
+};
+
 export const DiceBox3D: React.FC = () => {
   const diceBoxRef = useRef<DiceBox | null>(null);
   const diceBoxContainerRef = useRef<HTMLDivElement>(null);
   const processedRollIdsRef = useRef<Set<string>>(new Set());
   const clearTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const debugCheckTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const initInFlightRef = useRef(false);
+  const effectActiveRef = useRef(false);
   const rollDebounceRef = useRef<NodeJS.Timeout | null>(null);
   const pendingRollRef = useRef<{
     notations: string[];
@@ -30,124 +90,153 @@ export const DiceBox3D: React.FC = () => {
 
   // Initialize DiceBox
   useEffect(() => {
+    effectActiveRef.current = true;
+
     const initializeDiceBox = async () => {
-      if (diceBoxContainerRef.current && !diceBoxRef.current) {
-        try {
-          // Check WebGL support
-          console.log('🎲 Checking WebGL support...');
-          const canvas = document.createElement('canvas');
-          const gl =
-            canvas.getContext('webgl') ||
-            canvas.getContext('experimental-webgl');
-          if (!gl) {
-            const error =
-              'WebGL is not supported in this browser. 3D dice require WebGL.';
-            console.error('🎲 ERROR:', error);
-            setInitError(error);
-            setIsInitialized(false);
-            return;
-          }
-          console.log('✅ WebGL is supported');
+      // Synchronous claim: React StrictMode double-invokes this effect in dev,
+      // and `diceBoxRef` is only populated after `await init()`. Without an
+      // in-flight flag set *before* the first await, both invocations pass the
+      // guard and we end up with two Babylon engines / WebGL2 contexts.
+      if (!diceBoxContainerRef.current || diceBoxRef.current) {
+        return;
+      }
+      if (initInFlightRef.current) {
+        return;
+      }
+      initInFlightRef.current = true;
 
-          // Check if container exists
-          const container = document.querySelector('#dice-box');
-          if (!container) {
-            console.error('🎲 ERROR: Container #dice-box not found in DOM');
-            setInitError('Dice container not found');
-            return;
-          }
-          console.log('✅ Container found:', container);
-
-          const config = {
-            id: 'dice-canvas',
-            container: '#dice-box',
-            assetPath: '/assets/dice-box/',
-            theme: 'default',
-            offscreen: false,
-            scale: 6,
-            gravity: 1,
-            mass: 0.85,
-            friction: 0.65,
-            restitution: 0.04,
-            linearDamping: 0.55,
-            angularDamping: 0.65,
-            spinForce: 2.6,
-            throwForce: 3,
-            startingHeight: 5,
-            settleTimeout: 2000,
-            delay: 4,
-            enableShadows: false,
-            lightIntensity: 0.6,
-          };
-
-          console.log('🎲 Initializing DiceBox with config:', config);
-          const diceBox = new DiceBox(config);
-
-          diceBox.onRollComplete = (_results: unknown) => {
-            console.log('🎲 Roll animation complete');
-          };
-
-          console.log('🎲 Calling diceBox.init()...');
-          await diceBox.init();
-          console.log('✅ DiceBox initialized successfully');
-
-          diceBoxRef.current = diceBox;
-          setIsInitialized(true);
-          setInitError(null);
-
-          // Debug checks - verify canvas was created
-          setTimeout(() => {
-            if (diceBoxContainerRef.current) {
-              const canvasElement =
-                diceBoxContainerRef.current.querySelector('canvas');
-              if (canvasElement) {
-                console.log('✅ Canvas element found:', canvasElement);
-                console.log(
-                  '   Canvas dimensions:',
-                  canvasElement.width,
-                  'x',
-                  canvasElement.height,
-                );
-              } else {
-                console.error('🎲 ERROR: No canvas element found after init!');
-                console.log(
-                  '   Container children:',
-                  diceBoxContainerRef.current.children,
-                );
-              }
-            }
-          }, 1000);
-        } catch (error) {
-          console.error('🎲 Failed to initialize DiceBox3D:', error);
-          console.error(
-            '   Error stack:',
-            error instanceof Error ? error.stack : 'No stack trace',
-          );
-          setInitError(
-            error instanceof Error
-              ? error.message
-              : 'Failed to initialize or create DiceBox',
-          );
+      try {
+        // Check WebGL support
+        console.log('🎲 Checking WebGL support...');
+        if (!hasWebGLSupport()) {
+          const error =
+            'WebGL is not supported in this browser. 3D dice require WebGL.';
+          console.error('🎲 ERROR:', error);
+          setInitError(error);
           setIsInitialized(false);
+          return;
         }
+        console.log('✅ WebGL is supported');
+
+        // Check if container exists
+        const container = document.querySelector('#dice-box');
+        if (!container) {
+          console.error('🎲 ERROR: Container #dice-box not found in DOM');
+          setInitError('Dice container not found');
+          return;
+        }
+        console.log('✅ Container found:', container);
+
+        const config = {
+          id: 'dice-canvas',
+          container: '#dice-box',
+          assetPath: '/assets/dice-box/',
+          theme: 'default',
+          offscreen: false,
+          scale: 6,
+          gravity: 1,
+          mass: 0.85,
+          friction: 0.65,
+          restitution: 0.04,
+          linearDamping: 0.55,
+          angularDamping: 0.65,
+          spinForce: 2.6,
+          throwForce: 3,
+          startingHeight: 5,
+          settleTimeout: 2000,
+          delay: 4,
+          enableShadows: false,
+          lightIntensity: 0.6,
+        };
+
+        console.log('🎲 Initializing DiceBox with config:', config);
+        const diceBox = new DiceBox(config);
+
+        diceBox.onRollComplete = (_results: unknown) => {
+          console.log('🎲 Roll animation complete');
+        };
+
+        console.log('🎲 Calling diceBox.init()...');
+        await diceBox.init();
+        console.log('✅ DiceBox initialized successfully');
+
+        // The component unmounted while init was in flight — tear the engine
+        // down instead of stranding it.
+        if (!effectActiveRef.current) {
+          disposeDiceBox(diceBox);
+          return;
+        }
+
+        diceBoxRef.current = diceBox;
+        setIsInitialized(true);
+        setInitError(null);
+
+        // Debug checks - verify canvas was created
+        debugCheckTimeoutRef.current = setTimeout(() => {
+          debugCheckTimeoutRef.current = null;
+          if (diceBoxContainerRef.current) {
+            const canvasElement =
+              diceBoxContainerRef.current.querySelector('canvas');
+            if (canvasElement) {
+              console.log('✅ Canvas element found:', canvasElement);
+              console.log(
+                '   Canvas dimensions:',
+                canvasElement.width,
+                'x',
+                canvasElement.height,
+              );
+            } else {
+              console.error('🎲 ERROR: No canvas element found after init!');
+              console.log(
+                '   Container children:',
+                diceBoxContainerRef.current.children,
+              );
+            }
+          }
+        }, 1000);
+      } catch (error) {
+        console.error('🎲 Failed to initialize DiceBox3D:', error);
+        console.error(
+          '   Error stack:',
+          error instanceof Error ? error.stack : 'No stack trace',
+        );
+        setInitError(
+          error instanceof Error
+            ? error.message
+            : 'Failed to initialize or create DiceBox',
+        );
+        setIsInitialized(false);
       }
     };
 
     initializeDiceBox();
 
     return () => {
-      if (diceBoxRef.current) {
-        try {
-          diceBoxRef.current.clear();
-        } catch (error) {
-          console.warn('🎲 Error clearing dice box:', error);
-        }
-      }
-      // Clear any pending timeout
+      effectActiveRef.current = false;
+
+      // Clear any pending timeouts first so nothing fires against a disposed
+      // engine.
       if (clearTimeoutRef.current) {
         clearTimeout(clearTimeoutRef.current);
         clearTimeoutRef.current = null;
       }
+      if (debugCheckTimeoutRef.current) {
+        clearTimeout(debugCheckTimeoutRef.current);
+        debugCheckTimeoutRef.current = null;
+      }
+
+      // Defer the teardown decision by a task: under StrictMode the second
+      // effect invocation runs synchronously right after this cleanup and sets
+      // `effectActiveRef` back to true, so we keep the single engine alive
+      // instead of churning it. On a real unmount the flag stays false.
+      setTimeout(() => {
+        if (effectActiveRef.current) {
+          return;
+        }
+        disposeDiceBox(diceBoxRef.current);
+        diceBoxRef.current = null;
+        initInFlightRef.current = false;
+      }, 0);
     };
   }, [getDiceTheme]);
 
