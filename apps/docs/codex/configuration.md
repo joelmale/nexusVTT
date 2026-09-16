@@ -267,7 +267,8 @@ services:
     command: redis-server --appendonly yes
 
   elasticsearch:
-    image: elasticsearch:8.11.0
+    # Must match deploy/homelab/compose.yaml; the v9 client cannot talk to 8.x.
+    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.3
     environment:
       - discovery.type=single-node
       - xpack.security.enabled=false

@@ -346,8 +346,9 @@ docker pull postgres:16-alpine
 # Pull latest Redis 7
 docker pull redis:7-alpine
 
-# Pull latest ElasticSearch 8
-docker pull elasticsearch:8.11.0
+# Pull latest ElasticSearch 9 (must match deploy/homelab/compose.yaml --
+# the v9 client cannot talk to an 8.x server)
+docker pull docker.elastic.co/elasticsearch/elasticsearch:9.5.3
 
 # Rebuild all services with updated base images
 docker compose build --no-cache
