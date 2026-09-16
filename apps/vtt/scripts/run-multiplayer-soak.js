@@ -2,10 +2,18 @@
 
 import { spawn } from 'node:child_process';
 import fs from 'node:fs';
+import { createRequire } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
 
-const repositoryRoot = process.cwd();
+// Docker Compose files and script paths are relative to the VTT workspace,
+// which is where npm runs this script from. It is NOT the repository root --
+// npm owns one lockfile above it, and dependencies hoist up there.
+const workspaceRoot = process.cwd();
+// tsx therefore hoists to the repository-root node_modules and cannot be
+// located by joining onto the workspace directory. Resolve it instead; "./cli"
+// is in the package's exports map, so it resolves as a subpath directly.
+const require = createRequire(import.meta.url);
 const smokeComposeFile = path.join('docker', 'docker-compose.smoke.yml');
 const soakComposeFile = path.join('docker', 'docker-compose.soak.yml');
 const projectName = process.env.SOAK_PROJECT_NAME ?? 'nexus-vtt-soak';
@@ -26,7 +34,7 @@ let soakComplete = false;
 function runCommand(command, args, options = {}) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, args, {
-      cwd: repositoryRoot,
+      cwd: workspaceRoot,
       env: options.env ?? process.env,
       stdio: options.stdio ?? 'inherit',
       windowsHide: true,
@@ -189,17 +197,16 @@ function handleSignal(signal) {
 process.once('SIGINT', () => handleSignal('SIGINT'));
 process.once('SIGTERM', () => handleSignal('SIGTERM'));
 
-async function main() {
-  const tsxCli = path.join(
-    repositoryRoot,
-    'node_modules',
-    'tsx',
-    'dist',
-    'cli.mjs',
-  );
-  if (!fs.existsSync(tsxCli)) {
+function resolveTsxCli() {
+  try {
+    return require.resolve('tsx/cli');
+  } catch {
     throw new Error('tsx is not installed. Run npm install first.');
   }
+}
+
+async function main() {
+  const tsxCli = resolveTsxCli();
   if (fs.existsSync(readyFile)) fs.rmSync(readyFile);
   let exitCode = 1;
   let composeAttempted = false;

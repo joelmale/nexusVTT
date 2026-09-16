@@ -2,10 +2,10 @@ import { readdir, readFile, stat } from 'node:fs/promises';
 import path from 'node:path';
 import ts from 'typescript';
 
-const repositoryRoot = process.cwd();
-const sourceRoot = path.join(repositoryRoot, 'src');
+const workspaceRoot = process.cwd();
+const sourceRoot = path.join(workspaceRoot, 'src');
 const scanRoots = ['src', 'server', 'services/asset-service/src', 'shared'].map(
-  (directory) => path.join(repositoryRoot, directory),
+  (directory) => path.join(workspaceRoot, directory),
 );
 const sourceExtensions = ['.ts', '.tsx'];
 
@@ -153,7 +153,7 @@ if (cycles.length > 0) {
   console.error('Static import cycles detected:');
   for (const cycle of cycles) {
     console.error(
-      `- ${cycle.map((filePath) => path.relative(repositoryRoot, filePath)).join(' -> ')}`,
+      `- ${cycle.map((filePath) => path.relative(workspaceRoot, filePath)).join(' -> ')}`,
     );
   }
   process.exitCode = 1;

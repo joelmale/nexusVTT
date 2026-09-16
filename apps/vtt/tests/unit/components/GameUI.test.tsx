@@ -22,7 +22,12 @@ vi.mock('@/stores/gameStore', () => ({
   useServerRoomCode: vi.fn(() => 'TEST-123'),
 }));
 
-vi.mock('@/stores/uiStackStore', () => ({
+// Partial mock: modules downstream of GameUI (WorkspaceMenu ->
+// layoutWorkspaceStore) read other exports of this store at module scope, so a
+// factory that returns only the hooks breaks collection whenever a new export
+// lands. Spread the real module and override just what this suite stubs.
+vi.mock('@/stores/uiStackStore', async (importOriginal) => ({
+  ...(await importOriginal<typeof import('@/stores/uiStackStore')>()),
   useUIStackStore: vi.fn((selector) => {
     // Return mock state based on the selector function's string representation
     const selectorStr = selector.toString();
