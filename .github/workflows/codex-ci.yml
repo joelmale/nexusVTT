@@ -36,7 +36,12 @@ jobs:
           --health-timeout 5s
           --health-retries 5
       elasticsearch:
-        image: elasticsearch:8.11.0
+        # Must track deploy/homelab/compose.yaml. doc-api and doc-processor use
+        # the @elastic/elasticsearch v9 client, which sends
+        # `compatible-with=9` in its Content-Type. An 8.x server rejects that
+        # with media_type_header_exception, so an 8.11.0 service container here
+        # fails every integration test that touches the index.
+        image: docker.elastic.co/elasticsearch/elasticsearch:9.5.3
         env:
           discovery.type: single-node
           xpack.security.enabled: false
