@@ -7,7 +7,11 @@ export default defineConfig({
   outputDir: 'test-results/e2e',
   fullyParallel: false,
   forbidOnly: Boolean(process.env.CI),
-  retries: process.env.CI ? 1 : 0,
+  // Two retries, not one: journey.smoke also hits the "Target crashed" renderer
+  // bug (see multiplayer.smoke.spec.ts), and has needed a second attempt to
+  // pass on CI. This is a stopgap that buys a green pipeline while the crash is
+  // investigated -- drop it back to 1 once that lands.
+  retries: process.env.CI ? 2 : 0,
   workers: 1,
   timeout: 60_000,
   expect: {
