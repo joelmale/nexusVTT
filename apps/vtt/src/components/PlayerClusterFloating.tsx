@@ -66,19 +66,20 @@ export const PlayerClusterFloating: React.FC<PlayerClusterFloatingProps> = ({ le
               flexDirection: 'column',
               alignItems: 'center',
               paddingLeft: '8px', 
-              marginLeft: '8px',
-              borderLeft: '1px solid rgba(255,255,255,0.1)',
-              minWidth: '40px'
+              marginLeft: '4px',
+              borderLeft: '1px solid var(--border-subtle, rgba(255,255,255,0.1))',
+              minWidth: '48px',
+              flexShrink: 0,
             }}
           >
             <div 
               style={{ 
                 fontSize: '9px', 
-                color: 'rgba(255,255,255,0.6)', 
+                color: 'var(--text-muted, rgba(255,255,255,0.6))', 
                 textTransform: 'uppercase', 
                 marginBottom: '4px', 
                 paddingBottom: '2px', 
-                borderBottom: '1px solid rgba(255,255,255,0.2)', 
+                borderBottom: '1px solid var(--border-subtle, rgba(255,255,255,0.2))', 
                 width: '100%', 
                 textAlign: 'center',
                 letterSpacing: '0.5px'

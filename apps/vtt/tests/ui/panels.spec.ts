@@ -92,3 +92,28 @@ test('the workspace menu is not clipped by the dock', async ({ page }) => {
   await expect(menu).toBeVisible();
   expect(await isTopmostAtCentre(menu)).toBe(true);
 });
+
+test('the player cluster panel is laid out horizontally without overflowing elements', async ({ page }) => {
+  await gotoGame(page);
+
+  const cluster = page.locator('.player-cluster-floating');
+  await expect(cluster).toBeVisible();
+
+  const clusterBox = await cluster.boundingBox();
+  expect(clusterBox).not.toBeNull();
+  // In horizontal flex layout, width is significantly wider than height (not compressed into a narrow column)
+  expect(clusterBox!.width).toBeGreaterThan(150);
+  expect(clusterBox!.height).toBeLessThan(100);
+
+  // All buttons inside the cluster are within the cluster's horizontal bounds
+  const buttons = cluster.locator('button');
+  const count = await buttons.count();
+  expect(count).toBeGreaterThan(0);
+  for (let i = 0; i < count; i++) {
+    const btnBox = await buttons.nth(i).boundingBox();
+    expect(btnBox).not.toBeNull();
+    expect(btnBox!.x).toBeGreaterThanOrEqual(clusterBox!.x);
+    expect(btnBox!.x + btnBox!.width).toBeLessThanOrEqual(clusterBox!.x + clusterBox!.width + 2);
+  }
+});
+
