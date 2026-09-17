@@ -824,7 +824,14 @@
 .player-cluster-floating {
   position: fixed;
   top: 0;
-  left: 0;
+  /* Anchored past the left dock track rather than at the viewport edge. The
+     cluster is fixed-position chrome, so it does not participate in the layout
+     grid and would otherwise sit on top of a panel docked to the left -- over
+     its header, swallowing the Undock button. `useDockLayoutSync` sets this
+     variable on :root, so a fixed element can read it; it is 0px whenever
+     nothing is docked left, leaving the undocked layout unchanged. The drag
+     transform applies on top of this as a relative offset. */
+  left: var(--dock-left-width, 0px);
   z-index: var(--z-tool-ui);
 
   display: flex;
