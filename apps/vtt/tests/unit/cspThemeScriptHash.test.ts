@@ -18,10 +18,24 @@ import { resolve } from 'node:path';
  */
 const repoFile = (...parts: string[]) => resolve(__dirname, '../..', ...parts);
 
+/**
+ * Match every <script> element and keep the ones with no `src`, i.e. the inline
+ * ones the CSP has to account for.
+ *
+ * Deliberately not /<script>...<\/script>/: that only matches a bare lowercase
+ * tag with no attributes, so `<SCRIPT>`, `<script >` or
+ * `<script type="text/javascript">` would slip past and a newly added inline
+ * script could go unhashed while this file still reported "exactly one".
+ * CodeQL flags the narrow form as js/bad-tag-filter for the same reason.
+ */
+const SCRIPT_ELEMENT = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
+
 function inlineScriptBodies(html: string): string[] {
-  // Only <script> with no attributes -- external/module scripts are unaffected.
-  return [...html.matchAll(/<script>([\s\S]*?)<\/script>/g)].map((m) => m[1]);
+  return [...html.matchAll(SCRIPT_ELEMENT)]
+    .filter((match) => !/\bsrc\s*=/i.test(match[1]))
+    .map((match) => match[2]);
 }
+
 
 /**
  * Hash against LF endings. The image is built from a Linux checkout, so that is
