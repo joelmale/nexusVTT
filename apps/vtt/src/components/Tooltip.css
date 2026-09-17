@@ -1,65 +1,37 @@
 .tooltip-container {
   position: relative;
-  display: inline-flex; /* Use inline-flex to keep button size */
+  display: inline-flex;
   justify-content: center;
-  anchor-name: --tooltip-anchor;
 }
 
 .tooltip-box {
-  background-color: var(--background-primary, #2c2c2c);
+  background-color: var(--surface-secondary, #2c2c2c);
   color: var(--text-primary, #ffffff);
-  padding: 8px 12px;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
-  font-size: 0.9rem;
+  padding: 6px 10px;
+  border-radius: var(--border-radius-sm, 6px);
+  border: 1px solid var(--border-primary, rgba(255, 255, 255, 0.1));
+  box-shadow: var(--shadow-md, 0 4px 12px rgba(0, 0, 0, 0.3));
+  font-size: 0.85rem;
   font-weight: 500;
-  white-space: pre-wrap; /* Allow newlines */
+  white-space: pre-wrap;
   text-align: center;
   z-index: var(--z-tooltip, 85);
   width: max-content;
   max-width: 250px;
-
-  /* Reset for popover usage */
+  pointer-events: none;
   margin: 0;
-  border: none;
-
-  /* Positioning - Fallback for non-popover or non-anchor browsers */
-  position: absolute;
-  bottom: 110%;
-  left: 50%;
-  transform: translateX(-50%);
-
-  /* Modern CSS Anchor Positioning */
-  position-anchor: --tooltip-anchor;
-  bottom: anchor(top);
-  left: anchor(center);
-  transform: translateX(-50%) translateY(-8px);
-
-  /* Transition */
-  opacity: 0;
-  visibility: hidden;
-  transition:
-    opacity 0.2s ease-in-out,
-    visibility 0.2s ease-in-out,
-    display 0.2s ease-in-out allow-discrete;
+  animation: tooltipFadeIn 0.15s ease-out;
 }
 
-/* State when used as a native popover */
-.tooltip-box:popover-open {
-  opacity: 1;
-  visibility: visible;
-}
-
-@starting-style {
-  .tooltip-box:popover-open {
+@keyframes tooltipFadeIn {
+  from {
     opacity: 0;
+    transform: translate(-50%, calc(-100% + 4px));
   }
-}
-
-.tooltip-container:hover .tooltip-box:not([popover]) {
-  opacity: 1;
-  visibility: visible;
-  transition-delay: 0.4s;
+  to {
+    opacity: 1;
+    transform: translate(-50%, -100%);
+  }
 }
 
 .tooltip-box .shortcut {

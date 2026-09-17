@@ -1,37 +1,28 @@
 import { test, expect, gotoGame } from './support/gameFixture';
 
 /**
- * KNOWN FAILING - these reproduce a live bug and are marked `test.fail()`.
- * When it is fixed they will "fail" by passing, which is the signal to delete
- * the annotation.
+ * REGRESSION GUARD for a fixed renderer crash. These must stay green.
  *
- * They isolate the `Target crashed` renderer death that the managed e2e smoke
- * suite hits. It reproduces on a clean checkout of `main`, so it predates the
- * panel work. There it took ~4 minutes and a two-client multiplayer stack to
- * surface once; here it reproduces on a single page with no backend in about
- * ten seconds, which is the point of this suite.
+ * Rapidly opening and closing panels used to kill the Chromium renderer
+ * ("Target crashed" / EXCEPTION_BREAKPOINT, a Chromium-internal CHECK). It was
+ * user-reachable: it reproduced in a headed browser window at human speed, not
+ * only under automation, and it also took out the managed e2e smoke suite.
  *
- * WHAT IS KNOWN (from instrumenting these):
- *   - NOT a memory leak. Death comes on cycle 1-2 with the heap at ~69MB and
- *     ~650 DOM nodes, and the node/canvas counts stay flat across cycles.
- *   - It is the GPU/renderer process, not JS. Console shows two distinct
- *     `[.WebGL-0x…]` contexts and "GPU stall due to ReadPixels" beforehand.
- *   - Timing-sensitive: at ~200ms between interactions it survives 5+ cycles;
- *     at 0/30/100ms it dies almost immediately. That is still within
- *     human-reachable speed, so this is not purely a harness artifact.
+ * CAUSE: every dock button rendered a `Tooltip`, and Tooltip.css declared the
+ * same `anchor-name: --tooltip-anchor` on all of them. Many identically-named
+ * CSS anchors in one tree, resolved while the tooltip was promoted to the top
+ * layer via showPopover() and the dock was mid `max-width` transition, tripped
+ * an invariant in Chromium's anchor-positioning code.
  *
- * WHAT WAS RULED OUT:
- *   - DiceBox3D initialisation racing the churn: waiting for it to fully
- *     settle before cycling does not help.
- *   - The visible canvases: releasing every retrievable WebGL context and
- *     removing all <canvas> elements before cycling does not help (and those
- *     two canvases expose no retrievable context, so they are not the ones in
- *     the console messages).
- *   - Panel mount/unmount accumulation: counts are flat.
+ * FIX: Tooltip now portals into #portal-root and positions from the trigger's
+ * getBoundingClientRect(). No anchor-name, no position-anchor, no anchor(), no
+ * native popover. Confirmed by A/B: reverting only Tooltip.tsx/.css brings the
+ * crash back 3/3 here, and restoring the fix makes all three pass.
  *
- * Next step would be `chrome://gpu` / CDP `Browser.getWindowBounds` tracing or
- * a `--disable-gpu` run to confirm whether it is a SwiftShader/driver issue in
- * this container rather than application code.
+ * If these start failing, suspect CSS anchor positioning or top-layer promotion
+ * returning to a component that renders once per item in a list. Do NOT mark
+ * them skipped or expected-to-fail to get CI green -- that is what hid this bug
+ * before, and test.fail() in particular reports a setup failure as a pass.
  */
 
 const CYCLES = 20;
@@ -41,7 +32,24 @@ async function openDock(page: import('@playwright/test').Page) {
 }
 
 test.describe('panel open/close cycling', () => {
-  test.fail(true, 'renderer/GPU process crashes on rapid panel cycling - cause not yet identified');
+  // A renderer death usually surfaces as "Target crashed" on whatever action
+  // ran next, which reads like an ordinary locator failure. Watch every test so
+  // the report names the real cause, and fail even if the crash lands somewhere
+  // that happens not to throw.
+  let crashed = false;
+
+  test.beforeEach(({ page }) => {
+    crashed = false;
+    page.on('crash', () => {
+      crashed = true;
+    });
+  });
+
+  test.afterEach(() => {
+    expect(crashed, 'the Chromium renderer crashed during this test').toBe(
+      false,
+    );
+  });
 
   test('survives 20 open/close cycles of a single panel', async ({ page }) => {
     await gotoGame(page);
@@ -49,6 +57,7 @@ test.describe('panel open/close cycling', () => {
     const tab = page.getByRole('tab', { name: 'Dice', exact: true });
     const panel = page.getByRole('dialog', { name: 'Dice', exact: true });
 
+    let completed = 0;
     for (let i = 0; i < CYCLES; i += 1) {
       await openDock(page);
       await tab.click();
@@ -60,18 +69,26 @@ test.describe('panel open/close cycling', () => {
         panel,
         `panel should be closed on cycle ${i + 1}`,
       ).toHaveCount(0);
+      completed += 1;
     }
 
     // Still responsive: the renderer is alive and the store is coherent.
     await openDock(page);
     await expect(tab).toBeVisible();
+
+    // Guards against a vacuous pass: if the dock ever stops being reachable the
+    // loop can exit without exercising anything, and "no crash" would then mean
+    // "no test".
+    expect(completed, 'cycles actually exercised').toBe(CYCLES);
   });
+
 
   test('survives cycling several different panels', async ({ page }) => {
     await gotoGame(page);
 
     const names = ['Dice', 'Chat', 'Initiative', 'Tokens'];
 
+    let completed = 0;
     for (let round = 0; round < 5; round += 1) {
       for (const name of names) {
         const tab = page.getByRole('tab', { name, exact: true });
@@ -84,6 +101,7 @@ test.describe('panel open/close cycling', () => {
 
         await openDock(page);
         await tab.click();
+        completed += 1;
       }
     }
 
@@ -91,6 +109,7 @@ test.describe('panel open/close cycling', () => {
     await expect(
       page.getByRole('tab', { name: 'Dice', exact: true }),
     ).toBeVisible();
+    expect(completed, 'panel cycles actually exercised').toBe(5 * names.length);
   });
 
   test('does not leak detached panel nodes across cycles', async ({ page }) => {
@@ -120,8 +139,14 @@ test.describe('panel open/close cycling', () => {
     await cycle();
     const baseline = await countNodes();
 
-    for (let i = 0; i < 10; i += 1) await cycle();
+    let completed = 0;
+    for (let i = 0; i < 10; i += 1) {
+      await cycle();
+      completed += 1;
+    }
     const after = await countNodes();
+
+    expect(completed, 'leak-check cycles actually exercised').toBe(10);
 
     expect(
       after - baseline,

@@ -613,11 +613,6 @@ jobs:
           CHANGES_RESULT: ${{ needs.changes.result }}
           LINT_RESULT: ${{ needs.lint-and-type.result }}
           UNIT_RESULT: ${{ needs.unit-tests.result }}
-          # Deliberately NOT in the required loop below. tests/ui reliably trips
-          # the live `Target crashed` renderer bug under CI timing -- not just in
-          # panel-cycle-crash.spec.ts but across ordinary specs -- so gating on it
-          # would wire a known-red check into the gate. The job still runs and is
-          # visible on every PR. Move this into the loop once the crash is fixed.
           UI_RESULT: ${{ needs.ui-tests.result }}
           ASSET_RESULT: ${{ needs.asset-service-tests.result }}
           INTEGRATION_RESULT: ${{ needs.integration-tests.result }}
@@ -629,7 +624,7 @@ jobs:
           CANDIDATE_RESULT: ${{ needs.candidate-images.result }}
         run: |
           for result in \
-            "$CHANGES_RESULT" "$LINT_RESULT" "$UNIT_RESULT" \
+            "$CHANGES_RESULT" "$LINT_RESULT" "$UNIT_RESULT" "$UI_RESULT" \
             "$ASSET_RESULT" "$INTEGRATION_RESULT" "$E2E_RESULT" \
             "$DOCS_RESULT"; do
             if [[ "$result" != 'success' ]]; then
