@@ -91,6 +91,7 @@ export const GameToolbar: React.FC = () => {
   const toolbarRef = useRef<HTMLDivElement>(null);
   const [hoveredTool, setHoveredTool] = useState<ToolbarItem | null>(null);
   const [isVertical, setIsVertical] = useState(false);
+  const [isNearTop, setIsNearTop] = useState(false);
 
   const { onPointerDown, isCollapsed, toggleCollapsed, panelRef } =
     useDraggablePanel({
@@ -407,6 +408,16 @@ export const GameToolbar: React.FC = () => {
     return () => document.removeEventListener('keydown', handleKeyDown);
   }, [setActiveTool, toolGroups, dmUtilityGroup, dmFogGroup]);
 
+  const handleToolMouseEnter = useCallback(
+    (tool: ToolbarItem) => {
+      if (panelRef.current) {
+        setIsNearTop(panelRef.current.getBoundingClientRect().top < 48);
+      }
+      setHoveredTool(tool);
+    },
+    [panelRef],
+  );
+
   const renderToolButton = (tool: ToolbarItem) => {
     const isActive =
       activeTool === tool.id || tool.className?.split(' ').includes('active');
@@ -437,7 +448,7 @@ export const GameToolbar: React.FC = () => {
             ? `${tool.label}: ${tool.tooltip}`
             : tool.label
         }
-        onMouseEnter={() => setHoveredTool(tool)}
+        onMouseEnter={() => handleToolMouseEnter(tool)}
       >
         {tool.icon ? (
           <span className="tool-icon">{tool.icon}</span>
@@ -458,7 +469,11 @@ export const GameToolbar: React.FC = () => {
       className="layout-toolbar-inner"
     >
       {!isCollapsed && hoveredTool && (
-        <div id="toolbar-info-banner">
+        <div
+          id="toolbar-info-banner"
+          role="tooltip"
+          className={isNearTop ? 'placement-below' : undefined}
+        >
           <span>
             {hoveredTool.tooltip &&
             hoveredTool.tooltip !== hoveredTool.label

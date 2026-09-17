@@ -51,18 +51,23 @@
 }
 
 .layout-toolbar-inner {
+  position: relative;
   pointer-events: auto;
 }
 
 #toolbar-info-banner {
+  position: absolute;
+  bottom: calc(100% + var(--spacing-1));
+  left: 0;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: var(--spacing-3);
   min-height: var(--spacing-8);
+  width: max-content;
   max-width: calc(100vw - var(--spacing-10));
-  margin: 0 0 var(--spacing-1);
+  margin: 0;
   padding: var(--spacing-1) var(--spacing-3);
   color: var(--text-secondary);
   font-size: var(--text-xs);
@@ -72,10 +77,41 @@
   border: 1px solid var(--border-primary);
   border-radius: var(--toolbar-border-radius);
   box-shadow: var(--shadow-glass);
+  pointer-events: none;
+  white-space: nowrap;
+  z-index: 10;
+  animation: toolbarBannerFadeIn 0.12s ease-out;
   transition:
     background-color var(--transition-base),
     opacity var(--transition-base);
-  pointer-events: auto;
+}
+
+#toolbar-info-banner.placement-below {
+  bottom: auto;
+  top: calc(100% + var(--spacing-1));
+  animation-name: toolbarBannerFadeInBelow;
+}
+
+@keyframes toolbarBannerFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes toolbarBannerFadeInBelow {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 #toolbar-info-banner .shortcut {

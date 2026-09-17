@@ -154,4 +154,25 @@ describe('GameToolbar', () => {
     expect(screen.getByRole('button', { name: 'Cube' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Wedge' })).toBeInTheDocument();
   });
+
+  it('should show the tooltip info banner on button hover and hide on mouse leave', () => {
+    (useActiveTool as vi.Mock).mockReturnValue('select');
+    (useIsHost as vi.Mock).mockReturnValue(false);
+    render(<GameToolbar />);
+
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+
+    const measureBtn = screen.getByRole('button', { name: 'Measure' });
+    fireEvent.mouseEnter(measureBtn);
+
+    const tooltip = screen.getByRole('tooltip');
+    expect(tooltip).toBeInTheDocument();
+    expect(tooltip).toHaveTextContent('Measure: Measure distance');
+
+    const toolbar = screen.getByRole('toolbar');
+    fireEvent.mouseLeave(toolbar);
+
+    expect(screen.queryByRole('tooltip')).not.toBeInTheDocument();
+  });
 });
+
