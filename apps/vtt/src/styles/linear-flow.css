@@ -1186,13 +1186,20 @@
 .dev-buttons {
   /* Positioning & Layout */
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
 
   /* Box Model */
   gap: 0.5rem;
 }
 
 .dev-btn {
+  /* Positioning & Layout */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  text-decoration: none;
+  cursor: pointer;
+
   /* Box Model */
   padding: 0.5rem 0.75rem !important;
   min-width: auto !important;

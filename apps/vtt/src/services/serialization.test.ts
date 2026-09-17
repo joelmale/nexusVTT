@@ -82,6 +82,26 @@ function makeLargeSimplePayload(): { entries: string[] } {
   };
 }
 
+/**
+ * Which `serialize(..., 'auto')` branch ran for `marker` merged into a
+ * >50000-byte simple payload.
+ *
+ * Payload size is the only lever that makes the branch observable. For a small
+ * payload the `hasComplexTypes` -> transit arm and the plain-JSON fallback both
+ * return the *identical* `JSON.stringify` string, so an assertion on a small
+ * payload holds no matter what `hasComplexTypes` decided. Past 50000 bytes the
+ * fallback becomes MessagePack (a `Uint8Array`) while the transit arm stays a
+ * string, so the two arms finally differ.
+ */
+function autoBranchFor(
+  marker: Record<string, unknown>,
+): 'transit' | 'msgpack' {
+  const payload = { ...makeLargeSimplePayload(), ...marker };
+  expect(JSON.stringify(payload).length).toBeGreaterThan(50000);
+  const result = SerializationService.serialize(payload, 'auto');
+  return result instanceof Uint8Array ? 'msgpack' : 'transit';
+}
+
 function makeCircular(): Record<string, unknown> {
   const circular: Record<string, unknown> = { label: 'loop' };
   circular.self = circular;
@@ -373,6 +393,14 @@ describe('SerializationService', () => {
   });
 
   describe('serialize in auto mode', () => {
+    // NOTE on every test in this block: the observable difference between the
+    // `hasComplexTypes` -> transit arm and the plain-JSON fallback only exists
+    // for payloads over 50000 bytes, where the fallback switches to
+    // MessagePack. Each test therefore pairs its literal small-payload
+    // assertion (which documents the exact bytes produced today) with an
+    // `autoBranchFor(...)` assertion (which is what actually pins the
+    // classification decision). Without the second half these tests pass even
+    // if `hasComplexTypes` always returns false.
     it('uses the transit string path when a Date is present', () => {
       const result = SerializationService.serialize(
         { createdAt: new Date(0) },
@@ -380,6 +408,8 @@ describe('SerializationService', () => {
       );
       expect(typeof result).toBe('string');
       expect(result).toBe('{"createdAt":"1970-01-01T00:00:00.000Z"}');
+
+      expect(autoBranchFor({ createdAt: new Date(0) })).toBe('transit');
     });
 
     it('uses the transit path when a Map, Set or Uint8Array is present', () => {
@@ -387,13 +417,19 @@ describe('SerializationService', () => {
         expect(typeof SerializationService.serialize({ value }, 'auto')).toBe(
           'string',
         );
+        expect(autoBranchFor({ value })).toBe('transit');
       }
     });
 
-    it('uses the transit path for a top-level ArrayBuffer', () => {
+    it('uses the transit path for an ArrayBuffer', () => {
+      // A top-level ArrayBuffer stringifies to '{}', so it can never reach the
+      // 50000-byte threshold and the branch is unobservable at top level; the
+      // nested case below is what pins the `instanceof ArrayBuffer` check.
       expect(
         typeof SerializationService.serialize(new ArrayBuffer(8), 'auto'),
       ).toBe('string');
+
+      expect(autoBranchFor({ buffer: new ArrayBuffer(8) })).toBe('transit');
     });
 
     // The `{x, y}` heuristic is the dominant one in practice: every VTT token
@@ -403,20 +439,26 @@ describe('SerializationService', () => {
       const result = SerializationService.serialize({ x: 10, y: 20 }, 'auto');
       expect(typeof result).toBe('string');
       expect(result).toBe('{"x":10,"y":20}');
+
+      expect(autoBranchFor({ x: 10, y: 20 })).toBe('transit');
     });
 
     it('treats a plain {r, g, b} colour object as complex', () => {
       expect(
         typeof SerializationService.serialize({ r: 1, g: 2, b: 3 }, 'auto'),
       ).toBe('string');
+
+      expect(autoBranchFor({ r: 1, g: 2, b: 3 })).toBe('transit');
     });
 
     it('does not treat {r, g} without b as complex', () => {
-      // Small + simple => plain JSON, which is the same string either way, so
-      // assert via the large-payload switch instead in the msgpack test below.
       expect(SerializationService.serialize({ r: 1, g: 2 }, 'auto')).toBe(
         '{"r":1,"g":2}',
       );
+
+      // All three of r, g and b are required, so this stays "simple" and the
+      // large-payload form falls through to MessagePack.
+      expect(autoBranchFor({ r: 1, g: 2 })).toBe('msgpack');
     });
 
     it('detects a complex value nested inside an array', () => {
@@ -426,6 +468,10 @@ describe('SerializationService', () => {
       );
       expect(typeof result).toBe('string');
       expect(result).toContain('1970-01-01T00:00:00.000Z');
+
+      expect(
+        autoBranchFor({ list: [{ id: 'a' }, { id: 'b', at: new Date(0) }] }),
+      ).toBe('transit');
     });
 
     it('detects a complex value nested deep inside object values', () => {
@@ -486,37 +532,54 @@ describe('SerializationService', () => {
     });
 
     // Every serialized Entity carries a `type` field, so this branch is taken
-    // constantly in production. Both paths are JSON today, so output matches.
+    // constantly in production. Both arms are JSON today, so the *output* of a
+    // sniffed string is identical either way -- spying on deserializeTransit is
+    // the only way to observe that the sniff fired at all.
     it('routes a string containing a type field through the transit branch', () => {
+      const transitSpy = vi.spyOn(SerializationService, 'deserializeTransit');
       const serialized = '{"type":"token","id":"t1"}';
+
       expect(SerializationService.deserialize(serialized)).toEqual({
         type: 'token',
         id: 't1',
       });
+      expect(transitSpy).toHaveBeenCalledTimes(1);
+      expect(transitSpy).toHaveBeenCalledWith(serialized);
     });
 
     it('routes a string containing a transit tag through the transit branch', () => {
       // `~#` is Transit's tag marker; here it is just string content, and the
       // transit stub parses the surrounding JSON fine.
+      const transitSpy = vi.spyOn(SerializationService, 'deserializeTransit');
       const serialized = '{"tag":"~#set","values":[1,2]}';
+
       expect(SerializationService.deserialize(serialized)).toEqual({
         tag: '~#set',
         values: [1, 2],
       });
+      expect(transitSpy).toHaveBeenCalledTimes(1);
+      expect(transitSpy).toHaveBeenCalledWith(serialized);
     });
 
     it('parses a plain JSON string without the transit branch', () => {
+      const transitSpy = vi.spyOn(SerializationService, 'deserializeTransit');
+
+      // Neither `"type":"` nor `~#` appears, so the sniff must not fire.
       expect(SerializationService.deserialize('{"id":"t1","n":2}')).toEqual({
         id: 't1',
         n: 2,
       });
+      expect(transitSpy).not.toHaveBeenCalled();
     });
 
     // The documented "fall back to JSON" catch is reachable but cannot
     // succeed: the transit stub *is* JSON.parse, so if it throws, the fallback
     // throws the same way. The surfaced error is therefore the raw
     // SyntaxError, not the "Failed to deserialize with Transit" wrapper.
+    // Plain `JSON.parse` would raise the very same SyntaxError, so the spy is
+    // what proves the transit arm (and its catch) really ran.
     it('surfaces the raw JSON SyntaxError when the transit branch fails', () => {
+      const transitSpy = vi.spyOn(SerializationService, 'deserializeTransit');
       let thrown: unknown;
       try {
         SerializationService.deserialize('{"type":"token", ');
@@ -524,6 +587,7 @@ describe('SerializationService', () => {
         thrown = error;
       }
 
+      expect(transitSpy).toHaveBeenCalledTimes(1);
       expect(thrown).toBeInstanceOf(SyntaxError);
       expect((thrown as Error).message).not.toContain(
         'Failed to deserialize with Transit',
@@ -671,6 +735,17 @@ describe('SerializingIndexedDBAdapter', () => {
       expect((base.store.get('c') as SavedEnvelope).serialized).toBe(
         '{"byId":{}}',
       );
+
+      // The three payloads above would take the transit arm under 'auto' too,
+      // so on their own they do not pin the hardcoded format. This one does: a
+      // >50000-byte payload with no complex types is the single case where
+      // 'auto' would produce msgpack bytes (and the 'msgpack' label), while the
+      // hardcoded 'transit' keeps it a string labelled transit.
+      await adapter.save('d', makeLargeSimplePayload());
+      const large = base.store.get('d') as SavedEnvelope;
+      expect(large.format).toBe('transit');
+      expect(typeof large.serialized).toBe('string');
+      expect(large.serialized).not.toBeInstanceOf(Uint8Array);
     });
   });
 

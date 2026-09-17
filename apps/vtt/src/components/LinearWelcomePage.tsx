@@ -116,6 +116,30 @@ export const LinearWelcomePage: React.FC = () => {
   const emailInputRef = React.useRef<HTMLInputElement | null>(null);
   const buildVersion = import.meta.env.VITE_BUILD_VERSION ?? 'dev';
 
+  const configuredHubUrl =
+    import.meta.env.VITE_GENERATOR_HUB_URL ||
+    (import.meta.env.DEV ? 'http://localhost:5174' : '/generator-hub/');
+  const generatorsUrl =
+    typeof window === 'undefined'
+      ? configuredHubUrl
+      : new URL(configuredHubUrl, window.location.href).toString();
+
+  const forgeUrl =
+    import.meta.env.VITE_FORGE_URL ||
+    (import.meta.env.DEV
+      ? 'http://localhost:3000'
+      : typeof window !== 'undefined'
+        ? `${window.location.protocol}//${window.location.hostname}:3000`
+        : 'http://localhost:3000');
+
+  const codexUrl =
+    import.meta.env.VITE_CODEX_URL ||
+    (import.meta.env.DEV
+      ? 'http://localhost:3003'
+      : typeof window !== 'undefined'
+        ? `${window.location.protocol}//${window.location.hostname}:3003`
+        : 'http://localhost:3003');
+
   // Detect if we're returning from OAuth (check for common OAuth params)
   const isOAuthRedirect = React.useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1049,6 +1073,33 @@ export const LinearWelcomePage: React.FC = () => {
                 >
                   ⚙️ Admin Panel
                 </button>
+                <a
+                  href={codexUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="dev-btn glass-button secondary small"
+                  title="Open Nexus Codex in a new tab"
+                >
+                  📖 Nexus Codex
+                </a>
+                <a
+                  href={forgeUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="dev-btn glass-button secondary small"
+                  title="Open Character Forge in a new tab"
+                >
+                  ⚒️ Character Forge
+                </a>
+                <a
+                  href={generatorsUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="dev-btn glass-button secondary small"
+                  title="Open Map Generators in a new tab"
+                >
+                  🗺️ Generators
+                </a>
               </div>
               {quickStartDev.error && (
                 <div className="error-message glass-panel error" role="alert">

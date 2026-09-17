@@ -104,6 +104,7 @@ function createFakeAdapter(): FakeAdapter {
 interface EntityStoreInternals {
   storage: StorageAdapter;
   isDirty: boolean;
+  saveTimer: ReturnType<typeof setTimeout> | null;
   state: {
     entities: Map<string, Entity>;
     relationships: Map<string, Relationship>;
@@ -118,8 +119,38 @@ function internals(store: EntityStore): EntityStoreInternals {
   return store as unknown as EntityStoreInternals;
 }
 
+/**
+ * Swap in a plain `StorageAdapter`.
+ *
+ * CAVEAT: the injected surface is deliberately narrower than production's
+ * `SerializingIndexedDBAdapter` -- it is the bare `StorageAdapter` interface,
+ * without the optional `exportData`/`importData` members that the serializing
+ * wrapper adds. Nothing EntityStore calls today needs them, but if EntityStore
+ * ever starts using a wrapper-only method, the failure here will be a confusing
+ * "not a function" rather than a meaningful assertion. Widen this to a stub of
+ * `SerializingIndexedDBAdapter` if that happens.
+ */
 function injectAdapter(store: EntityStore, adapter: StorageAdapter): void {
   internals(store).storage = adapter;
+}
+
+/**
+ * Every store built by `createSettledStore`, so `afterEach` can cancel the
+ * pending 2000ms save timer each one may be holding.
+ *
+ * Without this, suites that do not install fake timers leak a real
+ * `setTimeout` per mutation; it fires about a second after the file finishes and
+ * writes into a torn-down fake-indexeddb and into restored console spies.
+ */
+const liveStores: EntityStore[] = [];
+
+/** Cancel any pending save timer so nothing fires after teardown. */
+function cancelPendingSaves(): void {
+  for (const store of liveStores.splice(0)) {
+    const timer = internals(store).saveTimer;
+    if (timer) clearTimeout(timer);
+    internals(store).saveTimer = null;
+  }
 }
 
 /**
@@ -136,6 +167,7 @@ async function createSettledStore(
 ): Promise<EntityStore> {
   const before = logSpy.mock.calls.length;
   const store = new EntityStore(dbName);
+  liveStores.push(store);
   await vi.waitFor(
     () => {
       const settled = logSpy.mock.calls
@@ -233,7 +265,10 @@ beforeEach(() => {
 });
 
 afterEach(() => {
-  // Always hand the timers back, whether or not a test installed fakes.
+  // Cancel first, while the timer implementation still matches whichever one
+  // scheduled the pending callback, then hand the timers back whether or not a
+  // test installed fakes.
+  cancelPendingSaves();
   vi.useRealTimers();
 });
 
@@ -312,14 +347,22 @@ describe('EntityStore throttled save scheduling', () => {
   it('forceSave writes immediately and cancels the pending timer', async () => {
     store.create('token', { name: 'Goblin' });
     await vi.advanceTimersByTimeAsync(500);
+    expect(internals(store).saveTimer).not.toBeNull();
 
     await store.forceSave();
     expect(vi.mocked(adapter.save)).toHaveBeenCalledTimes(1);
     expect(store.getStats().isDirty).toBe(false);
 
+    // The handle itself must be cleared. Asserting only on the write count
+    // would not detect a missing clearTimeout: the surviving timer still fires
+    // at t=2000, but `saveToStorage`'s `if (!this.isDirty) return` makes it a
+    // silent no-op, so the count stays 1 either way.
+    expect(internals(store).saveTimer).toBeNull();
+
     // The cancelled timer must not produce a second write.
     await vi.advanceTimersByTimeAsync(5000);
     expect(vi.mocked(adapter.save)).toHaveBeenCalledTimes(1);
+    expect(internals(store).saveTimer).toBeNull();
   });
 
   it('forceSave is a no-op when the store is not dirty', async () => {
@@ -583,8 +626,12 @@ describe('EntityStore IndexedDB persistence', () => {
     );
   });
 
+  // "Keeps" is only a meaningful claim on a populated store: on an empty one,
+  // keeping and wiping are indistinguishable. Both loader-failure tests below
+  // therefore create an entity first.
   it('logs and keeps the existing state when the load itself rejects', async () => {
     const store = await createSettledStore(uniqueDbName(), logSpy);
+    const survivor = store.create('token', { name: 'Goblin' });
     const failing = createFakeAdapter();
     failing.load = vi.fn(async () => {
       throw new Error('IndexedDB unavailable');
@@ -595,7 +642,8 @@ describe('EntityStore IndexedDB persistence', () => {
     // Re-run the private loader directly; the constructor path is identical.
     await expect(internals(store).loadFromStorage()).resolves.toBeUndefined();
 
-    expect(store.getStats().entities).toBe(0);
+    expect(store.getStats().entities).toBe(1);
+    expect(store.get(survivor.id)).toEqual(survivor);
     expect(errorSpy).toHaveBeenCalledWith(
       '📂 Ogres-style store: Failed to load store:',
       expect.any(Error),
@@ -604,18 +652,46 @@ describe('EntityStore IndexedDB persistence', () => {
 
   it('keeps its current state when the saved record is absent', async () => {
     const store = await createSettledStore(uniqueDbName(), logSpy);
+    const survivor = store.create('token', { name: 'Goblin' });
     injectAdapter(store, createFakeAdapter());
 
     await internals(store).loadFromStorage();
 
-    expect(store.getStats().entities).toBe(0);
+    // The early `if (!saved) return` must leave the loaded state alone, not
+    // reset it.
+    expect(store.getStats().entities).toBe(1);
+    expect(store.get(survivor.id)).toEqual(survivor);
+    expect(store.getByType('token').map((e) => e.id)).toEqual([survivor.id]);
   });
 
-  it('defaults missing lastSaved and version when the record is partial', async () => {
+  it('reads lastSaved and version back from the saved record', async () => {
+    const store = await createSettledStore(uniqueDbName(), logSpy);
+    const adapter = createFakeAdapter();
+    adapter.store.set('store-state', {
+      entities: [],
+      lastSaved: 1_700_000_000_000,
+      version: 7,
+    });
+    injectAdapter(store, adapter);
+
+    await internals(store).loadFromStorage();
+
+    expect(internals(store).state.lastSaved).toBe(1_700_000_000_000);
+    expect(internals(store).state.version).toBe(7);
+  });
+
+  it('defaults missing lastSaved and version to 0 and 1, not to the current values', async () => {
     const store = await createSettledStore(uniqueDbName(), logSpy);
     const adapter = createFakeAdapter();
     adapter.store.set('store-state', { entities: [] });
     injectAdapter(store, adapter);
+
+    // Seed non-default in-memory values so `|| 0` / `|| 1` is distinguishable
+    // from a "keep what we already have" fallback such as
+    // `saved.version ?? this.state.version`. Nothing in production ever
+    // advances `version`, so these have to be set directly.
+    internals(store).state.lastSaved = 99;
+    internals(store).state.version = 42;
 
     await internals(store).loadFromStorage();
 
@@ -719,7 +795,13 @@ describe('EntityStore backup export and import', () => {
       entities: 'not-an-entry-list',
     });
 
-    await expect(store.importBackup(poisoned)).rejects.toThrow();
+    // Matched precisely: a bare `.toThrow()` would also be satisfied by a
+    // throw from `parseBackupData`, which happens BEFORE the clear and so would
+    // not destroy anything. The message below is V8's for
+    // `new Map('not-an-entry-list')`, i.e. the post-clear rebuild.
+    await expect(store.importBackup(poisoned)).rejects.toThrow(
+      /Iterator value n is not an entry object/,
+    );
 
     expect(store.getStats().entities).toBe(0);
     expect(store.getStats().types).toBe(0);

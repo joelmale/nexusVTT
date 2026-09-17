@@ -46,12 +46,21 @@ export default defineConfig({
         'src/vite-env.d.ts'
       ],
       thresholds: {
-        global: {
-          statements: 80,
-          branches: 75,
-          functions: 80,
-          lines: 80
-        }
+        // Ratchet: set just under measured coverage so the gate fails on a
+        // REGRESSION rather than describing an aspiration. Raise these
+        // whenever real coverage rises; never lower them without a reason.
+        //
+        // Measured 2026-09-17: statements 71.2, branches 55.5,
+        // functions 51.1, lines 71.7 (35 files, 426 tests).
+        //
+        // These replace an 80/75/80/80 block that was nested under a `global`
+        // key. Vitest has no `global` key -- it reads an unrecognized key as a
+        // file glob, which matched nothing, so that gate enforced NOTHING and
+        // CI passed at 71% statements / 51% functions. Keep these keys flat.
+        statements: 70,
+        branches: 54,
+        functions: 50,
+        lines: 70
       }
     },
     globals: true
