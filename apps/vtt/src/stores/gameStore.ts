@@ -521,6 +521,7 @@ const initialState: GameState & {
     persistOpenPanels: true,
     reducedMotion: false,
     fontSize: 'medium',
+    panelLayout: 'original',
 
     // Audio Settings
     enableSounds: true,

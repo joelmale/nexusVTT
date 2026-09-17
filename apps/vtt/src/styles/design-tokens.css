@@ -452,6 +452,91 @@
   --breakpoint-lg: 1024px; /* Large screens */
   --breakpoint-xl: 1280px; /* Extra large screens */
   --breakpoint-2xl: 1536px; /* 2X large screens */
+
+  /* =============================================================================
+     PANEL DENSITY — "Original" (the default layout)
+     =============================================================================
+
+     One set of names, three sets of values. The active set is chosen by
+     `<html data-panel-layout>`, written by usePanelLayoutSync() from
+     settings.panelLayout. Nothing outside this file knows which layout is on.
+
+     Every value here is defined to equal the literal it replaced, so the
+     Original layout renders exactly as it did before these tokens existed.
+
+     RULE: panel padding and panel type use --panel-*, never a literal and
+     never a raw --spacing-*. See src/styles/README.md. */
+
+  /* Padding & gaps */
+  --panel-pad-lg: var(--spacing-6); /* 24px — .context-panel__body */
+  --panel-pad-md: var(--spacing-4); /* 16px — cards, list rows */
+  --panel-pad-sm: var(--spacing-2); /* 8px  — chips, small buttons */
+  --panel-pad-xs: var(--spacing-1); /* 4px  — tight inline padding */
+  --panel-gap: var(--spacing-3); /* 12px — section gap */
+  --panel-row-gap: var(--spacing-2); /* 8px  — row gap in lists */
+
+  /* Typography */
+  --panel-text-title: 0.875rem; /* 14px — FloatingPanel title bar */
+  --panel-text-body: var(--text-sm); /* 14px */
+  --panel-text-label: var(--text-xs); /* 12px */
+  --panel-text-meta: 0.6875rem; /* 11px */
+  --panel-text-heading: var(--text-base); /* 16px — section headings */
+  --panel-leading: var(--leading-normal);
+
+  /* Controls */
+  --panel-control-h: 32px; /* inputs, selects, small buttons */
+  --panel-action-btn: 28px; /* title-bar icon buttons */
+  --panel-radius: var(--border-radius);
+  --panel-radius-sm: var(--radius-md);
+
+  /* Geometry — also read from JS (hooks/usePanelLayout.ts keeps the numbers) */
+  --panel-default-w: 320px;
+  --panel-max-w: 800px;
+  --dock-size-side: 320px;
+  --dock-size-bottom: 240px;
+}
+
+/* -----------------------------------------------------------------------------
+   COMPACT — smaller type, much tighter padding. Fits more in the same panel.
+   -------------------------------------------------------------------------- */
+:root[data-panel-layout='compact'] {
+  --panel-pad-lg: var(--spacing-3); /* 24px -> 12px */
+  --panel-pad-md: var(--spacing-2); /* 16px -> 8px  */
+  --panel-pad-sm: var(--spacing-1); /* 8px  -> 4px  */
+  --panel-pad-xs: var(--spacing-0_5); /* 4px  -> 2px  */
+  --panel-gap: var(--spacing-2);
+  --panel-row-gap: var(--spacing-1);
+
+  --panel-text-title: var(--text-xs); /* 14px -> 12px */
+  --panel-text-body: var(--text-xs);
+  --panel-text-label: 0.6875rem; /* 11px */
+  --panel-text-meta: 0.625rem; /* 10px */
+  --panel-text-heading: var(--text-sm);
+  --panel-leading: 1.35;
+
+  --panel-control-h: 26px;
+  --panel-action-btn: 22px;
+  --panel-radius: var(--radius-lg);
+  --panel-radius-sm: var(--radius-default);
+
+  --panel-default-w: 280px;
+  --dock-size-side: 280px;
+  --dock-size-bottom: 190px;
+}
+
+/* -----------------------------------------------------------------------------
+   WIDESCREEN — type stays at Original size; the layout buys WIDTH. Wider dock
+   tracks, wider panels, and container queries that reflow content into columns
+   once a panel is actually wide (see the @container rules in panel-layouts.css).
+   -------------------------------------------------------------------------- */
+:root[data-panel-layout='widescreen'] {
+  --panel-pad-lg: var(--spacing-5);
+  --panel-gap: var(--spacing-4);
+
+  --panel-default-w: 460px;
+  --panel-max-w: 1100px;
+  --dock-size-side: 440px;
+  --dock-size-bottom: 300px;
 }
 
 /* =============================================================================

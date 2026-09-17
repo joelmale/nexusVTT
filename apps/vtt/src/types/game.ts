@@ -149,6 +149,14 @@ export interface ColorScheme {
   text: string; // Text color
 }
 
+/**
+ * Canvas panel layout preset.
+ * - `original`   - the historical density; the default.
+ * - `compact`    - smaller type and much tighter padding.
+ * - `widescreen` - wider dock tracks and panels, multi-column panel content.
+ */
+export type PanelLayout = 'original' | 'compact' | 'widescreen';
+
 export interface UserSettings {
   // Display Settings
   colorScheme: ColorScheme;
@@ -157,6 +165,8 @@ export interface UserSettings {
   persistOpenPanels: boolean;
   reducedMotion: boolean;
   fontSize: 'small' | 'medium' | 'large';
+  /** Canvas panel density/layout. See hooks/usePanelLayout.ts. */
+  panelLayout: PanelLayout;
 
   // Audio Settings
   enableSounds: boolean;

@@ -185,6 +185,7 @@ export class HybridStateManager {
         enableGlassmorphism: true,
         persistOpenPanels: true,
         reducedMotion: false,
+        panelLayout: 'original',
         fontSize: 'medium',
         enableSounds: true,
         diceRollSounds: true,

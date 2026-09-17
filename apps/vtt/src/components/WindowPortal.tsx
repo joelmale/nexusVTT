@@ -14,6 +14,7 @@ const THEME_ATTRIBUTES = [
   'data-theme',
   'data-color-scheme',
   'data-reduced-motion',
+  'data-panel-layout',
 ] as const;
 
 /**
