@@ -15,10 +15,21 @@ export const PlayerBar: React.FC = () => {
 
   if (!session) return null;
 
-  const currentPlayer = session.players?.find((player) => player.id === user.id);
+  const currentPlayer =
+    session.players?.find((player) => player.id === user.id) ||
+    (user.name
+      ? {
+          id: user.id,
+          name: user.name,
+          type: user.type,
+        }
+      : undefined);
+
   const otherPlayers = (session.players ?? []).filter(
     (player) => player.id !== user.id,
   );
+
+  if (!currentPlayer && otherPlayers.length === 0) return null;
 
   return (
     <div className="player-bar">
