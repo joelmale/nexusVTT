@@ -26,9 +26,14 @@ const repoFile = (...parts: string[]) => resolve(__dirname, '../..', ...parts);
  * tag with no attributes, so `<SCRIPT>`, `<script >` or
  * `<script type="text/javascript">` would slip past and a newly added inline
  * script could go unhashed while this file still reported "exactly one".
- * CodeQL flags the narrow form as js/bad-tag-filter for the same reason.
+ * The end tag is equally loose on purpose: HTML closes script data at
+ * `</script` followed by whitespace or `/`, so `</script foo>` and
+ * `</script\t\n bar>` really do close the element. A `\s*>` tail would
+ * miss those and swallow the rest of the file into one match.
+ *
+ * CodeQL flags both narrow forms as js/bad-tag-filter for these reasons.
  */
-const SCRIPT_ELEMENT = /<script\b([^>]*)>([\s\S]*?)<\/script\s*>/gi;
+const SCRIPT_ELEMENT = /<script\b([^>]*)>([\s\S]*?)<\/script(?:[\s/][^>]*)?>/gi;
 
 function inlineScriptBodies(html: string): string[] {
   return [...html.matchAll(SCRIPT_ELEMENT)]
