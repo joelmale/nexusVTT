@@ -132,7 +132,7 @@ export const PlayerClusterFloating: React.FC<PlayerClusterFloatingProps> = ({ le
             onClick={() => toggleCollapsed()}
             className="glass-button secondary small"
             title="Minimize Cluster"
-            style={{ padding: '0 8px', fontSize: '12px' }}
+            style={{ padding: '0 8px', fontSize: 'var(--panel-font-1)' }}
           >
             −
           </button>

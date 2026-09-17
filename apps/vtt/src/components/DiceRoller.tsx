@@ -324,7 +324,7 @@ export const DiceRoller: React.FC = () => {
             {!isConnected && (
               <span
                 style={{
-                  fontSize: '0.8rem',
+                  fontSize: 'var(--panel-font-1)',
                   color: '#f59e0b',
                   background: 'rgba(245, 158, 11, 0.1)',
                   padding: '0.25rem 0.5rem',
@@ -475,7 +475,7 @@ export const DiceRoller: React.FC = () => {
                 border: '1px solid rgba(239, 68, 68, 0.4)',
                 borderRadius: '6px',
                 padding: '0.25rem 0.75rem',
-                fontSize: '0.85rem',
+                fontSize: 'var(--panel-font-2)',
                 cursor: 'pointer',
                 color: '#ef4444',
                 transition: 'all 0.2s ease',
@@ -536,7 +536,7 @@ export const DiceRoller: React.FC = () => {
           <div
             style={{
               marginTop: '0.75rem',
-              fontSize: '0.85rem',
+              fontSize: 'var(--panel-font-2)',
               color: 'var(--glass-text-muted)',
             }}
           >

@@ -454,42 +454,76 @@
   --breakpoint-2xl: 1536px; /* 2X large screens */
 
   /* =============================================================================
-     PANEL DENSITY — "Original" (the default layout)
+     PANEL DENSITY
      =============================================================================
 
      One set of names, three sets of values. The active set is chosen by
      `<html data-panel-layout>`, written by usePanelLayoutSync() from
      settings.panelLayout. Nothing outside this file knows which layout is on.
 
-     Every value here is defined to equal the literal it replaced, so the
-     Original layout renders exactly as it did before these tokens existed.
+     Two ladders plus semantic aliases, mirroring how --spacing-N underpins
+     --spacing-md elsewhere in this file:
 
-     RULE: panel padding and panel type use --panel-*, never a literal and
-     never a raw --spacing-*. See src/styles/README.md. */
+       --panel-space-N / --panel-font-N  the primitives. Every Original value
+         equals a literal the panel stylesheets already used, so retrofitting
+         a sheet is a 1:1 substitution that cannot shift the Original layout.
+       --panel-pad-* / --panel-text-*    semantic aliases, used by panel chrome
+         and preferred in new code.
 
-  /* Padding & gaps */
-  --panel-pad-lg: var(--spacing-6); /* 24px — .context-panel__body */
-  --panel-pad-md: var(--spacing-4); /* 16px — cards, list rows */
-  --panel-pad-sm: var(--spacing-2); /* 8px  — chips, small buttons */
-  --panel-pad-xs: var(--spacing-1); /* 4px  — tight inline padding */
-  --panel-gap: var(--spacing-3); /* 12px — section gap */
-  --panel-row-gap: var(--spacing-2); /* 8px  — row gap in lists */
+     RULE: panel padding and panel type use these, never a literal and never a
+     raw --spacing-*. See src/styles/README.md.
+     ============================================================================= */
 
-  /* Typography */
-  --panel-text-title: 0.875rem; /* 14px — FloatingPanel title bar */
-  --panel-text-body: var(--text-sm); /* 14px */
-  --panel-text-label: var(--text-xs); /* 12px */
-  --panel-text-meta: 0.6875rem; /* 11px */
-  --panel-text-heading: var(--text-base); /* 16px — section headings */
+  /* Spacing ladder - Original */
+  --panel-space-0: 0.125rem; /* 2px  */
+  --panel-space-1: 0.25rem; /* 4px  */
+  --panel-space-2: 0.375rem; /* 6px  */
+  --panel-space-3: 0.5rem; /* 8px  */
+  --panel-space-4: 0.625rem; /* 10px */
+  --panel-space-5: 0.75rem; /* 12px */
+  --panel-space-6: 0.875rem; /* 14px */
+  --panel-space-7: 1rem; /* 16px */
+  --panel-space-8: 1.25rem; /* 20px */
+  --panel-space-9: 1.5rem; /* 24px */
+  --panel-space-10: 2rem; /* 32px */
+
+  /* Type ladder - Original */
+  --panel-font-0: 0.6875rem; /* 11px */
+  --panel-font-1: 0.75rem; /* 12px */
+  --panel-font-2: 0.875rem; /* 14px */
+  --panel-font-3: 0.9375rem; /* 15px */
+  --panel-font-4: 1rem; /* 16px */
+  --panel-font-5: 1.125rem; /* 18px */
+  --panel-font-6: 1.25rem; /* 20px */
+  --panel-font-7: 1.5rem; /* 24px */
+  --panel-font-8: 1.75rem; /* 28px */
+  --panel-font-9: 2rem; /* 32px */
+
+  /* Semantic aliases - the same in every layout, since the ladders move. */
+  --panel-pad-xs: var(--panel-space-1);
+  --panel-pad-sm: var(--panel-space-3);
+  --panel-pad-md: var(--panel-space-7);
+  --panel-pad-lg: var(--panel-space-9); /* .context-panel__body */
+  --panel-gap-lg: var(--panel-space-7); /* between panel sections */
+  --panel-gap: var(--panel-space-5); /* within a section */
+  --panel-row-gap: var(--panel-space-3); /* row gap in lists */
+
+  --panel-text-meta: var(--panel-font-0);
+  --panel-text-label: var(--panel-font-1);
+  --panel-text-body: var(--panel-font-2);
+  --panel-text-title: var(--panel-font-2); /* FloatingPanel title bar */
+  --panel-text-heading: var(--panel-font-4); /* section headings */
+  --panel-text-h1: var(--panel-font-6); /* panel-level headings */
   --panel-leading: var(--leading-normal);
 
   /* Controls */
   --panel-control-h: 32px; /* inputs, selects, small buttons */
   --panel-action-btn: 28px; /* title-bar icon buttons */
+  --panel-avatar: 40px; /* portrait/initial circles in list rows */
   --panel-radius: var(--border-radius);
   --panel-radius-sm: var(--radius-md);
 
-  /* Geometry — also read from JS (hooks/usePanelLayout.ts keeps the numbers) */
+  /* Geometry - also read from JS (hooks/usePanelLayout.ts keeps the numbers) */
   --panel-default-w: 320px;
   --panel-max-w: 800px;
   --dock-size-side: 320px;
@@ -497,25 +531,41 @@
 }
 
 /* -----------------------------------------------------------------------------
-   COMPACT — smaller type, much tighter padding. Fits more in the same panel.
+   COMPACT - smaller type, much tighter padding. Fits more in the same panel.
+
+   Both ladders are re-declared wholesale at roughly 0.6x for spacing and 0.85x
+   for type, floored so small values stay visible rather than collapsing. The
+   semantic aliases above point at the ladders, so they follow automatically.
    -------------------------------------------------------------------------- */
 :root[data-panel-layout='compact'] {
-  --panel-pad-lg: var(--spacing-3); /* 24px -> 12px */
-  --panel-pad-md: var(--spacing-2); /* 16px -> 8px  */
-  --panel-pad-sm: var(--spacing-1); /* 8px  -> 4px  */
-  --panel-pad-xs: var(--spacing-0_5); /* 4px  -> 2px  */
-  --panel-gap: var(--spacing-2);
-  --panel-row-gap: var(--spacing-1);
+  --panel-space-0: 0.0625rem; /* 1px  */
+  --panel-space-1: 0.125rem; /* 2px  */
+  --panel-space-2: 0.25rem; /* 4px  */
+  --panel-space-3: 0.25rem; /* 4px  */
+  --panel-space-4: 0.375rem; /* 6px  */
+  --panel-space-5: 0.4375rem; /* 7px  */
+  --panel-space-6: 0.5rem; /* 8px  */
+  --panel-space-7: 0.5625rem; /* 9px  */
+  --panel-space-8: 0.6875rem; /* 11px */
+  --panel-space-9: 0.75rem; /* 12px */
+  --panel-space-10: 1rem; /* 16px */
 
-  --panel-text-title: var(--text-xs); /* 14px -> 12px */
-  --panel-text-body: var(--text-xs);
-  --panel-text-label: 0.6875rem; /* 11px */
-  --panel-text-meta: 0.625rem; /* 10px */
-  --panel-text-heading: var(--text-sm);
+  --panel-font-0: 0.625rem; /* 10px */
+  --panel-font-1: 0.6875rem; /* 11px */
+  --panel-font-2: 0.75rem; /* 12px */
+  --panel-font-3: 0.8125rem; /* 13px */
+  --panel-font-4: 0.875rem; /* 14px */
+  --panel-font-5: 0.9375rem; /* 15px */
+  --panel-font-6: 1rem; /* 16px */
+  --panel-font-7: 1.1875rem; /* 19px */
+  --panel-font-8: 1.375rem; /* 22px */
+  --panel-font-9: 1.5rem; /* 24px */
+
   --panel-leading: 1.35;
 
   --panel-control-h: 26px;
   --panel-action-btn: 22px;
+  --panel-avatar: 30px;
   --panel-radius: var(--radius-lg);
   --panel-radius-sm: var(--radius-default);
 
@@ -525,14 +575,11 @@
 }
 
 /* -----------------------------------------------------------------------------
-   WIDESCREEN — type stays at Original size; the layout buys WIDTH. Wider dock
-   tracks, wider panels, and container queries that reflow content into columns
-   once a panel is actually wide (see the @container rules in panel-layouts.css).
+   WIDESCREEN - density is unchanged; the layout buys WIDTH. Wider dock tracks,
+   wider panels, and container queries that reflow content into columns once a
+   panel is actually wide (see styles/panel-layouts.css).
    -------------------------------------------------------------------------- */
 :root[data-panel-layout='widescreen'] {
-  --panel-pad-lg: var(--spacing-5);
-  --panel-gap: var(--spacing-4);
-
   --panel-default-w: 460px;
   --panel-max-w: 1100px;
   --dock-size-side: 440px;

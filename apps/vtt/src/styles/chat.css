@@ -21,18 +21,18 @@
 .chat-panel__search-bar {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: var(--panel-space-3);
   margin-bottom: var(--spacing-2);
-  padding: 0 var(--spacing-1);
+  padding: 0 var(--panel-space-1);
 }
 
 .chat-panel__search-input {
   flex: 1;
-  padding: var(--spacing-2) var(--spacing-3);
+  padding: var(--panel-space-3) var(--panel-space-5);
   border: 1px solid var(--glass-border, #e5e7eb);
   border-radius: var(--border-radius, 8px);
   background: var(--glass-surface, white);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--panel-font-2);
   transition: all var(--transition-fast, 0.15s);
 }
 
@@ -43,12 +43,12 @@
 }
 
 .chat-panel__filter-toggle {
-  padding: var(--spacing-2);
+  padding: var(--panel-space-3);
   background: var(--glass-surface, white);
   border: 1px solid var(--glass-border, #e5e7eb);
   border-radius: var(--border-radius, 8px);
   cursor: pointer;
-  font-size: var(--text-base, 1rem);
+  font-size: var(--panel-font-4);
   transition: all var(--transition-fast, 0.15s);
 }
 
@@ -64,13 +64,13 @@
 }
 
 .chat-panel__clear-filters {
-  padding: var(--spacing-2);
+  padding: var(--panel-space-3);
   background: rgba(239, 68, 68, 0.1);
   border: 1px solid rgba(239, 68, 68, 0.3);
   border-radius: var(--border-radius, 8px);
   color: #dc2626;
   cursor: pointer;
-  font-size: var(--text-base, 1rem);
+  font-size: var(--panel-font-4);
   font-weight: var(--font-bold, 700);
   transition: all var(--transition-fast, 0.15s);
 }
@@ -83,20 +83,20 @@
 .chat-panel__filters {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--spacing-2);
+  gap: var(--panel-space-3);
   margin-bottom: var(--spacing-2);
-  padding: var(--spacing-2);
+  padding: var(--panel-space-3);
   background: var(--glass-surface, white);
   border-radius: var(--border-radius, 8px);
   border: 1px solid var(--glass-border, #e5e7eb);
 }
 
 .chat-filter-chip {
-  padding: 4px 10px;
+  padding: var(--panel-space-1) var(--panel-space-4);
   background: rgba(139, 92, 246, 0.05);
   border: 1px solid rgba(139, 92, 246, 0.2);
   border-radius: 16px;
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--panel-font-1);
   font-weight: var(--font-medium, 500);
   color: var(--glass-text, #333);
   cursor: pointer;
@@ -126,7 +126,7 @@
 div.chat-panel div.chat-panel__messages {
   overflow-y: auto !important;
   overflow-x: hidden !important;
-  padding: var(--spacing-4) !important;
+  padding: var(--panel-space-7) !important;
   border-radius: 16px !important;
   background: linear-gradient(160deg, rgba(12, 16, 28, 0.82), rgba(22, 32, 48, 0.6)) !important;
   border: 1px solid rgba(148, 163, 184, 0.25) !important;
@@ -137,7 +137,7 @@ div.chat-panel div.chat-panel__messages {
     0 10px 30px rgba(8, 12, 22, 0.35) !important;
   display: flex !important;
   flex-direction: column !important;
-  gap: var(--spacing-3) !important;
+  gap: var(--panel-space-5) !important;
 }
 
 /* Clearfix for floated message bubbles */
@@ -155,7 +155,7 @@ div.chat-panel div.chat-panel__messages {
   height: 100%;
   color: #8E8E93;
   text-align: center;
-  padding: var(--spacing-4);
+  padding: var(--panel-space-7);
 }
 
 .chat-panel__empty p {
@@ -164,10 +164,10 @@ div.chat-panel div.chat-panel__messages {
 
 .chat-panel__empty code {
   background: #F2F2F7;
-  padding: 2px 6px;
+  padding: var(--panel-space-0) var(--panel-space-2);
   border-radius: 4px;
   font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
-  font-size: 13px;
+  font-size: var(--panel-font-2);
   color: #007AFF;
 }
 
@@ -221,12 +221,12 @@ div.chat-panel div.chat-panel__messages {
 .context-panel .chat-panel__message,
 div.chat-panel div.chat-panel__message {
   max-width: 78% !important;
-  padding: 12px 14px !important;
+  padding: var(--panel-space-5) var(--panel-space-6) !important;
   border-radius: 18px !important;
   word-wrap: break-word !important;
   transition: all var(--transition-normal) !important;
   position: relative !important;
-  font-size: 14px !important;
+  font-size: var(--panel-font-2) !important;
   line-height: 1.45 !important;
   backdrop-filter: blur(10px) !important;
   border: 1px solid rgba(255, 255, 255, 0.08) !important;
@@ -283,8 +283,8 @@ div.chat-panel div.chat-panel__message.dm-announcement {
   color: rgba(226, 232, 240, 0.8) !important;
   border: 1px solid rgba(148, 163, 184, 0.2) !important;
   border-radius: 14px !important;
-  font-size: 12px !important;
-  padding: 8px 12px !important;
+  font-size: var(--panel-font-1) !important;
+  padding: var(--panel-space-3) var(--panel-space-5) !important;
   box-shadow: none !important;
 }
 
@@ -305,19 +305,19 @@ div.chat-panel div.chat-panel__message.dm-announcement {
 .chat-panel__message-header {
   display: flex;
   align-items: center;
-  gap: 6px;
+  gap: var(--panel-space-2);
   margin-bottom: 6px;
-  font-size: 11px;
+  font-size: var(--panel-font-0);
   opacity: 0.75;
 }
 
 .chat-panel__message-author {
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--panel-font-2);
 }
 
 .chat-panel__message-timestamp {
-  font-size: 11px;
+  font-size: var(--panel-font-0);
   opacity: 0.6;
 }
 
@@ -349,7 +349,7 @@ div.chat-panel div.chat-panel__message.dm-announcement {
 .chat-panel__message-content .dice-pool {
   display: inline-flex;
   align-items: center;
-  gap: 4px;
+  gap: var(--panel-space-1);
   margin: 0 4px;
 }
 
@@ -377,7 +377,7 @@ div.chat-panel div.chat-panel__message.dm-announcement {
 /* Make dice rolls more visible in blue (own) messages */
 .chat-panel__message--own .chat-panel__message-content .dice-pool {
   background: rgba(255, 255, 255, 0.2);
-  padding: 2px 6px;
+  padding: var(--panel-space-0) var(--panel-space-2);
   border-radius: 8px;
 }
 
@@ -391,8 +391,8 @@ div.chat-panel div.chat-panel__message.dm-announcement {
 /* ========================================================================== TYPING INDICATORS ========================================================================== */
 
 .chat-panel__typing-indicators {
-  padding: var(--spacing-2) var(--spacing-4);
-  font-size: var(--text-sm);
+  padding: var(--panel-space-3) var(--panel-space-7);
+  font-size: var(--panel-font-2);
   color: #8E8E93;
   font-style: italic;
 }
@@ -406,17 +406,17 @@ div.chat-panel div.chat-panel__message.dm-announcement {
 
 .chat-panel__input-container {
   display: flex;
-  gap: var(--spacing-2);
+  gap: var(--panel-space-3);
   align-items: flex-end;
 }
 
 .chat-panel__input {
   flex: 1;
-  padding: 10px 14px;
+  padding: var(--panel-space-4) var(--panel-space-6);
   border: 1px solid #E5E5EA;
   border-radius: 20px;
   background: #FFFFFF;
-  font-size: 15px;
+  font-size: var(--panel-font-3);
   font-family: inherit;
   line-height: 1.4;
   resize: none;
@@ -435,12 +435,12 @@ div.chat-panel div.chat-panel__message.dm-announcement {
 }
 
 .chat-panel__announcement-btn {
-  padding: 10px 16px;
+  padding: var(--panel-space-4) var(--panel-space-7);
   background: #FF9500;
   color: white;
   border: none;
   border-radius: 20px;
-  font-size: 14px;
+  font-size: var(--panel-font-2);
   font-weight: 600;
   cursor: pointer;
   transition: all 0.2s;
@@ -462,7 +462,7 @@ div.chat-panel div.chat-panel__message.dm-announcement {
 
 .chat-panel__help {
   margin-top: var(--spacing-2);
-  padding: var(--spacing-3);
+  padding: var(--panel-space-5);
   border-radius: 12px;
   background: rgba(15, 23, 42, 0.5);
   border: 1px solid rgba(148, 163, 184, 0.2);
@@ -473,7 +473,7 @@ div.chat-panel div.chat-panel__message.dm-announcement {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  font-size: 0.8rem;
+  font-size: var(--panel-font-1);
   color: rgba(226, 232, 240, 0.8);
   margin-bottom: var(--spacing-2);
   text-transform: uppercase;
@@ -485,22 +485,22 @@ div.chat-panel div.chat-panel__message.dm-announcement {
   border: 1px solid rgba(148, 163, 184, 0.2);
   color: rgba(226, 232, 240, 0.9);
   border-radius: 999px;
-  padding: 2px 10px;
-  font-size: 0.7rem;
+  padding: var(--panel-space-0) var(--panel-space-4);
+  font-size: var(--panel-font-0);
   cursor: pointer;
 }
 
 .chat-panel__help-items {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
-  gap: var(--spacing-2);
+  gap: var(--panel-space-3);
 }
 
 .chat-panel__help-item {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: 8px 10px;
+  gap: var(--panel-space-0);
+  padding: var(--panel-space-3) var(--panel-space-4);
   border-radius: 10px;
   background: rgba(30, 41, 59, 0.6);
   border: 1px solid rgba(148, 163, 184, 0.15);
@@ -508,12 +508,12 @@ div.chat-panel div.chat-panel__message.dm-announcement {
 
 .chat-panel__help-command {
   font-family: 'SF Mono', 'Monaco', 'Courier New', monospace;
-  font-size: 0.8rem;
+  font-size: var(--panel-font-1);
   color: #34d399;
 }
 
 .chat-panel__help-label {
-  font-size: 0.75rem;
+  font-size: var(--panel-font-1);
   color: rgba(226, 232, 240, 0.7);
 }
 
@@ -523,9 +523,9 @@ div.chat-panel div.chat-panel__message.dm-announcement {
   right: 8px;
   background: #FF3B30;
   color: white;
-  padding: 4px 10px;
+  padding: var(--panel-space-1) var(--panel-space-4);
   border-radius: 12px;
-  font-size: 12px;
+  font-size: var(--panel-font-1);
   font-weight: 600;
   box-shadow: 0 2px 8px rgba(255, 59, 48, 0.4);
   z-index: 10;
@@ -534,11 +534,11 @@ div.chat-panel div.chat-panel__message.dm-announcement {
 /* ========================================================================== BUTTONS ========================================================================== */
 
 .chat-panel__send-btn {
-  padding: 10px 14px;
+  padding: var(--panel-space-4) var(--panel-space-6);
   border: none;
   border-radius: 20px;
   cursor: pointer;
-  font-size: 16px;
+  font-size: var(--panel-font-4);
   font-weight: 600;
   color: white;
   background: #007AFF;
@@ -581,7 +581,7 @@ div.chat-panel div.chat-panel__message.dm-announcement {
 .chat-panel__type-selector {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: var(--panel-space-3);
   margin-bottom: var(--spacing-2);
 }
 
@@ -591,7 +591,7 @@ div.chat-panel div.chat-panel__message.dm-announcement {
 .chat-panel .dice-roll-message,
 .context-panel .dice-roll-message,
 div.chat-panel div.dice-roll-message {
-  padding: var(--spacing-2) var(--spacing-3) !important;
+  padding: var(--panel-space-3) var(--panel-space-5) !important;
   background: rgba(15, 23, 42, 0.35) !important;
   border: 1px solid rgba(110, 231, 183, 0.2) !important;
   border-radius: 12px !important;
@@ -603,7 +603,7 @@ div.chat-panel div.dice-roll-message {
   align-items: center;
   justify-content: space-between;
   margin-bottom: var(--spacing-2);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--panel-font-2);
 }
 
 .dice-expression {
@@ -619,16 +619,16 @@ div.chat-panel div.dice-roll-message {
 .dice-roll-actions {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
+  gap: var(--panel-space-3);
 }
 
 .dice-reroll-btn {
-  padding: 2px 8px;
+  padding: var(--panel-space-0) var(--panel-space-3);
   background: rgba(52, 211, 153, 0.15);
   border: 1px solid rgba(52, 211, 153, 0.35);
   border-radius: 6px;
   cursor: pointer;
-  font-size: 14px;
+  font-size: var(--panel-font-2);
   transition: all 0.2s;
   color: rgba(226, 232, 240, 0.9);
 }
@@ -641,14 +641,14 @@ div.chat-panel div.dice-roll-message {
 .dice-results {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
+  gap: var(--panel-space-3);
   flex-wrap: wrap;
-  font-size: var(--text-base, 1rem);
+  font-size: var(--panel-font-4);
 }
 
 .dice-pool {
   display: flex;
-  gap: 6px;
+  gap: var(--panel-space-2);
   flex-wrap: wrap;
 }
 
@@ -658,12 +658,12 @@ div.chat-panel div.dice-roll-message {
   justify-content: center;
   min-width: 32px;
   height: 32px;
-  padding: 0 8px;
+  padding: 0 var(--panel-space-3);
   background: rgba(148, 163, 184, 0.12);
   border: 1px solid rgba(148, 163, 184, 0.35);
   border-radius: 6px;
   font-weight: var(--font-bold, 700);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--panel-font-2);
   color: rgba(226, 232, 240, 0.9);
   box-shadow: 0 2px 6px rgba(8, 12, 22, 0.35);
 }
@@ -687,13 +687,13 @@ div.chat-panel div.dice-roll-message {
 .dice-modifier {
   font-weight: var(--font-semibold, 600);
   color: rgba(226, 232, 240, 0.7);
-  font-size: var(--text-base, 1rem);
+  font-size: var(--panel-font-4);
 }
 
 .dice-total-badge {
   min-width: 34px;
   height: 28px;
-  padding: 0 10px;
+  padding: 0 var(--panel-space-4);
   border-radius: 999px;
   background: rgba(52, 211, 153, 0.2);
   color: #34d399;
@@ -702,7 +702,7 @@ div.chat-panel div.dice-roll-message {
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(52, 211, 153, 0.35);
-  font-size: 0.9rem;
+  font-size: var(--panel-font-2);
 }
 
 .dice-total-badge.crit-success {
@@ -721,16 +721,16 @@ div.chat-panel div.dice-roll-message {
   margin-top: 8px;
   display: flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: var(--panel-space-2);
   align-items: center;
-  font-size: 0.85rem;
+  font-size: var(--panel-font-2);
   color: rgba(226, 232, 240, 0.8);
 }
 
 .dice-equation-label {
   text-transform: uppercase;
   letter-spacing: 0.04em;
-  font-size: 0.7rem;
+  font-size: var(--panel-font-0);
   color: rgba(148, 163, 184, 0.8);
 }
 
@@ -769,9 +769,9 @@ div.chat-panel div.dice-roll-message {
 .dice-crit-indicator,
 .dice-crit-fail-indicator {
   margin-top: var(--spacing-2);
-  padding: var(--spacing-1) var(--spacing-2);
+  padding: var(--panel-space-1) var(--panel-space-3);
   border-radius: 4px;
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--panel-font-1);
   font-weight: var(--font-semibold, 600);
   text-align: center;
 }
@@ -812,18 +812,18 @@ div.chat-panel div.dice-roll-message {
 /* Compact mode for small panels */
 @media (max-width: 400px) {
   .dice-roll-message {
-    padding: var(--spacing-1) var(--spacing-2);
+    padding: var(--panel-space-1) var(--panel-space-3);
   }
 
   .die-result {
     min-width: 28px;
     height: 28px;
-    font-size: 0.75rem;
+    font-size: var(--panel-font-1);
   }
 
   .dice-total {
-    font-size: 1rem;
-    padding: 2px 8px;
+    font-size: var(--panel-font-4);
+    padding: var(--panel-space-0) var(--panel-space-3);
   }
 }
 
@@ -863,8 +863,8 @@ div.chat-panel div.dice-roll-message {
 .chat-panel .chat-panel__message.ooc .chat-panel__message-header::before {
   content: '(OOC)';
   margin-right: 6px;
-  font-size: 11px;
-  padding: 2px 6px;
+  font-size: var(--panel-font-0);
+  padding: var(--panel-space-0) var(--panel-space-2);
   background: rgba(148, 163, 184, 0.2);
   border-radius: 8px;
   font-weight: 600;
@@ -882,7 +882,7 @@ div.chat-panel div.dice-roll-message {
 }
 
 .chat-panel__message-content code {
-  padding: 2px 6px;
+  padding: var(--panel-space-0) var(--panel-space-2);
   background: rgba(0, 0, 0, 0.05);
   border-radius: 3px;
   font-family: 'Courier New', monospace;
@@ -891,7 +891,7 @@ div.chat-panel div.dice-roll-message {
 
 .chat-panel__message-content blockquote {
   border-left: 3px solid rgba(139, 92, 246, 0.3);
-  padding-left: var(--spacing-2);
+  padding-left: var(--panel-space-3);
   margin: var(--spacing-1) 0;
   font-style: italic;
   opacity: 0.9;
@@ -909,7 +909,7 @@ div.chat-panel div.dice-roll-message {
 .mention {
   color: var(--color-primary, #8b5cf6);
   background: rgba(139, 92, 246, 0.1);
-  padding: 2px 6px;
+  padding: var(--panel-space-0) var(--panel-space-2);
   border-radius: 4px;
   font-weight: var(--font-semibold, 600);
   cursor: pointer;
@@ -936,7 +936,7 @@ div.chat-panel div.dice-roll-message {
 }
 
 .autocomplete-command {
-  padding: var(--spacing-2) var(--spacing-3);
+  padding: var(--panel-space-3) var(--panel-space-5);
   cursor: pointer;
   transition: background 0.15s;
   border-bottom: 1px solid var(--glass-border, #f3f4f6);
@@ -950,11 +950,11 @@ div.chat-panel div.dice-roll-message {
 .autocomplete-command-name {
   font-weight: var(--font-semibold, 600);
   color: var(--color-primary, #8b5cf6);
-  font-size: var(--text-sm, 0.875rem);
+  font-size: var(--panel-font-2);
 }
 
 .autocomplete-command-description {
-  font-size: var(--text-xs, 0.75rem);
+  font-size: var(--panel-font-1);
   color: var(--glass-text-muted, #6b7280);
   margin-top: 2px;
 }
