@@ -587,6 +587,32 @@
 }
 
 /* =============================================================================
+   FONT SIZE SCALING
+   =============================================================================
+   Driven by settings.fontSize via useFontSizeSync() writing <html data-font-size>.
+   Scales root html font-size, which scales all rem-based typography tokens
+   consistently across the entire application and popped-out secondary windows.
+   ============================================================================= */
+
+html[data-font-size='xs'] {
+  font-size: 87.5%; /* ~14px base */
+}
+
+html[data-font-size='small'] {
+  font-size: 93.75%; /* ~15px base */
+}
+
+/* medium (100% / 16px) is the default root, no override needed */
+
+html[data-font-size='large'] {
+  font-size: 106.25%; /* ~17px base */
+}
+
+html[data-font-size='xl'] {
+  font-size: 112.5%; /* ~18px base */
+}
+
+/* =============================================================================
    THEME VARIATIONS
    ============================================================================= */
 

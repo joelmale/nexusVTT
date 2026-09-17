@@ -27,6 +27,7 @@ import { useFocusModeController } from '@/hooks/useFocusMode';
 import { useReducedMotionSync } from '@/hooks/useReducedMotion';
 import { usePanelLayoutSync } from '@/hooks/usePanelLayout';
 import { useDockLayoutSync } from '@/hooks/useDocking';
+import { useFontSizeSync } from '@/hooks/useFontSize';
 import { DockRegion } from './DockRegion';
 import { ContextPanel } from './ContextPanel';
 
@@ -61,6 +62,7 @@ export const GameUI: React.FC = () => {
   useReducedMotionSync();
   usePanelLayoutSync();
   useDockLayoutSync();
+  useFontSizeSync();
 
   const isGeneratorOpen = activePanels.includes('generator');
   const closeGenerator = useCallback(() => {

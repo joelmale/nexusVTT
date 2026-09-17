@@ -157,6 +157,8 @@ export interface ColorScheme {
  */
 export type PanelLayout = 'original' | 'compact' | 'widescreen';
 
+export type FontSize = 'xs' | 'small' | 'medium' | 'large' | 'xl';
+
 export interface UserSettings {
   // Display Settings
   colorScheme: ColorScheme;
@@ -164,7 +166,7 @@ export interface UserSettings {
   enableGlassmorphism: boolean;
   persistOpenPanels: boolean;
   reducedMotion: boolean;
-  fontSize: 'small' | 'medium' | 'large';
+  fontSize: FontSize;
   /** Canvas panel density/layout. See hooks/usePanelLayout.ts. */
   panelLayout: PanelLayout;
 

@@ -375,7 +375,7 @@ export const Settings: React.FC = () => {
             description="Adjust text size for better readability"
           >
             <select
-              value={settings.fontSize}
+              value={settings.fontSize ?? 'medium'}
               onChange={(e) =>
                 handleSettingChange(
                   'fontSize',
@@ -384,9 +384,11 @@ export const Settings: React.FC = () => {
               }
               className="setting-select"
             >
+              <option value="xs">Extra Small</option>
               <option value="small">Small</option>
-              <option value="medium">Medium</option>
+              <option value="medium">Medium (Default)</option>
               <option value="large">Large</option>
+              <option value="xl">Extra Large</option>
             </select>
           </SettingItem>
 
