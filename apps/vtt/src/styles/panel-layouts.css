@@ -1,0 +1,70 @@
+/* =============================================================================
+   PANEL LAYOUTS — Widescreen reflow
+   =============================================================================
+
+   Density lives in design-tokens.css. This file holds the one thing density
+   cannot express: what panel CONTENT does when the panel is genuinely wide.
+
+   Keyed off `@container panel`, declared by `.panel` / `.dockedPanel` /
+   `.poppedOutRoot` in FloatingPanel.module.css. A container query is the right
+   tool here and a media query is not: panel width is set by the user, anywhere
+   from 220px to 1100px, and has nothing to do with the size of the screen — a
+   400px panel on a 34" ultrawide should still be one column.
+
+   Every rule is gated on `:root[data-panel-layout='widescreen']`, so Original
+   and Compact are untouched. That gate is deliberate rather than incidental:
+   silently reflowing to two columns at 620px would surprise anyone who had
+   simply dragged a panel wide in the layout they already had.
+   ========================================================================== */
+
+/* -----------------------------------------------------------------------------
+   INITIATIVE — the biggest win. Turn order runs long, and a wide single column
+   spends most of its width on a name and an HP bar.
+   -------------------------------------------------------------------------- */
+@container panel (min-width: 620px) {
+  :root[data-panel-layout='widescreen'] .initiative-cards-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-content: start;
+  }
+}
+
+@container panel (min-width: 980px) {
+  :root[data-panel-layout='widescreen'] .initiative-cards-list {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   DICE — the die tray is a wrapped row of small buttons and the roll history a
+   stacked list below it. Side by side, the history stops being pushed off the
+   bottom of the panel.
+   -------------------------------------------------------------------------- */
+@container panel (min-width: 620px) {
+  :root[data-panel-layout='widescreen'] .dice-roller {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: start;
+    gap: var(--panel-gap-lg);
+  }
+
+  /* The builder spans both columns: its expression input wants full width. */
+  :root[data-panel-layout='widescreen'] .dice-roller__dice-builder {
+    grid-column: 1 / -1;
+  }
+
+  /* No longer competing for vertical space, so it can show far more rolls. */
+  :root[data-panel-layout='widescreen'] .dice-roller__history {
+    max-height: none;
+  }
+}
+
+/* -----------------------------------------------------------------------------
+   CHAT — messages get a comfortable measure rather than stretching across the
+   whole panel, which is hard to read much past 75 characters.
+   -------------------------------------------------------------------------- */
+@container panel (min-width: 720px) {
+  :root[data-panel-layout='widescreen'] .chat-panel__message-content {
+    max-width: 75ch;
+  }
+}

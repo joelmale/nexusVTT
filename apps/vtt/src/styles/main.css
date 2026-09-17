@@ -61,3 +61,9 @@
 
 /* 7. CHAT STYLES (outside layers for maximum priority) */
 @import './chat.css';
+
+/* 8. PANEL LAYOUTS — widescreen content reflow.
+   Also outside the layers, and last: an unlayered rule beats every layered one
+   regardless of specificity, so this is the only position from which it can
+   override both the layered component sheets and unlayered chat.css. */
+@import './panel-layouts.css';
