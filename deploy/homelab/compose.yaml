@@ -1,7 +1,7 @@
 name: nexus-vtt2
 services:
   postgres:
-    image: ghcr.io/joelmale/nexusvtt/postgres:20260917-0e29488
+    image: ghcr.io/joelmale/nexusvtt/postgres:20260917-3754710
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nexus}
       POSTGRES_USER: ${POSTGRES_USER:-nexus}
@@ -40,7 +40,7 @@ services:
       retries: 5
     restart: unless-stopped
   asset-server:
-    image: ghcr.io/joelmale/nexusvtt/asset-service:20260917-0e29488
+    image: ghcr.io/joelmale/nexusvtt/asset-service:20260917-3754710
     container_name: nexus-vtt2-asset-server
     hostname: nexus-vtt2-asset-server
     user: 1000:1000
@@ -77,7 +77,7 @@ services:
     - homelab-net
     restart: unless-stopped
   frontend:
-    image: ghcr.io/joelmale/nexusvtt/frontend:20260917-0e29488
+    image: ghcr.io/joelmale/nexusvtt/frontend:20260917-3754710
     container_name: nexus-vtt2-frontend
     hostname: nexus-vtt2-frontend
     environment:
@@ -86,7 +86,7 @@ services:
     - homelab-net
     restart: unless-stopped
   backend:
-    image: ghcr.io/joelmale/nexusvtt/backend:20260917-0e29488
+    image: ghcr.io/joelmale/nexusvtt/backend:20260917-3754710
     environment:
       CORS_ORIGIN: ${CORS_ORIGIN}
       NODE_ENV: production
