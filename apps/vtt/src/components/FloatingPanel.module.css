@@ -21,6 +21,12 @@
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-glass-xl);
 
+  /* Panel content reflows against the panel's own width, not the viewport:
+     a panel is resized by the user from 220px to 1100px independent of screen
+     size. See styles/panel-layouts.css for the @container rules. */
+  container-type: inline-size;
+  container-name: panel;
+
   opacity: 0;
   pointer-events: none;
   transition: opacity var(--transition-base);
@@ -40,8 +46,8 @@
 .titleBar {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
-  padding: var(--spacing-2) var(--spacing-3);
+  gap: var(--panel-pad-sm);
+  padding: var(--panel-pad-sm) var(--panel-pad-md);
   background: var(--surface-secondary);
   border-bottom: 1px solid var(--border-primary);
   cursor: grab;
@@ -76,28 +82,31 @@
 .titleLabel {
   flex: 1;
   font-weight: 600;
-  font-size: 14px;
+  font-size: var(--panel-text-title);
   color: var(--text-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .titleActions {
   display: flex;
-  gap: var(--spacing-1);
+  gap: var(--panel-pad-xs);
 }
 
 .actionButton {
   background: transparent;
   border: none;
   color: var(--text-muted);
-  font-size: 14px;
+  font-size: var(--panel-text-title);
   cursor: pointer;
-  padding: 4px;
-  border-radius: var(--border-radius-sm);
+  padding: var(--panel-pad-xs);
+  border-radius: var(--panel-radius-sm);
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
+  width: var(--panel-action-btn);
+  height: var(--panel-action-btn);
   transition: all var(--transition-base);
 }
 
@@ -228,6 +237,9 @@
 
   background: var(--surface-primary);
   color: var(--text-primary);
+
+  container-type: inline-size;
+  container-name: panel;
 }
 
 /* ==========================================================================
@@ -247,9 +259,13 @@
   color: var(--text-primary);
   opacity: 1;
   pointer-events: auto;
+
+  container-type: inline-size;
+  container-name: panel;
 }
 
 /* Sibling docked panels in the bottom region sit side by side. */
 .dockedPanel + .dockedPanel {
   border-left: 1px solid var(--border-primary);
 }
+

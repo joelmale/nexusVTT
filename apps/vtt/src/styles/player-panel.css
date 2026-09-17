@@ -4,8 +4,8 @@
   display: flex;
   flex-direction: column;
   height: 100%;
-  padding: 1rem;
-  gap: 1rem;
+  padding: var(--panel-pad-md);
+  gap: var(--panel-gap-lg);
   overflow: hidden;
 }
 
@@ -20,13 +20,13 @@
 
 .panel-header h3 {
   margin: 0;
-  font-size: 1.2rem;
+  font-size: var(--panel-text-h1);
   color: var(--glass-text);
 }
 
 .back-btn {
   display: inline-block;
-  padding: 0.5rem 1rem;
+  padding: var(--panel-pad-sm) var(--panel-pad-md);
   border: 1px solid var(--glass-border);
   border-radius: var(--border-radius);
   background: var(--glass-surface);
@@ -42,7 +42,7 @@
 
 .begin-combat-btn {
   display: inline-block;
-  padding: 0.5rem 1rem;
+  padding: var(--panel-pad-sm) var(--panel-pad-md);
   border: none;
   border-radius: var(--border-radius);
   background: var(--color-primary);
@@ -73,7 +73,7 @@
 
 .section-header h4 {
   margin: 0;
-  font-size: 1rem;
+  font-size: var(--panel-text-heading);
   color: var(--glass-text);
 }
 
@@ -85,11 +85,11 @@
 
 .create-character-btn {
   display: inline-block;
-  padding: 0.5rem 1rem;
+  padding: var(--panel-pad-sm) var(--panel-pad-md);
   border: none;
   border-radius: var(--border-radius);
   background: var(--color-primary);
-  font-size: 0.9rem;
+  font-size: var(--panel-text-body);
   color: white;
   cursor: pointer;
   transition: all 0.2s ease;
@@ -103,14 +103,14 @@
 .character-list {
   display: flex;
   flex-direction: column;
-  gap: 0.5rem;
+  gap: var(--panel-row-gap);
 }
 
 .character-item {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
+  gap: var(--panel-gap-lg);
+  padding: var(--panel-pad-md);
   border: 1px solid var(--glass-border);
   border-radius: var(--border-radius);
   background: var(--glass-surface);
@@ -128,12 +128,13 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 40px;
-  height: 40px;
+  width: var(--panel-avatar);
+  height: var(--panel-avatar);
+  flex-shrink: 0;
   border-radius: 50%;
   background: var(--color-primary);
   font-weight: 600;
-  font-size: 1.2rem;
+  font-size: var(--panel-text-h1);
   color: white;
 }
 
@@ -144,18 +145,18 @@
 .character-name {
   margin-bottom: 0.25rem;
   font-weight: 600;
-  font-size: 1rem;
+  font-size: var(--panel-text-heading);
   color: var(--glass-text);
 }
 
 .character-details {
   margin-bottom: 0.25rem;
-  font-size: 0.9rem;
+  font-size: var(--panel-text-body);
   color: var(--glass-text-muted);
 }
 
 .character-stats {
-  font-size: 0.8rem;
+  font-size: var(--panel-text-label);
   color: var(--glass-text-muted);
 }
 
@@ -169,11 +170,11 @@
 }
 
 .view-icon {
-  font-size: 1.2rem;
+  font-size: var(--panel-text-h1);
 }
 
 .empty-characters {
-  padding: 2rem;
+  padding: var(--panel-space-10);
   text-align: center;
   color: var(--glass-text-muted);
 }
@@ -195,13 +196,13 @@
   display: flex;
   flex-direction: column;
   flex: 1;
-  gap: 0.5rem;
+  gap: var(--panel-row-gap);
   overflow-y: auto;
 }
 
 /* Player Cards */
 .player-card {
-  padding: 1rem;
+  padding: var(--panel-pad-md);
   border: 1px solid var(--glass-border);
   border-radius: var(--border-radius);
   background: var(--glass-surface);
@@ -224,7 +225,7 @@
 .player-header {
   display: flex;
   align-items: center;
-  gap: 1rem;
+  gap: var(--panel-gap-lg);
   margin-bottom: 0.5rem;
 }
 
@@ -236,7 +237,7 @@
   height: 40px;
   border-radius: 50%;
   background: var(--color-secondary);
-  font-size: 1.2rem;
+  font-size: var(--panel-text-h1);
   color: white;
 }
 
@@ -250,26 +251,26 @@
 
 .player-name {
   font-weight: 600;
-  font-size: 1rem;
+  font-size: var(--panel-text-heading);
   color: var(--glass-text);
 }
 
 .player-role {
   margin: 0.25rem 0;
-  font-size: 0.9rem;
+  font-size: var(--panel-text-body);
   color: var(--glass-text-muted);
 }
 
 .character-count {
-  font-size: 0.8rem;
+  font-size: var(--panel-text-label);
   color: var(--glass-text-muted);
 }
 
 .connection-indicator {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
-  font-size: 0.8rem;
+  gap: var(--panel-row-gap);
+  font-size: var(--panel-text-label);
 }
 
 .connection-indicator.online {
@@ -306,7 +307,7 @@
 /* Player Characters */
 .player-characters {
   margin-top: 0.5rem;
-  padding-top: 0.5rem;
+  padding-top: var(--panel-pad-sm);
   border-top: 1px solid var(--glass-border);
 }
 
@@ -314,10 +315,10 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0.5rem;
+  padding: var(--panel-pad-sm);
   border-radius: var(--border-radius);
   background: rgba(255, 255, 255, 0.05);
-  font-size: 0.9rem;
+  font-size: var(--panel-text-body);
   margin-bottom: 0.25rem;
 }
 
@@ -344,19 +345,19 @@
 /* Player Controls */
 .player-controls {
   display: flex;
-  gap: 0.5rem;
+  gap: var(--panel-row-gap);
   margin-top: 0.5rem;
-  padding-top: 0.5rem;
+  padding-top: var(--panel-pad-sm);
   border-top: 1px solid var(--glass-border);
 }
 
 .dm-toggle-btn,
 .kick-btn {
-  padding: 0.25rem 0.5rem;
+  padding: var(--panel-pad-xs) var(--panel-pad-sm);
   border: 1px solid var(--glass-border);
   border-radius: var(--border-radius);
   background: var(--glass-surface);
-  font-size: 0.8rem;
+  font-size: var(--panel-text-label);
   cursor: pointer;
   transition: all 0.2s ease;
 }
@@ -379,7 +380,7 @@
 /* ========================================================================== COMBAT PREP SECTION ========================================================================== */
 
 .combat-prep-section {
-  padding: 1rem;
+  padding: var(--panel-pad-md);
   border: 1px solid var(--glass-border);
   border-radius: var(--border-radius);
   background: var(--glass-surface);
@@ -388,7 +389,7 @@
 
 .combat-prep-section h4 {
   margin: 0 0 1rem 0;
-  font-size: 1rem;
+  font-size: var(--panel-text-heading);
   color: var(--glass-text);
 }
 
@@ -405,7 +406,7 @@
 
 .combat-prep-btn {
   display: inline-block;
-  padding: 0.5rem 1rem;
+  padding: var(--panel-pad-sm) var(--panel-pad-md);
   border: none;
   border-radius: var(--border-radius);
   background: var(--color-primary);

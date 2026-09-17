@@ -25,6 +25,7 @@ import { applyColorScheme } from '@/utils/colorSchemes';
 import { useUIStackStore, DOCK_ZONES } from '@/stores/uiStackStore';
 import { useFocusModeController } from '@/hooks/useFocusMode';
 import { useReducedMotionSync } from '@/hooks/useReducedMotion';
+import { usePanelLayoutSync } from '@/hooks/usePanelLayout';
 import { useDockLayoutSync } from '@/hooks/useDocking';
 import { DockRegion } from './DockRegion';
 import { ContextPanel } from './ContextPanel';
@@ -58,6 +59,7 @@ export const GameUI: React.FC = () => {
   // mirror a flag onto <html> so CSS can reach portal-mounted chrome too.
   useFocusModeController();
   useReducedMotionSync();
+  usePanelLayoutSync();
   useDockLayoutSync();
 
   const isGeneratorOpen = activePanels.includes('generator');

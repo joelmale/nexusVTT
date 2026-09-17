@@ -370,6 +370,26 @@ export const Settings: React.FC = () => {
           </SettingItem>
 
           <SettingItem
+            label="Panel Layout"
+            description="Density and sizing of the panels over the scene canvas"
+          >
+            <select
+              value={settings.panelLayout ?? 'original'}
+              onChange={(e) =>
+                handleSettingChange(
+                  'panelLayout',
+                  e.target.value as UserSettings['panelLayout'],
+                )
+              }
+              className="setting-select"
+            >
+              <option value="original">Original</option>
+              <option value="compact">Compact (tighter, smaller text)</option>
+              <option value="widescreen">Widescreen (wider, multi-column)</option>
+            </select>
+          </SettingItem>
+
+          <SettingItem
             label="Font Size"
             description="Adjust text size for better readability"
           >
