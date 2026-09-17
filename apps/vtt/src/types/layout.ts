@@ -1,7 +1,13 @@
 import type { DockZone, PanelId } from '@/stores/uiStackStore';
+import type { PanelLayout } from '@/types/game';
 
-/** Bump when the shape of a stored workspace changes. */
-export const WORKSPACE_SCHEMA_VERSION = 1;
+/**
+ * Bump when the shape of a stored workspace changes.
+ *
+ * v2 added `panelLayout`. A v1 preset is readable as-is: no field means the
+ * preset predates layouts, which is Original by definition.
+ */
+export const WORKSPACE_SCHEMA_VERSION = 2;
 
 export interface PanelGeometry {
   position: { x: number; y: number };
@@ -29,6 +35,12 @@ export interface LayoutWorkspace {
    * lossy. Recorded now so a future version can rescale proportionally.
    */
   viewport: { width: number; height: number };
+  /**
+   * Panel layout the preset was captured in. Its pixel geometry only makes
+   * sense at that density, so applying the preset also restores the layout.
+   * Absent on v1 presets, which are Original.
+   */
+  panelLayout?: PanelLayout;
   activePanels: PanelId[];
   panelStack: PanelId[];
   /** Panels docked to an edge; everything else in the preset is floating. */

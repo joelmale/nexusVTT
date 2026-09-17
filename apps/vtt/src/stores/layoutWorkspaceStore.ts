@@ -11,6 +11,9 @@ import {
   UI_PREF_PREFIXES,
   type PanelId,
 } from './uiStackStore';
+import { getPanelLayout, layoutKeySuffix } from '@/hooks/usePanelLayout';
+import { useGameStore } from './gameStore';
+import type { PanelLayout } from '@/types/game';
 
 /**
  * Deliberately under the `nexus-ui-` prefix so `uiStackStore.resetLayout()`
@@ -19,7 +22,14 @@ import {
 export const WORKSPACES_KEY = 'nexus-ui-workspaces';
 
 const posKey = (id: PanelId) => `nexus-ui-${id}-pos`;
-const sizeKey = (id: PanelId) => `nexus-ui-${id}-size`;
+/**
+ * Size is stored per panel layout (see hooks/usePanelLayout.ts), so a workspace
+ * must read and write the slot belonging to the layout it was captured in -
+ * otherwise saving in Widescreen and restoring in Compact would hand Compact a
+ * set of 460px panels.
+ */
+const sizeKey = (id: PanelId, layout: PanelLayout) =>
+  `nexus-ui-${id}${layoutKeySuffix(layout)}-size`;
 const collapsedKey = (id: PanelId) => `nexus-ui-${id}-collapsed`;
 
 function readJSON<T>(key: string): T | null {
@@ -68,11 +78,14 @@ function loadFile(): WorkspaceFile {
 }
 
 /** Snapshot the live geometry of one panel straight out of localStorage. */
-function captureGeometry(id: PanelId): PanelGeometry | null {
+function captureGeometry(
+  id: PanelId,
+  layout: PanelLayout,
+): PanelGeometry | null {
   const position = readJSON<{ x: number; y: number }>(posKey(id));
   if (!position) return null;
 
-  const size = readJSON<{ width: number; height: number }>(sizeKey(id));
+  const size = readJSON<{ width: number; height: number }>(sizeKey(id, layout));
   const collapsed = readJSON<boolean>(collapsedKey(id));
 
   return {
@@ -141,9 +154,10 @@ export const useLayoutWorkspaceStore = create<LayoutWorkspaceState>(
       const ids = Array.from(
         new Set<PanelId>([...ui.panelStack, ...ui.activePanels]),
       );
+      const panelLayout = getPanelLayout();
       const geometry: Record<string, PanelGeometry> = {};
       for (const id of ids) {
-        const captured = captureGeometry(id);
+        const captured = captureGeometry(id, panelLayout);
         if (captured) geometry[id] = captured;
       }
 
@@ -156,6 +170,7 @@ export const useLayoutWorkspaceStore = create<LayoutWorkspaceState>(
         createdAt: existing?.createdAt ?? now,
         updatedAt: now,
         viewport: { width: window.innerWidth, height: window.innerHeight },
+        panelLayout,
         // An explicit "save this layout" always captures the open set, even
         // when persistOpenPanels is off - that setting governs implicit
         // save-on-change, not deliberate snapshots.
@@ -178,18 +193,30 @@ export const useLayoutWorkspaceStore = create<LayoutWorkspaceState>(
       const workspace = get().workspaces.find((w) => w.id === id);
       if (!workspace) return;
 
-      // 1. Write geometry to localStorage FIRST. Panels that are about to
+      // 1. Restore the panel layout the preset was captured in. Its pixel
+      //    geometry only makes sense at that density, and it decides which
+      //    size slot the writes below land in.
+      //    Presets saved before layouts existed have no panelLayout; those are
+      //    Original by definition.
+      const panelLayout = workspace.panelLayout ?? 'original';
+      if (useGameStore.getState().settings.panelLayout !== panelLayout) {
+        useGameStore.getState().updateSettings({ panelLayout });
+      }
+
+      // 2. Write geometry to localStorage FIRST. Panels that are about to
       //    mount read exactly these keys in their own mount effect, so newly
       //    opened panels land correctly with no extra plumbing.
       for (const [panelId, geometry] of Object.entries(workspace.geometry)) {
         writeJSON(posKey(panelId), geometry.position);
-        if (geometry.size) writeJSON(sizeKey(panelId), geometry.size);
+        if (geometry.size) {
+          writeJSON(sizeKey(panelId, panelLayout), geometry.size);
+        }
         if (typeof geometry.collapsed === 'boolean') {
           writeJSON(collapsedKey(panelId), geometry.collapsed);
         }
       }
 
-      // 2. Update the stack store. Applying is an explicit user action, so it
+      // 3. Update the stack store. Applying is an explicit user action, so it
       //    always updates in-memory state; whether the open set is persisted
       //    still honours persistOpenPanels via setActivePanels.
       useUIStackStore.getState().applyLayout({
@@ -199,7 +226,7 @@ export const useLayoutWorkspaceStore = create<LayoutWorkspaceState>(
         dockedPanels: workspace.dockedPanels ?? {},
       });
 
-      // 3. Publish geometry for already-mounted panels to pick up.
+      // 4. Publish geometry for already-mounted panels to pick up.
       set((state) => ({
         applySeq: state.applySeq + 1,
         pendingGeometry: workspace.geometry,

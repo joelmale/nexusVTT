@@ -9,6 +9,11 @@ import { useLayoutWorkspaceStore } from '@/stores/layoutWorkspaceStore';
 import { DockZoneOverlay } from './DockZoneOverlay';
 import { useDockDrag, useDockHost } from '@/hooks/useDocking';
 import {
+  layoutKeySuffix,
+  usePanelLayout,
+  PANEL_LAYOUT_GEOMETRY,
+} from '@/hooks/usePanelLayout';
+import {
   useUIStackStore,
   useStackZIndex,
   useIsTopmostPanel,
@@ -57,6 +62,11 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
   const cascadeIndex = Math.max(0, activePanels.indexOf(panelId));
   const cascadeOffset = (cascadeIndex % 8) * 28;
 
+  // Panel geometry follows the active layout: compact panels start narrower,
+  // widescreen ones much wider and allowed to grow past the old 800px cap.
+  const panelLayout = usePanelLayout();
+  const geometry = PANEL_LAYOUT_GEOMETRY[panelLayout];
+
   const {
     onPointerDown,
     isCollapsed,
@@ -68,7 +78,10 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
   } = useDraggablePanel({
     id: panelId,
     defaultPosition: {
-      x: Math.max(16, window.innerWidth - 320 - 16 - cascadeOffset),
+      x: Math.max(
+        16,
+        window.innerWidth - geometry.defaultWidth - 16 - cascadeOffset,
+      ),
       y: Math.max(16, 84 + cascadeOffset),
     },
     onDragMove,
@@ -77,10 +90,15 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
 
   const { size, setSizeClamped, onResizeStart, edgeCursor } = useResizablePanel({
     id: panelId,
-    defaultSize: { width: 320, height: 600 },
-    minWidth: 260,
+    // Each layout remembers its own size; Original keeps the bare key.
+    storageId: `${panelId}${layoutKeySuffix(panelLayout)}`,
+    defaultSize: {
+      width: geometry.defaultWidth,
+      height: geometry.defaultHeight,
+    },
+    minWidth: geometry.minWidth,
     minHeight: 200,
-    maxWidth: 800,
+    maxWidth: geometry.maxWidth,
     maxHeight: 900,
     onPositionChange: shiftPosition,
   });

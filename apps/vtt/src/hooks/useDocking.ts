@@ -6,6 +6,11 @@ import {
   type DockZone,
   type PanelId,
 } from '@/stores/uiStackStore';
+import {
+  PANEL_LAYOUT_GEOMETRY,
+  usePanelLayout,
+} from '@/hooks/usePanelLayout';
+import type { PanelLayout } from '@/types/game';
 
 /**
  * Registry of the live dock region elements, populated by GameUI through
@@ -47,12 +52,26 @@ export function useDockHost(zone: DockZone | null): HTMLElement | null {
   return useDockHostStore((s) => (zone ? s.hosts[zone] ?? null : null));
 }
 
+interface DockSizes {
+  left: number;
+  right: number;
+  bottom: number;
+}
+
+/**
+ * Extents of a dock region for a given panel layout.
+ *
+ * The same numbers live in design-tokens.css as `--dock-size-side` /
+ * `--dock-size-bottom`; PANEL_LAYOUT_GEOMETRY is the single JS source and a
+ * unit test keeps the two in step.
+ */
+export function dockSizesFor(layout: PanelLayout): DockSizes {
+  const { dockSide, dockBottom } = PANEL_LAYOUT_GEOMETRY[layout];
+  return { left: dockSide, right: dockSide, bottom: dockBottom };
+}
+
 /** Default extents of a dock region. Kept in one place for the CSS vars. */
-export const DOCK_SIZES = {
-  left: 320,
-  right: 320,
-  bottom: 240,
-} as const;
+export const DOCK_SIZES: DockSizes = dockSizesFor('original');
 
 interface DockDragState {
   panelId: PanelId | null;
@@ -123,22 +142,24 @@ export function useDockDrag(panelId: PanelId) {
  */
 export function useDockLayoutSync(): void {
   const dockedPanels = useUIStackStore((s) => s.dockedPanels);
+  const layout = usePanelLayout();
 
   useEffect(() => {
     const zones = new Set(Object.values(dockedPanels));
     const root = document.documentElement;
+    const sizes = dockSizesFor(layout);
 
     root.style.setProperty(
       '--dock-left-width',
-      zones.has('left') ? `${DOCK_SIZES.left}px` : '0px',
+      zones.has('left') ? `${sizes.left}px` : '0px',
     );
     root.style.setProperty(
       '--dock-right-width',
-      zones.has('right') ? `${DOCK_SIZES.right}px` : '0px',
+      zones.has('right') ? `${sizes.right}px` : '0px',
     );
     root.style.setProperty(
       '--dock-bottom-height',
-      zones.has('bottom') ? `${DOCK_SIZES.bottom}px` : '0px',
+      zones.has('bottom') ? `${sizes.bottom}px` : '0px',
     );
 
     return () => {
@@ -146,5 +167,5 @@ export function useDockLayoutSync(): void {
       root.style.removeProperty('--dock-right-width');
       root.style.removeProperty('--dock-bottom-height');
     };
-  }, [dockedPanels]);
+  }, [dockedPanels, layout]);
 }

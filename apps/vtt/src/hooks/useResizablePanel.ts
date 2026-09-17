@@ -8,6 +8,15 @@ export interface PanelSize {
 interface UseResizablePanelOptions {
   /** Unique id for localStorage persistence */
   id: string;
+  /**
+   * Overrides `id` for the localStorage key only.
+   *
+   * FloatingPanel appends the active panel layout, so each layout remembers
+   * its own size. Without that, a user who had ever resized a panel would
+   * switch layout and see nothing move: the saved pixel size beats the new
+   * default. Original keeps the bare key, so existing installs are untouched.
+   */
+  storageId?: string;
   /** Default size if nothing saved */
   defaultSize: PanelSize;
   /** Minimum dimensions */
@@ -52,8 +61,20 @@ const EDGE_CURSORS: Record<Edge, string> = {
   'bottom-right': 'nwse-resize',
 };
 
+/** The saved size under a key, or null when absent/corrupt. */
+function readSavedSize(key: string): PanelSize | null {
+  try {
+    const saved = localStorage.getItem(key);
+    if (saved) return JSON.parse(saved) as PanelSize;
+  } catch {
+    /* fallback */
+  }
+  return null;
+}
+
 export function useResizablePanel({
   id,
+  storageId,
   defaultSize,
   minWidth = 260,
   minHeight = 200,
@@ -61,15 +82,18 @@ export function useResizablePanel({
   maxHeight = 900,
   onPositionChange,
 }: UseResizablePanelOptions): UseResizablePanelResult {
-  const [size, setSize] = useState<PanelSize>(() => {
-    try {
-      const saved = localStorage.getItem(`nexus-ui-${id}-size`);
-      if (saved) return JSON.parse(saved);
-    } catch {
-      /* fallback */
-    }
-    return { ...defaultSize };
-  });
+  const storageKey = `nexus-ui-${storageId ?? id}-size`;
+
+  const [size, setSize] = useState<PanelSize>(
+    () => readSavedSize(storageKey) ?? { ...defaultSize },
+  );
+
+  // defaultSize is an object literal at every call site, so it cannot be an
+  // effect dep. The re-key effect below only needs its latest value.
+  const defaultSizeRef = useRef(defaultSize);
+  useEffect(() => {
+    defaultSizeRef.current = defaultSize;
+  }, [defaultSize]);
 
   const sizeRef = useRef(size);
   // Sync via effect, not during render — the strict react-hooks/refs rule
@@ -87,14 +111,33 @@ export function useResizablePanel({
     [minWidth, minHeight, maxWidth, maxHeight],
   );
 
+  // Re-key: the panel layout changed, so adopt that layout's saved size (or
+  // its default). Declared BEFORE the persist effect and paired with the
+  // `rekeying` flag, because on the commit where the key changes `size` is
+  // still the old layout's value - persisting it would stamp the old size onto
+  // the new layout's slot and the new default would never apply.
+  const lastKeyRef = useRef(storageKey);
+  const rekeying = useRef(false);
+
+  useEffect(() => {
+    if (lastKeyRef.current === storageKey) return;
+    lastKeyRef.current = storageKey;
+    rekeying.current = true;
+    setSize(clamp(readSavedSize(storageKey) ?? { ...defaultSizeRef.current }));
+  }, [storageKey, clamp]);
+
   // Persist on change
   useEffect(() => {
+    if (rekeying.current) {
+      rekeying.current = false;
+      return;
+    }
     try {
-      localStorage.setItem(`nexus-ui-${id}-size`, JSON.stringify(size));
+      localStorage.setItem(storageKey, JSON.stringify(size));
     } catch {
       /* quota */
     }
-  }, [id, size]);
+  }, [storageKey, size]);
 
   const onResizeStart = useCallback(
     (edge: Edge) => (e: React.PointerEvent) => {

@@ -66,8 +66,21 @@ export function isCoarsePointer(): boolean {
   return window.matchMedia('(pointer: coarse)').matches;
 }
 
-/** The layout that should actually be applied, after the touch guard. */
-export function resolvePanelLayout(preference: PanelLayout): PanelLayout {
+/**
+ * The layout that should actually be applied.
+ *
+ * Anything unrecognised falls back to Original: `settings` comes back from
+ * localStorage, so a rolled-back deploy or a hand-edited blob can hand us a
+ * layout name this build has never heard of.
+ */
+export function resolvePanelLayout(preference: unknown): PanelLayout {
+  if (
+    preference !== 'original' &&
+    preference !== 'compact' &&
+    preference !== 'widescreen'
+  ) {
+    return 'original';
+  }
   if (preference === 'compact' && isCoarsePointer()) return 'original';
   return preference;
 }
@@ -81,11 +94,11 @@ export function resolvePanelLayout(preference: PanelLayout): PanelLayout {
  * bare `:root` token block stays the one that applies.
  */
 export function usePanelLayoutSync(): void {
-  const preference = useGameStore((state) => state.settings.panelLayout);
+  const preference = useGameStore((state) => state.settings?.panelLayout);
 
   useEffect(() => {
     const root = document.documentElement;
-    const layout = resolvePanelLayout(preference ?? 'original');
+    const layout = resolvePanelLayout(preference);
 
     if (layout === 'original') {
       root.removeAttribute(PANEL_LAYOUT_ATTRIBUTE);
@@ -97,30 +110,25 @@ export function usePanelLayoutSync(): void {
 
 /** Subscribe to the resolved layout. For components that need the geometry. */
 export function usePanelLayout(): PanelLayout {
-  const preference = useGameStore((state) => state.settings.panelLayout);
-  return resolvePanelLayout(preference ?? 'original');
+  const preference = useGameStore((state) => state.settings?.panelLayout);
+  return resolvePanelLayout(preference);
 }
 
 /** Read the resolved layout outside React. */
 export function getPanelLayout(): PanelLayout {
-  return resolvePanelLayout(
-    useGameStore.getState().settings.panelLayout ?? 'original',
-  );
-}
-
-/** Geometry for the currently resolved layout. */
-export function usePanelLayoutGeometry(): PanelLayoutGeometry {
-  return PANEL_LAYOUT_GEOMETRY[usePanelLayout()];
+  return resolvePanelLayout(useGameStore.getState().settings?.panelLayout);
 }
 
 /**
  * Suffix for layout-scoped localStorage keys.
  *
- * Panel position and size are persisted per panel id. Without a suffix a user
- * who had ever resized a panel would switch layout and see nothing move, since
- * the saved pixel size wins over the new default. Original keeps the bare key
- * so existing installs are untouched; the other layouts get their own slot and
- * therefore remember their own geometry.
+ * Panel *size* is namespaced per layout: without this, a user who had ever
+ * resized a panel would switch layout and see nothing move, because the saved
+ * pixel size beats the new default. Original keeps the bare key, so existing
+ * installs are untouched and every other layout gets its own slot.
+ *
+ * Position and collapsed state are deliberately NOT namespaced - where you put
+ * a panel is your choice, not a property of the density.
  */
 export function layoutKeySuffix(layout: PanelLayout): string {
   return layout === 'original' ? '' : `--${layout}`;
