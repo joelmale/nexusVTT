@@ -119,5 +119,78 @@ describe('panel layout', () => {
       expect(css).toContain(":root[data-panel-layout='compact']");
       expect(css).toContain(":root[data-panel-layout='widescreen']");
     });
+
+    it('moves both ladders wholesale in compact', () => {
+      // The semantic aliases point at the ladders, so a layout that redeclared
+      // only some rungs would leave the aliases inconsistent with each other.
+      const compact = css.slice(
+        css.indexOf(":root[data-panel-layout='compact']"),
+      );
+      const block = compact.slice(0, compact.indexOf('\n}'));
+      for (let n = 0; n <= 10; n++) {
+        expect(block).toContain(`--panel-space-${n}:`);
+      }
+      for (let n = 0; n <= 9; n++) {
+        expect(block).toContain(`--panel-font-${n}:`);
+      }
+    });
+  });
+
+  describe('stylesheet import order', () => {
+    const main = readFileSync(
+      resolve(__dirname, '../../src/styles/main.css'),
+      'utf-8',
+    );
+
+    it('imports panel-layouts.css unlayered and last', () => {
+      // An unlayered rule beats every layered rule regardless of specificity,
+      // so this is the only position from which the widescreen reflow can
+      // override both the layered component sheets and unlayered chat.css.
+      // Moving it into a layer disables the reflow silently.
+      const imports = [...main.matchAll(/@import\s+'([^']+)'([^;]*);/g)].map(
+        (m) => ({ file: m[1], layer: m[2].trim() }),
+      );
+
+      const panelLayouts = imports.at(-1);
+      expect(panelLayouts?.file).toBe('./panel-layouts.css');
+      expect(panelLayouts?.layer).toBe('');
+
+      const chat = imports.find((i) => i.file.endsWith('chat.css'));
+      expect(chat?.layer).toBe('');
+    });
+  });
+
+  describe('widescreen reflow', () => {
+    const css = readFileSync(
+      resolve(__dirname, '../../src/styles/panel-layouts.css'),
+      'utf-8',
+    );
+
+    it('gates every container query on the widescreen layout', () => {
+      // Reflowing whenever a panel happens to be wide would surprise anyone who
+      // had simply dragged a panel out in the layout they already had.
+      // Every rule in the file, ignoring the @container wrappers themselves.
+      const selectors = css
+        .split('\n')
+        .filter((line) => /^ {2}\S.*\{\s*$/.test(line) && !line.includes('@'))
+        .map((line) => line.replace('{', '').trim());
+      expect(selectors.length).toBeGreaterThan(0);
+      for (const selector of selectors) {
+        expect(selector).toContain("[data-panel-layout='widescreen']");
+      }
+    });
+
+    it('queries the container FloatingPanel declares', () => {
+      const module = readFileSync(
+        resolve(__dirname, '../../src/components/FloatingPanel.module.css'),
+        'utf-8',
+      );
+      // Floating, docked and popped-out all need the container, or the reflow
+      // would apply in one presentation of a panel but not another.
+      expect(
+        (module.match(/container-name:\s*panel;/g) ?? []).length,
+      ).toBe(3);
+      expect(css).toContain('@container panel (min-width:');
+    });
   });
 });
