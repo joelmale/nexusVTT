@@ -4,6 +4,8 @@ import { resolve } from 'node:path';
 import {
   PANEL_LAYOUT_ATTRIBUTE,
   PANEL_LAYOUT_GEOMETRY,
+  PANEL_DEFAULT_DIMENSIONS,
+  getPanelDefaultSize,
   isCoarsePointer,
   layoutKeySuffix,
   resolvePanelLayout,
@@ -66,6 +68,34 @@ describe('panel layout', () => {
     it('gives the other layouts their own storage slot', () => {
       expect(layoutKeySuffix('compact')).toBe('--compact');
       expect(layoutKeySuffix('widescreen')).toBe('--widescreen');
+    });
+  });
+
+  describe('getPanelDefaultSize', () => {
+    it('defines default dimensions for primary panels', () => {
+      expect(PANEL_DEFAULT_DIMENSIONS.settings).toBeDefined();
+      expect(PANEL_DEFAULT_DIMENSIONS.dice).toBeDefined();
+      expect(PANEL_DEFAULT_DIMENSIONS.chat).toBeDefined();
+    });
+
+    it('returns tailored dimensions for key panels', () => {
+      const settingsSize = getPanelDefaultSize('settings', 'original');
+      expect(settingsSize.width).toBe(500);
+      expect(settingsSize.height).toBe(650);
+
+      const diceCompact = getPanelDefaultSize('dice', 'compact');
+      expect(diceCompact.width).toBe(340);
+      expect(diceCompact.height).toBe(640);
+
+      const chatWidescreen = getPanelDefaultSize('chat', 'widescreen');
+      expect(chatWidescreen.width).toBe(540);
+      expect(chatWidescreen.height).toBe(720);
+    });
+
+    it('falls back to generic geometry for unregistered panel IDs', () => {
+      const generic = getPanelDefaultSize('unknown-panel', 'compact');
+      expect(generic.width).toBe(PANEL_LAYOUT_GEOMETRY.compact.defaultWidth);
+      expect(generic.height).toBe(PANEL_LAYOUT_GEOMETRY.compact.defaultHeight);
     });
   });
 

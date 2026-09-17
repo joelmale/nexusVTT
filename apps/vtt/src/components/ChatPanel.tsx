@@ -136,15 +136,16 @@ export const ChatPanel: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState('');
   const [messageTypeFilter, setMessageTypeFilter] = useState<string[]>([]);
   const [showFilters, setShowFilters] = useState(false);
-  const [messagesHeight, setMessagesHeight] = useState(() => {
+  const [messagesHeight, setMessagesHeight] = useState<number | null>(() => {
     const saved = localStorage.getItem('chat-messages-height');
-    return saved ? parseInt(saved, 10) : 400;
+    return saved ? parseInt(saved, 10) : null;
   });
   const [isResizing, setIsResizing] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
   const [helpCommandFilter, setHelpCommandFilter] = useState<string | null>(
     null,
   );
+  const messagesContainerRef = useRef<HTMLDivElement>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -431,7 +432,9 @@ export const ChatPanel: React.FC = () => {
     e.preventDefault();
     setIsResizing(true);
     resizeStartYRef.current = e.clientY;
-    resizeStartHeightRef.current = messagesHeight;
+    const currentHeight =
+      messagesHeight ?? messagesContainerRef.current?.clientHeight ?? 300;
+    resizeStartHeightRef.current = currentHeight;
   }, [messagesHeight]);
 
   const handleResizeMove = useCallback((e: MouseEvent) => {
@@ -445,7 +448,9 @@ export const ChatPanel: React.FC = () => {
   const handleResizeEnd = useCallback(() => {
     if (isResizing) {
       setIsResizing(false);
-      localStorage.setItem('chat-messages-height', messagesHeight.toString());
+      if (messagesHeight !== null) {
+        localStorage.setItem('chat-messages-height', messagesHeight.toString());
+      }
     }
   }, [isResizing, messagesHeight]);
 
@@ -527,8 +532,13 @@ export const ChatPanel: React.FC = () => {
 
         {/* Messages Area */}
         <div
+          ref={messagesContainerRef}
           className="chat-panel__messages"
-          style={{ height: `${messagesHeight}px` }}
+          style={
+            messagesHeight
+              ? { height: `${messagesHeight}px`, flexShrink: 0 }
+              : undefined
+          }
         >
           {visibleMessages.length === 0 ? (
             <div className="chat-panel__empty">

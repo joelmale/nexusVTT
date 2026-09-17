@@ -639,7 +639,7 @@
   flex-wrap: wrap;
   gap: var(--panel-space-3);
   justify-content: center;
-  margin-bottom: var(--spacing-4);
+  margin-bottom: var(--panel-space-3);
 }
 
 /* Individual Die Button */
@@ -701,11 +701,11 @@
 
 /* Dice Builder Section */
 .dice-roller__dice-builder {
-  margin-top: 2rem;
+  margin-top: var(--panel-gap);
 }
 
 .dice-roller__dice-builder h3 {
-  font-size: var(--panel-font-6);
+  font-size: var(--panel-text-heading);
   color: var(--glass-text-muted);
   font-weight: 600;
 }
@@ -797,14 +797,14 @@
 
 /* Modifiers Section */
 .dice-roller__modifiers-section {
-  margin-top: 1.5rem;
-  padding-top: var(--panel-space-9);
+  margin-top: var(--panel-space-4);
+  padding-top: var(--panel-space-3);
   border-top: 1px solid var(--glass-border);
 }
 
 .dice-roller__modifiers-section h4 {
-  margin: 0 0 0.75rem 0;
-  font-size: var(--panel-font-4);
+  margin: 0 0 var(--panel-space-2) 0;
+  font-size: var(--panel-text-label);
   color: var(--glass-text-muted);
   font-weight: 600;
 }
@@ -849,6 +849,22 @@
     0 2px 4px rgba(0, 0, 0, 0.2);
 }
 
+/* Compact layout specific overrides for dice roller */
+:root[data-panel-layout='compact'] .dice-roller__die-btn {
+  min-width: 40px;
+  min-height: 32px;
+  padding: var(--panel-space-2) var(--panel-space-3);
+}
+
+:root[data-panel-layout='compact'] .dice-roller__modifier-btn {
+  padding: var(--panel-space-1) var(--panel-space-2);
+  font-size: var(--panel-font-1);
+}
+
+:root[data-panel-layout='compact'] .dice-roller__rolls-list {
+  max-height: 260px;
+}
+
 /* ========================================================================== 5. ROLL HISTORY & RESULTS (from dice-roller.css) ========================================================================== */
 
 .dice-roller__rolls-list {
@@ -859,7 +875,7 @@
 
 .dice-roller__no-rolls {
   text-align: center;
-  padding: 3rem;
+  padding: var(--panel-pad-md);
   color: var(--glass-text-muted);
   font-style: italic;
 }

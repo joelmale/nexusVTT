@@ -12,6 +12,7 @@ import {
   layoutKeySuffix,
   usePanelLayout,
   PANEL_LAYOUT_GEOMETRY,
+  getPanelDefaultSize,
 } from '@/hooks/usePanelLayout';
 import {
   useUIStackStore,
@@ -64,8 +65,10 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
 
   // Panel geometry follows the active layout: compact panels start narrower,
   // widescreen ones much wider and allowed to grow past the old 800px cap.
+  // Each panel type also has an optimal default size to prevent text wrapping or scrollbars.
   const panelLayout = usePanelLayout();
   const geometry = PANEL_LAYOUT_GEOMETRY[panelLayout];
+  const defaultSize = getPanelDefaultSize(panelId, panelLayout);
 
   const {
     onPointerDown,
@@ -80,7 +83,7 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
     defaultPosition: {
       x: Math.max(
         16,
-        window.innerWidth - geometry.defaultWidth - 16 - cascadeOffset,
+        window.innerWidth - defaultSize.width - 16 - cascadeOffset,
       ),
       y: Math.max(16, 84 + cascadeOffset),
     },
@@ -93,8 +96,8 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
     // Each layout remembers its own size; Original keeps the bare key.
     storageId: `${panelId}${layoutKeySuffix(panelLayout)}`,
     defaultSize: {
-      width: geometry.defaultWidth,
-      height: geometry.defaultHeight,
+      width: defaultSize.width,
+      height: defaultSize.height,
     },
     minWidth: geometry.minWidth,
     minHeight: 200,

@@ -242,6 +242,15 @@
   container-name: panel;
 }
 
+/* Popped-out panels compress excessive body padding so content hugs window edges cleanly */
+.poppedOutRoot :global(.context-panel__body) {
+  padding: var(--panel-pad-md);
+}
+
+:root[data-panel-layout='compact'] .poppedOutRoot :global(.context-panel__body) {
+  padding: var(--panel-pad-sm);
+}
+
 /* ==========================================================================
    DOCKED PANEL — the panel when it occupies a real layout track rather than
    floating. No fixed positioning, no drag handle, no resize handles: the grid

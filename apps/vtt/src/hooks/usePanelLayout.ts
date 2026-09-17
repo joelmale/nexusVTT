@@ -25,6 +25,11 @@ export interface PanelLayoutGeometry {
   dockBottom: number;
 }
 
+export interface PanelSize {
+  width: number;
+  height: number;
+}
+
 export const PANEL_LAYOUT_GEOMETRY: Record<PanelLayout, PanelLayoutGeometry> = {
   original: {
     defaultWidth: 320,
@@ -51,6 +56,85 @@ export const PANEL_LAYOUT_GEOMETRY: Record<PanelLayout, PanelLayoutGeometry> = {
     dockBottom: 300,
   },
 };
+
+/**
+ * Optimal opening dimensions per panel type and layout.
+ *
+ * Sized so specific panels (e.g. Settings with wider options, Dice with full
+ * builder and initial history, Chat with messages and input) do not wrap text
+ * awkwardly or present a default scrollbar on initial opening.
+ */
+export const PANEL_DEFAULT_DIMENSIONS: Record<
+  string,
+  Record<PanelLayout, PanelSize>
+> = {
+  settings: {
+    original: { width: 500, height: 650 },
+    compact: { width: 440, height: 580 },
+    widescreen: { width: 560, height: 700 },
+  },
+  dice: {
+    original: { width: 380, height: 720 },
+    compact: { width: 340, height: 640 },
+    widescreen: { width: 640, height: 660 },
+  },
+  chat: {
+    original: { width: 420, height: 680 },
+    compact: { width: 360, height: 600 },
+    widescreen: { width: 540, height: 720 },
+  },
+  initiative: {
+    original: { width: 420, height: 600 },
+    compact: { width: 360, height: 540 },
+    widescreen: { width: 640, height: 640 },
+  },
+  scene: {
+    original: { width: 400, height: 620 },
+    compact: { width: 340, height: 560 },
+    widescreen: { width: 480, height: 660 },
+  },
+  props: {
+    original: { width: 350, height: 600 },
+    compact: { width: 300, height: 540 },
+    widescreen: { width: 460, height: 640 },
+  },
+  characters: {
+    original: { width: 400, height: 620 },
+    compact: { width: 340, height: 560 },
+    widescreen: { width: 500, height: 660 },
+  },
+  documents: {
+    original: { width: 400, height: 620 },
+    compact: { width: 340, height: 560 },
+    widescreen: { width: 500, height: 660 },
+  },
+  tokens: {
+    original: { width: 320, height: 600 },
+    compact: { width: 280, height: 520 },
+    widescreen: { width: 460, height: 640 },
+  },
+  lobby: {
+    original: { width: 340, height: 560 },
+    compact: { width: 290, height: 500 },
+    widescreen: { width: 460, height: 600 },
+  },
+};
+
+/** Get the default size for a specific panel in the active layout. */
+export function getPanelDefaultSize(
+  panelId: string,
+  layout: PanelLayout,
+): PanelSize {
+  const panelCustom = PANEL_DEFAULT_DIMENSIONS[panelId]?.[layout];
+  if (panelCustom) {
+    return panelCustom;
+  }
+  const generic = PANEL_LAYOUT_GEOMETRY[layout];
+  return {
+    width: generic.defaultWidth,
+    height: generic.defaultHeight,
+  };
+}
 
 /**
  * True when the primary pointer is coarse (finger/stylus).
