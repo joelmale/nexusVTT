@@ -173,7 +173,7 @@ describe('panel layout', () => {
       const selectors = css
         .split('\n')
         .filter((line) => /^ {2}\S.*\{\s*$/.test(line) && !line.includes('@'))
-        .map((line) => line.replace('{', '').trim());
+        .map((line) => line.replaceAll('{', '').trim());
       expect(selectors.length).toBeGreaterThan(0);
       for (const selector of selectors) {
         expect(selector).toContain("[data-panel-layout='widescreen']");
