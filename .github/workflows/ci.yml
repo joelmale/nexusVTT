@@ -201,6 +201,10 @@ jobs:
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
 
+      - name: Build shared contracts
+        run: npm run build:contracts
+        working-directory: ${{ github.workspace }}
+
       # No Docker, no PostgreSQL, no Redis: this suite stubs the network and
       # seeds the stores through the dev-only bridge, so it needs nothing but a
       # Vite dev server, which playwright.config.ts starts itself.
