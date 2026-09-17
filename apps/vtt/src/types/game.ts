@@ -203,9 +203,6 @@ export interface UserSettings {
 
   // Experimental Settings
   floatingToolbar?: boolean; // When false (default), toolbar is docked at bottom
-
-  // Tailwind Dashboard Feature Flag
-  enableTailwindDashboard?: boolean; // When true, renders the Tailwind-powered dashboard redesign
 }
 
 // Scene Management Types

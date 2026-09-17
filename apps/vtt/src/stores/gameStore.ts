@@ -178,7 +178,6 @@ interface GameStore extends GameState {
   setColorScheme: (colorScheme: ColorScheme) => void;
   setEnableGlassmorphism: (enabled: boolean) => void;
   setPersistOpenPanels: (enabled: boolean) => void;
-  setEnableTailwindDashboard: (enabled: boolean) => void;
   resetSettings: () => void;
 
   // Token Actions
@@ -558,7 +557,6 @@ const initialState: GameState & {
 
     // Experimental Settings
     floatingToolbar: false, // Default to docked toolbar
-    enableTailwindDashboard: true, // Default to redesigned dashboard!
 
     ...loadSettingsFromStorage(),
   },
@@ -1929,13 +1927,6 @@ export const useGameStore = create<GameStore>()(
       setPersistOpenPanels: (enabled) => {
         set((state) => {
           state.settings.persistOpenPanels = enabled;
-          saveSettingsToStorage(state.settings);
-        });
-      },
-
-      setEnableTailwindDashboard: (enabled) => {
-        set((state) => {
-          state.settings.enableTailwindDashboard = enabled;
           saveSettingsToStorage(state.settings);
         });
       },
