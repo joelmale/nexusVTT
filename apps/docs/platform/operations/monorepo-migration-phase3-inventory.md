@@ -166,7 +166,7 @@ and `SSL_CERT_FILE`. Values for all of these were omitted.
   live-host digest.
 - The production draft retains live service names, the six NAS bind paths, the
   four Codex volume names, public host references, and `homelab-net`, but pins
-  ten application images to the candidate digests listed above. Its Swarm
+  ten application images to the candidate digests listed above. Its
   `deploy` blocks specify replicas/update/resource/restart settings; the live
   inspect shows ordinary Compose restart policies, so the effective behavior
   of those `deploy` fields under Dockhand Compose is unknown.

@@ -44,6 +44,7 @@ import './styles/tailwind.css'; // Tailwind layer – loaded after main.css for 
 import { initializeTheme } from './services/themeManager';
 import { propAssetManager } from './services/propAssets';
 import { initializeGameStateSyncRuntime } from './services/gameStateSyncRuntime';
+import { installTestBridge } from './utils/testBridge';
 
 initializeGameStateSyncRuntime();
 
@@ -62,6 +63,11 @@ const loadNonCriticalAssets = async () => {
     console.warn('⚠️ Failed to load some non-critical assets:', error);
   }
 };
+
+// Dev-only: expose the stores on window and apply any `__TEST_SEED__` set by
+// page.addInitScript. Must run BEFORE the first render so a seeded session is
+// visible to ProtectedRoute. No-op outside dev mode.
+installTestBridge();
 
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>

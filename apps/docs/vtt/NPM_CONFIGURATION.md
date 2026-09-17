@@ -13,7 +13,7 @@ server.
 - Public upstream: `frontend:80`
 - Shared proxy network: `PROXY_NETWORK`, default `homelab-net`
 - Internal backend: reached by frontend nginx as `backend:5001`
-- Not required: Docker Swarm, Portainer, or Nginx Proxy Manager
+- Not required: Portainer, or Nginx Proxy Manager
 
 ## Required Routing
 

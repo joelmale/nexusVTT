@@ -53,18 +53,23 @@ export const WorkspaceMenu: React.FC = () => {
       }
       setIsOpen(false);
     };
+    // Capture phase + stopImmediatePropagation: `stopPropagation` does nothing
+    // between listeners bound to the same target, and FloatingPanel also
+    // listens for Escape on `window`. Without this, dismissing this menu with
+    // Escape ALSO closed the topmost panel underneath it.
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        e.stopPropagation();
+        e.preventDefault();
+        e.stopImmediatePropagation();
         setIsOpen(false);
       }
     };
 
     window.addEventListener('pointerdown', handlePointerDown);
-    window.addEventListener('keydown', handleKeyDown);
+    window.addEventListener('keydown', handleKeyDown, { capture: true });
     return () => {
       window.removeEventListener('pointerdown', handlePointerDown);
-      window.removeEventListener('keydown', handleKeyDown);
+      window.removeEventListener('keydown', handleKeyDown, { capture: true });
     };
   }, [isOpen]);
 

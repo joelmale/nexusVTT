@@ -170,16 +170,13 @@ async function editSceneNameAfterResync(
 
 test.describe.configure({ mode: 'serial' });
 
-// QUARANTINED: the Chromium renderer dies with "Target crashed" at the first
-// `openPanel` call below, on every CI attempt and reproducibly in local runs.
-// The crash is an app bug in the panel mount path, not a test or runner-
-// resource problem -- see the write-up in
-// apps/docs/vtt/ui-ux-modernization-roadmap.md ("Known failures").
-//
-// Un-park this the moment that crash is fixed: this is the ONLY coverage of the
-// backend-SIGKILL-after-ACK scenario that CLAUDE.md invariant 6 requires
-// (killSmokeService('backend'), further down this file).
-test.fixme('two participants converge through gameplay, reconnects, restart, and a stale-base conflict', async ({
+// Un-quarantined: the "Target crashed" renderer death that parked this test was
+// duplicate CSS anchor names in Tooltip (see tests/ui/panel-cycle-crash.spec.ts
+// for the full diagnosis). This test carries the ONLY backend-SIGKILL-after-ACK
+// coverage that CLAUDE.md invariant 6 requires -- killSmokeService('backend')
+// further down this file -- so it must not be skipped or marked expected-to-fail
+// to get CI green again.
+test('two participants converge through gameplay, reconnects, restart, and a stale-base conflict', async ({
   browser,
   request,
 }, testInfo) => {
@@ -403,6 +400,7 @@ test.fixme('two participants converge through gameplay, reconnects, restart, and
       .fill(replayDiceExpression);
     await hostPage.getByRole('button', { name: 'Roll', exact: true }).click();
     await expect(diceRoll(hostPage, replayDiceExpression)).toHaveCount(1);
+    await closePanel(hostPage, 'Dice');
 
     await createGuestPlayerSession(playerPage, roomCode, playerName);
     await expect
@@ -419,10 +417,12 @@ test.fixme('two participants converge through gameplay, reconnects, restart, and
       'Scene 1',
     );
     await expect(token(playerPage, playerName)).toHaveCount(1);
+    await closePanel(playerPage, 'Lobby');
     await openPanel(playerPage, 'Chat');
     await expect(chatMessage(playerPage, replayChatText)).toHaveCount(1);
     await openPanel(playerPage, 'Dice');
     await expect(diceRoll(playerPage, replayDiceExpression)).toHaveCount(1);
+    await closePanel(playerPage, 'Dice');
 
     // Crash the backend immediately after its ACK. Because ACK now follows the
     // PostgreSQL commit, recovery must include the exact acknowledged edit even
@@ -441,6 +441,7 @@ test.fixme('two participants converge through gameplay, reconnects, restart, and
       'data-scene-name',
       durableCrashSceneName,
     );
+    await closePanel(hostPage, 'Scene');
 
     const hostSocketCountBeforeRestart = hostSockets.socketUrls.length;
     const hostClosedSocketsBeforePrimaryRestart = hostSockets.closedSocketCount;
@@ -504,6 +505,8 @@ test.fixme('two participants converge through gameplay, reconnects, restart, and
     await openPanel(playerPage, 'Initiative');
     await expectSingleInitiativeEntry(hostPage, combatantName);
     await expectSingleInitiativeEntry(playerPage, combatantName);
+    await closePanel(hostPage, 'Initiative');
+    await closePanel(playerPage, 'Initiative');
 
     await openPanel(hostPage, 'Chat');
     await openPanel(playerPage, 'Chat');
@@ -521,6 +524,8 @@ test.fixme('two participants converge through gameplay, reconnects, restart, and
     await hostPage.getByRole('button', { name: 'Roll', exact: true }).click();
     await expect(diceRoll(hostPage, recoveryDiceExpression)).toHaveCount(1);
     await expect(diceRoll(playerPage, recoveryDiceExpression)).toHaveCount(1);
+    await closePanel(hostPage, 'Dice');
+    await closePanel(playerPage, 'Dice');
 
     // Repeat the asymmetric failure in the other direction. The host remains
     // active on primary, while the peer rejoins and repairs its ordered cursor
@@ -565,6 +570,7 @@ test.fixme('two participants converge through gameplay, reconnects, restart, and
     await expect(
       playerPage.getByRole('region', { name: 'Scene Manager' }),
     ).toBeVisible();
+    await closePanel(hostPage, 'Lobby');
 
     await openPanel(hostPage, 'Scene');
     const hostAckCount = messagesOfType(hostSockets, 'game-state-ack').length;

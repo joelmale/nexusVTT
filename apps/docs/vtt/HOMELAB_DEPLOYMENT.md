@@ -1,7 +1,7 @@
 # Homelab Deployment Guide
 
 This guide describes the current Nexus VTT homelab deployment. It intentionally
-does not include Docker Swarm, Portainer, or Nginx Proxy Manager as required
+does not include Portainer, or Nginx Proxy Manager as required
 parts of the system.
 
 ## Current Deployment Model
@@ -17,7 +17,7 @@ server.
 - Branch used by CI: `master`
 - Public entrypoint: reverse proxy to the `frontend` container
 - Shared proxy network: `homelab-net` by default
-- Not used: Docker Swarm, Portainer, or `docker stack deploy`
+- Not used: Portainer, or `docker stack deploy`
 
 Dockhand is the source of truth for live stack variables and redeploys. GitHub
 Actions publishes images but does not automatically call Dockhand.

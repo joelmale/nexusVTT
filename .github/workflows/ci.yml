@@ -177,6 +177,62 @@ jobs:
           CI: true
           NODE_OPTIONS: --max-old-space-size=4096
 
+  ui-tests:
+    name: 'VTT: UI layout tests'
+    runs-on: ubuntu-latest
+    needs: lint-and-type
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.candidate_sha || github.sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ github.workspace }}
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build shared contracts
+        run: npm run build:contracts
+        working-directory: ${{ github.workspace }}
+
+      # No Docker, no PostgreSQL, no Redis: this suite stubs the network and
+      # seeds the stores through the dev-only bridge, so it needs nothing but a
+      # Vite dev server, which playwright.config.ts starts itself.
+      #
+      # --workers: `workers` is a top-level Playwright option, so the ui
+      # project's own `fullyParallel: true` cannot raise it off the 1 the smoke
+      # suite needs. Measured on this suite: 1m16s serial vs 30s at 4.
+      #
+      # --retries=0 is REQUIRED, not a tuning choice. tests/ui/panel-cycle-crash
+      # uses test.fail() to assert a live renderer bug still reproduces. Under
+      # the shared retries a run where it does not reproduce gets retried until
+      # it does, so the day the bug is fixed CI would hide it.
+      - name: Run UI layout tests
+        run: npm run test:ui -- --workers=4 --retries=0
+        env:
+          CI: true
+
+      - name: Upload Playwright diagnostics
+        uses: actions/upload-artifact@v7
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-ui-report
+          path: |
+            apps/vtt/playwright-report/
+            apps/vtt/test-results/e2e/
+          if-no-files-found: ignore
+          retention-days: 14
+
   asset-service-tests:
     name: 'VTT: asset-service tests'
     runs-on: ubuntu-latest
@@ -541,6 +597,7 @@ jobs:
       - changes
       - lint-and-type
       - unit-tests
+      - ui-tests
       - asset-service-tests
       - integration-tests
       - e2e-smoke
@@ -560,6 +617,7 @@ jobs:
           CHANGES_RESULT: ${{ needs.changes.result }}
           LINT_RESULT: ${{ needs.lint-and-type.result }}
           UNIT_RESULT: ${{ needs.unit-tests.result }}
+          UI_RESULT: ${{ needs.ui-tests.result }}
           ASSET_RESULT: ${{ needs.asset-service-tests.result }}
           INTEGRATION_RESULT: ${{ needs.integration-tests.result }}
           E2E_RESULT: ${{ needs.e2e-smoke.result }}
@@ -570,7 +628,7 @@ jobs:
           CANDIDATE_RESULT: ${{ needs.candidate-images.result }}
         run: |
           for result in \
-            "$CHANGES_RESULT" "$LINT_RESULT" "$UNIT_RESULT" \
+            "$CHANGES_RESULT" "$LINT_RESULT" "$UNIT_RESULT" "$UI_RESULT" \
             "$ASSET_RESULT" "$INTEGRATION_RESULT" "$E2E_RESULT" \
             "$DOCS_RESULT"; do
             if [[ "$result" != 'success' ]]; then

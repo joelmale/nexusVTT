@@ -445,8 +445,8 @@ and Codex were clean at baseline.
     recorded in root scripts, Codex CI, and Dependabot.
 20. Until Phase 3 creates and validates `deploy/homelab/compose.yaml`, root
     production documentation and Make targets explicitly block use of the
-    VTT component Compose file with Dockhand or Swarm. Unsafe deploy, push,
-    Swarm removal/status, production log, and production shell targets were
+    VTT component Compose file with Dockhand. Unsafe deploy, push,
+    removal/status, production log, and production shell targets were
     removed while local development commands remain.
 
 ## Ownership and delegation wave 1
@@ -699,7 +699,7 @@ Application/build engineer (GPT-5.6 Terra, medium):
 Inventory/mechanical/documentation worker (GPT-5.6 Luna, medium):
 
 - Objective: remove unsafe operator guidance that presents the component-local
-  VTT Compose file as the production/Dockhand/Swarm definition. Acceptance
+  VTT Compose file as the production/Dockhand definition. Acceptance
   requires prominent local-only labeling, removal/blocking of dangerous
   production commands, and deterministic stale-reference checks.
 - Exclusive write ownership: root `README.md`, root `DEPLOYMENT.md`, and root

@@ -57,6 +57,7 @@
     "test:integration": "vitest run tests/integration",
     "test:asset-service": "npm test --workspace asset-service",
     "test:e2e": "node scripts/run-e2e-smoke.js",
+    "test:ui": "playwright test --project=ui",
     "test:e2e:headed": "node scripts/run-e2e-smoke.js --headed",
     "test:e2e:local": "playwright test",
     "test:e2e:install": "playwright install chromium",
