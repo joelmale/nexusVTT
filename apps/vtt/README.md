@@ -140,9 +140,7 @@ See the [Testing Guide](../docs/vtt/developer/testing.md).
 Production is deployed via Dockhand using `deploy/homelab/compose.yaml` at the
 repository root.
 
-> `apps/vtt/docker/docker-compose.yml` is for local and component development
-> only. It is not the production stack and should not be used in Dockhand or
-> Swarm.
+> only. It is not the production stack and should not be used for production deployment.
 
 See [DEPLOYMENT.md](../../DEPLOYMENT.md) and
 [NexusCodex Homelab Deployment](../docs/codex/operations/nexuscodex-homelab.md)

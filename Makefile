@@ -13,7 +13,7 @@ help:
 	@echo ""
 	@echo "Production:"
 	@echo "  Production targets are intentionally unavailable until Phase 3 is complete."
-	@echo "  Do not use apps/vtt/docker/docker-compose.yml with Dockhand or Swarm."
+	@echo "  Do not use apps/vtt/docker/docker-compose.yml with Dockhand or for production deployment."
 	@echo ""
 	@echo "Utilities:"
 	@echo "  make clean        - Clean up local development volumes and images"

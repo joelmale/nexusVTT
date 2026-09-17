@@ -1,6 +1,6 @@
 # External Storage Notes
 
-This file replaces an older Docker Swarm/NFS deployment guide. Nexus VTT now
+This file replaces an older Docker/NFS deployment guide. Nexus VTT now
 runs as a Dockhand-managed Docker Compose stack on a single Docker Engine host.
 
 ## Current Recommendation

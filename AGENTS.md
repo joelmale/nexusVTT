@@ -296,7 +296,7 @@ See `apps/docs/vtt/adr/0002-shared-character-creator.md`.
 
 ## Deployment & Production
 
-- **Docker Swarm**: Production deployment with Docker Swarm orchestration.
+- **Docker**: Production deployment with a single Docker server.
 - **NFS Storage**: Persistent storage using NFS shares for data durability.
 - **Health Checks**: `/health` is the frontend nginx probe; use
   `/api/system/health` for backend database and realtime-coordinator readiness.
@@ -434,9 +434,9 @@ See `apps/docs/vtt/adr/0002-shared-character-creator.md`.
   - Release artifacts include Docker images and npm packages
 - **Environment Management**:
   - Development: Local Docker Compose setup
-  - Staging: Separate Docker Swarm cluster
-  - Production: Production Docker Swarm with NFS storage
-  - Environment variables managed through Docker secrets
+  - Staging: Separate single Docker server
+  - Production: Production single Docker server with NFS storage
+  - Environment variables managed through Docker Compose or env files
 - **Documentation**: Update relevant docs when changing APIs or behavior.
 - **Testing Requirements**: All new features must include unit tests; integration tests required for database/API changes.
 - **Code Review Process**:
@@ -451,9 +451,9 @@ See `apps/docs/vtt/adr/0002-shared-character-creator.md`.
   - Release artifacts include Docker images and npm packages
 - **Environment Management**:
   - Development: Local Docker Compose setup
-  - Staging: Separate Docker Swarm cluster
-  - Production: Production Docker Swarm with NFS storage
-  - Environment variables managed through Docker secrets
+  - Staging: Separate single Docker server
+  - Production: Production single Docker server with NFS storage
+  - Environment variables managed through Docker Compose or env files
 - **Code Review Process**:
   - Pull requests require at least one approving review before merge
   - Use draft PRs for work-in-progress changes
@@ -466,7 +466,7 @@ See `apps/docs/vtt/adr/0002-shared-character-creator.md`.
   - Release artifacts include Docker images and npm packages
 - **Environment Management**:
   - Development: Local Docker Compose setup
-  - Staging: Separate Docker Swarm cluster
-  - Production: Production Docker Swarm with NFS storage
-  - Environment variables managed through Docker secrets
+  - Staging: Separate single Docker server
+  - Production: Production single Docker server with NFS storage
+  - Environment variables managed through Docker Compose or env files
 ````

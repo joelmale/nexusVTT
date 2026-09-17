@@ -109,7 +109,7 @@ Use [semantic versioning](https://semver.org): `vMAJOR.MINOR.PATCH`
 The `docker-compose.yml` reads `VERSION` from the environment. To pin to a specific release:
 
 ```bash
-# On the swarm manager node
+# On the docker server
 VERSION=v1.2.0 docker stack deploy -c apps/vtt/docker/docker-compose.yml nexus-vtt2
 ```
 

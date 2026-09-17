@@ -130,30 +130,25 @@ start_dev() {
     echo "To stop:     docker-compose -f docker-compose.dev.yml down"
 }
 
-# Deploy to Swarm
-deploy_swarm() {
-    print_header "Deploying to Docker Swarm"
+# Deploy to Docker
+deploy_docker() {
+    print_header "Deploying to Docker"
     
-    # Check if Swarm is initialized
-    if docker info | grep -q "Swarm: active"; then
-        print_success "Swarm is active"
-    else
-        print_warning "Swarm is not initialized. Initializing now..."
-        docker swarm init || {
-            print_error "Failed to initialize Swarm"
-            exit 1
-        }
+    # Check if Docker is running
+    if ! docker info > /dev/null 2>&1; then
+        print_error "Docker is not running"
+        exit 1
     fi
     
     # Deploy stack
-    docker stack deploy -c docker-compose.yml nexus || {
+    docker compose -f docker-compose.yml up -d || {
         print_error "Failed to deploy stack"
         exit 1
     }
     
     print_success "Stack deployed"
     echo ""
-    echo "Check status with: docker stack services nexus"
+    echo "Check status with: docker compose ps"
 }
 
 # Main menu
@@ -163,7 +158,7 @@ show_menu() {
     echo "2) Setup environment"
     echo "3) Build Docker images"
     echo "4) Start development environment"
-    echo "5) Deploy to Swarm (production)"
+    echo "5) Deploy to Docker (production)"
     echo "6) Full setup (1-4)"
     echo "0) Exit"
     echo ""
@@ -174,7 +169,7 @@ show_menu() {
         2) setup_environment ;;
         3) build_images ;;
         4) start_dev ;;
-        5) deploy_swarm ;;
+        5) deploy_docker ;;
         6) 
             check_prerequisites
             setup_environment
@@ -198,7 +193,7 @@ if [ "$1" == "--help" ] || [ "$1" == "-h" ]; then
     echo "Options:"
     echo "  --dev       Start development environment"
     echo "  --build     Build Docker images"
-    echo "  --deploy    Deploy to Docker Swarm"
+    echo "  --deploy    Deploy to Docker"
     echo "  --full      Run full setup"
     echo "  --help      Show this help message"
     echo ""
@@ -208,7 +203,7 @@ elif [ "$1" == "--dev" ]; then
 elif [ "$1" == "--build" ]; then
     build_images
 elif [ "$1" == "--deploy" ]; then
-    deploy_swarm
+    deploy_docker
 elif [ "$1" == "--full" ]; then
     check_prerequisites
     setup_environment

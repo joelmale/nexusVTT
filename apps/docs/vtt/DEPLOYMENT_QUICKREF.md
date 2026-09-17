@@ -13,7 +13,7 @@ deployment.
 - GitHub Actions publishes images from `.github/workflows/ci.yml`.
 - `main` is the CI branch.
 - Dockhand redeploys the stack; GitHub Actions does not call Dockhand.
-- Docker Swarm and Portainer are not part of the current deployment.
+- Portainer is not part of the current deployment.
 
 ## Deploy Latest
 

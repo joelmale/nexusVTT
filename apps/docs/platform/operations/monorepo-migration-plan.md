@@ -150,7 +150,7 @@ Use a dedicated migration checkout and branch such as
    example `forge/v1.5.3`; retain a source-SHA/import mapping. Old-path file
    history may require following the imported source ancestry explicitly.
 4. Keep source license notices and scoped AGENTS instructions. Reconcile root
-   rules with actual Compose deployment; inherited Swarm assumptions are stale.
+   rules with actual Compose deployment; inherited assumptions are stale.
 5. Keep imported `.github` content as reference only until ported to root
    workflows. GitHub does not activate workflows nested under applications.
 6. Preserve each installation root and lockfile. Use root wrapper commands with
@@ -240,7 +240,7 @@ changes and no application-schema change is hidden in an entrypoint.
 
 Schedule a maintenance window outside an active game. One host and one replica
 per service means a deployment may interrupt sessions; do not promise zero
-downtime from the existing Swarm-style `update_config` fields.
+downtime from the existing `update_config` fields.
 
 1. Recheck live state and capture a fresh backup plus previous image digests.
 2. Configure the Git source to the existing VTT repository, `master`, and
@@ -378,7 +378,7 @@ Track these observed issues separately so the source move remains reviewable:
   Add and test an intentional Compose restart policy in its own operations PR.
 - All live services share `homelab-net`; isolate internal dependencies in a
   separate network change. Keep unauthenticated doc-api private throughout.
-- Replace misleading Swarm placement/update settings with verified single-host
+- Replace misleading placement/update settings with verified single-host
   Compose behavior, preserving effective resource and restart settings.
 - Reconcile Codex startup schema mutation and migration history before enabling
   unattended releases. Keep VTT durability migrations owned by VTT.

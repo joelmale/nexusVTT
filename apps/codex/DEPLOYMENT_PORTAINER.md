@@ -1,12 +1,12 @@
 # NexusCodex - Portainer Deployment Guide
 
-This guide covers deploying NexusCodex to a Docker Swarm cluster managed by Portainer, using pre-built images from GitHub Container Registry (GHCR).
+This guide covers deploying NexusCodex to a single Docker server managed by Portainer, using pre-built images from GitHub Container Registry (GHCR).
 
 ---
 
 ## 📋 Prerequisites
 
-- Docker Swarm cluster (1+ nodes)
+- Docker server
 - Portainer installed and configured
 - GitHub account with NexusCodex repository
 - Domain name (optional, for production URLs)
@@ -17,7 +17,7 @@ This guide covers deploying NexusCodex to a Docker Swarm cluster managed by Port
 
 **Flow:**
 ```
-Code Push → GitHub Actions → Build Images → Push to GHCR → Portainer Pulls → Deploy to Swarm
+Code Push → GitHub Actions → Build Images → Push to GHCR → Portainer Pulls → Deploy to Docker
 ```
 
 **Why This Approach:**
@@ -129,7 +129,7 @@ If you prefer private images, you'll need to configure Portainer registry authen
 
 4. **Deploy:**
    - Click **"Deploy the stack"**
-   - Portainer will pull images from GHCR and deploy to swarm
+   - Portainer will pull images from GHCR and deploy to Docker
 
 ### Method B: Using Portainer API
 
@@ -156,7 +156,7 @@ curl -X POST "https://your-portainer.com/api/stacks?type=1&method=repository&end
 ## Step 4: Verify Deployment
 
 ### Check Service Status:
-1. In Portainer: **Swarm** → **Services**
+1. In Portainer: **Stacks** → **Containers**
 2. Verify all services are running:
    - ✅ nexuscodex_doc-api (2 replicas)
    - ✅ nexuscodex_doc-processor (2 replicas)
@@ -324,7 +324,7 @@ Add Traefik or nginx reverse proxy:
     image: traefik:v2.10
     command:
       - --providers.docker=true
-      - --providers.docker.swarmMode=true
+
       - --entrypoints.web.address=:80
       - --entrypoints.websecure.address=:443
       - --certificatesresolvers.letsencrypt.acme.email=your@email.com

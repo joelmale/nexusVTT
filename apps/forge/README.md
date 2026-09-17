@@ -132,8 +132,8 @@ docker build -t nexus-forge .
 # Run locally
 docker run -p 8080:80 nexus-forge
 
-# Deploy to Swarm
-docker stack deploy -c docker-compose.yml character-forge
+# Deploy
+docker compose -f docker-compose.yml up -d
 ```
 
 **🚀 Build Optimizations:**
@@ -201,7 +201,7 @@ NexusForge/
 │   └── deploy.yml                      # CI/CD pipeline
 ├── Dockerfile                          # Multi-stage Docker build
 ├── nginx.conf                          # Nginx configuration for SPA
-├── docker-compose.yml                  # Docker Swarm stack definition
+├── docker-compose.yml                  # Docker Compose stack definition
 ├── vite.config.ts                      # Vite build configuration
 ├── tailwind.config.js                  # Tailwind CSS configuration
 ├── package.json                        # Dependencies and scripts

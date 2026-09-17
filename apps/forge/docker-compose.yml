@@ -25,8 +25,7 @@ services:
         reservations:
           cpus: '0.5'
           memory: 256M
-      labels:
-        - "com.docker.swarm.service.name=nexus-forge"
+
 
 
 networks:
