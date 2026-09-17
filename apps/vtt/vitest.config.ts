@@ -56,8 +56,10 @@ export default defineConfig({
         'src/**/*.d.ts',
         '**/*.d.ts',
 
-        // Server-side code (tested separately if needed)
-        'server/',
+        // Server-side code IS measured (tests live in tests/unit/server/).
+        // Only non-logic server files are excluded.
+        'server/migrations/',
+        'server/types.ts',
 
         // Infrastructure and tooling
         '.github/',
@@ -105,13 +107,22 @@ export default defineConfig({
         '**/*.stories.tsx',
       ],
       thresholds: {
-        // Progressive thresholds - gradually increase as test coverage improves
-        // Current coverage: ~21% (as of Dec 2025)
-        // Target: Prevent regression and encourage incremental improvement
-        lines: 20,
-        functions: 18,
-        branches: 16,
-        statements: 20,
+        // Ratchet: these sit just under the measured coverage of the current
+        // suite, so the gate fails when coverage REGRESSES rather than
+        // describing an aspiration. Raise them whenever real coverage rises.
+        //
+        // Measured 2026-09-17 (server/ now included): statements 38.3,
+        // branches 31.9, functions 37.0, lines 38.6.
+        //
+        // Target is 40/40/40/40. Statements, functions and lines are within
+        // ~2-3 points; branches is the gap (~750 more branch outcomes needed).
+        // NOTE: these keys must stay flat. Vitest treats an unknown key such
+        // as Jest's `global: { ... }` as a file glob, matches nothing, and
+        // enforces nothing -- verified by probe on 2026-09-17.
+        lines: 38,
+        functions: 36,
+        branches: 31,
+        statements: 38,
       },
     },
     include: [

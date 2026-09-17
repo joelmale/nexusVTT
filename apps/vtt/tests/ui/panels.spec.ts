@@ -61,10 +61,69 @@ test('clicking a buried panel raises it above the others', async ({ page }) => {
   const box = await chat.boundingBox();
   expect(box).not.toBeNull();
 
+  const dice = page.getByRole('dialog', { name: 'Dice', exact: true });
+  const diceBox = await dice.boundingBox();
+  expect(diceBox).not.toBeNull();
+
+  // In the overlap region, Dice is on top before Chat is clicked
+  expect(await panelAtPoint(page, diceBox!.x + 50, diceBox!.y + 50)).toBe('Dice');
+
   // Title bar: past the 12px corner resize handle, left of the action buttons.
   await chat.click({ position: { x: 60, y: 18 } });
 
-  expect(await panelAtPoint(page, box!.x + 60, box!.y + 18)).toBe('Chat');
+  // Now Chat should be on top in the overlap region!
+  expect(await panelAtPoint(page, diceBox!.x + 50, diceBox!.y + 50)).toBe('Chat');
+});
+
+test('clicking the body of a buried panel raises it above the others', async ({ page }) => {
+  await gotoGame(page);
+
+  await openPanel(page, 'Chat');
+  await openPanel(page, 'Dice');
+
+  const chat = page.getByRole('dialog', { name: 'Chat', exact: true });
+  const dice = page.getByRole('dialog', { name: 'Dice', exact: true });
+  const diceBox = await dice.boundingBox();
+  expect(diceBox).not.toBeNull();
+
+  // Chat's right edge sticks out past Dice (Dice is 380 wide and offset left by 28px).
+  // Click on Chat's body in the visible sticking-out area.
+  const chatBox = await chat.boundingBox();
+  expect(chatBox).not.toBeNull();
+
+  // Click on Chat body (e.g. y = 150, near right edge of Chat)
+  const clickX = chatBox!.x + chatBox!.width - 10;
+  const clickY = chatBox!.y + 150;
+  expect(await panelAtPoint(page, clickX, clickY)).toBe('Chat');
+
+  await page.mouse.click(clickX, clickY);
+
+  // Now Chat should be on top in the overlap region
+  expect(await panelAtPoint(page, diceBox!.x + 50, diceBox!.y + 50)).toBe('Chat');
+});
+
+test('clicking the dock tab of an already-open buried panel brings it to the front without closing it', async ({ page }) => {
+  await gotoGame(page);
+
+  await openPanel(page, 'Chat');
+  await openPanel(page, 'Dice');
+
+  const dice = page.getByRole('dialog', { name: 'Dice', exact: true });
+  const diceBox = await dice.boundingBox();
+  expect(diceBox).not.toBeNull();
+
+  // Dice is on top in overlap region
+  expect(await panelAtPoint(page, diceBox!.x + 50, diceBox!.y + 50)).toBe('Dice');
+
+  // Click Chat in the dock
+  await page.getByRole('tablist', { name: 'Panels' }).hover();
+  await page.getByRole('tab', { name: 'Chat', exact: true }).click();
+
+  // Chat should STILL be open!
+  await expect(page.getByRole('dialog', { name: 'Chat', exact: true })).toBeVisible();
+
+  // And Chat should now be on top in the overlap region!
+  expect(await panelAtPoint(page, diceBox!.x + 50, diceBox!.y + 50)).toBe('Chat');
 });
 
 test('Escape closes only the topmost panel', async ({ page }) => {

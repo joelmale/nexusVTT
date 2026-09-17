@@ -195,6 +195,9 @@ function App() {
         height: '100%',
         display: 'flex',
         flexDirection: 'column',
+        overflow: 'hidden',
+        position: 'relative',
+        background: '#000000',
       }}
     >
       {loading && (
@@ -210,6 +213,7 @@ function App() {
             justifyContent: 'center',
             backgroundColor: '#111827',
             color: 'white',
+            zIndex: 10,
           }}
         >
           Loading Generator...
@@ -218,7 +222,14 @@ function App() {
       <iframe
         ref={iframeRef}
         src={iframeSrc}
-        style={{ flex: 1, border: 'none' }}
+        style={{
+          width: '100%',
+          height: '100%',
+          flex: 1,
+          minHeight: 0,
+          border: 'none',
+          display: 'block',
+        }}
         sandbox="allow-scripts allow-same-origin allow-forms allow-downloads"
         title="Generator Content"
         onLoad={() => setLoading(false)}

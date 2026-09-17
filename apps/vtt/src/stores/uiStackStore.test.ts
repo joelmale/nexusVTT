@@ -69,6 +69,42 @@ describe('uiStackStore', () => {
     expect(useUIStackStore.getState().activePanels).not.toContain('dice');
   });
 
+  describe('selectPanel', () => {
+    it('opens an inactive panel and places it at the top of the stack', () => {
+      useUIStackStore.setState({ activePanels: [], panelStack: [...DEFAULT_ORDER] });
+
+      useUIStackStore.getState().selectPanel('dice');
+      expect(useUIStackStore.getState().activePanels).toEqual(['dice']);
+      const stack = useUIStackStore.getState().panelStack;
+      expect(stack[stack.length - 1]).toBe('dice');
+    });
+
+    it('brings an open buried panel to the front without closing it', () => {
+      useUIStackStore.setState({
+        activePanels: ['chat', 'dice'],
+        panelStack: [...DEFAULT_ORDER, 'chat', 'dice'],
+      });
+
+      // chat is open but dice is topmost. Selecting chat must raise it to top of stack.
+      useUIStackStore.getState().selectPanel('chat');
+      expect(useUIStackStore.getState().activePanels).toContain('chat');
+      expect(useUIStackStore.getState().activePanels).toContain('dice');
+      const stack = useUIStackStore.getState().panelStack;
+      expect(stack[stack.length - 1]).toBe('chat');
+    });
+
+    it('closes an open panel only if it is already topmost', () => {
+      useUIStackStore.setState({
+        activePanels: ['chat', 'dice'],
+        panelStack: [...DEFAULT_ORDER, 'chat', 'dice'],
+      });
+
+      // dice is already topmost. Selecting dice must close it.
+      useUIStackStore.getState().selectPanel('dice');
+      expect(useUIStackStore.getState().activePanels).toEqual(['chat']);
+    });
+  });
+
   describe('stackZIndex — ADR-0004 chrome band clamp', () => {
     it('assigns ascending z by stack position starting at the chrome base', () => {
       expect(stackZIndex(DEFAULT_ORDER, 'gameToolbar')).toBe(CHROME_Z_BASE);

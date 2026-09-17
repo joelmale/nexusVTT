@@ -55,6 +55,7 @@ export const GameUI: React.FC = () => {
 
   const activePanels = useUIStackStore(state => state.activePanels);
   const togglePanel = useUIStackStore(state => state.togglePanel);
+  const selectPanel = useUIStackStore(state => state.selectPanel);
 
   // Immersive mode (press F) and the in-app reduced-motion setting. Both
   // mirror a flag onto <html> so CSS can reach portal-mounted chrome too.
@@ -168,7 +169,7 @@ export const GameUI: React.FC = () => {
       <PanelDock
         panels={panels}
         activePanels={activePanels}
-        onSelect={togglePanel}
+        onSelect={selectPanel}
       />
 
       <ScenePill scenes={scenes} activeSceneId={activeScene?.id || ''} />

@@ -313,20 +313,16 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       {['dungeon', 'world', 'cave', 'city', 'dwelling'].includes(
         activeGenerator,
       ) && (
-        <iframe
-          ref={iframeRef}
-          key={`generator-hub-${activeGenerator}`}
-          src={`${hubUrl}?generator=${activeGenerator}&rasterize=${forceRasterize}`}
-          className="generator-iframe"
-          sandbox="allow-scripts allow-same-origin allow-forms allow-downloads"
-          style={{
-            width: '100%',
-            height: '100%',
-            border: 'none',
-            flex: 1,
-          }}
-          title="Generator Hub"
-        />
+        <div className="generator-iframe-container">
+          <iframe
+            ref={iframeRef}
+            key={`generator-hub-${activeGenerator}`}
+            src={`${hubUrl}?generator=${activeGenerator}&rasterize=${forceRasterize}`}
+            className="generator-iframe"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-downloads"
+            title="Generator Hub"
+          />
+        </div>
       )}
     </div>
   );

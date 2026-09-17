@@ -4,7 +4,12 @@ import styles from './PanelDock.module.css';
 import { WorkspaceMenu } from './WorkspaceMenu';
 
 import { useDraggablePanel } from '@/hooks/useDraggablePanel';
-import { useUIStackStore, useStackZIndex, useFocusMode } from '@/stores/uiStackStore';
+import {
+  useUIStackStore,
+  useStackZIndex,
+  useFocusMode,
+  topmostPanel,
+} from '@/stores/uiStackStore';
 
 export interface PanelDockPanel<T extends string = string> {
   id: T;
@@ -43,6 +48,9 @@ export function PanelDock<T extends string = string>({
   const zIndex = useStackZIndex('panelDock');
   const focusMode = useFocusMode();
   const bringToFront = useUIStackStore((state) => state.bringToFront);
+  const panelStack = useUIStackStore((state) => state.panelStack);
+  const activePanelsList = useUIStackStore((state) => state.activePanels);
+  const topmostId = topmostPanel(panelStack, activePanelsList);
 
   // ── Hover expand / collapse ──
   const handleMouseEnter = useCallback(() => {
@@ -147,6 +155,7 @@ export function PanelDock<T extends string = string>({
                 role="tab"
                 className={styles.iconButton}
                 data-active={isActive ? 'true' : undefined}
+                data-topmost={isActive && panel.id === topmostId ? 'true' : undefined}
                 aria-pressed={isActive}
                 aria-selected={isActive}
                 aria-label={panel.label}

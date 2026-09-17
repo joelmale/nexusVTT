@@ -43,6 +43,12 @@ export interface UIStackState {
   bringToFront: (id: PanelId) => void;
   resetLayout: () => void;
   togglePanel: (id: PanelId) => void;
+  /**
+   * Dock/launcher interaction: if the panel is not open, open it.
+   * If already open but buried behind others, bring it to the front.
+   * If already open and topmost, toggle it closed.
+   */
+  selectPanel: (id: PanelId) => void;
   popOutPanel: (id: PanelId) => void;
   restorePanel: (id: PanelId) => void;
   setFocusMode: (on: boolean) => void;
@@ -105,7 +111,11 @@ export function stackZIndex(stack: PanelId[], id: PanelId): number {
   // Short stacks keep the exact 1:1 mapping they had before compression.
   if (lastIndex <= span) return CHROME_Z_BASE + index;
 
-  return CHROME_Z_BASE + Math.round((index / lastIndex) * span);
+  // For deep stacks, guarantee the frontmost item strictly gets CHROME_Z_MAX
+  // while all lower items compress strictly into [CHROME_Z_BASE, CHROME_Z_MAX - 1].
+  if (index === lastIndex) return CHROME_Z_MAX;
+
+  return CHROME_Z_BASE + Math.round((index / (lastIndex - 1)) * (span - 1));
 }
 
 // Helper to load stack from localStorage
@@ -115,7 +125,10 @@ const loadStack = (): PanelId[] => {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
-        return parsed;
+        const unique = Array.from(
+          new Set(parsed.filter((item): item is string => typeof item === 'string')),
+        );
+        if (unique.length > 0) return unique;
       }
     }
   } catch {
@@ -298,6 +311,20 @@ export const useUIStackStore = create<UIStackState>((set) => ({
       
       return { activePanels: newActive, panelStack: newStack };
     }),
+
+  selectPanel: (id: PanelId) => {
+    const state = useUIStackStore.getState();
+    const isAlreadyOpen = state.activePanels.includes(id);
+    const isTopmost =
+      isAlreadyOpen &&
+      topmostPanel(state.panelStack, state.activePanels) === id;
+
+    if (isAlreadyOpen && !isTopmost) {
+      state.bringToFront(id);
+    } else {
+      state.togglePanel(id);
+    }
+  },
 
   popOutPanel: (id: PanelId) =>
     set((state) => {

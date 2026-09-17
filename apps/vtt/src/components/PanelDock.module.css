@@ -161,6 +161,13 @@
 .iconButton[data-active='true'] {
   background: var(--surface-hover);
   box-shadow: inset 0 0 0 2px var(--color-primary);
+  opacity: 0.85;
+}
+
+.iconButton[data-topmost='true'] {
+  background: var(--surface-hover);
+  box-shadow: inset 0 0 0 2px var(--color-primary), 0 0 8px var(--color-primary-transparent, rgba(99, 102, 241, 0.4));
+  opacity: 1;
 }
 
 .iconButton:focus-visible {

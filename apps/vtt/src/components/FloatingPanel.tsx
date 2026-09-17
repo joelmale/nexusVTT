@@ -285,6 +285,9 @@ export const FloatingPanel: React.FC<FloatingPanelProps> = ({
           height: isCollapsed ? 'auto' : size.height,
         }}
         onPointerDownCapture={() => bringToFront(panelId)}
+        onMouseDownCapture={() => bringToFront(panelId)}
+        onClickCapture={() => bringToFront(panelId)}
+        onFocusCapture={() => bringToFront(panelId)}
       >
         {/* ── Resize handles (edges + corners) ── */}
         <div className={styles.resizeLeft} style={{ cursor: edgeCursor('left') }} onPointerDown={onResizeStart('left')} />
