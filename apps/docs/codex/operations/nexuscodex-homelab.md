@@ -19,9 +19,12 @@ doc-api/doc-processor -> codex-postgres
 ```
 
 The stack contains one replica each of `doc-api`, `doc-processor`, and
-`doc-websocket`, plus the internal-only `admin-ui` and `dm-ui`. The dependency
-services are deliberately prefixed with `codex-` so they cannot collide with
-NexusVTT's own PostgreSQL and Redis services.
+`doc-websocket`. The static user interfaces (`dm-ui` at `/codex-dm/` and
+`admin-ui` at `/codex-admin/`, along with Character Forge at `/forge/`) are
+hosted directly from disk by the consolidated `nexus-vtt2-frontend` gateway,
+eliminating redundant internal Nginx containers and exposed debug ports (`3080`,
+`3081`). The dependency services are deliberately prefixed with `codex-` so they
+cannot collide with NexusVTT's own PostgreSQL and Redis services.
 
 Persistent data uses the following named volumes:
 

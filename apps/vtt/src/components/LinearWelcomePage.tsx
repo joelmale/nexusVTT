@@ -12,6 +12,7 @@ import { useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
 import { useQuickStart } from '@/hooks/useQuickStart';
 import { PopoverMenu } from './PopoverMenu';
+import { AboutModal, AboutTriggerButton } from './AboutModal';
 import { useShallow } from 'zustand/react/shallow';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.webp';
 import { isDevMode } from '@/utils/devMode';
@@ -115,6 +116,7 @@ export const LinearWelcomePage: React.FC = () => {
   const [authSuccess, setAuthSuccess] = useState<string | null>(null);
   const emailInputRef = React.useRef<HTMLInputElement | null>(null);
   const buildVersion = import.meta.env.VITE_BUILD_VERSION ?? 'dev';
+  const [showAboutModal, setShowAboutModal] = useState(false);
 
   const configuredHubUrl =
     import.meta.env.VITE_GENERATOR_HUB_URL ||
@@ -514,8 +516,17 @@ export const LinearWelcomePage: React.FC = () => {
 
       <div className="welcome-content">
         <div className="welcome-panel glass-panel">
-          <div className="build-badge" aria-label="Build version">
-            Build {buildVersion}
+          <div className="lobby-footer-bar">
+            <div
+              className="build-badge"
+              aria-label="Build version"
+              onClick={() => setShowAboutModal(true)}
+              style={{ cursor: 'pointer' }}
+              title="Click to view system information and release notes"
+            >
+              Build {buildVersion}
+            </div>
+            <AboutTriggerButton onClick={() => setShowAboutModal(true)} />
           </div>
           {/* Account Menu - Upper Right */}
           <div className="account-menu">
@@ -1117,6 +1128,11 @@ export const LinearWelcomePage: React.FC = () => {
           )}
         </div>
       </div>
+
+      <AboutModal
+        isOpen={showAboutModal}
+        onClose={() => setShowAboutModal(false)}
+      />
     </div>
   );
 };

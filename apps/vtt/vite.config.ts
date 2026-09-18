@@ -12,6 +12,7 @@ export default defineConfig(({ command, mode }) => {
   const isDev = command === 'serve';
   const isAnalyze = mode === 'analyze';
   return {
+    base: '/',
     plugins: [
       tailwindcss(), // Tailwind v4 Vite plugin (must be first)
       react(),

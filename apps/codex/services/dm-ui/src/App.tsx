@@ -13,14 +13,7 @@ import { JournalsPage} from './pages/JournalsPage';
 import { LorePage } from './pages/LorePage';
 import { CodexPage } from './pages/CodexPage';
 
-const basename =
-  typeof window !== 'undefined' && window.location.pathname.startsWith('/codex-dm')
-    ? '/codex-dm'
-    : typeof window !== 'undefined' && window.location.pathname.startsWith('/codex')
-    ? '/codex'
-    : (import.meta.env.BASE_URL && import.meta.env.BASE_URL !== '/')
-    ? import.meta.env.BASE_URL
-    : undefined;
+const basename = import.meta.env.BASE_URL || '/codex-dm/';
 
 function App() {
   return (

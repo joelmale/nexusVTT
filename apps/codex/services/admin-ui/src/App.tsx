@@ -15,12 +15,7 @@ import Layout from './components/Layout'
 
 const queryClient = new QueryClient()
 
-const basename =
-  typeof window !== 'undefined' && window.location.pathname.startsWith('/codex-admin')
-    ? '/codex-admin'
-    : (import.meta.env.BASE_URL && import.meta.env.BASE_URL !== '/')
-    ? import.meta.env.BASE_URL
-    : undefined
+const basename = import.meta.env.BASE_URL || '/codex-admin/'
 
 function App() {
   return (

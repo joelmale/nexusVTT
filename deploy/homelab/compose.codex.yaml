@@ -81,25 +81,3 @@ services:
       redis:
         condition: service_healthy
     restart: on-failure
-
-  admin-ui:
-    image: ghcr.io/joelmale/nexuscodex-admin-ui:main-4c583c2
-    environment:
-      VITE_DOC_API_URL: /api
-      VITE_WEBSOCKET_URL: /ws
-    networks:
-      - homelab-net
-    depends_on:
-      - doc-api
-    restart: on-failure
-
-  dm-ui:
-    image: ghcr.io/joelmale/nexuscodex-dm-ui:main-4c583c2
-    environment:
-      VITE_DOC_API_URL: /api
-      VITE_WEBSOCKET_URL: /ws
-    networks:
-      - homelab-net
-    depends_on:
-      - doc-api
-    restart: on-failure

@@ -25,6 +25,7 @@ const getVersion = () => {
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  base: '/forge/',
   plugins: [
     react(),
     federation({

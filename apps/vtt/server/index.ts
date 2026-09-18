@@ -63,6 +63,7 @@ import { registerApiRoutes } from './routes/api.js';
 import { createAuthRouter } from './routes/auth.routes.js';
 import { createMetricsRouter } from './routes/metrics.routes.js';
 import { createHealthRouter } from './routes/health.routes.js';
+import { createSystemRouter } from './routes/system.routes.js';
 import { createAssetRouter } from './routes/assets.routes.js';
 
 export interface ExpressSessionUser {
@@ -212,6 +213,7 @@ class NexusServer {
     this.setupApiRoutes();
     this.setupMetricsRoutes();
     this.setupHealthRoutes();
+    this.setupSystemRoutes();
     this.setupDocumentRoutes();
     this.setupAssetRoutes();
 
@@ -399,6 +401,16 @@ class NexusServer {
         getSocketManager: () => this.socketManager,
         port: this.port,
         getManifest: () => this.manifestStore.current,
+      }),
+    );
+  }
+
+  private setupSystemRoutes(): void {
+    this.app.use(
+      createSystemRouter({
+        db: this.db,
+        getSocketManager: () => this.socketManager,
+        port: this.port,
       }),
     );
   }

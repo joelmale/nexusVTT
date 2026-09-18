@@ -43,11 +43,18 @@
     inset 0 1px 0 rgba(255, 235, 200, 0.08);
 }
 
-.build-badge {
+.lobby-footer-bar {
   position: absolute;
   left: 1rem;
   bottom: 0.9rem;
   transform: translateY(50px);
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  z-index: 20;
+}
+
+.build-badge {
   padding: 0.2rem 0.6rem;
   border-radius: 999px;
   font-size: 0.7rem;
@@ -56,7 +63,8 @@
   color: rgba(255, 255, 255, 0.7);
   background: rgba(0, 0, 0, 0.35);
   border: 1px solid rgba(255, 255, 255, 0.1);
-  pointer-events: none;
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 /* ========================================================================== BRAND LOGO BUBBLE ========================================================================== */

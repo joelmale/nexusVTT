@@ -30,14 +30,6 @@ services:
       retries: 3
     restart: unless-stopped
 
-  nexus-forge:
-    image: ghcr.io/joelmale/nexus-forge:master-dc49824
-    container_name: nexus-vtt2-forge
-    hostname: nexus-vtt2-forge
-    networks:
-      - homelab-net
-    restart: unless-stopped
-
   frontend:
     image: ghcr.io/joelmale/nexusvtt/frontend:20260917-3754710
     container_name: nexus-vtt2-frontend

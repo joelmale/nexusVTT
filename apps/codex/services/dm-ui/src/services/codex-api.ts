@@ -14,7 +14,7 @@ const runtimeConfig =
 const rawApiUrl =
   runtimeConfig?.DOC_API_URL ||
   import.meta.env.VITE_DOC_API_URL ||
-  '';
+  '/codex-api';
 
 const API_URL = rawApiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
 
