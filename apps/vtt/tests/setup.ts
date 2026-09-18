@@ -9,7 +9,6 @@ import { cleanup } from '@testing-library/react';
 import { afterEach, beforeAll, afterAll, vi } from 'vitest';
 import { config } from 'dotenv';
 import 'fake-indexeddb/auto';
-import { assertTestDatabase } from './integration/assertTestDatabase';
 
 // Load environment variables from .env file for tests
 config();
@@ -171,8 +170,13 @@ global.sessionStorage = sessionStorageMock as unknown as Storage;
 beforeAll(() => {
   process.env.NODE_ENV = 'test';
   process.env.VITE_WS_URL = 'ws://localhost:5001/ws';
-  assertTestDatabase();
 });
+
+// assertTestDatabase() deliberately does NOT run here. It is a destructive-run
+// guard for the suites that truncate tables, and those live under
+// tests/integration. Running it globally made every component unit test warn
+// about a DATABASE_URL it never touches, while giving no extra protection.
+// It is installed by tests/setup.integration.ts via vitest.integration.config.ts.
 
 // Cleanup after all tests
 afterAll(() => {

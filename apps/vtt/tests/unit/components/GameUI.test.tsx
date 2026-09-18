@@ -11,12 +11,32 @@ vi.mock('@/stores/gameStore', () => ({
   useIsHost: vi.fn(() => true),
   useSession: vi.fn(() => ({ user: { id: 'host-1', name: 'Host' } })),
   useSceneState: vi.fn(() => ({ scenes: [{ id: 'scene-1', name: 'Test Scene' }], activeSceneId: 'scene-1' })),
+  // Selector-aware: the real useGameStore is `useGameStore(selector)`, so a
+  // stub that ignores the selector and returns its whole fake state hands
+  // every caller the wrong value. useThemeSync selects settings.colorScheme
+  // and then does string maths on it, which is how that bug surfaced.
   useGameStore: Object.assign(
-    vi.fn(() => ({
-      user: { id: 'host-1', name: 'Host', type: 'host' },
-      leaveRoom: vi.fn(),
-      syncGameStateToServer: vi.fn(),
-    })),
+    vi.fn((selector?: (state: unknown) => unknown) => {
+      const state = {
+        user: { id: 'host-1', name: 'Host', type: 'host' },
+        activeSceneId: 'scene-1',
+        leaveRoom: vi.fn(),
+        syncGameStateToServer: vi.fn(),
+        settings: {
+          theme: 'dark',
+          colorScheme: {
+            id: 'nexus-default',
+            name: 'Nexus Default',
+            primary: '#6366F1',
+            secondary: '#8B5CF6',
+            accent: '#06B6D4',
+            surface: '#1E293B',
+            text: '#F8FAFC',
+          },
+        },
+      };
+      return typeof selector === 'function' ? selector(state) : state;
+    }),
     { getState: vi.fn(() => ({ activeSceneId: 'scene-1' })) }
   ),
   useServerRoomCode: vi.fn(() => 'TEST-123'),

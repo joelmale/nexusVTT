@@ -54,7 +54,7 @@
     "optimize-images": "node scripts/optimize-images.js",
     "test": "vitest run",
     "test:unit": "vitest run tests/unit src",
-    "test:integration": "vitest run tests/integration",
+    "test:integration": "vitest run --config vitest.integration.config.ts",
     "test:asset-service": "npm test --workspace asset-service",
     "test:e2e": "node scripts/run-e2e-smoke.js",
     "test:ui": "playwright test --project=ui",

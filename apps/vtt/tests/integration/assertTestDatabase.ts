@@ -11,20 +11,28 @@ export function assertTestDatabase(): void {
     return;
   }
 
-  // Parse the connection string to check the database name
+  // Parse the connection string to check the database name.
+  //
+  // The parse and the safety check are deliberately separate: wrapping both in
+  // one try/catch meant a perfectly well-formed URL pointing at a PRODUCTION
+  // database was reported as "Invalid DATABASE_URL format", hiding the actual
+  // reason the run was refused.
+  let url: URL;
   try {
-    const url = new URL(dbUrl);
-    const dbName = url.pathname.replace(/^\//, '');
-    const isTestDb = /(^|[_-])test(db)?$/i.test(dbName);
-    if (!isTestDb) {
-      throw new Error(
-        `assertTestDatabase: DATABASE_URL "${dbUrl}" (database: "${dbName}") ` +
-        `does not appear to be a test database. Refusing to run tests to prevent data loss. ` +
-        `Database name must end with 'test' or 'testdb'.`
-      );
-    }
+    url = new URL(dbUrl);
   } catch {
     throw new Error(`assertTestDatabase: Invalid DATABASE_URL format: ${dbUrl}`);
   }
 
+  const dbName = url.pathname.replace(/^\//, '');
+  const isTestDb = /(^|[_-])test(db)?$/i.test(dbName);
+  if (!isTestDb) {
+    throw new Error(
+      `assertTestDatabase: DATABASE_URL "${dbUrl}" (database: "${dbName}") ` +
+      `does not appear to be a test database. Refusing to run tests to prevent data loss. ` +
+      `The database name must be exactly 'test'/'testdb', or end with a ` +
+      `'_'- or '-'-separated 'test'/'testdb' suffix (e.g. 'nexus_test', ` +
+      `'nexus-testdb'). A run-together name such as 'nexustestdb' is rejected.`
+    );
+  }
 }
