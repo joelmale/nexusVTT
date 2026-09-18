@@ -310,8 +310,16 @@ WebSocket messages use event-driven architecture:
 
 **Live path:** `server/socket/SocketManager.ts` receives WebSocket messages and emits typed
 events to registered handlers from `server/socket/handlers/*`. `server/index.ts` wires those
-handlers during startup. The older monolithic routing method in `server/index.ts` is legacy and
-not the active routing path.
+handlers during startup and is now assembly/startup only (~455 lines).
+
+The legacy monolithic routing method and its orphaned callees have been
+removed; `server/index.ts` no longer contains a second, dead copy of the chat,
+dice, host and heartbeat handlers. HTTP routes live in
+`server/routes/{auth,metrics,health,assets}.routes.ts` as `create*Router(deps)`
+factories, and the socket path is split into
+`server/socket/ConnectionLifecycle.ts` (admission, presence, reconnect,
+hibernate/recover) and `server/socket/GameStateCommitService.ts` (the
+commit/ACK/broadcast durability path described in section 5).
 
 ```
 Message received from client
@@ -1067,14 +1075,30 @@ Located alongside implementation:
 
 ## 12. Known Quirks & Important Notes
 
-1. **gameStore is large** (~125KB / ~3,650 lines)
-   - Coordinates session, user, chat, connection, and UI state
+1. **gameStore is still large** (~2,430 lines, down from ~3,660)
+   - Coordinates session, user, connection and UI state
    - Scene domain state is **already extracted** into slices under
      `src/stores/scene/` (background, camera, drawings, fog, grid, props,
      tokens); `gameStore` composes them rather than owning them
+   - Action bodies are **already extracted** into slice factories under
+     `src/stores/game/` (auth, characters, chat, dev, settings, voice, plus
+     `types.ts` and `initialState.ts`). These are slices of the SAME store,
+     not separate stores: only the action bodies moved, so state stays in one
+     object and `getState()` semantics are unchanged. `game/types.ts` exists
+     to break what would otherwise be a type-only import cycle, which
+     `check:cycles` counts.
    - Characters, documents, initiative, tokens, and UI stacking live in their
      own stores — see section 1 for the full list
-   - Remaining split candidates are chat and connection state
+   - **Deliberately NOT split**: the scene/token/prop/drawing/fog actions and
+     `pendingUpdates`/`confirmUpdate`/`rollbackUpdate`, which feed
+     `buildGameStateProjection()` and share a closure created inside
+     `create()`; and session lifecycle/recovery, which cross-cuts all four
+     recovery-state locations in section 6. Splitting either into a separate
+     store would mirror state and give the canonical projection two sources
+     of truth.
+   - Subscribe with a selector. A selectorless `useGameStore()` subscribes to
+     the whole store and re-renders on every `set()`, including every token
+     move and heartbeat.
 
 2. **Room codes are 4 characters**
    - Format: ABCD (uppercase alphanumeric)
