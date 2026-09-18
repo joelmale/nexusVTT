@@ -1,0 +1,85 @@
+services:
+  asset-server:
+    image: ghcr.io/joelmale/nexusvtt/asset-service:20260917-3754710
+    container_name: nexus-vtt2-asset-server
+    hostname: nexus-vtt2-asset-server
+    user: 1000:1000
+    environment:
+      NODE_ENV: production
+      PORT: 5003
+      ASSETS_PATH: /app/static-assets
+      ASSET_SERVICE_SECRET: ${ASSET_SERVICE_SECRET}
+      LIBRARY_DATA_PATH: /app/assets-data
+      LIBRARY_MANIFEST_PATH: /app/assets-data/manifests/manifest-v2.json
+    volumes:
+      - /mnt/docker-nas-vol1/nexusvtt/assets:/app/static-assets/assets
+      - /mnt/docker-nas-vol1/nexusvtt/user-assets:/app/static-assets/users
+      - /mnt/docker-nas-vol1/nexusvtt/library-assets:/app/assets-data
+      - /mnt/docker-nas-vol1/nexusvtt/tmt-seed:/seed/tmt:ro
+    networks:
+      - homelab-net
+      - nexus-internal-net
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'node -e "const port = process.env.PORT || 5003; require(''http'').get(''http://127.0.0.1:''
+          + port + ''/health'', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on(''error'',
+          () => process.exit(1))"'
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  nexus-forge:
+    image: ghcr.io/joelmale/nexus-forge:master-dc49824
+    container_name: nexus-vtt2-forge
+    hostname: nexus-vtt2-forge
+    networks:
+      - homelab-net
+    restart: unless-stopped
+
+  frontend:
+    image: ghcr.io/joelmale/nexusvtt/frontend:20260917-3754710
+    container_name: nexus-vtt2-frontend
+    hostname: nexus-vtt2-frontend
+    environment:
+      NODE_ENV: production
+    networks:
+      - homelab-net
+    restart: unless-stopped
+
+  backend:
+    image: ghcr.io/joelmale/nexusvtt/backend:20260917-3754710
+    environment:
+      CORS_ORIGIN: ${CORS_ORIGIN}
+      NODE_ENV: production
+      DEV_MODE: ${DEV_MODE:-false}
+      DATABASE_URL: ${DATABASE_URL}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379
+      JWT_SECRET: ${JWT_SECRET}
+      SESSION_SECRET: ${SESSION_SECRET}
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET}
+      GOOGLE_CALLBACK_URL: ${GOOGLE_CALLBACK_URL}
+      DISCORD_CLIENT_ID: ${DISCORD_CLIENT_ID}
+      DISCORD_CLIENT_SECRET: ${DISCORD_CLIENT_SECRET}
+      DISCORD_CALLBACK_URL: ${DISCORD_CALLBACK_URL}
+      DOC_API_URL: http://doc-api:3000
+      ASSET_API_URL: http://asset-server:5003
+      ASSET_SERVICE_SECRET: ${ASSET_SERVICE_SECRET}
+      METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
+      MULTIPLAYER_SLO_COMMIT_P95_MS: ${MULTIPLAYER_SLO_COMMIT_P95_MS:-250}
+      MULTIPLAYER_SLO_RESYNC_RATE_RATIO: ${MULTIPLAYER_SLO_RESYNC_RATE_RATIO:-0.01}
+      MULTIPLAYER_SLO_QUEUE_DEPTH: ${MULTIPLAYER_SLO_QUEUE_DEPTH:-100}
+      MULTIPLAYER_SLO_HEAP_UTILIZATION_RATIO: ${MULTIPLAYER_SLO_HEAP_UTILIZATION_RATIO:-0.9}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      asset-server:
+        condition: service_healthy
+    networks:
+      - homelab-net
+      - nexus-internal-net
+    restart: unless-stopped

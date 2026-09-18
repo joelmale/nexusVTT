@@ -14,6 +14,21 @@ Dockhand stack. The production stack's raw `.env` and encrypted variable store
 must be read and merged by an operator; never overwrite either store with this
 example file.
 
+## Modular Compose Structure
+
+The Compose configuration is modularized by domain and consolidated:
+- `compose.infra.yaml`: Shared infrastructure (`postgres`, `redis`, `codex-elasticsearch`, `codex-minio`, networks, volumes).
+- `compose.vtt.yaml`: Nexus VTT domain services (`frontend`, `backend`, `asset-server`, `nexus-forge`).
+- `compose.codex.yaml`: Nexus Codex document services (`doc-api`, `doc-processor`, `doc-websocket`, `admin-ui`, `dm-ui`).
+- `compose.yaml`: Root Compose file stitching the domain modules together via `include:`.
+
+### Shared Datastores (Postgres & Redis)
+- **PostgreSQL**: VTT and Codex share the single `postgres` service. VTT uses database `${POSTGRES_DB:-nexus}`, and Codex services connect to `${CODEX_POSTGRES_DB:-doclib}` using the shared credentials. To initialize the `doclib` database on an existing Postgres instance, execute:
+  ```bash
+  docker exec -i nexus-vtt2-postgres psql -U nexus -d nexus < deploy/homelab/init-doclib.sql
+  ```
+- **Redis**: VTT and Codex share the single `redis` service. VTT uses database index 0, and Codex uses database index 1 (`redis://:${REDIS_PASSWORD}@redis:6379/1`) to prevent key collisions.
+
 ## Deterministic renders
 
 From the repository root, use the example values only to validate syntax and

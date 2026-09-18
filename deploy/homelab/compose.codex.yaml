@@ -1,0 +1,105 @@
+services:
+  doc-api:
+    image: ghcr.io/joelmale/nexuscodex-doc-api:main-4c583c2
+    environment:
+      NODE_ENV: production
+      PORT: 3000
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nexus}:${POSTGRES_PASSWORD}@postgres:5432/${CODEX_POSTGRES_DB:-doclib}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      ELASTICSEARCH_URL: http://codex-elasticsearch:9200
+      S3_ENDPOINT: http://codex-minio:9000
+      S3_PUBLIC_ENDPOINT: ${CODEX_S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      S3_ACCESS_KEY: ${CODEX_MINIO_ROOT_USER:-minioadmin}
+      S3_SECRET_KEY: ${CODEX_MINIO_ROOT_PASSWORD:-minioadmin}
+      S3_BUCKET: documents
+      S3_REGION: us-east-1
+      S3_FORCE_PATH_STYLE: 'true'
+      JWT_SECRET: ${CODEX_JWT_SECRET}
+      AUTH_DISABLED: 'true'
+      EMBEDDINGS_PROVIDER: hash
+    networks:
+      - homelab-net
+      - nexus-internal-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      codex-elasticsearch:
+        condition: service_started
+      codex-minio:
+        condition: service_started
+    restart: on-failure
+
+  doc-processor:
+    image: ghcr.io/joelmale/nexuscodex-doc-processor:main-4c583c2
+    environment:
+      NODE_ENV: production
+      PORT: null
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nexus}:${POSTGRES_PASSWORD}@postgres:5432/${CODEX_POSTGRES_DB:-doclib}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      ELASTICSEARCH_URL: http://codex-elasticsearch:9200
+      S3_ENDPOINT: http://codex-minio:9000
+      S3_PUBLIC_ENDPOINT: ${CODEX_S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      S3_ACCESS_KEY: ${CODEX_MINIO_ROOT_USER:-minioadmin}
+      S3_SECRET_KEY: ${CODEX_MINIO_ROOT_PASSWORD:-minioadmin}
+      S3_BUCKET: documents
+      S3_REGION: us-east-1
+      S3_FORCE_PATH_STYLE: 'true'
+      JWT_SECRET: null
+      AUTH_DISABLED: null
+      EMBEDDINGS_PROVIDER: null
+    networks:
+      - nexus-internal-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      codex-elasticsearch:
+        condition: service_started
+      codex-minio:
+        condition: service_started
+    restart: on-failure
+
+  doc-websocket:
+    image: ghcr.io/joelmale/nexuscodex-doc-websocket:main-4c583c2
+    environment:
+      NODE_ENV: production
+      PORT: 3002
+      DATABASE_URL: postgresql://${POSTGRES_USER:-nexus}:${POSTGRES_PASSWORD}@postgres:5432/${CODEX_POSTGRES_DB:-doclib}
+      REDIS_URL: redis://:${REDIS_PASSWORD}@redis:6379/1
+      SESSION_TTL: 3600
+      JWT_SECRET: ${CODEX_JWT_SECRET}
+      ELASTICSEARCH_URL: http://codex-elasticsearch:9200
+    networks:
+      - homelab-net
+      - nexus-internal-net
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    restart: on-failure
+
+  admin-ui:
+    image: ghcr.io/joelmale/nexuscodex-admin-ui:main-4c583c2
+    environment:
+      VITE_DOC_API_URL: /api
+      VITE_WEBSOCKET_URL: /ws
+    networks:
+      - homelab-net
+    depends_on:
+      - doc-api
+    restart: on-failure
+
+  dm-ui:
+    image: ghcr.io/joelmale/nexuscodex-dm-ui:main-4c583c2
+    environment:
+      VITE_DOC_API_URL: /api
+      VITE_WEBSOCKET_URL: /ws
+    networks:
+      - homelab-net
+    depends_on:
+      - doc-api
+    restart: on-failure
