@@ -15,10 +15,17 @@ import Layout from './components/Layout'
 
 const queryClient = new QueryClient()
 
+const basename =
+  typeof window !== 'undefined' && window.location.pathname.startsWith('/codex-admin')
+    ? '/codex-admin'
+    : (import.meta.env.BASE_URL && import.meta.env.BASE_URL !== '/')
+    ? import.meta.env.BASE_URL
+    : undefined
+
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
-      <Router>
+      <Router basename={basename}>
         <Layout>
           <Routes>
             <Route path="/" element={<Dashboard />} />

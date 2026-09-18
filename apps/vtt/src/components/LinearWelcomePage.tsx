@@ -128,9 +128,14 @@ export const LinearWelcomePage: React.FC = () => {
     import.meta.env.VITE_FORGE_URL ||
     (import.meta.env.DEV ? 'http://localhost:3000' : '/forge/');
 
-  const codexUrl =
+  const codexDmUrl =
+    import.meta.env.VITE_CODEX_DM_URL ||
     import.meta.env.VITE_CODEX_URL ||
-    (import.meta.env.DEV ? 'http://localhost:3003' : '/codex/');
+    (import.meta.env.DEV ? 'http://localhost:3003' : '/codex-dm/');
+
+  const codexAdminUrl =
+    import.meta.env.VITE_CODEX_ADMIN_URL ||
+    (import.meta.env.DEV ? 'http://localhost:3001' : '/codex-admin/');
 
   // Detect if we're returning from OAuth (check for common OAuth params)
   const isOAuthRedirect = React.useMemo(() => {
@@ -1066,13 +1071,22 @@ export const LinearWelcomePage: React.FC = () => {
                   ⚙️ Admin Panel
                 </button>
                 <a
-                  href={codexUrl}
+                  href={codexDmUrl}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="dev-btn glass-button secondary small"
-                  title="Open Nexus Codex in a new tab"
+                  title="Open Codex DM Campaign Planner in a new tab"
                 >
-                  📖 Nexus Codex
+                  🗺️ Codex DM Planner
+                </a>
+                <a
+                  href={codexAdminUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="dev-btn glass-button secondary small"
+                  title="Open Codex Admin UI (Document Upload & Processing) in a new tab"
+                >
+                  📖 Codex Admin UI
                 </a>
                 <a
                   href={forgeUrl}

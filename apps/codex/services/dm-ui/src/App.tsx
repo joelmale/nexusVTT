@@ -13,9 +13,18 @@ import { JournalsPage} from './pages/JournalsPage';
 import { LorePage } from './pages/LorePage';
 import { CodexPage } from './pages/CodexPage';
 
+const basename =
+  typeof window !== 'undefined' && window.location.pathname.startsWith('/codex-dm')
+    ? '/codex-dm'
+    : typeof window !== 'undefined' && window.location.pathname.startsWith('/codex')
+    ? '/codex'
+    : (import.meta.env.BASE_URL && import.meta.env.BASE_URL !== '/')
+    ? import.meta.env.BASE_URL
+    : undefined;
+
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <Routes>
         <Route path="/" element={<AppLayout />}>
           <Route index element={<HomePage />} />

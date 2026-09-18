@@ -11,10 +11,12 @@ type RuntimeConfig = {
 const runtimeConfig =
   typeof window !== 'undefined' ? (window as Window & { __NEXUSCODEX_CONFIG__?: RuntimeConfig }).__NEXUSCODEX_CONFIG__ : undefined;
 
-const API_URL =
+const rawApiUrl =
   runtimeConfig?.DOC_API_URL ||
   import.meta.env.VITE_DOC_API_URL ||
   '';
+
+const API_URL = rawApiUrl.replace(/\/api\/?$/, '').replace(/\/$/, '');
 
 export interface Document {
   id: string;

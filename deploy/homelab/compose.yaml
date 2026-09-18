@@ -237,6 +237,8 @@ services:
     restart: on-failure
   admin-ui:
     image: ${ADMIN_UI_IMAGE:-ghcr.io/joelmale/nexuscodex-admin-ui:main-4c583c2}
+    ports:
+    - "127.0.0.1:3080:80"
     environment:
       VITE_DOC_API_URL: /api
       VITE_WEBSOCKET_URL: /ws
@@ -247,6 +249,8 @@ services:
     restart: on-failure
   dm-ui:
     image: ${DM_UI_IMAGE:-ghcr.io/joelmale/nexuscodex-dm-ui:main-4c583c2}
+    ports:
+    - "127.0.0.1:3081:80"
     environment:
       VITE_DOC_API_URL: /api
       VITE_WEBSOCKET_URL: /ws
