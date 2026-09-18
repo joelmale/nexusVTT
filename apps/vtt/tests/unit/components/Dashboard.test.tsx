@@ -38,13 +38,19 @@ describe('Dashboard', () => {
     const joinRoomWithCode = vi.fn();
 
     // Arrange mocks
-    vi.mocked(useGameStore).mockReturnValue({
-      user: { id: 'user-1', name: 'Adventurer Joel' },
-      isAuthenticated: true,
-      authChecked: true,
-      joinRoomWithCode,
-      createGameRoom,
-    });
+    // The component uses narrow selectors, so the mock must apply them.
+    vi.mocked(useGameStore).mockImplementation(((
+      selector?: (s: unknown) => unknown,
+    ) => {
+      const state = {  
+        user: { id: 'user-1', name: 'Adventurer Joel' },
+        isAuthenticated: true,
+        authChecked: true,
+        joinRoomWithCode,
+        createGameRoom,
+      };
+      return selector ? selector(state) : state;
+    }) as unknown as typeof useGameStore);
 
     // Mock fetch responses for campaigns and characters
     mockFetch.mockImplementation((url: string) => {
@@ -82,13 +88,19 @@ describe('Dashboard', () => {
   });
 
   it('renders character race objects using their display name', async () => {
-    vi.mocked(useGameStore).mockReturnValue({
-      user: { id: 'user-1', name: 'Adventurer Joel' },
-      isAuthenticated: true,
-      authChecked: true,
-      joinRoomWithCode: vi.fn(),
-      createGameRoom: vi.fn(),
-    });
+    // The component uses narrow selectors, so the mock must apply them.
+    vi.mocked(useGameStore).mockImplementation(((
+      selector?: (s: unknown) => unknown,
+    ) => {
+      const state = {  
+        user: { id: 'user-1', name: 'Adventurer Joel' },
+        isAuthenticated: true,
+        authChecked: true,
+        joinRoomWithCode: vi.fn(),
+        createGameRoom: vi.fn(),
+      };
+      return selector ? selector(state) : state;
+    }) as unknown as typeof useGameStore);
 
     mockFetch.mockImplementation((url: string) => {
       if (url.includes('/api/campaigns')) {
@@ -141,13 +153,19 @@ describe('Dashboard', () => {
     const createGameRoom = vi.fn().mockResolvedValue('ABCD12');
     const joinRoomWithCode = vi.fn();
 
-    vi.mocked(useGameStore).mockReturnValue({
-      user: { id: 'user-1', name: 'Adventurer Joel' },
-      isAuthenticated: true,
-      authChecked: true,
-      joinRoomWithCode,
-      createGameRoom,
-    });
+    // The component uses narrow selectors, so the mock must apply them.
+    vi.mocked(useGameStore).mockImplementation(((
+      selector?: (s: unknown) => unknown,
+    ) => {
+      const state = {  
+        user: { id: 'user-1', name: 'Adventurer Joel' },
+        isAuthenticated: true,
+        authChecked: true,
+        joinRoomWithCode,
+        createGameRoom,
+      };
+      return selector ? selector(state) : state;
+    }) as unknown as typeof useGameStore);
 
     mockFetch.mockImplementation((url: string) => {
       if (url.includes('/api/campaigns')) {

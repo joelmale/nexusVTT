@@ -23,7 +23,13 @@ describe('SceneManager', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     createScene.mockImplementation((scene) => ({ ...scene, id: 'new-scene-id' }));
-    (useGameStore as vi.Mock).mockReturnValue({ createScene, setActiveScene });
+    // The component uses narrow selectors, so the mock must apply them.
+    (useGameStore as vi.Mock).mockImplementation(
+      (selector?: (s: unknown) => unknown) => {
+        const state = { createScene, setActiveScene };
+        return selector ? selector(state) : state;
+      },
+    );
     (useUser as vi.Mock).mockReturnValue({ id: 'user-1', name: 'Test User' });
     // Default mock for SceneList
     vi.doMock('@/components/Scene/SceneList', () => ({

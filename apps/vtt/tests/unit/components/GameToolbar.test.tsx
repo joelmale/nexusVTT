@@ -35,10 +35,13 @@ describe('GameToolbar', () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
-    (useGameStore as vi.Mock).mockReturnValue({
-      setActiveTool,
-      updateCamera,
-    });
+    // The component uses narrow selectors, so the mock must apply them.
+    (useGameStore as vi.Mock).mockImplementation(
+      (selector?: (s: unknown) => unknown) => {
+        const state = { setActiveTool, updateCamera };
+        return selector ? selector(state) : state;
+      },
+    );
     (useGameStore as unknown as { getState: vi.Mock }).getState = vi
       .fn()
       .mockReturnValue({ setFogEnabled, clearFog });

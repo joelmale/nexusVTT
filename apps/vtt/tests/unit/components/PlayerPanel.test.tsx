@@ -197,10 +197,17 @@ describe('PlayerPanel', () => {
       ...mockCharacterActions,
     });
     vi.mocked(useCharacterCreation).mockReturnValue(mockCharacterCreation);
-    vi.mocked(useInitiativeStore).mockReturnValue(mockInitiativeActions);
+    // The component uses narrow selectors, so the mock must apply them.
+    vi.mocked(useInitiativeStore).mockImplementation(
+      ((selector?: (s: unknown) => unknown) =>
+        selector
+          ? selector(mockInitiativeActions)
+          : mockInitiativeActions) as unknown as typeof useInitiativeStore,
+    );
     vi.mocked(useCharacterCreationLauncher).mockReturnValue(mockLauncher);
-    vi.mocked(useGameStore).mockReturnValue(
-      {} as ReturnType<typeof useGameStore>,
+    vi.mocked(useGameStore).mockImplementation(
+      ((selector?: (s: unknown) => unknown) =>
+        selector ? selector({}) : {}) as unknown as typeof useGameStore,
     );
   });
 
