@@ -1,4 +1,23 @@
 import React, { useState } from 'react';
+import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
+import MapPin from 'lucide-react/dist/esm/icons/map-pin';
+import Dices from 'lucide-react/dist/esm/icons/dices';
+import Palette from 'lucide-react/dist/esm/icons/palette';
+import Grid from 'lucide-react/dist/esm/icons/grid';
+import Eye from 'lucide-react/dist/esm/icons/eye';
+import Keyboard from 'lucide-react/dist/esm/icons/keyboard';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
+import ChevronUp from 'lucide-react/dist/esm/icons/chevron-up';
+import Minimize2 from 'lucide-react/dist/esm/icons/minimize-2';
+import Upload from 'lucide-react/dist/esm/icons/upload';
+import Loader2 from 'lucide-react/dist/esm/icons/loader-2';
+
+export interface GeneratorActionPayload {
+  keyCode: number;
+  code?: string;
+  key?: string;
+  shiftKey?: boolean;
+}
 
 interface GeneratorFloatingControlsProps {
   activeGenerator: 'dungeon' | 'cave' | 'world' | 'city' | 'dwelling';
@@ -7,10 +26,17 @@ interface GeneratorFloatingControlsProps {
   ) => void;
   onAddToScene: () => void;
   onUploadJSON?: () => void;
+  onAction?: (action: GeneratorActionPayload) => void;
   hasActiveScene: boolean;
-  hasValidArtifact?: boolean;
+  activeSceneName?: string;
+  isImporting?: boolean;
   forceRasterize?: boolean;
   onForceRasterizeChange?: (value: boolean) => void;
+}
+
+interface ShortcutCategory {
+  category: string;
+  items: { key: string; desc: string }[];
 }
 
 export const GeneratorFloatingControls: React.FC<
@@ -20,12 +46,15 @@ export const GeneratorFloatingControls: React.FC<
   onGeneratorChange,
   onAddToScene,
   onUploadJSON,
+  onAction,
   hasActiveScene,
-  hasValidArtifact = true,
+  activeSceneName,
+  isImporting = false,
   forceRasterize = true,
   onForceRasterizeChange,
 }) => {
-  const [isExpanded, setIsExpanded] = useState(false);
+  // Expanded by default per user request
+  const [isExpanded, setIsExpanded] = useState(true);
   const [showShortcuts, setShowShortcuts] = useState(false);
 
   const generators = [
@@ -36,55 +65,121 @@ export const GeneratorFloatingControls: React.FC<
     { id: 'dwelling' as const, icon: '🏠', label: 'Dwelling' },
   ];
 
-  const shortcuts = {
+  // Grouped and categorized shortcuts for better cognitive load & scannability
+  const categorizedShortcuts: Record<string, ShortcutCategory[]> = {
     dungeon: [
-      { key: 'Enter', desc: 'New dungeon' },
-      { key: 'E', desc: 'Save PNG' },
-      { key: 'S', desc: 'Style' },
-      { key: 'Tab', desc: 'Tags' },
-      { key: 'J', desc: 'JSON' },
-      { key: 'G', desc: 'Grid' },
-      { key: 'N', desc: 'Notes' },
-      { key: 'L', desc: 'Legend' },
-      { key: 'H', desc: 'Secrets' },
-      { key: 'M', desc: 'Mono' },
-      { key: 'W', desc: 'Water' },
-      { key: 'Shift+W', desc: 'Water height' },
-      { key: 'P', desc: 'Props' },
-      { key: 'C', desc: 'Corners' },
-      { key: 'R', desc: 'Rotate' },
-      { key: 'Space', desc: 'Rearrange' },
-      { key: 'Shift+Space', desc: 'Reroll notes' },
-      { key: '1', desc: 'Normal cells' },
-      { key: '2', desc: 'Small cells' },
-      { key: 'Shift+G', desc: 'Grid mode' },
+      {
+        category: 'Generation & Layout',
+        items: [
+          { key: 'Enter', desc: 'Reroll new dungeon' },
+          { key: 'Space', desc: 'Rearrange notes' },
+          { key: 'Shift+Space', desc: 'Reroll notes' },
+          { key: 'R', desc: 'Rotate dungeon' },
+          { key: 'Tab', desc: 'Open tags dialog' },
+        ],
+      },
+      {
+        category: 'Visuals & Grid',
+        items: [
+          { key: 'S', desc: 'Cycle color style' },
+          { key: 'G', desc: 'Toggle grid' },
+          { key: 'Shift+G', desc: 'Toggle grid mode' },
+          { key: 'M', desc: 'Monochrome toggle' },
+          { key: '1 / 2', desc: 'Normal / small cells' },
+          { key: 'C', desc: 'Round corners' },
+        ],
+      },
+      {
+        category: 'Features & Content',
+        items: [
+          { key: 'N', desc: 'Toggle room notes' },
+          { key: 'L', desc: 'Toggle legend' },
+          { key: 'H', desc: 'Toggle secret rooms' },
+          { key: 'P', desc: 'Toggle room props' },
+          { key: 'W', desc: 'Toggle water' },
+          { key: 'Shift+W', desc: 'Adjust water height' },
+        ],
+      },
+      {
+        category: 'Data & Export',
+        items: [
+          { key: 'E', desc: 'Export high-res PNG' },
+          { key: 'J', desc: 'Export dungeon JSON' },
+        ],
+      },
     ],
     cave: [
-      { key: 'Enter', desc: 'New cave' },
-      { key: 'E', desc: 'Save PNG' },
-      { key: 'S', desc: 'Style' },
-      { key: 'Tab', desc: 'Tags' },
-      { key: 'G', desc: 'Grid' },
-      { key: 'N', desc: 'Notes' },
+      {
+        category: 'Generation & Layout',
+        items: [
+          { key: 'Enter', desc: 'Generate new cave' },
+          { key: 'Tab', desc: 'Cave tags' },
+        ],
+      },
+      {
+        category: 'Visuals & Grid',
+        items: [
+          { key: 'S', desc: 'Cycle visual style' },
+          { key: 'G', desc: 'Toggle grid' },
+          { key: 'N', desc: 'Toggle notes' },
+        ],
+      },
+      {
+        category: 'Export',
+        items: [{ key: 'E', desc: 'Save PNG' }],
+      },
     ],
     world: [
-      { key: 'Enter', desc: 'New world' },
-      { key: 'E', desc: 'Save PNG' },
-      { key: 'S', desc: 'Style' },
-      { key: 'Tab', desc: 'Tags' },
-      { key: 'G', desc: 'Grid' },
-      { key: 'N', desc: 'Names' },
+      {
+        category: 'Generation & Layout',
+        items: [
+          { key: 'Enter', desc: 'Generate new world' },
+          { key: 'Tab', desc: 'World tags' },
+        ],
+      },
+      {
+        category: 'Visuals & Grid',
+        items: [
+          { key: 'S', desc: 'Cycle map palette' },
+          { key: 'G', desc: 'Toggle grid' },
+          { key: 'N', desc: 'Toggle location names' },
+        ],
+      },
+      {
+        category: 'Export',
+        items: [{ key: 'E', desc: 'Save PNG' }],
+      },
     ],
     city: [
-      { key: 'Enter', desc: 'New city' },
-      { key: 'E', desc: 'Save PNG' },
-      { key: 'S', desc: 'Style' },
-      { key: 'C', desc: 'Citadel' },
-      { key: 'T', desc: 'Temple' },
-      { key: 'P', desc: 'Plaza' },
+      {
+        category: 'Generation & Districts',
+        items: [
+          { key: 'Enter', desc: 'Generate new city' },
+          { key: 'C', desc: 'Toggle citadel' },
+          { key: 'T', desc: 'Toggle temple' },
+          { key: 'P', desc: 'Toggle plaza' },
+        ],
+      },
+      {
+        category: 'Visuals & Export',
+        items: [
+          { key: 'S', desc: 'Cycle color style' },
+          { key: 'E', desc: 'Save PNG' },
+        ],
+      },
     ],
-    dwelling: [],
+    dwelling: [
+      {
+        category: 'Generation',
+        items: [
+          { key: 'Enter', desc: 'Generate new dwelling' },
+          { key: 'E', desc: 'Save PNG' },
+        ],
+      },
+    ],
   };
+
+  const currentShortcuts = categorizedShortcuts[activeGenerator] || [];
 
   return (
     <div
@@ -97,333 +192,623 @@ export const GeneratorFloatingControls: React.FC<
         flexDirection: 'column',
         alignItems: 'flex-start',
         gap: '0.5rem',
-        maxWidth: isExpanded ? '350px' : '60px',
-        transition: 'max-width 0.3s ease',
+        maxWidth: isExpanded ? '340px' : '64px',
+        transition: 'max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
-      {/* Main Control Panel - Render first so it appears at the top */}
-      <div
-        style={{
-          background: 'rgba(0, 0, 0, 0.85)',
-          backdropFilter: 'blur(10px)',
-          borderRadius: '12px',
-          padding: isExpanded ? '1rem' : '0.75rem',
-          border: '1px solid rgba(255, 255, 255, 0.1)',
-          boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-          transition: 'all 0.3s ease',
-          width: isExpanded ? '100%' : 'auto',
-        }}
-      >
-        {/* Toggle Button */}
-        {!isExpanded && (
-          <button
-            onClick={() => setIsExpanded(true)}
-            style={{
-              background: 'rgba(99, 102, 241, 0.2)',
-              border: '1px solid rgba(99, 102, 241, 0.4)',
-              borderRadius: '8px',
-              color: '#fff',
-              cursor: 'pointer',
-              padding: '0.75rem',
-              fontSize: '1.25rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              transition: 'all 0.2s',
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.background = 'rgba(99, 102, 241, 0.3)';
-              e.currentTarget.style.transform = 'scale(1.05)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.background = 'rgba(99, 102, 241, 0.2)';
-              e.currentTarget.style.transform = 'scale(1)';
-            }}
-            title="Open controls"
-          >
-            🎮
-          </button>
-        )}
-
-        {/* Expanded Panel */}
-        {isExpanded && (
-          <div
-            style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}
-          >
-            {/* Header with collapse button */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-              }}
-            >
-              <h3
-                style={{
-                  margin: 0,
-                  fontSize: '0.875rem',
-                  fontWeight: 600,
-                  color: '#fff',
-                }}
-              >
-                🎮 Controls
-              </h3>
-              <button
-                onClick={() => setIsExpanded(false)}
-                style={{
-                  background: 'none',
-                  border: 'none',
-                  color: '#888',
-                  cursor: 'pointer',
-                  fontSize: '1.25rem',
-                  padding: 0,
-                  lineHeight: 1,
-                }}
-                title="Collapse"
-              >
-                ⊗
-              </button>
-            </div>
-
-            {/* Generator Selection */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.375rem',
-              }}
-            >
-              <label
-                style={{
-                  fontSize: '0.75rem',
-                  color: '#aaa',
-                  fontWeight: 500,
-                  marginBottom: '0.25rem',
-                }}
-              >
-                Generator
-              </label>
-              {generators.map((gen) => (
-                <button
-                  key={gen.id}
-                  onClick={() => onGeneratorChange(gen.id)}
-                  className="glass-button"
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    padding: '0.5rem',
-                    fontSize: '0.8125rem',
-                    background:
-                      activeGenerator === gen.id
-                        ? 'rgba(99, 102, 241, 0.3)'
-                        : 'rgba(255, 255, 255, 0.05)',
-                    border:
-                      activeGenerator === gen.id
-                        ? '1px solid rgba(99, 102, 241, 0.5)'
-                        : '1px solid rgba(255, 255, 255, 0.1)',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s',
-                  }}
-                >
-                  {gen.icon} {gen.label}
-                </button>
-              ))}
-            </div>
-
-            {/* Action Buttons */}
-            <div
-              style={{
-                display: 'flex',
-                flexDirection: 'column',
-                gap: '0.375rem',
-                paddingTop: '0.5rem',
-                borderTop: '1px solid rgba(255, 255, 255, 0.1)',
-              }}
-            >
-              <button
-                onClick={onAddToScene}
-                className="glass-button primary"
-                disabled={!hasActiveScene || !hasValidArtifact}
-                style={{
-                  width: '100%',
-                  cursor: hasActiveScene && hasValidArtifact ? 'pointer' : 'not-allowed',
-                  opacity: hasActiveScene && hasValidArtifact ? 1 : 0.5,
-                  fontSize: '0.8125rem',
-                  padding: '0.5rem',
-                }}
-                title={
-                  !hasActiveScene
-                    ? 'No active scene selected. Create or select a scene first.'
-                    : !hasValidArtifact
-                      ? 'No generated map to add to scene.'
-                      : 'Add map to active scene'
-                }
-              >
-                🗺️ Add to Scene
-              </button>
-
-              {activeGenerator === 'dungeon' && onUploadJSON && (
-                <button
-                  onClick={onUploadJSON}
-                  className="glass-button secondary"
-                  style={{
-                    width: '100%',
-                    cursor: 'pointer',
-                    fontSize: '0.8125rem',
-                    padding: '0.5rem',
-                  }}
-                >
-                  📤 Upload JSON
-                </button>
-              )}
-
-              {onForceRasterizeChange && (
-                <label
-                  style={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.5rem',
-                    fontSize: '0.8125rem',
-                    color: '#ccc',
-                    cursor: 'pointer',
-                    padding: '0.25rem 0',
-                  }}
-                >
-                  <input
-                    type="checkbox"
-                    checked={forceRasterize}
-                    onChange={(e) => onForceRasterizeChange(e.target.checked)}
-                    style={{ cursor: 'pointer' }}
-                  />
-                  Aggressive Rasterize (WebP)
-                </label>
-              )}
-
-              {shortcuts[activeGenerator].length > 0 && (
-                <button
-                  onClick={() => setShowShortcuts(!showShortcuts)}
-                  className="glass-button secondary"
-                  style={{
-                    width: '100%',
-                    cursor: 'pointer',
-                    fontSize: '0.8125rem',
-                    padding: '0.5rem',
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'space-between',
-                  }}
-                >
-                  <span>⌨️ Shortcuts</span>
-                  <span
-                    style={{
-                      transform: showShortcuts
-                        ? 'rotate(180deg)'
-                        : 'rotate(0deg)',
-                      transition: 'transform 0.2s',
-                    }}
-                  >
-                    ▼
-                  </span>
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-      </div>
-
-      {/* Keyboard Shortcuts Panel (collapsible) - Render second so it appears below */}
-      {isExpanded && showShortcuts && shortcuts[activeGenerator].length > 0 && (
-        <div
+      {/* Minimized Trigger Button */}
+      {!isExpanded && (
+        <button
+          onClick={() => setIsExpanded(true)}
           style={{
-            background: 'rgba(0, 0, 0, 0.85)',
-            backdropFilter: 'blur(10px)',
+            background: 'var(--surface-primary, rgba(28, 30, 34, 0.9))',
+            backdropFilter: 'blur(16px)',
+            border: '1px solid var(--border-primary, rgba(255, 255, 255, 0.15))',
             borderRadius: '12px',
-            padding: '1rem',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.5)',
-            maxHeight: '400px',
-            overflowY: 'auto',
-            animation: 'slideIn 0.2s ease-out',
+            color: 'var(--text-primary, #fff)',
+            cursor: 'pointer',
+            padding: '0.75rem',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            boxShadow: '0 8px 32px rgba(0, 0, 0, 0.6)',
+            transition: 'all 0.2s ease',
           }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.borderColor = 'var(--indigo-400, #818cf8)';
+            e.currentTarget.style.transform = 'scale(1.06)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.borderColor = 'var(--border-primary, rgba(255, 255, 255, 0.15))';
+            e.currentTarget.style.transform = 'scale(1)';
+          }}
+          title="Open Map Studio Controls"
+          aria-label="Open Map Studio Controls"
         >
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              alignItems: 'center',
-              marginBottom: '0.75rem',
-            }}
-          >
-            <h4
-              style={{
-                margin: 0,
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                color: '#fff',
-              }}
-            >
-              ⌨️ Keyboard Shortcuts
-            </h4>
-            <button
-              onClick={() => setShowShortcuts(false)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: '#888',
-                cursor: 'pointer',
-                fontSize: '1.25rem',
-                padding: 0,
-                lineHeight: 1,
-              }}
-              title="Hide shortcuts"
-            >
-              ✕
-            </button>
-          </div>
-          <div
-            style={{
-              display: 'grid',
-              gridTemplateColumns: 'auto 1fr',
-              gap: '0.5rem',
-              fontSize: '0.75rem',
-            }}
-          >
-            {shortcuts[activeGenerator].map((shortcut, index) => (
-              <React.Fragment key={index}>
-                <kbd
-                  style={{
-                    background: 'rgba(255, 255, 255, 0.1)',
-                    padding: '0.25rem 0.5rem',
-                    borderRadius: '4px',
-                    border: '1px solid rgba(255, 255, 255, 0.2)',
-                    fontSize: '0.7rem',
-                    fontFamily: 'monospace',
-                    whiteSpace: 'nowrap',
-                  }}
-                >
-                  {shortcut.key}
-                </kbd>
-                <span style={{ color: '#ccc', alignSelf: 'center' }}>
-                  {shortcut.desc}
-                </span>
-              </React.Fragment>
-            ))}
-          </div>
-        </div>
+          <Sparkles size={20} color="var(--indigo-400, #818cf8)" />
+        </button>
       )}
 
-      <style>{`
-        @keyframes slideIn {
-          from {
-            opacity: 0;
-            transform: translateY(10px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-      `}</style>
+      {/* Expanded Main Studio Card */}
+      {isExpanded && (
+        <div
+          style={{
+            background: 'rgba(20, 22, 27, 0.92)',
+            backdropFilter: 'blur(20px)',
+            borderRadius: '14px',
+            padding: '1rem',
+            border: '1px solid rgba(255, 255, 255, 0.12)',
+            boxShadow: '0 12px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05)',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '0.875rem',
+            color: 'var(--text-primary, #fff)',
+          }}
+        >
+          {/* Header Row */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              gap: '0.5rem',
+              paddingBottom: '0.5rem',
+              borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
+              <Sparkles size={16} color="var(--indigo-400, #818cf8)" />
+              <span
+                style={{
+                  fontWeight: 600,
+                  fontSize: '0.875rem',
+                  letterSpacing: '0.01em',
+                }}
+              >
+                Map Studio
+              </span>
+            </div>
+
+            <button
+              onClick={() => setIsExpanded(false)}
+              style={{
+                background: 'transparent',
+                border: 'none',
+                color: 'var(--text-secondary, #9ca3af)',
+                cursor: 'pointer',
+                padding: '4px',
+                borderRadius: '6px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                transition: 'all 0.15s ease',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.color = '#fff';
+                e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.color = 'var(--text-secondary, #9ca3af)';
+                e.currentTarget.style.background = 'transparent';
+              }}
+              title="Minimize panel"
+              aria-label="Minimize panel"
+            >
+              <Minimize2 size={15} />
+            </button>
+          </div>
+
+          {/* Active Scene Indicator Pill */}
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '0.375rem',
+              padding: '0.375rem 0.625rem',
+              borderRadius: '8px',
+              fontSize: '0.75rem',
+              background: hasActiveScene
+                ? 'rgba(16, 185, 129, 0.1)'
+                : 'rgba(245, 158, 11, 0.12)',
+              border: hasActiveScene
+                ? '1px solid rgba(16, 185, 129, 0.3)'
+                : '1px solid rgba(245, 158, 11, 0.3)',
+              color: hasActiveScene
+                ? 'var(--emerald-400, #34d399)'
+                : 'var(--amber-400, #fbbf24)',
+            }}
+          >
+            <MapPin size={13} style={{ flexShrink: 0 }} />
+            <span
+              style={{
+                overflow: 'hidden',
+                textOverflow: 'ellipsis',
+                whiteSpace: 'nowrap',
+                fontWeight: 500,
+              }}
+            >
+              {hasActiveScene
+                ? `Scene: ${activeSceneName || 'Active Scene'}`
+                : 'No active scene selected'}
+            </span>
+          </div>
+
+          {/* Segmented Generator Selector Chips */}
+          <div>
+            <div
+              style={{
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                color: 'var(--text-secondary, #9ca3af)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                marginBottom: '0.375rem',
+              }}
+            >
+              Generators
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(5, 1fr)',
+                gap: '0.25rem',
+                background: 'rgba(0, 0, 0, 0.3)',
+                padding: '3px',
+                borderRadius: '8px',
+                border: '1px solid rgba(255, 255, 255, 0.06)',
+              }}
+            >
+              {generators.map((gen) => {
+                const isActive = activeGenerator === gen.id;
+                return (
+                  <button
+                    key={gen.id}
+                    onClick={() => onGeneratorChange(gen.id)}
+                    style={{
+                      background: isActive
+                        ? 'var(--indigo-600, #4f46e5)'
+                        : 'transparent',
+                      border: 'none',
+                      borderRadius: '6px',
+                      color: isActive ? '#fff' : '#9ca3af',
+                      cursor: 'pointer',
+                      padding: '0.375rem 0.125rem',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '0.125rem',
+                      transition: 'all 0.15s ease',
+                      boxShadow: isActive
+                        ? '0 2px 8px rgba(79, 70, 229, 0.4)'
+                        : 'none',
+                    }}
+                    onMouseEnter={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'rgba(255, 255, 255, 0.06)';
+                        e.currentTarget.style.color = '#fff';
+                      }
+                    }}
+                    onMouseLeave={(e) => {
+                      if (!isActive) {
+                        e.currentTarget.style.background = 'transparent';
+                        e.currentTarget.style.color = '#9ca3af';
+                      }
+                    }}
+                    title={gen.label}
+                  >
+                    <span style={{ fontSize: '0.875rem', lineHeight: 1 }}>
+                      {gen.icon}
+                    </span>
+                    <span style={{ fontSize: '0.625rem', fontWeight: 500 }}>
+                      {gen.label}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Quick Actions Bar (Clickable interactive buttons!) */}
+          <div>
+            <div
+              style={{
+                fontSize: '0.7rem',
+                fontWeight: 600,
+                color: 'var(--text-secondary, #9ca3af)',
+                textTransform: 'uppercase',
+                letterSpacing: '0.05em',
+                marginBottom: '0.375rem',
+              }}
+            >
+              Quick Actions
+            </div>
+            <div
+              style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(2, 1fr)',
+                gap: '0.375rem',
+              }}
+            >
+              <button
+                onClick={() => onAction?.({ keyCode: 13, key: 'Enter', code: 'Enter' })}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  padding: '0.4rem 0.5rem',
+                  fontSize: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                }}
+                title="Reroll new map (Enter)"
+              >
+                <Dices size={14} color="var(--indigo-400, #818cf8)" />
+                <span>Reroll Map</span>
+              </button>
+
+              <button
+                onClick={() => onAction?.({ keyCode: 83, key: 's', code: 'KeyS' })}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  padding: '0.4rem 0.5rem',
+                  fontSize: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                }}
+                title="Cycle visual style / palette (S)"
+              >
+                <Palette size={14} color="var(--purple-400, #c084fc)" />
+                <span>Cycle Style</span>
+              </button>
+
+              <button
+                onClick={() => onAction?.({ keyCode: 71, key: 'g', code: 'KeyG' })}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  padding: '0.4rem 0.5rem',
+                  fontSize: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                }}
+                title="Toggle grid overlay (G)"
+              >
+                <Grid size={14} color="var(--cyan-400, #22d3ee)" />
+                <span>Toggle Grid</span>
+              </button>
+
+              <button
+                onClick={() =>
+                  onAction?.(
+                    activeGenerator === 'dungeon'
+                      ? { keyCode: 72, key: 'h', code: 'KeyH' }
+                      : { keyCode: 78, key: 'n', code: 'KeyN' },
+                  )
+                }
+                style={{
+                  background: 'rgba(255, 255, 255, 0.05)',
+                  border: '1px solid rgba(255, 255, 255, 0.1)',
+                  borderRadius: '6px',
+                  color: '#fff',
+                  cursor: 'pointer',
+                  padding: '0.4rem 0.5rem',
+                  fontSize: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.375rem',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                }}
+                title={
+                  activeGenerator === 'dungeon'
+                    ? 'Toggle secret rooms (H)'
+                    : 'Toggle labels/notes (N)'
+                }
+              >
+                <Eye size={14} color="var(--emerald-400, #34d399)" />
+                <span>{activeGenerator === 'dungeon' ? 'Secrets' : 'Labels'}</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Primary Action Button: Add to Scene */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
+            <button
+              onClick={onAddToScene}
+              disabled={!hasActiveScene || isImporting}
+              style={{
+                width: '100%',
+                background: hasActiveScene
+                  ? 'linear-gradient(135deg, var(--indigo-600, #4f46e5) 0%, var(--purple-600, #9333ea) 100%)'
+                  : 'rgba(255, 255, 255, 0.06)',
+                border: hasActiveScene
+                  ? '1px solid rgba(165, 180, 252, 0.35)'
+                  : '1px solid rgba(255, 255, 255, 0.1)',
+                borderRadius: '8px',
+                color: '#fff',
+                cursor: hasActiveScene && !isImporting ? 'pointer' : 'not-allowed',
+                padding: '0.625rem 0.75rem',
+                fontSize: '0.8125rem',
+                fontWeight: 600,
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '0.5rem',
+                boxShadow: hasActiveScene
+                  ? '0 4px 16px rgba(79, 70, 229, 0.35)'
+                  : 'none',
+                opacity: hasActiveScene ? 1 : 0.5,
+                transition: 'all 0.2s ease',
+              }}
+              onMouseEnter={(e) => {
+                if (hasActiveScene && !isImporting) {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow =
+                    '0 6px 20px rgba(79, 70, 229, 0.5)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (hasActiveScene && !isImporting) {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow =
+                    '0 4px 16px rgba(79, 70, 229, 0.35)';
+                }
+              }}
+              title={
+                !hasActiveScene
+                  ? 'Please select or create an active scene first'
+                  : 'Imports current map as the scene background'
+              }
+            >
+              {isImporting ? (
+                <>
+                  <Loader2 size={16} className="animate-spin" />
+                  <span>Capturing & Adding to Scene...</span>
+                </>
+              ) : (
+                <>
+                  <span>🗺️ Add to Scene</span>
+                </>
+              )}
+            </button>
+
+            {/* Subtext info */}
+            <div
+              style={{
+                fontSize: '0.675rem',
+                color: 'var(--text-secondary, #9ca3af)',
+                textAlign: 'center',
+              }}
+            >
+              {hasActiveScene
+                ? 'Applies current map to active scene background'
+                : 'Select a scene in Scenes tab to enable'}
+            </div>
+          </div>
+
+          {/* Optional Upload JSON & Rasterize Options */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '0.25rem',
+              paddingTop: '0.25rem',
+              borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+            }}
+          >
+            {activeGenerator === 'dungeon' && onUploadJSON && (
+              <button
+                onClick={onUploadJSON}
+                style={{
+                  background: 'rgba(255, 255, 255, 0.04)',
+                  border: '1px solid rgba(255, 255, 255, 0.08)',
+                  borderRadius: '6px',
+                  color: '#ccc',
+                  cursor: 'pointer',
+                  padding: '0.375rem 0.5rem',
+                  fontSize: '0.75rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: '0.375rem',
+                  transition: 'all 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.08)';
+                  e.currentTarget.style.color = '#fff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.04)';
+                  e.currentTarget.style.color = '#ccc';
+                }}
+              >
+                <Upload size={13} />
+                <span>Upload Dungeon JSON</span>
+              </button>
+            )}
+
+            {onForceRasterizeChange && (
+              <label
+                style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '0.4rem',
+                  fontSize: '0.725rem',
+                  color: '#9ca3af',
+                  cursor: 'pointer',
+                  padding: '0.125rem 0',
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={forceRasterize}
+                  onChange={(e) => onForceRasterizeChange(e.target.checked)}
+                  style={{ cursor: 'pointer', accentColor: 'var(--indigo-500, #6366f1)' }}
+                />
+                <span>Optimize with WebP</span>
+              </label>
+            )}
+          </div>
+
+          {/* Collapsible Categorized Shortcuts Section */}
+          {currentShortcuts.length > 0 && (
+            <div
+              style={{
+                borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                paddingTop: '0.375rem',
+              }}
+            >
+              <button
+                onClick={() => setShowShortcuts(!showShortcuts)}
+                style={{
+                  width: '100%',
+                  background: 'transparent',
+                  border: 'none',
+                  color: 'var(--text-secondary, #9ca3af)',
+                  cursor: 'pointer',
+                  fontSize: '0.75rem',
+                  padding: '0.25rem 0',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  transition: 'color 0.15s ease',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.color = '#fff';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.color = 'var(--text-secondary, #9ca3af)';
+                }}
+              >
+                <div style={{ display: 'flex', alignItems: 'center', gap: '0.375rem' }}>
+                  <Keyboard size={13} />
+                  <span>Keyboard Shortcuts</span>
+                </div>
+                {showShortcuts ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
+              </button>
+
+              {showShortcuts && (
+                <div
+                  style={{
+                    marginTop: '0.5rem',
+                    maxHeight: '260px',
+                    overflowY: 'auto',
+                    paddingRight: '0.25rem',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    gap: '0.625rem',
+                    fontSize: '0.725rem',
+                  }}
+                >
+                  <div
+                    style={{
+                      fontSize: '0.675rem',
+                      color: 'var(--indigo-300, #a5b4fc)',
+                      fontStyle: 'italic',
+                      lineHeight: 1.3,
+                    }}
+                  >
+                    Tip: Click the map pane to give it keyboard focus.
+                  </div>
+
+                  {currentShortcuts.map((cat, idx) => (
+                    <div key={idx}>
+                      <div
+                        style={{
+                          fontSize: '0.65rem',
+                          fontWeight: 600,
+                          color: '#6b7280',
+                          textTransform: 'uppercase',
+                          letterSpacing: '0.04em',
+                          marginBottom: '0.25rem',
+                        }}
+                      >
+                        {cat.category}
+                      </div>
+                      <div
+                        style={{
+                          display: 'grid',
+                          gridTemplateColumns: 'auto 1fr',
+                          gap: '0.25rem 0.5rem',
+                          alignItems: 'center',
+                        }}
+                      >
+                        {cat.items.map((item, itemIdx) => (
+                          <React.Fragment key={itemIdx}>
+                            <kbd
+                              style={{
+                                background: 'rgba(255, 255, 255, 0.08)',
+                                border: '1px solid rgba(255, 255, 255, 0.15)',
+                                borderRadius: '4px',
+                                padding: '0.125rem 0.375rem',
+                                fontSize: '0.675rem',
+                                fontFamily: 'monospace',
+                                color: '#e0e7ff',
+                                whiteSpace: 'nowrap',
+                                textAlign: 'center',
+                              }}
+                            >
+                              {item.key}
+                            </kbd>
+                            <span style={{ color: '#d1d5db' }}>{item.desc}</span>
+                          </React.Fragment>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 };

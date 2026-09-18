@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { BaseMapImporter } from '@/services/baseMapImporter';
-import { GeneratorFloatingControls } from './GeneratorFloatingControls';
+import {
+  GeneratorFloatingControls,
+  type GeneratorActionPayload,
+} from './GeneratorFloatingControls';
 import { useGameStore, useActiveScene } from '@/stores/gameStore';
 import './GeneratorPanel.css';
 import { GeneratorHostClient } from '@/services/generatorHostClient';
@@ -103,7 +106,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   const [activeGenerator, setActiveGenerator] =
     useState<GeneratorType>('dungeon');
   const [forceRasterize, setForceRasterize] = useState(true);
-  const [, setIsImporting] = useState(false);
+  const [isImporting, setIsImporting] = useState(false);
 
   const configuredHubUrl =
     import.meta.env.VITE_GENERATOR_HUB_URL ||
@@ -155,7 +158,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     [activeGenerator],
   );
 
-  // Setup Host Client
+  // Setup Host Client & Message Handling
   useEffect(() => {
     const client = new GeneratorHostClient(hubOrigin);
 
@@ -202,11 +205,6 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         const stored = await loadGeneratorMapFromIndexedDB();
         if (stored) {
           setGeneratedMap(stored.imageData);
-          try {
-            // Removed legacy JSON handling
-          } catch {
-            // Not JSON
-          }
         }
       } catch (err) {
         console.error('Failed to restore generator state:', err);
@@ -215,19 +213,84 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     loadMap();
   }, []);
 
+  const handleGeneratorAction = (action: GeneratorActionPayload) => {
+    if (iframeRef.current?.contentWindow) {
+      iframeRef.current.contentWindow.postMessage(
+        {
+          type: 'generator/action',
+          keyCode: action.keyCode,
+          code: action.code,
+          key: action.key,
+          shiftKey: action.shiftKey,
+        },
+        '*',
+      );
+    }
+  };
+
   const handleApplyToScene = async () => {
-    if (!activeScene || (!generatedMap && !generatedBlob)) return;
+    if (!activeScene) return;
 
     try {
       setIsImporting(true);
 
-      let finalUrl = generatedMap;
+      let currentBlob = generatedBlob;
+      const currentMap = generatedMap;
 
-      if (generatedBlob) {
-        // Upload the blob through our new importer
+      // If we don't have an export yet, request one on demand from the hub
+      if (!currentBlob && !currentMap) {
+        console.log(
+          '[GeneratorPanel] No map cached yet, requesting immediate export from generator...',
+        );
+        const exportPromise = new Promise<{ blob: Blob; filename: string }>(
+          (resolve, reject) => {
+            const timeout = setTimeout(() => {
+              window.removeEventListener('message', onExport);
+              reject(new Error('Timed out waiting for generator to export map'));
+            }, 3500);
+
+            const onExport = (event: MessageEvent) => {
+              if (event.data?.type === 'generator/export-ready') {
+                clearTimeout(timeout);
+                window.removeEventListener('message', onExport);
+                const artifact = event.data.payload;
+                const inner = artifact.payload;
+                const format = inner.mimeType === 'image/webp' ? 'webp' : 'png';
+                const filename =
+                  'generated_map_' +
+                  artifact.exportId +
+                  (format === 'webp' ? '.webp' : '.png');
+                resolve({ blob: inner.blob, filename });
+              }
+            };
+
+            window.addEventListener('message', onExport);
+
+            iframeRef.current?.contentWindow?.postMessage(
+              { type: 'generator/export-request' },
+              '*',
+            );
+          },
+        );
+
+        try {
+          const res = await exportPromise;
+          currentBlob = res;
+        } catch (exportErr) {
+          console.warn(
+            '[GeneratorPanel] Export request failed or timed out:',
+            exportErr,
+          );
+        }
+      }
+
+      let finalUrl = currentMap;
+
+      if (currentBlob) {
+        // Upload the blob through our importer
         const result = await BaseMapImporter.importGeneratedMap({
-          blob: generatedBlob.blob,
-          filename: generatedBlob.filename,
+          blob: currentBlob.blob,
+          filename: currentBlob.filename,
         });
 
         finalUrl = result.sceneUrl;
@@ -244,18 +307,24 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
             scale: 1,
           },
         });
-      }
 
-      if (onSwitchToScenes) {
-        onSwitchToScenes();
+        if (onSwitchToScenes) {
+          onSwitchToScenes();
+        } else {
+          setActiveTab('scenes');
+        }
+
+        await deleteGeneratorMapFromIndexedDB();
       } else {
-        setActiveTab('scenes');
+        alert(
+          'Could not capture the generated map. Please try clicking Reroll Map first.',
+        );
       }
-
-      await deleteGeneratorMapFromIndexedDB();
     } catch (err) {
       console.error('Failed to apply map to scene:', err);
       alert('Failed to import map: ' + (err as Error).message);
+    } finally {
+      setIsImporting(false);
     }
   };
 
@@ -273,8 +342,10 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         activeGenerator={activeGenerator}
         onGeneratorChange={handleGeneratorChange}
         onAddToScene={handleApplyToScene}
+        onAction={handleGeneratorAction}
         hasActiveScene={!!activeScene}
-        hasValidArtifact={(!!generatedMap && !generatedMap.startsWith('{')) || !!generatedBlob}
+        activeSceneName={activeScene?.name}
+        isImporting={isImporting}
         forceRasterize={forceRasterize}
         onForceRasterizeChange={setForceRasterize}
       />

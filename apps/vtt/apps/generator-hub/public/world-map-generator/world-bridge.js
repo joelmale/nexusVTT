@@ -201,6 +201,86 @@
     return originalToDataURL.call(this, mimeType, quality);
   };
 
+  function triggerWorldExport() {
+    const canvas =
+      document.querySelector('#openfl-content canvas') ||
+      document.querySelector('canvas');
+    if (canvas && isWorldGeneratorCanvas(canvas)) {
+      exportMap(canvas)
+        .then(([fullDataURL, thumbDataURL]) => {
+          const message = {
+            type: 'VTT_MAP_EXPORTED',
+            generatorId: GENERATOR_ID,
+            full: {
+              dataUrl: fullDataURL,
+              mime: 'image/webp',
+              quality: 0.85,
+            },
+            thumb: {
+              dataUrl: thumbDataURL,
+              mime: 'image/webp',
+              quality: 0.7,
+            },
+            meta: {
+              width: canvas.width,
+              height: canvas.height,
+              timestamp: Date.now(),
+              generator: 'world-map-generator',
+            },
+          };
+          window.parent.postMessage(message, ORIGIN);
+          console.log('World Generator Bridge: Auto-exported map to VTT', message.meta);
+        })
+        .catch((error) => {
+          console.warn('World Generator Bridge: Auto-export failed', error);
+        });
+    }
+  }
+
+  // Listen for parent messages
+  window.addEventListener('message', (event) => {
+    const data = event.data;
+    if (!data) return;
+
+    if (data.type === 'REQUEST_EXPORT' || data.type === 'generator/export-request') {
+      console.log('World Generator Bridge: Received export request from parent');
+      triggerWorldExport();
+    } else if (data.type === 'EXECUTE_ACTION' && data.keyCode) {
+      console.log('World Generator Bridge: Executing action keyCode:', data.keyCode);
+      try {
+        const keyEvt = new KeyboardEvent('keydown', {
+          keyCode: data.keyCode,
+          which: data.keyCode,
+          code: data.code || '',
+          key: data.key || '',
+          shiftKey: !!data.shiftKey,
+          bubbles: true,
+          cancelable: true,
+        });
+        window.dispatchEvent(keyEvt);
+
+        if ([13, 83, 71].includes(data.keyCode)) {
+          setTimeout(triggerWorldExport, 1000);
+        }
+      } catch (e) {
+        console.warn('World Generator Bridge: Action dispatch error:', e);
+      }
+    }
+  });
+
+  window.addEventListener(
+    'keydown',
+    (e) => {
+      if (e.keyCode === 13) {
+        setTimeout(triggerWorldExport, 1200);
+      }
+    },
+    false,
+  );
+
+  // Auto-export initial world map after render
+  setTimeout(triggerWorldExport, 1800);
+
   console.log(
     'World Generator Bridge loaded - canvas exports will be intercepted for VTT',
   );

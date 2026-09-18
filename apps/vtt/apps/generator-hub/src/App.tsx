@@ -65,7 +65,31 @@ function App() {
 
   useEffect(() => {
     const handleMessage = async (event: MessageEvent) => {
-      // Trust the iframe we created
+      // 1. Handle commands from parent (Nexus VTT)
+      if (event.source === window.parent && window.parent !== window) {
+        if (event.data?.type === 'generator/export-request') {
+          console.log('[GeneratorHub] Forwarding export-request to generator iframe');
+          iframeRef.current?.contentWindow?.postMessage(
+            { type: 'REQUEST_EXPORT' },
+            '*',
+          );
+        } else if (event.data?.type === 'generator/action') {
+          console.log('[GeneratorHub] Forwarding action to generator iframe', event.data);
+          iframeRef.current?.contentWindow?.postMessage(
+            {
+              type: 'EXECUTE_ACTION',
+              keyCode: event.data.keyCode,
+              code: event.data.code,
+              key: event.data.key,
+              shiftKey: event.data.shiftKey,
+            },
+            '*',
+          );
+        }
+        return;
+      }
+
+      // 2. Trust the generator iframe we created
       if (event.source !== iframeRef.current?.contentWindow) {
         return;
       }
@@ -78,6 +102,8 @@ function App() {
         event.data.type === 'VTT_GEN_READY'
       ) {
         setLoading(false);
+        // Inform parent that generator is fully ready
+        window.parent.postMessage({ type: 'generator/ready' }, '*');
       }
 
       // Handle World Generator

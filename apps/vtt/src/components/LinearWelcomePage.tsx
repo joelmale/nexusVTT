@@ -126,19 +126,11 @@ export const LinearWelcomePage: React.FC = () => {
 
   const forgeUrl =
     import.meta.env.VITE_FORGE_URL ||
-    (import.meta.env.DEV
-      ? 'http://localhost:3000'
-      : typeof window !== 'undefined'
-        ? `${window.location.protocol}//${window.location.hostname}:3000`
-        : 'http://localhost:3000');
+    (import.meta.env.DEV ? 'http://localhost:3000' : '/forge/');
 
   const codexUrl =
     import.meta.env.VITE_CODEX_URL ||
-    (import.meta.env.DEV
-      ? 'http://localhost:3003'
-      : typeof window !== 'undefined'
-        ? `${window.location.protocol}//${window.location.hostname}:3003`
-        : 'http://localhost:3003');
+    (import.meta.env.DEV ? 'http://localhost:3003' : '/codex/');
 
   // Detect if we're returning from OAuth (check for common OAuth params)
   const isOAuthRedirect = React.useMemo(() => {
