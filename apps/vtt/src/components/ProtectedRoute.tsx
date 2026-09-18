@@ -22,7 +22,14 @@ export const ProtectedRoute: React.FC<ProtectedRouteProps> = ({
   requireUser = false,
   requireSession = false,
 }) => {
-  const { user, session, isRecovering, attemptSessionRecovery } = useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const user = useGameStore((state) => state.user);
+  const session = useGameStore((state) => state.session);
+  const isRecovering = useGameStore((state) => state.isRecovering);
+  const attemptSessionRecovery = useGameStore(
+    (state) => state.attemptSessionRecovery,
+  );
   const navigate = useNavigate();
   const [recoveryChecked, setRecoveryChecked] = useState(false);
 

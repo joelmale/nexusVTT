@@ -14,7 +14,9 @@ interface SceneEditorProps {
 }
 
 export const SceneEditor: React.FC<SceneEditorProps> = ({ scene, onClose }) => {
-  const { updateScene } = useGameStore();
+  // Narrow selector: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const updateScene = useGameStore((state) => state.updateScene);
   const { storeImage } = useSceneImages();
   // Safe access to scene properties with defaults
   const safeGridSettings = scene.gridSettings || {

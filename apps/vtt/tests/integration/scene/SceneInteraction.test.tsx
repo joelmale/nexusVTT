@@ -122,8 +122,37 @@ describe('Scene Interaction Integration Tests', () => {
       camera: { x: 0, y: 0, zoom: 1.0 },
     };
 
-    // Mock the hook implementations
-    (useGameStore as vi.Mock).mockImplementation((selector) => selector(state));
+    // Mock the hook implementations.
+    // `useGameStore` must honour the selector it is handed: the components
+    // under test subscribe narrowly (`useGameStore(s => s.setActiveTool)`),
+    // which is the real zustand contract. A `mockReturnValue` here would hand
+    // the whole fake state object back for every selector.
+    const storeState = {
+      ...state,
+      // Real gameStore shape: scene data lives under `sceneState`, not at the
+      // top level. Selectors such as useSceneFog read `state.sceneState.scenes`
+      // directly, so the fixture has to mirror that nesting.
+      sceneState: {
+        scenes: state.scenes,
+        activeSceneId: state.activeSceneId,
+        camera: state.camera,
+        activeTool: state.activeTool,
+        followDM: false,
+        selectedObjectIds: [],
+      },
+      setActiveTool: mockSetActiveTool,
+      addDrawing: mockAddDrawing,
+      updateToken: mockUpdateToken,
+      updateCamera: vi.fn(),
+      createScene: vi
+        .fn()
+        .mockImplementation((scene) => ({ ...scene, id: 'new-scene-id' })),
+      setActiveScene: vi.fn(),
+    };
+    (useGameStore as vi.Mock).mockImplementation(
+      (selector?: (s: typeof storeState) => unknown) =>
+        selector ? selector(storeState) : storeState,
+    );
     (useScenes as vi.Mock).mockReturnValue(state.scenes);
     (useActiveScene as vi.Mock).mockReturnValue(
       state.scenes.find((s) => s.id === state.activeSceneId),
@@ -132,17 +161,6 @@ describe('Scene Interaction Integration Tests', () => {
     (useUser as vi.Mock).mockReturnValue(state.user);
     (useCamera as vi.Mock).mockReturnValue(state.camera);
     (useActiveTool as vi.Mock).mockReturnValue(state.activeTool);
-
-    // Mock actions separately
-    (useGameStore as vi.Mock).mockReturnValue({
-      ...state,
-      setActiveTool: mockSetActiveTool,
-      addDrawing: mockAddDrawing,
-      updateToken: mockUpdateToken,
-      updateCamera: vi.fn(),
-      createScene: vi.fn().mockImplementation((scene) => ({ ...scene, id: 'new-scene-id' })),
-      setActiveScene: vi.fn(),
-    });
   });
 
   it('should create a drawing when using the rectangle tool', () => {

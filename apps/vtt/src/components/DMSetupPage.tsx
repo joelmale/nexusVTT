@@ -13,7 +13,10 @@ import { useGameStore } from '@/stores/gameStore';
 import type { GameConfig } from '@/types/game';
 
 export const DMSetupPage: React.FC = () => {
-  const { user, createGameRoom } = useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const user = useGameStore((state) => state.user);
+  const createGameRoom = useGameStore((state) => state.createGameRoom);
   const navigate = useNavigate();
   const [gameConfig, setGameConfig] = useState<GameConfig>({
     name: '',

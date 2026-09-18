@@ -79,7 +79,10 @@ const NoteIcon: React.FC = () => (
 export const GameToolbar: React.FC = () => {
   const activeTool = useActiveTool();
   const isHost = useIsHost();
-  const { updateCamera, setActiveTool } = useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store, re-rendering the toolbar on every unrelated set().
+  const updateCamera = useGameStore((state) => state.updateCamera);
+  const setActiveTool = useGameStore((state) => state.setActiveTool);
   const camera = useCamera();
   // A9: fog group needs the active scene's id (to target the right scene's
   // fog state) and its current SceneFog (to reflect enabled/on state on the

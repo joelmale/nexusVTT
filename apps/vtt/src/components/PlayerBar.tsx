@@ -11,7 +11,10 @@ import { tokenAssetManager } from '@/services/tokenAssets';
 import { propAssetManager } from '@/services/propAssets';
 
 export const PlayerBar: React.FC = () => {
-  const { session, user } = useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const session = useGameStore((state) => state.session);
+  const user = useGameStore((state) => state.user);
 
   if (!session) return null;
 
@@ -61,8 +64,15 @@ export const PlayerBar: React.FC = () => {
 };
 
 export const PlayerActions: React.FC = () => {
-  const { session, user, sceneState, gameConfig, replaceScenesFromBackup } =
-    useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store. `sceneState` is only read inside handlers, so it is read
+  // imperatively via getState() rather than subscribed to.
+  const session = useGameStore((state) => state.session);
+  const user = useGameStore((state) => state.user);
+  const gameConfig = useGameStore((state) => state.gameConfig);
+  const replaceScenesFromBackup = useGameStore(
+    (state) => state.replaceScenesFromBackup,
+  );
   const [isSaving, setIsSaving] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -87,6 +97,7 @@ export const PlayerActions: React.FC = () => {
     if (isSaving) return;
     setIsSaving(true);
     try {
+      const { sceneState } = useGameStore.getState();
       const backup = buildCampaignBackup({
         scenes: sceneState.scenes,
         activeSceneId: sceneState.activeSceneId,

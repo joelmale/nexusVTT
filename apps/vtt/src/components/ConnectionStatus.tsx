@@ -22,7 +22,9 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
     useState<ConnectionQuality | null>(null);
   const [isConnected, setIsConnected] = useState(false);
   const [isReconnecting, setIsReconnecting] = useState(false);
-  const { session } = useGameStore();
+  // Narrow selector: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const session = useGameStore((state) => state.session);
 
   useEffect(() => {
     const updateConnectionStatus = () => {

@@ -13,8 +13,14 @@ interface ScenePanelProps {
 }
 
 export const ScenePanel: React.FC<ScenePanelProps> = ({ scene }) => {
-  const { updateScene, createScene, deleteScene, clearDrawings, deleteToken, setActiveScene } =
-    useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const updateScene = useGameStore((state) => state.updateScene);
+  const createScene = useGameStore((state) => state.createScene);
+  const deleteScene = useGameStore((state) => state.deleteScene);
+  const clearDrawings = useGameStore((state) => state.clearDrawings);
+  const deleteToken = useGameStore((state) => state.deleteToken);
+  const setActiveScene = useGameStore((state) => state.setActiveScene);
   const isHost = useIsHost();
   const [editingName, setEditingName] = useState(false);
   const [editingDescription, setEditingDescription] = useState(false);

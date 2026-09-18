@@ -229,13 +229,17 @@ const ColorSchemePicker: React.FC<ColorSchemePickerProps> = ({
  */
 export const Settings: React.FC = () => {
   // const navigate = useNavigate(); // Not used yet
-  const {
-    updateSettings,
-    setColorScheme,
-    setEnableGlassmorphism,
-    setPersistOpenPanels,
-    resetSettings,
-  } = useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const updateSettings = useGameStore((state) => state.updateSettings);
+  const setColorScheme = useGameStore((state) => state.setColorScheme);
+  const setEnableGlassmorphism = useGameStore(
+    (state) => state.setEnableGlassmorphism,
+  );
+  const setPersistOpenPanels = useGameStore(
+    (state) => state.setPersistOpenPanels,
+  );
+  const resetSettings = useGameStore((state) => state.resetSettings);
   const settings = useSettings();
   const currentColorScheme = useColorScheme();
   // Local state to track if there are unsaved changes, prompting the user to save.

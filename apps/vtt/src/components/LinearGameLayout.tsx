@@ -19,7 +19,10 @@ const GameUI = React.lazy(() =>
 export const LinearGameLayout: React.FC = () => {
   const { roomCode } = useParams<{ roomCode: string }>();
   const navigate = useNavigate();
-  const { session, user } = useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const session = useGameStore((state) => state.session);
+  const user = useGameStore((state) => state.user);
   const [isRecovering, setIsRecovering] = useState(true);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
 

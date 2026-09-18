@@ -75,8 +75,13 @@ const PlayerCard: React.FC<PlayerCardProps> = ({
 export const LobbyPanel: React.FC = () => {
   const session = useSession();
   const isHost = useIsHost();
-  const { addCoHost, createGameRoom, gameConfig, leaveRoom, removeCoHost } =
-    useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const addCoHost = useGameStore((state) => state.addCoHost);
+  const createGameRoom = useGameStore((state) => state.createGameRoom);
+  const gameConfig = useGameStore((state) => state.gameConfig);
+  const leaveRoom = useGameStore((state) => state.leaveRoom);
+  const removeCoHost = useGameStore((state) => state.removeCoHost);
   const roomCode = useServerRoomCode();
   const isConnectedToRoom = useIsConnected();
   const [isConnecting, setIsConnecting] = useState(false);

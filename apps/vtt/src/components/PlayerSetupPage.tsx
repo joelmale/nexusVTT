@@ -50,8 +50,14 @@ const convertCharacterToPlayerCharacter = (
 };
 
 export const PlayerSetupPage: React.FC = () => {
-  const { user, joinRoomWithCode, autoPlacePlayerToken, setUser } =
-    useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const user = useGameStore((state) => state.user);
+  const joinRoomWithCode = useGameStore((state) => state.joinRoomWithCode);
+  const autoPlacePlayerToken = useGameStore(
+    (state) => state.autoPlacePlayerToken,
+  );
+  const setUser = useGameStore((state) => state.setUser);
   const navigate = useNavigate();
 
   const { characters, deleteCharacter } = useCharacters();

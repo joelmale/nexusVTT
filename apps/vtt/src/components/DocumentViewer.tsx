@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useState, useRef, useCallback } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useDocumentStore } from '@/stores/documentStore';
 import { useGameStore } from '@/stores/gameStore';
 import { webSocketService } from '@/services/websocket';
@@ -22,6 +23,8 @@ interface VttDocumentSyncMessage {
 }
 
 export const DocumentViewer: React.FC = () => {
+  // Narrow selector: the old `useDocumentStore()` (no selector) subscribed
+  // to the whole store, re-rendering on every unrelated set().
   const {
     currentDocument,
     currentDocumentContent,
@@ -42,8 +45,33 @@ export const DocumentViewer: React.FC = () => {
     sendPageSync,
     sendScrollSync,
     sendZoomSync,
-  } = useDocumentStore();
-  const { user, session } = useGameStore();
+  } = useDocumentStore(
+    useShallow((state) => ({
+      currentDocument: state.currentDocument,
+      currentDocumentContent: state.currentDocumentContent,
+      isLoadingDocument: state.isLoadingDocument,
+      closeDocument: state.closeDocument,
+      currentPage: state.currentPage,
+      setCurrentPage: state.setCurrentPage,
+      documentSessionId: state.documentSessionId,
+      isPresenter: state.isPresenter,
+      isPresentationMode: state.isPresentationMode,
+      syncScrollRatio: state.syncScrollRatio,
+      syncZoomScale: state.syncZoomScale,
+      documentSyncError: state.documentSyncError,
+      connectDocumentSync: state.connectDocumentSync,
+      joinDocumentSyncSession: state.joinDocumentSyncSession,
+      disconnectDocumentSync: state.disconnectDocumentSync,
+      setPresentationMode: state.setPresentationMode,
+      sendPageSync: state.sendPageSync,
+      sendScrollSync: state.sendScrollSync,
+      sendZoomSync: state.sendZoomSync,
+    })),
+  );
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const user = useGameStore((state) => state.user);
+  const session = useGameStore((state) => state.session);
   const isHost = user.type === 'host';
   const [totalPages, setTotalPages] = useState(0);
   const [scale, setScale] = useState(1.0);

@@ -76,13 +76,13 @@ const getCharacterLabel = (value: unknown, fallback: string): string => {
 
 export const Dashboard: React.FC = () => {
   const navigate = useNavigate();
-  const {
-    user,
-    isAuthenticated,
-    authChecked,
-    joinRoomWithCode,
-    createGameRoom,
-  } = useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const user = useGameStore((state) => state.user);
+  const isAuthenticated = useGameStore((state) => state.isAuthenticated);
+  const authChecked = useGameStore((state) => state.authChecked);
+  const joinRoomWithCode = useGameStore((state) => state.joinRoomWithCode);
+  const createGameRoom = useGameStore((state) => state.createGameRoom);
   const { startCharacterCreation, LauncherComponent } =
     useCharacterCreationLauncher();
 

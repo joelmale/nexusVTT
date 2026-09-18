@@ -12,13 +12,13 @@ interface SceneTabsProps {
 
 export const SceneTabs: React.FC<SceneTabsProps> = React.memo(
   ({ scenes, activeSceneId, onEditScene }) => {
-    const {
-      setActiveScene,
-      createScene,
-      deleteScene,
-      updateScene,
-      reorderScenes,
-    } = useGameStore();
+    // Narrow selectors: the old `useGameStore()` (no selector) subscribed to
+    // the whole store.
+    const setActiveScene = useGameStore((state) => state.setActiveScene);
+    const createScene = useGameStore((state) => state.createScene);
+    const deleteScene = useGameStore((state) => state.deleteScene);
+    const updateScene = useGameStore((state) => state.updateScene);
+    const reorderScenes = useGameStore((state) => state.reorderScenes);
     const session = useSession();
     const isHost = useIsHost();
     const [draggedTab, setDraggedTab] = useState<string | null>(null);

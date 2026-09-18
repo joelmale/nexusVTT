@@ -14,7 +14,10 @@ import { sceneUtils } from '@/utils/sceneUtils';
 import type { Scene } from '@/types/game';
 
 export const SceneManager: React.FC = () => {
-  const { createScene, setActiveScene } = useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const createScene = useGameStore((state) => state.createScene);
+  const setActiveScene = useGameStore((state) => state.setActiveScene);
   const scenes = useScenes();
   const activeScene = useActiveScene();
   const isHost = useIsHost();

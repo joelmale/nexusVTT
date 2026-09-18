@@ -152,8 +152,15 @@ export const ChatPanel: React.FC = () => {
   const resizeStartYRef = useRef<number>(0);
   const resizeStartHeightRef = useRef<number>(0);
 
-  const { chat, user, session, sendChatMessage, clearChat, setTyping, markChatAsRead } =
-    useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store, so every token move re-rendered the chat panel.
+  const chat = useGameStore((state) => state.chat);
+  const user = useGameStore((state) => state.user);
+  const session = useGameStore((state) => state.session);
+  const sendChatMessage = useGameStore((state) => state.sendChatMessage);
+  const clearChat = useGameStore((state) => state.clearChat);
+  const setTyping = useGameStore((state) => state.setTyping);
+  const markChatAsRead = useGameStore((state) => state.markChatAsRead);
 
   const isHost = useIsHost();
 

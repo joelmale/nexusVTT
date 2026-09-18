@@ -3,7 +3,8 @@
  * Converted 1:1 from the former apps/vtt/src/styles/initiative-tracker.css.
  * Every rule preserves its original values; hardcoded hex colors were only
  * swapped for an existing design-token when the token's value matched
- * exactly (see design-tokens.css --red-*/--emerald-*/--amber-* scales).
+ * exactly (see the --red-, --emerald- and --amber- scales in
+ * design-tokens.css).
  *
  * :global(.initiative-number-input) and :global(.initiative-name-input) are
  * kept as stable, unhashed class names because

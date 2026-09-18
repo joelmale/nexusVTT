@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useDocumentStore } from '@/stores/documentStore';
 import { SearchInput } from '../molecules/SearchInput';
 import { GothicHeader } from '../atoms/Typography';
@@ -49,6 +50,8 @@ const getDocTypeIcon = (type: DocumentType): string => {
 export const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
   className = '',
 }) => {
+  // Narrow selector: the old `useDocumentStore()` (no selector) subscribed
+  // to the whole store, re-rendering on every unrelated set().
   const {
     documents,
     filters,
@@ -67,7 +70,27 @@ export const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
     clearAsk,
     structuredEntities,
     loadStructuredDataForDocument,
-  } = useDocumentStore();
+  } = useDocumentStore(
+    useShallow((state) => ({
+      documents: state.documents,
+      filters: state.filters,
+      isLoadingDocuments: state.isLoadingDocuments,
+      documentsAvailable: state.documentsAvailable,
+      documentsUnavailableReason: state.documentsUnavailableReason,
+      loadDocuments: state.loadDocuments,
+      setFilters: state.setFilters,
+      openDocument: state.openDocument,
+      askQuestion: state.askQuestion,
+      askAnswer: state.askAnswer,
+      askCitations: state.askCitations,
+      isAsking: state.isAsking,
+      askError: state.askError,
+      askCodexQuestion: state.askCodexQuestion,
+      clearAsk: state.clearAsk,
+      structuredEntities: state.structuredEntities,
+      loadStructuredDataForDocument: state.loadStructuredDataForDocument,
+    })),
+  );
 
   const [activeTab, setActiveTab] = useState<'library' | 'ask'>('library');
   const [searchVal, setSearchVal] = useState('');

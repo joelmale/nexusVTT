@@ -17,8 +17,12 @@ export const PropToolbar: React.FC<PropToolbarProps> = ({
   placedProp,
 }) => {
   const activeScene = useActiveScene();
-  const { updateProp, deleteProp, clearSelection, interactWithProp } =
-    useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const updateProp = useGameStore((state) => state.updateProp);
+  const deleteProp = useGameStore((state) => state.deleteProp);
+  const clearSelection = useGameStore((state) => state.clearSelection);
+  const interactWithProp = useGameStore((state) => state.interactWithProp);
 
   const toolbarRef = useRef<HTMLDivElement>(null);
   const zIndex = useStackZIndex('objectProperties');

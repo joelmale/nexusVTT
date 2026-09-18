@@ -16,7 +16,9 @@ export const ContainerModal: React.FC<ContainerModalProps> = ({
   onClose,
   isHost,
 }) => {
-  const { updateProp } = useGameStore();
+  // Narrow selector: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const updateProp = useGameStore((state) => state.updateProp);
   const [newItemName, setNewItemName] = useState('');
   const [newItemQuantity, setNewItemQuantity] = useState(1);
   const [newItemDescription, setNewItemDescription] = useState('');

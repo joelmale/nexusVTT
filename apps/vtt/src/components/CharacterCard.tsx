@@ -17,7 +17,10 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
   token,
   initiativeEntry,
 }) => {
-  const { updateCamera, sceneState } = useGameStore();
+  // Narrow selector: the old `useGameStore()` (no selector) subscribed to the
+  // whole store. `sceneState` is only read inside a handler, so it is read
+  // imperatively via getState() rather than subscribed to.
+  const updateCamera = useGameStore((state) => state.updateCamera);
   const [isSheetOpen, setIsSheetOpen] = useState(false);
 
   // Calculate HP percentage for color coding
@@ -33,6 +36,7 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
     if (!token) return;
 
     // Find the scene containing this token
+    const { sceneState } = useGameStore.getState();
     const scene = sceneState.scenes.find((s) =>
       s.placedTokens?.some((t) => t.id === token.id),
     );

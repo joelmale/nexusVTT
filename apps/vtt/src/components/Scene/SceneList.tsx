@@ -17,7 +17,9 @@ export const SceneList: React.FC<SceneListProps> = ({
   onSceneEdit,
   isHost,
 }) => {
-  const { deleteScene } = useGameStore();
+  // Narrow selector: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const deleteScene = useGameStore((state) => state.deleteScene);
 
   const handleDeleteScene = (e: React.MouseEvent, sceneId: string) => {
     e.stopPropagation(); // Prevent scene selection

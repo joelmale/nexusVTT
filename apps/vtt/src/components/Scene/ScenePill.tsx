@@ -29,7 +29,11 @@ export const ScenePill: React.FC<ScenePillProps> = ({
 }) => {
   const isHost = useIsHost();
   const session = useSession();
-  const { setActiveScene, createScene, deleteScene } = useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const setActiveScene = useGameStore((state) => state.setActiveScene);
+  const createScene = useGameStore((state) => state.createScene);
+  const deleteScene = useGameStore((state) => state.deleteScene);
   const [isExpanded, setIsExpanded] = useState(false);
 
   const { onPointerDown, panelRef } = useDraggablePanel({

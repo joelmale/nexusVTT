@@ -10,12 +10,14 @@ export const SceneManagement: React.FC<SceneManagementProps> = ({
   onBackToSettings,
 }) => {
   const scenes = useScenes();
-  const {
-    deleteScenesById,
-    updateScenesVisibility,
-    duplicateScene,
-    setActiveScene,
-  } = useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const deleteScenesById = useGameStore((state) => state.deleteScenesById);
+  const updateScenesVisibility = useGameStore(
+    (state) => state.updateScenesVisibility,
+  );
+  const duplicateScene = useGameStore((state) => state.duplicateScene);
+  const setActiveScene = useGameStore((state) => state.setActiveScene);
   const [selectedScenes, setSelectedScenes] = useState<string[]>([]);
   const [sortBy, setSortBy] = useState<'name' | 'created' | 'updated'>(
     'updated',

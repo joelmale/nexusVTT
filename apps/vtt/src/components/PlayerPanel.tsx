@@ -106,7 +106,13 @@ export const PlayerPanel: React.FC = () => {
   const isHost = useIsHost();
   const { characters, activeCharacter, setActiveCharacter } = useCharacters();
   useCharacterCreation();
-  const { addEntry, rollInitiativeForAll, startCombat } = useInitiativeStore();
+  // Narrow selectors: the old `useInitiativeStore()` (no selector) subscribed
+  // to the whole store.
+  const addEntry = useInitiativeStore((state) => state.addEntry);
+  const rollInitiativeForAll = useInitiativeStore(
+    (state) => state.rollInitiativeForAll,
+  );
+  const startCombat = useInitiativeStore((state) => state.startCombat);
   const [, setShowCharacterSheet] = useState(false);
   const [showImportModal, setShowImportModal] = useState(false);
   const { LauncherComponent } = useCharacterCreationLauncher();

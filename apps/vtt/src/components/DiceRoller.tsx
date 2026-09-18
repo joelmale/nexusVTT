@@ -19,7 +19,10 @@ import DOMPurify from 'dompurify';
 export const DiceRoller: React.FC = () => {
   const diceRolls = useDiceRolls();
   const isHost = useIsHost();
-  const { user, sendChatMessage } = useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const user = useGameStore((state) => state.user);
+  const sendChatMessage = useGameStore((state) => state.sendChatMessage);
   // Local state for the dice expression input field.
   const [expression, setExpression] = useState('');
   // Local state for displaying validation errors.

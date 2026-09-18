@@ -24,7 +24,14 @@ const AbilityScore: React.FC<AbilityScoreProps> = ({
   character,
   readonly,
 }) => {
-  const { updateAbilityScore, updateSavingThrowProficiency } = useCharacterStore();
+  // Narrow selectors: the old `useCharacterStore()` (no selector) subscribed
+  // to the whole store.
+  const updateAbilityScore = useCharacterStore(
+    (state) => state.updateAbilityScore,
+  );
+  const updateSavingThrowProficiency = useCharacterStore(
+    (state) => state.updateSavingThrowProficiency,
+  );
   const abilityData = character.abilities[ability];
   const profBonus = character.proficiencyBonus ?? 2;
   const isProficient = character.savingThrowProficiencies?.[ability] ?? false;
@@ -79,7 +86,11 @@ const SkillsList: React.FC<{ character: Character; readonly?: boolean }> = ({
   character,
   readonly,
 }) => {
-  const { updateSkillProficiency } = useCharacterStore();
+  // Narrow selector: the old `useCharacterStore()` (no selector) subscribed
+  // to the whole store.
+  const updateSkillProficiency = useCharacterStore(
+    (state) => state.updateSkillProficiency,
+  );
 
   return (
     <div className="skills-section">
@@ -134,13 +145,13 @@ const EquipmentList: React.FC<{ character: Character; readonly?: boolean }> = ({
   character,
   readonly,
 }) => {
-  const {
-    addEquipment,
-    updateEquipment,
-    removeEquipment,
-    equipItem,
-    unequipItem,
-  } = useCharacterStore();
+  // Narrow selectors: the old `useCharacterStore()` (no selector) subscribed
+  // to the whole store.
+  const addEquipment = useCharacterStore((state) => state.addEquipment);
+  const updateEquipment = useCharacterStore((state) => state.updateEquipment);
+  const removeEquipment = useCharacterStore((state) => state.removeEquipment);
+  const equipItem = useCharacterStore((state) => state.equipItem);
+  const unequipItem = useCharacterStore((state) => state.unequipItem);
   const [newItemName, setNewItemName] = useState('');
   const [newItemType, setNewItemType] = useState<
     'weapon' | 'armor' | 'tool' | 'consumable' | 'treasure' | 'other'
@@ -269,7 +280,12 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({
   character,
   readonly = false,
 }) => {
-  const { updateCharacter, updateCharacterHP } = useCharacterStore();
+  // Narrow selectors: the old `useCharacterStore()` (no selector) subscribed
+  // to the whole store.
+  const updateCharacter = useCharacterStore((state) => state.updateCharacter);
+  const updateCharacterHP = useCharacterStore(
+    (state) => state.updateCharacterHP,
+  );
   const [activeTab, setActiveTab] = useState<
     'stats' | 'equipment' | 'spells' | 'notes'
   >('stats');

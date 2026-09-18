@@ -4,6 +4,7 @@
  */
 
 import React, { useEffect, useState, Suspense } from 'react';
+import { useShallow } from 'zustand/react/shallow';
 import { useDocumentStore } from '@/stores/documentStore';
 import { useGameStore } from '@/stores/gameStore';
 import { DocumentType } from '@/services/documentService';
@@ -31,6 +32,8 @@ const DOCUMENT_TYPE_ICONS: Record<DocumentType, string> = {
 };
 
 export const DocumentsPanel: React.FC = () => {
+  // Narrow selector: the old `useDocumentStore()` (no selector) subscribed
+  // to the whole store, re-rendering on every unrelated set().
   const {
     documents,
     isLoadingDocuments,
@@ -43,9 +46,25 @@ export const DocumentsPanel: React.FC = () => {
     openDocument,
     structuredEntities,
     loadStructuredDataForDocument,
-  } = useDocumentStore();
+  } = useDocumentStore(
+    useShallow((state) => ({
+      documents: state.documents,
+      isLoadingDocuments: state.isLoadingDocuments,
+      quickSearchResults: state.quickSearchResults,
+      isSearching: state.isSearching,
+      loadDocuments: state.loadDocuments,
+      setFilters: state.setFilters,
+      quickSearch: state.quickSearch,
+      clearSearch: state.clearSearch,
+      openDocument: state.openDocument,
+      structuredEntities: state.structuredEntities,
+      loadStructuredDataForDocument: state.loadStructuredDataForDocument,
+    })),
+  );
 
-  const { session } = useGameStore();
+  // Narrow selector: the old `useGameStore()` (no selector) subscribed to the
+  // whole store.
+  const session = useGameStore((state) => state.session);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedType, setSelectedType] = useState<DocumentType | ''>('');
   const [expandedDocumentId, setExpandedDocumentId] = useState<string | null>(null);
