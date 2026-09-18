@@ -76,9 +76,11 @@ describe('GeneratorPanel Containment (S0.3)', () => {
   it('prevents Add to Scene when no valid image artifact exists', async () => {
     render(<GeneratorPanel />);
     
-    // Expand the controls panel first if necessary (GeneratorFloatingControls defaults to collapsed)
-    const toggleButton = screen.getByTitle('Open controls');
-    fireEvent.click(toggleButton);
+    // Expand the controls panel first if collapsed
+    const toggleButton = screen.queryByTitle('Open controls');
+    if (toggleButton) {
+      fireEvent.click(toggleButton);
+    }
 
     const addButton = screen.getByText('🗺️ Add to Scene');
     expect(addButton).toBeDisabled();

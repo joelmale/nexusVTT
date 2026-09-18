@@ -344,6 +344,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         onAddToScene={handleApplyToScene}
         onAction={handleGeneratorAction}
         hasActiveScene={!!activeScene}
+        hasValidArtifact={(!!generatedMap && !generatedMap.startsWith('{')) || !!generatedBlob}
         activeSceneName={activeScene?.name}
         isImporting={isImporting}
         forceRasterize={forceRasterize}

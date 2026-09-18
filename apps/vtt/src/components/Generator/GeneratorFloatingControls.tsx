@@ -28,6 +28,7 @@ interface GeneratorFloatingControlsProps {
   onUploadJSON?: () => void;
   onAction?: (action: GeneratorActionPayload) => void;
   hasActiveScene: boolean;
+  hasValidArtifact?: boolean;
   activeSceneName?: string;
   isImporting?: boolean;
   forceRasterize?: boolean;
@@ -48,6 +49,7 @@ export const GeneratorFloatingControls: React.FC<
   onUploadJSON,
   onAction,
   hasActiveScene,
+  hasValidArtifact = true,
   activeSceneName,
   isImporting = false,
   forceRasterize = true,
@@ -222,8 +224,8 @@ export const GeneratorFloatingControls: React.FC<
             e.currentTarget.style.borderColor = 'var(--border-primary, rgba(255, 255, 255, 0.15))';
             e.currentTarget.style.transform = 'scale(1)';
           }}
-          title="Open Map Studio Controls"
-          aria-label="Open Map Studio Controls"
+          title="Open controls"
+          aria-label="Open controls"
         >
           <Sparkles size={20} color="var(--indigo-400, #818cf8)" />
         </button>
@@ -562,18 +564,21 @@ export const GeneratorFloatingControls: React.FC<
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.375rem' }}>
             <button
               onClick={onAddToScene}
-              disabled={!hasActiveScene || isImporting}
+              disabled={!hasActiveScene || !hasValidArtifact || isImporting}
               style={{
                 width: '100%',
-                background: hasActiveScene
+                background: hasActiveScene && hasValidArtifact
                   ? 'linear-gradient(135deg, var(--indigo-600, #4f46e5) 0%, var(--purple-600, #9333ea) 100%)'
                   : 'rgba(255, 255, 255, 0.06)',
-                border: hasActiveScene
+                border: hasActiveScene && hasValidArtifact
                   ? '1px solid rgba(165, 180, 252, 0.35)'
                   : '1px solid rgba(255, 255, 255, 0.1)',
                 borderRadius: '8px',
                 color: '#fff',
-                cursor: hasActiveScene && !isImporting ? 'pointer' : 'not-allowed',
+                cursor:
+                  hasActiveScene && hasValidArtifact && !isImporting
+                    ? 'pointer'
+                    : 'not-allowed',
                 padding: '0.625rem 0.75rem',
                 fontSize: '0.8125rem',
                 fontWeight: 600,
@@ -581,21 +586,22 @@ export const GeneratorFloatingControls: React.FC<
                 alignItems: 'center',
                 justifyContent: 'center',
                 gap: '0.5rem',
-                boxShadow: hasActiveScene
-                  ? '0 4px 16px rgba(79, 70, 229, 0.35)'
-                  : 'none',
-                opacity: hasActiveScene ? 1 : 0.5,
+                boxShadow:
+                  hasActiveScene && hasValidArtifact
+                    ? '0 4px 16px rgba(79, 70, 229, 0.35)'
+                    : 'none',
+                opacity: hasActiveScene && hasValidArtifact ? 1 : 0.5,
                 transition: 'all 0.2s ease',
               }}
               onMouseEnter={(e) => {
-                if (hasActiveScene && !isImporting) {
+                if (hasActiveScene && hasValidArtifact && !isImporting) {
                   e.currentTarget.style.transform = 'translateY(-1px)';
                   e.currentTarget.style.boxShadow =
                     '0 6px 20px rgba(79, 70, 229, 0.5)';
                 }
               }}
               onMouseLeave={(e) => {
-                if (hasActiveScene && !isImporting) {
+                if (hasActiveScene && hasValidArtifact && !isImporting) {
                   e.currentTarget.style.transform = 'translateY(0)';
                   e.currentTarget.style.boxShadow =
                     '0 4px 16px rgba(79, 70, 229, 0.35)';
@@ -604,7 +610,9 @@ export const GeneratorFloatingControls: React.FC<
               title={
                 !hasActiveScene
                   ? 'Please select or create an active scene first'
-                  : 'Imports current map as the scene background'
+                  : !hasValidArtifact
+                    ? 'No generated map to add to scene.'
+                    : 'Imports current map as the scene background'
               }
             >
               {isImporting ? (
@@ -613,9 +621,7 @@ export const GeneratorFloatingControls: React.FC<
                   <span>Capturing & Adding to Scene...</span>
                 </>
               ) : (
-                <>
-                  <span>🗺️ Add to Scene</span>
-                </>
+                '🗺️ Add to Scene'
               )}
             </button>
 
