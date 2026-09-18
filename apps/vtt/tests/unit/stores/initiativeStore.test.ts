@@ -570,4 +570,291 @@ describe('initiativeStore', () => {
       expect(state.round).toBe(0);
     });
   });
+
+  describe('Advanced Turn and Death Save Management', () => {
+    it('handles previousTurn wrapping around to previous round', () => {
+      const store = useInitiativeStore.getState();
+      const id1 = store.addEntry({
+        name: 'A',
+        type: 'player',
+        initiative: 20,
+        maxHP: 10,
+        currentHP: 10,
+        tempHP: 0,
+        armorClass: 10,
+        conditions: [],
+        isActive: false,
+        isReady: false,
+        isDelayed: false,
+        notes: '',
+        deathSaves: { successes: 0, failures: 0 },
+        initiativeModifier: 0,
+        dexterityModifier: 0,
+      });
+      const id2 = store.addEntry({
+        name: 'B',
+        type: 'player',
+        initiative: 10,
+        maxHP: 10,
+        currentHP: 10,
+        tempHP: 0,
+        armorClass: 10,
+        conditions: [],
+        isActive: false,
+        isReady: false,
+        isDelayed: false,
+        notes: '',
+        deathSaves: { successes: 0, failures: 0 },
+        initiativeModifier: 0,
+        dexterityModifier: 0,
+      });
+
+      store.startCombat();
+      expect(useInitiativeStore.getState().round).toBe(1);
+      expect(useInitiativeStore.getState().activeEntryId).toBe(id1);
+
+      // Advance to B, then advance to A (round 2)
+      store.nextTurn();
+      expect(useInitiativeStore.getState().activeEntryId).toBe(id2);
+      store.nextTurn();
+      expect(useInitiativeStore.getState().round).toBe(2);
+      expect(useInitiativeStore.getState().activeEntryId).toBe(id1);
+
+      // Previous turn wraps back to B and decrements round
+      store.previousTurn();
+      expect(useInitiativeStore.getState().round).toBe(1);
+      expect(useInitiativeStore.getState().activeEntryId).toBe(id2);
+    });
+
+    it('handles removing the active entry and selects the adjacent entry', () => {
+      const store = useInitiativeStore.getState();
+      const id1 = store.addEntry({
+        name: 'First',
+        type: 'player',
+        initiative: 20,
+        maxHP: 10,
+        currentHP: 10,
+        tempHP: 0,
+        armorClass: 10,
+        conditions: [],
+        isActive: false,
+        isReady: false,
+        isDelayed: false,
+        notes: '',
+        deathSaves: { successes: 0, failures: 0 },
+        initiativeModifier: 0,
+        dexterityModifier: 0,
+      });
+      const id2 = store.addEntry({
+        name: 'Second',
+        type: 'player',
+        initiative: 10,
+        maxHP: 10,
+        currentHP: 10,
+        tempHP: 0,
+        armorClass: 10,
+        conditions: [],
+        isActive: false,
+        isReady: false,
+        isDelayed: false,
+        notes: '',
+        deathSaves: { successes: 0, failures: 0 },
+        initiativeModifier: 0,
+        dexterityModifier: 0,
+      });
+
+      store.startCombat();
+      expect(useInitiativeStore.getState().activeEntryId).toBe(id1);
+
+      store.removeEntry(id1);
+      expect(useInitiativeStore.getState().activeEntryId).toBe(id2);
+
+      store.removeEntry(id2);
+      expect(useInitiativeStore.getState().activeEntryId).toBeNull();
+    });
+
+    it('reorders entries manually', () => {
+      const store = useInitiativeStore.getState();
+      store.setSortByInitiative(false);
+      store.addEntry({
+        name: 'First',
+        type: 'player',
+        initiative: 10,
+        maxHP: 10,
+        currentHP: 10,
+        tempHP: 0,
+        armorClass: 10,
+        conditions: [],
+        isActive: false,
+        isReady: false,
+        isDelayed: false,
+        notes: '',
+        deathSaves: { successes: 0, failures: 0 },
+        initiativeModifier: 0,
+        dexterityModifier: 0,
+      });
+      store.addEntry({
+        name: 'Second',
+        type: 'player',
+        initiative: 10,
+        maxHP: 10,
+        currentHP: 10,
+        tempHP: 0,
+        armorClass: 10,
+        conditions: [],
+        isActive: false,
+        isReady: false,
+        isDelayed: false,
+        notes: '',
+        deathSaves: { successes: 0, failures: 0 },
+        initiativeModifier: 0,
+        dexterityModifier: 0,
+      });
+
+      store.reorderEntries(0, 1);
+      expect(useInitiativeStore.getState().entries[0].name).toBe('Second');
+      expect(useInitiativeStore.getState().entries[1].name).toBe('First');
+    });
+
+    it('manages death saves correctly: nat 20, nat 1, successes, failures, and reset', () => {
+      const store = useInitiativeStore.getState();
+      const id = store.addEntry({
+        name: 'Dying Fighter',
+        type: 'player',
+        initiative: 10,
+        maxHP: 20,
+        currentHP: 0,
+        tempHP: 0,
+        armorClass: 10,
+        conditions: [],
+        isActive: false,
+        isReady: false,
+        isDelayed: false,
+        notes: '',
+        deathSaves: { successes: 0, failures: 0 },
+        initiativeModifier: 0,
+        dexterityModifier: 0,
+      });
+
+      // Regular success (>= 10)
+      store.rollDeathSave(id, 12);
+      expect(store.getEntry(id)?.deathSaves.successes).toBe(1);
+
+      // Regular failure (< 10)
+      store.rollDeathSave(id, 8);
+      expect(store.getEntry(id)?.deathSaves.failures).toBe(1);
+
+      // Nat 1 (2 failures)
+      store.rollDeathSave(id, 1);
+      expect(store.getEntry(id)?.deathSaves.failures).toBe(3);
+
+      // Reset death saves
+      store.resetDeathSaves(id);
+      expect(store.getEntry(id)?.deathSaves).toEqual({ successes: 0, failures: 0 });
+
+      // Nat 20: regains 1 HP and clears saves
+      store.rollDeathSave(id, 20);
+      expect(store.getEntry(id)?.currentHP).toBe(1);
+      expect(store.getEntry(id)?.deathSaves).toEqual({ successes: 0, failures: 0 });
+    });
+
+    it('toggles delayed turn and ready action mutually exclusively', () => {
+      const store = useInitiativeStore.getState();
+      const id = store.addEntry({
+        name: 'Tactician',
+        type: 'player',
+        initiative: 15,
+        maxHP: 20,
+        currentHP: 20,
+        tempHP: 0,
+        armorClass: 10,
+        conditions: [],
+        isActive: false,
+        isReady: false,
+        isDelayed: false,
+        notes: '',
+        deathSaves: { successes: 0, failures: 0 },
+        initiativeModifier: 0,
+        dexterityModifier: 0,
+      });
+
+      store.delayTurn(id);
+      expect(store.getEntry(id)?.isDelayed).toBe(true);
+      expect(store.getEntry(id)?.isReady).toBe(false);
+
+      store.readyAction(id);
+      expect(store.getEntry(id)?.isReady).toBe(true);
+      expect(store.getEntry(id)?.isDelayed).toBe(false);
+    });
+
+    it('updates conditions on entries', () => {
+      const store = useInitiativeStore.getState();
+      const id = store.addEntry({
+        name: 'Target',
+        type: 'monster',
+        initiative: 10,
+        maxHP: 20,
+        currentHP: 20,
+        tempHP: 0,
+        armorClass: 10,
+        conditions: [],
+        isActive: false,
+        isReady: false,
+        isDelayed: false,
+        notes: '',
+        deathSaves: { successes: 0, failures: 0 },
+        initiativeModifier: 0,
+        dexterityModifier: 0,
+      });
+
+      store.addCondition(id, {
+        id: 'poisoned',
+        name: 'Poisoned',
+        description: 'Disadvantage on attacks',
+        duration: 3,
+        source: 'Poison dart',
+      });
+
+      const entry = store.getEntry(id);
+      expect(entry?.conditions).toHaveLength(1);
+      const condId = entry!.conditions[0].id;
+
+      store.updateCondition(id, condId, { duration: 5, description: 'Severe poison' });
+      const updated = store.getEntry(id);
+      expect(updated?.conditions[0].duration).toBe(5);
+      expect(updated?.conditions[0].description).toBe('Severe poison');
+    });
+
+    it('records and returns combat log and current round', () => {
+      const store = useInitiativeStore.getState();
+      store.addEntry({
+        name: 'Hero',
+        type: 'player',
+        initiative: 10,
+        maxHP: 10,
+        currentHP: 10,
+        tempHP: 0,
+        armorClass: 10,
+        conditions: [],
+        isActive: false,
+        isReady: false,
+        isDelayed: false,
+        notes: '',
+        deathSaves: { successes: 0, failures: 0 },
+        initiativeModifier: 0,
+        dexterityModifier: 0,
+      });
+
+      store.startCombat();
+      expect(store.getCurrentRound()?.number).toBe(1);
+
+      store.addEvent({
+        type: 'damage',
+        entryId: 'e1',
+        description: 'Hero took 5 damage',
+      });
+      expect(store.getCombatLog().length).toBeGreaterThan(0);
+      expect(store.getCombatLog()[0].description).toBe('Hero took 5 damage');
+    });
+  });
 });

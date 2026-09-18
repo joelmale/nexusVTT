@@ -649,4 +649,223 @@ describe('CharacterStore', () => {
       expect(useCharacterStore.getState().characters).toHaveLength(0);
     });
   });
+
+  describe('Equipment Management', () => {
+    let charId: string;
+    beforeEach(() => {
+      act(() => {
+        charId = useCharacterStore.getState().createCharacter('p1');
+      });
+    });
+
+    it('adds, updates, equips, unequips, and removes equipment', () => {
+      act(() => {
+        useCharacterStore.getState().addEquipment(charId, {
+          name: 'Longsword',
+          quantity: 1,
+          equipped: false,
+        });
+      });
+
+      let char = useCharacterStore.getState().getCharacter(charId);
+      expect(char?.inventory).toHaveLength(1);
+      expect(char?.inventory[0].name).toBe('Longsword');
+      expect(char?.inventory[0].equipped).toBe(false);
+
+      // Equip item
+      act(() => {
+        useCharacterStore.getState().equipItem(charId, 'longsword');
+      });
+      char = useCharacterStore.getState().getCharacter(charId);
+      expect(char?.inventory[0].equipped).toBe(true);
+
+      // Unequip item
+      act(() => {
+        useCharacterStore.getState().unequipItem(charId, 'longsword');
+      });
+      char = useCharacterStore.getState().getCharacter(charId);
+      expect(char?.inventory[0].equipped).toBe(false);
+
+      // Update equipment name and quantity
+      act(() => {
+        useCharacterStore.getState().updateEquipment(charId, 'longsword', {
+          name: 'Silver Longsword',
+          quantity: 2,
+        });
+      });
+      char = useCharacterStore.getState().getCharacter(charId);
+      expect(char?.inventory[0].name).toBe('Silver Longsword');
+      expect(char?.inventory[0].quantity).toBe(2);
+
+      // Remove equipment
+      act(() => {
+        useCharacterStore.getState().removeEquipment(charId, 'silver-longsword');
+      });
+      char = useCharacterStore.getState().getCharacter(charId);
+      expect(char?.inventory).toHaveLength(0);
+    });
+  });
+
+  describe('Proficiencies and Skills', () => {
+    let charId: string;
+    beforeEach(() => {
+      act(() => {
+        charId = useCharacterStore.getState().createCharacter('p1');
+      });
+    });
+
+    it('updates skill proficiency and expertise', () => {
+      act(() => {
+        useCharacterStore.getState().updateSkillProficiency(charId, 'Athletics', true, true);
+      });
+      const char = useCharacterStore.getState().getCharacter(charId);
+      expect(char?.skills.Athletics.proficient).toBe(true);
+      expect(char?.skills.Athletics.expertise).toBe(true);
+    });
+
+    it('updates saving throw proficiencies', () => {
+      act(() => {
+        useCharacterStore.getState().updateSavingThrowProficiency(charId, 'DEX', true);
+      });
+      const char = useCharacterStore.getState().getCharacter(charId);
+      expect(char?.savingThrowProficiencies.DEX).toBe(true);
+    });
+  });
+
+  describe('Combat Integration and Queries', () => {
+    let charId: string;
+    beforeEach(() => {
+      act(() => {
+        charId = useCharacterStore.getState().createCharacter('player-xyz');
+      });
+    });
+
+    it('adds and removes characters to/from combat', () => {
+      act(() => {
+        useCharacterStore.getState().addCharacterToCombat(charId);
+      });
+      // Character is added to initiative store
+      act(() => {
+        useCharacterStore.getState().removeCharacterFromCombat(charId);
+      });
+    });
+
+    it('queries characters by player and manages active character', () => {
+      act(() => {
+        useCharacterStore.getState().createCharacter('player-abc');
+      });
+
+      const p1Chars = useCharacterStore.getState().getCharactersByPlayer('player-xyz');
+      expect(p1Chars).toHaveLength(1);
+      expect(p1Chars[0].id).toBe(charId);
+
+      act(() => {
+        useCharacterStore.getState().setActiveCharacter(charId);
+      });
+      expect(useCharacterStore.getState().activeCharacterId).toBe(charId);
+
+      act(() => {
+        useCharacterStore.getState().clearCharacters();
+      });
+      expect(useCharacterStore.getState().characters).toHaveLength(0);
+      expect(useCharacterStore.getState().activeCharacterId).toBeNull();
+    });
+  });
+
+  describe('Mob Management and Mob Groups', () => {
+    it('manages mobs: add, update, get, delete, select, and groups', () => {
+      let mobId1 = '';
+      let mobId2 = '';
+      act(() => {
+        mobId1 = useCharacterStore.getState().addMob({
+          name: 'Goblin',
+          type: 'humanoid',
+          cr: 0.25,
+          xp: 50,
+          hp: 7,
+          maxHp: 7,
+          ac: 15,
+          speed: '30 ft.',
+          abilities: {
+            STR: 8,
+            DEX: 14,
+            CON: 10,
+            INT: 10,
+            WIS: 8,
+            CHA: 8,
+          },
+          actions: [],
+          environment: 'forest',
+        });
+        mobId2 = useCharacterStore.getState().addMob({
+          name: 'Orc',
+          type: 'humanoid',
+          cr: 0.5,
+          xp: 100,
+          hp: 15,
+          maxHp: 15,
+          ac: 13,
+          speed: '30 ft.',
+          abilities: {
+            STR: 16,
+            DEX: 12,
+            CON: 16,
+            INT: 7,
+            WIS: 11,
+            CHA: 10,
+          },
+          actions: [],
+          environment: 'mountain',
+        });
+      });
+
+      expect(useCharacterStore.getState().getMob(mobId1)?.name).toBe('Goblin');
+
+      act(() => {
+        useCharacterStore.getState().updateMob(mobId1, { hp: 5 });
+      });
+      expect(useCharacterStore.getState().getMob(mobId1)?.hp).toBe(5);
+
+      // Select / deselect mobs for combat
+      act(() => {
+        useCharacterStore.getState().selectMobForCombat(mobId1);
+        useCharacterStore.getState().selectMobForCombat(mobId2);
+      });
+      expect(useCharacterStore.getState().getSelectedMobs()).toHaveLength(2);
+
+      act(() => {
+        useCharacterStore.getState().deselectMobForCombat(mobId1);
+      });
+      expect(useCharacterStore.getState().getSelectedMobs()).toHaveLength(1);
+
+      act(() => {
+        useCharacterStore.getState().clearSelectedMobs();
+      });
+      expect(useCharacterStore.getState().getSelectedMobs()).toHaveLength(0);
+
+      // Mob Groups
+      let groupId = '';
+      act(() => {
+        groupId = useCharacterStore.getState().createMobGroup('Goblin Patrol', [mobId1, mobId2]);
+      });
+      expect(useCharacterStore.getState().mobGroups).toHaveLength(1);
+      expect(useCharacterStore.getState().mobGroups[0].name).toBe('Goblin Patrol');
+
+      act(() => {
+        useCharacterStore.getState().updateMobGroup(groupId, { name: 'Reinforced Patrol' });
+      });
+      expect(useCharacterStore.getState().mobGroups[0].name).toBe('Reinforced Patrol');
+
+      act(() => {
+        useCharacterStore.getState().deleteMobGroup(groupId);
+      });
+      expect(useCharacterStore.getState().mobGroups).toHaveLength(0);
+
+      // Delete mob
+      act(() => {
+        useCharacterStore.getState().deleteMob(mobId1);
+      });
+      expect(useCharacterStore.getState().mobs).toHaveLength(1);
+    });
+  });
 });
