@@ -35,7 +35,7 @@ const documentWsMock = vi.hoisted(() => {
       type: T,
       data: DocumentWebSocketIncomingEvents[T],
     ) {
-      subscribers.get(type)?.forEach((callback) => callback(data));
+      subscribers.get(String(type))?.forEach((callback) => callback(data));
     },
     clear() {
       subscribers.clear();
@@ -69,6 +69,15 @@ vi.mock('@/services/documentService', () => ({
     getWsToken: vi.fn(),
     getDocument: vi.fn(),
     getDocumentContentUrl: vi.fn(),
+    listDocuments: vi.fn(),
+    searchDocuments: vi.fn(),
+    quickSearch: vi.fn(),
+    ask: vi.fn(),
+    createDocument: vi.fn(),
+    uploadFile: vi.fn(),
+    updateDocument: vi.fn(),
+    deleteDocument: vi.fn(),
+    getDocumentStructuredData: vi.fn(),
   },
 }));
 
@@ -250,5 +259,218 @@ describe('documentStore sync actions', () => {
     expect(documentWebSocketClient.syncPage).toHaveBeenCalledWith(2);
     expect(documentWebSocketClient.syncScroll).toHaveBeenCalledWith(0);
     expect(documentWebSocketClient.syncZoom).toHaveBeenCalledWith(2);
+  });
+
+  describe('library, search, and CRUD actions', () => {
+    it('loads documents successfully and updates state', async () => {
+      vi.mocked(documentService.listDocuments).mockResolvedValue({
+        documents: [mockDocument],
+        pagination: { total: 1, limit: 50, skip: 0, hasMore: false },
+      });
+
+      await act(async () => {
+        await useDocumentStore.getState().loadDocuments();
+      });
+
+      const state = useDocumentStore.getState();
+      expect(state.documents).toEqual([mockDocument]);
+      expect(state.totalDocuments).toBe(1);
+      expect(state.isLoadingDocuments).toBe(false);
+      expect(state.documentsAvailable).toBe(true);
+    });
+
+    it('handles document loading failure and flags unavailability gracefully', async () => {
+      vi.mocked(documentService.listDocuments).mockRejectedValue(
+        new Error('Document service unavailable: fetch failed'),
+      );
+
+      await act(async () => {
+        await useDocumentStore.getState().loadDocuments();
+      });
+
+      const state = useDocumentStore.getState();
+      expect(state.documentsError).toContain('Document service unavailable');
+      expect(state.documentsAvailable).toBe(false);
+      expect(state.isLoadingDocuments).toBe(false);
+    });
+
+    it('sets and resets filters, triggering reloads', async () => {
+      vi.mocked(documentService.listDocuments).mockResolvedValue({
+        documents: [],
+        pagination: { total: 0, limit: 50, skip: 0, hasMore: false },
+      });
+
+      act(() => {
+        useDocumentStore.getState().setFilters({ search: 'dragon', type: 'rulebook' });
+      });
+
+      expect(useDocumentStore.getState().filters.search).toBe('dragon');
+      expect(useDocumentStore.getState().filters.type).toBe('rulebook');
+      expect(useDocumentStore.getState().filters.skip).toBe(0);
+
+      act(() => {
+        useDocumentStore.getState().resetFilters();
+      });
+
+      expect(useDocumentStore.getState().filters.search).toBeUndefined();
+    });
+
+    it('performs full-text search and quick search', async () => {
+      const mockResult = {
+        documentId: mockDocument.id,
+        title: mockDocument.title,
+        type: mockDocument.type,
+        format: mockDocument.format,
+        score: 0.95,
+        highlights: { content: ['Rule *highlight*'] },
+      };
+
+      vi.mocked(documentService.searchDocuments).mockResolvedValue({
+        results: [mockResult],
+        total: 1,
+        query: 'fireball',
+      });
+
+      await act(async () => {
+        await useDocumentStore.getState().searchDocuments('fireball');
+      });
+
+      expect(useDocumentStore.getState().searchResults).toEqual([mockResult]);
+      expect(useDocumentStore.getState().isSearching).toBe(false);
+
+      vi.mocked(documentService.quickSearch).mockResolvedValue({
+        results: [{ id: mockDocument.id, title: 'Quick', type: 'rulebook', score: 1 }],
+      });
+
+      await act(async () => {
+        await useDocumentStore.getState().quickSearch('quick');
+      });
+
+      expect(useDocumentStore.getState().quickSearchResults).toHaveLength(1);
+
+      act(() => {
+        useDocumentStore.getState().clearSearch();
+      });
+      expect(useDocumentStore.getState().searchResults).toEqual([]);
+      expect(useDocumentStore.getState().quickSearchResults).toEqual([]);
+    });
+
+    it('asks questions to the Codex and handles clearAsk', async () => {
+      vi.mocked(documentService.ask).mockResolvedValue({
+        answer: 'Fireball deals 8d6 fire damage.',
+        citations: [
+          {
+            documentId: mockDocument.id,
+            documentTitle: 'PHB',
+            pageNumber: 241,
+            snippet: 'A bright streak flashes...',
+          },
+        ],
+      });
+
+      await act(async () => {
+        await useDocumentStore.getState().askCodexQuestion('How much damage does fireball do?');
+      });
+
+      expect(useDocumentStore.getState().askAnswer).toContain('8d6 fire damage');
+      expect(useDocumentStore.getState().askCitations).toHaveLength(1);
+
+      act(() => {
+        useDocumentStore.getState().clearAsk();
+      });
+      expect(useDocumentStore.getState().askQuestion).toBe('');
+      expect(useDocumentStore.getState().askAnswer).toBeNull();
+    });
+
+    it('opens, views, sets page, and closes documents', async () => {
+      vi.mocked(documentService.getDocument).mockResolvedValue(mockDocument);
+      vi.mocked(documentService.getDocumentContentUrl).mockResolvedValue('blob:http://localhost/doc');
+
+      await act(async () => {
+        await useDocumentStore.getState().openDocument(mockDocument.id, 5);
+      });
+
+      expect(useDocumentStore.getState().currentDocument).toEqual(mockDocument);
+      expect(useDocumentStore.getState().currentDocumentContent).toBe('blob:http://localhost/doc');
+      expect(useDocumentStore.getState().currentPage).toBe(5);
+
+      act(() => {
+        useDocumentStore.getState().setCurrentPage(6);
+      });
+      expect(useDocumentStore.getState().currentPage).toBe(6);
+
+      act(() => {
+        useDocumentStore.getState().closeDocument();
+      });
+      expect(useDocumentStore.getState().currentDocument).toBeNull();
+      expect(useDocumentStore.getState().currentDocumentContent).toBeNull();
+    });
+
+    it('updates and deletes documents', async () => {
+      useDocumentStore.setState({
+        documents: [mockDocument],
+        totalDocuments: 1,
+        currentDocument: mockDocument,
+      });
+
+      const updated = { ...mockDocument, title: 'Updated Rules' };
+      vi.mocked(documentService.updateDocument).mockResolvedValue(updated);
+
+      await act(async () => {
+        await useDocumentStore.getState().updateDocument(mockDocument.id, { title: 'Updated Rules' });
+      });
+
+      expect(useDocumentStore.getState().documents[0].title).toBe('Updated Rules');
+      expect(useDocumentStore.getState().currentDocument?.title).toBe('Updated Rules');
+
+      vi.mocked(documentService.deleteDocument).mockResolvedValue(undefined);
+
+      await act(async () => {
+        await useDocumentStore.getState().deleteDocument(mockDocument.id);
+      });
+
+      expect(useDocumentStore.getState().documents).toHaveLength(0);
+      expect(useDocumentStore.getState().totalDocuments).toBe(0);
+      expect(useDocumentStore.getState().currentDocument).toBeNull();
+    });
+
+    it('loads structured data for documents and caches it', async () => {
+      const mockEntities = [
+        { id: 'e-1', type: 'spell', name: 'Magic Missile', documentId: mockDocument.id, page: 1 },
+      ];
+      vi.mocked(documentService.getDocumentStructuredData).mockResolvedValue(mockEntities);
+
+      await act(async () => {
+        await useDocumentStore.getState().loadStructuredDataForDocument(mockDocument.id);
+      });
+
+      expect(useDocumentStore.getState().structuredEntities[mockDocument.id]).toEqual(mockEntities);
+
+      // Second call returns cached immediately
+      vi.mocked(documentService.getDocumentStructuredData).mockClear();
+      await act(async () => {
+        await useDocumentStore.getState().loadStructuredDataForDocument(mockDocument.id);
+      });
+      expect(documentService.getDocumentStructuredData).not.toHaveBeenCalled();
+    });
+
+    it('disconnects document sync and cleans up subscriptions', () => {
+      useDocumentStore.setState({
+        documentSessionId: 'sess-1',
+        documentSyncDocumentId: 'doc-1',
+        isPresenter: true,
+        isPresentationMode: true,
+      });
+
+      act(() => {
+        useDocumentStore.getState().disconnectDocumentSync();
+      });
+
+      const state = useDocumentStore.getState();
+      expect(state.documentSessionId).toBeNull();
+      expect(state.documentSyncDocumentId).toBeNull();
+      expect(state.isPresenter).toBe(false);
+      expect(state.isPresentationMode).toBe(false);
+    });
   });
 });
