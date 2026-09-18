@@ -862,3 +862,184 @@ dialog.account-dialog::backdrop {
   font-size: 20px;
   animation: spin 1s linear infinite;
 }
+
+/* ==========================================================================
+   LIGHT THEME ADAPTATIONS (LOBBY & WELCOME PAGE)
+   ========================================================================== */
+
+html[data-theme='light'] .background-overlay {
+  background: linear-gradient(
+    135deg,
+    rgba(241, 245, 249, 0.88) 0%,
+    rgba(226, 232, 240, 0.82) 50%,
+    rgba(248, 250, 252, 0.92) 100%
+  );
+}
+
+html[data-theme='light'] .brand-title {
+  background: linear-gradient(135deg, var(--slate-950, #020617) 0%, var(--indigo-900, #312e81) 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  text-shadow: none;
+}
+
+html[data-theme='light'] .brand-tagline {
+  color: var(--text-secondary, #475569);
+}
+
+html[data-theme='light'] .welcome-panel {
+  border: 1px solid var(--border-primary, rgba(15, 23, 42, 0.12));
+  box-shadow:
+    0 8px 30px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+}
+
+html[data-theme='light'] .input-group label {
+  color: var(--text-primary, #0f172a);
+}
+
+html[data-theme='light'] .glass-input {
+  color: var(--text-primary, #0f172a);
+  background: rgba(255, 255, 255, 0.85);
+  border-color: var(--border-primary, rgba(15, 23, 42, 0.15));
+}
+
+html[data-theme='light'] .glass-input::placeholder {
+  color: var(--text-muted, #94a3b8);
+}
+
+html[data-theme='light'] .glass-input:focus {
+  border-color: var(--indigo-500, #6366f1);
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+}
+
+html[data-theme='light'] .input-icon {
+  color: var(--text-muted, #64748b);
+}
+
+html[data-theme='light'] .input-hint {
+  color: var(--text-muted, #64748b);
+}
+
+html[data-theme='light'] .role-selection > legend {
+  color: var(--text-primary, #0f172a);
+}
+
+html[data-theme='light'] .role-card {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: var(--border-primary, rgba(15, 23, 42, 0.15));
+}
+
+html[data-theme='light'] .role-card:hover {
+  background: rgba(255, 255, 255, 0.95);
+  border-color: var(--border-secondary, rgba(15, 23, 42, 0.25));
+}
+
+html[data-theme='light'] .role-card.selected {
+  border-color: var(--indigo-500, #6366f1);
+  background: rgba(99, 102, 241, 0.08);
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.15);
+}
+
+html[data-theme='light'] .role-info h3 {
+  color: var(--text-primary, #0f172a);
+}
+
+html[data-theme='light'] .role-info p {
+  color: var(--text-secondary, #475569);
+}
+
+html[data-theme='light'] .build-badge {
+  color: var(--text-secondary, #475569);
+  background: rgba(255, 255, 255, 0.7);
+  border-color: var(--border-primary, rgba(15, 23, 42, 0.15));
+}
+
+html[data-theme='light'] .account-bubble {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  color: var(--text-primary, #0f172a);
+}
+
+html[data-theme='light'] .account-trigger-label {
+  color: var(--text-primary, #0f172a);
+}
+
+html[data-theme='light'] .account-dropdown {
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid rgba(15, 23, 42, 0.15);
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.12);
+}
+
+html[data-theme='light'] .dropdown-title {
+  color: var(--text-primary, #0f172a);
+}
+
+html[data-theme='light'] .title-note {
+  color: var(--text-secondary, #475569);
+}
+
+html[data-theme='light'] .dropdown-hint {
+  color: var(--text-muted, #64748b);
+}
+
+html[data-theme='light'] .account-label {
+  color: var(--text-secondary, #475569);
+}
+
+html[data-theme='light'] .helper-text {
+  color: var(--text-muted, #64748b);
+}
+
+html[data-theme='light'] .account-divider {
+  color: var(--text-secondary, #475569);
+}
+
+html[data-theme='light'] .account-close {
+  color: var(--text-primary, #0f172a);
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.12);
+}
+
+html[data-theme='light'] .account-switch {
+  color: var(--text-primary, #0f172a);
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.15);
+}
+
+html[data-theme='light'] .account-option {
+  color: var(--text-primary, #0f172a);
+  background: rgba(15, 23, 42, 0.04);
+  border-color: rgba(15, 23, 42, 0.1);
+}
+
+html[data-theme='light'] .account-option:hover {
+  background: rgba(15, 23, 42, 0.08);
+  border-color: rgba(15, 23, 42, 0.18);
+}
+
+html[data-theme='light'] .account-text-toggle {
+  color: var(--color-primary, #4f46e5);
+}
+
+html[data-theme='light'] .campaign-label {
+  color: var(--text-primary, #0f172a);
+}
+
+html[data-theme='light'] .campaign-dropdown {
+  color: var(--text-primary, #0f172a);
+  background: rgba(255, 255, 255, 0.85);
+  border-color: var(--border-primary, rgba(15, 23, 42, 0.15));
+}
+
+html[data-theme='light'] .campaign-dropdown option {
+  background: #ffffff;
+  color: #0f172a;
+}
+
+html[data-theme='light'] .no-campaigns-hint {
+  color: var(--text-secondary, #475569);
+}

@@ -737,3 +737,219 @@
   font-weight: 600;
   color: var(--emerald-400, #34d399);
 }
+
+/* --------------------------------------------------------------------------
+   LIGHT THEME ADAPTATIONS
+   -------------------------------------------------------------------------- */
+:global(html[data-theme='light']) .lobbyTrigger {
+  background: rgba(255, 255, 255, 0.75);
+  border-color: var(--glass-border, rgba(15, 23, 42, 0.15));
+  color: var(--glass-text-muted, #334155);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+
+:global(html[data-theme='light']) .lobbyTrigger:hover {
+  background: #ffffff;
+  border-color: var(--indigo-500, #6366f1);
+  color: var(--glass-text-strong, #020617);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
+}
+
+:global(html[data-theme='light']) .backdrop {
+  background: rgba(15, 23, 42, 0.45);
+}
+
+:global(html[data-theme='light']) .modal {
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.98) 0%, rgba(248, 250, 252, 0.98) 100%);
+  border-color: var(--glass-border-strong, rgba(15, 23, 42, 0.18));
+  box-shadow:
+    0 24px 64px -12px rgba(15, 23, 42, 0.18),
+    0 0 0 1px rgba(15, 23, 42, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  color: var(--glass-text, #0f172a);
+}
+
+:global(html[data-theme='light']) .closeButton {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.1);
+  color: var(--glass-text-muted, #334155);
+}
+
+:global(html[data-theme='light']) .closeButton:hover {
+  background: rgba(15, 23, 42, 0.1);
+  border-color: rgba(15, 23, 42, 0.2);
+  color: var(--glass-text-strong, #020617);
+}
+
+:global(html[data-theme='light']) .topGrid {
+  border-bottom-color: var(--glass-border-subtle, rgba(15, 23, 42, 0.08));
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.02) 0%, transparent 100%);
+}
+
+:global(html[data-theme='light']) .heroCard,
+:global(html[data-theme='light']) .systemInfoCard {
+  background: rgba(255, 255, 255, 0.65);
+  border-color: var(--glass-border-subtle, rgba(15, 23, 42, 0.08));
+}
+
+:global(html[data-theme='light']) .heroTitle {
+  color: var(--glass-text-strong, #020617);
+}
+
+:global(html[data-theme='light']) .metaRow {
+  color: var(--glass-text-muted, #475569);
+}
+
+:global(html[data-theme='light']) .heroTagline {
+  color: var(--glass-text-muted, #475569);
+}
+
+:global(html[data-theme='light']) .heroLink {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.1);
+  color: var(--glass-text, #1e293b);
+}
+
+:global(html[data-theme='light']) .heroLink:hover {
+  background: rgba(15, 23, 42, 0.1);
+  border-color: rgba(15, 23, 42, 0.2);
+  color: var(--glass-text-strong, #020617);
+}
+
+:global(html[data-theme='light']) .sectionTitle {
+  color: var(--glass-text-strong, #020617);
+}
+
+:global(html[data-theme='light']) .infoBlockTitle {
+  color: var(--glass-text-muted, #475569);
+}
+
+:global(html[data-theme='light']) .codePill {
+  background: rgba(15, 23, 42, 0.05);
+  border-color: rgba(15, 23, 42, 0.1);
+  color: var(--glass-text, #0f172a);
+}
+
+:global(html[data-theme='light']) .codePillAccent {
+  background: rgba(99, 102, 241, 0.1);
+  border-color: rgba(99, 102, 241, 0.25);
+  color: var(--indigo-700, #4338ca);
+}
+
+:global(html[data-theme='light']) .codePillSuccess {
+  background: rgba(16, 185, 129, 0.1);
+  border-color: rgba(16, 185, 129, 0.25);
+  color: var(--emerald-700, #047857);
+}
+
+:global(html[data-theme='light']) .codePillCyan {
+  background: rgba(6, 182, 212, 0.1);
+  border-color: rgba(6, 182, 212, 0.25);
+  color: var(--cyan-700, #0e7490);
+}
+
+:global(html[data-theme='light']) .infoSubtext {
+  color: var(--glass-text-light, #64748b);
+}
+
+:global(html[data-theme='light']) .footerActions {
+  border-top-color: var(--glass-border-subtle, rgba(15, 23, 42, 0.08));
+}
+
+:global(html[data-theme='light']) .actionLink {
+  color: var(--indigo-600, #4f46e5);
+}
+
+:global(html[data-theme='light']) .actionLink:hover {
+  color: var(--indigo-800, #3730a3);
+}
+
+:global(html[data-theme='light']) .tabsBar {
+  border-bottom-color: var(--glass-border-subtle, rgba(15, 23, 42, 0.08));
+  background: rgba(15, 23, 42, 0.03);
+}
+
+:global(html[data-theme='light']) .tabButton {
+  color: var(--glass-text-muted, #475569);
+}
+
+:global(html[data-theme='light']) .tabButton:hover {
+  color: var(--glass-text-strong, #020617);
+}
+
+:global(html[data-theme='light']) .tabButtonActive {
+  color: var(--indigo-600, #4f46e5);
+  border-bottom-color: var(--indigo-600, #4f46e5);
+}
+
+:global(html[data-theme='light']) .tabCountBadge {
+  background: rgba(15, 23, 42, 0.07);
+  color: var(--glass-text-muted, #475569);
+}
+
+:global(html[data-theme='light']) .tabButtonActive .tabCountBadge {
+  background: var(--indigo-600, #4f46e5);
+  color: #ffffff;
+}
+
+:global(html[data-theme='light']) .releaseCard,
+:global(html[data-theme='light']) .dependencyCard {
+  background: rgba(255, 255, 255, 0.7);
+  border-color: var(--glass-border-subtle, rgba(15, 23, 42, 0.08));
+}
+
+:global(html[data-theme='light']) .releaseCard:hover,
+:global(html[data-theme='light']) .dependencyCard:hover {
+  border-color: var(--glass-border, rgba(15, 23, 42, 0.2));
+  background: rgba(255, 255, 255, 0.95);
+}
+
+:global(html[data-theme='light']) .releaseHeader {
+  background: rgba(15, 23, 42, 0.02);
+}
+
+:global(html[data-theme='light']) .releaseVersion {
+  color: var(--glass-text-strong, #020617);
+}
+
+:global(html[data-theme='light']) .changesCountTag {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--glass-text-muted, #475569);
+}
+
+:global(html[data-theme='light']) .releaseDate {
+  color: var(--glass-text-light, #64748b);
+}
+
+:global(html[data-theme='light']) .releaseBody {
+  border-top-color: var(--glass-border-subtle, rgba(15, 23, 42, 0.06));
+}
+
+:global(html[data-theme='light']) .releaseSummary {
+  color: var(--glass-text-muted, #475569);
+}
+
+:global(html[data-theme='light']) .changeItem {
+  color: var(--glass-text, #1e293b);
+}
+
+:global(html[data-theme='light']) .changeRef {
+  color: var(--indigo-600, #4f46e5);
+}
+
+:global(html[data-theme='light']) .dependencyName {
+  color: var(--glass-text-strong, #020617);
+}
+
+:global(html[data-theme='light']) .dependencyVersion {
+  color: var(--indigo-600, #4f46e5);
+}
+
+:global(html[data-theme='light']) .dependencyDescription {
+  color: var(--glass-text-muted, #475569);
+}
+
+:global(html[data-theme='light']) .categoryTag {
+  background: rgba(15, 23, 42, 0.06);
+  color: var(--glass-text-light, #64748b);
+}

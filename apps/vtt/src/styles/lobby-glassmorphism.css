@@ -21,10 +21,17 @@
 
 /* Button Text Color Variable */
 :root {
-  --button-text-color: white;
+  --button-text-color: var(--text-primary);
 }
 
-.glass-button.primary,
+html[data-theme='light'] {
+  --button-text-color: var(--slate-900);
+}
+
+.glass-button.primary {
+  color: #ffffff;
+}
+
 .glass-button.secondary {
   color: var(--button-text-color);
 }

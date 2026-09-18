@@ -122,6 +122,10 @@ describe('useTheme hook', () => {
       expect(document.documentElement.style.getPropertyValue('--solid-bg-primary')).toBe('#ffffff');
       expect(document.documentElement.style.getPropertyValue('--solid-text')).toBe('#0f172a');
       expect(document.documentElement.style.getPropertyValue('--glass-text')).toBe('#0f172a');
+      expect(document.documentElement.style.getPropertyValue('--text-primary')).toBe('#0f172a');
+      expect(document.documentElement.style.getPropertyValue('--text-strong')).toBe('#020617');
+      expect(document.documentElement.style.getPropertyValue('--glass-text-strong')).toBe('#020617');
+      expect(document.documentElement.style.getPropertyValue('--button-text-color')).toBe('#0f172a');
     });
 
     it('sets data-theme and colorScheme to dark when theme is dark', () => {
@@ -140,6 +144,10 @@ describe('useTheme hook', () => {
       expect(document.documentElement.style.getPropertyValue('--solid-bg-primary')).toBe(defaultColorSchemes[0].surface);
       expect(document.documentElement.style.getPropertyValue('--solid-text')).toBe(defaultColorSchemes[0].text);
       expect(document.documentElement.style.getPropertyValue('--glass-text')).toBe(defaultColorSchemes[0].text);
+      expect(document.documentElement.style.getPropertyValue('--text-primary')).toBe(defaultColorSchemes[0].text);
+      expect(document.documentElement.style.getPropertyValue('--text-strong')).toBe('#ffffff');
+      expect(document.documentElement.style.getPropertyValue('--glass-text-strong')).toBe('#ffffff');
+      expect(document.documentElement.style.getPropertyValue('--button-text-color')).toBe('#ffffff');
     });
 
     it('updates dynamically when store theme changes from dark to light', () => {

@@ -211,10 +211,20 @@ export const applyColorScheme = (
   if (isLight) {
     const surfaceLight = '#ffffff';
     const textDark = '#0f172a';
+    const textDarkSecondary = '#334155';
+    const textDarkMuted = '#64748b';
+    const textDarkStrong = '#020617';
+
     root.style.setProperty('--color-surface', surfaceLight);
     root.style.setProperty('--color-text', textDark);
     root.style.setProperty('--color-surface-rgb', '255, 255, 255');
     root.style.setProperty('--color-text-rgb', '15, 23, 42');
+
+    // Semantic typography tokens for light mode
+    root.style.setProperty('--text-primary', textDark);
+    root.style.setProperty('--text-secondary', textDarkSecondary);
+    root.style.setProperty('--text-muted', textDarkMuted);
+    root.style.setProperty('--text-strong', textDarkStrong);
 
     // Solid theme variables for light mode
     root.style.setProperty('--solid-bg-primary', surfaceLight);
@@ -232,10 +242,18 @@ export const applyColorScheme = (
     root.style.setProperty('--glass-surface', 'rgba(255, 255, 255, 0.8)');
     root.style.setProperty('--glass-surface-hover', 'rgba(255, 255, 255, 0.92)');
     root.style.setProperty('--glass-surface-strong', 'rgba(255, 255, 255, 0.98)');
+    root.style.setProperty('--glass-surface-subtle', 'rgba(255, 255, 255, 0.6)');
     root.style.setProperty('--glass-border', 'rgba(15, 23, 42, 0.12)');
+    root.style.setProperty('--glass-border-strong', 'rgba(15, 23, 42, 0.2)');
+    root.style.setProperty('--glass-border-subtle', 'rgba(15, 23, 42, 0.08)');
     root.style.setProperty('--glass-text', textDark);
+    root.style.setProperty('--glass-text-secondary', textDarkSecondary);
     root.style.setProperty('--glass-text-muted', 'rgba(15, 23, 42, 0.7)');
     root.style.setProperty('--glass-text-light', 'rgba(15, 23, 42, 0.5)');
+    root.style.setProperty('--glass-text-strong', textDarkStrong);
+
+    // Button text color for secondary/neutral buttons
+    root.style.setProperty('--button-text-color', textDark);
 
     // Gradients for light mode
     root.style.setProperty(
@@ -260,6 +278,15 @@ export const applyColorScheme = (
     root.style.setProperty('--color-text', colorScheme.text);
     root.style.setProperty('--color-surface-rgb', hexToRgb(colorScheme.surface));
     root.style.setProperty('--color-text-rgb', hexToRgb(colorScheme.text));
+
+    const surfaceRgb = hexToRgb(colorScheme.surface);
+    const textRgb = hexToRgb(colorScheme.text);
+
+    // Semantic typography tokens for dark mode
+    root.style.setProperty('--text-primary', colorScheme.text);
+    root.style.setProperty('--text-secondary', `rgba(${textRgb}, 0.7)`);
+    root.style.setProperty('--text-muted', `rgba(${textRgb}, 0.5)`);
+    root.style.setProperty('--text-strong', '#ffffff');
 
     // Derived colors for dark solid theme
     root.style.setProperty('--solid-bg-primary', colorScheme.surface);
@@ -298,15 +325,21 @@ export const applyColorScheme = (
     );
 
     // Glass theme variables for dark mode
-    const surfaceRgb = hexToRgb(colorScheme.surface);
-    const textRgb = hexToRgb(colorScheme.text);
     root.style.setProperty('--glass-surface', `rgba(${surfaceRgb}, 0.1)`);
     root.style.setProperty('--glass-surface-hover', `rgba(${surfaceRgb}, 0.15)`);
     root.style.setProperty('--glass-surface-strong', `rgba(${surfaceRgb}, 0.2)`);
+    root.style.setProperty('--glass-surface-subtle', `rgba(${surfaceRgb}, 0.05)`);
     root.style.setProperty('--glass-border', `rgba(${textRgb}, 0.2)`);
+    root.style.setProperty('--glass-border-strong', `rgba(${textRgb}, 0.3)`);
+    root.style.setProperty('--glass-border-subtle', `rgba(${textRgb}, 0.1)`);
     root.style.setProperty('--glass-text', colorScheme.text);
+    root.style.setProperty('--glass-text-secondary', 'rgba(255, 255, 255, 0.8)');
     root.style.setProperty('--glass-text-muted', 'rgba(255, 255, 255, 0.7)');
     root.style.setProperty('--glass-text-light', 'rgba(255, 255, 255, 0.5)');
+    root.style.setProperty('--glass-text-strong', '#ffffff');
+
+    // Button text color for secondary/neutral buttons
+    root.style.setProperty('--button-text-color', '#ffffff');
 
     // Gradients for dark mode
     root.style.setProperty(

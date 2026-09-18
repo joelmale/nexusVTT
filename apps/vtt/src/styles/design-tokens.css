@@ -703,6 +703,8 @@ html[data-theme='light'] {
   --shadow-glass: 0 8px 30px rgba(0, 0, 0, 0.08);
   --shadow-glass-lg: 0 15px 35px rgba(0, 0, 0, 0.1);
   --shadow-glass-xl: 0 20px 40px -10px rgba(0, 0, 0, 0.12);
+
+  --button-text-color: var(--slate-900);
 }
 
 /* Light Theme (Solid Mode Override) */
@@ -747,6 +749,8 @@ html[data-theme='light'] [data-theme='solid'] {
   --shadow-glass: var(--shadow-sm);
   --shadow-glass-lg: var(--shadow-md);
   --shadow-glass-xl: var(--shadow-lg);
+
+  --button-text-color: var(--slate-900);
 }
 
 /* =============================================================================
