@@ -665,7 +665,7 @@ Key methods:
 
 ### Hybrid State Management
 
-**Location:** `/src/services/hybridStateManager.ts` + `/src/services/indexedDBAdapter.ts`
+**Location:** `/src/services/indexedDBAdapter.ts` + `/src/services/gameStateProjection.ts`
 
 Three-layer persistence model:
 
@@ -987,7 +987,7 @@ src/
 │   ├── Generator/   # Dungeon generator UI
 │   └── ...
 ├── services/        # Business logic services
-│   ├── hybridStateManager.ts
+│   ├── indexedDBAdapter.ts
 │   ├── sessionPersistence.ts
 │   ├── tokenAssets.ts
 │   └── ...

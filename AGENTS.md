@@ -205,8 +205,8 @@ See `apps/docs/vtt/adr/0002-shared-character-creator.md`.
 
 ## Advanced Patterns
 
-- **Hybrid State Management**: Implement local-first IndexedDB persistence with real-time multiplayer synchronization. Use `src/services/hybridStateManager.ts` for core state management.
-- **Optimistic Updates**: Improve UX by applying changes immediately while syncing with server. Use `src/actions/gameActions.ts` for action creators with optimistic flags.
+- **Hybrid State Management**: Implement local-first IndexedDB persistence with real-time multiplayer synchronization. Use `src/services/indexedDBAdapter.ts` for the IndexedDB layer and `src/services/gameStateProjection.ts` for the canonical snapshot sent to the server.
+- **Optimistic Updates**: Improve UX by applying changes immediately while syncing with server. Optimistic actions and their confirm/rollback bookkeeping live in `src/stores/gameStore.ts`.
 - **Conflict Resolution**: Implement strategies for handling concurrent edits. Use `src/types/hybrid.ts` for conflict resolution types.
 - **Lazy Loading**: Optimize performance by lazy loading heavy dependencies like 3D libraries and PDF viewers.
 - **Service Workers**: Implement PWA functionality with caching strategies for offline use. Configure in `vite.config.ts` with VitePWA plugin.

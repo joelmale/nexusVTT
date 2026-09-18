@@ -510,8 +510,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   // Deliberately native TouchEvents with `{ passive: false }` rather than a
   // blanket `touch-action: none`: single-touch must keep falling through to
   // the browser's synthesized mouse-compat events, which DrawingTools,
-  // MeasurementTool, TerrainTool, PropRenderer and SelectionOverlay all
-  // depend on. `preventDefault()` is therefore called ONLY on the two-finger
+  // PropRenderer and SelectionOverlay all depend on. `preventDefault()` is therefore called ONLY on the two-finger
   // branch, which is enough to suppress browser page pan/zoom without
   // breaking any single-finger interaction.
   //

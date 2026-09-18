@@ -19,7 +19,9 @@
     "prepare": "node scripts/build-styles.mjs",
     "build": "node scripts/build-styles.mjs",
     "build:styles": "node scripts/build-styles.mjs",
-    "type-check": "tsc --noEmit"
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "peerDependencies": {
     "react": ">=18",
@@ -32,7 +34,12 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.1.17",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.3",
+    "@vitejs/plugin-react": "^5.2.0",
+    "jsdom": "^27.4.0",
     "postcss": "^8.4.49",
-    "typescript": "^5.7.2"
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.11"
   }
 }

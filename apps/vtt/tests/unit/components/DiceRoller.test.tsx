@@ -12,13 +12,6 @@ vi.mock('@/stores/gameStore', () => ({
   useIsHost: vi.fn(),
 }));
 
-// Mock the app flow store
-vi.mock('@/stores/appFlowStore', () => ({
-  useAppFlowStore: vi.fn(() => ({
-    user: { id: '1', name: 'Test User' }
-  }))
-}));
-
 describe('DiceRoller', () => {
   it('renders the dice roller component', () => {
     // Arrange

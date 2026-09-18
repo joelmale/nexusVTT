@@ -32,6 +32,7 @@
     "check:workspace-lock": "node scripts/validate-workspace-lock.mjs",
     "branches:audit": "node scripts/branch-hygiene.mjs",
     "test:vtt": "npm run test:ci --workspace=nexus-vtt",
+    "test:character-creator": "npm run test --workspace=@nexus/character-creator",
     "test:forge": "npm run lint --workspace=nexus-forge && npm run test --workspace=nexus-forge -- --run --coverage",
     "test:codex": "npm run test --workspace=nexus-codex-doc-api -- --runInBand src/services/__tests__/processing-quality.service.test.ts && npm run test --workspace=nexus-codex-doc-processor -- --runInBand && npm run test --workspace=nexus-codex-doc-websocket -- --runInBand --passWithNoTests",
     "test:docs": "npm run typecheck --workspace=@nexus/docs && npm run build:docs",
