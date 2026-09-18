@@ -262,6 +262,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   const handleGeneratorChange = (generator: GeneratorType) => {
     if (generator !== activeGenerator) {
       setGeneratedMap(null);
+      setGeneratedBlob(null);
       setActiveGenerator(generator);
     }
   };
@@ -273,7 +274,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         onGeneratorChange={handleGeneratorChange}
         onAddToScene={handleApplyToScene}
         hasActiveScene={!!activeScene}
-        hasValidArtifact={!!generatedMap && !generatedMap.startsWith('{')}
+        hasValidArtifact={(!!generatedMap && !generatedMap.startsWith('{')) || !!generatedBlob}
         forceRasterize={forceRasterize}
         onForceRasterizeChange={setForceRasterize}
       />
