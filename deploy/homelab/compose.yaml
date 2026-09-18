@@ -1,7 +1,8 @@
 name: nexus-vtt2
 services:
   postgres:
-    image: ${POSTGRES_IMAGE:-ghcr.io/joelmale/nexusvtt/postgres:20260917-3754710}
+    image: ${POSTGRES_IMAGE:-ghcr.io/joelmale/nexusvtt/postgres:latest}
+    pull_policy: always
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-nexus}
       POSTGRES_USER: ${POSTGRES_USER:-nexus}
@@ -40,7 +41,8 @@ services:
       retries: 5
     restart: unless-stopped
   asset-server:
-    image: ${ASSET_SERVICE_IMAGE:-ghcr.io/joelmale/nexusvtt/asset-service:20260917-3754710}
+    image: ${ASSET_SERVICE_IMAGE:-ghcr.io/joelmale/nexusvtt/asset-service:latest}
+    pull_policy: always
     container_name: nexus-vtt2-asset-server
     hostname: nexus-vtt2-asset-server
     user: 1000:1000
@@ -69,8 +71,17 @@ services:
       timeout: 5s
       retries: 3
     restart: unless-stopped
+  nexus-forge:
+    image: ${NEXUS_FORGE_IMAGE:-ghcr.io/joelmale/nexus-forge:master}
+    pull_policy: always
+    container_name: nexus-vtt2-forge
+    hostname: nexus-vtt2-forge
+    networks:
+    - homelab-net
+    restart: unless-stopped
   frontend:
-    image: ${FRONTEND_IMAGE:-ghcr.io/joelmale/nexusvtt/frontend:20260918-32c5a7d}
+    image: ${FRONTEND_IMAGE:-ghcr.io/joelmale/nexusvtt/frontend:latest}
+    pull_policy: always
     container_name: nexus-vtt2-frontend
     hostname: nexus-vtt2-frontend
     environment:
@@ -79,7 +90,8 @@ services:
     - homelab-net
     restart: unless-stopped
   backend:
-    image: ${BACKEND_IMAGE:-ghcr.io/joelmale/nexusvtt/backend:20260917-3754710}
+    image: ${BACKEND_IMAGE:-ghcr.io/joelmale/nexusvtt/backend:latest}
+    pull_policy: always
     environment:
       CORS_ORIGIN: ${CORS_ORIGIN}
       NODE_ENV: production
@@ -149,7 +161,8 @@ services:
     - nexus-internal-net
     restart: on-failure
   doc-api:
-    image: ${DOC_API_IMAGE:-ghcr.io/joelmale/nexuscodex-doc-api:main-4c583c2}
+    image: ${DOC_API_IMAGE:-ghcr.io/joelmale/nexuscodex-doc-api:main}
+    pull_policy: always
     environment:
       NODE_ENV: production
       PORT: 3000
@@ -180,7 +193,8 @@ services:
         condition: service_started
     restart: on-failure
   doc-processor:
-    image: ${DOC_PROCESSOR_IMAGE:-ghcr.io/joelmale/nexuscodex-doc-processor:main-4c583c2}
+    image: ${DOC_PROCESSOR_IMAGE:-ghcr.io/joelmale/nexuscodex-doc-processor:main}
+    pull_policy: always
     environment:
       NODE_ENV: production
       PORT: null
@@ -210,7 +224,8 @@ services:
         condition: service_started
     restart: on-failure
   doc-websocket:
-    image: ${DOC_WEBSOCKET_IMAGE:-ghcr.io/joelmale/nexuscodex-doc-websocket:main-4c583c2}
+    image: ${DOC_WEBSOCKET_IMAGE:-ghcr.io/joelmale/nexuscodex-doc-websocket:main}
+    pull_policy: always
     environment:
       NODE_ENV: production
       PORT: 3002
@@ -227,6 +242,32 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
+    restart: on-failure
+  admin-ui:
+    image: ${ADMIN_UI_IMAGE:-ghcr.io/joelmale/nexuscodex-admin-ui:main}
+    pull_policy: always
+    ports:
+    - 3080:80
+    environment:
+      VITE_DOC_API_URL: /api
+      VITE_WEBSOCKET_URL: /ws
+    networks:
+    - homelab-net
+    depends_on:
+    - doc-api
+    restart: on-failure
+  dm-ui:
+    image: ${DM_UI_IMAGE:-ghcr.io/joelmale/nexuscodex-dm-ui:main}
+    pull_policy: always
+    ports:
+    - 3081:80
+    environment:
+      VITE_DOC_API_URL: /api
+      VITE_WEBSOCKET_URL: /ws
+    networks:
+    - homelab-net
+    depends_on:
+    - doc-api
     restart: on-failure
 networks:
   homelab-net:
