@@ -7,7 +7,16 @@ import tseslint from 'typescript-eslint';
 export default tseslint.config(
   // .claude holds agent worktrees (full repo copies) — linting them both
   // explodes the file count and breaks typed-parser project resolution.
-  { ignores: ['dist', 'coverage', '.claude', 'tools'] },
+  {
+    ignores: [
+      'dist',
+      '**/dist/**',
+      'coverage',
+      '**/coverage/**',
+      '.claude',
+      'tools',
+    ],
+  },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommended],
     files: ['**/*.{ts,tsx}'],

@@ -2,7 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import { dungeonMapIndexedDB } from '../../../src/services/indexedDB';
 import type { DungeonMapDB, GameStateDB } from '../../../src/services/indexedDB';
 
-describe.skip('IndexedDB', () => {
+describe('IndexedDB', () => {
   beforeEach(async () => {
     // Initialize the database before each test
     // Don't reset to avoid timing issues with fake-indexeddb
@@ -192,7 +192,9 @@ describe.skip('IndexedDB', () => {
 
   describe('Database Management', () => {
     it('should check if IndexedDB is available', () => {
-      const ctor = dungeonMapIndexedDB.constructor as { isAvailable: () => boolean };
+      const ctor = dungeonMapIndexedDB.constructor as unknown as {
+        isAvailable: () => boolean;
+      };
       const isAvailable = ctor.isAvailable();
       // In test environment with mocked IndexedDB, should be available
       expect(typeof isAvailable).toBe('boolean');

@@ -15,6 +15,9 @@ class StorageWorkerClient {
   private initPromise: Promise<void> | null = null;
 
   constructor() {
+    if (typeof process !== 'undefined' && process.env?.NODE_ENV === 'test') {
+      return;
+    }
     this.init();
   }
 
