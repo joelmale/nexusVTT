@@ -9,6 +9,7 @@ import {
 } from '@/stores/initiativeStore';
 import { STANDARD_CONDITIONS } from '@/types/initiative';
 import type { InitiativeEntry, Condition } from '@/types/initiative';
+import styles from './InitiativeTracker.module.css';
 
 interface DragItem {
   index: number;
@@ -148,20 +149,27 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
     <div
       ref={attachDragDropRef}
       data-handler-id={handlerId}
-      className={`initiative-card ${isActive ? 'active' : ''} ${isDead ? 'dead' : ''} ${entry.type}`}
+      className={[
+        styles.initiativeCard,
+        isActive && styles.active,
+        isDead && styles.dead,
+        styles[entry.type],
+      ]
+        .filter(Boolean)
+        .join(' ')}
       style={{
         opacity: isDragging ? 0.5 : 1,
       }}
     >
       {/* Card Header */}
-      <div className="initiative-card-header">
+      <div className={styles.initiativeCardHeader}>
         {/* Drag Handle */}
-        <div className="initiative-drag-handle" title="Drag to reorder">
+        <div className={styles.initiativeDragHandle} title="Drag to reorder">
           ⋮⋮
         </div>
 
         {/* Initiative Number */}
-        <div className="initiative-number">
+        <div className={styles.initiativeNumber}>
           <input
             type="number"
             value={entry.initiative}
@@ -176,8 +184,8 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
         </div>
 
         {/* Name and Type */}
-        <div className="initiative-card-info">
-          <div className="initiative-name-row">
+        <div className={styles.initiativeCardInfo}>
+          <div className={styles.initiativeNameRow}>
             <input
               type="text"
               value={entry.name}
@@ -186,7 +194,9 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
               placeholder="Character name"
               onClick={(e) => e.stopPropagation()}
             />
-            <span className={`initiative-type-badge ${entry.type}`}>
+            <span
+              className={`${styles.initiativeTypeBadge} ${styles[entry.type]}`}
+            >
               {entry.type === 'player' && '👤'}
               {entry.type === 'npc' && '🤝'}
               {entry.type === 'monster' && '👹'}
@@ -194,16 +204,16 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
           </div>
 
           {/* Stats Row */}
-          <div className="initiative-stats-row">
-            <div className="initiative-ac">
-              <span className="stat-label">AC</span>
+          <div className={styles.initiativeStatsRow}>
+            <div className={styles.initiativeAc}>
+              <span className={styles.statLabel}>AC</span>
               <input
                 type="number"
                 value={entry.armorClass}
                 onChange={(e) =>
                   onUpdate({ armorClass: parseInt(e.target.value, 10) || 10 })
                 }
-                className="stat-input"
+                className={styles.statInput}
                 min="0"
                 max="30"
                 onClick={(e) => e.stopPropagation()}
@@ -211,9 +221,9 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
             </div>
 
             {showHP && (
-              <div className="initiative-hp-compact">
-                <span className="stat-label">HP</span>
-                <div className="hp-value-group">
+              <div className={styles.initiativeHpCompact}>
+                <span className={styles.statLabel}>HP</span>
+                <div className={styles.hpValueGroup}>
                   <input
                     type="number"
                     value={entry.currentHP}
@@ -222,11 +232,11 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
                         currentHP: Math.max(0, parseInt(e.target.value, 10) || 0),
                       })
                     }
-                    className="stat-input"
+                    className={styles.statInput}
                     min="0"
                     onClick={(e) => e.stopPropagation()}
                   />
-                  <span className="hp-separator">/</span>
+                  <span className={styles.hpSeparator}>/</span>
                   <input
                     type="number"
                     value={entry.maxHP}
@@ -235,7 +245,7 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
                         maxHP: Math.max(1, parseInt(e.target.value, 10) || 1),
                       })
                     }
-                    className="stat-input"
+                    className={styles.statInput}
                     min="1"
                     onClick={(e) => e.stopPropagation()}
                   />
@@ -244,7 +254,7 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
             )}
 
             {entry.conditions.length > 0 && (
-              <div className="initiative-condition-badge">
+              <div className={styles.initiativeConditionBadge}>
                 🩹 {entry.conditions.length}
               </div>
             )}
@@ -252,17 +262,17 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
         </div>
 
         {/* Action Buttons */}
-        <div className="initiative-card-actions">
+        <div className={styles.initiativeCardActions}>
           <button
             onClick={() => setShowActions(!showActions)}
-            className="initiative-action-btn"
+            className={styles.initiativeActionBtn}
             title="Quick Actions"
           >
             {showActions ? '▲' : '▼'}
           </button>
           <button
             onClick={onRemove}
-            className="initiative-remove-btn"
+            className={styles.initiativeRemoveBtn}
             title="Remove"
           >
             ✕
@@ -272,9 +282,9 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
 
       {/* HP Bar */}
       {showHP && (
-        <div className="initiative-hp-bar">
+        <div className={styles.initiativeHpBar}>
           <div
-            className="initiative-hp-fill"
+            className={styles.initiativeHpFill}
             style={{
               width: `${Math.min(100, hpPercentage)}%`,
               backgroundColor: getHPColor(),
@@ -285,66 +295,72 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
 
       {/* Active Turn Indicator */}
       {isActive && (
-        <div className="initiative-active-indicator">
+        <div className={styles.initiativeActiveIndicator}>
           ⏰ ACTIVE TURN
         </div>
       )}
 
       {/* Expanded Actions */}
       {showActions && showHP && (
-        <div className="initiative-expanded-actions">
+        <div className={styles.initiativeExpandedActions}>
           {/* HP Modification */}
-          <div className="initiative-hp-modification">
-            <div className="hp-mod-group">
+          <div className={styles.initiativeHpModification}>
+            <div className={styles.hpModGroup}>
               <input
                 type="number"
                 value={damageInput}
                 onChange={(e) => setDamageInput(e.target.value)}
                 placeholder="0"
-                className="hp-mod-input"
+                className={styles.hpModInput}
                 min="0"
               />
-              <button onClick={handleDamage} className="hp-mod-btn damage">
+              <button
+                onClick={handleDamage}
+                className={`${styles.hpModBtn} ${styles.damage}`}
+              >
                 ⚔️ Damage
               </button>
             </div>
 
-            <div className="hp-mod-group">
+            <div className={styles.hpModGroup}>
               <input
                 type="number"
                 value={healingInput}
                 onChange={(e) => setHealingInput(e.target.value)}
                 placeholder="0"
-                className="hp-mod-input"
+                className={styles.hpModInput}
                 min="0"
               />
-              <button onClick={handleHealing} className="hp-mod-btn heal">
+              <button
+                onClick={handleHealing}
+                className={`${styles.hpModBtn} ${styles.heal}`}
+              >
                 ❤️ Heal
               </button>
             </div>
           </div>
 
           {/* Conditions */}
-          <div className="initiative-conditions-section">
+          <div className={styles.initiativeConditionsSection}>
             <button
               onClick={() => setShowConditions(!showConditions)}
-              className="toggle-conditions-btn"
+              className={styles.toggleConditionsBtn}
             >
               🩹 Conditions {entry.conditions.length > 0 && `(${entry.conditions.length})`}
             </button>
 
             {showConditions && (
-              <div className="conditions-list">
+              <div className={styles.conditionsList}>
                 {entry.conditions.map((condition) => (
-                  <div key={condition.id} className="condition-tag">
-                    <span className="condition-icon">{condition.icon}</span>
-                    <span className="condition-name">{condition.name}</span>
+                  <div key={condition.id} className={styles.conditionTag}>
+                    <span className={styles.conditionIcon}>{condition.icon}</span>
+                    <span className={styles.conditionName}>{condition.name}</span>
                     {condition.duration && (
-                      <span className="condition-duration">{condition.duration}r</span>
+                      <span className={styles.conditionDuration}>{condition.duration}r</span>
                     )}
                     <button
                       onClick={() => onRemoveCondition(condition.id)}
-                      className="remove-condition-btn"
+                      className={styles.removeConditionBtn}
                     >
                       ✕
                     </button>
@@ -361,7 +377,7 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
                       e.target.value = '';
                     }
                   }}
-                  className="add-condition-select"
+                  className={styles.addConditionSelect}
                 >
                   <option value="">+ Add condition...</option>
                   {STANDARD_CONDITIONS.map((condition) => (
@@ -376,15 +392,21 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
 
           {/* Death Saves (if dead) */}
           {isDead && (
-            <div className="death-saves-section">
-              <div className="death-saves-grid">
-                <div className="death-save-track">
-                  <span className="death-save-label">Successes</span>
-                  <div className="death-save-dots">
+            <div className={styles.deathSavesSection}>
+              <div className={styles.deathSavesGrid}>
+                <div className={styles.deathSaveTrack}>
+                  <span className={styles.deathSaveLabel}>Successes</span>
+                  <div className={styles.deathSaveDots}>
                     {[1, 2, 3].map((i) => (
                       <button
                         key={i}
-                        className={`death-dot success ${i <= entry.deathSaves.successes ? 'filled' : ''}`}
+                        className={[
+                          styles.deathDot,
+                          styles.success,
+                          i <= entry.deathSaves.successes && styles.filled,
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
                         onClick={() =>
                           onUpdate({
                             deathSaves: {
@@ -400,13 +422,19 @@ const InitiativeCard: React.FC<InitiativeCardProps> = ({
                   </div>
                 </div>
 
-                <div className="death-save-track">
-                  <span className="death-save-label">Failures</span>
-                  <div className="death-save-dots">
+                <div className={styles.deathSaveTrack}>
+                  <span className={styles.deathSaveLabel}>Failures</span>
+                  <div className={styles.deathSaveDots}>
                     {[1, 2, 3].map((i) => (
                       <button
                         key={i}
-                        className={`death-dot failure ${i <= entry.deathSaves.failures ? 'filled' : ''}`}
+                        className={[
+                          styles.deathDot,
+                          styles.failure,
+                          i <= entry.deathSaves.failures && styles.filled,
+                        ]
+                          .filter(Boolean)
+                          .join(' ')}
                         onClick={() =>
                           onUpdate({
                             deathSaves: {
@@ -486,26 +514,26 @@ export const InitiativeTracker: React.FC = () => {
   };
 
   return (
-    <div className="initiative-tracker-redesign">
+    <div className={styles.initiativeTrackerRedesign}>
       {/* Header */}
-      <div className="initiative-header-new">
-        <div className="initiative-title-section">
+      <div className={styles.initiativeHeaderNew}>
+        <div className={styles.initiativeTitleSection}>
           <h2>⚔️ Initiative</h2>
-          {isActive && <span className="round-badge">Round {round}</span>}
+          {isActive && <span className={styles.roundBadge}>Round {round}</span>}
         </div>
 
         {/* Combat Controls */}
         {!isActive ? (
           <button
             onClick={startCombat}
-            className="btn-start-combat"
+            className={styles.btnStartCombat}
             disabled={entries.length === 0}
           >
             ▶️ Start Combat
           </button>
         ) : (
-          <div className="combat-controls-new">
-            <button onClick={previousTurn} className="btn-turn" title="Previous Turn">
+          <div className={styles.combatControlsNew}>
+            <button onClick={previousTurn} className={styles.btnTurn} title="Previous Turn">
               ⬅️
             </button>
             <button
@@ -514,15 +542,15 @@ export const InitiativeTracker: React.FC = () => {
                   ? () => useInitiativeStore.getState().resumeCombat()
                   : () => useInitiativeStore.getState().pauseCombat()
               }
-              className="btn-turn"
+              className={styles.btnTurn}
               title={isPaused ? 'Resume' : 'Pause'}
             >
               {isPaused ? '▶️' : '⏸️'}
             </button>
-            <button onClick={nextTurn} className="btn-turn" title="Next Turn">
+            <button onClick={nextTurn} className={styles.btnTurn} title="Next Turn">
               ➡️
             </button>
-            <button onClick={endCombat} className="btn-end-combat">
+            <button onClick={endCombat} className={styles.btnEndCombat}>
               🏁 End
             </button>
           </div>
@@ -531,20 +559,20 @@ export const InitiativeTracker: React.FC = () => {
 
       {/* Active Turn Banner */}
       {activeEntry && isActive && (
-        <div className="active-turn-banner">
-          <div className="active-turn-content">
-            <span className="active-turn-icon">⏰</span>
-            <div className="active-turn-info">
-              <div className="active-turn-name">{activeEntry.name}</div>
-              <div className="active-turn-subtitle">It's their turn!</div>
+        <div className={styles.activeTurnBanner}>
+          <div className={styles.activeTurnContent}>
+            <span className={styles.activeTurnIcon}>⏰</span>
+            <div className={styles.activeTurnInfo}>
+              <div className={styles.activeTurnName}>{activeEntry.name}</div>
+              <div className={styles.activeTurnSubtitle}>It's their turn!</div>
             </div>
           </div>
         </div>
       )}
 
       {/* Settings Bar */}
-      <div className="initiative-settings-bar">
-        <label className="checkbox-label">
+      <div className={styles.initiativeSettingsBar}>
+        <label className={styles.checkboxLabel}>
           <input
             type="checkbox"
             checked={showPlayerHP}
@@ -553,7 +581,7 @@ export const InitiativeTracker: React.FC = () => {
           <span>Show HP</span>
         </label>
 
-        <label className="checkbox-label">
+        <label className={styles.checkboxLabel}>
           <input
             type="checkbox"
             checked={sortByInitiative}
@@ -566,7 +594,7 @@ export const InitiativeTracker: React.FC = () => {
 
         <button
           onClick={rollInitiativeForAll}
-          className="btn-roll-all"
+          className={styles.btnRollAll}
           disabled={entries.length === 0}
         >
           🎲 Roll All
@@ -574,15 +602,15 @@ export const InitiativeTracker: React.FC = () => {
       </div>
 
       {/* Add Entry Form */}
-      <div className="add-entry-card">
-        <div className="add-entry-title">➕ Add Combatant</div>
-        <div className="add-entry-form">
+      <div className={styles.addEntryCard}>
+        <div className={styles.addEntryTitle}>➕ Add Combatant</div>
+        <div className={styles.addEntryForm}>
           <input
             type="text"
             value={newEntryName}
             onChange={(e) => setNewEntryName(e.target.value)}
             placeholder="Name"
-            className="add-entry-name"
+            className={styles.addEntryName}
             onKeyDown={(e) => e.key === 'Enter' && handleAddEntry()}
           />
 
@@ -591,7 +619,7 @@ export const InitiativeTracker: React.FC = () => {
             onChange={(e) =>
               setNewEntryType(e.target.value as 'player' | 'npc' | 'monster')
             }
-            className="add-entry-type"
+            className={styles.addEntryType}
           >
             <option value="player">👤 Player</option>
             <option value="npc">🤝 NPC</option>
@@ -604,25 +632,25 @@ export const InitiativeTracker: React.FC = () => {
             onChange={(e) =>
               setNewEntryInitiative(parseInt(e.target.value, 10) || 0)
             }
-            className="add-entry-init"
+            className={styles.addEntryInit}
             placeholder="Init"
             min="0"
             max="99"
           />
 
-          <button onClick={handleAddEntry} className="btn-add-entry">
+          <button onClick={handleAddEntry} className={styles.btnAddEntry}>
             Add
           </button>
         </div>
       </div>
 
       {/* Initiative Cards List */}
-      <div className="initiative-cards-list">
+      <div className={styles.initiativeCardsList}>
         {entries.length === 0 ? (
-          <div className="empty-state-new">
-            <div className="empty-icon">⚔️</div>
-            <div className="empty-text">No combatants yet</div>
-            <div className="empty-hint">Add players, NPCs, or monsters above</div>
+          <div className={styles.emptyStateNew}>
+            <div className={styles.emptyIcon}>⚔️</div>
+            <div className={styles.emptyText}>No combatants yet</div>
+            <div className={styles.emptyHint}>Add players, NPCs, or monsters above</div>
           </div>
         ) : (
           entries.map((entry, index) => (

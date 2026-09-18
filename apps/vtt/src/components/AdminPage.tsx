@@ -1,3 +1,15 @@
+// DEPRECATED / FROZEN: dev-only SRD-editing scaffolding.
+//
+// This admin panel is a local, browser-only editor for the bundled SRD data
+// (weapons, armor, etc.) used during early VTT development. Authoritative
+// rules and content management now belongs to Codex
+// (`apps/codex/services/admin-ui`), not here.
+//
+// It is excluded from production builds by the `NODE_ENV === 'development'`
+// route gate in `apps/vtt/src/main.tsx` (the `/admin` route only exists in
+// dev). Do not add new features to this page, `dataManager.ts` or
+// `codeGenerator.ts` — extend the Codex admin UI instead. See
+// `apps/docs/vtt/adr/0005-admin-panel-frozen.md`.
 import React, { useState } from 'react';
 import { getDataManager } from '@/utils/dataManager';
 import { DataTable } from './DataTable';

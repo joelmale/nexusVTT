@@ -40,7 +40,9 @@
 @import './dice.css' layer(components);
 @import './player-panel.css' layer(components);
 /* Secondary components */
-@import './initiative-tracker.css' layer(components);
+/* initiative-tracker.css was converted to InitiativeTracker.module.css
+   (colocated with the component) as a CSS Modules pilot — see
+   apps/vtt/src/components/InitiativeTracker.module.css. */
 @import './assets.css' layer(components);
 @import './asset-browser.css' layer(components);
 /* Administrative components */

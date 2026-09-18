@@ -39,7 +39,8 @@
   - Character components: character.css (loaded when character panel opens)
   - Dice components: dice.css (loaded when dice panel opens)
   - Player panel: player-panel.css (loaded when player panel opens)
-  - Initiative tracker: initiative-tracker.css (loaded when initiative panel opens)
+  - Initiative tracker: InitiativeTracker.module.css (CSS Module colocated
+    with the component; loaded when the initiative panel opens)
   - Asset browser: assets.css, asset-browser.css (loaded when asset panel opens)
   - Chat: chat.css (loaded when chat panel opens)
   - Administrative: offline-preparation.css

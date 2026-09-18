@@ -1,5 +1,12 @@
 // Data Manager for Admin Panel - Centralized data access and modification
 // Provides CRUD operations for all character generation data sources
+//
+// DEPRECATED / FROZEN: dev-only SRD-editing scaffolding, consumed only by
+// `AdminPage.tsx`. Authoritative rules and content management belongs to
+// Codex (`apps/codex/services/admin-ui`), not here. This module is excluded
+// from production builds by the `NODE_ENV === 'development'` route gate in
+// `apps/vtt/src/main.tsx`. Do not add new features here — extend the Codex
+// admin UI instead. See `apps/docs/vtt/adr/0005-admin-panel-frozen.md`.
 
 import type {
   Weapon,
