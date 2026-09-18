@@ -32,9 +32,11 @@ export default defineConfig({
         'src/data/srd/**',
       ],
       thresholds: {
-        lines: 70,
-        functions: 65,
-        branches: 55,
+        // Measured 2026-09-18:
+        // statements 70.2, branches 57.0, functions 66.2, lines 72.0
+        lines: 71,
+        functions: 66,
+        branches: 56,
         statements: 70,
       },
     },

@@ -121,7 +121,7 @@ export default defineConfig({
         // enforces nothing -- verified by probe on 2026-09-17.
         lines: 53,
         functions: 52,
-        branches: 42,
+        branches: 43,
         statements: 53,
       },
     },

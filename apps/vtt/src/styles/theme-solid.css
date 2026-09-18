@@ -49,6 +49,28 @@
   --shadow-glass-xl: 0 12px 30px rgba(0, 0, 0, 0.5);
 }
 
+/* Light mode overrides for solid theme */
+html[data-theme='light'] .theme-solid,
+[data-theme='light'] .theme-solid,
+html[data-theme='light'].theme-solid,
+.theme-solid[data-theme='light'] {
+  --solid-bg-primary: #ffffff;
+  --solid-bg-secondary: #f1f5f9;
+  --solid-bg-tertiary: #e2e8f0;
+  --solid-bg-hover: #f1f5f9;
+  --solid-bg-active: #e2e8f0;
+  --solid-border: #cbd5e1;
+  --solid-border-light: #e2e8f0;
+  --solid-text: #0f172a;
+  --solid-text-muted: #334155;
+  --solid-text-light: #64748b;
+  --glass-text: #0f172a;
+  --glass-text-secondary: #334155;
+  --glass-text-muted: #64748b;
+  --glass-text-strong: #020617;
+  color: #0f172a;
+}
+
 /*
  * Global backdrop-filter removal for performance.
  *
@@ -61,8 +83,8 @@
 .theme-solid *:not(.nexus-character-creator *):not(.nexus-character-creator),
 .theme-solid *:not(.nexus-character-creator *):not(.nexus-character-creator)::before,
 .theme-solid *:not(.nexus-character-creator *):not(.nexus-character-creator)::after {
-  backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  backdrop-filter: none !important;
 }
 
 /* ========================================================================== BUTTON STYLES ========================================================================== */
@@ -659,6 +681,19 @@
   filter: brightness(1.1);
 }
 
+html[data-theme='light'] .theme-solid .brand-title,
+html[data-theme='light'] .theme-solid .roller-name,
+html[data-theme='light'] .theme-solid h1:not(.nexus-character-creator *):not(.nexus-character-creator),
+[data-theme='light'] .theme-solid .brand-title,
+[data-theme='light'] .theme-solid .roller-name,
+[data-theme='light'] .theme-solid h1:not(.nexus-character-creator *):not(.nexus-character-creator) {
+  background: linear-gradient(135deg, #020617 0%, #312e81 100%);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  filter: none;
+}
+
 .theme-solid .error-message {
   background: linear-gradient(
     135deg,
@@ -825,6 +860,11 @@
   );
   background-clip: text;
   filter: brightness(1.1);
+}
+
+html[data-theme='light'] .theme-solid .glass-button.secondary,
+[data-theme='light'] .theme-solid .glass-button.secondary {
+  color: #0f172a;
 }
 .theme-solid .error-message {
   background: linear-gradient(

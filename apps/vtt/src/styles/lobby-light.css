@@ -1,0 +1,576 @@
+/**
+ * Lobby Light Theme Overrides
+ * 
+ * Loaded unlayered at the end of main.css to guarantee maximum cascade priority
+ * over all layered stylesheets (tokens, base, layouts, components, themes).
+ * Ensures all text, titles, labels, inputs, hints, and controls in the welcome
+ * page / lobby shift crisply from white to dark slate in light theme mode.
+ */
+
+/* =============================================================================
+   1. EXPLICIT LIGHT THEME ([data-theme='light'])
+   ============================================================================= */
+
+/* Brand title and tagline */
+html[data-theme='light'] .welcome-page .brand-title,
+[data-theme='light'] .welcome-page .brand-title,
+html[data-theme='light'] .brand-title {
+  background: linear-gradient(135deg, #020617 0%, #312e81 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+  text-shadow: none !important;
+  filter: none !important;
+}
+
+html[data-theme='light'] .welcome-page .brand-tagline,
+[data-theme='light'] .welcome-page .brand-tagline,
+html[data-theme='light'] .brand-tagline {
+  color: #334155 !important;
+}
+
+/* Background overlay and panels */
+html[data-theme='light'] .welcome-page .background-overlay,
+[data-theme='light'] .welcome-page .background-overlay,
+html[data-theme='light'] .background-overlay {
+  background: linear-gradient(
+    135deg,
+    rgba(241, 245, 249, 0.92) 0%,
+    rgba(226, 232, 240, 0.88) 50%,
+    rgba(248, 250, 252, 0.95) 100%
+  ) !important;
+}
+
+html[data-theme='light'] .welcome-page .welcome-panel,
+[data-theme='light'] .welcome-page .welcome-panel,
+html[data-theme='light'] .welcome-panel {
+  background: rgba(255, 255, 255, 0.88) !important;
+  border: 1px solid rgba(15, 23, 42, 0.15) !important;
+  box-shadow:
+    0 12px 36px rgba(0, 0, 0, 0.08),
+    0 0 0 1px rgba(15, 23, 42, 0.05),
+    inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+}
+
+/* Build badge and footer bar */
+html[data-theme='light'] .welcome-page .build-badge,
+[data-theme='light'] .welcome-page .build-badge,
+html[data-theme='light'] .build-badge {
+  color: #334155 !important;
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(15, 23, 42, 0.15) !important;
+}
+
+/* Account bubble and menu */
+html[data-theme='light'] .welcome-page .account-bubble,
+[data-theme='light'] .welcome-page .account-bubble,
+html[data-theme='light'] .account-bubble {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(15, 23, 42, 0.15) !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .welcome-page .account-avatar,
+[data-theme='light'] .welcome-page .account-avatar,
+html[data-theme='light'] .account-avatar {
+  background: rgba(99, 102, 241, 0.12) !important;
+  color: #4338ca !important;
+}
+
+html[data-theme='light'] .welcome-page .account-trigger-label,
+[data-theme='light'] .welcome-page .account-trigger-label,
+html[data-theme='light'] .account-trigger-label {
+  color: #0f172a !important;
+}
+
+/* Account Dropdown */
+html[data-theme='light'] .account-dropdown,
+[data-theme='light'] .account-dropdown {
+  background: rgba(255, 255, 255, 0.98) !important;
+  border: 1px solid rgba(15, 23, 42, 0.15) !important;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.12) !important;
+}
+
+html[data-theme='light'] .account-dropdown .dropdown-title,
+[data-theme='light'] .account-dropdown .dropdown-title {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .account-dropdown .title-note,
+[data-theme='light'] .account-dropdown .title-note {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .account-dropdown .account-label,
+[data-theme='light'] .account-dropdown .account-label {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] .account-dropdown .helper-text,
+[data-theme='light'] .account-dropdown .helper-text {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] .account-dropdown .account-divider,
+[data-theme='light'] .account-dropdown .account-divider {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .account-dropdown .account-close,
+[data-theme='light'] .account-dropdown .account-close {
+  color: #0f172a !important;
+  background: rgba(15, 23, 42, 0.05) !important;
+  border-color: rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-theme='light'] .account-dropdown .account-switch,
+[data-theme='light'] .account-dropdown .account-switch {
+  color: #0f172a !important;
+  background: rgba(15, 23, 42, 0.05) !important;
+  border-color: rgba(15, 23, 42, 0.15) !important;
+}
+
+html[data-theme='light'] .account-dropdown .account-option,
+[data-theme='light'] .account-dropdown .account-option {
+  color: #0f172a !important;
+  background: rgba(15, 23, 42, 0.04) !important;
+  border: 1px solid rgba(15, 23, 42, 0.1) !important;
+}
+
+html[data-theme='light'] .account-dropdown .account-option:hover,
+[data-theme='light'] .account-dropdown .account-option:hover {
+  background: rgba(15, 23, 42, 0.08) !important;
+  border-color: rgba(15, 23, 42, 0.18) !important;
+}
+
+html[data-theme='light'] .account-dropdown .option-text,
+[data-theme='light'] .account-dropdown .option-text {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .account-dropdown .dropdown-hint,
+[data-theme='light'] .account-dropdown .dropdown-hint {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] .account-dropdown .account-text-toggle,
+[data-theme='light'] .account-dropdown .account-text-toggle {
+  color: #4f46e5 !important;
+}
+
+/* Form Inputs and Labels */
+html[data-theme='light'] .welcome-page .input-group label,
+[data-theme='light'] .welcome-page .input-group label,
+html[data-theme='light'] .input-group label {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .welcome-page .glass-input,
+[data-theme='light'] .welcome-page .glass-input,
+html[data-theme='light'] .glass-input {
+  color: #0f172a !important;
+  background: rgba(255, 255, 255, 0.92) !important;
+  border: 1px solid rgba(15, 23, 42, 0.18) !important;
+}
+
+html[data-theme='light'] .welcome-page .glass-input::placeholder,
+[data-theme='light'] .welcome-page .glass-input::placeholder,
+html[data-theme='light'] .glass-input::placeholder {
+  color: #64748b !important;
+}
+
+html[data-theme='light'] .welcome-page .glass-input:focus,
+[data-theme='light'] .welcome-page .glass-input:focus,
+html[data-theme='light'] .glass-input:focus {
+  background: #ffffff !important;
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15) !important;
+}
+
+html[data-theme='light'] .welcome-page .input-icon,
+[data-theme='light'] .welcome-page .input-icon,
+html[data-theme='light'] .input-icon {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .welcome-page .input-hint,
+[data-theme='light'] .welcome-page .input-hint,
+html[data-theme='light'] .input-hint {
+  color: #475569 !important;
+}
+
+/* Role Selection Cards */
+html[data-theme='light'] .welcome-page .role-selection > legend,
+[data-theme='light'] .welcome-page .role-selection > legend,
+html[data-theme='light'] .role-selection > legend {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .welcome-page .role-card,
+[data-theme='light'] .welcome-page .role-card,
+html[data-theme='light'] .role-card {
+  background: rgba(255, 255, 255, 0.75) !important;
+  border: 2px solid rgba(15, 23, 42, 0.15) !important;
+}
+
+html[data-theme='light'] .welcome-page .role-card:hover,
+[data-theme='light'] .welcome-page .role-card:hover,
+html[data-theme='light'] .role-card:hover {
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-color: rgba(15, 23, 42, 0.28) !important;
+}
+
+html[data-theme='light'] .welcome-page .role-card.selected,
+[data-theme='light'] .welcome-page .role-card.selected,
+html[data-theme='light'] .role-card.selected {
+  background: rgba(99, 102, 241, 0.09) !important;
+  border-color: #6366f1 !important;
+  box-shadow: 0 0 20px rgba(99, 102, 241, 0.15) !important;
+}
+
+html[data-theme='light'] .welcome-page .role-info h3,
+[data-theme='light'] .welcome-page .role-info h3,
+html[data-theme='light'] .role-info h3 {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .welcome-page .role-info p,
+[data-theme='light'] .welcome-page .role-info p,
+html[data-theme='light'] .role-info p {
+  color: #334155 !important;
+}
+
+/* Player Actions / Quick Join */
+html[data-theme='light'] .welcome-page .player-actions,
+[data-theme='light'] .welcome-page .player-actions,
+html[data-theme='light'] .welcome-page .dm-actions,
+[data-theme='light'] .welcome-page .dm-actions,
+html[data-theme='light'] .player-actions,
+html[data-theme='light'] .dm-actions {
+  background: rgba(255, 255, 255, 0.65) !important;
+  border: 1px solid rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-theme='light'] .welcome-page .quick-join-heading,
+[data-theme='light'] .welcome-page .quick-join-heading,
+html[data-theme='light'] .quick-join-heading {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .welcome-page .quick-join-mode .glass-button.secondary,
+[data-theme='light'] .welcome-page .quick-join-mode .glass-button.secondary,
+html[data-theme='light'] .quick-join-mode .glass-button.secondary {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(15, 23, 42, 0.18) !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .welcome-page .quick-join-mode .glass-button.primary,
+[data-theme='light'] .welcome-page .quick-join-mode .glass-button.primary,
+html[data-theme='light'] .quick-join-mode .glass-button.primary {
+  color: #ffffff !important;
+}
+
+html[data-theme='light'] .welcome-page .quick-join-token label,
+[data-theme='light'] .welcome-page .quick-join-token label,
+html[data-theme='light'] .quick-join-token label {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .welcome-page .quick-join-token small,
+[data-theme='light'] .welcome-page .quick-join-token small,
+html[data-theme='light'] .quick-join-token small {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .welcome-page .quick-join-token-preview span,
+[data-theme='light'] .welcome-page .quick-join-token-preview span,
+html[data-theme='light'] .quick-join-token-preview span {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .welcome-page .divider-small span,
+[data-theme='light'] .welcome-page .divider-small span,
+html[data-theme='light'] .divider-small span {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .welcome-page .divider-small::before,
+[data-theme='light'] .welcome-page .divider-small::before,
+html[data-theme='light'] .divider-small::before {
+  background: rgba(15, 23, 42, 0.15) !important;
+}
+
+/* Campaign & Character Selectors */
+html[data-theme='light'] .welcome-page .campaign-label,
+[data-theme='light'] .welcome-page .campaign-label,
+html[data-theme='light'] .campaign-label {
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .welcome-page .campaign-dropdown,
+[data-theme='light'] .welcome-page .campaign-dropdown,
+html[data-theme='light'] .campaign-dropdown {
+  color: #0f172a !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(15, 23, 42, 0.18) !important;
+}
+
+html[data-theme='light'] .welcome-page .campaign-dropdown option,
+[data-theme='light'] .welcome-page .campaign-dropdown option,
+html[data-theme='light'] .campaign-dropdown option {
+  background: #ffffff !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .welcome-page .no-campaigns-hint,
+[data-theme='light'] .welcome-page .no-campaigns-hint,
+html[data-theme='light'] .no-campaigns-hint {
+  color: #334155 !important;
+}
+
+html[data-theme='light'] .welcome-page .loading-state,
+[data-theme='light'] .welcome-page .loading-state,
+html[data-theme='light'] .loading-state {
+  color: #475569 !important;
+}
+
+/* Secondary & Generic Glass Buttons in Lobby */
+html[data-theme='light'] .welcome-page .glass-button.secondary,
+[data-theme='light'] .welcome-page .glass-button.secondary,
+html[data-theme='light'] .welcome-page .glass-button:not(.primary):not(.nexus-character-creator *),
+[data-theme='light'] .welcome-page .glass-button:not(.primary):not(.nexus-character-creator *) {
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(15, 23, 42, 0.18) !important;
+  color: #0f172a !important;
+}
+
+html[data-theme='light'] .welcome-page .glass-button.secondary:hover,
+[data-theme='light'] .welcome-page .glass-button.secondary:hover,
+html[data-theme='light'] .welcome-page .glass-button:not(.primary):not(.nexus-character-creator *):hover,
+[data-theme='light'] .welcome-page .glass-button:not(.primary):not(.nexus-character-creator *):hover {
+  background: #ffffff !important;
+  border-color: #6366f1 !important;
+  color: #0f172a !important;
+}
+
+/* About Trigger Button in Lobby Footer */
+html[data-theme='light'] .lobby-footer-bar button,
+[data-theme='light'] .lobby-footer-bar button,
+html[data-theme='light'] [class*='lobbyTrigger'],
+[data-theme='light'] [class*='lobbyTrigger'] {
+  background: rgba(255, 255, 255, 0.85) !important;
+  border: 1px solid rgba(15, 23, 42, 0.15) !important;
+  color: #334155 !important;
+}
+
+html[data-theme='light'] .lobby-footer-bar button:hover,
+[data-theme='light'] .lobby-footer-bar button:hover,
+html[data-theme='light'] [class*='lobbyTrigger']:hover,
+[data-theme='light'] [class*='lobbyTrigger']:hover {
+  background: #ffffff !important;
+  border-color: #6366f1 !important;
+  color: #0f172a !important;
+}
+
+/* Development Tools Section */
+html[data-theme='light'] .welcome-page .dev-tools,
+[data-theme='light'] .welcome-page .dev-tools,
+html[data-theme='light'] .dev-tools {
+  background: rgba(255, 255, 255, 0.75) !important;
+  border: 1px dashed rgba(15, 23, 42, 0.2) !important;
+  opacity: 0.9 !important;
+}
+
+html[data-theme='light'] .welcome-page .dev-tools:hover,
+[data-theme='light'] .welcome-page .dev-tools:hover,
+html[data-theme='light'] .dev-tools:hover {
+  opacity: 1 !important;
+}
+
+html[data-theme='light'] .welcome-page .dev-divider,
+[data-theme='light'] .welcome-page .dev-divider,
+html[data-theme='light'] .dev-divider {
+  background: rgba(15, 23, 42, 0.12) !important;
+}
+
+html[data-theme='light'] .welcome-page .dev-title,
+[data-theme='light'] .welcome-page .dev-title,
+html[data-theme='light'] .dev-title {
+  color: #475569 !important;
+}
+
+html[data-theme='light'] .welcome-page .dev-btn,
+[data-theme='light'] .welcome-page .dev-btn,
+html[data-theme='light'] .dev-btn {
+  color: #0f172a !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  border: 1px solid rgba(15, 23, 42, 0.16) !important;
+}
+
+html[data-theme='light'] .welcome-page .dev-btn.primary,
+[data-theme='light'] .welcome-page .dev-btn.primary,
+html[data-theme='light'] .dev-btn.primary {
+  color: #ffffff !important;
+  background: linear-gradient(135deg, #6366f1 0%, #4f46e5 100%) !important;
+  border: 1px solid #4f46e5 !important;
+}
+
+html[data-theme='light'] .welcome-page .dev-btn:hover:not(.primary),
+[data-theme='light'] .welcome-page .dev-btn:hover:not(.primary),
+html[data-theme='light'] .dev-btn:hover:not(.primary) {
+  background: #ffffff !important;
+  border-color: #6366f1 !important;
+  color: #0f172a !important;
+}
+
+/* Error & Alert Messages */
+html[data-theme='light'] .welcome-page .error-message,
+[data-theme='light'] .welcome-page .error-message {
+  background: rgba(254, 242, 242, 0.95) !important;
+  border: 1px solid rgba(239, 68, 68, 0.4) !important;
+  color: #991b1b !important;
+}
+
+/* =============================================================================
+   2. SYSTEM PREFERS LIGHT MODE FALLBACK (@media (prefers-color-scheme: light))
+   Guarantees immediate light typography before JS sets data-theme attribute
+   ============================================================================= */
+@media (prefers-color-scheme: light) {
+  html:not([data-theme='dark']) .welcome-page .brand-title,
+  html:not([data-theme='dark']) .brand-title {
+    background: linear-gradient(135deg, #020617 0%, #312e81 100%) !important;
+    -webkit-background-clip: text !important;
+    -webkit-text-fill-color: transparent !important;
+    background-clip: text !important;
+    text-shadow: none !important;
+    filter: none !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .brand-tagline,
+  html:not([data-theme='dark']) .brand-tagline {
+    color: #334155 !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .background-overlay,
+  html:not([data-theme='dark']) .background-overlay {
+    background: linear-gradient(
+      135deg,
+      rgba(241, 245, 249, 0.92) 0%,
+      rgba(226, 232, 240, 0.88) 50%,
+      rgba(248, 250, 252, 0.95) 100%
+    ) !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .welcome-panel,
+  html:not([data-theme='dark']) .welcome-panel {
+    background: rgba(255, 255, 255, 0.88) !important;
+    border: 1px solid rgba(15, 23, 42, 0.15) !important;
+    box-shadow:
+      0 12px 36px rgba(0, 0, 0, 0.08),
+      0 0 0 1px rgba(15, 23, 42, 0.05),
+      inset 0 1px 0 rgba(255, 255, 255, 0.9) !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .build-badge,
+  html:not([data-theme='dark']) .build-badge {
+    color: #334155 !important;
+    background: rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid rgba(15, 23, 42, 0.15) !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .account-bubble,
+  html:not([data-theme='dark']) .account-bubble {
+    background: rgba(255, 255, 255, 0.85) !important;
+    border: 1px solid rgba(15, 23, 42, 0.15) !important;
+    color: #0f172a !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .account-trigger-label,
+  html:not([data-theme='dark']) .account-trigger-label {
+    color: #0f172a !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .input-group label,
+  html:not([data-theme='dark']) .input-group label {
+    color: #0f172a !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .glass-input,
+  html:not([data-theme='dark']) .glass-input {
+    color: #0f172a !important;
+    background: rgba(255, 255, 255, 0.92) !important;
+    border: 1px solid rgba(15, 23, 42, 0.18) !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .glass-input::placeholder,
+  html:not([data-theme='dark']) .glass-input::placeholder {
+    color: #64748b !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .input-hint,
+  html:not([data-theme='dark']) .input-hint {
+    color: #475569 !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .role-selection > legend,
+  html:not([data-theme='dark']) .role-selection > legend {
+    color: #0f172a !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .role-card,
+  html:not([data-theme='dark']) .role-card {
+    background: rgba(255, 255, 255, 0.75) !important;
+    border: 2px solid rgba(15, 23, 42, 0.15) !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .role-info h3,
+  html:not([data-theme='dark']) .role-info h3 {
+    color: #0f172a !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .role-info p,
+  html:not([data-theme='dark']) .role-info p {
+    color: #334155 !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .quick-join-heading,
+  html:not([data-theme='dark']) .quick-join-heading {
+    color: #0f172a !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .quick-join-token label,
+  html:not([data-theme='dark']) .quick-join-token label {
+    color: #0f172a !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .quick-join-token small,
+  html:not([data-theme='dark']) .quick-join-token small {
+    color: #475569 !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .campaign-label,
+  html:not([data-theme='dark']) .campaign-label {
+    color: #0f172a !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .campaign-dropdown,
+  html:not([data-theme='dark']) .campaign-dropdown {
+    color: #0f172a !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(15, 23, 42, 0.18) !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .dev-title,
+  html:not([data-theme='dark']) .dev-title {
+    color: #475569 !important;
+  }
+
+  html:not([data-theme='dark']) .welcome-page .dev-btn,
+  html:not([data-theme='dark']) .dev-btn {
+    color: #0f172a !important;
+    background: rgba(255, 255, 255, 0.9) !important;
+    border: 1px solid rgba(15, 23, 42, 0.16) !important;
+  }
+}
