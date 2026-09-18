@@ -28,6 +28,7 @@ import { useReducedMotionSync } from '@/hooks/useReducedMotion';
 import { usePanelLayoutSync } from '@/hooks/usePanelLayout';
 import { useDockLayoutSync } from '@/hooks/useDocking';
 import { useFontSizeSync } from '@/hooks/useFontSize';
+import { useThemeSync } from '@/hooks/useTheme';
 import { DockRegion } from './DockRegion';
 import { ContextPanel } from './ContextPanel';
 
@@ -48,7 +49,14 @@ export const GameUI: React.FC = () => {
   const scenes = useScenes();
   const settings = useSettings();
   const colorScheme = useColorScheme();
-  const { user, leaveRoom, syncGameStateToServer } = useGameStore();
+  // Narrow selectors: the old `useGameStore()` (no selector) subscribed to the
+  // ENTIRE store, so every set() — token moves, chat, connection heartbeats —
+  // re-rendered GameUI and its whole subtree. Actions have stable identity.
+  const user = useGameStore((state) => state.user);
+  const leaveRoom = useGameStore((state) => state.leaveRoom);
+  const syncGameStateToServer = useGameStore(
+    (state) => state.syncGameStateToServer,
+  );
   const roomCode = useServerRoomCode();
 
   const isHost = user.type === 'host';
@@ -64,6 +72,7 @@ export const GameUI: React.FC = () => {
   usePanelLayoutSync();
   useDockLayoutSync();
   useFontSizeSync();
+  useThemeSync();
 
   const isGeneratorOpen = activePanels.includes('generator');
   const closeGenerator = useCallback(() => {

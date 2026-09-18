@@ -616,7 +616,7 @@ html[data-font-size='xl'] {
    THEME VARIATIONS
    ============================================================================= */
 
-/* Solid Theme Override */
+/* Solid Theme Override (Dark Default) */
 [data-theme='solid'],
 .solid-theme {
   /* Override glassmorphism with solid colors - dark theme for better modal contrast */
@@ -654,6 +654,99 @@ html[data-font-size='xl'] {
   --solid-text: var(--text-primary);
   --solid-text-muted: var(--text-secondary);
   --solid-text-light: var(--text-muted);
+}
+
+/* Light Theme (Glassmorphism Mode) */
+html[data-theme='light'] {
+  color-scheme: light;
+
+  /* Light Glass Surfaces */
+  --glass-surface: rgba(255, 255, 255, 0.78);
+  --glass-surface-hover: rgba(255, 255, 255, 0.9);
+  --glass-surface-strong: rgba(255, 255, 255, 0.95);
+  --glass-surface-subtle: rgba(255, 255, 255, 0.55);
+
+  /* Light Glass Borders */
+  --glass-border: rgba(15, 23, 42, 0.12);
+  --glass-border-strong: rgba(15, 23, 42, 0.2);
+  --glass-border-subtle: rgba(15, 23, 42, 0.08);
+
+  /* Light Glass Typography */
+  --glass-text: var(--slate-900);
+  --glass-text-secondary: var(--slate-700);
+  --glass-text-muted: var(--slate-600);
+  --glass-text-light: var(--slate-500);
+  --glass-text-strong: var(--slate-950);
+
+  /* Semantic Component Colors for Light Glass */
+  --surface-primary: var(--glass-surface);
+  --surface-secondary: var(--glass-surface-strong);
+  --surface-hover: var(--glass-surface-hover);
+  --surface-glass: var(--glass-surface);
+
+  --border-primary: var(--glass-border);
+  --border-secondary: var(--glass-border-strong);
+  --border-subtle: var(--glass-border-subtle);
+
+  --text-primary: var(--slate-900);
+  --text-secondary: var(--slate-700);
+  --text-muted: var(--slate-500);
+  --text-strong: var(--slate-950);
+
+  /* Light Gradients & Backgrounds */
+  --bg-primary: linear-gradient(135deg, #eef2ff 0%, #f3e8ff 50%, #fae8ff 100%);
+  --bg-surface: var(--glass-surface);
+  --bg-panel: var(--glass-surface);
+  --bg-modal: var(--glass-surface-strong);
+
+  /* Light Shadows */
+  --shadow-glass: 0 8px 30px rgba(0, 0, 0, 0.08);
+  --shadow-glass-lg: 0 15px 35px rgba(0, 0, 0, 0.1);
+  --shadow-glass-xl: 0 20px 40px -10px rgba(0, 0, 0, 0.12);
+}
+
+/* Light Theme (Solid Mode Override) */
+html[data-theme='light'].solid-theme,
+html[data-theme='light'] .solid-theme,
+html[data-theme='light'] [data-theme='solid'] {
+  --surface-primary: #ffffff;
+  --surface-secondary: var(--slate-100);
+  --surface-hover: var(--slate-200);
+  --bg-surface: #ffffff;
+  --bg-panel: var(--slate-100);
+  --bg-modal: #ffffff;
+
+  --border-primary: var(--slate-200);
+  --border-secondary: var(--slate-300);
+  --border-subtle: var(--slate-100);
+
+  --text-primary: var(--slate-900);
+  --text-secondary: var(--slate-700);
+  --text-muted: var(--slate-500);
+  --text-strong: var(--slate-950);
+
+  --bg-primary: var(--slate-100);
+
+  /* Remove glass effects */
+  --glass-blur: none;
+  --glass-blur-strong: none;
+  --glass-blur-subtle: none;
+
+  /* Solid theme specific variables - light background, dark text */
+  --solid-bg-primary: #ffffff;
+  --solid-bg-secondary: var(--slate-100);
+  --solid-bg-tertiary: var(--slate-200);
+  --solid-bg-hover: var(--slate-100);
+  --solid-bg-active: var(--slate-200);
+  --solid-border: var(--slate-200);
+  --solid-border-light: var(--slate-300);
+  --solid-text: var(--slate-900);
+  --solid-text-muted: var(--slate-600);
+  --solid-text-light: var(--slate-500);
+
+  --shadow-glass: var(--shadow-sm);
+  --shadow-glass-lg: var(--shadow-md);
+  --shadow-glass-xl: var(--shadow-lg);
 }
 
 /* =============================================================================

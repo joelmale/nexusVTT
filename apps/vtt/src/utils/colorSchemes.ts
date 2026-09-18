@@ -124,11 +124,55 @@ export const generateRandomColorScheme = (): ColorScheme => {
   return colorScheme;
 };
 
+const HEX_COLOR = /^#?[0-9a-f]{6}$/i;
+
+/**
+ * Coerce an untrusted value into a usable ColorScheme.
+ *
+ * `settings.colorScheme` is a whole object persisted to localStorage, so a
+ * browser holding settings written by an older build can hand us a scheme
+ * missing fields the current CSS variables depend on. Every consumer here
+ * does string maths on those fields, so an absent one used to throw out of a
+ * `useEffect` during mount and take the whole app down with it. Fall back
+ * field-by-field instead of trusting the shape.
+ */
+export const normalizeColorScheme = (
+  colorScheme: Partial<ColorScheme> | null | undefined,
+): ColorScheme => {
+  const fallback = defaultColorSchemes[0];
+  const pick = (key: keyof ColorScheme): string => {
+    const value = colorScheme?.[key];
+    if (key === 'id' || key === 'name') {
+      return typeof value === 'string' && value ? value : fallback[key];
+    }
+    return typeof value === 'string' && HEX_COLOR.test(value)
+      ? value
+      : fallback[key];
+  };
+
+  return {
+    id: pick('id'),
+    name: pick('name'),
+    primary: pick('primary'),
+    secondary: pick('secondary'),
+    accent: pick('accent'),
+    surface: pick('surface'),
+    text: pick('text'),
+  };
+};
+
 /**
  * Apply a color scheme to CSS custom properties
  */
-export const applyColorScheme = (colorScheme: ColorScheme): void => {
+export const applyColorScheme = (
+  rawColorScheme: Partial<ColorScheme> | null | undefined,
+  resolvedTheme?: 'dark' | 'light',
+): void => {
+  const colorScheme = normalizeColorScheme(rawColorScheme);
   const root = document.documentElement;
+  const isLight =
+    resolvedTheme === 'light' ||
+    (!resolvedTheme && root.getAttribute('data-theme') === 'light');
 
   // Helper function to convert hex to RGB values
   const hexToRgb = (hex: string): string => {
@@ -153,90 +197,135 @@ export const applyColorScheme = (colorScheme: ColorScheme): void => {
     );
   };
 
-  // Apply the main color scheme
+  // Brand colors from selected palette
   root.style.setProperty('--color-primary', colorScheme.primary);
   root.style.setProperty('--color-secondary', colorScheme.secondary);
   root.style.setProperty('--color-accent', colorScheme.accent);
-  root.style.setProperty('--color-surface', colorScheme.surface);
-  root.style.setProperty('--color-text', colorScheme.text);
-
-  // Create RGB versions for opacity usage
   root.style.setProperty('--color-primary-rgb', hexToRgb(colorScheme.primary));
   root.style.setProperty(
     '--color-secondary-rgb',
     hexToRgb(colorScheme.secondary),
   );
   root.style.setProperty('--color-accent-rgb', hexToRgb(colorScheme.accent));
-  root.style.setProperty('--color-surface-rgb', hexToRgb(colorScheme.surface));
-  root.style.setProperty('--color-text-rgb', hexToRgb(colorScheme.text));
 
-  // Create derived colors for solid theme
-  // These use the color scheme colors with adjusted brightness
-  root.style.setProperty('--solid-bg-primary', colorScheme.surface);
-  root.style.setProperty(
-    '--solid-bg-secondary',
-    adjustBrightness(colorScheme.surface, 10),
-  );
-  root.style.setProperty(
-    '--solid-bg-tertiary',
-    adjustBrightness(colorScheme.surface, 20),
-  );
-  root.style.setProperty(
-    '--solid-bg-hover',
-    adjustBrightness(colorScheme.surface, 15),
-  );
-  root.style.setProperty(
-    '--solid-bg-active',
-    adjustBrightness(colorScheme.surface, 25),
-  );
-  root.style.setProperty(
-    '--solid-border',
-    adjustBrightness(colorScheme.surface, 30),
-  );
-  root.style.setProperty(
-    '--solid-border-light',
-    adjustBrightness(colorScheme.surface, 40),
-  );
-  root.style.setProperty('--solid-text', colorScheme.text);
-  // Use semi-transparent versions of the main text color for better contrast on solid backgrounds
-  root.style.setProperty(
-    '--solid-text-muted',
-    `rgba(${hexToRgb(colorScheme.text)}, 0.7)`,
-  );
-  root.style.setProperty(
-    '--solid-text-light',
-    `rgba(${hexToRgb(colorScheme.text)}, 0.5)`,
-  );
+  if (isLight) {
+    const surfaceLight = '#ffffff';
+    const textDark = '#0f172a';
+    root.style.setProperty('--color-surface', surfaceLight);
+    root.style.setProperty('--color-text', textDark);
+    root.style.setProperty('--color-surface-rgb', '255, 255, 255');
+    root.style.setProperty('--color-text-rgb', '15, 23, 42');
 
-  // Update glass surface colors for glassmorphism theme
-  const surfaceRgb = hexToRgb(colorScheme.surface);
-  const textRgb = hexToRgb(colorScheme.text);
-  root.style.setProperty('--glass-surface', `rgba(${surfaceRgb}, 0.1)`);
-  root.style.setProperty('--glass-surface-hover', `rgba(${surfaceRgb}, 0.15)`);
-  root.style.setProperty('--glass-surface-strong', `rgba(${surfaceRgb}, 0.2)`);
-  root.style.setProperty('--glass-border', `rgba(${textRgb}, 0.2)`);
-  root.style.setProperty('--glass-text', colorScheme.text);
-  // Use semi-transparent white for muted/light text in glass theme for better readability
-  root.style.setProperty('--glass-text-muted', 'rgba(255, 255, 255, 0.7)');
-  root.style.setProperty('--glass-text-light', 'rgba(255, 255, 255, 0.5)');
+    // Solid theme variables for light mode
+    root.style.setProperty('--solid-bg-primary', surfaceLight);
+    root.style.setProperty('--solid-bg-secondary', '#f1f5f9');
+    root.style.setProperty('--solid-bg-tertiary', '#e2e8f0');
+    root.style.setProperty('--solid-bg-hover', '#f1f5f9');
+    root.style.setProperty('--solid-bg-active', '#e2e8f0');
+    root.style.setProperty('--solid-border', '#cbd5e1');
+    root.style.setProperty('--solid-border-light', '#e2e8f0');
+    root.style.setProperty('--solid-text', textDark);
+    root.style.setProperty('--solid-text-muted', 'rgba(15, 23, 42, 0.7)');
+    root.style.setProperty('--solid-text-light', 'rgba(15, 23, 42, 0.5)');
 
-  // Update gradients with scheme colors
-  root.style.setProperty(
-    '--gradient-primary',
-    `linear-gradient(135deg, ${colorScheme.primary} 0%, ${colorScheme.secondary} 100%)`,
-  );
-  root.style.setProperty(
-    '--gradient-secondary',
-    `linear-gradient(135deg, ${colorScheme.secondary} 0%, ${colorScheme.accent} 100%)`,
-  );
-  root.style.setProperty(
-    '--gradient-tertiary',
-    `linear-gradient(135deg, ${colorScheme.accent} 0%, ${colorScheme.primary} 100%)`,
-  );
-  root.style.setProperty(
-    '--gradient-dark',
-    `linear-gradient(135deg, ${colorScheme.surface} 0%, ${adjustBrightness(colorScheme.surface, -10)} 100%)`,
-  );
+    // Glass theme variables for light mode
+    root.style.setProperty('--glass-surface', 'rgba(255, 255, 255, 0.8)');
+    root.style.setProperty('--glass-surface-hover', 'rgba(255, 255, 255, 0.92)');
+    root.style.setProperty('--glass-surface-strong', 'rgba(255, 255, 255, 0.98)');
+    root.style.setProperty('--glass-border', 'rgba(15, 23, 42, 0.12)');
+    root.style.setProperty('--glass-text', textDark);
+    root.style.setProperty('--glass-text-muted', 'rgba(15, 23, 42, 0.7)');
+    root.style.setProperty('--glass-text-light', 'rgba(15, 23, 42, 0.5)');
+
+    // Gradients for light mode
+    root.style.setProperty(
+      '--gradient-primary',
+      'linear-gradient(135deg, #eef2ff 0%, #f3e8ff 100%)',
+    );
+    root.style.setProperty(
+      '--gradient-secondary',
+      'linear-gradient(135deg, #fdf4ff 0%, #fff1f2 100%)',
+    );
+    root.style.setProperty(
+      '--gradient-tertiary',
+      'linear-gradient(135deg, #ecfeff 0%, #e0e7ff 100%)',
+    );
+    root.style.setProperty(
+      '--gradient-dark',
+      'linear-gradient(135deg, #ffffff 0%, #f1f5f9 100%)',
+    );
+  } else {
+    // Dark theme (default)
+    root.style.setProperty('--color-surface', colorScheme.surface);
+    root.style.setProperty('--color-text', colorScheme.text);
+    root.style.setProperty('--color-surface-rgb', hexToRgb(colorScheme.surface));
+    root.style.setProperty('--color-text-rgb', hexToRgb(colorScheme.text));
+
+    // Derived colors for dark solid theme
+    root.style.setProperty('--solid-bg-primary', colorScheme.surface);
+    root.style.setProperty(
+      '--solid-bg-secondary',
+      adjustBrightness(colorScheme.surface, 10),
+    );
+    root.style.setProperty(
+      '--solid-bg-tertiary',
+      adjustBrightness(colorScheme.surface, 20),
+    );
+    root.style.setProperty(
+      '--solid-bg-hover',
+      adjustBrightness(colorScheme.surface, 15),
+    );
+    root.style.setProperty(
+      '--solid-bg-active',
+      adjustBrightness(colorScheme.surface, 25),
+    );
+    root.style.setProperty(
+      '--solid-border',
+      adjustBrightness(colorScheme.surface, 30),
+    );
+    root.style.setProperty(
+      '--solid-border-light',
+      adjustBrightness(colorScheme.surface, 40),
+    );
+    root.style.setProperty('--solid-text', colorScheme.text);
+    root.style.setProperty(
+      '--solid-text-muted',
+      `rgba(${hexToRgb(colorScheme.text)}, 0.7)`,
+    );
+    root.style.setProperty(
+      '--solid-text-light',
+      `rgba(${hexToRgb(colorScheme.text)}, 0.5)`,
+    );
+
+    // Glass theme variables for dark mode
+    const surfaceRgb = hexToRgb(colorScheme.surface);
+    const textRgb = hexToRgb(colorScheme.text);
+    root.style.setProperty('--glass-surface', `rgba(${surfaceRgb}, 0.1)`);
+    root.style.setProperty('--glass-surface-hover', `rgba(${surfaceRgb}, 0.15)`);
+    root.style.setProperty('--glass-surface-strong', `rgba(${surfaceRgb}, 0.2)`);
+    root.style.setProperty('--glass-border', `rgba(${textRgb}, 0.2)`);
+    root.style.setProperty('--glass-text', colorScheme.text);
+    root.style.setProperty('--glass-text-muted', 'rgba(255, 255, 255, 0.7)');
+    root.style.setProperty('--glass-text-light', 'rgba(255, 255, 255, 0.5)');
+
+    // Gradients for dark mode
+    root.style.setProperty(
+      '--gradient-primary',
+      `linear-gradient(135deg, ${colorScheme.primary} 0%, ${colorScheme.secondary} 100%)`,
+    );
+    root.style.setProperty(
+      '--gradient-secondary',
+      `linear-gradient(135deg, ${colorScheme.secondary} 0%, ${colorScheme.accent} 100%)`,
+    );
+    root.style.setProperty(
+      '--gradient-tertiary',
+      `linear-gradient(135deg, ${colorScheme.accent} 0%, ${colorScheme.primary} 100%)`,
+    );
+    root.style.setProperty(
+      '--gradient-dark',
+      `linear-gradient(135deg, ${colorScheme.surface} 0%, ${adjustBrightness(colorScheme.surface, -10)} 100%)`,
+    );
+  }
 };
 
 /**

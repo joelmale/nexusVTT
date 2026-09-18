@@ -4,6 +4,7 @@ import { HTML5Backend } from 'react-dnd-html5-backend';
 import { CharacterCreationProvider } from './CharacterCreationLauncher';
 import { useGameStore } from '@/stores/gameStore';
 import { useSessionPersistence } from '@/hooks/useSessionPersistence';
+import { useThemeSync } from '@/hooks/useTheme';
 
 /**
  * Shared providers for all pages
@@ -16,6 +17,9 @@ import { useSessionPersistence } from '@/hooks/useSessionPersistence';
 export const Providers: React.FC<{ children: React.ReactNode }> = ({
   children,
 }) => {
+  // Synchronize active theme (auto/dark/light) to documentElement and custom properties
+  useThemeSync();
+
   const checkAuth = useGameStore((state) => state.checkAuth);
   const didCheckAuth = useRef(false);
 

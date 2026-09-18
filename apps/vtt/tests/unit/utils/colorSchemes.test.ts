@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { defaultColorSchemes, getColorSchemeById, validateColorScheme, generateRandomColorScheme } from '../../../src/utils/colorSchemes';
+import { defaultColorSchemes, getColorSchemeById, validateColorScheme, generateRandomColorScheme, normalizeColorScheme, applyColorScheme } from '../../../src/utils/colorSchemes';
 
 describe('colorSchemes', () => {
   it('should have all required color schemes', () => {
@@ -78,5 +78,56 @@ describe('colorSchemes', () => {
     expect(validateColorScheme(randomScheme)).toBe(true);
     expect(randomScheme.id).toMatch(/^random-\d+$/);
     expect(randomScheme.name).toMatch(/^Random Palette \d+$/);
+  });
+});
+
+describe('normalizeColorScheme', () => {
+  // settings.colorScheme is a whole object persisted to localStorage, so a
+  // browser holding settings from an older build can supply a scheme missing
+  // the fields the CSS variables are derived from. applyColorScheme runs
+  // inside a mount effect, so an unguarded field used to take down the app.
+  const fallback = defaultColorSchemes[0];
+
+  it('passes a well-formed scheme through unchanged', () => {
+    expect(normalizeColorScheme(defaultColorSchemes[2])).toEqual(
+      defaultColorSchemes[2],
+    );
+  });
+
+  it('fills a missing colour field from the default scheme', () => {
+    const withoutSurface = { ...defaultColorSchemes[1] } as Partial<
+      typeof fallback
+    >;
+    delete withoutSurface.surface;
+    const normalized = normalizeColorScheme(withoutSurface);
+
+    expect(normalized.surface).toBe(fallback.surface);
+    expect(normalized.primary).toBe(defaultColorSchemes[1].primary);
+  });
+
+  it('replaces a non-hex colour value rather than trusting it', () => {
+    const normalized = normalizeColorScheme({
+      ...defaultColorSchemes[0],
+      primary: 'rebeccapurple',
+    });
+
+    expect(normalized.primary).toBe(fallback.primary);
+  });
+
+  it('returns the default scheme for null, undefined and junk input', () => {
+    expect(normalizeColorScheme(null)).toEqual(fallback);
+    expect(normalizeColorScheme(undefined)).toEqual(fallback);
+    expect(
+      normalizeColorScheme({ nonsense: true } as unknown as typeof fallback),
+    ).toEqual(fallback);
+  });
+
+  it('keeps applyColorScheme from throwing on a malformed scheme', () => {
+    expect(() =>
+      applyColorScheme({ id: 'stale' } as unknown as typeof fallback, 'dark'),
+    ).not.toThrow();
+    expect(
+      document.documentElement.style.getPropertyValue('--color-surface'),
+    ).toBe(fallback.surface);
   });
 });

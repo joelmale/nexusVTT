@@ -263,6 +263,11 @@
   background: var(--surface-hover);
 }
 
+.setting-select option {
+  background: var(--bg-surface);
+  color: var(--text-primary);
+}
+
 .setting-input[type='number'] {
   /* Typography */
   text-align: center;
