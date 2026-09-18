@@ -1,6 +1,6 @@
 import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, waitFor } from '@testing-library/react';
 import { GeneratorPanel } from '@/components/Generator/GeneratorPanel';
 
 // Mock child components
@@ -35,16 +35,19 @@ vi.mock('@/hooks/useProceduralGeneration', () => ({
   })
 }));
 
+let storedMapData: { imageData: string } | null = null;
+
 describe('GeneratorPanel Containment (S0.3)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGeneratedData = null;
+    storedMapData = null;
     
     // Mock indexedDB for the component
     const mockIDBRequest = {
       onsuccess: null,
       onerror: null,
-      result: null
+      result: null,
     };
     
     global.indexedDB = {
@@ -56,11 +59,11 @@ describe('GeneratorPanel Containment (S0.3)', () => {
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
               put: () => { const req = { onsuccess: null, onerror: null }; setTimeout(() => (req.onsuccess as any)?.(), 0); return req; },
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              get: () => { const req = { onsuccess: null, onerror: null, result: null }; setTimeout(() => (req.onsuccess as any)?.({ target: { result: null } }), 0); return req; },
+              get: () => { const req = { onsuccess: null, onerror: null, result: storedMapData }; setTimeout(() => (req.onsuccess as any)?.({ target: { result: storedMapData } }), 0); return req; },
               // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              delete: () => { const req = { onsuccess: null, onerror: null }; setTimeout(() => (req.onsuccess as any)?.(), 0); return req; }
-            })
-          })
+              delete: () => { const req = { onsuccess: null, onerror: null }; setTimeout(() => (req.onsuccess as any)?.(), 0); return req; },
+            }),
+          }),
         };
         const req: unknown = { ...mockIDBRequest, result: mockedDb };
         setTimeout(() => {
@@ -69,71 +72,52 @@ describe('GeneratorPanel Containment (S0.3)', () => {
           }
         }, 0);
         return req as IDBOpenDBRequest;
-      })
+      }),
     } as unknown as IDBFactory;
   });
 
   it('prevents Add to Scene when no valid image artifact exists', async () => {
     render(<GeneratorPanel />);
     
-    // Expand the controls panel first if collapsed
-    const toggleButton = screen.queryByTitle('Open controls');
-    if (toggleButton) {
-      fireEvent.click(toggleButton);
-    }
-
-    const addButton = screen.getByText('🗺️ Add to Scene');
+    const addButton = screen.getByText('🗺️ Add to Scene').closest('button');
     expect(addButton).toBeDisabled();
   });
 
-  it.skip('prevents procedural JSON from enabling Add to Scene', async () => {
+  it('prevents procedural JSON from enabling Add to Scene', async () => {
+    storedMapData = { imageData: '{"grid":true,"rooms":[]}' };
     render(<GeneratorPanel />);
     
-    const toggleButton = screen.getByTitle('Open controls');
-    fireEvent.click(toggleButton);
-    
-    // Simulate generation of JSON payload
-    const genJsonBtn = screen.getByText('Generate JSON');
-    fireEvent.click(genJsonBtn);
-    
-    const addButton = screen.getByText('🗺️ Add to Scene');
-    expect(addButton).toBeDisabled();
-    expect(addButton.title).toBe('No generated map to add to scene.');
+    const addButton = await screen.findByText('🗺️ Add to Scene');
+    const button = addButton.closest('button');
+    expect(button).toBeDisabled();
   });
 
-  it.skip('enables Add to Scene when a valid image is generated', async () => {
+  it('enables Add to Scene when a valid image is generated/loaded', async () => {
+    storedMapData = { imageData: 'data:image/webp;base64,validImageData' };
     render(<GeneratorPanel />);
     
-    const toggleButton = screen.getByTitle('Open controls');
-    fireEvent.click(toggleButton);
-    
-    // Simulate generation of valid image payload
-    const genImgBtn = screen.getByText('Generate Image');
-    fireEvent.click(genImgBtn);
-    
-    const addButton = screen.getByText('🗺️ Add to Scene');
-    expect(addButton).not.toBeDisabled();
+    const addButton = screen.getByText('🗺️ Add to Scene').closest('button');
+    await waitFor(() => {
+      expect(addButton).not.toBeDisabled();
+    });
   });
 
-  it.skip('clears the current generated artifact when switching generator types', async () => {
+  it('clears the current generated artifact when switching generator types', async () => {
+    storedMapData = { imageData: 'data:image/webp;base64,validImageData' };
     render(<GeneratorPanel />);
     
-    const toggleButton = screen.getByTitle('Open controls');
-    fireEvent.click(toggleButton);
-    
-    // Generate valid image
-    const genImgBtn = screen.getByText('Generate Image');
-    fireEvent.click(genImgBtn);
-    
-    let addButton = screen.getByText('🗺️ Add to Scene');
-    expect(addButton).not.toBeDisabled();
+    const addButton = screen.getByText('🗺️ Add to Scene').closest('button');
+    await waitFor(() => {
+      expect(addButton).not.toBeDisabled();
+    });
     
     // Switch to another generator
     const caveTab = screen.getByText(/Cave/);
     fireEvent.click(caveTab);
     
-    // Artifact should be cleared
-    addButton = screen.getByText('🗺️ Add to Scene');
-    expect(addButton).toBeDisabled();
+    // Artifact should be cleared and button disabled
+    await waitFor(() => {
+      expect(addButton).toBeDisabled();
+    });
   });
 });

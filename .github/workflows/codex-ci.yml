@@ -84,7 +84,7 @@ jobs:
           DATABASE_URL: postgresql://postgres:postgres@localhost:5433/nexus_vtt_test
 
       - name: Run tests
-        run: npm test -- --runInBand
+        run: npm test
 
       - name: Build
         run: npm run build
@@ -134,7 +134,7 @@ jobs:
 
       - name: Run existing tests
         if: matrix.test
-        run: npm test -- --runInBand
+        run: npm test
         working-directory: apps/codex/services/${{ matrix.service }}
 
       - name: Build

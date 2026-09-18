@@ -52,6 +52,11 @@ describe('chatSlice', () => {
     }) as unknown as GameStoreSet;
   });
 
+  afterEach(async () => {
+    // Flush any pending dynamic import microtasks before environment teardown
+    await new Promise((resolve) => setTimeout(resolve, 20));
+  });
+
   describe('sendChatMessage', () => {
     it('does nothing if user name or session is missing', () => {
       state.user.name = '';
@@ -100,6 +105,7 @@ describe('chatSlice', () => {
     });
 
     it('caps optimistic messages at 100 max', () => {
+      state.user.connected = false;
       const slice = createChatSlice(set, get);
 
       for (let i = 0; i < 105; i++) {

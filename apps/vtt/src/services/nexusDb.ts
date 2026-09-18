@@ -60,6 +60,12 @@ function ensureStore(db: IDBDatabase, descriptor: StoreDescriptor) {
 async function needsRepair(): Promise<{missing: boolean, version: number}> {
   return new Promise((resolve) => {
     const request = indexedDB.open(DB_NAME);
+    request.onblocked = () => {
+      resolve({ missing: false, version: DB_VERSION });
+    };
+    request.onupgradeneeded = () => {
+      // Allow the opening to proceed
+    };
     request.onsuccess = () => {
       const db = request.result;
       const storeNames = Array.from(db.objectStoreNames);
@@ -75,6 +81,20 @@ async function needsRepair(): Promise<{missing: boolean, version: number}> {
       resolve({ missing: false, version: DB_VERSION }); // If it fails to open, it will trigger an upgrade anyway or fail properly
     };
   });
+}
+
+/**
+ * Closes the active database connection if open.
+ */
+export function closeNexusDB(): void {
+  if (activeDb) {
+    try {
+      activeDb.close();
+    } catch {
+      // ignore
+    }
+    activeDb = null;
+  }
 }
 
 /**

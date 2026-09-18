@@ -4,7 +4,7 @@
  */
 
 import type { DungeonMapDB, GameStateDB, StorageStats } from '@/types/storage';
-import { openNexusDB, DB_NAME, DB_VERSION, STORES } from './nexusDb';
+import { openNexusDB, closeNexusDB, DB_NAME, DB_VERSION, STORES } from './nexusDb';
 
 export type { DungeonMapDB, GameStateDB, StorageStats } from '@/types/storage';
 
@@ -138,6 +138,11 @@ class DungeonMapIndexedDB {
    * Delete a dungeon map
    */
   async deleteMap(id: string): Promise<boolean> {
+    const existing = await this.getMapById(id);
+    if (!existing) {
+      return false;
+    }
+
     await this.ensureInit();
 
     return new Promise((resolve, reject) => {
@@ -412,9 +417,14 @@ class DungeonMapIndexedDB {
   async resetDatabase(): Promise<void> {
     console.log('🔄 Resetting IndexedDB database...');
 
-    // Close existing connection
+    // Close existing connection in nexusDb and instance
+    closeNexusDB();
     if (this.db) {
-      this.db.close();
+      try {
+        this.db.close();
+      } catch {
+        // ignore
+      }
       this.db = null;
     }
 
@@ -455,6 +465,8 @@ class DungeonMapIndexedDB {
 import { storageWorkerClient } from './storageWorkerClient';
 
 export const dungeonMapIndexedDB =
-  typeof window !== 'undefined' && 'Worker' in window
-    ? (storageWorkerClient as unknown as DungeonMapIndexedDB)
-    : new DungeonMapIndexedDB();
+  typeof process !== 'undefined' && process.env?.NODE_ENV === 'test'
+    ? new DungeonMapIndexedDB()
+    : typeof window !== 'undefined' && 'Worker' in window
+      ? (storageWorkerClient as unknown as DungeonMapIndexedDB)
+      : new DungeonMapIndexedDB();
