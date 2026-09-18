@@ -111,18 +111,16 @@ export default defineConfig({
         // suite, so the gate fails when coverage REGRESSES rather than
         // describing an aspiration. Raise them whenever real coverage rises.
         //
-        // Measured 2026-09-17 (server/ now included): statements 38.3,
-        // branches 31.9, functions 37.0, lines 38.6.
+        // Measured 2026-09-18 (server/ and store/ slices included):
+        // statements 44.2, branches 37.0, functions 42.4, lines 44.6.
         //
-        // Target is 40/40/40/40. Statements, functions and lines are within
-        // ~2-3 points; branches is the gap (~750 more branch outcomes needed).
         // NOTE: these keys must stay flat. Vitest treats an unknown key such
         // as Jest's `global: { ... }` as a file glob, matches nothing, and
         // enforces nothing -- verified by probe on 2026-09-17.
-        lines: 38,
-        functions: 36,
-        branches: 31,
-        statements: 38,
+        lines: 43,
+        functions: 41,
+        branches: 35,
+        statements: 43,
       },
     },
     include: [

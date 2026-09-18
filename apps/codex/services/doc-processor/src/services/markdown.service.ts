@@ -1,11 +1,7 @@
-const dynamicImport = new Function('specifier', 'return import(specifier)') as (
-  specifier: string,
-) => Promise<unknown>;
-
 const loadMarkdownParser = async () => {
   const [unifiedModule, remarkParseModule] = await Promise.all([
-    dynamicImport('unified') as Promise<typeof import('unified')>,
-    dynamicImport('remark-parse') as Promise<typeof import('remark-parse')>,
+    import('unified'),
+    import('remark-parse'),
   ]);
 
   return {
