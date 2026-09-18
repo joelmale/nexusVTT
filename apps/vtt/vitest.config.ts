@@ -113,16 +113,16 @@ export default defineConfig({
         // suite, so the gate fails when coverage REGRESSES rather than
         // describing an aspiration. Raise them whenever real coverage rises.
         //
-        // Measured 2026-09-18 (Phase 2 state stores):
-        // statements 49.5, branches 41.3, functions 48.6, lines 50.1.
+        // Measured 2026-09-18 (Phase 3 services & backend):
+        // statements 53.3, branches 43.2, functions 52.7, lines 53.9.
         //
         // NOTE: these keys must stay flat. Vitest treats an unknown key such
         // as Jest's `global: { ... }` as a file glob, matches nothing, and
         // enforces nothing -- verified by probe on 2026-09-17.
-        lines: 49,
-        functions: 48,
-        branches: 40,
-        statements: 49,
+        lines: 53,
+        functions: 52,
+        branches: 42,
+        statements: 53,
       },
     },
     include: [
