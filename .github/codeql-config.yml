@@ -1,0 +1,22 @@
+name: "CodeQL Configuration"
+
+disable-default-queries: false
+queries:
+  - uses: security-extended
+
+paths-ignore:
+  # Third-party compiled generator game engines & minified bytecode (15.8MB)
+  - 'apps/vtt/apps/generator-hub/public/**'
+  - 'apps/vtt/public/**'
+  - 'apps/vtt/static-assets/**'
+  # Documentation markdown and Docusaurus app
+  - 'apps/docs/**'
+  # Test suites
+  - '**/tests/**'
+  - '**/*.test.*'
+  - '**/*.spec.*'
+  # Build artifacts, coverage, and patches
+  - '**/dist/**'
+  - '**/coverage/**'
+  - 'patches/**'
+  - 'scripts/**'
