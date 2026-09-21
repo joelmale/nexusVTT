@@ -43,7 +43,7 @@
                          "@fastify/multipart":  "^10.1.1",
                          "@prisma/client":  "^5.7.1",
                          "@types/prompts":  "^2.4.9",
-                         "bcryptjs":  "^2.4.3",
+                         "bcryptjs":  "^3.0.3",
                          "bullmq":  "^5.81.5",
                          "dotenv":  "^16.3.1",
                          "fastify":  "^5.12.4",
@@ -56,7 +56,7 @@
                          "@nexus/document-contracts":  "*"
                      },
     "devDependencies":  {
-                            "@types/bcryptjs":  "^2.4.6",
+                            "@types/bcryptjs":  "^3.0.0",
                             "@types/jest":  "^29.5.11",
                             "@types/jsonwebtoken":  "^9.0.5",
                             "@types/node":  "^20.10.6",
