@@ -30,7 +30,7 @@
     "@elastic/elasticsearch": "^9.5.1",
     "@napi-rs/canvas": "^0.1.76",
     "@prisma/client": "^5.7.1",
-    "babel-plugin-istanbul": "^7.0.1",
+    "babel-plugin-istanbul": "^8.0.0",
     "bullmq": "^5.61.0",
     "canvas": "^3.2.0",
     "dotenv": "^16.3.1",
