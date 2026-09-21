@@ -1,4 +1,4 @@
-FROM node:26.5.0-bookworm-slim AS base
+FROM node:26.8.2-bookworm-slim AS base
 
 # Install build dependencies for native modules (canvas, sharp) and OpenSSL for Prisma
 RUN apt-get update && \

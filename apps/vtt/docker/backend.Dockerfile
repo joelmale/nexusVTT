@@ -1,6 +1,6 @@
 # Dockerfile for Nexus VTT Backend WebSocket Server
 
-FROM node:26.5.0-alpine
+FROM node:26.9.0-alpine
 
 ARG VERSION=dev
 ARG COMMIT_SHA=unknown
