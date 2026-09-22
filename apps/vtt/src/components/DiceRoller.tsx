@@ -57,26 +57,31 @@ export const DiceRoller: React.FC = () => {
 
   // State for sound mute
   const [isSoundMuted, setIsSoundMuted] = useState(diceSounds.isSoundMuted());
-  // State for dice theme (load from localStorage or default)
+  // State for dice theme (load from localStorage or default). Values are
+  // dice-box-threejs colorset ids, not the old @3d-dice/dice-box theme mesh
+  // names -- an old stored id (e.g. 'smooth') just won't match any entry
+  // below and silently falls back to the default label/id.
   const [diceTheme, setDiceTheme] = useState<string>(() => {
     try {
-      return localStorage.getItem('nexus_dice_theme') || 'default';
+      return localStorage.getItem('nexus_dice_theme') || 'white';
     } catch {
-      return 'default';
+      return 'white';
     }
   });
 
   // Available dice themes
+  // dice-box-threejs colorset ids (see node_modules/@3d-dice/dice-box-threejs
+  // -- there are ~50 available; this is a curated subset).
   const DICE_THEMES = [
-    { id: 'default', name: 'Default' },
-    { id: 'diceOfRolling', name: 'Dice of Rolling' },
-    { id: 'smooth', name: 'Smooth' },
-    { id: 'gemstone', name: 'Gemstone' },
-    { id: 'gemstoneMarble', name: 'Gemstone Marble' },
-    { id: 'rock', name: 'Rock' },
-    { id: 'blueGreenMetal', name: 'Blue Metal' },
-    { id: 'rust', name: 'Rust' },
-    { id: 'wooden', name: 'Wooden' },
+    { id: 'white', name: 'Default' },
+    { id: 'black', name: 'Black' },
+    { id: 'bronze', name: 'Bronze' },
+    { id: 'dragons', name: 'Dragons' },
+    { id: 'fire', name: 'Fire' },
+    { id: 'ice', name: 'Ice' },
+    { id: 'poison', name: 'Poison' },
+    { id: 'astralsea', name: 'Astral Sea' },
+    { id: 'rainbow', name: 'Rainbow' },
   ];
 
   // Effect to scroll to the top when a new roll is added.
@@ -303,6 +308,14 @@ export const DiceRoller: React.FC = () => {
     } catch (e) {
       console.warn('Failed to save dice theme to localStorage:', e);
     }
+
+    // DiceBox3D reads the theme from localStorage but has no other way to
+    // know it changed (localStorage writes don't trigger a re-render or a
+    // 'storage' event in the SAME tab that wrote them). Without this, the
+    // button's own label/tooltip updates but the live 3D dice never do.
+    window.dispatchEvent(
+      new CustomEvent('nexus-dice-theme-changed', { detail: { theme: newTheme } }),
+    );
   };
 
   // Filter rolls for display. Hosts see all rolls, players only see public ones.
@@ -383,18 +396,27 @@ export const DiceRoller: React.FC = () => {
                 Advantage
               </span>
             </div>
-            <div
-              className="setting-control"
-              onClick={() => {
-                setRollMode(rollMode === 'advantage' ? 'none' : 'advantage');
-              }}
-            >
+            <div className="setting-control">
               <label className="setting-toggle">
                 <input
                   type="radio"
                   name="roll-mode"
                   value="advantage"
                   checked={rollMode === 'advantage'}
+                  // Clicking a <label> wrapping an <input> makes the browser
+                  // dispatch a SECOND, forwarded click at the input itself,
+                  // on top of the original click bubbling from the label. A
+                  // handler on the ancestor .setting-control div (the
+                  // previous approach) saw both and toggled the state twice
+                  // per click, netting out to no visible change ("just
+                  // highlights"). onClick here fires exactly once per user
+                  // interaction regardless of whether they hit the label or
+                  // the input, so it's the one safe place for the toggle
+                  // logic. readOnly only silences React's controlled-input
+                  // warning -- browsers ignore it for radio/checkbox.
+                  onClick={() =>
+                    setRollMode(rollMode === 'advantage' ? 'none' : 'advantage')
+                  }
                   readOnly
                 />
                 <span className="toggle-slider"></span>
@@ -412,20 +434,18 @@ export const DiceRoller: React.FC = () => {
                 Disadvantage
               </span>
             </div>
-            <div
-              className="setting-control"
-              onClick={() => {
-                setRollMode(
-                  rollMode === 'disadvantage' ? 'none' : 'disadvantage',
-                );
-              }}
-            >
+            <div className="setting-control">
               <label className="setting-toggle">
                 <input
                   type="radio"
                   name="roll-mode"
                   value="disadvantage"
                   checked={rollMode === 'disadvantage'}
+                  onClick={() =>
+                    setRollMode(
+                      rollMode === 'disadvantage' ? 'none' : 'disadvantage',
+                    )
+                  }
                   readOnly
                 />
                 <span className="toggle-slider"></span>

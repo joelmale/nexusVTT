@@ -108,12 +108,12 @@ export const STACK_DEPENDENCIES: StackDependencyItem[] = [
     url: 'https://pixijs.com',
   },
   {
-    name: '@3d-dice/dice-box',
-    version: '^1.1.0',
+    name: '@3d-dice/dice-box-threejs',
+    version: '^0.0.12',
     category: 'rendering',
     license: 'MIT',
-    description: 'Physics-simulated 3D dice roller with customizable thematic skins',
-    url: 'https://github.com/3d-dice/dice-box',
+    description: 'Physics-simulated 3D dice roller (three.js + cannon-es) with server-forced roll results',
+    url: 'https://github.com/3d-dice/dice-box-threejs',
   },
   {
     name: 'pdfjs-dist',

@@ -1,15 +1,17 @@
 import { test, expect, gotoGame } from './support/gameFixture';
 
 /**
- * DiceBox3D used to boot two Babylon engines on every page load: the init guard
- * checked `diceBoxRef.current`, which is only assigned after `await init()`, so
- * both of StrictMode's dev effect invocations passed it. Two WebGL2 contexts,
- * two render loops.
+ * DiceBox3D used to boot two engines on every page load: the init guard
+ * checked `diceBoxRef.current`, which is only assigned after `await
+ * initialize()`, so both of StrictMode's dev effect invocations passed it.
+ * Two WebGL contexts, two render loops. (Originally two Babylon engines,
+ * back when this used @3d-dice/dice-box; now two three.js renderers under
+ * @3d-dice/dice-box-threejs -- the guard and the bug it fixes are unchanged.)
  *
  * This asserts the engine is created exactly once and leaves a single canvas.
  */
 test.describe('3D dice engine lifecycle', () => {
-  test('initialises exactly one Babylon engine per page load', async ({
+  test('initialises exactly one dice engine per page load', async ({
     page,
   }) => {
     const consoleLines: string[] = [];
@@ -17,8 +19,8 @@ test.describe('3D dice engine lifecycle', () => {
 
     await gotoGame(page);
 
-    // init() resolving is what emits the Babylon banner, so wait for the
-    // success log rather than for the canvas (which the constructor creates).
+    // initialize() resolving is what emits the success log, so wait for that
+    // rather than for the canvas (which the constructor creates).
     await expect
       .poll(
         () =>
@@ -34,20 +36,15 @@ test.describe('3D dice engine lifecycle', () => {
     await page.waitForTimeout(2_000);
 
     const initCalls = consoleLines.filter((line) =>
-      line.includes('Calling diceBox.init()'),
-    );
-    const engineBanners = consoleLines.filter((line) =>
-      line.includes('Babylon.js'),
+      line.includes('Calling diceBox.initialize()'),
     );
 
     expect(
       initCalls,
-      `init() calls: ${JSON.stringify(initCalls)}`,
+      `initialize() calls: ${JSON.stringify(initCalls)}`,
     ).toHaveLength(1);
-    expect(
-      engineBanners,
-      `Babylon banners: ${JSON.stringify(engineBanners)}`,
-    ).toHaveLength(1);
+    // The real regression guard: StrictMode's double effect invocation must
+    // still leave exactly one canvas, not two competing renderers.
     await expect(page.locator('#dice-box canvas')).toHaveCount(1);
   });
   test('still rolls dice after the single-init fix', async ({ page }) => {

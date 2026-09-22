@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import DiceBox from '@3d-dice/dice-box';
+import DiceBox from '@3d-dice/dice-box-threejs';
 import { useGameStore, useSettings } from '@/stores/gameStore';
 import { diceSounds } from '@/services/diceSounds';
 
@@ -28,10 +28,37 @@ const hasWebGLSupport = (): boolean => {
   return true;
 };
 
+/** How long to wait for diceBox.initialize() before giving up. */
+const INIT_TIMEOUT_MS = 15000;
+/** How long to wait for a single .roll() before giving up on that roll. */
+const ROLL_TIMEOUT_MS = 10000;
+
 /**
- * dice-box exposes no dispose(), so release what it owns by hand: stop the dice,
- * drop the WebGL context that the Babylon engine is rendering into, and detach
- * the canvas it created.
+ * Race a promise against a timeout so a hung dependency (a stalled texture
+ * fetch, a physics edge case) surfaces as an error instead of leaving the
+ * caller waiting forever with no feedback.
+ */
+function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => reject(new Error(message)), ms);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
+/**
+ * dice-box-threejs exposes no dispose(), so release what it owns by hand:
+ * stop the dice, dispose the three.js renderer/WebGL context, and detach the
+ * canvas it created. Unlike the previous AmmoJS-based engine this runs
+ * entirely on the main thread (no worker to terminate).
  */
 const disposeDiceBox = (diceBox: DiceBox | null): void => {
   if (!diceBox) {
@@ -39,25 +66,18 @@ const disposeDiceBox = (diceBox: DiceBox | null): void => {
   }
 
   try {
-    diceBox.clear();
+    diceBox.clearDice();
   } catch (error) {
     console.warn('🎲 Error clearing dice box:', error);
   }
 
-  const canvas = (diceBox as unknown as { canvas?: HTMLCanvasElement }).canvas;
-  if (!canvas) {
-    return;
-  }
-
   try {
-    const gl = (canvas.getContext('webgl2') ||
-      canvas.getContext('webgl')) as WebGLRenderingContext | null;
-    gl?.getExtension('WEBGL_lose_context')?.loseContext();
+    diceBox.renderer?.dispose();
   } catch (error) {
-    console.warn('🎲 Error releasing dice box WebGL context:', error);
+    console.warn('🎲 Error disposing dice box renderer:', error);
   }
 
-  canvas.remove();
+  diceBox.renderer?.domElement?.remove();
 };
 
 export const DiceBox3D: React.FC = () => {
@@ -79,12 +99,13 @@ export const DiceBox3D: React.FC = () => {
   const diceRolls = useGameStore((state) => state.diceRolls);
   const settings = useSettings();
 
-  // Get dice theme from localStorage (synced with DiceRoller component)
+  // Get dice theme (a dice-box-threejs colorset id) from localStorage,
+  // synced with DiceRoller component.
   const getDiceTheme = useCallback(() => {
     try {
-      return localStorage.getItem('nexus_dice_theme') || 'smooth';
+      return localStorage.getItem('nexus_dice_theme') || 'white';
     } catch {
-      return 'smooth';
+      return 'white';
     }
   }, []);
 
@@ -94,9 +115,9 @@ export const DiceBox3D: React.FC = () => {
 
     const initializeDiceBox = async () => {
       // Synchronous claim: React StrictMode double-invokes this effect in dev,
-      // and `diceBoxRef` is only populated after `await init()`. Without an
-      // in-flight flag set *before* the first await, both invocations pass the
-      // guard and we end up with two Babylon engines / WebGL2 contexts.
+      // and `diceBoxRef` is only populated after `await initialize()`. Without
+      // an in-flight flag set *before* the first await, both invocations pass
+      // the guard and we end up with two renderers / WebGL contexts.
       if (!diceBoxContainerRef.current || diceBoxRef.current) {
         return;
       }
@@ -104,6 +125,12 @@ export const DiceBox3D: React.FC = () => {
         return;
       }
       initInFlightRef.current = true;
+
+      // Hoisted so the catch block can dispose it on a failed/timed-out
+      // init -- otherwise a DiceBox that got as far as creating its canvas,
+      // then failed, leaks it (diceBoxRef never gets set, so the unmount
+      // cleanup below never sees it either).
+      let diceBox: DiceBox | null = null;
 
       try {
         // Check WebGL support
@@ -118,7 +145,10 @@ export const DiceBox3D: React.FC = () => {
         }
         console.log('✅ WebGL is supported');
 
-        // Check if container exists
+        // Check if container exists. The DiceBox constructor resolves the
+        // selector synchronously via document.querySelector with no
+        // null-check of its own, so this pre-check gives a clear error
+        // instead of a cryptic "Cannot read properties of null" crash.
         const container = document.querySelector('#dice-box');
         if (!container) {
           console.error('🎲 ERROR: Container #dice-box not found in DOM');
@@ -128,36 +158,30 @@ export const DiceBox3D: React.FC = () => {
         console.log('✅ Container found:', container);
 
         const config = {
-          id: 'dice-canvas',
-          container: '#dice-box',
-          assetPath: '/assets/dice-box/',
-          theme: 'default',
-          offscreen: false,
-          scale: 6,
-          gravity: 1,
-          mass: 0.85,
-          friction: 0.65,
-          restitution: 0.04,
-          linearDamping: 0.55,
-          angularDamping: 0.65,
-          spinForce: 2.6,
-          throwForce: 3,
-          startingHeight: 5,
-          settleTimeout: 2000,
-          delay: 4,
-          enableShadows: false,
-          lightIntensity: 0.6,
+          assetPath: '/assets/dice-box-threejs/',
+          sounds: false, // We drive sound effects ourselves via diceSounds.
+          theme_colorset: getDiceTheme(),
+          theme_material: 'glass' as const,
+          gravity_multiplier: 400,
+          strength: 1.4,
+          light_intensity: 0.9,
+          shadows: false,
         };
 
         console.log('🎲 Initializing DiceBox with config:', config);
-        const diceBox = new DiceBox(config);
+        diceBox = new DiceBox('#dice-box', config);
 
-        diceBox.onRollComplete = (_results: unknown) => {
+        diceBox.onRollComplete = () => {
           console.log('🎲 Roll animation complete');
         };
 
-        console.log('🎲 Calling diceBox.init()...');
-        await diceBox.init();
+        console.log('🎲 Calling diceBox.initialize()...');
+        await withTimeout(
+          diceBox.initialize(),
+          INIT_TIMEOUT_MS,
+          'Timed out initializing the 3D dice engine (texture/asset load ' +
+            'never completed).',
+        );
         console.log('✅ DiceBox initialized successfully');
 
         // The component unmounted while init was in flight — tear the engine
@@ -200,6 +224,10 @@ export const DiceBox3D: React.FC = () => {
           '   Error stack:',
           error instanceof Error ? error.stack : 'No stack trace',
         );
+        // init() failed or timed out before diceBoxRef was ever set, so the
+        // unmount cleanup below won't dispose this instance -- do it here so
+        // a half-created canvas/renderer doesn't leak.
+        disposeDiceBox(diceBox);
         setInitError(
           error instanceof Error
             ? error.message
@@ -240,16 +268,38 @@ export const DiceBox3D: React.FC = () => {
     };
   }, [getDiceTheme]);
 
-  // Update theme when it changes
+  // Re-apply the theme once the engine finishes initializing (it's already
+  // set via the constructor config, but this is a harmless safety net).
   useEffect(() => {
     if (diceBoxRef.current && isInitialized) {
-      const theme = getDiceTheme();
-      try {
-        diceBoxRef.current.updateConfig({ theme });
-      } catch (error) {
+      const theme_colorset = getDiceTheme();
+      diceBoxRef.current.updateConfig({ theme_colorset }).catch((error) => {
         console.warn('🎲 Failed to update theme:', error);
-      }
+      });
     }
+  }, [getDiceTheme, isInitialized]);
+
+  // DiceRoller's theme-cycle button writes the new theme to localStorage and
+  // dispatches this event, since a same-tab localStorage write fires neither
+  // a re-render here nor a native 'storage' event -- without it there is no
+  // way for this component to learn the theme changed after its one-time
+  // init.
+  useEffect(() => {
+    const handleDiceThemeChanged = (event: Event) => {
+      const detail = (event as CustomEvent<{ theme?: string }>).detail;
+      const theme_colorset = detail?.theme ?? getDiceTheme();
+      if (!diceBoxRef.current || !isInitialized) return;
+      diceBoxRef.current.updateConfig({ theme_colorset }).catch((error) => {
+        console.warn('🎲 Failed to update theme:', error);
+      });
+    };
+
+    window.addEventListener('nexus-dice-theme-changed', handleDiceThemeChanged);
+    return () =>
+      window.removeEventListener(
+        'nexus-dice-theme-changed',
+        handleDiceThemeChanged,
+      );
   }, [getDiceTheme, isInitialized]);
 
   // Handle new dice rolls
@@ -335,7 +385,7 @@ export const DiceBox3D: React.FC = () => {
 
         // Clear existing dice before rolling again to avoid stacking meshes
         try {
-          diceBoxRef.current.clear();
+          diceBoxRef.current.clearDice();
         } catch (error) {
           console.warn('🎲 Error clearing dice box before roll:', error);
         }
@@ -345,18 +395,32 @@ export const DiceBox3D: React.FC = () => {
           diceSounds.playRollSound(values.length);
         }
 
-        diceBoxRef.current
-          .roll(notations, { values })
-          .then((_results) => {
+        // Unlike the previous engine, dice-box-threejs genuinely supports
+        // forcing each die's landed face via `@v1,v2,...` appended to the
+        // notation, applied in the same order the dice were spawned -- which
+        // matches the order notations/values were built above. So the 3D
+        // animation now actually shows the server-authoritative result
+        // instead of a decorrelated random one.
+        const notation = `${notations.join('+')}@${values.join(',')}`;
+
+        withTimeout(
+          diceBoxRef.current.roll(notation),
+          ROLL_TIMEOUT_MS,
+          'Timed out waiting for the dice roll animation to finish.',
+        )
+          .then(() => {
             // Shorter clear timing to keep scene responsive
             const totalTime = 2000 + settings.diceDisappearTime;
             clearTimeoutRef.current = setTimeout(() => {
               if (diceBoxRef.current) {
-                diceBoxRef.current.clear();
+                diceBoxRef.current.clearDice();
               }
             }, totalTime);
           })
           .catch((error) => {
+            // A single bad roll (e.g. a known upstream edge case forcing a
+            // d2/d4 face) shouldn't tear down the whole engine -- log and
+            // leave it ready for the next roll.
             console.error('🎲 Error rolling dice:', error);
           });
 
@@ -379,8 +443,9 @@ export const DiceBox3D: React.FC = () => {
         ref={diceBoxContainerRef}
         style={{
           position: 'absolute',
-          top: '10px',
-          right: '10px',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
           width: '500px',
           height: '400px',
           zIndex: 'var(--z-dice-3d)',

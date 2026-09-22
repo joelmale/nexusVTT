@@ -285,7 +285,7 @@ export default defineConfig(({ command, mode }) => {
             if (inPkg('react-router-dom')) return 'vendor-router';
             if (inPkg('zustand') || inPkg('immer')) return 'vendor-state';
             if (inPkg('sonner')) return 'vendor-ui';
-            if (inPkg('@3d-dice/dice-box')) return 'vendor-3d';
+            if (inPkg('@3d-dice/dice-box-threejs')) return 'vendor-3d';
             if (inPkg('pdfjs-dist')) return 'vendor-pdf';
             if (inPkg('uuid')) return 'vendor-utils';
             // Keep the HTML5 backend separate from the federation-enabled React
