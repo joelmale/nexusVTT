@@ -37,7 +37,7 @@ export function setupGeneratedMapsRoute(app: Application, requireAuthenticatedNo
         if (req.body.width) formData.append('width', req.body.width);
         if (req.body.height) formData.append('height', req.body.height);
 
-        const assetServiceUrl = process.env.ASSET_SERVICE_URL || 'http://localhost:5003';
+        const assetServiceUrl = process.env.ASSET_API_URL || 'http://localhost:5003';
         const response = await fetch(`${assetServiceUrl}/user/${userId}/generated-map`, {
           method: 'POST',
           headers: {
