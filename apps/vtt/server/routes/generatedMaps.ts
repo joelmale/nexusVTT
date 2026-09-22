@@ -13,14 +13,17 @@ export function setupGeneratedMapsRoute(app: Application, requireAuthenticatedNo
     upload.single('file'),
     async (req: Request, res: Response) => {
       try {
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const session = req.session as Record<string, any>;
-        const userId = session.passport?.user?.id;
-        
+        // passport.serializeUser stores only the raw user ID string in
+        // req.session.passport.user (see server/auth.ts), so
+        // `session.passport.user.id` is always undefined -- read the id off
+        // req.user instead, which requireAuthenticatedNonGuest already
+        // guarantees is the full deserialized user row.
+        const userId = (req.user as { id?: string } | undefined)?.id;
+
         if (!userId) {
           return res.status(401).json({ error: 'User ID not found in session' });
         }
-        
+
         if (!req.file) {
           return res.status(400).json({ error: 'No file provided' });
         }

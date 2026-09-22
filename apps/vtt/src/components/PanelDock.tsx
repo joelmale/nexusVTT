@@ -1,4 +1,6 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
+import Pin from 'lucide-react/dist/esm/icons/pin';
+import PinOff from 'lucide-react/dist/esm/icons/pin-off';
 import { Tooltip } from './Tooltip';
 import styles from './PanelDock.module.css';
 import { WorkspaceMenu } from './WorkspaceMenu';
@@ -24,20 +26,46 @@ interface PanelDockProps<T extends string = string> {
   onSelect: (panel: T) => void;
 }
 
+/** Shares the nexus-ui- prefix so "Reset UI Layout" also un-pins the dock. */
+const PINNED_STORAGE_KEY = 'nexus-ui-panelDock-pinned';
+
+const loadPinned = (): boolean => {
+  try {
+    return localStorage.getItem(PINNED_STORAGE_KEY) === 'true';
+  } catch {
+    return false;
+  }
+};
+
 /**
  * Top-right floating panel selector dock.
  *
- * Expands on hover to reveal the full icon row. Click icons to toggle floating panels on/off.
+ * Expands on hover to reveal the full icon row, or permanently when pinned
+ * via the pin icon. Click icons to toggle floating panels on/off.
  */
 export function PanelDock<T extends string = string>({
   panels,
   activePanels,
   onSelect,
 }: PanelDockProps<T>) {
-  const [isExpanded, setIsExpanded] = useState(false);
+  const [isHoverExpanded, setIsHoverExpanded] = useState(false);
+  const [isPinned, setIsPinned] = useState(loadPinned);
+  const isExpanded = isHoverExpanded || isPinned;
   const hoverTimeoutRef = useRef<number | undefined>(undefined);
   const buttonRefs = useRef<Map<string, HTMLButtonElement>>(new Map());
   const [focusedId, setFocusedId] = useState<T>(panels[0]?.id);
+
+  const togglePinned = useCallback(() => {
+    setIsPinned((prev) => {
+      const next = !prev;
+      try {
+        localStorage.setItem(PINNED_STORAGE_KEY, String(next));
+      } catch {
+        // Ignore quota errors
+      }
+      return next;
+    });
+  }, []);
 
   const { onPointerDown, panelRef } = useDraggablePanel({
     id: 'panelDock',
@@ -55,12 +83,12 @@ export function PanelDock<T extends string = string>({
   // ── Hover expand / collapse ──
   const handleMouseEnter = useCallback(() => {
     window.clearTimeout(hoverTimeoutRef.current);
-    setIsExpanded(true);
+    setIsHoverExpanded(true);
   }, []);
 
   const handleMouseLeave = useCallback(() => {
     hoverTimeoutRef.current = window.setTimeout(() => {
-      setIsExpanded(false);
+      setIsHoverExpanded(false);
     }, 400);
   }, []);
 
@@ -128,11 +156,30 @@ export function PanelDock<T extends string = string>({
         ⠿
       </div>
 
-      {/* Compact view: label */}
+      {/* Compact view: label + pin toggle */}
       <div className={styles.compactView}>
         <span className={styles.label}>
           📋 Panels
         </span>
+        <button
+          type="button"
+          className={styles.pinButton}
+          data-pinned={isPinned ? 'true' : undefined}
+          aria-pressed={isPinned}
+          aria-label={isPinned ? 'Unpin panel dock' : 'Pin panel dock open'}
+          title={isPinned ? 'Unpin panel dock' : 'Keep panel dock expanded'}
+          onClick={(e) => {
+            e.stopPropagation();
+            togglePinned();
+          }}
+          onPointerDown={(e) => e.stopPropagation()}
+        >
+          {isPinned ? (
+            <PinOff size={14} aria-hidden="true" />
+          ) : (
+            <Pin size={14} aria-hidden="true" />
+          )}
+        </button>
       </div>
 
       {/* Separator */}

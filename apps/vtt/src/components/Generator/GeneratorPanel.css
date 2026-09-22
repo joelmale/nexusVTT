@@ -18,7 +18,7 @@
   backdrop-filter: blur(8px);
   z-index: var(--z-modal-backdrop);
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: center;
   padding: 2rem;
 }

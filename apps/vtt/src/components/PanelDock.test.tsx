@@ -9,6 +9,7 @@ import { PanelDock } from './PanelDock';
 
 afterEach(() => {
   cleanup();
+  localStorage.clear();
 });
 
 const panels = [
@@ -112,5 +113,51 @@ describe('PanelDock', () => {
 
     fireEvent.keyDown(diceTab, { key: 'Home' });
     expect(document.activeElement).toBe(tokensTab);
+  });
+
+  it('pins the dock open via the pin button, independent of hover', () => {
+    render(
+      <PanelDock
+        panels={panels}
+        activePanels={['tokens']}
+        onSelect={() => {}}
+      />,
+    );
+
+    const dock = screen.getByRole('tablist', { name: 'Panels' });
+    const pinButton = screen.getByRole('button', { name: 'Pin panel dock open' });
+
+    expect(dock.getAttribute('aria-expanded')).toBe('false');
+    expect(pinButton.getAttribute('aria-pressed')).toBe('false');
+
+    fireEvent.click(pinButton);
+
+    expect(dock.getAttribute('aria-expanded')).toBe('true');
+    expect(pinButton.getAttribute('aria-pressed')).toBe('true');
+    expect(
+      screen.getByRole('button', { name: 'Unpin panel dock' }),
+    ).not.toBeNull();
+    expect(localStorage.getItem('nexus-ui-panelDock-pinned')).toBe('true');
+
+    // Un-pinning drops back to hover-only behavior.
+    fireEvent.click(screen.getByRole('button', { name: 'Unpin panel dock' }));
+    expect(dock.getAttribute('aria-expanded')).toBe('false');
+    expect(localStorage.getItem('nexus-ui-panelDock-pinned')).toBe('false');
+  });
+
+  it('restores the pinned state from localStorage on mount', () => {
+    localStorage.setItem('nexus-ui-panelDock-pinned', 'true');
+
+    render(
+      <PanelDock
+        panels={panels}
+        activePanels={['tokens']}
+        onSelect={() => {}}
+      />,
+    );
+
+    expect(
+      screen.getByRole('tablist', { name: 'Panels' }).getAttribute('aria-expanded'),
+    ).toBe('true');
   });
 });

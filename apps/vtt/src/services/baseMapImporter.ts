@@ -1,5 +1,18 @@
 import { v4 as uuidv4 } from 'uuid';
 
+/**
+ * Thrown when the server rejects the upload because the session isn't an
+ * authenticated non-guest user (see server/middleware/assetWriteGuard.ts).
+ * Callers can catch this specifically to fall back to a local-only path
+ * instead of surfacing a raw server error.
+ */
+export class UploadAuthRequiredError extends Error {
+  constructor(message = 'Sign in to save generated maps to your asset library') {
+    super(message);
+    this.name = 'UploadAuthRequiredError';
+  }
+}
+
 export interface ImporterOptions {
   blob: Blob;
   filename: string;
@@ -33,6 +46,9 @@ export class BaseMapImporter {
     });
 
     if (!response.ok) {
+      if (response.status === 401 || response.status === 403) {
+        throw new UploadAuthRequiredError();
+      }
       const errorText = await response.text();
       throw new Error(`Failed to upload generated map: ${errorText}`);
     }

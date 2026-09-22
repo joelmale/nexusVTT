@@ -18,18 +18,21 @@ describe('setupGeneratedMapsRoute', () => {
 
     app = express();
 
-    // Mock session and auth middleware
-    app.use((req, _res, next) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      (req as any).session = {
-        passport: sessionUser ? { user: { id: sessionUser.id } } : undefined,
-      };
-      next();
-    });
-
-    const mockGuard = (_req: Request, res: Response, next: NextFunction) => {
+    // passport.deserializeUser populates req.user with the full user row
+    // (see server/auth.ts) -- requireAuthenticatedNonGuest never touches
+    // req.session.passport.user itself, and passport.serializeUser stores
+    // only the raw id STRING there, not an object. Mock req.user directly
+    // (only when a session is present, mirroring a guard that legitimately
+    // passed an authenticated request through) so this test exercises the
+    // route handler's own `!userId` check with the real shape, instead of a
+    // session object production never produces.
+    const mockGuard = (req: Request, res: Response, next: NextFunction) => {
       if (!isNonGuest) {
         return res.status(403).json({ error: 'Guest access forbidden' });
+      }
+      if (sessionUser) {
+        // eslint-disable-next-line @typescript-eslint/no-explicit-any
+        (req as any).user = sessionUser;
       }
       next();
     };

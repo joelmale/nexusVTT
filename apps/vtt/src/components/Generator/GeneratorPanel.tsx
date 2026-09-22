@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { BaseMapImporter } from '@/services/baseMapImporter';
+import { BaseMapImporter, UploadAuthRequiredError } from '@/services/baseMapImporter';
 import {
   GeneratorFloatingControls,
   type GeneratorActionPayload,
@@ -9,6 +9,15 @@ import './GeneratorPanel.css';
 import { GeneratorHostClient } from '@/services/generatorHostClient';
 import type { GeneratorHostMessage } from '../../../shared/generator/protocol';
 import { openNexusDB } from '@/services/nexusDb';
+import { toast } from '@/utils/notifications';
+
+const blobToDataUrl = (blob: Blob): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onloadend = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error ?? new Error('Failed to read blob'));
+    reader.readAsDataURL(blob);
+  });
 
 const GENERATOR_MAP_STORAGE_KEY = 'nexus-generator-current-map';
 
@@ -287,13 +296,28 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       let finalUrl = currentMap;
 
       if (currentBlob) {
-        // Upload the blob through our importer
-        const result = await BaseMapImporter.importGeneratedMap({
-          blob: currentBlob.blob,
-          filename: currentBlob.filename,
-        });
+        try {
+          // Upload the blob through our importer
+          const result = await BaseMapImporter.importGeneratedMap({
+            blob: currentBlob.blob,
+            filename: currentBlob.filename,
+          });
 
-        finalUrl = result.sceneUrl;
+          finalUrl = result.sceneUrl;
+        } catch (uploadErr) {
+          if (!(uploadErr instanceof UploadAuthRequiredError)) throw uploadErr;
+
+          // Guests / unauthenticated sessions can't persist to the asset
+          // service (server/middleware/assetWriteGuard.ts). Fall back to
+          // embedding the map directly as a local data: URL background
+          // instead of hard failing -- it still syncs to other players as
+          // part of the scene's own state, it just isn't saved to the
+          // asset library or served from the asset CDN.
+          finalUrl = await blobToDataUrl(currentBlob.blob);
+          toast.info(
+            'Map added to the scene locally — sign in to also save it to your asset library.',
+          );
+        }
       }
 
       if (finalUrl) {

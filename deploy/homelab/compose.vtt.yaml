@@ -1,6 +1,7 @@
 services:
   asset-server:
-    image: ghcr.io/joelmale/nexusvtt/asset-service:20260917-3754710
+    image: ghcr.io/joelmale/nexusvtt/asset-service:latest
+    pull_policy: always
     container_name: nexus-vtt2-asset-server
     hostname: nexus-vtt2-asset-server
     user: 1000:1000
@@ -31,7 +32,8 @@ services:
     restart: unless-stopped
 
   frontend:
-    image: ghcr.io/joelmale/nexusvtt/frontend:20260917-3754710
+    image: ghcr.io/joelmale/nexusvtt/frontend:latest
+    pull_policy: always
     container_name: nexus-vtt2-frontend
     hostname: nexus-vtt2-frontend
     environment:
@@ -41,7 +43,8 @@ services:
     restart: unless-stopped
 
   backend:
-    image: ghcr.io/joelmale/nexusvtt/backend:20260917-3754710
+    image: ghcr.io/joelmale/nexusvtt/backend:latest
+    pull_policy: always
     environment:
       CORS_ORIGIN: ${CORS_ORIGIN}
       NODE_ENV: production

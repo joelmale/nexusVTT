@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { useDraggablePanel } from '@/hooks/useDraggablePanel';
+import { useResizablePanel } from '@/hooks/useResizablePanel';
 import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 import MapPin from 'lucide-react/dist/esm/icons/map-pin';
 import Dices from 'lucide-react/dist/esm/icons/dices';
@@ -55,8 +57,25 @@ export const GeneratorFloatingControls: React.FC<
   forceRasterize = true,
   onForceRasterizeChange,
 }) => {
+  // Draggable + resizable like the rest of the app's floating chrome (see
+  // PlayerClusterFloating / FloatingPanel). Position and size persist to
+  // localStorage under the 'generator' panel id.
+  const { onPointerDown, isCollapsed, setCollapsed, shiftPosition, panelRef } =
+    useDraggablePanel({
+      id: 'generator',
+      defaultPosition: { x: 16, y: 16 },
+    });
   // Expanded by default per user request
-  const [isExpanded, setIsExpanded] = useState(true);
+  const isExpanded = !isCollapsed;
+  const { size, onResizeStart, edgeCursor } = useResizablePanel({
+    id: 'generator',
+    defaultSize: { width: 340, height: 560 },
+    minWidth: 280,
+    minHeight: 320,
+    maxWidth: 520,
+    maxHeight: 900,
+    onPositionChange: shiftPosition,
+  });
   const [showShortcuts, setShowShortcuts] = useState(false);
 
   const generators = [
@@ -185,23 +204,22 @@ export const GeneratorFloatingControls: React.FC<
 
   return (
     <div
+      ref={panelRef}
       style={{
         position: 'fixed',
-        top: '1rem',
-        left: '1rem',
+        top: 0,
+        left: 0,
         zIndex: 'var(--z-tool-ui)',
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'flex-start',
         gap: '0.5rem',
-        maxWidth: isExpanded ? '340px' : '64px',
-        transition: 'max-width 0.25s cubic-bezier(0.16, 1, 0.3, 1)',
       }}
     >
       {/* Minimized Trigger Button */}
       {!isExpanded && (
         <button
-          onClick={() => setIsExpanded(true)}
+          onClick={() => setCollapsed(false)}
           style={{
             background: 'var(--surface-primary, rgba(28, 30, 34, 0.9))',
             backdropFilter: 'blur(16px)',
@@ -235,21 +253,57 @@ export const GeneratorFloatingControls: React.FC<
       {isExpanded && (
         <div
           style={{
+            position: 'relative',
             background: 'rgba(20, 22, 27, 0.92)',
             backdropFilter: 'blur(20px)',
             borderRadius: '14px',
             padding: '1rem',
             border: '1px solid rgba(255, 255, 255, 0.12)',
             boxShadow: '0 12px 40px rgba(0, 0, 0, 0.65), 0 0 0 1px rgba(255, 255, 255, 0.05)',
-            width: '100%',
+            width: size.width,
+            height: size.height,
             display: 'flex',
             flexDirection: 'column',
             gap: '0.875rem',
             color: 'var(--text-primary, #fff)',
+            overflow: 'auto',
           }}
         >
-          {/* Header Row */}
+          {/* Resize handles */}
+          {(
+            [
+              'left',
+              'right',
+              'top',
+              'bottom',
+              'top-left',
+              'top-right',
+              'bottom-left',
+              'bottom-right',
+            ] as const
+          ).map((edge) => {
+            const isCorner = edge.includes('-');
+            const edgeStyle: React.CSSProperties = { position: 'absolute', zIndex: 5 };
+            if (edge === 'left' || edge === 'right') {
+              Object.assign(edgeStyle, { top: 12, bottom: 12, width: 6, [edge]: -3 });
+            } else if (edge === 'top' || edge === 'bottom') {
+              Object.assign(edgeStyle, { left: 12, right: 12, height: 6, [edge]: -3 });
+            } else if (isCorner) {
+              const [v, h] = edge.split('-') as ['top' | 'bottom', 'left' | 'right'];
+              Object.assign(edgeStyle, { width: 12, height: 12, [v]: -3, [h]: -3 });
+            }
+            return (
+              <div
+                key={edge}
+                style={{ ...edgeStyle, cursor: edgeCursor(edge) }}
+                onPointerDown={onResizeStart(edge)}
+              />
+            );
+          })}
+
+          {/* Header Row (drag handle) */}
           <div
+            onPointerDown={onPointerDown}
             style={{
               display: 'flex',
               alignItems: 'center',
@@ -257,6 +311,8 @@ export const GeneratorFloatingControls: React.FC<
               gap: '0.5rem',
               paddingBottom: '0.5rem',
               borderBottom: '1px solid rgba(255, 255, 255, 0.08)',
+              cursor: 'grab',
+              flexShrink: 0,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
@@ -273,7 +329,8 @@ export const GeneratorFloatingControls: React.FC<
             </div>
 
             <button
-              onClick={() => setIsExpanded(false)}
+              onClick={() => setCollapsed(true)}
+              onPointerDown={(e) => e.stopPropagation()}
               style={{
                 background: 'transparent',
                 border: 'none',
