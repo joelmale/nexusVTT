@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef } from 'react';
+import { Portal } from '../Portal';
 
 interface GeneratorOverlayProps {
   /** Whether the overlay is currently mounted/open. */
@@ -18,6 +19,13 @@ interface GeneratorOverlayProps {
  *
  * This is a hygiene fix, not a layout change - it is mounted unconditionally
  * by GameUI.tsx.
+ *
+ * Rendered through the shared `#portal-root` Portal (see FloatingPanel) so it
+ * shares a stacking context with the floating chrome panels. `.game-layout`
+ * is `position: fixed`, which always creates its own stacking context; an
+ * un-portaled overlay nested inside it has its z-index compared only against
+ * other `.game-layout` descendants, so it can never rise above
+ * portal-mounted panels no matter how high its z-index band is.
  */
 export const GeneratorOverlay: React.FC<GeneratorOverlayProps> = ({
   isOpen,
@@ -98,22 +106,24 @@ export const GeneratorOverlay: React.FC<GeneratorOverlayProps> = ({
   if (!isOpen) return null;
 
   return (
-    <div
-      ref={overlayRef}
-      className="generator-overlay"
-      role="dialog"
-      aria-modal="true"
-      aria-label="Map generator"
-      tabIndex={-1}
-    >
-      <button
-        className="generator-overlay-close"
-        onClick={onClose}
-        title="Close generator and return to scene"
+    <Portal>
+      <div
+        ref={overlayRef}
+        className="generator-overlay"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Map generator"
+        tabIndex={-1}
       >
-        ✕
-      </button>
-      <div className="generator-overlay-content">{children}</div>
-    </div>
+        <button
+          className="generator-overlay-close"
+          onClick={onClose}
+          title="Close generator and return to scene"
+        >
+          ✕
+        </button>
+        <div className="generator-overlay-content">{children}</div>
+      </div>
+    </Portal>
   );
 };

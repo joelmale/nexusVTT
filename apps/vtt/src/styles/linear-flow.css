@@ -1216,6 +1216,15 @@
   border-color: rgba(255, 193, 7, 0.5);
 }
 
+/* Light theme: the base `.dev-btn` rule above forces white text (readable on
+   the dark glass panel). `!important` reverses cascade-layer priority, so an
+   unlayered light-theme override (see lobby-light.css) can never beat this
+   layer(components) rule — the fix has to live in the same layer. */
+html[data-theme='light'] .dev-btn:not(.primary),
+[data-theme='light'] .dev-btn:not(.primary) {
+  color: #0f172a !important;
+}
+
 /* Desktop/Tablet optimized linear flow - Mobile responsive design removed per requirements */
 
 /* ========================================================================== OAUTH LOGIN SECTION ========================================================================== */

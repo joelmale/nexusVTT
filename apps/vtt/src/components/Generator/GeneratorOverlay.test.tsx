@@ -18,6 +18,14 @@ import { GeneratorOverlay } from './GeneratorOverlay';
  */
 
 beforeEach(() => {
+  // GeneratorOverlay renders through the shared #portal-root Portal (see
+  // FloatingPanel.test.tsx) so it shares a stacking context with the other
+  // floating chrome instead of being trapped inside .game-layout's own
+  // stacking context (position: fixed always creates one).
+  const portalRoot = document.createElement('div');
+  portalRoot.id = 'portal-root';
+  document.body.appendChild(portalRoot);
+
   // Run rAF callbacks synchronously so the focus-on-open effect resolves
   // within the same test tick (same convention as FloatingPanel.test.tsx).
   vi.stubGlobal('requestAnimationFrame', (cb: FrameRequestCallback) => {
@@ -29,6 +37,7 @@ beforeEach(() => {
 
 afterEach(() => {
   cleanup();
+  document.getElementById('portal-root')?.remove();
   vi.unstubAllGlobals();
   vi.restoreAllMocks();
 });
