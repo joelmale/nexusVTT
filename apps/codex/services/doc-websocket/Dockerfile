@@ -22,9 +22,6 @@ RUN npm run prisma:generate --workspace=nexus-codex-doc-websocket && \
 # Production stage
 FROM node:26.5.0-alpine
 
-ARG VERSION=dev
-ARG COMMIT_SHA=unknown
-
 # Install OpenSSL for Prisma
 RUN apk add --no-cache openssl
 
@@ -43,6 +40,9 @@ ENV NODE_ENV=production
 
 # Expose WebSocket port
 EXPOSE 3002
+
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
 
 LABEL org.opencontainers.image.title="Nexus Codex Document WebSocket" \
       org.opencontainers.image.source="https://github.com/joelmale/nexusVTT" \

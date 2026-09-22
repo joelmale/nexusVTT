@@ -2,22 +2,16 @@
 
 FROM node:26.5.0-alpine
 
-ARG VERSION=dev
-ARG COMMIT_SHA=unknown
-
 WORKDIR /workspace
 
 RUN apk add --no-cache dumb-init
 
-COPY package.json package-lock.json ./
+COPY package.json package-lock.json .npmrc ./
 COPY apps/vtt/services/asset-service/package.json ./apps/vtt/services/asset-service/package.json
-# A workspace-scoped install still invokes the root lifecycle in npm 11. The
-# root postinstall tooling is intentionally absent from this production image,
-# so suppress lifecycle scripts here and apply the shared runtime patch
-# explicitly after installation.
-RUN npm ci --workspace=asset-service --include-workspace-root --ignore-scripts --legacy-peer-deps
-
 COPY apps/vtt/patches ./apps/vtt/patches
+
+RUN npm ci --workspace=asset-service --include-workspace-root --legacy-peer-deps
+
 # Run from /workspace, the WORKDIR: patch-package rejects an absolute
 # --patch-dir, and it resolves packages relative to its cwd -- parseurl is
 # hoisted to /workspace/node_modules, not the service's own tree, so
@@ -51,6 +45,9 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=20s --retries=3 \
   CMD node -e "const port = process.env.PORT || 5003; require('http').get('http://127.0.0.1:' + port + '/health', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on('error', () => process.exit(1))"
 
 ENTRYPOINT ["dumb-init", "--"]
+
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
 
 LABEL org.opencontainers.image.title="Nexus VTT Asset Service" \
       org.opencontainers.image.source="https://github.com/joelmale/nexusVTT" \

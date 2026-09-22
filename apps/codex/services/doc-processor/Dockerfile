@@ -45,9 +45,6 @@ RUN npm run prisma:generate --workspace=nexus-codex-doc-processor && \
 FROM base AS runner
 WORKDIR /app
 
-ARG VERSION=dev
-ARG COMMIT_SHA=unknown
-
 ENV NODE_ENV=production
 
 # Create a non-root user
@@ -67,6 +64,9 @@ RUN chown -R worker:nodejs /app
 
 USER worker
 WORKDIR /app/apps/codex/services/doc-processor
+
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
 
 LABEL org.opencontainers.image.title="Nexus Codex Document Processor" \
       org.opencontainers.image.source="https://github.com/joelmale/nexusVTT" \

@@ -26,6 +26,7 @@ services:
       retries: 30
 
   asset-service:
+    image: ${E2E_ASSET_IMAGE:-nexus-vtt/asset-service:smoke}
     build:
       context: ../../..
       dockerfile: apps/vtt/docker/asset-service.Dockerfile
@@ -54,6 +55,7 @@ services:
       retries: 30
 
   backend:
+    image: ${E2E_BACKEND_IMAGE:-nexus-vtt/backend:smoke}
     build:
       context: ../../..
       dockerfile: apps/vtt/docker/backend.Dockerfile
@@ -98,6 +100,7 @@ services:
       retries: 60
 
   backend-peer:
+    image: ${E2E_BACKEND_IMAGE:-nexus-vtt/backend:smoke}
     build:
       context: ../../..
       dockerfile: apps/vtt/docker/backend.Dockerfile
@@ -142,6 +145,7 @@ services:
       retries: 60
 
   frontend:
+    image: ${E2E_FRONTEND_IMAGE:-nexus-vtt/frontend:smoke}
     build:
       context: ../../..
       dockerfile: apps/vtt/docker/frontend.Dockerfile

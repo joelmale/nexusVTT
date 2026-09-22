@@ -1,0 +1,146 @@
+{
+  "version": 1,
+  "targets": {
+    "assets": {
+      "description": "VTT asset service, seed assets, and asset generation",
+      "paths": [
+        "apps/vtt/services/asset-service/**",
+        "apps/vtt/public/assets/**",
+        "apps/vtt/static-assets/**",
+        "apps/vtt/docker/asset-service.Dockerfile",
+        "apps/vtt/scripts/ensure-library-assets.cjs",
+        "apps/vtt/scripts/generate-*.js",
+        "apps/vtt/scripts/optimize-*.js",
+        "apps/vtt/scripts/organize-*.js",
+        "apps/vtt/scripts/update-asset-*.js"
+      ],
+      "dependsOn": []
+    },
+    "postgres": {
+      "description": "VTT PostgreSQL image, schema, and migrations",
+      "paths": [
+        "apps/vtt/docker/postgres.Dockerfile",
+        "apps/vtt/docker/init-db.sh",
+        "apps/vtt/server/schema.sql",
+        "apps/vtt/server/migrations/**"
+      ],
+      "dependsOn": []
+    },
+    "vtt": {
+      "description": "VTT client, backend, generator hub, and validation",
+      "paths": [
+        "apps/vtt/src/**",
+        "apps/vtt/server/**",
+        "apps/vtt/shared/**",
+        "apps/vtt/tests/**",
+        "apps/vtt/apps/generator-hub/**",
+        "apps/vtt/public/**",
+        "apps/vtt/scripts/**",
+        "apps/vtt/tools/**",
+        "apps/vtt/docker/backend.Dockerfile",
+        "apps/vtt/docker/docker-compose*.yml",
+        "apps/vtt/*.json",
+        "apps/vtt/*.js",
+        "apps/vtt/*.cjs",
+        "apps/vtt/*.ts",
+        "apps/vtt/*.html",
+        "apps/vtt/.env.example",
+        "apps/vtt/.dockerignore"
+      ],
+      "dependsOn": ["assets", "postgres"]
+    },
+    "forge": {
+      "description": "Nexus Forge application",
+      "paths": ["apps/forge/**"],
+      "dependsOn": []
+    },
+    "codex-doc-api": {
+      "description": "Codex document API",
+      "paths": ["apps/codex/services/doc-api/**"],
+      "dependsOn": []
+    },
+    "codex-doc-processor": {
+      "description": "Codex document processor",
+      "paths": ["apps/codex/services/doc-processor/**"],
+      "dependsOn": []
+    },
+    "codex-doc-websocket": {
+      "description": "Codex document WebSocket service",
+      "paths": ["apps/codex/services/doc-websocket/**"],
+      "dependsOn": []
+    },
+    "codex-admin-ui": {
+      "description": "Codex administration UI",
+      "paths": ["apps/codex/services/admin-ui/**"],
+      "dependsOn": []
+    },
+    "codex-dm-ui": {
+      "description": "Codex dungeon-master UI",
+      "paths": ["apps/codex/services/dm-ui/**"],
+      "dependsOn": []
+    },
+    "docs": {
+      "description": "Unified Docusaurus documentation",
+      "paths": ["apps/docs/**"],
+      "dependsOn": []
+    },
+    "gateway": {
+      "description": "Unified nginx gateway and bundled application UIs",
+      "paths": [
+        "apps/vtt/docker/frontend.Dockerfile",
+        "apps/vtt/docker/nginx.conf",
+        "apps/vtt/docker/nginx-assets.conf",
+        "apps/vtt/docker/security-headers.conf"
+      ],
+      "dependsOn": ["assets", "vtt", "forge", "codex-admin-ui", "codex-dm-ui"]
+    }
+  },
+  "fanoutRules": [
+    {
+      "name": "root-dependencies-and-tooling",
+      "paths": [
+        "package.json",
+        "package-lock.json",
+        ".npmrc",
+        ".nvmrc",
+        ".dockerignore",
+        "Makefile",
+        ".husky/**",
+        "packages/**",
+        "scripts/**"
+      ],
+      "targets": "all"
+    },
+    {
+      "name": "ci-configuration",
+      "paths": [".github/**"],
+      "targets": "all"
+    },
+    {
+      "name": "deployment-and-monitoring",
+      "paths": ["deploy/**", "monitoring/**"],
+      "targets": "all"
+    },
+    {
+      "name": "codex-shared-configuration",
+      "paths": [
+        "apps/codex/package.json",
+        "apps/codex/docker-compose*.yml",
+        "apps/codex/scripts/**",
+        "apps/codex/run-tests.sh"
+      ],
+      "targets": [
+        "codex-doc-api",
+        "codex-doc-processor",
+        "codex-doc-websocket",
+        "codex-admin-ui",
+        "codex-dm-ui"
+      ]
+    },
+    {
+      "name": "codex-shared-database-schema",
+      "paths": ["apps/codex/services/doc-api/prisma/**"],
+      "targets": ["codex-doc-api", "codex-doc-processor", "codex-doc-websocket"]
+    }
+  ]
+}

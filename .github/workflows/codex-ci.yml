@@ -18,8 +18,64 @@ permissions:
   contents: read
 
 jobs:
-  verify-doc-api:
-    name: 'doc-api: tests (Postgres + Elasticsearch)'
+  test-inventory:
+    name: 'Codex: test inventory'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+
+      - name: Verify service test inventory
+        run: node apps/codex/scripts/check-test-inventory.mjs
+
+  verify-doc-api-unit:
+    name: 'doc-api: unit tests and build'
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: apps/codex/services/doc-api
+    env:
+      NODE_ENV: test
+      DATABASE_URL: postgresql://postgres:postgres@localhost:5433/nexus_vtt_unit
+      REDIS_URL: redis://localhost:6379
+      ELASTICSEARCH_URL: http://localhost:9201
+      ELASTICSEARCH_INDEX: codex-api-unit
+      S3_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY: test
+      S3_SECRET_KEY: test
+      S3_BUCKET: codex-api-unit
+      LOGGING_ENABLED: 'false'
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: '26.5.0'
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ github.workspace }}
+
+      - name: Build shared contracts
+        run: npm run build:contracts
+        working-directory: ${{ github.workspace }}
+
+      - name: Generate Prisma client
+        run: npm run prisma:generate
+
+      - name: Run unit tests
+        run: npm run test:unit
+
+      - name: Build
+        run: npm run build
+
+  verify-doc-api-integration:
+    name: 'doc-api: API integration tests'
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -53,9 +109,30 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 12
+      redis:
+        image: redis:7-alpine
+        ports:
+          - 6380:6379
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
     defaults:
       run:
         working-directory: apps/codex/services/doc-api
+    env:
+      NODE_ENV: test
+      REDIS_URL: redis://localhost:6380
+      ELASTICSEARCH_URL: http://localhost:9201
+      S3_ENDPOINT: http://localhost:9000
+      S3_ACCESS_KEY: test
+      S3_SECRET_KEY: test
+      S3_BUCKET: codex-api-integration
+      S3_REGION: us-east-1
+      S3_FORCE_PATH_STYLE: 'true'
+      AUTH_DISABLED: 'true'
+      LOGGING_ENABLED: 'false'
     steps:
       - uses: actions/checkout@v7
         with:
@@ -75,22 +152,50 @@ jobs:
         run: npm run build:contracts
         working-directory: ${{ github.workspace }}
 
+      - name: Configure isolated integration resources
+        id: resources
+        shell: bash
+        run: |
+          test_schema="codex_api_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
+          search_index="codex-api-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+          echo "TEST_SCHEMA=${test_schema}" >> "${GITHUB_ENV}"
+          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5433/nexus_vtt_test?schema=${test_schema}" >> "${GITHUB_ENV}"
+          echo "ELASTICSEARCH_INDEX=${search_index}" >> "${GITHUB_ENV}"
+
       - name: Generate Prisma client
         run: npm run prisma:generate
 
       - name: Initialize isolated test database
         run: npx prisma db push --skip-generate
-        env:
-          DATABASE_URL: postgresql://postgres:postgres@localhost:5433/nexus_vtt_test
 
-      - name: Run tests
-        run: npm test
+      - name: Run API integration tests
+        run: npm run test:integration -- --reporter=verbose
 
-      - name: Build
-        run: npm run build
+      - name: Clean isolated integration resources
+        if: always() && steps.resources.outcome == 'success'
+        shell: bash
+        run: |
+          if [[ -z "${TEST_SCHEMA:-}" || -z "${ELASTICSEARCH_INDEX:-}" ]]; then
+            echo "Isolated resource names were not configured; refusing broad cleanup." >&2
+            exit 1
+          fi
+
+          database_status=0
+          search_status=0
+          printf 'DROP SCHEMA IF EXISTS "%s" CASCADE;\n' "${TEST_SCHEMA}" \
+            | npx prisma db execute --stdin --url "${DATABASE_URL}" \
+            || database_status=$?
+          curl --silent --show-error --request DELETE \
+            "${ELASTICSEARCH_URL}/${ELASTICSEARCH_INDEX}" \
+            || search_status=$?
+
+          if (( database_status != 0 || search_status != 0 )); then
+            echo "Integration cleanup failed (database=${database_status}, search=${search_status})." >&2
+            exit 1
+          fi
 
   verify-services:
-    name: '${{ matrix.service }}: tests'
+    name: '${{ matrix.service }}: validation'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -99,15 +204,19 @@ jobs:
           - service: doc-processor
             prisma: true
             test: true
+            lint: false
           - service: doc-websocket
             prisma: true
             test: false
+            lint: false
           - service: admin-ui
             prisma: false
             test: false
+            lint: true
           - service: dm-ui
             prisma: false
             test: false
+            lint: true
     steps:
       - uses: actions/checkout@v7
         with:
@@ -135,6 +244,11 @@ jobs:
       - name: Run existing tests
         if: matrix.test
         run: npm test
+        working-directory: apps/codex/services/${{ matrix.service }}
+
+      - name: Run UI lint
+        if: matrix.lint
+        run: npm run lint
         working-directory: apps/codex/services/${{ matrix.service }}
 
       - name: Build

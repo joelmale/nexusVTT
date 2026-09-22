@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import { CombatStatsPanel } from './CombatStatsPanel';
 import { loadEquipment } from '../../services/dataService';
+import type { Character, Equipment } from '../../types/dnd';
 
 // Mock the data service
 vi.mock('../../services/dataService', () => ({
@@ -61,9 +62,9 @@ describe('CombatStatsPanel', () => {
       weight: 6,
       year: 2014
     }
-  ] as any;
+  ] as unknown as Equipment[];
 
-  const createMockCharacter = (overrides = {}): any => ({
+  const createMockCharacter = (overrides: Partial<Character> = {}): Character => ({
     id: 'test-char',
     name: 'Test Character',
     species: 'Human',
@@ -80,7 +81,7 @@ describe('CombatStatsPanel', () => {
       WIS: { score: 12, modifier: 1 },
       CHA: { score: 10, modifier: 0 }
     },
-    equippedArmor: null,
+    equippedArmor: undefined,
     equippedWeapons: [],
     armorClass: 10,
     proficiencyBonus: 2,
@@ -112,7 +113,7 @@ describe('CombatStatsPanel', () => {
     backgroundFeat: null,
     srdFeatures: { classFeatures: [], subclassFeatures: [] },
     ...overrides
-  });
+  } as unknown as Character);
 
   beforeEach(() => {
     vi.clearAllMocks();
@@ -302,7 +303,7 @@ describe('CombatStatsPanel', () => {
     describe('Unarmored', () => {
       it('should show base AC with DEX for unarmored characters', () => {
         const character = createMockCharacter({
-          equippedArmor: null,
+          equippedArmor: undefined,
           abilities: {
             ...createMockCharacter().abilities,
             DEX: { score: 14, modifier: 2 } // +2 DEX
@@ -324,7 +325,7 @@ describe('CombatStatsPanel', () => {
 
       it('should include shield bonus for unarmored characters', () => {
         const character = createMockCharacter({
-          equippedArmor: null,
+          equippedArmor: undefined,
           equippedWeapons: ['shield'],
           abilities: {
             ...createMockCharacter().abilities,
@@ -347,7 +348,7 @@ describe('CombatStatsPanel', () => {
 
       it('should handle zero DEX modifier', () => {
         const character = createMockCharacter({
-          equippedArmor: null,
+          equippedArmor: undefined,
           abilities: {
             ...createMockCharacter().abilities,
             DEX: { score: 10, modifier: 0 } // +0 DEX
@@ -393,7 +394,7 @@ describe('CombatStatsPanel', () => {
 
       it('should handle shield with no armor equipped', () => {
         const character = createMockCharacter({
-          equippedArmor: null,
+          equippedArmor: undefined,
           equippedWeapons: ['shield'],
           armorClass: 12
         });

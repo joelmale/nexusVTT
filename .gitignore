@@ -160,6 +160,7 @@ apps/vtt/scripts/output/
 # Test coverage
 coverage/
 nyc_output/
+.vitest-reports/
 
 # Local diagnostics and profiling output
 report.html

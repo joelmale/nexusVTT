@@ -32,7 +32,10 @@ export default defineConfig({
       provider: 'v8', // Fast native V8 coverage
       reporter: ['text', 'json', 'html', 'lcov'], // Multiple formats for different use cases
       reportsDirectory: './coverage', // Coverage reports output directory
-      all: true, // Include all source files, even untested ones
+      // Vitest 4 removed the old `coverage.all` switch. Explicit inclusion is
+      // the enforcement boundary: production files stay in the denominator
+      // even when no test imports them.
+      include: ['src/**/*.{ts,tsx}', 'server/**/*.ts'],
       exclude: [
         // Dependencies and build artifacts
         'node_modules/',

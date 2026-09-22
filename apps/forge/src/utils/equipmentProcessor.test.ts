@@ -10,7 +10,7 @@
 
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { EquipmentInventoryBuilder, processEquipment } from './equipmentProcessor';
-import type { EquippedItem } from '../types/dnd';
+import type { EquippedItem, Equipment, CharacterCreationData } from '../types/dnd';
 import * as dataService from '../services/dataService';
 
 // Mock the dataService module
@@ -93,7 +93,7 @@ describe('EquipmentInventoryBuilder', () => {
           slug: 'longsword',
           name: 'Longsword',
           weapon_category: 'Martial Melee Weapons',
-        } as any,
+        } as unknown as Equipment,
       ]);
 
       const builder = new EquipmentInventoryBuilder();
@@ -118,7 +118,7 @@ describe('EquipmentInventoryBuilder', () => {
           name: 'Chain Mail',
           armor_category: 'Heavy',
           armor_class: { base: 16 },
-        } as any,
+        } as unknown as Equipment,
       ]);
 
       const builder = new EquipmentInventoryBuilder();
@@ -156,8 +156,8 @@ describe('EquipmentInventoryBuilder', () => {
   describe('addFromChoices', () => {
     it('should add items from selected equipment choices', () => {
       vi.mocked(dataService.loadEquipment).mockReturnValue([
-        { slug: 'longsword', name: 'Longsword' } as any,
-        { slug: 'shortbow', name: 'Shortbow' } as any,
+        { slug: 'longsword', name: 'Longsword' } as unknown as Equipment,
+        { slug: 'shortbow', name: 'Shortbow' } as unknown as Equipment,
       ]);
 
       const builder = new EquipmentInventoryBuilder();
@@ -196,8 +196,8 @@ describe('EquipmentInventoryBuilder', () => {
 
     it('should handle multiple items in a selected bundle', () => {
       vi.mocked(dataService.loadEquipment).mockReturnValue([
-        { slug: 'shortsword', name: 'Shortsword' } as any,
-        { slug: 'dagger', name: 'Dagger' } as any,
+        { slug: 'shortsword', name: 'Shortsword' } as unknown as Equipment,
+        { slug: 'dagger', name: 'Dagger' } as unknown as Equipment,
       ]);
 
       const builder = new EquipmentInventoryBuilder();
@@ -241,7 +241,7 @@ describe('EquipmentInventoryBuilder', () => {
 
     it('should match equipment by normalized slug or name', () => {
       vi.mocked(dataService.loadEquipment).mockReturnValue([
-        { slug: 'chain-mail', name: 'Chain Mail' } as any,
+        { slug: 'chain-mail', name: 'Chain Mail' } as unknown as Equipment,
       ]);
 
       const builder = new EquipmentInventoryBuilder();
@@ -331,8 +331,8 @@ describe('EquipmentInventoryBuilder', () => {
 
     it('should return complete result with all tracked items', () => {
       vi.mocked(dataService.loadEquipment).mockReturnValue([
-        { slug: 'longsword', name: 'Longsword', weapon_category: 'Martial' } as any,
-        { slug: 'chain-mail', name: 'Chain Mail', armor_category: 'Heavy' } as any,
+        { slug: 'longsword', name: 'Longsword', weapon_category: 'Martial' } as unknown as Equipment,
+        { slug: 'chain-mail', name: 'Chain Mail', armor_category: 'Heavy' } as unknown as Equipment,
       ]);
 
       const builder = new EquipmentInventoryBuilder();
@@ -357,7 +357,7 @@ describe('EquipmentInventoryBuilder', () => {
   describe('method chaining', () => {
     it('should allow chaining all methods', () => {
       vi.mocked(dataService.loadEquipment).mockReturnValue([
-        { slug: 'longsword', name: 'Longsword', weapon_category: 'Martial' } as any,
+        { slug: 'longsword', name: 'Longsword', weapon_category: 'Martial' } as unknown as Equipment,
       ]);
 
       const pkg = {
@@ -392,7 +392,7 @@ describe('EquipmentInventoryBuilder', () => {
     it('should cache equipment lookups to avoid repeated calls', () => {
       const mockLoadEquipment = vi.mocked(dataService.loadEquipment);
       mockLoadEquipment.mockReturnValue([
-        { slug: 'longsword', name: 'Longsword', weapon_category: 'Martial' } as any,
+        { slug: 'longsword', name: 'Longsword', weapon_category: 'Martial' } as unknown as Equipment,
       ]);
 
       const builder = new EquipmentInventoryBuilder();
@@ -430,7 +430,7 @@ describe('processEquipment', () => {
 
   it('should process complete equipment for character creation', () => {
     vi.mocked(dataService.loadEquipment).mockReturnValue([
-      { slug: 'longsword', name: 'Longsword', weapon_category: 'Martial' } as any,
+      { slug: 'longsword', name: 'Longsword', weapon_category: 'Martial' } as unknown as Equipment,
     ]);
 
     const data = {
@@ -443,7 +443,7 @@ describe('processEquipment', () => {
       startingInventory: [
         { equipmentSlug: 'torch', quantity: 5, equipped: false },
       ],
-    } as any;
+    } as unknown as CharacterCreationData;
 
     const result = processEquipment(data, 1);
 
@@ -454,7 +454,7 @@ describe('processEquipment', () => {
     const data = {
       equipmentChoices: [],
       startingInventory: undefined,
-    } as any;
+    } as unknown as CharacterCreationData;
 
     const result = processEquipment(data, 999);
 
@@ -464,8 +464,8 @@ describe('processEquipment', () => {
 
   it('should integrate all equipment sources', () => {
     vi.mocked(dataService.loadEquipment).mockReturnValue([
-      { slug: 'longsword', name: 'Longsword', weapon_category: 'Martial' } as any,
-      { slug: 'chain-mail', name: 'Chain Mail', armor_category: 'Heavy' } as any,
+      { slug: 'longsword', name: 'Longsword', weapon_category: 'Martial' } as unknown as Equipment,
+      { slug: 'chain-mail', name: 'Chain Mail', armor_category: 'Heavy' } as unknown as Equipment,
     ]);
 
     const data = {
@@ -478,7 +478,7 @@ describe('processEquipment', () => {
       startingInventory: [
         { equipmentSlug: 'torch', quantity: 5, equipped: false },
       ],
-    } as any;
+    } as unknown as CharacterCreationData;
 
     const result = processEquipment(data, 1);
 

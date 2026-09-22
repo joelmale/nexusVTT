@@ -1,0 +1,20 @@
+{
+  "schemaVersion": 1,
+  "services": {
+    "admin-ui": {
+      "testPolicy": "none"
+    },
+    "dm-ui": {
+      "testPolicy": "none"
+    },
+    "doc-api": {
+      "testPolicy": "unit-and-integration"
+    },
+    "doc-processor": {
+      "testPolicy": "unit"
+    },
+    "doc-websocket": {
+      "testPolicy": "none"
+    }
+  }
+}

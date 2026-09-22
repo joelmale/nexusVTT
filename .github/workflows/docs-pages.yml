@@ -1,20 +1,13 @@
 name: Deploy documentation to GitHub Pages
 
 on:
-  push:
-    branches:
-      - main
-    paths:
-      - '.github/workflows/docs-pages.yml'
-      - 'apps/docs/**'
-      - 'package.json'
-      - 'package-lock.json'
+  # Automatic main deployment is performed in ci.yml from the exact artifact
+  # that passed the validation gate. This manual fallback intentionally keeps
+  # its own build for operational recovery only.
   workflow_dispatch:
 
 permissions:
   contents: read
-  pages: write
-  id-token: write
 
 concurrency:
   group: github-pages
@@ -55,6 +48,10 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
     environment:
       name: github-pages
       url: ${{ steps.deployment.outputs.page_url }}

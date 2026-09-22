@@ -1,0 +1,207 @@
+name: Reusable security validation
+
+on:
+  workflow_call:
+    inputs:
+      source_sha:
+        description: Exact 40-character source SHA to scan
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  verify-source:
+    name: Verify security source
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Validate source SHA syntax
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+            echo 'source_sha must be a full lowercase 40-character Git SHA' >&2
+            exit 1
+          }
+
+  codeql:
+    name: CodeQL Analysis
+    needs: verify-source
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha }}
+
+      - name: Initialize CodeQL security-extended suite
+        uses: github/codeql-action/init@v4
+        with:
+          languages: javascript-typescript
+          build-mode: none
+          config-file: ./.github/codeql-config.yml
+
+      - name: Perform CodeQL analysis
+        uses: github/codeql-action/analyze@v4
+        with:
+          category: '/language:javascript-typescript'
+
+  filesystem-scan:
+    name: Trivy Filesystem Scan
+    needs: verify-source
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha }}
+
+      - name: Produce complete filesystem SARIF
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: sarif
+          output: trivy-fs.sarif
+          severity: CRITICAL,HIGH,MEDIUM
+          skip-dirs: apps/vtt/public,node_modules/.cache
+          exit-code: '0'
+
+      - name: Upload filesystem SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: always() && hashFiles('trivy-fs.sarif') != ''
+        with:
+          sarif_file: trivy-fs.sarif
+          category: trivy-fs-scan
+
+      - name: Block high and critical filesystem vulnerabilities
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: table
+          severity: CRITICAL,HIGH
+          skip-dirs: apps/vtt/public,node_modules/.cache
+          ignore-unfixed: false
+          exit-code: '1'
+
+      - name: Generate filesystem CycloneDX SBOM
+        if: github.event_name != 'pull_request'
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          format: cyclonedx
+          output: sbom-filesystem.cdx.json
+          skip-dirs: apps/vtt/public,node_modules/.cache
+
+      - name: Upload filesystem SBOM
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: sbom-filesystem-${{ inputs.source_sha }}
+          path: sbom-filesystem.cdx.json
+          if-no-files-found: error
+          retention-days: 90
+
+  container-scan:
+    name: 'Container scan: ${{ matrix.image }}'
+    needs: verify-source
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      security-events: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - image: frontend
+            target: production
+          - image: backend
+            target: ''
+    steps:
+      - name: Checkout exact source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Build one scanner image
+        uses: docker/build-push-action@v7
+        with:
+          context: .
+          file: ./apps/vtt/docker/${{ matrix.image }}.Dockerfile
+          target: ${{ matrix.target }}
+          push: false
+          load: true
+          tags: nexus-vtt/${{ matrix.image }}:scan-${{ inputs.source_sha }}
+          cache-from: type=gha,scope=security-${{ matrix.image }}
+          cache-to: type=gha,mode=max,scope=security-${{ matrix.image }}
+          build-args: |
+            VERSION=security-${{ inputs.source_sha }}
+            COMMIT_SHA=${{ inputs.source_sha }}
+
+      - name: Produce container SARIF
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: nexus-vtt/${{ matrix.image }}:scan-${{ inputs.source_sha }}
+          format: sarif
+          output: trivy-${{ matrix.image }}.sarif
+          severity: CRITICAL,HIGH
+          exit-code: '0'
+
+      - name: Upload container SARIF
+        uses: github/codeql-action/upload-sarif@v4
+        if: ${{ always() && hashFiles(format('trivy-{0}.sarif', matrix.image)) != '' }}
+        with:
+          sarif_file: trivy-${{ matrix.image }}.sarif
+          category: trivy-container-${{ matrix.image }}
+
+      - name: Enforce Trivy high and critical policy
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: nexus-vtt/${{ matrix.image }}:scan-${{ inputs.source_sha }}
+          format: table
+          severity: CRITICAL,HIGH
+          ignore-unfixed: false
+          exit-code: '1'
+
+      - name: Enforce Grype high and critical policy
+        uses: anchore/scan-action@v7
+        with:
+          image: nexus-vtt/${{ matrix.image }}:scan-${{ inputs.source_sha }}
+          fail-build: true
+          severity-cutoff: high
+
+      - name: Generate container CycloneDX SBOM from the scanned image
+        if: github.event_name != 'pull_request'
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          scan-type: image
+          image-ref: nexus-vtt/${{ matrix.image }}:scan-${{ inputs.source_sha }}
+          format: cyclonedx
+          output: sbom-${{ matrix.image }}.cdx.json
+
+      - name: Upload container SBOM
+        if: github.event_name != 'pull_request'
+        uses: actions/upload-artifact@v7
+        with:
+          name: sbom-${{ matrix.image }}-${{ inputs.source_sha }}
+          path: sbom-${{ matrix.image }}.cdx.json
+          if-no-files-found: error
+          retention-days: 90

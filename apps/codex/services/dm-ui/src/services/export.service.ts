@@ -234,8 +234,17 @@ export class ExportService {
     const codexLinks = generateNewIds(data.codexLinks);
 
     // Update foreign key references
-    const updateReferences = (item: Record<string, unknown>) => {
-      const updated = { ...item };
+    interface ReferenceFields {
+      plotThreadId?: string;
+      sessionId?: string;
+      parentThreadId?: string;
+      parentWorldId?: string;
+      journalId?: string;
+      entityId?: string;
+    }
+
+    const updateReferences = <T extends object>(item: T): T => {
+      const updated = { ...item } as T & ReferenceFields;
 
       // Update common references
       if (typeof updated.plotThreadId === 'string' && idMap.has(updated.plotThreadId)) {
@@ -263,17 +272,17 @@ export class ExportService {
     return {
       ...data,
       campaign: { ...data.campaign, id: newCampaignId },
-      worlds: worlds.map(item => updateReferences(item as any) as unknown as World),
-      sessions: sessions.map(item => updateReferences(item as any) as unknown as Session),
-      plotThreads: plotThreads.map(item => updateReferences(item as any) as unknown as PlotThread),
-      clues: clues.map(item => updateReferences(item as any) as unknown as Clue),
-      npcs: npcs.map(item => updateReferences(item as any) as unknown as NPC),
-      encounters: encounters.map(item => updateReferences(item as any) as unknown as Encounter),
-      notes: notes.map(item => updateReferences(item as any) as unknown as Note),
-      journals: journals.map(item => updateReferences(item as any) as unknown as Journal),
-      journalEntries: journalEntries.map(item => updateReferences(item as any) as unknown as JournalEntry),
-      loreEntries: loreEntries.map(item => updateReferences(item as any) as unknown as LoreEntry),
-      codexLinks: codexLinks.map(item => updateReferences(item as any) as unknown as CodexLink)
+      worlds: worlds.map(updateReferences),
+      sessions: sessions.map(updateReferences),
+      plotThreads: plotThreads.map(updateReferences),
+      clues: clues.map(updateReferences),
+      npcs: npcs.map(updateReferences),
+      encounters: encounters.map(updateReferences),
+      notes: notes.map(updateReferences),
+      journals: journals.map(updateReferences),
+      journalEntries: journalEntries.map(updateReferences),
+      loreEntries: loreEntries.map(updateReferences),
+      codexLinks: codexLinks.map(updateReferences)
     };
   }
 

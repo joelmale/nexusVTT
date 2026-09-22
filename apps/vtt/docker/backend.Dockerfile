@@ -2,9 +2,6 @@
 
 FROM node:26.5.0-alpine
 
-ARG VERSION=dev
-ARG COMMIT_SHA=unknown
-
 # Set working directory
 WORKDIR /workspace
 
@@ -14,9 +11,16 @@ RUN apk add --no-cache dumb-init curl netcat-openbsd postgresql-client && \
     adduser -S nodejs -u 1001 && \
     chown nodejs:nodejs /workspace
 
-COPY --chown=nodejs:nodejs package.json package-lock.json ./
-COPY --chown=nodejs:nodejs apps/vtt ./apps/vtt
-COPY --chown=nodejs:nodejs packages ./packages
+# Keep dependency installation independent from application source changes.
+COPY --chown=nodejs:nodejs package.json package-lock.json .npmrc ./
+COPY --chown=nodejs:nodejs apps/vtt/package.json ./apps/vtt/package.json
+COPY --chown=nodejs:nodejs apps/vtt/apps/generator-hub/package.json ./apps/vtt/apps/generator-hub/package.json
+COPY --chown=nodejs:nodejs apps/vtt/services/asset-service/package.json ./apps/vtt/services/asset-service/package.json
+COPY --chown=nodejs:nodejs packages/character-contracts/package.json ./packages/character-contracts/package.json
+
+# The VTT postinstall applies patches and synchronizes the packaged dice assets.
+COPY --chown=nodejs:nodejs apps/vtt/patches ./apps/vtt/patches
+COPY --chown=nodejs:nodejs apps/vtt/scripts/apply-patches.js apps/vtt/scripts/sync-dice-assets.js ./apps/vtt/scripts/
 
 USER nodejs
 WORKDIR /workspace
@@ -26,6 +30,9 @@ RUN npm ci \
     --workspace=@nexus/character-contracts \
     --include-workspace-root \
     --legacy-peer-deps
+
+COPY --chown=nodejs:nodejs apps/vtt ./apps/vtt
+COPY --chown=nodejs:nodejs packages ./packages
 
 RUN npm run build --workspace=@nexus/character-contracts && \
     npm run build:server --workspace=nexus-vtt
@@ -45,6 +52,9 @@ HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
 
 # Use dumb-init to handle signals properly
 ENTRYPOINT ["dumb-init", "--"]
+
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
 
 LABEL org.opencontainers.image.title="Nexus VTT Backend" \
       org.opencontainers.image.source="https://github.com/joelmale/nexusVTT" \

@@ -95,11 +95,15 @@ async function main() {
 
   try {
     composeAttempted = true;
+    const buildFlag =
+      process.env.E2E_NO_BUILD === '1' || process.env.E2E_PREBUILT === '1'
+        ? '--no-build'
+        : '--build';
     exitCode = await runCommand(
       'docker',
       composeArgs(
         'up',
-        '--build',
+        buildFlag,
         '--detach',
         '--wait',
         '--wait-timeout',

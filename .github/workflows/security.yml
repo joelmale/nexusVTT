@@ -1,204 +1,85 @@
-name: Security Scan
+name: Release security wrapper
 
 on:
-  push:
-    branches: [main]
-  # Pull requests run CodeQL and both Trivy scans. The container scan has to run
-  # here even though it costs two image builds: it uploads SARIF under the
-  # trivy-container-backend and trivy-container-frontend categories, and code
-  # scanning fails a PR whose configurations do not match the base branch's
-  # ("2 configurations not found"). Only the SBOM job is skipped below, which
-  # uploads artifacts rather than SARIF and so declares no category.
-  pull_request:
-    branches: [main]
   release:
     types: [published]
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Exact 40-character source SHA to scan
+        required: true
+        type: string
+
+permissions:
+  contents: read
 
 jobs:
-  codeql:
-    name: CodeQL Analysis
+  resolve-source:
+    name: Resolve release source
     runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      sha: ${{ steps.source.outputs.sha }}
+    steps:
+      - name: Validate manual source syntax
+        if: github.event_name == 'workflow_dispatch'
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+            echo 'source_sha must be a full lowercase 40-character Git SHA' >&2
+            exit 1
+          }
+
+      - name: Checkout release source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.source_sha }}
+
+      - name: Record exact source
+        id: source
+        shell: bash
+        env:
+          REQUESTED_SHA: ${{ inputs.source_sha }}
+        run: |
+          source_sha=$(git rev-parse HEAD)
+          if [[ -n "$REQUESTED_SHA" && "$source_sha" != "$REQUESTED_SHA" ]]; then
+            echo 'checked-out source does not match source_sha' >&2
+            exit 1
+          fi
+          echo "sha=$source_sha" >> "$GITHUB_OUTPUT"
+
+  security:
+    name: Security validation
+    needs: resolve-source
     permissions:
       actions: read
       contents: read
       security-events: write
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7
+    uses: ./.github/workflows/security-reusable.yml
+    with:
+      source_sha: ${{ needs.resolve-source.outputs.sha }}
 
-      - name: Initialize CodeQL
-        uses: github/codeql-action/init@v4
-        with:
-          languages: javascript-typescript
-          build-mode: none
-          config-file: ./.github/codeql-config.yml
-
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v4
-        with:
-          category: '/language:javascript-typescript'
-
-  filesystem-scan:
-    name: Trivy Filesystem Scan
+  attach-release-sboms:
+    name: Attach release SBOMs
+    if: github.event_name == 'release'
+    needs: [resolve-source, security]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     permissions:
-      contents: read
-      security-events: write
+      actions: read
+      contents: write
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Run Trivy filesystem scanner
-        uses: aquasecurity/trivy-action@v0.36.0
+      - name: Download exact-run SBOM artifacts
+        uses: actions/download-artifact@v8
         with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'sarif'
-          output: 'trivy-fs.sarif'
-          severity: 'CRITICAL,HIGH,MEDIUM'
-          skip-dirs: 'apps/vtt/public,node_modules/.cache'
+          pattern: sbom-*-${{ needs.resolve-source.outputs.sha }}
+          path: sboms
+          merge-multiple: true
 
-      - name: Upload Trivy filesystem results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
-        if: always() && hashFiles('trivy-fs.sarif') != ''
-        with:
-          sarif_file: 'trivy-fs.sarif'
-          category: 'trivy-fs-scan'
-
-  container-scan:
-    name: Container Security Scan
-    runs-on: ubuntu-latest
-    permissions:
-      contents: read
-      security-events: write
-    strategy:
-      fail-fast: false
-      matrix:
-        image: [frontend, backend]
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Build Docker image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ./apps/vtt/docker/${{ matrix.image }}.Dockerfile
-          push: false
-          load: true
-          tags: nexus-vtt/${{ matrix.image }}:scan
-
-      - name: Run Trivy vulnerability scanner
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: nexus-vtt/${{ matrix.image }}:scan
-          format: 'sarif'
-          output: 'trivy-${{ matrix.image }}.sarif'
-          severity: 'CRITICAL,HIGH'
-
-      - name: Upload Trivy results to GitHub Security
-        uses: github/codeql-action/upload-sarif@v4
-        if: ${{ always() && hashFiles(format('trivy-{0}.sarif', matrix.image)) != '' }}
-        with:
-          sarif_file: 'trivy-${{ matrix.image }}.sarif'
-          category: 'trivy-container-${{ matrix.image }}'
-
-      - name: Run Grype vulnerability scanner
-        uses: anchore/scan-action@v7
-        with:
-          image: nexus-vtt/${{ matrix.image }}:scan
-          fail-build: false
-          severity-cutoff: high
-
-  sbom:
-    name: Generate CycloneDX SBOMs
-    if: github.event_name != 'pull_request'
-    runs-on: ubuntu-latest
-    # SBOMs are generated on every main push and on releases.
-    # To consume them for vulnerability tracking, upload to Dependency-Track
-    # (https://dependencytrack.org) — it ingests CycloneDX JSON natively and
-    # shows a dashboard of CVEs over time per project component.
-    permissions:
-      contents: write   # needed to attach SBOMs to GitHub releases
-      packages: read
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-
-      # ── Filesystem SBOM (npm dependencies) ──────────────────────────────
-      - name: Generate filesystem SBOM (CycloneDX)
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: 'fs'
-          scan-ref: '.'
-          format: 'cyclonedx'
-          output: 'sbom-filesystem.cdx.json'
-          skip-dirs: 'apps/vtt/public,node_modules/.cache'
-
-      - name: Upload filesystem SBOM as artifact
-        uses: actions/upload-artifact@v7
-        with:
-          name: sbom-filesystem-${{ github.sha }}
-          path: sbom-filesystem.cdx.json
-          retention-days: 90
-
-      # ── Container SBOMs (OS packages + app deps inside each image) ───────
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Build frontend image for SBOM
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ./apps/vtt/docker/frontend.Dockerfile
-          target: production
-          push: false
-          load: true
-          tags: nexus-vtt/frontend:sbom
-
-      - name: Build backend image for SBOM
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ./apps/vtt/docker/backend.Dockerfile
-          push: false
-          load: true
-          tags: nexus-vtt/backend:sbom
-
-      - name: Generate frontend container SBOM (CycloneDX)
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: 'image'
-          image-ref: 'nexus-vtt/frontend:sbom'
-          format: 'cyclonedx'
-          output: 'sbom-frontend.cdx.json'
-
-      - name: Generate backend container SBOM (CycloneDX)
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          scan-type: 'image'
-          image-ref: 'nexus-vtt/backend:sbom'
-          format: 'cyclonedx'
-          output: 'sbom-backend.cdx.json'
-
-      - name: Upload container SBOMs as artifacts
-        uses: actions/upload-artifact@v7
-        with:
-          name: sbom-containers-${{ github.sha }}
-          path: |
-            sbom-frontend.cdx.json
-            sbom-backend.cdx.json
-          retention-days: 90
-
-      # ── Attach SBOMs to GitHub release (versioned audit trail) ───────────
-      - name: Attach SBOMs to release
-        if: github.event_name == 'release'
+      - name: Attach SBOMs to the published release
         uses: softprops/action-gh-release@v3
         with:
-          files: |
-            sbom-filesystem.cdx.json
-            sbom-frontend.cdx.json
-            sbom-backend.cdx.json
+          files: sboms/*.cdx.json
+          fail_on_unmatched_files: true

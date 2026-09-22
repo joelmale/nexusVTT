@@ -26,7 +26,10 @@ interface UploadFile {
 interface BulkUploadResult {
   batchId: string;
   results: Array<{
-    document?: any;
+    document?: {
+      id: string;
+      title: string;
+    };
     uploadUrl?: string;
     error?: string;
     fileName?: string;
@@ -160,7 +163,8 @@ export default function BulkUpload() {
       let uploaded = 0;
       for (const item of result.results) {
         if (item.uploadUrl && item.document) {
-          const fileData = files.find(f => f.title === item.document.title);
+          const document = item.document;
+          const fileData = files.find(f => f.title === document.title);
           if (fileData) {
             try {
               await fetch(item.uploadUrl, {
@@ -170,7 +174,7 @@ export default function BulkUpload() {
                   'Content-Type': fileData.file.type || 'application/octet-stream',
                 },
               });
-              await fetch(`/api/documents/${item.document.id}/process`, {
+              await fetch(`/api/documents/${document.id}/process`, {
                 method: 'POST',
               });
             } catch (error) {

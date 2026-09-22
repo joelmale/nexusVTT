@@ -55,7 +55,7 @@ describe('StepSpells', () => {
   const noop = () => {};
 
   beforeEach(() => {
-    vi.mocked(loadSpells).mockReturnValue(mockSpells as any);
+    vi.mocked(loadSpells).mockReturnValue(mockSpells as unknown as ReturnType<typeof loadSpells>);
   });
 
   it('only shows spells up to the highest castable level', () => {

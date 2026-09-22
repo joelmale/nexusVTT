@@ -29,7 +29,7 @@ interface ServiceHealth {
   status: 'healthy' | 'unhealthy' | 'unknown';
   responseTime?: number;
   lastChecked: string;
-  details?: Record<string, any>;
+  details?: Record<string, unknown>;
   error?: string;
 }
 

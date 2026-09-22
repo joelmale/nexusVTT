@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
@@ -110,7 +110,33 @@ export default function DataQuality() {
   const [searchResult, setSearchResult] = useState<SearchCheckResult | null>(null)
   const [searchLoading, setSearchLoading] = useState(false)
 
-  const runValidation = async () => {
+  const loadProcessingSummary = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/processing/summary`)
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.details || data.error || 'Failed to load processing summary')
+      }
+      setProcessingSummary(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    }
+  }, [])
+
+  const loadProcessingIssues = useCallback(async () => {
+    try {
+      const response = await fetch(`${API_BASE_URL}/api/admin/processing/issues`)
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.details || data.error || 'Failed to load processing issues')
+      }
+      setProcessingIssues(data)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred')
+    }
+  }, [])
+
+  const runValidation = useCallback(async () => {
     setLoading(true)
     setError(null)
 
@@ -129,39 +155,11 @@ export default function DataQuality() {
     } finally {
       setLoading(false)
     }
-  }
-
-  const loadProcessingSummary = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/processing/summary`)
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.details || data.error || 'Failed to load processing summary')
-      }
-      setProcessingSummary(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
-    }
-  }
-
-  const loadProcessingIssues = async () => {
-    try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/processing/issues`)
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.details || data.error || 'Failed to load processing issues')
-      }
-      setProcessingIssues(data)
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'An error occurred')
-    }
-  }
+  }, [loadProcessingIssues, loadProcessingSummary])
 
   useEffect(() => {
-    runValidation()
-    loadProcessingSummary()
-    loadProcessingIssues()
-  }, [])
+    void runValidation()
+  }, [runValidation])
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString()

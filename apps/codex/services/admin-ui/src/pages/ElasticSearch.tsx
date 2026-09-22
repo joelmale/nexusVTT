@@ -45,6 +45,11 @@ interface ReindexResult {
   errors: string[];
 }
 
+interface TypeBucket {
+  key: string;
+  doc_count: number;
+}
+
 const API_BASE_URL = '';
 
 export default function ElasticSearch() {
@@ -268,7 +273,7 @@ export default function ElasticSearch() {
                 <div>
                   <h4 className="font-medium mb-2">By Type</h4>
                   <div className="space-y-1">
-                    {statsData.aggregations.types.buckets.map((bucket: any) => (
+                    {statsData.aggregations.types.buckets.map((bucket: TypeBucket) => (
                       <div key={bucket.key} className="flex justify-between">
                         <span className="capitalize">{bucket.key}</span>
                         <Badge variant="secondary">{bucket.doc_count}</Badge>

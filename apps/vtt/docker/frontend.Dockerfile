@@ -27,13 +27,16 @@ FROM node:26.5.0-alpine AS vtt-builder
 
 WORKDIR /workspace
 
-ARG VERSION=dev
-ARG COMMIT_SHA=unknown
-ARG VITE_DELTA_SYNC=false
-
-COPY package.json package-lock.json ./
-COPY apps/vtt ./apps/vtt
-COPY packages ./packages
+# Keep dependency installation independent from application source changes.
+COPY package.json package-lock.json .npmrc ./
+COPY apps/vtt/package.json ./apps/vtt/package.json
+COPY apps/vtt/apps/generator-hub/package.json ./apps/vtt/apps/generator-hub/package.json
+COPY packages/character-contracts/package.json ./packages/character-contracts/package.json
+COPY packages/character-creator/package.json ./packages/character-creator/package.json
+COPY packages/character-creator/scripts ./packages/character-creator/scripts
+COPY packages/document-contracts/package.json ./packages/document-contracts/package.json
+COPY apps/vtt/patches ./apps/vtt/patches
+COPY apps/vtt/scripts/apply-patches.js apps/vtt/scripts/sync-dice-assets.js ./apps/vtt/scripts/
 
 RUN npm ci \
     --workspace=nexus-vtt \
@@ -42,6 +45,12 @@ RUN npm ci \
     --workspace=@nexus/character-creator \
     --include-workspace-root \
     --legacy-peer-deps
+
+COPY apps/vtt ./apps/vtt
+COPY packages ./packages
+
+ARG COMMIT_SHA=unknown
+ARG VITE_DELTA_SYNC=false
 
 # Short commit SHA → lobby build badge matches the GitHub commit.
 ENV VITE_BUILD_VERSION=$COMMIT_SHA
@@ -58,12 +67,12 @@ FROM node:26.5.0-alpine AS forge-builder
 
 WORKDIR /workspace
 
-ARG VERSION=dev
-ARG COMMIT_SHA=unknown
-
 COPY package.json package-lock.json ./
-COPY apps/forge ./apps/forge
-COPY packages ./packages
+COPY apps/forge/package.json ./apps/forge/package.json
+COPY packages/character-contracts/package.json ./packages/character-contracts/package.json
+COPY packages/character-creator/package.json ./packages/character-creator/package.json
+COPY packages/character-creator/scripts ./packages/character-creator/scripts
+COPY packages/document-contracts/package.json ./packages/document-contracts/package.json
 
 RUN npm ci \
     --workspace=nexus-forge \
@@ -71,6 +80,9 @@ RUN npm ci \
     --workspace=@nexus/character-creator \
     --include-workspace-root \
     --legacy-peer-deps
+
+COPY apps/forge ./apps/forge
+COPY packages ./packages
 
 RUN npm run build --workspace=@nexus/character-contracts && \
     npm run build --workspace=@nexus/character-creator && \
@@ -82,16 +94,15 @@ FROM node:26.5.0-alpine AS codex-dm-builder
 
 WORKDIR /workspace
 
-ARG VERSION=dev
-ARG COMMIT_SHA=unknown
-
 COPY package.json package-lock.json ./
-COPY apps/codex/services/dm-ui ./apps/codex/services/dm-ui
+COPY apps/codex/services/dm-ui/package.json ./apps/codex/services/dm-ui/package.json
 
 RUN npm ci \
     --workspace=@nexuscodex/dm-ui \
     --include-workspace-root \
     --legacy-peer-deps
+
+COPY apps/codex/services/dm-ui ./apps/codex/services/dm-ui
 
 RUN npm run build --workspace=@nexuscodex/dm-ui
 
@@ -101,25 +112,21 @@ FROM node:26.5.0-alpine AS codex-admin-builder
 
 WORKDIR /workspace
 
-ARG VERSION=dev
-ARG COMMIT_SHA=unknown
-
 COPY package.json package-lock.json ./
-COPY apps/codex/services/admin-ui ./apps/codex/services/admin-ui
+COPY apps/codex/services/admin-ui/package.json ./apps/codex/services/admin-ui/package.json
 
 RUN npm ci \
     --workspace=admin-ui \
     --include-workspace-root \
     --legacy-peer-deps
 
+COPY apps/codex/services/admin-ui ./apps/codex/services/admin-ui
+
 RUN npm run build --workspace=admin-ui
 
 
 # Stage 6: Unified Production Gateway
 FROM nginx:alpine AS production
-
-ARG VERSION=dev
-ARG COMMIT_SHA=unknown
 
 COPY apps/vtt/docker/nginx.conf /etc/nginx/nginx.conf
 COPY apps/vtt/docker/security-headers.conf /etc/nginx/security-headers.conf
@@ -130,6 +137,9 @@ COPY --from=vtt-builder /workspace/apps/vtt/apps/generator-hub/dist /usr/share/n
 COPY --from=forge-builder /workspace/apps/forge/dist /usr/share/nginx/html/forge
 COPY --from=codex-dm-builder /workspace/apps/codex/services/dm-ui/dist /usr/share/nginx/html/codex-dm
 COPY --from=codex-admin-builder /workspace/apps/codex/services/admin-ui/dist /usr/share/nginx/html/codex-admin
+
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
 
 LABEL org.opencontainers.image.title="Nexus Unified Frontend" \
       org.opencontainers.image.source="https://github.com/joelmale/nexusVTT" \

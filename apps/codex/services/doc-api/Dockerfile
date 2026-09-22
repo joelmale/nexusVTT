@@ -36,9 +36,6 @@ RUN npm run build --workspace=@nexus/document-contracts && \
 FROM base AS runner
 WORKDIR /app
 
-ARG VERSION=dev
-ARG COMMIT_SHA=unknown
-
 ENV NODE_ENV=production
 
 # Create a non-root user
@@ -60,6 +57,9 @@ USER fastify
 WORKDIR /app/apps/codex/services/doc-api
 
 EXPOSE 3000
+
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
 
 LABEL org.opencontainers.image.title="Nexus Codex Document API" \
       org.opencontainers.image.source="https://github.com/joelmale/nexusVTT" \

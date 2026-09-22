@@ -10,7 +10,7 @@ export interface Campaign {
   description?: string;
   gameSystem: string; // dnd5e, pathfinder2e, etc.
   currentDate?: string; // In-game date
-  settings: Record<string, any>;
+  settings: Record<string, unknown>;
   status: 'planning' | 'active' | 'completed' | 'archived';
   createdAt: number;
   updatedAt: number;
@@ -33,7 +33,7 @@ export interface World {
   factions?: string[]; // Faction names or IDs
   points_of_interest?: string[]; // POI names or descriptions
   notes?: string; // Additional notes
-  properties: Record<string, any>;
+  properties: Record<string, unknown>;
   createdAt: number;
   updatedAt: number;
 }
@@ -106,9 +106,9 @@ export interface NPC {
   location?: string;
   homeWorldId?: string; // Reference to World for home location
   faction?: string;
-  relationships: Record<string, any>; // { npcId/characterName: relationship }
+  relationships: Record<string, unknown>; // { npcId/characterName: relationship }
   statBlockDocumentId?: string; // Link to codex document
-  customStats?: Record<string, any>;
+  customStats?: Record<string, unknown>;
   portraitUrl?: string; // Base64 or blob URL
   createdAt: number;
   updatedAt: number;
@@ -123,14 +123,14 @@ export interface Encounter {
   description: string; // Markdown
   location?: string;
   worldId?: string; // Reference to World for location
-  triggers: Record<string, any>;
-  rewards: Record<string, any>;
+  triggers: Record<string, unknown>;
+  rewards: Record<string, unknown>;
   notes?: string; // Markdown
   monsters: Array<{
     documentId?: string; // Link to codex monster
     name: string;
     quantity: number;
-    customStats?: Record<string, any>;
+    customStats?: Record<string, unknown>;
   }>;
   npcs: string[]; // NPC IDs
   createdAt: number;
@@ -257,35 +257,31 @@ export class CampaignDatabase extends Dexie {
       obj.exportVersion = '1.0.0';
     });
 
-    this.campaigns.hook('updating', (modifications: any) => {
-      modifications.updatedAt = Date.now();
-    });
+    this.campaigns.hook('updating', () => ({ updatedAt: Date.now() }));
 
     // Auto-timestamp for all other entities
-    const tables = [
-      this.worlds,
-      this.sessions,
-      this.plotThreads,
-      this.clues,
-      this.npcs,
-      this.encounters,
-      this.notes,
-      this.journals,
-      this.journalEntries,
-      this.loreEntries,
-      this.codexLinks
-    ];
-
-    tables.forEach((table) => {
-      table.hook('creating', (_primKey, obj: any) => {
+    const addTimestampHooks = <T extends { createdAt: number; updatedAt?: number }>(
+      table: Table<T>
+    ) => {
+      table.hook('creating', (_primKey, obj) => {
         obj.createdAt = Date.now();
         obj.updatedAt = Date.now();
       });
 
-      table.hook('updating', (modifications: any) => {
-        modifications.updatedAt = Date.now();
-      });
-    });
+      table.hook('updating', () => ({ updatedAt: Date.now() }));
+    };
+
+    addTimestampHooks(this.worlds);
+    addTimestampHooks(this.sessions);
+    addTimestampHooks(this.plotThreads);
+    addTimestampHooks(this.clues);
+    addTimestampHooks(this.npcs);
+    addTimestampHooks(this.encounters);
+    addTimestampHooks(this.notes);
+    addTimestampHooks(this.journals);
+    addTimestampHooks(this.journalEntries);
+    addTimestampHooks(this.loreEntries);
+    addTimestampHooks(this.codexLinks);
   }
 }
 

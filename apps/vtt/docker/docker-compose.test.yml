@@ -10,7 +10,9 @@ services:
     # there, so omitting any workspace that supplies it breaks the suite.
     image: node:26.5.0-bookworm-slim
     working_dir: /workspace
-    command: sh -c "npm ci && npm run build:contracts && npm run test:integration --workspace=nexus-vtt"
+    command: >-
+      sh -c "npm ci --prefer-offline && npm run build:contracts &&
+      npm run test:integration --workspace=nexus-vtt -- $${VITEST_CI_ARGS:-}"
     volumes:
       - ../../../:/workspace
       - /workspace/node_modules
@@ -19,6 +21,7 @@ services:
       - CI=true
       - DATABASE_URL=postgres://testuser:testpass@postgres-test:5432/testdb
       - JWT_SECRET=test-secret
+      - VITEST_CI_ARGS=${VITEST_CI_ARGS:-}
     networks:
       - nexus-test
     depends_on:

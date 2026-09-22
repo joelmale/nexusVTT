@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 
@@ -20,14 +20,18 @@ export default function Logs() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
-  const fetchLogs = async () => {
+  const fetchLogs = useCallback(async (
+    selectedService: string,
+    selectedLevel: string,
+    selectedQuery: string,
+  ) => {
     setLoading(true)
     setError(null)
     try {
       const params = new URLSearchParams()
-      if (service) params.append('service', service)
-      if (level) params.append('level', level)
-      if (query) params.append('q', query)
+      if (selectedService) params.append('service', selectedService)
+      if (selectedLevel) params.append('level', selectedLevel)
+      if (selectedQuery) params.append('q', selectedQuery)
 
       const response = await fetch(`/api/admin/logs?${params.toString()}`)
       const data = await response.json()
@@ -40,11 +44,15 @@ export default function Logs() {
     } finally {
       setLoading(false)
     }
-  }
+  }, [])
 
   useEffect(() => {
-    fetchLogs()
-  }, [])
+    void fetchLogs('', '', '')
+  }, [fetchLogs])
+
+  const refreshLogs = () => {
+    void fetchLogs(service, level, query)
+  }
 
   const levelBadge = (value: string) => {
     const styles: Record<string, string> = {
@@ -65,7 +73,7 @@ export default function Logs() {
     <div className="p-6 space-y-6">
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold">Logs</h1>
-        <Button onClick={fetchLogs} disabled={loading}>
+        <Button onClick={refreshLogs} disabled={loading}>
           {loading ? 'Refreshing...' : 'Refresh'}
         </Button>
       </div>
@@ -104,7 +112,7 @@ export default function Logs() {
             placeholder="Search message"
             className="px-3 py-2 border border-gray-300 rounded-md"
           />
-          <Button onClick={fetchLogs} disabled={loading}>
+          <Button onClick={refreshLogs} disabled={loading}>
             Apply
           </Button>
         </CardContent>

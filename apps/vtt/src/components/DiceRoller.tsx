@@ -4,6 +4,7 @@ import { createDiceRoll, formatDiceRoll } from '@/utils/dice';
 import { webSocketService } from '@/services/websocket';
 import { diceSounds } from '@/services/diceSounds';
 import { initializeTheme } from '@/services/themeManager';
+import { PopoverMenu } from './PopoverMenu';
 import DOMPurify from 'dompurify';
 
 /**
@@ -296,10 +297,7 @@ export const DiceRoller: React.FC = () => {
     setIsSoundMuted(newMutedState);
   };
 
-  const cycleDiceTheme = () => {
-    const currentIndex = DICE_THEMES.findIndex((t) => t.id === diceTheme);
-    const nextIndex = (currentIndex + 1) % DICE_THEMES.length;
-    const newTheme = DICE_THEMES[nextIndex].id;
+  const selectDiceTheme = (newTheme: string) => {
     setDiceTheme(newTheme);
 
     // Persist to localStorage
@@ -312,7 +310,7 @@ export const DiceRoller: React.FC = () => {
     // DiceBox3D reads the theme from localStorage but has no other way to
     // know it changed (localStorage writes don't trigger a re-render or a
     // 'storage' event in the SAME tab that wrote them). Without this, the
-    // button's own label/tooltip updates but the live 3D dice never do.
+    // menu's own selection state updates but the live 3D dice never do.
     window.dispatchEvent(
       new CustomEvent('nexus-dice-theme-changed', { detail: { theme: newTheme } }),
     );
@@ -352,13 +350,33 @@ export const DiceRoller: React.FC = () => {
                 Offline
               </span>
             )}
-            <button
-              onClick={cycleDiceTheme}
-              className="dice-roller__theme-toggle-btn"
-              title={`Dice Theme: ${DICE_THEMES.find((t) => t.id === diceTheme)?.name || 'Default'}`}
+            <PopoverMenu
+              trigger={
+                <span
+                  title={`Dice Theme: ${DICE_THEMES.find((t) => t.id === diceTheme)?.name || 'Default'}`}
+                >
+                  🎲
+                </span>
+              }
+              triggerClassName="dice-roller__theme-toggle-btn"
+              contentClassName="dice-theme-menu"
             >
-              🎲
-            </button>
+              {DICE_THEMES.map((theme) => (
+                <button
+                  key={theme.id}
+                  type="button"
+                  className={`dice-theme-menu__item${
+                    diceTheme === theme.id
+                      ? ' dice-theme-menu__item--active'
+                      : ''
+                  }`}
+                  onClick={() => selectDiceTheme(theme.id)}
+                  aria-pressed={diceTheme === theme.id}
+                >
+                  {theme.name}
+                </button>
+              ))}
+            </PopoverMenu>
             <button
               onClick={toggleSound}
               className="dice-roller__sound-toggle-btn"
