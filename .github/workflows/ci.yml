@@ -953,10 +953,15 @@ jobs:
 
   deploy-docs:
     name: Deploy validated documentation
+    # Explicit status checks: the implicit success() is false whenever any
+    # transitive dependency of `required` was skipped, which is most pushes.
     if: >-
+      !cancelled() && !failure() &&
       github.event_name == 'push' &&
       github.ref == 'refs/heads/main' &&
-      needs.changes.outputs.docs == 'true'
+      needs.changes.outputs.docs == 'true' &&
+      needs.docs-checks.result == 'success' &&
+      needs.required.result == 'success'
     needs: [changes, docs-checks, required]
     runs-on: ubuntu-latest
     timeout-minutes: 10
