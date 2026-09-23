@@ -993,7 +993,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         env:
           EVENT_NAME: ${{ github.event_name }}
-          GITHUB_REF_NAME: ${{ github.ref }}
+          EVENT_REF: ${{ github.ref }}
           CANDIDATE_SHA: ${{ inputs.candidate_sha }}
           VTT_AFFECTED: ${{ needs.changes.outputs.vtt }}
           DOCS_AFFECTED: ${{ needs.changes.outputs.docs }}
@@ -1011,7 +1011,7 @@ jobs:
           elif [[ "$EVENT_NAME" == 'workflow_dispatch' ]]; then
             [[ "$BUILD_RESULT" == 'success' && "$PROMOTION_RESULT" == 'success' ]]
             [[ "$CANDIDATE_RESULT" == 'skipped' ]]
-          elif [[ "$EVENT_NAME" == 'push' && ( "$VTT_AFFECTED" == 'true' || "$GITHUB_REF_NAME" == refs/tags/* ) ]]; then
+          elif [[ "$EVENT_NAME" == 'push' && ( "$VTT_AFFECTED" == 'true' || "$EVENT_REF" == refs/tags/* ) ]]; then
             [[ "$BUILD_RESULT" == 'success' && "$PROMOTION_RESULT" == 'success' ]]
             [[ "$CANDIDATE_RESULT" == 'skipped' ]]
           else
@@ -1019,7 +1019,7 @@ jobs:
             [[ "$CANDIDATE_RESULT" == 'skipped' ]]
           fi
 
-          if [[ "$EVENT_NAME" == 'push' && "$GITHUB_REF_NAME" == 'refs/heads/main' && "$DOCS_AFFECTED" == 'true' ]]; then
+          if [[ "$EVENT_NAME" == 'push' && "$EVENT_REF" == 'refs/heads/main' && "$DOCS_AFFECTED" == 'true' ]]; then
             [[ "$DOCS_RESULT" == 'success' ]]
           else
             [[ "$DOCS_RESULT" == 'skipped' ]]
