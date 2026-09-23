@@ -6,44 +6,13 @@ dotenv.config();
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-
-// Express and middleware
-import express from 'express';
-import helmet from 'helmet';
-import compression from 'compression';
-import cors from 'cors';
+import type { Server as HttpServer } from 'http';
 
 // WebSocket
 import { WebSocketServer } from 'ws';
 
-// Session and database
-import session from 'express-session';
-import connectPgSimple from 'connect-pg-simple';
-import { Pool } from 'pg';
-
-// Authentication
-import passport from './auth.js';
-
-// Custom types
-import type { Connection } from './types.js';
-
-// Sockets
-import { SocketManager } from './socket/SocketManager.js';
-import { ChatHandler } from './socket/handlers/ChatHandler.js';
-import { SceneHandler } from './socket/handlers/SceneHandler.js';
-import { DiceHandler } from './socket/handlers/DiceHandler.js';
-import { DocumentSyncHandler } from './socket/handlers/DocumentSyncHandler.js';
-import { HostHandler } from './socket/handlers/HostHandler.js';
-import { EntitySyncHandler } from './socket/handlers/EntitySyncHandler.js';
-import { CharacterHandler } from './socket/handlers/CharacterHandler.js';
-import { CombatHandler } from './socket/handlers/CombatHandler.js';
-import { ConnectionLifecycle } from './socket/ConnectionLifecycle.js';
-import { GameStateCommitService } from './socket/GameStateCommitService.js';
-import { sendError } from './socket/messaging.js';
-import {
-  attachWebSocketUpgrade,
-  registerWebSocketConnections,
-} from './socket/websocketUpgrade.js';
+import { createHttpApp } from './bootstrap/httpApp.js';
+import { createRealtimeRuntime } from './bootstrap/realtimeRuntime.js';
 
 // Services
 import { DatabaseService, createDatabaseService } from './database.js';
@@ -58,13 +27,9 @@ import {
 } from './observability/deltaSyncMetrics.js';
 
 // Routes
-import { createDocumentRoutes } from './routes/documents.js';
-import { registerApiRoutes } from './routes/api.js';
-import { createAuthRouter } from './routes/auth.routes.js';
-import { createMetricsRouter } from './routes/metrics.routes.js';
-import { createHealthRouter } from './routes/health.routes.js';
-import { createSystemRouter } from './routes/system.routes.js';
-import { createAssetRouter } from './routes/assets.routes.js';
+import { SocketManager } from './socket/SocketManager.js';
+import { ConnectionLifecycle } from './socket/ConnectionLifecycle.js';
+import { GameStateCommitService } from './socket/GameStateCommitService.js';
 
 export interface ExpressSessionUser {
   id: string;
@@ -79,14 +44,13 @@ export interface ExpressSessionUser {
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-class NexusServer {
+export class NexusServer {
   private wss: WebSocketServer;
   private socketManager: SocketManager;
   private lifecycle: ConnectionLifecycle;
   private gameStateCommits: GameStateCommitService;
   private port: number;
-  private app: express.Application;
-  private httpServer: ReturnType<typeof express.application.listen>;
+  private httpServer: HttpServer;
   private manifestStore: AssetManifestStore;
   private db: DatabaseService;
   private documentClient: DocumentServiceClient | null;
@@ -94,10 +58,6 @@ class NexusServer {
 
   private readonly ASSETS_PATH =
     process.env.ASSETS_PATH || path.join(__dirname, '../static-assets/assets');
-  private readonly CORS_ORIGINS: string[] = (process.env.CORS_ORIGIN || '')
-    .split(',')
-    .map((origin) => origin.trim())
-    .filter(Boolean);
   private readonly CACHE_MAX_AGE = parseInt(
     process.env.CACHE_MAX_AGE || '86400',
   );
@@ -131,168 +91,30 @@ class NexusServer {
       ? createDocumentServiceClient(docApiUrl)
       : null;
 
-    this.app = express();
-
-    // Trust nginx proxy for secure cookies and proper request headers
-    this.app.set('trust proxy', 1);
-
-    this.app.use(
-      helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }),
-    );
-    this.app.use(compression());
-    const defaultCorsOrigins =
-      process.env.NODE_ENV === 'production'
-        ? []
-        : ['http://localhost:5173', 'http://127.0.0.1:5173'];
-
-    const allowedOrigins = this.CORS_ORIGINS.length
-      ? this.CORS_ORIGINS
-      : defaultCorsOrigins;
-
-    this.app.use(
-      cors({
-        origin: (origin, callback) => {
-          // Allow same-origin or non-browser requests (like server-to-server)
-          if (!origin) return callback(null, true);
-          if (allowedOrigins.includes(origin)) return callback(null, true);
-
-          // Allow any localhost origin in non-production environments
-          if (process.env.NODE_ENV !== 'production') {
-            const isLocalhost =
-              /^https?:\/\/(localhost|127\.0\.0\.1)(:\d+)?$/.test(origin);
-            if (isLocalhost) return callback(null, true);
-          }
-
-          return callback(
-            new Error(
-              `CORS blocked for origin: ${origin} (allowed: ${allowedOrigins.join(', ')})`,
-            ),
-            false,
-          );
-        },
-        credentials: true,
-      }),
-    );
-    // Increase body size limit for token image uploads (base64 images can be large)
-    this.app.use(express.json({ limit: '10mb' }));
-    this.app.use(express.urlencoded({ limit: '10mb', extended: true }));
-
-    // Use DATABASE_URL for server-side PostgreSQL connection (VITE_ prefix is for client only)
-    const pgPool = new Pool({ connectionString: process.env.DATABASE_URL });
-    const sessionStore = new (connectPgSimple(session))({
-      pool: pgPool,
-      createTableIfMissing: true,
-    });
-
-    const sessionMiddleware = session({
-      store: sessionStore,
-      secret: process.env.SESSION_SECRET || 'a-very-secret-secret',
-      resave: false,
-      saveUninitialized: false,
-      cookie: {
-        // Secure flag is independent of FORCE_HTTPS (which only controls HTTP→HTTPS
-        // redirect). Behind a TLS-terminating proxy (Cloudflare/Traefik), the public
-        // site is always HTTPS so cookies must be Secure regardless of whether the
-        // backend itself redirects HTTP. FORCE_HTTPS=false disables redirect loops;
-        // SECURE_COOKIES=false is the separate override for non-TLS environments.
-        secure:
-          process.env.NODE_ENV === 'production' &&
-          process.env.SECURE_COOKIES !== 'false',
-        httpOnly: true,
-        sameSite: 'lax',
-        path: '/',
-        maxAge: 1000 * 60 * 60 * 72, // 72 hours
-      },
-    });
-
-    this.app.use(sessionMiddleware);
-    this.app.use(passport.initialize());
-    this.app.use(passport.session());
-
-    this.setupAuthRoutes();
-    this.setupApiRoutes();
-    this.setupMetricsRoutes();
-    this.setupHealthRoutes();
-    this.setupSystemRoutes();
-    this.setupDocumentRoutes();
-    this.setupAssetRoutes();
-
-    this.httpServer = this.app.listen(port, '0.0.0.0', () => {
-      console.log(`🚀 Nexus server running on port ${port}`);
-    });
-
     this.wss = new WebSocketServer({ noServer: true });
-    this.socketManager = new SocketManager(this.wss, this.db);
-    this.lifecycle = new ConnectionLifecycle({
-      socketManager: this.socketManager,
-      db: this.db,
-    });
-    this.gameStateCommits = new GameStateCommitService({
-      socketManager: this.socketManager,
+    const realtime = createRealtimeRuntime({
       db: this.db,
       deltaSyncMetrics: this.deltaSyncMetrics,
-    });
-
-    // Register event handlers
-    new ChatHandler(this.socketManager, this.db);
-    new SceneHandler(this.socketManager, this.db);
-    new DiceHandler(this.socketManager, this.db);
-    new DocumentSyncHandler(this.socketManager, this.db);
-    new HostHandler(this.socketManager, this.db);
-    new EntitySyncHandler(this.socketManager, this.db);
-    new CharacterHandler(this.socketManager, this.db);
-    new CombatHandler(this.socketManager, this.db);
-
-    // Commit + broadcast host game-state uploads through the content-hash
-    // token chain. This lives here (rather than in a handler) because it owns
-    // the authoritative room.gameState/room.syncToken, JSON-patch delta
-    // generation, and DB persistence. Only the host may drive canonical state.
-    this.socketManager.on(
-      'event:game-state-update',
-      ({ connection, room, message }) => {
-        const isSenderHost =
-          room.host === connection.id || room.coHosts.has(connection.id);
-        if (!isSenderHost) {
-          sendError(connection, 'Access denied: Host privilege required.');
-          return;
-        }
-        this.gameStateCommits.enqueueUpload(
-          room.code,
-          connection,
-          message.data,
-        );
-      },
-    );
-
-    // Presence: when a socket drops, run the full disconnect flow (remove the
-    // player from the room, broadcast session/leave, hibernate on host loss,
-    // persist connection status). SocketManager emits 'disconnect' with the
-    // still-live connection before deleting it, so handleDisconnect can resolve
-    // the room. Without this, players stayed "connected" in peers' lists.
-    this.socketManager.on(
-      'disconnect',
-      ({
-        id,
-        instanceId,
-        connection,
-      }: {
-        id: string;
-        instanceId: string;
-        connection: Connection;
-      }) => {
-        void this.lifecycle.handleDisconnect(id, instanceId, connection);
-      },
-    );
-
-    attachWebSocketUpgrade({
-      httpServer: this.httpServer,
       wss: this.wss,
-      sessionMiddleware,
     });
-
-    registerWebSocketConnections(this.wss, (ws, req) => {
-      void this.lifecycle.handleConnection(ws, req);
+    this.socketManager = realtime.socketManager;
+    this.lifecycle = realtime.lifecycle;
+    this.gameStateCommits = realtime.gameStateCommits;
+    const { app, sessionMiddleware } = createHttpApp({
+      assetsPath: this.ASSETS_PATH,
+      db: this.db,
+      deltaSyncMetrics: this.deltaSyncMetrics,
+      documentClient: this.documentClient,
+      documentsEnabled: this.documentsEnabled,
+      getSocketManager: () => this.socketManager,
+      getGameStateCommits: () => this.gameStateCommits,
+      manifestStore: this.manifestStore,
+      port,
     });
+    this.httpServer = app.listen(port, '0.0.0.0', () => {
+      console.log(`🚀 Nexus server running on port ${port}`);
+    });
+    realtime.attach(this.httpServer, sessionMiddleware);
 
     this.manifestStore.load();
     this.initialize();
@@ -348,81 +170,6 @@ class NexusServer {
    * @private
    * @returns {void}
    */
-  private setupAuthRoutes(): void {
-    this.app.use(createAuthRouter({ db: this.db, passport }));
-  }
-
-  /**
-   * Sets up API routes for guest users, campaigns, and characters
-   * @private
-   * @returns {void}
-   */
-  private setupApiRoutes(): void {
-    registerApiRoutes(this.app, this.db, this.ASSETS_PATH);
-  }
-
-  /**
-   * Sets up document routes for accessing NexusCodex services
-   * @private
-   * @returns {void}
-   */
-  private setupDocumentRoutes(): void {
-    const documentRoutes = createDocumentRoutes(
-      this.documentClient,
-      this.documentsEnabled,
-      this.db,
-    );
-    this.app.use('/api', documentRoutes);
-    if (this.documentsEnabled) {
-      console.log('📚 Document routes initialized');
-    } else {
-      console.log(
-        '📚 Document routes initialized in disabled mode (DOC_API_URL not set)',
-      );
-    }
-  }
-
-  private setupMetricsRoutes(): void {
-    // Register metrics before the '/api' document-router catch-all.
-    this.app.use(
-      createMetricsRouter({
-        deltaSyncMetrics: this.deltaSyncMetrics,
-        getSocketManager: () => this.socketManager,
-        db: this.db,
-        getGameStateQueueDepth: () => this.gameStateCommits.queueDepth,
-      }),
-    );
-  }
-
-  private setupHealthRoutes(): void {
-    this.app.use(
-      createHealthRouter({
-        db: this.db,
-        getSocketManager: () => this.socketManager,
-        port: this.port,
-        getManifest: () => this.manifestStore.current,
-      }),
-    );
-  }
-
-  private setupSystemRoutes(): void {
-    this.app.use(
-      createSystemRouter({
-        db: this.db,
-        getSocketManager: () => this.socketManager,
-        port: this.port,
-      }),
-    );
-  }
-
-  private setupAssetRoutes() {
-    this.app.use(
-      createAssetRouter({
-        assetApiUrl: process.env.ASSET_API_URL || 'http://localhost:5003',
-      }),
-    );
-  }
-
   public async shutdown() {
     console.log('🛑 Shutting down Nexus server...');
     this.socketManager.rooms.forEach((room) => {
@@ -447,20 +194,35 @@ class NexusServer {
   }
 }
 
-const REQUIRED_PORT = process.env.PORT ? parseInt(process.env.PORT) : 5001;
-console.log(`🚀 Starting WebSocket server on port ${REQUIRED_PORT}...`);
-const server = new NexusServer(REQUIRED_PORT);
-let shutdownStarted = false;
+export function resolveServerPort(port = process.env.PORT): number {
+  return port ? parseInt(port, 10) : 5001;
+}
 
-const handleShutdownSignal = (signal: NodeJS.Signals): void => {
-  if (shutdownStarted) return;
-  shutdownStarted = true;
-  console.log(`Received ${signal}`);
-  void server.shutdown().catch((error: unknown) => {
-    console.error('Server shutdown failed:', error);
-    process.exitCode = 1;
-  });
-};
+export function startNexusServer(
+  port = resolveServerPort(),
+  createServer: (serverPort: number) => NexusServer =
+    (serverPort) => new NexusServer(serverPort),
+): NexusServer {
+  console.log(`🚀 Starting WebSocket server on port ${port}...`);
+  const server = createServer(port);
+  let shutdownStarted = false;
 
-process.once('SIGTERM', () => handleShutdownSignal('SIGTERM'));
-process.once('SIGINT', () => handleShutdownSignal('SIGINT'));
+  const handleShutdownSignal = (signal: NodeJS.Signals): void => {
+    if (shutdownStarted) return;
+    shutdownStarted = true;
+    console.log(`Received ${signal}`);
+    void server.shutdown().catch((error: unknown) => {
+      console.error('Server shutdown failed:', error);
+      process.exitCode = 1;
+    });
+  };
+
+  process.once('SIGTERM', () => handleShutdownSignal('SIGTERM'));
+  process.once('SIGINT', () => handleShutdownSignal('SIGINT'));
+  return server;
+}
+
+const invokedPath = process.argv[1];
+if (invokedPath && path.resolve(invokedPath) === __filename) {
+  startNexusServer();
+}

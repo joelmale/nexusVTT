@@ -107,6 +107,27 @@ describe('gameStore', () => {
       const state = useGameStore.getState();
       expect(state.sceneState.activeSceneId).toBe(scene2Id);
     });
+
+    it('updates camera, tools, selections, visibility, and scene ordering', () => {
+      const first = useGameStore.getState().createScene({ name: 'First', description: '' });
+      const second = useGameStore.getState().createScene({ name: 'Second', description: '' });
+      useGameStore.getState().updateCamera({ x: 12, zoom: 1.5 });
+      useGameStore.getState().setFollowDM(true);
+      useGameStore.getState().setActiveTool('select');
+      useGameStore.getState().setSelection(['token-1']);
+      useGameStore.getState().addToSelection(['token-1', 'token-2']);
+      useGameStore.getState().removeFromSelection(['token-1']);
+      useGameStore.getState().updateScenesVisibility([first.id], 'hidden');
+      useGameStore.getState().reorderScenes(1, 0);
+      const state = useGameStore.getState();
+      expect(state.sceneState.camera).toMatchObject({ x: 12, zoom: 1.5 });
+      expect(state.sceneState.followDM).toBe(true);
+      expect(state.sceneState.selectedObjectIds).toEqual(['token-2']);
+      expect(state.sceneState.scenes[0].id).toBe(second.id);
+      expect(state.sceneState.scenes[1].visibility).toBe('hidden');
+      useGameStore.getState().clearSelection();
+      expect(useGameStore.getState().sceneState.selectedObjectIds).toEqual([]);
+    });
   });
 
   describe('event handling', () => {

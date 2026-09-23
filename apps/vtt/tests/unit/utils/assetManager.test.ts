@@ -174,4 +174,32 @@ describe('AssetManager', () => {
       expect(fetch).toHaveBeenCalledTimes(2); // Should not fetch again
     });
   });
+
+  it('uses an IndexedDB hit, preloads scene assets, and exposes manifest URLs', async () => {
+    global.URL.createObjectURL = vi.fn(() => 'blob:cached');
+    vi.spyOn(assetManager, 'getCachedAsset').mockResolvedValue(
+      new Blob(['cached']),
+    );
+    await expect(assetManager.loadAsset('cached-asset')).resolves.toBe(
+      'blob:cached',
+    );
+    const loadAsset = vi.spyOn(assetManager, 'loadAsset').mockResolvedValue(
+      'blob:preloaded',
+    );
+    await assetManager.preloadSceneAssets({
+      backgroundImage: { url: 'asset://map-1' },
+    } as never);
+    await assetManager.preloadSceneAssets({} as never);
+    expect(loadAsset).toHaveBeenCalledWith('map-1');
+    vi.spyOn(assetManager, 'loadAssetManifest').mockResolvedValue({
+      version: '1', generatedAt: '', totalAssets: 0, categories: ['Maps'], assets: [],
+    });
+    await expect(assetManager.getCategories()).resolves.toEqual(['Maps']);
+    expect(assetManager.getThumbnailUrl(mockAssetMetadata)).toContain(
+      mockAssetMetadata.thumbnail,
+    );
+    expect(assetManager.getFullImageUrl(mockAssetMetadata)).toContain(
+      mockAssetMetadata.fullImage,
+    );
+  });
 });

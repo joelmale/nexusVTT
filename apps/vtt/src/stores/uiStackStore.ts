@@ -12,6 +12,7 @@ export type PanelId =
   | 'generator'
   | 'initiative'
   | 'dice'
+  | 'dice-hud'
   | 'lobby'
   | 'settings'
   | 'chat'

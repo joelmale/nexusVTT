@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ChevronDown, ChevronUp } from 'lucide-react';
+import { ChevronDown, ChevronUp, LayoutGrid } from 'lucide-react';
 import { useMonsterContext } from '../../hooks';
 import { MonsterList } from './MonsterList';
 import { MonsterFilters } from './MonsterFilters';
@@ -11,9 +11,21 @@ interface MonsterLibraryProps {
   onSelectMonster: (monster: Monster | UserMonster) => void;
   onViewEncounter?: () => void;
   onStartCombat?: (encounterId: string) => void;
+  // Controlled by the parent page shell, which must drop its own max-width
+  // cap for this tab when widescreen is on -- this component's container
+  // alone can't reach past that. Falls back to internal state when unset
+  // (e.g. standalone usage) so the toggle still works.
+  widescreen?: boolean;
+  onWidescreenChange?: (widescreen: boolean) => void;
 }
 
-export const MonsterLibrary: React.FC<MonsterLibraryProps> = ({ onSelectMonster, onViewEncounter, onStartCombat }) => {
+export const MonsterLibrary: React.FC<MonsterLibraryProps> = ({
+  onSelectMonster,
+  onViewEncounter,
+  onStartCombat,
+  widescreen: widescreenProp,
+  onWidescreenChange,
+}) => {
   const {
     filteredMonsters,
     loading,
@@ -26,6 +38,9 @@ export const MonsterLibrary: React.FC<MonsterLibraryProps> = ({ onSelectMonster,
   } = useMonsterContext();
 
   const [selectionMode, setSelectionMode] = useState(false);
+  const [internalWidescreen, setInternalWidescreen] = useState(false);
+  const widescreen = widescreenProp ?? internalWidescreen;
+  const setWidescreen = onWidescreenChange ?? setInternalWidescreen;
   const [showCreateMonster, setShowCreateMonster] = useState(false);
   const [editingMonster, setEditingMonster] = useState<UserMonster | null>(null);
   const [showSavedEncounters, setShowSavedEncounters] = useState(false);
@@ -67,7 +82,9 @@ export const MonsterLibrary: React.FC<MonsterLibraryProps> = ({ onSelectMonster,
   }
 
   return (
-    <div className="container mx-auto px-4 py-8">
+    // Widescreen drops the standard container's max-width cap so extra page
+    // width -- not shrunken cards -- is what fits more of them per row.
+    <div className={widescreen ? 'w-full px-4 py-8' : 'container mx-auto px-4 py-8'}>
       {/* Header */}
       <div className="mb-8">
         <div className="flex justify-between items-center mb-4">
@@ -87,6 +104,19 @@ export const MonsterLibrary: React.FC<MonsterLibraryProps> = ({ onSelectMonster,
                 + Create Custom Monster
               </button>
             )}
+
+            <button
+              onClick={() => setWidescreen(!widescreen)}
+              title={widescreen ? 'Switch to 3 cards across' : 'Switch to 5 cards across (widescreen)'}
+              className={`px-4 py-2 rounded-lg transition-colors flex items-center gap-2 ${
+                widescreen
+                  ? 'bg-accent-purple text-white hover:bg-purple-700'
+                  : 'bg-theme-secondary text-theme-primary hover:bg-gray-750'
+              }`}
+            >
+              <LayoutGrid className="w-4 h-4" />
+              {widescreen ? 'Widescreen (5)' : 'Standard (3)'}
+            </button>
 
             <button
               onClick={handleToggleSelectionMode}
@@ -167,6 +197,7 @@ export const MonsterLibrary: React.FC<MonsterLibraryProps> = ({ onSelectMonster,
         selectedMonsters={selectedEncounterMonsters}
         onToggleSelection={toggleMonsterSelection}
         onSetQuantity={setMonsterQuantity}
+        widescreen={widescreen}
         onEditMonster={(monster) => {
           setEditingMonster(monster as UserMonster);
           setShowCreateMonster(true);

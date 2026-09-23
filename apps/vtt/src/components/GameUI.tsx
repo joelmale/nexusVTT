@@ -102,6 +102,7 @@ export const GameUI: React.FC = () => {
     { id: 'initiative' as const, icon: '⏱', label: 'Initiative' },
     { id: 'characters' as const, icon: '👥', label: 'Characters' },
     { id: 'dice' as const, icon: '🎲', label: 'Dice' },
+    { id: 'dice-hud' as const, icon: '🎯', label: 'Dice HUD' },
     { id: 'documents' as const, icon: '📚', label: 'Documents' },
     { id: 'chat' as const, icon: '💬', label: 'Chat' },
     ...(isHost ? [{ id: 'sounds' as const, icon: '🔊', label: 'Sounds' }] : []),

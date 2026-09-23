@@ -9,13 +9,23 @@ services:
     # unscoped: vitest is hoisted to the root and resolves jsdom upward from
     # there, so omitting any workspace that supplies it breaks the suite.
     image: node:26.5.0-bookworm-slim
-    working_dir: /workspace
+    # HOST_WORKSPACE, when set (CI sets it to `github.workspace`), mounts the
+    # repo at the SAME absolute path inside the container as it has on the
+    # runner. Vitest resolves the `@/...` aliases via `path.resolve(__dirname,
+    # ...)`, so v8 coverage records frontend files under whatever absolute
+    # path apps/vtt sits at when the process runs. If that path differs from
+    # the unit-test shards' runner path (the old default, a container-local
+    # /workspace), `vitest --merge-reports` cannot recognize the two as the
+    # same file and double-counts every src/ file in the aggregate coverage
+    # report. Local `docker compose` runs (no HOST_WORKSPACE) keep the old
+    # /workspace default.
+    working_dir: ${HOST_WORKSPACE:-/workspace}
     command: >-
       sh -c "npm ci --prefer-offline && npm run build:contracts &&
       npm run test:integration --workspace=nexus-vtt -- $${VITEST_CI_ARGS:-}"
     volumes:
-      - ../../../:/workspace
-      - /workspace/node_modules
+      - ${HOST_WORKSPACE:-../../../}:${HOST_WORKSPACE:-/workspace}
+      - ${HOST_WORKSPACE:-/workspace}/node_modules
     environment:
       - NODE_ENV=test
       - CI=true

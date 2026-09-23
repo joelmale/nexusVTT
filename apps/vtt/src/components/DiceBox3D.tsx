@@ -446,8 +446,10 @@ export const DiceBox3D: React.FC = () => {
           top: '50%',
           left: '50%',
           transform: 'translate(-50%, -50%)',
-          width: '500px',
-          height: '400px',
+          width: '1200px',
+          height: '960px',
+          maxWidth: '100vw',
+          maxHeight: '100vh',
           zIndex: 'var(--z-dice-3d)',
           pointerEvents: 'none', // Allow clicks to pass through to canvas below
         }}

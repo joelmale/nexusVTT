@@ -294,6 +294,14 @@ describe('enabled document routes CRUD and authorization', () => {
         citations: [{ documentId: mockPublicDoc.id, sourceIndex: 1 }],
         snippets: ['grounded text'],
       }),
+      semanticSearch: async () => ({
+        results: [{ documentId: mockPublicDoc.id, snippet: 'semantic snippet' }],
+        total: 1,
+      }),
+      getDocumentStructuredData: async (documentId: string) => ({ documentId, entries: [] }),
+      getStructuredDataById: async () => ({ id: 'entry-1', documentId: mockPublicDoc.id }),
+      listStructuredData: async () => [{ id: 'entry-1', documentId: mockPublicDoc.id }],
+      healthCheck: async () => ({ status: 'healthy' }),
       ...clientOverrides,
     };
 
@@ -470,6 +478,22 @@ describe('enabled document routes CRUD and authorization', () => {
     expect(askData.answer).toContain('What are the rules?');
     expect(askData.citations).toHaveLength(1);
     expect(askData.citations[0].documentId).toBe('doc-public');
+  });
+
+  it('filters semantic, quick, and structured-data responses through document access', async () => {
+    const baseUrl = await startCustomApp();
+    const semantic = await fetch(`${baseUrl}/api/search/semantic?query=dragon&campaigns=campaign-allowed`);
+    expect(semantic.status).toBe(200);
+    await expect(semantic.json()).resolves.toMatchObject({ total: 1 });
+    const quick = await fetch(`${baseUrl}/api/search/quick?query=dragon&campaign=campaign-allowed&size=2`);
+    expect(quick.status).toBe(200);
+    const structured = await fetch(`${baseUrl}/api/documents/doc-public/structured-data?type=monster&name=Dragon`);
+    expect(structured.status).toBe(200);
+    await expect(structured.json()).resolves.toMatchObject({ documentId: 'doc-public' });
+    const entry = await fetch(`${baseUrl}/api/structured-data/entry-1`);
+    expect(entry.status).toBe(200);
+    expect((await fetch(`${baseUrl}/api/structured-data?documentId=doc-public`)).status).toBe(200);
+    await expect((await fetch(`${baseUrl}/api/health`)).json()).resolves.toEqual({ status: 'healthy' });
   });
 });
 

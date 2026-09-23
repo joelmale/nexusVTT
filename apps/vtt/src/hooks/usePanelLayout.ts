@@ -82,6 +82,11 @@ export const PANEL_DEFAULT_DIMENSIONS: Record<
     compact: { width: 340, height: 560 },
     widescreen: { width: 640, height: 660 },
   },
+  'dice-hud': {
+    original: { width: 600, height: 600 },
+    compact: { width: 600, height: 600 },
+    widescreen: { width: 600, height: 600 },
+  },
   chat: {
     original: { width: 420, height: 680 },
     compact: { width: 360, height: 600 },
