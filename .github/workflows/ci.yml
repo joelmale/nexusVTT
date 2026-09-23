@@ -288,6 +288,11 @@ jobs:
         with:
           name: vtt-coverage-unit-${{ matrix.shard }}
           path: apps/vtt/.vitest-reports/
+          # .vitest-reports is a dot-prefixed (hidden) directory, and
+          # upload-artifact treats the whole tree as hidden and skips it
+          # under the default include-hidden-files: false -- silently
+          # uploading nothing and then hard-failing on if-no-files-found.
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
 
@@ -420,6 +425,9 @@ jobs:
         with:
           name: vtt-coverage-integration
           path: apps/vtt/.vitest-reports/
+          # See the unit-coverage upload step above: .vitest-reports is a
+          # dot-prefixed directory, invisible to upload-artifact by default.
+          include-hidden-files: true
           if-no-files-found: error
           retention-days: 7
 

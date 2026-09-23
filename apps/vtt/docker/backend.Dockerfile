@@ -20,7 +20,7 @@ COPY --chown=nodejs:nodejs packages/character-contracts/package.json ./packages/
 
 # The VTT postinstall applies patches and synchronizes the packaged dice assets.
 COPY --chown=nodejs:nodejs apps/vtt/patches ./apps/vtt/patches
-COPY --chown=nodejs:nodejs apps/vtt/scripts/apply-patches.js apps/vtt/scripts/sync-dice-assets.js ./apps/vtt/scripts/
+COPY --chown=nodejs:nodejs apps/vtt/scripts/apply-patches.js apps/vtt/scripts/sync-dice-assets.js apps/vtt/scripts/prepare-husky.js ./apps/vtt/scripts/
 
 USER nodejs
 WORKDIR /workspace

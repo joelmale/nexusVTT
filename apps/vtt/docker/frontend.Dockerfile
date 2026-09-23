@@ -36,7 +36,7 @@ COPY packages/character-creator/package.json ./packages/character-creator/packag
 COPY packages/character-creator/scripts ./packages/character-creator/scripts
 COPY packages/document-contracts/package.json ./packages/document-contracts/package.json
 COPY apps/vtt/patches ./apps/vtt/patches
-COPY apps/vtt/scripts/apply-patches.js apps/vtt/scripts/sync-dice-assets.js ./apps/vtt/scripts/
+COPY apps/vtt/scripts/apply-patches.js apps/vtt/scripts/sync-dice-assets.js apps/vtt/scripts/prepare-husky.js ./apps/vtt/scripts/
 
 RUN npm ci \
     --workspace=nexus-vtt \
