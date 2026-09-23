@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect, useTransition } from 'react';
 import { useDiceRolls, useIsHost, useGameStore } from '@/stores/gameStore';
+import { useUIStackStore } from '@/stores/uiStackStore';
 import { createDiceRoll, formatDiceRoll } from '@/utils/dice';
 import { webSocketService } from '@/services/websocket';
 import { diceSounds } from '@/services/diceSounds';
@@ -335,6 +336,15 @@ export const DiceRoller: React.FC = () => {
         >
           <h2 style={{ margin: 0 }}>Dice Roller</h2>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center' }}>
+            <button
+              type="button"
+              onClick={() => useUIStackStore.getState().selectPanel('dice-hud')}
+              className="glass-button small"
+              style={{ fontSize: '11px', padding: '2px 8px' }}
+              title="Switch to Modern Dice HUD"
+            >
+              Modern HUD ✨
+            </button>
             {!isConnected && (
               <span
                 style={{

@@ -248,6 +248,9 @@ VITE_WS_PORT=${ports.websocket}
 # Generator Hub URL
 VITE_GENERATOR_HUB_URL=http://localhost:${ports.generatorHub}
 
+# Character Forge URL
+VITE_FORGE_URL=http://localhost:${ports.forge}
+
 # Optional proxy overrides for Vite dev server
 VITE_API_PROXY_URL=${viteApiProxyUrl}
 VITE_WS_PROXY_URL=${viteWsProxyUrl}
@@ -296,6 +299,7 @@ class IntelligentStarter {
     this.defaultPorts = {
       frontend: 5173,
       generatorHub: 5174,
+      forge: 3000,
       websocket: 5001,
       assetService: 5003,
     };
@@ -429,6 +433,7 @@ class IntelligentStarter {
     console.log(`${colors.green}✅ Selected ports:${colors.reset}`);
     console.log(`   Frontend:  ${ports.frontend}`);
     console.log(`   Generator: ${ports.generatorHub}`);
+    console.log(`   Forge:     ${ports.forge}`);
     console.log(`   Backend:   ${ports.websocket} (WebSocket + Assets)`);
     console.log(`   Assets:    ${ports.assetService}\n`);
 
@@ -481,6 +486,7 @@ class IntelligentStarter {
     console.log(`${colors.green}✅ Final port selection:${colors.reset}`);
     console.log(`   Frontend:  ${ports.frontend}`);
     console.log(`   Generator: ${ports.generatorHub}`);
+    console.log(`   Forge:     ${ports.forge}`);
     console.log(`   Backend:   ${ports.websocket} (WebSocket + Assets)`);
     console.log(`   Assets:    ${ports.assetService}\n`);
 
@@ -596,6 +602,23 @@ class IntelligentStarter {
         color: colors.cyan,
         env: { PORT: ports.frontend.toString() },
       },
+      {
+        name: "Character Forge",
+        command: "npm",
+        args: [
+          "run",
+          "dev",
+          "--",
+          "--host",
+          "0.0.0.0",
+          "--port",
+          ports.forge.toString(),
+        ],
+        cwd: path.join(__dirname, "../../forge"),
+        prefix: "⚒️  [FORGE]",
+        color: colors.yellow,
+        env: {},
+      },
     ];
 
     // Setup graceful shutdown
@@ -616,6 +639,7 @@ class IntelligentStarter {
       );
       console.log(`🌐 Frontend: http://localhost:${ports.frontend}`);
       console.log(`🗺️  Generator: http://localhost:${ports.generatorHub}`);
+      console.log(`⚒️  Forge:    http://localhost:${ports.forge}`);
       console.log(`🔌 Backend:  http://localhost:${ports.websocket} (WebSocket + Assets)`);
       console.log(`🗂️  Assets:   http://localhost:${ports.assetService}`);
       console.log(

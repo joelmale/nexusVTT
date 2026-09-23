@@ -11,6 +11,7 @@ interface MonsterListProps {
   onToggleSelection: (monsterId: string) => void;
   onSetQuantity: (monsterId: string, quantity: number) => void;
   onEditMonster?: (monster: UserMonster) => void;
+  widescreen?: boolean;
 }
 
 const EmptyState: React.FC = () => (
@@ -29,13 +30,24 @@ export const MonsterList: React.FC<MonsterListProps> = ({
   onToggleSelection,
   onSetQuantity,
   onEditMonster,
+  widescreen = false,
 }) => {
   if (monsters.length === 0) {
     return <EmptyState />;
   }
 
+  // Widescreen keeps each card at its standard (3-across) width and simply
+  // fits as many of them as the now-wider page allows -- auto-fit with a
+  // fixed minmax floor, not a hardcoded column count, so cards never shrink
+  // to force a specific number per row.
   return (
-    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <div
+      className={
+        widescreen
+          ? 'grid gap-6 grid-cols-[repeat(auto-fit,minmax(340px,1fr))]'
+          : 'grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6'
+      }
+    >
       {monsters.map((monster) => {
         const quantity = selectedMonsters[monster.index] || 0;
         const isSelected = quantity > 0;

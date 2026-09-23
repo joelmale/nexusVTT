@@ -1,0 +1,1186 @@
+/* =============================================================================
+   ContextualDiceHUD.module.css
+   Modern, tactile, progressive-disclosure Dice HUD for Nexus VTT
+   Strictly compliant with ADR-0006 (CSS Modules consuming design tokens)
+   ============================================================================= */
+
+.hudContainer {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  max-height: 100%;
+  overflow-y: auto;
+  gap: var(--spacing-4, 1rem);
+  padding: var(--spacing-4, 1rem);
+  color: var(--text-primary, rgba(255, 255, 255, 0.9));
+  box-sizing: border-box;
+}
+
+/* Header & Controls */
+.headerRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-2, 0.5rem);
+  padding-bottom: var(--spacing-2, 0.5rem);
+  border-bottom: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.1));
+}
+
+.titleArea {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2, 0.5rem);
+}
+
+.hudTitle {
+  margin: 0;
+  font-size: var(--font-lg, 1.25rem);
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--glass-text-strong, #ffffff);
+}
+
+.connectionBadge {
+  font-size: var(--font-xs, 0.75rem);
+  padding: 2px 8px;
+  border-radius: var(--radius-full, 9999px);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.onlineBadge {
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--emerald-400, #34d399);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.offlineBadge {
+  background: rgba(245, 158, 11, 0.15);
+  color: var(--amber-400, #fbbf24);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2, 0.5rem);
+}
+
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  background: var(--glass-surface, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.15));
+  border-radius: var(--radius-md, 6px);
+  color: var(--glass-text, rgba(255, 255, 255, 0.9));
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.iconButton:hover {
+  background: var(--glass-surface-hover, rgba(255, 255, 255, 0.18));
+  border-color: var(--glass-border, rgba(255, 255, 255, 0.25));
+  color: var(--glass-text-strong, #ffffff);
+}
+
+.iconButtonActive {
+  background: rgba(99, 102, 241, 0.3);
+  border-color: var(--indigo-400, #818cf8);
+  color: #ffffff;
+}
+
+.themeSelect {
+  background: var(--glass-surface, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.15));
+  border-radius: var(--radius-md, 6px);
+  color: var(--glass-text, rgba(255, 255, 255, 0.9));
+  font-size: var(--font-xs, 0.75rem);
+  padding: 4px 8px;
+  cursor: pointer;
+  outline: none;
+}
+
+.themeSelect option {
+  background: var(--vtt-iron-900, #1c1e22);
+  color: #ffffff;
+}
+
+.switchPanelButton {
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.15));
+  border-radius: var(--radius-md, 6px);
+  color: var(--glass-text-muted, rgba(255, 255, 255, 0.7));
+  font-size: var(--font-xs, 0.75rem);
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.switchPanelButton:hover {
+  background: var(--glass-surface-hover, rgba(255, 255, 255, 0.15));
+  color: #ffffff;
+}
+
+/* =============================================================================
+   Hero Action Core: D20 & Advantage / Disadvantage Wings
+   ============================================================================= */
+.heroSection {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-3, 0.75rem);
+  padding: var(--spacing-4, 1rem) var(--spacing-2, 0.5rem);
+  background: radial-gradient(
+    ellipse at center,
+    rgba(99, 102, 241, 0.12) 0%,
+    rgba(168, 85, 247, 0.04) 60%,
+    transparent 80%
+  );
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-lg, 12px);
+  -webkit-backdrop-filter: var(--glass-blur-subtle, blur(10px));
+  backdrop-filter: var(--glass-blur-subtle, blur(10px));
+}
+
+.heroWingsRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--spacing-3, 0.75rem);
+  width: 100%;
+}
+
+.wingButton {
+  flex: 1;
+  max-width: 140px;
+  height: 52px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  background: var(--glass-surface, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.15));
+  border-radius: var(--radius-lg, 10px);
+  color: var(--glass-text-muted, rgba(255, 255, 255, 0.7));
+  cursor: pointer;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 600;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.wingButton:hover {
+  background: var(--glass-surface-hover, rgba(255, 255, 255, 0.15));
+  border-color: var(--glass-border, rgba(255, 255, 255, 0.25));
+  color: var(--glass-text-strong, #ffffff);
+}
+
+.wingLabel {
+  font-size: var(--font-xs, 0.75rem);
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.wingSubtext {
+  font-size: 0.65rem;
+  opacity: 0.75;
+}
+
+/* Advantage Active State */
+.advantageActive {
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.25) 0%, rgba(5, 150, 105, 0.35) 100%);
+  border-color: var(--emerald-400, #34d399);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(52, 211, 153, 0.35), inset 0 0 8px rgba(52, 211, 153, 0.2);
+}
+
+/* Disadvantage Active State */
+.disadvantageActive {
+  background: linear-gradient(135deg, rgba(239, 68, 68, 0.25) 0%, rgba(220, 38, 38, 0.35) 100%);
+  border-color: var(--red-400, #f87171);
+  color: #ffffff;
+  box-shadow: 0 0 16px rgba(239, 68, 68, 0.35), inset 0 0 8px rgba(239, 68, 68, 0.2);
+}
+
+/* Central Circular D20 Button */
+.d20CenterButton {
+  position: relative;
+  width: 96px;
+  height: 96px;
+  border-radius: var(--radius-full, 9999px);
+  background: radial-gradient(circle at 35% 35%, #4f46e5 0%, #312e81 65%, #1e1b4b 100%);
+  border: 2px solid rgba(165, 180, 252, 0.45);
+  box-shadow:
+    0 4px 18px rgba(79, 70, 229, 0.45),
+    inset 0 2px 6px rgba(255, 255, 255, 0.3),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.5);
+  color: #ffffff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: transform 0.15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.15s ease;
+  -webkit-user-select: none;
+  user-select: none;
+  flex-shrink: 0;
+}
+
+.d20CenterButton:hover {
+  transform: scale(1.06);
+  border-color: rgba(199, 210, 254, 0.8);
+  box-shadow:
+    0 6px 24px rgba(99, 102, 241, 0.65),
+    inset 0 2px 8px rgba(255, 255, 255, 0.45),
+    inset 0 -3px 8px rgba(0, 0, 0, 0.5);
+}
+
+.d20CenterButton:active {
+  transform: scale(0.97);
+  box-shadow: 0 2px 10px rgba(79, 70, 229, 0.5);
+}
+
+.d20IconWrapper {
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.d20Svg {
+  width: 34px;
+  height: 34px;
+  filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.4));
+}
+
+.d20Text {
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  margin-top: 2px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.7);
+}
+
+/* Modifiers Row */
+.modifiersRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+
+.modLabel {
+  font-size: var(--font-xs, 0.75rem);
+  color: var(--glass-text-muted, rgba(255, 255, 255, 0.7));
+  margin-right: 4px;
+}
+
+.modChip {
+  padding: 3px 8px;
+  font-size: var(--font-xs, 0.75rem);
+  font-weight: 600;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--glass-surface, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.15));
+  color: var(--glass-text, rgba(255, 255, 255, 0.9));
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.modChip:hover {
+  background: var(--glass-surface-hover, rgba(255, 255, 255, 0.18));
+  border-color: var(--indigo-400, #818cf8);
+  color: #ffffff;
+}
+
+.modChipActive {
+  background: rgba(99, 102, 241, 0.35);
+  border-color: var(--indigo-400, #818cf8);
+  color: #ffffff;
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.3);
+}
+
+.customModInput {
+  width: 44px;
+  padding: 3px 6px;
+  font-size: var(--font-xs, 0.75rem);
+  text-align: center;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.15));
+  border-radius: var(--radius-md, 6px);
+  color: #ffffff;
+  outline: none;
+}
+
+.customModInput:focus {
+  border-color: var(--indigo-400, #818cf8);
+}
+
+/* =============================================================================
+   Collapsible Upper Drawer: Dice Bag & Polyhedral Staging
+   ============================================================================= */
+.trayCard {
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-lg, 12px);
+  background: var(--glass-surface, rgba(255, 255, 255, 0.05));
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.trayHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-2, 0.5rem) var(--spacing-3, 0.75rem);
+  background: var(--glass-surface-subtle, rgba(255, 255, 255, 0.04));
+  border-bottom: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.08));
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.trayHeader:hover {
+  background: var(--glass-surface-hover, rgba(255, 255, 255, 0.09));
+}
+
+.trayTitleGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2, 0.5rem);
+}
+
+.trayTitle {
+  font-size: var(--font-sm, 0.875rem);
+  font-weight: 600;
+  color: var(--glass-text-strong, #ffffff);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.trayBadge {
+  font-size: var(--font-xs, 0.75rem);
+  background: var(--indigo-500, #6366f1);
+  color: #ffffff;
+  padding: 1px 7px;
+  border-radius: var(--radius-full, 9999px);
+  font-weight: 700;
+}
+
+.trayBody {
+  padding: var(--spacing-3, 0.75rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3, 0.75rem);
+}
+
+/* Polyhedral Grid */
+.polyGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+@media (max-width: 440px) {
+  .polyGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.dieCard {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 4px;
+  gap: 4px;
+  background: var(--glass-surface, rgba(255, 255, 255, 0.06));
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.12));
+  border-radius: var(--radius-md, 8px);
+  color: var(--glass-text, rgba(255, 255, 255, 0.9));
+  cursor: pointer;
+  transition: all 0.15s ease;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.dieCard:hover {
+  background: var(--glass-surface-hover, rgba(255, 255, 255, 0.14));
+  border-color: var(--indigo-400, #818cf8);
+  transform: translateY(-2px);
+}
+
+.dieCard:active {
+  transform: translateY(0);
+}
+
+.dieIcon {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+}
+
+.dieName {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.dieCountBadge {
+  position: absolute;
+  top: -5px;
+  right: -5px;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--indigo-500, #6366f1);
+  border: 2px solid var(--vtt-iron-900, #1c1e22);
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Quick Pool Chips */
+.quickPoolsRow {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.quickPoolLabel {
+  font-size: var(--font-xs, 0.75rem);
+  color: var(--glass-text-muted, rgba(255, 255, 255, 0.6));
+}
+
+.quickPoolChip {
+  padding: 2px 8px;
+  font-size: var(--font-xs, 0.75rem);
+  border-radius: var(--radius-md, 6px);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.12));
+  color: var(--glass-text, rgba(255, 255, 255, 0.85));
+  cursor: pointer;
+  transition: all 0.12s ease;
+}
+
+.quickPoolChip:hover {
+  background: var(--glass-surface-hover, rgba(255, 255, 255, 0.15));
+  border-color: var(--indigo-400, #818cf8);
+  color: #ffffff;
+}
+
+/* =============================================================================
+   Staging Pill & Roll Bar
+   ============================================================================= */
+.stagingBar {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2, 0.5rem);
+  padding: var(--spacing-2, 0.5rem) var(--spacing-3, 0.75rem);
+  background: var(--glass-surface-strong, rgba(255, 255, 255, 0.12));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.2));
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+}
+
+.stagingFormula {
+  flex: 1;
+  font-family: monospace;
+  font-size: var(--font-md, 1rem);
+  font-weight: 700;
+  color: var(--glass-text-strong, #ffffff);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.stagingFormulaEmpty {
+  color: var(--glass-text-light, rgba(255, 255, 255, 0.45));
+  font-family: inherit;
+  font-size: var(--font-sm, 0.875rem);
+  font-weight: 400;
+}
+
+.rollStagedButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: linear-gradient(135deg, var(--indigo-500, #6366f1) 0%, var(--purple-600, #9333ea) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: var(--radius-md, 8px);
+  color: #ffffff;
+  font-weight: 700;
+  font-size: var(--font-sm, 0.875rem);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.35);
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.rollStagedButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(99, 102, 241, 0.5);
+  filter: brightness(1.1);
+}
+
+.rollStagedButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+/* =============================================================================
+   Direct Formula Bar
+   ============================================================================= */
+.formulaSection {
+  display: flex;
+  gap: var(--spacing-2, 0.5rem);
+  align-items: center;
+}
+
+.formulaInput {
+  flex: 1;
+  padding: 8px 12px;
+  font-size: var(--font-sm, 0.875rem);
+  background: rgba(0, 0, 0, 0.25);
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.15));
+  border-radius: var(--radius-md, 8px);
+  color: #ffffff;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.formulaInput:focus {
+  border-color: var(--indigo-400, #818cf8);
+  box-shadow: 0 0 8px rgba(99, 102, 241, 0.25);
+}
+
+.formulaRollButton {
+  padding: 8px 16px;
+  background: var(--glass-surface, rgba(255, 255, 255, 0.1));
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.2));
+  border-radius: var(--radius-md, 8px);
+  color: var(--glass-text-strong, #ffffff);
+  font-weight: 600;
+  font-size: var(--font-sm, 0.875rem);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.formulaRollButton:hover {
+  background: var(--glass-surface-hover, rgba(255, 255, 255, 0.18));
+  border-color: var(--indigo-400, #818cf8);
+}
+
+/* =============================================================================
+   Saved D&D Macros Dock
+   ============================================================================= */
+.macrosSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2, 0.5rem);
+}
+
+.macroHeaderRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.manageMacrosBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background: var(--glass-surface, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.15));
+  border-radius: var(--radius-md, 6px);
+  color: var(--glass-text-muted, rgba(255, 255, 255, 0.7));
+  font-size: var(--font-xs, 0.75rem);
+  padding: 2px 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.manageMacrosBtn:hover {
+  background: var(--glass-surface-hover, rgba(255, 255, 255, 0.15));
+  color: #ffffff;
+  border-color: var(--purple-400, #c084fc);
+}
+
+.emptyMacrosPrompt {
+  font-size: var(--font-xs, 0.75rem);
+  color: var(--glass-text-light, rgba(255, 255, 255, 0.5));
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px dashed var(--glass-border-subtle, rgba(255, 255, 255, 0.15));
+  border-radius: var(--radius-md, 6px);
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.emptyMacrosPrompt:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #ffffff;
+  border-color: var(--purple-400, #c084fc);
+}
+
+.macrosList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--spacing-2, 0.5rem);
+  padding: 4px 0;
+}
+
+.macroChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: var(--font-xs, 0.75rem);
+  font-weight: 600;
+  border-radius: var(--radius-full, 9999px);
+  background: var(--glass-surface, rgba(255, 255, 255, 0.08));
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.15));
+  color: var(--glass-text-strong, #ffffff);
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
+}
+
+.macroChip:hover {
+  background: var(--glass-surface-hover, rgba(255, 255, 255, 0.16));
+  border-color: var(--indigo-400, #818cf8);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 8px rgba(99, 102, 241, 0.25);
+}
+
+.macroChip:active {
+  transform: translateY(0);
+}
+
+.bagBanner {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3, 0.75rem);
+  padding: var(--spacing-2, 0.5rem) var(--spacing-3, 0.75rem);
+  background: linear-gradient(135deg, rgba(245, 158, 11, 0.14) 0%, rgba(99, 102, 241, 0.08) 100%);
+  border: 1px solid rgba(251, 191, 36, 0.25);
+  border-radius: var(--radius-md, 8px);
+}
+
+.bagIllustration {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  filter: drop-shadow(0 2px 8px rgba(245, 158, 11, 0.5));
+}
+
+.bagBannerText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.bagBannerTitle {
+  font-size: var(--font-xs, 0.75rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #fbbf24;
+}
+
+.bagBannerHint {
+  font-size: 0.7rem;
+  color: var(--glass-text-muted, rgba(255, 255, 255, 0.75));
+  line-height: 1.3;
+}
+
+/* =============================================================================
+   Floating Dice Roll Toast Notification (3-4s transient alert)
+   ============================================================================= */
+.rollToast {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  border-radius: var(--radius-lg, 12px);
+  padding: 10px 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: var(--glass-blur, blur(12px));
+  backdrop-filter: var(--glass-blur, blur(12px));
+  overflow: hidden;
+  animation: slideDownToast 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  transition: all 0.2s ease;
+}
+
+@keyframes slideDownToast {
+  from {
+    opacity: 0;
+    transform: translateY(-12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.toastNormal {
+  background: linear-gradient(135deg, rgba(30, 27, 75, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1px solid rgba(129, 140, 248, 0.5);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.35);
+}
+
+.toastCritSuccess {
+  background: linear-gradient(135deg, rgba(6, 78, 59, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1.5px solid var(--emerald-400, #34d399);
+  box-shadow: 0 8px 28px rgba(52, 211, 153, 0.45);
+}
+
+.toastCritFailure {
+  background: linear-gradient(135deg, rgba(127, 29, 29, 0.95) 0%, rgba(15, 23, 42, 0.95) 100%);
+  border: 1.5px solid var(--red-400, #f87171);
+  box-shadow: 0 8px 28px rgba(239, 68, 68, 0.45);
+}
+
+.toastHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.toastBadge {
+  font-size: var(--font-xs, 0.75rem);
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #ffffff;
+}
+
+.toastCritSuccess .toastBadge {
+  color: var(--emerald-400, #34d399);
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.6);
+}
+
+.toastCritFailure .toastBadge {
+  color: var(--red-400, #f87171);
+  text-shadow: 0 0 8px rgba(239, 68, 68, 0.6);
+}
+
+.toastCloseBtn {
+  background: transparent;
+  border: none;
+  color: var(--glass-text-light, rgba(255, 255, 255, 0.6));
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm, 4px);
+  transition: color 0.12s ease;
+}
+
+.toastCloseBtn:hover {
+  color: #ffffff;
+}
+
+.toastBody {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-3, 0.75rem);
+}
+
+.toastFormulaCol {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.toastExpression {
+  font-family: monospace;
+  font-size: var(--font-sm, 0.875rem);
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.toastBreakdown {
+  font-size: var(--font-xs, 0.75rem);
+  color: var(--glass-text-muted, rgba(255, 255, 255, 0.75));
+}
+
+.toastTotalCol {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toastTotal {
+  font-size: 2rem;
+  font-weight: 900;
+  line-height: 1;
+  color: #ffffff;
+  text-shadow: 0 2px 6px rgba(0, 0, 0, 0.5);
+}
+
+.toastCritSuccess .toastTotal {
+  color: var(--emerald-300, #6ee7b7);
+  text-shadow: 0 0 12px rgba(52, 211, 153, 0.7);
+}
+
+.toastCritFailure .toastTotal {
+  color: var(--red-300, #fca5a5);
+  text-shadow: 0 0 12px rgba(239, 68, 68, 0.7);
+}
+
+.toastProgressBar {
+  height: 3px;
+  margin-top: 8px;
+  border-radius: var(--radius-full, 9999px);
+  background: rgba(255, 255, 255, 0.35);
+  width: 100%;
+  transform-origin: left;
+  animation: toastCountdown 3.5s linear forwards;
+}
+
+@keyframes toastCountdown {
+  from {
+    transform: scaleX(1);
+  }
+  to {
+    transform: scaleX(0);
+  }
+}
+
+/* =============================================================================
+   Macro Management Popup / Modal
+   ============================================================================= */
+.macroModalOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.65);
+  -webkit-backdrop-filter: var(--glass-blur-subtle, blur(10px));
+  backdrop-filter: var(--glass-blur-subtle, blur(10px));
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-4, 1rem);
+  box-sizing: border-box;
+}
+
+.macroModalBox {
+  width: 100%;
+  max-width: 480px;
+  max-height: 90%;
+  display: flex;
+  flex-direction: column;
+  background: var(--vtt-iron-900, #1c1e22);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.2));
+  border-radius: var(--radius-lg, 12px);
+  box-shadow: 0 12px 36px rgba(0, 0, 0, 0.6);
+  overflow: hidden;
+}
+
+.macroModalHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--spacing-3, 0.75rem) var(--spacing-4, 1rem);
+  border-bottom: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.1));
+}
+
+.macroModalTitle {
+  font-size: var(--font-md, 1rem);
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.macroModalSubtitle {
+  font-size: var(--font-xs, 0.75rem);
+  color: var(--glass-text-muted, rgba(255, 255, 255, 0.6));
+  margin-top: 2px;
+}
+
+.macroModalBody {
+  padding: var(--spacing-3, 0.75rem) var(--spacing-4, 1rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-3, 0.75rem);
+  overflow-y: auto;
+  max-height: 380px;
+}
+
+.macroToggleList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.macroToggleRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 12px;
+  background: var(--glass-surface, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.1));
+  border-radius: var(--radius-md, 8px);
+  transition: all 0.12s ease;
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.macroToggleRow:hover {
+  background: var(--glass-surface-hover, rgba(255, 255, 255, 0.1));
+  border-color: rgba(255, 255, 255, 0.2);
+}
+
+.macroToggleInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.macroToggleName {
+  font-size: var(--font-sm, 0.875rem);
+  font-weight: 600;
+  color: #ffffff;
+}
+
+.macroToggleFormula {
+  font-size: var(--font-xs, 0.75rem);
+  font-family: monospace;
+  color: var(--indigo-300, #a5b4fc);
+}
+
+.macroCheckboxWrapper {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.macroCheckbox {
+  width: 18px;
+  height: 18px;
+  accent-color: var(--indigo-500, #6366f1);
+  cursor: pointer;
+}
+
+.customMacroSection {
+  margin-top: var(--spacing-2, 0.5rem);
+  padding-top: var(--spacing-3, 0.75rem);
+  border-top: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.1));
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.customMacroHeading {
+  font-size: var(--font-xs, 0.75rem);
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--glass-text-muted, rgba(255, 255, 255, 0.7));
+}
+
+.customMacroInputsRow {
+  display: flex;
+  gap: 6px;
+}
+
+.customMacroNameInput {
+  flex: 1;
+  padding: 6px 10px;
+  font-size: var(--font-xs, 0.75rem);
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.15));
+  border-radius: var(--radius-md, 6px);
+  color: #ffffff;
+  outline: none;
+}
+
+.customMacroFormulaInput {
+  width: 100px;
+  padding: 6px 10px;
+  font-size: var(--font-xs, 0.75rem);
+  font-family: monospace;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.15));
+  border-radius: var(--radius-md, 6px);
+  color: #ffffff;
+  outline: none;
+}
+
+.addCustomMacroBtn {
+  padding: 6px 12px;
+  font-size: var(--font-xs, 0.75rem);
+  font-weight: 700;
+  background: var(--indigo-500, #6366f1);
+  border: none;
+  border-radius: var(--radius-md, 6px);
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.addCustomMacroBtn:hover {
+  background: var(--indigo-600, #4f46e5);
+}
+
+.macroModalFooter {
+  display: flex;
+  justify-content: flex-end;
+  padding: var(--spacing-3, 0.75rem) var(--spacing-4, 1rem);
+  border-top: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.1));
+}
+
+.doneModalBtn {
+  padding: 6px 18px;
+  font-size: var(--font-sm, 0.875rem);
+  font-weight: 600;
+  background: linear-gradient(135deg, var(--indigo-500, #6366f1) 0%, var(--purple-600, #9333ea) 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: var(--radius-md, 8px);
+  color: #ffffff;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.doneModalBtn:hover {
+  filter: brightness(1.1);
+}
+
+/* =============================================================================
+   Roll History Stream
+   ============================================================================= */
+.historySection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-2, 0.5rem);
+  margin-top: var(--spacing-2, 0.5rem);
+}
+
+.historyHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.historyList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.historyItem {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 10px;
+  background: var(--glass-surface-subtle, rgba(255, 255, 255, 0.04));
+  border: 1px solid var(--glass-border-subtle, rgba(255, 255, 255, 0.08));
+  border-radius: var(--radius-md, 6px);
+  transition: background 0.15s ease;
+}
+
+.historyItem:hover {
+  background: var(--glass-surface-hover, rgba(255, 255, 255, 0.08));
+}
+
+.historyItemLeft {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.historyExpression {
+  font-family: monospace;
+  font-size: var(--font-xs, 0.75rem);
+  font-weight: 700;
+  color: var(--glass-text-strong, #ffffff);
+}
+
+.historyBreakdown {
+  font-size: 0.7rem;
+  color: var(--glass-text-muted, rgba(255, 255, 255, 0.65));
+}
+
+.historyItemRight {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2, 0.5rem);
+}
+
+.historyTotal {
+  font-size: var(--font-md, 1rem);
+  font-weight: 800;
+  min-width: 24px;
+  text-align: right;
+  color: var(--glass-text-strong, #ffffff);
+}
+
+.critSuccess {
+  color: var(--emerald-400, #34d399);
+  text-shadow: 0 0 8px rgba(52, 211, 153, 0.5);
+}
+
+.critFailure {
+  color: var(--red-400, #f87171);
+  text-shadow: 0 0 8px rgba(239, 68, 68, 0.5);
+}
+
+.historyRerollBtn {
+  background: transparent;
+  border: none;
+  color: var(--glass-text-light, rgba(255, 255, 255, 0.45));
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: var(--radius-sm, 4px);
+  transition: color 0.12s ease;
+}
+
+.historyRerollBtn:hover {
+  color: var(--indigo-300, #a5b4fc);
+}
+
+.errorMessage {
+  font-size: var(--font-xs, 0.75rem);
+  color: var(--red-400, #f87171);
+  padding: 4px 8px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+  border-radius: var(--radius-md, 6px);
+}

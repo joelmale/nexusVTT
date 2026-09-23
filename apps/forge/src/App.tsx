@@ -168,6 +168,9 @@ const App: React.FC = () => {
   const [activeTab, setActiveTab] = useState<TabId>('characters');
   const [selectedMonster, setSelectedMonster] = useState<Monster | UserMonster | null>(null);
   const [editingMonster, setEditingMonster] = useState<UserMonster | null>(null);
+  // Lifted so the page shell below can drop its max-width cap for this tab --
+  // MonsterLibrary's own container can't reach past its parent's max-w-7xl.
+  const [monsterLibraryWidescreen, setMonsterLibraryWidescreen] = useState(false);
 
   // Character editing state
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null);
@@ -1080,7 +1083,11 @@ const App: React.FC = () => {
       <Route path="/encounter/:encounterId" element={<EmbeddableEncounterPage />} />
       <Route path="*" element={
         <div className="min-h-screen bg-theme-primary text-white font-sans">
-      <div className="max-w-7xl mx-auto p-4 md:p-8">
+      <div className={
+        activeTab === 'monsters' && monsterLibraryWidescreen
+          ? 'w-full mx-auto p-4 md:p-8'
+          : 'max-w-7xl mx-auto p-4 md:p-8'
+      }>
         {/* Header and Controls */}
         <header className="mb-8 relative">
           <TabNavigation activeTab={activeTab} onTabChange={setActiveTab} />
@@ -1251,6 +1258,8 @@ const App: React.FC = () => {
                 setCurrentEncounterId(encounterId);
                 setShowEncounterManager(true);
               }}
+              widescreen={monsterLibraryWidescreen}
+              onWidescreenChange={setMonsterLibraryWidescreen}
             />
           )
         ) : activeTab === 'npcs' ? (
