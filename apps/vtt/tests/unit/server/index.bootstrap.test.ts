@@ -7,6 +7,12 @@ describe('server bootstrap', () => {
 
   it('exposes port resolution without starting infrastructure during import', async () => {
     vi.stubEnv('PORT', '6123');
+    // server/auth.ts constructs a DatabaseService at module scope (it only
+    // stores connection config; pg.Pool connects lazily on first query, so
+    // this doesn't touch a real database). CI's unit-test job has no
+    // DATABASE_URL by design -- see tests/setup.ts -- so importing
+    // server/index.js transitively throws without a placeholder here.
+    vi.stubEnv('DATABASE_URL', 'postgresql://test:test@localhost:5432/test');
     const bootstrap = await import('../../../server/index.js');
 
     expect(bootstrap.resolveServerPort()).toBe(6123);
@@ -17,6 +23,9 @@ describe('server bootstrap', () => {
   });
 
   it('starts through an injected factory and shuts down only once per signal', async () => {
+    // See the note in the previous test: only needed if this import runs
+    // before server/index.js has been cached by an earlier test in this file.
+    vi.stubEnv('DATABASE_URL', 'postgresql://test:test@localhost:5432/test');
     const { startNexusServer } = await import('../../../server/index.js');
     const shutdown = vi.fn(async () => undefined);
     const createServer = vi.fn(() => ({ shutdown }) as never);
