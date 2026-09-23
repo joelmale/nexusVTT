@@ -1,6 +1,11 @@
 # Dockerfile for Nexus VTT Backend WebSocket Server
 
-FROM node:26.5.0-alpine
+# This image ships the Node.js runtime itself (single-stage, unlike the
+# multi-stage frontend build where the node builder stages are discarded and
+# only nginx:alpine ships) -- pin to a patch with the CVEs fixed upstream
+# rather than relying on apk upgrade, which only patches Alpine packages, not
+# the Node.js binary baked into this image.
+FROM node:26.5.1-alpine
 
 # Set working directory
 WORKDIR /workspace
