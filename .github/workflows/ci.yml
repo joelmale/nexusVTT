@@ -803,6 +803,7 @@ jobs:
 
       - name: Promote immutable digests and write release manifest
         shell: bash
+        working-directory: ${{ github.workspace }}
         env:
           SOURCE_SHA: ${{ needs.changes.outputs.source_sha }}
         run: |
