@@ -5,8 +5,10 @@ FROM node:26.5.0-alpine
 # Set working directory
 WORKDIR /workspace
 
-# Install runtime tools and create the non-root build/runtime user up front.
-RUN apk add --no-cache dumb-init curl netcat-openbsd postgresql-client && \
+# Install runtime tools, upgrade base OS packages, upgrade global npm (fixes bundled CVEs within engine range), and create non-root user.
+RUN apk upgrade --no-cache && \
+    apk add --no-cache dumb-init curl netcat-openbsd postgresql-client && \
+    npm install -g npm@^11.20.0 && \
     addgroup -g 1001 -S nodejs && \
     adduser -S nodejs -u 1001 && \
     chown nodejs:nodejs /workspace

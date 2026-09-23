@@ -29,8 +29,26 @@ function parseArguments(argv) {
 }
 
 function vitestVersion() {
-  const manifestPath = require.resolve('vitest/package.json');
-  return JSON.parse(fs.readFileSync(manifestPath, 'utf8')).version;
+  try {
+    const manifestPath = require.resolve('vitest/package.json', {
+      paths: [
+        process.cwd(),
+        path.resolve(import.meta.dirname, '..', '..'),
+        path.resolve(import.meta.dirname, '..', '..', 'apps', 'vtt'),
+      ],
+    });
+    return JSON.parse(fs.readFileSync(manifestPath, 'utf8')).version;
+  } catch {
+    const lockPath = path.resolve(import.meta.dirname, '..', '..', 'package-lock.json');
+    if (fs.existsSync(lockPath)) {
+      const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
+      const version =
+        lock.packages?.['node_modules/vitest']?.version ||
+        lock.packages?.['apps/vtt/node_modules/vitest']?.version;
+      if (version) return version;
+    }
+    fail('Unable to resolve vitest version from node_modules or package-lock.json');
+  }
 }
 
 function sha256(filePath) {

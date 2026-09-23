@@ -420,6 +420,15 @@ jobs:
             --reporter=blob
             --outputFile.blob=.vitest-reports/integration.json
 
+      - name: Fix report directory permissions
+        if: success()
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          if [ -d apps/vtt/.vitest-reports ]; then
+            sudo chown -R $(id -u):$(id -g) apps/vtt/.vitest-reports
+          fi
+
       - name: Write coverage provenance manifest
         if: success()
         shell: bash
@@ -971,6 +980,7 @@ jobs:
     steps:
       - name: Verify expected delivery outcomes
         shell: bash
+        working-directory: ${{ github.workspace }}
         env:
           EVENT_NAME: ${{ github.event_name }}
           GITHUB_REF_NAME: ${{ github.ref }}

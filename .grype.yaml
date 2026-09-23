@@ -1,0 +1,6 @@
+# Grype configuration for Nexus monorepo container security scans
+ignore:
+  # Upstream zero-day heap buffer overflow in zlib gz_vacate() for non-blocking gzwrite
+  # No vendor patch is currently available across Linux distributions (Alpine 3.24, Debian Bookworm).
+  - vulnerability: CVE-2026-85091
+    reason: Unfixed upstream in alpine 3.24 for zlib

@@ -128,6 +128,10 @@ RUN npm run build --workspace=admin-ui
 # Stage 6: Unified Production Gateway
 FROM nginx:alpine AS production
 
+# Upgrade base OS packages and purge unused image-filter module and its dependencies (removes tiff CVEs)
+RUN apk upgrade --no-cache && \
+    apk del nginx-module-image-filter libgd tiff
+
 COPY apps/vtt/docker/nginx.conf /etc/nginx/nginx.conf
 COPY apps/vtt/docker/security-headers.conf /etc/nginx/security-headers.conf
 

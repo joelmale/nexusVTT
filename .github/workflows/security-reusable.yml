@@ -187,6 +187,7 @@ jobs:
           image: nexus-vtt/${{ matrix.image }}:scan-${{ inputs.source_sha }}
           fail-build: true
           severity-cutoff: high
+          only-fixed: true
 
       - name: Generate container CycloneDX SBOM from the scanned image
         if: github.event_name != 'pull_request'

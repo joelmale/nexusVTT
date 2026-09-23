@@ -40,6 +40,10 @@ services:
       ASSET_SERVICE_SECRET: smoke-asset-secret
     volumes:
       - ../tests/e2e/fixtures/asset-manifest.json:/app/static-assets/assets/manifest.json:ro
+    networks:
+      default:
+        aliases:
+          - asset-server
     ports:
       - '${E2E_ASSET_PORT:-15003}:5003'
     healthcheck:

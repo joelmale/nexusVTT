@@ -28,14 +28,18 @@ test('a guest host rolls 3D dice and reconnects after backend downtime', async (
   });
   page.on('response', (response) => {
     if (
-      response.url().includes('/assets/dice-box/') &&
+      (response.url().includes('/assets/dice-box/') ||
+        response.url().includes('/assets/dice-box-threejs/')) &&
       response.status() >= 400
     ) {
       diceAssetFailures.push(`${response.status()} ${response.url()}`);
     }
   });
   page.on('requestfailed', (request) => {
-    if (request.url().includes('/assets/dice-box/')) {
+    if (
+      request.url().includes('/assets/dice-box/') ||
+      request.url().includes('/assets/dice-box-threejs/')
+    ) {
       diceAssetFailures.push(
         `${request.failure()?.errorText ?? 'failed'} ${request.url()}`,
       );
@@ -53,13 +57,16 @@ test('a guest host rolls 3D dice and reconnects after backend downtime', async (
 
   const themeButton = page.getByTitle(/^Dice Theme:/);
   await themeButton.click();
+  const themeOption = page.getByRole('button', { name: 'Bronze', exact: true });
+  await expect(themeOption).toBeVisible();
+  await themeOption.click();
   await expect(themeButton).toHaveAttribute(
     'title',
-    'Dice Theme: Dice of Rolling',
+    'Dice Theme: Bronze',
   );
   expect(
     await page.evaluate(() => localStorage.getItem('nexus_dice_theme')),
-  ).toBe('diceOfRolling');
+  ).toBe('bronze');
 
   await page
     .getByPlaceholder('Click dice below to build your roll...')

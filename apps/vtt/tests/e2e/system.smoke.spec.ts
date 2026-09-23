@@ -2,48 +2,26 @@ import type { APIResponse } from '@playwright/test';
 
 import { expect, test } from './support/diagnostics';
 
-const DICE_THEME_IDS = [
-  'blueGreenMetal',
-  'default',
-  'default-extras',
-  'diceOfRolling',
-  'diceOfRolling-fate',
-  'gemstone',
-  'gemstoneMarble',
-  'genesys',
-  'rock',
-  'rust',
-  'smooth',
-  'smooth-pip',
-  'wooden',
+const DICE_RUNTIME_TEXTURES = [
+  'astral.webp',
+  'bronze01.webp',
+  'dragon.webp',
+  'fire.webp',
+  'glitter.webp',
+  'ice.webp',
+  'marble.webp',
+  'metal.webp',
+  'paper.webp',
+  'wood.webp',
 ] as const;
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return value !== null && typeof value === 'object' && !Array.isArray(value);
-}
-
-function collectFileReferences(value: unknown): string[] {
-  if (typeof value === 'string') return [value];
-  if (!isRecord(value)) return [];
-  return Object.values(value).flatMap(collectFileReferences);
-}
-
-function themeReferences(config: unknown): string[] {
-  if (!isRecord(config)) throw new TypeError('Theme config must be an object.');
-
-  const references = new Set<string>();
-  if (typeof config.meshFile === 'string') references.add(config.meshFile);
-
-  if (isRecord(config.material)) {
-    for (const key of ['diffuseTexture', 'bumpTexture', 'specularTexture']) {
-      collectFileReferences(config.material[key]).forEach((file) =>
-        references.add(file),
-      );
-    }
-  }
-
-  return [...references];
-}
+const DICE_RUNTIME_SOUNDS = [
+  'dicehit/dicehit_coin1.mp3',
+  'dicehit/dicehit_metal1.mp3',
+  'dicehit/dicehit_wood1.mp3',
+  'surfaces/surface_felt1.mp3',
+  'surfaces/surface_wood_table1.mp3',
+] as const;
 
 async function expectNonEmpty(response: APIResponse, label: string) {
   expect(response.status(), label).toBe(200);
@@ -81,23 +59,18 @@ test('production services are healthy and guest sessions round-trip', async ({
 test('production serves the complete dice runtime asset graph', async ({
   request,
 }) => {
-  await expectNonEmpty(
-    await request.get('/assets/dice-box/ammo/ammo.wasm.wasm'),
-    'Ammo WASM',
-  );
+  for (const texture of DICE_RUNTIME_TEXTURES) {
+    await expectNonEmpty(
+      await request.get(`/assets/dice-box-threejs/textures/${texture}`),
+      `dice texture: ${texture}`,
+    );
+  }
 
-  for (const themeId of DICE_THEME_IDS) {
-    const themeRoot = `/assets/dice-box/themes/${themeId}`;
-    const configResponse = await request.get(`${themeRoot}/theme.config.json`);
-    await expectNonEmpty(configResponse, `${themeId} config`);
-    const config: unknown = await configResponse.json();
-
-    for (const file of themeReferences(config)) {
-      await expectNonEmpty(
-        await request.get(`${themeRoot}/${file}`),
-        `${themeId}/${file}`,
-      );
-    }
+  for (const sound of DICE_RUNTIME_SOUNDS) {
+    await expectNonEmpty(
+      await request.get(`/assets/dice-box-threejs/sounds/${sound}`),
+      `dice sound: ${sound}`,
+    );
   }
 });
 
