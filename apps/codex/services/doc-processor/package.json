@@ -50,7 +50,7 @@
     "@types/jest": "^29.5.11",
     "@types/node": "^20.10.6",
     "@types/pdf-parse": "^1.1.4",
-    "@types/pdfjs-dist": "^2.10.377",
+    "@types/pdfjs-dist": "^2.10.378",
     "jest": "^30.2.0",
     "prisma": "^5.7.1",
     "ts-jest": "^29.4.5",
