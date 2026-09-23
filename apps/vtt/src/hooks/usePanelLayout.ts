@@ -74,8 +74,12 @@ export const PANEL_DEFAULT_DIMENSIONS: Record<
     widescreen: { width: 560, height: 700 },
   },
   dice: {
-    original: { width: 380, height: 720 },
-    compact: { width: 340, height: 640 },
+    // Height must clear (default open y-offset 84 + edgeMargin 20) below a
+    // 720px-tall viewport, or useDraggablePanel's vertical clamp snaps the
+    // panel to the very top of the screen, burying the PanelDock underneath
+    // it -- see the "a guest host rolls 3D dice..." E2E smoke regression.
+    original: { width: 380, height: 600 },
+    compact: { width: 340, height: 560 },
     widescreen: { width: 640, height: 660 },
   },
   chat: {
