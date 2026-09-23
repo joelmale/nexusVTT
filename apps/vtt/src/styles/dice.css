@@ -1071,6 +1071,41 @@
     inset 0 2px 4px rgba(0, 0, 0, 0.1);
 }
 
+/* Dice Theme Dropdown (PopoverMenu content) */
+.dice-theme-menu {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  max-height: 320px;
+  overflow-y: auto;
+  min-width: 180px;
+}
+
+.dice-theme-menu__item {
+  display: block;
+  width: 100%;
+  padding: var(--panel-space-2, 0.5rem) var(--panel-space-3, 0.75rem);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--glass-text);
+  font-size: var(--panel-font-2, 0.875rem);
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.dice-theme-menu__item:hover {
+  background: var(--glass-surface-hover);
+}
+
+.dice-theme-menu__item--active {
+  background: var(--glass-surface-hover);
+  border-color: var(--color-primary, #6366f1);
+  color: var(--color-primary, #6366f1);
+  font-weight: 600;
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .dice-roller {
