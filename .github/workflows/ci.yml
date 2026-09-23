@@ -410,6 +410,13 @@ jobs:
       - name: Run integration tests with Docker Compose
         run: docker compose -f docker/docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test
         env:
+          # Mounts the repo inside the container at the identical absolute
+          # path it has on the runner, so vitest's `@/...` alias resolution
+          # (path.resolve(__dirname, ...)) produces the same file identity
+          # here as it does for the unit-test shards. Without this, the
+          # coverage-gate merge step double-counts every apps/vtt/src file.
+          # See docker/docker-compose.test.yml for the full explanation.
+          HOST_WORKSPACE: ${{ github.workspace }}
           VITEST_CI_ARGS: >-
             --coverage
             --coverage.thresholds.lines=0
