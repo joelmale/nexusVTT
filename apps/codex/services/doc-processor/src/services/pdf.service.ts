@@ -1,19 +1,26 @@
-import pdfParse from 'pdf-parse';
+import { PDFParse } from 'pdf-parse';
 
 class PDFService {
   /**
    * Extract text content from PDF buffer
    */
-  async extractText(buffer: Buffer): Promise<{ text: string; pageCount: number }> {
+  async extractText(
+    buffer: Buffer,
+  ): Promise<{ text: string; pageCount: number }> {
+    const parser = new PDFParse({ data: buffer });
+
     try {
-      const data = await pdfParse(buffer);
+      const data = await parser.getText();
 
       return {
         text: data.text,
-        pageCount: data.numpages,
+        pageCount: data.total,
       };
-    } catch (error: any) {
-      throw new Error(`Failed to extract text from PDF: ${error.message}`);
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new Error(`Failed to extract text from PDF: ${message}`);
+    } finally {
+      await parser.destroy();
     }
   }
 }
