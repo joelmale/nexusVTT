@@ -393,6 +393,20 @@ jobs:
         with:
           ref: ${{ needs.changes.outputs.source_sha }}
 
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      # Only needed so "Write coverage provenance manifest" below can resolve
+      # vitest/package.json on the runner -- the tests themselves run inside
+      # Docker Compose, which installs its own node_modules in-container.
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ github.workspace }}
+
       - name: Run integration tests with Docker Compose
         run: docker compose -f docker/docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test
         env:
