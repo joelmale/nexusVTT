@@ -96,7 +96,7 @@ export const AboutModal: React.FC<AboutModalProps> = ({ isOpen, onClose }) => {
             status: 'ok',
             timestamp: Date.now(),
             runtime: {
-              nodeVersion: 'Node.js v26.5.0',
+              nodeVersion: 'Node.js v26.5.1',
               platform: 'linux',
               arch: 'x64',
               osRelease: '6.8.0-139-generic',

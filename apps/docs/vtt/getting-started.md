@@ -6,7 +6,7 @@ This guide will walk you through setting up your development environment for Nex
 
 Before you begin, ensure you have the following installed:
 
-- **Node.js:** Version 26.5.0 or newer in the Node 26 line.
+- **Node.js:** Version 26.5.1 or newer in the Node 26 line.
 - **npm:** Version 11 (installed with the supported Node toolchain).
 - **Git:** For cloning the repository.
 - **Docker Desktop:** Must be installed and running.

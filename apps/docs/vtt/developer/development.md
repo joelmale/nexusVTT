@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Node.js 26.5.0 or newer in the Node 26 line
+- Node.js 26.5.1 or newer in the Node 26 line
 - npm 11 or newer
 - Docker with Compose for PostgreSQL, Redis, integration, and smoke tests
 

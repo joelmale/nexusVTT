@@ -48,7 +48,7 @@ permissions:
   contents: read
 
 env:
-  NODE_VERSION: '26.5.0'
+  NODE_VERSION: '26.5.1'
 
 defaults:
   run:
@@ -699,9 +699,11 @@ jobs:
   publish-images:
     name: 'Build immutable release image: ${{ matrix.name }}'
     if: >-
-      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) ||
-      (github.event_name == 'push' && needs.changes.outputs.vtt == 'true') ||
-      (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == '')
+      ${{ always() && needs.required.result == 'success' && (
+        (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) ||
+        (github.event_name == 'push' && needs.changes.outputs.vtt == 'true') ||
+        (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == '')
+      ) }}
     needs: [changes, required]
     runs-on: ubuntu-latest
     timeout-minutes: 45

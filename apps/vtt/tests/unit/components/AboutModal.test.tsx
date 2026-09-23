@@ -8,7 +8,7 @@ const mockSystemInfo: SystemInfoResponse = {
   status: 'ok',
   timestamp: 1726650000000,
   runtime: {
-    nodeVersion: 'v26.5.0',
+    nodeVersion: 'v26.5.1',
     platform: 'linux',
     arch: 'x64',
     osRelease: '6.8.0-generic',

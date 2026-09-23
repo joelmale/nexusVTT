@@ -4,7 +4,7 @@ This guide sets up Nexus VTT for local development.
 
 ## Prerequisites
 
-- Node.js `26.5.0` or newer on the Node 26 line
+- Node.js `26.5.1` or newer on the Node 26 line
 - npm `11.0.0` or newer
 - Docker Desktop or Docker Engine
 - Git
