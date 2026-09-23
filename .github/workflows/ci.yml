@@ -213,16 +213,16 @@ jobs:
         working-directory: ${{ github.workspace }}
 
       - name: Run ESLint
-        run: npm run lint
+        run: npm run lint --workspace=nexus-vtt
 
       - name: Run TypeScript type check
-        run: npm run type-check
+        run: npm run type-check --workspace=nexus-vtt
 
       - name: Check import cycles
-        run: npm run check:cycles
+        run: npm run check:cycles --workspace=nexus-vtt
 
       - name: Verify dice assets
-        run: npm run check:dice-assets
+        run: npm run check:dice-assets --workspace=nexus-vtt
 
   unit-tests:
     name: 'VTT: unit tests'
