@@ -116,16 +116,30 @@ export default defineConfig({
         // suite, so the gate fails when coverage REGRESSES rather than
         // describing an aspiration. Raise them whenever real coverage rises.
         //
-        // Measured 2026-09-18 (Phase 3 services & backend):
-        // statements 53.3, branches 43.2, functions 52.7, lines 53.9.
+        // Recalibrated 2026-09-23: the previous baseline (statements 53.3,
+        // branches 43.2, functions 52.7, lines 53.9, "measured 2026-09-18")
+        // was itself computed from a broken CI aggregate -- the
+        // integration-test container and the unit-test shards resolved the
+        // `@/...` alias to two different absolute paths, so
+        // `vitest --merge-reports` double-counted every apps/vtt/src file
+        // and inflated the merged percentage. With that merge path fixed
+        // (see docker/docker-compose.test.yml + .github/workflows/ci.yml,
+        // HOST_WORKSPACE), a full local `vitest run --coverage` across the
+        // whole suite (unit + integration, current main incl. the coverage
+        // and server-bootstrap work merged 2026-09-22) measured:
+        // statements 49.72, branches 40.48, functions 47.97, lines 50.39.
+        // Thresholds below are the floor of that measurement, matching this
+        // file's existing ratchet convention. Raise them again as real
+        // coverage improves -- do not raise them back toward the old,
+        // inflated baseline.
         //
         // NOTE: these keys must stay flat. Vitest treats an unknown key such
         // as Jest's `global: { ... }` as a file glob, matches nothing, and
         // enforces nothing -- verified by probe on 2026-09-17.
-        lines: 53,
-        functions: 52,
-        branches: 43,
-        statements: 53,
+        lines: 50,
+        functions: 47,
+        branches: 40,
+        statements: 49,
       },
     },
     include: [
