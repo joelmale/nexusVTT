@@ -1,4 +1,13 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
+
+// httpApp.js imports server/auth.js at module scope, which eagerly constructs
+// a DatabaseService and throws without DATABASE_URL (see
+// httpApp.factory.test.ts for the same pattern). This test only exercises
+// the pure createCorsOriginValidator export, so auth.js is irrelevant here.
+vi.mock('../../../../server/auth.js', () => ({
+  default: { initialize: () => (_req: unknown, _res: unknown, next: () => void) => next(), session: () => (_req: unknown, _res: unknown, next: () => void) => next() },
+}));
+
 import { createCorsOriginValidator } from '../../../../server/bootstrap/httpApp.js';
 
 describe('HTTP app bootstrap', () => {
