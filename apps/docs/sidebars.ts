@@ -6,6 +6,11 @@ const sidebars: SidebarsConfig = {
     'dependency-policy',
     {
       type: 'category',
+      label: 'Architecture and operations',
+      items: ['private-admin-control-plane'],
+    },
+    {
+      type: 'category',
       label: 'Integrations',
       items: [
         'integrations/NEXUSCODEX_INTEGRATION',
