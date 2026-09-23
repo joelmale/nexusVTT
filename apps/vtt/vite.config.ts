@@ -180,6 +180,9 @@ export default defineConfig(({ command, mode }) => {
             /^\/one-page-dungeon/,
             /^\/world-map-generator/,
             /^\/generator-hub/,
+            /^\/codex-dm/,
+            /^\/codex-admin/,
+            /^\/forge/,
           ],
         },
         devOptions: {
