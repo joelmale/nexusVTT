@@ -5,6 +5,7 @@ import { createDiceRoll } from '@/utils/dice';
 import { webSocketService } from '@/services/websocket';
 import { diceSounds } from '@/services/diceSounds';
 import { initializeTheme } from '@/services/themeManager';
+import { DICE_THEMES, getStoredDiceTheme } from '@/utils/diceThemes';
 import Volume2 from 'lucide-react/dist/esm/icons/volume-2';
 import VolumeX from 'lucide-react/dist/esm/icons/volume-x';
 import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
@@ -85,18 +86,6 @@ const CATALOG_MACROS: MacroItem[] = [
 
 const DEFAULT_ENABLED_IDS = ['attack', 'sneak', 'fireball', 'cure', 'death_save'];
 
-const DICE_THEMES = [
-  { id: 'white', name: 'Default' },
-  { id: 'black', name: 'Black' },
-  { id: 'bronze', name: 'Bronze' },
-  { id: 'dragons', name: 'Dragons' },
-  { id: 'fire', name: 'Fire' },
-  { id: 'ice', name: 'Ice' },
-  { id: 'poison', name: 'Poison' },
-  { id: 'astralsea', name: 'Astral Sea' },
-  { id: 'rainbow', name: 'Rainbow' },
-];
-
 export const ContextualDiceHUD: React.FC<ContextualDiceHUDProps> = ({
   onSwitchToClassic,
 }) => {
@@ -164,11 +153,7 @@ export const ContextualDiceHUD: React.FC<ContextualDiceHUDProps> = ({
 
   // Dice theme
   const [diceTheme, setDiceTheme] = useState<string>(() => {
-    try {
-      return localStorage.getItem('nexus_dice_theme') || 'white';
-    } catch {
-      return 'white';
-    }
+    return getStoredDiceTheme();
   });
 
   // Active Roll Toast Notification (transient 3.5s feedback)

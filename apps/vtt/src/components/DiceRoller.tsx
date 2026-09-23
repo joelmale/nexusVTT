@@ -5,6 +5,7 @@ import { createDiceRoll, formatDiceRoll } from '@/utils/dice';
 import { webSocketService } from '@/services/websocket';
 import { diceSounds } from '@/services/diceSounds';
 import { initializeTheme } from '@/services/themeManager';
+import { DICE_THEMES, getStoredDiceTheme } from '@/utils/diceThemes';
 import { PopoverMenu } from './PopoverMenu';
 import DOMPurify from 'dompurify';
 
@@ -64,27 +65,8 @@ export const DiceRoller: React.FC = () => {
   // names -- an old stored id (e.g. 'smooth') just won't match any entry
   // below and silently falls back to the default label/id.
   const [diceTheme, setDiceTheme] = useState<string>(() => {
-    try {
-      return localStorage.getItem('nexus_dice_theme') || 'white';
-    } catch {
-      return 'white';
-    }
+    return getStoredDiceTheme();
   });
-
-  // Available dice themes
-  // dice-box-threejs colorset ids (see node_modules/@3d-dice/dice-box-threejs
-  // -- there are ~50 available; this is a curated subset).
-  const DICE_THEMES = [
-    { id: 'white', name: 'Default' },
-    { id: 'black', name: 'Black' },
-    { id: 'bronze', name: 'Bronze' },
-    { id: 'dragons', name: 'Dragons' },
-    { id: 'fire', name: 'Fire' },
-    { id: 'ice', name: 'Ice' },
-    { id: 'poison', name: 'Poison' },
-    { id: 'astralsea', name: 'Astral Sea' },
-    { id: 'rainbow', name: 'Rainbow' },
-  ];
 
   // Effect to scroll to the top when a new roll is added.
   useEffect(() => {

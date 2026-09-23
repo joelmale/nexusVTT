@@ -55,6 +55,19 @@ function sha256Base64(value: string): string {
   return createHash('sha256').update(value, 'utf8').digest('base64');
 }
 
+function firstAppScriptSrc(nginxConf: string): string[] {
+  const appCsp = nginxConf.slice(0, nginxConf.indexOf('location /assets'));
+  const cspHeader =
+    /add_header\s+Content-Security-Policy\s+"([^"]+)"/.exec(appCsp)?.[1] ??
+    '';
+  const scriptSrc =
+    cspHeader
+      .split(';')
+      .find((directive) => directive.trim().startsWith('script-src')) ?? '';
+
+  return scriptSrc.trim().split(/\s+/).slice(1);
+}
+
 describe('production CSP hash for the inline theme script', () => {
   const html = readFileSync(repoFile('index.html'), 'utf8');
   const nginxConf = readFileSync(repoFile('docker', 'nginx.conf'), 'utf8');
@@ -84,6 +97,13 @@ describe('production CSP hash for the inline theme script', () => {
     expect(nginxConf).toMatch(/worker-src[^;"]*blob:/);
   });
 
+  it('allows the Cloudflare analytics beacon without allowing arbitrary scripts', () => {
+    const appScriptSrc = firstAppScriptSrc(nginxConf);
+
+    expect(appScriptSrc).toContain('https://static.cloudflareinsights.com');
+    expect(appScriptSrc).not.toContain('https:');
+  });
+
   it('relaxes inline scripts for the generator hub only', () => {
     // The vendored generators bootstrap via an inline lime.embed() call, so
     // that path needs 'unsafe-inline' -- but the app itself must not have it.
@@ -93,8 +113,6 @@ describe('production CSP hash for the inline theme script', () => {
     const hubCsp = hubBlock.slice(0, hubBlock.indexOf('}'));
     expect(hubCsp).toContain("'unsafe-inline'");
 
-    const appCsp = nginxConf.slice(0, nginxConf.indexOf('location /assets'));
-    const appScriptSrc = /script-src([^;"]*)/.exec(appCsp)?.[1] ?? '';
-    expect(appScriptSrc).not.toContain("'unsafe-inline'");
+    expect(firstAppScriptSrc(nginxConf)).not.toContain("'unsafe-inline'");
   });
 });

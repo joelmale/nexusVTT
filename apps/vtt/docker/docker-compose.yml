@@ -109,8 +109,6 @@ services:
       - backend
     environment:
       - NODE_ENV=production
-    volumes:
-      - nexus-assets:/usr/share/nginx/html/assets:ro
     networks:
       - nexus-internal
       - proxy

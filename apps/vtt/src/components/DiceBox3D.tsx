@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import DiceBox from '@3d-dice/dice-box-threejs';
 import { useGameStore, useSettings } from '@/stores/gameStore';
 import { diceSounds } from '@/services/diceSounds';
+import { getStoredDiceTheme, normalizeDiceTheme } from '@/utils/diceThemes';
 
 /**
  * Feature-detect WebGL without stranding the probe context. Browsers cap the
@@ -102,11 +103,7 @@ export const DiceBox3D: React.FC = () => {
   // Get dice theme (a dice-box-threejs colorset id) from localStorage,
   // synced with DiceRoller component.
   const getDiceTheme = useCallback(() => {
-    try {
-      return localStorage.getItem('nexus_dice_theme') || 'white';
-    } catch {
-      return 'white';
-    }
+    return getStoredDiceTheme();
   }, []);
 
   // Initialize DiceBox
@@ -287,7 +284,7 @@ export const DiceBox3D: React.FC = () => {
   useEffect(() => {
     const handleDiceThemeChanged = (event: Event) => {
       const detail = (event as CustomEvent<{ theme?: string }>).detail;
-      const theme_colorset = detail?.theme ?? getDiceTheme();
+      const theme_colorset = normalizeDiceTheme(detail?.theme ?? getDiceTheme());
       if (!diceBoxRef.current || !isInitialized) return;
       diceBoxRef.current.updateConfig({ theme_colorset }).catch((error) => {
         console.warn('🎲 Failed to update theme:', error);
