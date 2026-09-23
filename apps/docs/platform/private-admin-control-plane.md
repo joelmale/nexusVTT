@@ -5,7 +5,7 @@ title: Private admin control plane implementation plan
 # Private admin control plane implementation plan
 
 - Date: 2026-09-23
-- Status: Proposed implementation plan; no deployment performed
+- Status: Phase 0 implemented in repository; not yet deployed
 
 ## Outcome
 
@@ -410,6 +410,60 @@ Deliverables:
 Gate: an unauthenticated request through `app.nexusvtt.com` cannot load the
 admin SPA or invoke an administrative mutation, while normal VTT document and
 game workflows still pass.
+
+#### Phase 0 status
+
+Implemented in repository (uncommitted at time of writing). **Deployment:
+pending** -- none of this has been rolled out to the homelab stack yet.
+
+Implemented behaviors:
+
+- The public gateway (`apps/vtt/docker/nginx.conf`) returns `404` for
+  `/codex-admin`, `/api/admin/`, `/api/documents/bulk`,
+  `/api/documents/:id/process`, `/api/deduplication/`, `/api/processing/`,
+  `/api/references/`, and `/api/annotations/`.
+- The generic `/codex-api/` doc-api proxy is gone. Only four DM UI reads
+  remain reachable under `/codex-api/`: `/api/search/quick`,
+  `/api/structured-data`, `/api/documents/:id`, and
+  `/api/documents/:id/content`. These are GET/HEAD only (`limit_except GET`)
+  and gated by an nginx `auth_request` against the VTT backend's new
+  `GET /auth/session-check` (`apps/vtt/server/routes/auth.routes.ts`), which
+  returns `204` for a signed-in, non-guest VTT account and `401` otherwise.
+  `/codex-ws` is unchanged; it already requires a JWT.
+- `/api/metrics/*` on the VTT backend (`delta-sync`, `ordered-events`,
+  `realtime`, `multiplayer`) now requires the same `METRICS_AUTH_TOKEN` bearer
+  token that already guarded `/metrics`. Homelab Compose
+  (`compose.yaml`, `compose.vtt.yaml`) now fails to start without
+  `METRICS_AUTH_TOKEN` set (`${METRICS_AUTH_TOKEN:?...}`), instead of
+  silently serving `/metrics` unauthenticated when the variable was empty.
+- Homelab network containment: `doc-api` is now on `nexus-internal-net` only
+  (removed from the shared `homelab-net`); `frontend` joined
+  `nexus-internal-net` so the gateway can still reach it; `admin-ui` and
+  `dm-ui` no longer publish host ports `3080`/`3081`.
+- The Lobby Development Tools panel (`LinearWelcomePage.tsx`) no longer shows
+  the "Admin Panel" button or the "Codex Admin UI" link.
+
+Route classification (old public path -> new public behavior -> reason):
+
+| Old public path                    | New public behavior                          | Reason                                                                 |
+| ----------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------- |
+| `/codex-admin`, `/codex-admin/*`    | `404`                                          | Admin SPA has no authenticated public surface until Phase 1's private hostname exists |
+| `/api/admin/*`                      | `404`                                          | Unauthenticated `doc-api` admin API; never safe on the public vhost while `AUTH_DISABLED=true` |
+| `/api/documents/bulk`               | `404`                                          | Bulk ingestion is an admin action, not a player/DM function            |
+| `/api/documents/:id/process`        | `404`                                          | Reprocessing trigger is an admin action                                |
+| `/api/deduplication/*`              | `404`                                          | Admin-only maintenance surface                                         |
+| `/api/processing/*`                 | `404`                                          | Admin-only maintenance surface                                         |
+| `/api/references/*`                 | `404`                                          | Not an approved player/DM function; no VTT BFF equivalent yet          |
+| `/api/annotations/*`                | `404`                                          | Not an approved player/DM function; no VTT BFF equivalent yet          |
+| `/codex-api/*` (generic proxy)      | `404` except four allowlisted GET reads        | A blanket proxy to `doc-api` bypassed authentication entirely; only the DM UI's actual read calls are preserved |
+| `/codex-api/api/search/quick`, `/structured-data`, `/documents/:id`, `/documents/:id/content` | Proxied, GET/HEAD only, gated by `auth_request` -> `/auth/session-check` | These are the DM UI's real read calls (`apps/codex/services/dm-ui/src/services/codex-api.ts`); scoping and authenticating them keeps the DM planner working without reopening the generic proxy |
+| `/codex-ws`                         | Unchanged                                      | Already requires a JWT                                                 |
+
+Known behavior change: the four remaining `/codex-api/` reads used by the DM
+UI now require a **signed-in, non-guest** VTT account. A guest session (the
+common way to start a quick game) gets `401` from `/auth/session-check` and
+the DM planner's document reads will fail until the user is authenticated
+with a real account. This was not previously enforced at the gateway.
 
 ### Phase 1 - Establish private ingress
 

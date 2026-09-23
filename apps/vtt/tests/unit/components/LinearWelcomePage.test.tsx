@@ -415,15 +415,16 @@ describe('LinearWelcomePage', () => {
       expect(screen.queryByText('⚡ Development Tools')).not.toBeInTheDocument();
     });
 
-    it('exposes Quick DM, Quick Player and Admin Panel in dev mode', () => {
+    it('exposes Quick DM and Quick Player but no admin entry points in dev mode', () => {
       devModeRef.value = true;
       mockStore(defaultState());
       render(<LinearWelcomePage />);
       expect(screen.getByText('⚡ Development Tools')).toBeInTheDocument();
       fireEvent.click(screen.getByText('🎮 Quick DM'));
       fireEvent.click(screen.getByText('👤 Quick Player'));
-      fireEvent.click(screen.getByText('⚙️ Admin Panel'));
-      expect(mockNavigate).toHaveBeenCalledWith('/admin');
+      expect(screen.queryByText(/Admin Panel/)).not.toBeInTheDocument();
+      expect(screen.queryByText(/Codex Admin UI/)).not.toBeInTheDocument();
+      expect(mockNavigate).not.toHaveBeenCalledWith('/admin');
     });
 
     it('runs the server-gated Quick Start seeding flow', () => {

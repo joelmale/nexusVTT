@@ -32,10 +32,14 @@ ephemeral fanout, presence, and host-lease layer.
 | `/api/metrics/realtime`       | JSON            | Redis connectivity, fanout, gap repair, and host-lease health             |
 
 Set `METRICS_AUTH_TOKEN` to require `Authorization: Bearer <token>` on
-`/metrics`. The `/api/metrics/*` routes are application diagnostics and should
-be restricted at the reverse proxy in public deployments. The supplied nginx
-configuration does not expose the backend `/metrics` route through the
-frontend, so the Compose scraper reaches it on the internal network.
+`/metrics` and on every `/api/metrics/*` route -- the same guard covers both,
+so the JSON diagnostics endpoints are no longer implicitly open just because
+they're reachable through the public `/api` proxy. The homelab Compose files
+require this variable (`METRICS_AUTH_TOKEN:?...` in `compose.yaml` and
+`compose.vtt.yaml`); an empty value would otherwise serve `/metrics` and the
+JSON routes with no auth check at all. The supplied nginx configuration does
+not expose the backend `/metrics` route through the frontend, so the Compose
+scraper reaches it on the internal network.
 
 ## SLOs
 

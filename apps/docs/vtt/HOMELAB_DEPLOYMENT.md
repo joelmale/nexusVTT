@@ -79,6 +79,7 @@ REDIS_PASSWORD=<strong secret>
 JWT_SECRET=<strong secret>
 SESSION_SECRET=<strong secret>
 ASSET_SERVICE_SECRET=<strong secret>
+METRICS_AUTH_TOKEN=<strong secret>
 
 CORS_ORIGIN=https://app.nexusvtt.com
 GOOGLE_CALLBACK_URL=https://app.nexusvtt.com/auth/google/callback
@@ -197,8 +198,13 @@ Run:
 ```bash
 curl https://app.nexusvtt.com/health
 curl https://app.nexusvtt.com/api/system/health
-curl https://app.nexusvtt.com/api/metrics/multiplayer
+curl -H "Authorization: Bearer $METRICS_AUTH_TOKEN" \
+  https://app.nexusvtt.com/api/metrics/multiplayer
 ```
+
+`/api/metrics/multiplayer` and the other `/api/metrics/*` JSON routes now
+require the same `METRICS_AUTH_TOKEN` bearer token as `/metrics`; a request
+without it returns `401`.
 
 Then perform a browser smoke:
 

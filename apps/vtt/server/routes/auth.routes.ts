@@ -12,7 +12,8 @@ export interface AuthRouterDependencies {
 
 /**
  * Builds the authentication router: local registration/login, the Google and
- * Discord OAuth entry points and callbacks, logout, and the current-user probe.
+ * Discord OAuth entry points and callbacks, logout, the current-user probe, and
+ * the gateway session check.
  *
  * Mounted at the application root so the routes keep their `/auth/...` paths.
  */
@@ -176,6 +177,14 @@ export function createAuthRouter({
       res.redirect('/');
     });
   });
+  // Gate for the gateway's nginx `auth_request` (docker/nginx.conf). Body-less
+  // and profile-free because nginx only reads the status. Guest sessions do
+  // not pass: anyone can mint one anonymously via POST /api/guest-users.
+  router.get('/auth/session-check', (req, res) => {
+    res.set('Cache-Control', 'no-store');
+    res.status(req.isAuthenticated() ? 204 : 401).end();
+  });
+
   router.get('/auth/me', async (req, res) => {
     if (req.isAuthenticated()) {
       try {

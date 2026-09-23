@@ -38,8 +38,11 @@ services:
     hostname: nexus-vtt2-frontend
     environment:
       NODE_ENV: production
+    # nexus-internal-net lets the gateway keep reaching doc-api (see
+    # compose.codex.yaml) now that doc-api is off homelab-net.
     networks:
       - homelab-net
+      - nexus-internal-net
     restart: unless-stopped
 
   backend:
@@ -62,7 +65,9 @@ services:
       DOC_API_URL: http://doc-api:3000
       ASSET_API_URL: http://asset-server:5003
       ASSET_SERVICE_SECRET: ${ASSET_SERVICE_SECRET}
-      METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
+      # Phase 0: /metrics fails open when this is empty (see the matching
+      # comment on this variable in compose.yaml). Require it in production.
+      METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:?METRICS_AUTH_TOKEN is required, see deploy/homelab/.env.example}
       MULTIPLAYER_SLO_COMMIT_P95_MS: ${MULTIPLAYER_SLO_COMMIT_P95_MS:-250}
       MULTIPLAYER_SLO_RESYNC_RATE_RATIO: ${MULTIPLAYER_SLO_RESYNC_RATE_RATIO:-0.01}
       MULTIPLAYER_SLO_QUEUE_DEPTH: ${MULTIPLAYER_SLO_QUEUE_DEPTH:-100}

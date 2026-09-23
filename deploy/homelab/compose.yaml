@@ -86,8 +86,13 @@ services:
     hostname: nexus-vtt2-frontend
     environment:
       NODE_ENV: production
+    # nexus-internal-net lets the gateway proxy its authenticated, read-only
+    # /codex-api/ allowlist to doc-api, which is no longer on homelab-net.
+    # homelab-net stays so the edge proxy (npm) can reach this container and
+    # it can reach backend/asset-server/doc-websocket.
     networks:
     - homelab-net
+    - nexus-internal-net
     restart: unless-stopped
   backend:
     image: ${BACKEND_IMAGE:-ghcr.io/joelmale/nexusvtt/backend:latest}
@@ -118,7 +123,11 @@ services:
       DOC_API_URL: http://doc-api:3000
       ASSET_API_URL: http://asset-server:5003
       ASSET_SERVICE_SECRET: ${ASSET_SERVICE_SECRET:?ASSET_SERVICE_SECRET is required, see deploy/homelab/.env.example}
-      METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:-}
+      # Phase 0 (private-admin-control-plane.md): server/routes/metrics.routes.ts
+      # only checks the bearer token when configuredToken is truthy, so an
+      # empty value serves GET /metrics with no auth at all. Require it in
+      # production instead of silently failing open.
+      METRICS_AUTH_TOKEN: ${METRICS_AUTH_TOKEN:?METRICS_AUTH_TOKEN is required, see deploy/homelab/.env.example}
       MULTIPLAYER_SLO_COMMIT_P95_MS: ${MULTIPLAYER_SLO_COMMIT_P95_MS:-250}
       MULTIPLAYER_SLO_RESYNC_RATE_RATIO: ${MULTIPLAYER_SLO_RESYNC_RATE_RATIO:-0.01}
       MULTIPLAYER_SLO_QUEUE_DEPTH: ${MULTIPLAYER_SLO_QUEUE_DEPTH:-100}
@@ -179,8 +188,16 @@ services:
       JWT_SECRET: ${CODEX_JWT_SECRET:?CODEX_JWT_SECRET is required, see deploy/homelab/.env.example}
       AUTH_DISABLED: 'true'
       EMBEDDINGS_PROVIDER: hash
+    # Phase 0 containment (private-admin-control-plane.md invariant 2): doc-api
+    # runs with AUTH_DISABLED=true, so it must never sit on a network shared
+    # with untrusted containers. homelab-net is the flat bridge shared with
+    # every other homelab service (media stack, dashboards, the npm edge
+    # proxy, etc.) -- any of them could otherwise resolve http://doc-api:3000
+    # with zero authentication. nexus-internal-net is docker-internal (no
+    # external connectivity) and is enough for postgres/redis/elasticsearch/
+    # minio and the frontend gateway (see frontend's networks below) to reach
+    # it. Do not add homelab-net back here without re-enabling AUTH_DISABLED.
     networks:
-    - homelab-net
     - nexus-internal-net
     depends_on:
       postgres:
@@ -243,32 +260,10 @@ services:
       redis:
         condition: service_healthy
     restart: on-failure
-  admin-ui:
-    image: ${ADMIN_UI_IMAGE:-ghcr.io/joelmale/nexuscodex-admin-ui:main}
-    pull_policy: always
-    ports:
-    - 3080:80
-    environment:
-      VITE_DOC_API_URL: /api
-      VITE_WEBSOCKET_URL: /ws
-    networks:
-    - homelab-net
-    depends_on:
-    - doc-api
-    restart: on-failure
-  dm-ui:
-    image: ${DM_UI_IMAGE:-ghcr.io/joelmale/nexuscodex-dm-ui:main}
-    pull_policy: always
-    ports:
-    - 3081:80
-    environment:
-      VITE_DOC_API_URL: /api
-      VITE_WEBSOCKET_URL: /ws
-    networks:
-    - homelab-net
-    depends_on:
-    - doc-api
-    restart: on-failure
+  # No standalone admin-ui/dm-ui containers (private-admin-control-plane.md
+  # invariant 3): their nginx proxied /api/ to doc-api unauthenticated. The
+  # frontend gateway serves /codex-dm/; the admin UI returns on the Phase 1
+  # private vhost.
 networks:
   homelab-net:
     external: true

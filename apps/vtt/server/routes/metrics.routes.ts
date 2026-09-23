@@ -1,4 +1,5 @@
-import { Router } from 'express';
+import { createHash, timingSafeEqual } from 'node:crypto';
+import { Router, type RequestHandler } from 'express';
 import type { DatabaseService } from '../database.js';
 import type { SocketManager } from '../socket/SocketManager.js';
 import type { DeltaSyncMetrics } from '../observability/deltaSyncMetrics.js';
@@ -77,6 +78,13 @@ export function buildMultiplayerMetricsSnapshot({
   };
 }
 
+// Hashing first gives equal-length buffers, as timingSafeEqual requires.
+function tokensMatch(supplied: string | undefined, configured: string): boolean {
+  if (supplied === undefined) return false;
+  const digest = (value: string) => createHash('sha256').update(value).digest();
+  return timingSafeEqual(digest(supplied), digest(configured));
+}
+
 /**
  * Builds the metrics router (`/api/metrics/*` plus the Prometheus `/metrics`
  * scrape endpoint).
@@ -88,7 +96,20 @@ export function createMetricsRouter(deps: MetricsRouterDependencies): Router {
   const { deltaSyncMetrics, getSocketManager } = deps;
   const router = Router();
 
-  router.get('/api/metrics/delta-sync', (req, res) => {
+  // Guards every route, not just /metrics: the JSON diagnostics expose the
+  // same operational detail and are reachable through the public gateway's
+  // generic `/api` proxy. The managed soak already sends this bearer token.
+  const requireMetricsToken: RequestHandler = (req, res, next) => {
+    const configuredToken = process.env.METRICS_AUTH_TOKEN;
+    const suppliedToken = req.get('authorization')?.replace(/^Bearer\s+/i, '');
+    if (configuredToken && !tokensMatch(suppliedToken, configuredToken)) {
+      res.status(401).type('text/plain').send('Unauthorized\n');
+      return;
+    }
+    next();
+  };
+
+  router.get('/api/metrics/delta-sync', requireMetricsToken, (req, res) => {
     const totalResyncs = Object.values(deltaSyncMetrics.resync).reduce(
       (sum, count) => sum + count,
       0,
@@ -126,21 +147,21 @@ export function createMetricsRouter(deps: MetricsRouterDependencies): Router {
     });
   });
 
-  router.get('/api/metrics/ordered-events', (req, res) => {
+  router.get('/api/metrics/ordered-events', requireMetricsToken, (req, res) => {
     res.json({
       ...getSocketManager().getStats().orderedEvents,
       timestamp: Date.now(),
     });
   });
 
-  router.get('/api/metrics/realtime', (req, res) => {
+  router.get('/api/metrics/realtime', requireMetricsToken, (req, res) => {
     res.json({
       ...getSocketManager().getStats().realtime,
       timestamp: Date.now(),
     });
   });
 
-  router.get('/api/metrics/multiplayer', (req, res) => {
+  router.get('/api/metrics/multiplayer', requireMetricsToken, (req, res) => {
     const snapshot = buildMultiplayerMetricsSnapshot(deps);
     res.json({
       ...snapshot,
@@ -148,13 +169,7 @@ export function createMetricsRouter(deps: MetricsRouterDependencies): Router {
     });
   });
 
-  router.get('/metrics', (req, res) => {
-    const configuredToken = process.env.METRICS_AUTH_TOKEN;
-    const suppliedToken = req.get('authorization')?.replace(/^Bearer\s+/i, '');
-    if (configuredToken && suppliedToken !== configuredToken) {
-      res.status(401).type('text/plain').send('Unauthorized\n');
-      return;
-    }
+  router.get('/metrics', requireMetricsToken, (req, res) => {
     const snapshot = buildMultiplayerMetricsSnapshot(deps);
     res
       .status(200)

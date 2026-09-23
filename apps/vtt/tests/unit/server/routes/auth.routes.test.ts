@@ -32,6 +32,7 @@ describe('authentication routes: local register/login', () => {
       createLocalUserError?: Error;
       validateLoginResult?: unknown;
       validateLoginError?: Error;
+      authenticated?: boolean;
     } = {},
   ): Promise<{
     baseUrl: string;
@@ -77,7 +78,8 @@ describe('authentication routes: local register/login', () => {
     app.use(express.json());
     app.use((req, _res, next) => {
       req.login = vi.fn((_user, callback) => callback(behavior.loginError ?? undefined));
-      req.isAuthenticated = () => false;
+      req.isAuthenticated = (() =>
+        overrides.authenticated ?? false) as typeof req.isAuthenticated;
       next();
     });
     app.use(
@@ -284,6 +286,25 @@ describe('authentication routes: local register/login', () => {
       });
       expect(response.status).toBe(500);
       await expect(response.json()).resolves.toMatchObject({ error: 'Login failed' });
+    });
+  });
+
+  describe('GET /auth/session-check', () => {
+    it('answers 204 with no body for a signed-in account', async () => {
+      const { baseUrl, database } = await startApp({ authenticated: true });
+      const response = await fetch(`${baseUrl}/auth/session-check`);
+      expect(response.status).toBe(204);
+      expect(await response.text()).toBe('');
+      expect(response.headers.get('cache-control')).toBe('no-store');
+      expect(database.getUserProfile).not.toHaveBeenCalled();
+    });
+
+    it('answers 401 with no body when the session is not signed in', async () => {
+      const { baseUrl } = await startApp();
+      const response = await fetch(`${baseUrl}/auth/session-check`);
+      expect(response.status).toBe(401);
+      expect(await response.text()).toBe('');
+      expect(response.headers.get('cache-control')).toBe('no-store');
     });
   });
 });

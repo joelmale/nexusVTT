@@ -26,6 +26,17 @@ eliminating redundant internal Nginx containers and exposed debug ports (`3080`,
 `3081`). The dependency services are deliberately prefixed with `codex-` so they
 cannot collide with NexusVTT's own PostgreSQL and Redis services.
 
+> Phase 0 of [the private admin control plane
+> plan](/platform/private-admin-control-plane) removes public reachability of
+> the Codex Admin UI entirely: the public gateway's `/codex-admin/` location
+> now returns `404` instead of serving the SPA from disk, and the `admin-ui`
+> and `dm-ui` containers no longer publish host ports `3080`/`3081` at all.
+> `doc-api` also leaves the shared `homelab-net` for the internal-only
+> `nexus-internal-net`. This section describes the pre-Phase-0 topology; it is
+> in-repo but **not yet deployed** as of this writing. The Codex Admin UI has
+> no reachable path until Phase 1 stands up the private admin hostname. The DM
+> UI at `/codex-dm/` is unaffected.
+
 Persistent data uses the following named volumes:
 
 - `nexus-vtt2-codex-postgres-data`
@@ -68,6 +79,11 @@ curl.exe https://app.nexusvtt.com/api/metrics/multiplayer
 `/api/metrics/multiplayer` returned `200` from NexusVTT. A cookie-backed guest
 session also created successfully and `GET /api/documents?limit=5` returned
 `200`, proving that the browser-facing NexusVTT route can call `doc-api`.
+
+Note for future repeats of this check: as of the Phase 0 admin-control-plane
+work (pending deployment, see above), `/api/metrics/multiplayer` and the other
+`/api/metrics/*` routes require `Authorization: Bearer $METRICS_AUTH_TOKEN`;
+an unauthenticated request will return `401` once that change ships.
 
 For a manual UI check:
 

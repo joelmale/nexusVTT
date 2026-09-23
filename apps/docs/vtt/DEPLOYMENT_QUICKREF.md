@@ -38,6 +38,7 @@ REDIS_PASSWORD=<secret>
 JWT_SECRET=<secret>
 SESSION_SECRET=<secret>
 ASSET_SERVICE_SECRET=<secret>
+METRICS_AUTH_TOKEN=<secret>
 
 CORS_ORIGIN=https://app.nexusvtt.com
 GOOGLE_CALLBACK_URL=https://app.nexusvtt.com/auth/google/callback
@@ -58,14 +59,17 @@ DISCORD_CLIENT_SECRET=<secret>
 ```bash
 curl https://app.nexusvtt.com/health
 curl https://app.nexusvtt.com/api/system/health
-curl https://app.nexusvtt.com/api/metrics/multiplayer
+curl -H "Authorization: Bearer $METRICS_AUTH_TOKEN" \
+  https://app.nexusvtt.com/api/metrics/multiplayer
 ```
 
 Expected:
 
 - `/health`: frontend nginx responds.
 - `/api/system/health`: backend, database, and realtime coordinator are ready.
-- `/api/metrics/multiplayer`: multiplayer SLO snapshot returns JSON.
+- `/api/metrics/multiplayer`: multiplayer SLO snapshot returns JSON. Requires
+  the `METRICS_AUTH_TOKEN` bearer token, same as `/metrics`; omitting it
+  returns `401`.
 
 ## Docker Host Checks
 

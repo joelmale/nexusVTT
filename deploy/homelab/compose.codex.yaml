@@ -17,8 +17,11 @@ services:
       JWT_SECRET: ${CODEX_JWT_SECRET}
       AUTH_DISABLED: 'true'
       EMBEDDINGS_PROVIDER: hash
+    # Phase 0 containment (private-admin-control-plane.md invariant 2): kept
+    # off homelab-net while AUTH_DISABLED=true -- see the matching comment on
+    # this service in compose.yaml for why. nexus-internal-net is sufficient;
+    # the frontend gateway reaches doc-api over that network too.
     networks:
-      - homelab-net
       - nexus-internal-net
     depends_on:
       postgres:

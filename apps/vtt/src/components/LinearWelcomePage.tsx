@@ -135,10 +135,6 @@ export const LinearWelcomePage: React.FC = () => {
     import.meta.env.VITE_CODEX_URL ||
     (import.meta.env.DEV ? 'http://localhost:3003' : '/codex-dm/');
 
-  const codexAdminUrl =
-    import.meta.env.VITE_CODEX_ADMIN_URL ||
-    (import.meta.env.DEV ? 'http://localhost:3001' : '/codex-admin/');
-
   // Detect if we're returning from OAuth (check for common OAuth params)
   const isOAuthRedirect = React.useMemo(() => {
     const params = new URLSearchParams(window.location.search);
@@ -1072,15 +1068,6 @@ export const LinearWelcomePage: React.FC = () => {
                 >
                   👤 Quick Player
                 </button>
-                <button
-                  onClick={() => {
-                    navigate('/admin');
-                  }}
-                  className="dev-btn glass-button secondary small"
-                  title="Access admin panel for character generation data"
-                >
-                  ⚙️ Admin Panel
-                </button>
                 <a
                   href={codexDmUrl}
                   target="_blank"
@@ -1089,15 +1076,6 @@ export const LinearWelcomePage: React.FC = () => {
                   title="Open Codex DM Campaign Planner in a new tab"
                 >
                   🗺️ Codex DM Planner
-                </a>
-                <a
-                  href={codexAdminUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="dev-btn glass-button secondary small"
-                  title="Open Codex Admin UI (Document Upload & Processing) in a new tab"
-                >
-                  📖 Codex Admin UI
                 </a>
                 <a
                   href={forgeUrl}
