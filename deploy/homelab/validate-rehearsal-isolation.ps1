@@ -183,6 +183,7 @@ $applicationServices = @(
   'nexus-forge',
   'frontend',
   'backend',
+  'control-api',
   'doc-api',
   'doc-processor',
   'doc-websocket',

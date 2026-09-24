@@ -55,6 +55,18 @@ services:
       ASSET_SERVICE_SECRET: ${REHEARSAL_ASSET_SERVICE_SECRET:-nexus-rehearsal-assets}
       METRICS_AUTH_TOKEN: ${REHEARSAL_METRICS_AUTH_TOKEN:-nexus-migration-phase3-e078895-metrics}
     networks: !override [rehearsal-net]
+  control-api:
+    environment:
+      CONTROL_DATABASE_URL: postgresql://${REHEARSAL_POSTGRES_USER:-nexus_rehearsal}:${REHEARSAL_POSTGRES_PASSWORD:-nexus-rehearsal}@postgres:5432/${REHEARSAL_POSTGRES_DB:-nexus_rehearsal}
+      ADMIN_ORIGIN: ${REHEARSAL_ADMIN_ORIGIN:-http://nexus-migration-phase3-e078895.invalid}
+      GOOGLE_CLIENT_ID: ${REHEARSAL_GOOGLE_CLIENT_ID:-rehearsal-disabled}
+      GOOGLE_CLIENT_SECRET: ${REHEARSAL_GOOGLE_CLIENT_SECRET:-rehearsal-disabled}
+      CONTROL_GOOGLE_CALLBACK_URL: ${REHEARSAL_CONTROL_GOOGLE_CALLBACK_URL:-http://nexus-migration-phase3-e078895.invalid/control-api/v1/auth/google/callback}
+      CONTROL_SESSION_SECRET: ${REHEARSAL_CONTROL_SESSION_SECRET:-nexus-migration-phase3-e078895-control-session}
+    # Reset to the isolated rehearsal-net only; control-api must never inherit
+    # the production nexus-control-egress-net or reach real outbound Google
+    # endpoints during a rehearsal.
+    networks: !override [rehearsal-net]
   codex-elasticsearch:
     volumes: !override
       - rehearsal-codex-elasticsearch-data:/usr/share/elasticsearch/data
@@ -93,6 +105,7 @@ services:
 networks:
   homelab-net: !reset {}
   nexus-codex-egress-net: !reset {}
+  nexus-control-egress-net: !reset {}
   rehearsal-net:
     name: nexus-migration-phase3-e078895-net
     internal: true

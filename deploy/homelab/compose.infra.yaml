@@ -74,6 +74,8 @@ networks:
   nexus-internal-net:
     internal: true
   nexus-codex-egress-net: {}
+  # control-api only (Google OAuth needs outbound internet); never homelab-net.
+  nexus-control-egress-net: {}
 
 volumes:
   codex-elasticsearch-data:

@@ -755,6 +755,39 @@ Gate: authorization tests prove each role's allow/deny matrix, direct service
 access remains unavailable, every test mutation emits one audit event, and a
 LAN or WireGuard client without an admin role cannot perform any action.
 
+#### Phase 2 status
+
+**Implemented in repository, pending deploy** (2026-09-24). The ADR
+([`control-api-adr.md`](./control-api-adr.md)) is accepted and checked in.
+`apps/control-api` (the `nexus-control-api` workspace and service),
+the identity/role migration
+(`apps/vtt/server/migrations/2026-09-24-add-control-plane-identity.sql`), and
+the Admin UI's switch to `/control-api/v1/*` are implemented by other
+engineers against this ADR in parallel with the delivery work below.
+
+Delivery work landed in this change:
+
+- CI: a `control-api` affected-target/change filter, a "Control API: tests"
+  job wired into `required` the same way as the other conditional jobs, and a
+  `control-api` entry in the release image build matrix and `:latest`
+  promotion loop (`.github/workflows/ci.yml`,
+  `.github/ci/affected-targets.json`).
+- Homelab Compose: a `control-api` service added to `deploy/homelab/compose.yaml`
+  and the `compose.infra.yaml`/`compose.vtt.yaml` split, on
+  `nexus-internal-net` plus a dedicated `nexus-control-egress-net` (Google
+  OAuth egress only; never `homelab-net`, no published port), with a
+  `compose.rehearsal.yaml` override and documented `.env.example` variables.
+- Docs: this ADR and the
+  [control plane operator runbook](./control-plane-runbook.md) (prerequisites,
+  migration, Dockhand deployment order, first-admin bootstrap, break-glass
+  recovery, rollback, and verification).
+
+Still open before this phase can be marked deployed: land and merge the
+parallel `apps/control-api` and Admin UI work, apply the migration in
+production per the runbook, deploy the updated stack, complete the Phase 2
+gate's authorization test matrix, and run the runbook's verification
+checklist against the live system.
+
 ### Phase 3 - Deliver operational visibility
 
 Deliverables:

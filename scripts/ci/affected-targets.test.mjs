@@ -196,6 +196,11 @@ describe('representative Stage 3A change classes', () => {
       'apps/codex/services/doc-websocket/src/index.ts',
       ['codex-doc-websocket'],
     ],
+    [
+      'control API',
+      'apps/control-api/src/server.ts',
+      ['control-api'],
+    ],
   ])('classifies a %s change', (_name, path, expected) => {
     expectAffected(decide(path), expected);
   });

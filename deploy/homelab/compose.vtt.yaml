@@ -83,3 +83,42 @@ services:
       - homelab-net
       - nexus-internal-net
     restart: unless-stopped
+
+  control-api:
+    image: ${CONTROL_API_IMAGE:-ghcr.io/joelmale/nexusvtt/control-api:latest}
+    pull_policy: always
+    environment:
+      NODE_ENV: production
+      CONTROL_DATABASE_URL: ${CONTROL_DATABASE_URL:?CONTROL_DATABASE_URL is required, see deploy/homelab/.env.example}
+      DOC_API_URL: http://doc-api:3000
+      ADMIN_ORIGIN: https://admin.internal.nexusvtt.com
+      GOOGLE_CLIENT_ID: ${GOOGLE_CLIENT_ID}
+      GOOGLE_CLIENT_SECRET: ${GOOGLE_CLIENT_SECRET:?GOOGLE_CLIENT_SECRET is required, see deploy/homelab/.env.example}
+      CONTROL_GOOGLE_CALLBACK_URL: https://admin.internal.nexusvtt.com/control-api/v1/auth/google/callback
+      CONTROL_SESSION_SECRET: ${CONTROL_SESSION_SECRET:?CONTROL_SESSION_SECRET is required, see deploy/homelab/.env.example}
+      TRUST_PROXY_HOPS: 1
+    # Private admin control plane (control-api-adr.md): the only browser-facing
+    # API on the :8081 admin listener, and the only component that calls
+    # doc-api on an administrator's behalf. nexus-internal-net reaches
+    # postgres/doc-api and lets the frontend gateway proxy /control-api/ to
+    # this service; the dedicated nexus-control-egress-net gives outbound
+    # internet for the Google OAuth token exchange only. Nothing else may join
+    # nexus-control-egress-net, and this service must never join homelab-net
+    # or publish a host port (port 4000 is container-only).
+    networks:
+      - nexus-internal-net
+      - nexus-control-egress-net
+    healthcheck:
+      test:
+        - CMD-SHELL
+        - 'node -e "require(''http'').get(''http://127.0.0.1:4000/healthz'', (res) => process.exit(res.statusCode
+          === 200 ? 0 : 1)).on(''error'', () => process.exit(1))"'
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      postgres:
+        condition: service_healthy
+      doc-api:
+        condition: service_started
+    restart: unless-stopped
