@@ -292,3 +292,62 @@ export interface CatalogEntitiesResponse {
   removed: CatalogRemovedEntity[];
   skipped: CatalogSkippedEntity[];
 }
+
+/**
+ * Wire-shape validation for the published catalog endpoints
+ * (`GET /api/rules/catalog/manifest`, `GET /api/rules/catalog/entities`).
+ * A BFF between a browser and doc-api (the VTT backend, and later Forge's)
+ * uses these to reject a malformed or incompatible upstream response instead
+ * of forwarding or caching it. `data` is intentionally `z.unknown()`: doc-api
+ * already ran it through `toCatalogEntity`/`parseRulesEntityData`, and
+ * re-validating the full per-type contract here would only duplicate that
+ * check against a payload the BFF cannot fix anyway.
+ */
+export const CatalogEntitySchema = z.object({
+  id: z.string(),
+  entityType: RulesEntityTypeSchema,
+  ruleset: RulesetSchema,
+  slug: z.string(),
+  schemaVersion: z.number(),
+  revisionId: z.string(),
+  revisionNumber: z.number(),
+  catalogVersion: z.number().nullable(),
+  publishedAt: z.string().nullable(),
+  sourceLicense: z.string(),
+  sourceDocumentId: z.string().nullable(),
+  summary: z.string(),
+  // Deliberately untyped here -- see the module doc comment above.
+  data: z.unknown(),
+});
+
+export const CatalogRemovedEntitySchema = z.object({
+  id: z.string(),
+  entityType: RulesEntityTypeSchema,
+  ruleset: RulesetSchema,
+  slug: z.string(),
+  catalogVersion: z.number(),
+}) satisfies z.ZodType<CatalogRemovedEntity, z.ZodTypeDef, unknown>;
+
+export const CatalogSkippedEntitySchema = z.object({
+  id: z.string(),
+  entityType: RulesEntityTypeSchema,
+  ruleset: RulesetSchema,
+  slug: z.string(),
+  revisionId: z.string(),
+  reason: z.string(),
+}) satisfies z.ZodType<CatalogSkippedEntity, z.ZodTypeDef, unknown>;
+
+export const CatalogManifestSchema = z.object({
+  catalogVersion: z.number(),
+  publishedAt: z.string().nullable(),
+  etag: z.string(),
+  counts: z.record(z.string(), z.record(z.string(), z.number())),
+}) satisfies z.ZodType<CatalogManifest, z.ZodTypeDef, unknown>;
+
+export const CatalogEntitiesResponseSchema = z.object({
+  catalogVersion: z.number(),
+  since: z.number(),
+  entities: z.array(CatalogEntitySchema),
+  removed: z.array(CatalogRemovedEntitySchema),
+  skipped: z.array(CatalogSkippedEntitySchema),
+});

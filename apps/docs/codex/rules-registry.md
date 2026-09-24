@@ -133,27 +133,104 @@ Both catalog routes send weak ETags derived from the catalog version and
 answer `If-None-Match` with `304`. Each read runs in one `REPEATABLE READ`
 transaction, so the version always matches the rows returned.
 
-## How adapters should consume it (later wave)
+## How adapters consume it
 
 The VTT and Forge backends proxy the catalog through the normal authenticated
 Nexus backend. Browsers and the control plane never read doc-api directly.
-The recommended flow:
 
-1. Start from the **bundled SRD** in `@nexus/character-creator` as the
-   baseline, keyed by `(ruleset, entityType, slug)`.
-2. Poll `GET /manifest` with `If-None-Match`. On a new `catalogVersion`, fetch
-   `GET /entities?since=<last applied version>` and upsert each entity by
-   stable `id` and `revisionId`. Drop the IDs in `removed`, and keep the
-   cached or bundled copy for `skipped`. Record the applied `catalogVersion`
-   only after the whole delta is stored.
-3. **Overlay** published entities on the bundled SRD by slug within a ruleset.
-   A published entity replaces the bundled one, and custom slugs add new
-   content.
-4. Persist the catalog version (and entity revision IDs where rules
-   stability matters) on characters and campaigns when they are created.
-   Never rewrite an active session because a newer version appeared.
-5. If Codex or the proxy is unreachable, keep serving the last cached catalog,
-   or the bundled SRD alone. Rules content is never a hard dependency of play.
+### Shared catalog client: `@nexus/rules-contracts` (`catalogClient.ts`)
+
+`overlayCatalog()`, `RulesCatalogClient`, and the storage/transport adapters
+are pure and framework-agnostic so both apps' frontends (and any future host)
+can share one merge implementation instead of re-deriving it:
+
+- **`overlayCatalog({ entityType, ruleset, bundled, keyOf, published, removed, fromCatalogEntity })`**
+  overlays published entities on a bundled SRD array by slug within one
+  `(entityType, ruleset)` pair: a published entity replaces the bundled item
+  with the same slug, a new slug is appended as custom content, and a
+  tombstoned slug in `removed` is hidden unless a live publish supersedes it.
+  Pure and synchronous.
+- **`RulesCatalogClient`** polls `GET /manifest` with `If-None-Match`. On a
+  new `catalogVersion` it fetches `GET /entities?since=<last applied
+  version>`, upserts entities by stable `id`, deletes and tombstones the
+  `removed` ones (keeping enough of each tombstone -- `id`, `entityType`,
+  `ruleset`, `slug` -- for `overlayCatalog` to hide the right bundled slug
+  later), and leaves `skipped` rows exactly as cached. It never throws:
+  `sync()` resolves `{ status: 'offline', ... }` with the previous cache
+  untouched on any transport failure, so callers always have *something* to
+  render.
+- **Storage adapters** are injected: `createInMemoryCatalogStorage()` for
+  tests, `createBrowserCatalogStorage(window.localStorage)` for the browser.
+  The browser adapter treats corrupted JSON, a schema-invalid payload, or a
+  quota-exceeded write as an empty cache rather than throwing --
+  `parseStoredRulesCatalogState()` (Zod-validated) is what decides "valid."
+- **Transport** is injected too (`RulesCatalogTransport`); a convenience
+  `createHttpCatalogTransport({ baseUrl, fetchImpl })` implements it against
+  the shape both the VTT and (eventual) Forge BFFs expose:
+  `${baseUrl}/rules/catalog/manifest` and `${baseUrl}/rules/catalog/entities`.
+
+### VTT: backend BFF + frontend wiring (built)
+
+- **`apps/vtt/server/routes/rulesCatalog.routes.ts`**, mounted under `/api`
+  in `bootstrap/httpApp.ts`, exposes `GET /api/rules/catalog/manifest` and
+  `GET /api/rules/catalog/entities` to signed-in VTT sessions. It reuses the
+  same `DOC_API_URL` the document routes already proxy through
+  (`server/routes/documents.ts`).
+  - **Guest access: allowed.** Character creation
+    (`@nexus/character-creator`) already works for guests with zero server
+    round trips today -- it only reads the bundled SRD. Rules-catalog content
+    is the same category of read (public D&D reference data, not account or
+    campaign data), so gating it behind a real account would just leave
+    guests on stale bundled content for no integrity benefit. A session
+    (guest or authenticated) is still required -- not fully anonymous --
+    matching the rest of `/api`.
+  - Upstream responses are validated with `CatalogManifestSchema` /
+    `CatalogEntitiesResponseSchema` (`@nexus/rules-contracts`) before being
+    cached or forwarded; a shape mismatch is treated as an upstream failure.
+  - `RulesCatalogCache` (`server/services/rulesCatalogClient.ts`) caches the
+    manifest and each fixed `type|ruleset|since` entities combination in
+    memory, revalidating upstream with the cached ETag once its TTL
+    (default 5s; `RULES_CATALOG_CACHE_TTL_MS`) expires, and answers a
+    matching client `If-None-Match` with `304` straight from cache. This is
+    never a generic proxy: only `type`, `ruleset`, and `since` are read from
+    the request, and only these two upstream paths are ever requested.
+  - Any upstream failure (timeout -- default 3s, `RULES_CATALOG_TIMEOUT_MS`;
+    network error; non-2xx/304; contract-validation failure) answers `503
+    { error: 'rules_catalog_unavailable', useBundled: true }`. It never
+    serves a stale cached body for a hard failure.
+- **`apps/vtt/src/services/rulesCatalogClient.ts`** is the frontend's
+  `RulesCatalogClient` instance: `createHttpCatalogTransport` pointed at the
+  BFF above, `createBrowserCatalogStorage(window.localStorage)`, and a
+  `getRulesCatalogVersion()` helper that races `sync()` against a 2.5s
+  timeout and resolves `null` (meaning "bundled SRD only") on anything but a
+  clean, positive `catalogVersion`. Never throws, never blocks its caller
+  longer than the timeout.
+- **`Character.rulesCatalogVersion`** (`@nexus/character-contracts`, optional
+  `number | null`) records the version `getRulesCatalogVersion()` returned at
+  creation time. `SharedCharacterCreator.tsx` sets it right before
+  `saveCreatedCharacter()` -- the *host's* persistence step, per CLAUDE.md
+  "Shared character creation": the character-creator package itself gains no
+  new persistence or awareness of the catalog. An existing character is never
+  rewritten because a newer catalog version later appears (invariant 9).
+
+### Not yet built
+
+- **Forge's own BFF.** Forge has no backend proxy to doc-api yet, so it
+  cannot safely reach the published catalog directly (doc-api must stay
+  private -- invariant 2). It can adopt the same `@nexus/rules-contracts`
+  client once that BFF exists; nothing in the shared client is VTT-specific.
+- **Overlaying published content into `@nexus/character-creator`'s rendered
+  spell/item/monster lists.** Today `dataService.ts` computes
+  `SPELL_DATABASE` and friends synchronously from bundled JSON at module load
+  and has no prop for a host to inject overrides. Wiring
+  `overlayCatalog()` into that path touches an ADR-governed, multi-consumer
+  package (`apps/docs/vtt/adr/0002-shared-character-creator.md`) and needs
+  its own design pass (likely new `CharacterCreator` props plus async-load
+  handling in a currently-synchronous data path) rather than a Phase 4
+  drive-by change.
+- Recording `rulesCatalogVersion` on campaigns. Only the character path is
+  wired; campaign creation would need the same treatment in whichever module
+  already persists campaign metadata.
 
 ## SRD import comparison
 

@@ -9,6 +9,7 @@ import '@nexus/character-creator/styles.css';
 import type { Character } from '@nexus/character-contracts';
 import { useCharacterCreation } from '@/stores/characterStore';
 import { useTheme } from '@/stores/gameStore';
+import { getRulesCatalogVersion } from '@/services/rulesCatalogClient';
 
 /**
  * Explicit theme boundary between the VTT's theme setting and the creator's
@@ -63,6 +64,12 @@ export const SharedCharacterCreator: React.FC<SharedCharacterCreatorProps> = ({
       const character = createdCharacterToNexus(result.character, {
         playerId,
       });
+
+      // Record which published rules catalog was live at creation time (host
+      // responsibility -- the creator package owns no persistence). Never
+      // blocks on Codex: bundled SRD content is always sufficient to create
+      // a character, so a slow/offline catalog degrades to `null` here.
+      character.rulesCatalogVersion = await getRulesCatalogVersion();
 
       const characterId = await saveCreatedCharacter(character);
       onComplete(characterId, character);

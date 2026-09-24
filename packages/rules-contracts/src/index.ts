@@ -15,3 +15,4 @@ export * from './monster';
 export * from './entity';
 export * from './jsonPatch';
 export * from './api';
+export * from './catalogClient';

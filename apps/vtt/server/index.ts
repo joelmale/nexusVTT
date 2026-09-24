@@ -106,6 +106,7 @@ export class NexusServer {
       deltaSyncMetrics: this.deltaSyncMetrics,
       documentClient: this.documentClient,
       documentsEnabled: this.documentsEnabled,
+      docApiUrl,
       getSocketManager: () => this.socketManager,
       getGameStateCommits: () => this.gameStateCommits,
       manifestStore: this.manifestStore,
