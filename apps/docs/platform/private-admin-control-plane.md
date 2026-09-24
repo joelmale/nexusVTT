@@ -5,8 +5,8 @@ title: Private admin control plane implementation plan
 # Private admin control plane implementation plan
 
 - Date: 2026-09-23
-- Status: Phase 0 implemented and merged to `main`; homelab deployment in
-  progress. Phases 1-6 not started.
+- Status: Phase 0 complete and deployed. Phase 1 in progress. Phases 2-6 not
+  started.
 
 ## Outcome
 
@@ -436,6 +436,57 @@ trusted identity-proxy assertion. Do not embed anonymous Grafana panels.
 - A degraded optional dependency should not make unrelated VTT capabilities
   unavailable.
 
+## Next session handoff (2026-09-24)
+
+Where work stopped:
+
+- **Phase 0:** complete and deployed (see Phase 0 status).
+- **Phase 1 repository work:** merged to `main`, not deployed. It adds a
+  `:8081` placeholder listener, static tests, `scripts/ci/gateway-route-matrix.sh`,
+  and the `VTT: gateway route matrix` CI job. The adversarial review of this
+  diff was started but stopped before it finished; **rerun it first**.
+- **Phase 1 operator steps, all still open:**
+  - Firewalla local DNS record for `admin.internal.nexusvtt.com`.
+  - Cloudflare Zone:DNS:Edit token entered in Nginx Proxy Manager.
+  - Wildcard certificate `*.internal.nexusvtt.com`.
+  - Nginx Proxy Manager proxy host -> `nexus-vtt2-frontend:8081` with the
+    `$realip_remote_addr` check below.
+  - Hotspot probes with WireGuard off and on.
+- **Deploying Phase 1** only needs the new `frontend:latest` redeployed on
+  `nexus-vtt2`. Port `8081` stays unpublished and unreachable until the proxy
+  host exists.
+
+Recommended image changes (not yet applied):
+
+- `frontend`, `backend`, `asset-server`: keep rolling `:latest`.
+- `doc-api`, `doc-processor`, `doc-websocket`: move from `main-4c583c2`
+  (January 2026, pre-monorepo) to the current monorepo build. Commit
+  `2b080946` runs `prisma generate` at image build instead of at startup,
+  which should remove the startup download that forced
+  `nexus-codex-egress-net`. Pin to the new `main-<sha>` rather than rolling,
+  because `doc-api` runs `prisma db push` on every start. Compare the schema
+  against the old repository path `services/doc-api/prisma/schema.prisma` in
+  `4c583c2` first. Also check the `pdf-parse` 1 -> 2 upgrade (`e32513cb`).
+- `postgres`: keep pinned. Only CI files changed since `0da1b78`, and a
+  database image should not roll automatically.
+- `nexus-forge`: the unified frontend already serves Forge at `/forge/`, and no
+  Nginx Proxy Manager host was found targeting this container. Confirm it is
+  unused, then remove the service instead of updating it.
+
+Other open items:
+
+- Decide whether to add the `$realip_remote_addr` check to the existing
+  LAN-only Nginx Proxy Manager hosts (see Phase 1 edge audit result).
+- The `devproxy-*` containers on `nexus-internal-net` are intentional (they
+  let local MCP servers reach the production databases).
+- Uncommitted work from a separate session remains in the working tree and
+  was deliberately not committed: the `/sw.js` block in `nginx.conf` (which
+  also drops security headers on that response), `apps/forge/*`,
+  `viteConfig.test.ts`, `nginxServiceWorkerCache.test.ts`, and
+  `system.smoke.spec.ts`.
+- Release: tag `v0.5.0` when the owner declares this plan's scope done. A
+  `v*` tag also moves `:latest`, and an older `v1.5` tag already exists.
+
 ## Delivery plan
 
 ### Phase 0 - Contain the current public admin surface
@@ -459,23 +510,35 @@ game workflows still pass.
 
 #### Phase 0 status
 
-Merged to `main` in `2de28f4a` (containment) and `4d1fd352` (CI docs-deploy
-condition). CI built and promoted the `frontend`, `backend`, `asset-service`,
-and `postgres` images. **Deployment to the `nexus-vtt2` Dockhand stack is in
-progress** and is not complete until the checklist below is done.
+**Complete.** Merged to `main` in `2de28f4a` (containment) and `4d1fd352` (CI
+docs-deploy condition), and deployed to the `nexus-vtt2` Dockhand stack on
+2026-09-24 (UTC). The gate was verified against the live system.
 
 Deliverable checklist:
 
-| Deliverable                                                   | State                                                                                    |
-| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
-| Inventory public routes reaching `doc-api` or admin actions   | Done (route table below)                                                                 |
-| Deny `/codex-admin/` and `/api/admin/` publicly               | Done in repository; pending deploy                                                       |
-| Remove the public generic `/codex-api/` proxy                 | Done in repository; pending deploy                                                       |
-| Route-classify ingestion, processing, and reader endpoints    | Done (route table below)                                                                 |
-| No host port, public proxy, or untrusted network to `doc-api` | Done in repository; pending deploy                                                       |
-| `METRICS_AUTH_TOKEN` set and verified                         | Compose now requires it; live value not yet set (was empty, so metrics were unprotected) |
-| Production `DEV_MODE=false`                                   | Pending (live value was `true`)                                                          |
-| Gate verified against `app.nexusvtt.com`                      | Pending deploy                                                                           |
+| Deliverable                                                   | State                                                                 |
+| ------------------------------------------------------------- | --------------------------------------------------------------------- |
+| Inventory public routes reaching `doc-api` or admin actions   | Done (route table below)                                              |
+| Deny `/codex-admin/` and `/api/admin/` publicly               | Deployed; verified `404`                                              |
+| Remove the public generic `/codex-api/` proxy                 | Deployed; verified `404` outside the allowlist                        |
+| Route-classify ingestion, processing, and reader endpoints    | Done (route table below)                                              |
+| No host port, public proxy, or untrusted network to `doc-api` | Deployed; `doc-api` is off `homelab-net`, ports `3080`/`3081` refused |
+| `METRICS_AUTH_TOKEN` set and verified                         | Set as an encrypted Dockhand variable; `/api/metrics/*` returns `401` |
+| Production `DEV_MODE=false`                                   | Deployed                                                              |
+| Gate verified against `app.nexusvtt.com`                      | Verified; VTT, `/codex-dm/`, `/forge/`, and Codex health return `200` |
+
+Deployment notes:
+
+- The live `frontend` had been switched to an unintended
+  `frontend:forge-fix-20260923` tag; the deployment restored `:latest`.
+- Moving `doc-api` onto the `internal: true` network broke it: the image
+  downloads its Prisma query engine from `binaries.prisma.sh` at every start
+  and crash-looped without outbound access. It now also joins
+  `nexus-codex-egress-net`, a non-internal bridge that no other container
+  joins. Follow-up: bake the Prisma engine into the `doc-api` image so it needs
+  no internet at startup, then drop the egress network.
+- `postgres`, `nexus-forge`, and the Codex images remain pinned to their
+  pre-existing tags. Moving them is a separate, snapshotted change.
 
 Live state found on 2026-09-23 before deployment: `doc-api` (with
 `AUTH_DISABLED=true`) was attached to the shared `homelab-net` alongside about
@@ -484,19 +547,6 @@ published host ports `3080` and `3081` on all interfaces. Both proxied `/api/`
 to `doc-api` without authentication. The live compose file pins image tags
 that differ from `deploy/homelab/compose.yaml`, so deployment edits the live
 file in place instead of replacing it with the repository copy.
-
-Remaining deployment steps (each confirmed separately under the Dockhand
-guardrails; a pre-change snapshot of the live compose and variable list has
-been saved):
-
-1. Operator adds `METRICS_AUTH_TOKEN` as an encrypted Dockhand variable.
-2. Merge `DEV_MODE=false` into the stack variables.
-3. Apply four edits to the live compose file: `frontend` joins
-   `nexus-internal-net`; `doc-api` leaves `homelab-net`; `METRICS_AUTH_TOKEN`
-   becomes required; `admin-ui` and `dm-ui` are removed.
-4. Redeploy with image pulls, then remove any orphaned `admin-ui`/`dm-ui`
-   containers.
-5. Verify the Phase 0 gate from the public route and the LAN.
 
 Implemented behaviors:
 
@@ -602,6 +652,24 @@ Deliverables:
   Manager substitutes `X-Forwarded-For`, `X-Real-IP`, or `CF-Connecting-IP`
   from a source the internet can reach, a forged header could satisfy the
   allowlist; remove that trust for the admin host before creating it.
+
+  Result (2026-09-23): spoofable. Nginx Proxy Manager 2.15.1's global
+  `nginx.conf` sets `real_ip_header X-Real-IP` with `real_ip_recursive on`,
+  trusting `10.0.0.0/8`, `172.16.0.0/12`, `192.168.0.0/16`, every Cloudflare
+  range, and broad CDN ranges. An attacker's own Cloudflare zone pointed at
+  the home IP, or any container on `homelab-net`, can therefore set
+  `X-Real-IP: 192.168.100.x` and satisfy an IP access list. This already
+  affects the existing LAN-only proxy hosts. Fix for the admin host: check the
+  TCP peer address, which the `realip` module keeps in `$realip_remote_addr`,
+  in the proxy host's Advanced configuration:
+
+  ```nginx
+  if ($realip_remote_addr !~ ^(192\.168\.100\.|10\.200\.77\.)) { return 403; }
+  ```
+
+  Confirm `10.200.77.0/24` is the WireGuard client subnet before relying on
+  it.
+
 - **Firewalla review.** Confirm the only WAN port forward is `443` to
   HomePod, that Nginx Proxy Manager's own admin UI (`:81`) and `:80` are not
   forwarded, and whether WAN `443` can be restricted to Cloudflare's published

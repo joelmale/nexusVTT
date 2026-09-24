@@ -142,6 +142,11 @@ COPY --from=forge-builder /workspace/apps/forge/dist /usr/share/nginx/html/forge
 COPY --from=codex-dm-builder /workspace/apps/codex/services/dm-ui/dist /usr/share/nginx/html/codex-dm
 COPY --from=codex-admin-builder /workspace/apps/codex/services/admin-ui/dist /usr/share/nginx/html/codex-admin
 
+# Root of the private admin listener (:8081, Phase 1 of
+# apps/docs/platform/private-admin-control-plane.md). Deliberately outside the
+# VTT root above, so neither listener can serve the other's files.
+COPY apps/vtt/docker/admin-placeholder /usr/share/nginx/admin-placeholder
+
 ARG VERSION=dev
 ARG COMMIT_SHA=unknown
 
@@ -150,7 +155,10 @@ LABEL org.opencontainers.image.title="Nexus Unified Frontend" \
       org.opencontainers.image.version="$VERSION" \
       org.opencontainers.image.revision="$COMMIT_SHA"
 
-EXPOSE 80
+# 80 is the public gateway. 8081 is the private admin listener: it is reached
+# only over Docker networks by the edge proxy and must never be published on
+# the host.
+EXPOSE 80 8081
 
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
   CMD wget --no-verbose --tries=1 --spider http://localhost:80/health || exit 1

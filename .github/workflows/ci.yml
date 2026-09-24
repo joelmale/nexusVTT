@@ -508,6 +508,30 @@ jobs:
           if-no-files-found: ignore
           retention-days: 14
 
+  gateway-route-matrix:
+    name: 'VTT: gateway route matrix'
+    runs-on: ubuntu-latest
+    needs: changes
+    # A manual dispatch is never gated, as for forge-checks and codex-checks.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.vtt == 'true'
+    timeout-minutes: 10
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.changes.outputs.source_sha }}
+
+      # Runs the real apps/vtt/docker/nginx.conf in the frontend image's nginx
+      # base with stub upstreams, and replays the public (:80) and private
+      # admin (:8081) route matrix from
+      # apps/docs/platform/private-admin-control-plane.md. Docker only; no
+      # Node install and no image build.
+      - name: Run gateway route matrix
+        run: bash scripts/ci/gateway-route-matrix.sh
+        working-directory: ${{ github.workspace }}
+
   forge-checks:
     name: Forge
     needs: [changes]
@@ -641,6 +665,7 @@ jobs:
       - asset-service-tests
       - integration-tests
       - e2e-smoke
+      - gateway-route-matrix
       - coverage-gate
       - forge-checks
       - codex-checks
@@ -665,6 +690,7 @@ jobs:
           ASSET_RESULT: ${{ needs.asset-service-tests.result }}
           INTEGRATION_RESULT: ${{ needs.integration-tests.result }}
           E2E_RESULT: ${{ needs.e2e-smoke.result }}
+          GATEWAY_RESULT: ${{ needs.gateway-route-matrix.result }}
           COVERAGE_RESULT: ${{ needs.coverage-gate.result }}
           FORGE_RESULT: ${{ needs.forge-checks.result }}
           CODEX_RESULT: ${{ needs.codex-checks.result }}
@@ -695,6 +721,7 @@ jobs:
 
           require_conditional_result forge "$FORGE_AFFECTED" "$FORGE_RESULT"
           require_conditional_result codex "$CODEX_AFFECTED" "$CODEX_RESULT"
+          require_conditional_result gateway-route-matrix "$VTT_AFFECTED" "$GATEWAY_RESULT"
 
   publish-images:
     name: 'Build immutable release image: ${{ matrix.name }}'

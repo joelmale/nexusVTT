@@ -86,3 +86,34 @@ Run the focused tests with:
 ```powershell
 npm run test:ci-report
 ```
+
+# Gateway route matrix
+
+`gateway-route-matrix.sh` runs the real `apps/vtt/docker/nginx.conf` in the
+nginx image that `apps/vtt/docker/frontend.Dockerfile`'s production stage uses,
+beside stub `backend`, `doc-api`, `asset-server` and `doc-websocket` upstreams
+that report which upstream answered. It then replays requests against both
+gateway listeners from a client container on the same Docker network:
+
+- `:80`, the public gateway: the Phase 0 admin denials with path, encoding,
+  case, `;` and method variations; the `/codex-api` read allowlist with and
+  without a session; and `Host: admin.internal.nexusvtt.com`, which must get
+  ordinary public behavior.
+- `:8081`, the private admin listener: only the placeholder, its stylesheet
+  and `/healthz` answer; everything else is `404` (or `405` for non-GET/HEAD);
+  the strict security headers are exact on every response; and no stub
+  upstream is ever contacted.
+
+The policy is defined in
+`apps/docs/platform/private-admin-control-plane.md`. It needs only Docker,
+publishes no host port, and removes its containers and network on exit. CI runs
+it as `VTT: gateway route matrix`.
+
+```bash
+bash scripts/ci/gateway-route-matrix.sh
+# Try another nginx build:
+GATEWAY_IMAGE=nginx:1.31-alpine bash scripts/ci/gateway-route-matrix.sh
+```
+
+It works from Git Bash on Windows as well; allow a few minutes there, because
+each probe is a separate `docker exec`.

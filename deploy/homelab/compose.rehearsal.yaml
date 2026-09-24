@@ -92,6 +92,7 @@ services:
 
 networks:
   homelab-net: !reset {}
+  nexus-codex-egress-net: !reset {}
   rehearsal-net:
     name: nexus-migration-phase3-e078895-net
     internal: true

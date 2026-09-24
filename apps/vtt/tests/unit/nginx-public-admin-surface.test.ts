@@ -1,7 +1,13 @@
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
-
 import { describe, expect, it } from 'vitest';
+
+import {
+  describeLocation,
+  type Location,
+  proxiedHosts,
+  selectLocation,
+  serverLocations,
+  serverOnPort,
+} from './support/nginxConfig';
 
 /**
  * Phase 0 of apps/docs/platform/private-admin-control-plane.md: the public
@@ -13,138 +19,10 @@ import { describe, expect, it } from 'vitest';
  * request URIs, so reordering or reformatting the config does not break the
  * test but a policy regression does.
  */
-const repoFile = (...parts: string[]) => resolve(__dirname, '..', '..', ...parts);
-
-interface Directive {
-  name: string;
-  args: string[];
-  block?: Directive[];
-}
-
-function tokenize(source: string): string[] {
-  const tokens: string[] = [];
-  let i = 0;
-  while (i < source.length) {
-    const char = source[i];
-    if (/\s/.test(char)) {
-      i += 1;
-    } else if (char === '#') {
-      while (i < source.length && source[i] !== '\n') i += 1;
-    } else if (char === '{' || char === '}' || char === ';') {
-      tokens.push(char);
-      i += 1;
-    } else if (char === '"' || char === "'") {
-      let value = '';
-      i += 1;
-      while (i < source.length && source[i] !== char) {
-        if (source[i] === '\\') i += 1;
-        value += source[i];
-        i += 1;
-      }
-      i += 1;
-      tokens.push(value);
-    } else {
-      let value = '';
-      while (i < source.length && !/[\s{};]/.test(source[i])) {
-        value += source[i];
-        i += 1;
-      }
-      tokens.push(value);
-    }
-  }
-  return tokens;
-}
-
-function parse(tokens: string[], start = 0): { directives: Directive[]; end: number } {
-  const directives: Directive[] = [];
-  let i = start;
-  while (i < tokens.length && tokens[i] !== '}') {
-    const name = tokens[i];
-    const args: string[] = [];
-    i += 1;
-    while (tokens[i] !== ';' && tokens[i] !== '{') {
-      args.push(tokens[i]);
-      i += 1;
-    }
-    if (tokens[i] === '{') {
-      const inner = parse(tokens, i + 1);
-      directives.push({ name, args, block: inner.directives });
-      i = inner.end + 1;
-    } else {
-      directives.push({ name, args });
-      i += 1;
-    }
-  }
-  return { directives, end: i };
-}
-
-interface Location {
-  modifier: '' | '=' | '^~' | '~' | '~*';
-  pattern: string;
-  body: Directive[];
-}
-
-function publicServerLocations(): Location[] {
-  const { directives } = parse(
-    tokenize(readFileSync(repoFile('docker', 'nginx.conf'), 'utf8')),
-  );
-  const http = directives.find((d) => d.name === 'http');
-  const servers = http?.block?.filter((d) => d.name === 'server') ?? [];
-  // Phase 1 adds a private vhost; the public one is the catch-all server_name.
-  const publicServer = servers.find((server) =>
-    server.block?.some((d) => d.name === 'server_name' && d.args.includes('_')),
-  );
-  if (!publicServer?.block) throw new Error('public server block not found');
-  return publicServer.block
-    .filter((d) => d.name === 'location')
-    .map((d) => {
-      const [first, second] = d.args;
-      const modifier = d.args.length === 2 ? (first as Location['modifier']) : '';
-      return {
-        modifier,
-        pattern: d.args.length === 2 ? second : first,
-        body: d.block ?? [],
-      };
-    });
-}
-
-/** nginx location selection for non-nested, non-named locations. */
-function selectLocation(locations: Location[], uri: string): Location {
-  const exact = locations.find((l) => l.modifier === '=' && l.pattern === uri);
-  if (exact) return exact;
-  const prefixes = locations
-    .filter((l) => (l.modifier === '' || l.modifier === '^~') && uri.startsWith(l.pattern))
-    .sort((a, b) => b.pattern.length - a.pattern.length);
-  const longest = prefixes[0];
-  if (longest?.modifier !== '^~') {
-    const regex = locations.find(
-      (l) =>
-        (l.modifier === '~' || l.modifier === '~*') &&
-        new RegExp(l.pattern, l.modifier === '~*' ? 'i' : '').test(uri),
-    );
-    if (regex) return regex;
-  }
-  if (!longest) throw new Error(`no location matches ${uri}`);
-  return longest;
-}
-
-function describeLocation(location: Location): string {
-  return `location ${location.modifier} ${location.pattern}`.replace(/\s+/g, ' ');
-}
-
-/** Upstream hosts this location proxies to, with `set` variables resolved. */
-function proxiedHosts(location: Location): string[] {
-  const variables = new Map<string, string>();
-  for (const d of location.body) {
-    if (d.name === 'set') variables.set(d.args[0], d.args[1]);
-  }
-  return location.body
-    .filter((d) => d.name === 'proxy_pass')
-    .map((d) =>
-      d.args[0].replace(/\$[A-Za-z_]+/g, (name) => variables.get(name) ?? name),
-    )
-    .map((target) => target.match(/^https?:\/\/([^/:$]+)/)?.[1] ?? target);
-}
+// The public proxy host (app.nexusvtt.com) targets :80. The Phase 1 private
+// listener is a separate server block on :8081; see
+// nginx-private-admin-listener.test.ts.
+const publicServerLocations = (): Location[] => serverLocations(serverOnPort(80));
 
 const isDenied = (location: Location) =>
   location.body.some((d) => d.name === 'return' && d.args[0] === '404') &&

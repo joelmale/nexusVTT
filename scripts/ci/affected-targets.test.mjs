@@ -222,6 +222,7 @@ describe('representative Stage 3A change classes', () => {
 
   test.each([
     ['apps/vtt/docker/frontend.Dockerfile', ['gateway']],
+    ['apps/vtt/docker/admin-placeholder/index.html', ['gateway']],
     ['apps/vtt/docker/backend.Dockerfile', ['vtt', 'gateway']],
     ['apps/vtt/docker/asset-service.Dockerfile', ['assets', 'vtt', 'gateway']],
     ['apps/vtt/docker/postgres.Dockerfile', ['postgres', 'vtt', 'gateway']],

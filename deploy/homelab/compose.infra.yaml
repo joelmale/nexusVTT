@@ -73,6 +73,7 @@ networks:
     external: true
   nexus-internal-net:
     internal: true
+  nexus-codex-egress-net: {}
 
 volumes:
   codex-elasticsearch-data:

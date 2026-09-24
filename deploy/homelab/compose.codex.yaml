@@ -21,8 +21,11 @@ services:
     # off homelab-net while AUTH_DISABLED=true -- see the matching comment on
     # this service in compose.yaml for why. nexus-internal-net is sufficient;
     # the frontend gateway reaches doc-api over that network too.
+    # nexus-codex-egress-net (doc-api only) provides the outbound access its
+    # startup Prisma engine download needs.
     networks:
       - nexus-internal-net
+      - nexus-codex-egress-net
     depends_on:
       postgres:
         condition: service_healthy

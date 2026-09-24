@@ -197,8 +197,12 @@ services:
     # external connectivity) and is enough for postgres/redis/elasticsearch/
     # minio and the frontend gateway (see frontend's networks below) to reach
     # it. Do not add homelab-net back here without re-enabling AUTH_DISABLED.
+    # nexus-codex-egress-net gives outbound internet (doc-api downloads its
+    # Prisma engine at startup and crash-loops on an internal-only network);
+    # nothing else may join it.
     networks:
     - nexus-internal-net
+    - nexus-codex-egress-net
     depends_on:
       postgres:
         condition: service_healthy
@@ -269,6 +273,7 @@ networks:
     external: true
   nexus-internal-net:
     internal: true
+  nexus-codex-egress-net: {}
 volumes:
   codex-elasticsearch-data:
     name: nexus-vtt2-codex-elasticsearch-data
