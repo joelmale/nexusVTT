@@ -226,6 +226,7 @@ services:
       JWT_SECRET: ${CODEX_JWT_SECRET:?CODEX_JWT_SECRET is required, see deploy/homelab/.env.example}
       AUTH_DISABLED: 'true'
       EMBEDDINGS_PROVIDER: hash
+      METRICS_AUTH_TOKEN: ${CODEX_METRICS_AUTH_TOKEN:?CODEX_METRICS_AUTH_TOKEN is required, see deploy/homelab/.env.example}
     # Phase 0 containment (private-admin-control-plane.md invariant 2): doc-api
     # runs with AUTH_DISABLED=true, so it must never sit on a network shared
     # with untrusted containers. homelab-net is the flat bridge shared with
@@ -270,6 +271,8 @@ services:
       JWT_SECRET: null
       AUTH_DISABLED: null
       EMBEDDINGS_PROVIDER: null
+      METRICS_PORT: 9464
+      METRICS_AUTH_TOKEN: ${CODEX_METRICS_AUTH_TOKEN:?CODEX_METRICS_AUTH_TOKEN is required, see deploy/homelab/.env.example}
     networks:
     - nexus-internal-net
     depends_on:
