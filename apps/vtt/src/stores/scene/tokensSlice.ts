@@ -126,6 +126,7 @@ export interface TokenRenderData {
   placedBy: string;
   conditions: PlacedToken['conditions'];
   nameOverride?: string;
+  currentStats?: PlacedToken['currentStats'];
 }
 
 export const useTokenRenderData = (
@@ -148,6 +149,7 @@ export const useTokenRenderData = (
         placedBy: token.placedBy,
         conditions: token.conditions,
         nameOverride: token.nameOverride,
+        currentStats: token.currentStats,
       };
     }),
   );

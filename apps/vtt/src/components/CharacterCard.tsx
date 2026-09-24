@@ -5,6 +5,7 @@ import type { InitiativeEntry } from '@/types/initiative';
 import { useGameStore } from '@/stores/gameStore';
 import { useInitiativeStore } from '@/stores/initiativeStore';
 import { CharacterSheetPopup } from './CharacterSheetPopup';
+import { panelRegistry } from '@/services/panelRegistry';
 
 interface CharacterCardProps {
   character: Character;
@@ -184,6 +185,19 @@ export const CharacterCard: React.FC<CharacterCardProps> = ({
           title="View Character Sheet"
         >
           📋
+        </button>
+        <button
+          className="action-btn"
+          onClick={() =>
+            panelRegistry.open({
+              kind: 'character',
+              id: character.id,
+              title: character.name,
+            })
+          }
+          title="Open in Panel / Popout"
+        >
+          🗗
         </button>
         {token && (
           <button

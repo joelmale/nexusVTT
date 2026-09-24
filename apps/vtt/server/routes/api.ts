@@ -14,6 +14,7 @@ import { isDevMode } from '../utils/devMode.js';
 import { toAuthResponse, } from '../utils/publicUser.js';
 import { requireAuthenticatedNonGuest } from '../middleware/assetWriteGuard.js';
 import { setupGeneratedMapsRoute } from './generatedMaps.js';
+import { registerCampaignActorRoutes } from './campaignActors.js';
 
 interface ApiSession extends Session {
   guestUser?: { id: string; name: string; provider: string };
@@ -1023,4 +1024,5 @@ export function registerApiRoutes(
 );
 
   setupGeneratedMapsRoute(app, requireAuthenticatedNonGuest);
+  registerCampaignActorRoutes(app, db);
 }

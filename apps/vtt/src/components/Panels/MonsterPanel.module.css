@@ -1,0 +1,155 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 16px;
+  color: var(--text-primary, #f8fafc);
+  font-family: inherit;
+  font-size: 14px;
+}
+
+.header {
+  border-bottom: 2px solid var(--red-700, #b91c1c);
+  padding-bottom: 8px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--red-500, #ef4444);
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-secondary, #94a3b8);
+  margin-top: 2px;
+}
+
+.statRow {
+  display: flex;
+  justify-content: space-between;
+  padding: 4px 0;
+  border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+}
+
+.statLabel {
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.statValue {
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+}
+
+.abilityGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 6px;
+  background: var(--glass-bg, rgba(15, 23, 42, 0.6));
+  padding: 8px;
+  border-radius: 6px;
+  text-align: center;
+}
+
+.abilityItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.abilityName {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--indigo-300, #a5b4fc);
+}
+
+.abilityScore {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.abilityMod {
+  font-size: 11px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.combatControls {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--glass-bg, rgba(15, 23, 42, 0.4));
+  padding: 10px;
+  border-radius: 6px;
+  margin-top: 6px;
+}
+
+.hpInput {
+  width: 60px;
+  padding: 6px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.2));
+  background: rgba(0, 0, 0, 0.3);
+  color: var(--text-primary, #fff);
+  font-size: 13px;
+  text-align: center;
+}
+
+.damageBtn {
+  background: var(--red-600, #dc2626);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.damageBtn:hover {
+  opacity: 0.9;
+}
+
+.healBtn {
+  background: var(--emerald-600, #059669);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-weight: 600;
+  font-size: 12px;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.healBtn:hover {
+  opacity: 0.9;
+}
+
+.actionSection {
+  margin-top: 8px;
+}
+
+.actionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--red-400, #f87171);
+  border-bottom: 1px solid var(--red-800, #991b1b);
+  padding-bottom: 2px;
+  margin-bottom: 6px;
+}
+
+.actionItem {
+  margin-bottom: 8px;
+  font-size: 13px;
+  line-height: 1.4;
+}
+
+.actionItemName {
+  font-weight: 700;
+  font-style: italic;
+  margin-right: 4px;
+}

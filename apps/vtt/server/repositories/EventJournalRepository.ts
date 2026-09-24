@@ -120,6 +120,102 @@ export class EventJournalRepository extends BaseRepository {
     `);
   }
 
+  /**
+   * Appends an event to the room journal using an externally managed transaction client.
+   * Does not issue BEGIN or COMMIT.
+   */
+  async appendWithClient(
+    client: PoolClient,
+    roomCode: string,
+    identity: ClientEventIdentity,
+    message: TransportEnvelope,
+    echoToActor: boolean,
+    entityVersion?: EntityVersionPrecondition,
+  ): Promise<AppendRoomEventResult> {
+    const duplicate = await this.findByEventId(
+      client,
+      roomCode,
+      identity.eventId,
+    );
+    if (duplicate) {
+      return { duplicate: true, event: duplicate };
+    }
+
+    const sequenceResult = await client.query<SessionSequenceRecord>(
+      `UPDATE sessions
+       SET "eventSequence" = "eventSequence" + 1, "lastActivity" = NOW()
+       WHERE "joinCode" = $1
+       RETURNING id, "eventSequence"`,
+      [roomCode],
+    );
+    const session = sequenceResult.rows[0];
+    if (!session) {
+      throw new Error(`Cannot append an event for unknown room ${roomCode}`);
+    }
+
+    const serverSequence = asSafeSequence(session.eventSequence);
+    if (entityVersion) {
+      const versionResult = await client.query<{ version: string }>(
+        `INSERT INTO room_entity_versions (
+           "sessionId", "entityId", version, "updatedAt"
+         ) VALUES ($1, $2, $3::bigint + 1, NOW())
+         ON CONFLICT ("sessionId", "entityId") DO UPDATE
+         SET version = $3::bigint + 1, "updatedAt" = NOW()
+         WHERE room_entity_versions.version <= $3::bigint
+         RETURNING version`,
+        [session.id, entityVersion.entityId, entityVersion.expectedVersion],
+      );
+      if (!versionResult.rows[0]) {
+        const currentResult = await client.query<{ version: string }>(
+          `SELECT version
+           FROM room_entity_versions
+           WHERE "sessionId" = $1 AND "entityId" = $2`,
+          [session.id, entityVersion.entityId],
+        );
+        throw new EntityVersionConflictError(
+          entityVersion.entityId,
+          entityVersion.expectedVersion,
+          asSafeSequence(currentResult.rows[0]?.version ?? 0),
+        );
+      }
+    }
+    const event: OrderedTransportEnvelope = {
+      ...message,
+      ...identity,
+      roomCode,
+      serverSequence,
+      echoToActor,
+    };
+
+    await client.query(
+      `INSERT INTO room_events (
+         "sessionId", "serverSequence", "eventId", "actorId",
+         "clientSequence", envelope, "occurredAt"
+       ) VALUES (
+         $1, $2, $3, $4, $5, $6::jsonb,
+         to_timestamp($7::double precision / 1000.0)
+       )`,
+      [
+        session.id,
+        serverSequence,
+        identity.eventId,
+        identity.actorId,
+        identity.clientSequence,
+        JSON.stringify(event),
+        identity.occurredAt,
+      ],
+    );
+
+    await client.query(
+      `DELETE FROM room_events
+       WHERE "sessionId" = $1
+         AND "serverSequence" <= $2::bigint - $3::bigint`,
+      [session.id, serverSequence, this.maxEventsPerRoom],
+    );
+
+    return { duplicate: false, event };
+  }
+
   async append(
     roomCode: string,
     identity: ClientEventIdentity,
@@ -130,91 +226,16 @@ export class EventJournalRepository extends BaseRepository {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
-
-      const duplicate = await this.findByEventId(
+      const result = await this.appendWithClient(
         client,
         roomCode,
-        identity.eventId,
-      );
-      if (duplicate) {
-        await client.query('COMMIT');
-        return { duplicate: true, event: duplicate };
-      }
-
-      const sequenceResult = await client.query<SessionSequenceRecord>(
-        `UPDATE sessions
-         SET "eventSequence" = "eventSequence" + 1, "lastActivity" = NOW()
-         WHERE "joinCode" = $1
-         RETURNING id, "eventSequence"`,
-        [roomCode],
-      );
-      const session = sequenceResult.rows[0];
-      if (!session) {
-        throw new Error(`Cannot append an event for unknown room ${roomCode}`);
-      }
-
-      const serverSequence = asSafeSequence(session.eventSequence);
-      if (entityVersion) {
-        const versionResult = await client.query<{ version: string }>(
-          `INSERT INTO room_entity_versions (
-             "sessionId", "entityId", version, "updatedAt"
-           ) VALUES ($1, $2, $3::bigint + 1, NOW())
-           ON CONFLICT ("sessionId", "entityId") DO UPDATE
-           SET version = $3::bigint + 1, "updatedAt" = NOW()
-           WHERE room_entity_versions.version <= $3::bigint
-           RETURNING version`,
-          [session.id, entityVersion.entityId, entityVersion.expectedVersion],
-        );
-        if (!versionResult.rows[0]) {
-          const currentResult = await client.query<{ version: string }>(
-            `SELECT version
-             FROM room_entity_versions
-             WHERE "sessionId" = $1 AND "entityId" = $2`,
-            [session.id, entityVersion.entityId],
-          );
-          throw new EntityVersionConflictError(
-            entityVersion.entityId,
-            entityVersion.expectedVersion,
-            asSafeSequence(currentResult.rows[0]?.version ?? 0),
-          );
-        }
-      }
-      const event: OrderedTransportEnvelope = {
-        ...message,
-        ...identity,
-        roomCode,
-        serverSequence,
+        identity,
+        message,
         echoToActor,
-      };
-
-      await client.query(
-        `INSERT INTO room_events (
-           "sessionId", "serverSequence", "eventId", "actorId",
-           "clientSequence", envelope, "occurredAt"
-         ) VALUES (
-           $1, $2, $3, $4, $5, $6::jsonb,
-           to_timestamp($7::double precision / 1000.0)
-         )`,
-        [
-          session.id,
-          serverSequence,
-          identity.eventId,
-          identity.actorId,
-          identity.clientSequence,
-          JSON.stringify(event),
-          identity.occurredAt,
-        ],
+        entityVersion,
       );
-
-      await client.query(
-        `DELETE FROM room_events
-         WHERE "sessionId" = $1
-           AND "serverSequence" <= $2::bigint - $3::bigint`,
-        [session.id, serverSequence, this.maxEventsPerRoom],
-      );
-
       await client.query('COMMIT');
-      return { duplicate: false, event };
+      return result;
     } catch (error) {
       await client.query('ROLLBACK');
       if ((error as DatabaseError).code === '23505') {

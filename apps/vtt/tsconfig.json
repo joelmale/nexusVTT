@@ -33,6 +33,12 @@
       ],
       "@nexus/character-creator/*": [
         "../../packages/character-creator/src/*"
+      ],
+      "@nexus/game-contracts": [
+        "../../packages/game-contracts/src/index.ts"
+      ],
+      "@nexus/game-contracts/*": [
+        "../../packages/game-contracts/src/*"
       ]
     }
   },

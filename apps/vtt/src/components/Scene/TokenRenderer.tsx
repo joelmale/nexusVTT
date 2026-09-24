@@ -164,6 +164,27 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
     const effectiveName =
       placedToken.nameOverride || token.name || 'Unknown Token';
 
+    const rawHp = placedToken.currentStats?.hp ?? token.stats?.hp;
+    const rawMaxHp =
+      (placedToken.currentStats?.maxHp as number | undefined) ??
+      (token.stats?.maxHp as number | undefined) ??
+      (token.stats?.hp as number | undefined);
+
+    const hpStats =
+      typeof rawHp === 'number'
+        ? {
+            current: rawHp,
+            max: typeof rawMaxHp === 'number' && rawMaxHp > 0 ? rawMaxHp : Math.max(1, rawHp),
+          }
+        : null;
+
+    const barWidth = Math.max(24, tokenSize * 0.8);
+    const barHeight = 4;
+    const hpPercent = hpStats ? Math.max(0, Math.min(1, hpStats.current / hpStats.max)) : 0;
+    const fillWidth = barWidth * hpPercent;
+    const hpColor =
+      hpPercent > 0.5 ? '#10b981' : hpPercent > 0.25 ? '#f59e0b' : '#ef4444';
+
     return (
       <>
         <g
@@ -281,11 +302,41 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
           </g>
         )}
 
+        {/* Token Health Bar (Synchronous SVG anchored directly inside canvas group - ADR-0005) */}
+        {hpStats && (
+          <g
+            transform={`translate(${-barWidth / 2}, ${tokenSize / 2 + 4})`}
+            data-testid="token-health-bar"
+          >
+            {/* Background track */}
+            <rect
+              x={0}
+              y={0}
+              width={barWidth}
+              height={barHeight}
+              rx={2}
+              fill="rgba(0, 0, 0, 0.75)"
+              stroke="rgba(255, 255, 255, 0.2)"
+              strokeWidth={0.5}
+            />
+            {/* Fill bar */}
+            <rect
+              x={0}
+              y={0}
+              width={fillWidth}
+              height={barHeight}
+              rx={2}
+              fill={hpColor}
+            />
+            <title>{`HP: ${hpStats.current} / ${hpStats.max}`}</title>
+          </g>
+        )}
+
         {/* Token label */}
         {effectiveName ? (
             <text
               x={0}
-              y={tokenSize / 2 + 15}
+              y={tokenSize / 2 + (hpStats ? 20 : 15)}
               textAnchor="middle"
               fill="#fff"
               stroke="#000"
