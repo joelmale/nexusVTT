@@ -848,7 +848,9 @@ jobs:
             source="$repository:sha-$SOURCE_SHA"
             docker buildx imagetools create \
               --tag "$repository:$version" --tag "$repository:latest" "$source"
-            digest=$(docker buildx imagetools inspect "$source" | awk '/^Digest:/ {print $2; exit}')
+            # awk must drain its input: exiting early can SIGPIPE inspect and
+            # fail the step under pipefail.
+            digest=$(docker buildx imagetools inspect "$source" | awk '/^Digest:/ && !d {d=$2} END {print d}')
             if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
               echo "could not resolve digest for $source" >&2
               exit 1
