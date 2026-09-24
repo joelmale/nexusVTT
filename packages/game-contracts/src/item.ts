@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { authoredMetadataSchema, definitionRefSchema, rulesetRefSchema } from './identity';
+import { authoredMetadataSchema, definitionRefSchema, rulesetRefSchema } from './identity.js';
 
 export const itemTypeSchema = z.enum([
   'weapon',

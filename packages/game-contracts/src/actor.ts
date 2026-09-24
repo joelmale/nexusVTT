@@ -1,9 +1,9 @@
 import { z } from 'zod';
-import { definitionRefSchema, rulesetRefSchema } from './identity';
-import { resourcePoolSchema, spellcastingProfileSchema, activeConcentrationSchema } from './spell';
-import { itemInstanceSchema } from './item';
-import { abilityScoresSchema } from './character';
-import { monsterSpeedSchema, monsterArmorClassSchema, monsterActionSchema } from './monster';
+import { definitionRefSchema, rulesetRefSchema } from './identity.js';
+import { resourcePoolSchema, spellcastingProfileSchema, activeConcentrationSchema } from './spell.js';
+import { itemInstanceSchema } from './item.js';
+import { abilityScoresSchema } from './character.js';
+import { monsterSpeedSchema, monsterArmorClassSchema, monsterActionSchema } from './monster.js';
 
 export const actorKindSchema = z.enum(['pc', 'npc', 'monster', 'companion']);
 export type ActorKind = z.infer<typeof actorKindSchema>;

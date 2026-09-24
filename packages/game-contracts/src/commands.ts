@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { definitionRefSchema } from './identity';
+import { definitionRefSchema } from './identity.js';
 
 /**
  * Base command envelope carrying metadata, CAS expected versions, and idempotency key

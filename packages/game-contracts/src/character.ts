@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { authoredMetadataSchema, rulesetRefSchema } from './identity';
+import { authoredMetadataSchema, rulesetRefSchema } from './identity.js';
 
 /**
  * Ability scores dictionary schema

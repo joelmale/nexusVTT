@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { authoredMetadataSchema, rulesetRefSchema } from './identity';
-import { abilityScoresSchema } from './character';
+import { authoredMetadataSchema, rulesetRefSchema } from './identity.js';
+import { abilityScoresSchema } from './character.js';
 
 export const monsterSizeSchema = z.enum([
   'Tiny',
