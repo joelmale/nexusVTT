@@ -19,6 +19,8 @@
 
 export const CONTROL_API_BASE = '/control-api/v1'
 export const CODEX_API_BASE = `${CONTROL_API_BASE}/codex`
+export const ASSETS_API_BASE = `${CONTROL_API_BASE}/assets`
+export const RULES_API_BASE = `${CONTROL_API_BASE}/rules`
 export const LOGIN_PATH = `${CONTROL_API_BASE}/auth/login`
 export const LOGOUT_PATH = `${CONTROL_API_BASE}/auth/logout`
 export const ME_PATH = `${CONTROL_API_BASE}/me`
@@ -31,6 +33,14 @@ export type Permission =
   | 'codex:write'
   | 'codex:delete'
   | 'codex:maintain'
+  | 'codex:operate'
+  | 'ops:read'
+  | 'assets:read'
+  | 'assets:write'
+  | 'assets:delete'
+  | 'rules:read'
+  | 'rules:write'
+  | 'rules:publish'
   | 'audit:read'
   | 'admins:manage'
 
@@ -52,14 +62,22 @@ export class ApiError extends Error {
   readonly status: number
   readonly code?: string
   readonly requestId?: string
+  /** Parsed JSON error body, when there was one (e.g. a 409's current state). */
+  readonly body?: unknown
 
-  constructor(status: number, message: string, code?: string, requestId?: string) {
+  constructor(status: number, message: string, code?: string, requestId?: string, body?: unknown) {
     super(message)
     this.name = 'ApiError'
     this.status = status
     this.code = code
     this.requestId = requestId
+    this.body = body
   }
+}
+
+/** True for the step-up `401 {"error":"reauth_required"}` (the client is already redirecting). */
+export function isReauthRequired(error: unknown): boolean {
+  return error instanceof ApiError && error.status === 401 && error.code === 'reauth_required'
 }
 
 /** Browser side effects, replaceable in tests. */
@@ -178,6 +196,60 @@ export async function controlFetch(
 /** Drop-in replacement for `fetch('/api/...')` against doc-api. */
 export function codexFetch(apiPath: string, init?: RequestInit): Promise<Response> {
   return controlFetch(codexUrl(apiPath), init)
+}
+
+/**
+ * Build an ApiError from a non-2xx response. Asset-service errors are
+ * `{ error: <code>, message }`, rules errors `{ error: <message>, code }` and
+ * control-api errors `{ error: <code>, requestId }`; all three are accepted.
+ */
+export async function apiErrorFrom(response: Response, fallback = 'Request failed'): Promise<ApiError> {
+  let body: unknown
+  try {
+    body = await response.clone().json()
+  } catch {
+    body = undefined
+  }
+  const record = (typeof body === 'object' && body !== null ? body : {}) as Record<string, unknown>
+  const str = (value: unknown) => (typeof value === 'string' && value.trim() !== '' ? value : undefined)
+  const code = str(record.code) ?? str(record.error)
+  const message =
+    str(record.message) ??
+    (str(record.code) ? str(record.error) : undefined) ??
+    `${fallback} (${response.status}${code ? ` ${code}` : ''})`
+  return new ApiError(response.status, message, code, str(record.requestId), body)
+}
+
+/** `controlFetch` that parses JSON and throws `ApiError` on any non-2xx status. */
+export async function controlJson<T>(path: string, init: RequestInit = {}): Promise<T> {
+  const response = await controlFetch(path, init)
+  if (!response.ok) throw await apiErrorFrom(response)
+  if (response.status === 204) return undefined as T
+  const text = await response.text()
+  return (text ? JSON.parse(text) : undefined) as T
+}
+
+/** RequestInit for a JSON body. */
+export function jsonRequest(method: string, body?: unknown, headers?: HeadersInit): RequestInit {
+  const merged = new Headers(headers)
+  merged.set('Content-Type', 'application/json')
+  return { method, headers: merged, body: JSON.stringify(body ?? {}) }
+}
+
+/** Build a query string, dropping empty values. Includes the leading `?`. */
+export function queryString(params: Record<string, string | number | boolean | undefined | null>): string {
+  const search = new URLSearchParams()
+  for (const [key, value] of Object.entries(params)) {
+    if (value === undefined || value === null || value === '') continue
+    search.set(key, String(value))
+  }
+  const text = search.toString()
+  return text ? `?${text}` : ''
+}
+
+/** Same-origin page image for the Reader (control-api streams it from storage). */
+export function codexPageImageUrl(documentId: string, page: number): string {
+  return `${CODEX_API_BASE}/documents/${encodeURIComponent(documentId)}/pages/${page}/image`
 }
 
 /** Load the signed-in administrator and remember the CSRF token. */
