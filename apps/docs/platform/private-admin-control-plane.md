@@ -5,14 +5,15 @@ title: Private admin control plane implementation plan
 # Private admin control plane implementation plan
 
 - Date: 2026-09-23
-- Status: Phase 0 implemented in repository; not yet deployed
+- Status: Phase 0 implemented and merged to `main`; homelab deployment in
+  progress. Phases 1-6 not started.
 
 ## Outcome
 
 Build a private Nexus administration surface for content authoring, asset
 management, and application operations. The control plane must be reachable
-only from the trusted LAN or an approved VPN, require an authenticated platform
-administrator, and avoid exposing internal services through the public
+only from the home LAN or the Firewalla WireGuard VPN, require an authenticated
+platform administrator, and avoid exposing internal services through the public
 `app.nexusvtt.com` ingress.
 
 The target experience is one administrative console with separate modules for:
@@ -96,16 +97,18 @@ Use a separate private hostname and ingress policy, but keep static delivery in
 the existing unified frontend gateway.
 
 ```text
-trusted LAN or approved VPN
+home LAN or Firewalla WireGuard client
             |
             v
-admin.nexusvtt.home.arpa       private DNS only; no public DNS/tunnel
+admin.internal.nexusvtt.com    LAN-only DNS answer; no public A/AAAA record
             |
             v
-existing edge proxy            TLS + source-network policy
+Nginx Proxy Manager (npm)      TLS (*.internal.nexusvtt.com, DNS-01)
+  on HomePod :443              + access list: LAN and WireGuard subnets only
             |
             v
-frontend Nginx private vhost   admin SPA + /control-api only
+frontend Nginx :8081           separate private listener; admin SPA,
+  (private server block)       /control-api and liveness only
             |
             v
 control-api                    authentication, RBAC, CSRF, audit, aggregation
@@ -115,19 +118,48 @@ control-api                    authentication, RBAC, CSRF, audit, aggregation
   internal       internal       internal APIs      internal only
 ```
 
-`admin.nexusvtt.home.arpa` is the proposed default. A split-horizon hostname or
-VPN-provided hostname is acceptable if it has the same properties: private name
-resolution, trusted TLS, no public reverse-proxy route, and an explicit network
-access policy.
+The admin console is LAN-only. Remote administrators connect through the
+Firewalla Gold WireGuard VPN, which places them in the WireGuard subnet; no
+other remote path exists. There is no public DNS record, Cloudflare route, or
+router port forward for the admin hostname.
 
-The private hostname is not the only security boundary. Authentication and
-authorization remain mandatory because a compromised or untrusted LAN client
-must not gain administrative access.
+The admin hostname is `admin.internal.nexusvtt.com`:
+
+- **DNS:** a local DNS record on the Firewalla Gold pointing at HomePod
+  (`192.168.100.20`). The Firewalla answers for both LAN and WireGuard
+  clients. The public
+  `nexusvtt.com` zone gets no A/AAAA record for it.
+- **TLS:** a Let's Encrypt wildcard certificate for `*.internal.nexusvtt.com`,
+  issued by Nginx Proxy Manager using the DNS-01 challenge against the
+  Cloudflare zone. DNS-01 needs no inbound reachability, and the wildcard keeps
+  individual admin hostnames out of public certificate-transparency logs. No
+  private CA has to be installed on admin devices.
+
+Network position is not an identity. The access list keeps the internet out,
+but every device on the LAN or VPN, and every container on the shared
+`homelab-net` Docker network, can reach the private listener without passing
+through that list. Authentication and authorization therefore remain mandatory,
+and nothing on the private listener may reach `doc-api` or any other internal
+API until `control-api` authentication exists.
 
 ## Routing model
 
 Create separate public and private Nginx server contexts. Do not rely on a
 hidden link or frontend route guard.
+
+Separate them by listener port, not only by `server_name`. Public traffic
+(Cloudflare, or direct to the home IP through the Firewalla port forward) and
+LAN traffic both arrive at the same Nginx Proxy Manager on `:443`, so a
+Host-header split inside one frontend listener would leave the edge access list
+as the only barrier against `Host: admin.internal.nexusvtt.com` from the
+internet. Instead:
+
+- the public proxy host `app.nexusvtt.com` targets `frontend:80`, whose server
+  block contains no admin locations regardless of the Host header; and
+- the private proxy host `admin.internal.nexusvtt.com` targets `frontend:8081`,
+  a separate server block that serves only the admin surfaces below.
+
+The frontend does not publish `8081` on the host.
 
 | Route or capability                    | Public `app.nexusvtt.com`  | Private admin hostname                                 |
 | -------------------------------------- | -------------------------- | ------------------------------------------------------ |
@@ -156,16 +188,27 @@ The private vhost should expose only:
 
 ### Identity
 
-Select one administrative identity authority before implementation:
+Access requires two independent layers:
 
-1. An existing identity-aware proxy, such as Authentik or Authelia, with a
-   `nexus-platform-admin` group; or
-2. the Nexus account system, extended with durable platform roles and a private
-   admin login flow.
+1. **Network gate (who can connect).** The Firewalla Gold and a Nginx Proxy
+   Manager access list admit only the home LAN and WireGuard subnets. This
+   keeps the internet out but identifies no one, supports no roles, and cannot
+   attribute an audit event to a person.
+2. **Identity (who is acting).** The Nexus account system, extended with
+   durable platform roles and a private admin login flow, authenticates each
+   administrator and authorizes each request.
 
-An identity-aware proxy is preferred when one already exists in the homelab. If
-Nexus owns authorization, add a normalized role relation instead of an email
-allowlist:
+Decision (2026-09-23): use Nexus accounts rather than an identity-aware proxy.
+The homelab runs no Authentik or Authelia, and operating one for a single
+administrator costs more than it returns. Nexus already has accounts and Google
+sign-in; requiring Google sign-in for admin login puts MFA at the Google
+account. Revisit an identity-aware proxy if more services need single sign-on.
+
+Do not use a Nginx Proxy Manager basic-auth access list as the identity layer.
+A shared password gives no per-user audit, roles, revocation, or MFA. It is
+acceptable only as an extra outer layer.
+
+Add a normalized role relation instead of an email allowlist:
 
 ```text
 user_roles
@@ -197,6 +240,9 @@ for usability only; server-side authorization is authoritative.
 ### Session security
 
 - Use secure, HTTP-only, same-site cookies scoped to the private hostname.
+- Keep the player-facing VTT session cookie host-only (no `Domain`
+  attribute, as today), so it is never sent to `*.internal.nexusvtt.com`, and
+  cover that with a regression test.
 - Protect state-changing requests with CSRF tokens and origin checks.
 - Rotate the session after login and privilege changes.
 - Set a shorter idle timeout than the player-facing VTT session.
@@ -413,8 +459,44 @@ game workflows still pass.
 
 #### Phase 0 status
 
-Implemented in repository (uncommitted at time of writing). **Deployment:
-pending** -- none of this has been rolled out to the homelab stack yet.
+Merged to `main` in `2de28f4a` (containment) and `4d1fd352` (CI docs-deploy
+condition). CI built and promoted the `frontend`, `backend`, `asset-service`,
+and `postgres` images. **Deployment to the `nexus-vtt2` Dockhand stack is in
+progress** and is not complete until the checklist below is done.
+
+Deliverable checklist:
+
+| Deliverable                                                   | State                                                                                    |
+| ------------------------------------------------------------- | ---------------------------------------------------------------------------------------- |
+| Inventory public routes reaching `doc-api` or admin actions   | Done (route table below)                                                                 |
+| Deny `/codex-admin/` and `/api/admin/` publicly               | Done in repository; pending deploy                                                       |
+| Remove the public generic `/codex-api/` proxy                 | Done in repository; pending deploy                                                       |
+| Route-classify ingestion, processing, and reader endpoints    | Done (route table below)                                                                 |
+| No host port, public proxy, or untrusted network to `doc-api` | Done in repository; pending deploy                                                       |
+| `METRICS_AUTH_TOKEN` set and verified                         | Compose now requires it; live value not yet set (was empty, so metrics were unprotected) |
+| Production `DEV_MODE=false`                                   | Pending (live value was `true`)                                                          |
+| Gate verified against `app.nexusvtt.com`                      | Pending deploy                                                                           |
+
+Live state found on 2026-09-23 before deployment: `doc-api` (with
+`AUTH_DISABLED=true`) was attached to the shared `homelab-net` alongside about
+25 unrelated containers, including the edge proxy. `admin-ui` and `dm-ui`
+published host ports `3080` and `3081` on all interfaces. Both proxied `/api/`
+to `doc-api` without authentication. The live compose file pins image tags
+that differ from `deploy/homelab/compose.yaml`, so deployment edits the live
+file in place instead of replacing it with the repository copy.
+
+Remaining deployment steps (each confirmed separately under the Dockhand
+guardrails; a pre-change snapshot of the live compose and variable list has
+been saved):
+
+1. Operator adds `METRICS_AUTH_TOKEN` as an encrypted Dockhand variable.
+2. Merge `DEV_MODE=false` into the stack variables.
+3. Apply four edits to the live compose file: `frontend` joins
+   `nexus-internal-net`; `doc-api` leaves `homelab-net`; `METRICS_AUTH_TOKEN`
+   becomes required; `admin-ui` and `dm-ui` are removed.
+4. Redeploy with image pulls, then remove any orphaned `admin-ui`/`dm-ui`
+   containers.
+5. Verify the Phase 0 gate from the public route and the LAN.
 
 Implemented behaviors:
 
@@ -429,35 +511,42 @@ Implemented behaviors:
   and gated by an nginx `auth_request` against the VTT backend's new
   `GET /auth/session-check` (`apps/vtt/server/routes/auth.routes.ts`), which
   returns `204` for a signed-in, non-guest VTT account and `401` otherwise.
-  `/codex-ws` is unchanged; it already requires a JWT.
+  `/codex-ws` is unchanged; it already requires a JWT. The proxy strips the
+  browser's `Cookie` and `Authorization` headers before forwarding to
+  `doc-api`.
 - `/api/metrics/*` on the VTT backend (`delta-sync`, `ordered-events`,
   `realtime`, `multiplayer`) now requires the same `METRICS_AUTH_TOKEN` bearer
-  token that already guarded `/metrics`. Homelab Compose
+  token that already guarded `/metrics`, compared in constant time. Homelab
+  Compose
   (`compose.yaml`, `compose.vtt.yaml`) now fails to start without
   `METRICS_AUTH_TOKEN` set (`${METRICS_AUTH_TOKEN:?...}`), instead of
   silently serving `/metrics` unauthenticated when the variable was empty.
 - Homelab network containment: `doc-api` is now on `nexus-internal-net` only
   (removed from the shared `homelab-net`); `frontend` joined
-  `nexus-internal-net` so the gateway can still reach it; `admin-ui` and
-  `dm-ui` no longer publish host ports `3080`/`3081`.
+  `nexus-internal-net` so the gateway can still reach it. The standalone
+  `admin-ui` and `dm-ui` containers are removed from the stack (invariant 3):
+  they published host ports `3080`/`3081`, and once `doc-api` leaves
+  `homelab-net` their Nginx cannot resolve it and would crash-loop. The
+  unified gateway already serves `/codex-dm/`. The Codex Admin UI has no
+  network path until Phase 1.
 - The Lobby Development Tools panel (`LinearWelcomePage.tsx`) no longer shows
   the "Admin Panel" button or the "Codex Admin UI" link.
 
 Route classification (old public path -> new public behavior -> reason):
 
-| Old public path                    | New public behavior                          | Reason                                                                 |
-| ----------------------------------- | --------------------------------------------- | ----------------------------------------------------------------------- |
-| `/codex-admin`, `/codex-admin/*`    | `404`                                          | Admin SPA has no authenticated public surface until Phase 1's private hostname exists |
-| `/api/admin/*`                      | `404`                                          | Unauthenticated `doc-api` admin API; never safe on the public vhost while `AUTH_DISABLED=true` |
-| `/api/documents/bulk`               | `404`                                          | Bulk ingestion is an admin action, not a player/DM function            |
-| `/api/documents/:id/process`        | `404`                                          | Reprocessing trigger is an admin action                                |
-| `/api/deduplication/*`              | `404`                                          | Admin-only maintenance surface                                         |
-| `/api/processing/*`                 | `404`                                          | Admin-only maintenance surface                                         |
-| `/api/references/*`                 | `404`                                          | Not an approved player/DM function; no VTT BFF equivalent yet          |
-| `/api/annotations/*`                | `404`                                          | Not an approved player/DM function; no VTT BFF equivalent yet          |
-| `/codex-api/*` (generic proxy)      | `404` except four allowlisted GET reads        | A blanket proxy to `doc-api` bypassed authentication entirely; only the DM UI's actual read calls are preserved |
+| Old public path                                                                               | New public behavior                                                      | Reason                                                                                                                                                                                          |
+| --------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `/codex-admin`, `/codex-admin/*`                                                              | `404`                                                                    | Admin SPA has no authenticated public surface until Phase 1's private hostname exists                                                                                                           |
+| `/api/admin/*`                                                                                | `404`                                                                    | Unauthenticated `doc-api` admin API; never safe on the public vhost while `AUTH_DISABLED=true`                                                                                                  |
+| `/api/documents/bulk`                                                                         | `404`                                                                    | Bulk ingestion is an admin action, not a player/DM function                                                                                                                                     |
+| `/api/documents/:id/process`                                                                  | `404`                                                                    | Reprocessing trigger is an admin action                                                                                                                                                         |
+| `/api/deduplication/*`                                                                        | `404`                                                                    | Admin-only maintenance surface                                                                                                                                                                  |
+| `/api/processing/*`                                                                           | `404`                                                                    | Admin-only maintenance surface                                                                                                                                                                  |
+| `/api/references/*`                                                                           | `404`                                                                    | Not an approved player/DM function; no VTT BFF equivalent yet                                                                                                                                   |
+| `/api/annotations/*`                                                                          | `404`                                                                    | Not an approved player/DM function; no VTT BFF equivalent yet                                                                                                                                   |
+| `/codex-api/*` (generic proxy)                                                                | `404` except four allowlisted GET reads                                  | A blanket proxy to `doc-api` bypassed authentication entirely; only the DM UI's actual read calls are preserved                                                                                 |
 | `/codex-api/api/search/quick`, `/structured-data`, `/documents/:id`, `/documents/:id/content` | Proxied, GET/HEAD only, gated by `auth_request` -> `/auth/session-check` | These are the DM UI's real read calls (`apps/codex/services/dm-ui/src/services/codex-api.ts`); scoping and authenticating them keeps the DM planner working without reopening the generic proxy |
-| `/codex-ws`                         | Unchanged                                      | Already requires a JWT                                                 |
+| `/codex-ws`                                                                                   | Unchanged                                                                | Already requires a JWT                                                                                                                                                                          |
 
 Known behavior change: the four remaining `/codex-api/` reads used by the DM
 UI now require a **signed-in, non-guest** VTT account. A guest session (the
@@ -465,35 +554,125 @@ common way to start a quick game) gets `401` from `/auth/session-check` and
 the DM planner's document reads will fail until the user is authenticated
 with a real account. This was not previously enforced at the gateway.
 
+Accepted tradeoff: the gate checks authentication, not per-document
+authorization. Because self-registration creates a signed-in account, any
+registered user can read any Codex document through these four paths.
+Previously the same reads were anonymous and writes were open, so this is a
+strict improvement, and no mutation is reachable.
+
+Follow-ups carried out of Phase 0:
+
+- Move the DM UI onto the VTT backend's authorized document routes
+  (`apps/vtt/server/routes/documents.ts`), then remove `/codex-api/`
+  entirely. The search parameters (`term` versus `query`) and campaign scoping
+  differ, so this needs client and contract changes.
+- Configure the Prometheus scrape with the metrics bearer token when
+  Prometheus is deployed in Phase 3 (`monitoring/prometheus.yml`).
+- Publish the updated documentation (manual `docs-pages.yml` run or the next
+  docs-changing push to `main`).
+
 ### Phase 1 - Establish private ingress
+
+Phase 1 delivers the network path only. The existing Admin UI calls
+`/api/admin/*` and `/api/documents/bulk` directly, and the authenticated
+`control-api` that replaces those calls arrives in Phase 2. Proxying them to
+`doc-api` from the private listener would break invariant 2, because other
+`homelab-net` containers and any LAN or VPN device can reach that listener. The
+private host therefore serves a static placeholder and liveness endpoint until
+Phase 2.
+
+Prerequisites (operator):
+
+- Finish the Phase 0 deployment and verify its gate.
+- Confirm the LAN subnet (expected `192.168.100.0/24`) and the Firewalla
+  WireGuard client subnet.
+- Confirm WireGuard client profiles use the Firewalla as their DNS resolver.
+  The Firewalla serves local DNS records to LAN and WireGuard clients
+  (confirmed 2026-09-23). Do not use a public record that points at a private
+  address; Firewalla DNS-rebinding protection may block it.
+- Create a Cloudflare API token scoped to Zone:DNS:Edit for `nexusvtt.com`, for
+  Nginx Proxy Manager's DNS-01 challenge. The operator enters it in Nginx Proxy
+  Manager; it never goes into Git or Compose.
 
 Deliverables:
 
-- Create private DNS for the selected hostname.
-- Issue a trusted certificate through an internal CA, DNS challenge, or the
-  approved VPN certificate mechanism.
-- Add a private Nginx server context/listener in the unified frontend image.
-- Add LAN/VPN source restrictions at the edge proxy or firewall.
-- Serve the existing Admin UI only from the private hostname.
-- Add automated tests asserting public denial and private availability.
+- **Edge client-address audit.** Record how Nginx Proxy Manager determines the
+  client address (`real_ip`/`set_real_ip_from` settings, Cloudflare trust).
+  The admin access list must evaluate the TCP peer address. If Nginx Proxy
+  Manager substitutes `X-Forwarded-For`, `X-Real-IP`, or `CF-Connecting-IP`
+  from a source the internet can reach, a forged header could satisfy the
+  allowlist; remove that trust for the admin host before creating it.
+- **Firewalla review.** Confirm the only WAN port forward is `443` to
+  HomePod, that Nginx Proxy Manager's own admin UI (`:81`) and `:80` are not
+  forwarded, and whether WAN `443` can be restricted to Cloudflare's published
+  ranges. That restriction also blocks direct-to-origin probing of every
+  hostname.
+- **DNS.** Add the `admin.internal.nexusvtt.com` local DNS record on the
+  Firewalla, and confirm WireGuard clients resolve it and that public resolvers
+  do not.
+- **TLS.** Issue `*.internal.nexusvtt.com` through Nginx Proxy Manager with
+  DNS-01 and confirm automatic renewal.
+- **Private listener.** Add a `listen 8081` server block to
+  `apps/vtt/docker/nginx.conf`, serving only a static placeholder page and a
+  dependency-free liveness endpoint. Give it a strict CSP (no `unsafe-inline`,
+  no Cloudflare beacon), `frame-ancestors 'none'`, `X-Frame-Options: DENY`, and
+  `Referrer-Policy: no-referrer`. Do not publish `8081` on the host.
+- **Edge route.** Create the Nginx Proxy Manager proxy host
+  `admin.internal.nexusvtt.com` -> `frontend:8081` with an access list that
+  allows only the LAN and WireGuard subnets and denies everything else, with
+  no basic-auth "satisfy any" bypass.
+- **Automated tests.** Extend the Phase 0 Nginx regression test, and run the
+  stub-container curl matrix in CI against both listeners. Cover: admin paths
+  denied on `:80` for every Host header (including
+  `admin.internal.nexusvtt.com`); only the placeholder and liveness endpoints
+  served on `:8081`; path, encoding, and method variations; and no `doc-api` or
+  backend `proxy_pass` inside the private server block.
+- **Manual probes.** Document and run external probes over a phone hotspot
+  with WireGuard off:
+  - public DNS returns no answer for the admin hostname;
+  - a direct request to the home IP with `Host`/SNI `admin.internal.nexusvtt.com`
+    is refused, including with forged `X-Forwarded-For`, `X-Real-IP`, and
+    `CF-Connecting-IP` headers.
 
-Gate: the hostname is unreachable from an external network, presents trusted
-TLS internally, and public-host header/path variations cannot reach it.
+  Repeat with WireGuard on and expect success.
+
+- **Runbook.** Record the hostname, DNS record, certificate, access-list
+  subnets, and the Firewalla configuration in the homelab deployment runbook.
+
+Gate: the hostname has no public DNS answer, and it refuses or cannot be
+reached from an external network, even with forged client-address headers. It
+serves trusted TLS from the LAN and over WireGuard. No public Host, SNI, or path
+variation reaches the private listener. The private listener proxies to no
+internal API.
+
+Interim Codex administration (optional): the Codex Admin UI has no hosted path
+between the Phase 0 deployment and Phase 2. If document administration is
+needed in that window, run the Admin UI locally with its Vite development
+server, reaching `doc-api` through an SSH port forward to HomePod. This adds no
+server surface; SSH keys are the access control. Before relying on it, verify
+that the HomePod host can reach containers on the internal
+`nexus-internal-net` bridge.
 
 ### Phase 2 - Add control-plane identity and API
 
 Deliverables:
 
-- Choose the identity authority and implement the role model.
+- Implement the Nexus-account identity model (see
+  [Identity](#identity)): the `user_roles` relation, a private admin login flow
+  on the admin hostname that requires Google sign-in, and an admin session
+  separate from the player-facing VTT session.
 - Add `control-api` with `/v1/me`, permission middleware, CSRF, rate limits,
   request IDs, redacted structured logging, and audit persistence.
 - Add typed internal clients for Codex, the asset service, VTT diagnostics, and
   monitoring queries.
-- Replace direct Admin UI fetches to `/api/admin/*` with `/control-api/v1/*`.
+- Replace direct Admin UI fetches to `/api/admin/*` with `/control-api/v1/*`,
+  then replace the Phase 1 placeholder on the private listener with the Admin
+  UI and the `/control-api/` route.
 - Add the first-admin bootstrap procedure and role-management recovery steps.
 
 Gate: authorization tests prove each role's allow/deny matrix, direct service
-access remains unavailable, and every test mutation emits one audit event.
+access remains unavailable, every test mutation emits one audit event, and a
+LAN or WireGuard client without an admin role cannot perform any action.
 
 ### Phase 3 - Deliver operational visibility
 
@@ -550,6 +729,7 @@ metadata edit, derivative rebuild, quarantine, and rollback tests.
 Deliverables:
 
 - Remove the production-facing Admin Panel button from lobby development tools.
+  Done early in Phase 0, together with the "Codex Admin UI" link.
 - For authenticated platform administrators on an eligible private network,
   optionally show an external `Open Control Plane` link using runtime config.
 - Keep the frozen local VTT `/admin` editor dev-only until it is deleted under a
@@ -564,18 +744,18 @@ the frozen VTT editor.
 
 ## Verification matrix
 
-| Area              | Required evidence                                                                          |
-| ----------------- | ------------------------------------------------------------------------------------------ |
-| Network isolation | External DNS/connection fails; public vhost denies admin paths; private LAN/VPN succeeds   |
-| Authentication    | Anonymous, expired, revoked, and non-admin sessions are denied                             |
-| Authorization     | Automated permission matrix for all roles and route groups                                 |
-| Browser security  | CSRF, origin, cookie, CSP, and clickjacking tests pass                                     |
-| Audit             | Successes, denials, conflicts, and failures are attributable and redacted                  |
-| Rules             | Schema, cross-reference, revision, conflict, publish, rollback, and offline-fallback tests |
-| Assets            | Upload, metadata, derivatives, integrity, quarantine, path, and authorization tests        |
-| Operations        | Real metrics replace placeholders; dashboards and alerts respond to injected failures      |
-| VTT regression    | Login, document library, assets, Forge, room creation, and two-client sync pass            |
-| Recovery          | Previous gateway/image set can be restored without deleting databases or volumes           |
+| Area              | Required evidence                                                                                                                                                     |
+| ----------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Network isolation | No public DNS answer; external requests refused even with forged client-address headers; public listener denies admin paths for every Host; LAN and WireGuard succeed |
+| Authentication    | Anonymous, expired, revoked, and non-admin sessions are denied                                                                                                        |
+| Authorization     | Automated permission matrix for all roles and route groups                                                                                                            |
+| Browser security  | CSRF, origin, cookie, CSP, and clickjacking tests pass                                                                                                                |
+| Audit             | Successes, denials, conflicts, and failures are attributable and redacted                                                                                             |
+| Rules             | Schema, cross-reference, revision, conflict, publish, rollback, and offline-fallback tests                                                                            |
+| Assets            | Upload, metadata, derivatives, integrity, quarantine, path, and authorization tests                                                                                   |
+| Operations        | Real metrics replace placeholders; dashboards and alerts respond to injected failures                                                                                 |
+| VTT regression    | Login, document library, assets, Forge, room creation, and two-client sync pass                                                                                       |
+| Recovery          | Previous gateway/image set can be restored without deleting databases or volumes                                                                                      |
 
 ## Deployment and rollback
 
@@ -620,7 +800,8 @@ deleting history.
 The work is complete when:
 
 - no privileged admin UI or API is reachable through the public VTT ingress;
-- the control plane is reachable only over trusted LAN/VPN paths with TLS;
+- the control plane is reachable only from the home LAN or over the Firewalla
+  WireGuard VPN, at `admin.internal.nexusvtt.com`, with trusted TLS;
 - every request is authenticated and every mutation is authorized and audited;
 - administrators can manage documents, versioned rules content, and image
   assets without direct database, container, or filesystem access;
