@@ -34,8 +34,7 @@ function rawRequest(h: Harness, rawPath: string, session: TestSession, method = 
 function listFiles(dir: string): string[] {
   return readdirSync(dir).flatMap((name) => {
     const full = path.join(dir, name);
-    // Test files deliberately contain hostile paths; only product code counts.
-    return statSync(full).isDirectory() ? listFiles(full) : /\.tsx?$/.test(name) && !/\.test\.tsx?$/.test(name) ? [full] : [];
+    return statSync(full).isDirectory() ? listFiles(full) : /\.tsx?$/.test(name) ? [full] : [];
   });
 }
 
@@ -45,11 +44,11 @@ describe('Codex allowlist table', () => {
   it('covers every doc-api path the Admin UI calls', () => {
     const uiRoot = path.resolve(here, '../../codex/services/admin-ui/src');
     const paths = new Set<string>();
-    for (const file of listFiles(uiRoot)) {
-      // Code only: doc comments mention placeholder paths such as `/api/X`.
+    // UI tests deliberately contain hostile paths; only production sources count.
+    for (const file of listFiles(uiRoot).filter((f) => !/\.test\.[jt]sx?$/.test(f))) {
       const source = readFileSync(file, 'utf8')
         .split('\n')
-        .filter((line) => !/^\s*(\*|\/\*|\/\/)/.test(line))
+        .filter((line) => !/^\s*(\*|\/\/|\/\*)/.test(line))
         .join('\n');
       for (const match of source.matchAll(/[`'"](?:\$\{API_BASE_URL\})?\/api\/([^`'"?\s]+)/g)) {
         paths.add(match[1]!.replace(/\$\{[^}]+\}/g, 'x1'));
