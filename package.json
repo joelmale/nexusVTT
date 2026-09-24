@@ -59,6 +59,18 @@
   "devDependencies": {
     "ajv": "^8.20.0"
   },
+  "optionalDependencies": {
+    "@rolldown/binding-linux-x64-gnu": "1.2.8",
+    "@rolldown/binding-linux-x64-musl": "1.2.8",
+    "@rollup/rollup-linux-x64-gnu": "4.63.2",
+    "@rollup/rollup-linux-x64-musl": "4.63.2",
+    "@rspack/binding-linux-x64-gnu": "1.7.12",
+    "@rspack/binding-linux-x64-musl": "1.7.12",
+    "@tailwindcss/oxide-linux-x64-gnu": "4.3.3",
+    "@tailwindcss/oxide-linux-x64-musl": "4.3.3",
+    "lightningcss-linux-x64-gnu": "1.33.0",
+    "lightningcss-linux-x64-musl": "1.33.0"
+  },
   "allowScripts": {
     "@3d-dice/dice-box@1.1.4": false,
     "@parcel/watcher@2.6.0": true,

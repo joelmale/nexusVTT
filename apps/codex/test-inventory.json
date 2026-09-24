@@ -2,7 +2,7 @@
   "schemaVersion": 1,
   "services": {
     "admin-ui": {
-      "testPolicy": "none"
+      "testPolicy": "unit"
     },
     "dm-ui": {
       "testPolicy": "none"
