@@ -11,10 +11,12 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 COPY apps/codex/services/doc-api/package.json ./apps/codex/services/doc-api/
 COPY packages/document-contracts/package.json ./packages/document-contracts/
+COPY packages/rules-contracts/package.json ./packages/rules-contracts/
 
 RUN npm ci \
     --workspace=nexus-codex-doc-api \
     --workspace=@nexus/document-contracts \
+    --workspace=@nexus/rules-contracts \
     --include-workspace-root
 
 # Rebuild the source code only when needed
@@ -27,8 +29,10 @@ COPY apps/codex/services/doc-api/tsconfig.json ./apps/codex/services/doc-api/
 COPY apps/codex/services/doc-api/prisma ./apps/codex/services/doc-api/prisma
 COPY apps/codex/services/doc-api/src ./apps/codex/services/doc-api/src
 COPY packages/document-contracts ./packages/document-contracts
+COPY packages/rules-contracts ./packages/rules-contracts
 
 RUN npm run build --workspace=@nexus/document-contracts && \
+    npm run build --workspace=@nexus/rules-contracts && \
     npm run prisma:generate --workspace=nexus-codex-doc-api && \
     npm run build --workspace=nexus-codex-doc-api
 
@@ -48,6 +52,8 @@ COPY --from=builder /app/apps/codex/services/doc-api/dist ./apps/codex/services/
 COPY --from=builder /app/apps/codex/services/doc-api/prisma ./apps/codex/services/doc-api/prisma
 COPY --from=builder /app/apps/codex/services/doc-api/package.json ./apps/codex/services/doc-api/package.json
 COPY --from=builder /app/packages/document-contracts ./packages/document-contracts
+COPY --from=builder /app/packages/rules-contracts/package.json ./packages/rules-contracts/package.json
+COPY --from=builder /app/packages/rules-contracts/dist ./packages/rules-contracts/dist
 COPY --from=builder /app/package.json ./package.json
 
 # Change ownership

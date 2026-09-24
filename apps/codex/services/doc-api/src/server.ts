@@ -29,6 +29,7 @@ import { healthRoutes } from './routes/admin/health';
 import { adminProcessingRoutes } from './routes/admin/processing';
 import { adminLogsRoutes } from './routes/admin/logs';
 import { vttRoutes } from './routes/vtt';
+import { rulesRoutes } from './routes/rules';
 import { s3Service } from './services/s3.service';
 import { prisma } from './services/database.service';
 import { AlertsService } from './services/alerts.service';
@@ -125,6 +126,7 @@ fastify.register(healthRoutes);
 fastify.register(adminProcessingRoutes);
 fastify.register(adminLogsRoutes);
 fastify.register(vttRoutes);
+fastify.register(rulesRoutes);
 
 fastify.addHook('onError', async (request, _reply, error) => {
   loggingService.log('error', error.message, {

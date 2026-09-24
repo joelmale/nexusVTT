@@ -25,7 +25,8 @@
                     "import:5e-srd:dry-run":  "tsx src/scripts/import-5e-srd.ts --dry-run",
                     "import:5e-srd:spells":  "tsx src/scripts/import-5e-srd.ts --types spells",
                     "import:5e-srd:monsters":  "tsx src/scripts/import-5e-srd.ts --types monsters",
-                    "import:5e-srd:help":  "tsx src/scripts/import-5e-srd.ts --help"
+                    "import:5e-srd:help":  "tsx src/scripts/import-5e-srd.ts --help",
+                    "rules:srd-compare":  "tsx src/scripts/rules-srd-compare.ts"
                 },
     "keywords":  [
                      "nexus",
@@ -54,7 +55,8 @@
                          "prompts":  "^2.4.2",
                          "sharp":  "^0.35.4",
                          "zod":  "^3.22.4",
-                         "@nexus/document-contracts":  "*"
+                         "@nexus/document-contracts":  "*",
+                         "@nexus/rules-contracts":  "*"
                      },
     "devDependencies":  {
                             "@types/bcryptjs":  "^3.0.0",
