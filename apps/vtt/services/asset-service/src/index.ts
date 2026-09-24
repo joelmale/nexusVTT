@@ -13,6 +13,10 @@ import {
 import type { LibraryIndex } from './library';
 import { parseAssetManifest, type AssetManifest } from '../../../shared/types';
 import { setupGeneratedMapRoute } from './routes/generatedMap';
+import { loadAdminConfig } from './admin/config';
+import { AssetMetrics, requireMetricsToken } from './admin/metrics';
+import { createAdminRouter } from './admin/router';
+import { AdminAssetService } from './admin/service';
 
 export const app = express();
 const port = process.env.PORT || 5003;
@@ -62,20 +66,58 @@ const LIBRARY_DATA_PATH =
   process.env.LIBRARY_DATA_PATH ||
   path.resolve(__dirname, '../../../assets-data');
 
+export const assetMetrics = new AssetMetrics();
+
+// Asset administration (Phase 5). The served library index is manifest-v2.json
+// (owned by tools/tmt-ingest) with the admin overlay applied: quarantined and
+// deleted assets are excluded, metadata edits applied and admin uploads
+// appended. With no overlay the served manifest is manifest-v2.json unchanged.
+export const adminAssetService = new AdminAssetService({
+  libraryRoot: LIBRARY_DATA_PATH,
+  metrics: assetMetrics,
+  getConfig: loadAdminConfig,
+  reloadFromDisk: () => loadLibraryIndex(),
+  publishIndex: () => {
+    publishLibraryIndex();
+  },
+});
+
 let libraryIndex: LibraryIndex | null = null;
+
+function publishLibraryIndex(): boolean {
+  const served = adminAssetService.getPublicManifest();
+  if (!served) {
+    libraryIndex = null;
+    assetMetrics.markManifestUnavailable();
+    return false;
+  }
+  libraryIndex = buildLibraryIndex(served);
+  assetMetrics.markManifestBuilt();
+  return true;
+}
+
 function loadLibraryIndex(): { ok: boolean; error?: string } {
   const manifestPath = resolveLibraryManifestPath();
   const loaded = loadManifestFromDisk(manifestPath);
+  adminAssetService.setBaseManifest(loaded);
+  const stateReadable = adminAssetService.loadStateFromDisk();
   if (!loaded) {
     libraryIndex = null;
+    assetMetrics.markManifestUnavailable();
     return {
       ok: false,
       error: `Library manifest not found or invalid at ${manifestPath}`,
     };
   }
-  libraryIndex = buildLibraryIndex(loaded);
+  if (!stateReadable || !publishLibraryIndex()) {
+    // Fail closed: an unreadable admin overlay must not re-publish
+    // quarantined assets, so the library reports unavailable instead.
+    libraryIndex = null;
+    assetMetrics.markManifestUnavailable();
+    return { ok: false, error: 'Asset admin state is unreadable' };
+  }
   console.log(
-    `Loaded library manifest with ${libraryIndex.manifest.totalAssets} active assets.`,
+    `Loaded library manifest with ${libraryIndex?.manifest.totalAssets ?? 0} active assets.`,
   );
   return { ok: true };
 }
@@ -249,10 +291,45 @@ app.use(
 app.use(
   '/library-assets',
   (req, res, next) => {
+    // Never serve the admin overlay or quarantine area (LIBRARY_DATA_PATH/.admin/).
+    // express.static already ignores dotfiles; this rejects any dot-prefixed
+    // segment explicitly, including percent-encoded forms, before it runs.
+    let decoded: string;
+    try {
+      decoded = decodeURIComponent(req.path);
+    } catch {
+      res.status(400).json({ error: 'Bad request' });
+      return;
+    }
+    if (decoded.split(/[\\/]/).some((segment) => segment.startsWith('.'))) {
+      res.status(404).json({ error: 'Not found' });
+      return;
+    }
     setCacheHeaders(res, 86400, true);
     next();
   },
   express.static(LIBRARY_DATA_PATH),
+);
+
+// Prometheus scrape endpoint (internal network only; bearer-guarded when
+// METRICS_AUTH_TOKEN is set, matching the VTT backend's /metrics).
+app.get('/metrics', requireMetricsToken, (req, res) => {
+  res
+    .status(200)
+    .type('text/plain; version=0.0.4; charset=utf-8')
+    .set('Cache-Control', 'no-store')
+    .send(assetMetrics.render());
+});
+
+// Internal asset-administration API (called only by control-api). Every
+// route requires the service credential and an X-Nexus-Actor header.
+app.use(
+  '/internal/admin',
+  createAdminRouter({
+    service: adminAssetService,
+    metrics: assetMetrics,
+    getConfig: loadAdminConfig,
+  }),
 );
 
 // User Asset Domain
@@ -493,6 +570,7 @@ app.use((req: Request, res: Response) => {
     error: 'Not found',
     availableEndpoints: [
       '/health',
+      '/metrics',
       '/manifest.json',
       '/search?q=term',
       '/category/:name',
@@ -531,4 +609,7 @@ if (require.main === module) {
   app.listen(port, () => {
     console.log(`Asset service listening on port ${port}`);
   });
+  // Scheduled integrity reports (ASSET_INTEGRITY_INTERVAL_MS; 0 disables).
+  // Started only when run as the main module, so tests never schedule one.
+  adminAssetService.scheduleIntegrity();
 }

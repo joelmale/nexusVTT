@@ -65,6 +65,7 @@ const sidebars: SidebarsConfig = {
         'DEPLOYMENT_QUICKREF',
         'NPM_CONFIGURATION',
         'operations/multiplayer-observability',
+        'operations/asset-administration',
         {
           type: 'category',
           label: 'Cloud deployment',
