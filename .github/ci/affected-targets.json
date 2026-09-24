@@ -93,7 +93,6 @@
       "description": "Unified nginx gateway and bundled application UIs",
       "paths": [
         "apps/vtt/docker/frontend.Dockerfile",
-        "apps/vtt/docker/admin-placeholder/**",
         "apps/vtt/docker/nginx.conf",
         "apps/vtt/docker/nginx-assets.conf",
         "apps/vtt/docker/security-headers.conf"
