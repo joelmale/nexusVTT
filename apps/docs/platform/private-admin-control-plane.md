@@ -5,8 +5,9 @@ title: Private admin control plane implementation plan
 # Private admin control plane implementation plan
 
 - Date: 2026-09-23
-- Status: Phase 0 complete and deployed. Phase 1 in progress. Phases 2-6 not
-  started.
+- Status: Phases 0-1 deployed. Phases 2-5 implemented on
+  `integration/control-plane`, pending review and deployment. Phase 6 partly
+  done.
 
 ## Outcome
 
@@ -436,68 +437,136 @@ trusted identity-proxy assertion. Do not embed anonymous Grafana panels.
 - A degraded optional dependency should not make unrelated VTT capabilities
   unavailable.
 
-## Next session handoff (2026-09-24)
+## Implementation status and handoff (2026-09-24)
 
-Where work stopped:
+### Summary
 
-- **Phase 0:** complete and deployed (see Phase 0 status).
-- **Phase 1 repository work:** merged to `main`, not deployed. It adds a
-  `:8081` placeholder listener, static tests, `scripts/ci/gateway-route-matrix.sh`,
-  and the `VTT: gateway route matrix` CI job. The adversarial review of this
-  diff was started but stopped before it finished; **rerun it first**.
-- **Phase 1 operator steps, all still open:**
-  - Firewalla local DNS record for `admin.internal.nexusvtt.com`.
-  - Cloudflare Zone:DNS:Edit token entered in Nginx Proxy Manager.
-  - Wildcard certificate `*.internal.nexusvtt.com`.
-  - Nginx Proxy Manager proxy host -> `nexus-vtt2-frontend:8081` with the
-    `$realip_remote_addr` check below.
-  - Hotspot probes with WireGuard off and on.
-- **Deploying Phase 1** only needs the new `frontend:latest` redeployed on
-  `nexus-vtt2`. Port `8081` stays unpublished and unreachable until the proxy
-  host exists.
+| Phase | Repository                                                | Production                                                                                              |
+| ----- | --------------------------------------------------------- | ------------------------------------------------------------------------------------------------------- |
+| 0     | Merged (`2de28f4a`, `4d1fd352`)                           | Deployed and verified                                                                                   |
+| 1     | Merged (`2a42cf28`, `10efc35a`)                           | Deployed; the private host serves the placeholder on the LAN. Public DNS and external probes still open |
+| 2     | On branch `integration/control-plane`, review in progress | Not deployed                                                                                            |
+| 3     | On branch `integration/control-plane`, review in progress | Not deployed (separate `nexus-monitoring` stack)                                                        |
+| 4     | On branch `integration/control-plane`, review in progress | Not deployed                                                                                            |
+| 5     | On branch `integration/control-plane`, review in progress | Not deployed                                                                                            |
+| 6     | Lobby entry points removed in Phase 0                     | Remaining items not started                                                                             |
 
-Recommended image changes (not yet applied):
+Phases 2-5 were built in parallel worktrees and merged into
+`integration/control-plane`. Before pushing to `main`, that branch needs the
+full test sweep, the adversarial security review, and fixes for its findings.
 
-- `frontend`, `backend`, `asset-server`: keep rolling `:latest`.
-- `doc-api`, `doc-processor`, `doc-websocket`: move from `main-4c583c2`
-  (January 2026, pre-monorepo) to the current monorepo build. Commit
-  `2b080946` runs `prisma generate` at image build instead of at startup,
-  which should remove the startup download that forced
-  `nexus-codex-egress-net`. Pin to the new `main-<sha>` rather than rolling,
-  because `doc-api` runs `prisma db push` on every start. Compare the schema
-  against the old repository path `services/doc-api/prisma/schema.prisma` in
-  `4c583c2` first. Also check the `pdf-parse` 1 -> 2 upgrade (`e32513cb`).
+### Open operator items
 
-  Findings (2026-09-24): the schema is identical between `4c583c2` and
-  `main`. However, current `main` images start with `prisma migrate deploy`,
-  while the running `4c583c2` image used `prisma db push`, so the production
-  Codex database probably has no `_prisma_migrations` table. `migrate deploy`
-  would then fail with P3005 and crash-loop `doc-api`. **Before switching
-  images**, check for that table in the Codex database; if it is missing,
-  baseline it by running `prisma migrate resolve --applied <name>` for each of
-  the six migrations in `apps/codex/services/doc-api/prisma/migrations`. Codex
-  images are not published on `main` pushes; build them with the manual
-  candidate workflow (`gh workflow run ci.yml -f candidate_sha=<sha>`), which
-  tags `candidate-<short sha>`. A candidate build of `528fcd2b` was started.
+- **Public DNS for the admin hostname.** The `cloudflare-ddns` container
+  manages `nexusvtt.com` and `*.nexusvtt.com` and re-creates them every five
+  minutes. The wildcard makes `admin.internal.nexusvtt.com` resolve publicly to
+  the home IP, which fails the Phase 1 gate. Fix: replace `*.nexusvtt.com` with
+  `app.nexusvtt.com` in its `DOMAINS`, set `PROXIED=is(app.nexusvtt.com)`, then
+  delete both wildcard records. Decide whether the bare `nexusvtt.com` record
+  is needed.
+- **Rotate the DDNS Cloudflare token.** It is stored as a plain container
+  environment variable; move it to an encrypted Dockhand variable.
+- **Phone probes.** Over cellular with WireGuard off, the admin hostname must
+  not load; with WireGuard on, it must.
+- **Nginx Proxy Manager client-address trust.** Decide whether to add the
+  `$realip_remote_addr` check to the existing LAN-only proxy hosts.
+- **Failing certificate renewals.** `npm-68`, `npm-70`, and `npm-71` fail
+  HTTP-01 renewal, probably because they are LAN-only. Move them to DNS-01.
 
-- `postgres`: keep pinned. Only CI files changed since `0da1b78`, and a
-  database image should not roll automatically.
-- `nexus-forge`: the unified frontend already serves Forge at `/forge/`, and no
-  Nginx Proxy Manager host was found targeting this container. Confirm it is
-  unused, then remove the service instead of updating it.
+### Deployment order for Phases 2-5
 
-Other open items:
+1. Codex database: check `nexuscodex` for `_prisma_migrations`. The running
+   `doc-api` image (`main-4c583c2`) uses `prisma db push`; current images use
+   `prisma migrate deploy`, which fails with P3005 on an unbaselined database.
+   Baseline the six existing migrations with `prisma migrate resolve
+--applied`, then let `doc-api` apply `20260924000000_add_rules_registry`.
+2. Build Codex images from the release commit with the candidate workflow
+   (`gh workflow run ci.yml -f candidate_sha=<sha>`); Codex images are not
+   promoted on `main` pushes. Pin `doc-api`, `doc-processor`, and
+   `doc-websocket` to the resulting tag.
+3. VTT database: create the `nexus_control` role (operator-set password) and
+   apply `apps/vtt/server/migrations/2026-09-24-add-control-plane-identity.sql`.
+4. Secrets, as encrypted Dockhand variables: `CONTROL_DATABASE_URL`,
+   `CONTROL_SESSION_SECRET`, `ASSET_SERVICE_SECRET` (already present),
+   `CODEX_METRICS_AUTH_TOKEN`, optional `RULES_ADMIN_SERVICE_TOKEN` (set the
+   same value on `doc-api` and `control-api`).
+5. Confirm `CODEX_S3_PUBLIC_ENDPOINT=http://codex-minio:9000` (already set in
+   the live `.env`). Server-side Codex upload and page images fail with `502`
+   without it.
+6. Google OAuth client: add the redirect URI
+   `https://admin.internal.nexusvtt.com/control-api/v1/auth/google/callback`.
+7. Apply the compose changes to `nexus-vtt2` in place (the live file pins tags
+   that differ from the repository copy), deploy, then bootstrap the first
+   administrator with `node dist/cli.js grant-role --email <email> --role
+platform_admin`.
+8. Deploy `nexus-monitoring` as its own stack after `nexus-vtt2`, following
+   the [observability runbook](./observability-runbook.md).
 
-- Decide whether to add the `$realip_remote_addr` check to the existing
-  LAN-only Nginx Proxy Manager hosts (see Phase 1 edge audit result).
-- The `devproxy-*` containers on `nexus-internal-net` are intentional (they
-  let local MCP servers reach the production databases).
-- Uncommitted work from a separate session remains in the working tree and
-  was deliberately not committed: the `/sw.js` block in `nginx.conf` (which
-  also drops security headers on that response), `apps/forge/*`,
-  `viteConfig.test.ts`, `nginxServiceWorkerCache.test.ts`, and
-  `system.smoke.spec.ts`.
-- Release: tag `v0.5.0` when the owner declares this plan's scope done. A
+Details: [control plane runbook](./control-plane-runbook.md).
+
+### Issues found and resolved
+
+| Issue                                                                                             | Resolution                                                                           |
+| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
+| Public gateway proxied admin routes and a generic `/codex-api/` to an unauthenticated `doc-api`   | Phase 0 denies them; four DM UI reads remain behind a session check                  |
+| `doc-api` on the shared `homelab-net`; `admin-ui`/`dm-ui` published host ports 3080/3081          | `doc-api` internal only; standalone UI containers removed                            |
+| `METRICS_AUTH_TOKEN` empty in production, so metrics were open; `DEV_MODE=true`                   | Token set and required; `DEV_MODE=false`                                             |
+| Live `frontend` pinned to an unintended `forge-fix` tag                                           | Restored to `:latest`                                                                |
+| `doc-api` crash-looped on the internal-only network (runtime Prisma engine download)              | Dedicated `nexus-codex-egress-net` joined only by `doc-api`                          |
+| Docs deploy skipped whenever an unrelated job was skipped                                         | Explicit status checks in `deploy-docs`                                              |
+| Promotion digest lookup could fail under `pipefail`                                               | `awk` drains its input                                                               |
+| Public listener advertised the nginx version                                                      | `server_tokens off` at the `http` level                                              |
+| Nginx Proxy Manager trusts forgeable `X-Real-IP` from Cloudflare, CDN, and private ranges         | Admin host checks `$realip_remote_addr`                                              |
+| Presigned MinIO URLs would have required a browser-facing object store                            | `control-api` uploads and streams page images server-side                            |
+| Gateway request IDs are 32 hex characters, not UUIDs                                              | `control-api` accepts both                                                           |
+| Admin UI stamped annotations with a hard-coded `admin` user                                       | Identity comes from the session; older `admin` annotations no longer show            |
+| Radix Select injected inline styles, blocking a strict CSP                                        | Replaced with native selects; no `unsafe-inline`                                     |
+| `doc-api` metrics would be unauthenticated in production                                          | `CODEX_METRICS_AUTH_TOKEN` required in compose; `doc-processor` metrics on port 9464 |
+| Integration: missing lockfile entry for `@nexus/rules-contracts` in `nexus-vtt`                   | Lockfile refreshed                                                                   |
+| Integration: allowlist coverage test scanned UI test fixtures and comments                        | Scan limited to production code; alert action paths written literally                |
+| Integration: removed placeholder path still listed as a CI gateway target                         | Removed                                                                              |
+| Integration: rules registry design note broke the docs build (multi-line code span parsed as MDX) | Code span kept on one line                                                           |
+
+### Changes to future work
+
+- **Phase 4 scope moved.** VTT consumption is partly done: a VTT backend
+  catalog endpoint (guests allowed read access), a shared catalog client with
+  bundled-SRD fallback, and `rulesCatalogVersion` recorded on new characters.
+  Still open: overlaying published content inside `@nexus/character-creator`'s
+  synchronous data service (needs its own design, since the package is shared
+  and ADR-governed), a Forge backend route (Forge has none, and `doc-api` must
+  stay private), and recording the catalog version on campaigns. Classes,
+  species, backgrounds, and features remain out of scope until spell, item,
+  and monster consumers are verified.
+- **SRD data defects.** Eight bundled records fail validation (five monsters
+  with CR/XP mismatches, Glyph of Warding 2024 marked concentration, a
+  duplicate hooded lantern, and a clothes naming collision). Fix the bundled
+  data before publishing the SRD into the registry.
+- **Phase 6 simplified.** All three modules now exist, so the rename to
+  "Nexus Control Plane" can happen now. The optional lobby link needs a way
+  for the VTT to know a user holds a platform role; decide whether it is worth
+  exposing that.
+- **Grafana access.** Grafana runs on the internal network but has no route
+  on the private listener yet. Add an authenticated `/grafana/` route or keep
+  it on a separate private hostname.
+- **Service authentication for `doc-api`.** Only the rules routes accept a
+  service token. Enabling `doc-api` authentication for the rest, with a
+  `control-api` service credential, would remove the reliance on network
+  isolation.
+- **Codex image delivery.** Add the Codex images to `main` promotion so they
+  stop depending on the manual candidate workflow.
+- **Carried from Phase 0.** Move the DM UI onto the VTT backend's authorized
+  document routes and remove `/codex-api/`.
+- **Asset serving.** The public `/library-assets` mount follows symlinks; a
+  planted symlink could expose a file. Disable symlink following there.
+- **Flaky test.** One `control-api` test failed once in a full sweep and passed on two reruns (454/454). Identify and stabilize it before relying on CI as a gate.
+- **Known limitations to verify at deploy.** Browser PDF display under the
+  Admin UI's CSP; `control-api` rate limits are per replica; in-memory
+  catalog caches are per replica.
+- **Uncommitted work from another session** remains in the main checkout
+  (`/sw.js` block, Forge files, some tests) and is not part of this work. Its
+  `/sw.js` block drops the security headers on that response.
+- **Release.** Tag `v0.5.0` after Phases 2-5 are deployed and verified. A
   `v*` tag also moves `:latest`, and an older `v1.5` tag already exists.
 
 ## Delivery plan
@@ -734,6 +803,16 @@ server surface; SSH keys are the access control. Before relying on it, verify
 that the HomePod host can reach containers on the internal
 `nexus-internal-net` bridge.
 
+#### Phase 1 status
+
+**Deployed** (2026-09-24). The `:8081` listener shipped in the frontend image,
+the Firewalla local DNS record, the `*.internal.nexusvtt.com` certificate
+(DNS-01 with a Cloudflare account-owned token), and the Nginx Proxy Manager
+host with the access list and `$realip_remote_addr` check are in place, and
+the placeholder loads from the LAN. The gate is not yet met: the DDNS wildcard
+makes the hostname resolve publicly, and the external probes have not been
+run (see [open operator items](#open-operator-items)).
+
 ### Phase 2 - Add control-plane identity and API
 
 Deliverables:
@@ -757,36 +836,27 @@ LAN or WireGuard client without an admin role cannot perform any action.
 
 #### Phase 2 status
 
-**Implemented in repository, pending deploy** (2026-09-24). The ADR
-([`control-api-adr.md`](./control-api-adr.md)) is accepted and checked in.
-`apps/control-api` (the `nexus-control-api` workspace and service),
-the identity/role migration
-(`apps/vtt/server/migrations/2026-09-24-add-control-plane-identity.sql`), and
-the Admin UI's switch to `/control-api/v1/*` are implemented by other
-engineers against this ADR in parallel with the delivery work below.
+**Implemented on `integration/control-plane`, pending review and deployment.**
 
-Delivery work landed in this change:
+- `apps/control-api` (workspace `nexus-control-api`): Google OIDC with PKCE,
+  nonce, and subject binding; PostgreSQL-backed sessions with idle and
+  absolute expiry; CSRF and Origin checks; recent-auth step-up; per-route
+  permissions; append-only audit; rate limits; a bootstrap and recovery CLI;
+  and explicit allowlists for Codex (48 routes), assets (16), rules (12), and
+  `/operations/summary`. Codex upload and page images are handled
+  server-side so object storage is never browser-facing. 454 tests, including
+  PostgreSQL tests against the least-privilege `nexus_control` role.
+- Migration `apps/vtt/server/migrations/2026-09-24-add-control-plane-identity.sql`.
+- Admin UI calls only `/control-api/v1/*`, gates screens by permission, and
+  runs under a strict CSP with no inline script or style. The `:8081`
+  listener serves it and proxies only `/control-api/`.
+- CI job, image publishing, homelab compose service (`nexus-control-egress-net`
+  for Google only), ADR, and [operator runbook](./control-plane-runbook.md).
 
-- CI: a `control-api` affected-target/change filter, a "Control API: tests"
-  job wired into `required` the same way as the other conditional jobs, and a
-  `control-api` entry in the release image build matrix and `:latest`
-  promotion loop (`.github/workflows/ci.yml`,
-  `.github/ci/affected-targets.json`).
-- Homelab Compose: a `control-api` service added to `deploy/homelab/compose.yaml`
-  and the `compose.infra.yaml`/`compose.vtt.yaml` split, on
-  `nexus-internal-net` plus a dedicated `nexus-control-egress-net` (Google
-  OAuth egress only; never `homelab-net`, no published port), with a
-  `compose.rehearsal.yaml` override and documented `.env.example` variables.
-- Docs: this ADR and the
-  [control plane operator runbook](./control-plane-runbook.md) (prerequisites,
-  migration, Dockhand deployment order, first-admin bootstrap, break-glass
-  recovery, rollback, and verification).
-
-Still open before this phase can be marked deployed: land and merge the
-parallel `apps/control-api` and Admin UI work, apply the migration in
-production per the runbook, deploy the updated stack, complete the Phase 2
-gate's authorization test matrix, and run the runbook's verification
-checklist against the live system.
+Deviations from the ADR, recorded there: a narrower `codex:operate`
+permission for queue retry and alert handling; Google cannot force a
+re-prompt, so recent auth means a completed login within ten minutes; the
+gateway request-ID format is accepted alongside UUIDs.
 
 ### Phase 3 - Deliver operational visibility
 
@@ -803,6 +873,18 @@ Deliverables:
 
 Gate: controlled dependency failures produce the expected readiness state,
 metric change, dashboard signal, and alert without exposing sensitive details.
+
+#### Phase 3 status
+
+**Implemented on `integration/control-plane`, pending deployment.** A separate
+`nexus-monitoring` stack (`deploy/homelab/compose.monitoring.yaml`) with
+Prometheus, Grafana (seven provisioned dashboards), PostgreSQL and Redis
+exporters, cAdvisor, node exporter, and optional Alertmanager behind the
+`alerting` profile; 24 alert rules; token-protected `/metrics` on `doc-api`
+and `doc-processor`; and the Admin UI Operations page replacing the fake
+Health values. Open: the notification channel (`ALERTMANAGER_WEBHOOK_URL`),
+a Grafana route on the private listener, and the controlled-failure gate test
+after deployment. See the [observability runbook](./observability-runbook.md).
 
 ### Phase 4 - Build the versioned rules registry
 
@@ -823,6 +905,21 @@ Gate: invalid entities cannot publish, conflicting updates return `409`, an old
 published revision can be restored, and VTT/Forge remain usable while Codex is
 offline.
 
+#### Phase 4 status
+
+**Implemented on `integration/control-plane`, pending deployment.**
+`@nexus/rules-contracts` covers spells, items, and monsters for 2014 and 2024
+(CR/XP table enforced). Codex stores entities, revisions, and a monotonic
+catalog version; a database trigger blocks edits to published revisions. The
+admin API covers draft, validate (including cross-references), preview,
+publish, history, diff, rollback (as a new revision), and archive, with
+`409` on stale edits. The published catalog serves ETags. Admin UI editors
+use the shared schemas and handle conflicts. The VTT reads the catalog
+through its backend with bundled-SRD fallback. The SRD comparison published
+1,197 of 1,205 bundled records; the eight rejections are source-data
+defects. Design: [rules registry](/codex/rules-registry). Open items are
+listed under [changes to future work](#changes-to-future-work).
+
 ### Phase 5 - Add asset administration
 
 Deliverables:
@@ -838,6 +935,18 @@ Gate: browser writes flow only through `control-api`, no secret appears in a
 client bundle or response, and asset/manifest integrity survives upload,
 metadata edit, derivative rebuild, quarantine, and rollback tests.
 
+#### Phase 5 status
+
+**Implemented on `integration/control-plane`, pending deployment.** The asset
+service has an internal admin API (`/internal/admin`, service secret plus
+actor header) for browse, provenance, upload with magic-byte, size,
+dimension, and decompression checks and duplicate hashing, metadata edits
+with `409`/`428` concurrency, derivative and manifest jobs, integrity
+reports, and quarantine, restore, and permanent delete (quarantined assets
+only). Paths are resolved and confined to the asset roots. Metrics match the
+Phase 3 dashboards. The Admin UI Assets module uses it through
+`control-api`. See [asset administration](/vtt/operations/asset-administration).
+
 ### Phase 6 - Retire misleading entry points
 
 Deliverables:
@@ -851,6 +960,13 @@ Deliverables:
 - Rename the UI from Codex Admin to Nexus Control Plane once all three modules
   are present.
 - Update deployment, recovery, and operator documentation.
+
+#### Phase 6 status
+
+The lobby Admin Panel button and Codex Admin UI link were removed in Phase 0.
+The rename to Nexus Control Plane is unblocked now that all three modules
+exist. The optional lobby link and the removal of the frozen `/admin` editor
+are still open.
 
 Gate: production users cannot navigate to a dead `/admin` route, administrators
 have one documented private entry point, and no production workflow depends on

@@ -195,8 +195,8 @@ can share one merge implementation instead of re-deriving it:
     never a generic proxy: only `type`, `ruleset`, and `since` are read from
     the request, and only these two upstream paths are ever requested.
   - Any upstream failure (timeout -- default 3s, `RULES_CATALOG_TIMEOUT_MS`;
-    network error; non-2xx/304; contract-validation failure) answers `503
-    { error: 'rules_catalog_unavailable', useBundled: true }`. It never
+    network error; non-2xx/304; contract-validation failure) answers
+    `503 { error: 'rules_catalog_unavailable', useBundled: true }`. It never
     serves a stale cached body for a hard failure.
 - **`apps/vtt/src/services/rulesCatalogClient.ts`** is the frontend's
   `RulesCatalogClient` instance: `createHttpCatalogTransport` pointed at the
