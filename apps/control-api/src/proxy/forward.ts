@@ -16,6 +16,22 @@ const ACCEPT = /^[A-Za-z0-9*/+.,;= -]{1,256}$/;
 /** Response headers copied from the upstream; everything else is dropped. */
 const RESPONSE_HEADERS = ['content-type', 'content-length', 'content-range', 'accept-ranges', 'content-disposition', 'etag', 'last-modified'];
 const IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp']);
+/** Upstream types a document may be viewed inline as; anything else is a download. */
+const INLINE_DOCUMENT_TYPES = new Set(['application/pdf', 'image/png', 'image/jpeg', 'image/webp', 'image/gif', 'text/plain']);
+const CHARSET = /;\s*charset="?([A-Za-z0-9._-]{1,40})"?\s*(?:;|$)/i;
+/**
+ * Non-PDF inline documents: a sandboxed, script-free opaque origin that can
+ * still show an image or plain text.
+ */
+export const INLINE_DOCUMENT_CSP = "sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; object-src 'self'";
+/**
+ * PDFs: Chromium refuses to start its built-in PDF viewer in a sandboxed
+ * document (CSP `sandbox` without `allow-plugins` blocks it) and Firefox's
+ * pdf.js needs scripts the sandbox forbids, so PDFs get no `sandbox`. The
+ * viewers are browser-internal; the page itself still runs no scripts and
+ * loads nothing (`default-src 'none'`).
+ */
+export const INLINE_PDF_CSP = "default-src 'none'; object-src 'self'; frame-ancestors 'self'";
 /** Largest upstream error body relayed to the browser unchanged. */
 const MAX_ERROR_BODY = 256 * 1024;
 
@@ -393,9 +409,7 @@ export function allowlistProxy(deps: AppDeps, spec: ProxySpec): RequestHandler {
       const value = upstream.headers.get(name);
       if (value !== null) res.setHeader(name, value);
     }
-    if (route.response === 'inlineDocument') {
-      res.setHeader('Content-Security-Policy', "default-src 'none'; object-src 'self'; frame-ancestors 'none'");
-    }
+    if (route.response === 'inlineDocument') setInlineDocumentHeaders(res, upstream.headers.get('content-type') ?? '');
     if (route.response === 'image') setImageHeaders(res, upstreamType);
     if (!upstream.body) {
       clearTimeout(timeout);
@@ -403,6 +417,26 @@ export function allowlistProxy(deps: AppDeps, spec: ProxySpec): RequestHandler {
     }
     pipeUpstream(deps, context, spec.upstreamName, route.path, upstream.body, res, () => clearTimeout(timeout));
   };
+}
+
+/**
+ * Headers for a document opened in a browser tab. Only the listed types are
+ * shown inline (the charset of `text/plain` is kept); anything else, such as
+ * HTML or SVG from an upload, becomes an `application/octet-stream`
+ * attachment so it can never render on the admin origin.
+ */
+export function setInlineDocumentHeaders(res: Response, upstreamContentType: string): void {
+  const mediaType = upstreamContentType.split(';')[0]!.trim().toLowerCase();
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  if (!INLINE_DOCUMENT_TYPES.has(mediaType)) {
+    res.setHeader('Content-Type', 'application/octet-stream');
+    res.setHeader('Content-Disposition', 'attachment');
+    res.setHeader('Content-Security-Policy', INLINE_DOCUMENT_CSP);
+    return;
+  }
+  const charset = mediaType === 'text/plain' ? CHARSET.exec(upstreamContentType)?.[1] : undefined;
+  res.setHeader('Content-Type', charset ? `${mediaType}; charset=${charset}` : mediaType);
+  res.setHeader('Content-Security-Policy', mediaType === 'application/pdf' ? INLINE_PDF_CSP : INLINE_DOCUMENT_CSP);
 }
 
 /** Headers for an image served to the Admin UI (`<img src>`), never a document. */

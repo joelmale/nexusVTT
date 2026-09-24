@@ -322,7 +322,8 @@ app.get('/metrics', requireMetricsToken, (req, res) => {
 });
 
 // Internal asset-administration API (called only by control-api). Every
-// route requires the service credential and an X-Nexus-Actor header.
+// route requires the separate admin credential (ASSET_ADMIN_SERVICE_SECRET in
+// x-nexus-admin-auth, never ASSET_SERVICE_SECRET) and an X-Nexus-Actor header.
 app.use(
   '/internal/admin',
   createAdminRouter({

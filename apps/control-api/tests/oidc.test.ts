@@ -106,8 +106,8 @@ describe('OpenIdProvider against a mock IdP', () => {
   });
 
   /** Plays the browser + IdP authorize step; returns the callback URL. */
-  async function authorize(state?: string): Promise<{ callback: URL; checks: Awaited<ReturnType<OpenIdProvider['beginLogin']>>['checks'] }> {
-    const { url, checks } = await provider.beginLogin();
+  async function authorize(state?: string, stepUp = false): Promise<{ callback: URL; checks: Awaited<ReturnType<OpenIdProvider['beginLogin']>>['checks'] }> {
+    const { url, checks } = await provider.beginLogin({ stepUp });
     const code = `code-${Math.random().toString(36).slice(2)}`;
     grants.set(code, { challenge: url.searchParams.get('code_challenge')!, nonce: url.searchParams.get('nonce')! });
     const callback = new URL(REDIRECT_URI);
@@ -125,6 +125,34 @@ describe('OpenIdProvider against a mock IdP', () => {
     expect(url.searchParams.get('scope')).toBe('openid email');
     expect(url.searchParams.get('redirect_uri')).toBe(REDIRECT_URI);
     expect(url.searchParams.get('client_id')).toBe(CLIENT_ID);
+    // A normal login offers the account chooser and does not force re-authentication.
+    expect(url.searchParams.get('prompt')).toBe('select_account');
+    expect(url.searchParams.has('max_age')).toBe(false);
+  });
+
+  it('forces re-authentication with max_age=0 on a step-up login', async () => {
+    const { url } = await provider.beginLogin({ stepUp: true });
+    expect(url.searchParams.get('max_age')).toBe('0');
+    expect(url.searchParams.has('prompt')).toBe(false);
+    expect(url.searchParams.get('code_challenge_method')).toBe('S256');
+  });
+
+  it('returns the ID token auth_time for the step-up check', async () => {
+    const authTime = Math.floor(Date.now() / 1000) - 2;
+    claimOverrides = { auth_time: authTime };
+    const { callback, checks } = await authorize(undefined, true);
+    await expect(provider.completeLogin(callback, checks)).resolves.toMatchObject({ authTime });
+  });
+
+  it('reports a missing auth_time as null, never as now', async () => {
+    const { callback, checks } = await authorize(undefined, true);
+    await expect(provider.completeLogin(callback, checks)).resolves.toMatchObject({ authTime: null });
+  });
+
+  it('rejects a non-numeric auth_time', async () => {
+    claimOverrides = { auth_time: 'yesterday' };
+    const { callback, checks } = await authorize(undefined, true);
+    await expect(provider.completeLogin(callback, checks)).rejects.toThrow();
   });
 
   it('exchanges the code with the PKCE verifier and returns verified claims', async () => {
@@ -133,6 +161,7 @@ describe('OpenIdProvider against a mock IdP', () => {
       subject: 'google-sub-123',
       email: 'admin@example.com',
       emailVerified: true,
+      authTime: null,
     });
   });
 

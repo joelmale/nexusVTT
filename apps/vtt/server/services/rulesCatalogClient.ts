@@ -135,6 +135,9 @@ interface CacheEntry<T> {
   expiresAt: number;
 }
 
+/** Most distinct entities queries kept (least recently used evicted first). */
+export const DEFAULT_MAX_ENTITIES_ENTRIES = 32;
+
 /**
  * In-memory cache in front of `RulesCatalogUpstreamClient`, keyed by the
  * fixed manifest/entities query keys (never a generic proxy). Within
@@ -150,11 +153,19 @@ interface CacheEntry<T> {
  */
 export class RulesCatalogCache {
   private manifestEntry: CacheEntry<CatalogManifest> | null = null;
+  /**
+   * Insertion order is recency order (an entry is re-inserted on every use),
+   * so the first key is the least recently used. Bounded by
+   * `maxEntitiesEntries`, and only `since` values at or below the catalog
+   * version doc-api reported are stored: `since` is client-controlled, so
+   * arbitrary future values must not grow the cache.
+   */
   private readonly entitiesEntries = new Map<string, CacheEntry<CatalogEntitiesResponse>>();
 
   constructor(
     private readonly upstream: RulesCatalogUpstream,
     private readonly ttlMs = 5000,
+    private readonly maxEntitiesEntries = DEFAULT_MAX_ENTITIES_ENTRIES,
   ) {}
 
   private now(): number {
@@ -194,6 +205,7 @@ export class RulesCatalogCache {
     const key = this.entitiesKey(query);
     const cached = this.entitiesEntries.get(key);
     if (cached && cached.expiresAt > this.now()) {
+      this.storeEntities(key, cached);
       return this.respond(cached, clientEtag);
     }
     try {
@@ -204,7 +216,7 @@ export class RulesCatalogCache {
           throw new Error('unexpected 304 from doc-api entities with no cached etag');
         }
         const refreshed = { ...cached, expiresAt: this.now() + this.ttlMs };
-        this.entitiesEntries.set(key, refreshed);
+        this.storeEntities(key, refreshed);
         return this.respond(refreshed, clientEtag);
       }
       if (!result.etag) {
@@ -215,10 +227,30 @@ export class RulesCatalogCache {
         body: result.body,
         expiresAt: this.now() + this.ttlMs,
       };
-      this.entitiesEntries.set(key, entry);
+      if (query.since <= result.body.catalogVersion) {
+        this.storeEntities(key, entry);
+      } else {
+        // A `since` past the published head: answer it, never cache it.
+        this.entitiesEntries.delete(key);
+      }
       return this.respond(entry, clientEtag);
     } catch {
       return { status: 503 };
+    }
+  }
+
+  /** Number of cached entities queries (for tests and diagnostics). */
+  get entitiesCacheSize(): number {
+    return this.entitiesEntries.size;
+  }
+
+  private storeEntities(key: string, entry: CacheEntry<CatalogEntitiesResponse>): void {
+    this.entitiesEntries.delete(key);
+    this.entitiesEntries.set(key, entry);
+    while (this.entitiesEntries.size > this.maxEntitiesEntries) {
+      const oldest = this.entitiesEntries.keys().next().value;
+      if (oldest === undefined) break;
+      this.entitiesEntries.delete(oldest);
     }
   }
 

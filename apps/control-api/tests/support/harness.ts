@@ -1,7 +1,7 @@
 import type { AddressInfo } from 'node:net';
 import type { Server } from 'node:http';
 import { createApp } from '../../src/app.js';
-import type { IdentityProvider, LoginChecks, VerifiedClaims } from '../../src/auth/oidc.js';
+import type { BeginLoginOptions, IdentityProvider, LoginChecks, VerifiedClaims } from '../../src/auth/oidc.js';
 import { CookieCrypto, randomToken } from '../../src/auth/tokens.js';
 import { ASSET_ALLOWLIST } from '../../src/assets/allowlist.js';
 import { CODEX_ALLOWLIST, type CodexRoute } from '../../src/codex/allowlist.js';
@@ -19,11 +19,11 @@ export const CALLBACK_URL = `${ADMIN_ORIGIN}/control-api/v1/auth/google/callback
 export const SECRET = 'test-session-secret-that-is-long-enough-0123456789';
 export const DOC_API_URL = 'http://doc-api:3000';
 export const ASSET_SERVICE_URL = 'http://asset-server:5003';
-export const ASSET_SERVICE_SECRET = 'test-asset-service-secret-0123456789';
+export const ASSET_ADMIN_SERVICE_SECRET = 'test-asset-admin-service-secret-0123456789';
 export const BACKEND_URL = 'http://backend:5001';
 export const PROMETHEUS_URL = 'http://prometheus:9090';
 export const GRAFANA_URL = 'https://admin.internal.nexusvtt.com/grafana/';
-export const RULES_SERVICE_TOKEN = 'test-rules-service-token-0123456789';
+export const RULES_SERVICE_TOKEN = 'test-rules-service-token-0123456789abcdef';
 export const OBJECT_STORAGE_ORIGIN = 'http://codex-minio:9000';
 
 export interface UpstreamCall {
@@ -42,12 +42,14 @@ export interface HarnessOptions {
 
 export class FakeIdentityProvider implements IdentityProvider {
   lastChecks: LoginChecks | null = null;
-  claims: VerifiedClaims = { subject: 'google-sub-1', email: 'admin@example.com', emailVerified: true };
+  lastOptions: BeginLoginOptions | null = null;
+  claims: VerifiedClaims = { subject: 'google-sub-1', email: 'admin@example.com', emailVerified: true, authTime: null };
   failExchange = false;
 
-  async beginLogin(): Promise<{ url: URL; checks: LoginChecks }> {
+  async beginLogin(options: BeginLoginOptions = {}): Promise<{ url: URL; checks: LoginChecks }> {
     const checks = { state: randomToken(24), nonce: randomToken(24), codeVerifier: randomToken(48) };
     this.lastChecks = checks;
+    this.lastOptions = options;
     const url = new URL('https://accounts.google.com/o/oauth2/v2/auth');
     url.searchParams.set('state', checks.state);
     return { url, checks };
@@ -121,7 +123,7 @@ export async function startHarness(options: HarnessOptions = {}): Promise<Harnes
       googleCallbackUrl: CALLBACK_URL,
       trustProxyHops: 1,
       assetServiceUrl: ASSET_SERVICE_URL,
-      assetServiceSecret: ASSET_SERVICE_SECRET,
+      assetAdminServiceSecret: ASSET_ADMIN_SERVICE_SECRET,
       backendUrl: BACKEND_URL,
       prometheusUrl: PROMETHEUS_URL,
       grafanaUrl: GRAFANA_URL,

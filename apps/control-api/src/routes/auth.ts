@@ -4,6 +4,8 @@ import type { LoginChecks, VerifiedClaims } from '../auth/oidc.js';
 import { randomToken, safeEqual } from '../auth/tokens.js';
 import {
   ABSOLUTE_LIFETIME_MS,
+  AUTH_TIME_SKEW_MS,
+  LOGIN_GLOBAL_RATE_LIMIT,
   LOGIN_RATE_LIMIT,
   LOGIN_STATE_TTL_MS,
   type AppDeps,
@@ -28,7 +30,25 @@ const sealedLoginState = z.object({
   v: z.string().min(43).max(128),
   r: z.string().max(512).nullable(),
   t: z.number().int(),
+  /** Step-up login: `auth_time` must prove a fresh authentication. */
+  u: z.boolean().optional(),
 });
+
+/**
+ * When the user actually authenticated at Google, if the ID token proves it
+ * happened after this login started (minus a small clock skew). Anything else
+ * (no `auth_time`, or an older IdP session silently reused) is not a recent
+ * authentication.
+ */
+export function freshAuthTime(authTime: number | null, loginStartedAt: number, now: number): Date | null {
+  if (authTime === null || !Number.isFinite(authTime)) return null;
+  const at = authTime * 1000;
+  if (at < loginStartedAt - AUTH_TIME_SKEW_MS || at > now + AUTH_TIME_SKEW_MS) return null;
+  return new Date(Math.min(at, now));
+}
+
+/** Recorded as `recent_auth_at` when a login did not prove a fresh authentication. */
+export const NOT_RECENTLY_AUTHENTICATED = new Date(0);
 
 /** Same-origin relative path only: no scheme, no `//host`, no backslashes. */
 export function safeReturnTo(value: unknown): string | null {
@@ -45,7 +65,8 @@ type LoginFailureReason =
   | 'email_unverified'
   | 'unknown_user'
   | 'subject_mismatch'
-  | 'no_active_role';
+  | 'no_active_role'
+  | 'reauth_not_fresh';
 
 const FAILURE_STATUS: Record<LoginFailureReason, { status: number; outcome: 'failure' | 'denied' }> = {
   invalid_login_state: { status: 400, outcome: 'failure' },
@@ -56,17 +77,33 @@ const FAILURE_STATUS: Record<LoginFailureReason, { status: number; outcome: 'fai
   unknown_user: { status: 403, outcome: 'denied' },
   subject_mismatch: { status: 403, outcome: 'denied' },
   no_active_role: { status: 403, outcome: 'denied' },
+  reauth_not_fresh: { status: 401, outcome: 'denied' },
 };
 
-/** Login start and callback: no session required, per-client login limit. */
+/**
+ * Login start and callback: no session required. Only login starts are
+ * counted: per client IP (the gateway's real client address, via
+ * TRUST_PROXY_HOPS), plus a much higher global cap that only stops floods.
+ * The callback is not counted, so a client that exhausts its own starts can
+ * neither lock out another address nor break a sign-in already in progress;
+ * the callback is bound to its login-state cookie and Google's code anyway.
+ */
 export function loginRouter(deps: AppDeps): Router {
   const router = Router();
-  const loginLimiter = new FixedWindowLimiter(LOGIN_RATE_LIMIT, 60_000, () => deps.now().getTime());
+  const clock = () => deps.now().getTime();
+  const perClientLimiter = new FixedWindowLimiter(LOGIN_RATE_LIMIT, 60_000, clock);
+  const globalLimiter = new FixedWindowLimiter(LOGIN_GLOBAL_RATE_LIMIT, 60_000, clock);
 
   const limitLogin = (_req: Request, res: Response): boolean => {
-    const retryAfter = loginLimiter.hit(ctx(res).sourceIp ?? 'unknown');
+    let retryAfter = perClientLimiter.hit(ctx(res).sourceIp ?? 'unknown');
+    let scope = 'login';
+    // A client over its own limit does not consume the shared budget.
+    if (retryAfter === 0) {
+      retryAfter = globalLimiter.hit('global');
+      scope = 'login_global';
+    }
     if (retryAfter === 0) return true;
-    deps.logger.warn('rate limit exceeded', { requestId: ctx(res).requestId, scope: 'login' });
+    deps.logger.warn('rate limit exceeded', { requestId: ctx(res).requestId, scope });
     res.setHeader('Retry-After', String(retryAfter));
     sendError(res, 429, 'rate_limited');
     return false;
@@ -75,9 +112,10 @@ export function loginRouter(deps: AppDeps): Router {
   router.get('/auth/login', async (req, res) => {
     if (!limitLogin(req, res)) return;
     const returnTo = safeReturnTo(req.query.returnTo);
+    const stepUp = req.query.stepUp === '1';
     let begun: { url: URL; checks: LoginChecks };
     try {
-      begun = await deps.identityProvider.beginLogin();
+      begun = await deps.identityProvider.beginLogin({ stepUp });
     } catch (error) {
       deps.logger.error('identity provider discovery failed', { requestId: ctx(res).requestId, error });
       return sendError(res, 503, 'identity_provider_unavailable');
@@ -88,6 +126,7 @@ export function loginRouter(deps: AppDeps): Router {
       v: begun.checks.codeVerifier,
       r: returnTo,
       t: deps.now().getTime(),
+      u: stepUp,
     });
     // Lax, not Strict: the callback is a top-level navigation from Google.
     setHostCookie(res, LOGIN_COOKIE, sealed, { maxAgeSeconds: LOGIN_STATE_TTL_MS / 1000, sameSite: 'Lax' });
@@ -95,7 +134,6 @@ export function loginRouter(deps: AppDeps): Router {
   });
 
   router.get('/auth/google/callback', async (req, res) => {
-    if (!limitLogin(req, res)) return;
     const context = ctx(res);
     clearHostCookie(res, LOGIN_COOKIE, 'Lax');
 
@@ -159,10 +197,14 @@ export function loginRouter(deps: AppDeps): Router {
       if (owner !== null && owner !== user.id) return fail('subject_mismatch', { user });
     }
 
+    const now = deps.now();
+    const freshAt = freshAuthTime(claims.authTime, loginState.t, now.getTime());
+    // Step-up must prove Google re-authenticated the user for this request.
+    if (loginState.u === true && freshAt === null) return fail('reauth_not_fresh', { user });
+
     const roles = await deps.store.getActiveRoles(user.id);
     if (roles.length === 0) return fail('no_active_role', { user });
 
-    const now = deps.now();
     const { cookieValue, idHash } = deps.cookieCrypto.newSessionId();
     const replaceSessionHash = deps.cookieCrypto.sessionHashFromCookie(readCookie(req, SESSION_COOKIE));
     const result = await deps.store.completeLogin({
@@ -176,7 +218,9 @@ export function loginRouter(deps: AppDeps): Router {
         createdAt: now,
         lastSeenAt: now,
         expiresAt: new Date(now.getTime() + ABSOLUTE_LIFETIME_MS),
-        recentAuthAt: now,
+        // Only a proven fresh authentication counts as recent; a silently
+        // reused Google session does not unlock step-up routes.
+        recentAuthAt: freshAt ?? NOT_RECENTLY_AUTHENTICATED,
         sourceIp: context.sourceIp,
       },
       audit: {
@@ -184,7 +228,7 @@ export function loginRouter(deps: AppDeps): Router {
           action: LOGIN_ACTION,
           outcome: 'success',
           resourceType: 'admin_session',
-          summary: { roles, firstAdminLogin: boundSubject === null },
+          summary: { roles, firstAdminLogin: boundSubject === null, stepUp: loginState.u === true, recentAuth: freshAt !== null },
         }),
         actorUserId: user.id,
         actorEmail: user.email,

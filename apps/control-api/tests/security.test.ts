@@ -256,14 +256,14 @@ describe('browser security controls', () => {
       }
     });
 
-    it('limits login attempts to 10 per client per minute', async () => {
+    it('limits login starts to 20 per client per minute', async () => {
       const start = h.clock.now;
       try {
         h.clock.now = new Date(start.getTime() + 7_200_000);
         const statuses: number[] = [];
-        for (let i = 0; i < 11; i++) statuses.push((await h.request('/control-api/v1/auth/login')).status);
-        expect(statuses.slice(0, 10).every((status) => status === 302)).toBe(true);
-        expect(statuses[10]).toBe(429);
+        for (let i = 0; i < 21; i++) statuses.push((await h.request('/control-api/v1/auth/login')).status);
+        expect(statuses.slice(0, 20).every((status) => status === 302)).toBe(true);
+        expect(statuses[20]).toBe(429);
       } finally {
         h.clock.now = start;
       }

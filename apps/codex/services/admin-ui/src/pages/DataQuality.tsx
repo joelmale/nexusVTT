@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { HighlightedText } from '@/components/HighlightedText'
 import { codexFetch } from '@/lib/api'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
@@ -445,7 +446,9 @@ export default function DataQuality() {
               {searchResult.hits.map((hit, index) => (
                 <div key={`${hit.documentId}-${index}`} className="border rounded-md p-3 text-sm">
                   {hit.highlights?.content?.map((fragment, fragmentIndex) => (
-                    <div key={`${hit.documentId}-${fragmentIndex}`} dangerouslySetInnerHTML={{ __html: fragment }} />
+                    <div key={`${hit.documentId}-${fragmentIndex}`}>
+                      <HighlightedText text={fragment} />
+                    </div>
                   ))}
                   {!hit.highlights?.content && <div>No highlighted snippet available.</div>}
                 </div>

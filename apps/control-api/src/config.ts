@@ -12,11 +12,11 @@ export interface ServerConfig {
   port: number;
   googleIssuer: string;
   assetServiceUrl: string;
-  assetServiceSecret: string;
+  assetAdminServiceSecret: string;
   backendUrl: string;
   prometheusUrl: string | null;
   grafanaUrl: string | null;
-  rulesServiceToken: string | null;
+  rulesServiceToken: string;
   objectStorageOrigin: string;
 }
 
@@ -31,8 +31,12 @@ const REQUIRED_SERVER_VARS = [
   'CONTROL_GOOGLE_CALLBACK_URL',
   'CONTROL_SESSION_SECRET',
   'TRUST_PROXY_HOPS',
-  'ASSET_SERVICE_SECRET',
+  'ASSET_ADMIN_SERVICE_SECRET',
+  'RULES_ADMIN_SERVICE_TOKEN',
 ] as const;
+
+/** Service credentials control-api presents upstream; long random values only. */
+export const MIN_SERVICE_SECRET_LENGTH = 32;
 
 export const DEFAULT_ASSET_SERVICE_URL = 'http://asset-server:5003';
 export const DEFAULT_BACKEND_URL = 'http://backend:5001';
@@ -68,7 +72,6 @@ const OPTIONAL_SERVER_VARS = [
   'BACKEND_URL',
   'PROMETHEUS_URL',
   'GRAFANA_URL',
-  'RULES_ADMIN_SERVICE_TOKEN',
   'CODEX_OBJECT_STORAGE_URL',
 ] as const;
 
@@ -94,12 +97,12 @@ const serverSchema = z
     CONTROL_SESSION_SECRET: z.string().min(32),
     TRUST_PROXY_HOPS: z.string().regex(/^\d{1,2}$/),
     PORT: z.string().regex(/^\d{1,5}$/).optional(),
-    ASSET_SERVICE_SECRET: z.string().min(16),
+    ASSET_ADMIN_SERVICE_SECRET: z.string().min(MIN_SERVICE_SECRET_LENGTH),
     ASSET_SERVICE_URL: httpUrl.optional(),
     BACKEND_URL: httpUrl.optional(),
     PROMETHEUS_URL: httpUrl.optional(),
     GRAFANA_URL: httpUrl.optional(),
-    RULES_ADMIN_SERVICE_TOKEN: z.string().min(16).optional(),
+    RULES_ADMIN_SERVICE_TOKEN: z.string().min(MIN_SERVICE_SECRET_LENGTH),
     CODEX_OBJECT_STORAGE_URL: httpUrl.optional(),
   })
   .superRefine((env, ctx) => {
@@ -152,11 +155,11 @@ export function loadServerConfig(rawEnv: NodeJS.ProcessEnv): ServerConfig {
     port: value.PORT ? Number(value.PORT) : 4000,
     googleIssuer: 'https://accounts.google.com',
     assetServiceUrl: trimSlash(value.ASSET_SERVICE_URL ?? DEFAULT_ASSET_SERVICE_URL),
-    assetServiceSecret: value.ASSET_SERVICE_SECRET,
+    assetAdminServiceSecret: value.ASSET_ADMIN_SERVICE_SECRET,
     backendUrl: trimSlash(value.BACKEND_URL ?? DEFAULT_BACKEND_URL),
     prometheusUrl: value.PROMETHEUS_URL ? trimSlash(value.PROMETHEUS_URL) : null,
     grafanaUrl: value.GRAFANA_URL ?? null,
-    rulesServiceToken: value.RULES_ADMIN_SERVICE_TOKEN ?? null,
+    rulesServiceToken: value.RULES_ADMIN_SERVICE_TOKEN,
     objectStorageOrigin: new URL(value.CODEX_OBJECT_STORAGE_URL ?? DEFAULT_OBJECT_STORAGE_URL).origin,
   };
 }

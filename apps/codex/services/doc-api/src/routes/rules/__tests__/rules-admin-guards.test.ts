@@ -1,9 +1,11 @@
 import Fastify, { type FastifyInstance } from 'fastify';
 import { vi } from 'vitest';
 import { rulesAdminRoutes } from '../admin';
-import { parseIfMatch } from '../http';
+import { rulesCatalogRoutes } from '../catalog';
+import { createServiceTokenGuard, parseIfMatch } from '../http';
 import { RulesError } from '../../../services/rules/rules-errors';
 import type { RulesRegistryService } from '../../../services/rules/rules-registry.service';
+import type { RulesCatalogService } from '../../../services/rules/rules-catalog.service';
 
 const ENTITY_ID = '6f1c1c63-4f3b-4a0e-9d7e-1b2f3c4d5e6f';
 
@@ -23,12 +25,13 @@ function fakeService() {
   };
 }
 
-async function build(serviceToken?: string) {
+async function build(serviceToken?: string, requireServiceToken?: boolean) {
   const service = fakeService();
   const app = Fastify();
   await app.register(rulesAdminRoutes, {
     service: service as unknown as RulesRegistryService,
     serviceToken,
+    requireServiceToken,
   });
   await app.ready();
   return { app, service };
@@ -108,7 +111,7 @@ describe('rules admin route guards', () => {
     expect((await app.inject({ method: 'GET', url: `/api/admin/rules/entities/${ENTITY_ID}` })).statusCode).toBe(404);
   });
 
-  it('enforces the optional service token on every admin route', async () => {
+  it('enforces the configured service token on every admin route', async () => {
     const guarded = await build('s3cret');
     try {
       const denied = await guarded.app.inject({ method: 'GET', url: '/api/admin/rules/entities' });
@@ -120,8 +123,93 @@ describe('rules admin route guards', () => {
         headers: { 'x-nexus-service-token': 's3cret' },
       });
       expect(allowed.statusCode).toBe(200);
+      for (const wrong of ['s3cre', 's3cretx', 'S3CRET', '']) {
+        const response = await guarded.app.inject({
+          method: 'GET',
+          url: '/api/admin/rules/entities',
+          headers: { 'x-nexus-service-token': wrong },
+        });
+        expect(response.statusCode).toBe(401);
+      }
     } finally {
       await guarded.app.close();
+    }
+  });
+
+  it('fails closed with 503 when a token is required but not configured, before any work', async () => {
+    const closed = await build(undefined, true);
+    try {
+      for (const request of [
+        { method: 'GET' as const, url: '/api/admin/rules/entities' },
+        { method: 'GET' as const, url: '/api/admin/rules/entities', headers: { 'x-nexus-service-token': '' } },
+        {
+          method: 'POST' as const,
+          url: `/api/admin/rules/entities/${ENTITY_ID}/publish`,
+          headers: { 'x-nexus-actor': 'admin-1', 'if-match': '"2"', 'x-nexus-service-token': 'anything' },
+        },
+      ]) {
+        const response = await closed.app.inject(request);
+        expect(response.statusCode).toBe(503);
+        expect(response.json().code).toBe('service_token_invalid');
+      }
+      expect(closed.service.listEntities).not.toHaveBeenCalled();
+      expect(closed.service.publish).not.toHaveBeenCalled();
+    } finally {
+      await closed.app.close();
+    }
+  });
+
+  it('keeps the published catalog open when the admin API fails closed', async () => {
+    const service = fakeService();
+    const catalog = {
+      manifest: vi.fn(async () => ({ catalogVersion: 3, generatedAt: '2026-09-24T00:00:00.000Z' })),
+    };
+    const app = Fastify();
+    await app.register(rulesAdminRoutes, { service: service as unknown as RulesRegistryService, requireServiceToken: true });
+    await app.register(rulesCatalogRoutes, { service: catalog as unknown as RulesCatalogService });
+    await app.ready();
+    try {
+      expect((await app.inject({ method: 'GET', url: '/api/admin/rules/entities' })).statusCode).toBe(503);
+      const manifest = await app.inject({ method: 'GET', url: '/api/rules/catalog/manifest' });
+      expect(manifest.statusCode).toBe(200);
+      expect(manifest.json().catalogVersion).toBe(3);
+    } finally {
+      await app.close();
+    }
+  });
+});
+
+describe('createServiceTokenGuard', () => {
+  const request = (token?: string) =>
+    ({ headers: token === undefined ? {} : { 'x-nexus-service-token': token } }) as never;
+  const original = process.env.NODE_ENV;
+  afterEach(() => {
+    process.env.NODE_ENV = original;
+  });
+
+  it('fails closed in production when no token is configured', async () => {
+    process.env.NODE_ENV = 'production';
+    for (const token of [undefined, '']) {
+      await expect(createServiceTokenGuard(token)(request('x'))).rejects.toMatchObject({ statusCode: 503 });
+    }
+    // Explicitly relaxable for local production-like runs.
+    await expect(createServiceTokenGuard(undefined, { requireToken: false })(request())).resolves.toBeUndefined();
+  });
+
+  it('stays open outside production when no token is configured', async () => {
+    process.env.NODE_ENV = 'test';
+    await expect(createServiceTokenGuard(undefined)(request())).resolves.toBeUndefined();
+    process.env.NODE_ENV = 'development';
+    await expect(createServiceTokenGuard('')(request())).resolves.toBeUndefined();
+  });
+
+  it('requires a configured token in every environment', async () => {
+    for (const env of ['production', 'development', 'test']) {
+      process.env.NODE_ENV = env;
+      const guard = createServiceTokenGuard('token-value');
+      await expect(guard(request())).rejects.toMatchObject({ statusCode: 401 });
+      await expect(guard(request('token-valuE'))).rejects.toMatchObject({ statusCode: 401 });
+      await expect(guard(request('token-value'))).resolves.toBeUndefined();
     }
   });
 });

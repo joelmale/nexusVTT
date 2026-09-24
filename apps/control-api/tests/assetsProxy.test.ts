@@ -5,7 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { ASSET_ALLOWLIST, ASSET_UPLOAD_MAX_BODY_BYTES, ASSET_UPLOAD_MAX_FILE_BYTES } from '../src/assets/allowlist.js';
 import { MB, RouteTable, type ProxyRoute } from '../src/proxy/routeTable.js';
-import { ASSET_SERVICE_SECRET, ASSET_SERVICE_URL, startHarness, type Harness, type TestSession } from './support/harness.js';
+import { ASSET_ADMIN_SERVICE_SECRET, ASSET_SERVICE_URL, startHarness, type Harness, type TestSession } from './support/harness.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 
@@ -102,14 +102,16 @@ describe('asset proxy', () => {
     expect(res.status).toBe(200);
     const call = h.upstreamCalls[0]!;
     expect(call.url).toBe(`${ASSET_SERVICE_URL}/internal/admin/assets?q=goblin&status=all&limit=25&cursor=MjU`);
-    expect(call.headers['x-nexus-auth']).toBe(ASSET_SERVICE_SECRET);
+    expect(call.headers['x-nexus-admin-auth']).toBe(ASSET_ADMIN_SERVICE_SECRET);
+    // The backend's asset credential header is never sent (nor the forged one relayed).
+    expect(call.headers['x-nexus-auth']).toBeUndefined();
     expect(call.headers['x-nexus-actor']).toBe(admin.user.id);
     expect(call.headers['x-request-id']).toBe(res.headers.get('x-request-id'));
     expect(call.headers.cookie).toBeUndefined();
     expect(call.headers.authorization).toBeUndefined();
     expect(call.headers['x-forwarded-for']).toBeUndefined();
     const text = await res.text();
-    expect(text).not.toContain(ASSET_SERVICE_SECRET);
+    expect(text).not.toContain(ASSET_ADMIN_SERVICE_SECRET);
   });
 
   it('forwards If-Match on writes, records it as the prior version, and returns the ETag', async () => {

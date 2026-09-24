@@ -8,7 +8,7 @@ import { BOOL, INT, json, KB, MB, NONE, TEXT, type ProxyRoute } from '../proxy/r
  *
  * Covers every route in apps/docs/vtt/operations/asset-administration.md
  * (apps/vtt/services/asset-service/src/admin/router.ts). control-api adds
- * `x-nexus-auth` (ASSET_SERVICE_SECRET) and `x-nexus-actor` (the session's
+ * `x-nexus-admin-auth` (ASSET_ADMIN_SERVICE_SECRET) and `x-nexus-actor` (the session's
  * user ID); the browser never sees the secret. `If-Match`/`If-None-Match`
  * pass through, and typed 4xx bodies (for example `409 version-conflict`
  * with the current asset) are relayed unchanged.

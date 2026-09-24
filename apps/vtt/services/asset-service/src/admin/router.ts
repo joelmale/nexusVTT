@@ -25,8 +25,13 @@ import {
  * browser, and never proxied by the VTT backend or the frontend gateway.
  * Every route requires:
  *
- *  - `x-nexus-auth: <ASSET_SERVICE_SECRET>` (constant-time comparison; the
- *    API is disabled when the secret is unset), and
+ *  - `x-nexus-admin-auth: <ASSET_ADMIN_SERVICE_SECRET>` (constant-time
+ *    comparison). This is a credential distinct from `ASSET_SERVICE_SECRET`,
+ *    which the internet-facing VTT backend also holds; it is never accepted
+ *    here. When the admin secret is unset or shorter than 32 characters the
+ *    API fails closed with 503.
+ *  - a raw request path free of `..`, encoded `.`/`/`/`\` and `//`
+ *    (defense in depth against gateway path confusion), and
  *  - `x-nexus-actor: <admin identity>`, echoed in every response and log
  *    line for audit correlation with the control-api audit record.
  *
@@ -35,7 +40,11 @@ import {
  */
 
 export const ACTOR_HEADER = 'x-nexus-actor';
-export const AUTH_HEADER = 'x-nexus-auth';
+export const AUTH_HEADER = 'x-nexus-admin-auth';
+export const ADMIN_SECRET_ENV = 'ASSET_ADMIN_SERVICE_SECRET';
+export const MIN_ADMIN_SECRET_LENGTH = 32;
+/** `..`, percent-encoded `.`, `/` or `\`, and empty path segments. */
+const UNSAFE_RAW_PATH = /\.\.|%2e|%2f|%5c|\/\//i;
 const ACTOR_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:@+-]{0,199}$/;
 const REQUEST_ID_PATTERN = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const DEFAULT_LIMIT = 25;
@@ -98,12 +107,45 @@ export function createAdminRouter({
 }: AdminRouterDependencies): express.Router {
   const router = express.Router();
 
-  // 1. Internal service credential. Runs before any body buffering (multer)
-  //    so unauthenticated uploads are rejected without being read.
+  // 0. Raw path hygiene, before any routing inside the admin API. Only the
+  //    path is checked: query values (search terms) may legitimately
+  //    contain dots or slashes and never influence routing.
   router.use((req, res, next) => {
-    const configured = process.env.ASSET_SERVICE_SECRET;
+    const raw = req.originalUrl;
+    const queryIndex = raw.indexOf('?');
+    const rawPath = queryIndex >= 0 ? raw.slice(0, queryIndex) : raw;
+    if (UNSAFE_RAW_PATH.test(rawPath)) {
+      req.resume();
+      res.status(400).json({ error: 'invalid-path', message: 'Request path is not allowed' });
+      return;
+    }
+    next();
+  });
+
+  // 1. Internal admin credential. Runs before any body buffering (multer)
+  //    so unauthenticated uploads are rejected without being read.
+  let warnedUnconfigured = false;
+  router.use((req, res, next) => {
+    const configured = process.env[ADMIN_SECRET_ENV];
+    if (!configured || configured.length < MIN_ADMIN_SECRET_LENGTH) {
+      if (!warnedUnconfigured) {
+        warnedUnconfigured = true;
+        console.error(
+          JSON.stringify({
+            event: 'asset-admin-disabled',
+            reason: `${ADMIN_SECRET_ENV} is unset or shorter than ${MIN_ADMIN_SECRET_LENGTH} characters`,
+          }),
+        );
+      }
+      req.resume();
+      res
+        .status(503)
+        .json({ error: 'admin-api-disabled', message: 'Asset administration is not configured' });
+      return;
+    }
+    warnedUnconfigured = false;
     const supplied = req.get(AUTH_HEADER);
-    if (!configured || !secretsMatch(supplied, configured)) {
+    if (!secretsMatch(supplied, configured)) {
       req.resume();
       res.status(401).json({ error: 'unauthorized', message: 'Service credential required' });
       return;

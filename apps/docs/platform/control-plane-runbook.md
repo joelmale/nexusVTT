@@ -91,6 +91,10 @@ phase at a time; verify health after each phase.
    - `CONTROL_DATABASE_URL` (secret, from step 1.3)
    - `CONTROL_SESSION_SECRET` (secret, from step 1.2)
    - `GOOGLE_CLIENT_SECRET` — already present; reused as-is
+   - `ASSET_ADMIN_SERVICE_SECRET` — a 32+ character admin-only credential
+     shared only by `control-api` and the asset service
+   - `RULES_ADMIN_SERVICE_TOKEN` — a 32+ character service token shared by
+     `control-api` and `doc-api`
    - `CONTROL_API_IMAGE` (optional; defaults to
      `ghcr.io/joelmale/nexusvtt/control-api:latest`)
 

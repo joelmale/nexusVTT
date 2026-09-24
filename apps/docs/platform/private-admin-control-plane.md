@@ -487,9 +487,9 @@ full test sweep, the adversarial security review, and fixes for its findings.
 3. VTT database: create the `nexus_control` role (operator-set password) and
    apply `apps/vtt/server/migrations/2026-09-24-add-control-plane-identity.sql`.
 4. Secrets, as encrypted Dockhand variables: `CONTROL_DATABASE_URL`,
-   `CONTROL_SESSION_SECRET`, `ASSET_SERVICE_SECRET` (already present),
-   `CODEX_METRICS_AUTH_TOKEN`, optional `RULES_ADMIN_SERVICE_TOKEN` (set the
-   same value on `doc-api` and `control-api`).
+   `CONTROL_SESSION_SECRET`, `ASSET_ADMIN_SERVICE_SECRET` (separate from the
+   VTT backend's `ASSET_SERVICE_SECRET`), `RULES_ADMIN_SERVICE_TOKEN` (same
+   value on `doc-api` and `control-api`), and `CODEX_METRICS_AUTH_TOKEN`.
 5. Confirm `CODEX_S3_PUBLIC_ENDPOINT=http://codex-minio:9000` (already set in
    the live `.env`). Server-side Codex upload and page images fail with `502`
    without it.

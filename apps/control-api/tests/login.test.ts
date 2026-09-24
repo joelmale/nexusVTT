@@ -1,6 +1,6 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { safeReturnTo } from '../src/routes/auth.js';
-import { LOGIN_STATE_TTL_MS } from '../src/deps.js';
+import { AUTH_TIME_SKEW_MS, LOGIN_STATE_TTL_MS, RECENT_AUTH_MS } from '../src/deps.js';
 import { startHarness, type Harness } from './support/harness.js';
 
 async function beginLogin(h: Harness, query = '') {
@@ -24,7 +24,7 @@ describe('Google login flow', () => {
     await h.close();
   });
   beforeEach(() => {
-    // Each test gets a fresh login rate-limit window (10 per client per minute).
+    // Each test gets a fresh login rate-limit window (20 per client per minute).
     h.clock.now = new Date(h.clock.now.getTime() + 120_000);
     h.store.audit.length = 0;
     h.store.identities.clear();
@@ -32,8 +32,10 @@ describe('Google login flow', () => {
     h.store.roles.length = 0;
     h.store.sessions.clear();
     h.idp.failExchange = false;
-    h.idp.claims = { subject: 'google-sub-1', email: 'Admin@Example.com', emailVerified: true };
+    h.idp.claims = { subject: 'google-sub-1', email: 'Admin@Example.com', emailVerified: true, authTime: null };
   });
+
+  const seconds = (date: Date) => Math.floor(date.getTime() / 1000);
 
   const seedAdmin = () => {
     const user = h.store.addUser({ email: 'admin@example.com' });
@@ -161,6 +163,137 @@ describe('Google login flow', () => {
     } finally {
       h.clock.now = start;
     }
+  });
+
+  describe('recent authentication', () => {
+    const sessionFromLogin = () => [...h.store.sessions.values()][0]!;
+
+    it('asks Google for an account chooser on a normal login, not a forced re-authentication', async () => {
+      await beginLogin(h);
+      expect(h.idp.lastOptions).toEqual({ stepUp: false });
+    });
+
+    it('asks Google to re-authenticate on a step-up login', async () => {
+      await beginLogin(h, `?stepUp=1&returnTo=${encodeURIComponent('/rules/x')}`);
+      expect(h.idp.lastOptions).toEqual({ stepUp: true });
+      await beginLogin(h, '?stepUp=true');
+      expect(h.idp.lastOptions).toEqual({ stepUp: false });
+    });
+
+    it('does not treat a normal login without auth_time as recent authentication', async () => {
+      seedAdmin();
+      const { cookiePair, state } = await beginLogin(h);
+      const res = await callback(h, cookiePair, `code=abc&state=${state}`);
+      expect(res.status).toBe(302);
+      expect(sessionFromLogin().recentAuthAt.getTime()).toBe(0);
+      const cookie = res.headers.getSetCookie().find((c) => c.startsWith('__Host-nexus_admin='))!.split(';')[0]!;
+      const me = (await (await h.request('/control-api/v1/me', { headers: { cookie } })).json()) as { recentAuthUntil: string };
+      expect(new Date(me.recentAuthUntil).getTime()).toBeLessThan(h.clock.now.getTime());
+      // A step-up route is refused until a real re-authentication.
+      const grant = await h.request('/control-api/v1/administrators/grants', {
+        method: 'POST',
+        headers: { cookie, 'content-type': 'application/json', 'x-csrf-token': sessionFromLogin().csrfToken },
+        body: JSON.stringify({ email: 'admin@example.com', role: 'auditor' }),
+      });
+      expect(grant.status).toBe(401);
+      expect(await grant.json()).toMatchObject({ error: 'reauth_required' });
+    });
+
+    it('records a fresh auth_time from a normal login as recent authentication', async () => {
+      seedAdmin();
+      const { cookiePair, state } = await beginLogin(h);
+      h.idp.claims = { ...h.idp.claims, authTime: seconds(h.clock.now) };
+      const res = await callback(h, cookiePair, `code=abc&state=${state}`);
+      expect(res.status).toBe(302);
+      expect(sessionFromLogin().recentAuthAt.getTime()).toBe(seconds(h.clock.now) * 1000);
+    });
+
+    it('sets recent_auth_at from auth_time on a step-up login', async () => {
+      const user = seedAdmin();
+      const { cookiePair, state } = await beginLogin(h, '?stepUp=1');
+      const authTime = seconds(h.clock.now) + 5;
+      h.clock.now = new Date(h.clock.now.getTime() + 20_000);
+      h.idp.claims = { ...h.idp.claims, authTime };
+      const res = await callback(h, cookiePair, `code=abc&state=${state}`);
+      expect(res.status).toBe(302);
+      expect(sessionFromLogin().recentAuthAt.getTime()).toBe(authTime * 1000);
+      expect(h.store.audit[0]).toMatchObject({ outcome: 'success', actorUserId: user.id, summary: { stepUp: true, recentAuth: true } });
+    });
+
+    const stale: Array<[string, (start: Date) => number | null]> = [
+      ['missing auth_time', () => null],
+      ['auth_time from an older Google session', (start) => seconds(start) - Math.ceil(AUTH_TIME_SKEW_MS / 1000) - 60],
+      ['auth_time an hour before the step-up', (start) => seconds(start) - 3600],
+      ['auth_time in the future', (start) => seconds(start) + 3600],
+    ];
+    for (const [name, authTimeFor] of stale) {
+      it(`refuses a step-up login with ${name}`, async () => {
+        seedAdmin();
+        const start = h.clock.now;
+        const { cookiePair, state } = await beginLogin(h, '?stepUp=1');
+        h.idp.claims = { ...h.idp.claims, authTime: authTimeFor(start) };
+        const res = await callback(h, cookiePair, `code=abc&state=${state}`);
+        expect(res.status).toBe(401);
+        expect(await res.json()).toMatchObject({ error: 'reauth_not_fresh' });
+        expect(res.headers.getSetCookie().some((c) => /^__Host-nexus_admin=[^;]/.test(c))).toBe(false);
+        expect(h.store.sessions.size).toBe(0);
+        expect(h.store.audit).toHaveLength(1);
+        expect(h.store.audit[0]).toMatchObject({ action: 'auth.login', outcome: 'denied', summary: { reason: 'reauth_not_fresh' } });
+      });
+    }
+
+    it('accepts auth_time within the clock skew before the step-up started', async () => {
+      seedAdmin();
+      const start = h.clock.now;
+      const { cookiePair, state } = await beginLogin(h, '?stepUp=1');
+      h.idp.claims = { ...h.idp.claims, authTime: seconds(start) - Math.floor(AUTH_TIME_SKEW_MS / 1000) + 1 };
+      const res = await callback(h, cookiePair, `code=abc&state=${state}`);
+      expect(res.status).toBe(302);
+      const recent = sessionFromLogin().recentAuthAt.getTime();
+      expect(h.clock.now.getTime() - recent).toBeLessThan(RECENT_AUTH_MS);
+    });
+  });
+
+  describe('login rate limits', () => {
+    const fromIp = (ip: string, path = '/control-api/v1/auth/login') => h.request(path, { headers: { 'x-forwarded-for': ip } });
+
+    it('limits one client IP without blocking another', async () => {
+      const statuses: number[] = [];
+      for (let i = 0; i < 21; i++) statuses.push((await fromIp('203.0.113.7')).status);
+      expect(statuses.slice(0, 20).every((status) => status === 302)).toBe(true);
+      expect(statuses[20]).toBe(429);
+      const limited = await fromIp('203.0.113.7');
+      expect(limited.headers.get('retry-after')).toMatch(/^\d+$/);
+      expect((await fromIp('198.51.100.20')).status).toBe(302);
+    });
+
+    it('does not count or limit the callback', async () => {
+      seedAdmin();
+      const { cookiePair, state } = await beginLogin(h);
+      for (let i = 0; i < 30; i++) {
+        const res = await callback(h, null, `code=abc&state=${state}`);
+        expect(res.status).toBe(400);
+      }
+      // Thirty callbacks later the sign-in still completes...
+      const done = await callback(h, cookiePair, `code=abc&state=${state}`);
+      expect(done.status).toBe(302);
+      // ...and the client still has its remaining 19 login starts.
+      for (let i = 0; i < 19; i++) expect((await h.request('/control-api/v1/auth/login')).status).toBe(302);
+      expect((await h.request('/control-api/v1/auth/login')).status).toBe(429);
+      // An exhausted client's callbacks are still processed, not rate limited.
+      expect((await callback(h, null, `code=abc&state=${state}`)).status).toBe(400);
+    });
+
+    it('applies a global cap only to floods from many addresses', async () => {
+      const statuses: number[] = [];
+      for (let i = 0; i < 300; i++) statuses.push((await fromIp(`192.0.2.${Math.floor(i / 20) + 1}`)).status);
+      expect(statuses.every((status) => status === 302)).toBe(true);
+      expect((await fromIp('192.0.2.200')).status).toBe(429);
+      // A single client over its own limit does not drain the shared budget.
+      h.clock.now = new Date(h.clock.now.getTime() + 120_000);
+      for (let i = 0; i < 100; i++) await fromIp('192.0.2.201');
+      expect((await fromIp('192.0.2.202')).status).toBe(302);
+    });
   });
 
   it('refuses login for an inactive users row', async () => {

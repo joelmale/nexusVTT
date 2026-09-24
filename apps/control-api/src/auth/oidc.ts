@@ -10,11 +10,22 @@ export interface VerifiedClaims {
   subject: string;
   email: string | null;
   emailVerified: boolean;
+  /** ID token `auth_time` (seconds since the epoch) when present and numeric. */
+  authTime: number | null;
+}
+
+export interface BeginLoginOptions {
+  /**
+   * Step-up re-authentication: asks the IdP to re-authenticate the user now
+   * (`max_age=0`) instead of reusing an existing IdP session. Google ignores
+   * `prompt=login`, so `max_age=0` plus the `auth_time` check is the lever.
+   */
+  stepUp?: boolean;
 }
 
 export interface IdentityProvider {
   /** Creates fresh state, nonce, and PKCE verifier plus the redirect URL. */
-  beginLogin(): Promise<{ url: URL; checks: LoginChecks }>;
+  beginLogin(options?: BeginLoginOptions): Promise<{ url: URL; checks: LoginChecks }>;
   /**
    * Exchanges the authorization code (PKCE) and validates the ID token's
    * issuer, audience, expiry, state, and nonce. Throws on any mismatch.
@@ -59,7 +70,7 @@ export class OpenIdProvider implements IdentityProvider {
     return this.configuration;
   }
 
-  async beginLogin(): Promise<{ url: URL; checks: LoginChecks }> {
+  async beginLogin(options: BeginLoginOptions = {}): Promise<{ url: URL; checks: LoginChecks }> {
     const configuration = await this.config();
     const checks: LoginChecks = {
       state: client.randomState(),
@@ -74,7 +85,9 @@ export class OpenIdProvider implements IdentityProvider {
       nonce: checks.nonce,
       code_challenge: await client.calculatePKCECodeChallenge(checks.codeVerifier),
       code_challenge_method: 'S256',
-      prompt: 'select_account',
+      // Normal logins let the user pick an account; step-up forces a fresh
+      // authentication and the callback requires a matching `auth_time`.
+      ...(options.stepUp ? { max_age: '0' } : { prompt: 'select_account' }),
     });
     return { url, checks };
   }
@@ -95,6 +108,7 @@ export class OpenIdProvider implements IdentityProvider {
       subject: claims.sub,
       email: typeof claims.email === 'string' ? claims.email : null,
       emailVerified: claims.email_verified === true,
+      authTime: typeof claims.auth_time === 'number' && Number.isFinite(claims.auth_time) ? claims.auth_time : null,
     };
   }
 }

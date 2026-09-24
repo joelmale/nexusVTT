@@ -15,12 +15,18 @@ import {
   requireActor,
   revisionEtag,
   sendRulesError,
+  serviceTokenRequired,
 } from './http';
 
 export interface RulesAdminRoutesOptions {
   service?: RulesRegistryService;
-  /** Defaults to RULES_ADMIN_SERVICE_TOKEN; unset disables the check. */
+  /**
+   * Defaults to RULES_ADMIN_SERVICE_TOKEN. When unset, production refuses
+   * every admin route with 503; elsewhere the check is disabled.
+   */
   serviceToken?: string;
+  /** Overrides the NODE_ENV-based default for refusing requests without a token. */
+  requireServiceToken?: boolean;
 }
 
 const IdParams = z.object({ id: z.string().uuid() });
@@ -39,7 +45,12 @@ const OptionalBody = <T extends z.ZodTypeAny>(schema: T) =>
  */
 export async function rulesAdminRoutes(fastify: FastifyInstance, options: RulesAdminRoutesOptions = {}) {
   const service = options.service ?? new RulesRegistryService(prisma);
-  const guard = createServiceTokenGuard(options.serviceToken ?? process.env.RULES_ADMIN_SERVICE_TOKEN);
+  const token = options.serviceToken ?? process.env.RULES_ADMIN_SERVICE_TOKEN;
+  const guardOptions = { requireToken: options.requireServiceToken };
+  if (!token && serviceTokenRequired(guardOptions)) {
+    fastify.log.error('RULES_ADMIN_SERVICE_TOKEN is not set; rules admin routes will refuse every request (503)');
+  }
+  const guard = createServiceTokenGuard(token, guardOptions);
 
   fastify.addHook('onRequest', guard);
   fastify.setErrorHandler((error, request, reply) => sendRulesError(request, reply, error));

@@ -50,12 +50,12 @@ Environment:
 | `CONTROL_GOOGLE_CALLBACK_URL`   | `https://admin.internal.nexusvtt.com/control-api/v1/auth/google/callback` |
 | `CONTROL_SESSION_SECRET`        | Signs the session cookie; encrypted Dockhand variable                   |
 | `TRUST_PROXY_HOPS`              | `1` (the frontend gateway)                                              |
-| `ASSET_SERVICE_SECRET`          | Required, at least 16 characters. Sent as `x-nexus-auth` to the asset service; same value as the asset-server's |
+| `ASSET_ADMIN_SERVICE_SECRET`    | Required, at least 32 characters. Sent as `x-nexus-admin-auth` to the asset service admin API; distinct from the public VTT backend's `ASSET_SERVICE_SECRET` |
 | `ASSET_SERVICE_URL`             | Optional, default `http://asset-server:5003`                            |
 | `BACKEND_URL`                   | Optional, default `http://backend:5001` (VTT health for the operations summary) |
 | `PROMETHEUS_URL`                | Optional (for example `http://prometheus:9090`); unset means no metrics or alerts in the summary |
 | `GRAFANA_URL`                   | Optional browser-facing Grafana link for the summary; unset gives `links.grafana: null` |
-| `RULES_ADMIN_SERVICE_TOKEN`     | Optional, at least 16 characters. Sent as `X-Nexus-Service-Token` to the rules admin API. `doc-api` must be given the same value |
+| `RULES_ADMIN_SERVICE_TOKEN`     | Required, at least 32 characters. Sent as `X-Nexus-Service-Token` to the rules admin API. `doc-api` must be given the same value |
 | `CODEX_OBJECT_STORAGE_URL`      | Optional, default `http://codex-minio:9000`. The only origin control-api fetches presigned object-storage URLs from |
 
 Startup fails fast if any required variable is missing or invalid (URLs must
@@ -66,8 +66,8 @@ administrator, credential, or email allowlist exists anywhere.
 In `deploy/homelab`, control-api's optional Prometheus and Grafana values come
 from `CONTROL_PROMETHEUS_URL` and `CONTROL_GRAFANA_URL`.
 `RULES_ADMIN_SERVICE_TOKEN` is passed to both control-api and doc-api
-(`compose.yaml`, `compose.codex.yaml`), so setting it once enables the check
-on both sides.
+(`compose.yaml`, `compose.codex.yaml`). `doc-api` fails closed in production
+when it is missing, and control-api refuses to start without it.
 
 ### Identity
 
@@ -233,7 +233,7 @@ missing page is `404`.
 
 **Asset allowlist** (`src/assets/allowlist.ts`, 16 routes). It covers every
 route in [Asset administration](/vtt/operations/asset-administration).
-control-api sends `x-nexus-auth: $ASSET_SERVICE_SECRET` and
+control-api sends `x-nexus-admin-auth: $ASSET_ADMIN_SERVICE_SECRET` and
 `x-nexus-actor: <user id>`.
 
 | Route (below `/control-api/v1/assets/`)                    | Permission                    |
@@ -359,4 +359,5 @@ password.
 - Server-side upload and page images need doc-api to sign presigned URLs for
   `http://codex-minio:9000` (`CODEX_S3_PUBLIC_ENDPOINT`); until that is set,
   both return `502` rather than fetching another host.
-- control-api needs `ASSET_SERVICE_SECRET` to start.
+- control-api needs `ASSET_ADMIN_SERVICE_SECRET` and
+  `RULES_ADMIN_SERVICE_TOKEN` to start.

@@ -314,8 +314,11 @@ export interface RulesCatalogSyncResult {
  */
 export class RulesCatalogClient {
   private state: StoredRulesCatalogState | undefined;
+  private readonly config: RulesCatalogClientConfig;
 
-  constructor(private readonly config: RulesCatalogClientConfig) {}
+  constructor(config: RulesCatalogClientConfig) {
+    this.config = config;
+  }
 
   private async loadState(): Promise<StoredRulesCatalogState> {
     if (this.state) return this.state;

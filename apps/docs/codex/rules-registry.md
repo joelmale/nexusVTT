@@ -102,9 +102,10 @@ built with `prisma db push` do not get the triggers.
 ### Internal admin API (control-api → doc-api only)
 
 Every mutation requires `X-Nexus-Actor` (401 `actor_required` otherwise), which
-is recorded as `createdBy`/`validatedBy`/`publishedBy`. If
-`RULES_ADMIN_SERVICE_TOKEN` is set, every admin route also requires
-`X-Nexus-Service-Token`. Errors use
+is recorded as `createdBy`/`validatedBy`/`publishedBy`. In production, every
+admin route also requires `X-Nexus-Service-Token` matching
+`RULES_ADMIN_SERVICE_TOKEN`; if the token is missing from configuration,
+doc-api refuses the rules admin API with `503`. Errors use
 `{ error, code, issues?, current? }` (`RulesErrorResponse`).
 
 | Method | Path                                                 | Purpose                                                            |

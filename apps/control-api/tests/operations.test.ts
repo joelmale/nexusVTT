@@ -1,7 +1,7 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { PROMETHEUS_ALERT_SINCE_QUERY, PROMETHEUS_ALERTS_QUERY, PROMETHEUS_QUERIES, type OperationsSummary } from '../src/operations/summary.js';
 import {
-  ASSET_SERVICE_SECRET,
+  ASSET_ADMIN_SERVICE_SECRET,
   ASSET_SERVICE_URL,
   BACKEND_URL,
   DOC_API_URL,
@@ -90,7 +90,7 @@ describe('GET /operations/summary', () => {
   };
 
   const assertNoLeaks = (text: string) => {
-    for (const secret of [ASSET_SERVICE_SECRET, 'http://', 'backend:5001', 'doc-api:3000', 'asset-server', 'prometheus:9090', 'node-exporter', 'ECONNREFUSED', 'hunter2', 'internal failure', operator.cookieValue]) {
+    for (const secret of [ASSET_ADMIN_SERVICE_SECRET, 'http://', 'backend:5001', 'doc-api:3000', 'asset-server', 'prometheus:9090', 'node-exporter', 'ECONNREFUSED', 'hunter2', 'internal failure', operator.cookieValue]) {
       expect(text, secret).not.toContain(secret);
     }
   };
@@ -144,10 +144,11 @@ describe('GET /operations/summary', () => {
       expect(call.headers.cookie).toBeUndefined();
       if (call.url.startsWith(ASSET_SERVICE_URL)) {
         expect(call.url).toBe(`${ASSET_SERVICE_URL}/internal/admin/integrity`);
-        expect(call.headers['x-nexus-auth']).toBe(ASSET_SERVICE_SECRET);
+        expect(call.headers['x-nexus-admin-auth']).toBe(ASSET_ADMIN_SERVICE_SECRET);
+        expect(call.headers['x-nexus-auth']).toBeUndefined();
         expect(call.headers['x-nexus-actor']).toBe(operator.user.id);
       } else {
-        expect(call.headers['x-nexus-auth']).toBeUndefined();
+        expect(call.headers['x-nexus-admin-auth']).toBeUndefined();
       }
     }
     expect(h.upstreamCalls.some((call) => call.url === `${BACKEND_URL}/api/system/health`)).toBe(true);

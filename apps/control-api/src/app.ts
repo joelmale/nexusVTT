@@ -4,6 +4,7 @@ import helmet from 'helmet';
 import { assetsProxy } from './assets/proxy.js';
 import { codexProxy } from './codex/proxy.js';
 import { API_PREFIX, type AppDeps } from './deps.js';
+import { bodyDeadline } from './http/bodyDeadline.js';
 import { ctx, sendError, type RequestContext } from './http/context.js';
 import { apiRateLimit, loadSession } from './http/guard.js';
 import { adminRouter } from './routes/admin.js';
@@ -22,6 +23,8 @@ export function inboundRequestId(value: unknown): string | null {
   return NGINX_REQUEST_ID.test(value) ? value : null;
 }
 const READINESS_TIMEOUT_MS = 2_000;
+/** Routes whose request body may take `UPLOAD_BODY_DEADLINE_MS` to arrive. */
+export const LONG_BODY_ROUTES: ReadonlySet<string> = new Set([`POST ${API_PREFIX}/codex/documents/upload`]);
 
 function requestContext(deps: AppDeps): RequestHandler {
   return (req, res, next) => {
@@ -63,6 +66,15 @@ export function createApp(deps: AppDeps): Express {
   app.set('query parser', 'simple');
 
   app.use(requestContext(deps));
+  app.use(
+    bodyDeadline({
+      logger: deps.logger,
+      longBodyRoutes: LONG_BODY_ROUTES,
+      deadlineMs: deps.config.bodyDeadlineMs,
+      longDeadlineMs: deps.config.uploadBodyDeadlineMs,
+      idleTimeoutMs: deps.config.bodyIdleTimeoutMs,
+    }),
+  );
   app.use(
     helmet({
       contentSecurityPolicy: { useDefaults: false, directives: { defaultSrc: ["'none'"], frameAncestors: ["'none'"] } },

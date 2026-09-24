@@ -4,6 +4,7 @@ import { CookieCrypto } from './auth/tokens.js';
 import { ASSET_ALLOWLIST } from './assets/allowlist.js';
 import { CODEX_ALLOWLIST } from './codex/allowlist.js';
 import { ConfigError, loadServerConfig } from './config.js';
+import { UPLOAD_BODY_DEADLINE_MS } from './http/bodyDeadline.js';
 import { createLogger, type LogLevel } from './logger.js';
 import { RouteTable } from './proxy/routeTable.js';
 import { RULES_ALLOWLIST } from './rules/allowlist.js';
@@ -47,8 +48,12 @@ function main(): void {
   const server = app.listen(config.port, () => {
     logger.info('control-api listening', { port: config.port });
   });
+  // Headers must arrive quickly (slowloris). requestTimeout is one value for
+  // every route, so it only backstops the longest body allowance (the 200 MB
+  // Codex upload); bodyDeadline() enforces the shorter per-route deadlines
+  // and a no-progress idle timeout.
   server.headersTimeout = 30_000;
-  server.requestTimeout = 330_000;
+  server.requestTimeout = UPLOAD_BODY_DEADLINE_MS + 60_000;
 
   const shutdown = (signal: string) => {
     logger.info('shutting down', { signal });

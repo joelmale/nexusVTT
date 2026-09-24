@@ -51,15 +51,37 @@ export function revisionEtag(revisionNumber: number): string {
   return `"${revisionNumber}"`;
 }
 
+export interface ServiceTokenGuardOptions {
+  /**
+   * Refuse every request (503) when no token is configured. Defaults to
+   * `NODE_ENV === 'production'`, so production fails closed while local
+   * development and tests can run the admin API without a token.
+   */
+  requireToken?: boolean;
+}
+
+/** True when the rules admin API must refuse requests because no token is configured. */
+export function serviceTokenRequired(options: ServiceTokenGuardOptions = {}): boolean {
+  return options.requireToken ?? process.env.NODE_ENV === 'production';
+}
+
 /**
- * Optional shared-secret check for control-api -> doc-api calls. When no
- * token is configured the routes rely on doc-api's private network placement,
+ * Shared-secret check for control-api -> doc-api calls (`X-Nexus-Service-Token`,
+ * constant-time). When a token is set it is always required. When none is set,
+ * production refuses every admin request with 503 (fail closed); outside
+ * production the routes fall back to doc-api's private network placement,
  * like the other `/api/admin/*` routes.
  */
-export function createServiceTokenGuard(token: string | undefined) {
+export function createServiceTokenGuard(token: string | undefined, options: ServiceTokenGuardOptions = {}) {
   const expected = token ? Buffer.from(token) : undefined;
+  const required = serviceTokenRequired(options);
   return async (request: FastifyRequest): Promise<void> => {
-    if (!expected) return;
+    if (!expected) {
+      if (required) {
+        throw new RulesError(503, 'service_token_invalid', 'rules admin API is not configured');
+      }
+      return;
+    }
     const raw = request.headers[RULES_SERVICE_TOKEN_HEADER];
     const supplied = Buffer.from((Array.isArray(raw) ? raw[0] : raw) ?? '');
     if (supplied.length !== expected.length || !timingSafeEqual(supplied, expected)) {

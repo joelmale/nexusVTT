@@ -187,7 +187,7 @@ describe('rules publish permissions', () => {
     render()
     fireEvent.click(await screen.findByText('Publish'))
     await waitFor(() =>
-      expect(browser.redirect).toHaveBeenCalledWith(`${LOGIN_PATH}?returnTo=${encodeURIComponent(`/rules/${ID}`)}`),
+      expect(browser.redirect).toHaveBeenCalledWith(`${LOGIN_PATH}?stepUp=1&returnTo=${encodeURIComponent(`/rules/${ID}`)}`),
     )
     expect((await screen.findByText(/needs a fresh sign-in/)).textContent).toContain('you will return here')
   })

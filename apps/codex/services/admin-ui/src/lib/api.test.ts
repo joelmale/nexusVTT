@@ -127,7 +127,7 @@ describe('controlFetch', () => {
     )) as ApiError
     expect(error.code).toBe('reauth_required')
     expect(redirect).toHaveBeenCalledWith(
-      `${LOGIN_PATH}?returnTo=${encodeURIComponent('/documents?page=2')}`,
+      `${LOGIN_PATH}?stepUp=1&returnTo=${encodeURIComponent('/documents?page=2')}`,
     )
   })
 

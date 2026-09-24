@@ -14,7 +14,7 @@ export function rulesProxy(deps: AppDeps): RequestHandler {
     upstreamUrl: (d, path, search) => `${d.config.docApiUrl}/api/admin/rules/${path}${search ? `?${search}` : ''}`,
     upstreamHeaders: (d, context) => ({
       'x-nexus-actor': context.admin!.user.id,
-      ...(d.config.rulesServiceToken ? { 'x-nexus-service-token': d.config.rulesServiceToken } : {}),
+      'x-nexus-service-token': d.config.rulesServiceToken,
     }),
     passthroughErrors: RULES_PASSTHROUGH_ERRORS,
   });

@@ -1,4 +1,5 @@
  import { useState } from 'react'
+import { HighlightedText } from '@/components/HighlightedText'
 import { codexFetch } from '@/lib/api'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
@@ -113,18 +114,6 @@ export default function Search() {
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString()
-  }
-
-  const highlightText = (text: string, highlights: string[]) => {
-    if (!highlights || highlights.length === 0) return text
-
-    let highlightedText = text
-    highlights.forEach(highlight => {
-      const regex = new RegExp(`(${highlight.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
-      highlightedText = highlightedText.replace(regex, '<mark>$1</mark>')
-    })
-
-    return <span dangerouslySetInnerHTML={{ __html: highlightedText }} />
   }
 
   return (
@@ -285,14 +274,14 @@ export default function Search() {
                         <TableCell>
                           <div>
                             <div className="font-medium">
-                              {result.highlights.title ?
-                                highlightText(result.source.title, result.highlights.title) :
+                              {result.highlights.title?.[0] ?
+                                <HighlightedText text={result.highlights.title[0]} /> :
                                 result.source.title
                               }
                             </div>
                             {result.highlights.content && result.highlights.content[0] && (
                               <div className="text-sm text-gray-600 mt-1">
-                                {highlightText(result.highlights.content[0], [query])}
+                                <HighlightedText text={result.highlights.content[0]} terms={[query]} />
                               </div>
                             )}
                           </div>

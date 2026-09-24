@@ -185,21 +185,3 @@ describe('rules proxy', () => {
     expect(h.upstreamCalls).toHaveLength(0);
   });
 });
-
-describe('rules proxy without a service token', () => {
-  let h: Harness;
-  beforeAll(async () => {
-    h = await startHarness({ config: { rulesServiceToken: null } });
-  });
-  afterAll(async () => {
-    await h.close();
-  });
-
-  it('omits X-Nexus-Service-Token but still sends the actor', async () => {
-    const s = await h.sessionFor(['content_editor']);
-    const res = await h.request(`${BASE}/entities/${ENTITY}`, { session: s });
-    expect(res.status).toBe(200);
-    expect(h.upstreamCalls[0]!.headers['x-nexus-service-token']).toBeUndefined();
-    expect(h.upstreamCalls[0]!.headers['x-nexus-actor']).toBe(s.user.id);
-  });
-});

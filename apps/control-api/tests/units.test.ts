@@ -18,7 +18,8 @@ const VALID_ENV = {
   CONTROL_GOOGLE_CALLBACK_URL: 'https://admin.internal.nexusvtt.com/control-api/v1/auth/google/callback',
   CONTROL_SESSION_SECRET: SECRET,
   TRUST_PROXY_HOPS: '1',
-  ASSET_SERVICE_SECRET: 'asset-service-secret-value-0123',
+  ASSET_ADMIN_SERVICE_SECRET: 'asset-admin-service-secret-value-0123456789',
+  RULES_ADMIN_SERVICE_TOKEN: 'rules-admin-service-token-value-0123456789',
 };
 
 describe('permissions', () => {
@@ -73,11 +74,12 @@ describe('configuration', () => {
   it('defaults the wave-2 upstreams and leaves optional integrations off', () => {
     const config = loadServerConfig(VALID_ENV);
     expect(config.assetServiceUrl).toBe('http://asset-server:5003');
-    expect(config.assetServiceSecret).toBe(VALID_ENV.ASSET_SERVICE_SECRET);
+    expect(config.assetAdminServiceSecret).toBe(VALID_ENV.ASSET_ADMIN_SERVICE_SECRET);
+    expect(config).not.toHaveProperty('assetServiceSecret');
     expect(config.backendUrl).toBe('http://backend:5001');
     expect(config.prometheusUrl).toBeNull();
     expect(config.grafanaUrl).toBeNull();
-    expect(config.rulesServiceToken).toBeNull();
+    expect(config.rulesServiceToken).toBe(VALID_ENV.RULES_ADMIN_SERVICE_TOKEN);
     expect(config.objectStorageOrigin).toBe('http://codex-minio:9000');
   });
 
@@ -88,32 +90,35 @@ describe('configuration', () => {
       BACKEND_URL: 'http://vtt:5001',
       PROMETHEUS_URL: 'http://prometheus:9090/',
       GRAFANA_URL: 'https://admin.internal.nexusvtt.com/grafana/',
-      RULES_ADMIN_SERVICE_TOKEN: 'rules-service-token-0123456789',
       CODEX_OBJECT_STORAGE_URL: 'http://minio.internal:9000/',
     });
     expect(config.assetServiceUrl).toBe('http://assets:6000');
     expect(config.backendUrl).toBe('http://vtt:5001');
     expect(config.prometheusUrl).toBe('http://prometheus:9090');
     expect(config.grafanaUrl).toBe('https://admin.internal.nexusvtt.com/grafana/');
-    expect(config.rulesServiceToken).toBe('rules-service-token-0123456789');
     expect(config.objectStorageOrigin).toBe('http://minio.internal:9000');
-    const empty = loadServerConfig({ ...VALID_ENV, PROMETHEUS_URL: '', GRAFANA_URL: '', RULES_ADMIN_SERVICE_TOKEN: '', BACKEND_URL: '' });
+    const empty = loadServerConfig({ ...VALID_ENV, PROMETHEUS_URL: '', GRAFANA_URL: '', BACKEND_URL: '' });
     expect(empty.prometheusUrl).toBeNull();
     expect(empty.grafanaUrl).toBeNull();
-    expect(empty.rulesServiceToken).toBeNull();
     expect(empty.backendUrl).toBe('http://backend:5001');
   });
 
-  it('fails fast on a missing asset secret or invalid integration values, naming only the variable', () => {
-    const { ASSET_SERVICE_SECRET: _omit, ...rest } = VALID_ENV;
-    expect(() => loadServerConfig(rest)).toThrow(/Missing required environment variables: ASSET_SERVICE_SECRET/);
-    expect(() => loadServerConfig({ ...VALID_ENV, ASSET_SERVICE_SECRET: 'short' })).toThrow(/ASSET_SERVICE_SECRET/);
+  it('fails fast on a missing service credential or invalid integration values, naming only the variable', () => {
+    const { ASSET_ADMIN_SERVICE_SECRET: _omit, ...rest } = VALID_ENV;
+    expect(() => loadServerConfig(rest)).toThrow(/Missing required environment variables: ASSET_ADMIN_SERVICE_SECRET/);
+    expect(() => loadServerConfig({ ...VALID_ENV, ASSET_ADMIN_SERVICE_SECRET: 'x'.repeat(31) })).toThrow(/ASSET_ADMIN_SERVICE_SECRET/);
+    // The backend's ASSET_SERVICE_SECRET is neither needed nor a substitute.
+    expect(() => loadServerConfig({ ...rest, ASSET_SERVICE_SECRET: 'x'.repeat(40) })).toThrow(/ASSET_ADMIN_SERVICE_SECRET/);
+    const { RULES_ADMIN_SERVICE_TOKEN: _omitRules, ...noRules } = VALID_ENV;
+    expect(() => loadServerConfig(noRules)).toThrow(/Missing required environment variables: RULES_ADMIN_SERVICE_TOKEN/);
+    expect(() => loadServerConfig({ ...VALID_ENV, RULES_ADMIN_SERVICE_TOKEN: '' })).toThrow(/RULES_ADMIN_SERVICE_TOKEN/);
+    expect(() => loadServerConfig({ ...VALID_ENV, RULES_ADMIN_SERVICE_TOKEN: 'y'.repeat(31) })).toThrow(/RULES_ADMIN_SERVICE_TOKEN/);
     expect(() => loadServerConfig({ ...VALID_ENV, PROMETHEUS_URL: 'file:///etc/passwd' })).toThrow(/PROMETHEUS_URL/);
     expect(() => loadServerConfig({ ...VALID_ENV, GRAFANA_URL: 'not a url' })).toThrow(/GRAFANA_URL/);
     expect(() => loadServerConfig({ ...VALID_ENV, BACKEND_URL: 'http://user:pw@backend:5001' })).toThrow(/BACKEND_URL/);
     expect(() => loadServerConfig({ ...VALID_ENV, RULES_ADMIN_SERVICE_TOKEN: 'short' })).toThrow(/RULES_ADMIN_SERVICE_TOKEN/);
     try {
-      loadServerConfig({ ...VALID_ENV, ASSET_SERVICE_SECRET: 'tiny-secret' });
+      loadServerConfig({ ...VALID_ENV, ASSET_ADMIN_SERVICE_SECRET: 'tiny-secret' });
     } catch (error) {
       expect((error as Error).message).not.toContain('tiny-secret');
     }

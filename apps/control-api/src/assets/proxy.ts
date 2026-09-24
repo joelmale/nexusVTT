@@ -13,7 +13,7 @@ export function assetsProxy(deps: AppDeps): RequestHandler {
     table: (d) => d.assetRoutes,
     upstreamUrl: (d, path, search) => `${d.config.assetServiceUrl}/internal/admin/${path}${search ? `?${search}` : ''}`,
     upstreamHeaders: (d, context) => ({
-      'x-nexus-auth': d.config.assetServiceSecret,
+      'x-nexus-admin-auth': d.config.assetAdminServiceSecret,
       'x-nexus-actor': context.admin!.user.id,
     }),
     passthroughErrors: ASSET_PASSTHROUGH_ERRORS,

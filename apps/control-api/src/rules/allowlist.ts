@@ -10,8 +10,8 @@ import { json, KB, NONE, type ProxyRoute } from '../proxy/routeTable.js';
  * (apps/codex/services/doc-api/src/routes/rules/admin.ts). The published
  * catalog (`/api/rules/catalog/*`) is for VTT/Forge backends, not the admin
  * console, and is not listed. control-api adds `X-Nexus-Actor` (the
- * session's user ID) and, when RULES_ADMIN_SERVICE_TOKEN is set,
- * `X-Nexus-Service-Token`. `If-Match` passes through, the `ETag` comes back,
+ * session's user ID) and, always, `X-Nexus-Service-Token`
+ * (RULES_ADMIN_SERVICE_TOKEN). `If-Match` passes through, the `ETag` comes back,
  * and typed error bodies (`RulesErrorResponse`, including a 409's `current`
  * head) are relayed unchanged.
  */

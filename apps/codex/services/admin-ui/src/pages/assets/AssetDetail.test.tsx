@@ -182,7 +182,7 @@ describe('asset delete flow', () => {
     fireEvent.click(button)
 
     await waitFor(() =>
-      expect(browser.redirect).toHaveBeenCalledWith(`${LOGIN_PATH}?returnTo=${encodeURIComponent('/assets/adm-1')}`),
+      expect(browser.redirect).toHaveBeenCalledWith(`${LOGIN_PATH}?stepUp=1&returnTo=${encodeURIComponent('/assets/adm-1')}`),
     )
     expect((await screen.findByText(/needs a fresh sign-in/)).textContent).toContain('Redirecting you to Google')
     const [request] = requestsTo(fetchMock, 'POST', `${BASE}/permanent-delete`)

@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url';
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { CODEX_ALLOWLIST, CodexRouteTable, type CodexRoute } from '../src/codex/allowlist.js';
 import { normalizeUpstreamError } from '../src/codex/proxy.js';
+import { INLINE_DOCUMENT_CSP, INLINE_PDF_CSP } from '../src/proxy/forward.js';
 import { DOC_API_URL, startHarness, type Harness, type TestSession } from './support/harness.js';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -293,8 +294,61 @@ describe('Codex proxy', () => {
     expect(res.headers.get('content-range')).toBe('bytes 0-7/100');
     expect(res.headers.get('x-internal')).toBeNull();
     expect(res.headers.get('set-cookie')).toBeNull();
-    expect(res.headers.get('content-security-policy')).toBe("default-src 'none'; object-src 'self'; frame-ancestors 'none'");
+    expect(res.headers.get('content-security-policy')).toBe("default-src 'none'; object-src 'self'; frame-ancestors 'self'");
+    expect(res.headers.get('content-type')).toBe('application/pdf');
+    expect(res.headers.get('x-content-type-options')).toBe('nosniff');
     expect(h.upstreamCalls[0]!.headers.range).toBe('bytes=0-7');
+  });
+
+  const content = (type: string | null, extra: Record<string, string> = {}) => {
+    h.upstream.respond = () => {
+      const headers = new Headers(extra);
+      if (type !== null) headers.set('content-type', type);
+      // A byte body: a string body would make Response default to text/plain.
+      return new Response(new TextEncoder().encode('body'), { status: 200, headers });
+    };
+    return h.request(`/control-api/v1/codex/documents/${DOC}/content`, { session: admin });
+  };
+
+  it('serves only safe document types inline, under a sandboxed CSP except for PDFs', async () => {
+    for (const [upstream, expected] of [
+      ['image/png', 'image/png'],
+      ['image/jpeg', 'image/jpeg'],
+      ['IMAGE/WEBP', 'image/webp'],
+      ['image/gif', 'image/gif'],
+      ['text/plain', 'text/plain'],
+      ['text/plain; charset=UTF-8', 'text/plain; charset=UTF-8'],
+      ['text/plain;charset="iso-8859-1"; format=flowed', 'text/plain; charset=iso-8859-1'],
+      ['text/plain; charset=<script>', 'text/plain'],
+    ] as const) {
+      const res = await content(upstream, { 'content-disposition': 'inline; filename="notes.txt"' });
+      expect(res.status, upstream).toBe(200);
+      expect(res.headers.get('content-type'), upstream).toBe(expected);
+      expect(res.headers.get('content-disposition'), upstream).toBe('inline; filename="notes.txt"');
+      expect(res.headers.get('content-security-policy'), upstream).toBe(INLINE_DOCUMENT_CSP);
+      expect(res.headers.get('x-content-type-options'), upstream).toBe('nosniff');
+      expect(await res.text()).toBe('body');
+    }
+    expect(INLINE_DOCUMENT_CSP).toBe("sandbox; default-src 'none'; img-src 'self' data:; style-src 'unsafe-inline'; object-src 'self'");
+    const pdf = await content('application/pdf; name=x.pdf');
+    expect(pdf.headers.get('content-type')).toBe('application/pdf');
+    expect(pdf.headers.get('content-security-policy')).toBe(INLINE_PDF_CSP);
+    expect(INLINE_PDF_CSP).not.toContain('sandbox');
+  });
+
+  it('turns every other upstream type into an octet-stream attachment', async () => {
+    for (const upstream of [
+      'text/html', 'text/html; charset=utf-8', 'image/svg+xml', 'application/xhtml+xml', 'text/xml',
+      'application/javascript', 'text/markdown', 'application/octet-stream', 'multipart/x-mixed-replace; boundary=x',
+      'text/plain2', 'application/pdfx', '', null,
+    ]) {
+      const res = await content(upstream, { 'content-disposition': 'inline; filename="evil.html"' });
+      expect(res.status, String(upstream)).toBe(200);
+      expect(res.headers.get('content-type'), String(upstream)).toBe('application/octet-stream');
+      expect(res.headers.get('content-disposition'), String(upstream)).toBe('attachment');
+      expect(res.headers.get('content-security-policy'), String(upstream)).toBe(INLINE_DOCUMENT_CSP);
+      expect(res.headers.get('x-content-type-options'), String(upstream)).toBe('nosniff');
+    }
   });
 
   it('does not forward Range where it is not allowed', async () => {

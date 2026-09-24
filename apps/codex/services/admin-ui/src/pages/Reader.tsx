@@ -38,6 +38,11 @@ interface DocumentReference {
   title: string
 }
 
+function resolveCampaignId() {
+  if (typeof window === 'undefined') return undefined
+  return window.localStorage.getItem('campaignId') || undefined
+}
+
 export default function Reader() {
   const { id } = useParams()
   const [data, setData] = useState<PageImagesResponse | null>(null)
@@ -85,12 +90,7 @@ export default function Reader() {
 
   const { me } = useAuth()
   const canAnnotate = useCan('annotate')
-  const resolveUserId = () => me.user.id
-
-  const resolveCampaignId = () => {
-    if (typeof window === 'undefined') return undefined
-    return window.localStorage.getItem('campaignId') || undefined
-  }
+  const userId = me.user.id
 
   useEffect(() => {
     if (!id) return
@@ -137,7 +137,7 @@ export default function Reader() {
     const loadAnnotations = async () => {
       try {
         const params = new URLSearchParams()
-        params.set('userId', resolveUserId())
+        params.set('userId', userId)
         const campaignId = resolveCampaignId()
         if (campaignId) params.set('campaignId', campaignId)
         const response = await codexFetch(`/api/documents/${id}/annotations?${params}`)
@@ -159,7 +159,7 @@ export default function Reader() {
       try {
         const params = new URLSearchParams()
         params.set('documentId', id)
-        params.set('userId', resolveUserId())
+        params.set('userId', userId)
         const campaignId = resolveCampaignId()
         if (campaignId) params.set('campaignId', campaignId)
         const response = await codexFetch(`/api/references?${params}`)
@@ -182,7 +182,7 @@ export default function Reader() {
     return () => {
       isMounted = false
     }
-  }, [id])
+  }, [id, userId])
 
   const pages = data?.pages || []
   const maxLeftIndex = useMemo(() => {
@@ -232,7 +232,7 @@ export default function Reader() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           documentId: id,
-          userId: resolveUserId(),
+          userId,
           campaignId: resolveCampaignId(),
           pageNumber,
           title: `Page ${pageNumber}`,
@@ -422,7 +422,7 @@ export default function Reader() {
     try {
       const payloads = segments.map((position) => ({
         documentId: id,
-        userId: resolveUserId(),
+        userId,
         campaignId: resolveCampaignId(),
         pageNumber,
         position,

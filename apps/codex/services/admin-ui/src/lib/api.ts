@@ -108,10 +108,16 @@ export function onPermissionDenied(listener: PermissionListener): () => void {
   }
 }
 
-/** Login URL; `returnTo` must be a same-origin path. */
-export function loginUrl(returnTo?: string): string {
-  if (!returnTo) return LOGIN_PATH
-  return `${LOGIN_PATH}?returnTo=${encodeURIComponent(returnTo)}`
+/**
+ * Login URL; `returnTo` must be a same-origin path. `stepUp` asks control-api
+ * for a forced Google re-authentication (step-up for recent-auth routes).
+ */
+export function loginUrl(returnTo?: string, { stepUp = false }: { stepUp?: boolean } = {}): string {
+  const params = new URLSearchParams()
+  if (stepUp) params.set('stepUp', '1')
+  if (returnTo) params.set('returnTo', returnTo)
+  const query = params.toString()
+  return query ? `${LOGIN_PATH}?${query}` : LOGIN_PATH
 }
 
 // A `.`/`..` segment (also percent-encoded) would be resolved by the browser
@@ -179,7 +185,9 @@ export async function controlFetch(
   if (response.status === 401) {
     const { code, requestId } = await readError(response)
     if (redirectOnUnauthorized) {
-      browser.redirect(code === 'reauth_required' ? loginUrl(browser.currentPath()) : LOGIN_PATH)
+      browser.redirect(
+        code === 'reauth_required' ? loginUrl(browser.currentPath(), { stepUp: true }) : LOGIN_PATH,
+      )
     }
     throw new ApiError(401, UNAUTHENTICATED_MESSAGE, code, requestId)
   }

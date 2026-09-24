@@ -49,11 +49,12 @@ Every route requires both headers:
 
 | Header          | Value                                                            |
 | --------------- | ---------------------------------------------------------------- |
-| `x-nexus-auth`  | `ASSET_SERVICE_SECRET` (constant-time compare; unset → all 401)  |
+| `x-nexus-admin-auth` | `ASSET_ADMIN_SERVICE_SECRET` (constant-time compare; unset or shorter than 32 characters → all 503) |
 | `x-nexus-actor` | Authenticated admin identity, `[A-Za-z0-9][A-Za-z0-9._:@+-]{0,199}` |
 | `x-request-id`  | Optional; generated when absent or malformed                     |
 
 Missing/incorrect credentials return `401` before any upload body is read.
+An unconfigured admin credential returns `503`, so the endpoint fails closed.
 A missing or malformed actor returns `400 actor-required`. Every response
 carries `audit: { actor, requestId }` in the body plus `X-Nexus-Actor` and
 `X-Request-Id` headers, and each request is logged as a structured
@@ -190,7 +191,7 @@ Report-derived gauges are absent until the first integrity report completes.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `ASSET_SERVICE_SECRET` | _(none)_ | Required; admin API returns 401 when unset |
+| `ASSET_ADMIN_SERVICE_SECRET` | _(none)_ | Required; admin API returns 503 when unset or shorter than 32 characters |
 | `METRICS_AUTH_TOKEN` | _(unset = open)_ | Bearer token for `/metrics` |
 | `ASSET_ADMIN_MAX_UPLOAD_BYTES` | `26214400` (25 MiB) | Per-upload limit |
 | `ASSET_ADMIN_MAX_IMAGE_DIMENSION` | `16384` | Max width or height |

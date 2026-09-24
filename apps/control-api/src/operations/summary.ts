@@ -154,7 +154,7 @@ async function docApiSource(deps: AppDeps, context: RequestContext): Promise<Ser
 
 async function assetSource(deps: AppDeps, context: RequestContext) {
   const result = await probe(deps, context, `${deps.config.assetServiceUrl}/internal/admin/integrity`, {
-    'x-nexus-auth': deps.config.assetServiceSecret,
+    'x-nexus-admin-auth': deps.config.assetAdminServiceSecret,
     'x-nexus-actor': context.admin!.user.id,
   });
   const name = 'asset-service';

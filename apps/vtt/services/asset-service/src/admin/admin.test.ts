@@ -8,7 +8,9 @@ import sharp from 'sharp';
 import request from 'supertest';
 import type { Response as SupertestResponse, Test } from 'supertest';
 
-const SECRET = 'admin-test-secret-value';
+const SECRET = 'admin-test-secret-value-0123456789abcdef';
+// The backend's upload/library credential: never valid for /internal/admin.
+const SERVICE_SECRET = 'backend-service-secret-value-0123456789';
 const ACTOR = 'admin:alice@example.test';
 const METRICS_TOKEN = 'metrics-token-value';
 
@@ -40,7 +42,7 @@ function record(label: string, res: SupertestResponse): SupertestResponse {
 
 function admin(method: 'get' | 'post' | 'patch', url: string): Test {
   return request(app)[method](`/internal/admin${url}`)
-    .set('x-nexus-auth', SECRET)
+    .set('x-nexus-admin-auth', SECRET)
     .set('x-nexus-actor', ACTOR);
 }
 
@@ -169,7 +171,8 @@ beforeAll(async () => {
   process.env.ASSETS_PATH = assetsPath;
   process.env.LIBRARY_DATA_PATH = libraryRoot;
   process.env.LIBRARY_MANIFEST_PATH = manifestPath;
-  process.env.ASSET_SERVICE_SECRET = SECRET;
+  process.env.ASSET_SERVICE_SECRET = SERVICE_SECRET;
+  process.env.ASSET_ADMIN_SERVICE_SECRET = SECRET;
   delete process.env.METRICS_AUTH_TOKEN;
   delete process.env.ASSET_ADMIN_MAX_UPLOAD_BYTES;
   delete process.env.ASSET_ADMIN_STORAGE_QUOTA_BYTES;
@@ -184,6 +187,7 @@ afterAll(() => {
     os.tmpdir(),
     libraryRoot,
     SECRET,
+    SERVICE_SECRET,
     METRICS_TOKEN,
   ].flatMap((value) => [value, JSON.stringify(value).slice(1, -1), value.replace(/\\/g, '/')]);
   const leaks = responses.flatMap(({ label, text }) =>
@@ -217,35 +221,99 @@ describe('authentication and actor attribution', () => {
         'wrong-secret',
         await request(app)
           .get('/internal/admin/assets')
-          .set('x-nexus-auth', wrong)
+          .set('x-nexus-admin-auth', wrong)
           .set('x-nexus-actor', ACTOR),
       );
       expect(res.status).toBe(401);
     }
   });
 
-  it('rejects everything when ASSET_SERVICE_SECRET is unset', async () => {
-    delete process.env.ASSET_SERVICE_SECRET;
-    try {
+  it('never accepts the backend ASSET_SERVICE_SECRET, in either header', async () => {
+    for (const header of ['x-nexus-auth', 'x-nexus-admin-auth']) {
       const res = record(
-        'unset-secret',
+        'backend-secret',
         await request(app)
           .get('/internal/admin/assets')
-          .set('x-nexus-auth', '')
+          .set(header, SERVICE_SECRET)
           .set('x-nexus-actor', ACTOR),
       );
-      expect(res.status).toBe(401);
-      const withUndefined = record(
-        'unset-secret-2',
-        await request(app)
-          .get('/internal/admin/assets')
-          .set('x-nexus-auth', 'undefined')
-          .set('x-nexus-actor', ACTOR),
-      );
-      expect(withUndefined.status).toBe(401);
-    } finally {
-      process.env.ASSET_SERVICE_SECRET = SECRET;
+      expect(res.status, header).toBe(401);
     }
+    // The admin secret in the backend's header is not accepted either.
+    const legacy = record(
+      'legacy-header',
+      await request(app)
+        .get('/internal/admin/assets')
+        .set('x-nexus-auth', SECRET)
+        .set('x-nexus-actor', ACTOR),
+    );
+    expect(legacy.status).toBe(401);
+  });
+
+  it('fails closed with 503 when ASSET_ADMIN_SERVICE_SECRET is unset or too short', async () => {
+    const errors: string[] = [];
+    const originalError = console.error;
+    console.error = (...args: unknown[]) => errors.push(args.map(String).join(' '));
+    try {
+      for (const configured of [undefined, '', 'x'.repeat(31)]) {
+        if (configured === undefined) delete process.env.ASSET_ADMIN_SERVICE_SECRET;
+        else process.env.ASSET_ADMIN_SERVICE_SECRET = configured;
+        for (const supplied of ['', 'undefined', configured ?? 'x', SERVICE_SECRET]) {
+          const res = record(
+            'unset-secret',
+            await request(app)
+              .get('/internal/admin/assets')
+              .set('x-nexus-admin-auth', supplied)
+              .set('x-nexus-auth', SERVICE_SECRET)
+              .set('x-nexus-actor', ACTOR),
+          );
+          expect(res.status).toBe(503);
+          expect(res.body.error).toBe('admin-api-disabled');
+        }
+      }
+    } finally {
+      console.error = originalError;
+      process.env.ASSET_ADMIN_SERVICE_SECRET = SECRET;
+    }
+    // Logged once for the whole outage, not per request.
+    expect(errors.filter((line) => line.includes('asset-admin-disabled'))).toHaveLength(1);
+    expect(errors.join(' ')).not.toContain('x'.repeat(31));
+  });
+
+  it('rejects traversal and encoded separators in the raw path with 400 before auth', async () => {
+    for (const url of [
+      '/internal/admin/assets/..',
+      '/internal/admin/../internal/admin/assets',
+      '/internal/admin/assets/%2e%2e',
+      '/internal/admin/assets/x%2Ey',
+      '/internal/admin/assets%2Fx',
+      '/internal/admin/assets%2fx',
+      '/internal/admin/assets%5Cx',
+      '/internal/admin/assets%5cx',
+      '/internal/admin//assets',
+    ]) {
+      const res = record(
+        'unsafe-path',
+        await request(app)
+          .get(url)
+          .set('x-nexus-admin-auth', SECRET)
+          .set('x-nexus-actor', ACTOR),
+      );
+      // Paths the HTTP client or Express normalizes away never reach the
+      // admin router at all (404); everything that does is refused.
+      expect([400, 404], url).toContain(res.status);
+      if (res.status === 400) expect(res.body.error, url).toBe('invalid-path');
+    }
+    const direct = record(
+      'unsafe-path-direct',
+      await request(app)
+        .get('/internal/admin/assets/%2e%2e%2fsecret')
+        .set('x-nexus-actor', ACTOR),
+    );
+    expect(direct.status).toBe(400);
+    // Query values are not path segments: a dotted search term is fine.
+    const query = await call(admin('get', '/assets?q=a..b'));
+    expect(query.status).toBe(200);
   });
 
   it('rejects an unauthenticated upload before reading the body', async () => {
@@ -263,7 +331,7 @@ describe('authentication and actor attribution', () => {
   it('requires an actor header', async () => {
     const res = record(
       'no-actor',
-      await request(app).get('/internal/admin/assets').set('x-nexus-auth', SECRET),
+      await request(app).get('/internal/admin/assets').set('x-nexus-admin-auth', SECRET),
     );
     expect(res.status).toBe(400);
     expect(res.body.error).toBe('actor-required');
@@ -275,7 +343,7 @@ describe('authentication and actor attribution', () => {
         'bad-actor',
         await request(app)
           .get('/internal/admin/assets')
-          .set('x-nexus-auth', SECRET)
+          .set('x-nexus-admin-auth', SECRET)
           .set('x-nexus-actor', actor),
       );
       expect(res.status).toBe(400);
@@ -398,7 +466,8 @@ describe('path traversal', () => {
   it.each(traversalIds)('rejects asset id %s', async (id) => {
     const res = await call(admin('get', `/assets/${id}`), `traversal-${id}`);
     expect([400, 404]).toContain(res.status);
-    if (res.status === 400) expect(res.body.error).toBe('invalid-asset-id');
+    // Encoded separators are refused by the raw-path guard before routing.
+    if (res.status === 400) expect(['invalid-asset-id', 'invalid-path']).toContain(res.body.error);
   });
 
   it('rejects traversal ids on mutating routes', async () => {
@@ -812,7 +881,7 @@ describe('metadata edits with optimistic concurrency', () => {
   it('persists edits across a reload from disk', async () => {
     const reload = record(
       'reload',
-      await request(app).post('/library/reload').set('x-nexus-auth', SECRET),
+      await request(app).post('/library/reload').set('x-nexus-auth', SERVICE_SECRET),
     );
     expect(reload.status).toBe(200);
     const res = await call(admin('get', `/assets/${fixtures.goblin.id}`));
@@ -1129,7 +1198,7 @@ describe('admin state safety', () => {
     try {
       const reload = record(
         'reload',
-        await request(app).post('/library/reload').set('x-nexus-auth', SECRET),
+        await request(app).post('/library/reload').set('x-nexus-auth', SERVICE_SECRET),
       );
       expect(reload.status).toBe(503);
       expect(record('public', await request(app).get('/library')).status).toBe(503);
@@ -1138,7 +1207,7 @@ describe('admin state safety', () => {
       expect(res.body.error).toBe('admin-state-unavailable');
     } finally {
       fs.writeFileSync(stateFile, good);
-      await request(app).post('/library/reload').set('x-nexus-auth', SECRET);
+      await request(app).post('/library/reload').set('x-nexus-auth', SERVICE_SECRET);
     }
     expect(record('public', await request(app).get('/library')).status).toBe(200);
   });

@@ -28,10 +28,13 @@ Authenticated, authorized, and audited API for the private admin console
 
 `CONTROL_DATABASE_URL`, `DOC_API_URL`, `ADMIN_ORIGIN`, `GOOGLE_CLIENT_ID`,
 `GOOGLE_CLIENT_SECRET`, `CONTROL_GOOGLE_CALLBACK_URL`, `CONTROL_SESSION_SECRET`
-(>= 32 chars), `TRUST_PROXY_HOPS`, `ASSET_SERVICE_SECRET` (>= 16 chars).
+(>= 32 chars), `TRUST_PROXY_HOPS`, `ASSET_ADMIN_SERVICE_SECRET` (>= 32
+chars, sent as `x-nexus-admin-auth`; the asset-server's admin-only credential,
+distinct from the backend's `ASSET_SERVICE_SECRET`, which control-api does not
+use), `RULES_ADMIN_SERVICE_TOKEN` (>= 32 chars, always sent as
+`X-Nexus-Service-Token`; doc-api must hold the same value).
 Optional: `PORT`, `LOG_LEVEL`, `ASSET_SERVICE_URL`, `BACKEND_URL`,
-`PROMETHEUS_URL`, `GRAFANA_URL`, `RULES_ADMIN_SERVICE_TOKEN`,
-`CODEX_OBJECT_STORAGE_URL`. Startup fails if any required variable is missing
+`PROMETHEUS_URL`, `GRAFANA_URL`, `CODEX_OBJECT_STORAGE_URL`. Startup fails if any required variable is missing
 or invalid.
 
 ## Database
