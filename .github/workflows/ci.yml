@@ -158,6 +158,8 @@ jobs:
               - '.github/workflows/docs-pages.yml'
             control-api:
               - 'apps/control-api/**'
+              # Its allowlist-coverage test scans the Admin UI sources.
+              - 'apps/codex/services/admin-ui/**'
               - 'package.json'
               - 'package-lock.json'
               - '.npmrc'

@@ -56,7 +56,7 @@
     },
     "control-api": {
       "description": "Control API service (private admin control plane)",
-      "paths": ["apps/control-api/**"],
+      "paths": ["apps/control-api/**", "apps/codex/services/admin-ui/**"],
       "dependsOn": []
     },
     "codex-doc-api": {
