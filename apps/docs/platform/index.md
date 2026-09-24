@@ -22,4 +22,5 @@ section.
 - [Repository front door](https://github.com/joelmale/nexusVTT)
 - [Dependency policy](dependency-policy.md)
 - [Forge and VTT object integration plan](integrations/forge-vtt-object-integration-plan.md)
+- [Object models, database tables, and application data flow](object-models-and-data-flow.md)
 - [NexusCodex integration](integrations/NEXUSCODEX_INTEGRATION.md)

@@ -7,7 +7,7 @@ const sidebars: SidebarsConfig = {
     {
       type: 'category',
       label: 'Architecture and operations',
-      items: ['private-admin-control-plane', 'control-api-adr'],
+      items: ['private-admin-control-plane', 'control-api-adr', 'object-models-and-data-flow'],
     },
     {
       type: 'category',
