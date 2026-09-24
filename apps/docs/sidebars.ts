@@ -13,6 +13,7 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Integrations',
       items: [
+        'integrations/forge-vtt-object-integration-plan',
         'integrations/NEXUSCODEX_INTEGRATION',
         'integrations/INTEGRATED_SETUP',
       ],
