@@ -54,6 +54,11 @@
       "paths": ["apps/forge/**"],
       "dependsOn": []
     },
+    "control-api": {
+      "description": "Control API service (private admin control plane)",
+      "paths": ["apps/control-api/**"],
+      "dependsOn": []
+    },
     "codex-doc-api": {
       "description": "Codex document API",
       "paths": ["apps/codex/services/doc-api/**"],

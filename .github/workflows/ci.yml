@@ -63,6 +63,7 @@ jobs:
       forge: ${{ steps.filter.outputs.forge }}
       codex: ${{ steps.filter.outputs.codex }}
       docs: ${{ steps.filter.outputs.docs }}
+      control-api: ${{ steps.filter.outputs.control-api }}
       source_sha: ${{ steps.source.outputs.sha }}
       shadow_decision: ${{ steps.affected.outputs.decision }}
       shadow_gateway: ${{ steps.affected.outputs.gateway }}
@@ -155,6 +156,14 @@ jobs:
               - 'scripts/**'
               - '.github/workflows/ci.yml'
               - '.github/workflows/docs-pages.yml'
+            control-api:
+              - 'apps/control-api/**'
+              - 'package.json'
+              - 'package-lock.json'
+              - '.npmrc'
+              - 'packages/**'
+              - 'scripts/**'
+              - '.github/workflows/ci.yml'
 
       - name: Record affected-target shadow decision
         id: affected
@@ -536,6 +545,45 @@ jobs:
         run: bash scripts/ci/gateway-route-matrix.sh
         working-directory: ${{ github.workspace }}
 
+  control-api-tests:
+    name: 'Control API: tests'
+    runs-on: ubuntu-latest
+    needs: changes
+    # A manual dispatch is never gated, as for forge-checks and codex-checks.
+    if: >-
+      github.event_name == 'workflow_dispatch' ||
+      needs.changes.outputs.control-api == 'true'
+    timeout-minutes: 15
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.changes.outputs.source_sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ github.workspace }}
+
+      - name: Build shared contracts
+        run: npm run build:contracts
+        working-directory: ${{ github.workspace }}
+
+      - name: Run ESLint
+        run: npm run lint --workspace=nexus-control-api
+
+      - name: Run TypeScript type check
+        run: npm run type-check --workspace=nexus-control-api
+
+      - name: Run tests
+        run: npm run test --workspace=nexus-control-api
+
   forge-checks:
     name: Forge
     needs: [changes]
@@ -673,6 +721,7 @@ jobs:
       - coverage-gate
       - forge-checks
       - codex-checks
+      - control-api-tests
       - docs-checks
       - security-checks
     runs-on: ubuntu-latest
@@ -687,6 +736,7 @@ jobs:
           VTT_AFFECTED: ${{ needs.changes.outputs.vtt }}
           FORGE_AFFECTED: ${{ needs.changes.outputs.forge }}
           CODEX_AFFECTED: ${{ needs.changes.outputs.codex }}
+          CONTROL_API_AFFECTED: ${{ needs.changes.outputs.control-api }}
           CHANGES_RESULT: ${{ needs.changes.result }}
           LINT_RESULT: ${{ needs.lint-and-type.result }}
           UNIT_RESULT: ${{ needs.unit-tests.result }}
@@ -698,6 +748,7 @@ jobs:
           COVERAGE_RESULT: ${{ needs.coverage-gate.result }}
           FORGE_RESULT: ${{ needs.forge-checks.result }}
           CODEX_RESULT: ${{ needs.codex-checks.result }}
+          CONTROL_API_RESULT: ${{ needs.control-api-tests.result }}
           DOCS_RESULT: ${{ needs.docs-checks.result }}
           SECURITY_RESULT: ${{ needs.security-checks.result }}
         run: |
@@ -726,6 +777,7 @@ jobs:
           require_conditional_result forge "$FORGE_AFFECTED" "$FORGE_RESULT"
           require_conditional_result codex "$CODEX_AFFECTED" "$CODEX_RESULT"
           require_conditional_result gateway-route-matrix "$VTT_AFFECTED" "$GATEWAY_RESULT"
+          require_conditional_result control-api-tests "$CONTROL_API_AFFECTED" "$CONTROL_API_RESULT"
 
   publish-images:
     name: 'Build immutable release image: ${{ matrix.name }}'
@@ -733,6 +785,7 @@ jobs:
       ${{ always() && needs.required.result == 'success' && (
         (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) ||
         (github.event_name == 'push' && needs.changes.outputs.vtt == 'true') ||
+        (github.event_name == 'push' && needs.changes.outputs.control-api == 'true') ||
         (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == '')
       ) }}
     needs: [changes, required]
@@ -761,6 +814,10 @@ jobs:
             file: ./apps/vtt/docker/postgres.Dockerfile
             target: ''
             image: ghcr.io/joelmale/nexusvtt/postgres
+          - name: control-api
+            file: ./apps/control-api/Dockerfile
+            target: ''
+            image: ghcr.io/joelmale/nexusvtt/control-api
     steps:
       - name: Checkout validated source
         uses: actions/checkout@v7
@@ -851,7 +908,7 @@ jobs:
           mkdir -p release
           printf '{"schemaVersion":1,"sourceSha":"%s","images":[' "$SOURCE_SHA" > release/images.json
           separator=''
-          for image in frontend backend asset-service postgres; do
+          for image in frontend backend asset-service postgres control-api; do
             repository="ghcr.io/joelmale/nexusvtt/$image"
             source="$repository:sha-$SOURCE_SHA"
             docker buildx imagetools create \
@@ -1039,6 +1096,7 @@ jobs:
           EVENT_REF: ${{ github.ref }}
           CANDIDATE_SHA: ${{ inputs.candidate_sha }}
           VTT_AFFECTED: ${{ needs.changes.outputs.vtt }}
+          CONTROL_API_AFFECTED: ${{ needs.changes.outputs.control-api }}
           DOCS_AFFECTED: ${{ needs.changes.outputs.docs }}
           GATE_RESULT: ${{ needs.required.result }}
           BUILD_RESULT: ${{ needs.publish-images.result }}
@@ -1071,7 +1129,7 @@ jobs:
           elif [[ "$EVENT_NAME" == 'workflow_dispatch' ]]; then
             [[ "$BUILD_RESULT" == 'success' && "$PROMOTION_RESULT" == 'success' ]]
             [[ "$CANDIDATE_RESULT" == 'skipped' ]]
-          elif [[ "$EVENT_NAME" == 'push' && ( "$VTT_AFFECTED" == 'true' || "$EVENT_REF" == refs/tags/* ) ]]; then
+          elif [[ "$EVENT_NAME" == 'push' && ( "$VTT_AFFECTED" == 'true' || "$CONTROL_API_AFFECTED" == 'true' || "$EVENT_REF" == refs/tags/* ) ]]; then
             [[ "$BUILD_RESULT" == 'success' && "$PROMOTION_RESULT" == 'success' ]]
             [[ "$CANDIDATE_RESULT" == 'skipped' ]]
           else
