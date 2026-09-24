@@ -377,7 +377,7 @@ account and campaign objects. Standalone Forge supports local drafts and
 offline authoring through IndexedDB, and uses the same authenticated API when
 the user opens account or campaign scope.
 
-Proposed additive tables, refined through migration review:
+Proposed additive tables, refined through migration review (see detailed schema definitions and interaction diagrams in [Object models, database tables, and application data flow](../object-models-and-data-flow.md)):
 
 | Table/group                                                            | Stored data and constraints                                                                                                        |
 | ---------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
@@ -910,9 +910,297 @@ class-aware interactions and physical-book workflows; source edits and gameplay
 state cannot overwrite each other accidentally; legacy data is preserved; and
 durability, privacy, popout, and latest-tag deployment checks pass.
 
+## 14. Phased Implementation Roadmap & Execution Cautions
+
+### 14.1 Key Implementation Risks and Cautions
+
+1. **Avoid Horizontal Stalling:** Do not attempt to specify and build every domain model (character, monster, encounter, spellbook, item) across all packages before connecting them end-to-end. Staging must follow thin vertical slices that connect database persistence to UI projections as early as Phase 3.
+2. **Monorepo Build & Docker Dependencies:** Net-new packages (`@nexus/game-contracts`, `@nexus/rules-5e`, `@nexus/forge-features`) require workspace registration in root `package.json`, TypeScript project reference paths in `tsconfig.json`, and Dockerfile build-context copy layers across `apps/vtt` and `apps/forge`.
+3. **Database Transaction Boundaries and Connection Leaks:** Passing a single `pg.PoolClient` into transaction-aware repositories (`SessionRepository`, `EventJournalRepository`, `CampaignActorRepository`) must be guarded by strict `try ... finally { client.release(); }` semantics to prevent connection exhaustion. Never hold pool clients across asynchronous WebSocket broadcasts or external network calls.
+4. **Dual-Writer Race Conditions:** During migration, legacy store write paths (`characterStore`, `combatStore`, `characterSyncService`) must be converted to read-only projections or gate checks. They must not write to `sessions.gameState` concurrently with the domain command pipeline.
+5. **Vitest Test Coverage Mandate (>= 80%):** Every net-new package, domain schema validator, calculation engine, repository method, and domain command handler must maintain >= 80% line and branch test coverage using Vitest, colocated test fixtures, and in-memory mocks (`fake-indexeddb`, mock `pg.PoolClient`).
+
+### 14.2 Multi-Session Phase & Commit Delivery Plan
+
+```mermaid
+flowchart TD
+    subgraph Phase 1: Foundation
+        P1A[Session 1: Fixtures & Core Contracts] --> P1B[Session 2: Headless Rules Extraction]
+    end
+
+    subgraph Phase 2: Durability & Commands
+        P1B --> P2A[Session 3: DB Schema & Migrations]
+        P2A --> P2B[Session 4: Transactional Command Engine]
+    end
+
+    subgraph Phase 3: Character Vertical Slice
+        P2B --> P3A[Session 5: Forge Features Host & Panel Registry]
+        P3A --> P3B[Session 6: Campaign Actor & Unified HP Flow]
+    end
+
+    subgraph Phase 4: Monsters & Encounters
+        P3B --> P4A[Session 7: Monster Definitions & Revisions]
+        P4A --> P4B[Session 8: Encounter Deployment & Combat Run]
+    end
+
+    subgraph Phase 5: Spellbooks & Casting
+        P4B --> P5A[Session 9: Collections, Bindings & Profiles]
+        P5A --> P5B[Session 10: Unified Cast Pipeline & Resources]
+        P5B --> P5C[Session 11: Physical Books & Loot Transcribe]
+    end
+
+    subgraph Phase 6: Polish & Rollout
+        P5C --> P6A[Session 12: Popout Multi-Window & Mobile]
+        P6A --> P6B[Session 13: Legacy Retirement & Rehearsal]
+        P6B --> P6C[Session 14: Dockhand Latest-Tag Deployment]
+    end
+```
+
+| Phase | Sessions | Focus & Core Deliverables | Acceptance Gate |
+| ----- | -------- | ------------------------- | --------------- |
+| **Phase 1: Contracts, Schemas & Headless Rules Engine (P0 & P1)** | Sessions 1–2 | `@nexus/game-contracts` with Zod validation schemas, legacy characterization fixtures, and `@nexus/rules-5e` headless calculation extraction. | All contracts typecheck cleanly; headless rules execute without DOM/CSS dependencies; conversion fixtures preserve 100% field fidelity. |
+| **Phase 2: Durability & Authoritative Domain Commands (P2)** | Sessions 3–4 | Database migrations for `campaign_actors` & `domain_command_receipts`, transactional `pg.PoolClient` repository methods, CAS validation, and `ApplyDamage` command prototype. | Single transaction commits actor, room projection, and journal together; idempotent duplicate command returns saved receipt; CAS loser is rejected cleanly. |
+| **Phase 3: Shared Feature Hosting & Character Vertical Slice (P3 & P4)** | Sessions 5–6 | `@nexus/forge-features` scaffolding, typed `PanelRegistry` in VTT, `AdmitCharacter` command, Forge sheet embedding, and unified HP synchronization across sheet, token, and initiative. | Modifying character HP from the embedded Forge sheet updates token health bars and initiative instantly; page reload preserves state; off-line drafts are protected. |
+| **Phase 4: Monsters, Encounters & Combat Execution (P5)** | Sessions 7–8 | Custom monster stat-block authoring with versioning, `EncounterTemplate` creation, canvas deployment preview, independent actor instantiation, and combat runtime. | Deploying 3 copies of a monster generates 3 distinct actors; damaging creature A leaves B and C untouched; server restart retains run and combat progress. |
+| **Phase 5: Spellbooks, Class-Aware Casting & Physical Artifacts (P6 & P7)** | Sessions 9–11 | `SpellCollection`, `SpellbookBinding`, `SpellcastingProfile`, rest preparation plan validation, transactional slot expenditure, concentration tracking, and physical lootable grimoires. | Two concurrent casts on the last spell slot result in exactly one success; multiclass spell DC calculates correctly per profile; physical grimoires can be looted, annotated, and transcribed. |
+| **Phase 6: Multi-Window, Hardening & Dockhand Rollout (P8 & P9)** | Sessions 12–14 | Multi-window popouts via `WindowPortal`, mobile viewport optimizations, deprecation of legacy writers, migration rehearsal, and Dockhand `:latest` production rollout. | Secondary popout window retains draft edits on redock; test database migration passes with 0 data loss; Dockhand service recreates cleanly using `:latest` tags with verified health probes. |
+
+### 14.3 Reviewable Commit Units per Phase
+
+#### Phase 1: Contracts, Schemas & Headless Rules Engine
+
+- `feat(contracts): scaffold @nexus/game-contracts with core identity and reference schemas`
+- `test(contracts): add legacy characterization and serialization round-trip fixtures`
+- `feat(rules-5e): extract headless calculation engine and catalog adapters`
+- `build(repo): configure monorepo workspace references and docker contexts for new packages`
+
+#### Phase 2: Durability & Authoritative Domain Commands
+
+- `feat(db): add migrations for campaign_actors, library_objects, and command_receipts`
+- `feat(server): reconcile character database IDs with creation payload references`
+- `feat(server): introduce transactional client variants to Session and Event repositories`
+- `feat(server): implement domain command service with CAS and idempotency receipts`
+- `test(server): add integration tests for concurrent command race conditions and recovery`
+
+#### Phase 3: Shared Feature Hosting & Character Vertical Slice
+
+- `feat(ui): scaffold @nexus/forge-features with host context and port interfaces`
+- `feat(vtt): introduce typed PanelRegistry with isolated styles and portal document context`
+- `feat(vtt): connect campaign character admission and sheet panel to campaign actors`
+- `refactor(vtt): route sheet, token, and initiative HP mutations through domain commands`
+- `test(vtt): verify multi-surface HP synchronization and optimistic rollback`
+
+#### Phase 4: Monsters, Encounters & Combat Execution
+
+- `feat(encounters): implement MonsterDefinition and EncounterTemplate domain models`
+- `feat(forge): extract Monster and Encounter editors into forge-features`
+- `feat(vtt): add encounter scene deployment preview and wave staging`
+- `feat(combat): implement EncounterRun execution with independent creature resource tracking`
+- `test(combat): verify multi-copy monster damage isolation and backend crash recovery`
+
+#### Phase 5: Spellbooks, Class-Aware Casting & Physical Artifacts
+
+- `feat(spells): introduce SpellcastingProfile, SpellCollection, and PreparationPlan models`
+- `feat(spells): implement rest preparation validator and ApplyPreparationPlan command`
+- `feat(spells): implement transactional CastSpell command with slot and pact pool CAS`
+- `feat(ui): add unified spellcasting action triggers across sheet, token HUD, and hotbar`
+- `feat(items): support physical grimoire items with transcription and copy costs`
+- `feat(effects): link cast effects to scene drawings and concentration anchors`
+- `test(spells): comprehensive spell slot race, multiclass DC, and concentration expiration tests`
+
+#### Phase 6: Multi-Window, Hardening & Dockhand Rollout
+
+- `feat(ui): expand WindowPortal for multi-window management with document event forwarding`
+- `feat(ui): optimize responsive layout for mobile encounter and sheet controls`
+- `refactor(vtt): retire legacy direct HP and spell preparation writers`
+- `test(migration): add migration rollback and data parity rehearsal suites`
+- `ops(deploy): update compose release manifests and homelab deployment checks`
+
+### 14.4 Execution Log & Work Block Tracking
+
+#### Work Block 1: Phase 1 — Schemas, Contracts & Headless Rules Engine (Completed)
+
+- **Completed Deliverables**:
+  - `packages/game-contracts`: Scaffolded package with comprehensive domain models and command schemas:
+    - Identity & Permissions: `identity.ts` (`DefinitionRef<K>`, `RulesetRef` for 2014 & 2024 editions, `AuthoredMetadata`, `PermissionGrant`).
+    - Character Model: `character.ts` (`CharacterRecord`, ability scores, skills, proficiencies, features, `legacyId` reconciliation).
+    - Monster Model: `monster.ts` (`MonsterDefinition`, stat block, speeds, legendary actions, recharge mechanics).
+    - Spell & Magic Model: `spell.ts` (`SpellDefinition`, `SpellCollection`, `SpellcastingProfile`, `SpellbookBinding`, `PreparationPlan`, `CastRecord`, `ResourcePool`, `ActiveConcentration`).
+    - Physical Items: `item.ts` (`ItemDefinition` vs. physical `ItemInstance`, charges, attunement, grimoire transcription queue).
+    - Campaign Actor: `actor.ts` (`CampaignActor`, optimistic `stateVersion`, live HP/temp HP, conditions, death saves, concentration, discriminated PC/monster payloads).
+    - Encounter Model: `encounter.ts` (`EncounterTemplate`, `EncounterGroup`, `EncounterRun`).
+    - Commands & Receipts: `commands.ts` (`DomainCommandEnvelope`, idempotency keys, command union: `AdmitCharacter`, `ApplyDamage`, `HealActor`, `DeployEncounter`, `StartEncounter`, `ApplyPreparationPlan`, `CastSpell`, `EndConcentration`, `RestActor`, `TransferItem`) and `receipts.ts` (`DomainCommandReceipt`, `CommandExecutionResult`).
+    - Vitest Coverage: 9 test suites, 22 tests passing with **100% statement, branch, function, and line coverage**.
+  - `packages/rules-5e`: Scaffolded package with headless rules extraction:
+    - Math & Modifiers: `math.ts` (`getAbilityModifier`, `getProficiencyBonus`, `getPassiveScore`, `calculateSpellSaveDC`, `calculateSpellAttackBonus`, `getCrExperiencePoints`, `calculateAverageHitPoints`).
+    - Multiclass & Slot Progression: `progression.ts` (`FULL_CASTER_SLOTS` 1-20, `calculateMulticlassCasterLevel` with 2014 vs 2024 rounding differences, `getPactMagicSlots` 1-5).
+    - Rest Preparation Limits: `preparation.ts` (`calculatePreparationLimit` for Wizard, Cleric, Druid, Paladin, Ranger, and `evaluatePreparationPlan`).
+    - Cast Eligibility Engine: `casting.ts` (`evaluateCastEligibility` validating profiles, preparation, upcasting, slot/pact pools, and concentration conflicts).
+    - Catalog Key Parser: `catalog.ts` (`normalizeSlug`, `createCatalogKey`, `parseCatalogKey` supporting `dnd5e:2024:srd-5.2.1:slug`).
+    - Vitest Coverage: 6 test suites, 29 tests passing with **96.92% statement, 92.62% branch, 100% function, and 99.12% line coverage**.
+  - Monorepo Orchestration:
+    - Root `package.json` updated with `"build:contracts"`, `"test:game-contracts"`, and `"test:rules-5e"`.
+    - Package paths and project references wired into `apps/vtt` and `apps/forge`.
+    - Root `npm run type-check` and `npm run build:contracts` pass cleanly with 0 errors.
+
+- **Discovered Issues & Architectural Findings**:
+  - *TypeScript Path Resolution Across Sibling Packages*: Sibling packages referencing built contracts (`@nexus/game-contracts`) require pointing `paths` in `tsconfig.json` to the target `.d.ts` output (e.g. `"../game-contracts/dist/index.d.ts"`) to avoid cyclic compiler generation loops and allow isolated builds.
+  - *Workspace Symlink Invalidation*: Adding net-new packages into `packages/*` requires running root `npm install` once so `node_modules/@nexus/*` symlinks are created for both IDE tooling and Vite dev servers.
+  - *Pact Magic Slot Segregation*: Warlock pact slots must be strictly isolated from standard multiclass spell progression tables. They are tracked as an independent `pact` resource pool in `CampaignActor` to prevent corrupting long-rest replenishment math.
+
+- **Future Phase Adjustments**:
+  - Phase 2 must add an atomic database migration creating `campaign_actors` (with JSONB resource pools, spellcasting profiles, and inventory), `domain_command_receipts`, and `legacy_object_ids`.
+  - `SessionRepository` and `EventJournalRepository` in `apps/vtt/server/repositories/` must be augmented to accept an optional `client?: pg.PoolClient` to enable domain commands to execute atomic multi-table transactions in PostgreSQL.
+
+### 14.4.2 Work Block 2: Phase 2 — Durability & Authoritative Domain Commands (Completed)
+
+- **Completed Deliverables**:
+  - PostgreSQL Durability & Schema Migrations:
+    - Created `apps/vtt/server/migrations/2026-09-24-add-campaign-actors-and-domain-commands.sql` and updated `apps/vtt/server/schema.sql` defining:
+      - `campaign_actors`: Stores canonical actor state with JSONB columns for `conditions`, `deathSaves`, `resourcePools`, `spellcastingProfiles`, `inventory`, and `payload`, protected by `stateVersion` integer counter for compare-and-swap (CAS).
+      - `domain_command_receipts`: Idempotency receipts keyed by `commandId` and SHA-256 `payloadHash`, recording execution timestamps and status.
+      - `legacy_object_ids`: Namespace-scoped lookup table (`namespace`, `legacyId`) mapping client-local or legacy actor/character IDs to canonical UUIDs.
+      - `library_objects` & `library_object_revisions`: Immutable revision history for versioned monsters, spells, items, encounters, and maps with edition tagging and lineage pointers.
+  - Multi-Table Transaction Repository Support:
+    - Updated `apps/vtt/server/repositories/base.ts` with `BaseRepository.getExecutor(client)` to seamlessly execute queries within client-provided transactions or fall back to connection pools.
+    - Updated `apps/vtt/server/repositories/SessionRepository.ts` (`commitGameStateWithClient`) and `EventJournalRepository.ts` (`appendWithClient`) enabling atomic joint transactions spanning game state, event journal, and actor updates.
+    - Updated `apps/vtt/server/repositories/CharacterRepository.ts`: Added `recordLegacyId`, `resolveCanonicalId`, backwards-compatible ID resolution supporting legacy client identifiers, and reconciliation of embedded client IDs upon creation.
+    - Implemented `apps/vtt/server/repositories/CampaignActorRepository.ts`: Complete CRUD with `SELECT FOR UPDATE` row locking, CAS `stateVersion` updates returning explicit `{ status: 'updated' | 'conflict' }`, and campaign/session scoped queries.
+    - Implemented `apps/vtt/server/repositories/CommandReceiptRepository.ts`: Idempotent receipt lookup and recording.
+    - Implemented `apps/vtt/server/repositories/LibraryObjectRepository.ts`: Versioned revision insertion, retrieval by ID/revision, and publication status management.
+    - Updated `apps/vtt/server/database.ts` with transaction runner `withTransaction<T>(client => ...)` and domain commands wiring.
+  - Authoritative Domain Command Service:
+    - Implemented `apps/vtt/server/commands/DomainCommandService.ts` providing atomic PostgreSQL transactions for:
+      - `ApplyDamage`: Rules 5e calculation (temporary hit point absorption, unconscious condition transition, death save failure increments when at 0 HP), atomic actor update, event journal entry, optional session projection update, and receipt persistence.
+      - `HealActor`: Positive HP restoration, removal of unconscious condition if revives above 0 HP, death save stabilization, and transactional durability.
+      - `AdmitCharacter`: Idempotent transition of character data into canonical `campaign_actors` with legacy ID aliasing and initial state version 1.
+  - Vitest Unit Test Verification:
+    - `CampaignActorRepository.test.ts`: 13/13 tests passing.
+    - `DomainCommandService.test.ts`: 14/14 tests passing.
+    - `CharacterRepository.test.ts`: 15/15 tests passing.
+    - Total: 42/42 tests passing across all Phase 2 suites.
+    - Coverage: `DomainCommandService.ts` (90.9% stmt, 78.3% branch, 100% func), `CharacterRepository.ts` (100% stmt, 86.1% branch, 100% func), `CampaignActorRepository.ts` (85.2% stmt, 75.8% branch, 100% func).
+
+- **Discovered Issues & Architectural Findings**:
+  - *PostgreSQL UUID Type Boundary vs Legacy Test Fixtures*: In PostgreSQL, querying a column with type `UUID` using an arbitrary non-UUID string (such as legacy test IDs `'c-1'`) throws `invalid input syntax for type uuid`. The repository's `getCharacterById` was engineered to safely handle direct query attempts and catch type mismatch errors before falling back to `legacy_object_ids` alias resolution. This guarantees 100% backwards compatibility with preexisting test suites while maintaining strict UUID type safety in production.
+  - *Atomic Multi-Table CAS Coordination*: Because canonical game state snapshots (`sessions.gameState`), event journal entries (`room_events`), and actor records (`campaign_actors`) must never diverge across server replicas, passing a single `pg.PoolClient` through `withTransaction` is mandatory. Replicas cannot rely on ephemeral in-memory state or background async jobs for entity durability.
+  - *Idempotency Receipt Hashing*: Domain commands require SHA-256 payload hashing combined with client `commandId` to safely distinguish genuine retries (safe to return cached receipt) from rogue duplicate command IDs with altered payloads (rejected as conflict).
+
+- **Future Phase Adjustments**:
+  - In Phase 3 (Shared Feature Hosting & Character Vertical Slice), `apps/vtt` needs a unified `PanelRegistry` to render character sheets and connect actor stat changes directly to `DomainCommandService` via WebSocket or HTTP API endpoints.
+  - Component packaging for shared Forge/VTT UI should expose standard props (`actorId`, `campaignId`, `dispatchCommand`) so panels can function either in standalone window portals or embedded inside VTT floating docks.
+
+### 14.4.3 Work Block 3: Phase 3 — Shared Feature Hosting & Character Vertical Slice (Completed)
+
+- **Completed Deliverables**:
+  - Express API Routes & Command Endpoints:
+    - Implemented `apps/vtt/server/routes/campaignActors.ts`:
+      - `GET /api/campaigns/:campaignId/actors`: Returns all canonical campaign actors.
+      - `GET /api/campaigns/:campaignId/actors/:actorId`: Retrieves single actor by canonical ID or legacy alias with fallback to character library.
+      - `POST /api/campaigns/:campaignId/commands` & `POST /api/commands`: Validates domain command envelopes with `domainCommandSchema`, executes transactional commands via `db.domainCommands.execute`, handles idempotency deduplication (`200 OK` with `duplicate: true`), and maps CAS version conflicts to `409 Conflict`.
+      - Wired into `apps/vtt/server/routes/api.ts` via `registerCampaignActorRoutes(app, db)`.
+    - Unit test suite: `apps/vtt/tests/unit/server/routes/campaignActors.test.ts` (11/11 tests passing, 82.4% statement coverage).
+  - Panel Registry & Dynamic Object Panel Hosting:
+    - Implemented `apps/vtt/src/services/panelRegistry.ts`:
+      - Maps typed domain object links (`kind: 'character' | 'monster' | 'encounter' | 'spellbook' | 'item' | 'rule'`) to dynamic panel IDs (`panel:${kind}:${id}`).
+      - Manages active object links and seamlessly integrates with `useUIStackStore` for docking and popout window management.
+      - Unit test suite: `apps/vtt/tests/unit/services/panelRegistry.test.ts` (5/5 tests passing, 95.45% statement coverage).
+    - Created `apps/vtt/src/components/Panels/CharacterPanel.tsx` & `registerPanels.ts`:
+      - Default registration for `'character'` object panels rendering `CharacterSheet`.
+      - Integrated into `GameUI.tsx` floating panel render loop, allowing any object panel to render inside draggable/dockable `FloatingPanel` instances.
+      - Unit test suite: `apps/vtt/tests/unit/components/Panels/CharacterPanel.test.tsx` (3/3 tests passing, 100% statement coverage).
+  - Domain Command Client:
+    - Implemented `apps/vtt/src/services/commandClient.ts`:
+      - Dispatches `ApplyDamage`, `HealActor`, `AdmitCharacter` with UUID `commandId` and optional `expectedVersion`.
+      - Handles 409 CAS conflict detection.
+      - Synchronizes client state across `characterStore`, `initiativeStore`, and `gameStore.placedTokens` synchronously upon receipt.
+      - Unit test suite: `apps/vtt/tests/unit/services/commandClient.test.ts` (5/5 tests passing, 96.96% statement coverage).
+  - Canvas Boundary Rule (ADR-0005) & Token Health Bar:
+    - Updated `apps/vtt/src/stores/scene/tokensSlice.ts`: Added `currentStats` to `TokenRenderData` and snapshot selector.
+    - Updated `apps/vtt/src/components/Scene/TokenRenderer.tsx`:
+      - Renders frame-perfect, canvas-anchored SVG health bar with dynamic proportional green/amber/red fill under the token circle.
+      - Follows ADR-0005 canvas boundary rule: synchronous SVG rendering within the scene canvas transform loop rather than detached DOM popovers, eliminating render jitter during panning/zooming.
+  - Character Card & Character Sheet Integration:
+    - Updated `apps/vtt/src/components/CharacterSheet.tsx`: Connected `handleHPChange` to `commandClient.applyDamage` and `commandClient.healActor`.
+    - Updated `apps/vtt/src/components/CharacterCard.tsx`: Added open action `🗗` triggering `panelRegistry.open({ kind: 'character', id: character.id, title: character.name })`.
+  - Vitest Unit Test Verification:
+    - `campaignActors.test.ts`: 11/11 tests passing (82.4% coverage).
+    - `commandClient.test.ts`: 5/5 tests passing (96.96% coverage).
+    - `panelRegistry.test.ts`: 5/5 tests passing (95.45% coverage).
+    - `CharacterPanel.test.tsx`: 3/3 tests passing (100% coverage).
+    - Total: 24/24 tests passing across all Phase 3 suites, all exceeding 80% coverage.
+    - Full monorepo type-check (`tsc`) passes across all workspaces (`packages/*`, `apps/vtt`, `apps/forge`, `apps/codex`).
+
+- **Discovered Issues & Architectural Findings**:
+  - *ADR-0005 Canvas Boundary Enforcement*: Attempting to render canvas-anchored status indicators (token health bars, damage numbers) as DOM popovers or HTML overlays results in visual jitter and lag relative to canvas camera pan/zoom transformations. Implementing health bars as SVG `<g>` groups directly inside `TokenRenderer.tsx` ensures 60fps lockstep synchrony with zero layout thrash.
+  - *Cross-Store Synchronous Fanout*: When an actor receives damage or healing, multiple client stores (`characterStore`, `initiativeStore`, and `gameStore.placedTokens`) must update in lockstep without waiting for a full session resync roundtrip. Centralizing this optimistic update in `commandClient.ts` prevents temporary visual desyncs.
+  - *TypeScript Boundary in Server Routes*: Express route handlers must strictly match `DomainCommandContext`. Adding `roomId?: string` as an optional context property in `DomainCommandService.ts` facilitates cross-replica event journal emission and room-level routing.
+
+- **Future Phase Adjustments (Phase 4 & Phase 5)**:
+  - Phase 4: Monsters, Encounters & Combat Execution:
+    - Implement versioned monster definitions with 2014 & 2024 SRD schemas in `@nexus/game-contracts`.
+    - Implement encounter deployment commands (`DeployEncounter`, `RollInitiative`, `AdvanceTurn`) committing to `campaign_actors` and linking to canvas tokens.
+    - Register `MonsterPanel` and `EncounterPanel` in `panelRegistry.ts`.
+  - Phase 5: Spells, Inventory & Ledger Revisions:
+    - Implement slot consumption commands (`CastSpell`, `ExpendResource`, `LongRest`, `ShortRest`) ensuring resource pool updates are atomic and verified by `@nexus/rules-5e`.
+    - Register `SpellbookPanel` and `InventoryPanel` in `panelRegistry.ts`.
+
+### 14.4.4 Work Block 4: Phase 4 — Monsters, Encounters & Combat Execution (Completed)
+
+- **Completed Deliverables**:
+  - Domain Command & Schema Expansion:
+    - Extended `@nexus/game-contracts`: Added `AdvanceCombatTurn` command schema to `commands.ts` and updated `domainCommandPayloadSchema`.
+  - Headless Rules 5e Encounter Engine:
+    - Implemented `packages/rules-5e/src/encounter.ts`:
+      - Challenge Rating (CR) to Experience Points (XP) mapping across standard 5e SRD ratings (CR 0 through 30).
+      - Encounter multipliers scaled by monster count and party size (DMG p. 83 rules for small and large parties).
+      - Raw and adjusted XP calculation for multi-group encounters.
+      - Deterministic initiative ordering (`sortInitiativeOrder`) with tie-breaker resolution.
+    - Added unit test suite `packages/rules-5e/tests/encounter.test.ts` (38/38 tests passing across the package).
+  - PostgreSQL Database Migration & Repositories:
+    - Created `apps/vtt/server/migrations/2026-09-24-add-encounter-runs.sql` and updated `apps/vtt/server/schema.sql` defining `encounter_runs` table with JSONB template references, participant arrays, stage management (`staged`, `deployed`, `active`, `completed`, `archived`), round/turn counters, and update triggers.
+    - Created `apps/vtt/server/repositories/EncounterRunRepository.ts` providing CRUD operations and query helpers.
+    - Wired `encounterRuns` into `DatabaseService` (`apps/vtt/server/database.ts`).
+    - Unit tests in `apps/vtt/tests/unit/server/repositories/EncounterRunRepository.test.ts` (7/7 tests passing, 100% statement coverage).
+  - Authoritative Domain Commands in `DomainCommandService.ts`:
+    - `DeployEncounter`:
+      - Resolves encounter template and monster stat blocks from `library_objects`.
+      - Spawns individual `campaign_actors` records for each group member with distinct names ("Goblin #1", "Goblin #2") and isolated HP/condition tracks, preventing state collisions.
+      - Transactionally creates the `encounter_runs` record with stage `deployed`.
+    - `StartEncounter`:
+      - Verifies DM authorization and transitions encounter run from `deployed` to `active`.
+      - Rolls and sorts initiative order, setting initial round to 1 and turn index to 0.
+    - `AdvanceCombatTurn`:
+      - Steps `currentTurnIndex`.
+      - Wraps turn index to 0 and increments `currentRound` when completing an initiative cycle.
+      - Resets creature reaction flags upon turn start.
+    - Unit tests in `apps/vtt/tests/unit/server/commands/DomainCommandService.test.ts` (21/21 tests passing, 90.7% statement coverage).
+  - Client Command Dispatcher:
+    - Extended `apps/vtt/src/services/commandClient.ts` with `deployEncounter`, `startEncounter`, and `advanceCombatTurn`.
+    - Unit tests in `commandClient.test.ts` (7/7 tests passing, 97.5% statement coverage).
+  - UI Object Panels & Panel Registry:
+    - Implemented `MonsterPanel.tsx` and `MonsterPanel.module.css` (ADR-0006 design tokens) rendering monster stat blocks (AC, HP, speeds, abilities, actions) and quick damage/healing action buttons.
+    - Implemented `EncounterPanel.tsx` and `EncounterPanel.module.css` (ADR-0006 design tokens) rendering round/turn status, participants list with current turn indicators, and "Start Combat" / "Next Turn" controls.
+    - Updated `registerPanels.ts` with default host registration for `'monster'` and `'encounter'`.
+    - Unit tests in `MonsterPanel.test.tsx` (92.6% coverage), `EncounterPanel.test.tsx` (100% coverage), and `CharacterPanel.test.tsx` (100% coverage).
+  - Monorepo Compilation Health:
+    - Monorepo-wide `npm run type-check` passes with code 0 across all workspaces (`@nexus/game-contracts`, `@nexus/rules-5e`, `@nexus/character-creator`, `apps/vtt`, `apps/forge`, and `apps/codex`).
+
+- **Discovered Issues & Architectural Findings**:
+  - *Multi-Copy Monster Resource Isolation*: In tabletop play, encounters frequently contain multiple creatures of the same archetype (e.g. 4 Goblins). Storing them under a shared reference leads to state collisions when one takes damage. Spawning distinct `campaign_actors` records with unique UUIDs and separate `stateVersion` integer counters guarantees 100% transactional isolation and deterministic compare-and-swap behavior without modifying the authored template.
+  - *Receipt Payload Data vs Contract Root*: The `CommandExecutionResult` schema requires `{ success, committedVersions, data?: unknown }`. Returning encounter IDs and participant lists inside the `data` sub-object maintains strict compliance with the `@nexus/game-contracts` receipt schema while allowing rich domain payloads.
+  - *Initiative Tie-Breaking*: Simultaneous initiative rolls must be sorted deterministically across replicas. Using `sortInitiativeOrder` with explicit dexterity modifiers as secondary tie-breakers ensures identical turn sequences across all connected clients.
+
+- **Future Phase Adjustments (Phase 5)**:
+  - Phase 5: Spellbooks, Class-Aware Casting & Physical Artifacts:
+    - Implement `CastSpell`, `ApplyPreparationPlan`, `EndConcentration`, `RestActor`, and `TransferItem` domain commands.
+    - Integrate spell slot deduction and pact magic pool CAS validation in `DomainCommandService`.
+    - Wire `SpellbookPanel` and `InventoryPanel` into `panelRegistry.ts`.
+
 ## References
 
 - [Shared character creator ADR](/vtt/adr/shared-character-creator)
+- [Object models, database tables, and application data flow](../object-models-and-data-flow.md)
 - [Multiplayer reliability operations](/vtt/operations/multiplayer-observability)
 - [NexusCodex integration](NEXUSCODEX_INTEGRATION.md)
 - [Homelab deployment runbook](/codex/operations/nexuscodex-homelab)

@@ -5,6 +5,7 @@
     "lib": ["ES2020", "DOM", "DOM.Iterable"],
     "module": "ESNext",
     "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
 
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
@@ -20,7 +21,9 @@
     "baseUrl": ".",
     "paths": {
       "@nexus/character-creator": ["../../packages/character-creator/src/index.ts"],
-      "@nexus/character-creator/*": ["../../packages/character-creator/src/*"]
+      "@nexus/character-creator/*": ["../../packages/character-creator/src/*"],
+      "@nexus/game-contracts": ["../../packages/game-contracts/src/index.ts"],
+      "@nexus/game-contracts/*": ["../../packages/game-contracts/src/*"]
     }
   },
   "include": ["src", "../../packages/character-creator/src"],

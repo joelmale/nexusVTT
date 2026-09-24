@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useCharacterStore } from '@/stores/characterStore';
+import { useGameStore } from '@/stores/gameStore';
+import { commandClient } from '@/services/commandClient';
 import { calculatePassivePerception } from '@nexus/character-contracts';
 import type { Character, AbilityKey } from '@nexus/character-contracts';
 
@@ -314,11 +316,32 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({
   ) => {
     if (!readonly) {
       try {
-        if (field === 'current' || field === 'temporary') {
+        if (field === 'current') {
+          const diff = value - character.hitPoints;
+          const { session } = useGameStore.getState();
+          const campaignId =
+            session?.roomCode || '00000000-0000-0000-0000-000000000000';
+
+          if (diff < 0) {
+            void commandClient.applyDamage(
+              campaignId,
+              character.id,
+              Math.abs(diff),
+            );
+          } else if (diff > 0) {
+            void commandClient.healActor(campaignId, character.id, diff);
+          } else {
+            updateCharacterHP(
+              character.id,
+              value,
+              character.temporaryHitPoints || 0,
+            );
+          }
+        } else if (field === 'temporary') {
           updateCharacterHP(
             character.id,
-            field === 'current' ? value : character.hitPoints,
-            field === 'temporary' ? value : character.temporaryHitPoints || 0,
+            character.hitPoints,
+            value,
           );
         } else {
           updateCharacter(character.id, {
@@ -327,7 +350,6 @@ export const CharacterSheet: React.FC<CharacterSheetProps> = ({
         }
       } catch (error) {
         console.error('Failed to update character HP:', error);
-        // In a real app, you might want to show a toast notification
       }
     }
   };

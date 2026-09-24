@@ -83,7 +83,7 @@ describe('CharacterRepository', () => {
     });
 
     it('returns null when character not found', async () => {
-      pool.query.mockResolvedValueOnce({ rows: [] } as QueryResult);
+      pool.query.mockResolvedValueOnce({ rows: [] } as unknown as QueryResult);
 
       const result = await repository.getCharacterById('c-missing');
       expect(result).toBeNull();
@@ -160,6 +160,90 @@ describe('CharacterRepository', () => {
         [['id-1', 'id-2']],
       );
       expect(count).toBe(2);
+    });
+  });
+
+  describe('Legacy ID reconciliation', () => {
+    it('records and resolves legacy object IDs', async () => {
+      pool.query.mockResolvedValueOnce({ rowCount: 1 } as QueryResult);
+
+      await repository.recordLegacyId(
+        'character',
+        'legacy-hero-123',
+        '11111111-1111-4111-8111-111111111111',
+        'user-1',
+      );
+
+      expect(pool.query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO legacy_object_ids'),
+        ['character', 'legacy-hero-123', '11111111-1111-4111-8111-111111111111', 'user-1'],
+      );
+
+      pool.query.mockResolvedValueOnce({
+        rows: [{ canonicalId: '11111111-1111-4111-8111-111111111111' }],
+      } as QueryResult);
+
+      const canonicalId = await repository.resolveCanonicalId(
+        'character',
+        'legacy-hero-123',
+      );
+
+      expect(canonicalId).toBe('11111111-1111-4111-8111-111111111111');
+    });
+
+    it('reconciles embedded id when creating character with distinct client id', async () => {
+      const canonicalId = '22222222-2222-4222-8222-222222222222';
+      const mockCreated = {
+        id: canonicalId,
+        name: 'Elrond',
+        ownerId: 'user-1',
+        data: { id: 'client-creator-id-999', class: 'Wizard' },
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      };
+
+      // 1. insert character
+      pool.query.mockResolvedValueOnce({ rows: [mockCreated] } as QueryResult);
+      // 2. record legacy id
+      pool.query.mockResolvedValueOnce({ rowCount: 1 } as QueryResult);
+      // 3. update character data with reconciled id
+      pool.query.mockResolvedValueOnce({ rowCount: 1 } as QueryResult);
+
+      const result = await repository.createCharacter('user-1', 'Elrond', {
+        id: 'client-creator-id-999',
+        class: 'Wizard',
+      });
+
+      expect(pool.query).toHaveBeenCalledWith(
+        expect.stringContaining('INSERT INTO legacy_object_ids'),
+        ['character', 'client-creator-id-999', canonicalId, 'user-1'],
+      );
+      expect(result.data).toEqual({
+        id: canonicalId,
+        legacyId: 'client-creator-id-999',
+        class: 'Wizard',
+      });
+    });
+
+    it('resolves character by legacy id if direct UUID lookup returns null', async () => {
+      const canonicalId = '33333333-3333-4333-8333-333333333333';
+      const mockCharacter = { id: canonicalId, name: 'Aragorn', ownerId: 'user-1' };
+
+      // Direct lookup returns nothing
+      pool.query.mockResolvedValueOnce({
+        rows: [],
+      } as unknown as QueryResult);
+      // Legacy alias lookup returns canonical ID
+      pool.query.mockResolvedValueOnce({
+        rows: [{ canonicalId }],
+      } as unknown as QueryResult);
+      // Canonical ID lookup returns character
+      pool.query.mockResolvedValueOnce({
+        rows: [mockCharacter],
+      } as unknown as QueryResult);
+
+      const result = await repository.getCharacterById('legacy-strider-1');
+      expect(result).toEqual(mockCharacter);
     });
   });
 });

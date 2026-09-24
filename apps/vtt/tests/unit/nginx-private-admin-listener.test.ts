@@ -65,6 +65,8 @@ const ALLOWED_PRIVATE_DIRECTIVES = new Set([
   'listen',
   'server_name',
   'server_tokens',
+  'set_real_ip_from',
+  'real_ip_header',
   'resolver',
   'root',
   'add_header',

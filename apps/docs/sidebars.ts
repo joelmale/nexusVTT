@@ -12,6 +12,7 @@ const sidebars: SidebarsConfig = {
         'control-api-adr',
         'control-plane-runbook',
         'observability-runbook',
+        'object-models-and-data-flow',
       ],
     },
     {

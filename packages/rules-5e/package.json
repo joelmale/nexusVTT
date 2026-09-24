@@ -1,0 +1,30 @@
+{
+  "name": "@nexus/rules-5e",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Headless D&D 5e calculation engine, spell slot matrices, multiclass math, and preparation validators",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@nexus/game-contracts": "*",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.11"
+  }
+}

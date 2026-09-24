@@ -31,6 +31,8 @@ import { useFontSizeSync } from '@/hooks/useFontSize';
 import { useThemeSync } from '@/hooks/useTheme';
 import { DockRegion } from './DockRegion';
 import { ContextPanel } from './ContextPanel';
+import { panelRegistry, parseObjectPanelId } from '@/services/panelRegistry';
+import { registerDefaultPanels } from './Panels/registerPanels';
 
 // Lazy load heavy panels
 const GeneratorPanel = React.lazy(() =>
@@ -78,6 +80,10 @@ export const GameUI: React.FC = () => {
   const closeGenerator = useCallback(() => {
     togglePanel('generator');
   }, [togglePanel]);
+
+  useEffect(() => {
+    registerDefaultPanels();
+  }, []);
 
   // Apply color scheme on mount and when it changes
   useEffect(() => {
@@ -227,7 +233,39 @@ export const GameUI: React.FC = () => {
         if (panelId === 'generator') return null;
         
         const panelConfig = panels.find((p) => p.id === panelId);
-        if (!panelConfig) return null;
+        if (!panelConfig) {
+          const objectLink =
+            panelRegistry.getLink(panelId) || parseObjectPanelId(panelId);
+          if (objectLink) {
+            const def = panelRegistry.getDefinition(objectLink.kind);
+            if (def) {
+              const Component = def.component;
+              const title = objectLink.title || def.title(objectLink);
+              return (
+                <FloatingPanel
+                  key={panelId}
+                  panelId={panelId}
+                  isOpen={true}
+                  onClose={() => panelRegistry.close(panelId)}
+                  label={title}
+                >
+                  <Suspense
+                    fallback={
+                      <div className="panel-skeleton">Loading object...</div>
+                    }
+                  >
+                    <Component
+                      link={objectLink}
+                      onClose={() => panelRegistry.close(panelId)}
+                      isPopout={false}
+                    />
+                  </Suspense>
+                </FloatingPanel>
+              );
+            }
+          }
+          return null;
+        }
 
         return (
           <FloatingPanel

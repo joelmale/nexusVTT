@@ -526,6 +526,19 @@ Details: [control plane runbook](./control-plane-runbook.md).
 | Integration: allowlist coverage test scanned UI test fixtures and comments                        | Scan limited to production code; alert action paths written literally                |
 | Integration: removed placeholder path still listed as a CI gateway target                         | Removed                                                                              |
 | Integration: rules registry design note broke the docs build (multi-line code span parsed as MDX) | Code span kept on one line                                                           |
+| Security review: rehearsal deployment reused production-shaped origins and credentials             | Rehearsal-only HTTP origin and rehearsal-only generated secrets                      |
+| Security review: asset admin reused the VTT backend's `ASSET_SERVICE_SECRET`                      | Separate `ASSET_ADMIN_SERVICE_SECRET` with `x-nexus-admin-auth`; fail closed when unset or short |
+| Security review: rules admin token was optional at the production boundary                         | `RULES_ADMIN_SERVICE_TOKEN` required in compose and control-api; doc-api rules admin fails closed in production |
+| Security review: public asset fallback could accept raw traversal or internal paths                | Raw `../`, encoded dot segments, and `/internal` variants are refused before fallback |
+| Security review: inline document viewing could render active uploaded content                      | Control-api only displays allowlisted safe content types inline, adds `nosniff`, and forces other types to attachment |
+| Security review: Admin UI search highlights parsed upstream fragments as HTML                      | Highlights now render through a text-only segment parser with React escaping         |
+| Security review: login callback traffic could count against the per-client login start limit       | Rate limit applies only to `GET /auth/login`, at 20/min per client plus a global cap |
+| Security review: recent-auth step-up could reuse an old Google IdP session                         | Step-up login sends `max_age=0` and requires a fresh ID-token `auth_time`            |
+| Security review: VTT rules-catalog cache could grow from client-controlled `since` values          | Entities cache is bounded LRU and does not cache requests beyond the published catalog version |
+| Security review: slow request bodies could monopolize control-api connections                      | Added per-route body deadlines, upload-specific longer deadline, and idle body timeout |
+| Security review: monitoring services had unnecessary network reachability                          | Monitoring network made internal-only; Grafana removed from `nexus-internal-net`; Alertmanager egress isolated |
+| Security review: Codex object-storage default pointed at a browser-facing endpoint                 | `CODEX_S3_PUBLIC_ENDPOINT` defaults to `http://codex-minio:9000`                    |
+| Security review: control-api CI did not run for Admin UI-only changes                              | CI filter now includes Admin UI paths                                                |
 
 ### Changes to future work
 
@@ -553,6 +566,19 @@ Details: [control plane runbook](./control-plane-runbook.md).
   service token. Enabling `doc-api` authentication for the rest, with a
   `control-api` service credential, would remove the reliance on network
   isolation.
+- **Package boundary with main's Forge/VTT object work.** `@nexus/rules-contracts`
+  remains the Codex-owned published rules registry contract for spell, item,
+  and monster authoring and catalog consumption. The new `@nexus/game-contracts`
+  package owns runtime game-domain shapes, references, actor state, commands,
+  and receipts, while `@nexus/rules-5e` owns reusable D&D math and runtime
+  calculators. There is intentional conceptual overlap around spells, items,
+  monsters, CR/XP, and proficiency. Do not merge the packages silently: future
+  work should keep persisted/published registry schemas in `rules-contracts`
+  and migrate duplicated numeric tables or calculation helpers into
+  `rules-5e` when both packages need the same rule.
+- **Control-api test flake.** One control-api test has been intermittently
+  flaky in the full sweep; treat a single failure as a rerun-and-investigate
+  item rather than a deploy blocker only after the rerun passes cleanly.
 - **Codex image delivery.** Add the Codex images to `main` promotion so they
   stop depending on the manual candidate workflow.
 - **Carried from Phase 0.** Move the DM UI onto the VTT backend's authorized

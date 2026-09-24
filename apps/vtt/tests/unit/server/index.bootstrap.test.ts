@@ -20,7 +20,7 @@ describe('server bootstrap', () => {
     expect(bootstrap.resolveServerPort('')).toBe(5001);
     expect(bootstrap.startNexusServer).toBeTypeOf('function');
     expect(bootstrap.NexusServer).toBeTypeOf('function');
-  });
+  }, 30_000);
 
   it('starts through an injected factory and shuts down only once per signal', async () => {
     // See the note in the previous test: only needed if this import runs

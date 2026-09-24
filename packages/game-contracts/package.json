@@ -1,0 +1,30 @@
+{
+  "name": "@nexus/game-contracts",
+  "version": "1.0.0",
+  "type": "module",
+  "description": "Shared identity, domain schemas, references, commands, and receipts for Nexus Forge and Nexus VTT",
+  "main": "dist/index.js",
+  "module": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc",
+    "type-check": "tsc --noEmit",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage"
+  },
+  "dependencies": {
+    "@nexus/character-contracts": "*",
+    "zod": "^3.22.4"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.2",
+    "vitest": "^4.1.11"
+  }
+}

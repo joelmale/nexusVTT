@@ -1,3 +1,4 @@
+import type { PoolClient } from 'pg';
 import { v4 as uuidv4 } from 'uuid';
 import {
   createEmptySyncableGameState,
@@ -274,6 +275,84 @@ export class SessionRepository extends BaseRepository {
   }
 
   /**
+   * Performs compare-and-swap persistence using an externally managed transaction client.
+   * Does not issue BEGIN or COMMIT.
+   */
+  async commitGameStateWithClient(
+    client: PoolClient,
+    joinCode: string,
+    expectedVersion: number,
+    expectedToken: string | null,
+    gameState: SyncableGameState,
+    newToken: string,
+  ): Promise<GameStateCommitResult> {
+    const committed = await client.query<{
+      campaignId: string;
+      stateVersion: number | string;
+      syncToken: string;
+    }>(
+      `UPDATE sessions
+       SET "gameState" = $1,
+           "syncToken" = $2::varchar,
+           "stateVersion" = CASE
+             WHEN "syncToken" = $2::varchar THEN "stateVersion"
+             ELSE "stateVersion" + 1
+           END,
+           "lastActivity" = NOW()
+       WHERE "joinCode" = $3
+         AND "stateVersion" = $4
+         AND "syncToken" IS NOT DISTINCT FROM $5
+       RETURNING "campaignId", "stateVersion", "syncToken"`,
+      [
+        JSON.stringify(gameState),
+        newToken,
+        joinCode,
+        expectedVersion,
+        expectedToken,
+      ],
+    );
+
+    const committedRow = committed.rows[0];
+    if (committedRow) {
+      await client.query(
+        `UPDATE campaigns
+         SET scenes = $1, "updatedAt" = NOW()
+         WHERE id = $2`,
+        [JSON.stringify(gameState.scenes), committedRow.campaignId],
+      );
+      return {
+        status: 'committed',
+        gameState,
+        syncToken: committedRow.syncToken,
+        stateVersion: parseStateVersion(committedRow.stateVersion),
+      };
+    }
+
+    const current = await client.query<{
+      gameState: unknown;
+      stateVersion: number | string;
+      syncToken: string | null;
+    }>(
+      `SELECT "gameState", "stateVersion", "syncToken"
+       FROM sessions
+       WHERE "joinCode" = $1`,
+      [joinCode],
+    );
+    const currentRow = current.rows[0];
+    if (!currentRow) {
+      throw new Error(
+        `Cannot commit game state for unknown room ${joinCode}`,
+      );
+    }
+    return {
+      status: 'conflict',
+      gameState: currentRow.gameState,
+      syncToken: currentRow.syncToken,
+      stateVersion: parseStateVersion(currentRow.stateVersion),
+    };
+  }
+
+  /**
    * Atomically persists the canonical snapshot and both chain anchors. The
    * update succeeds only when the caller still owns the observed version/token
    * pair, making PostgreSQL the serialization point across server replicas.
@@ -288,73 +367,16 @@ export class SessionRepository extends BaseRepository {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
-      const committed = await client.query<{
-        campaignId: string;
-        stateVersion: number | string;
-        syncToken: string;
-      }>(
-        `UPDATE sessions
-         SET "gameState" = $1,
-             "syncToken" = $2::varchar,
-             "stateVersion" = CASE
-               WHEN "syncToken" = $2::varchar THEN "stateVersion"
-               ELSE "stateVersion" + 1
-             END,
-             "lastActivity" = NOW()
-         WHERE "joinCode" = $3
-           AND "stateVersion" = $4
-           AND "syncToken" IS NOT DISTINCT FROM $5
-         RETURNING "campaignId", "stateVersion", "syncToken"`,
-        [
-          JSON.stringify(gameState),
-          newToken,
-          joinCode,
-          expectedVersion,
-          expectedToken,
-        ],
+      const result = await this.commitGameStateWithClient(
+        client,
+        joinCode,
+        expectedVersion,
+        expectedToken,
+        gameState,
+        newToken,
       );
-
-      const committedRow = committed.rows[0];
-      if (committedRow) {
-        await client.query(
-          `UPDATE campaigns
-           SET scenes = $1, "updatedAt" = NOW()
-           WHERE id = $2`,
-          [JSON.stringify(gameState.scenes), committedRow.campaignId],
-        );
-        await client.query('COMMIT');
-        return {
-          status: 'committed',
-          gameState,
-          syncToken: committedRow.syncToken,
-          stateVersion: parseStateVersion(committedRow.stateVersion),
-        };
-      }
-
-      const current = await client.query<{
-        gameState: unknown;
-        stateVersion: number | string;
-        syncToken: string | null;
-      }>(
-        `SELECT "gameState", "stateVersion", "syncToken"
-         FROM sessions
-         WHERE "joinCode" = $1`,
-        [joinCode],
-      );
-      const currentRow = current.rows[0];
-      if (!currentRow) {
-        await client.query('ROLLBACK');
-        throw new Error(
-          `Cannot commit game state for unknown room ${joinCode}`,
-        );
-      }
       await client.query('COMMIT');
-      return {
-        status: 'conflict',
-        gameState: currentRow.gameState,
-        syncToken: currentRow.syncToken,
-        stateVersion: parseStateVersion(currentRow.stateVersion),
-      };
+      return result;
     } catch (error) {
       await client.query('ROLLBACK').catch(() => undefined);
       throw error;

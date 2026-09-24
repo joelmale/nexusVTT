@@ -1,4 +1,4 @@
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
@@ -7,13 +7,26 @@ import { CampaignRepository } from './repositories/CampaignRepository.js';
 import { CharacterRepository } from './repositories/CharacterRepository.js';
 import { SessionRepository } from './repositories/SessionRepository.js';
 import { EventJournalRepository } from './repositories/EventJournalRepository.js';
-import {
+import { CampaignActorRepository } from './repositories/CampaignActorRepository.js';
+import { CommandReceiptRepository } from './repositories/CommandReceiptRepository.js';
+import { LibraryObjectRepository } from './repositories/LibraryObjectRepository.js';
+import { EncounterRunRepository } from './repositories/EncounterRunRepository.js';
+import { DomainCommandService } from './commands/DomainCommandService.js';
+import type {
   DatabaseConfig,
   OAuthProfile,
   CampaignRecord,
   CharacterRecord,
 } from './repositories/base.js';
-export type { SessionRecord } from './repositories/base.js';
+export type {
+  SessionRecord,
+  CampaignActorRecord,
+  DomainCommandReceiptRecord,
+  LegacyObjectIdRecord,
+  LibraryObjectRecord,
+  LibraryObjectRevisionRecord,
+  EncounterRunRecord,
+} from './repositories/base.js';
 
 export class DatabaseService {
   private pool: Pool;
@@ -22,6 +35,11 @@ export class DatabaseService {
   public characters: CharacterRepository;
   public sessions: SessionRepository;
   public eventJournal: EventJournalRepository;
+  public campaignActors: CampaignActorRepository;
+  public commandReceipts: CommandReceiptRepository;
+  public libraryObjects: LibraryObjectRepository;
+  public encounterRuns: EncounterRunRepository;
+  public domainCommands: DomainCommandService;
 
   constructor(config: DatabaseConfig) {
     this.pool = new Pool({
@@ -48,8 +66,35 @@ export class DatabaseService {
     this.characters = new CharacterRepository(this.pool);
     this.sessions = new SessionRepository(this.pool);
     this.eventJournal = new EventJournalRepository(this.pool);
+    this.campaignActors = new CampaignActorRepository(this.pool);
+    this.commandReceipts = new CommandReceiptRepository(this.pool);
+    this.libraryObjects = new LibraryObjectRepository(this.pool);
+    this.encounterRuns = new EncounterRunRepository(this.pool);
+    this.domainCommands = new DomainCommandService(this);
 
     console.log('✅ Database connection pool and repositories created');
+  }
+
+
+  /**
+   * Executes a callback within an isolated PostgreSQL transaction.
+   * Guarantees commit on success, rollback on error, and client release in finally block.
+   */
+  async withTransaction<T>(
+    callback: (client: PoolClient) => Promise<T>,
+  ): Promise<T> {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const result = await callback(client);
+      await client.query('COMMIT');
+      return result;
+    } catch (error) {
+      await client.query('ROLLBACK').catch(() => undefined);
+      throw error;
+    } finally {
+      client.release();
+    }
   }
 
   async initialize(): Promise<void> {

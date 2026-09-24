@@ -1,27 +1,89 @@
-import { BaseRepository, CharacterRecord } from './base.js';
+import type { PoolClient } from 'pg';
+import { BaseRepository, type CharacterRecord } from './base.js';
 import { sanitizeLog } from '../sanitizeLog.js';
 
 export class CharacterRepository extends BaseRepository {
+  async recordLegacyId(
+    namespace: string,
+    legacyId: string,
+    canonicalId: string,
+    ownerId: string | null = null,
+    client?: PoolClient,
+  ): Promise<void> {
+    const executor = this.getExecutor(client);
+    await executor.query(
+      `INSERT INTO legacy_object_ids (namespace, "legacyId", "canonicalId", "ownerId")
+       VALUES ($1, $2, $3, $4)
+       ON CONFLICT (namespace, "legacyId") DO UPDATE
+       SET "canonicalId" = EXCLUDED."canonicalId", "ownerId" = COALESCE(EXCLUDED."ownerId", legacy_object_ids."ownerId")`,
+      [namespace, legacyId, canonicalId, ownerId],
+    );
+  }
+
+  async resolveCanonicalId(
+    namespace: string,
+    legacyId: string,
+    client?: PoolClient,
+  ): Promise<string | null> {
+    const executor = this.getExecutor(client);
+    const result = await executor.query<{ canonicalId: string }>(
+      'SELECT "canonicalId" FROM legacy_object_ids WHERE namespace = $1 AND "legacyId" = $2',
+      [namespace, legacyId],
+    );
+    return result.rows[0]?.canonicalId ?? null;
+  }
+
   async createCharacter(
     ownerId: string,
     name: string,
     data: unknown = {},
+    client?: PoolClient,
   ): Promise<CharacterRecord> {
-    const result = await this.pool.query<CharacterRecord>(
+    const executor = this.getExecutor(client);
+    const embeddedId =
+      typeof data === 'object' &&
+      data !== null &&
+      'id' in data &&
+      typeof (data as { id: unknown }).id === 'string'
+        ? (data as { id: string }).id
+        : null;
+
+    const result = await executor.query<CharacterRecord>(
       `INSERT INTO characters (name, "ownerId", data)
        VALUES ($1, $2, $3)
        RETURNING *`,
       [name, ownerId, JSON.stringify(data)],
     );
 
+    const created = result.rows[0];
+
+    // Reconcile embedded legacy ID if provided and distinct
+    if (embeddedId && embeddedId !== created.id) {
+      await this.recordLegacyId('character', embeddedId, created.id, ownerId, client);
+      const reconciledData = {
+        ...(typeof data === 'object' && data ? data : {}),
+        id: created.id,
+        legacyId: embeddedId,
+      };
+      await executor.query(
+        `UPDATE characters SET data = $1, "updatedAt" = NOW() WHERE id = $2`,
+        [JSON.stringify(reconciledData), created.id],
+      );
+      created.data = reconciledData;
+    }
+
     console.log(
-      `🗄️ Character created: ${result.rows[0].id} for user ${ownerId}`,
+      `🗄️ Character created: ${created.id} for user ${ownerId}`,
     );
-    return result.rows[0];
+    return created;
   }
 
-  async getCharactersByUser(userId: string): Promise<CharacterRecord[]> {
-    const result = await this.pool.query<CharacterRecord>(
+  async getCharactersByUser(
+    userId: string,
+    client?: PoolClient,
+  ): Promise<CharacterRecord[]> {
+    const executor = this.getExecutor(client);
+    const result = await executor.query<CharacterRecord>(
       'SELECT * FROM characters WHERE "ownerId" = $1 ORDER BY "createdAt" DESC',
       [userId],
     );
@@ -29,19 +91,53 @@ export class CharacterRepository extends BaseRepository {
     return result.rows;
   }
 
-  async getCharacterById(characterId: string): Promise<CharacterRecord | null> {
-    const result = await this.pool.query<CharacterRecord>(
-      'SELECT * FROM characters WHERE id = $1',
-      [characterId],
-    );
+  async getCharacterById(
+    characterId: string,
+    client?: PoolClient,
+  ): Promise<CharacterRecord | null> {
+    const executor = this.getExecutor(client);
 
-    return result.rows[0] || null;
+    try {
+      const result = await executor.query<CharacterRecord>(
+        'SELECT * FROM characters WHERE id = $1',
+        [characterId],
+      );
+      if (result?.rows?.[0]) {
+        return result.rows[0];
+      }
+    } catch {
+      // In PostgreSQL, querying a UUID column with a non-UUID string throws invalid input syntax.
+      // We catch this and gracefully proceed to legacy lookup.
+    }
+
+    // Attempt legacy lookup
+    try {
+      const canonicalId = await this.resolveCanonicalId(
+        'character',
+        characterId,
+        client,
+      );
+      if (canonicalId) {
+        const result = await executor.query<CharacterRecord>(
+          'SELECT * FROM characters WHERE id = $1',
+          [canonicalId],
+        );
+        return result?.rows?.[0] || null;
+      }
+    } catch {
+      // Ignore errors in legacy lookup
+    }
+
+    return null;
   }
 
   async updateCharacter(
     characterId: string,
     updates: Partial<CharacterRecord>,
+    client?: PoolClient,
   ): Promise<void> {
+    const executor = this.getExecutor(client);
+
     const allowedFields = ['name', 'data'];
     const updateFields: string[] = [];
     const values: unknown[] = [];
@@ -61,7 +157,7 @@ export class CharacterRepository extends BaseRepository {
 
     values.push(characterId);
 
-    await this.pool.query(
+    await executor.query(
       `UPDATE characters SET ${updateFields.join(', ')}, "updatedAt" = NOW() WHERE id = $${paramIndex}`,
       values,
     );
@@ -69,16 +165,24 @@ export class CharacterRepository extends BaseRepository {
     console.log(`🗄️ Character updated: ${sanitizeLog(characterId)}`);
   }
 
-  async deleteCharacter(characterId: string): Promise<void> {
-    await this.pool.query('DELETE FROM characters WHERE id = $1', [
+  async deleteCharacter(
+    characterId: string,
+    client?: PoolClient,
+  ): Promise<void> {
+    const executor = this.getExecutor(client);
+    await executor.query('DELETE FROM characters WHERE id = $1', [
       characterId,
     ]);
 
     console.log(`🗄️ Character deleted: ${sanitizeLog(characterId)}`);
   }
 
-  async deleteCharactersByUser(userId: string): Promise<number> {
-    const result = await this.pool.query(
+  async deleteCharactersByUser(
+    userId: string,
+    client?: PoolClient,
+  ): Promise<number> {
+    const executor = this.getExecutor(client);
+    const result = await executor.query(
       'DELETE FROM characters WHERE "ownerId" = $1',
       [userId],
     );
@@ -87,12 +191,16 @@ export class CharacterRepository extends BaseRepository {
     return result.rowCount || 0;
   }
 
-  async deleteCharactersByIds(ids: string[]): Promise<number> {
+  async deleteCharactersByIds(
+    ids: string[],
+    client?: PoolClient,
+  ): Promise<number> {
     if (ids.length === 0) {
       return 0;
     }
 
-    const result = await this.pool.query(
+    const executor = this.getExecutor(client);
+    const result = await executor.query(
       'DELETE FROM characters WHERE id = ANY($1::uuid[])',
       [ids],
     );

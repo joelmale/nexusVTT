@@ -1,10 +1,9 @@
-import { Pool } from 'pg';
+import { Pool, type PoolClient } from 'pg';
 
 export interface DatabaseConfig {
   connectionString?: string;
   ssl?: boolean;
 }
-
 export interface UserRecord {
   id: string;
   email: string | null;
@@ -81,6 +80,87 @@ export interface HostRecord {
   isPrimary: boolean;
 }
 
+export interface CampaignActorRecord {
+  id: string;
+  campaignId: string;
+  sourceRef: unknown | null;
+  ownerId: string | null;
+  name: string;
+  ruleset: unknown;
+  stateVersion: number;
+  currentHp: number;
+  maxHp: number;
+  tempHp: number;
+  conditions: unknown[];
+  deathSaves: { successes: number; failures: number };
+  resourcePools: Record<string, unknown>;
+  spellcastingProfiles: unknown[];
+  inventory: unknown[];
+  activeSessionId: string | null;
+  payload: unknown;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface DomainCommandReceiptRecord {
+  commandId: string;
+  principalId: string;
+  scopeKind: 'campaign' | 'session' | 'account';
+  scopeId: string;
+  commandType: string;
+  payloadHash: string;
+  committedAt: Date;
+  result: unknown;
+}
+
+export interface LegacyObjectIdRecord {
+  namespace: string;
+  legacyId: string;
+  canonicalId: string;
+  ownerId: string | null;
+  createdAt: Date;
+}
+
+export interface LibraryObjectRecord {
+  id: string;
+  ownerId: string;
+  campaignId: string | null;
+  kind: 'monster' | 'spell' | 'item' | 'encounter';
+  name: string;
+  tags: string[];
+  currentRevision: number;
+  isArchived: boolean;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface LibraryObjectRevisionRecord {
+  objectId: string;
+  revision: number;
+  ruleset: unknown;
+  data: unknown;
+  createdAt: Date;
+}
+
+export interface EncounterRunRecord {
+  id: string;
+  campaignId: string;
+  templateRef: unknown;
+  stage: 'staged' | 'deployed' | 'active' | 'completed' | 'archived';
+  deploymentCommandId: string;
+  activeSessionId: string | null;
+  currentRound: number;
+  currentTurnIndex: number;
+  activeWaveIndex: number;
+  participants: unknown[];
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export abstract class BaseRepository {
   constructor(protected pool: Pool) {}
+
+  protected getExecutor(client?: PoolClient) {
+    return client ?? this.pool;
+  }
 }
