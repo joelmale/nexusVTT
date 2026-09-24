@@ -1,4 +1,7 @@
 import { useState, useEffect } from 'react'
+import { codexFetch } from '@/lib/api'
+import { useCan } from '@/auth/AuthContext'
+import { permissionHint } from '@/auth/permissions'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
@@ -26,13 +29,14 @@ export default function Deduplication() {
   const [loading, setLoading] = useState(false)
   const [merging, setMerging] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const canMerge = useCan('mergeDuplicates')
 
   const fetchDuplicates = async () => {
     setLoading(true)
     setError(null)
 
     try {
-      const response = await fetch('/api/deduplication/duplicates')
+      const response = await codexFetch('/api/deduplication/duplicates')
       const data = await response.json()
 
       if (!response.ok) {
@@ -52,7 +56,7 @@ export default function Deduplication() {
     setError(null)
 
     try {
-      const response = await fetch('/api/deduplication/merge', {
+      const response = await codexFetch('/api/deduplication/merge', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -206,7 +210,8 @@ export default function Deduplication() {
                               size="sm"
                               variant="outline"
                               onClick={() => mergeDuplicates(group.documents[0].id, [doc.id])}
-                              disabled={merging === group.documents[0].id}
+                              disabled={!canMerge || merging === group.documents[0].id}
+                              title={canMerge ? undefined : permissionHint('mergeDuplicates')}
                             >
                               <Merge className="h-4 w-4 mr-1" />
                               {merging === group.documents[0].id ? 'Merging...' : 'Merge'}
@@ -226,7 +231,8 @@ export default function Deduplication() {
                         group.documents[0].id,
                         group.documents.slice(1).map(d => d.id)
                       )}
-                      disabled={merging === group.documents[0].id}
+                      disabled={!canMerge || merging === group.documents[0].id}
+                      title={canMerge ? undefined : permissionHint('mergeDuplicates')}
                     >
                       <Merge className="h-4 w-4 mr-1" />
                       {merging === group.documents[0].id ? 'Merging All...' : 'Merge All Duplicates'}

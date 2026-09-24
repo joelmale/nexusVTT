@@ -122,6 +122,10 @@ RUN npm ci \
 
 COPY apps/codex/services/admin-ui ./apps/codex/services/admin-ui
 
+# Served at / on the private admin listener (:8081), never under the public
+# VTT root. See apps/docs/platform/private-admin-control-plane.md.
+ENV ADMIN_UI_BASE=/
+
 RUN npm run build --workspace=admin-ui
 
 
@@ -140,12 +144,9 @@ COPY --from=vtt-builder /workspace/apps/vtt/dist /usr/share/nginx/html
 COPY --from=vtt-builder /workspace/apps/vtt/apps/generator-hub/dist /usr/share/nginx/html/generator-hub
 COPY --from=forge-builder /workspace/apps/forge/dist /usr/share/nginx/html/forge
 COPY --from=codex-dm-builder /workspace/apps/codex/services/dm-ui/dist /usr/share/nginx/html/codex-dm
-COPY --from=codex-admin-builder /workspace/apps/codex/services/admin-ui/dist /usr/share/nginx/html/codex-admin
-
-# Root of the private admin listener (:8081, Phase 1 of
-# apps/docs/platform/private-admin-control-plane.md). Deliberately outside the
-# VTT root above, so neither listener can serve the other's files.
-COPY apps/vtt/docker/admin-placeholder /usr/share/nginx/admin-placeholder
+# Root of the private admin listener (:8081): the Codex Admin UI. Deliberately
+# outside the VTT root above, so neither listener can serve the other's files.
+COPY --from=codex-admin-builder /workspace/apps/codex/services/admin-ui/dist /usr/share/nginx/admin-ui
 
 ARG VERSION=dev
 ARG COMMIT_SHA=unknown

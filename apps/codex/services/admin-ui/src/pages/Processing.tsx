@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { codexFetch } from '@/lib/api'
+import { useCan } from '@/auth/AuthContext'
+import { permissionHint } from '@/auth/permissions'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 
 interface ProcessingLog {
@@ -78,12 +81,15 @@ export default function Processing() {
   const [showErrorModal, setShowErrorModal] = useState(false)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
   const queryClient = useQueryClient()
+  const canRetry = useCan('retryJob')
+  const canRemove = useCan('removeJob')
+  const canClean = useCan('cleanQueue')
 
   // Queue stats query
   const { data: stats, isLoading: statsLoading } = useQuery<QueueStats>({
     queryKey: ['queue-stats'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/queue/stats')
+      const response = await codexFetch('/api/admin/queue/stats')
       if (!response.ok) throw new Error('Failed to fetch queue stats')
       return response.json()
     },
@@ -98,7 +104,7 @@ export default function Processing() {
       if (statusFilter) params.append('status', statusFilter)
       params.append('limit', '100')
 
-      const response = await fetch(`/api/admin/queue/jobs?${params}`)
+      const response = await codexFetch(`/api/admin/queue/jobs?${params}`)
       if (!response.ok) throw new Error('Failed to fetch jobs')
       return response.json()
     },
@@ -110,7 +116,7 @@ export default function Processing() {
     queryKey: ['job-logs', selectedJob?.id],
     queryFn: async () => {
       if (!selectedJob?.id) throw new Error('No job selected')
-      const response = await fetch(`/api/admin/queue/jobs/${selectedJob.id}/logs`)
+      const response = await codexFetch(`/api/admin/queue/jobs/${selectedJob.id}/logs`)
       if (!response.ok) throw new Error('Failed to fetch logs')
       return response.json()
     },
@@ -121,7 +127,7 @@ export default function Processing() {
     queryKey: ['processing-report', selectedJob?.documentId],
     queryFn: async () => {
       if (!selectedJob?.documentId) throw new Error('No document selected')
-      const response = await fetch(`/api/admin/processing/report/${selectedJob.documentId}`)
+      const response = await codexFetch(`/api/admin/processing/report/${selectedJob.documentId}`)
       if (!response.ok) throw new Error('Failed to fetch processing report')
       return response.json()
     },
@@ -131,7 +137,7 @@ export default function Processing() {
   // Retry job mutation
   const retryMutation = useMutation({
     mutationFn: async (jobId: string) => {
-      const response = await fetch(`/api/admin/queue/jobs/${jobId}/retry`, {
+      const response = await codexFetch(`/api/admin/queue/jobs/${jobId}/retry`, {
         method: 'POST',
       })
       if (!response.ok) throw new Error('Failed to retry job')
@@ -146,7 +152,7 @@ export default function Processing() {
   // Remove job mutation
   const removeMutation = useMutation({
     mutationFn: async (jobId: string) => {
-      const response = await fetch(`/api/admin/queue/jobs/${jobId}`, {
+      const response = await codexFetch(`/api/admin/queue/jobs/${jobId}`, {
         method: 'DELETE',
       })
       if (!response.ok) throw new Error('Failed to remove job')
@@ -161,7 +167,7 @@ export default function Processing() {
   // Clean jobs mutation
   const cleanMutation = useMutation({
     mutationFn: async (days: number) => {
-      const response = await fetch('/api/admin/queue/clean', {
+      const response = await codexFetch('/api/admin/queue/clean', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ olderThanDays: days }),
@@ -297,7 +303,8 @@ export default function Processing() {
         <div className="flex gap-4 items-center">
           <button
             onClick={handleBulkRetry}
-            disabled={!jobsData?.jobs.some(job => job.status === 'failed')}
+            disabled={!canRetry || !jobsData?.jobs.some(job => job.status === 'failed')}
+            title={canRetry ? undefined : permissionHint('retryJob')}
             className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             Retry All Failed Jobs
@@ -317,7 +324,8 @@ export default function Processing() {
             <span className="text-sm">days</span>
             <button
               onClick={() => cleanMutation.mutate(cleanDays)}
-              disabled={cleanMutation.isPending}
+              disabled={!canClean || cleanMutation.isPending}
+              title={canClean ? undefined : permissionHint('cleanQueue')}
               className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
             >
               {cleanMutation.isPending ? 'Cleaning...' : 'Clean Old Jobs'}
@@ -415,16 +423,18 @@ export default function Processing() {
                           {job.status === 'failed' && (
                             <button
                               onClick={() => retryMutation.mutate(job.id)}
-                              disabled={retryMutation.isPending}
-                              className="text-green-600 hover:text-green-900"
+                              disabled={!canRetry || retryMutation.isPending}
+                              title={canRetry ? undefined : permissionHint('retryJob')}
+                              className="text-green-600 hover:text-green-900 disabled:opacity-50"
                             >
                               Retry
                             </button>
                           )}
                           <button
                             onClick={() => removeMutation.mutate(job.id)}
-                            disabled={removeMutation.isPending}
-                            className="text-red-600 hover:text-red-900"
+                            disabled={!canRemove || removeMutation.isPending}
+                            title={canRemove ? undefined : permissionHint('removeJob')}
+                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
                           >
                             Remove
                           </button>

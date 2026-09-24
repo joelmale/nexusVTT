@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
+import { codexFetch } from '@/lib/api'
 import { Button } from '../components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 import { AlertTriangle, CheckCircle, FileX, Database, Search } from 'lucide-react'
-
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || ''
 
 interface ValidationResult {
   orphanedFiles: {
@@ -112,7 +111,7 @@ export default function DataQuality() {
 
   const loadProcessingSummary = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/processing/summary`)
+      const response = await codexFetch(`/api/admin/processing/summary`)
       const data = await response.json()
       if (!response.ok) {
         throw new Error(data.details || data.error || 'Failed to load processing summary')
@@ -125,7 +124,7 @@ export default function DataQuality() {
 
   const loadProcessingIssues = useCallback(async () => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/processing/issues`)
+      const response = await codexFetch(`/api/admin/processing/issues`)
       const data = await response.json()
       if (!response.ok) {
         throw new Error(data.details || data.error || 'Failed to load processing issues')
@@ -141,7 +140,7 @@ export default function DataQuality() {
     setError(null)
 
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/validation/comprehensive`)
+      const response = await codexFetch(`/api/admin/validation/comprehensive`)
       const data = await response.json()
 
       if (!response.ok) {
@@ -183,8 +182,8 @@ export default function DataQuality() {
     setSearchResult(null)
 
     try {
-      const response = await fetch(
-        `${API_BASE_URL}/api/admin/processing/search-check/${searchDocId}?q=${encodeURIComponent(searchQuery)}`
+      const response = await codexFetch(
+        `/api/admin/processing/search-check/${encodeURIComponent(searchDocId)}?q=${encodeURIComponent(searchQuery)}`
       )
       const data = await response.json()
       if (!response.ok) {

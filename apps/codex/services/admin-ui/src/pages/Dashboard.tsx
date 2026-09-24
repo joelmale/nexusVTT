@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query'
+import { codexFetch } from '@/lib/api'
 
 interface Stats {
   totalDocuments: number
@@ -24,7 +25,7 @@ export default function Dashboard() {
   const { data: stats, isLoading, error } = useQuery<Stats>({
     queryKey: ['stats'],
     queryFn: async () => {
-      const response = await fetch('/api/admin/stats')
+      const response = await codexFetch('/api/admin/stats')
       if (!response.ok) throw new Error('Failed to fetch stats')
       return response.json()
     },

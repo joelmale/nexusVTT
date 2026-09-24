@@ -1,6 +1,7 @@
 import { Link, useLocation } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import CommandPalette from './CommandPalette'
+import UserMenu from './UserMenu'
 
 interface LayoutProps {
   children: React.ReactNode
@@ -77,13 +78,14 @@ export default function Layout({ children }: LayoutProps) {
                 ))}
               </div>
             </div>
-            <div className="hidden sm:flex items-center">
+            <div className="flex items-center gap-4">
               <button
                 onClick={() => setPaletteOpen(true)}
-                className="px-3 py-1 text-xs rounded-full border border-slate-200 text-slate-500 hover:text-slate-800"
+                className="hidden sm:inline-block px-3 py-1 text-xs rounded-full border border-slate-200 text-slate-500 hover:text-slate-800"
               >
                 Cmd/Ctrl + K
               </button>
+              <UserMenu />
             </div>
           </div>
         </div>

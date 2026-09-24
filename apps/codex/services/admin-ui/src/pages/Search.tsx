@@ -1,7 +1,7 @@
  import { useState } from 'react'
+import { codexFetch } from '@/lib/api'
 import { Button } from '../components/ui/button'
 import { Input } from '../components/ui/input'
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Badge } from '../components/ui/badge'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
@@ -35,6 +35,11 @@ interface SearchResponse {
   sortOrder: string
   results: SearchResult[]
 }
+
+// Native <select>: Radix Select injects a scroll-lock <style> element at
+// runtime, which the private listener's CSP (style-src 'self') blocks.
+const SELECT_CLASS =
+  'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm focus:outline-none focus:ring-1 focus:ring-ring'
 
 export default function Search() {
   const [query, setQuery] = useState('')
@@ -72,7 +77,7 @@ export default function Search() {
       if (uploadedAfter) params.append('uploadedAfter', uploadedAfter)
       if (uploadedBefore) params.append('uploadedBefore', uploadedBefore)
 
-      const response = await fetch(`/api/search/advanced?${params}`)
+      const response = await codexFetch(`/api/search/advanced?${params}`)
       const data = await response.json()
 
       if (!response.ok) {
@@ -152,18 +157,14 @@ export default function Search() {
 
               <div>
                 <label className="block text-sm font-medium mb-1">Document Type</label>
-                <Select value={type} onValueChange={setType}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="All types" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="rulebook">Rulebook</SelectItem>
-                    <SelectItem value="adventure">Adventure</SelectItem>
-                    <SelectItem value="character">Character</SelectItem>
-                    <SelectItem value="map">Map</SelectItem>
-                    <SelectItem value="other">Other</SelectItem>
-                  </SelectContent>
-                </Select>
+                <select value={type} onChange={(e) => setType(e.target.value)} className={SELECT_CLASS}>
+                  <option value="">All types</option>
+                  <option value="rulebook">Rulebook</option>
+                  <option value="adventure">Adventure</option>
+                  <option value="character">Character</option>
+                  <option value="map">Map</option>
+                  <option value="other">Other</option>
+                </select>
               </div>
 
               <div>
@@ -199,30 +200,20 @@ export default function Search() {
               <div className="flex gap-2">
                 <div className="flex-1">
                   <label className="block text-sm font-medium mb-1">Sort By</label>
-                  <Select value={sortBy} onValueChange={setSortBy}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="relevance">Relevance</SelectItem>
-                      <SelectItem value="uploadedAt">Upload Date</SelectItem>
-                      <SelectItem value="title">Title</SelectItem>
-                      <SelectItem value="fileSize">File Size</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={SELECT_CLASS}>
+                    <option value="relevance">Relevance</option>
+                    <option value="uploadedAt">Upload Date</option>
+                    <option value="title">Title</option>
+                    <option value="fileSize">File Size</option>
+                  </select>
                 </div>
 
                 <div className="flex-1">
                   <label className="block text-sm font-medium mb-1">Order</label>
-                  <Select value={sortOrder} onValueChange={setSortOrder}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="desc">Descending</SelectItem>
-                      <SelectItem value="asc">Ascending</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <select value={sortOrder} onChange={(e) => setSortOrder(e.target.value)} className={SELECT_CLASS}>
+                    <option value="desc">Descending</option>
+                    <option value="asc">Ascending</option>
+                  </select>
                 </div>
               </div>
             </div>

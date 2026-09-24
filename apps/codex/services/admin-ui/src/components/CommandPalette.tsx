@@ -1,4 +1,8 @@
 import { useEffect, useMemo, useState } from 'react';
+import { codexFetch } from '@/lib/api';
+
+const openReader = (documentId: string) =>
+  window.open(`${import.meta.env.BASE_URL}reader/${encodeURIComponent(documentId)}`, '_blank');
 
 interface CommandPaletteProps {
   isOpen: boolean;
@@ -59,9 +63,9 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
       setLoading(true);
       try {
         const [quick, semantic, ask] = await Promise.all([
-          fetch(`/api/search/quick?query=${encodeURIComponent(query)}&size=5`).then((res) => res.json()),
-          fetch(`/api/search/semantic?query=${encodeURIComponent(query)}&topK=5`).then((res) => res.json()),
-          fetch(`/api/search/ask`, {
+          codexFetch(`/api/search/quick?query=${encodeURIComponent(query)}&size=5`).then((res) => res.json()),
+          codexFetch(`/api/search/semantic?query=${encodeURIComponent(query)}&topK=5`).then((res) => res.json()),
+          codexFetch(`/api/search/ask`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ question: query, topK: 5 }),
@@ -130,7 +134,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
                     {quickResults.map((result) => (
                       <button
                         key={result.documentId}
-                        onClick={() => window.open(`/reader/${result.documentId}`, '_blank')}
+                        onClick={() => openReader(result.documentId)}
                         className="w-full text-left rounded-lg border border-slate-200 p-3 hover:border-slate-400"
                       >
                         <div className="text-sm font-medium text-slate-900">{result.title}</div>
@@ -151,7 +155,7 @@ export default function CommandPalette({ isOpen, onClose }: CommandPaletteProps)
                     {semanticResults.map((result) => (
                       <button
                         key={result.chunkId}
-                        onClick={() => window.open(`/reader/${result.documentId}`, '_blank')}
+                        onClick={() => openReader(result.documentId)}
                         className="w-full text-left rounded-lg border border-slate-200 p-3 hover:border-slate-400"
                       >
                         <div className="text-sm font-medium text-slate-900">{result.document.title}</div>

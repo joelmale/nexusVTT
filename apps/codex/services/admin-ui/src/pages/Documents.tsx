@@ -1,4 +1,7 @@
 import { useState } from 'react'
+import { codexFetch, codexUrl } from '@/lib/api'
+import { useCan } from '@/auth/AuthContext'
+import { permissionHint } from '@/auth/permissions'
 import { useNavigate } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
 
@@ -37,6 +40,10 @@ interface DocumentsResponse {
 
 export default function Documents() {
   const navigate = useNavigate()
+  const canEdit = useCan('editDocument')
+  const canReprocess = useCan('reprocessDocument')
+  const canDelete = useCan('deleteDocument')
+  const canUpload = useCan('uploadDocuments')
   const [page, setPage] = useState(1)
   const [status, setStatus] = useState<string>('')
   const [type, setType] = useState<string>('')
@@ -54,7 +61,7 @@ export default function Documents() {
         ...(type && { type }),
         ...(search && { search }),
       })
-      const response = await fetch(`/api/admin/documents?${params}`)
+      const response = await codexFetch(`/api/admin/documents?${params}`)
       if (!response.ok) throw new Error('Failed to fetch documents')
       return response.json()
     },
@@ -128,11 +135,11 @@ export default function Documents() {
 
   const handleView = (doc: Document) => {
     // Open document in new tab
-    window.open(`/api/documents/${doc.id}/content`, '_blank')
+    window.open(codexUrl(`/api/documents/${encodeURIComponent(doc.id)}/content`), '_blank')
   }
 
   const handleReader = (doc: Document) => {
-    window.open(`/reader/${doc.id}`, '_blank')
+    window.open(`${import.meta.env.BASE_URL}reader/${encodeURIComponent(doc.id)}`, '_blank')
   }
 
   const handleUpload = () => {
@@ -150,7 +157,7 @@ export default function Documents() {
 
     setDeletingDocId(docId)
     try {
-      const response = await fetch(`/api/admin/documents/${docId}`, {
+      const response = await codexFetch(`/api/admin/documents/${docId}`, {
         method: 'DELETE',
       })
 
@@ -171,7 +178,7 @@ export default function Documents() {
 
   const handleReprocess = async (docId: string) => {
     try {
-      const response = await fetch(`/api/admin/documents/${docId}/reprocess`, {
+      const response = await codexFetch(`/api/admin/documents/${docId}/reprocess`, {
         method: 'POST',
       })
 
@@ -199,12 +206,14 @@ export default function Documents() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Documents</h1>
-        <button
-          onClick={handleUpload}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
-        >
-          Upload Document
-        </button>
+        {canUpload && (
+          <button
+            onClick={handleUpload}
+            className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+          >
+            Upload Document
+          </button>
+        )}
       </div>
 
       {/* Filters */}
@@ -352,7 +361,9 @@ export default function Documents() {
                           <div className="flex gap-2">
                             <button
                               onClick={() => handleEdit(doc)}
-                              className="text-blue-600 hover:text-blue-900"
+                              disabled={!canEdit}
+                              title={canEdit ? undefined : permissionHint('editDocument')}
+                              className="text-blue-600 hover:text-blue-900 disabled:opacity-50"
                             >
                               Edit
                             </button>
@@ -371,14 +382,16 @@ export default function Documents() {
                             </button>
                             <button
                               onClick={() => handleReprocess(doc.id)}
-                              className="text-purple-600 hover:text-purple-900"
-                              title="Reprocess document"
+                              disabled={!canReprocess}
+                              className="text-purple-600 hover:text-purple-900 disabled:opacity-50"
+                              title={canReprocess ? 'Reprocess document' : permissionHint('reprocessDocument')}
                             >
                               Reprocess
                             </button>
                             <button
                               onClick={() => handleDelete(doc.id)}
-                              disabled={deletingDocId === doc.id}
+                              disabled={!canDelete || deletingDocId === doc.id}
+                              title={canDelete ? undefined : permissionHint('deleteDocument')}
                               className="text-red-600 hover:text-red-900 disabled:opacity-50"
                             >
                               {deletingDocId === doc.id ? 'Deleting...' : 'Delete'}
@@ -434,7 +447,7 @@ export default function Documents() {
                 }
 
                 try {
-                  const response = await fetch(`/api/admin/documents/${editingDoc.id}`, {
+                  const response = await codexFetch(`/api/admin/documents/${editingDoc.id}`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(updates),

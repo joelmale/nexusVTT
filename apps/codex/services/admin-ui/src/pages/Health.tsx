@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { codexFetch } from '@/lib/api';
+import { useCan } from '@/auth/AuthContext';
+import { permissionHint } from '@/auth/permissions';
 import { useQuery } from '@tanstack/react-query';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -21,8 +24,6 @@ import {
   Bell,
   BellOff
 } from 'lucide-react';
-
-const API_BASE_URL = '';
 
 interface ServiceHealth {
   name: string;
@@ -111,12 +112,13 @@ interface AlertStats {
 
 export default function Health() {
   const [selectedPeriod, setSelectedPeriod] = useState<'1h' | '24h' | '7d' | '30d'>('24h');
+  const canManageAlerts = useCan('manageAlerts');
 
   // Fetch system health
   const { data: healthData, isLoading: healthLoading, refetch: refetchHealth } = useQuery({
     queryKey: ['system-health'],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/admin/health`, {
+      const response = await codexFetch(`/api/admin/health`, {
         headers: {
         },
       });
@@ -130,7 +132,7 @@ export default function Health() {
   const { data: metricsData, isLoading: metricsLoading, refetch: refetchMetrics } = useQuery({
     queryKey: ['metrics-summary', selectedPeriod],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/admin/metrics/summary/${selectedPeriod}`, {
+      const response = await codexFetch(`/api/admin/metrics/summary/${selectedPeriod}`, {
         headers: {
         },
       });
@@ -143,7 +145,7 @@ export default function Health() {
   const { data: recentMetrics, isLoading: recentLoading } = useQuery({
     queryKey: ['recent-metrics'],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/admin/metrics/recent?count=20`, {
+      const response = await codexFetch(`/api/admin/metrics/recent?count=20`, {
         headers: {
         },
       });
@@ -157,7 +159,7 @@ export default function Health() {
   const { data: alertsData, isLoading: alertsLoading, refetch: refetchAlerts } = useQuery({
     queryKey: ['active-alerts'],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/admin/alerts`, {
+      const response = await codexFetch(`/api/admin/alerts`, {
         headers: {
         },
       });
@@ -171,7 +173,7 @@ export default function Health() {
   const { data: alertStats } = useQuery({
     queryKey: ['alert-stats'],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/admin/alerts/stats`, {
+      const response = await codexFetch(`/api/admin/alerts/stats`, {
         headers: {
         },
       });
@@ -236,7 +238,7 @@ export default function Health() {
 
   const handleAcknowledgeAlert = async (alertId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/alerts/${alertId}/acknowledge`, {
+      const response = await codexFetch(`/api/admin/alerts/${alertId}/acknowledge`, {
         method: 'POST',
         headers: {
         },
@@ -250,7 +252,7 @@ export default function Health() {
 
   const handleResolveAlert = async (alertId: string) => {
     try {
-      const response = await fetch(`${API_BASE_URL}/api/admin/alerts/${alertId}/resolve`, {
+      const response = await codexFetch(`/api/admin/alerts/${alertId}/resolve`, {
         method: 'POST',
         headers: {
         },
@@ -407,6 +409,8 @@ export default function Health() {
                           size="sm"
                           variant="outline"
                           onClick={() => handleAcknowledgeAlert(alert.id)}
+                          disabled={!canManageAlerts}
+                          title={canManageAlerts ? undefined : permissionHint('manageAlerts')}
                         >
                           <BellOff className="h-3 w-3 mr-1" />
                           Acknowledge
@@ -415,6 +419,8 @@ export default function Health() {
                       <Button
                         size="sm"
                         onClick={() => handleResolveAlert(alert.id)}
+                        disabled={!canManageAlerts}
+                        title={canManageAlerts ? undefined : permissionHint('manageAlerts')}
                       >
                         <CheckCircle className="h-3 w-3 mr-1" />
                         Resolve

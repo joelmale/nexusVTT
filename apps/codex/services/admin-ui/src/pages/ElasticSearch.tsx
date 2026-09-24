@@ -1,4 +1,7 @@
 import { useState } from 'react';
+import { codexFetch } from '@/lib/api';
+import { useCan } from '@/auth/AuthContext';
+import { permissionHint } from '@/auth/permissions';
 import { useQuery, useMutation } from '@tanstack/react-query';
 import { Button } from '../components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
@@ -50,17 +53,16 @@ interface TypeBucket {
   doc_count: number;
 }
 
-const API_BASE_URL = '';
-
 export default function ElasticSearch() {
   const [reindexProgress, setReindexProgress] = useState<ReindexResult | null>(null);
+  const canMaintain = useCan('maintainIndex');
   
 
   // Query for cluster health
   const { data: healthData, isLoading: healthLoading, refetch: refetchHealth } = useQuery({
     queryKey: ['elasticsearch-health'],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/admin/elasticsearch/health`, {
+      const response = await codexFetch(`/api/admin/elasticsearch/health`, {
         headers: {
         },
       });
@@ -73,7 +75,7 @@ export default function ElasticSearch() {
   const { data: statsData, isLoading: statsLoading, refetch: refetchStats } = useQuery({
     queryKey: ['elasticsearch-stats'],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/admin/elasticsearch/stats`, {
+      const response = await codexFetch(`/api/admin/elasticsearch/stats`, {
         headers: {
         },
       });
@@ -89,7 +91,7 @@ export default function ElasticSearch() {
       if (options.force) params.set('force', 'true');
       if (options.batchSize) params.set('batchSize', options.batchSize.toString());
 
-      const response = await fetch(`${API_BASE_URL}/api/admin/elasticsearch/reindex?${params}`, {
+      const response = await codexFetch(`/api/admin/elasticsearch/reindex?${params}`, {
         method: 'POST',
         headers: {
         },
@@ -107,7 +109,7 @@ export default function ElasticSearch() {
   // Recreate index mutation
   const recreateMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/admin/elasticsearch/recreate-index`, {
+      const response = await codexFetch(`/api/admin/elasticsearch/recreate-index`, {
         method: 'POST',
         headers: {
         },
@@ -124,7 +126,7 @@ export default function ElasticSearch() {
   // Optimize index mutation
   const optimizeMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/admin/elasticsearch/optimize`, {
+      const response = await codexFetch(`/api/admin/elasticsearch/optimize`, {
         method: 'POST',
         headers: {
         },
@@ -137,7 +139,7 @@ export default function ElasticSearch() {
   // Clear index mutation
   const clearMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/api/admin/elasticsearch/clear`, {
+      const response = await codexFetch(`/api/admin/elasticsearch/clear`, {
         method: 'DELETE',
         headers: {
         },
@@ -301,7 +303,8 @@ export default function ElasticSearch() {
           <div className="grid grid-cols-2 gap-4">
             <Button
               onClick={() => reindexMutation.mutate({})}
-              disabled={reindexMutation.isPending}
+              disabled={!canMaintain || reindexMutation.isPending}
+              title={canMaintain ? undefined : permissionHint('maintainIndex')}
               className="flex items-center gap-2"
             >
               <RefreshCw className="h-4 w-4" />
@@ -310,7 +313,8 @@ export default function ElasticSearch() {
 
             <Button
               onClick={() => reindexMutation.mutate({ force: true })}
-              disabled={reindexMutation.isPending}
+              disabled={!canMaintain || reindexMutation.isPending}
+              title={canMaintain ? undefined : permissionHint('maintainIndex')}
               variant="outline"
               className="flex items-center gap-2"
             >
@@ -320,7 +324,8 @@ export default function ElasticSearch() {
 
             <Button
               onClick={() => optimizeMutation.mutate()}
-              disabled={optimizeMutation.isPending}
+              disabled={!canMaintain || optimizeMutation.isPending}
+              title={canMaintain ? undefined : permissionHint('maintainIndex')}
               variant="outline"
               className="flex items-center gap-2"
             >
@@ -330,7 +335,8 @@ export default function ElasticSearch() {
 
             <Button
               onClick={() => recreateMutation.mutate()}
-              disabled={recreateMutation.isPending}
+              disabled={!canMaintain || recreateMutation.isPending}
+              title={canMaintain ? undefined : permissionHint('maintainIndex')}
               variant="destructive"
               className="flex items-center gap-2"
             >
@@ -340,7 +346,8 @@ export default function ElasticSearch() {
 
             <Button
               onClick={() => clearMutation.mutate()}
-              disabled={clearMutation.isPending}
+              disabled={!canMaintain || clearMutation.isPending}
+              title={canMaintain ? undefined : permissionHint('maintainIndex')}
               variant="destructive"
               className="flex items-center gap-2"
             >
