@@ -381,3 +381,91 @@ model User {
   @@index([username])
   @@map("users")
 }
+
+// ---------------------------------------------------------------------------
+// Rules registry (see apps/docs/codex/rules-registry.md)
+//
+// A RulesEntity is the stable identity of one spell/item/monster in one
+// ruleset. Every edit appends a RulesEntityRevision; published revisions are
+// immutable (enforced in RulesRegistryService and, where the migration is
+// applied, by the rules_entity_revisions_guard trigger). RulesCatalogVersion
+// is the monotonic counter consumers use for cache invalidation.
+// ---------------------------------------------------------------------------
+
+enum RulesEntityType {
+  spell
+  item
+  monster
+}
+
+enum RulesRevisionStatus {
+  draft
+  validated
+  published
+  superseded
+}
+
+model RulesEntity {
+  id                         String          @id @default(uuid())
+  entityType                 RulesEntityType
+  slug                       String
+  /// '2014' | '2024' (CHECK constraint in the migration)
+  ruleset                    String
+  schemaVersion              Int
+  /// Revision number of the newest revision; the optimistic-concurrency token.
+  headRevisionNumber         Int             @default(0)
+  currentPublishedRevisionId String?         @unique
+  /// Catalog version that last changed this entity's published state.
+  catalogVersion             Int?
+  createdAt                  DateTime        @default(now())
+  updatedAt                  DateTime        @updatedAt
+  archivedAt                 DateTime?
+
+  revisions                RulesEntityRevision[] @relation("RulesEntityRevisions")
+  currentPublishedRevision RulesEntityRevision?  @relation("RulesEntityCurrentPublished", fields: [currentPublishedRevisionId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([entityType, ruleset, slug])
+  @@index([ruleset, entityType])
+  @@index([catalogVersion])
+  @@map("rules_entities")
+}
+
+model RulesEntityRevision {
+  id                         String              @id @default(uuid())
+  entityId                   String
+  revisionNumber             Int
+  status                     RulesRevisionStatus @default(draft)
+  schemaVersion              Int
+  data                       Json
+  sourceDocumentId           String?
+  sourceLicense              String
+  /// Set on rollback revisions: the published revision whose data was restored.
+  restoredFromRevisionNumber Int?
+  createdBy                  String
+  createdAt                  DateTime            @default(now())
+  validatedBy                String?
+  validatedAt                DateTime?
+  publishedBy                String?
+  publishedAt                DateTime?
+  /// Catalog version created when this revision was published.
+  catalogVersion             Int?
+  supersededAt               DateTime?
+
+  entity       RulesEntity  @relation("RulesEntityRevisions", fields: [entityId], references: [id], onDelete: Cascade)
+  publishedFor RulesEntity? @relation("RulesEntityCurrentPublished")
+
+  @@unique([entityId, revisionNumber])
+  @@index([status])
+  @@map("rules_entity_revisions")
+}
+
+model RulesCatalogVersion {
+  version          Int      @id
+  publishedAt      DateTime @default(now())
+  publishedBy      String
+  /// publish | rollback | archive | unarchive
+  action           String
+  changedEntityIds String[]
+
+  @@map("rules_catalog_versions")
+}

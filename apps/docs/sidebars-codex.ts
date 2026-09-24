@@ -12,6 +12,7 @@ const sidebars: SidebarsConfig = {
         'api-reference',
         'websocket-events',
         'database-schema',
+        'rules-registry',
         'architecture-icd',
       ],
     },
