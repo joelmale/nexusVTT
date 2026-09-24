@@ -15,58 +15,49 @@ import type { Permission } from '../permissions.js';
  * - admin/documents/bulk-delete, bulk-update, admin/tags*, admin/duplicates*
  * - admin/alerts/rules (PUT), admin/metrics/cleanup, admin/alerts/cleanup
  * - documents (POST single create), documents/:id (PUT/DELETE), structured-data, vtt/*
- * - The presigned object-storage PUT returned by documents/bulk (`uploadUrl`)
- *   goes from the browser to object storage and is not a doc-api call.
+ *
+ * Object storage (MinIO) is never browser-facing. Two entries are served by
+ * control-api handlers (`handler`) that talk to object storage server-side:
+ * - `POST documents/upload` spools one file, creates the record through
+ *   doc-api `documents/bulk`, PUTs the bytes to the presigned URL, and queues
+ *   processing (src/codex/upload.ts).
+ * - `GET documents/:id/pages/:page/image` streams one page image from the
+ *   presigned URL doc-api `documents/:id/page-images` returns
+ *   (src/codex/pageImage.ts).
+ * The presigned URLs themselves never reach the browser.
+ *
+ * Bodies are capped at 1 MB (`CODEX_MAX_JSON_BYTES`) except the upload
+ * (200 MB file). Annotation, reference, and bulk-create bodies have their
+ * actor fields (`userId`, `documents[].uploadedBy`) overwritten with the
+ * session's user ID; client-supplied values are ignored.
  */
 
-export type HttpMethod = 'GET' | 'POST' | 'PATCH' | 'PUT' | 'DELETE';
+import {
+  BOOL,
+  DATE,
+  ID,
+  INT,
+  json,
+  KB,
+  MB,
+  NONE,
+  RouteTable,
+  SORT_ORDER,
+  TEXT,
+  type ProxyRoute,
+} from '../proxy/routeTable.js';
 
-export type BodyRule =
-  | { kind: 'none' }
-  | { kind: 'json'; maxBytes: number }
-  | { kind: 'stream'; maxBytes: number; contentTypes: readonly string[] };
+export { PATH_PARAM, type BodyRule, type HttpMethod, type LookupResult, type RouteMatch } from '../proxy/routeTable.js';
+export type CodexRoute = ProxyRoute;
+export const CodexRouteTable = RouteTable;
+export type CodexRouteTable = RouteTable;
 
-export interface CodexRoute {
-  method: HttpMethod;
-  /** Path below `/api/`; `:name` segments must match PATH_PARAM. */
-  path: string;
-  /** Any-of: the caller needs at least one of these permissions. */
-  permission: readonly Permission[];
-  /** Requires a Google login within the last 10 minutes. */
-  recentAuth: boolean;
-  /** Mutations are audited with the doc-api outcome. Denials are always audited. */
-  audited: boolean;
-  /** Audit action name. */
-  action: string;
-  resourceType: string;
-  /** Allowed query keys and the pattern each value must match. */
-  query: Readonly<Record<string, RegExp>>;
-  body: BodyRule;
-  /** Top-level JSON body keys whose (identifier) values are copied to the audit summary. */
-  auditBodyKeys?: readonly string[];
-  /** Extra request headers forwarded to doc-api (validated). */
-  forwardHeaders?: readonly 'range'[];
-  /**
-   * Response is a document opened in a browser tab (PDF). Its CSP still
-   * forbids scripts but allows the same-origin PDF viewer embed.
-   */
-  inlineDocument?: boolean;
-  timeoutMs?: number;
-}
-
-export const PATH_PARAM = /^[A-Za-z0-9_-]{1,128}$/;
-
-const INT = /^\d{1,6}$/;
-const BOOL = /^(true|false)$/;
-/** Free text without control characters. */
-const TEXT = /^\P{Cc}{0,256}$/u;
-const ID = /^[A-Za-z0-9_-]{1,128}$/;
-const DATE = /^[0-9TZ:.+-]{1,40}$/;
-const SORT_ORDER = /^(asc|desc)$/;
-
-const NONE: BodyRule = { kind: 'none' };
-const json = (maxBytes: number): BodyRule => ({ kind: 'json', maxBytes });
-const KB = 1024;
+/** Server-side Codex upload (control-api spools the file and PUTs it to object storage). */
+export const CODEX_UPLOAD_MAX_FILE_BYTES = 200 * MB;
+/** Multipart framing and metadata fields on top of the file. */
+export const CODEX_UPLOAD_MAX_BODY_BYTES = CODEX_UPLOAD_MAX_FILE_BYTES + 1 * MB;
+/** Cap for every other Codex request body. */
+export const CODEX_MAX_JSON_BYTES = 1 * MB;
 
 const READ: readonly Permission[] = ['codex:read'];
 const WRITE: readonly Permission[] = ['codex:write'];
@@ -109,10 +100,15 @@ export const CODEX_ALLOWLIST: readonly CodexRoute[] = [
   mutate({ method: 'PATCH', path: 'admin/documents/:id', permission: WRITE, action: 'codex.document.update', resourceType: 'document', body: json(64 * KB) }),
   mutate({ method: 'DELETE', path: 'admin/documents/:id', permission: DELETE, recentAuth: true, action: 'codex.document.delete', resourceType: 'document' }),
   mutate({ method: 'POST', path: 'admin/documents/:id/reprocess', permission: WRITE, action: 'codex.document.reprocess', resourceType: 'document' }),
-  read('documents/:id/content', 'document', { forwardHeaders: ['range'], inlineDocument: true, timeoutMs: 120_000 }),
+  read('documents/:id/content', 'document', { forwardHeaders: ['range'], response: 'inlineDocument', timeoutMs: 120_000 }),
 
-  // Bulk upload (JSON metadata; files go to presigned object-storage URLs)
-  mutate({ method: 'POST', path: 'documents/bulk', permission: WRITE, action: 'codex.document.bulk_create', resourceType: 'document_batch', body: json(1024 * KB) }),
+  // Upload. `documents/bulk` creates records only (actor stamped from the
+  // session); `documents/upload` is the server-side file upload.
+  mutate({ method: 'POST', path: 'documents/bulk', permission: WRITE, action: 'codex.document.bulk_create', resourceType: 'document_batch', body: json(CODEX_MAX_JSON_BYTES), stampActor: 'documents.uploadedBy' }),
+  mutate({
+    method: 'POST', path: 'documents/upload', permission: WRITE, action: 'codex.document.upload', resourceType: 'document', handler: 'upload',
+    body: { kind: 'stream', maxBytes: CODEX_UPLOAD_MAX_BODY_BYTES, contentTypes: ['multipart/form-data'] }, timeoutMs: 600_000,
+  }),
   read('documents/bulk/:batchId/status', 'document_batch'),
   mutate({ method: 'POST', path: 'documents/:id/process', permission: WRITE, action: 'codex.document.process', resourceType: 'document' }),
 
@@ -165,68 +161,11 @@ export const CODEX_ALLOWLIST: readonly CodexRoute[] = [
 
   // Reader
   read('documents/:id/page-images', 'document'),
+  read('documents/:id/pages/:page/image', 'document', { handler: 'pageImage', response: 'image', timeoutMs: 60_000 }),
   read('documents/:id/annotations', 'annotation', { query: { userId: ID, campaignId: ID } }),
-  mutate({ method: 'POST', path: 'documents/:id/annotations', permission: WRITE, action: 'codex.annotation.create', resourceType: 'document', body: json(64 * KB) }),
+  mutate({ method: 'POST', path: 'documents/:id/annotations', permission: WRITE, action: 'codex.annotation.create', resourceType: 'document', body: json(64 * KB), stampActor: 'userId' }),
   read('references', 'reference', { query: { documentId: ID, userId: ID, campaignId: ID } }),
-  mutate({ method: 'POST', path: 'references', permission: WRITE, action: 'codex.reference.create', resourceType: 'reference', body: json(16 * KB), auditBodyKeys: ['documentId'] }),
+  mutate({ method: 'POST', path: 'references', permission: WRITE, action: 'codex.reference.create', resourceType: 'reference', body: json(16 * KB), auditBodyKeys: ['documentId'], stampActor: 'userId' }),
   // A reader bookmark, not document content, so codex:write rather than codex:delete.
   mutate({ method: 'DELETE', path: 'references/:id', permission: WRITE, action: 'codex.reference.delete', resourceType: 'reference' }),
 ];
-
-interface CompiledRoute {
-  route: CodexRoute;
-  segments: readonly ({ literal: string } | { param: string })[];
-}
-
-export interface RouteMatch {
-  route: CodexRoute;
-  params: Record<string, string>;
-  /** Validated doc-api path below `/api/`. */
-  upstreamPath: string;
-}
-
-export type LookupResult =
-  | { kind: 'match'; match: RouteMatch }
-  | { kind: 'not_found' };
-
-export class CodexRouteTable {
-  private readonly compiled: CompiledRoute[];
-
-  constructor(routes: readonly CodexRoute[]) {
-    const seen = new Set<string>();
-    this.compiled = routes.map((route) => {
-      const key = `${route.method} ${route.path.replace(/:[^/]+/g, ':')}`;
-      if (seen.has(key)) throw new Error(`Duplicate Codex allowlist entry: ${key}`);
-      seen.add(key);
-      return {
-        route,
-        segments: route.path.split('/').map((segment) =>
-          segment.startsWith(':') ? { param: segment.slice(1) } : { literal: segment },
-        ),
-      };
-    });
-  }
-
-  /**
-   * `rawPath` is the undecoded path after `/codex/`. Matching the raw form
-   * means `%2F`, `%2e%2e`, `..`, `.` and empty segments can never match a
-   * param or literal, so they fall through to 404.
-   */
-  lookup(method: string, rawPath: string): LookupResult {
-    const parts = rawPath.split('/');
-    for (const { route, segments } of this.compiled) {
-      if (route.method !== method || segments.length !== parts.length) continue;
-      const params: Record<string, string> = {};
-      let ok = true;
-      for (let i = 0; i < segments.length && ok; i++) {
-        const segment = segments[i]!;
-        const part = parts[i]!;
-        if ('literal' in segment) ok = part === segment.literal;
-        else if (PATH_PARAM.test(part)) params[segment.param] = part;
-        else ok = false;
-      }
-      if (ok) return { kind: 'match', match: { route, params, upstreamPath: parts.join('/') } };
-    }
-    return { kind: 'not_found' };
-  }
-}

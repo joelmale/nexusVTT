@@ -2,6 +2,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 import { IDLE_TIMEOUT_MS } from '../src/deps.js';
 import { ROLES, type Role } from '../src/permissions.js';
 import { startHarness, type Harness, type TestSession } from './support/harness.js';
+import { codexStub, uploadForm } from './support/upstreams.js';
 
 interface RouteCase {
   name: string;
@@ -54,6 +55,42 @@ const ROUTES: RouteCase[] = [
   { name: 'codex queue clean', allowed: ['platform_admin', 'operator'], mutation: true, successStatus: 200, send: (h, s) => h.request('/control-api/v1/codex/admin/queue/clean', { method: 'POST', session: s, ...json({ olderThanDays: 7 }) }) },
   { name: 'codex queue job remove', allowed: ['platform_admin'], mutation: true, successStatus: 200, send: (h, s) => h.request('/control-api/v1/codex/admin/queue/jobs/42', { method: 'DELETE', session: s }) },
   { name: 'codex alert acknowledge', allowed: ['platform_admin', 'operator'], mutation: true, successStatus: 200, send: (h, s) => h.request('/control-api/v1/codex/admin/alerts/alert_1_abc/acknowledge', { method: 'POST', session: s }) },
+  { name: 'codex server-side upload', allowed: ['platform_admin', 'content_editor'], mutation: true, successStatus: 201, send: (h, s) => h.request('/control-api/v1/codex/documents/upload', { method: 'POST', session: s, body: uploadForm({ title: 'Doc' }) }) },
+  { name: 'codex page image', allowed: ROLES, mutation: false, successStatus: 200, send: (h, s) => h.request(`/control-api/v1/codex/documents/${DOC}/pages/1/image`, { session: s }) },
+
+  // Operations
+  { name: 'GET /operations/summary', allowed: ['platform_admin', 'operator', 'auditor'], mutation: false, successStatus: 200, send: (h, s) => h.request('/control-api/v1/operations/summary', { session: s }) },
+
+  // Assets
+  { name: 'assets list', allowed: ROLES, mutation: false, successStatus: 200, send: (h, s) => h.request('/control-api/v1/assets/assets?limit=10', { session: s }) },
+  { name: 'assets integrity', allowed: ROLES, mutation: false, successStatus: 200, send: (h, s) => h.request('/control-api/v1/assets/integrity', { session: s }) },
+  { name: 'assets delete-preview', allowed: ROLES, mutation: false, successStatus: 200, send: (h, s) => h.request('/control-api/v1/assets/assets/adm-1/delete-preview', { method: 'POST', session: s, ...json({ referencingCampaignIds: [] }) }) },
+  { name: 'assets metadata update', allowed: ['platform_admin', 'content_editor'], mutation: true, successStatus: 200, send: (h, s) => h.request('/control-api/v1/assets/assets/adm-1', { method: 'PATCH', session: s, ...json({ name: 'Goblin', expectedVersion: 2 }) }) },
+  {
+    name: 'assets upload',
+    allowed: ['platform_admin', 'content_editor'],
+    mutation: true,
+    successStatus: 200,
+    send: (h, s) => {
+      const form = new FormData();
+      form.append('category', 'tokens');
+      form.append('file', new Blob([new Uint8Array([0x89, 0x50, 0x4e, 0x47])], { type: 'image/png' }), 'goblin.png');
+      return h.request('/control-api/v1/assets/assets', { method: 'POST', session: s, body: form });
+    },
+  },
+  { name: 'assets quarantine', allowed: ['platform_admin', 'content_editor'], mutation: true, successStatus: 200, send: (h, s) => h.request('/control-api/v1/assets/assets/adm-1/quarantine', { method: 'POST', session: s, ...json({ expectedVersion: 2 }) }) },
+  { name: 'assets manifest rebuild', allowed: ['platform_admin', 'content_editor'], mutation: true, successStatus: 200, send: (h, s) => h.request('/control-api/v1/assets/jobs/manifest-rebuild?wait=true', { method: 'POST', session: s }) },
+  { name: 'assets permanent delete', allowed: ['platform_admin'], mutation: true, successStatus: 200, send: (h, s) => h.request('/control-api/v1/assets/assets/adm-1/permanent-delete', { method: 'POST', session: s, ...json({ expectedVersion: 3, confirm: true }) }) },
+
+  // Rules
+  { name: 'rules list', allowed: ['platform_admin', 'content_editor', 'auditor'], mutation: false, successStatus: 200, send: (h, s) => h.request('/control-api/v1/rules/entities?type=spell&ruleset=2024', { session: s }) },
+  { name: 'rules create', allowed: ['platform_admin', 'content_editor'], mutation: true, successStatus: 200, send: (h, s) => h.request('/control-api/v1/rules/entities', { method: 'POST', session: s, ...json({ entityType: 'spell', ruleset: '2024', slug: 'fireball', data: {}, sourceLicense: 'srd-5.2' }) }) },
+  { name: 'rules save draft', allowed: ['platform_admin', 'content_editor'], mutation: true, successStatus: 200, send: (h, s) => h.request(`/control-api/v1/rules/entities/${DOC}/draft`, { method: 'PUT', session: s, headers: { 'content-type': 'application/json', 'if-match': '"3"' }, body: JSON.stringify({ data: {} }) }) },
+  { name: 'rules validate', allowed: ['platform_admin', 'content_editor'], mutation: true, successStatus: 200, send: (h, s) => h.request(`/control-api/v1/rules/entities/${DOC}/validate`, { method: 'POST', session: s, ...json({ expectedRevisionNumber: 3 }) }) },
+  { name: 'rules publish', allowed: ['platform_admin'], mutation: true, successStatus: 200, send: (h, s) => h.request(`/control-api/v1/rules/entities/${DOC}/publish`, { method: 'POST', session: s, ...json({ expectedRevisionNumber: 3 }) }) },
+  { name: 'rules rollback', allowed: ['platform_admin'], mutation: true, successStatus: 200, send: (h, s) => h.request(`/control-api/v1/rules/entities/${DOC}/rollback`, { method: 'POST', session: s, ...json({ expectedRevisionNumber: 4, targetRevisionNumber: 2 }) }) },
+  { name: 'rules archive', allowed: ['platform_admin'], mutation: true, successStatus: 200, send: (h, s) => h.request(`/control-api/v1/rules/entities/${DOC}/archive`, { method: 'POST', session: s }) },
+  { name: 'rules unarchive', allowed: ['platform_admin'], mutation: true, successStatus: 200, send: (h, s) => h.request(`/control-api/v1/rules/entities/${DOC}/unarchive`, { method: 'POST', session: s }) },
 ];
 
 describe('role -> permission matrix over HTTP', () => {
@@ -67,6 +104,7 @@ describe('role -> permission matrix over HTTP', () => {
   beforeEach(() => {
     h.store.audit.length = 0;
     h.upstreamCalls.length = 0;
+    h.upstream.respond = codexStub();
   });
 
   for (const route of ROUTES) {

@@ -1,20 +1,32 @@
 import { randomUUID } from 'node:crypto';
 import express, { type ErrorRequestHandler, type Express, type RequestHandler } from 'express';
 import helmet from 'helmet';
+import { assetsProxy } from './assets/proxy.js';
 import { codexProxy } from './codex/proxy.js';
 import { API_PREFIX, type AppDeps } from './deps.js';
 import { ctx, sendError, type RequestContext } from './http/context.js';
 import { apiRateLimit, loadSession } from './http/guard.js';
 import { adminRouter } from './routes/admin.js';
 import { loginRouter, logoutRouter } from './routes/auth.js';
+import { operationsRouter } from './operations/summary.js';
+import { rulesProxy } from './rules/proxy.js';
 
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+/** nginx `$request_id`: 16 random bytes as 32 lowercase hex characters. */
+const NGINX_REQUEST_ID = /^[0-9a-f]{32}$/;
+
+/** Reuses the gateway's request ID when it is a UUID or an nginx `$request_id`. */
+export function inboundRequestId(value: unknown): string | null {
+  if (typeof value !== 'string') return null;
+  if (UUID.test(value)) return value.toLowerCase();
+  return NGINX_REQUEST_ID.test(value) ? value : null;
+}
 const READINESS_TIMEOUT_MS = 2_000;
 
 function requestContext(deps: AppDeps): RequestHandler {
   return (req, res, next) => {
     const inbound = req.headers['x-request-id'];
-    const requestId = typeof inbound === 'string' && UUID.test(inbound) ? inbound.toLowerCase() : randomUUID();
+    const requestId = inboundRequestId(inbound) ?? randomUUID();
     const context: RequestContext = {
       requestId,
       sourceIp: req.ip ?? null,
@@ -88,7 +100,10 @@ export function createApp(deps: AppDeps): Express {
   api.use(apiRateLimit(deps));
   api.use(logoutRouter(deps));
   api.use(adminRouter(deps));
+  api.use(operationsRouter(deps));
   api.use('/codex', codexProxy(deps));
+  api.use('/assets', assetsProxy(deps));
+  api.use('/rules', rulesProxy(deps));
   api.use((_req, res) => sendError(res, 404, 'not_found'));
   app.use(API_PREFIX, api);
 

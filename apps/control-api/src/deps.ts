@@ -1,7 +1,7 @@
 import type { IdentityProvider } from './auth/oidc.js';
 import type { CookieCrypto } from './auth/tokens.js';
-import type { CodexRouteTable } from './codex/allowlist.js';
 import type { Logger } from './logger.js';
+import type { RouteTable } from './proxy/routeTable.js';
 import type { ControlStore } from './store/types.js';
 
 export const API_PREFIX = '/control-api/v1';
@@ -17,6 +17,18 @@ export interface AppConfig {
   docApiUrl: string;
   googleCallbackUrl: string;
   trustProxyHops: number;
+  assetServiceUrl: string;
+  assetServiceSecret: string;
+  backendUrl: string;
+  prometheusUrl: string | null;
+  grafanaUrl: string | null;
+  /** Sent as X-Nexus-Service-Token to the rules admin API when set. */
+  rulesServiceToken: string | null;
+  /** Only presigned URLs on this origin are fetched (codex-minio). */
+  objectStorageOrigin: string;
+  /** Test overrides; production uses the documented constants. */
+  operationsTimeoutMs?: number;
+  codexUploadMaxFileBytes?: number;
 }
 
 export interface AppDeps {
@@ -25,7 +37,9 @@ export interface AppDeps {
   identityProvider: IdentityProvider;
   cookieCrypto: CookieCrypto;
   logger: Logger;
-  codexRoutes: CodexRouteTable;
+  codexRoutes: RouteTable;
+  assetRoutes: RouteTable;
+  rulesRoutes: RouteTable;
   /** Injectable for tests. */
   now: () => Date;
   fetch: typeof fetch;

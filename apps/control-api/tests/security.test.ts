@@ -82,6 +82,11 @@ describe('browser security controls', () => {
       ['index clear', 'DELETE', '/control-api/v1/codex/admin/elasticsearch/clear', undefined],
       ['grant role', 'POST', '/control-api/v1/administrators/grants', { email: 'x@example.com', role: 'auditor' }],
       ['revoke role', 'POST', '/control-api/v1/administrators/revocations', { userId: '0b6f1c1e-3b7a-4d7e-9a51-4a4a2d6f9c11', role: 'auditor' }],
+      ['asset permanent delete', 'POST', '/control-api/v1/assets/assets/adm-1/permanent-delete', { expectedVersion: 3, confirm: true }],
+      ['rules publish', 'POST', '/control-api/v1/rules/entities/0b6f1c1e-3b7a-4d7e-9a51-4a4a2d6f9c11/publish', { expectedRevisionNumber: 3 }],
+      ['rules rollback', 'POST', '/control-api/v1/rules/entities/0b6f1c1e-3b7a-4d7e-9a51-4a4a2d6f9c11/rollback', { expectedRevisionNumber: 4, targetRevisionNumber: 2 }],
+      ['rules archive', 'POST', '/control-api/v1/rules/entities/0b6f1c1e-3b7a-4d7e-9a51-4a4a2d6f9c11/archive', undefined],
+      ['rules unarchive', 'POST', '/control-api/v1/rules/entities/0b6f1c1e-3b7a-4d7e-9a51-4a4a2d6f9c11/unarchive', undefined],
     ] as const;
 
     for (const [name, method, path, body] of cases) {
@@ -100,6 +105,14 @@ describe('browser security controls', () => {
       const s = await h.sessionFor(['content_editor'], { recentAuthAgoMs: RECENT_AUTH_MS * 5 });
       const res = await h.request('/control-api/v1/codex/admin/documents/abc/reprocess', { method: 'POST', session: s });
       expect(res.status).toBe(200);
+      for (const [method, path, body] of [
+        ['PATCH', '/control-api/v1/assets/assets/adm-1', { name: 'x', expectedVersion: 1 }],
+        ['POST', '/control-api/v1/assets/assets/adm-1/quarantine', { expectedVersion: 1 }],
+        ['PUT', '/control-api/v1/rules/entities/0b6f1c1e-3b7a-4d7e-9a51-4a4a2d6f9c11/draft', { expectedRevisionNumber: 1, data: {} }],
+        ['POST', '/control-api/v1/rules/entities/0b6f1c1e-3b7a-4d7e-9a51-4a4a2d6f9c11/validate', { expectedRevisionNumber: 1 }],
+      ] as const) {
+        expect((await h.request(path, { method, session: s, ...json(body) })).status, path).toBe(200);
+      }
     });
 
     it('reports recentAuthUntil on /me', async () => {
@@ -109,7 +122,7 @@ describe('browser security controls', () => {
       expect(body.recentAuthUntil).toBe(new Date(h.clock.now.getTime() - 60_000 + RECENT_AUTH_MS).toISOString());
       expect(body.csrfToken).toBe(s.csrfToken);
       expect(body.roles).toEqual(['auditor']);
-      expect(body.permissions).toEqual(['codex:read', 'audit:read']);
+      expect(body.permissions).toEqual(['codex:read', 'audit:read', 'ops:read', 'assets:read', 'rules:read']);
     });
   });
 
@@ -176,6 +189,30 @@ describe('browser security controls', () => {
     it('replaces a non-UUID request ID', async () => {
       const res = await h.request('/control-api/v1/me', { headers: { 'x-request-id': 'not-a-uuid' } });
       expect(res.headers.get('x-request-id')).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+    });
+
+    it("reuses the gateway's nginx $request_id (32 lowercase hex) and forwards it upstream", async () => {
+      const id = '0f1e2d3c4b5a69788796a5b4c3d2e1f0';
+      const s = await h.sessionFor(['auditor']);
+      const res = await h.request('/control-api/v1/codex/admin/stats', { session: s, headers: { 'x-request-id': id } });
+      expect(res.headers.get('x-request-id')).toBe(id);
+      expect(h.upstreamCalls[0]!.headers['x-request-id']).toBe(id);
+    });
+
+    it('normalizes an uppercase UUID and rejects other request ID shapes', async () => {
+      const upper = '6F1C2B8A-3D4E-4F5A-8B9C-0D1E2F3A4B5C';
+      expect((await h.request('/control-api/v1/me', { headers: { 'x-request-id': upper } })).headers.get('x-request-id')).toBe(upper.toLowerCase());
+      for (const bad of [
+        '0F1E2D3C4B5A69788796A5B4C3D2E1F0', // nginx emits lowercase only
+        '0f1e2d3c4b5a69788796a5b4c3d2e1f', // 31 chars
+        '0f1e2d3c4b5a69788796a5b4c3d2e1f00', // 33 chars
+        '0f1e2d3c4b5a69788796a5b4c3d2e1fg',
+        '0f1e2d3c4b5a6978 8796a5b4c3d2e1f0',
+      ]) {
+        const res = await h.request('/control-api/v1/me', { headers: { 'x-request-id': bad } });
+        expect(res.headers.get('x-request-id'), bad).not.toBe(bad);
+        expect(res.headers.get('x-request-id'), bad).toMatch(/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/);
+      }
     });
 
     it('sets no-store and a restrictive CSP on API responses', async () => {

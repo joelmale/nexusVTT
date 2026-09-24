@@ -11,6 +11,13 @@ export interface ServerConfig {
   trustProxyHops: number;
   port: number;
   googleIssuer: string;
+  assetServiceUrl: string;
+  assetServiceSecret: string;
+  backendUrl: string;
+  prometheusUrl: string | null;
+  grafanaUrl: string | null;
+  rulesServiceToken: string | null;
+  objectStorageOrigin: string;
 }
 
 export class ConfigError extends Error {}
@@ -24,7 +31,13 @@ const REQUIRED_SERVER_VARS = [
   'CONTROL_GOOGLE_CALLBACK_URL',
   'CONTROL_SESSION_SECRET',
   'TRUST_PROXY_HOPS',
+  'ASSET_SERVICE_SECRET',
 ] as const;
+
+export const DEFAULT_ASSET_SERVICE_URL = 'http://asset-server:5003';
+export const DEFAULT_BACKEND_URL = 'http://backend:5001';
+/** Where doc-api's presigned object-storage URLs must point (codex-minio on nexus-internal-net). */
+export const DEFAULT_OBJECT_STORAGE_URL = 'http://codex-minio:9000';
 
 export const CALLBACK_PATH = '/control-api/v1/auth/google/callback';
 
@@ -34,6 +47,41 @@ function isSecureOrigin(url: URL): boolean {
   // still work there for local development.
   return url.protocol === 'http:' && url.hostname === 'localhost';
 }
+
+const httpUrl = z
+  .string()
+  .url()
+  .refine(
+    (value) => {
+      try {
+        const url = new URL(value);
+        return /^https?:$/.test(url.protocol) && !url.username && !url.password;
+      } catch {
+        return false;
+      }
+    },
+    { message: 'must be an http(s) URL without credentials' },
+  );
+
+const OPTIONAL_SERVER_VARS = [
+  'ASSET_SERVICE_URL',
+  'BACKEND_URL',
+  'PROMETHEUS_URL',
+  'GRAFANA_URL',
+  'RULES_ADMIN_SERVICE_TOKEN',
+  'CODEX_OBJECT_STORAGE_URL',
+] as const;
+
+/** Compose renders an unset optional `${VAR:-}` as an empty string; treat it as unset. */
+function withoutEmptyOptionals(env: NodeJS.ProcessEnv): NodeJS.ProcessEnv {
+  const copy: NodeJS.ProcessEnv = { ...env };
+  for (const name of OPTIONAL_SERVER_VARS) {
+    if (copy[name] === '') delete copy[name];
+  }
+  return copy;
+}
+
+const trimSlash = (value: string) => value.replace(/\/+$/, '');
 
 const serverSchema = z
   .object({
@@ -46,6 +94,13 @@ const serverSchema = z
     CONTROL_SESSION_SECRET: z.string().min(32),
     TRUST_PROXY_HOPS: z.string().regex(/^\d{1,2}$/),
     PORT: z.string().regex(/^\d{1,5}$/).optional(),
+    ASSET_SERVICE_SECRET: z.string().min(16),
+    ASSET_SERVICE_URL: httpUrl.optional(),
+    BACKEND_URL: httpUrl.optional(),
+    PROMETHEUS_URL: httpUrl.optional(),
+    GRAFANA_URL: httpUrl.optional(),
+    RULES_ADMIN_SERVICE_TOKEN: z.string().min(16).optional(),
+    CODEX_OBJECT_STORAGE_URL: httpUrl.optional(),
   })
   .superRefine((env, ctx) => {
     const origin = new URL(env.ADMIN_ORIGIN);
@@ -70,7 +125,8 @@ const serverSchema = z
  * Fails fast with the names (never the values) of missing or invalid
  * variables. There are no defaults for identity or secrets.
  */
-export function loadServerConfig(env: NodeJS.ProcessEnv): ServerConfig {
+export function loadServerConfig(rawEnv: NodeJS.ProcessEnv): ServerConfig {
+  const env = withoutEmptyOptionals(rawEnv);
   const missing = REQUIRED_SERVER_VARS.filter((name) => !env[name]);
   if (missing.length > 0) {
     throw new ConfigError(`Missing required environment variables: ${missing.join(', ')}`);
@@ -95,6 +151,13 @@ export function loadServerConfig(env: NodeJS.ProcessEnv): ServerConfig {
     trustProxyHops: Number(value.TRUST_PROXY_HOPS),
     port: value.PORT ? Number(value.PORT) : 4000,
     googleIssuer: 'https://accounts.google.com',
+    assetServiceUrl: trimSlash(value.ASSET_SERVICE_URL ?? DEFAULT_ASSET_SERVICE_URL),
+    assetServiceSecret: value.ASSET_SERVICE_SECRET,
+    backendUrl: trimSlash(value.BACKEND_URL ?? DEFAULT_BACKEND_URL),
+    prometheusUrl: value.PROMETHEUS_URL ? trimSlash(value.PROMETHEUS_URL) : null,
+    grafanaUrl: value.GRAFANA_URL ?? null,
+    rulesServiceToken: value.RULES_ADMIN_SERVICE_TOKEN ?? null,
+    objectStorageOrigin: new URL(value.CODEX_OBJECT_STORAGE_URL ?? DEFAULT_OBJECT_STORAGE_URL).origin,
   };
 }
 

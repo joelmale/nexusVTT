@@ -23,14 +23,21 @@ export const PERMISSIONS = [
   'codex:operate',
   'audit:read',
   'admins:manage',
+  'ops:read',
+  'assets:read',
+  'assets:write',
+  'assets:delete',
+  'rules:read',
+  'rules:write',
+  'rules:publish',
 ] as const;
 export type Permission = (typeof PERMISSIONS)[number];
 
 export const ROLE_PERMISSIONS: Readonly<Record<Role, readonly Permission[]>> = {
   platform_admin: PERMISSIONS,
-  content_editor: ['codex:read', 'codex:write'],
-  operator: ['codex:read', 'codex:operate', 'audit:read'],
-  auditor: ['codex:read', 'audit:read'],
+  content_editor: ['codex:read', 'codex:write', 'assets:read', 'assets:write', 'rules:read', 'rules:write'],
+  operator: ['codex:read', 'codex:operate', 'audit:read', 'ops:read', 'assets:read'],
+  auditor: ['codex:read', 'audit:read', 'ops:read', 'assets:read', 'rules:read'],
 };
 
 /**

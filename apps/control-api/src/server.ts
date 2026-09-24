@@ -1,9 +1,12 @@
 import { createApp } from './app.js';
 import { OpenIdProvider } from './auth/oidc.js';
 import { CookieCrypto } from './auth/tokens.js';
-import { CODEX_ALLOWLIST, CodexRouteTable } from './codex/allowlist.js';
+import { ASSET_ALLOWLIST } from './assets/allowlist.js';
+import { CODEX_ALLOWLIST } from './codex/allowlist.js';
 import { ConfigError, loadServerConfig } from './config.js';
 import { createLogger, type LogLevel } from './logger.js';
+import { RouteTable } from './proxy/routeTable.js';
+import { RULES_ALLOWLIST } from './rules/allowlist.js';
 import { PgControlStore } from './store/pgStore.js';
 
 const LEVELS = new Set<LogLevel>(['debug', 'info', 'warn', 'error']);
@@ -34,7 +37,9 @@ function main(): void {
     }),
     cookieCrypto: new CookieCrypto(config.sessionSecret),
     logger,
-    codexRoutes: new CodexRouteTable(CODEX_ALLOWLIST),
+    codexRoutes: new RouteTable(CODEX_ALLOWLIST),
+    assetRoutes: new RouteTable(ASSET_ALLOWLIST),
+    rulesRoutes: new RouteTable(RULES_ALLOWLIST),
     now: () => new Date(),
     fetch: globalThis.fetch,
   });

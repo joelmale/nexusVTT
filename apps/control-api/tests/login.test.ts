@@ -96,6 +96,28 @@ describe('Google login flow', () => {
     expect(safeReturnTo('/ok')).toBe('/ok');
   });
 
+  it('accepts only same-origin relative paths for returnTo', () => {
+    for (const ok of ['/', '/documents', '/documents?page=2&q=a%20b', '/rules/entities/abc#history', '/a/./b', '/%2F%2Fevil.example']) {
+      expect(safeReturnTo(ok), ok).toBe(ok);
+    }
+    for (const bad of [
+      '', 'documents', './x', '../x', '//evil.example', '///evil.example', '/\\evil.example', '\\\\evil.example',
+      '/x\\y', 'https://evil.example/x', 'http:/evil.example', 'javascript:alert(1)', 'data:text/html,x',
+      '/ok\r\nSet-Cookie: x=1', '/ok\nx', '/ok\tx', '/ok x', '/ok\u0000', '/ok\u007f', '/café', `/${'a'.repeat(512)}`,
+      42, null, undefined, ['/ok'],
+    ]) {
+      expect(safeReturnTo(bad), JSON.stringify(bad)).toBeNull();
+    }
+  });
+
+  it('ignores an unsafe returnTo and redirects to / after login', async () => {
+    seedAdmin();
+    const { cookiePair, state } = await beginLogin(h, `?returnTo=${encodeURIComponent('//evil.example/phish')}`);
+    const res = await callback(h, cookiePair, `code=abc&state=${state}`);
+    expect(res.status).toBe(302);
+    expect(res.headers.get('location')).toBe('/');
+  });
+
   const failures: Array<[string, () => void, (h: Harness, cookie: string, state: string) => Promise<Response>, number, string]> = [
     ['missing login cookie', () => undefined, (hh, _c, state) => callback(hh, null, `code=abc&state=${state}`), 400, 'invalid_login_state'],
     ['bad state', () => undefined, (hh, c) => callback(hh, c, 'code=abc&state=forged-state-value-000000'), 400, 'state_mismatch'],

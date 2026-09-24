@@ -18,14 +18,18 @@ const VALID_ENV = {
   CONTROL_GOOGLE_CALLBACK_URL: 'https://admin.internal.nexusvtt.com/control-api/v1/auth/google/callback',
   CONTROL_SESSION_SECRET: SECRET,
   TRUST_PROXY_HOPS: '1',
+  ASSET_SERVICE_SECRET: 'asset-service-secret-value-0123',
 };
 
 describe('permissions', () => {
   it('matches the ADR role table', () => {
-    expect(permissionsFor(['platform_admin'])).toEqual(['codex:read', 'codex:write', 'codex:delete', 'codex:maintain', 'codex:operate', 'audit:read', 'admins:manage']);
-    expect(permissionsFor(['content_editor'])).toEqual(['codex:read', 'codex:write']);
-    expect(permissionsFor(['operator'])).toEqual(['codex:read', 'codex:operate', 'audit:read']);
-    expect(permissionsFor(['auditor'])).toEqual(['codex:read', 'audit:read']);
+    expect(permissionsFor(['platform_admin'])).toEqual([
+      'codex:read', 'codex:write', 'codex:delete', 'codex:maintain', 'codex:operate', 'audit:read', 'admins:manage',
+      'ops:read', 'assets:read', 'assets:write', 'assets:delete', 'rules:read', 'rules:write', 'rules:publish',
+    ]);
+    expect(permissionsFor(['content_editor'])).toEqual(['codex:read', 'codex:write', 'assets:read', 'assets:write', 'rules:read', 'rules:write']);
+    expect(permissionsFor(['operator'])).toEqual(['codex:read', 'codex:operate', 'audit:read', 'ops:read', 'assets:read']);
+    expect(permissionsFor(['auditor'])).toEqual(['codex:read', 'audit:read', 'ops:read', 'assets:read', 'rules:read']);
     expect(permissionsFor([])).toEqual([]);
     expect(ROLE_PERMISSIONS.operator).not.toContain('codex:maintain');
   });
@@ -64,6 +68,55 @@ describe('configuration', () => {
     expect(() => loadServerConfig({ ...VALID_ENV, ADMIN_ORIGIN: 'https://admin.internal.nexusvtt.com/app' })).toThrow(/ADMIN_ORIGIN/);
     expect(() => loadServerConfig({ ...VALID_ENV, CONTROL_GOOGLE_CALLBACK_URL: 'https://evil.example/control-api/v1/auth/google/callback' })).toThrow(/CONTROL_GOOGLE_CALLBACK_URL/);
     expect(() => loadServerConfig({ ...VALID_ENV, TRUST_PROXY_HOPS: 'true' })).toThrow(/TRUST_PROXY_HOPS/);
+  });
+
+  it('defaults the wave-2 upstreams and leaves optional integrations off', () => {
+    const config = loadServerConfig(VALID_ENV);
+    expect(config.assetServiceUrl).toBe('http://asset-server:5003');
+    expect(config.assetServiceSecret).toBe(VALID_ENV.ASSET_SERVICE_SECRET);
+    expect(config.backendUrl).toBe('http://backend:5001');
+    expect(config.prometheusUrl).toBeNull();
+    expect(config.grafanaUrl).toBeNull();
+    expect(config.rulesServiceToken).toBeNull();
+    expect(config.objectStorageOrigin).toBe('http://codex-minio:9000');
+  });
+
+  it('reads optional integrations and treats empty values as unset', () => {
+    const config = loadServerConfig({
+      ...VALID_ENV,
+      ASSET_SERVICE_URL: 'http://assets:6000/',
+      BACKEND_URL: 'http://vtt:5001',
+      PROMETHEUS_URL: 'http://prometheus:9090/',
+      GRAFANA_URL: 'https://admin.internal.nexusvtt.com/grafana/',
+      RULES_ADMIN_SERVICE_TOKEN: 'rules-service-token-0123456789',
+      CODEX_OBJECT_STORAGE_URL: 'http://minio.internal:9000/',
+    });
+    expect(config.assetServiceUrl).toBe('http://assets:6000');
+    expect(config.backendUrl).toBe('http://vtt:5001');
+    expect(config.prometheusUrl).toBe('http://prometheus:9090');
+    expect(config.grafanaUrl).toBe('https://admin.internal.nexusvtt.com/grafana/');
+    expect(config.rulesServiceToken).toBe('rules-service-token-0123456789');
+    expect(config.objectStorageOrigin).toBe('http://minio.internal:9000');
+    const empty = loadServerConfig({ ...VALID_ENV, PROMETHEUS_URL: '', GRAFANA_URL: '', RULES_ADMIN_SERVICE_TOKEN: '', BACKEND_URL: '' });
+    expect(empty.prometheusUrl).toBeNull();
+    expect(empty.grafanaUrl).toBeNull();
+    expect(empty.rulesServiceToken).toBeNull();
+    expect(empty.backendUrl).toBe('http://backend:5001');
+  });
+
+  it('fails fast on a missing asset secret or invalid integration values, naming only the variable', () => {
+    const { ASSET_SERVICE_SECRET: _omit, ...rest } = VALID_ENV;
+    expect(() => loadServerConfig(rest)).toThrow(/Missing required environment variables: ASSET_SERVICE_SECRET/);
+    expect(() => loadServerConfig({ ...VALID_ENV, ASSET_SERVICE_SECRET: 'short' })).toThrow(/ASSET_SERVICE_SECRET/);
+    expect(() => loadServerConfig({ ...VALID_ENV, PROMETHEUS_URL: 'file:///etc/passwd' })).toThrow(/PROMETHEUS_URL/);
+    expect(() => loadServerConfig({ ...VALID_ENV, GRAFANA_URL: 'not a url' })).toThrow(/GRAFANA_URL/);
+    expect(() => loadServerConfig({ ...VALID_ENV, BACKEND_URL: 'http://user:pw@backend:5001' })).toThrow(/BACKEND_URL/);
+    expect(() => loadServerConfig({ ...VALID_ENV, RULES_ADMIN_SERVICE_TOKEN: 'short' })).toThrow(/RULES_ADMIN_SERVICE_TOKEN/);
+    try {
+      loadServerConfig({ ...VALID_ENV, ASSET_SERVICE_SECRET: 'tiny-secret' });
+    } catch (error) {
+      expect((error as Error).message).not.toContain('tiny-secret');
+    }
   });
 });
 

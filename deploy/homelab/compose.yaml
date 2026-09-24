@@ -156,6 +156,13 @@ services:
       CONTROL_GOOGLE_CALLBACK_URL: https://admin.internal.nexusvtt.com/control-api/v1/auth/google/callback
       CONTROL_SESSION_SECRET: ${CONTROL_SESSION_SECRET:?CONTROL_SESSION_SECRET is required, see deploy/homelab/.env.example}
       TRUST_PROXY_HOPS: 1
+      # Wave 2 (control-api-adr.md): asset admin, operations summary, rules.
+      ASSET_SERVICE_URL: http://asset-server:5003
+      ASSET_SERVICE_SECRET: ${ASSET_SERVICE_SECRET:?ASSET_SERVICE_SECRET is required, see deploy/homelab/.env.example}
+      BACKEND_URL: http://backend:5001
+      PROMETHEUS_URL: ${CONTROL_PROMETHEUS_URL:-}
+      GRAFANA_URL: ${CONTROL_GRAFANA_URL:-}
+      RULES_ADMIN_SERVICE_TOKEN: ${RULES_ADMIN_SERVICE_TOKEN:-}
     # Private admin control plane (control-api-adr.md): the only browser-facing
     # API on the :8081 admin listener, and the only component that calls
     # doc-api on an administrator's behalf. nexus-internal-net reaches
@@ -226,6 +233,9 @@ services:
       JWT_SECRET: ${CODEX_JWT_SECRET:?CODEX_JWT_SECRET is required, see deploy/homelab/.env.example}
       AUTH_DISABLED: 'true'
       EMBEDDINGS_PROVIDER: hash
+      # Optional shared secret for the rules admin API; set the same value on
+      # control-api (RULES_ADMIN_SERVICE_TOKEN). Unset disables the check.
+      RULES_ADMIN_SERVICE_TOKEN: ${RULES_ADMIN_SERVICE_TOKEN:-}
       METRICS_AUTH_TOKEN: ${CODEX_METRICS_AUTH_TOKEN:?CODEX_METRICS_AUTH_TOKEN is required, see deploy/homelab/.env.example}
     # Phase 0 containment (private-admin-control-plane.md invariant 2): doc-api
     # runs with AUTH_DISABLED=true, so it must never sit on a network shared

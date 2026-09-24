@@ -14,14 +14,25 @@ Authenticated, authorized, and audited API for the private admin console
   `GET /me`). Destructive/index/admin routes need a login within 10 minutes,
   else `401 {"error":"reauth_required"}`.
 - Codex: `/control-api/v1/codex/<path>` -> doc-api `/api/<path>` only for
-  entries in `src/codex/allowlist.ts`; anything else is `404`.
+  entries in `src/codex/allowlist.ts`; anything else is `404`. Uploads
+  (`POST codex/documents/upload`) and page images
+  (`GET codex/documents/:id/pages/:page/image`) talk to object storage
+  server-side.
+- Assets: `/control-api/v1/assets/<path>` -> asset-service
+  `/internal/admin/<path>` (`src/assets/allowlist.ts`).
+- Rules: `/control-api/v1/rules/<path>` -> doc-api `/api/admin/rules/<path>`
+  (`src/rules/allowlist.ts`).
+- Operations: `GET /control-api/v1/operations/summary` (`src/operations/`).
 
 ## Environment
 
 `CONTROL_DATABASE_URL`, `DOC_API_URL`, `ADMIN_ORIGIN`, `GOOGLE_CLIENT_ID`,
 `GOOGLE_CLIENT_SECRET`, `CONTROL_GOOGLE_CALLBACK_URL`, `CONTROL_SESSION_SECRET`
-(>= 32 chars), `TRUST_PROXY_HOPS`. Optional: `PORT`, `LOG_LEVEL`. Startup fails
-if any required variable is missing or invalid.
+(>= 32 chars), `TRUST_PROXY_HOPS`, `ASSET_SERVICE_SECRET` (>= 16 chars).
+Optional: `PORT`, `LOG_LEVEL`, `ASSET_SERVICE_URL`, `BACKEND_URL`,
+`PROMETHEUS_URL`, `GRAFANA_URL`, `RULES_ADMIN_SERVICE_TOKEN`,
+`CODEX_OBJECT_STORAGE_URL`. Startup fails if any required variable is missing
+or invalid.
 
 ## Database
 
