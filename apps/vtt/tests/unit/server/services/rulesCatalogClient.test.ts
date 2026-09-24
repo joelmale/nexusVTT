@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import type { CatalogEntitiesResponse, CatalogManifest } from '@nexus/rules-contracts';
 import {
+  DEFAULT_MAX_ENTITIES_ENTRIES,
   RulesCatalogCache,
   RulesCatalogUpstreamClient,
   createRulesCatalogUpstreamClient,
@@ -11,8 +12,8 @@ function manifestBody(catalogVersion: number): CatalogManifest {
   return { catalogVersion, publishedAt: null, etag: `W/"${catalogVersion}"`, counts: {} as never };
 }
 
-function entitiesBody(catalogVersion: number): CatalogEntitiesResponse {
-  return { catalogVersion, since: 0, entities: [], removed: [], skipped: [] };
+function entitiesBody(catalogVersion: number, since = 0): CatalogEntitiesResponse {
+  return { catalogVersion, since, entities: [], removed: [], skipped: [] };
 }
 
 describe('RulesCatalogUpstreamClient', () => {
@@ -178,6 +179,74 @@ describe('RulesCatalogCache', () => {
     expect(items).toEqual({ status: 200, body: entitiesBody(2), etag: 'W/"b"' });
     expect(spellsAgain).toEqual(spells);
     expect(fetchEntities).toHaveBeenCalledTimes(2);
+  });
+
+  it('bounds the entities cache and evicts the least recently used query', async () => {
+    const fetchEntities = vi.fn(async (query: { since: number }) => ({
+      status: 200 as const,
+      body: entitiesBody(100, query.since),
+      etag: `W/"100-${query.since}"`,
+    }));
+    const cache = new RulesCatalogCache(fakeUpstream({ fetchEntities }), 60_000, 3);
+
+    for (const since of [0, 1, 2]) await cache.getEntities({ since }, null);
+    // Touch since=0 so since=1 becomes the least recently used.
+    await cache.getEntities({ since: 0 }, null);
+    expect(fetchEntities).toHaveBeenCalledTimes(3);
+    await cache.getEntities({ since: 3 }, null);
+    expect(cache.entitiesCacheSize).toBe(3);
+
+    await cache.getEntities({ since: 0 }, null);
+    expect(fetchEntities).toHaveBeenCalledTimes(4);
+    await cache.getEntities({ since: 1 }, null);
+    expect(fetchEntities).toHaveBeenCalledTimes(5);
+  });
+
+  it('never grows past the default bound under many distinct since values', async () => {
+    const fetchEntities = vi.fn(async (query: { since: number }) => ({
+      status: 200 as const,
+      body: entitiesBody(1_000, query.since),
+      etag: `W/"1000-${query.since}"`,
+    }));
+    const cache = new RulesCatalogCache(fakeUpstream({ fetchEntities }), 60_000);
+    for (let since = 0; since < 500; since++) await cache.getEntities({ since }, null);
+    expect(cache.entitiesCacheSize).toBe(DEFAULT_MAX_ENTITIES_ENTRIES);
+  });
+
+  it('answers but never caches a since beyond the published catalog version', async () => {
+    const fetchEntities = vi.fn(async (query: { since: number }) => ({
+      status: 200 as const,
+      body: entitiesBody(5, query.since),
+      etag: `W/"5-${query.since}"`,
+    }));
+    const cache = new RulesCatalogCache(fakeUpstream({ fetchEntities }), 60_000);
+
+    for (const since of [6, 9_007_199_254_740_991, 6]) {
+      const result = await cache.getEntities({ since }, null);
+      expect(result).toMatchObject({ status: 200 });
+    }
+    expect(fetchEntities).toHaveBeenCalledTimes(3);
+    expect(cache.entitiesCacheSize).toBe(0);
+
+    await cache.getEntities({ since: 5 }, null);
+    await cache.getEntities({ since: 5 }, null);
+    expect(fetchEntities).toHaveBeenCalledTimes(4);
+    expect(cache.entitiesCacheSize).toBe(1);
+  });
+
+  it('still revalidates an expired entry with its ETag after LRU bookkeeping', async () => {
+    const fetchEntities = vi
+      .fn()
+      .mockResolvedValueOnce({ status: 200, body: entitiesBody(2), etag: 'W/"a"' })
+      .mockResolvedValueOnce({ status: 304, etag: 'W/"a"' });
+    const cache = new RulesCatalogCache(fakeUpstream({ fetchEntities }), 0);
+
+    await cache.getEntities({ since: 0 }, null);
+    const second = await cache.getEntities({ since: 0 }, null);
+
+    expect(second).toEqual({ status: 200, body: entitiesBody(2), etag: 'W/"a"' });
+    expect(fetchEntities).toHaveBeenNthCalledWith(2, { since: 0 }, 'W/"a"');
+    expect(cache.entitiesCacheSize).toBe(1);
   });
 
   it('returns 503 for entities when doc-api is down', async () => {
