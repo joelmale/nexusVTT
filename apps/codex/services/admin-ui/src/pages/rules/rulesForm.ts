@@ -18,6 +18,7 @@ import {
   SpellRangeSchema,
   SpellSchoolSchema,
   parseRulesEntityData,
+  type Ability,
   type JsonPatchOperation,
   type RulesEntityType,
   type RulesValidationIssue,
@@ -200,7 +201,7 @@ const MONSTER_GROUPS: FieldGroup[] = [
   {
     title: 'Abilities',
     fields: [
-      ...ABILITIES.map((ability): FieldSpec => ({ path: ['abilityScores', ability], label: ability.toUpperCase(), kind: 'number' })),
+      ...ABILITIES.map((ability: Ability): FieldSpec => ({ path: ['abilityScores', ability], label: ability.toUpperCase(), kind: 'number' })),
       { path: ['savingThrows'], label: 'Saving throws', kind: 'json', optional: true, hint: '{ "dex": 5, "wis": 3 }' },
       { path: ['skills'], label: 'Skills', kind: 'json', optional: true, hint: '{ "perception": 4, "stealth": 6 }' },
     ],
@@ -361,6 +362,10 @@ export function defaultRulesData(type: RulesEntityType, ruleset: Ruleset, name: 
         traits: [],
         actions: [],
       }
+    default: {
+      const _exhaustive: never = type
+      throw new Error(`Unsupported rules entity type: ${_exhaustive as string}`)
+    }
   }
 }
 

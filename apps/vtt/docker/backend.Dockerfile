@@ -24,6 +24,8 @@ COPY --chown=nodejs:nodejs apps/vtt/package.json ./apps/vtt/package.json
 COPY --chown=nodejs:nodejs apps/vtt/apps/generator-hub/package.json ./apps/vtt/apps/generator-hub/package.json
 COPY --chown=nodejs:nodejs apps/vtt/services/asset-service/package.json ./apps/vtt/services/asset-service/package.json
 COPY --chown=nodejs:nodejs packages/character-contracts/package.json ./packages/character-contracts/package.json
+COPY --chown=nodejs:nodejs packages/game-contracts/package.json ./packages/game-contracts/package.json
+COPY --chown=nodejs:nodejs packages/rules-contracts/package.json ./packages/rules-contracts/package.json
 
 # The VTT postinstall applies patches and synchronizes the packaged dice assets.
 COPY --chown=nodejs:nodejs apps/vtt/patches ./apps/vtt/patches
@@ -35,6 +37,8 @@ WORKDIR /workspace
 RUN npm ci \
     --workspace=nexus-vtt \
     --workspace=@nexus/character-contracts \
+    --workspace=@nexus/game-contracts \
+    --workspace=@nexus/rules-contracts \
     --include-workspace-root \
     --legacy-peer-deps
 
@@ -42,6 +46,8 @@ COPY --chown=nodejs:nodejs apps/vtt ./apps/vtt
 COPY --chown=nodejs:nodejs packages ./packages
 
 RUN npm run build --workspace=@nexus/character-contracts && \
+    npm run build --workspace=@nexus/game-contracts && \
+    npm run build --workspace=@nexus/rules-contracts && \
     npm run build:server --workspace=nexus-vtt
 
 # Default port — must match the server default (index.ts) and the health check below.

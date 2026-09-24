@@ -9,6 +9,7 @@ WORKDIR /workspace
 COPY package.json package-lock.json ./
 COPY apps/forge/package.json ./apps/forge/
 COPY packages/character-contracts/package.json ./packages/character-contracts/
+COPY packages/game-contracts/package.json ./packages/game-contracts/
 COPY packages/character-creator/package.json ./packages/character-creator/
 # The creator's `prepare` hook runs during install, so its build script has to
 # exist by then. It no-ops until the style sources arrive with the COPY below.
@@ -19,7 +20,7 @@ COPY packages/document-contracts/package.json ./packages/document-contracts/
 # own dependencies must be installed as well — Forge's nested copies under
 # apps/forge/node_modules are not resolvable from packages/.
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --workspace=nexus-forge --workspace=@nexus/character-creator \
+    npm ci --workspace=nexus-forge --workspace=@nexus/character-creator --workspace=@nexus/game-contracts \
     --include-workspace-root
 
 COPY apps/forge ./apps/forge
@@ -29,6 +30,7 @@ COPY packages ./packages
 # declaration output has to exist before Forge's bundle resolves it.
 RUN --mount=type=cache,target=/workspace/node_modules/.vite \
     npm run build --workspace=@nexus/character-contracts \
+    && npm run build --workspace=@nexus/game-contracts \
     && npm run build --workspace=@nexus/character-creator \
     && npm run build --workspace=nexus-forge
 

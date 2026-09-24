@@ -39,6 +39,12 @@
       ],
       "@nexus/game-contracts/*": [
         "../../packages/game-contracts/src/*"
+      ],
+      "@nexus/rules-contracts": [
+        "../../packages/rules-contracts/src/index.ts"
+      ],
+      "@nexus/rules-contracts/*": [
+        "../../packages/rules-contracts/src/*"
       ]
     }
   },

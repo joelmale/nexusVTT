@@ -32,6 +32,8 @@ COPY package.json package-lock.json .npmrc ./
 COPY apps/vtt/package.json ./apps/vtt/package.json
 COPY apps/vtt/apps/generator-hub/package.json ./apps/vtt/apps/generator-hub/package.json
 COPY packages/character-contracts/package.json ./packages/character-contracts/package.json
+COPY packages/game-contracts/package.json ./packages/game-contracts/package.json
+COPY packages/rules-contracts/package.json ./packages/rules-contracts/package.json
 COPY packages/character-creator/package.json ./packages/character-creator/package.json
 COPY packages/character-creator/scripts ./packages/character-creator/scripts
 COPY packages/document-contracts/package.json ./packages/document-contracts/package.json
@@ -42,6 +44,8 @@ RUN npm ci \
     --workspace=nexus-vtt \
     --workspace=generator-hub \
     --workspace=@nexus/character-contracts \
+    --workspace=@nexus/game-contracts \
+    --workspace=@nexus/rules-contracts \
     --workspace=@nexus/character-creator \
     --include-workspace-root \
     --legacy-peer-deps
@@ -57,6 +61,8 @@ ENV VITE_BUILD_VERSION=$COMMIT_SHA
 ENV VITE_DELTA_SYNC=$VITE_DELTA_SYNC
 
 RUN npm run build --workspace=@nexus/character-contracts && \
+    npm run build --workspace=@nexus/game-contracts && \
+    npm run build --workspace=@nexus/rules-contracts && \
     npm run build --workspace=@nexus/character-creator && \
     npm run build --workspace=nexus-vtt && \
     npm run build --workspace=generator-hub
@@ -70,6 +76,7 @@ WORKDIR /workspace
 COPY package.json package-lock.json ./
 COPY apps/forge/package.json ./apps/forge/package.json
 COPY packages/character-contracts/package.json ./packages/character-contracts/package.json
+COPY packages/game-contracts/package.json ./packages/game-contracts/package.json
 COPY packages/character-creator/package.json ./packages/character-creator/package.json
 COPY packages/character-creator/scripts ./packages/character-creator/scripts
 COPY packages/document-contracts/package.json ./packages/document-contracts/package.json
@@ -77,6 +84,7 @@ COPY packages/document-contracts/package.json ./packages/document-contracts/pack
 RUN npm ci \
     --workspace=nexus-forge \
     --workspace=@nexus/character-contracts \
+    --workspace=@nexus/game-contracts \
     --workspace=@nexus/character-creator \
     --include-workspace-root \
     --legacy-peer-deps
@@ -85,6 +93,7 @@ COPY apps/forge ./apps/forge
 COPY packages ./packages
 
 RUN npm run build --workspace=@nexus/character-contracts && \
+    npm run build --workspace=@nexus/game-contracts && \
     npm run build --workspace=@nexus/character-creator && \
     npm run build --workspace=nexus-forge
 
@@ -114,19 +123,23 @@ WORKDIR /workspace
 
 COPY package.json package-lock.json ./
 COPY apps/codex/services/admin-ui/package.json ./apps/codex/services/admin-ui/package.json
+COPY packages/rules-contracts/package.json ./packages/rules-contracts/package.json
 
 RUN npm ci \
     --workspace=admin-ui \
+    --workspace=@nexus/rules-contracts \
     --include-workspace-root \
     --legacy-peer-deps
 
 COPY apps/codex/services/admin-ui ./apps/codex/services/admin-ui
+COPY packages ./packages
 
 # Served at / on the private admin listener (:8081), never under the public
 # VTT root. See apps/docs/platform/private-admin-control-plane.md.
 ENV ADMIN_UI_BASE=/
 
-RUN npm run build --workspace=admin-ui
+RUN npm run build --workspace=@nexus/rules-contracts && \
+    npm run build --workspace=admin-ui
 
 
 # Stage 6: Unified Production Gateway
