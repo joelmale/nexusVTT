@@ -74,6 +74,19 @@ test('production serves the complete dice runtime asset graph', async ({
   }
 });
 
+test('the bundled Character Forge renders outside the VTT shell', async ({
+  diagnostics,
+  page,
+}) => {
+  await page.goto('/forge/');
+
+  await expect(page).toHaveTitle('NexusForge');
+  await expect(
+    page.getByRole('button', { name: 'New Character' }),
+  ).toBeVisible();
+  expect(diagnostics.pageErrors).toEqual([]);
+});
+
 test('the warmed production shell reloads while offline', async ({
   context,
   diagnostics,

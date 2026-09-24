@@ -9,7 +9,7 @@ import {
   type CharacterCreationResult,
 } from '@nexus/character-creator';
 import { LevelUpWizard } from './components/LevelUpWizard/LevelUpWizard';
-import { CharacterSheet } from './components/CharacterSheet';
+import { CharacterSheet } from './components/CharacterSheet/CharacterSheet';
 import NewCharacterModal from './components/NewCharacterModal';
 import ManualEntryScreen from './components/ManualEntryScreen';
 import { MonsterLibrary, MonsterStatBlock, CreateMonsterModal, EmbeddableMonsterPage, EmbeddableEncounterPage } from './components/MonsterLibrary';

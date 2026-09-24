@@ -92,11 +92,6 @@ export default defineConfig({
           if (id.includes('node_modules/@3d-dice')) {
             return 'dice-3d';
           }
-
-          // Put all other node_modules into a 'vendor' chunk
-          if (id.includes('node_modules')) {
-            return 'vendor';
-          }
         },
       },
     },

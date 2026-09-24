@@ -25,6 +25,21 @@ describe('Vite PWA Configuration', () => {
     });
   });
 
+  it('should exclude sibling static apps from navigateFallbackDenylist', () => {
+    const content = fs.readFileSync(viteConfigPath, 'utf-8');
+
+    const expectedDenylists = [
+      '/^\\/generator-hub/',
+      '/^\\/codex-dm/',
+      '/^\\/codex-admin/',
+      '/^\\/forge/',
+    ];
+
+    expectedDenylists.forEach((pattern) => {
+      expect(content).toContain(pattern);
+    });
+  });
+
   it('should ignore all map generators in globIgnores', () => {
     const content = fs.readFileSync(viteConfigPath, 'utf-8');
 
