@@ -87,6 +87,23 @@ Run the focused tests with:
 npm run test:ci-report
 ```
 
+# Release promotion policy
+
+`release-promotion.mjs` checks the validated source against remote `main`
+immediately before publishing mutable release tags. If a newer push has
+superseded the run, promotion is recorded as `superseded` and registry writes
+and release-manifest upload are skipped. Validation and immutable image builds
+remain required, and lookup, build, upload, or registry errors still fail CI.
+Explicit tag releases keep their existing promotion behavior.
+
+The delivery gate checks both the eligibility decision and the publication
+step outcome, so a skipped publication only succeeds for a superseded main
+run. Compose continues to consume `latest`; stale runs cannot replace it.
+
+```powershell
+npx vitest run --config scripts/ci/release-promotion.vitest.config.mjs --coverage
+```
+
 # Gateway route matrix
 
 `gateway-route-matrix.sh` runs the real `apps/vtt/docker/nginx.conf` in the

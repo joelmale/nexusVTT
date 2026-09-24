@@ -208,6 +208,10 @@ jobs:
         run: npm run check:workspace-lock
         working-directory: ${{ github.workspace }}
 
+      - name: Test release promotion policy
+        run: npx vitest run --config scripts/ci/release-promotion.vitest.config.mjs --coverage
+        working-directory: ${{ github.workspace }}
+
       - name: Build shared contracts
         run: npm run build:contracts
         working-directory: ${{ github.workspace }}
@@ -791,6 +795,9 @@ jobs:
     name: Promote validated release manifest
     if: ${{ always() && needs.publish-images.result == 'success' }}
     needs: [changes, required, publish-images]
+    outputs:
+      disposition: ${{ steps.eligibility.outputs.disposition }}
+      publication: ${{ steps.promotion.outcome }}
     runs-on: ubuntu-latest
     timeout-minutes: 15
     concurrency:
@@ -806,22 +813,21 @@ jobs:
           ref: ${{ needs.changes.outputs.source_sha }}
           fetch-depth: 0
 
-      - name: Reject stale main promotion
-        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-        shell: bash
+      - name: Check release promotion eligibility
+        id: eligibility
+        working-directory: ${{ github.workspace }}
         env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REF: ${{ github.ref }}
           SOURCE_SHA: ${{ needs.changes.outputs.source_sha }}
-        run: |
-          current_main=$(git ls-remote origin refs/heads/main | cut -f1)
-          if [[ "$current_main" != "$SOURCE_SHA" ]]; then
-            echo "refusing stale promotion for $SOURCE_SHA; main is $current_main" >&2
-            exit 1
-          fi
+        run: node scripts/ci/release-promotion.mjs
 
       - name: Set up Docker Buildx
+        if: steps.eligibility.outputs.disposition == 'eligible'
         uses: docker/setup-buildx-action@v4
 
       - name: Log in to GitHub Container Registry
+        if: steps.eligibility.outputs.disposition == 'eligible'
         uses: docker/login-action@v4
         with:
           registry: ghcr.io
@@ -829,6 +835,8 @@ jobs:
           password: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Promote immutable digests and write release manifest
+        id: promotion
+        if: steps.eligibility.outputs.disposition == 'eligible'
         shell: bash
         working-directory: ${{ github.workspace }}
         env:
@@ -862,6 +870,7 @@ jobs:
           printf '],"version":"%s"}\n' "$version" >> release/images.json
 
       - name: Upload complete image manifest
+        if: steps.eligibility.outputs.disposition == 'eligible'
         uses: actions/upload-artifact@v7
         with:
           name: release-images-${{ needs.changes.outputs.source_sha }}
@@ -1034,10 +1043,27 @@ jobs:
           GATE_RESULT: ${{ needs.required.result }}
           BUILD_RESULT: ${{ needs.publish-images.result }}
           PROMOTION_RESULT: ${{ needs.promote-release.result }}
+          PROMOTION_DISPOSITION: ${{ needs.promote-release.outputs.disposition }}
+          PUBLICATION_RESULT: ${{ needs.promote-release.outputs.publication }}
           CANDIDATE_RESULT: ${{ needs.candidate-images.result }}
           DOCS_RESULT: ${{ needs.deploy-docs.result }}
         run: |
           [[ "$GATE_RESULT" == 'success' ]]
+
+          if [[ "$PROMOTION_RESULT" == 'success' ]]; then
+            case "$PROMOTION_DISPOSITION:$PUBLICATION_RESULT" in
+              eligible:success) ;;
+              superseded:skipped)
+                [[ "$EVENT_REF" == 'refs/heads/main' ]]
+                [[ "$EVENT_NAME" == 'push' || "$EVENT_NAME" == 'workflow_dispatch' ]]
+                echo 'Validated release was superseded; latest tags were not changed.' >> "$GITHUB_STEP_SUMMARY"
+                ;;
+              *)
+                echo "Unexpected promotion outcome: $PROMOTION_DISPOSITION:$PUBLICATION_RESULT" >&2
+                exit 1
+                ;;
+            esac
+          fi
 
           if [[ "$EVENT_NAME" == 'workflow_dispatch' && -n "$CANDIDATE_SHA" ]]; then
             [[ "$CANDIDATE_RESULT" == 'success' ]]
