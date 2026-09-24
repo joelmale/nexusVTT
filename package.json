@@ -10,6 +10,7 @@
     "apps/vtt/services/asset-service",
     "apps/forge",
     "apps/docs",
+    "apps/control-api",
     "apps/codex/services/admin-ui",
     "apps/codex/services/dm-ui",
     "apps/codex/services/doc-api",
