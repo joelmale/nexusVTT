@@ -44,7 +44,8 @@ describe('Codex allowlist table', () => {
   it('covers every doc-api path the Admin UI calls', () => {
     const uiRoot = path.resolve(here, '../../codex/services/admin-ui/src');
     const paths = new Set<string>();
-    for (const file of listFiles(uiRoot)) {
+    // UI tests deliberately contain hostile paths; only production sources count.
+    for (const file of listFiles(uiRoot).filter((f) => !/\.test\.[jt]sx?$/.test(f))) {
       const source = readFileSync(file, 'utf8');
       for (const match of source.matchAll(/[`'"](?:\$\{API_BASE_URL\})?\/api\/([^`'"?\s]+)/g)) {
         paths.add(match[1]!.replace(/\$\{[^}]+\}/g, 'x1'));
