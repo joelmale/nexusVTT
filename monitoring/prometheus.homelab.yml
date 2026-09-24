@@ -1,0 +1,90 @@
+# Production Prometheus scrape/alerting configuration for the nexus-monitoring
+# Dockhand stack (deploy/homelab/compose.monitoring.yaml). Distinct from
+# monitoring/prometheus.yml, which stays the local-dev config for
+# apps/vtt/docker/docker-compose.observability.yml -- do not merge them, the
+# targets and auth requirements differ.
+#
+# See apps/docs/platform/observability-runbook.md for the required secret
+# files and the operator steps that activate the commented-out targets below.
+
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - /etc/prometheus/alerts/*.yml
+
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
+scrape_configs:
+  # --- Nexus VTT backend -----------------------------------------------
+  - job_name: nexus-vtt-backend
+    metrics_path: /metrics
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/secrets/metrics_token
+    static_configs:
+      - targets: ['backend:5001']
+
+  # --- Nexus Codex (doc-api, doc-processor) -----------------------------
+  # doc-api already exposes GET /metrics (apps/codex/services/doc-api/src/
+  # observability/metrics.ts). It only enforces the bearer token below once
+  # compose.codex.yaml sets METRICS_AUTH_TOKEN for the doc-api service --
+  # that env wiring is a required follow-up owned by whoever next edits that
+  # compose file (see the runbook's "Codex metrics wiring" section).
+  - job_name: codex-doc-api
+    metrics_path: /metrics
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/secrets/codex_metrics_token
+    static_configs:
+      - targets: ['doc-api:3000']
+
+  # Placeholder: doc-processor has no HTTP surface unless METRICS_PORT is set
+  # (apps/codex/services/doc-processor/src/metrics-server.ts). This target
+  # will show as down until compose.codex.yaml sets METRICS_PORT=9464 and
+  # METRICS_AUTH_TOKEN on the doc-processor service.
+  - job_name: codex-doc-processor
+    metrics_path: /metrics
+    authorization:
+      type: Bearer
+      credentials_file: /etc/prometheus/secrets/codex_metrics_token
+    static_configs:
+      - targets: ['doc-processor:9464']
+
+  # --- Placeholder: Phase 5 asset-service --------------------------------
+  # apps/vtt/services/asset-service/** is owned by the Phase 5 engineer, who
+  # is expected to add a GET /metrics endpoint exposing (at minimum)
+  # asset_objects_total, asset_bytes_total, asset_derivative_failures_total,
+  # asset_manifest_age_seconds and asset_missing_files. This target will show
+  # as down until that lands.
+  - job_name: asset-service
+    metrics_path: /metrics
+    static_configs:
+      - targets: ['asset-server:5003']
+
+  # --- PostgreSQL / Redis exporters --------------------------------------
+  - job_name: postgres-exporter
+    static_configs:
+      - targets: ['postgres_exporter:9187']
+
+  - job_name: redis-exporter
+    static_configs:
+      - targets: ['redis_exporter:9121']
+
+  # --- Host / container infrastructure -----------------------------------
+  - job_name: cadvisor
+    static_configs:
+      - targets: ['cadvisor:8080']
+
+  - job_name: node-exporter
+    static_configs:
+      - targets: ['node_exporter:9100']
+
+  # --- Self ---------------------------------------------------------------
+  - job_name: prometheus
+    static_configs:
+      - targets: ['localhost:9090']

@@ -1,0 +1,183 @@
+# Phase 3 observability stack (private-admin-control-plane.md). Deployed as
+# its OWN Dockhand stack ("nexus-monitoring"), independently of "nexus-vtt2",
+# so it can be redeployed or rolled back without touching the application
+# stack. See apps/docs/platform/observability-runbook.md for required
+# secrets, the pg_monitor role SQL, and operator steps.
+#
+# This file references the nexus-vtt2 stack's internal network as an EXTERNAL
+# network (created by that stack's `internal: true` "nexus-internal-net",
+# which Compose namespaces as "<project-name>_nexus-internal-net" -- the
+# nexus-vtt2 project's compose.yaml has `name: nexus-vtt2`, so the external
+# name is "nexus-vtt2_nexus-internal-net" below). That network stays
+# `internal: true` at its point of definition, which is what makes production
+# database/cache scraping possible without giving Prometheus a public route.
+#
+# Deploy: `docker compose -f deploy/homelab/compose.monitoring.yaml up -d`
+# (Dockhand runs the equivalent). Render/validate only, never deploy, with:
+#   docker compose --env-file deploy/homelab/.env.example \
+#     -f deploy/homelab/compose.monitoring.yaml config --quiet
+name: nexus-monitoring
+services:
+  prometheus:
+    image: prom/prometheus:v3.6.0
+    pull_policy: always
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=${PROMETHEUS_RETENTION:-30d}
+    volumes:
+      - ../../monitoring/prometheus.homelab.yml:/etc/prometheus/prometheus.yml:ro
+      - ../../monitoring/alerts:/etc/prometheus/alerts:ro
+      - ${NEXUS_MONITORING_SECRETS_ROOT:?NEXUS_MONITORING_SECRETS_ROOT is required, see apps/docs/platform/observability-runbook.md}:/etc/prometheus/secrets:ro
+      - prometheus-data:/prometheus
+    networks:
+      - monitoring-internal
+      - nexus-vtt2_nexus-internal-net
+    # No host ports (private-admin-control-plane.md invariant: Prometheus is
+    # never exposed directly). Grafana is the only reachable surface, and
+    # only once the Phase 2 gateway routes to it.
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.1.1
+    pull_policy: always
+    depends_on:
+      - prometheus
+    environment:
+      GF_SECURITY_ADMIN_USER: ${GRAFANA_ADMIN_USER:-admin}
+      # Dockhand manages this stack's secrets as encrypted environment
+      # variables (the same model every other file under deploy/homelab
+      # uses), so the required-variable form matches the rest of this
+      # directory. A file-backed GF_SECURITY_ADMIN_PASSWORD__FILE is an
+      # equally valid alternative if the deployment target prefers mounted
+      # secret files -- see the runbook.
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?GRAFANA_ADMIN_PASSWORD is required, see apps/docs/platform/observability-runbook.md}
+      GF_USERS_ALLOW_SIGN_UP: 'false'
+      GF_AUTH_ANONYMOUS_ENABLED: 'false'
+      GF_AUTH_DISABLE_LOGIN_FORM: 'false'
+      GF_SERVER_ROOT_URL: https://admin.internal.nexusvtt.com/grafana/
+      GF_SERVER_SERVE_FROM_SUB_PATH: 'true'
+      GF_SECURITY_COOKIE_SECURE: 'true'
+      GF_SECURITY_COOKIE_SAMESITE: strict
+    volumes:
+      - grafana-data:/var/lib/grafana
+      - ../../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+    networks:
+      - monitoring-internal
+      # Reachable as `grafana:3000` from the production internal network so
+      # the Phase 2 private gateway can proxy to it once that route exists
+      # (private-admin-control-plane.md "Operations and observability"). No
+      # gateway route is wired yet -- that is a Phase 2 follow-up, not part
+      # of this change.
+      - nexus-vtt2_nexus-internal-net
+    # No host ports; reached only via the future private gateway route.
+    restart: unless-stopped
+
+  postgres_exporter:
+    image: quay.io/prometheuscommunity/postgres-exporter:v0.15.0
+    pull_policy: always
+    environment:
+      # Least-privilege pg_monitor role, NOT the application's postgres user.
+      # See the runbook for the exact CREATE ROLE / GRANT statements.
+      DATA_SOURCE_NAME: ${POSTGRES_EXPORTER_DSN:?POSTGRES_EXPORTER_DSN is required, see apps/docs/platform/observability-runbook.md}
+    command:
+      - --extend.query-path=/etc/postgres_exporter/queries.yaml
+    volumes:
+      - ../../monitoring/postgres-exporter/queries.yaml:/etc/postgres_exporter/queries.yaml:ro
+    networks:
+      # Needs to resolve `postgres` on the nexus-vtt2 stack; deliberately NOT
+      # on monitoring-internal beyond that, since Prometheus itself is also
+      # on this network and can scrape it directly here.
+      - nexus-vtt2_nexus-internal-net
+    restart: unless-stopped
+
+  redis_exporter:
+    image: oliver006/redis_exporter:v1.68.0
+    pull_policy: always
+    environment:
+      REDIS_ADDR: redis://redis:6379
+      REDIS_PASSWORD: ${REDIS_EXPORTER_PASSWORD:?REDIS_EXPORTER_PASSWORD is required (same value as nexus-vtt2's REDIS_PASSWORD), see apps/docs/platform/observability-runbook.md}
+    networks:
+      - nexus-vtt2_nexus-internal-net
+    restart: unless-stopped
+
+  # Security tradeoff (documented in the runbook): cadvisor needs read-only
+  # access to the host's cgroup/container filesystem views to report
+  # per-container CPU/memory/restart metrics. These mounts let it see
+  # metadata (not content) for every container on the host, including ones
+  # outside this stack. It is kept off nexus-vtt2_nexus-internal-net --  it
+  # has no reason to reach the VTT/Codex services themselves.
+  cadvisor:
+    image: gcr.io/cadvisor/cadvisor:v0.49.1
+    pull_policy: always
+    volumes:
+      - /:/rootfs:ro
+      - /var/run:/var/run:ro
+      - /sys:/sys:ro
+      - /var/lib/docker/:/var/lib/docker:ro
+      - /dev/disk/:/dev/disk:ro
+    networks:
+      - monitoring-internal
+    restart: unless-stopped
+
+  # Security tradeoff (documented in the runbook): node_exporter reads the
+  # host's /proc and /sys (read-only) to report host CPU/memory/disk metrics.
+  # This is standard for host-level monitoring but does expose host process
+  # and filesystem metadata to anything that can scrape Prometheus.
+  node_exporter:
+    image: prom/node-exporter:v1.9.1
+    pull_policy: always
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/rootfs
+      - --collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)
+    networks:
+      - monitoring-internal
+    restart: unless-stopped
+
+  # Optional: only starts under the "alerting" profile, and only useful once
+  # ALERTMANAGER_WEBHOOK_URL is set. Left un-started otherwise so an operator
+  # who has not picked a notification channel yet does not get a crash-
+  # looping container (Alertmanager refuses to start with an empty webhook
+  # URL). See the runbook's "Alerting" section for the enable steps and for
+  # documenting this as a follow-up when skipped.
+  alertmanager:
+    image: prom/alertmanager:v0.28.1
+    pull_policy: always
+    profiles: ['alerting']
+    environment:
+      ALERTMANAGER_WEBHOOK_URL: ${ALERTMANAGER_WEBHOOK_URL:?ALERTMANAGER_WEBHOOK_URL is required when the alerting profile is enabled, see apps/docs/platform/observability-runbook.md}
+    volumes:
+      - ../../monitoring/alertmanager/alertmanager.yml.template:/etc/alertmanager/alertmanager.yml.template:ro
+      - alertmanager-data:/alertmanager
+    command:
+      - sh
+      - -c
+      - >-
+        sed "s#ALERTMANAGER_WEBHOOK_URL_PLACEHOLDER#$$ALERTMANAGER_WEBHOOK_URL#"
+        /etc/alertmanager/alertmanager.yml.template > /alertmanager/alertmanager.yml &&
+        exec /bin/alertmanager --config.file=/alertmanager/alertmanager.yml --storage.path=/alertmanager
+    networks:
+      - monitoring-internal
+    restart: unless-stopped
+
+networks:
+  nexus-vtt2_nexus-internal-net:
+    external: true
+  # Plain bridge network (not `internal: true`): alertmanager needs outbound
+  # access to deliver webhook notifications, and this network carries no
+  # production credentials or data, only stack-internal scrape/query traffic.
+  monitoring-internal: {}
+
+volumes:
+  prometheus-data:
+    name: nexus-monitoring-prometheus-data
+  grafana-data:
+    name: nexus-monitoring-grafana-data
+  alertmanager-data:
+    name: nexus-monitoring-alertmanager-data

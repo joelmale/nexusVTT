@@ -1,0 +1,19 @@
+# Template for the nexus-monitoring Alertmanager stack (Phase 3). The
+# placeholder token below (see the webhook url: line) is substituted with the
+# ALERTMANAGER_WEBHOOK_URL environment variable by the alertmanager service's
+# command in deploy/homelab/compose.monitoring.yaml before the real binary
+# starts -- Alertmanager's own config file format has no environment
+# expansion. See apps/docs/platform/observability-runbook.md.
+
+route:
+  receiver: default-webhook
+  group_by: ['alertname', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+
+receivers:
+  - name: default-webhook
+    webhook_configs:
+      - url: 'ALERTMANAGER_WEBHOOK_URL_PLACEHOLDER'
+        send_resolved: true

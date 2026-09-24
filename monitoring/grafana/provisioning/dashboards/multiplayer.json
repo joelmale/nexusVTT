@@ -1,0 +1,84 @@
+{
+  "uid": "nexus-multiplayer",
+  "title": "Nexus Multiplayer",
+  "tags": ["nexus", "multiplayer"],
+  "timezone": "browser",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "30s",
+  "time": { "from": "now-6h", "to": "now" },
+  "panels": [
+    {
+      "id": 1,
+      "type": "timeseries",
+      "title": "Durable commit p95 latency",
+      "description": "SLO default: 250ms (MULTIPLAYER_SLO_COMMIT_P95_MS).",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "histogram_quantile(0.95, sum by (le) (rate(nexus_vtt_game_state_commit_duration_seconds_bucket[10m])))", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": { "defaults": { "unit": "s" }, "overrides": [] }
+    },
+    {
+      "id": 2,
+      "type": "timeseries",
+      "title": "Commit queue depth",
+      "description": "SLO default: at most 100 rooms queued (MULTIPLAYER_SLO_QUEUE_DEPTH).",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 0 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "nexus_vtt_game_state_commit_queue_depth", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 3,
+      "type": "timeseries",
+      "title": "Commit failures / conflicts",
+      "description": "Failures must stay at zero (fixed invariant).",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "increase(nexus_vtt_game_state_commit_failures_total[5m])", "refId": "A", "legendFormat": "failures", "datasource": { "type": "prometheus", "uid": "prometheus" } },
+        { "expr": "increase(nexus_vtt_game_state_commit_conflicts_total[5m])", "refId": "B", "legendFormat": "conflicts", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 4,
+      "type": "timeseries",
+      "title": "Resyncs by reason",
+      "description": "Any sustained integrity-mismatch is a release blocker (see the multiplayer-observability runbook).",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 8 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "sum by (reason) (rate(nexus_vtt_game_state_resyncs_total[5m]))", "refId": "A", "legendFormat": "{{reason}}", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": { "defaults": { "unit": "ops" }, "overrides": [] }
+    },
+    {
+      "id": 5,
+      "type": "timeseries",
+      "title": "Ordered-event journal failures",
+      "description": "Must stay at zero (fixed invariant).",
+      "gridPos": { "h": 8, "w": 12, "x": 0, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "increase(nexus_vtt_ordered_events_failed_total[5m])", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": { "defaults": { "unit": "short" }, "overrides": [] }
+    },
+    {
+      "id": 6,
+      "type": "stat",
+      "title": "Redis realtime connected",
+      "gridPos": { "h": 8, "w": 12, "x": 12, "y": 16 },
+      "datasource": { "type": "prometheus", "uid": "prometheus" },
+      "targets": [
+        { "expr": "nexus_vtt_realtime_connected", "refId": "A", "datasource": { "type": "prometheus", "uid": "prometheus" } }
+      ],
+      "fieldConfig": { "defaults": { "mappings": [{ "type": "value", "options": { "0": { "text": "disconnected", "color": "red" }, "1": { "text": "connected", "color": "green" } } }] }, "overrides": [] }
+    }
+  ]
+}
