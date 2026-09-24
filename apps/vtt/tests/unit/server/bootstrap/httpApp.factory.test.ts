@@ -8,6 +8,7 @@ const mocks = vi.hoisted(() => ({
   createDocumentRoutes: vi.fn(),
   createHealthRouter: vi.fn(),
   createMetricsRouter: vi.fn(),
+  createRulesCatalogRouter: vi.fn(),
   createSystemRouter: vi.fn(),
 }));
 
@@ -21,6 +22,7 @@ vi.mock('../../../../server/routes/assets.routes.js', () => ({ createAssetRouter
 vi.mock('../../../../server/routes/documents.js', () => ({ createDocumentRoutes: mocks.createDocumentRoutes }));
 vi.mock('../../../../server/routes/health.routes.js', () => ({ createHealthRouter: mocks.createHealthRouter }));
 vi.mock('../../../../server/routes/metrics.routes.js', () => ({ createMetricsRouter: mocks.createMetricsRouter }));
+vi.mock('../../../../server/routes/rulesCatalog.routes.js', () => ({ createRulesCatalogRouter: mocks.createRulesCatalogRouter }));
 vi.mock('../../../../server/routes/system.routes.js', () => ({ createSystemRouter: mocks.createSystemRouter }));
 
 import { createHttpApp } from '../../../../server/bootstrap/httpApp.js';
@@ -33,6 +35,7 @@ describe('HTTP app factory', () => {
     mocks.createDocumentRoutes.mockReturnValue(mocks.handler);
     mocks.createHealthRouter.mockReturnValue(mocks.handler);
     mocks.createMetricsRouter.mockReturnValue(mocks.handler);
+    mocks.createRulesCatalogRouter.mockReturnValue(mocks.handler);
     mocks.createSystemRouter.mockReturnValue(mocks.handler);
   });
 
@@ -45,6 +48,7 @@ describe('HTTP app factory', () => {
       deltaSyncMetrics: {} as never,
       documentClient: null,
       documentsEnabled: false,
+      docApiUrl: undefined,
       getSocketManager: () => socketManager as never,
       getGameStateCommits: () => gameStateCommits as never,
       manifestStore: { current: null } as never,
@@ -55,6 +59,7 @@ describe('HTTP app factory', () => {
     expect(mocks.registerApiRoutes).toHaveBeenCalledWith(result.app, expect.anything(), '/assets');
     expect(mocks.createDocumentRoutes).toHaveBeenCalledWith(null, false, expect.anything());
     expect(mocks.createMetricsRouter).toHaveBeenCalledWith(expect.objectContaining({ getSocketManager: expect.any(Function), getGameStateQueueDepth: expect.any(Function) }));
+    expect(mocks.createRulesCatalogRouter).toHaveBeenCalledWith(expect.objectContaining({ docApiUrl: undefined }));
     expect(mocks.createAssetRouter).toHaveBeenCalledWith(expect.objectContaining({ assetApiUrl: expect.any(String) }));
   });
 });

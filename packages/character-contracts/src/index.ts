@@ -283,6 +283,17 @@ export interface Character {
   alignment?: string;
   background?: string;
   edition?: '2014' | '2024' | string;
+  /**
+   * Codex rules-catalog `catalogVersion` in effect when this character was
+   * created (see apps/docs/codex/rules-registry.md, "Runtime consumption").
+   * `null`/absent means the bundled SRD only -- Codex was unreachable, or
+   * the host never recorded one (e.g. the character predates this field).
+   * Set once at creation by the host app; the character-creator package
+   * itself has no persistence and never sets or reads this. Never rewritten
+   * on an existing character when a newer catalog version appears
+   * (invariant 9: publication must not rewrite an active session/character).
+   */
+  rulesCatalogVersion?: number | null;
   inspiration?: boolean;
   proficiencyBonus?: number;
   armorClass?: number;

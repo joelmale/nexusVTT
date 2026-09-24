@@ -14,6 +14,7 @@ import { createAuthRouter } from '../routes/auth.routes.js';
 import { createDocumentRoutes } from '../routes/documents.js';
 import { createHealthRouter } from '../routes/health.routes.js';
 import { createMetricsRouter } from '../routes/metrics.routes.js';
+import { createRulesCatalogRouter } from '../routes/rulesCatalog.routes.js';
 import { createSystemRouter } from '../routes/system.routes.js';
 import type { AssetManifestStore } from '../services/assetManifestStore.js';
 import type { DocumentServiceClient } from '../services/documentServiceClient.js';
@@ -26,6 +27,12 @@ export interface HttpAppOptions {
   deltaSyncMetrics: DeltaSyncMetrics;
   documentClient: DocumentServiceClient | null;
   documentsEnabled: boolean;
+  /**
+   * Same DOC_API_URL used for `documentClient` above. Reused as-is for the
+   * rules-catalog BFF (server/routes/rulesCatalog.routes.ts) since both proxy
+   * the same doc-api service; see apps/docs/codex/rules-registry.md.
+   */
+  docApiUrl: string | undefined;
   getSocketManager: () => SocketManager;
   manifestStore: AssetManifestStore;
   port: number;
@@ -55,6 +62,7 @@ export function createHttpApp({
   deltaSyncMetrics,
   documentClient,
   documentsEnabled,
+  docApiUrl,
   getSocketManager,
   manifestStore,
   port,
@@ -104,6 +112,14 @@ export function createHttpApp({
   app.use(createHealthRouter({ db, getSocketManager, port, getManifest: () => manifestStore.current }));
   app.use(createSystemRouter({ db, getSocketManager, port }));
   app.use('/api', createDocumentRoutes(documentClient, documentsEnabled, db));
+  app.use(
+    '/api',
+    createRulesCatalogRouter({
+      docApiUrl,
+      timeoutMs: process.env.RULES_CATALOG_TIMEOUT_MS ? Number(process.env.RULES_CATALOG_TIMEOUT_MS) : undefined,
+      cacheTtlMs: process.env.RULES_CATALOG_CACHE_TTL_MS ? Number(process.env.RULES_CATALOG_CACHE_TTL_MS) : undefined,
+    }),
+  );
   app.use(createAssetRouter({ assetApiUrl: process.env.ASSET_API_URL || 'http://localhost:5003' }));
 
   return { app, sessionMiddleware };
