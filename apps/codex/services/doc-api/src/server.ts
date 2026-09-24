@@ -33,12 +33,17 @@ import { s3Service } from './services/s3.service';
 import { prisma } from './services/database.service';
 import { AlertsService } from './services/alerts.service';
 import { loggingService } from './services/logging.service';
+import { registerMetrics } from './observability/metrics';
 
 const fastify = Fastify({
   logger: {
     level: env.NODE_ENV === 'development' ? 'info' : 'warn',
   },
 });
+
+// Prometheus /metrics plus HTTP request/latency/in-flight hooks (Phase 3
+// observability). See apps/docs/platform/observability-runbook.md.
+registerMetrics(fastify);
 
 // Register CORS
 fastify.register(cors, {

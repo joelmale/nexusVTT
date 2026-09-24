@@ -11,6 +11,7 @@ const sidebars: SidebarsConfig = {
         'private-admin-control-plane',
         'control-api-adr',
         'control-plane-runbook',
+        'observability-runbook',
       ],
     },
     {

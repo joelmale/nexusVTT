@@ -48,6 +48,15 @@ const envSchema = z.object({
   LOGGING_ENABLED: z.string().default('true').transform(val => val === 'true'),
   LOGGING_INDEX: z.string().default('nexus-logs'),
   LOGGING_SERVICE_NAME: z.string().default('doc-processor'),
+
+  // Observability (Phase 3, see apps/docs/platform/observability-runbook.md).
+  // doc-processor has no HTTP surface otherwise; setting METRICS_PORT starts
+  // a minimal GET /metrics server. Unset (the default) disables it entirely
+  // -- there is no reason to open a port in local dev.
+  METRICS_PORT: z.string().optional().transform(val => (val ? Number(val) : undefined)),
+  // Bearer token required on GET /metrics when set, same fail-closed-only-
+  // when-configured behavior as apps/vtt/server/routes/metrics.routes.ts.
+  METRICS_AUTH_TOKEN: z.string().optional(),
 });
 
 export const env = envSchema.parse(process.env);

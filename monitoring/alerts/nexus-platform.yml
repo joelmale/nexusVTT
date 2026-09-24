@@ -1,0 +1,156 @@
+# Phase 3 platform alert rules: availability, PostgreSQL, Redis, containers,
+# host, Codex doc-api, and Codex processing queue. Loaded alongside the
+# existing nexus-vtt-multiplayer group (monitoring/alerts/nexus-vtt.yml) via
+# rule_files: /etc/prometheus/alerts/*.yml in both monitoring/prometheus.yml
+# (local dev) and monitoring/prometheus.homelab.yml (nexus-monitoring stack).
+# See apps/docs/platform/observability-runbook.md for the response table and
+# which targets are placeholders until their owning phase lands.
+
+groups:
+  - name: nexus-platform-availability
+    rules:
+      - alert: NexusPlatformTargetDown
+        expr: up == 0
+        for: 5m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Scrape target {{ $labels.job }} is down"
+          description: "Prometheus has not been able to scrape {{ $labels.job }} ({{ $labels.instance }}) for 5 minutes."
+
+  - name: nexus-platform-postgres
+    rules:
+      - alert: NexusPlatformPostgresDown
+        expr: pg_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: postgres_exporter cannot reach PostgreSQL
+          description: pg_up has been 0 for 2 minutes; the shared VTT/Codex database may be unreachable.
+
+      - alert: NexusPlatformPostgresConnectionsNearMax
+        expr: sum(pg_stat_database_numbackends) / on() pg_settings_max_connections > 0.8
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: PostgreSQL connections above 80 percent of max_connections
+          description: Sustained high connection count risks exhausting the pool for both the VTT backend and doc-api.
+
+      - alert: NexusPlatformPostgresLongRunningQueries
+        expr: pg_long_running_queries_count > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: PostgreSQL has queries running longer than 5 minutes
+          description: See monitoring/postgres-exporter/queries.yaml. Investigate with pg_stat_activity before killing anything.
+
+      - alert: NexusPlatformPostgresBlockedLocks
+        expr: pg_blocked_locks_count > 0
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: PostgreSQL backends are blocked waiting on locks
+          description: One or more backends have been waiting on a lock held by another backend for 5 minutes.
+
+  - name: nexus-platform-redis
+    rules:
+      - alert: NexusPlatformRedisDown
+        expr: redis_up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: redis_exporter cannot reach Redis
+          description: redis_up has been 0 for 2 minutes. The VTT backend treats this as a realtime-coordination outage (see NexusVttRealtimeDisconnected).
+
+      - alert: NexusPlatformRedisMemoryHigh
+        expr: redis_memory_max_bytes > 0 and (redis_memory_used_bytes / redis_memory_max_bytes) > 0.9
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: Redis memory usage above 90 percent of maxmemory
+          description: Sustained high memory use risks Redis evicting keys or refusing writes.
+
+      - alert: NexusPlatformRedisEvictions
+        expr: increase(redis_evicted_keys_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: Redis is evicting keys
+          description: Redis has evicted at least one key in the last 5 minutes; check maxmemory and maxmemory-policy.
+
+  - name: nexus-platform-infrastructure
+    rules:
+      - alert: NexusPlatformContainerRestarting
+        expr: changes(container_start_time_seconds{name!=""}[15m]) > 2
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Container {{ $labels.name }} is restarting repeatedly"
+          description: More than 2 restarts in 15 minutes usually means a crash loop; check container logs.
+
+      - alert: NexusPlatformContainerOOMKilled
+        expr: increase(container_oom_events_total[5m]) > 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Container {{ $labels.name }} was OOM-killed"
+          description: cAdvisor recorded an out-of-memory kill in the last 5 minutes.
+
+      - alert: NexusPlatformHostDiskHigh
+        expr: (node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"} / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"}) < 0.15
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Host filesystem {{ $labels.mountpoint }} above 85 percent full"
+          description: Less than 15 percent free space remains on {{ $labels.mountpoint }} ({{ $labels.instance }}).
+
+  - name: nexus-platform-codex
+    rules:
+      - alert: NexusPlatformDocApiErrorRateHigh
+        expr: |
+          sum(rate(codex_doc_api_http_requests_total{status_code=~"5.."}[5m]))
+          / sum(rate(codex_doc_api_http_requests_total[5m]))
+          > 0.05
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: doc-api 5xx rate above 5 percent
+          description: Sustained server error rate on doc-api HTTP requests over the last 5 minutes.
+
+      - alert: NexusPlatformDocApiLatencyHigh
+        expr: histogram_quantile(0.95, sum by (le) (rate(codex_doc_api_http_request_duration_seconds_bucket[10m]))) > 1
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: doc-api request p95 latency above 1 second
+          description: Tune this threshold after establishing a real baseline; see the observability runbook.
+
+      - alert: NexusPlatformCodexQueueBacklogged
+        expr: codex_doc_processor_queue_depth{state="waiting"} > 500
+        for: 10m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Codex processing queue {{ $labels.queue }} is backlogged"
+          description: More than 500 jobs are waiting; check doc-processor worker health and OCR throughput. Requires doc-processor's METRICS_PORT to be wired -- see the runbook.
+
+      - alert: NexusPlatformCodexJobsFailing
+        expr: increase(codex_doc_processor_jobs_total{outcome="failed"}[15m]) > 5
+        for: 1m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Codex processing queue {{ $labels.queue }} has repeated job failures"
+          description: More than 5 job failures in 15 minutes. Requires doc-processor's METRICS_PORT to be wired -- see the runbook.

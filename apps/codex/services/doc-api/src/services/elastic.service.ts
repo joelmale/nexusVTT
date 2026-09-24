@@ -1,5 +1,16 @@
 import { Client } from '@elastic/elasticsearch';
 import { env } from '../config/env';
+import { elasticsearchSearchDurationSeconds } from '../observability/metrics';
+
+async function timedSearch<T>(operation: string, run: () => Promise<T>): Promise<T> {
+  const start = process.hrtime.bigint();
+  try {
+    return await run();
+  } finally {
+    const durationSeconds = Number(process.hrtime.bigint() - start) / 1e9;
+    elasticsearchSearchDurationSeconds.observe({ operation }, durationSeconds);
+  }
+}
 
 class ElasticSearchService {
   private client: Client;
@@ -78,35 +89,37 @@ class ElasticSearchService {
     const { documentId, query, size = 5 } = params;
 
     try {
-      const response = await this.client.search({
-        index: this.index,
-        size,
-        query: {
-          bool: {
-            must: [
-              {
-                multi_match: {
-                  query,
-                  fields: ['title^3', 'description^2', 'content'],
-                  type: 'best_fields',
-                  fuzziness: 'AUTO',
+      const response = await timedSearch('searchWithinDocument', () =>
+        this.client.search({
+          index: this.index,
+          size,
+          query: {
+            bool: {
+              must: [
+                {
+                  multi_match: {
+                    query,
+                    fields: ['title^3', 'description^2', 'content'],
+                    type: 'best_fields',
+                    fuzziness: 'AUTO',
+                  },
                 },
-              },
-            ],
-            filter: [{ term: { documentId } }],
-          },
-        },
-        highlight: {
-          fields: {
-            title: {},
-            description: {},
-            content: {
-              fragment_size: 150,
-              number_of_fragments: 3,
+              ],
+              filter: [{ term: { documentId } }],
             },
           },
-        },
-      });
+          highlight: {
+            fields: {
+              title: {},
+              description: {},
+              content: {
+                fragment_size: 150,
+                number_of_fragments: 3,
+              },
+            },
+          },
+        }),
+      );
 
       return {
         total: typeof response.hits.total === 'object' ? response.hits.total.value : response.hits.total,
@@ -199,28 +212,30 @@ class ElasticSearchService {
     }
 
     try {
-      const response = await this.client.search({
-        index: this.index,
-        from: params.from || 0,
-        size: params.size || 20,
-        query: {
-          bool: {
-            must: must.length > 0 ? must : [{ match_all: {} }],
-            filter: filter.length > 0 ? filter : undefined,
-          },
-        },
-        highlight: {
-          fields: {
-            title: {},
-            description: {},
-            content: {
-              fragment_size: 150,
-              number_of_fragments: 3,
+      const response = await timedSearch('advancedSearch', () =>
+        this.client.search({
+          index: this.index,
+          from: params.from || 0,
+          size: params.size || 20,
+          query: {
+            bool: {
+              must: must.length > 0 ? must : [{ match_all: {} }],
+              filter: filter.length > 0 ? filter : undefined,
             },
           },
-        },
-        sort,
-      });
+          highlight: {
+            fields: {
+              title: {},
+              description: {},
+              content: {
+                fragment_size: 150,
+                number_of_fragments: 3,
+              },
+            },
+          },
+          sort,
+        }),
+      );
 
       return {
         total: typeof response.hits.total === 'object' ? response.hits.total.value : response.hits.total,
@@ -279,31 +294,33 @@ class ElasticSearchService {
     }
 
     try {
-      const response = await this.client.search({
-        index: this.index,
-        from: params.from || 0,
-        size: params.size || 20,
-        query: {
-          bool: {
-            must: must.length > 0 ? must : [{ match_all: {} }],
-            filter: filter.length > 0 ? filter : undefined,
-          },
-        },
-        highlight: {
-          fields: {
-            title: {},
-            description: {},
-            content: {
-              fragment_size: 150,
-              number_of_fragments: 3,
+      const response = await timedSearch('search', () =>
+        this.client.search({
+          index: this.index,
+          from: params.from || 0,
+          size: params.size || 20,
+          query: {
+            bool: {
+              must: must.length > 0 ? must : [{ match_all: {} }],
+              filter: filter.length > 0 ? filter : undefined,
             },
           },
-        },
-        sort: [
-          { _score: { order: 'desc' as const } },
-          { uploadedAt: { order: 'desc' as const, unmapped_type: 'date' } },
-        ],
-      });
+          highlight: {
+            fields: {
+              title: {},
+              description: {},
+              content: {
+                fragment_size: 150,
+                number_of_fragments: 3,
+              },
+            },
+          },
+          sort: [
+            { _score: { order: 'desc' as const } },
+            { uploadedAt: { order: 'desc' as const, unmapped_type: 'date' } },
+          ],
+        }),
+      );
 
       return {
         total: typeof response.hits.total === 'object' ? response.hits.total.value : response.hits.total,

@@ -42,6 +42,12 @@ const envSchema = z.object({
   // Auth
   AUTH_DISABLED: z.string().default('false').transform(val => val === 'true'),
 
+  // Observability: bearer token required on GET /metrics when set (fails
+  // closed for a wrong/missing token, fails open -- i.e. unauthenticated --
+  // only when left unset, matching apps/vtt/server/routes/metrics.routes.ts).
+  // See apps/docs/platform/observability-runbook.md before deploying.
+  METRICS_AUTH_TOKEN: z.string().optional(),
+
   // Embeddings
   EMBEDDINGS_PROVIDER: z.enum(['none', 'hash']).default('none'),
   EMBEDDINGS_DIM: z.string().default('64').transform(Number),
