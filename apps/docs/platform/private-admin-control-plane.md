@@ -467,6 +467,19 @@ Recommended image changes (not yet applied):
   because `doc-api` runs `prisma db push` on every start. Compare the schema
   against the old repository path `services/doc-api/prisma/schema.prisma` in
   `4c583c2` first. Also check the `pdf-parse` 1 -> 2 upgrade (`e32513cb`).
+
+  Findings (2026-09-24): the schema is identical between `4c583c2` and
+  `main`. However, current `main` images start with `prisma migrate deploy`,
+  while the running `4c583c2` image used `prisma db push`, so the production
+  Codex database probably has no `_prisma_migrations` table. `migrate deploy`
+  would then fail with P3005 and crash-loop `doc-api`. **Before switching
+  images**, check for that table in the Codex database; if it is missing,
+  baseline it by running `prisma migrate resolve --applied <name>` for each of
+  the six migrations in `apps/codex/services/doc-api/prisma/migrations`. Codex
+  images are not published on `main` pushes; build them with the manual
+  candidate workflow (`gh workflow run ci.yml -f candidate_sha=<sha>`), which
+  tags `candidate-<short sha>`. A candidate build of `528fcd2b` was started.
+
 - `postgres`: keep pinned. Only CI files changed since `0da1b78`, and a
   database image should not roll automatically.
 - `nexus-forge`: the unified frontend already serves Forge at `/forge/`, and no
