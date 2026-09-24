@@ -1,4 +1,7 @@
 import { useState, useCallback } from 'react';
+import { codexFetch } from '@/lib/api';
+import { useAuth, useCan } from '@/auth/AuthContext';
+import { permissionHint } from '@/auth/permissions';
 import { useQuery } from '@tanstack/react-query';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
@@ -57,9 +60,16 @@ interface BulkStatus {
   }>;
 }
 
-const API_BASE_URL = '';
+// TODO(control-plane): doc-api hands the browser pre-signed MinIO URLs for
+// the file bytes. The private admin gateway deliberately does not expose
+// MinIO (and its CSP allows connect-src 'self' only), so creating documents
+// here would leave records without files. A later wave moves the byte upload
+// server-side into control-api; until then the upload action stays disabled.
+const FILE_UPLOAD_AVAILABLE = false;
 
 export default function BulkUpload() {
+  const { me } = useAuth();
+  const canUpload = useCan('uploadDocuments');
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
@@ -71,7 +81,7 @@ export default function BulkUpload() {
     queryKey: ['bulk-status', currentBatchId],
     queryFn: async () => {
       if (!currentBatchId) return null;
-      const response = await fetch(`${API_BASE_URL}/api/documents/bulk/${currentBatchId}/status`, {
+      const response = await codexFetch(`/api/documents/bulk/${currentBatchId}/status`, {
         headers: {
         },
       });
@@ -131,7 +141,7 @@ export default function BulkUpload() {
           type: file.type,
           format: file.file.name.split('.').pop() === 'md' ? 'markdown' : 'pdf',
           author: '',
-          uploadedBy: 'admin', // This should come from user context
+          uploadedBy: me.user.id,
           tags: file.tags,
           campaigns: file.campaigns,
           collections: file.collections,
@@ -143,7 +153,7 @@ export default function BulkUpload() {
       };
 
       // Create bulk documents
-      const response = await fetch(`${API_BASE_URL}/api/documents/bulk`, {
+      const response = await codexFetch(`/api/documents/bulk`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -167,6 +177,8 @@ export default function BulkUpload() {
           const fileData = files.find(f => f.title === document.title);
           if (fileData) {
             try {
+              // Pre-signed MinIO URL from doc-api. Never reachable through
+              // the admin gateway (see FILE_UPLOAD_AVAILABLE).
               await fetch(item.uploadUrl, {
                 method: 'PUT',
                 body: fileData.file,
@@ -174,7 +186,7 @@ export default function BulkUpload() {
                   'Content-Type': fileData.file.type || 'application/octet-stream',
                 },
               });
-              await fetch(`/api/documents/${document.id}/process`, {
+              await codexFetch(`/api/documents/${document.id}/process`, {
                 method: 'POST',
               });
             } catch (error) {
@@ -213,6 +225,12 @@ export default function BulkUpload() {
           <CardDescription>
             Choose multiple PDF or Markdown files to upload
           </CardDescription>
+          {!FILE_UPLOAD_AVAILABLE && (
+            <p className="text-sm text-amber-700" role="note">
+              File upload through the admin console is not available yet: it is
+              moving into control-api.
+            </p>
+          )}
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
@@ -233,7 +251,8 @@ export default function BulkUpload() {
               </Button>
               <Button
                 onClick={uploadFiles}
-                disabled={files.length === 0 || isUploading}
+                disabled={!FILE_UPLOAD_AVAILABLE || !canUpload || files.length === 0 || isUploading}
+                title={canUpload ? undefined : permissionHint('uploadDocuments')}
               >
                 {isUploading ? 'Uploading...' : 'Upload Files'}
               </Button>

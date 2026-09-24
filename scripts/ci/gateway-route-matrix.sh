@@ -4,18 +4,22 @@
 #
 # Runs the real gateway config in the nginx image that frontend.Dockerfile's
 # production stage uses, next to stub upstreams (backend, doc-api,
-# asset-server, doc-websocket) that report which upstream a request reached.
-# It then replays requests against both listeners:
+# asset-server, doc-websocket, control-api) that report which upstream a
+# request reached and the headers it received. It then replays requests
+# against both listeners:
 #
 #   :80    public gateway -- Phase 0 admin denials (with path, encoding, case,
 #          `;` and method variations), the authenticated /codex-api read
 #          allowlist, and Host-header variants that must never reach the
-#          private listener's content.
-#   :8081  private admin listener (Phase 1) -- only the placeholder, its
-#          stylesheet and /healthz; everything else 404/405; strict headers on
-#          every response; no upstream is ever contacted.
+#          private listener's content or control-api.
+#   :8081  private admin listener (Phase 2) -- the Admin UI SPA at `/` and its
+#          deep routes, hashed assets, /healthz, and /control-api/ proxied to
+#          the control-api stub ONLY (with X-Forwarded-For, X-Request-Id and
+#          the cookie); reserved gateway namespaces 404; strict headers on
+#          every response; no other upstream is ever contacted.
 #
-# See apps/docs/platform/private-admin-control-plane.md. Requires Docker only;
+# See apps/docs/platform/private-admin-control-plane.md and
+# apps/docs/platform/control-api-adr.md. Requires Docker only;
 # requests are sent from a client container on the same private network, so no
 # host port is published.
 #
@@ -55,9 +59,13 @@ trap 'exit 130' INT TERM
 # Content markers that must never cross listeners.
 readonly SPA_MARKER=MATRIX_VTT_SPA
 readonly CODEX_ADMIN_MARKER=MATRIX_CODEX_ADMIN_BUILD
-readonly PLACEHOLDER_MARKER='Nexus Control Plane'
+readonly ADMIN_UI_MARKER=MATRIX_ADMIN_UI_SPA
+readonly ADMIN_ASSET_MARKER=MATRIX_ADMIN_UI_ASSET
 readonly SESSION_COOKIE='matrix_session=valid'
-readonly PRIVATE_CSP="default-src 'none'; img-src 'self'; style-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+readonly ADMIN_COOKIE='__Host-nexus_admin=matrix-admin-session'
+readonly SPOOFED_IP=203.0.113.99
+readonly PRIVATE_CSP="default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data: blob:; connect-src 'self'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'"
+readonly ASSET_CACHE_CONTROL='public, max-age=31536000, immutable'
 
 # --- stub upstreams --------------------------------------------------------
 # One nginx container answers for every upstream hostname the gateway uses.
@@ -73,7 +81,7 @@ server {
     $extra
     location / {
         default_type text/plain;
-        return 200 "stub=$name uri=\$request_uri cookie=[\$http_cookie] authorization=[\$http_authorization]\n";
+        return 200 "stub=$name uri=\$request_uri cookie=[\$http_cookie] authorization=[\$http_authorization] method=[\$request_method] xff=[\$http_x_forwarded_for] proto=[\$http_x_forwarded_proto] requestid=[\$http_x_request_id] host=[\$http_host]\n";
     }
 }
 EOF
@@ -98,6 +106,8 @@ EOF
   stub_server doc-api 3000
   stub_server asset-server 5003
   stub_server doc-websocket 3002
+  # Accepts any body size: the gateway, not the stub, must enforce the cap.
+  stub_server control-api 4000 'client_max_body_size 0;'
 )
 
 echo "gateway image: $image"
@@ -106,27 +116,32 @@ docker network create "$network" >/dev/null
 docker run -d --name "$stub" --network "$network" \
   --network-alias backend --network-alias doc-api \
   --network-alias asset-server --network-alias doc-websocket \
+  --network-alias control-api \
   -e STUB_CONF="$stub_conf" \
   --entrypoint sh "$image" \
   -c 'printf "%s\n" "$STUB_CONF" > /etc/nginx/conf.d/default.conf && exec nginx -g "daemon off;"' \
   >/dev/null
 
 # --- gateway under test ----------------------------------------------------
-# The real config, headers include and placeholder, as frontend.Dockerfile
-# installs them. The VTT root gets marker files, including a Codex Admin
-# build, so the matrix can tell which root answered.
+# The real config and headers include, as frontend.Dockerfile installs them.
+# The VTT root gets marker files (including a stray Codex Admin build, which
+# :80 must still deny) and the private root gets a stand-in Admin UI build,
+# so the matrix can tell which root answered.
 docker create --name "$gateway" --network "$network" \
   -e SPA_MARKER="$SPA_MARKER" -e CODEX_ADMIN_MARKER="$CODEX_ADMIN_MARKER" \
+  -e ADMIN_UI_MARKER="$ADMIN_UI_MARKER" -e ADMIN_ASSET_MARKER="$ADMIN_ASSET_MARKER" \
   --entrypoint sh "$image" -c '
     html=/usr/share/nginx/html
-    mkdir -p "$html/codex-admin" &&
+    admin=/usr/share/nginx/admin-ui
+    mkdir -p "$html/codex-admin" "$admin/assets" &&
     printf "%s\n" "$SPA_MARKER" > "$html/index.html" &&
     printf "%s\n" "$CODEX_ADMIN_MARKER" > "$html/codex-admin/index.html" &&
+    printf "<!doctype html><title>%s</title>\n" "$ADMIN_UI_MARKER" > "$admin/index.html" &&
+    printf "/* %s */\n" "$ADMIN_ASSET_MARKER" > "$admin/assets/index-matrix.js" &&
     exec nginx -g "daemon off;"' \
   >/dev/null
 docker cp "$docker_dir/nginx.conf" "$gateway:/etc/nginx/nginx.conf"
 docker cp "$docker_dir/security-headers.conf" "$gateway:/etc/nginx/security-headers.conf"
-docker cp "$docker_dir/admin-placeholder" "$gateway:/usr/share/nginx/admin-placeholder"
 docker start "$gateway" >/dev/null
 
 docker run -d --name "$client" --network "$network" --entrypoint sleep "$image" 3600 >/dev/null
@@ -163,13 +178,18 @@ header() {
 # probe PORT METHOD PATH [expectations...]
 #   --host H            send Host: H
 #   --cookie            send the valid test session cookie
+#   --admin-cookie      send the admin session cookie (control-api)
+#   --header H          send header line H
+#   --upload FILE       stream FILE (inside the client container) as the body
 #   --auth              send an Authorization header
+#   --cache VALUE       Cache-Control that --strict expects (default no-store)
 #   --status RE         status must match ^(RE)$
 #   --upstream NAME     response must come from stub upstream NAME
 #   --no-upstream       response must not come from any stub upstream
 #   --not-upstream NAME response must not come from stub upstream NAME
 #   --has TEXT          body must contain TEXT
 #   --lacks TEXT        body must not contain TEXT
+#   --match RE          body must match the extended regex RE
 #   --body TEXT         body must equal TEXT
 #   --type PREFIX       Content-Type must start with PREFIX
 #   --strict            private listener security headers must be exact
@@ -179,10 +199,15 @@ probe() {
   local -a curl_args=(-sS --path-as-is --max-time 10 -i)
   local -a expectations=()
   local label=":$port $method $path"
+  local cache=no-store
   while (($#)); do
     case $1 in
       --host) curl_args+=(-H "Host: $2"); label+=" [Host: $2]"; shift 2 ;;
       --cookie) curl_args+=(-H "Cookie: $SESSION_COOKIE"); label+=' [session]'; shift ;;
+      --admin-cookie) curl_args+=(-H "Cookie: $ADMIN_COOKIE"); label+=' [admin session]'; shift ;;
+      --header) curl_args+=(-H "$2"); label+=" [$2]"; shift 2 ;;
+      --cache) cache=$2; shift 2 ;;
+      --upload) curl_args+=(--upload-file "$2"); label+=" [upload $2]"; shift 2 ;;
       --auth) curl_args+=(-H 'Authorization: Bearer matrix'); shift ;;
       --strict | --no-upstream) expectations+=("$1"); shift ;;
       *) expectations+=("$1" "$2"); shift 2 ;;
@@ -199,6 +224,10 @@ probe() {
     report "$label" "curl failed: $raw"
     return
   fi
+  # Drop interim `100 Continue` responses to uploads.
+  while [[ "$raw" == 'HTTP/'*' 100 '* && "$raw" == *$'\r\n\r\n'* ]]; do
+    raw=${raw#*$'\r\n\r\n'}
+  done
   HEADERS=${raw%%$'\r\n\r\n'*}
   if [[ "$raw" == *$'\r\n\r\n'* ]]; then BODY=${raw#*$'\r\n\r\n'}; else BODY=''; fi
   STATUS=$(printf '%s\n' "$HEADERS" | head -n 1 | awk '{ print $2 }')
@@ -214,6 +243,7 @@ probe() {
       --not-upstream) [[ "$upstream" != "$2" ]] || problems+=" reached upstream $2;"; shift 2 ;;
       --has) [[ "$BODY" == *"$2"* ]] || problems+=" body lacks '$2';"; shift 2 ;;
       --lacks) [[ "$BODY" != *"$2"* ]] || problems+=" body contains '$2';"; shift 2 ;;
+      --match) [[ "$BODY" =~ $2 ]] || problems+=" body does not match /$2/;"; shift 2 ;;
       --body) [[ "$BODY" == "$2" ]] || problems+=" body '$BODY', expected '$2';"; shift 2 ;;
       --type)
         local type
@@ -221,7 +251,7 @@ probe() {
         [[ "$type" == "$2"* ]] || problems+=" Content-Type '$type', expected $2;"
         shift 2
         ;;
-      --strict) problems+=$(strict_header_problems); shift ;;
+      --strict) problems+=$(strict_header_problems "$cache"); shift ;;
       *) echo "unknown expectation $1" >&2; exit 2 ;;
     esac
   done
@@ -235,7 +265,7 @@ strict_header_problems() {
     [X-Frame-Options]=DENY
     [X-Content-Type-Options]=nosniff
     [Referrer-Policy]=no-referrer
-    [Cache-Control]=no-store
+    [Cache-Control]="$1"
   )
   for name in "${!required[@]}"; do
     expected=${required[$name]}
@@ -264,8 +294,9 @@ private_probe() {
   probe 8081 "$@" --strict --no-upstream --lacks "$SPA_MARKER" --lacks "$CODEX_ADMIN_MARKER"
 }
 
+# stub_hits [PORT]: requests the stubs received, optionally for one upstream port.
 stub_hits() {
-  docker logs "$stub" 2>/dev/null | grep -c '^STUBHIT' || true
+  docker logs "$stub" 2>/dev/null | grep -c "^STUBHIT ${1:-}" || true
 }
 
 # --- :80 public gateway ----------------------------------------------------
@@ -277,6 +308,7 @@ probe 80 GET /auth/session-check --status 401 --upstream backend
 probe 80 GET /ws --status 200 --upstream backend
 probe 80 GET /assets/matrix.png --status 200 --upstream asset-server
 probe 80 GET /codex-ws --status 200 --upstream doc-websocket
+probe 80 GET /control-api/v1/me --status '200|404' --not-upstream control-api --lacks "$ADMIN_UI_MARKER"
 
 echo '== :80 public gateway: Phase 0 admin denials'
 for path in \
@@ -339,39 +371,81 @@ done
 
 echo '== :80 public gateway: admin Host header gets public behavior'
 for host in admin.internal.nexusvtt.com admin.internal.nexusvtt.com:8081 ADMIN.INTERNAL.NEXUSVTT.COM; do
-  probe 80 GET / --host "$host" --status 200 --has "$SPA_MARKER" --lacks "$PLACEHOLDER_MARKER"
+  probe 80 GET / --host "$host" --status 200 --has "$SPA_MARKER" --lacks "$ADMIN_UI_MARKER"
   # :80's `location /health` prefix also answers /healthz ("healthy").
   probe 80 GET /healthz --host "$host" --status 200 --has healthy --no-upstream
-  probe 80 GET /placeholder.css --host "$host" --status 200 --has "$SPA_MARKER" --no-upstream
+  probe 80 GET /documents --host "$host" --status 200 --has "$SPA_MARKER" --lacks "$ADMIN_UI_MARKER" --no-upstream
+  # control-api exists only behind :8081.
+  probe 80 GET /control-api/v1/me --host "$host" --status '200|404' --not-upstream control-api \
+    --lacks "$ADMIN_UI_MARKER"
+  probe 80 POST /control-api/v1/auth/logout --host "$host" --status '404|405' --not-upstream control-api
   probe 80 GET /codex-admin/ --host "$host" --status 404 --no-upstream --lacks "$CODEX_ADMIN_MARKER"
   probe 80 GET /api/admin/users --host "$host" --status 404 --no-upstream
   probe 80 GET /codex-api/api/admin/users --host "$host" --status 404 --no-upstream
 done
 
 # --- :8081 private admin listener ------------------------------------------
-hits_before_private=$(stub_hits)
+# Upload bodies for the /control-api/ size cap (200m, matching control-api):
+# one well above the gateway's 20M default, one just above the cap.
+docker exec "$client" sh -c '
+  head -c 26214400 /dev/zero > /tmp/matrix-25m.bin &&
+  head -c 210763776 /dev/zero > /tmp/matrix-201m.bin'
 
-echo '== :8081 private listener: served content'
-private_probe GET / --status 200 --type text/html --has "$PLACEHOLDER_MARKER" --lacks '<script'
+hits_before_private=$(stub_hits)
+control_hits_before=$(stub_hits 4000)
+expected_control_hits=0
+
+# control_probe METHOD PATH [probe args...]: must reach the control-api stub.
+control_probe() {
+  expected_control_hits=$((expected_control_hits + 1))
+  probe 8081 "$@" --strict --upstream control-api \
+    --lacks "$SPA_MARKER" --lacks "$CODEX_ADMIN_MARKER" --lacks "$ADMIN_UI_MARKER"
+}
+
+echo '== :8081 private listener: Admin UI SPA'
+for path in / /documents /processing /reader/abc-123 /data-quality /index.html '/documents?page=2'; do
+  private_probe GET "$path" --status 200 --type text/html --has "$ADMIN_UI_MARKER"
+done
 private_probe HEAD / --status 200 --type text/html
-private_probe GET /placeholder.css --status 200 --type text/css
+for host in admin.internal.nexusvtt.com app.nexusvtt.com evil.example localhost; do
+  private_probe GET / --host "$host" --status 200 --has "$ADMIN_UI_MARKER"
+done
+private_probe GET /assets/index-matrix.js --status 200 --cache "$ASSET_CACHE_CONTROL" \
+  --has "$ADMIN_ASSET_MARKER"
+private_probe GET /assets/missing.js --status 404 --lacks "$ADMIN_UI_MARKER"
 private_probe GET /healthz --status 200 --type text/plain --body ok
 private_probe HEAD /healthz --status 200
-for host in admin.internal.nexusvtt.com app.nexusvtt.com evil.example localhost; do
-  private_probe GET / --host "$host" --status 200 --has "$PLACEHOLDER_MARKER"
-done
 
-echo '== :8081 private listener: everything else is 404'
+echo '== :8081 private listener: /control-api/ reaches control-api only'
+control_probe GET /control-api/v1/me --admin-cookie --host admin.internal.nexusvtt.com \
+  --header "X-Forwarded-For: $SPOOFED_IP" --header 'X-Request-Id: client-chosen' \
+  --status 200 --has 'uri=/control-api/v1/me ' \
+  --has "cookie=[$ADMIN_COOKIE]" --has 'proto=[https]' \
+  --has 'host=[admin.internal.nexusvtt.com]' --lacks "$SPOOFED_IP" --lacks client-chosen \
+  --match 'xff=\[[0-9a-fA-F.:]+\]' --match 'requestid=\[[0-9a-f]{32}\]'
+control_probe GET '/control-api/v1/codex/admin/documents?page=1&limit=50' --admin-cookie \
+  --status 200 --has 'uri=/control-api/v1/codex/admin/documents?page=1&limit=50 '
+control_probe GET /control-api/v1/auth/login --status 200 --has 'uri=/control-api/v1/auth/login '
+for method in POST PUT PATCH DELETE OPTIONS; do
+  control_probe "$method" /control-api/v1/codex/admin/documents/abc --admin-cookie \
+    --header 'X-CSRF-Token: matrix-csrf' --status 200 --has "method=[$method]"
+done
+control_probe POST /control-api/v1/auth/logout --admin-cookie --status 200 --has 'method=[POST]'
+control_probe POST /control-api/v1/codex/documents/bulk --admin-cookie \
+  --upload /tmp/matrix-25m.bin --status 200 --has 'uri=/control-api/v1/codex/documents/bulk '
+private_probe POST /control-api/v1/codex/documents/bulk --admin-cookie \
+  --upload /tmp/matrix-201m.bin --status 413
+
+echo '== :8081 private listener: reserved gateway namespaces are 404'
 for path in \
-  /index.html /codex-admin /codex-admin/ /codex-admin/index.html /codex-admin/assets/index.js \
   /api /api/ /api/x /api/campaigns /api/admin/x /api/admin/users /api/documents/bulk \
-  /auth/session-check /control-api/x /codex-api/ /codex-api/api/search/quick \
-  /codex-ws /codex-dm/ /codex-dm/config.js /ws /socket.io/ /assets/matrix.png \
-  /library /library-assets/x /forge/ /generator-hub/ /health /healthz/ /metrics \
-  /sw.js /config.js /favicon.ico /admin-placeholder/index.html \
-  /%63odex-admin/ //codex-admin/ /x/../codex-admin/ /api//admin/x /api/admin%2Fx \
-  /CODEX-ADMIN/ '/codex-admin;x/'; do
-  private_probe GET "$path" --status 404
+  /API/ADMIN/users /auth/session-check /control-api /Control-Api/v1/me \
+  /codex-api/ /codex-api/api/search/quick /codex-admin /codex-admin/ \
+  /codex-admin/index.html '/codex-admin;x/' /CODEX-ADMIN/ /codex-ws /codex-dm/ \
+  /codex-dm/config.js /codex/ /ws /socket.io/ /library /library-assets/x /forge/ \
+  /generator-hub/ /health /healthz/ /metrics /%63odex-admin/ //codex-admin/ \
+  /x/../codex-admin/ /api//admin/x /api/admin%2Fx /api/%61dmin/x; do
+  private_probe GET "$path" --status 404 --lacks "$ADMIN_UI_MARKER"
 done
 private_probe GET /codex-api/api/search/quick --cookie --status 404
 for host in admin.internal.nexusvtt.com app.nexusvtt.com evil.example; do
@@ -379,27 +453,48 @@ for host in admin.internal.nexusvtt.com app.nexusvtt.com evil.example; do
   private_probe GET /codex-admin/ --host "$host" --status 404
   private_probe GET /ws --host "$host" --status 404
 done
+for method in POST PUT DELETE; do
+  private_probe "$method" /api/admin/users --status 404
+  private_probe "$method" /codex-api/api/documents/abc --status 404
+done
 
 echo '== :8081 private listener: traversal cannot escape the private root'
+# nginx rejects these with 400 while parsing the URI, before the server's
+# rewrite phase sets $admin_cache_control, so the (uncacheable) 400 carries no
+# Cache-Control; every other strict header is still present.
 for path in /../html/index.html /%2e%2e/html/index.html /..%2Fhtml%2Findex.html; do
-  private_probe GET "$path" --status '400|404'
+  private_probe GET "$path" --status 400 --cache '' --lacks "$ADMIN_UI_MARKER"
+done
+# Normalized before location matching: never proxied to control-api.
+for path in /control-api/../api/admin/x /control-api/v1/../../ws; do
+  private_probe GET "$path" --status 404
 done
 
-echo '== :8081 private listener: only GET and HEAD'
+echo '== :8081 private listener: static content is GET and HEAD only'
 for method in POST PUT PATCH DELETE OPTIONS; do
   private_probe "$method" / --status 405
+  private_probe "$method" /documents --status 405
   private_probe "$method" /healthz --status 405
-  private_probe "$method" /api/admin/users --status 405
 done
 
-hits_after_private=$(stub_hits)
 checks=$((checks + 1))
-if [[ "$hits_after_private" == "$hits_before_private" ]]; then
-  echo "ok    :8081 contacted no stub upstream (stub request count stayed at $hits_after_private)"
+other_hits_before=$((hits_before_private - control_hits_before))
+other_hits_after=$(($(stub_hits) - $(stub_hits 4000)))
+if [[ "$other_hits_after" == "$other_hits_before" ]]; then
+  echo "ok    :8081 contacted no stub upstream other than control-api"
 else
   failures=$((failures + 1))
-  echo "FAIL  :8081 contacted a stub upstream ($hits_before_private -> $hits_after_private requests)"
-  docker logs "$stub" 2>/dev/null | grep '^STUBHIT' | tail -n +"$((hits_before_private + 1))"
+  echo "FAIL  :8081 contacted a non-control-api stub upstream ($other_hits_before -> $other_hits_after requests)"
+  docker logs "$stub" 2>/dev/null | grep '^STUBHIT' | grep -v '^STUBHIT 4000 ' | tail -n 20
+fi
+
+checks=$((checks + 1))
+control_hits=$(($(stub_hits 4000) - control_hits_before))
+if [[ "$control_hits" == "$expected_control_hits" ]]; then
+  echo "ok    control-api received exactly the $expected_control_hits /control-api/ requests"
+else
+  failures=$((failures + 1))
+  echo "FAIL  control-api received $control_hits requests, expected $expected_control_hits"
 fi
 
 echo

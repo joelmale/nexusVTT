@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { codexFetch } from '@/lib/api'
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button'
 
@@ -33,7 +34,7 @@ export default function Logs() {
       if (selectedLevel) params.append('level', selectedLevel)
       if (selectedQuery) params.append('q', selectedQuery)
 
-      const response = await fetch(`/api/admin/logs?${params.toString()}`)
+      const response = await codexFetch(`/api/admin/logs?${params.toString()}`)
       const data = await response.json()
       if (!response.ok) {
         throw new Error(data.error || 'Failed to fetch logs')

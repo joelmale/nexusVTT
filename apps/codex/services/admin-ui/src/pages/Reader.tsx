@@ -1,4 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { codexFetch } from '@/lib/api'
+import { useAuth, useCan } from '@/auth/AuthContext'
+import { permissionHint } from '@/auth/permissions'
 import { useParams } from 'react-router-dom'
 
 interface PageImage {
@@ -80,15 +83,9 @@ export default function Reader() {
   const leftImageRef = useRef<HTMLImageElement | null>(null)
   const rightImageRef = useRef<HTMLImageElement | null>(null)
 
-  const resolveUserId = () => {
-    if (typeof window === 'undefined') return 'admin'
-    return (
-      window.localStorage.getItem('adminUserId') ||
-      window.localStorage.getItem('userId') ||
-      window.localStorage.getItem('uid') ||
-      'admin'
-    )
-  }
+  const { me } = useAuth()
+  const canAnnotate = useCan('annotate')
+  const resolveUserId = () => me.user.id
 
   const resolveCampaignId = () => {
     if (typeof window === 'undefined') return undefined
@@ -103,7 +100,10 @@ export default function Reader() {
       setLoading(true)
       setError(null)
       try {
-        const response = await fetch(`/api/documents/${id}/page-images`)
+        // TODO(control-plane): page-images returns pre-signed MinIO URLs,
+        // which the admin gateway does not expose and its CSP (img-src 'self')
+        // blocks. A later wave serves page images through control-api.
+        const response = await codexFetch(`/api/documents/${id}/page-images`)
         const payload = await response.json()
         if (!response.ok) {
           throw new Error(payload.error || 'Failed to load page images')
@@ -137,7 +137,7 @@ export default function Reader() {
         params.set('userId', resolveUserId())
         const campaignId = resolveCampaignId()
         if (campaignId) params.set('campaignId', campaignId)
-        const response = await fetch(`/api/documents/${id}/annotations?${params}`)
+        const response = await codexFetch(`/api/documents/${id}/annotations?${params}`)
         const payload = await response.json()
         if (!response.ok) {
           throw new Error(payload.error || 'Failed to load annotations')
@@ -159,7 +159,7 @@ export default function Reader() {
         params.set('userId', resolveUserId())
         const campaignId = resolveCampaignId()
         if (campaignId) params.set('campaignId', campaignId)
-        const response = await fetch(`/api/references?${params}`)
+        const response = await codexFetch(`/api/references?${params}`)
         const payload = await response.json()
         if (!response.ok) {
           throw new Error(payload.error || 'Failed to load bookmarks')
@@ -209,7 +209,7 @@ export default function Reader() {
     const existing = bookmarks.find((bookmark) => bookmark.pageNumber === pageNumber)
     if (existing) {
       try {
-        const response = await fetch(`/api/references/${existing.id}`, {
+        const response = await codexFetch(`/api/references/${existing.id}`, {
           method: 'DELETE',
         })
         if (!response.ok) {
@@ -224,7 +224,7 @@ export default function Reader() {
     }
 
     try {
-      const response = await fetch('/api/references', {
+      const response = await codexFetch('/api/references', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -430,7 +430,7 @@ export default function Reader() {
       }))
       const responses = await Promise.all(
         payloads.map((payload) =>
-          fetch(`/api/documents/${id}/annotations`, {
+          codexFetch(`/api/documents/${id}/annotations`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(payload),
@@ -515,21 +515,24 @@ export default function Reader() {
             <button
               onClick={() => setActiveTool('highlight')}
               className={`px-2 py-1 text-sm rounded-md border ${activeTool === 'highlight' ? 'border-amber-500 bg-amber-500 text-white' : 'border-slate-300 text-slate-700 hover:bg-slate-100'}`}
-              title="Highlight tool"
+              disabled={!canAnnotate}
+              title={canAnnotate ? 'Highlight tool' : permissionHint('annotate')}
             >
               Highlight
             </button>
             <button
               onClick={() => setActiveTool('note')}
               className={`px-2 py-1 text-sm rounded-md border ${activeTool === 'note' ? 'border-sky-500 bg-sky-500 text-white' : 'border-slate-300 text-slate-700 hover:bg-slate-100'}`}
-              title="Note tool"
+              disabled={!canAnnotate}
+              title={canAnnotate ? 'Note tool' : permissionHint('annotate')}
             >
               Note
             </button>
             <button
               onClick={() => setActiveTool('bookmark')}
               className={`px-2 py-1 text-sm rounded-md border ${activeTool === 'bookmark' ? 'border-emerald-500 bg-emerald-500 text-white' : 'border-slate-300 text-slate-700 hover:bg-slate-100'}`}
-              title="Bookmark tool"
+              disabled={!canAnnotate}
+              title={canAnnotate ? 'Bookmark tool' : permissionHint('annotate')}
             >
               Bookmark
             </button>

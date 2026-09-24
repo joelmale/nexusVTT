@@ -119,9 +119,13 @@ export interface Location {
   body: Directive[];
 }
 
+const isNamedLocation = (d: Directive) =>
+  d.name === 'location' && d.args.length === 1 && d.args[0].startsWith('@');
+
+/** Request-matchable locations (named `@x` locations are excluded). */
 export function serverLocations(server: Directive): Location[] {
   return (server.block ?? [])
-    .filter((d) => d.name === 'location')
+    .filter((d) => d.name === 'location' && !isNamedLocation(d))
     .map((d) => {
       const [first, second] = d.args;
       const modifier =
@@ -132,6 +136,22 @@ export function serverLocations(server: Directive): Location[] {
         body: d.block ?? [],
       };
     });
+}
+
+/** Named locations (`location @name`), reachable only by internal redirect. */
+export function namedLocations(server: Directive): Location[] {
+  return (server.block ?? []).filter(isNamedLocation).map((d) => ({
+    modifier: '',
+    pattern: d.args[0],
+    body: d.block ?? [],
+  }));
+}
+
+/** Every upstream host a server block proxies to, across all its locations. */
+export function serverProxiedHosts(server: Directive): string[] {
+  return [...serverLocations(server), ...namedLocations(server)].flatMap(
+    proxiedHosts,
+  );
 }
 
 /** nginx location selection for non-nested, non-named locations. */
