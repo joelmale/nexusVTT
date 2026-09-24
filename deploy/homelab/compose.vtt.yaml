@@ -10,6 +10,7 @@ services:
       PORT: 5003
       ASSETS_PATH: /app/static-assets
       ASSET_SERVICE_SECRET: ${ASSET_SERVICE_SECRET}
+      ASSET_ADMIN_SERVICE_SECRET: ${ASSET_ADMIN_SERVICE_SECRET:?ASSET_ADMIN_SERVICE_SECRET is required, see deploy/homelab/.env.example}
       LIBRARY_DATA_PATH: /app/assets-data
       LIBRARY_MANIFEST_PATH: /app/assets-data/manifests/manifest-v2.json
     volumes:
@@ -99,11 +100,11 @@ services:
       TRUST_PROXY_HOPS: 1
       # Wave 2 (control-api-adr.md): asset admin, operations summary, rules.
       ASSET_SERVICE_URL: http://asset-server:5003
-      ASSET_SERVICE_SECRET: ${ASSET_SERVICE_SECRET:?ASSET_SERVICE_SECRET is required, see deploy/homelab/.env.example}
+      ASSET_ADMIN_SERVICE_SECRET: ${ASSET_ADMIN_SERVICE_SECRET:?ASSET_ADMIN_SERVICE_SECRET is required, see deploy/homelab/.env.example}
       BACKEND_URL: http://backend:5001
       PROMETHEUS_URL: ${CONTROL_PROMETHEUS_URL:-}
       GRAFANA_URL: ${CONTROL_GRAFANA_URL:-}
-      RULES_ADMIN_SERVICE_TOKEN: ${RULES_ADMIN_SERVICE_TOKEN:-}
+      RULES_ADMIN_SERVICE_TOKEN: ${RULES_ADMIN_SERVICE_TOKEN:?RULES_ADMIN_SERVICE_TOKEN is required, see deploy/homelab/.env.example}
     # Private admin control plane (control-api-adr.md): the only browser-facing
     # API on the :8081 admin listener, and the only component that calls
     # doc-api on an administrator's behalf. nexus-internal-net reaches

@@ -51,6 +51,7 @@ services:
       PORT: 5003
       ASSETS_PATH: /app/static-assets
       ASSET_SERVICE_SECRET: ${ASSET_SERVICE_SECRET:?ASSET_SERVICE_SECRET is required, see deploy/homelab/.env.example}
+      ASSET_ADMIN_SERVICE_SECRET: ${ASSET_ADMIN_SERVICE_SECRET:?ASSET_ADMIN_SERVICE_SECRET is required, see deploy/homelab/.env.example}
       LIBRARY_DATA_PATH: /app/assets-data
       LIBRARY_MANIFEST_PATH: /app/assets-data/manifests/manifest-v2.json
     volumes:
@@ -158,11 +159,11 @@ services:
       TRUST_PROXY_HOPS: 1
       # Wave 2 (control-api-adr.md): asset admin, operations summary, rules.
       ASSET_SERVICE_URL: http://asset-server:5003
-      ASSET_SERVICE_SECRET: ${ASSET_SERVICE_SECRET:?ASSET_SERVICE_SECRET is required, see deploy/homelab/.env.example}
+      ASSET_ADMIN_SERVICE_SECRET: ${ASSET_ADMIN_SERVICE_SECRET:?ASSET_ADMIN_SERVICE_SECRET is required, see deploy/homelab/.env.example}
       BACKEND_URL: http://backend:5001
       PROMETHEUS_URL: ${CONTROL_PROMETHEUS_URL:-}
       GRAFANA_URL: ${CONTROL_GRAFANA_URL:-}
-      RULES_ADMIN_SERVICE_TOKEN: ${RULES_ADMIN_SERVICE_TOKEN:-}
+      RULES_ADMIN_SERVICE_TOKEN: ${RULES_ADMIN_SERVICE_TOKEN:?RULES_ADMIN_SERVICE_TOKEN is required, see deploy/homelab/.env.example}
     # Private admin control plane (control-api-adr.md): the only browser-facing
     # API on the :8081 admin listener, and the only component that calls
     # doc-api on an administrator's behalf. nexus-internal-net reaches
@@ -224,7 +225,7 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required, see deploy/homelab/.env.example}@redis:6379/1
       ELASTICSEARCH_URL: http://codex-elasticsearch:9200
       S3_ENDPOINT: http://codex-minio:9000
-      S3_PUBLIC_ENDPOINT: ${CODEX_S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      S3_PUBLIC_ENDPOINT: ${CODEX_S3_PUBLIC_ENDPOINT:-http://codex-minio:9000}
       S3_ACCESS_KEY: ${CODEX_MINIO_ROOT_USER:?CODEX_MINIO_ROOT_USER is required, see deploy/homelab/.env.example}
       S3_SECRET_KEY: ${CODEX_MINIO_ROOT_PASSWORD:?CODEX_MINIO_ROOT_PASSWORD is required, see deploy/homelab/.env.example}
       S3_BUCKET: documents
@@ -234,8 +235,9 @@ services:
       AUTH_DISABLED: 'true'
       EMBEDDINGS_PROVIDER: hash
       # Optional shared secret for the rules admin API; set the same value on
-      # control-api (RULES_ADMIN_SERVICE_TOKEN). Unset disables the check.
-      RULES_ADMIN_SERVICE_TOKEN: ${RULES_ADMIN_SERVICE_TOKEN:-}
+      # control-api (RULES_ADMIN_SERVICE_TOKEN). Required: doc-api refuses rules
+      # admin requests in production without it.
+      RULES_ADMIN_SERVICE_TOKEN: ${RULES_ADMIN_SERVICE_TOKEN:?RULES_ADMIN_SERVICE_TOKEN is required, see deploy/homelab/.env.example}
       METRICS_AUTH_TOKEN: ${CODEX_METRICS_AUTH_TOKEN:?CODEX_METRICS_AUTH_TOKEN is required, see deploy/homelab/.env.example}
     # Phase 0 containment (private-admin-control-plane.md invariant 2): doc-api
     # runs with AUTH_DISABLED=true, so it must never sit on a network shared
@@ -272,7 +274,7 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required, see deploy/homelab/.env.example}@redis:6379/1
       ELASTICSEARCH_URL: http://codex-elasticsearch:9200
       S3_ENDPOINT: http://codex-minio:9000
-      S3_PUBLIC_ENDPOINT: ${CODEX_S3_PUBLIC_ENDPOINT:-http://localhost:9000}
+      S3_PUBLIC_ENDPOINT: ${CODEX_S3_PUBLIC_ENDPOINT:-http://codex-minio:9000}
       S3_ACCESS_KEY: ${CODEX_MINIO_ROOT_USER:?CODEX_MINIO_ROOT_USER is required, see deploy/homelab/.env.example}
       S3_SECRET_KEY: ${CODEX_MINIO_ROOT_PASSWORD:?CODEX_MINIO_ROOT_PASSWORD is required, see deploy/homelab/.env.example}
       S3_BUCKET: documents

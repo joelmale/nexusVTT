@@ -63,13 +63,11 @@ services:
       - grafana-data:/var/lib/grafana
       - ../../monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
     networks:
+      # monitoring-internal only. Grafana must not join nexus-internal-net:
+      # its data-source proxy could then call doc-api (AUTH_DISABLED) directly.
+      # A future private gateway route needs a dedicated frontend<->grafana
+      # network instead (private-admin-control-plane.md).
       - monitoring-internal
-      # Reachable as `grafana:3000` from the production internal network so
-      # the Phase 2 private gateway can proxy to it once that route exists
-      # (private-admin-control-plane.md "Operations and observability"). No
-      # gateway route is wired yet -- that is a Phase 2 follow-up, not part
-      # of this change.
-      - nexus-vtt2_nexus-internal-net
     # No host ports; reached only via the future private gateway route.
     restart: unless-stopped
 
@@ -164,15 +162,18 @@ services:
         exec /bin/alertmanager --config.file=/alertmanager/alertmanager.yml --storage.path=/alertmanager
     networks:
       - monitoring-internal
+      - monitoring-egress
     restart: unless-stopped
 
 networks:
   nexus-vtt2_nexus-internal-net:
     external: true
-  # Plain bridge network (not `internal: true`): alertmanager needs outbound
-  # access to deliver webhook notifications, and this network carries no
-  # production credentials or data, only stack-internal scrape/query traffic.
-  monitoring-internal: {}
+  # Prometheus sits on both this and nexus-internal-net, so this network must
+  # have no outbound route: otherwise it bridges production to the internet.
+  monitoring-internal:
+    internal: true
+  # Outbound only for alertmanager webhook delivery; nothing else joins it.
+  monitoring-egress: {}
 
 volumes:
   prometheus-data:

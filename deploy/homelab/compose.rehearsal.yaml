@@ -23,6 +23,7 @@ services:
     hostname: nexus-migration-phase3-e078895-asset-server
     environment:
       ASSET_SERVICE_SECRET: ${REHEARSAL_ASSET_SERVICE_SECRET:-nexus-rehearsal-assets}
+      ASSET_ADMIN_SERVICE_SECRET: ${REHEARSAL_ASSET_ADMIN_SERVICE_SECRET:-nexus-migration-phase3-e078895-asset-admin-secret}
       ASSET_SEED_MANIFEST: manifest-v2.json
       LIBRARY_MANIFEST_PATH: /app/assets-data/manifest-v2.json
     volumes: !override
@@ -41,7 +42,7 @@ services:
     networks: !override [rehearsal-net]
   backend:
     environment:
-      CORS_ORIGIN: ${REHEARSAL_CORS_ORIGIN:-http://nexus-migration-phase3-e078895.invalid}
+      CORS_ORIGIN: ${REHEARSAL_CORS_ORIGIN:-https://nexus-migration-phase3-e078895.invalid}
       DATABASE_URL: postgresql://${REHEARSAL_POSTGRES_USER:-nexus_rehearsal}:${REHEARSAL_POSTGRES_PASSWORD:-nexus-rehearsal}@postgres:5432/${REHEARSAL_POSTGRES_DB:-nexus_rehearsal}
       REDIS_URL: redis://:${REHEARSAL_REDIS_PASSWORD:-nexus-rehearsal}@redis:6379
       JWT_SECRET: ${REHEARSAL_JWT_SECRET:-nexus-migration-phase3-e078895-jwt}
@@ -61,8 +62,10 @@ services:
       ADMIN_ORIGIN: ${REHEARSAL_ADMIN_ORIGIN:-http://nexus-migration-phase3-e078895.invalid}
       GOOGLE_CLIENT_ID: ${REHEARSAL_GOOGLE_CLIENT_ID:-rehearsal-disabled}
       GOOGLE_CLIENT_SECRET: ${REHEARSAL_GOOGLE_CLIENT_SECRET:-rehearsal-disabled}
-      CONTROL_GOOGLE_CALLBACK_URL: ${REHEARSAL_CONTROL_GOOGLE_CALLBACK_URL:-http://nexus-migration-phase3-e078895.invalid/control-api/v1/auth/google/callback}
+      CONTROL_GOOGLE_CALLBACK_URL: ${REHEARSAL_CONTROL_GOOGLE_CALLBACK_URL:-https://nexus-migration-phase3-e078895.invalid/control-api/v1/auth/google/callback}
       CONTROL_SESSION_SECRET: ${REHEARSAL_CONTROL_SESSION_SECRET:-nexus-migration-phase3-e078895-control-session}
+      ASSET_ADMIN_SERVICE_SECRET: ${REHEARSAL_ASSET_ADMIN_SERVICE_SECRET:-nexus-migration-phase3-e078895-asset-admin-secret}
+      RULES_ADMIN_SERVICE_TOKEN: ${REHEARSAL_RULES_ADMIN_SERVICE_TOKEN:-nexus-migration-phase3-e078895-rules-admin-token}
     # Reset to the isolated rehearsal-net only; control-api must never inherit
     # the production nexus-control-egress-net or reach real outbound Google
     # endpoints during a rehearsal.
@@ -86,6 +89,8 @@ services:
       S3_ACCESS_KEY: ${REHEARSAL_CODEX_MINIO_ROOT_USER:-nexus-rehearsal}
       S3_SECRET_KEY: ${REHEARSAL_CODEX_MINIO_ROOT_PASSWORD:-nexus-rehearsal}
       JWT_SECRET: ${REHEARSAL_CODEX_JWT_SECRET:-nexus-migration-phase3-e078895-codex-jwt}
+      METRICS_AUTH_TOKEN: ${REHEARSAL_CODEX_METRICS_AUTH_TOKEN:-nexus-migration-phase3-e078895-codex-metrics}
+      RULES_ADMIN_SERVICE_TOKEN: ${REHEARSAL_RULES_ADMIN_SERVICE_TOKEN:-nexus-migration-phase3-e078895-rules-admin-token}
     networks: !override [rehearsal-net]
   doc-processor:
     environment:
@@ -94,6 +99,7 @@ services:
       S3_ACCESS_KEY: ${REHEARSAL_CODEX_MINIO_ROOT_USER:-nexus-rehearsal}
       S3_SECRET_KEY: ${REHEARSAL_CODEX_MINIO_ROOT_PASSWORD:-nexus-rehearsal}
       JWT_SECRET: ${REHEARSAL_CODEX_JWT_SECRET:-nexus-migration-phase3-e078895-codex-jwt}
+      METRICS_AUTH_TOKEN: ${REHEARSAL_CODEX_METRICS_AUTH_TOKEN:-nexus-migration-phase3-e078895-codex-metrics}
     networks: !override [rehearsal-net]
   doc-websocket:
     environment:
