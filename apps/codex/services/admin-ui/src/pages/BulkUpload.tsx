@@ -1,15 +1,16 @@
 import { useState, useCallback } from 'react';
-import { codexFetch } from '@/lib/api';
-import { useAuth, useCan } from '@/auth/AuthContext';
+import { codexUploadDocument, DOCUMENT_UPLOAD_ACCEPT, DOCUMENT_UPLOAD_MAX_BYTES, documentUploadProblem } from '@/lib/codexUpload';
+import { useCan } from '@/auth/AuthContext';
 import { permissionHint } from '@/auth/permissions';
-import { useQuery } from '@tanstack/react-query';
+import { errorText } from '@/lib/ui';
+import { formatBytes } from '@/lib/assetsApi';
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '../components/ui/card';
 import { Progress } from '../components/ui/progress';
 
 import { Badge } from '../components/ui/badge';
-import { Upload, File, CheckCircle, XCircle, Clock } from 'lucide-react';
+import { Upload, File, CheckCircle, XCircle } from 'lucide-react';
 
 interface UploadFile {
   file: File;
@@ -26,71 +27,24 @@ interface UploadFile {
   };
 }
 
-interface BulkUploadResult {
-  batchId: string;
-  results: Array<{
-    document?: {
-      id: string;
-      title: string;
-    };
-    uploadUrl?: string;
-    error?: string;
-    fileName?: string;
-    success: boolean;
-  }>;
-  total: number;
-  successful: number;
-  failed: number;
+interface UploadOutcome {
+  fileName: string;
+  success: boolean;
+  document?: { id: string; title: string; status?: string };
+  error?: string;
 }
 
-interface BulkStatus {
-  batchId: string;
-  total: number;
-  processed: number;
-  failed: number;
-  processing: number;
-  pending: number;
-  documents: Array<{
-    id: string;
-    title: string;
-    status: string;
-    indexed: boolean;
-    createdAt: string;
-    updatedAt: string;
-  }>;
-}
-
-// TODO(control-plane): doc-api hands the browser pre-signed MinIO URLs for
-// the file bytes. The private admin gateway deliberately does not expose
-// MinIO (and its CSP allows connect-src 'self' only), so creating documents
-// here would leave records without files. A later wave moves the byte upload
-// server-side into control-api; until then the upload action stays disabled.
-const FILE_UPLOAD_AVAILABLE = false;
-
+/**
+ * Uploads each file through control-api (`POST /codex/documents/upload`),
+ * which stores the bytes server side and queues processing. The browser never
+ * talks to object storage.
+ */
 export default function BulkUpload() {
-  const { me } = useAuth();
   const canUpload = useCan('uploadDocuments');
   const [files, setFiles] = useState<UploadFile[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
-  const [currentBatchId, setCurrentBatchId] = useState<string | null>(null);
-  const [uploadResults, setUploadResults] = useState<BulkUploadResult | null>(null);
-
-  // Query for bulk upload status
-  const { data: statusData, refetch: refetchStatus } = useQuery({
-    queryKey: ['bulk-status', currentBatchId],
-    queryFn: async () => {
-      if (!currentBatchId) return null;
-      const response = await codexFetch(`/api/documents/bulk/${currentBatchId}/status`, {
-        headers: {
-        },
-      });
-      if (!response.ok) throw new Error('Failed to fetch status');
-      return response.json() as Promise<BulkStatus>;
-    },
-    enabled: !!currentBatchId,
-    refetchInterval: currentBatchId ? 5000 : false, // Poll every 5 seconds
-  });
+  const [uploadResults, setUploadResults] = useState<UploadOutcome[] | null>(null);
 
   const handleFileSelect = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFiles = Array.from(event.target.files || []);
@@ -115,8 +69,7 @@ export default function BulkUpload() {
   };
 
   const generatePreviews = async () => {
-    // This would call the preview API for each file
-    // For now, just show basic file info
+    // Basic file info only; thumbnails are produced by doc-processor after upload.
     setFiles(prev => prev.map(file => ({
       ...file,
       preview: {
@@ -126,87 +79,43 @@ export default function BulkUpload() {
     })));
   };
 
+  const problems = files.map(file => documentUploadProblem(file.file));
+  const hasProblems = problems.some(Boolean);
+
   const uploadFiles = async () => {
-    if (files.length === 0) return;
+    if (files.length === 0 || hasProblems) return;
 
     setIsUploading(true);
     setUploadProgress(0);
+    const outcomes: UploadOutcome[] = [];
+    const failedFiles: UploadFile[] = [];
 
-    try {
-      // Prepare bulk upload data
-      const bulkData = {
-        documents: files.map(file => ({
+    for (const [index, file] of files.entries()) {
+      try {
+        const document = await codexUploadDocument(file.file, {
           title: file.title,
           description: file.description,
           type: file.type,
-          format: file.file.name.split('.').pop() === 'md' ? 'markdown' : 'pdf',
-          author: '',
-          uploadedBy: me.user.id,
           tags: file.tags,
           campaigns: file.campaigns,
           collections: file.collections,
-          isPublic: false,
-          metadata: {},
-          fileSize: file.file.size,
-          fileName: file.file.name,
-        })),
-      };
-
-      // Create bulk documents
-      const response = await codexFetch(`/api/documents/bulk`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(bulkData),
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to create documents');
+        });
+        outcomes.push({ fileName: file.file.name, success: true, document });
+      } catch (error) {
+        outcomes.push({ fileName: file.file.name, success: false, error: errorText(error) });
+        failedFiles.push(file);
       }
-
-      const result: BulkUploadResult = await response.json();
-      setUploadResults(result);
-      setCurrentBatchId(result.batchId);
-
-      // Upload files to S3
-      let uploaded = 0;
-      for (const item of result.results) {
-        if (item.uploadUrl && item.document) {
-          const document = item.document;
-          const fileData = files.find(f => f.title === document.title);
-          if (fileData) {
-            try {
-              // Pre-signed MinIO URL from doc-api. Never reachable through
-              // the admin gateway (see FILE_UPLOAD_AVAILABLE).
-              await fetch(item.uploadUrl, {
-                method: 'PUT',
-                body: fileData.file,
-                headers: {
-                  'Content-Type': fileData.file.type || 'application/octet-stream',
-                },
-              });
-              await codexFetch(`/api/documents/${document.id}/process`, {
-                method: 'POST',
-              });
-            } catch (error) {
-              console.error('Upload failed:', error);
-            }
-          }
-        }
-        uploaded++;
-        setUploadProgress((uploaded / result.results.length) * 100);
-      }
-
-      // Clear files and refetch status
-      setFiles([]);
-      refetchStatus();
-    } catch (error) {
-      console.error('Bulk upload failed:', error);
-    } finally {
-      setIsUploading(false);
+      setUploadProgress(((index + 1) / files.length) * 100);
     }
+
+    setUploadResults(outcomes);
+    // Keep only the files that failed so they can be retried.
+    setFiles(failedFiles);
+    setIsUploading(false);
   };
+
+  const successful = uploadResults?.filter(result => result.success).length ?? 0;
+  const failed = (uploadResults?.length ?? 0) - successful;
 
   return (
     <div className="space-y-6">
@@ -223,21 +132,16 @@ export default function BulkUpload() {
             Select Files
           </CardTitle>
           <CardDescription>
-            Choose multiple PDF or Markdown files to upload
+            Choose PDF or Markdown files, up to {formatBytes(DOCUMENT_UPLOAD_MAX_BYTES)} each
           </CardDescription>
-          {!FILE_UPLOAD_AVAILABLE && (
-            <p className="text-sm text-amber-700" role="note">
-              File upload through the admin console is not available yet: it is
-              moving into control-api.
-            </p>
-          )}
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <Input
               type="file"
               multiple
-              accept=".pdf,.md,.markdown"
+              accept={DOCUMENT_UPLOAD_ACCEPT}
+              aria-label="Documents to upload"
               onChange={handleFileSelect}
               disabled={isUploading}
             />
@@ -251,7 +155,7 @@ export default function BulkUpload() {
               </Button>
               <Button
                 onClick={uploadFiles}
-                disabled={!FILE_UPLOAD_AVAILABLE || !canUpload || files.length === 0 || isUploading}
+                disabled={!canUpload || files.length === 0 || hasProblems || isUploading}
                 title={canUpload ? undefined : permissionHint('uploadDocuments')}
               >
                 {isUploading ? 'Uploading...' : 'Upload Files'}
@@ -296,6 +200,9 @@ export default function BulkUpload() {
                           {(file.file.size / 1024 / 1024).toFixed(2)} MB
                         </span>
                       </div>
+                      {problems[index] && (
+                        <p role="alert" className="text-sm text-red-600">{problems[index]}</p>
+                      )}
 
                       <div className="grid grid-cols-2 gap-4">
                         <Input
@@ -341,7 +248,7 @@ export default function BulkUpload() {
           <CardHeader>
             <CardTitle>Upload Results</CardTitle>
             <CardDescription>
-              Batch ID: {uploadResults.batchId}
+              Uploaded documents are queued for processing; follow them on the Processing page.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -349,16 +256,16 @@ export default function BulkUpload() {
               <div className="flex gap-4">
                 <Badge variant="default">
                   <CheckCircle className="h-3 w-3 mr-1" />
-                  {uploadResults.successful} Successful
+                  {successful} Successful
                 </Badge>
                 <Badge variant="destructive">
                   <XCircle className="h-3 w-3 mr-1" />
-                  {uploadResults.failed} Failed
+                  {failed} Failed
                 </Badge>
               </div>
 
-              {uploadResults.results.map((result, index) => (
-                <div key={index} className="flex items-center gap-2 p-2 border rounded">
+              {uploadResults.map((result, index) => (
+                <div key={index} className="flex items-center gap-2 p-2 border rounded" data-testid="upload-result">
                   {result.success ? (
                     <CheckCircle className="h-4 w-4 text-green-500" />
                   ) : (
@@ -367,70 +274,14 @@ export default function BulkUpload() {
                   <span className="flex-1">
                     {result.document?.title || result.fileName}
                   </span>
+                  {result.success && result.document?.status && (
+                    <span className="text-sm text-gray-600">{result.document.status}</span>
+                  )}
                   {!result.success && (
                     <span className="text-sm text-red-600">{result.error}</span>
                   )}
                 </div>
               ))}
-            </div>
-          </CardContent>
-        </Card>
-      )}
-
-      {/* Processing Status */}
-      {statusData && (
-        <Card>
-          <CardHeader>
-            <CardTitle>Processing Status</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="grid grid-cols-4 gap-4">
-                <div className="text-center">
-                  <div className="text-2xl font-bold">{statusData.total}</div>
-                  <div className="text-sm text-gray-600">Total</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">{statusData.processed}</div>
-                  <div className="text-sm text-gray-600">Processed</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-blue-600">{statusData.processing}</div>
-                  <div className="text-sm text-gray-600">Processing</div>
-                </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-red-600">{statusData.failed}</div>
-                  <div className="text-sm text-gray-600">Failed</div>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                {statusData.documents.slice(0, 10).map((doc) => (
-                  <div key={doc.id} className="flex items-center justify-between p-2 border rounded">
-                    <span className="flex-1">{doc.title}</span>
-                    <div className="flex items-center gap-2">
-                      {doc.status === 'completed' && doc.indexed && (
-                        <Badge variant="default">
-                          <CheckCircle className="h-3 w-3 mr-1" />
-                          Indexed
-                        </Badge>
-                      )}
-                      {doc.status === 'processing' && (
-                        <Badge variant="secondary">
-                          <Clock className="h-3 w-3 mr-1" />
-                          Processing
-                        </Badge>
-                      )}
-                      {doc.status === 'failed' && (
-                        <Badge variant="destructive">
-                          <XCircle className="h-3 w-3 mr-1" />
-                          Failed
-                        </Badge>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
             </div>
           </CardContent>
         </Card>

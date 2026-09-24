@@ -27,7 +27,8 @@
     /* Import alias */
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"]
+      "@/*": ["./src/*"],
+      "@nexus/rules-contracts": ["../../../../packages/rules-contracts/src/index.ts"]
     }
   },
   "include": ["src"]

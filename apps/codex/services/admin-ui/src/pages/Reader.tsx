@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { codexFetch } from '@/lib/api'
+import { codexFetch, codexPageImageUrl } from '@/lib/api'
 import { useAuth, useCan } from '@/auth/AuthContext'
 import { permissionHint } from '@/auth/permissions'
 import { useParams } from 'react-router-dom'
@@ -100,16 +100,19 @@ export default function Reader() {
       setLoading(true)
       setError(null)
       try {
-        // TODO(control-plane): page-images returns pre-signed MinIO URLs,
-        // which the admin gateway does not expose and its CSP (img-src 'self')
-        // blocks. A later wave serves page images through control-api.
+        // The page list comes from doc-api; the images themselves are streamed
+        // same-origin by control-api, never from object storage directly.
         const response = await codexFetch(`/api/documents/${id}/page-images`)
-        const payload = await response.json()
+        const payload = (await response.json()) as PageImagesResponse & { error?: string }
         if (!response.ok) {
           throw new Error(payload.error || 'Failed to load page images')
         }
+        const pages = (payload.pages ?? []).map((page, index) => ({
+          ...page,
+          url: codexPageImageUrl(id, page.pageNumber ?? index + 1),
+        }))
         if (isMounted) {
-          setData(payload)
+          setData({ ...payload, pages })
           setLeftIndex(0)
         }
       } catch (err) {

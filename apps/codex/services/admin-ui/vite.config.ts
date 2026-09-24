@@ -12,6 +12,13 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),
+      // Shared rules contracts, compiled from source like the VTT does for
+      // @nexus/character-creator, so the admin forms validate with exactly
+      // the Zod schemas Codex uses (no prebuilt CommonJS dist needed).
+      "@nexus/rules-contracts": path.resolve(
+        __dirname,
+        "../../../../packages/rules-contracts/src/index.ts",
+      ),
     },
   },
 })
