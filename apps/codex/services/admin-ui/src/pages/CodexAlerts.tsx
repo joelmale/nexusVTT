@@ -44,7 +44,13 @@ export default function CodexAlerts() {
 
   const action = useMutation({
     mutationFn: async ({ id, kind }: { id: string; kind: 'acknowledge' | 'resolve' }) => {
-      const response = await codexFetch(`/api/admin/alerts/${encodeURIComponent(id)}/${kind}`, { method: 'POST' })
+      const alertId = encodeURIComponent(id)
+      // Literal paths keep the control-api allowlist coverage scan exact.
+      const path =
+        kind === 'acknowledge'
+          ? `/api/admin/alerts/${alertId}/acknowledge`
+          : `/api/admin/alerts/${alertId}/resolve`
+      const response = await codexFetch(path, { method: 'POST' })
       if (!response.ok) throw new Error(`Failed to ${kind} alert`)
     },
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['codex-alerts'] }),
