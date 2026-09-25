@@ -107,15 +107,23 @@ WORKDIR /workspace
 
 COPY package.json package-lock.json ./
 COPY apps/codex/services/dm-ui/package.json ./apps/codex/services/dm-ui/package.json
+COPY packages/character-contracts/package.json ./packages/character-contracts/package.json
+COPY packages/game-contracts/package.json ./packages/game-contracts/package.json
+COPY scripts/build-workspace-dependencies.mjs ./scripts/build-workspace-dependencies.mjs
 
 RUN npm ci \
     --workspace=@nexuscodex/dm-ui \
+    --workspace=@nexus/character-contracts \
+    --workspace=@nexus/game-contracts \
     --include-workspace-root \
     --legacy-peer-deps
 
 COPY apps/codex/services/dm-ui ./apps/codex/services/dm-ui
+COPY packages/character-contracts ./packages/character-contracts
+COPY packages/game-contracts ./packages/game-contracts
 
-RUN npm run build --workspace=@nexuscodex/dm-ui
+RUN node scripts/build-workspace-dependencies.mjs --workspace @nexuscodex/dm-ui && \
+    npm run build --workspace=@nexuscodex/dm-ui
 
 
 # Stage 5: Codex Admin UI Builder

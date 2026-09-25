@@ -6,6 +6,10 @@ import type { AssetManifest } from '../../shared/types.js';
 import type { DocumentServiceClient } from '../services/documentServiceClient.js';
 import type { RulesCatalogUpstream } from '../services/rulesCatalogClient.js';
 import type {
+  UserAssetCatalogClient,
+  UserAssetResolution,
+} from '../services/userAssetCatalogClient.js';
+import type {
   PrepDependencyObjectType,
   PrepDependencyResolution,
   PrepDependencyResolutionContext,
@@ -28,6 +32,7 @@ export interface CampaignPrepDependencyResolverOptions {
   getAssetManifest: () => AssetManifest | null;
   libraryObjects: LibraryObjectLookup;
   rulesCatalog: RulesCatalogUpstream | null;
+  userAssetCatalog: Pick<UserAssetCatalogClient, 'resolveAsset'> | null;
 }
 
 const CAMPAIGN_ENTRY_KINDS = new Set([
@@ -70,7 +75,7 @@ export class CampaignPrepDependencyResolver
       case 'definition':
         return this.resolveDefinition(reference, context);
       case 'asset':
-        return this.resolveAsset(reference.assetId);
+        return this.resolveAsset(reference.assetId, context.principalId);
       case 'rules-entity':
         return this.resolveRulesEntity(reference);
       case 'document':
@@ -129,14 +134,34 @@ export class CampaignPrepDependencyResolver
       : { status: 'missing' };
   }
 
-  private resolveAsset(assetId: string): PrepDependencyResolution {
+  private async resolveAsset(
+    assetId: string,
+    principalId: string,
+  ): Promise<PrepDependencyResolution> {
     const manifest = this.options.getAssetManifest();
     if (!manifest) {
       return { status: 'unavailable' };
     }
-    return manifest.assets.some((asset) => asset.id === assetId)
-      ? { status: 'available', objectType: 'asset' }
-      : { status: 'missing' };
+    if (manifest.assets.some((asset) => asset.id === assetId)) {
+      return { status: 'available', objectType: 'asset' };
+    }
+    if (!this.options.userAssetCatalog) {
+      return { status: 'missing' };
+    }
+    const resolution = await this.options.userAssetCatalog.resolveAsset(
+      principalId,
+      assetId,
+    );
+    return this.mapUserAssetResolution(resolution);
+  }
+
+  private mapUserAssetResolution(
+    resolution: UserAssetResolution,
+  ): PrepDependencyResolution {
+    if (resolution === 'available') {
+      return { status: 'available', objectType: 'asset' };
+    }
+    return { status: resolution };
   }
 
   private async resolveRulesEntity(

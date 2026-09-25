@@ -33,6 +33,9 @@ function createDependencies() {
       fetchEntities: vi.fn(),
       fetchManifest: vi.fn(),
     },
+    userAssetCatalog: {
+      resolveAsset: vi.fn(),
+    },
   };
 }
 
@@ -132,8 +135,15 @@ describe('CampaignPrepDependencyResolver', () => {
     });
 
     dependencies.getAssetManifest.mockReturnValue({ assets: [] });
+    dependencies.userAssetCatalog.resolveAsset.mockResolvedValue('missing');
     await expect(resolver.resolve(reference, context)).resolves.toEqual({
       status: 'missing',
+    });
+
+    dependencies.userAssetCatalog.resolveAsset.mockResolvedValue('available');
+    await expect(resolver.resolve(reference, context)).resolves.toEqual({
+      status: 'available',
+      objectType: 'asset',
     });
   });
 

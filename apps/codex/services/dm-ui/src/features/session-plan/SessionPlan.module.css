@@ -637,6 +637,17 @@
   width: 100%;
 }
 
+.publishMessage {
+  color: var(--studio-text-muted);
+  font-size: 11px;
+  line-height: 1.4;
+  margin: 0 0 9px;
+}
+
+.publishError {
+  color: var(--studio-danger);
+}
+
 .placeholder {
   margin: auto;
   max-width: 580px;

@@ -5,12 +5,16 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY apps/codex/services/dm-ui/package.json ./apps/codex/services/dm-ui/
+COPY packages/character-contracts/package.json ./packages/character-contracts/
+COPY packages/game-contracts/package.json ./packages/game-contracts/
+COPY scripts/build-workspace-dependencies.mjs ./scripts/build-workspace-dependencies.mjs
 
-RUN npm ci --workspace=@nexuscodex/dm-ui --include-workspace-root
+RUN npm ci --workspace=@nexuscodex/dm-ui --workspace=@nexus/character-contracts --workspace=@nexus/game-contracts --include-workspace-root
 
 COPY apps/codex/services/dm-ui ./apps/codex/services/dm-ui
+COPY packages ./packages
 
-RUN npm run build --workspace=@nexuscodex/dm-ui
+RUN node scripts/build-workspace-dependencies.mjs --workspace @nexuscodex/dm-ui && npm run build --workspace=@nexuscodex/dm-ui
 
 # Production stage
 FROM nginx:alpine

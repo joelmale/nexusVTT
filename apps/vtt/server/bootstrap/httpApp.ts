@@ -24,6 +24,7 @@ import { createSystemRouter } from '../routes/system.routes.js';
 import type { AssetManifestStore } from '../services/assetManifestStore.js';
 import type { DocumentServiceClient } from '../services/documentServiceClient.js';
 import { createRulesCatalogUpstreamClient } from '../services/rulesCatalogClient.js';
+import { UserAssetCatalogClient } from '../services/userAssetCatalogClient.js';
 import type { GameStateCommitService } from '../socket/GameStateCommitService.js';
 import type { SocketManager } from '../socket/SocketManager.js';
 
@@ -117,6 +118,9 @@ export function createHttpApp({
     rulesCatalog: docApiUrl
       ? createRulesCatalogUpstreamClient(docApiUrl)
       : null,
+    userAssetCatalog: new UserAssetCatalogClient(
+      process.env.ASSET_API_URL || 'http://localhost:5003',
+    ),
   });
   app.use(
     '/api',

@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 import {
   ashesOfVeyra,
@@ -15,6 +15,7 @@ import type {
   SessionPlanViewModel,
 } from '@/features/session-plan/sessionPlanModels';
 import { StudioFrame } from '@/features/studio-shell/StudioFrame';
+import { publishGlassHarborPlan } from '@/services/campaign-prep-api';
 
 const COMPENDIUM_OBJECTS: LibraryObject[] = [
   {
@@ -177,6 +178,25 @@ function buildSessionPlanModel(): SessionPlanViewModel {
 export function SessionPlanRoute() {
   const { notifyCapability } = useCapabilityNotice();
   const model = useMemo(buildSessionPlanModel, []);
+  const [publishState, setPublishState] = useState<
+    'idle' | 'publishing' | 'published' | 'error'
+  >('idle');
+  const [publishMessage, setPublishMessage] = useState<string>();
+
+  async function publishPlan() {
+    setPublishState('publishing');
+    setPublishMessage('Saving the campaign objects and validating dependencies.');
+    try {
+      const result = await publishGlassHarborPlan();
+      setPublishState('published');
+      setPublishMessage(`Published revision ${result.plan.revision} to Nexus VTT.`);
+    } catch (error) {
+      setPublishState('error');
+      setPublishMessage(
+        error instanceof Error ? error.message : 'The plan could not be published.',
+      );
+    }
+  }
 
   return (
     <StudioFrame
@@ -185,7 +205,13 @@ export function SessionPlanRoute() {
       onSettings={() => notifyCapability('campaign.settings.open')}
       onTheme={() => notifyCapability('campaign.theme.change')}
     >
-      <SessionPlan model={model} onCapability={notifyCapability} />
+      <SessionPlan
+        model={model}
+        onCapability={notifyCapability}
+        onPublish={publishPlan}
+        publishMessage={publishMessage}
+        publishState={publishState}
+      />
     </StudioFrame>
   );
 }

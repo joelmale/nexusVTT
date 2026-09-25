@@ -30,6 +30,9 @@ import styles from './SessionPlan.module.css';
 interface SessionPlanProps {
   model: SessionPlanViewModel;
   onCapability: (capabilityId: CapabilityId) => void;
+  onPublish?: () => void;
+  publishMessage?: string;
+  publishState?: 'idle' | 'publishing' | 'published' | 'error';
 }
 
 type WorkspaceTab = 'run-sheet' | 'notes' | 'player-facing' | 'attachments';
@@ -43,7 +46,13 @@ const TYPE_ICONS: Record<LibraryObjectType, typeof FileText> = {
   scene: Sparkles,
 };
 
-export function SessionPlan({ model, onCapability }: SessionPlanProps) {
+export function SessionPlan({
+  model,
+  onCapability,
+  onPublish,
+  publishMessage,
+  publishState = 'idle',
+}: SessionPlanProps) {
   const [libraryTab, setLibraryTab] = useState<'campaign' | 'compendium'>(
     'campaign',
   );
@@ -529,12 +538,26 @@ export function SessionPlan({ model, onCapability }: SessionPlanProps) {
         </div>
 
         <div className={styles.publishArea}>
+          {publishMessage && (
+            <p
+              className={`${styles.publishMessage} ${publishState === 'error' ? styles.publishError : ''}`}
+              role="status"
+            >
+              {publishMessage}
+            </p>
+          )}
           <button
             className={styles.publishButton}
-            onClick={() => onCapability('session-plan.publish')}
+            disabled={publishState === 'publishing'}
+            onClick={onPublish ?? (() => onCapability('session-plan.publish'))}
             type="button"
           >
-            <Send size={15} /> Publish plan
+            <Send size={15} />
+            {publishState === 'publishing'
+              ? 'Publishing...'
+              : publishState === 'published'
+                ? 'Published'
+                : 'Publish plan'}
           </button>
         </div>
       </aside>

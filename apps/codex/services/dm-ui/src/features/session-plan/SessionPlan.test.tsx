@@ -73,4 +73,33 @@ describe('SessionPlan', () => {
       screen.getByText('No objects match this search.'),
     ).toBeInTheDocument();
   });
+
+  it('uses the functional publisher and reports its current state', async () => {
+    const user = userEvent.setup();
+    const onPublish = vi.fn();
+    const { rerender } = render(
+      <SessionPlan
+        model={model}
+        onCapability={vi.fn()}
+        onPublish={onPublish}
+        publishMessage="Saving campaign objects."
+        publishState="publishing"
+      />,
+    );
+
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Saving campaign objects.',
+    );
+    expect(screen.getByRole('button', { name: /publishing/i })).toBeDisabled();
+
+    rerender(
+      <SessionPlan
+        model={model}
+        onCapability={vi.fn()}
+        onPublish={onPublish}
+      />,
+    );
+    await user.click(screen.getByRole('button', { name: /publish plan/i }));
+    expect(onPublish).toHaveBeenCalledOnce();
+  });
 });
