@@ -26,12 +26,19 @@ import { campaignPrepClient } from '@/services/campaignPrepClient';
 import { useGameStore } from '@/stores/gameStore';
 import styles from './SessionPlanPanel.module.css';
 
+function isValidCampaignId(id: unknown): id is string {
+  if (typeof id !== 'string') return false;
+  const trimmed = id.trim();
+  return trimmed.length > 0 && trimmed !== 'default-campaign';
+}
+
 export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
   link,
   isPopout,
 }) => {
   const session = useGameStore((state) => state.session);
   const user = useGameStore((state) => state.user);
+  const gameConfig = useGameStore((state) => state.gameConfig);
   const sceneState = useGameStore((state) => state.sceneState);
   const setActiveScene = useGameStore((state) => state.setActiveScene);
 
@@ -41,7 +48,18 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
       ? user?.id === session.hostId || (session.coHostIds?.includes(user?.id) ?? false)
       : true);
 
-  const campaignId = link.campaignId || session?.campaignId || 'default-campaign';
+  const [activeCampaignId, setActiveCampaignId] = useState<string | null>(
+    (isValidCampaignId(link.campaignId) ? link.campaignId : null) ||
+      (isValidCampaignId(session?.campaignId) ? session.campaignId : null) ||
+      (isValidCampaignId(gameConfig?.campaignId) ? gameConfig.campaignId : null),
+  );
+
+  const campaignId =
+    activeCampaignId ||
+    link.campaignId ||
+    session?.campaignId ||
+    gameConfig?.campaignId ||
+    '';
   const sessionId = session?.roomCode || 'default';
 
   const [loading, setLoading] = useState<boolean>(true);
@@ -57,10 +75,53 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
     setLoading(true);
     setError(null);
     try {
-      const data = await campaignPrepClient.getActiveSessionPlan(campaignId, sessionId);
+      let targetCampaignId =
+        (isValidCampaignId(link.campaignId) ? link.campaignId : undefined) ||
+        (isValidCampaignId(session?.campaignId) ? session.campaignId : undefined) ||
+        (isValidCampaignId(gameConfig?.campaignId) ? gameConfig.campaignId : undefined) ||
+        (isValidCampaignId(activeCampaignId) ? activeCampaignId : undefined);
+
+      if (!targetCampaignId) {
+        try {
+          const res = await fetch('/api/campaigns', { credentials: 'include' });
+          if (res.ok) {
+            const campaigns = (await res.json()) as Array<{ id: string; name?: string; lastRoomCode?: string }>;
+            const match =
+              (session?.roomCode
+                ? campaigns.find(
+                    (c) => c.lastRoomCode?.toUpperCase() === session.roomCode.toUpperCase(),
+                  )
+                : undefined) ||
+              campaigns.find((c) => c.name === 'Ashes of Veyra') ||
+              (campaigns.length === 1 ? campaigns[0] : undefined);
+            if (match) {
+              targetCampaignId = match.id;
+              setActiveCampaignId(match.id);
+              useGameStore.setState((state) => {
+                if (state.session) {
+                  state.session.campaignId = match.id;
+                }
+              });
+            }
+          }
+        } catch {
+          // ignore auto-lookup failure
+        }
+      }
+
+      if (!targetCampaignId) {
+        setActivation(null);
+        setPlan(null);
+        setError('No active campaign linked to this session. Please launch from your campaign dashboard or activate a plan in Campaign Studio.');
+        setLoading(false);
+        return;
+      }
+
+      const data = await campaignPrepClient.getActiveSessionPlan(targetCampaignId, sessionId);
       if (data) {
         setActivation(data.activation);
         setPlan(data.plan);
+        setActiveCampaignId(data.activation.campaignId);
         const currentStep = data.plan.steps[data.activation.currentStepIndex];
         if (currentStep) {
           setExpandedStepId(currentStep.id);
@@ -74,7 +135,7 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
     } finally {
       setLoading(false);
     }
-  }, [campaignId, sessionId]);
+  }, [link.campaignId, session?.campaignId, session?.roomCode, gameConfig?.campaignId, activeCampaignId, sessionId]);
 
   useEffect(() => {
     fetchActivePlan();

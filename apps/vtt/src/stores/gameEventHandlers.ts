@@ -567,14 +567,21 @@ export const eventHandlers: Record<string, EventHandler> = {
       };
       dmConnected?: boolean;
       players?: Player[];
+      campaignId?: string;
     };
 
     // Update session data if provided
     if (eventData.roomCode) {
+      const resolvedCampaignId =
+        eventData.campaignId ||
+        state.session?.campaignId ||
+        state.gameConfig?.campaignId;
+
       if (!state.session) {
         state.session = {
           roomCode: eventData.roomCode,
           hostId: eventData.hostId || state.user.id,
+          campaignId: resolvedCampaignId,
           players: [
             {
               ...state.user,
@@ -590,6 +597,9 @@ export const eventHandlers: Record<string, EventHandler> = {
         state.session.hostId = eventData.hostId || state.session.hostId;
         state.session.status = 'connected';
         state.session.dmConnected = eventData.dmConnected ?? true;
+        if (resolvedCampaignId) {
+          state.session.campaignId = resolvedCampaignId;
+        }
       }
       if (eventData.players) {
         state.session.players = eventData.players;

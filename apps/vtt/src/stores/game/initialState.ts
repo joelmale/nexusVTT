@@ -64,7 +64,8 @@ export interface PersistedSession {
   userName: string;
   userType: 'player' | 'host';
   userId: string; // Store user ID to preserve identity on reconnect
-  roomCode: string;
+  roomCode: string;
+  campaignId?: string;
   gameConfig?: GameConfig;
   timestamp: number;
 }
@@ -75,7 +76,8 @@ export const saveSessionToStorage = (state: GameStore): void => {
       userName: state.user.name,
       userType: state.user.type,
       userId: state.user.id, // Save user ID to preserve host identity
-      roomCode: state.session.roomCode,
+      roomCode: state.session.roomCode,
+      campaignId: state.session.campaignId || state.gameConfig?.campaignId,
       gameConfig: state.gameConfig,
       timestamp: Date.now(),
     };
@@ -119,7 +121,17 @@ export const loadSessionFromStorage = (): Partial<GameStore> | null => {
         connected: false,
         isSpectator: false,
       },
-      gameConfig: session.gameConfig,
+      gameConfig: session.gameConfig,
+      session: session.roomCode
+        ? {
+            roomCode: session.roomCode,
+            hostId: session.userId || getBrowserId(),
+            coHostIds: [],
+            campaignId: session.campaignId || session.gameConfig?.campaignId,
+            players: [],
+            status: 'connecting',
+          }
+        : undefined,
       // Session will be restored with roomCode via attemptSessionRecovery
     };
   } catch (error) {

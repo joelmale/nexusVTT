@@ -581,6 +581,7 @@ export class ConnectionLifecycle {
         roomStatus: room.status,
         gameState: room.gameState,
         dmConnected: room.dmConnected,
+        campaignId: resolvedCampaignId,
         players: Array.from(room.players).map((playerId) => {
           const playerConnection = this.socketManager.connections.get(playerId);
           return {

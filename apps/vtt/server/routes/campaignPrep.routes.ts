@@ -115,6 +115,9 @@ export function createCampaignPrepRouter({
       }
 
       const campaignId = routeParameter(req.params.campaignId);
+      if (!isUuid(campaignId)) {
+        return res.status(400).json({ error: 'campaignId must be a valid UUID' });
+      }
       const campaign = await db.campaigns.getCampaignById(campaignId);
       if (!campaign) {
         return res.status(404).json({ error: 'Campaign not found' });

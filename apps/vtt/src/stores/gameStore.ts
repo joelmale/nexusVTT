@@ -419,6 +419,9 @@ export const useGameStore = create<GameStore>()(
           set((state) => {
             state.gameConfig = config;
             state.user.connected = true;
+            if (state.session && config.campaignId) {
+              state.session.campaignId = config.campaignId;
+            }
           });
 
           // Try to restore game state from IndexedDB if available
