@@ -26,6 +26,7 @@ COPY --chown=nodejs:nodejs apps/vtt/services/asset-service/package.json ./apps/v
 COPY --chown=nodejs:nodejs packages/character-contracts/package.json ./packages/character-contracts/package.json
 COPY --chown=nodejs:nodejs packages/game-contracts/package.json ./packages/game-contracts/package.json
 COPY --chown=nodejs:nodejs packages/rules-contracts/package.json ./packages/rules-contracts/package.json
+COPY --chown=nodejs:nodejs packages/rules-5e/package.json ./packages/rules-5e/package.json
 
 # The VTT postinstall applies patches and synchronizes the packaged dice assets.
 COPY --chown=nodejs:nodejs apps/vtt/patches ./apps/vtt/patches
@@ -39,6 +40,7 @@ RUN npm ci \
     --workspace=@nexus/character-contracts \
     --workspace=@nexus/game-contracts \
     --workspace=@nexus/rules-contracts \
+    --workspace=@nexus/rules-5e \
     --include-workspace-root \
     --legacy-peer-deps
 
@@ -48,6 +50,7 @@ COPY --chown=nodejs:nodejs packages ./packages
 RUN npm run build --workspace=@nexus/character-contracts && \
     npm run build --workspace=@nexus/game-contracts && \
     npm run build --workspace=@nexus/rules-contracts && \
+    npm run build --workspace=@nexus/rules-5e && \
     npm run build:server --workspace=nexus-vtt
 
 # Default port — must match the server default (index.ts) and the health check below.
