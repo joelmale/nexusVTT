@@ -206,6 +206,7 @@ services:
     restart: on-failure
   codex-minio:
     image: ${CODEX_MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z}
+    pull_policy: if_not_present
     command: server /data --console-address ':9001'
     environment:
       MINIO_ROOT_USER: ${CODEX_MINIO_ROOT_USER:?CODEX_MINIO_ROOT_USER is required, see deploy/homelab/.env.example}
