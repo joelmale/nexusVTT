@@ -1,6 +1,10 @@
 import { Router, type Request, type Response } from 'express';
 
 import type { DatabaseService } from '../database.js';
+import {
+  CampaignPrepAuthoringError,
+  type CampaignPrepAuthoringResult,
+} from '../campaign-prep/CampaignPrepAuthoringService.js';
 import { requireAuthenticatedNonGuest } from '../middleware/assetWriteGuard.js';
 import { CampaignPrepRevisionConflictError } from '../repositories/CampaignPrepRepository.js';
 import type {
@@ -27,7 +31,26 @@ interface SessionPlanPublisher {
   }): Promise<PublishSessionPlanResult>;
 }
 
+interface CampaignPrepAuthor {
+  create(request: {
+    campaignId: string;
+    kind: CampaignPrepObjectKind;
+    data: unknown;
+    principalId: string;
+    requestId: string;
+  }): Promise<CampaignPrepAuthoringResult>;
+  revise(request: {
+    campaignId: string;
+    objectId: string;
+    expectedRevision: number;
+    data: unknown;
+    principalId: string;
+    requestId: string;
+  }): Promise<CampaignPrepAuthoringResult>;
+}
+
 export interface CampaignPrepRouterOptions {
+  author: CampaignPrepAuthor;
   db: CampaignPrepDatabase;
   publisher: SessionPlanPublisher;
 }
@@ -71,6 +94,7 @@ function isUuid(value: unknown): value is string {
 }
 
 export function createCampaignPrepRouter({
+  author,
   db,
   publisher,
 }: CampaignPrepRouterOptions): Router {
@@ -127,6 +151,36 @@ export function createCampaignPrepRouter({
     }
   });
 
+  router.post('/campaigns/:campaignId/prep/objects', async (req, res) => {
+    const body = req.body as {
+      data?: unknown;
+      kind?: unknown;
+      requestId?: unknown;
+    };
+    if (
+      typeof body?.kind !== 'string' ||
+      !OBJECT_KINDS.has(body.kind as CampaignPrepObjectKind) ||
+      !isUuid(body.requestId)
+    ) {
+      return res.status(400).json({
+        error: 'kind must be valid and requestId must be a UUID',
+      });
+    }
+
+    try {
+      const result = await author.create({
+        campaignId: routeParameter(req.params.campaignId),
+        kind: body.kind as CampaignPrepObjectKind,
+        data: body.data,
+        principalId: sessionUserId(req) ?? '',
+        requestId: body.requestId,
+      });
+      return res.status(201).json(result);
+    } catch (error) {
+      return handleAuthoringError(error, res);
+    }
+  });
+
   router.get(
     '/campaigns/:campaignId/prep/objects/:objectId',
     async (req, res) => {
@@ -150,6 +204,41 @@ export function createCampaignPrepRouter({
       } catch (error) {
         console.error('Failed to load campaign prep object:', error);
         return res.status(500).json({ error: 'Failed to load campaign object' });
+      }
+    },
+  );
+
+  router.put(
+    '/campaigns/:campaignId/prep/objects/:objectId',
+    async (req, res) => {
+      const body = req.body as {
+        data?: unknown;
+        expectedRevision?: unknown;
+        requestId?: unknown;
+      };
+      if (
+        !Number.isInteger(body?.expectedRevision) ||
+        (body.expectedRevision as number) < 1 ||
+        !isUuid(body.requestId)
+      ) {
+        return res.status(400).json({
+          error:
+            'expectedRevision must be positive and requestId must be a UUID',
+        });
+      }
+
+      try {
+        const result = await author.revise({
+          campaignId: routeParameter(req.params.campaignId),
+          objectId: routeParameter(req.params.objectId),
+          expectedRevision: body.expectedRevision as number,
+          data: body.data,
+          principalId: sessionUserId(req) ?? '',
+          requestId: body.requestId,
+        });
+        return res.json(result);
+      } catch (error) {
+        return handleAuthoringError(error, res);
       }
     },
   );
@@ -207,4 +296,24 @@ export function createCampaignPrepRouter({
   );
 
   return router;
+}
+
+function handleAuthoringError(error: unknown, res: Response): Response {
+  if (error instanceof CampaignPrepRevisionConflictError) {
+    return res.status(409).json({
+      error: 'Campaign object revision conflict',
+      objectId: error.objectId,
+      expectedRevision: error.expectedRevision,
+    });
+  }
+  if (error instanceof CampaignPrepAuthoringError) {
+    const status = error.code === 'not-found' ? 404 : 422;
+    return res.status(status).json({
+      error: error.message,
+      code: error.code,
+      issues: error.issues,
+    });
+  }
+  console.error('Failed to save campaign prep object:', error);
+  return res.status(500).json({ error: 'Failed to save campaign object' });
 }

@@ -8,6 +8,7 @@ import session from 'express-session';
 import passport from '../auth.js';
 import type { DatabaseService } from '../database.js';
 import type { DeltaSyncMetrics } from '../observability/deltaSyncMetrics.js';
+import { CampaignPrepAuthoringService } from '../campaign-prep/CampaignPrepAuthoringService.js';
 import { CampaignPrepDependencyResolver } from '../campaign-prep/CampaignPrepDependencyResolver.js';
 import { SessionPlanPublishingService } from '../campaign-prep/SessionPlanPublishingService.js';
 import { SessionPlanPublishValidator } from '../campaign-prep/SessionPlanPublishValidator.js';
@@ -120,6 +121,7 @@ export function createHttpApp({
   app.use(
     '/api',
     createCampaignPrepRouter({
+      author: new CampaignPrepAuthoringService(db.campaignPrep),
       db,
       publisher: new SessionPlanPublishingService(
         db.campaignPrep,

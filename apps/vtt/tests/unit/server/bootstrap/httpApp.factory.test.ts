@@ -62,7 +62,11 @@ describe('HTTP app factory', () => {
     expect(mocks.registerApiRoutes).toHaveBeenCalledWith(result.app, expect.anything(), '/assets');
     expect(mocks.createDocumentRoutes).toHaveBeenCalledWith(null, false, expect.anything());
     expect(mocks.createCampaignPrepRouter).toHaveBeenCalledWith(
-      expect.objectContaining({ db: expect.anything(), publisher: expect.anything() }),
+      expect.objectContaining({
+        author: expect.anything(),
+        db: expect.anything(),
+        publisher: expect.anything(),
+      }),
     );
     expect(mocks.createMetricsRouter).toHaveBeenCalledWith(expect.objectContaining({ getSocketManager: expect.any(Function), getGameStateQueueDepth: expect.any(Function) }));
     expect(mocks.createRulesCatalogRouter).toHaveBeenCalledWith(expect.objectContaining({ docApiUrl: undefined }));

@@ -2,6 +2,7 @@ import express, { type Express } from 'express';
 import type { Server } from 'node:http';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { CampaignPrepAuthoringError } from '../../../../server/campaign-prep/CampaignPrepAuthoringService.js';
 import { CampaignPrepRevisionConflictError } from '../../../../server/repositories/CampaignPrepRepository.js';
 import { SessionPlanPublishingError } from '../../../../server/campaign-prep/SessionPlanPublishingService.js';
 import { createCampaignPrepRouter } from '../../../../server/routes/campaignPrep.routes.js';
@@ -24,6 +25,10 @@ describe('campaign prep routes', () => {
     listObjects: ReturnType<typeof vi.fn>;
   };
   let publisher: { publish: ReturnType<typeof vi.fn> };
+  let author: {
+    create: ReturnType<typeof vi.fn>;
+    revise: ReturnType<typeof vi.fn>;
+  };
 
   beforeEach(async () => {
     authenticated = true;
@@ -40,6 +45,7 @@ describe('campaign prep routes', () => {
       listObjects: vi.fn().mockResolvedValue([]),
     };
     publisher = { publish: vi.fn() };
+    author = { create: vi.fn(), revise: vi.fn() };
 
     app = express();
     app.use(express.json());
@@ -53,6 +59,7 @@ describe('campaign prep routes', () => {
     app.use(
       '/api',
       createCampaignPrepRouter({
+        author,
         db: { campaigns, campaignPrep } as never,
         publisher,
       }),
@@ -143,6 +150,76 @@ describe('campaign prep routes', () => {
       `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/objects/${PLAN_ID}`,
     );
     expect(missing.status).toBe(404);
+  });
+
+  it('creates and revises campaign objects through the authoring service', async () => {
+    author.create.mockResolvedValue({ object: { id: PLAN_ID } });
+    let response = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/objects`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'session-plan',
+          data: { id: PLAN_ID },
+          requestId: REQUEST_ID,
+        }),
+      },
+    );
+    expect(response.status).toBe(201);
+    expect(author.create).toHaveBeenCalledWith(
+      expect.objectContaining({
+        campaignId: CAMPAIGN_ID,
+        kind: 'session-plan',
+        principalId: USER_ID,
+      }),
+    );
+
+    author.revise.mockResolvedValue({ object: { id: PLAN_ID } });
+    response = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/objects/${PLAN_ID}`,
+      {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          data: { id: PLAN_ID },
+          expectedRevision: 1,
+          requestId: REQUEST_ID,
+        }),
+      },
+    );
+    expect(response.status).toBe(200);
+    expect(author.revise).toHaveBeenCalledWith(
+      expect.objectContaining({ objectId: PLAN_ID, expectedRevision: 1 }),
+    );
+  });
+
+  it('returns structured authoring validation errors', async () => {
+    author.create.mockRejectedValue(
+      new CampaignPrepAuthoringError(
+        'invalid-payload',
+        'Invalid object',
+        [{ path: 'title', message: 'Required' }],
+      ),
+    );
+    const response = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/objects`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          kind: 'note',
+          data: {},
+          requestId: REQUEST_ID,
+        }),
+      },
+    );
+
+    expect(response.status).toBe(422);
+    await expect(response.json()).resolves.toMatchObject({
+      code: 'invalid-payload',
+      issues: [{ path: 'title' }],
+    });
   });
 
   it('publishes with the authenticated principal and expected revision', async () => {
