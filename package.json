@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "install:all": "npm ci",
-    "install:vtt": "npm ci --workspace=nexus-vtt --workspace=generator-hub --workspace=asset-service --workspace=@nexus/character-contracts --workspace=@nexus/game-contracts --workspace=@nexus/rules-contracts --workspace=@nexus/character-creator --include-workspace-root",
+    "install:vtt": "npm ci --workspace=nexus-vtt --workspace=generator-hub --workspace=asset-service --workspace=@nexus/character-contracts --workspace=@nexus/game-contracts --workspace=@nexus/rules-contracts --workspace=@nexus/rules-5e --workspace=@nexus/character-creator --include-workspace-root",
     "install:forge": "npm ci --workspace=nexus-forge --workspace=@nexus/character-contracts --workspace=@nexus/game-contracts --workspace=@nexus/character-creator --include-workspace-root",
     "install:codex": "npm ci --workspace=nexus-codex-doc-api --workspace=nexus-codex-doc-processor --workspace=nexus-codex-doc-websocket --workspace=admin-ui --workspace=@nexuscodex/dm-ui --workspace=@nexus/rules-contracts --include-workspace-root",
     "install:docs": "npm ci --workspace=@nexus/docs --include-workspace-root",

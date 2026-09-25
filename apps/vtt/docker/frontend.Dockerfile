@@ -13,6 +13,8 @@ RUN npm ci \
     --workspace=nexus-vtt \
     --workspace=generator-hub \
     --workspace=@nexus/character-contracts \
+    --workspace=@nexus/game-contracts \
+    --workspace=@nexus/rules-5e \
     --workspace=@nexus/character-creator \
     --include-workspace-root \
     --legacy-peer-deps
@@ -34,6 +36,7 @@ COPY apps/vtt/apps/generator-hub/package.json ./apps/vtt/apps/generator-hub/pack
 COPY packages/character-contracts/package.json ./packages/character-contracts/package.json
 COPY packages/game-contracts/package.json ./packages/game-contracts/package.json
 COPY packages/rules-contracts/package.json ./packages/rules-contracts/package.json
+COPY packages/rules-5e/package.json ./packages/rules-5e/package.json
 COPY packages/character-creator/package.json ./packages/character-creator/package.json
 COPY packages/character-creator/scripts ./packages/character-creator/scripts
 COPY packages/document-contracts/package.json ./packages/document-contracts/package.json
@@ -46,6 +49,7 @@ RUN npm ci \
     --workspace=@nexus/character-contracts \
     --workspace=@nexus/game-contracts \
     --workspace=@nexus/rules-contracts \
+    --workspace=@nexus/rules-5e \
     --workspace=@nexus/character-creator \
     --include-workspace-root \
     --legacy-peer-deps
@@ -63,6 +67,7 @@ ENV VITE_DELTA_SYNC=$VITE_DELTA_SYNC
 RUN npm run build --workspace=@nexus/character-contracts && \
     npm run build --workspace=@nexus/game-contracts && \
     npm run build --workspace=@nexus/rules-contracts && \
+    npm run build --workspace=@nexus/rules-5e && \
     npm run build --workspace=@nexus/character-creator && \
     npm run build --workspace=nexus-vtt && \
     npm run build --workspace=generator-hub
