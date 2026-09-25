@@ -14,7 +14,13 @@
         "apps/vtt/scripts/organize-*.js",
         "apps/vtt/scripts/update-asset-*.js"
       ],
-      "dependsOn": []
+      "dependsOn": [],
+      "releaseImage": {
+        "name": "asset-service",
+        "file": "./apps/vtt/docker/asset-service.Dockerfile",
+        "target": "",
+        "repository": "ghcr.io/joelmale/nexusvtt/asset-service"
+      }
     },
     "postgres": {
       "description": "VTT PostgreSQL image, schema, and migrations",
@@ -24,7 +30,13 @@
         "apps/vtt/server/schema.sql",
         "apps/vtt/server/migrations/**"
       ],
-      "dependsOn": []
+      "dependsOn": [],
+      "releaseImage": {
+        "name": "postgres",
+        "file": "./apps/vtt/docker/postgres.Dockerfile",
+        "target": "",
+        "repository": "ghcr.io/joelmale/nexusvtt/postgres"
+      }
     },
     "vtt": {
       "description": "VTT client, backend, generator hub, and validation",
@@ -47,7 +59,14 @@
         "apps/vtt/.env.example",
         "apps/vtt/.dockerignore"
       ],
-      "dependsOn": ["assets", "postgres"]
+      "dependsOn": ["assets", "postgres"],
+      "releaseImage": {
+        "name": "backend",
+        "file": "./apps/vtt/docker/backend.Dockerfile",
+        "target": "",
+        "repository": "ghcr.io/joelmale/nexusvtt/backend",
+        "securityScan": true
+      }
     },
     "forge": {
       "description": "Nexus Forge application",
@@ -57,7 +76,13 @@
     "control-api": {
       "description": "Control API service (private admin control plane)",
       "paths": ["apps/control-api/**", "apps/codex/services/admin-ui/**"],
-      "dependsOn": []
+      "dependsOn": [],
+      "releaseImage": {
+        "name": "control-api",
+        "file": "./apps/control-api/Dockerfile",
+        "target": "",
+        "repository": "ghcr.io/joelmale/nexusvtt/control-api"
+      }
     },
     "codex-doc-api": {
       "description": "Codex document API",
@@ -97,7 +122,14 @@
         "apps/vtt/docker/nginx-assets.conf",
         "apps/vtt/docker/security-headers.conf"
       ],
-      "dependsOn": ["assets", "vtt", "forge", "codex-admin-ui", "codex-dm-ui"]
+      "dependsOn": ["assets", "vtt", "forge", "codex-admin-ui", "codex-dm-ui"],
+      "releaseImage": {
+        "name": "frontend",
+        "file": "./apps/vtt/docker/frontend.Dockerfile",
+        "target": "production",
+        "repository": "ghcr.io/joelmale/nexusvtt/frontend",
+        "securityScan": true
+      }
     }
   },
   "fanoutRules": [

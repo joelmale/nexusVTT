@@ -14,6 +14,7 @@ RUN npm ci \
     --workspace=generator-hub \
     --workspace=@nexus/character-contracts \
     --workspace=@nexus/game-contracts \
+    --workspace=@nexus/rules-contracts \
     --workspace=@nexus/rules-5e \
     --workspace=@nexus/character-creator \
     --include-workspace-root \
@@ -42,6 +43,7 @@ COPY packages/character-creator/scripts ./packages/character-creator/scripts
 COPY packages/document-contracts/package.json ./packages/document-contracts/package.json
 COPY apps/vtt/patches ./apps/vtt/patches
 COPY apps/vtt/scripts/apply-patches.js apps/vtt/scripts/sync-dice-assets.js apps/vtt/scripts/prepare-husky.js ./apps/vtt/scripts/
+COPY scripts/build-workspace-dependencies.mjs ./scripts/build-workspace-dependencies.mjs
 
 RUN npm ci \
     --workspace=nexus-vtt \
@@ -64,11 +66,7 @@ ARG VITE_DELTA_SYNC=false
 ENV VITE_BUILD_VERSION=$COMMIT_SHA
 ENV VITE_DELTA_SYNC=$VITE_DELTA_SYNC
 
-RUN npm run build --workspace=@nexus/character-contracts && \
-    npm run build --workspace=@nexus/game-contracts && \
-    npm run build --workspace=@nexus/rules-contracts && \
-    npm run build --workspace=@nexus/rules-5e && \
-    npm run build --workspace=@nexus/character-creator && \
+RUN node scripts/build-workspace-dependencies.mjs --workspace nexus-vtt && \
     npm run build --workspace=nexus-vtt && \
     npm run build --workspace=generator-hub
 
@@ -85,6 +83,7 @@ COPY packages/game-contracts/package.json ./packages/game-contracts/package.json
 COPY packages/character-creator/package.json ./packages/character-creator/package.json
 COPY packages/character-creator/scripts ./packages/character-creator/scripts
 COPY packages/document-contracts/package.json ./packages/document-contracts/package.json
+COPY scripts/build-workspace-dependencies.mjs ./scripts/build-workspace-dependencies.mjs
 
 RUN npm ci \
     --workspace=nexus-forge \
@@ -97,9 +96,7 @@ RUN npm ci \
 COPY apps/forge ./apps/forge
 COPY packages ./packages
 
-RUN npm run build --workspace=@nexus/character-contracts && \
-    npm run build --workspace=@nexus/game-contracts && \
-    npm run build --workspace=@nexus/character-creator && \
+RUN node scripts/build-workspace-dependencies.mjs --workspace nexus-forge && \
     npm run build --workspace=nexus-forge
 
 
@@ -129,6 +126,7 @@ WORKDIR /workspace
 COPY package.json package-lock.json ./
 COPY apps/codex/services/admin-ui/package.json ./apps/codex/services/admin-ui/package.json
 COPY packages/rules-contracts/package.json ./packages/rules-contracts/package.json
+COPY scripts/build-workspace-dependencies.mjs ./scripts/build-workspace-dependencies.mjs
 
 RUN npm ci \
     --workspace=admin-ui \
@@ -143,7 +141,7 @@ COPY packages ./packages
 # VTT root. See apps/docs/platform/private-admin-control-plane.md.
 ENV ADMIN_UI_BASE=/
 
-RUN npm run build --workspace=@nexus/rules-contracts && \
+RUN node scripts/build-workspace-dependencies.mjs --workspace admin-ui && \
     npm run build --workspace=admin-ui
 
 

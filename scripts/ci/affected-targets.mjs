@@ -16,6 +16,7 @@ export const FALLBACK_TARGET_IDS = [
   'postgres',
   'vtt',
   'forge',
+  'control-api',
   'codex-doc-api',
   'codex-doc-processor',
   'codex-doc-websocket',
@@ -24,6 +25,41 @@ export const FALLBACK_TARGET_IDS = [
   'docs',
   'gateway',
 ];
+
+const FALLBACK_RELEASE_IMAGES = {
+  assets: {
+    name: 'asset-service',
+    file: './apps/vtt/docker/asset-service.Dockerfile',
+    target: '',
+    repository: 'ghcr.io/joelmale/nexusvtt/asset-service',
+  },
+  postgres: {
+    name: 'postgres',
+    file: './apps/vtt/docker/postgres.Dockerfile',
+    target: '',
+    repository: 'ghcr.io/joelmale/nexusvtt/postgres',
+  },
+  vtt: {
+    name: 'backend',
+    file: './apps/vtt/docker/backend.Dockerfile',
+    target: '',
+    repository: 'ghcr.io/joelmale/nexusvtt/backend',
+    securityScan: true,
+  },
+  'control-api': {
+    name: 'control-api',
+    file: './apps/control-api/Dockerfile',
+    target: '',
+    repository: 'ghcr.io/joelmale/nexusvtt/control-api',
+  },
+  gateway: {
+    name: 'frontend',
+    file: './apps/vtt/docker/frontend.Dockerfile',
+    target: 'production',
+    repository: 'ghcr.io/joelmale/nexusvtt/frontend',
+    securityScan: true,
+  },
+};
 
 const SUPPORTED_CHANGE_STATUSES = new Set(['A', 'C', 'D', 'M', 'R', 'T', 'U']);
 const FULL_SUITE_EVENTS = new Set([
@@ -64,6 +100,8 @@ export function validateConfig(config) {
     throw new Error('at least one target must be configured');
   }
 
+  const imageNames = new Set();
+  const imageRepositories = new Set();
   for (const [targetId, target] of Object.entries(config.targets)) {
     if (!/^[a-z][a-z0-9-]*$/.test(targetId)) {
       throw new Error(`invalid target id: ${targetId}`);
@@ -86,6 +124,37 @@ export function validateConfig(config) {
       if (dependency === targetId) {
         throw new Error(`target ${targetId} cannot depend on itself`);
       }
+    }
+    if (target.releaseImage !== undefined) {
+      const image = target.releaseImage;
+      if (image === null || typeof image !== 'object' || Array.isArray(image)) {
+        throw new Error(`target ${targetId}.releaseImage must be an object`);
+      }
+      for (const field of ['name', 'file', 'target', 'repository']) {
+        if (typeof image[field] !== 'string') {
+          throw new Error(
+            `target ${targetId}.releaseImage.${field} must be a string`,
+          );
+        }
+      }
+      if (
+        image.securityScan !== undefined &&
+        typeof image.securityScan !== 'boolean'
+      ) {
+        throw new Error(
+          `target ${targetId}.releaseImage.securityScan must be boolean`,
+        );
+      }
+      if (imageNames.has(image.name)) {
+        throw new Error(`duplicate release image name: ${image.name}`);
+      }
+      if (imageRepositories.has(image.repository)) {
+        throw new Error(
+          `duplicate release image repository: ${image.repository}`,
+        );
+      }
+      imageNames.add(image.name);
+      imageRepositories.add(image.repository);
     }
   }
 
@@ -449,7 +518,7 @@ export function fullSuiteReasonFor({ event, ref, forceFull }) {
 
 export function formatSummary(decision) {
   const lines = [
-    'Affected-target shadow decision',
+    'Affected-target decision',
     `Mode: ${decision.mode}`,
     `Reason: ${decision.reason}`,
     `Detection: ${decision.detectionStatus}`,
@@ -457,6 +526,38 @@ export function formatSummary(decision) {
     `Unclassified: ${decision.unknownPaths.length > 0 ? decision.unknownPaths.join(', ') : '(none)'}`,
   ];
   return lines.join('\n');
+}
+
+export function imageMatricesForDecision(decision, config) {
+  const configuredTargets = config?.targets ?? {};
+  const allReleaseImages = Object.keys(
+    Object.keys(configuredTargets).length > 0
+      ? configuredTargets
+      : Object.fromEntries(
+          Object.keys(FALLBACK_RELEASE_IMAGES).map((targetId) => [
+            targetId,
+            { releaseImage: FALLBACK_RELEASE_IMAGES[targetId] },
+          ]),
+        ),
+  ).flatMap((targetId) => {
+    const image =
+      configuredTargets[targetId]?.releaseImage ??
+      FALLBACK_RELEASE_IMAGES[targetId];
+    return image ? [{ ...image }] : [];
+  });
+  const releaseImages = decision.affectedTargets.flatMap((targetId) => {
+    const image =
+      config?.targets?.[targetId]?.releaseImage ??
+      FALLBACK_RELEASE_IMAGES[targetId];
+    return image ? [{ ...image }] : [];
+  });
+  return {
+    allReleaseImages,
+    releaseImages,
+    securityImages: releaseImages.filter(
+      (image) => image.securityScan === true,
+    ),
+  };
 }
 
 function parseArguments(argv) {
@@ -516,12 +617,26 @@ If comparison or configuration loading fails, the command emits a conservative
 all-target decision instead of silently skipping work.`;
 }
 
-function appendGithubOutputs(outputPath, decision) {
+function appendGithubOutputs(outputPath, decision, config) {
+  const { allReleaseImages, releaseImages, securityImages } =
+    imageMatricesForDecision(decision, config);
+  const codexAffected = decision.affectedTargets.some((targetId) =>
+    targetId.startsWith('codex-'),
+  );
+  const repositorySecurity = decision.affectedTargets.some(
+    (targetId) => targetId !== 'docs',
+  );
   const lines = [
     `full_validation=${decision.mode === 'full'}`,
     `detection_status=${decision.detectionStatus}`,
     `affected_targets=${JSON.stringify(decision.affectedTargets)}`,
     `decision=${JSON.stringify(decision)}`,
+    `codex=${codexAffected}`,
+    `all_release_images=${JSON.stringify(allReleaseImages)}`,
+    `release_images=${JSON.stringify(releaseImages)}`,
+    `security_images=${JSON.stringify(securityImages)}`,
+    `has_release_images=${releaseImages.length > 0}`,
+    `repository_security=${repositorySecurity}`,
   ];
   for (const [targetId, targetDecision] of Object.entries(decision.decisions)) {
     lines.push(`${targetId.replaceAll('-', '_')}=${targetDecision.affected}`);
@@ -545,7 +660,7 @@ export function runCli(argv) {
       `configuration-error:${error instanceof Error ? error.message : String(error)}`,
       { detectionStatus: 'failed' },
     );
-    emitDecision(decision, options);
+    emitDecision(decision, options, config);
     return 0;
   }
 
@@ -577,11 +692,11 @@ export function runCli(argv) {
       decision.reason = `change-detection-failed:${error instanceof Error ? error.message : String(error)}`;
     }
   }
-  emitDecision(decision, options);
+  emitDecision(decision, options, config);
   return 0;
 }
 
-function emitDecision(decision, options) {
+function emitDecision(decision, options, config) {
   if (options.format === 'summary' || options.format === 'both') {
     process.stdout.write(`${formatSummary(decision)}\n`);
   }
@@ -596,7 +711,7 @@ function emitDecision(decision, options) {
     );
   }
   if (options.githubOutput !== undefined) {
-    appendGithubOutputs(options.githubOutput, decision);
+    appendGithubOutputs(options.githubOutput, decision, config);
   }
 }
 

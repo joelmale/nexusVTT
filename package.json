@@ -31,6 +31,8 @@
     "build:docs": "npm run build --workspace=@nexus/docs",
     "type-check": "npm run build:contracts && npm run type-check --workspace=@nexus/character-creator && npm run type-check --workspace=nexus-vtt && npm exec --workspace=nexus-forge tsc -- --noEmit && npm run build:codex",
     "check:workspace-lock": "node scripts/validate-workspace-lock.mjs",
+    "check:docker-build-contracts": "node scripts/ci/validate-docker-build-contracts.mjs",
+    "build:workspace-deps": "node scripts/build-workspace-dependencies.mjs",
     "branches:audit": "node scripts/branch-hygiene.mjs",
     "report:ci-timing": "node scripts/ci/report-actions-timing.mjs",
     "test:ci-report": "vitest run --config scripts/ci/vitest.actions-timing.config.mjs",
