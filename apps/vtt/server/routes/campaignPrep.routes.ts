@@ -6,7 +6,10 @@ import {
   type CampaignPrepAuthoringResult,
 } from '../campaign-prep/CampaignPrepAuthoringService.js';
 import { requireAuthenticatedNonGuest } from '../middleware/assetWriteGuard.js';
-import { CampaignPrepRevisionConflictError } from '../repositories/CampaignPrepRepository.js';
+import {
+  CampaignPrepRevisionConflictError,
+  SessionPlanActivationError,
+} from '../repositories/CampaignPrepRepository.js';
 import type {
   CampaignPrepObjectKind,
   CampaignPrepObjectStatus,
@@ -100,29 +103,44 @@ export function createCampaignPrepRouter({
 }: CampaignPrepRouterOptions): Router {
   const router = Router();
 
+  const campaignDmGuard = async (
+    req: Request,
+    res: Response,
+    next: () => void,
+  ) => {
+    try {
+      const userId = sessionUserId(req);
+      if (!userId) {
+        return res.status(401).json({ error: 'User ID not found in session' });
+      }
+
+      const campaignId = routeParameter(req.params.campaignId);
+      const campaign = await db.campaigns.getCampaignById(campaignId);
+      if (!campaign) {
+        return res.status(404).json({ error: 'Campaign not found' });
+      }
+      if (campaign.dmId !== userId) {
+        return res.status(403).json({ error: 'Campaign DM access required' });
+      }
+      return next();
+    } catch (error) {
+      console.error('Campaign DM guard error:', error);
+      return res
+        .status(500)
+        .json({ error: 'Failed to authorize campaign access' });
+    }
+  };
+
   router.use(
     '/campaigns/:campaignId/prep',
     requireAuthenticatedNonGuest,
-    async (req, res, next) => {
-      try {
-        const userId = sessionUserId(req);
-        if (!userId) {
-          return res.status(401).json({ error: 'User ID not found in session' });
-        }
+    campaignDmGuard,
+  );
 
-        const campaignId = routeParameter(req.params.campaignId);
-        const campaign = await db.campaigns.getCampaignById(campaignId);
-        if (!campaign) {
-          return res.status(404).json({ error: 'Campaign not found' });
-        }
-        if (campaign.dmId !== userId) {
-          return res.status(403).json({ error: 'Campaign DM access required' });
-        }
-        return next();
-      } catch (error) {
-        return next(error);
-      }
-    },
+  router.use(
+    '/campaigns/:campaignId/session-plans',
+    requireAuthenticatedNonGuest,
+    campaignDmGuard,
   );
 
   router.get('/campaigns/:campaignId/prep/objects', async (req, res) => {
@@ -295,7 +313,177 @@ export function createCampaignPrepRouter({
     },
   );
 
+  router.get(
+    '/campaigns/:campaignId/prep/backlinks/:objectId',
+    async (req, res) => {
+      try {
+        const campaignId = routeParameter(req.params.campaignId);
+        const objectId = routeParameter(req.params.objectId);
+        const object = await db.campaignPrep.getObject(campaignId, objectId);
+        if (!object) {
+          return res.status(404).json({ error: 'Campaign object not found' });
+        }
+        const links = await db.campaignPrep.getBacklinks({
+          target: 'campaign-object',
+          campaignId,
+          id: objectId,
+          revision: object.currentRevision,
+        });
+        return res.json({ links });
+      } catch (error) {
+        console.error('Failed to load campaign prep backlinks:', error);
+        return res.status(500).json({ error: 'Failed to load backlinks' });
+      }
+    },
+  );
+
+  router.post(
+    '/campaigns/:campaignId/session-plans/:planId/activate',
+    async (req: Request, res: Response) => {
+      const campaignId = routeParameter(req.params.campaignId);
+      const planId = routeParameter(req.params.planId);
+      const body = req.body as {
+        sessionId?: unknown;
+        planRevision?: unknown;
+        requestId?: unknown;
+      };
+
+      if (body.requestId !== undefined && !isUuid(body.requestId)) {
+        return res.status(400).json({ error: 'requestId must be a UUID' });
+      }
+      if (
+        body.planRevision !== undefined &&
+        (!Number.isInteger(body.planRevision) ||
+          (body.planRevision as number) < 1)
+      ) {
+        return res
+          .status(400)
+          .json({ error: 'planRevision must be a positive integer' });
+      }
+
+      try {
+        let sessionId =
+          typeof body.sessionId === 'string' && body.sessionId
+            ? body.sessionId
+            : undefined;
+        if (!sessionId) {
+          const campaign = await db.campaigns.getCampaignById(campaignId);
+          sessionId = campaign?.lastRoomCode ?? 'default';
+        }
+
+        const result = await db.campaignPrep.activateSessionPlan({
+          campaignId,
+          sessionPlanId: planId,
+          planRevision: body.planRevision as number | undefined,
+          sessionId,
+          activatedBy: sessionUserId(req),
+        });
+
+        return res.json(result);
+      } catch (error) {
+        if (error instanceof SessionPlanActivationError) {
+          const status = error.code === 'not-found' ? 404 : 422;
+          return res.status(status).json({
+            error: error.message,
+            code: error.code,
+          });
+        }
+        console.error('Failed to activate session plan:', error);
+        return res.status(500).json({ error: 'Failed to activate session plan' });
+      }
+    },
+  );
+
+  router.get(
+    '/campaigns/:campaignId/session-plans/active',
+    async (req, res) => {
+      try {
+        const campaignId = routeParameter(req.params.campaignId);
+        const sessionId =
+          typeof req.query.sessionId === 'string'
+            ? req.query.sessionId
+            : undefined;
+        const result =
+          await db.campaignPrep.getActiveSessionPlanActivation(
+            campaignId,
+            sessionId,
+          );
+        if (!result) {
+          return res.status(404).json({ error: 'No active session plan found' });
+        }
+        return res.json(result);
+      } catch (error) {
+        console.error('Failed to get active session plan:', error);
+        return res
+          .status(500)
+          .json({ error: 'Failed to get active session plan' });
+      }
+    },
+  );
+
+  router.patch(
+    '/campaigns/:campaignId/session-plans/activations/:activationId/progress',
+    async (req, res) => {
+      const campaignId = routeParameter(req.params.campaignId);
+      const activationId = routeParameter(req.params.activationId);
+      const body = req.body as {
+        currentStepIndex?: unknown;
+        stepStates?: unknown;
+        status?: unknown;
+      };
+
+      if (
+        !Number.isInteger(body.currentStepIndex) ||
+        (body.currentStepIndex as number) < 0
+      ) {
+        return res
+          .status(400)
+          .json({ error: 'currentStepIndex must be a non-negative integer' });
+      }
+      if (
+        body.status !== undefined &&
+        body.status !== 'active' &&
+        body.status !== 'completed' &&
+        body.status !== 'abandoned'
+      ) {
+        return res.status(400).json({ error: 'Invalid status' });
+      }
+
+      try {
+        const activation =
+          await db.campaignPrep.updateSessionPlanActivationProgress({
+            campaignId,
+            activationId,
+            currentStepIndex: body.currentStepIndex as number,
+            stepStates:
+              typeof body.stepStates === 'object' && body.stepStates !== null
+                ? (body.stepStates as Record<string, unknown>)
+                : undefined,
+            status: body.status as
+              | 'active'
+              | 'completed'
+              | 'abandoned'
+              | undefined,
+          });
+        return res.json({ activation });
+      } catch (error) {
+        if (error instanceof SessionPlanActivationError) {
+          const status = error.code === 'not-found' ? 404 : 422;
+          return res.status(status).json({
+            error: error.message,
+            code: error.code,
+          });
+        }
+        console.error('Failed to update session plan progress:', error);
+        return res
+          .status(500)
+          .json({ error: 'Failed to update session plan progress' });
+      }
+    },
+  );
+
   return router;
+
 }
 
 function handleAuthoringError(error: unknown, res: Response): Response {

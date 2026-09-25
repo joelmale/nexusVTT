@@ -403,6 +403,70 @@ export class DomainCommandClient {
   }
 
   /**
+   * Activate a session plan revision for a live session
+   */
+  async activateSessionPlan(
+    campaignId: string,
+    sessionPlanId: string,
+    planRevision: number,
+    sessionId: string,
+  ): Promise<CommandExecutionResult> {
+    const { user } = useGameStore.getState();
+    const commandId = crypto.randomUUID();
+    const issuerUserId = user?.id || 'anonymous';
+
+    const command: DomainCommand = {
+      commandId,
+      protocolVersion: '1.0',
+      campaignId,
+      issuerUserId,
+      timestamp: new Date().toISOString(),
+      expectedActorVersions: {},
+      payload: {
+        type: 'ActivateSessionPlan',
+        sessionPlanId,
+        planRevision,
+        sessionId,
+      },
+    };
+
+    return this.dispatchCommand(campaignId, command);
+  }
+
+  /**
+   * Advance the active step of a session plan activation
+   */
+  async advanceSessionPlanStep(
+    campaignId: string,
+    activationId: string,
+    stepIndex: number,
+    completed = true,
+    stepId?: string,
+  ): Promise<CommandExecutionResult> {
+    const { user } = useGameStore.getState();
+    const commandId = crypto.randomUUID();
+    const issuerUserId = user?.id || 'anonymous';
+
+    const command: DomainCommand = {
+      commandId,
+      protocolVersion: '1.0',
+      campaignId,
+      issuerUserId,
+      timestamp: new Date().toISOString(),
+      expectedActorVersions: {},
+      payload: {
+        type: 'AdvanceSessionPlanStep',
+        activationId,
+        stepIndex,
+        completed,
+        stepId,
+      },
+    };
+
+    return this.dispatchCommand(campaignId, command);
+  }
+
+  /**
    * Post command envelope to the server and coordinate local projection updates
    */
   private async dispatchCommand(

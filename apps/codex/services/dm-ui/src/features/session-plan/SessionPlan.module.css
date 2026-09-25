@@ -637,6 +637,33 @@
   width: 100%;
 }
 
+.activateButton {
+  align-items: center;
+  background: var(--studio-positive);
+  border: 1px solid var(--studio-positive);
+  border-radius: var(--studio-radius-control);
+  color: #fff;
+  cursor: pointer;
+  display: flex;
+  font-size: 13px;
+  font-weight: 650;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+  min-height: 38px;
+  width: 100%;
+}
+
+.activateButton:hover:not(:disabled) {
+  opacity: 0.92;
+}
+
+.activateButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+
 .publishMessage {
   color: var(--studio-text-muted);
   font-size: 11px;

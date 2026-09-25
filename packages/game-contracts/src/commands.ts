@@ -112,6 +112,27 @@ export const transferItemPayloadSchema = z.object({
 });
 export type TransferItemPayload = z.infer<typeof transferItemPayloadSchema>;
 
+export const activateSessionPlanPayloadSchema = z.object({
+  type: z.literal('ActivateSessionPlan'),
+  sessionPlanId: z.string().uuid(),
+  planRevision: z.number().int().positive(),
+  sessionId: z.string().min(1),
+});
+export type ActivateSessionPlanPayload = z.infer<
+  typeof activateSessionPlanPayloadSchema
+>;
+
+export const advanceSessionPlanStepPayloadSchema = z.object({
+  type: z.literal('AdvanceSessionPlanStep'),
+  activationId: z.string().uuid(),
+  stepIndex: z.number().int().nonnegative(),
+  stepId: z.string().uuid().optional(),
+  completed: z.boolean().default(true),
+});
+export type AdvanceSessionPlanStepPayload = z.infer<
+  typeof advanceSessionPlanStepPayloadSchema
+>;
+
 /**
  * Union of all domain command payloads
  */
@@ -127,6 +148,8 @@ export const domainCommandPayloadSchema = z.discriminatedUnion('type', [
   endConcentrationPayloadSchema,
   restActorPayloadSchema,
   transferItemPayloadSchema,
+  activateSessionPlanPayloadSchema,
+  advanceSessionPlanStepPayloadSchema,
 ]);
 export type DomainCommandPayload = z.infer<typeof domainCommandPayloadSchema>;
 

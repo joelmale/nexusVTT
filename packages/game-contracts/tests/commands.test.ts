@@ -47,4 +47,34 @@ describe('Domain Commands & Receipts', () => {
     ).toBe(2);
     expect(parsed.result.roomStateVersion).toBe(43);
   });
+
+  it('validates an ActivateSessionPlan command payload', () => {
+    const payload = {
+      type: 'ActivateSessionPlan' as const,
+      sessionPlanId: '99999999-9999-4999-8999-999999999999',
+      planRevision: 2,
+      sessionId: 'room-session-12',
+    };
+    const parsed = domainCommandSchema.parse({
+      ...mockApplyDamageCommand,
+      payload,
+    });
+    expect(parsed.payload.type).toBe('ActivateSessionPlan');
+  });
+
+  it('validates an AdvanceSessionPlanStep command payload', () => {
+    const payload = {
+      type: 'AdvanceSessionPlanStep' as const,
+      activationId: '99999999-9999-4999-8999-999999999999',
+      stepIndex: 3,
+      stepId: '11111111-1111-4111-8111-111111111111',
+      completed: true,
+    };
+    const parsed = domainCommandSchema.parse({
+      ...mockApplyDamageCommand,
+      payload,
+    });
+    expect(parsed.payload.type).toBe('AdvanceSessionPlanStep');
+  });
 });
+

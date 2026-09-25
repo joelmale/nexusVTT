@@ -9,6 +9,7 @@ import GripVertical from 'lucide-react/dist/esm/icons/grip-vertical';
 import ListFilter from 'lucide-react/dist/esm/icons/list-filter';
 import MessageSquareText from 'lucide-react/dist/esm/icons/message-square-text';
 import MoreHorizontal from 'lucide-react/dist/esm/icons/more-horizontal';
+import Play from 'lucide-react/dist/esm/icons/play';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import Search from 'lucide-react/dist/esm/icons/search';
 import Send from 'lucide-react/dist/esm/icons/send';
@@ -31,8 +32,10 @@ interface SessionPlanProps {
   model: SessionPlanViewModel;
   onCapability: (capabilityId: CapabilityId) => void;
   onPublish?: () => void;
+  onActivate?: () => void;
   publishMessage?: string;
   publishState?: 'idle' | 'publishing' | 'published' | 'error';
+  activateState?: 'idle' | 'activating' | 'activated' | 'error';
 }
 
 type WorkspaceTab = 'run-sheet' | 'notes' | 'player-facing' | 'attachments';
@@ -50,8 +53,10 @@ export function SessionPlan({
   model,
   onCapability,
   onPublish,
+  onActivate,
   publishMessage,
   publishState = 'idle',
+  activateState = 'idle',
 }: SessionPlanProps) {
   const [libraryTab, setLibraryTab] = useState<'campaign' | 'compendium'>(
     'campaign',
@@ -559,6 +564,23 @@ export function SessionPlan({
                 ? 'Published'
                 : 'Publish plan'}
           </button>
+          {publishState === 'published' && (
+            <button
+              className={styles.activateButton}
+              disabled={activateState === 'activating'}
+              onClick={
+                onActivate ?? (() => onCapability('session-plan.activate'))
+              }
+              type="button"
+            >
+              <Play size={15} />
+              {activateState === 'activating'
+                ? 'Activating in VTT...'
+                : activateState === 'activated'
+                  ? 'Activated in VTT'
+                  : 'Play in VTT'}
+            </button>
+          )}
         </div>
       </aside>
     </div>

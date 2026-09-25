@@ -30,6 +30,7 @@ export type {
   CampaignPrepObjectRecord,
   CampaignPrepObjectRevisionRecord,
   CampaignPrepObjectLinkRecord,
+  SessionPlanActivationRecord,
 } from './repositories/base.js';
 
 export class DatabaseService {

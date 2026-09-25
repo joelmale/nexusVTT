@@ -15,7 +15,10 @@ import type {
   SessionPlanViewModel,
 } from '@/features/session-plan/sessionPlanModels';
 import { StudioFrame } from '@/features/studio-shell/StudioFrame';
-import { publishGlassHarborPlan } from '@/services/campaign-prep-api';
+import {
+  activateGlassHarborPlan,
+  publishGlassHarborPlan,
+} from '@/services/campaign-prep-api';
 
 const COMPENDIUM_OBJECTS: LibraryObject[] = [
   {
@@ -182,6 +185,9 @@ export function SessionPlanRoute() {
     'idle' | 'publishing' | 'published' | 'error'
   >('idle');
   const [publishMessage, setPublishMessage] = useState<string>();
+  const [activateState, setActivateState] = useState<
+    'idle' | 'activating' | 'activated' | 'error'
+  >('idle');
 
   async function publishPlan() {
     setPublishState('publishing');
@@ -198,6 +204,23 @@ export function SessionPlanRoute() {
     }
   }
 
+  async function activatePlan() {
+    setActivateState('activating');
+    setPublishMessage('Activating plan in Nexus VTT...');
+    try {
+      const result = await activateGlassHarborPlan();
+      setActivateState('activated');
+      setPublishMessage(
+        `Plan activated for session ${result.activation.sessionId}! Step 1 is ready in VTT.`,
+      );
+    } catch (error) {
+      setActivateState('error');
+      setPublishMessage(
+        error instanceof Error ? error.message : 'The plan could not be activated.',
+      );
+    }
+  }
+
   return (
     <StudioFrame
       onCapability={notifyCapability}
@@ -206,7 +229,9 @@ export function SessionPlanRoute() {
       onTheme={() => notifyCapability('campaign.theme.change')}
     >
       <SessionPlan
+        activateState={activateState}
         model={model}
+        onActivate={activatePlan}
         onCapability={notifyCapability}
         onPublish={publishPlan}
         publishMessage={publishMessage}

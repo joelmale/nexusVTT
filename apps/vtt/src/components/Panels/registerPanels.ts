@@ -4,6 +4,7 @@ import { MonsterPanel } from './MonsterPanel';
 import { EncounterPanel } from './EncounterPanel';
 import { SpellbookPanel } from './SpellbookPanel';
 import { InventoryPanel } from './InventoryPanel';
+import { SessionPlanPanel } from './SessionPlanPanel';
 
 let registered = false;
 
@@ -39,5 +40,11 @@ export function registerDefaultPanels(): void {
     kind: 'item',
     title: (link) => link.title || 'Inventory',
     component: InventoryPanel,
+  });
+
+  panelRegistry.register({
+    kind: 'session-plan',
+    title: (link) => link.title || 'Session Run Sheet',
+    component: SessionPlanPanel,
   });
 }

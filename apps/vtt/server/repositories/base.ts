@@ -204,6 +204,22 @@ export interface CampaignPrepObjectLinkRecord {
   createdAt: Date;
 }
 
+export type SessionPlanActivationStatus = 'active' | 'completed' | 'abandoned';
+
+export interface SessionPlanActivationRecord {
+  id: string;
+  campaignId: string;
+  sessionPlanId: string;
+  planRevision: number;
+  sessionId: string;
+  currentStepIndex: number;
+  status: SessionPlanActivationStatus;
+  stepStates: Record<string, unknown>;
+  activatedBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
 export abstract class BaseRepository {
   constructor(protected pool: Pool) {}
 
@@ -211,3 +227,4 @@ export abstract class BaseRepository {
     return client ?? this.pool;
   }
 }
+

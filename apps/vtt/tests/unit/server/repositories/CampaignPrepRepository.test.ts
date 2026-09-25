@@ -295,4 +295,93 @@ describe('CampaignPrepRepository', () => {
     expect(clientQuery).toHaveBeenLastCalledWith('ROLLBACK');
     expect(release).toHaveBeenCalledOnce();
   });
+
+  it('activates a ready session plan and completes prior activations', async () => {
+    const readyObject = { ...objectRecord, status: 'ready' };
+    const activationRecord = {
+      id: '99999999-9999-4999-8999-999999999999',
+      campaignId: IDS.campaign,
+      sessionPlanId: IDS.object,
+      planRevision: 1,
+      sessionId: 'session-123',
+      currentStepIndex: 0,
+      status: 'active',
+      stepStates: {},
+      activatedBy: IDS.user,
+      createdAt: new Date('2026-09-25T12:00:00.000Z'),
+      updatedAt: new Date('2026-09-25T12:00:00.000Z'),
+    };
+
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [readyObject] }) // getObject
+      .mockResolvedValueOnce({ rows: [revisionRecord] }) // getRevision
+      .mockResolvedValueOnce({ rows: [] }) // UPDATE prior activations
+      .mockResolvedValueOnce({ rows: [activationRecord] }) // INSERT activation
+      .mockResolvedValueOnce({ rows: [] }); // COMMIT
+
+    const result = await repository.activateSessionPlan({
+      campaignId: IDS.campaign,
+      sessionPlanId: IDS.object,
+      sessionId: 'session-123',
+      activatedBy: IDS.user,
+    });
+
+    expect(result.activation.id).toBe(activationRecord.id);
+    expect(result.plan).toEqual(revisionRecord.data);
+    expect(clientQuery).toHaveBeenCalledWith('COMMIT');
+  });
+
+  it('rejects activation of a draft session plan', async () => {
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [objectRecord] }) // getObject (status: 'draft')
+      .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+
+    await expect(
+      repository.activateSessionPlan({
+        campaignId: IDS.campaign,
+        sessionPlanId: IDS.object,
+        sessionId: 'session-123',
+      }),
+    ).rejects.toThrow('only ready plans can be activated');
+  });
+
+  it('retrieves active session plan activation and updates progress', async () => {
+    const activationRecord = {
+      id: '99999999-9999-4999-8999-999999999999',
+      campaignId: IDS.campaign,
+      sessionPlanId: IDS.object,
+      planRevision: 1,
+      sessionId: 'session-123',
+      currentStepIndex: 0,
+      status: 'active',
+      stepStates: {},
+      activatedBy: IDS.user,
+      createdAt: new Date('2026-09-25T12:00:00.000Z'),
+      updatedAt: new Date('2026-09-25T12:00:00.000Z'),
+    };
+
+    poolQuery
+      .mockResolvedValueOnce({ rows: [activationRecord] }) // getActiveSessionPlanActivation
+      .mockResolvedValueOnce({ rows: [revisionRecord] }); // getRevision
+
+    const active = await repository.getActiveSessionPlanActivation(
+      IDS.campaign,
+      'session-123',
+    );
+    expect(active?.activation.id).toBe(activationRecord.id);
+    expect(active?.plan).toEqual(revisionRecord.data);
+
+    const updatedRecord = { ...activationRecord, currentStepIndex: 2 };
+    poolQuery.mockResolvedValueOnce({ rows: [updatedRecord] });
+
+    const progress = await repository.updateSessionPlanActivationProgress({
+      campaignId: IDS.campaign,
+      activationId: activationRecord.id,
+      currentStepIndex: 2,
+    });
+    expect(progress.currentStepIndex).toBe(2);
+  });
 });
+

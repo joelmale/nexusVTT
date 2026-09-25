@@ -1,6 +1,7 @@
 import {
   campaignObjectRefKey,
   type CampaignObjectRef,
+  type SessionPlan,
 } from '@nexus/game-contracts';
 import type { PoolClient } from 'pg';
 
@@ -11,6 +12,8 @@ import {
   type CampaignPrepObjectRecord,
   type CampaignPrepObjectRevisionRecord,
   type CampaignPrepObjectStatus,
+  type SessionPlanActivationRecord,
+  type SessionPlanActivationStatus,
 } from './base.js';
 
 export class CampaignPrepRevisionConflictError extends Error {
@@ -24,6 +27,17 @@ export class CampaignPrepRevisionConflictError extends Error {
     this.name = 'CampaignPrepRevisionConflictError';
   }
 }
+
+export class SessionPlanActivationError extends Error {
+  constructor(
+    message: string,
+    public readonly code: 'not-found' | 'not-ready' | 'invalid-revision',
+  ) {
+    super(message);
+    this.name = 'SessionPlanActivationError';
+  }
+}
+
 
 interface CampaignPrepRevisionInput {
   revision: number;
@@ -51,6 +65,22 @@ interface AddCampaignPrepRevisionInput extends CampaignPrepRevisionInput {
 interface CampaignPrepObjectFilter {
   kind?: CampaignPrepObjectKind;
   status?: CampaignPrepObjectStatus;
+}
+
+export interface ActivateSessionPlanInput {
+  campaignId: string;
+  sessionPlanId: string;
+  planRevision?: number;
+  sessionId: string;
+  activatedBy?: string | null;
+}
+
+export interface UpdateSessionPlanActivationProgressInput {
+  campaignId: string;
+  activationId: string;
+  currentStepIndex: number;
+  stepStates?: Record<string, unknown>;
+  status?: SessionPlanActivationStatus;
 }
 
 export class CampaignPrepRepository extends BaseRepository {
@@ -243,6 +273,172 @@ export class CampaignPrepRepository extends BaseRepository {
       return { object: updatedObject, revision: createdRevision };
     });
   }
+
+  async activateSessionPlan(
+    input: ActivateSessionPlanInput,
+    client?: PoolClient,
+  ): Promise<{
+    activation: SessionPlanActivationRecord;
+    plan: SessionPlan;
+  }> {
+    return this.withTransaction(client, async (executor) => {
+      const object = await this.getObject(
+        input.campaignId,
+        input.sessionPlanId,
+        executor,
+      );
+      if (!object || object.kind !== 'session-plan') {
+        throw new SessionPlanActivationError(
+          `Session plan ${input.sessionPlanId} not found in campaign ${input.campaignId}`,
+          'not-found',
+        );
+      }
+      if (object.status !== 'ready') {
+        throw new SessionPlanActivationError(
+          `Session plan ${input.sessionPlanId} is currently ${object.status}; only ready plans can be activated`,
+          'not-ready',
+        );
+      }
+
+      const revisionNumber = input.planRevision ?? object.currentRevision;
+      const revision = await this.getRevision(
+        object.id,
+        revisionNumber,
+        executor,
+      );
+      if (!revision) {
+        throw new SessionPlanActivationError(
+          `Session plan ${input.sessionPlanId} revision ${revisionNumber} does not exist`,
+          'invalid-revision',
+        );
+      }
+
+      // Mark any prior active activation for this session as completed
+      await executor.query(
+        `UPDATE session_plan_activations
+         SET status = 'completed', "updatedAt" = NOW()
+         WHERE "campaignId" = $1 AND "sessionId" = $2 AND status = 'active'`,
+        [input.campaignId, input.sessionId],
+      );
+
+      const result = await executor.query<SessionPlanActivationRecord>(
+        `INSERT INTO session_plan_activations
+           ("campaignId", "sessionPlanId", "planRevision", "sessionId", "currentStepIndex", status, "stepStates", "activatedBy")
+         VALUES ($1, $2, $3, $4, 0, 'active', '{}'::jsonb, $5)
+         RETURNING *`,
+        [
+          input.campaignId,
+          input.sessionPlanId,
+          revisionNumber,
+          input.sessionId,
+          input.activatedBy ?? null,
+        ],
+      );
+
+      return {
+        activation: result.rows[0],
+        plan: revision.data as SessionPlan,
+      };
+    });
+  }
+
+  async getActiveSessionPlanActivation(
+    campaignId: string,
+    sessionId?: string,
+    client?: PoolClient,
+  ): Promise<{
+    activation: SessionPlanActivationRecord;
+    plan: SessionPlan;
+  } | null> {
+    const executor = this.getExecutor(client);
+    let query = `SELECT * FROM session_plan_activations WHERE "campaignId" = $1 AND status = 'active'`;
+    const params: unknown[] = [campaignId];
+    if (sessionId) {
+      params.push(sessionId);
+      query += ` AND "sessionId" = $2`;
+    }
+    query += ` ORDER BY "createdAt" DESC LIMIT 1`;
+
+    const result = await executor.query<SessionPlanActivationRecord>(
+      query,
+      params,
+    );
+    const activation = result.rows[0];
+    if (!activation) return null;
+
+    const revision = await this.getRevision(
+      activation.sessionPlanId,
+      activation.planRevision,
+      client,
+    );
+    if (!revision) return null;
+
+    return {
+      activation,
+      plan: revision.data as SessionPlan,
+    };
+  }
+
+  async getActivation(
+    campaignId: string,
+    activationId: string,
+    client?: PoolClient,
+  ): Promise<{
+    activation: SessionPlanActivationRecord;
+    plan: SessionPlan;
+  } | null> {
+    const executor = this.getExecutor(client);
+    const result = await executor.query<SessionPlanActivationRecord>(
+      `SELECT * FROM session_plan_activations WHERE id = $1 AND "campaignId" = $2`,
+      [activationId, campaignId],
+    );
+    const activation = result.rows[0];
+    if (!activation) return null;
+
+    const revision = await this.getRevision(
+      activation.sessionPlanId,
+      activation.planRevision,
+      client,
+    );
+    if (!revision) return null;
+
+    return {
+      activation,
+      plan: revision.data as SessionPlan,
+    };
+  }
+
+  async updateSessionPlanActivationProgress(
+    input: UpdateSessionPlanActivationProgressInput,
+    client?: PoolClient,
+  ): Promise<SessionPlanActivationRecord> {
+    const executor = this.getExecutor(client);
+    const result = await executor.query<SessionPlanActivationRecord>(
+      `UPDATE session_plan_activations
+       SET "currentStepIndex" = $3,
+           "stepStates" = COALESCE($4::jsonb, "stepStates"),
+           status = COALESCE($5, status),
+           "updatedAt" = NOW()
+       WHERE id = $1 AND "campaignId" = $2
+       RETURNING *`,
+      [
+        input.activationId,
+        input.campaignId,
+        input.currentStepIndex,
+        input.stepStates ? JSON.stringify(input.stepStates) : null,
+        input.status ?? null,
+      ],
+    );
+    const updated = result.rows[0];
+    if (!updated) {
+      throw new SessionPlanActivationError(
+        `Session plan activation ${input.activationId} not found in campaign ${input.campaignId}`,
+        'not-found',
+      );
+    }
+    return updated;
+  }
+
 
   private async insertRevision(
     objectId: string,

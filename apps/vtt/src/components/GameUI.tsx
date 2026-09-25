@@ -103,7 +103,14 @@ export const GameUI: React.FC = () => {
     ...(isHost ? [{ id: 'scene' as const, icon: '🖼', label: 'Scene' }] : []),
     { id: 'props' as const, icon: '📦', label: 'Props' },
     ...(isHost
-      ? [{ id: 'generator' as const, icon: '🗺️', label: 'Generator' }]
+      ? [
+          {
+            id: 'panel:session-plan:active' as const,
+            icon: '📋',
+            label: 'Session Run Sheet',
+          },
+          { id: 'generator' as const, icon: '🗺️', label: 'Generator' },
+        ]
       : []),
     { id: 'initiative' as const, icon: '⏱', label: 'Initiative' },
     { id: 'characters' as const, icon: '👥', label: 'Characters' },
@@ -232,38 +239,40 @@ export const GameUI: React.FC = () => {
         // Generator is handled via overlay, skip rendering its floating panel
         if (panelId === 'generator') return null;
         
+        const objectLink =
+          panelRegistry.getLink(panelId) || parseObjectPanelId(panelId);
+        if (objectLink) {
+          const def = panelRegistry.getDefinition(objectLink.kind);
+          if (def) {
+            const Component = def.component;
+            const title = objectLink.title || def.title(objectLink);
+            return (
+              <FloatingPanel
+                key={panelId}
+                panelId={panelId}
+                isOpen={true}
+                onClose={() => panelRegistry.close(panelId)}
+                label={title}
+              >
+                <Suspense
+                  fallback={
+                    <div className="panel-skeleton">Loading object...</div>
+                  }
+                >
+                  <Component
+                    link={objectLink}
+                    onClose={() => panelRegistry.close(panelId)}
+                    isPopout={false}
+                  />
+                </Suspense>
+              </FloatingPanel>
+            );
+          }
+          return null;
+        }
+
         const panelConfig = panels.find((p) => p.id === panelId);
         if (!panelConfig) {
-          const objectLink =
-            panelRegistry.getLink(panelId) || parseObjectPanelId(panelId);
-          if (objectLink) {
-            const def = panelRegistry.getDefinition(objectLink.kind);
-            if (def) {
-              const Component = def.component;
-              const title = objectLink.title || def.title(objectLink);
-              return (
-                <FloatingPanel
-                  key={panelId}
-                  panelId={panelId}
-                  isOpen={true}
-                  onClose={() => panelRegistry.close(panelId)}
-                  label={title}
-                >
-                  <Suspense
-                    fallback={
-                      <div className="panel-skeleton">Loading object...</div>
-                    }
-                  >
-                    <Component
-                      link={objectLink}
-                      onClose={() => panelRegistry.close(panelId)}
-                      isPopout={false}
-                    />
-                  </Suspense>
-                </FloatingPanel>
-              );
-            }
-          }
           return null;
         }
 

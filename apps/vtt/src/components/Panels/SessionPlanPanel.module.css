@@ -1,0 +1,453 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 400px;
+  gap: 14px;
+  padding: 16px;
+  color: var(--text-primary, #f8fafc);
+  font-family: inherit;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  padding-bottom: 12px;
+}
+
+.headerInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.titleLine {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.title {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+  line-height: 1.2;
+}
+
+.revBadge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--indigo-900, #312e81);
+  color: var(--indigo-200, #c7d2fe);
+  border: 1px solid var(--indigo-700, #4338ca);
+}
+
+.statusBadge {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(16, 185, 129, 0.15);
+  color: var(--emerald-400, #34d399);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.popoutBadge {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--purple-900, #581c87);
+  color: var(--purple-200, #e9d5ff);
+  border: 1px solid var(--purple-700, #7c3aed);
+}
+
+.headerMeta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.iconBtn {
+  background: var(--glass-bg, rgba(255, 255, 255, 0.05));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  padding: 6px;
+  color: var(--text-secondary, #94a3b8);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.iconBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--text-primary, #f8fafc);
+  border-color: var(--indigo-400, #818cf8);
+}
+
+.summaryCard {
+  background: var(--glass-bg, rgba(15, 23, 42, 0.6));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  border-radius: 8px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.statsRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 12px;
+}
+
+.statItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.statValue {
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+}
+
+.progressBarTrack {
+  width: 100%;
+  height: 6px;
+  background: rgba(255, 255, 255, 0.08);
+  border-radius: 3px;
+  overflow: hidden;
+}
+
+.progressBarFill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--indigo-500, #6366f1), var(--emerald-400, #34d399));
+  border-radius: 3px;
+  transition: width 0.3s ease;
+}
+
+.stepsContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.stepCard {
+  background: var(--glass-bg, rgba(15, 23, 42, 0.45));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  border-radius: 8px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.activeStep {
+  border-color: var(--indigo-500, #6366f1);
+  background: rgba(99, 102, 241, 0.09);
+  box-shadow: 0 0 14px rgba(99, 102, 241, 0.2);
+}
+
+.completedStep {
+  border-color: rgba(16, 185, 129, 0.3);
+  background: rgba(16, 185, 129, 0.04);
+}
+
+.upcomingStep {
+  opacity: 0.85;
+}
+
+.stepHeader {
+  width: 100%;
+  padding: 10px 12px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: transparent;
+  border: none;
+  color: inherit;
+  font: inherit;
+  cursor: pointer;
+  text-align: left;
+  gap: 10px;
+}
+
+.stepHeaderLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex: 1;
+  min-width: 0;
+}
+
+.stepNumber {
+  font-size: 11px;
+  font-family: monospace;
+  font-weight: 700;
+  color: var(--text-tertiary, #64748b);
+  width: 18px;
+}
+
+.activeStep .stepNumber {
+  color: var(--indigo-400, #818cf8);
+}
+
+.completedStep .stepNumber {
+  color: var(--emerald-400, #34d399);
+}
+
+.kindBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-secondary, #94a3b8);
+  white-space: nowrap;
+}
+
+.stepTitle {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-primary, #f8fafc);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  flex: 1;
+}
+
+.completedStep .stepTitle {
+  color: var(--text-secondary, #94a3b8);
+}
+
+.stepHeaderRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+
+.stepDuration {
+  font-size: 11px;
+  color: var(--text-tertiary, #64748b);
+  display: flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.stepStatePill {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.pillActive {
+  background: var(--indigo-600, #4f46e5);
+  color: #fff;
+}
+
+.pillCompleted {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--emerald-400, #34d399);
+}
+
+.pillUpcoming {
+  background: rgba(255, 255, 255, 0.05);
+  color: var(--text-tertiary, #64748b);
+}
+
+.stepBody {
+  padding: 10px 12px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background: rgba(0, 0, 0, 0.15);
+}
+
+.stepText {
+  color: var(--text-secondary, #cbd5e1);
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  padding: 6px 10px;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.03);
+  border-left: 2px solid var(--indigo-400, #818cf8);
+}
+
+.actionRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.actionBtnPrimary {
+  background: var(--indigo-600, #4f46e5);
+  color: #fff;
+  border: none;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.actionBtnPrimary:hover:not(:disabled) {
+  background: var(--indigo-500, #6366f1);
+  transform: translateY(-1px);
+}
+
+.actionBtnPrimary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.actionBtnSecondary {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text-primary, #f8fafc);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.15));
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.actionBtnSecondary:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+  border-color: var(--indigo-400, #818cf8);
+}
+
+.actionBtnSecondary:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.actionFeedback {
+  font-size: 11px;
+  color: var(--emerald-400, #34d399);
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.progressControls {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px dashed rgba(255, 255, 255, 0.08);
+}
+
+.advanceBtn {
+  background: rgba(16, 185, 129, 0.2);
+  color: var(--emerald-300, #6ee7b7);
+  border: 1px solid rgba(16, 185, 129, 0.4);
+  border-radius: 6px;
+  padding: 5px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.advanceBtn:hover:not(:disabled) {
+  background: rgba(16, 185, 129, 0.3);
+}
+
+.jumpBtn {
+  background: transparent;
+  color: var(--text-tertiary, #94a3b8);
+  border: 1px solid transparent;
+  border-radius: 6px;
+  padding: 5px 8px;
+  font-size: 11px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.jumpBtn:hover {
+  color: var(--text-primary, #f8fafc);
+  border-color: rgba(255, 255, 255, 0.1);
+}
+
+.emptyCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 32px 16px;
+  gap: 12px;
+  background: var(--glass-bg, rgba(15, 23, 42, 0.4));
+  border: 1px dashed var(--glass-border, rgba(255, 255, 255, 0.15));
+  border-radius: 8px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.emptyTitle {
+  font-size: 15px;
+  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
+  margin: 0;
+}
+
+.emptyText {
+  font-size: 12px;
+  line-height: 1.5;
+  margin: 0;
+  max-width: 300px;
+}
+
+.loadingSpinner {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  color: var(--indigo-400, #818cf8);
+}

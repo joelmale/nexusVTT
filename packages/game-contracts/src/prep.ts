@@ -205,3 +205,35 @@ export const sessionPlanSchema = z
     });
   });
 export type SessionPlan = z.infer<typeof sessionPlanSchema>;
+
+export const sessionPlanActivationStatusSchema = z.enum([
+  'active',
+  'completed',
+  'abandoned',
+]);
+export type SessionPlanActivationStatus = z.infer<
+  typeof sessionPlanActivationStatusSchema
+>;
+
+export const sessionPlanStepStateSchema = z.object({
+  completed: z.boolean().default(false),
+  completedAt: z.string().datetime().optional(),
+  completedBy: z.string().optional(),
+});
+export type SessionPlanStepState = z.infer<typeof sessionPlanStepStateSchema>;
+
+export const sessionPlanActivationSchema = z.object({
+  id: z.string().uuid(),
+  campaignId: z.string().uuid(),
+  sessionPlanId: z.string().uuid(),
+  planRevision: z.number().int().positive(),
+  sessionId: z.string().min(1),
+  currentStepIndex: z.number().int().nonnegative().default(0),
+  status: sessionPlanActivationStatusSchema.default('active'),
+  stepStates: z.record(z.string().uuid(), sessionPlanStepStateSchema).default({}),
+  activatedBy: z.string().nullable().optional(),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type SessionPlanActivation = z.infer<typeof sessionPlanActivationSchema>;
+

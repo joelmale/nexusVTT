@@ -3,7 +3,10 @@ import type { Server } from 'node:http';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { CampaignPrepAuthoringError } from '../../../../server/campaign-prep/CampaignPrepAuthoringService.js';
-import { CampaignPrepRevisionConflictError } from '../../../../server/repositories/CampaignPrepRepository.js';
+import {
+  CampaignPrepRevisionConflictError,
+  SessionPlanActivationError,
+} from '../../../../server/repositories/CampaignPrepRepository.js';
 import { SessionPlanPublishingError } from '../../../../server/campaign-prep/SessionPlanPublishingService.js';
 import { createCampaignPrepRouter } from '../../../../server/routes/campaignPrep.routes.js';
 
@@ -23,6 +26,11 @@ describe('campaign prep routes', () => {
     getObject: ReturnType<typeof vi.fn>;
     getRevision: ReturnType<typeof vi.fn>;
     listObjects: ReturnType<typeof vi.fn>;
+    getBacklinks: ReturnType<typeof vi.fn>;
+    activateSessionPlan: ReturnType<typeof vi.fn>;
+    getActiveSessionPlanActivation: ReturnType<typeof vi.fn>;
+    getActivation: ReturnType<typeof vi.fn>;
+    updateSessionPlanActivationProgress: ReturnType<typeof vi.fn>;
   };
   let publisher: { publish: ReturnType<typeof vi.fn> };
   let author: {
@@ -43,6 +51,11 @@ describe('campaign prep routes', () => {
       getObject: vi.fn(),
       getRevision: vi.fn(),
       listObjects: vi.fn().mockResolvedValue([]),
+      getBacklinks: vi.fn().mockResolvedValue([]),
+      activateSessionPlan: vi.fn(),
+      getActiveSessionPlanActivation: vi.fn(),
+      getActivation: vi.fn(),
+      updateSessionPlanActivationProgress: vi.fn(),
     };
     publisher = { publish: vi.fn() };
     author = { create: vi.fn(), revise: vi.fn() };
@@ -301,6 +314,137 @@ describe('campaign prep routes', () => {
     ).toBe(500);
   });
 
+  it('activates a session plan and returns the active plan', async () => {
+    const mockActivation = {
+      id: '99999999-9999-4999-8999-999999999999',
+      campaignId: CAMPAIGN_ID,
+      sessionPlanId: PLAN_ID,
+      planRevision: 2,
+      sessionId: 'session-12',
+      currentStepIndex: 0,
+      status: 'active',
+      stepStates: {},
+      activatedBy: USER_ID,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    };
+    const mockPlan = {
+      id: PLAN_ID,
+      campaignId: CAMPAIGN_ID,
+      revision: 2,
+      title: 'Session 12 - The Glass Harbor',
+      status: 'ready',
+      steps: [],
+    };
+
+    campaignPrep.activateSessionPlan.mockResolvedValueOnce({
+      activation: mockActivation,
+      plan: mockPlan,
+    });
+
+    const activateResponse = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans/${PLAN_ID}/activate`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sessionId: 'session-12',
+          planRevision: 2,
+          requestId: REQUEST_ID,
+        }),
+      },
+    );
+
+    expect(activateResponse.status).toBe(200);
+    const activateBody = await activateResponse.json();
+    expect(activateBody.activation.id).toBe(mockActivation.id);
+    expect(activateBody.plan.title).toBe(mockPlan.title);
+
+    // Get active session plan
+    campaignPrep.getActiveSessionPlanActivation.mockResolvedValueOnce({
+      activation: mockActivation,
+      plan: mockPlan,
+    });
+
+    const activeResponse = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans/active?sessionId=session-12`,
+    );
+    expect(activeResponse.status).toBe(200);
+    const activeBody = await activeResponse.json();
+    expect(activeBody.activation.id).toBe(mockActivation.id);
+
+    // Update progress
+    campaignPrep.updateSessionPlanActivationProgress.mockResolvedValueOnce({
+      ...mockActivation,
+      currentStepIndex: 1,
+    });
+
+    const progressResponse = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans/activations/${mockActivation.id}/progress`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentStepIndex: 1 }),
+      },
+    );
+    expect(progressResponse.status).toBe(200);
+    const progressBody = await progressResponse.json();
+    expect(progressBody.activation.currentStepIndex).toBe(1);
+  });
+
+  it('handles activation errors with appropriate HTTP status codes', async () => {
+    campaignPrep.activateSessionPlan.mockRejectedValueOnce(
+      new SessionPlanActivationError('Plan not ready', 'not-ready'),
+    );
+
+    const notReadyResponse = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans/${PLAN_ID}/activate`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      },
+    );
+    expect(notReadyResponse.status).toBe(422);
+
+    campaignPrep.activateSessionPlan.mockRejectedValueOnce(
+      new SessionPlanActivationError('Plan not found', 'not-found'),
+    );
+
+    const notFoundResponse = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans/${PLAN_ID}/activate`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({}),
+      },
+    );
+    expect(notFoundResponse.status).toBe(404);
+  });
+
+  it('fetches backlinks for a campaign prep object', async () => {
+    campaignPrep.getObject.mockResolvedValueOnce({
+      id: PLAN_ID,
+      campaignId: CAMPAIGN_ID,
+      currentRevision: 1,
+    });
+    campaignPrep.getBacklinks.mockResolvedValueOnce([
+      {
+        sourceObjectId: 'other-object',
+        sourceRevision: 1,
+        targetKey: 'some-key',
+        target: {},
+      },
+    ]);
+
+    const response = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/backlinks/${PLAN_ID}`,
+    );
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.links).toHaveLength(1);
+  });
+
   function publish(body: Record<string, unknown>): Promise<Response> {
     return fetch(
       `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/objects/${PLAN_ID}/publish`,
@@ -312,3 +456,4 @@ describe('campaign prep routes', () => {
     );
   }
 });
+

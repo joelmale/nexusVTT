@@ -102,4 +102,36 @@ describe('SessionPlan', () => {
     await user.click(screen.getByRole('button', { name: /publish plan/i }));
     expect(onPublish).toHaveBeenCalledOnce();
   });
+
+  it('renders Play in VTT button when published and calls onActivate', async () => {
+    const user = userEvent.setup();
+    const onActivate = vi.fn();
+    const { rerender } = render(
+      <SessionPlan
+        activateState="idle"
+        model={model}
+        onActivate={onActivate}
+        onCapability={vi.fn()}
+        publishState="published"
+      />,
+    );
+
+    const activateBtn = screen.getByRole('button', { name: /play in vtt/i });
+    expect(activateBtn).toBeInTheDocument();
+    await user.click(activateBtn);
+    expect(onActivate).toHaveBeenCalledOnce();
+
+    rerender(
+      <SessionPlan
+        activateState="activating"
+        model={model}
+        onActivate={onActivate}
+        onCapability={vi.fn()}
+        publishState="published"
+      />,
+    );
+    expect(
+      screen.getByRole('button', { name: /activating in vtt/i }),
+    ).toBeDisabled();
+  });
 });

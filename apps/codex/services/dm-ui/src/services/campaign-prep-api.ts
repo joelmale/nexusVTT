@@ -271,3 +271,31 @@ export async function publishGlassHarborPlan(): Promise<PublishResponse> {
     },
   );
 }
+
+export interface ActivatePlanResponse {
+  activation: {
+    id: string;
+    campaignId: string;
+    sessionPlanId: string;
+    planRevision: number;
+    sessionId: string;
+    currentStepIndex: number;
+    status: string;
+  };
+  plan: SessionPlan;
+}
+
+export async function activateGlassHarborPlan(): Promise<ActivatePlanResponse> {
+  const published = await publishGlassHarborPlan();
+  return request<ActivatePlanResponse>(
+    `/api/campaigns/${published.plan.campaignId}/session-plans/${published.plan.id}/activate`,
+    {
+      method: 'POST',
+      body: JSON.stringify({
+        planRevision: published.plan.revision,
+        requestId: crypto.randomUUID(),
+      }),
+    },
+  );
+}
+

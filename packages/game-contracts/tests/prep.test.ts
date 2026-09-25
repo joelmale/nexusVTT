@@ -5,6 +5,7 @@ import {
   campaignEntrySchema,
   sceneTemplateSchema,
   sessionPlanSchema,
+  sessionPlanActivationSchema,
 } from '../src/index';
 import {
   GLASS_HARBOR_IDS,
@@ -152,4 +153,33 @@ describe('campaign preparation contracts', () => {
       }),
     ).toBe('["document","glass-harbor:source"]');
   });
+
+  it('validates a valid session plan activation record', () => {
+    const activation = sessionPlanActivationSchema.parse({
+      id: '99999999-9999-4999-8999-999999999999',
+      campaignId: GLASS_HARBOR_IDS.campaign,
+      sessionPlanId: GLASS_HARBOR_IDS.sessionPlan,
+      planRevision: 1,
+      sessionId: 'session-room-12',
+      currentStepIndex: 0,
+      status: 'active',
+      stepStates: {
+        '11111111-1111-4111-8111-111111111111': {
+          completed: true,
+          completedAt: '2026-09-25T12:00:00.000Z',
+        },
+      },
+      activatedBy: '88888888-8888-4888-8888-888888888888',
+      createdAt: '2026-09-25T12:00:00.000Z',
+      updatedAt: '2026-09-25T12:00:00.000Z',
+    });
+
+    expect(activation.status).toBe('active');
+    expect(activation.currentStepIndex).toBe(0);
+    expect(activation.planRevision).toBe(1);
+    expect(
+      activation.stepStates['11111111-1111-4111-8111-111111111111']?.completed,
+    ).toBe(true);
+  });
 });
+

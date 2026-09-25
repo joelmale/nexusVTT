@@ -7,7 +7,8 @@ export type ObjectKind =
   | 'encounter'
   | 'spellbook'
   | 'item'
-  | 'rule';
+  | 'rule'
+  | 'session-plan';
 
 export interface ObjectLink {
   kind: ObjectKind;
