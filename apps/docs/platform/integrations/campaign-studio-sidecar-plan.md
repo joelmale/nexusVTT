@@ -29,10 +29,15 @@ author campaign objects -> assemble a session plan -> publish a revision
 -> activate the plan in Nexus VTT -> launch scenes and encounters on demand
 ```
 
-The first useful vertical slice is not a general wiki, graph, or map editor. It
-is a session plan containing a prepared scene, an existing
-`EncounterTemplate`, and linked DM notes that can be activated and used in the
-VTT without export/import.
+The first delivery is a faithful representative frontend for the approved
+campaign overview, session-plan authoring, and map-preparation concepts. It
+uses a detailed Ashes of Veyra demo campaign and registered placeholders for
+future capabilities. The implementation-ready specification is in the
+[Campaign Studio visual prototype plan](campaign-studio-visual-prototype-plan.md).
+
+After visual acceptance, the first functional vertical slice is a session plan
+containing a prepared scene, an existing `EncounterTemplate`, and linked DM
+notes that can be activated and used in the VTT without export/import.
 
 ## 2. Review of the supplied proposal
 
@@ -402,6 +407,21 @@ Do not carry the current DM UI's Tailwind dependency into VTT panels.
 
 ## 9. Delivery sequence
 
+### Phase A: representative frontend (current priority)
+
+- Reproduce the campaign overview, session-plan authoring, and map-preparation
+  concepts as real DOM interfaces in the existing DM UI workspace.
+- Seed the complete Ashes of Veyra reference campaign described in the visual
+  prototype plan.
+- Implement local navigation, selection, tabs, filtering, checklist, layer,
+  pin, and zoom states.
+- Register every deferred command as a named capability handle with visible
+  planned-state feedback.
+- Establish approved Playwright screenshot baselines after visual review.
+
+Gate: the three screens match the references at `1586 x 992`, remain coherent
+at the two smaller desktop targets, and contain no unregistered dead controls.
+
 ### Phase 0: decisions and contracts
 
 - Accept an ADR for Campaign Studio ownership and the authored/live boundary.
@@ -483,9 +503,15 @@ and exports round-trip through current schemas.
 
 ## 11. Product priority
 
-The recommended prototype is **session plan plus encounter activation**. It
-proves the unique value of building beside Nexus VTT: authored prep becomes
-usable live game state.
+The immediate priority is the **representative Campaign Studio frontend** in
+the companion visual prototype plan. Building the three approved screens and
+their shared example campaign first establishes the product vocabulary,
+information density, object relationships, and capability handles before
+backend contracts constrain the experience.
+
+The first functional milestone after visual acceptance is **session plan plus
+encounter activation**. It proves the unique value of building beside Nexus
+VTT: authored prep becomes usable live game state.
 
 After that, implement the shared typed-reference substrate and `@` mentions.
 Map hotspots should follow because they can then reuse the same references and
@@ -495,3 +521,42 @@ isolated data model and postpone the hardest integration risk.
 The success metric is not feature parity with Adventurekeep. It is the time
 from “this encounter and scene are ready” to “the same pinned objects are live
 in Nexus VTT,” with no manual export, duplicate state, or re-entry.
+
+## 12. Concept interface gallery
+
+These generated concepts are the visual sources of truth for Phase A. Their
+screen anatomy and acceptance criteria are defined in the
+[Campaign Studio visual prototype plan](campaign-studio-visual-prototype-plan.md).
+They remain product-direction references rather than raster assets to trace or
+embed as interface backgrounds.
+
+### Campaign overview
+
+The campaign home emphasizes the next session, active narrative objects,
+prepared encounters, backlinks, and recent edits rather than generic metrics.
+
+![Nexus Campaign Studio campaign overview](/img/concepts/campaign-studio/campaign-overview.png)
+
+### Session plan authoring
+
+The run-sheet workspace combines the campaign object library, ordered session
+steps, inline typed references, dependency validation, visibility, and revision
+publishing.
+
+![Session plan authoring workspace](/img/concepts/campaign-studio/session-plan-authoring.png)
+
+### Map preparation
+
+Map pins are campaign-object references. The inspector exposes linked notes,
+NPCs, encounters, and scene templates without making the map a second source
+of truth.
+
+![Interactive campaign map preparation](/img/concepts/campaign-studio/map-preparation.png)
+
+### Live VTT run sheet
+
+After activation, the plan becomes a docked VTT tool. The tactical scene stays
+primary while the DM advances steps, deploys the encounter, and opens linked
+notes through existing runtime commands.
+
+![Activated session plan inside Nexus VTT](/img/concepts/campaign-studio/vtt-session-runsheet.png)

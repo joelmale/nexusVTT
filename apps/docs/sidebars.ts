@@ -13,6 +13,7 @@ const sidebars: SidebarsConfig = {
         'control-plane-runbook',
         'observability-runbook',
         'object-models-and-data-flow',
+        'ci-cd-pipelines',
       ],
     },
     {
@@ -20,6 +21,7 @@ const sidebars: SidebarsConfig = {
       label: 'Integrations',
       items: [
         'integrations/campaign-studio-sidecar-plan',
+        'integrations/campaign-studio-visual-prototype-plan',
         'integrations/forge-vtt-object-integration-plan',
         'integrations/NEXUSCODEX_INTEGRATION',
         'integrations/INTEGRATED_SETUP',
