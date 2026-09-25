@@ -5,7 +5,7 @@
       "testPolicy": "unit"
     },
     "dm-ui": {
-      "testPolicy": "none"
+      "testPolicy": "unit"
     },
     "doc-api": {
       "testPolicy": "unit-and-integration"

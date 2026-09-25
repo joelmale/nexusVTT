@@ -1,0 +1,154 @@
+.rail {
+  background: var(--studio-chrome);
+  color: var(--studio-text-on-chrome);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  padding: 16px;
+  width: var(--studio-overview-rail);
+}
+
+.brandRow {
+  align-items: center;
+  display: flex;
+  gap: 5px;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.brand {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  gap: 10px;
+  min-width: 0;
+  padding: 0;
+  text-align: left;
+}
+
+.brandMark {
+  align-items: center;
+  border: 1px solid var(--studio-positive);
+  border-radius: 50%;
+  color: var(--studio-positive);
+  display: flex;
+  flex: 0 0 32px;
+  height: 32px;
+  justify-content: center;
+}
+
+.brand > span:last-child {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.brand strong {
+  font-size: 16px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.brand small {
+  color: var(--studio-text-on-chrome-muted);
+  font-size: 8px;
+  margin-top: 2px;
+  text-transform: uppercase;
+}
+
+.collapseButton {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text-on-chrome-muted);
+  cursor: pointer;
+  display: flex;
+  flex: 0 0 var(--studio-icon-button);
+  height: var(--studio-icon-button);
+  justify-content: center;
+}
+
+.collapseButton:hover {
+  background: var(--studio-chrome-raised);
+  color: var(--studio-text-on-chrome);
+}
+
+.campaignLabel {
+  color: var(--studio-text-on-chrome-muted);
+  font-size: 11px;
+  margin-bottom: 8px;
+}
+
+.campaignSelect {
+  align-items: center;
+  background: var(--studio-chrome-raised);
+  border: 1px solid var(--studio-chrome-border);
+  border-radius: var(--studio-radius-control);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  font-size: 12px;
+  gap: 9px;
+  height: 39px;
+  padding: 0 10px;
+  text-align: left;
+}
+
+.campaignSelect span:nth-child(2) {
+  flex: 1;
+}
+
+.liveDot {
+  background: var(--studio-positive);
+  border-radius: 50%;
+  height: 9px;
+  width: 9px;
+}
+
+.navigation {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  margin-top: 18px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.navItem,
+.settings {
+  align-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--studio-radius-control);
+  color: inherit;
+  cursor: pointer;
+  display: flex;
+  flex: 0 0 40px;
+  font-size: 13px;
+  gap: 16px;
+  padding: 0 10px;
+  text-align: left;
+  width: 100%;
+}
+
+.navItem:hover,
+.settings:hover,
+.navActive {
+  background: var(--studio-chrome-raised);
+}
+
+.navActive {
+  box-shadow: inset 3px 0 0 var(--studio-positive);
+}
+
+.settings {
+  border-radius: 0;
+  border-top: 1px solid var(--studio-chrome-border);
+  margin-top: auto;
+  padding-top: 9px;
+}

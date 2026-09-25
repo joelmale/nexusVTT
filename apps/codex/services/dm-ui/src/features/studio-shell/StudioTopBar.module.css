@@ -1,0 +1,113 @@
+.topBar {
+  align-items: center;
+  background: var(--studio-chrome);
+  border-bottom: 1px solid var(--studio-chrome-border);
+  color: var(--studio-text-on-chrome);
+  display: flex;
+  flex: 0 0 var(--studio-topbar-height);
+  height: var(--studio-topbar-height);
+  justify-content: space-between;
+  padding: 0 14px;
+  position: relative;
+  z-index: var(--studio-z-toolbar);
+}
+
+.brandGroup {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
+.brand {
+  align-items: center;
+  color: inherit;
+  display: inline-flex;
+  gap: 9px;
+  min-width: 0;
+  text-decoration: none;
+}
+
+.brandMark {
+  align-items: center;
+  background: var(--studio-positive);
+  border-radius: var(--studio-radius-control);
+  display: inline-flex;
+  height: 27px;
+  justify-content: center;
+  width: 27px;
+}
+
+.product {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.divider {
+  background: var(--studio-chrome-border);
+  height: 18px;
+  width: 1px;
+}
+
+.studio,
+.context {
+  color: var(--studio-text-on-chrome-muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.actions {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+}
+
+.context {
+  border-right: 1px solid var(--studio-chrome-border);
+  margin-right: 6px;
+  padding-right: 12px;
+}
+
+.iconButton,
+.avatar,
+.restoreButton {
+  align-items: center;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--studio-text-on-chrome-muted);
+  cursor: pointer;
+  display: inline-flex;
+  height: var(--studio-icon-button);
+  justify-content: center;
+  width: var(--studio-icon-button);
+}
+
+.iconButton:hover,
+.avatar:hover,
+.restoreButton:hover {
+  background: var(--studio-chrome-raised);
+  color: var(--studio-text-on-chrome);
+}
+
+.restoreButton {
+  border-left-color: var(--studio-chrome-border);
+  margin-left: 3px;
+}
+
+.avatar {
+  background: var(--studio-positive);
+  border-radius: 50%;
+  color: var(--studio-text-on-chrome);
+  font-size: 10px;
+  font-weight: 700;
+  margin-left: 5px;
+}
+
+@media (max-width: 720px) {
+  .studio,
+  .context,
+  .divider {
+    display: none;
+  }
+}

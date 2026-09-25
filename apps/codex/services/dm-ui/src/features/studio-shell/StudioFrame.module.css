@@ -1,0 +1,51 @@
+.frame {
+  background: var(--studio-canvas);
+  display: flex;
+  flex-direction: column;
+  height: 100dvh;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.content {
+  flex: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.expandedFrame {
+  display: grid;
+  flex: 1;
+  grid-template-columns: var(--studio-overview-rail) minmax(0, 1fr);
+  min-height: 0;
+}
+
+.expandedMain {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.mobileTopBar {
+  display: none;
+}
+
+@media (max-width: 820px) {
+  .expandedFrame {
+    display: flex;
+  }
+
+  .expandedFrame > aside {
+    display: none;
+  }
+
+  .expandedMain {
+    flex: 1;
+  }
+
+  .mobileTopBar {
+    display: block;
+  }
+}
