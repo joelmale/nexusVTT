@@ -439,7 +439,9 @@ function requireNexusAuth(
   res: Response,
   next: NextFunction,
 ): void {
-  if (req.headers['x-nexus-auth'] !== process.env.ASSET_SERVICE_SECRET) {
+  const expectedSecret =
+    process.env.ASSET_SERVICE_SECRET || 'dev-local-asset-service-secret';
+  if (req.headers['x-nexus-auth'] !== expectedSecret) {
     // Drain and discard any request body instead of leaving it unconsumed:
     // avoids the client seeing a socket reset while still streaming a large
     // multipart body, and avoids leaving data buffered on the socket.

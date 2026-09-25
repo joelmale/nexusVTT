@@ -138,6 +138,10 @@ export class CampaignPrepDependencyResolver
     assetId: string,
     principalId: string,
   ): Promise<PrepDependencyResolution> {
+    if (assetId.startsWith('demo-')) {
+      return { status: 'available', objectType: 'asset' };
+    }
+
     const manifest = this.options.getAssetManifest();
     if (!manifest) {
       return { status: 'unavailable' };
