@@ -12,6 +12,13 @@
   z-index: var(--studio-z-toolbar);
 }
 
+.brandGroup {
+  align-items: center;
+  display: flex;
+  gap: 4px;
+  min-width: 0;
+}
+
 .brand {
   align-items: center;
   color: inherit;
@@ -63,7 +70,8 @@
 }
 
 .iconButton,
-.avatar {
+.avatar,
+.restoreButton {
   align-items: center;
   background: transparent;
   border: 1px solid transparent;
@@ -76,9 +84,15 @@
 }
 
 .iconButton:hover,
-.avatar:hover {
+.avatar:hover,
+.restoreButton:hover {
   background: var(--studio-chrome-raised);
   color: var(--studio-text-on-chrome);
+}
+
+.restoreButton {
+  border-left-color: var(--studio-chrome-border);
+  margin-left: 3px;
 }
 
 .avatar {

@@ -112,6 +112,7 @@ export function MapPreparationRoute() {
   return (
     <StudioFrame
       contextLabel="Glass Harbor"
+      onCapability={notifyCapability}
       onSearch={() => notifyCapability('campaign.search')}
       onSettings={() => notifyCapability('campaign.settings.open')}
       onTheme={() => notifyCapability('campaign.theme.change')}

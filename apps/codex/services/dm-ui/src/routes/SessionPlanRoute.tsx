@@ -180,6 +180,7 @@ export function SessionPlanRoute() {
 
   return (
     <StudioFrame
+      onCapability={notifyCapability}
       onSearch={() => notifyCapability('campaign.search')}
       onSettings={() => notifyCapability('campaign.settings.open')}
       onTheme={() => notifyCapability('campaign.theme.change')}

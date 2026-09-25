@@ -13,6 +13,7 @@ import { PlotsPage } from './pages/PlotsPage';
 import { SessionsPage } from './pages/SessionsPage';
 import { WorldsPage } from './pages/WorldsPage';
 import { CapabilityNoticeProvider } from './features/capability-notice';
+import { StudioNavigationProvider } from './features/studio-shell/StudioNavigationProvider';
 import { CampaignOverviewRoute } from './routes/CampaignOverviewRoute';
 import { MapPreparationRoute } from './routes/MapPreparationRoute';
 import { SessionPlanRoute } from './routes/SessionPlanRoute';
@@ -23,63 +24,71 @@ function App() {
   return (
     <BrowserRouter basename={basename}>
       <CapabilityNoticeProvider>
-        <Routes>
-          <Route
-            path="/"
-            element={
-              <Navigate to="/campaigns/ashes-of-veyra/overview" replace />
-            }
-          />
-          <Route
-            path="campaigns/ashes-of-veyra/overview"
-            element={<CampaignOverviewRoute />}
-          />
-          <Route
-            path="campaigns/ashes-of-veyra/sessions/session-12"
-            element={<SessionPlanRoute />}
-          />
-          <Route
-            path="campaigns/ashes-of-veyra/maps/glass-harbor"
-            element={<MapPreparationRoute />}
-          />
+        <StudioNavigationProvider>
+          <Routes>
+            <Route
+              path="/"
+              element={
+                <Navigate to="/campaigns/ashes-of-veyra/overview" replace />
+              }
+            />
+            <Route
+              path="campaigns/ashes-of-veyra/overview"
+              element={<CampaignOverviewRoute />}
+            />
+            <Route
+              path="campaigns/ashes-of-veyra/sessions/session-12"
+              element={<SessionPlanRoute />}
+            />
+            <Route
+              path="campaigns/ashes-of-veyra/maps/glass-harbor"
+              element={<MapPreparationRoute />}
+            />
 
-          <Route path="legacy" element={<AppLayout />}>
-            <Route index element={<HomePage />} />
+            <Route path="legacy" element={<AppLayout />}>
+              <Route index element={<HomePage />} />
+              <Route
+                path="campaigns"
+                element={<Navigate to="/legacy" replace />}
+              />
+              <Route path="campaigns/new" element={<CreateCampaignPage />} />
+              <Route path="campaigns/:campaignId" element={<CampaignPage />} />
+              <Route
+                path="campaigns/:campaignId/worlds"
+                element={<WorldsPage />}
+              />
+              <Route
+                path="campaigns/:campaignId/sessions"
+                element={<SessionsPage />}
+              />
+              <Route
+                path="campaigns/:campaignId/plots"
+                element={<PlotsPage />}
+              />
+              <Route path="campaigns/:campaignId/npcs" element={<NPCsPage />} />
+              <Route
+                path="campaigns/:campaignId/encounters"
+                element={<EncountersPage />}
+              />
+              <Route
+                path="campaigns/:campaignId/notes"
+                element={<NotesPage />}
+              />
+              <Route
+                path="campaigns/:campaignId/journals"
+                element={<JournalsPage />}
+              />
+              <Route path="campaigns/:campaignId/lore" element={<LorePage />} />
+              <Route path="codex" element={<CodexPage />} />
+            </Route>
             <Route
-              path="campaigns"
-              element={<Navigate to="/legacy" replace />}
+              path="*"
+              element={
+                <Navigate to="/campaigns/ashes-of-veyra/overview" replace />
+              }
             />
-            <Route path="campaigns/new" element={<CreateCampaignPage />} />
-            <Route path="campaigns/:campaignId" element={<CampaignPage />} />
-            <Route
-              path="campaigns/:campaignId/worlds"
-              element={<WorldsPage />}
-            />
-            <Route
-              path="campaigns/:campaignId/sessions"
-              element={<SessionsPage />}
-            />
-            <Route path="campaigns/:campaignId/plots" element={<PlotsPage />} />
-            <Route path="campaigns/:campaignId/npcs" element={<NPCsPage />} />
-            <Route
-              path="campaigns/:campaignId/encounters"
-              element={<EncountersPage />}
-            />
-            <Route path="campaigns/:campaignId/notes" element={<NotesPage />} />
-            <Route
-              path="campaigns/:campaignId/journals"
-              element={<JournalsPage />}
-            />
-            <Route path="campaigns/:campaignId/lore" element={<LorePage />} />
-            <Route path="codex" element={<CodexPage />} />
-          </Route>
-          <Route
-            path="*"
-            element={
-              <Navigate to="/campaigns/ashes-of-veyra/overview" replace />
-            }
-          />
-        </Routes>
+          </Routes>
+        </StudioNavigationProvider>
       </CapabilityNoticeProvider>
     </BrowserRouter>
   );
