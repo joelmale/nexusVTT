@@ -38,7 +38,7 @@ services:
         condition: service_healthy
       codex-elasticsearch:
         condition: service_started
-      codex-minio:
+      codex-garage:
         condition: service_started
     restart: on-failure
 
@@ -71,7 +71,7 @@ services:
         condition: service_healthy
       codex-elasticsearch:
         condition: service_started
-      codex-minio:
+      codex-garage:
         condition: service_started
     restart: on-failure
 

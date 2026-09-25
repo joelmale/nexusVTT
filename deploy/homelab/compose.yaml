@@ -204,18 +204,69 @@ services:
         limits:
           memory: 1G
     restart: on-failure
-  codex-minio:
-    image: ${CODEX_MINIO_IMAGE:-quay.io/minio/minio:RELEASE.2025-09-07T16-13-09Z}
-    pull_policy: if_not_present
-    command: server /data --console-address ':9001'
-    environment:
-      MINIO_ROOT_USER: ${CODEX_MINIO_ROOT_USER:?CODEX_MINIO_ROOT_USER is required, see deploy/homelab/.env.example}
-      MINIO_ROOT_PASSWORD: ${CODEX_MINIO_ROOT_PASSWORD:?CODEX_MINIO_ROOT_PASSWORD is required, see deploy/homelab/.env.example}
+  garage-init-config:
+    image: alpine:latest
+    container_name: nexus-vtt2-garage-init-config
+    restart: "no"
+    command:
+      - /bin/sh
+      - -c
+      - |
+        mkdir -p /etc/garage /var/lib/garage/data
+        cat << 'EOF' > /etc/garage/garage.toml
+        metadata_dir = "/var/lib/garage/meta"
+        data_dir = "/var/lib/garage/data"
+        db_engine = "lmdb"
+        replication_factor = 1
+
+        rpc_bind_addr = "0.0.0.0:3901"
+        rpc_public_addr = "127.0.0.1:3901"
+        rpc_secret = "f5a8b792e3c4d5e6f708192a3b4c5d6e7f8091a2b3c4d5e6f708192a3b4c5d6e"
+
+        [s3_api]
+        api_bind_addr = "0.0.0.0:9000"
+        s3_region = "us-east-1"
+        root_domain = ".s3.garage"
+
+        [s3_web]
+        bind_addr = "0.0.0.0:3902"
+        root_domain = ".web.garage"
+        index = "index.html"
+
+        [admin]
+        api_bind_addr = "0.0.0.0:3903"
+        EOF
     volumes:
-    - codex-minio-data:/data
-    networks:
-    - nexus-internal-net
+      - garage-config:/etc/garage
+      - /mnt/docker-nas-vol1/nexusvtt/garage/data:/var/lib/garage/data
+
+  codex-garage:
+    image: dxflrs/garage:v2.4.1
+    container_name: nexus-vtt2-codex-garage
+    hostname: codex-garage
     restart: on-failure
+    depends_on:
+      garage-init-config:
+        condition: service_completed_successfully
+    command:
+      - /garage
+      - -c
+      - /etc/garage/garage.toml
+      - server
+      - --single-node
+      - --default-bucket
+    environment:
+      GARAGE_DEFAULT_ACCESS_KEY: ${CODEX_MINIO_ROOT_USER:-minioadmin}
+      GARAGE_DEFAULT_SECRET_KEY: ${CODEX_MINIO_ROOT_PASSWORD:-minioadmin}
+      GARAGE_DEFAULT_BUCKET: documents
+    volumes:
+      - garage-config:/etc/garage:ro
+      - garage-meta:/var/lib/garage/meta
+      - /mnt/docker-nas-vol1/nexusvtt/garage/data:/var/lib/garage/data
+    networks:
+      nexus-internal-net:
+        aliases:
+          - codex-minio
   doc-api:
     image: ${DOC_API_IMAGE:-ghcr.io/joelmale/nexuscodex-doc-api:main}
     pull_policy: always
@@ -262,7 +313,7 @@ services:
         condition: service_healthy
       codex-elasticsearch:
         condition: service_started
-      codex-minio:
+      codex-garage:
         condition: service_started
     restart: on-failure
   doc-processor:
@@ -295,7 +346,7 @@ services:
         condition: service_healthy
       codex-elasticsearch:
         condition: service_started
-      codex-minio:
+      codex-garage:
         condition: service_started
     restart: on-failure
   doc-websocket:
@@ -335,3 +386,7 @@ volumes:
     name: nexus-vtt2-codex-elasticsearch-data
   codex-minio-data:
     name: nexus-vtt2-codex-minio-data
+  garage-config:
+    name: nexus-vtt2-garage-config
+  garage-meta:
+    name: nexus-vtt2-garage-meta
