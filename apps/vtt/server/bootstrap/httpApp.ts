@@ -8,9 +8,13 @@ import session from 'express-session';
 import passport from '../auth.js';
 import type { DatabaseService } from '../database.js';
 import type { DeltaSyncMetrics } from '../observability/deltaSyncMetrics.js';
+import { CampaignPrepDependencyResolver } from '../campaign-prep/CampaignPrepDependencyResolver.js';
+import { SessionPlanPublishingService } from '../campaign-prep/SessionPlanPublishingService.js';
+import { SessionPlanPublishValidator } from '../campaign-prep/SessionPlanPublishValidator.js';
 import { registerApiRoutes } from '../routes/api.js';
 import { createAssetRouter } from '../routes/assets.routes.js';
 import { createAuthRouter } from '../routes/auth.routes.js';
+import { createCampaignPrepRouter } from '../routes/campaignPrep.routes.js';
 import { createDocumentRoutes } from '../routes/documents.js';
 import { createHealthRouter } from '../routes/health.routes.js';
 import { createMetricsRouter } from '../routes/metrics.routes.js';
@@ -18,6 +22,7 @@ import { createRulesCatalogRouter } from '../routes/rulesCatalog.routes.js';
 import { createSystemRouter } from '../routes/system.routes.js';
 import type { AssetManifestStore } from '../services/assetManifestStore.js';
 import type { DocumentServiceClient } from '../services/documentServiceClient.js';
+import { createRulesCatalogUpstreamClient } from '../services/rulesCatalogClient.js';
 import type { GameStateCommitService } from '../socket/GameStateCommitService.js';
 import type { SocketManager } from '../socket/SocketManager.js';
 
@@ -103,6 +108,25 @@ export function createHttpApp({
 
   app.use(createAuthRouter({ db, passport }));
   registerApiRoutes(app, db, assetsPath);
+  const prepDependencyResolver = new CampaignPrepDependencyResolver({
+    campaignPrep: db.campaignPrep,
+    documentClient,
+    getAssetManifest: () => manifestStore.current,
+    libraryObjects: db.libraryObjects,
+    rulesCatalog: docApiUrl
+      ? createRulesCatalogUpstreamClient(docApiUrl)
+      : null,
+  });
+  app.use(
+    '/api',
+    createCampaignPrepRouter({
+      db,
+      publisher: new SessionPlanPublishingService(
+        db.campaignPrep,
+        new SessionPlanPublishValidator(prepDependencyResolver),
+      ),
+    }),
+  );
   app.use(createMetricsRouter({
     deltaSyncMetrics,
     getSocketManager,

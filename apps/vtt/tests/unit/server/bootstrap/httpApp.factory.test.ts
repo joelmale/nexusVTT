@@ -4,6 +4,7 @@ const mocks = vi.hoisted(() => ({
   handler: (_req: unknown, _res: unknown, next: () => void) => next(),
   registerApiRoutes: vi.fn(),
   createAuthRouter: vi.fn(),
+  createCampaignPrepRouter: vi.fn(),
   createAssetRouter: vi.fn(),
   createDocumentRoutes: vi.fn(),
   createHealthRouter: vi.fn(),
@@ -18,6 +19,7 @@ vi.mock('express-session', () => ({ default: vi.fn(() => mocks.handler) }));
 vi.mock('../../../../server/auth.js', () => ({ default: { initialize: () => mocks.handler, session: () => mocks.handler } }));
 vi.mock('../../../../server/routes/api.js', () => ({ registerApiRoutes: mocks.registerApiRoutes }));
 vi.mock('../../../../server/routes/auth.routes.js', () => ({ createAuthRouter: mocks.createAuthRouter }));
+vi.mock('../../../../server/routes/campaignPrep.routes.js', () => ({ createCampaignPrepRouter: mocks.createCampaignPrepRouter }));
 vi.mock('../../../../server/routes/assets.routes.js', () => ({ createAssetRouter: mocks.createAssetRouter }));
 vi.mock('../../../../server/routes/documents.js', () => ({ createDocumentRoutes: mocks.createDocumentRoutes }));
 vi.mock('../../../../server/routes/health.routes.js', () => ({ createHealthRouter: mocks.createHealthRouter }));
@@ -31,6 +33,7 @@ describe('HTTP app factory', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mocks.createAuthRouter.mockReturnValue(mocks.handler);
+    mocks.createCampaignPrepRouter.mockReturnValue(mocks.handler);
     mocks.createAssetRouter.mockReturnValue(mocks.handler);
     mocks.createDocumentRoutes.mockReturnValue(mocks.handler);
     mocks.createHealthRouter.mockReturnValue(mocks.handler);
@@ -58,6 +61,9 @@ describe('HTTP app factory', () => {
     expect(result.sessionMiddleware).toBeTypeOf('function');
     expect(mocks.registerApiRoutes).toHaveBeenCalledWith(result.app, expect.anything(), '/assets');
     expect(mocks.createDocumentRoutes).toHaveBeenCalledWith(null, false, expect.anything());
+    expect(mocks.createCampaignPrepRouter).toHaveBeenCalledWith(
+      expect.objectContaining({ db: expect.anything(), publisher: expect.anything() }),
+    );
     expect(mocks.createMetricsRouter).toHaveBeenCalledWith(expect.objectContaining({ getSocketManager: expect.any(Function), getGameStateQueueDepth: expect.any(Function) }));
     expect(mocks.createRulesCatalogRouter).toHaveBeenCalledWith(expect.objectContaining({ docApiUrl: undefined }));
     expect(mocks.createAssetRouter).toHaveBeenCalledWith(expect.objectContaining({ assetApiUrl: expect.any(String) }));

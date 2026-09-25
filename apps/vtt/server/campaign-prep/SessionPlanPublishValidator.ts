@@ -8,6 +8,8 @@ import {
 export type PrepDependencyObjectType =
   | 'campaign-entry'
   | 'scene-template'
+  | 'campaign-map'
+  | 'session-plan'
   | 'definition'
   | 'rules-entity'
   | 'document'
@@ -19,7 +21,8 @@ export type PrepDependencyResolution =
       objectType: PrepDependencyObjectType;
     }
   | { status: 'missing' }
-  | { status: 'forbidden' };
+  | { status: 'forbidden' }
+  | { status: 'unavailable' };
 
 export interface PrepDependencyResolutionContext {
   campaignId: string;
@@ -42,6 +45,7 @@ export type SessionPlanPublishIssueCode =
   | 'missing-manifest-entry'
   | 'missing-dependency'
   | 'forbidden-dependency'
+  | 'dependency-unavailable'
   | 'unexpected-dependency-kind';
 
 export interface SessionPlanPublishIssue {
@@ -227,6 +231,14 @@ export class SessionPlanPublishValidator {
         issues.push({
           code: 'forbidden-dependency',
           message: 'The publisher cannot access a pinned dependency',
+          reference,
+        });
+        continue;
+      }
+      if (resolution.status === 'unavailable') {
+        issues.push({
+          code: 'dependency-unavailable',
+          message: 'A dependency catalog is temporarily unavailable',
           reference,
         });
         continue;

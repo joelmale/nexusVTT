@@ -203,6 +203,20 @@ describe('SessionPlanPublishValidator', () => {
     );
   });
 
+  it('distinguishes an unavailable catalog from a missing dependency', async () => {
+    const resolver = createResolver(
+      new Map([['rules-entity', { status: 'unavailable' }]]),
+    );
+    const validator = new SessionPlanPublishValidator(resolver);
+
+    const result = await validator.validate(createGlassHarborPlan(), context);
+
+    expect(result.canPublish).toBe(false);
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({ code: 'dependency-unavailable' }),
+    );
+  });
+
   it('reports a missing manifest entry and includes it in the canonical manifest', async () => {
     const plan = createGlassHarborPlan();
     plan.dependencies = plan.dependencies.filter(
