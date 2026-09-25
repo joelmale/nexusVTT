@@ -17,5 +17,9 @@ describe('GameContracts Root Index Re-exports', () => {
     expect(GameContracts.itemInstanceSchema).toBeDefined();
     expect(GameContracts.domainCommandSchema).toBeDefined();
     expect(GameContracts.domainCommandReceiptSchema).toBeDefined();
+    expect(GameContracts.campaignObjectRefSchema).toBeDefined();
+    expect(GameContracts.campaignEntrySchema).toBeDefined();
+    expect(GameContracts.sceneTemplateSchema).toBeDefined();
+    expect(GameContracts.sessionPlanSchema).toBeDefined();
   });
 });
