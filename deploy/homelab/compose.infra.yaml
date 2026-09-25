@@ -108,8 +108,8 @@ services:
       - --single-node
       - --default-bucket
     environment:
-      GARAGE_DEFAULT_ACCESS_KEY: ${CODEX_MINIO_ROOT_USER:-minioadmin}
-      GARAGE_DEFAULT_SECRET_KEY: ${CODEX_MINIO_ROOT_PASSWORD:-minioadmin}
+      GARAGE_DEFAULT_ACCESS_KEY: ${CODEX_S3_ACCESS_KEY:-${CODEX_MINIO_ROOT_USER:-minioadmin}}
+      GARAGE_DEFAULT_SECRET_KEY: ${CODEX_S3_SECRET_KEY:-${CODEX_MINIO_ROOT_PASSWORD:-minioadmin}}
       GARAGE_DEFAULT_BUCKET: documents
     volumes:
       - garage-config:/etc/garage:ro
