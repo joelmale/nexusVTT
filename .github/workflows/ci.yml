@@ -19,9 +19,8 @@ on:
       # Pull requests have no paths filter, so deploy changes are still
       # validated there.
       - 'monitoring/**'
-      - '.github/workflows/ci.yml'
-      - '.github/workflows/forge-ci.yml'
-      - '.github/workflows/codex-ci.yml'
+      - '.github/ci/**'
+      - '.github/workflows/**'
       - '.github/dependabot.yml'
       - '.husky/**'
       - 'Makefile'
@@ -59,14 +58,19 @@ jobs:
     name: Detect changed workspaces
     runs-on: ubuntu-latest
     outputs:
-      vtt: ${{ steps.filter.outputs.vtt }}
-      forge: ${{ steps.filter.outputs.forge }}
-      codex: ${{ steps.filter.outputs.codex }}
-      docs: ${{ steps.filter.outputs.docs }}
-      control-api: ${{ steps.filter.outputs.control-api }}
+      vtt: ${{ steps.affected.outputs.vtt }}
+      forge: ${{ steps.affected.outputs.forge }}
+      codex: ${{ steps.affected.outputs.codex }}
+      docs: ${{ steps.affected.outputs.docs }}
+      control-api: ${{ steps.affected.outputs.control_api }}
+      gateway: ${{ steps.affected.outputs.gateway }}
+      all_release_images: ${{ steps.affected.outputs.all_release_images }}
+      release_images: ${{ steps.affected.outputs.release_images }}
+      security_images: ${{ steps.affected.outputs.security_images }}
+      has_release_images: ${{ steps.affected.outputs.has_release_images }}
+      repository_security: ${{ steps.affected.outputs.repository_security }}
       source_sha: ${{ steps.source.outputs.sha }}
-      shadow_decision: ${{ steps.affected.outputs.decision }}
-      shadow_gateway: ${{ steps.affected.outputs.gateway }}
+      affected_decision: ${{ steps.affected.outputs.decision }}
     steps:
       - name: Validate requested source syntax
         if: github.event_name == 'workflow_dispatch' && inputs.candidate_sha != ''
@@ -100,74 +104,7 @@ jobs:
           fi
           echo "sha=$resolved_sha" >> "$GITHUB_OUTPUT"
 
-      - name: Detect changed workspaces
-        id: filter
-        uses: dorny/paths-filter@v4
-        with:
-          # Every filter repeats the shared root surface on purpose. npm resolves
-          # all workspaces from one lockfile and hoists packages to the root, so a
-          # change there breaks workspaces whose own files are untouched -- that is
-          # exactly how the hoisted parseurl, the contracts' module format, the
-          # undeclared multer and the jsdom resolution all reached us. A root
-          # dependency change therefore means "assume everything is affected".
-          filters: |
-            vtt:
-              - 'apps/vtt/**'
-              # The VTT frontend image is the unified gateway and embeds these
-              # consumers, so their UI changes must rebuild it as well.
-              - 'apps/forge/**'
-              - 'apps/codex/services/admin-ui/**'
-              - 'apps/codex/services/dm-ui/**'
-              - 'deploy/**'
-              - 'monitoring/**'
-              - '.dockerignore'
-              - '.husky/**'
-              - 'Makefile'
-              - 'package.json'
-              - 'package-lock.json'
-              - '.npmrc'
-              - 'packages/**'
-              - 'scripts/**'
-              - '.github/workflows/ci.yml'
-            forge:
-              - 'apps/forge/**'
-              - 'package.json'
-              - 'package-lock.json'
-              - '.npmrc'
-              - 'packages/**'
-              - 'scripts/**'
-              - '.github/workflows/ci.yml'
-              - '.github/workflows/forge-ci.yml'
-            codex:
-              - 'apps/codex/**'
-              - 'package.json'
-              - 'package-lock.json'
-              - '.npmrc'
-              - 'packages/**'
-              - 'scripts/**'
-              - '.github/workflows/ci.yml'
-              - '.github/workflows/codex-ci.yml'
-            docs:
-              - 'apps/docs/**'
-              - 'package.json'
-              - 'package-lock.json'
-              - '.npmrc'
-              - 'packages/**'
-              - 'scripts/**'
-              - '.github/workflows/ci.yml'
-              - '.github/workflows/docs-pages.yml'
-            control-api:
-              - 'apps/control-api/**'
-              # Its allowlist-coverage test scans the Admin UI sources.
-              - 'apps/codex/services/admin-ui/**'
-              - 'package.json'
-              - 'package-lock.json'
-              - '.npmrc'
-              - 'packages/**'
-              - 'scripts/**'
-              - '.github/workflows/ci.yml'
-
-      - name: Record affected-target shadow decision
+      - name: Resolve affected targets
         id: affected
         shell: bash
         working-directory: ${{ github.workspace }}
@@ -185,13 +122,33 @@ jobs:
             --json-file ci-reports/affected-targets.json \
             --github-output "$GITHUB_OUTPUT"
 
-      - name: Upload affected-target shadow report
+      - name: Upload affected-target report
         uses: actions/upload-artifact@v7
         with:
           name: affected-targets-${{ steps.source.outputs.sha }}
           path: ci-reports/affected-targets.json
           if-no-files-found: error
           retention-days: 30
+
+  docker-build-contracts:
+    name: Docker build contracts
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout validated source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.changes.outputs.source_sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+
+      - name: Validate Docker workspace dependency contracts
+        working-directory: ${{ github.workspace }}
+        run: npm run check:docker-build-contracts
 
   lint-and-type:
     name: 'VTT: lint and type-check'
@@ -448,7 +405,7 @@ jobs:
         working-directory: ${{ github.workspace }}
         run: |
           if [ -d apps/vtt/.vitest-reports ]; then
-            sudo chown -R $(id -u):$(id -g) apps/vtt/.vitest-reports
+            sudo chown -R "$(id -u):$(id -g)" apps/vtt/.vitest-reports
           fi
 
       - name: Write coverage provenance manifest
@@ -707,12 +664,15 @@ jobs:
     uses: ./.github/workflows/security-reusable.yml
     with:
       source_sha: ${{ needs.changes.outputs.source_sha }}
+      repository_scan: ${{ needs.changes.outputs.repository_security == 'true' }}
+      container_images: ${{ needs.changes.outputs.security_images }}
 
   required:
     name: All required checks
     if: always()
     needs:
       - changes
+      - docker-build-contracts
       - lint-and-type
       - unit-tests
       - ui-tests
@@ -740,6 +700,7 @@ jobs:
           CODEX_AFFECTED: ${{ needs.changes.outputs.codex }}
           CONTROL_API_AFFECTED: ${{ needs.changes.outputs.control-api }}
           CHANGES_RESULT: ${{ needs.changes.result }}
+          DOCKER_CONTRACT_RESULT: ${{ needs.docker-build-contracts.result }}
           LINT_RESULT: ${{ needs.lint-and-type.result }}
           UNIT_RESULT: ${{ needs.unit-tests.result }}
           UI_RESULT: ${{ needs.ui-tests.result }}
@@ -755,7 +716,7 @@ jobs:
           SECURITY_RESULT: ${{ needs.security-checks.result }}
         run: |
           for result in \
-            "$CHANGES_RESULT" "$LINT_RESULT" "$UNIT_RESULT" "$UI_RESULT" \
+            "$CHANGES_RESULT" "$DOCKER_CONTRACT_RESULT" "$LINT_RESULT" "$UNIT_RESULT" "$UI_RESULT" \
             "$ASSET_RESULT" "$INTEGRATION_RESULT" "$E2E_RESULT" \
             "$COVERAGE_RESULT" "$DOCS_RESULT" "$SECURITY_RESULT"; do
             if [[ "$result" != 'success' ]]; then
@@ -785,9 +746,7 @@ jobs:
     name: 'Build immutable release image: ${{ matrix.name }}'
     if: >-
       ${{ always() && needs.required.result == 'success' && (
-        (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/')) ||
-        (github.event_name == 'push' && needs.changes.outputs.vtt == 'true') ||
-        (github.event_name == 'push' && needs.changes.outputs.control-api == 'true') ||
+        (github.event_name == 'push' && needs.changes.outputs.has_release_images == 'true') ||
         (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == '')
       ) }}
     needs: [changes, required]
@@ -799,27 +758,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - name: frontend
-            file: ./apps/vtt/docker/frontend.Dockerfile
-            target: production
-            image: ghcr.io/joelmale/nexusvtt/frontend
-          - name: backend
-            file: ./apps/vtt/docker/backend.Dockerfile
-            target: ''
-            image: ghcr.io/joelmale/nexusvtt/backend
-          - name: asset-service
-            file: ./apps/vtt/docker/asset-service.Dockerfile
-            target: ''
-            image: ghcr.io/joelmale/nexusvtt/asset-service
-          - name: postgres
-            file: ./apps/vtt/docker/postgres.Dockerfile
-            target: ''
-            image: ghcr.io/joelmale/nexusvtt/postgres
-          - name: control-api
-            file: ./apps/control-api/Dockerfile
-            target: ''
-            image: ghcr.io/joelmale/nexusvtt/control-api
+        include: ${{ fromJSON(needs.changes.outputs.release_images) }}
     steps:
       - name: Checkout validated source
         uses: actions/checkout@v7
@@ -843,7 +782,7 @@ jobs:
           file: ${{ matrix.file }}
           target: ${{ matrix.target }}
           push: true
-          tags: ${{ matrix.image }}:sha-${{ needs.changes.outputs.source_sha }}
+          tags: ${{ matrix.repository }}:sha-${{ needs.changes.outputs.source_sha }}
           cache-from: type=gha,scope=release-${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=release-${{ matrix.name }}
           build-args: |
@@ -900,6 +839,8 @@ jobs:
         working-directory: ${{ github.workspace }}
         env:
           SOURCE_SHA: ${{ needs.changes.outputs.source_sha }}
+          AFFECTED_RELEASE_IMAGES: ${{ needs.changes.outputs.release_images }}
+          ALL_RELEASE_IMAGES: ${{ needs.changes.outputs.all_release_images }}
         run: |
           if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
             version=${GITHUB_REF#refs/tags/v}
@@ -910,11 +851,16 @@ jobs:
           mkdir -p release
           printf '{"schemaVersion":1,"sourceSha":"%s","images":[' "$SOURCE_SHA" > release/images.json
           separator=''
-          for image in frontend backend asset-service postgres control-api; do
-            repository="ghcr.io/joelmale/nexusvtt/$image"
-            source="$repository:sha-$SOURCE_SHA"
-            docker buildx imagetools create \
-              --tag "$repository:$version" --tag "$repository:latest" "$source"
+          while IFS=$'\t' read -r image repository; do
+            changed=false
+            source="$repository:latest"
+            tags=(--tag "$repository:$version")
+            if jq -e --arg image "$image" '.[] | select(.name == $image)' \
+              <<< "$AFFECTED_RELEASE_IMAGES" >/dev/null; then
+              changed=true
+              source="$repository:sha-$SOURCE_SHA"
+              tags+=(--tag "$repository:latest")
+            fi
             # awk must drain its input: exiting early can SIGPIPE inspect and
             # fail the step under pipefail.
             digest=$(docker buildx imagetools inspect "$source" | awk '/^Digest:/ && !d {d=$2} END {print d}')
@@ -922,10 +868,11 @@ jobs:
               echo "could not resolve digest for $source" >&2
               exit 1
             fi
-            printf '%s{"name":"%s","source":"%s","digest":"%s"}' \
-              "$separator" "$image" "$source" "$digest" >> release/images.json
+            docker buildx imagetools create "${tags[@]}" "$repository@$digest"
+            printf '%s{"name":"%s","source":"%s","digest":"%s","changed":%s}' \
+              "$separator" "$image" "$source" "$digest" "$changed" >> release/images.json
             separator=','
-          done
+          done < <(jq -r '.[] | [.name, .repository] | @tsv' <<< "$ALL_RELEASE_IMAGES")
           printf '],"version":"%s"}\n' "$version" >> release/images.json
 
       - name: Upload complete image manifest
@@ -1099,6 +1046,7 @@ jobs:
           CANDIDATE_SHA: ${{ inputs.candidate_sha }}
           VTT_AFFECTED: ${{ needs.changes.outputs.vtt }}
           CONTROL_API_AFFECTED: ${{ needs.changes.outputs.control-api }}
+          HAS_RELEASE_IMAGES: ${{ needs.changes.outputs.has_release_images }}
           DOCS_AFFECTED: ${{ needs.changes.outputs.docs }}
           GATE_RESULT: ${{ needs.required.result }}
           BUILD_RESULT: ${{ needs.publish-images.result }}
@@ -1131,7 +1079,7 @@ jobs:
           elif [[ "$EVENT_NAME" == 'workflow_dispatch' ]]; then
             [[ "$BUILD_RESULT" == 'success' && "$PROMOTION_RESULT" == 'success' ]]
             [[ "$CANDIDATE_RESULT" == 'skipped' ]]
-          elif [[ "$EVENT_NAME" == 'push' && ( "$VTT_AFFECTED" == 'true' || "$CONTROL_API_AFFECTED" == 'true' || "$EVENT_REF" == refs/tags/* ) ]]; then
+          elif [[ "$EVENT_NAME" == 'push' && "$HAS_RELEASE_IMAGES" == 'true' ]]; then
             [[ "$BUILD_RESULT" == 'success' && "$PROMOTION_RESULT" == 'success' ]]
             [[ "$CANDIDATE_RESULT" == 'skipped' ]]
           else

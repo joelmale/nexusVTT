@@ -30,9 +30,9 @@ COPY apps/codex/services/doc-api/prisma ./apps/codex/services/doc-api/prisma
 COPY apps/codex/services/doc-api/src ./apps/codex/services/doc-api/src
 COPY packages/document-contracts ./packages/document-contracts
 COPY packages/rules-contracts ./packages/rules-contracts
+COPY scripts/build-workspace-dependencies.mjs ./scripts/build-workspace-dependencies.mjs
 
-RUN npm run build --workspace=@nexus/document-contracts && \
-    npm run build --workspace=@nexus/rules-contracts && \
+RUN node scripts/build-workspace-dependencies.mjs --workspace nexus-codex-doc-api && \
     npm run prisma:generate --workspace=nexus-codex-doc-api && \
     npm run build --workspace=nexus-codex-doc-api
 

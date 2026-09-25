@@ -7,6 +7,14 @@ on:
         description: Exact 40-character source SHA to scan
         required: true
         type: string
+      repository_scan:
+        description: Run repository-wide CodeQL and filesystem scans
+        required: true
+        type: boolean
+      container_images:
+        description: JSON matrix of affected container images to scan
+        required: true
+        type: string
 
 permissions:
   contents: read
@@ -29,6 +37,7 @@ jobs:
 
   codeql:
     name: CodeQL Analysis
+    if: inputs.repository_scan
     needs: verify-source
     runs-on: ubuntu-latest
     timeout-minutes: 30
@@ -56,6 +65,7 @@ jobs:
 
   filesystem-scan:
     name: Trivy Filesystem Scan
+    if: inputs.repository_scan
     needs: verify-source
     runs-on: ubuntu-latest
     timeout-minutes: 20
@@ -120,7 +130,8 @@ jobs:
           retention-days: 90
 
   container-scan:
-    name: 'Container scan: ${{ matrix.image }}'
+    name: 'Container scan: ${{ matrix.name }}'
+    if: inputs.container_images != '[]'
     needs: verify-source
     runs-on: ubuntu-latest
     timeout-minutes: 45
@@ -130,11 +141,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - image: frontend
-            target: production
-          - image: backend
-            target: ''
+        include: ${{ fromJSON(inputs.container_images) }}
     steps:
       - name: Checkout exact source
         uses: actions/checkout@v7
@@ -148,13 +155,13 @@ jobs:
         uses: docker/build-push-action@v7
         with:
           context: .
-          file: ./apps/vtt/docker/${{ matrix.image }}.Dockerfile
+          file: ${{ matrix.file }}
           target: ${{ matrix.target }}
           push: false
           load: true
-          tags: nexus-vtt/${{ matrix.image }}:scan-${{ inputs.source_sha }}
-          cache-from: type=gha,scope=security-${{ matrix.image }}
-          cache-to: type=gha,mode=max,scope=security-${{ matrix.image }}
+          tags: nexus-vtt/${{ matrix.name }}:scan-${{ inputs.source_sha }}
+          cache-from: type=gha,scope=security-${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=security-${{ matrix.name }}
           build-args: |
             VERSION=security-${{ inputs.source_sha }}
             COMMIT_SHA=${{ inputs.source_sha }}
@@ -163,24 +170,24 @@ jobs:
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           version: 'v0.74.0'
-          image-ref: nexus-vtt/${{ matrix.image }}:scan-${{ inputs.source_sha }}
+          image-ref: nexus-vtt/${{ matrix.name }}:scan-${{ inputs.source_sha }}
           format: sarif
-          output: trivy-${{ matrix.image }}.sarif
+          output: trivy-${{ matrix.name }}.sarif
           severity: CRITICAL,HIGH
           exit-code: '0'
 
       - name: Upload container SARIF
         uses: github/codeql-action/upload-sarif@v4
-        if: ${{ always() && hashFiles(format('trivy-{0}.sarif', matrix.image)) != '' }}
+        if: ${{ always() && hashFiles(format('trivy-{0}.sarif', matrix.name)) != '' }}
         with:
-          sarif_file: trivy-${{ matrix.image }}.sarif
-          category: trivy-container-${{ matrix.image }}
+          sarif_file: trivy-${{ matrix.name }}.sarif
+          category: trivy-container-${{ matrix.name }}
 
       - name: Enforce Trivy high and critical policy
         uses: aquasecurity/trivy-action@v0.36.0
         with:
           version: 'v0.74.0'
-          image-ref: nexus-vtt/${{ matrix.image }}:scan-${{ inputs.source_sha }}
+          image-ref: nexus-vtt/${{ matrix.name }}:scan-${{ inputs.source_sha }}
           format: table
           severity: CRITICAL,HIGH
           ignore-unfixed: false
@@ -189,7 +196,7 @@ jobs:
       - name: Enforce Grype high and critical policy
         uses: anchore/scan-action@v7
         with:
-          image: nexus-vtt/${{ matrix.image }}:scan-${{ inputs.source_sha }}
+          image: nexus-vtt/${{ matrix.name }}:scan-${{ inputs.source_sha }}
           fail-build: true
           severity-cutoff: high
           only-fixed: true
@@ -200,15 +207,15 @@ jobs:
         with:
           version: 'v0.74.0'
           scan-type: image
-          image-ref: nexus-vtt/${{ matrix.image }}:scan-${{ inputs.source_sha }}
+          image-ref: nexus-vtt/${{ matrix.name }}:scan-${{ inputs.source_sha }}
           format: cyclonedx
-          output: sbom-${{ matrix.image }}.cdx.json
+          output: sbom-${{ matrix.name }}.cdx.json
 
       - name: Upload container SBOM
         if: github.event_name != 'pull_request'
         uses: actions/upload-artifact@v7
         with:
-          name: sbom-${{ matrix.image }}-${{ inputs.source_sha }}
-          path: sbom-${{ matrix.image }}.cdx.json
+          name: sbom-${{ matrix.name }}-${{ inputs.source_sha }}
+          path: sbom-${{ matrix.name }}.cdx.json
           if-no-files-found: error
           retention-days: 90

@@ -9,6 +9,7 @@ import {
   evaluateAffectedTargets,
   formatSummary,
   fullSuiteReasonFor,
+  imageMatricesForDecision,
   loadConfig,
   matchesPattern,
   parseNameStatusZ,
@@ -159,6 +160,37 @@ describe('representative Stage 3A change classes', () => {
     ]);
   });
 
+  test('derives release and security image matrices from affected targets', () => {
+    const control = imageMatricesForDecision(
+      decide('apps/control-api/src/server.ts'),
+      config,
+    );
+    expect(control.releaseImages.map((image) => image.name)).toEqual([
+      'control-api',
+    ]);
+    expect(control.securityImages).toEqual([]);
+    expect(control.allReleaseImages.map((image) => image.name)).toEqual([
+      'asset-service',
+      'postgres',
+      'backend',
+      'control-api',
+      'frontend',
+    ]);
+
+    const backend = imageMatricesForDecision(
+      decide('apps/vtt/server/index.ts'),
+      config,
+    );
+    expect(backend.releaseImages.map((image) => image.name)).toEqual([
+      'backend',
+      'frontend',
+    ]);
+    expect(backend.securityImages.map((image) => image.name)).toEqual([
+      'backend',
+      'frontend',
+    ]);
+  });
+
   test('propagates a VTT backend-only change to the unified gateway', () => {
     expectAffected(decide('apps/vtt/server/routes/campaign.ts'), [
       'vtt',
@@ -174,7 +206,7 @@ describe('representative Stage 3A change classes', () => {
     [
       'admin UI',
       'apps/codex/services/admin-ui/src/App.tsx',
-      ['codex-admin-ui', 'gateway'],
+      ['control-api', 'codex-admin-ui', 'gateway'],
     ],
     [
       'DM UI',
@@ -196,11 +228,7 @@ describe('representative Stage 3A change classes', () => {
       'apps/codex/services/doc-websocket/src/index.ts',
       ['codex-doc-websocket'],
     ],
-    [
-      'control API',
-      'apps/control-api/src/server.ts',
-      ['control-api'],
-    ],
+    ['control API', 'apps/control-api/src/server.ts', ['control-api']],
   ])('classifies a %s change', (_name, path, expected) => {
     expectAffected(decide(path), expected);
   });
@@ -412,7 +440,7 @@ describe('git and full-suite integration inputs', () => {
   });
 });
 
-describe('shadow-decision CLI', () => {
+describe('affected-target CLI', () => {
   test('renders empty and populated summaries', () => {
     expect(
       formatSummary({
@@ -466,8 +494,12 @@ describe('shadow-decision CLI', () => {
     const outputs = readFileSync(outputPath, 'utf8');
     expect(outputs).toContain('full_validation=true');
     expect(outputs).toContain('codex_doc_api=true');
+    expect(outputs).toContain('has_release_images=true');
+    expect(outputs).toContain('repository_security=true');
+    expect(outputs).toContain('all_release_images=');
+    expect(outputs).toContain('"name":"control-api"');
     expect(write).toHaveBeenCalledWith(
-      expect.stringContaining('Affected-target shadow decision'),
+      expect.stringContaining('Affected-target decision'),
     );
     expect(write).toHaveBeenCalledWith(
       expect.stringContaining('"mode": "full"'),

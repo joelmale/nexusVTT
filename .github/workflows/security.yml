@@ -60,6 +60,9 @@ jobs:
     uses: ./.github/workflows/security-reusable.yml
     with:
       source_sha: ${{ needs.resolve-source.outputs.sha }}
+      repository_scan: true
+      container_images: >-
+        [{"name":"frontend","file":"./apps/vtt/docker/frontend.Dockerfile","target":"production"},{"name":"backend","file":"./apps/vtt/docker/backend.Dockerfile","target":""}]
 
   attach-release-sboms:
     name: Attach release SBOMs

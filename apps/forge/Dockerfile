@@ -15,12 +15,14 @@ COPY packages/character-creator/package.json ./packages/character-creator/
 # exist by then. It no-ops until the style sources arrive with the COPY below.
 COPY packages/character-creator/scripts ./packages/character-creator/scripts
 COPY packages/document-contracts/package.json ./packages/document-contracts/
+COPY scripts/build-workspace-dependencies.mjs ./scripts/build-workspace-dependencies.mjs
 
 # Forge compiles the shared character creator from source, so that workspace's
 # own dependencies must be installed as well — Forge's nested copies under
 # apps/forge/node_modules are not resolvable from packages/.
 RUN --mount=type=cache,target=/root/.npm \
-    npm ci --workspace=nexus-forge --workspace=@nexus/character-creator --workspace=@nexus/game-contracts \
+    npm ci --workspace=nexus-forge --workspace=@nexus/character-contracts \
+    --workspace=@nexus/character-creator --workspace=@nexus/game-contracts \
     --include-workspace-root
 
 COPY apps/forge ./apps/forge
@@ -29,9 +31,7 @@ COPY packages ./packages
 # The creator depends on the shared character contract, so that package's
 # declaration output has to exist before Forge's bundle resolves it.
 RUN --mount=type=cache,target=/workspace/node_modules/.vite \
-    npm run build --workspace=@nexus/character-contracts \
-    && npm run build --workspace=@nexus/game-contracts \
-    && npm run build --workspace=@nexus/character-creator \
+    node scripts/build-workspace-dependencies.mjs --workspace nexus-forge \
     && npm run build --workspace=nexus-forge
 
 FROM cgr.dev/chainguard/nginx:latest

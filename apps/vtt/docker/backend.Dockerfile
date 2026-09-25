@@ -27,10 +27,13 @@ COPY --chown=nodejs:nodejs packages/character-contracts/package.json ./packages/
 COPY --chown=nodejs:nodejs packages/game-contracts/package.json ./packages/game-contracts/package.json
 COPY --chown=nodejs:nodejs packages/rules-contracts/package.json ./packages/rules-contracts/package.json
 COPY --chown=nodejs:nodejs packages/rules-5e/package.json ./packages/rules-5e/package.json
+COPY --chown=nodejs:nodejs packages/character-creator/package.json ./packages/character-creator/package.json
+COPY --chown=nodejs:nodejs packages/character-creator/scripts ./packages/character-creator/scripts
 
 # The VTT postinstall applies patches and synchronizes the packaged dice assets.
 COPY --chown=nodejs:nodejs apps/vtt/patches ./apps/vtt/patches
 COPY --chown=nodejs:nodejs apps/vtt/scripts/apply-patches.js apps/vtt/scripts/sync-dice-assets.js apps/vtt/scripts/prepare-husky.js ./apps/vtt/scripts/
+COPY --chown=nodejs:nodejs scripts/build-workspace-dependencies.mjs ./scripts/build-workspace-dependencies.mjs
 
 USER nodejs
 WORKDIR /workspace
@@ -41,16 +44,14 @@ RUN npm ci \
     --workspace=@nexus/game-contracts \
     --workspace=@nexus/rules-contracts \
     --workspace=@nexus/rules-5e \
+    --workspace=@nexus/character-creator \
     --include-workspace-root \
     --legacy-peer-deps
 
 COPY --chown=nodejs:nodejs apps/vtt ./apps/vtt
 COPY --chown=nodejs:nodejs packages ./packages
 
-RUN npm run build --workspace=@nexus/character-contracts && \
-    npm run build --workspace=@nexus/game-contracts && \
-    npm run build --workspace=@nexus/rules-contracts && \
-    npm run build --workspace=@nexus/rules-5e && \
+RUN node scripts/build-workspace-dependencies.mjs --workspace nexus-vtt && \
     npm run build:server --workspace=nexus-vtt
 
 # Default port — must match the server default (index.ts) and the health check below.

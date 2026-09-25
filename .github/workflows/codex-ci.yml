@@ -158,9 +158,11 @@ jobs:
         run: |
           test_schema="codex_api_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
           search_index="codex-api-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
-          echo "TEST_SCHEMA=${test_schema}" >> "${GITHUB_ENV}"
-          echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5433/nexus_vtt_test?schema=${test_schema}" >> "${GITHUB_ENV}"
-          echo "ELASTICSEARCH_INDEX=${search_index}" >> "${GITHUB_ENV}"
+          {
+            echo "TEST_SCHEMA=${test_schema}"
+            echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5433/nexus_vtt_test?schema=${test_schema}"
+            echo "ELASTICSEARCH_INDEX=${search_index}"
+          } >> "${GITHUB_ENV}"
 
       - name: Generate Prisma client
         run: npm run prisma:generate

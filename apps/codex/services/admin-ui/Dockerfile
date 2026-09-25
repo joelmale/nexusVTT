@@ -7,14 +7,16 @@ COPY package.json package-lock.json ./
 COPY apps/codex/services/admin-ui/package.json ./apps/codex/services/admin-ui/
 COPY packages/rules-contracts/package.json ./packages/rules-contracts/
 
-RUN npm ci --workspace=admin-ui --include-workspace-root
+RUN npm ci --workspace=admin-ui --workspace=@nexus/rules-contracts --include-workspace-root
 
 # The admin forms validate with the shared rules contracts, compiled from
 # source through the Vite/tsconfig alias (no prebuilt dist needed).
 COPY packages/rules-contracts ./packages/rules-contracts
 COPY apps/codex/services/admin-ui ./apps/codex/services/admin-ui
+COPY scripts/build-workspace-dependencies.mjs ./scripts/build-workspace-dependencies.mjs
 
-RUN npm run build --workspace=admin-ui
+RUN node scripts/build-workspace-dependencies.mjs --workspace admin-ui && \
+    npm run build --workspace=admin-ui
 
 # Production stage
 FROM nginx:alpine
