@@ -13,6 +13,10 @@ const config: Config = {
   organizationName: 'joelmale',
   projectName: 'nexusVTT',
   onBrokenLinks: 'throw',
+  markdown: {
+    mermaid: true,
+  },
+  themes: ['@docusaurus/theme-mermaid'],
   future: {
     v4: true,
   },
