@@ -59,9 +59,11 @@ export class MemoryControlStore implements ControlStore {
     if (this.failPing) throw new Error('database unavailable');
   }
 
-  async findGoogleUserByEmail(email: string): Promise<AdminUser | null> {
+  async findAdminEligibleUserByEmail(email: string): Promise<AdminUser | null> {
     const matches = [...this.users.values()].filter(
-      (user) => user.provider === 'google' && user.email.toLowerCase() === email.toLowerCase(),
+      (user) =>
+        (user.provider === 'google' || user.provider === 'local') &&
+        user.email.toLowerCase() === email.toLowerCase(),
     );
     return matches.length === 1 ? { ...matches[0]! } : null;
   }
@@ -123,7 +125,7 @@ export class MemoryControlStore implements ControlStore {
     input: { email: string; role: Role; grantedBy: string | null; at: Date },
     audit: AuditDraft,
   ): Promise<GrantResult> {
-    const user = await this.findGoogleUserByEmail(input.email);
+    const user = await this.findAdminEligibleUserByEmail(input.email);
     if (!user || !user.isActive) {
       this.pushAudit({ ...audit, resourceId: null, outcome: 'failure', summary: { ...audit.summary, result: 'user_not_found' } });
       return { status: 'user_not_found' };

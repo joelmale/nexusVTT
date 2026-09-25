@@ -285,6 +285,12 @@ administrator costs more than it returns. Nexus already has accounts and Google
 sign-in; requiring Google sign-in for admin login puts MFA at the Google
 account. Revisit an identity-aware proxy if more services need single sign-on.
 
+Google admin authentication is independent of the account's normal VTT login
+method. A verified Google email may link to an existing active Google-provider
+or local-password Nexus account; the immutable Google subject is then bound in
+`admin_identities`. The link does not change the VTT account provider or disable
+its password. Discord and guest accounts are excluded from admin linking.
+
 Do not use a Nginx Proxy Manager basic-auth access list as the identity layer.
 A shared password gives no per-user audit, roles, revocation, or MFA. It is
 acceptable only as an extra outer layer.
@@ -651,6 +657,7 @@ Details: [control plane runbook](./control-plane-runbook.md).
 | Security review: Admin UI search highlights parsed upstream fragments as HTML                     | Highlights now render through a text-only segment parser with React escaping                                          |
 | Security review: login callback traffic could count against the per-client login start limit      | Rate limit applies only to `GET /auth/login`, at 20/min per client plus a global cap                                  |
 | Security review: recent-auth step-up could reuse an old Google IdP session                        | Step-up login sends `max_age=0` and requires a fresh ID-token `auth_time`                                             |
+| Local-password Nexus accounts could not receive or use platform roles                             | Verified Google admin login can bind to active Google or local accounts without changing the VTT login provider      |
 | Security review: VTT rules-catalog cache could grow from client-controlled `since` values         | Entities cache is bounded LRU and does not cache requests beyond the published catalog version                        |
 | Security review: slow request bodies could monopolize control-api connections                     | Added per-route body deadlines, upload-specific longer deadline, and idle body timeout                                |
 | Security review: monitoring services had unnecessary network reachability                         | Monitoring network made internal-only; Grafana removed from `nexus-internal-net`; Alertmanager egress isolated        |

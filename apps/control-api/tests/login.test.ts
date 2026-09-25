@@ -77,6 +77,24 @@ describe('Google login flow', () => {
     expect(me.status).toBe(200);
   });
 
+  it('links a verified Google identity to a password account without changing its VTT provider', async () => {
+    const user = h.store.addUser({ email: 'admin@example.com', provider: 'local' });
+    h.store.addRole(user.id, 'platform_admin');
+    const { cookiePair, state } = await beginLogin(h);
+
+    const res = await callback(h, cookiePair, `code=abc&state=${state}`);
+
+    expect(res.status).toBe(302);
+    expect(h.store.identities.get(user.id)).toBe('google-sub-1');
+    expect(h.store.users.get(user.id)?.provider).toBe('local');
+    expect(h.store.audit[0]).toMatchObject({
+      action: 'auth.login',
+      outcome: 'success',
+      actorUserId: user.id,
+      identityProvider: 'google',
+    });
+  });
+
   it('rotates: a login replaces the session the browser already had', async () => {
     const user = seedAdmin();
     const old = await h.sessionFor(['platform_admin'], { user });

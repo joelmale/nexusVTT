@@ -185,7 +185,7 @@ export function loginRouter(deps: AppDeps): Router {
 
     if (!claims.emailVerified || !claims.email) return fail('email_unverified');
     const email = claims.email.toLowerCase();
-    const user = await deps.store.findGoogleUserByEmail(email);
+    const user = await deps.store.findAdminEligibleUserByEmail(email);
     if (!user || !user.isActive) return fail('unknown_user', { email });
 
     const boundSubject = await deps.store.getIdentitySubject(user.id);

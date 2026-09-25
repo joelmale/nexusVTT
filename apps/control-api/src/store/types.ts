@@ -84,7 +84,8 @@ export interface CompleteLoginInput {
 
 export interface ControlStore {
   ping(): Promise<void>;
-  findGoogleUserByEmail(email: string): Promise<AdminUser | null>;
+  /** Finds one Google or local-password user eligible for Google admin linking. */
+  findAdminEligibleUserByEmail(email: string): Promise<AdminUser | null>;
   getIdentitySubject(userId: string): Promise<string | null>;
   findUserIdBySubject(subject: string): Promise<string | null>;
   getActiveRoles(userId: string): Promise<Role[]>;

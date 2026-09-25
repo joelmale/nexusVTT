@@ -75,7 +75,7 @@ export async function runCli(argv: string[], store: ControlStore, io: CliIo, now
       cliAudit('admins.grant_role', { role, targetEmail: email }),
     );
     if (result.status === 'user_not_found') {
-      io.err(`No active Google user with email ${email}. They must sign in to Nexus VTT with Google first.`);
+      io.err(`No active Google or password user with email ${email}.`);
       return 1;
     }
     if (result.status === 'already_active') {
@@ -86,9 +86,9 @@ export async function runCli(argv: string[], store: ControlStore, io: CliIo, now
     return 0;
   }
 
-  const user = await store.findGoogleUserByEmail(email);
+  const user = await store.findAdminEligibleUserByEmail(email);
   if (!user) {
-    io.err(`No Google user with email ${email}.`);
+    io.err(`No Google or password user with email ${email}.`);
     return 1;
   }
   const result = await store.revokeRole(

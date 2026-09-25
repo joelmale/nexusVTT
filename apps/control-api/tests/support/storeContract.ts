@@ -56,12 +56,14 @@ export function defineStoreContract(name: string, fx: StoreFixtures): void {
       await fx.reset();
     });
 
-    it('matches Google users by email case-insensitively and ignores other providers', async () => {
-      const id = await fx.createUser('Admin@Example.com');
+    it('matches Google and password users by email case-insensitively and ignores other providers', async () => {
+      const googleId = await fx.createUser('Admin@Example.com');
+      const localId = await fx.createUser('local@example.com', { provider: 'local' });
       await fx.createUser('discord@example.com', { provider: 'discord' });
-      expect((await fx.store().findGoogleUserByEmail('admin@example.COM'))?.id).toBe(id);
-      expect(await fx.store().findGoogleUserByEmail('discord@example.com')).toBeNull();
-      expect(await fx.store().findGoogleUserByEmail('nobody@example.com')).toBeNull();
+      expect((await fx.store().findAdminEligibleUserByEmail('admin@example.COM'))?.id).toBe(googleId);
+      expect((await fx.store().findAdminEligibleUserByEmail('LOCAL@example.com'))?.id).toBe(localId);
+      expect(await fx.store().findAdminEligibleUserByEmail('discord@example.com')).toBeNull();
+      expect(await fx.store().findAdminEligibleUserByEmail('nobody@example.com')).toBeNull();
     });
 
     it('completes a login atomically: binds subject, stores session, writes audit', async () => {
@@ -117,11 +119,16 @@ export function defineStoreContract(name: string, fx: StoreFixtures): void {
       expect(await fx.store().getSessionContext(s.idHash)).toBeNull();
       expect(await fx.store().grantRole({ email: 'a@example.com', role: 'operator', grantedBy: null, at: T0 }, draft('admins.grant_role'))).toEqual({ status: 'already_active', userId: a });
       expect(await fx.store().grantRole({ email: 'none@example.com', role: 'operator', grantedBy: null, at: T0 }, draft('admins.grant_role'))).toEqual({ status: 'user_not_found' });
+      const local = await fx.createUser('local@example.com', { provider: 'local' });
+      expect(await fx.store().grantRole({ email: 'local@example.com', role: 'operator', grantedBy: null, at: T0 }, draft('admins.grant_role'))).toEqual({ status: 'granted', userId: local });
+      const discord = await fx.createUser('discord@example.com', { provider: 'discord' });
+      expect(await fx.store().grantRole({ email: 'discord@example.com', role: 'operator', grantedBy: null, at: T0 }, draft('admins.grant_role'))).toEqual({ status: 'user_not_found' });
+      expect(await fx.store().getActiveRoles(discord)).toEqual([]);
       const inactive = await fx.createUser('off@example.com', { isActive: false });
       expect(await fx.store().grantRole({ email: 'off@example.com', role: 'operator', grantedBy: null, at: T0 }, draft('admins.grant_role'))).toEqual({ status: 'user_not_found' });
       expect(await fx.store().getActiveRoles(inactive)).toEqual([]);
       const outcomes = (await fx.store().listAuditEvents({ limit: 10 })).map((e) => e.outcome);
-      expect(outcomes.slice(0, 4)).toEqual(['failure', 'failure', 'conflict', 'success']);
+      expect(outcomes.slice(0, 6)).toEqual(['failure', 'failure', 'success', 'failure', 'conflict', 'success']);
     });
 
     it('protects the last active platform_admin and keeps revoked history', async () => {

@@ -26,9 +26,10 @@ Google Cloud Console:
 https://admin.internal.nexusvtt.com/control-api/v1/auth/google/callback
 ```
 
-Administrators must already have signed in to Nexus VTT with this Google
-account at least once — `control-api` refuses login for a Google identity
-with no matching `users` row (see the ADR's Identity section).
+The verified Google email must match one existing active Nexus VTT account.
+Both Google-provider and local password accounts are eligible; linking a local
+account does not change its provider or disable password login. Discord and
+guest accounts are not eligible (see the ADR's Identity section).
 
 ### 1.2 Generate `CONTROL_SESSION_SECRET`
 
@@ -149,8 +150,9 @@ docker compose run --rm control-api node dist/cli.js grant-role \
 
 Use the Dockhand equivalent (its "run a one-off command in a stack service"
 action) if `docker compose run` is not directly available on the host. The
-target email must already belong to an existing Google-provider `users` row
-(see step 1.1) — the CLI grants a role, it does not create identities.
+target email must already belong to an active Google-provider or local-password
+`users` row (see step 1.1) — the CLI grants a role, it does not create users or
+Google identity bindings.
 
 Confirm the grant:
 

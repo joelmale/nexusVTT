@@ -74,9 +74,11 @@ when it is missing, and control-api refuses to start without it.
 - Administrators sign in with Google (OpenID Connect authorization-code flow
   with `state` and PKCE). MFA is enforced at the Google account.
 - The Google ID token must have `email_verified: true`. The verified email is
-  matched to an existing `users` row with `provider = 'google'`. If none
-  exists, login is refused; the person must sign in to Nexus VTT with Google
-  first.
+  matched to one existing active `users` row with `provider = 'google'` or
+  `provider = 'local'`. This lets a password-based VTT account receive a
+  platform role without changing or disabling its VTT password login. Admin
+  sessions still authenticate exclusively through Google. Discord and guest
+  accounts are not eligible for this linking flow.
 - On first admin login the Google subject (`sub`) is recorded in
   `admin_identities`. Afterwards the subject must match, so an email reassigned
   at Google cannot inherit access.

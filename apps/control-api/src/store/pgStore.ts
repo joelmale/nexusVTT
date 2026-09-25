@@ -104,14 +104,14 @@ export class PgControlStore implements ControlStore {
     await this.pool.query('SELECT 1');
   }
 
-  async findGoogleUserByEmail(email: string): Promise<AdminUser | null> {
+  async findAdminEligibleUserByEmail(email: string): Promise<AdminUser | null> {
     const { rows } = await this.pool.query<UserRow>(
       `SELECT ${USER_COLUMNS} FROM users u
-        WHERE lower(u.email) = lower($1) AND u.provider = 'google'
+        WHERE lower(u.email) = lower($1) AND u.provider IN ('google', 'local')
         ORDER BY u.id LIMIT 2`,
       [email],
     );
-    // Two Google rows for one address would make the match ambiguous; refuse.
+    // Two eligible rows for one address would make the match ambiguous; refuse.
     return rows.length === 1 && rows[0] ? toUser(rows[0]) : null;
   }
 
@@ -236,7 +236,9 @@ export class PgControlStore implements ControlStore {
       await client.query(`SELECT pg_advisory_xact_lock(${ROLE_CHANGE_LOCK})`);
       const { rows } = await client.query<UserRow>(
         `SELECT ${USER_COLUMNS} FROM users u
-          WHERE lower(u.email) = lower($1) AND u.provider = 'google' AND u."isActive" IS TRUE
+          WHERE lower(u.email) = lower($1)
+            AND u.provider IN ('google', 'local')
+            AND u."isActive" IS TRUE
           ORDER BY u.id LIMIT 2`,
         [input.email],
       );

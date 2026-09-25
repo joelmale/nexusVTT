@@ -186,7 +186,7 @@ describe('CLI', () => {
   it('grants, lists, and revokes with audit rows attributed to the CLI', async () => {
     const store = new MemoryControlStore();
     const first = store.addUser({ email: 'first@example.com' });
-    store.addUser({ email: 'second@example.com' });
+    const second = store.addUser({ email: 'second@example.com', provider: 'local' });
 
     const a = io();
     expect(await runCli(['grant-role', '--email', 'First@Example.com', '--role', 'platform_admin'], store, a.io)).toBe(0);
@@ -203,6 +203,8 @@ describe('CLI', () => {
     expect(store.audit.at(-1)).toMatchObject({ outcome: 'conflict' });
 
     await runCli(['grant-role', '--email', 'second@example.com', '--role', 'platform_admin'], store, io().io);
+    expect(await store.getActiveRoles(second.id)).toEqual(['platform_admin']);
+    expect(store.users.get(second.id)?.provider).toBe('local');
     expect(await runCli(['revoke-role', '--email', 'first@example.com', '--role', 'platform_admin'], store, io().io)).toBe(0);
     expect(await store.getActiveRoles(first.id)).toEqual([]);
   });
