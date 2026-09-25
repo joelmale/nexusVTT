@@ -19,7 +19,7 @@ export default defineConfig({
     }
   },
   optimizeDeps: {
-    include: ['lexical', '@lexical/react', '@lexical/markdown'],
+    include: ['lexical'],
     esbuildOptions: {
       resolveExtensions: ['.js', '.ts', '.jsx', '.tsx', '.json']
     }

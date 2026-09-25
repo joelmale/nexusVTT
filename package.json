@@ -42,7 +42,7 @@
     "test:game-contracts": "npm run test --workspace=@nexus/game-contracts",
     "test:rules-5e": "npm run test --workspace=@nexus/rules-5e",
     "test:forge": "npm run lint --workspace=nexus-forge && npm run test --workspace=nexus-forge -- --run --coverage",
-    "test:codex": "npm run test --workspace=nexus-codex-doc-api && npm run test --workspace=nexus-codex-doc-processor && npm run test --workspace=nexus-codex-doc-websocket",
+    "test:codex": "npm run test --workspace=nexus-codex-doc-api && npm run test --workspace=nexus-codex-doc-processor && npm run test --workspace=nexus-codex-doc-websocket && npm run test --workspace=@nexuscodex/dm-ui",
     "test:docs": "npm run typecheck --workspace=@nexus/docs && npm run build:docs",
     "test:codex:integration": "npm run test:integration --workspace=nexus-codex-doc-api"
   },
