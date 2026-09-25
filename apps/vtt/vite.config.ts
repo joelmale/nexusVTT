@@ -216,6 +216,34 @@ export default defineConfig(({ command, mode }) => {
             '../../packages/character-creator/src/$1',
           ),
         },
+        {
+          find: /^@nexus\/game-contracts$/,
+          replacement: path.resolve(
+            __dirname,
+            '../../packages/game-contracts/src/index.ts',
+          ),
+        },
+        {
+          find: /^@nexus\/game-contracts\/(.*)$/,
+          replacement: path.resolve(
+            __dirname,
+            '../../packages/game-contracts/src/$1',
+          ),
+        },
+        {
+          find: /^@nexus\/rules-5e$/,
+          replacement: path.resolve(
+            __dirname,
+            '../../packages/rules-5e/src/index.ts',
+          ),
+        },
+        {
+          find: /^@nexus\/rules-5e\/(.*)$/,
+          replacement: path.resolve(
+            __dirname,
+            '../../packages/rules-5e/src/$1',
+          ),
+        },
         { find: '@/components', replacement: path.resolve(__dirname, './src/components') },
         { find: '@/stores', replacement: path.resolve(__dirname, './src/stores') },
         { find: '@/types', replacement: path.resolve(__dirname, './src/types') },

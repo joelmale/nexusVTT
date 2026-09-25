@@ -87,6 +87,7 @@
     "@nexus/character-contracts": "*",
     "@nexus/rules-contracts": "*",
     "@nexus/game-contracts": "*",
+    "@nexus/rules-5e": "*",
     "@react-three/cannon": "^6.6.0",
     "@react-three/drei": "^10.7.8",
     "@react-three/fiber": "^9.4.2",

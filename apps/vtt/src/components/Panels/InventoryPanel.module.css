@@ -1,0 +1,275 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  color: var(--text-primary, #f8fafc);
+  font-family: inherit;
+  font-size: 14px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.header {
+  border-bottom: 2px solid var(--amber-700, #b45309);
+  padding-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.titleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--amber-400, #fbbf24);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subtitle {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.statsBar {
+  display: flex;
+  gap: 12px;
+  background: var(--glass-bg, rgba(15, 23, 42, 0.6));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  padding: 6px 12px;
+  border-radius: 8px;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.statLabel {
+  font-size: 10px;
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+  text-transform: uppercase;
+}
+
+.statValue {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.itemList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.itemCard {
+  background: var(--glass-bg, rgba(15, 23, 42, 0.4));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: border-color 0.15s ease;
+}
+
+.itemCard:hover {
+  border-color: var(--amber-500, #f59e0b);
+}
+
+.itemMainRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.itemLeft {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.itemIcon {
+  color: var(--amber-400, #fbbf24);
+  display: flex;
+  align-items: center;
+}
+
+.itemDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.itemNameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.itemName {
+  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
+}
+
+.badge {
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.equippedBadge {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid var(--emerald-500, #10b981);
+  color: var(--emerald-300, #6ee7b7);
+}
+
+.attunedBadge {
+  background: rgba(168, 85, 247, 0.2);
+  border: 1px solid var(--purple-500, #a855f7);
+  color: var(--purple-300, #d8b4fe);
+}
+
+.itemMeta {
+  font-size: 12px;
+  color: var(--text-secondary, #94a3b8);
+  display: flex;
+  gap: 12px;
+}
+
+.itemRight {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.transferBtn {
+  background: var(--glass-bg, rgba(15, 23, 42, 0.6));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.2));
+  color: var(--text-primary, #f8fafc);
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.15s ease;
+}
+
+.transferBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--amber-400, #fbbf24);
+}
+
+.transferForm {
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.transferInputs {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.input {
+  padding: 5px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.2));
+  background: rgba(0, 0, 0, 0.4);
+  color: var(--text-primary, #fff);
+  font-size: 12px;
+}
+
+.qtyInput {
+  width: 50px;
+  text-align: center;
+}
+
+.targetSelect {
+  flex: 1;
+}
+
+.confirmTransferBtn {
+  background: var(--amber-600, #d97706);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 5px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 0.15s ease;
+}
+
+.confirmTransferBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.confirmTransferBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.cancelTransferBtn {
+  background: transparent;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.2));
+  color: var(--text-secondary, #94a3b8);
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.cancelTransferBtn:hover {
+  color: var(--text-primary, #fff);
+}
+
+.statusMessage {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.statusSuccess {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid var(--emerald-500, #10b981);
+  color: var(--emerald-300, #6ee7b7);
+}
+
+.statusError {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid var(--red-500, #ef4444);
+  color: var(--red-300, #fca5a5);
+}

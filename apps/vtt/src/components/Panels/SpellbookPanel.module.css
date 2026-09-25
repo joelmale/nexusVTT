@@ -1,0 +1,321 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: 16px;
+  color: var(--text-primary, #f8fafc);
+  font-family: inherit;
+  font-size: 14px;
+  max-height: 80vh;
+  overflow-y: auto;
+}
+
+.header {
+  border-bottom: 2px solid var(--purple-700, #7e22ce);
+  padding-bottom: 10px;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+}
+
+.titleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--purple-400, #c084fc);
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subtitle {
+  font-size: 12px;
+  font-style: italic;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.statsBar {
+  display: flex;
+  gap: 16px;
+  background: var(--glass-bg, rgba(15, 23, 42, 0.6));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  padding: 8px 12px;
+  border-radius: 8px;
+}
+
+.statItem {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.statLabel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--text-secondary, #94a3b8);
+  text-transform: uppercase;
+}
+
+.statValue {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+}
+
+.concentrationBanner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: rgba(168, 85, 247, 0.15);
+  border: 1px solid var(--purple-500, #a855f7);
+  border-radius: 8px;
+  padding: 10px 14px;
+}
+
+.concentrationText {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  color: var(--purple-300, #d8b4fe);
+}
+
+.endConcentrationBtn {
+  background: var(--red-600, #dc2626);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 0.15s ease;
+}
+
+.endConcentrationBtn:hover {
+  opacity: 0.9;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sectionTitle {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--purple-300, #d8b4fe);
+  border-bottom: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  padding-bottom: 4px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.slotsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+  gap: 8px;
+}
+
+.slotCard {
+  background: var(--glass-bg, rgba(15, 23, 42, 0.5));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  padding: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+}
+
+.slotLevel {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--indigo-300, #a5b4fc);
+}
+
+.slotCount {
+  font-size: 15px;
+  font-weight: 700;
+  color: var(--text-primary, #f8fafc);
+}
+
+.restActions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.restBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.15));
+  background: var(--glass-bg, rgba(15, 23, 42, 0.6));
+  color: var(--text-primary, #f8fafc);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.restBtn:hover {
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.spellList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.spellItem {
+  background: var(--glass-bg, rgba(15, 23, 42, 0.4));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.08));
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  transition: border-color 0.15s ease;
+}
+
+.spellItem:hover {
+  border-color: var(--purple-500, #a855f7);
+}
+
+.spellInfo {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.spellNameRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.spellName {
+  font-weight: 600;
+  color: var(--text-primary, #f8fafc);
+}
+
+.preparedBadge {
+  background: rgba(168, 85, 247, 0.25);
+  border: 1px solid var(--purple-500, #a855f7);
+  color: var(--purple-300, #d8b4fe);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.ritualBadge {
+  background: rgba(59, 130, 246, 0.2);
+  border: 1px solid var(--blue-500, #3b82f6);
+  color: var(--blue-300, #93c5fd);
+  font-size: 10px;
+  font-weight: 700;
+  padding: 1px 6px;
+  border-radius: 10px;
+  text-transform: uppercase;
+}
+
+.spellMeta {
+  font-size: 12px;
+  color: var(--text-secondary, #94a3b8);
+}
+
+.spellActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.levelSelect {
+  padding: 4px 6px;
+  border-radius: 4px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.2));
+  color: var(--text-primary, #fff);
+  font-size: 12px;
+}
+
+.castBtn {
+  background: var(--purple-600, #9333ea);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 6px 12px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: opacity 0.15s ease;
+}
+
+.castBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.castBtn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.prepareCheckbox {
+  margin-right: 6px;
+  cursor: pointer;
+}
+
+.applyPlanBtn {
+  background: var(--emerald-600, #059669);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.applyPlanBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.statusMessage {
+  padding: 8px 12px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.statusSuccess {
+  background: rgba(16, 185, 129, 0.2);
+  border: 1px solid var(--emerald-500, #10b981);
+  color: var(--emerald-300, #6ee7b7);
+}
+
+.statusError {
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid var(--red-500, #ef4444);
+  color: var(--red-300, #fca5a5);
+}

@@ -723,4 +723,639 @@ describe('DomainCommandService', () => {
       ).rejects.toThrow('Encounter run is not active');
     });
   });
+
+  describe('ApplyPreparationPlan', () => {
+    const actorWithProfiles = {
+      ...mockActor,
+      spellcastingProfiles: [
+        {
+          profileId: 'prof-1',
+          name: 'Wizard Casting',
+          sourceType: 'class' as const,
+          sourceSlug: 'wizard',
+          spellcastingAbility: 'INT' as const,
+          spellSaveDC: 15,
+          spellAttackBonus: 7,
+          isRitualCaster: true,
+          preparationMode: 'prepared' as const,
+          preparationLimit: 3,
+          resourcePoolId: 'slots',
+          boundCollectionIds: [],
+          knownSpellSlugs: ['fire-bolt', 'shield', 'magic-missile', 'sleep'],
+          preparedSpellSlugs: ['shield'],
+        },
+      ],
+    };
+
+    const prepCommand: DomainCommand = {
+      commandId: '88888888-8888-4888-8888-888888888888',
+      protocolVersion: '1.0',
+      campaignId: mockActor.campaignId,
+      issuerUserId: 'user-1',
+      timestamp: new Date().toISOString(),
+      expectedActorVersions: { [mockActor.id]: 1 },
+      payload: {
+        type: 'ApplyPreparationPlan',
+        targetActorId: mockActor.id,
+        profileId: 'prof-1',
+        preparedSpellSlugs: ['shield', 'magic-missile'],
+      },
+    };
+
+    it('successfully applies a valid preparation plan within limit', async () => {
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(actorWithProfiles);
+      mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
+        status: 'updated',
+        actor: { ...actorWithProfiles, stateVersion: 2 },
+      });
+
+      const response = await service.execute(prepCommand, {
+        principalId: 'user-1',
+        isDm: false,
+      });
+
+      expect(response.receipt.result.success).toBe(true);
+      expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
+        mockActor.id,
+        expect.objectContaining({
+          expectedVersion: 1,
+          spellcastingProfiles: [
+            expect.objectContaining({
+              profileId: 'prof-1',
+              preparedSpellSlugs: ['shield', 'magic-missile'],
+            }),
+          ],
+        }),
+        mockClient,
+      );
+    });
+
+    it('rejects when caller is unauthorized', async () => {
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(actorWithProfiles);
+
+      await expect(
+        service.execute(prepCommand, { principalId: 'rogue-user', isDm: false }),
+      ).rejects.toThrow('Principal rogue-user is not authorized to prepare spells');
+    });
+
+    it('rejects when target profile does not exist', async () => {
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(actorWithProfiles);
+
+      const invalidProfCommand = {
+        ...prepCommand,
+        payload: {
+          ...prepCommand.payload,
+          profileId: 'nonexistent-prof',
+        },
+      };
+
+      await expect(
+        service.execute(invalidProfCommand, { principalId: 'user-1', isDm: false }),
+      ).rejects.toThrow("Spellcasting profile 'nonexistent-prof' not found");
+    });
+
+    it('returns failure receipt when prepared spells exceed limit', async () => {
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(actorWithProfiles);
+
+      const exceedCommand = {
+        ...prepCommand,
+        payload: {
+          ...prepCommand.payload,
+          preparedSpellSlugs: ['fire-bolt', 'shield', 'magic-missile', 'sleep'], // 4 > limit of 3
+        },
+      };
+
+      const response = await service.execute(exceedCommand, {
+        principalId: 'user-1',
+        isDm: false,
+      });
+
+      expect(response.receipt.result.success).toBe(false);
+      expect(response.receipt.result.error).toContain('Plan exceeds preparation capacity');
+    });
+  });
+
+  describe('CastSpell', () => {
+    const actorCaster = {
+      ...mockActor,
+      spellcastingProfiles: [
+        {
+          profileId: 'prof-1',
+          name: 'Wizard Casting',
+          sourceType: 'class' as const,
+          sourceSlug: 'wizard',
+          spellcastingAbility: 'INT' as const,
+          spellSaveDC: 15,
+          spellAttackBonus: 7,
+          isRitualCaster: true,
+          preparationMode: 'prepared' as const,
+          preparationLimit: 4,
+          resourcePoolId: 'pool-slots',
+          boundCollectionIds: [],
+          knownSpellSlugs: ['shield', 'hold-person'],
+          preparedSpellSlugs: ['shield', 'hold-person'],
+        },
+      ],
+      resourcePools: {
+        'pool-slots': {
+          id: 'pool-slots',
+          name: 'Spell Slots',
+          poolType: 'slots' as const,
+          current: 4,
+          max: 4,
+          slots: {
+            '1': { current: 2, max: 4 },
+          },
+          slotsByLevel: {
+            1: { current: 2, max: 4 },
+          },
+          resetOn: 'long-rest' as const,
+        },
+      },
+      concentration: null,
+    };
+
+    const castCommand: DomainCommand = {
+      commandId: '77777777-7777-4777-8777-777777777777',
+      protocolVersion: '1.0',
+      campaignId: mockActor.campaignId,
+      issuerUserId: 'user-1',
+      timestamp: new Date().toISOString(),
+      expectedActorVersions: { [mockActor.id]: 1 },
+      payload: {
+        type: 'CastSpell',
+        actorId: mockActor.id,
+        spellRef: {
+          kind: 'spell' as const,
+          id: '55555555-5555-4555-8555-555555555555',
+          revision: 1,
+        },
+        profileId: 'prof-1',
+        castAtLevel: 1,
+        targetActorIds: [],
+      },
+    };
+
+    it('successfully consumes slot and records cast', async () => {
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(actorCaster);
+      mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
+        status: 'updated',
+        actor: { ...actorCaster, stateVersion: 2 },
+      });
+      mockDb.libraryObjects.getRevision.mockResolvedValueOnce({
+        id: '55555555-5555-4555-8555-555555555555',
+        revision: 1,
+        data: {
+          id: '55555555-5555-4555-8555-555555555555',
+          kind: 'spell',
+          ruleset: { system: 'dnd5e', edition: '2024' },
+          slug: 'shield',
+          name: 'Shield',
+          level: 1,
+          school: 'abjuration',
+          castingTime: '1 reaction',
+          range: 'Self',
+          duration: '1 round',
+          concentration: false,
+          ritual: false,
+          components: { verbal: true, somatic: true, material: false, materialConsumed: false },
+          classes: [],
+          description: 'Shield spell',
+          ownerId: 'user-1',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          schemaVersion: 1,
+          revision: 1,
+          tags: [],
+          archived: false,
+        },
+      });
+
+      const response = await service.execute(castCommand, {
+        principalId: 'user-1',
+        isDm: false,
+      });
+
+      expect(response.receipt.result.success).toBe(true);
+      expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
+        mockActor.id,
+        expect.objectContaining({
+          expectedVersion: 1,
+          resourcePools: expect.objectContaining({
+            'pool-slots': expect.objectContaining({
+              slots: expect.objectContaining({
+                '1': { current: 1, max: 4 },
+              }),
+            }),
+          }),
+        }),
+        mockClient,
+      );
+    });
+
+    it('handles concentration and replaces existing concentration', async () => {
+      const concentratingActor = {
+        ...actorCaster,
+        payload: {
+          concentration: {
+            spellSlug: 'bless',
+            castId: 'old-cast-id',
+            concentrationStartedAt: new Date().toISOString(),
+          },
+        },
+      };
+
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(concentratingActor);
+      mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
+        status: 'updated',
+        actor: { ...concentratingActor, stateVersion: 2 },
+      });
+      mockDb.libraryObjects.getRevision.mockResolvedValueOnce({
+        id: '55555555-5555-4555-8555-555555555555',
+        revision: 1,
+        data: {
+          id: '55555555-5555-4555-8555-555555555555',
+          kind: 'spell',
+          ruleset: { system: 'dnd5e', edition: '2024' },
+          slug: 'hold-person',
+          name: 'Hold Person',
+          level: 1,
+          school: 'enchantment',
+          castingTime: '1 action',
+          range: '60 feet',
+          duration: '1 minute',
+          concentration: true,
+          ritual: false,
+          components: { verbal: true, somatic: true, material: false, materialConsumed: false },
+          classes: [],
+          description: 'Hold Person spell',
+          ownerId: 'user-1',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          schemaVersion: 1,
+          revision: 1,
+          tags: [],
+          archived: false,
+        },
+      });
+
+      const response = await service.execute(castCommand, {
+        principalId: 'user-1',
+        isDm: false,
+      });
+
+      expect(response.receipt.result.success).toBe(true);
+      expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
+        mockActor.id,
+        expect.objectContaining({
+          expectedVersion: 1,
+          payload: expect.objectContaining({
+            concentration: expect.objectContaining({
+              spellName: 'Hold Person',
+            }),
+          }),
+        }),
+        mockClient,
+      );
+    });
+
+    it('returns failure receipt when casting a leveled spell with no slots left', async () => {
+      const outOfSlotsActor = {
+        ...actorCaster,
+        resourcePools: {
+          'pool-slots': {
+            id: 'pool-slots',
+            name: 'Spell Slots',
+            poolType: 'slots' as const,
+            current: 0,
+            max: 4,
+            slots: {
+              '1': { current: 0, max: 4 },
+            },
+            resetOn: 'long-rest' as const,
+          },
+        },
+      };
+
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(outOfSlotsActor);
+      mockDb.libraryObjects.getRevision.mockResolvedValueOnce({
+        id: '55555555-5555-4555-8555-555555555555',
+        revision: 1,
+        data: {
+          id: '55555555-5555-4555-8555-555555555555',
+          kind: 'spell',
+          ruleset: { system: 'dnd5e', edition: '2024' },
+          slug: 'shield',
+          name: 'Shield',
+          level: 1,
+          school: 'abjuration',
+          castingTime: '1 reaction',
+          range: 'Self',
+          duration: '1 round',
+          concentration: false,
+          ritual: false,
+          components: { verbal: true, somatic: true, material: false, materialConsumed: false },
+          classes: [],
+          description: 'Shield spell',
+          ownerId: 'user-1',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          schemaVersion: 1,
+          revision: 1,
+          tags: [],
+          archived: false,
+        },
+      });
+
+      const response = await service.execute(castCommand, {
+        principalId: 'user-1',
+        isDm: false,
+      });
+
+      expect(response.receipt.result.success).toBe(false);
+      expect(response.receipt.result.error).toContain('No level 1 spell slots remaining');
+    });
+  });
+
+  describe('EndConcentration', () => {
+    const concentratingActor = {
+      ...mockActor,
+      payload: {
+        concentration: {
+          spellSlug: 'haste',
+          castId: 'active-cast-uuid',
+          concentrationStartedAt: new Date().toISOString(),
+        },
+      },
+    };
+
+    const endConcCommand: DomainCommand = {
+      commandId: '66666666-6666-4666-8666-666666666666',
+      protocolVersion: '1.0',
+      campaignId: mockActor.campaignId,
+      issuerUserId: 'user-1',
+      timestamp: new Date().toISOString(),
+      expectedActorVersions: { [mockActor.id]: 1 },
+      payload: {
+        type: 'EndConcentration',
+        actorId: mockActor.id,
+        castId: 'active-cast-uuid',
+      },
+    };
+
+    it('clears active concentration on actor', async () => {
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(concentratingActor);
+      mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
+        status: 'updated',
+        actor: { ...concentratingActor, stateVersion: 2 },
+      });
+
+      const response = await service.execute(endConcCommand, {
+        principalId: 'user-1',
+        isDm: false,
+      });
+
+      expect(response.receipt.result.success).toBe(true);
+      expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
+        mockActor.id,
+        expect.objectContaining({
+          expectedVersion: 1,
+          payload: expect.objectContaining({
+            concentration: null,
+          }),
+        }),
+        mockClient,
+      );
+    });
+  });
+
+  describe('RestActor', () => {
+    const restedActor = {
+      ...mockActor,
+      currentHp: 10,
+      maxHp: 25,
+      tempHp: 5,
+      conditions: ['unconscious'],
+      deathSaves: { successes: 1, failures: 2 },
+      resourcePools: {
+        'pool-pact': {
+          current: 0,
+          max: 2,
+          resetOn: 'short-rest' as const,
+        },
+        'pool-long': {
+          current: 1,
+          max: 4,
+          resetOn: 'long-rest' as const,
+        },
+      },
+    };
+
+    it('performs short rest: resets short-rest pools and applies hit dice healing', async () => {
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(restedActor);
+      mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
+        status: 'updated',
+        actor: { ...restedActor, stateVersion: 2 },
+      });
+
+      const shortRestCommand: DomainCommand = {
+        commandId: '55555555-5555-4555-8555-555555555555',
+        protocolVersion: '1.0',
+        campaignId: mockActor.campaignId,
+        issuerUserId: 'user-1',
+        timestamp: new Date().toISOString(),
+        expectedActorVersions: { [mockActor.id]: 1 },
+        payload: {
+          type: 'RestActor',
+          actorId: mockActor.id,
+          restType: 'short',
+          hitDiceToSpend: 1,
+        },
+      };
+
+      const response = await service.execute(shortRestCommand, {
+        principalId: 'user-1',
+        isDm: false,
+      });
+
+      expect(response.receipt.result.success).toBe(true);
+      expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
+        mockActor.id,
+        expect.objectContaining({
+          expectedVersion: 1,
+          currentHp: 16, // 10 + 6
+          resourcePools: expect.objectContaining({
+            'pool-pact': expect.objectContaining({ current: 2 }),
+            'pool-long': expect.objectContaining({ current: 1 }), // unchanged
+          }),
+        }),
+        mockClient,
+      );
+    });
+
+    it('performs long rest: full heal, clears temp HP/unconscious/death saves, restores all pools', async () => {
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(restedActor);
+      mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
+        status: 'updated',
+        actor: { ...restedActor, stateVersion: 2 },
+      });
+
+      const longRestCommand: DomainCommand = {
+        commandId: '44444444-4444-4444-8444-444444444444',
+        protocolVersion: '1.0',
+        campaignId: mockActor.campaignId,
+        issuerUserId: 'user-1',
+        timestamp: new Date().toISOString(),
+        expectedActorVersions: { [mockActor.id]: 1 },
+        payload: {
+          type: 'RestActor',
+          actorId: mockActor.id,
+          restType: 'long',
+          hitDiceToSpend: 0,
+        },
+      };
+
+      const response = await service.execute(longRestCommand, {
+        principalId: 'user-1',
+        isDm: false,
+      });
+
+      expect(response.receipt.result.success).toBe(true);
+      expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
+        mockActor.id,
+        expect.objectContaining({
+          expectedVersion: 1,
+          currentHp: 25,
+          tempHp: 0,
+          conditions: [],
+          deathSaves: { successes: 0, failures: 0 },
+          resourcePools: expect.objectContaining({
+            'pool-pact': expect.objectContaining({ current: 2 }),
+            'pool-long': expect.objectContaining({ current: 4 }),
+          }),
+        }),
+        mockClient,
+      );
+    });
+  });
+
+  describe('TransferItem', () => {
+    const actorSource = {
+      ...mockActor,
+      id: '11111111-1111-4111-8111-111111111111',
+      inventory: [
+        {
+          instanceId: 'item-wand',
+          name: 'Wand of Magic Missiles',
+          quantity: 2,
+          isEquipped: false,
+          isAttuned: false,
+          itemRef: {
+            kind: 'item' as const,
+            id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+            revision: 1,
+          },
+        },
+      ],
+    };
+
+    const actorTarget = {
+      ...mockActor,
+      id: '33333333-3333-4333-8333-333333333333',
+      name: 'Valeros',
+      ownerId: 'user-2',
+      inventory: [],
+    };
+
+    const transferCommand: DomainCommand = {
+      commandId: '33333333-3333-4333-8333-333333333333',
+      protocolVersion: '1.0',
+      campaignId: mockActor.campaignId,
+      issuerUserId: 'user-1',
+      timestamp: new Date().toISOString(),
+      expectedActorVersions: {},
+      payload: {
+        type: 'TransferItem',
+        sourceActorId: actorSource.id,
+        targetActorId: actorTarget.id,
+        itemInstanceId: 'item-wand',
+        quantity: 1,
+      },
+    };
+
+    it('transfers item instance between source and target actors', async () => {
+      mockDb.campaignActors.lockActorForUpdate
+        .mockResolvedValueOnce(actorSource)
+        .mockResolvedValueOnce(actorTarget);
+
+      mockDb.campaignActors.updateActorState.mockResolvedValue({
+        status: 'updated',
+        actor: { ...actorSource, stateVersion: 2 },
+      });
+
+      const response = await service.execute(transferCommand, {
+        principalId: 'user-1',
+        isDm: false,
+      });
+
+      expect(response.receipt.result.success).toBe(true);
+      // Source item quantity decremented from 2 to 1
+      expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
+        actorSource.id,
+        expect.objectContaining({
+          expectedVersion: 1,
+          inventory: [
+            expect.objectContaining({
+              instanceId: 'item-wand',
+              quantity: 1,
+            }),
+          ],
+        }),
+        mockClient,
+      );
+
+      // Target received item
+      expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
+        actorTarget.id,
+        expect.objectContaining({
+          expectedVersion: 1,
+          inventory: [
+            expect.objectContaining({
+              name: 'Wand of Magic Missiles',
+              quantity: 1,
+            }),
+          ],
+        }),
+        mockClient,
+      );
+    });
+
+    it('rejects transfer when item not found in source inventory', async () => {
+      mockDb.campaignActors.lockActorForUpdate
+        .mockResolvedValueOnce({ ...actorSource, inventory: [] })
+        .mockResolvedValueOnce(actorTarget);
+
+      await expect(
+        service.execute(transferCommand, { principalId: 'user-1', isDm: false }),
+      ).rejects.toThrow(`Item instance item-wand not found in actor ${actorSource.id}'s inventory`);
+    });
+
+    it('rejects transfer when requested quantity exceeds available', async () => {
+      mockDb.campaignActors.lockActorForUpdate
+        .mockResolvedValueOnce(actorSource)
+        .mockResolvedValueOnce(actorTarget);
+
+      const highQtyCommand = {
+        ...transferCommand,
+        payload: {
+          ...transferCommand.payload,
+          quantity: 10,
+        },
+      };
+
+      await expect(
+        service.execute(highQtyCommand, { principalId: 'user-1', isDm: false }),
+      ).rejects.toThrow('Insufficient item quantity to transfer');
+    });
+  });
 });

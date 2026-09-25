@@ -1,12 +1,23 @@
 import crypto from 'crypto';
 import type { PoolClient } from 'pg';
 import type { DatabaseService } from '../database.js';
-import type { DomainCommandReceiptRecord } from '../repositories/base.js';
+import type { DomainCommandReceiptRecord, CampaignActorRecord } from '../repositories/base.js';
 import type {
   DomainCommand,
   DomainCommandPayload,
   DomainCommandReceipt,
+  SpellcastingProfile,
+  SpellDefinition,
+  ResourcePool,
+  ActiveConcentration,
+  CastRecord,
+  ItemInstance,
+  CampaignActor,
 } from '@nexus/game-contracts';
+import {
+  evaluatePreparationPlan,
+  evaluateCastEligibility,
+} from '@nexus/rules-5e';
 
 export interface DomainCommandContext {
   principalId: string;
@@ -116,6 +127,61 @@ export class DomainCommandService {
 
         case 'AdvanceCombatTurn': {
           receipt = await this.handleAdvanceCombatTurn(
+            command,
+            command.payload,
+            payloadHash,
+            context,
+            client,
+          );
+          break;
+        }
+
+        case 'ApplyPreparationPlan': {
+          receipt = await this.handleApplyPreparationPlan(
+            command,
+            command.payload,
+            payloadHash,
+            context,
+            client,
+          );
+          break;
+        }
+
+        case 'CastSpell': {
+          receipt = await this.handleCastSpell(
+            command,
+            command.payload,
+            payloadHash,
+            context,
+            client,
+          );
+          break;
+        }
+
+        case 'EndConcentration': {
+          receipt = await this.handleEndConcentration(
+            command,
+            command.payload,
+            payloadHash,
+            context,
+            client,
+          );
+          break;
+        }
+
+        case 'RestActor': {
+          receipt = await this.handleRestActor(
+            command,
+            command.payload,
+            payloadHash,
+            context,
+            client,
+          );
+          break;
+        }
+
+        case 'TransferItem': {
+          receipt = await this.handleTransferItem(
             command,
             command.payload,
             payloadHash,
@@ -781,6 +847,734 @@ export class DomainCommandService {
           currentRound: nextRound,
           currentTurnIndex: nextTurnIndex,
           activeParticipantId: participants[nextTurnIndex]?.actorId,
+        },
+      },
+    };
+  }
+
+  private assertCanControlActor(
+    actor: { id: string; ownerId: string | null },
+    context: DomainCommandContext,
+    action: string = 'modify',
+  ): void {
+    if (!context.isDm && actor.ownerId && actor.ownerId !== context.principalId) {
+      throw new Error(
+        `Principal ${context.principalId} is not authorized to ${action} actor ${actor.id}`,
+      );
+    }
+  }
+
+  private async handleApplyPreparationPlan(
+    command: DomainCommand,
+    payload: Extract<DomainCommandPayload, { type: 'ApplyPreparationPlan' }>,
+    payloadHash: string,
+    context: DomainCommandContext,
+    client: PoolClient,
+  ): Promise<DomainCommandReceipt> {
+    const actor = await this.db.campaignActors.lockActorForUpdate(
+      payload.targetActorId,
+      client,
+    );
+    if (!actor) {
+      throw new Error(`Target actor not found: ${payload.targetActorId}`);
+    }
+
+    this.assertCanControlActor(actor, context, 'prepare spells for');
+
+    const expectedVersion = command.expectedActorVersions?.[actor.id];
+    if (expectedVersion !== undefined && expectedVersion !== actor.stateVersion) {
+      return {
+        commandId: command.commandId,
+        principalId: context.principalId,
+        campaignId: command.campaignId,
+        payloadHash,
+        committedAt: new Date().toISOString(),
+        result: {
+          success: false,
+          committedVersions: { [actor.id]: actor.stateVersion },
+          error: `State version mismatch: expected ${expectedVersion}, got ${actor.stateVersion}`,
+        },
+      };
+    }
+
+    const profiles = (actor.spellcastingProfiles as SpellcastingProfile[]) || [];
+    const profile = profiles.find((p) => p.profileId === payload.profileId);
+    if (!profile) {
+      throw new Error(
+        `Spellcasting profile '${payload.profileId}' not found on actor ${actor.id}`,
+      );
+    }
+
+    const valResult = evaluatePreparationPlan(profile, payload.preparedSpellSlugs);
+    if (!valResult.isValid) {
+      return {
+        commandId: command.commandId,
+        principalId: context.principalId,
+        campaignId: command.campaignId,
+        payloadHash,
+        committedAt: new Date().toISOString(),
+        result: {
+          success: false,
+          committedVersions: { [actor.id]: actor.stateVersion },
+          error: `Invalid preparation plan: ${valResult.errors.join('; ')}`,
+        },
+      };
+    }
+
+    profile.preparedSpellSlugs = [...payload.preparedSpellSlugs];
+
+    const updateResult = await this.db.campaignActors.updateActorState(
+      actor.id,
+      {
+        expectedVersion: actor.stateVersion,
+        spellcastingProfiles: profiles,
+      },
+      client,
+    );
+
+    if (updateResult.status === 'conflict') {
+      return {
+        commandId: command.commandId,
+        principalId: context.principalId,
+        campaignId: command.campaignId,
+        payloadHash,
+        committedAt: new Date().toISOString(),
+        result: {
+          success: false,
+          committedVersions: { [actor.id]: updateResult.currentActor.stateVersion },
+          error: 'Concurrent mutation conflict on actor update',
+        },
+      };
+    }
+
+    const updatedActor = updateResult.actor;
+
+    return {
+      commandId: command.commandId,
+      principalId: context.principalId,
+      campaignId: command.campaignId,
+      payloadHash,
+      committedAt: new Date().toISOString(),
+      result: {
+        success: true,
+        committedVersions: { [actor.id]: updatedActor.stateVersion },
+        data: {
+          actorId: actor.id,
+          profileId: payload.profileId,
+          preparedSpellSlugs: profile.preparedSpellSlugs,
+        },
+      },
+    };
+  }
+
+  private async handleCastSpell(
+    command: DomainCommand,
+    payload: Extract<DomainCommandPayload, { type: 'CastSpell' }>,
+    payloadHash: string,
+    context: DomainCommandContext,
+    client: PoolClient,
+  ): Promise<DomainCommandReceipt> {
+    const actor = await this.db.campaignActors.lockActorForUpdate(
+      payload.actorId,
+      client,
+    );
+    if (!actor) {
+      throw new Error(`Actor not found: ${payload.actorId}`);
+    }
+
+    this.assertCanControlActor(actor, context, 'cast spell with');
+
+    const expectedVersion = command.expectedActorVersions?.[actor.id];
+    if (expectedVersion !== undefined && expectedVersion !== actor.stateVersion) {
+      return {
+        commandId: command.commandId,
+        principalId: context.principalId,
+        campaignId: command.campaignId,
+        payloadHash,
+        committedAt: new Date().toISOString(),
+        result: {
+          success: false,
+          committedVersions: { [actor.id]: actor.stateVersion },
+          error: `State version mismatch: expected ${expectedVersion}, got ${actor.stateVersion}`,
+        },
+      };
+    }
+
+    let spellDef: SpellDefinition | null = null;
+    if (payload.spellRef.revision) {
+      const rev = await this.db.libraryObjects.getRevision(
+        payload.spellRef.id,
+        payload.spellRef.revision,
+        client,
+      );
+      if (rev) spellDef = rev.data as SpellDefinition;
+    }
+    if (!spellDef) {
+      const obj = await this.db.libraryObjects.getObjectById(
+        payload.spellRef.id,
+        client,
+      );
+      if (obj) {
+        const rev = await this.db.libraryObjects.getRevision(
+          obj.id,
+          obj.currentRevision,
+          client,
+        );
+        if (rev) spellDef = rev.data as SpellDefinition;
+      }
+    }
+
+    const effectiveSpellDef: SpellDefinition = spellDef || {
+      id: payload.spellRef.id,
+      kind: 'spell',
+      ruleset: {
+        system: 'dnd5e',
+        edition: '2024',
+        contentPackId: 'srd-5.2.1',
+        contentRevision: '1.0',
+        rulesRevision: '2024.1',
+      },
+      name: payload.spellRef.id,
+      slug: payload.spellRef.id,
+      level: payload.castAtLevel,
+      school: 'evocation',
+      castingTime: '1 action',
+      range: '60 feet',
+      duration: 'Instantaneous',
+      concentration: false,
+      ritual: false,
+      components: {
+        verbal: true,
+        somatic: true,
+        material: false,
+        materialConsumed: false,
+      },
+      description: 'Spell',
+      classes: [],
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      ownerId: context.principalId,
+      schemaVersion: 1,
+      revision: 1,
+      tags: [],
+      archived: false,
+    };
+
+    const profiles = (actor.spellcastingProfiles as SpellcastingProfile[]) || [];
+    const pools = (actor.resourcePools as Record<string, ResourcePool>) || {};
+
+    const evalResult = evaluateCastEligibility({
+      actor: {
+        ...actor,
+        spellcastingProfiles: profiles,
+        resourcePools: pools,
+      } as unknown as CampaignActor,
+      spell: effectiveSpellDef,
+      profileId: payload.profileId,
+      castAtLevel: payload.castAtLevel,
+    });
+
+    if (!evalResult.canCast) {
+      return {
+        commandId: command.commandId,
+        principalId: context.principalId,
+        campaignId: command.campaignId,
+        payloadHash,
+        committedAt: new Date().toISOString(),
+        result: {
+          success: false,
+          committedVersions: { [actor.id]: actor.stateVersion },
+          error: `Cast ineligible: ${evalResult.reasons.join('; ')}`,
+        },
+      };
+    }
+
+    const consumedResources: Array<{ poolId: string; amount: number; slotLevel?: number }> = [];
+    if (evalResult.poolIdToCharge) {
+      const pool = pools[evalResult.poolIdToCharge];
+      if (pool) {
+        if (pool.poolType === 'slots' && evalResult.slotLevelToCharge) {
+          const slotKey = evalResult.slotLevelToCharge.toString();
+          const slot = pool.slots?.[slotKey];
+          if (slot && slot.current > 0) {
+            slot.current -= 1;
+            consumedResources.push({
+              poolId: pool.id,
+              amount: 1,
+              slotLevel: evalResult.slotLevelToCharge,
+            });
+          }
+        } else if (pool.poolType === 'pact') {
+          if (pool.current && pool.current > 0) {
+            pool.current -= 1;
+            consumedResources.push({
+              poolId: pool.id,
+              amount: 1,
+            });
+          }
+        }
+      }
+    }
+
+    let newConcentration: ActiveConcentration | null = null;
+    if (effectiveSpellDef.concentration) {
+      newConcentration = {
+        castId: command.commandId,
+        spellRef: payload.spellRef,
+        spellName: effectiveSpellDef.name,
+        startedAtRound: 1,
+        startedAtTurn: 0,
+        targetActorIds: payload.targetActorIds || [],
+        drawingIds: [],
+      };
+    }
+
+    const currentPayload = (actor.payload as Record<string, unknown>) || {};
+    const updatedPayload = {
+      ...currentPayload,
+      concentration: newConcentration ?? (evalResult.willBreakConcentration ? null : currentPayload.concentration),
+    };
+
+    const updateResult = await this.db.campaignActors.updateActorState(
+      actor.id,
+      {
+        expectedVersion: actor.stateVersion,
+        resourcePools: pools,
+        payload: updatedPayload,
+      },
+      client,
+    );
+
+    if (updateResult.status === 'conflict') {
+      return {
+        commandId: command.commandId,
+        principalId: context.principalId,
+        campaignId: command.campaignId,
+        payloadHash,
+        committedAt: new Date().toISOString(),
+        result: {
+          success: false,
+          committedVersions: { [actor.id]: updateResult.currentActor.stateVersion },
+          error: 'Concurrent mutation conflict on actor update',
+        },
+      };
+    }
+
+    const updatedActor = updateResult.actor;
+
+    const castRecord: CastRecord = {
+      castId: command.commandId,
+      campaignActorId: actor.id,
+      spellRef: payload.spellRef,
+      spellName: effectiveSpellDef.name,
+      castAtLevel: payload.castAtLevel,
+      sourceProfileId: payload.profileId,
+      consumedResources,
+      targets: payload.targetActorIds || [],
+      state: 'resolved',
+      timestamp: new Date().toISOString(),
+    };
+
+    return {
+      commandId: command.commandId,
+      principalId: context.principalId,
+      campaignId: command.campaignId,
+      payloadHash,
+      committedAt: new Date().toISOString(),
+      result: {
+        success: true,
+        committedVersions: { [actor.id]: updatedActor.stateVersion },
+        data: {
+          castRecord,
+          remainingPools: pools,
+        },
+      },
+    };
+  }
+
+  private async handleEndConcentration(
+    command: DomainCommand,
+    payload: Extract<DomainCommandPayload, { type: 'EndConcentration' }>,
+    payloadHash: string,
+    context: DomainCommandContext,
+    client: PoolClient,
+  ): Promise<DomainCommandReceipt> {
+    const actor = await this.db.campaignActors.lockActorForUpdate(
+      payload.actorId,
+      client,
+    );
+    if (!actor) {
+      throw new Error(`Actor not found: ${payload.actorId}`);
+    }
+
+    this.assertCanControlActor(actor, context, 'end concentration for');
+
+    const expectedVersion = command.expectedActorVersions?.[actor.id];
+    if (expectedVersion !== undefined && expectedVersion !== actor.stateVersion) {
+      return {
+        commandId: command.commandId,
+        principalId: context.principalId,
+        campaignId: command.campaignId,
+        payloadHash,
+        committedAt: new Date().toISOString(),
+        result: {
+          success: false,
+          committedVersions: { [actor.id]: actor.stateVersion },
+          error: `State version mismatch: expected ${expectedVersion}, got ${actor.stateVersion}`,
+        },
+      };
+    }
+
+    const currentPayload = (actor.payload as Record<string, unknown>) || {};
+    const updatedPayload = {
+      ...currentPayload,
+      concentration: null,
+    };
+
+    const updateResult = await this.db.campaignActors.updateActorState(
+      actor.id,
+      {
+        expectedVersion: actor.stateVersion,
+        payload: updatedPayload,
+      },
+      client,
+    );
+
+    if (updateResult.status === 'conflict') {
+      return {
+        commandId: command.commandId,
+        principalId: context.principalId,
+        campaignId: command.campaignId,
+        payloadHash,
+        committedAt: new Date().toISOString(),
+        result: {
+          success: false,
+          committedVersions: { [actor.id]: updateResult.currentActor.stateVersion },
+          error: 'Concurrent mutation conflict on actor update',
+        },
+      };
+    }
+
+    const updatedActor = updateResult.actor;
+
+    return {
+      commandId: command.commandId,
+      principalId: context.principalId,
+      campaignId: command.campaignId,
+      payloadHash,
+      committedAt: new Date().toISOString(),
+      result: {
+        success: true,
+        committedVersions: { [actor.id]: updatedActor.stateVersion },
+        data: {
+          actorId: actor.id,
+          castId: payload.castId,
+        },
+      },
+    };
+  }
+
+  private async handleRestActor(
+    command: DomainCommand,
+    payload: Extract<DomainCommandPayload, { type: 'RestActor' }>,
+    payloadHash: string,
+    context: DomainCommandContext,
+    client: PoolClient,
+  ): Promise<DomainCommandReceipt> {
+    const actor = await this.db.campaignActors.lockActorForUpdate(
+      payload.actorId,
+      client,
+    );
+    if (!actor) {
+      throw new Error(`Actor not found: ${payload.actorId}`);
+    }
+
+    this.assertCanControlActor(actor, context, 'rest');
+
+    const expectedVersion = command.expectedActorVersions?.[actor.id];
+    if (expectedVersion !== undefined && expectedVersion !== actor.stateVersion) {
+      return {
+        commandId: command.commandId,
+        principalId: context.principalId,
+        campaignId: command.campaignId,
+        payloadHash,
+        committedAt: new Date().toISOString(),
+        result: {
+          success: false,
+          committedVersions: { [actor.id]: actor.stateVersion },
+          error: `State version mismatch: expected ${expectedVersion}, got ${actor.stateVersion}`,
+        },
+      };
+    }
+
+    let currentHp = actor.currentHp;
+    let tempHp = actor.tempHp;
+    let conditions = Array.isArray(actor.conditions) ? [...actor.conditions] : [];
+    let deathSaves = (actor.deathSaves as { successes: number; failures: number }) || { successes: 0, failures: 0 };
+    const pools = JSON.parse(JSON.stringify(actor.resourcePools || {})) as Record<string, ResourcePool>;
+
+    if (payload.restType === 'long') {
+      currentHp = actor.maxHp;
+      tempHp = 0;
+      deathSaves = { successes: 0, failures: 0 };
+      conditions = conditions.filter((c) => c !== 'unconscious');
+
+      for (const pool of Object.values(pools)) {
+        if (pool.poolType === 'slots' && pool.slots) {
+          for (const slot of Object.values(pool.slots)) {
+            slot.current = slot.total;
+          }
+        } else if (pool.poolType === 'pact') {
+          pool.current = pool.max ?? pool.current;
+        } else if (pool.max !== undefined) {
+          pool.current = pool.max;
+        }
+      }
+    } else {
+      // Short rest
+      for (const pool of Object.values(pools)) {
+        if (pool.resetOn === 'short-rest') {
+          if (pool.poolType === 'pact') {
+            pool.current = pool.max ?? pool.current;
+          } else if (pool.max !== undefined) {
+            pool.current = pool.max;
+          }
+        }
+      }
+
+      if (payload.hitDiceToSpend && payload.hitDiceToSpend > 0) {
+        const healPerDie = Math.max(1, Math.floor(actor.maxHp / 4));
+        currentHp = Math.min(actor.maxHp, currentHp + payload.hitDiceToSpend * healPerDie);
+        if (currentHp > 0) {
+          conditions = conditions.filter((c) => c !== 'unconscious');
+          deathSaves = { successes: 0, failures: 0 };
+        }
+      }
+    }
+
+    const updateResult = await this.db.campaignActors.updateActorState(
+      actor.id,
+      {
+        expectedVersion: actor.stateVersion,
+        currentHp,
+        tempHp,
+        conditions,
+        deathSaves,
+        resourcePools: pools,
+      },
+      client,
+    );
+
+    if (updateResult.status === 'conflict') {
+      return {
+        commandId: command.commandId,
+        principalId: context.principalId,
+        campaignId: command.campaignId,
+        payloadHash,
+        committedAt: new Date().toISOString(),
+        result: {
+          success: false,
+          committedVersions: { [actor.id]: updateResult.currentActor.stateVersion },
+          error: 'Concurrent mutation conflict on actor update',
+        },
+      };
+    }
+
+    const updatedActor = updateResult.actor;
+
+    return {
+      commandId: command.commandId,
+      principalId: context.principalId,
+      campaignId: command.campaignId,
+      payloadHash,
+      committedAt: new Date().toISOString(),
+      result: {
+        success: true,
+        committedVersions: { [actor.id]: updatedActor.stateVersion },
+        data: {
+          actorId: actor.id,
+          restType: payload.restType,
+          currentHp,
+          resourcePools: pools,
+        },
+      },
+    };
+  }
+
+  private async handleTransferItem(
+    command: DomainCommand,
+    payload: Extract<DomainCommandPayload, { type: 'TransferItem' }>,
+    payloadHash: string,
+    context: DomainCommandContext,
+    client: PoolClient,
+  ): Promise<DomainCommandReceipt> {
+    if (!payload.sourceActorId && !payload.targetActorId) {
+      throw new Error('TransferItem must specify at least sourceActorId or targetActorId');
+    }
+
+    const sourceId = payload.sourceActorId;
+    const targetId = payload.targetActorId;
+
+    let sourceActor: CampaignActorRecord | null = null;
+    let targetActor: CampaignActorRecord | null = null;
+
+    if (sourceId && targetId) {
+      const [firstId, secondId] = sourceId < targetId ? [sourceId, targetId] : [targetId, sourceId];
+      const first = await this.db.campaignActors.lockActorForUpdate(firstId, client);
+      const second = await this.db.campaignActors.lockActorForUpdate(secondId, client);
+      sourceActor = sourceId === firstId ? first : second;
+      targetActor = targetId === firstId ? first : second;
+    } else if (sourceId) {
+      sourceActor = await this.db.campaignActors.lockActorForUpdate(sourceId, client);
+    } else if (targetId) {
+      targetActor = await this.db.campaignActors.lockActorForUpdate(targetId, client);
+    }
+
+    if (sourceId && !sourceActor) {
+      throw new Error(`Source actor not found: ${sourceId}`);
+    }
+    if (targetId && !targetActor) {
+      throw new Error(`Target actor not found: ${targetId}`);
+    }
+
+    if (sourceActor) {
+      this.assertCanControlActor(sourceActor, context, 'transfer items from');
+      const expectedSourceVer = command.expectedActorVersions?.[sourceActor.id];
+      if (expectedSourceVer !== undefined && expectedSourceVer !== sourceActor.stateVersion) {
+        return {
+          commandId: command.commandId,
+          principalId: context.principalId,
+          campaignId: command.campaignId,
+          payloadHash,
+          committedAt: new Date().toISOString(),
+          result: {
+            success: false,
+            committedVersions: { [sourceActor.id]: sourceActor.stateVersion },
+            error: `Source state version mismatch: expected ${expectedSourceVer}, got ${sourceActor.stateVersion}`,
+          },
+        };
+      }
+    }
+
+    if (targetActor) {
+      const expectedTargetVer = command.expectedActorVersions?.[targetActor.id];
+      if (expectedTargetVer !== undefined && expectedTargetVer !== targetActor.stateVersion) {
+        return {
+          commandId: command.commandId,
+          principalId: context.principalId,
+          campaignId: command.campaignId,
+          payloadHash,
+          committedAt: new Date().toISOString(),
+          result: {
+            success: false,
+            committedVersions: { [targetActor.id]: targetActor.stateVersion },
+            error: `Target state version mismatch: expected ${expectedTargetVer}, got ${targetActor.stateVersion}`,
+          },
+        };
+      }
+    }
+
+    const quantityToTransfer = payload.quantity ?? 1;
+    const committedVersions: Record<string, number> = {};
+    let transferredItem: ItemInstance | null = null;
+
+    if (sourceActor) {
+      const inventory = JSON.parse(JSON.stringify(sourceActor.inventory || [])) as ItemInstance[];
+      const itemIndex = inventory.findIndex((item) => item.instanceId === payload.itemInstanceId);
+      if (itemIndex === -1) {
+        throw new Error(
+          `Item instance ${payload.itemInstanceId} not found in actor ${sourceActor.id}'s inventory`,
+        );
+      }
+
+      const existingItem = inventory[itemIndex];
+      if (existingItem.quantity < quantityToTransfer) {
+        throw new Error(
+          `Insufficient item quantity to transfer: requested ${quantityToTransfer}, available ${existingItem.quantity}`,
+        );
+      } else if (existingItem.quantity === quantityToTransfer) {
+        transferredItem = { ...existingItem };
+        inventory.splice(itemIndex, 1);
+      } else {
+        existingItem.quantity -= quantityToTransfer;
+        transferredItem = {
+          ...existingItem,
+          instanceId: crypto.randomUUID(),
+          quantity: quantityToTransfer,
+        };
+      }
+
+      const updateResult = await this.db.campaignActors.updateActorState(
+        sourceActor.id,
+        {
+          expectedVersion: sourceActor.stateVersion,
+          inventory,
+        },
+        client,
+      );
+
+      if (updateResult.status === 'conflict') {
+        return {
+          commandId: command.commandId,
+          principalId: context.principalId,
+          campaignId: command.campaignId,
+          payloadHash,
+          committedAt: new Date().toISOString(),
+          result: {
+            success: false,
+            committedVersions: { [sourceActor.id]: updateResult.currentActor.stateVersion },
+            error: 'Concurrent mutation conflict on source actor',
+          },
+        };
+      }
+
+      committedVersions[sourceActor.id] = updateResult.actor.stateVersion;
+    }
+
+    if (targetActor && transferredItem) {
+      const inventory = JSON.parse(JSON.stringify(targetActor.inventory || [])) as ItemInstance[];
+      inventory.push(transferredItem);
+
+      const updateResult = await this.db.campaignActors.updateActorState(
+        targetActor.id,
+        {
+          expectedVersion: targetActor.stateVersion,
+          inventory,
+        },
+        client,
+      );
+
+      if (updateResult.status === 'conflict') {
+        return {
+          commandId: command.commandId,
+          principalId: context.principalId,
+          campaignId: command.campaignId,
+          payloadHash,
+          committedAt: new Date().toISOString(),
+          result: {
+            success: false,
+            committedVersions: { [targetActor.id]: updateResult.currentActor.stateVersion },
+            error: 'Concurrent mutation conflict on target actor',
+          },
+        };
+      }
+
+      committedVersions[targetActor.id] = updateResult.actor.stateVersion;
+    }
+
+    return {
+      commandId: command.commandId,
+      principalId: context.principalId,
+      campaignId: command.campaignId,
+      payloadHash,
+      committedAt: new Date().toISOString(),
+      result: {
+        success: true,
+        committedVersions,
+        data: {
+          transferredItem,
+          sourceActorId: sourceId,
+          targetActorId: targetId,
         },
       },
     };

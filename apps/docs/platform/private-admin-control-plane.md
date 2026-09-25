@@ -9,19 +9,51 @@ title: Private admin control plane implementation plan
   `integration/control-plane`, pending review and deployment. Phase 6 partly
   done.
 
+## Project fit and current direction
+
+This proposal is for the Nexus monorepo as it exists now: the VTT is the
+primary play surface and runtime authority, Forge remains the player-facing
+character and sheet workspace, `@nexus/character-creator` is the single shared
+character creation package, Codex owns documents and reviewed rules content,
+and the asset service owns maps, tokens, props, manifests, and generated image
+derivatives.
+
+The control plane exists to support that direction, not to create a fourth
+product domain. Its job is to make authored game objects reviewable,
+publishable, observable, and recoverable before they are consumed by the VTT
+and Forge. The most important project objectives are:
+
+1. move from bundled, browser-edited SRD data toward reviewed, versioned,
+   schema-validated catalog objects;
+2. preserve the distinction between authored definitions and live campaign
+   state;
+3. let DMs and administrators manage documents, rules objects, and image assets
+   without direct database, container, or filesystem access;
+4. keep the VTT's multiplayer durability path authoritative for runtime
+   actors, encounter runs, room events, and session snapshots;
+5. keep Forge and the shared character creator usable when Codex or the control
+   plane is unavailable by retaining bundled fallback content; and
+6. operate safely in the homelab deployment, where private ingress, least
+   privilege, auditability, and reversible releases matter more than exposing a
+   broad public admin surface.
+
 ## Outcome
 
-Build a private Nexus administration surface for content authoring, asset
-management, and application operations. The control plane must be reachable
-only from the home LAN or the Firewalla WireGuard VPN, require an authenticated
-platform administrator, and avoid exposing internal services through the public
-`app.nexusvtt.com` ingress.
+Build a private Nexus administration surface for content authoring, object
+publication, asset management, and application operations. The control plane
+must be reachable only from the home LAN or the Firewalla WireGuard VPN,
+require an authenticated platform administrator, and avoid exposing internal
+services through the public `app.nexusvtt.com` ingress.
 
 The target experience is one administrative console with separate modules for:
 
-- rules content such as spells, items, monsters, classes, and features;
+- authored rules objects such as spells, items, monsters, classes, features,
+  and encounter-ready templates;
 - document ingestion, processing, validation, and search;
 - image assets such as maps, tokens, props, and generated derivatives;
+- catalog publication, rollback, and cross-app consumption status;
+- read-only diagnostics for runtime objects such as campaign actors and
+  encounter runs;
 - application health, database health, user load, queues, and alerts; and
 - administrator and audit-log management.
 
@@ -49,11 +81,49 @@ The current Codex structured-data API can list and delete extracted entities,
 but it is not yet a complete authoring API. It lacks typed create/update,
 revision, draft, publication, conflict, and rollback contracts.
 
+The repository now also defines the runtime object direction in
+[object models, database tables, and application data flow](./object-models-and-data-flow.md):
+authored definitions are reusable, versioned templates, while `campaign_actors`
+and `encounter_runs` are mutable live campaign state changed only through
+transactional domain commands.
+
 The VTT already exposes useful health and multiplayer measurements, including
 rooms, WebSocket connections, database pool state, commit latency, queue depth,
 resyncs, and realtime coordination. Prometheus rules exist for the multiplayer
 reliability objectives. Some Codex health-page measurements are placeholders
 and must not be treated as production telemetry until they are instrumented.
+
+## Domain direction and object boundaries
+
+The control plane should align with the platform's object model:
+
+- **Authored definitions:** reusable, reviewed, versioned records such as
+  spells, items, monsters, encounters, and character-adjacent content. These are
+  edited in the control plane, validated by shared schemas, and published as
+  immutable revisions.
+- **Runtime campaign state:** live `campaign_actors`, `encounter_runs`,
+  ordered `room_events`, idempotency receipts, and `sessions.gameState`
+  projections. These belong to the VTT backend and are changed through
+  `DomainCommandService` compare-and-swap transactions, not through admin
+  editors.
+- **Character creation:** the shared `@nexus/character-creator` package owns
+  the wizard UI, rules data adapters, and calculators used by Forge and the VTT.
+  It does not own persistence, identity, multiplayer state, or publication.
+- **Rules registry:** `@nexus/rules-contracts` describes persisted, published
+  spell, item, and monster registry shapes. `@nexus/game-contracts` describes
+  runtime references, actors, encounters, commands, and receipts.
+  `@nexus/rules-5e` should be the home for reusable 5e math and calculators
+  needed by both sides.
+- **Documents and provenance:** Codex keeps imported documents, extracted
+  candidates, source links, OCR/search state, and the reviewed rules catalog.
+- **Image assets:** the asset service owns binary media, manifests, thumbnails,
+  derivatives, quarantine, and storage-integrity checks.
+
+This gives the proposal a clear operating rule: the control plane may create,
+validate, publish, archive, and roll back authored definitions, but it must not
+become a second writer for live rooms, actor hit points, initiative, token
+placement, or session snapshots. Runtime inspection belongs in diagnostics and
+audit trails; runtime mutation belongs in typed game commands.
 
 ## Architectural invariants
 
@@ -79,6 +149,13 @@ The implementation must preserve these constraints:
    active session without an explicit publication step.
 10. Production changes to the Dockhand environment merge the existing raw
     `.env`; they never replace it wholesale.
+11. Authored definitions and live actors remain separate. Publishing or
+    rolling back a monster definition never rewrites existing
+    `campaign_actors`; an explicit VTT command is required to create or change
+    live state.
+12. Character creation remains shared through `@nexus/character-creator`.
+    Neither the VTT nor Forge gets a second bespoke creator as part of this
+    work.
 
 ## Non-goals
 
@@ -91,6 +168,9 @@ The implementation must preserve these constraints:
   browser.
 - Allowing edits to mutate historical published revisions in place.
 - Replacing Grafana with custom chart components.
+- Editing live actor HP, initiative, token position, room state, or encounter
+  turns from the control plane.
+- Adding a second character creator to Forge, the VTT, or Codex.
 
 ## Target topology
 
@@ -273,15 +353,21 @@ Suggested route groups:
 ```text
 /control-api/v1/me
 /control-api/v1/rules/*
+/control-api/v1/catalog/*
+/control-api/v1/library-objects/*
 /control-api/v1/documents/*
 /control-api/v1/assets/*
 /control-api/v1/operations/*
+/control-api/v1/runtime-diagnostics/*
 /control-api/v1/audit/*
 /control-api/v1/administrators/*
 ```
 
 Do not implement an unrestricted URL proxy. Each route group should have a
 typed client for its owning service and an explicit method allowlist.
+`runtime-diagnostics` is read-only unless a future ADR explicitly grants a
+specific typed VTT command; it must never expose a generic game-state mutation
+endpoint.
 
 ## Audit contract
 
@@ -299,7 +385,7 @@ Audit entries are append-only through the application. Sensitive document
 content, passwords, tokens, cookies, and service secrets must not be copied into
 the audit payload.
 
-## Rules-content model
+## Authored rules and object model
 
 Create a canonical rules registry in the Codex domain. Keep imported source
 documents and authored rules entities related but distinct: a source document
@@ -351,6 +437,26 @@ admin forms, VTT catalog adapters, Forge, and `@nexus/character-creator` where
 appropriate. Do not duplicate creator ownership or persistence inside the
 character-creator package.
 
+Map those published registry objects into the VTT object model deliberately:
+
+- `rules_entities` and `rules_entity_revisions` are Codex-owned published
+  definitions for rules content.
+- `library_objects` and `library_object_revisions` are reusable authored
+  templates that can be owned by an account or campaign and can reference
+  published rules revisions.
+- `campaign_actors` are live runtime instances created from characters,
+  monsters, companions, summons, or encounter templates. They copy the runtime
+  state they need and then evolve independently.
+- `encounter_runs` are tactical runtime state machines created from authored
+  encounter templates.
+- `DomainObjectRef` is the stable bridge: it can point to a published revision,
+  a library object, or a campaign-scoped runtime object without collapsing
+  those storage models together.
+
+The admin UI should therefore preview authored objects as Forge and the VTT
+will render them, but publication remains separate from deployment into a live
+session.
+
 ### Authoring workflow
 
 1. Create or import a draft.
@@ -364,6 +470,11 @@ character-creator package.
 Use an `If-Match` revision or explicit expected-version field for updates.
 Conflicting edits return `409 Conflict` with the current revision; the server
 must not silently accept last-write-wins.
+
+For library objects, use the same optimistic-concurrency posture:
+administrators edit drafts or unpublished revisions, publication creates an
+immutable revision, and deployment into a campaign creates separate runtime
+records through VTT commands.
 
 ### Runtime consumption
 
@@ -380,6 +491,12 @@ backend, not directly from the private control plane. The VTT and Forge should:
 Publication must not rewrite an active session snapshot. Session adoption of a
 new catalog revision should be explicit or occur only when a new campaign or
 character is created, according to the owning feature's rules.
+
+When a DM deploys a character, monster, companion, summon, or encounter into
+play, the VTT backend should create or mutate `campaign_actors` and
+`encounter_runs` through idempotent commands. The control plane may show the
+published source revision and usage history, but it should not bypass
+`DomainCommandService`.
 
 ## Asset administration
 
@@ -506,39 +623,39 @@ Details: [control plane runbook](./control-plane-runbook.md).
 
 ### Issues found and resolved
 
-| Issue                                                                                             | Resolution                                                                           |
-| ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------ |
-| Public gateway proxied admin routes and a generic `/codex-api/` to an unauthenticated `doc-api`   | Phase 0 denies them; four DM UI reads remain behind a session check                  |
-| `doc-api` on the shared `homelab-net`; `admin-ui`/`dm-ui` published host ports 3080/3081          | `doc-api` internal only; standalone UI containers removed                            |
-| `METRICS_AUTH_TOKEN` empty in production, so metrics were open; `DEV_MODE=true`                   | Token set and required; `DEV_MODE=false`                                             |
-| Live `frontend` pinned to an unintended `forge-fix` tag                                           | Restored to `:latest`                                                                |
-| `doc-api` crash-looped on the internal-only network (runtime Prisma engine download)              | Dedicated `nexus-codex-egress-net` joined only by `doc-api`                          |
-| Docs deploy skipped whenever an unrelated job was skipped                                         | Explicit status checks in `deploy-docs`                                              |
-| Promotion digest lookup could fail under `pipefail`                                               | `awk` drains its input                                                               |
-| Public listener advertised the nginx version                                                      | `server_tokens off` at the `http` level                                              |
-| Nginx Proxy Manager trusts forgeable `X-Real-IP` from Cloudflare, CDN, and private ranges         | Admin host checks `$realip_remote_addr`                                              |
-| Presigned MinIO URLs would have required a browser-facing object store                            | `control-api` uploads and streams page images server-side                            |
-| Gateway request IDs are 32 hex characters, not UUIDs                                              | `control-api` accepts both                                                           |
-| Admin UI stamped annotations with a hard-coded `admin` user                                       | Identity comes from the session; older `admin` annotations no longer show            |
-| Radix Select injected inline styles, blocking a strict CSP                                        | Replaced with native selects; no `unsafe-inline`                                     |
-| `doc-api` metrics would be unauthenticated in production                                          | `CODEX_METRICS_AUTH_TOKEN` required in compose; `doc-processor` metrics on port 9464 |
-| Integration: missing lockfile entry for `@nexus/rules-contracts` in `nexus-vtt`                   | Lockfile refreshed                                                                   |
-| Integration: allowlist coverage test scanned UI test fixtures and comments                        | Scan limited to production code; alert action paths written literally                |
-| Integration: removed placeholder path still listed as a CI gateway target                         | Removed                                                                              |
-| Integration: rules registry design note broke the docs build (multi-line code span parsed as MDX) | Code span kept on one line                                                           |
-| Security review: rehearsal deployment reused production-shaped origins and credentials             | Rehearsal-only HTTP origin and rehearsal-only generated secrets                      |
-| Security review: asset admin reused the VTT backend's `ASSET_SERVICE_SECRET`                      | Separate `ASSET_ADMIN_SERVICE_SECRET` with `x-nexus-admin-auth`; fail closed when unset or short |
-| Security review: rules admin token was optional at the production boundary                         | `RULES_ADMIN_SERVICE_TOKEN` required in compose and control-api; doc-api rules admin fails closed in production |
-| Security review: public asset fallback could accept raw traversal or internal paths                | Raw `../`, encoded dot segments, and `/internal` variants are refused before fallback |
-| Security review: inline document viewing could render active uploaded content                      | Control-api only displays allowlisted safe content types inline, adds `nosniff`, and forces other types to attachment |
-| Security review: Admin UI search highlights parsed upstream fragments as HTML                      | Highlights now render through a text-only segment parser with React escaping         |
-| Security review: login callback traffic could count against the per-client login start limit       | Rate limit applies only to `GET /auth/login`, at 20/min per client plus a global cap |
-| Security review: recent-auth step-up could reuse an old Google IdP session                         | Step-up login sends `max_age=0` and requires a fresh ID-token `auth_time`            |
-| Security review: VTT rules-catalog cache could grow from client-controlled `since` values          | Entities cache is bounded LRU and does not cache requests beyond the published catalog version |
-| Security review: slow request bodies could monopolize control-api connections                      | Added per-route body deadlines, upload-specific longer deadline, and idle body timeout |
-| Security review: monitoring services had unnecessary network reachability                          | Monitoring network made internal-only; Grafana removed from `nexus-internal-net`; Alertmanager egress isolated |
-| Security review: Codex object-storage default pointed at a browser-facing endpoint                 | `CODEX_S3_PUBLIC_ENDPOINT` defaults to `http://codex-minio:9000`                    |
-| Security review: control-api CI did not run for Admin UI-only changes                              | CI filter now includes Admin UI paths                                                |
+| Issue                                                                                             | Resolution                                                                                                            |
+| ------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Public gateway proxied admin routes and a generic `/codex-api/` to an unauthenticated `doc-api`   | Phase 0 denies them; four DM UI reads remain behind a session check                                                   |
+| `doc-api` on the shared `homelab-net`; `admin-ui`/`dm-ui` published host ports 3080/3081          | `doc-api` internal only; standalone UI containers removed                                                             |
+| `METRICS_AUTH_TOKEN` empty in production, so metrics were open; `DEV_MODE=true`                   | Token set and required; `DEV_MODE=false`                                                                              |
+| Live `frontend` pinned to an unintended `forge-fix` tag                                           | Restored to `:latest`                                                                                                 |
+| `doc-api` crash-looped on the internal-only network (runtime Prisma engine download)              | Dedicated `nexus-codex-egress-net` joined only by `doc-api`                                                           |
+| Docs deploy skipped whenever an unrelated job was skipped                                         | Explicit status checks in `deploy-docs`                                                                               |
+| Promotion digest lookup could fail under `pipefail`                                               | `awk` drains its input                                                                                                |
+| Public listener advertised the nginx version                                                      | `server_tokens off` at the `http` level                                                                               |
+| Nginx Proxy Manager trusts forgeable `X-Real-IP` from Cloudflare, CDN, and private ranges         | Admin host checks `$realip_remote_addr`                                                                               |
+| Presigned MinIO URLs would have required a browser-facing object store                            | `control-api` uploads and streams page images server-side                                                             |
+| Gateway request IDs are 32 hex characters, not UUIDs                                              | `control-api` accepts both                                                                                            |
+| Admin UI stamped annotations with a hard-coded `admin` user                                       | Identity comes from the session; older `admin` annotations no longer show                                             |
+| Radix Select injected inline styles, blocking a strict CSP                                        | Replaced with native selects; no `unsafe-inline`                                                                      |
+| `doc-api` metrics would be unauthenticated in production                                          | `CODEX_METRICS_AUTH_TOKEN` required in compose; `doc-processor` metrics on port 9464                                  |
+| Integration: missing lockfile entry for `@nexus/rules-contracts` in `nexus-vtt`                   | Lockfile refreshed                                                                                                    |
+| Integration: allowlist coverage test scanned UI test fixtures and comments                        | Scan limited to production code; alert action paths written literally                                                 |
+| Integration: removed placeholder path still listed as a CI gateway target                         | Removed                                                                                                               |
+| Integration: rules registry design note broke the docs build (multi-line code span parsed as MDX) | Code span kept on one line                                                                                            |
+| Security review: rehearsal deployment reused production-shaped origins and credentials            | Rehearsal-only HTTP origin and rehearsal-only generated secrets                                                       |
+| Security review: asset admin reused the VTT backend's `ASSET_SERVICE_SECRET`                      | Separate `ASSET_ADMIN_SERVICE_SECRET` with `x-nexus-admin-auth`; fail closed when unset or short                      |
+| Security review: rules admin token was optional at the production boundary                        | `RULES_ADMIN_SERVICE_TOKEN` required in compose and control-api; doc-api rules admin fails closed in production       |
+| Security review: public asset fallback could accept raw traversal or internal paths               | Raw `../`, encoded dot segments, and `/internal` variants are refused before fallback                                 |
+| Security review: inline document viewing could render active uploaded content                     | Control-api only displays allowlisted safe content types inline, adds `nosniff`, and forces other types to attachment |
+| Security review: Admin UI search highlights parsed upstream fragments as HTML                     | Highlights now render through a text-only segment parser with React escaping                                          |
+| Security review: login callback traffic could count against the per-client login start limit      | Rate limit applies only to `GET /auth/login`, at 20/min per client plus a global cap                                  |
+| Security review: recent-auth step-up could reuse an old Google IdP session                        | Step-up login sends `max_age=0` and requires a fresh ID-token `auth_time`                                             |
+| Security review: VTT rules-catalog cache could grow from client-controlled `since` values         | Entities cache is bounded LRU and does not cache requests beyond the published catalog version                        |
+| Security review: slow request bodies could monopolize control-api connections                     | Added per-route body deadlines, upload-specific longer deadline, and idle body timeout                                |
+| Security review: monitoring services had unnecessary network reachability                         | Monitoring network made internal-only; Grafana removed from `nexus-internal-net`; Alertmanager egress isolated        |
+| Security review: Codex object-storage default pointed at a browser-facing endpoint                | `CODEX_S3_PUBLIC_ENDPOINT` defaults to `http://codex-minio:9000`                                                      |
+| Security review: control-api CI did not run for Admin UI-only changes                             | CI filter now includes Admin UI paths                                                                                 |
 
 ### Changes to future work
 
@@ -1008,6 +1125,7 @@ the frozen VTT editor.
 | Browser security  | CSRF, origin, cookie, CSP, and clickjacking tests pass                                                                                                                |
 | Audit             | Successes, denials, conflicts, and failures are attributable and redacted                                                                                             |
 | Rules             | Schema, cross-reference, revision, conflict, publish, rollback, and offline-fallback tests                                                                            |
+| Object model      | Published definitions remain immutable; deployments create isolated actors/runs; runtime diagnostics are read-only                                                    |
 | Assets            | Upload, metadata, derivatives, integrity, quarantine, path, and authorization tests                                                                                   |
 | Operations        | Real metrics replace placeholders; dashboards and alerts respond to injected failures                                                                                 |
 | VTT regression    | Login, document library, assets, Forge, room creation, and two-client sync pass                                                                                       |
@@ -1061,6 +1179,9 @@ The work is complete when:
 - every request is authenticated and every mutation is authorized and audited;
 - administrators can manage documents, versioned rules content, and image
   assets without direct database, container, or filesystem access;
+- authored definitions, published catalog revisions, library objects, live
+  actors, and encounter runs keep their separate ownership and storage
+  boundaries;
 - published rules changes are validated, versioned, reversible, and consumed by
   VTT/Forge with a bundled offline fallback;
 - Grafana shows real application, database, queue, storage, and user-load
@@ -1076,3 +1197,4 @@ The work is complete when:
 - [Asset service shape](/vtt/roadmap/ADR/asset-service-shape)
 - [Asset service authentication](/vtt/roadmap/ADR/asset-service-auth)
 - [Multiplayer observability](/vtt/operations/multiplayer-observability)
+- [Object models, database tables, and application data flow](./object-models-and-data-flow.md)

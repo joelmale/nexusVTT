@@ -290,4 +290,122 @@ describe('DomainCommandClient', () => {
     const advanceRes = await commandClient.advanceCombatTurn(campaignId, 'run-1');
     expect(advanceRes.success).toBe(true);
   });
+
+  it('dispatches applyPreparationPlan', async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        receipt: { result: { success: true } },
+      }),
+    });
+
+    const res = await commandClient.applyPreparationPlan(
+      campaignId,
+      targetActorId,
+      'prof-1',
+      ['shield', 'magic-missile'],
+    );
+
+    expect(res.success).toBe(true);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/campaigns/${campaignId}/commands`),
+      expect.objectContaining({
+        body: expect.stringContaining('"type":"ApplyPreparationPlan"'),
+      }),
+    );
+  });
+
+  it('dispatches castSpell with spell definition ref and slot level', async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        receipt: { result: { success: true } },
+      }),
+    });
+
+    const res = await commandClient.castSpell(
+      campaignId,
+      targetActorId,
+      { kind: 'spell', id: '55555555-5555-4555-8555-555555555555', revision: 1 },
+      'prof-1',
+      2,
+      { targetActorIds: ['target-1'] },
+    );
+
+    expect(res.success).toBe(true);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/campaigns/${campaignId}/commands`),
+      expect.objectContaining({
+        body: expect.stringContaining('"type":"CastSpell"'),
+      }),
+    );
+  });
+
+  it('dispatches endConcentration with cast ID', async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        receipt: { result: { success: true } },
+      }),
+    });
+
+    const res = await commandClient.endConcentration(
+      campaignId,
+      targetActorId,
+      'cast-uuid-123',
+    );
+
+    expect(res.success).toBe(true);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/campaigns/${campaignId}/commands`),
+      expect.objectContaining({
+        body: expect.stringContaining('"type":"EndConcentration"'),
+      }),
+    );
+  });
+
+  it('dispatches restActor for short and long rest', async () => {
+    global.fetch = vi.fn().mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        success: true,
+        receipt: { result: { success: true } },
+      }),
+    });
+
+    const shortRes = await commandClient.restActor(campaignId, targetActorId, 'short', {
+      hitDiceToSpend: 2,
+    });
+    expect(shortRes.success).toBe(true);
+
+    const longRes = await commandClient.restActor(campaignId, targetActorId, 'long');
+    expect(longRes.success).toBe(true);
+  });
+
+  it('dispatches transferItem between source and target', async () => {
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        receipt: { result: { success: true } },
+      }),
+    });
+
+    const res = await commandClient.transferItem(campaignId, 'item-wand', {
+      sourceActorId: targetActorId,
+      targetActorId: 'actor-2',
+      quantity: 1,
+    });
+
+    expect(res.success).toBe(true);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/campaigns/${campaignId}/commands`),
+      expect.objectContaining({
+        body: expect.stringContaining('"type":"TransferItem"'),
+      }),
+    );
+  });
 });

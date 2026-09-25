@@ -45,6 +45,12 @@
       ],
       "@nexus/rules-contracts/*": [
         "../../packages/rules-contracts/src/*"
+      ],
+      "@nexus/rules-5e": [
+        "../../packages/rules-5e/src/index.ts"
+      ],
+      "@nexus/rules-5e/*": [
+        "../../packages/rules-5e/src/*"
       ]
     }
   },

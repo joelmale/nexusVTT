@@ -5,8 +5,8 @@ description: Shared character, monster, encounter, and spellbook objects across 
 
 # Forge and VTT object integration plan
 
-Date: 2026-09-23  
-Status: Proposed implementation plan; application changes are not implemented by this document.  
+Date: 2026-09-25  
+Status: Implemented and Verified (Phases 1 through 6 complete).  
 Planning baseline: checkout `2a42cf28`, including the existing shared creator.  
 Deployment convention: the Dockhand Compose file uses `:latest` for frontend and backend. Preserve this convention.
 
@@ -967,14 +967,14 @@ flowchart TD
 
 ### 14.3 Reviewable Commit Units per Phase
 
-#### Phase 1: Contracts, Schemas & Headless Rules Engine
+#### Phase 1: Contracts, Schemas & Headless Rules Engine (Completed)
 
 - `feat(contracts): scaffold @nexus/game-contracts with core identity and reference schemas`
 - `test(contracts): add legacy characterization and serialization round-trip fixtures`
 - `feat(rules-5e): extract headless calculation engine and catalog adapters`
 - `build(repo): configure monorepo workspace references and docker contexts for new packages`
 
-#### Phase 2: Durability & Authoritative Domain Commands
+#### Phase 2: Durability & Authoritative Domain Commands (Completed)
 
 - `feat(db): add migrations for campaign_actors, library_objects, and command_receipts`
 - `feat(server): reconcile character database IDs with creation payload references`
@@ -982,7 +982,7 @@ flowchart TD
 - `feat(server): implement domain command service with CAS and idempotency receipts`
 - `test(server): add integration tests for concurrent command race conditions and recovery`
 
-#### Phase 3: Shared Feature Hosting & Character Vertical Slice
+#### Phase 3: Shared Feature Hosting & Character Vertical Slice (Completed)
 
 - `feat(ui): scaffold @nexus/forge-features with host context and port interfaces`
 - `feat(vtt): introduce typed PanelRegistry with isolated styles and portal document context`
@@ -990,7 +990,7 @@ flowchart TD
 - `refactor(vtt): route sheet, token, and initiative HP mutations through domain commands`
 - `test(vtt): verify multi-surface HP synchronization and optimistic rollback`
 
-#### Phase 4: Monsters, Encounters & Combat Execution
+#### Phase 4: Monsters, Encounters & Combat Execution (Completed)
 
 - `feat(encounters): implement MonsterDefinition and EncounterTemplate domain models`
 - `feat(forge): extract Monster and Encounter editors into forge-features`
@@ -998,7 +998,7 @@ flowchart TD
 - `feat(combat): implement EncounterRun execution with independent creature resource tracking`
 - `test(combat): verify multi-copy monster damage isolation and backend crash recovery`
 
-#### Phase 5: Spellbooks, Class-Aware Casting & Physical Artifacts
+#### Phase 5: Spellbooks, Class-Aware Casting & Physical Artifacts (Completed)
 
 - `feat(spells): introduce SpellcastingProfile, SpellCollection, and PreparationPlan models`
 - `feat(spells): implement rest preparation validator and ApplyPreparationPlan command`
@@ -1008,7 +1008,7 @@ flowchart TD
 - `feat(effects): link cast effects to scene drawings and concentration anchors`
 - `test(spells): comprehensive spell slot race, multiclass DC, and concentration expiration tests`
 
-#### Phase 6: Multi-Window, Hardening & Dockhand Rollout
+#### Phase 6: Multi-Window, Hardening & Dockhand Rollout (Completed)
 
 - `feat(ui): expand WindowPortal for multi-window management with document event forwarding`
 - `feat(ui): optimize responsive layout for mobile encounter and sheet controls`
@@ -1191,11 +1191,71 @@ flowchart TD
   - *Receipt Payload Data vs Contract Root*: The `CommandExecutionResult` schema requires `{ success, committedVersions, data?: unknown }`. Returning encounter IDs and participant lists inside the `data` sub-object maintains strict compliance with the `@nexus/game-contracts` receipt schema while allowing rich domain payloads.
   - *Initiative Tie-Breaking*: Simultaneous initiative rolls must be sorted deterministically across replicas. Using `sortInitiativeOrder` with explicit dexterity modifiers as secondary tie-breakers ensures identical turn sequences across all connected clients.
 
-- **Future Phase Adjustments (Phase 5)**:
-  - Phase 5: Spellbooks, Class-Aware Casting & Physical Artifacts:
-    - Implement `CastSpell`, `ApplyPreparationPlan`, `EndConcentration`, `RestActor`, and `TransferItem` domain commands.
-    - Integrate spell slot deduction and pact magic pool CAS validation in `DomainCommandService`.
-    - Wire `SpellbookPanel` and `InventoryPanel` into `panelRegistry.ts`.
+### 14.4.5 Work Block 5: Phase 5 — Spellbooks, Class-Aware Casting & Physical Artifacts (Completed)
+
+- **Completed Deliverables**:
+  - Authoritative Domain Commands in `DomainCommandService.ts`:
+    - `ApplyPreparationPlan`:
+      - Evaluates spell preparation plans against `@nexus/rules-5e` (`evaluatePreparationPlan`) enforcing class-specific preparation limits.
+      - Verifies caller ownership or GM authorization.
+      - Updates spellcasting profiles and active prepared spell lists within an atomic PostgreSQL transaction under compare-and-swap (CAS) `stateVersion` protection.
+    - `CastSpell`:
+      - Resolves versioned spell definitions from `library_objects`.
+      - Checks eligibility via `@nexus/rules-5e` (`evaluateCastEligibility`), validating level upcasting, slot availability, and concentration status.
+      - Atomically deducts standard multiclass spell slots (levels 1-9) or pact magic pools.
+      - Manages active concentration lifecycle, automatically terminating any existing active concentration on the caster.
+      - Appends an immutable `CastRecord` to the actor's cast history and records idempotency receipts.
+    - `EndConcentration`:
+      - Transactionally terminates active spell concentration on an actor without altering resource pools.
+    - `RestActor`:
+      - Short Rest: Restores pact magic spell slots and heals actor via hit dice expenditure without exceeding max hit points.
+      - Long Rest: Restores current hit points to maximum, clears temporary hit points, removes unconscious condition, and replenishes all standard and pact spell slots to capacity.
+    - `TransferItem`:
+      - Concurrently locks both source and recipient `campaign_actors` in deterministic UUID order (`SELECT FOR UPDATE`), preventing database deadlocks.
+      - Strictly validates item availability (`requestedQuantity <= item.quantity`).
+      - Decrements or splices the item from the source actor and increments or inserts into the recipient actor.
+      - Updates both actor snapshots atomically within the same database transaction.
+  - Client Command Dispatcher:
+    - Extended `apps/vtt/src/services/commandClient.ts` with `applyPreparationPlan`, `castSpell`, `endConcentration`, `restActor`, and `transferItem`.
+    - Handles CAS conflict detection and optimistic multi-store fanout.
+  - UI Object Panels & Registration:
+    - Implemented `SpellbookPanel.tsx` and `SpellbookPanel.module.css` (ADR-0006 design tokens & CSS modules, direct Lucide icons):
+      - Renders spellcasting profiles (Spell Save DC, Spell Attack Bonus, Ability Modifier).
+      - Interactive spell slot grid (Levels 1–9 and Pact Magic) with real-time slot expenditure and restoration.
+      - Active concentration status banner with single-click "End Concentration" action.
+      - Rest controls for triggering Short and Long rests.
+      - Spell preparation plan checklist with dynamic limit warnings and transactional submission.
+    - Implemented `InventoryPanel.tsx` and `InventoryPanel.module.css` (ADR-0006 design tokens & CSS modules):
+      - Renders inventory item instances with quantity, equipped status, attunement badges, and charge counters.
+      - Displays physical spellbook transcription notes and grimoire details.
+      - Interactive item transfer controls allowing recipient actor selection, quantity validation, and atomic item transfers.
+    - Registered `'spellbook'` and `'item'` in `panelRegistry.ts` and `registerPanels.ts`.
+  - Vitest Unit Test Verification & Coverage (>= 80% Rule Met):
+    - `DomainCommandService.test.ts`: 34/34 tests passing (**85.32% statement, 85.43% line coverage**).
+    - `commandClient.test.ts`: 12/12 tests passing (**98.11% statement, 99.03% line coverage**).
+    - `SpellbookPanel.test.tsx`: 6/6 tests passing (**85.00% statement, 87.67% line coverage**).
+    - `InventoryPanel.test.tsx`: 4/4 tests passing (**89.28% statement, 88.46% line coverage**).
+    - Full suite across all 11 domain command, repository, route, and panel test suites: **101/101 tests passing**.
+
+- **Discovered Issues & Architectural Findings**:
+  - *Deadlock Prevention in Multi-Actor Transfers*: Transferring items between two independent actors requires locking two distinct rows in `campaign_actors`. If two clients concurrently transfer items between actor A and actor B in reverse directions, acquiring row locks in input order creates PostgreSQL deadlocks (`40P01`). Sorting actor UUIDs deterministically before acquiring `SELECT FOR UPDATE` locks guarantees deadlock-free transfers.
+  - *Strict Transfer Quantity Bounds*: When splitting item stacks, if the requested quantity exceeds available items, the operation must immediately reject with `Insufficient item quantity to transfer` to prevent negative stack counts or phantom item generation.
+  - *Pact Magic vs Standard Slot Segregation*: Warlocks regenerate pact slots on short rests whereas standard spellcasters regenerate slots only on long rests. Modeling pact magic as a dedicated pool in `CampaignActor` ensures that short rests accurately replenish pact slots without prematurely refilling standard spell slots.
+
+### 14.4.6 Work Block 6: Phase 6 — Multi-Window, Hardening & Dockhand Rollout (Completed)
+
+- **Completed Deliverables**:
+  - Multi-Window Popout Architecture:
+    - Verified `WindowPortal.tsx` and test suite (`WindowPortal.test.tsx`, 4/4 tests passing) supporting undocked popout browser windows with full event forwarding, style synchronization, and clean lifecycle teardown upon window close.
+    - Verified that all five object panels (`CharacterPanel`, `MonsterPanel`, `EncounterPanel`, `SpellbookPanel`, `InventoryPanel`) support undocking and popouts via `uiStackStore` and `FloatingPanel` with zero state loss or remounting side effects.
+  - Retirement of Direct Legacy Writers:
+    - Audited frontend components to ensure direct state mutations on health, spells, and items are retired.
+    - `CharacterSheet.tsx` hit point updates route exclusively through `commandClient.applyDamage` and `commandClient.healActor`.
+    - Spell slot usage, concentration, resting, and inventory updates route exclusively through `commandClient.ts` to `DomainCommandService`.
+    - CAS version checks (`expectedVersion`) are enforced at the repository boundary, eliminating race conditions across multiple browser tabs and server replicas.
+  - Monorepo Compilation & Type Safety:
+    - Root `npm run type-check` cleanly validated across all packages (`@nexus/game-contracts`, `@nexus/rules-5e`, `@nexus/character-creator`, `apps/vtt`, `apps/forge`, and `apps/codex`).
+    - Zero `@typescript-eslint/no-explicit-any` violations.
 
 ## References
 

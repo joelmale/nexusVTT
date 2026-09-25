@@ -212,6 +212,197 @@ export class DomainCommandClient {
   }
 
   /**
+   * Apply a rest preparation plan to an actor's spellcasting profile
+   */
+  async applyPreparationPlan(
+    campaignId: string,
+    targetActorId: string,
+    profileId: string,
+    preparedSpellSlugs: string[],
+    options: {
+      expectedVersion?: number;
+      issuerUserId?: string;
+    } = {},
+  ): Promise<CommandExecutionResult> {
+    const { user } = useGameStore.getState();
+    const commandId = crypto.randomUUID();
+    const issuerUserId = options.issuerUserId || user?.id || 'anonymous';
+
+    const command: DomainCommand = {
+      commandId,
+      protocolVersion: '1.0',
+      campaignId,
+      issuerUserId,
+      timestamp: new Date().toISOString(),
+      expectedActorVersions:
+        options.expectedVersion !== undefined
+          ? { [targetActorId]: options.expectedVersion }
+          : {},
+      payload: {
+        type: 'ApplyPreparationPlan',
+        targetActorId,
+        profileId,
+        preparedSpellSlugs,
+      },
+    };
+
+    return this.dispatchCommand(campaignId, command);
+  }
+
+  /**
+   * Cast a spell using an actor's spellcasting profile and slots
+   */
+  async castSpell(
+    campaignId: string,
+    actorId: string,
+    spellRef: DefinitionRef<'spell'>,
+    profileId: string,
+    castAtLevel: number,
+    options: {
+      targetActorIds?: string[];
+      expectedVersion?: number;
+      issuerUserId?: string;
+    } = {},
+  ): Promise<CommandExecutionResult> {
+    const { user } = useGameStore.getState();
+    const commandId = crypto.randomUUID();
+    const issuerUserId = options.issuerUserId || user?.id || 'anonymous';
+
+    const command: DomainCommand = {
+      commandId,
+      protocolVersion: '1.0',
+      campaignId,
+      issuerUserId,
+      timestamp: new Date().toISOString(),
+      expectedActorVersions:
+        options.expectedVersion !== undefined
+          ? { [actorId]: options.expectedVersion }
+          : {},
+      payload: {
+        type: 'CastSpell',
+        actorId,
+        spellRef,
+        profileId,
+        castAtLevel,
+        targetActorIds: options.targetActorIds || [],
+      },
+    };
+
+    return this.dispatchCommand(campaignId, command);
+  }
+
+  /**
+   * End an active concentration on a spell
+   */
+  async endConcentration(
+    campaignId: string,
+    actorId: string,
+    castId: string,
+    options: {
+      expectedVersion?: number;
+      issuerUserId?: string;
+    } = {},
+  ): Promise<CommandExecutionResult> {
+    const { user } = useGameStore.getState();
+    const commandId = crypto.randomUUID();
+    const issuerUserId = options.issuerUserId || user?.id || 'anonymous';
+
+    const command: DomainCommand = {
+      commandId,
+      protocolVersion: '1.0',
+      campaignId,
+      issuerUserId,
+      timestamp: new Date().toISOString(),
+      expectedActorVersions:
+        options.expectedVersion !== undefined
+          ? { [actorId]: options.expectedVersion }
+          : {},
+      payload: {
+        type: 'EndConcentration',
+        actorId,
+        castId,
+      },
+    };
+
+    return this.dispatchCommand(campaignId, command);
+  }
+
+  /**
+   * Take a short or long rest to restore HP and reset resource pools
+   */
+  async restActor(
+    campaignId: string,
+    actorId: string,
+    restType: 'short' | 'long',
+    options: {
+      hitDiceToSpend?: number;
+      expectedVersion?: number;
+      issuerUserId?: string;
+    } = {},
+  ): Promise<CommandExecutionResult> {
+    const { user } = useGameStore.getState();
+    const commandId = crypto.randomUUID();
+    const issuerUserId = options.issuerUserId || user?.id || 'anonymous';
+
+    const command: DomainCommand = {
+      commandId,
+      protocolVersion: '1.0',
+      campaignId,
+      issuerUserId,
+      timestamp: new Date().toISOString(),
+      expectedActorVersions:
+        options.expectedVersion !== undefined
+          ? { [actorId]: options.expectedVersion }
+          : {},
+      payload: {
+        type: 'RestActor',
+        actorId,
+        restType,
+        hitDiceToSpend: options.hitDiceToSpend ?? 0,
+      },
+    };
+
+    return this.dispatchCommand(campaignId, command);
+  }
+
+  /**
+   * Transfer an item between actors or loot containers
+   */
+  async transferItem(
+    campaignId: string,
+    itemInstanceId: string,
+    options: {
+      sourceActorId?: string;
+      targetActorId?: string;
+      quantity?: number;
+      expectedVersions?: Record<string, number>;
+      issuerUserId?: string;
+    } = {},
+  ): Promise<CommandExecutionResult> {
+    const { user } = useGameStore.getState();
+    const commandId = crypto.randomUUID();
+    const issuerUserId = options.issuerUserId || user?.id || 'anonymous';
+
+    const command: DomainCommand = {
+      commandId,
+      protocolVersion: '1.0',
+      campaignId,
+      issuerUserId,
+      timestamp: new Date().toISOString(),
+      expectedActorVersions: options.expectedVersions || {},
+      payload: {
+        type: 'TransferItem',
+        sourceActorId: options.sourceActorId,
+        targetActorId: options.targetActorId,
+        itemInstanceId,
+        quantity: options.quantity ?? 1,
+      },
+    };
+
+    return this.dispatchCommand(campaignId, command);
+  }
+
+  /**
    * Post command envelope to the server and coordinate local projection updates
    */
   private async dispatchCommand(
