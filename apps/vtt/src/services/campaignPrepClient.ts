@@ -14,7 +14,7 @@ export interface ActivePlanResponse {
 }
 
 export interface UpdateProgressPayload {
-  currentStepIndex: number;
+  currentStepIndex?: number;
   stepStates?: Record<string, SessionPlanStepState>;
 }
 

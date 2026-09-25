@@ -165,12 +165,15 @@ function buildSessionPlanModel(): SessionPlanViewModel {
     }),
     revision: session12Plan.revision,
     steps: session12Plan.steps.map((step) => ({
-      body: step.body.replace(/Typed reference: @Captain Serin.*$/, '').trim(),
+      body: step.body
+        ? step.body.replace(/Typed reference: @Captain Serin.*$/, '').trim()
+        : undefined,
       command: STEP_COMMANDS[step.kind],
       durationMinutes: step.durationMinutes,
       id: step.id,
       referenceLabel: step.kind === 'note' ? 'Captain Serin' : undefined,
       title: removeCommandPrefix(step.title),
+      track: step.track,
       visibility: step.visibility,
     })),
     tags: session.tags,

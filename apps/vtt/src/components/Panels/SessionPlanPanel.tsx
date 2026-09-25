@@ -147,21 +147,33 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
 
   const totalMinutes = useMemo(() => {
     if (!plan?.steps) return 0;
-    return plan.steps.reduce((sum, step) => sum + (step.estimatedMinutes || 0), 0);
+    return plan.steps
+      .filter((s) => s.track !== 'parallel')
+      .reduce((sum, step) => sum + (step.estimatedMinutes || 0), 0);
   }, [plan]);
 
+  const mainSteps = useMemo(
+    () => plan?.steps.filter((s) => s.track !== 'parallel') ?? [],
+    [plan],
+  );
+
+  const parallelSteps = useMemo(
+    () => plan?.steps.filter((s) => s.track === 'parallel') ?? [],
+    [plan],
+  );
+
   const completedStepsCount = useMemo(() => {
-    if (!plan?.steps || !activation) return 0;
-    return plan.steps.filter(
+    if (!mainSteps.length || !activation) return 0;
+    return mainSteps.filter(
       (step, idx) =>
         activation.stepStates?.[step.id]?.completed || idx < activation.currentStepIndex,
     ).length;
-  }, [plan, activation]);
+  }, [mainSteps, activation]);
 
   const progressPercent = useMemo(() => {
-    if (!plan?.steps?.length) return 0;
-    return Math.round((completedStepsCount / plan.steps.length) * 100);
-  }, [completedStepsCount, plan]);
+    if (!mainSteps.length) return 0;
+    return Math.round((completedStepsCount / mainSteps.length) * 100);
+  }, [completedStepsCount, mainSteps]);
 
   const handleAdvanceStep = async (stepId: string, stepIndex: number) => {
     if (!activation) return;
@@ -491,8 +503,14 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
           <div className={styles.headerMeta}>
             <span>Session {activation.sessionId}</span>
             <span>•</span>
-            <span>{plan.steps.length} beats</span>
+            <span>{mainSteps.length} beats</span>
             <span>•</span>
+            {parallelSteps.length > 0 && (
+              <>
+                <span>+{parallelSteps.length} parallel</span>
+                <span>•</span>
+              </>
+            )}
             <span>~{totalMinutes} min estimated</span>
           </div>
         </div>
@@ -515,7 +533,7 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
           <div className={styles.statItem}>
             <span>Progress:</span>
             <span className={styles.statValue}>
-              {completedStepsCount} of {plan.steps.length} beats ({progressPercent}%)
+              {completedStepsCount} of {mainSteps.length} beats ({progressPercent}%)
             </span>
           </div>
           <div className={styles.statItem}>
@@ -529,7 +547,7 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
       </section>
 
       <div className={styles.stepsContainer}>
-        {plan.steps.map((step, idx) => {
+        {mainSteps.map((step, idx) => {
           const isCompleted =
             activation.stepStates?.[step.id]?.completed || idx < activation.currentStepIndex;
           const isActive = idx === activation.currentStepIndex && !isCompleted;
@@ -677,6 +695,174 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
             </article>
           );
         })}
+
+        {/* ── PARALLEL THREADS ──────────────────────────────────────── */}
+        {parallelSteps.length > 0 && (
+          <>
+            <div className={styles.trackDivider}>
+              <span>Parallel Threads</span>
+              <small>Always available — act independently of timeline progress</small>
+            </div>
+
+            {parallelSteps.map((step) => {
+              const isCompleted = !!activation.stepStates?.[step.id]?.completed;
+              const isExpanded = expandedStepId === step.id;
+
+              const stepStatusClass = isCompleted
+                ? styles.completedStep
+                : styles.parallelStep;
+
+              return (
+                <article className={`${styles.stepCard} ${stepStatusClass}`} key={step.id}>
+                  <button
+                    aria-expanded={isExpanded}
+                    aria-label={`Parallel: ${step.title}`}
+                    className={styles.stepHeader}
+                    onClick={() => setExpandedStepId(isExpanded ? null : step.id)}
+                    type="button"
+                  >
+                    <div className={styles.stepHeaderLeft}>
+                      <span className={styles.stepNumber}>
+                        <span className={styles.parallelBadge}>⇌</span>
+                      </span>
+                      <span className={styles.kindBadge}>
+                        {step.type === 'activate-scene' && <Sparkles size={12} />}
+                        {step.type === 'deploy-encounter' && <Swords size={12} />}
+                        {step.type === 'open-entry' && <BookOpen size={12} />}
+                        {step.type === 'share-handout' && <FileText size={12} />}
+                        {step.type === 'reminder' && <Clock size={12} />}
+                        {step.type.replace('-', ' ')}
+                      </span>
+                      <span className={styles.stepTitle}>{step.title}</span>
+                    </div>
+
+                    <div className={styles.stepHeaderRight}>
+                      {step.estimatedMinutes > 0 && (
+                        <span className={styles.stepDuration}>
+                          <Clock size={11} /> {step.estimatedMinutes}m
+                        </span>
+                      )}
+                      <span
+                        className={`${styles.stepStatePill} ${
+                          isCompleted ? styles.pillCompleted : styles.pillParallel
+                        }`}
+                      >
+                        {isCompleted ? 'Done' : 'Open'}
+                      </span>
+                      {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                    </div>
+                  </button>
+
+                  {isExpanded && (
+                    <div className={styles.stepBody}>
+                      {step.type === 'reminder' && (
+                        <p className={styles.stepText}>{step.text}</p>
+                      )}
+
+                      <div className={styles.actionRow}>
+                        {step.type === 'activate-scene' && (
+                          <button
+                            className={styles.actionBtnPrimary}
+                            disabled={actionInProgress[step.id]}
+                            onClick={() => handleActivateScene(step)}
+                            type="button"
+                          >
+                            <Sparkles size={14} /> Activate Scene
+                          </button>
+                        )}
+
+                        {step.type === 'deploy-encounter' && (
+                          <>
+                            <button
+                              className={styles.actionBtnPrimary}
+                              disabled={actionInProgress[step.id]}
+                              onClick={() => handleDeployEncounter(step)}
+                              type="button"
+                            >
+                              <Swords size={14} /> Deploy Encounter
+                            </button>
+                            <button
+                              className={styles.actionBtnSecondary}
+                              disabled={actionInProgress[step.id]}
+                              onClick={() => handleStartCombat(step)}
+                              type="button"
+                            >
+                              <Play size={14} /> Start Combat
+                            </button>
+                          </>
+                        )}
+
+                        {step.type === 'open-entry' && (
+                          <button
+                            className={styles.actionBtnSecondary}
+                            onClick={() =>
+                              setActionFeedback((prev) => ({
+                                ...prev,
+                                [step.id]: `Opening entry: ${step.entryRef.id.slice(0, 8)}`,
+                              }))
+                            }
+                            type="button"
+                          >
+                            <ExternalLink size={14} /> View Campaign Entry
+                          </button>
+                        )}
+
+                        {step.type === 'share-handout' && (
+                          <button
+                            className={styles.actionBtnPrimary}
+                            onClick={() => handleShareHandout(step)}
+                            type="button"
+                          >
+                            <Share2 size={14} /> Reveal Handout
+                          </button>
+                        )}
+
+                        {actionFeedback[step.id] && (
+                          <span className={styles.actionFeedback}>
+                            <Check size={13} /> {actionFeedback[step.id]}
+                          </span>
+                        )}
+                      </div>
+
+                      <div className={styles.progressControls}>
+                        <button
+                          className={styles.advanceBtn}
+                          onClick={async () => {
+                            const updatedStates = {
+                              ...(activation.stepStates || {}),
+                              [step.id]: {
+                                completed: !isCompleted,
+                                completedAt: !isCompleted
+                                  ? new Date().toISOString()
+                                  : undefined,
+                                completedBy: user?.id,
+                              },
+                            };
+                            try {
+                              const updated =
+                                await campaignPrepClient.updateActivationProgress(
+                                  campaignId,
+                                  activation.id,
+                                  { stepStates: updatedStates },
+                                );
+                              setActivation(updated);
+                            } catch (err) {
+                              console.error('Failed to toggle parallel step:', err);
+                            }
+                          }}
+                          type="button"
+                        >
+                          <Check size={13} />
+                          {isCompleted ? 'Reopen Thread' : 'Mark Done'}
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
+          </>
+        )}
       </div>
     </div>
   );

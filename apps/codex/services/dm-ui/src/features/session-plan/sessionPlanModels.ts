@@ -27,6 +27,8 @@ export interface SessionStepViewModel {
   title: string;
   durationMinutes: number;
   visibility: 'shared' | 'dm-only';
+  /** 'main' = sequential spine beat; 'parallel' = always-available thread */
+  track: 'main' | 'parallel';
   body?: string;
   referenceLabel?: string;
 }

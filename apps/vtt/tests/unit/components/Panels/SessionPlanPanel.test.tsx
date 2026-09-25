@@ -584,4 +584,147 @@ describe('SessionPlanPanel', () => {
     fireEvent.click(refreshBtn);
     expect(campaignPrepClient.getActiveSessionPlan).toHaveBeenCalledTimes(2);
   });
+
+  it('renders parallel threads section separately from main timeline', async () => {
+    const planWithParallel = {
+      ...mockPlan,
+      steps: [
+        {
+          id: 'step-main-1',
+          title: 'Opening Recap',
+          estimatedMinutes: 10,
+          visibility: 'players' as const,
+          type: 'reminder' as const,
+          track: 'main' as const,
+          text: 'Set the scene.',
+        },
+        {
+          id: 'step-parallel-1',
+          title: 'Quest: Find the Ember Key',
+          estimatedMinutes: 0,
+          visibility: 'dm-only' as const,
+          type: 'open-entry' as const,
+          track: 'parallel' as const,
+          entryRef: {
+            target: 'campaign-object' as const,
+            campaignId: 'camp-123',
+            id: 'entry-ember-key',
+            revision: 1,
+          },
+        },
+        {
+          id: 'step-parallel-2',
+          title: 'Decision: Trust Selka Marr?',
+          estimatedMinutes: 0,
+          visibility: 'dm-only' as const,
+          type: 'reminder' as const,
+          track: 'parallel' as const,
+          text: 'Note the party instinct — no forced resolution.',
+        },
+      ],
+    };
+
+    vi.mocked(campaignPrepClient.getActiveSessionPlan).mockResolvedValueOnce({
+      plan: planWithParallel,
+      activation: mockActivation,
+    });
+
+    render(<SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Session 12 - The Glass Harbor')).toBeInTheDocument();
+    });
+
+    // Main step visible
+    expect(screen.getByText('Opening Recap')).toBeInTheDocument();
+
+    // Parallel section header
+    expect(screen.getByText('Parallel Threads')).toBeInTheDocument();
+
+    // Parallel steps visible
+    expect(screen.getByText('Quest: Find the Ember Key')).toBeInTheDocument();
+    expect(screen.getByText('Decision: Trust Selka Marr?')).toBeInTheDocument();
+
+    // Header shows correct beat count (only main steps)
+    expect(screen.getByText('1 beats')).toBeInTheDocument();
+    // Parallel count in header meta
+    expect(screen.getByText('+2 parallel')).toBeInTheDocument();
+  });
+
+  it('allows parallel steps to be toggled done independently of currentStepIndex', async () => {
+    const planWithParallel = {
+      ...mockPlan,
+      steps: [
+        {
+          id: 'step-main-1',
+          title: 'Opening Recap',
+          estimatedMinutes: 10,
+          visibility: 'players' as const,
+          type: 'reminder' as const,
+          track: 'main' as const,
+          text: 'Set the scene.',
+        },
+        {
+          id: 'step-parallel-1',
+          title: 'Handout: Port Authority Writ',
+          estimatedMinutes: 2,
+          visibility: 'players' as const,
+          type: 'share-handout' as const,
+          track: 'parallel' as const,
+          assetRef: {
+            target: 'asset' as const,
+            assetId: 'asset-writ',
+          },
+        },
+      ],
+    };
+
+    const updatedActivation = {
+      ...mockActivation,
+      stepStates: {
+        'step-parallel-1': {
+          completed: true,
+          completedAt: new Date().toISOString(),
+          completedBy: 'dm-user-1',
+        },
+      },
+    };
+
+    vi.mocked(campaignPrepClient.getActiveSessionPlan).mockResolvedValueOnce({
+      plan: planWithParallel,
+      activation: { ...mockActivation, currentStepIndex: 0 },
+    });
+    vi.mocked(campaignPrepClient.updateActivationProgress).mockResolvedValueOnce(
+      updatedActivation,
+    );
+
+    render(<SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />);
+
+    await waitFor(() => {
+      expect(screen.getByText('Handout: Port Authority Writ')).toBeInTheDocument();
+    });
+
+    // Expand the parallel step
+    fireEvent.click(screen.getByText('Handout: Port Authority Writ'));
+
+    await waitFor(() => {
+      // The "Mark Done" toggle button should be available even though
+      // currentStepIndex is 0 (the main step hasn't advanced)
+      expect(screen.getByRole('button', { name: /mark done/i })).toBeInTheDocument();
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /mark done/i }));
+
+    await waitFor(() => {
+      expect(campaignPrepClient.updateActivationProgress).toHaveBeenCalledWith(
+        'camp-123',
+        'act-123',
+        expect.objectContaining({
+          stepStates: expect.objectContaining({
+            'step-parallel-1': expect.objectContaining({ completed: true }),
+          }),
+        }),
+      );
+    });
+  });
 });

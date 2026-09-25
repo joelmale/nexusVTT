@@ -451,3 +451,55 @@
   padding: 40px;
   color: var(--indigo-400, #818cf8);
 }
+
+/* ── Parallel threads section ─────────────────────────────────────── */
+
+.trackDivider {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 10px 4px 4px;
+  border-top: 1px dashed rgba(251, 191, 36, 0.2);
+  margin-top: 6px;
+}
+
+.trackDivider span {
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--amber-400, #fbbf24);
+}
+
+.trackDivider small {
+  font-size: 10px;
+  color: var(--text-tertiary, #64748b);
+}
+
+.parallelStep {
+  border-color: rgba(251, 191, 36, 0.2);
+  background: rgba(251, 191, 36, 0.04);
+}
+
+.parallelStep .stepNumber {
+  color: var(--amber-500, #f59e0b);
+}
+
+.parallelBadge {
+  display: inline-block;
+  margin-left: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(251, 191, 36, 0.18);
+  color: var(--amber-400, #fbbf24);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  vertical-align: middle;
+}
+
+.pillParallel {
+  background: rgba(251, 191, 36, 0.18);
+  color: var(--amber-400, #fbbf24);
+}

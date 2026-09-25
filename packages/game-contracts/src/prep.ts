@@ -142,11 +142,20 @@ export const sceneTemplateSchema = z.object({
 });
 export type SceneTemplate = z.infer<typeof sceneTemplateSchema>;
 
+export const sessionPlanStepTrackSchema = z.enum(['main', 'parallel']);
+export type SessionPlanStepTrack = z.infer<typeof sessionPlanStepTrackSchema>;
+
 const sessionPlanStepBaseSchema = z.object({
   id: z.string().uuid(),
   title: z.string().trim().min(1),
   estimatedMinutes: z.number().int().nonnegative(),
   visibility: campaignVisibilitySchema,
+  /**
+   * 'main'     – part of the sequential session spine; gated by currentStepIndex.
+   * 'parallel' – available at any time regardless of progress (quests, handouts,
+   *              decision points, lore that can surface during any beat).
+   */
+  track: sessionPlanStepTrackSchema.default('main'),
 });
 
 const encounterDefinitionRefSchema = definitionRefSchema.extend({

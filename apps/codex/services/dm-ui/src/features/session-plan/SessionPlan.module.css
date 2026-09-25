@@ -749,3 +749,46 @@
     overflow-x: auto;
   }
 }
+
+/* ── Parallel threads ─────────────────────────────────────────────── */
+
+.trackDivider {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 4px 4px;
+  margin-top: 4px;
+  border-top: 1px dashed rgba(251, 191, 36, 0.25);
+}
+
+.trackDivider span {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--amber-400, #fbbf24);
+}
+
+.trackDivider small {
+  font-size: 10px;
+  color: var(--studio-text-subtle);
+}
+
+.parallelStep {
+  border-left: 2px solid rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.03);
+}
+
+.parallelBadge {
+  display: inline-block;
+  margin-left: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--amber-400, #fbbf24);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  vertical-align: middle;
+}
