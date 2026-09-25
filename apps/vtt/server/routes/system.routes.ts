@@ -95,7 +95,7 @@ export function createSystemRouter({
           idleConnections: poolStats.idleConnections,
           waitingRequests: poolStats.waitingRequests,
           totalConnections: poolStats.totalConnections,
-          latestMigration: '2026-07-19-room-entity-versions',
+          latestMigration: '2026-09-25-campaign-prep',
         },
         realtime: {
           enabled: socketStats.realtime.enabled,

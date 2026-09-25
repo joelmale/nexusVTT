@@ -11,6 +11,7 @@ import { CampaignActorRepository } from './repositories/CampaignActorRepository.
 import { CommandReceiptRepository } from './repositories/CommandReceiptRepository.js';
 import { LibraryObjectRepository } from './repositories/LibraryObjectRepository.js';
 import { EncounterRunRepository } from './repositories/EncounterRunRepository.js';
+import { CampaignPrepRepository } from './repositories/CampaignPrepRepository.js';
 import { DomainCommandService } from './commands/DomainCommandService.js';
 import type {
   DatabaseConfig,
@@ -26,6 +27,9 @@ export type {
   LibraryObjectRecord,
   LibraryObjectRevisionRecord,
   EncounterRunRecord,
+  CampaignPrepObjectRecord,
+  CampaignPrepObjectRevisionRecord,
+  CampaignPrepObjectLinkRecord,
 } from './repositories/base.js';
 
 export class DatabaseService {
@@ -39,6 +43,7 @@ export class DatabaseService {
   public commandReceipts: CommandReceiptRepository;
   public libraryObjects: LibraryObjectRepository;
   public encounterRuns: EncounterRunRepository;
+  public campaignPrep: CampaignPrepRepository;
   public domainCommands: DomainCommandService;
 
   constructor(config: DatabaseConfig) {
@@ -70,6 +75,7 @@ export class DatabaseService {
     this.commandReceipts = new CommandReceiptRepository(this.pool);
     this.libraryObjects = new LibraryObjectRepository(this.pool);
     this.encounterRuns = new EncounterRunRepository(this.pool);
+    this.campaignPrep = new CampaignPrepRepository(this.pool);
     this.domainCommands = new DomainCommandService(this);
 
     console.log('✅ Database connection pool and repositories created');

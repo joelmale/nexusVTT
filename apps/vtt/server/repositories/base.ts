@@ -157,6 +157,53 @@ export interface EncounterRunRecord {
   updatedAt: Date;
 }
 
+export type CampaignPrepObjectKind =
+  | 'note'
+  | 'npc'
+  | 'location'
+  | 'faction'
+  | 'quest'
+  | 'lore'
+  | 'clue'
+  | 'scene-template'
+  | 'campaign-map'
+  | 'session-plan';
+
+export type CampaignPrepObjectStatus =
+  'draft' | 'ready' | 'retired' | 'archived';
+
+export interface CampaignPrepObjectRecord {
+  id: string;
+  campaignId: string;
+  kind: CampaignPrepObjectKind;
+  title: string;
+  currentRevision: number;
+  status: CampaignPrepObjectStatus;
+  createdBy: string | null;
+  updatedBy: string | null;
+  createdAt: Date;
+  updatedAt: Date;
+}
+
+export interface CampaignPrepObjectRevisionRecord {
+  objectId: string;
+  revision: number;
+  schemaVersion: number;
+  data: unknown;
+  dependencyManifest: unknown[];
+  createdBy: string | null;
+  requestId: string;
+  createdAt: Date;
+}
+
+export interface CampaignPrepObjectLinkRecord {
+  sourceObjectId: string;
+  sourceRevision: number;
+  targetKey: string;
+  target: unknown;
+  createdAt: Date;
+}
+
 export abstract class BaseRepository {
   constructor(protected pool: Pool) {}
 

@@ -113,6 +113,12 @@ docker exec -i "$CONTAINER" psql -U nexus -d nexus \
   < apps/vtt/server/migrations/2026-07-19-add-durable-game-state-commits.sql
 docker exec -i "$CONTAINER" psql -U nexus -d nexus \
   < apps/vtt/server/migrations/2026-07-19-add-room-entity-versions.sql
+docker exec -i "$CONTAINER" psql -U nexus -d nexus \
+  < apps/vtt/server/migrations/2026-09-24-add-campaign-actors-and-domain-commands.sql
+docker exec -i "$CONTAINER" psql -U nexus -d nexus \
+  < apps/vtt/server/migrations/2026-09-24-add-encounter-runs.sql
+docker exec -i "$CONTAINER" psql -U nexus -d nexus \
+  < apps/vtt/server/migrations/2026-09-25-add-campaign-prep.sql
 ```
 
 ## Reverse Proxy

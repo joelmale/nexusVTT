@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import {
+  campaignObjectRefKey,
   campaignEntrySchema,
   sceneTemplateSchema,
   sessionPlanSchema,
@@ -76,6 +77,15 @@ describe('campaign preparation contracts', () => {
     expect(sessionPlanSchema.safeParse(fixture).success).toBe(false);
   });
 
+  it('rejects revision zero before persistence', () => {
+    const fixture = structuredClone(glassHarborSessionPlanFixture) as {
+      revision: number;
+    };
+    fixture.revision = 0;
+
+    expect(sessionPlanSchema.safeParse(fixture).success).toBe(false);
+  });
+
   it('rejects a non-encounter definition in a deployment step', () => {
     const fixture = structuredClone(glassHarborSessionPlanFixture);
     const record = fixture as {
@@ -118,5 +128,28 @@ describe('campaign preparation contracts', () => {
         'Session plan step IDs must be unique',
       );
     }
+  });
+
+  it('creates stable, revision-sensitive reference keys', () => {
+    const revisionOne = campaignObjectRefKey({
+      target: 'campaign-object',
+      campaignId: GLASS_HARBOR_IDS.campaign,
+      id: GLASS_HARBOR_IDS.harborScene,
+      revision: 1,
+    });
+    const revisionTwo = campaignObjectRefKey({
+      target: 'campaign-object',
+      campaignId: GLASS_HARBOR_IDS.campaign,
+      id: GLASS_HARBOR_IDS.harborScene,
+      revision: 2,
+    });
+
+    expect(revisionOne).not.toBe(revisionTwo);
+    expect(
+      campaignObjectRefKey({
+        target: 'document',
+        documentId: 'glass-harbor:source',
+      }),
+    ).toBe('["document","glass-harbor:source"]');
   });
 });

@@ -20,7 +20,7 @@ export const campaignObjectRevisionRefSchema = z.object({
   target: z.literal('campaign-object'),
   campaignId: z.string().uuid(),
   id: z.string().uuid(),
-  revision: z.number().int().nonnegative(),
+  revision: z.number().int().positive(),
 });
 
 export const definitionObjectRefSchema = z.object({
@@ -56,6 +56,37 @@ export const campaignObjectRefSchema = z.discriminatedUnion('target', [
 ]);
 export type CampaignObjectRef = z.infer<typeof campaignObjectRefSchema>;
 
+export function campaignObjectRefKey(reference: CampaignObjectRef): string {
+  switch (reference.target) {
+    case 'campaign-object':
+      return JSON.stringify([
+        reference.target,
+        reference.campaignId,
+        reference.id,
+        reference.revision,
+      ]);
+    case 'definition':
+      return JSON.stringify([
+        reference.target,
+        reference.ref.kind,
+        reference.ref.id,
+        reference.ref.revision,
+      ]);
+    case 'rules-entity':
+      return JSON.stringify([
+        reference.target,
+        reference.entityType,
+        reference.ruleset,
+        reference.slug,
+        reference.catalogVersion,
+      ]);
+    case 'document':
+      return JSON.stringify([reference.target, reference.documentId]);
+    case 'asset':
+      return JSON.stringify([reference.target, reference.assetId]);
+  }
+}
+
 export const lexicalContentSchema = z.object({
   format: z.literal('lexical'),
   schemaVersion: z.number().int().positive(),
@@ -67,7 +98,7 @@ export const campaignEntrySchema = z.object({
   id: z.string().uuid(),
   campaignId: z.string().uuid(),
   schemaVersion: z.number().int().positive(),
-  revision: z.number().int().nonnegative(),
+  revision: z.number().int().positive(),
   kind: campaignEntryKindSchema,
   title: z.string().trim().min(1),
   visibility: campaignVisibilitySchema,
@@ -83,7 +114,7 @@ export const sceneTemplateSchema = z.object({
   id: z.string().uuid(),
   campaignId: z.string().uuid(),
   schemaVersion: z.number().int().positive(),
-  revision: z.number().int().nonnegative(),
+  revision: z.number().int().positive(),
   name: z.string().trim().min(1),
   backgroundAssetRef: assetObjectRefSchema,
   grid: z.object({
@@ -151,7 +182,7 @@ export const sessionPlanSchema = z
     id: z.string().uuid(),
     campaignId: z.string().uuid(),
     schemaVersion: z.number().int().positive(),
-    revision: z.number().int().nonnegative(),
+    revision: z.number().int().positive(),
     title: z.string().trim().min(1),
     status: z.enum(['draft', 'ready', 'retired']),
     steps: z.array(sessionPlanStepSchema).min(1),

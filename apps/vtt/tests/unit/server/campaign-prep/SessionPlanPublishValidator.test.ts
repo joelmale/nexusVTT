@@ -280,6 +280,19 @@ describe('SessionPlanPublishValidator', () => {
     );
   });
 
+  it('does not publish an already-ready revision again', async () => {
+    const plan = createGlassHarborPlan();
+    plan.status = 'ready';
+    const validator = new SessionPlanPublishValidator(createResolver());
+
+    const result = await validator.validate(plan, context);
+
+    expect(result.canPublish).toBe(false);
+    expect(result.issues).toContainEqual(
+      expect.objectContaining({ code: 'already-ready-plan' }),
+    );
+  });
+
   it('rejects a scene reference that resolves to the wrong object type', async () => {
     const resolver = createResolver(
       new Map([

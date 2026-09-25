@@ -1,6 +1,8 @@
 import { describe, it, expect, beforeAll, afterAll, beforeEach } from 'vitest';
 import { Pool } from 'pg';
+import { randomUUID } from 'crypto';
 import { DatabaseService, createDatabaseService } from '../../server/database';
+import { CampaignPrepRevisionConflictError } from '../../server/repositories/CampaignPrepRepository';
 import { EntityVersionConflictError } from '../../server/repositories/EventJournalRepository';
 import {
   createEmptySyncableGameState,
@@ -71,6 +73,94 @@ describeDatabase('DatabaseService Integration Tests', () => {
     expect(tableNames).toContain('users');
     expect(tableNames).toContain('campaigns');
     expect(tableNames).toContain('characters');
+    expect(tableNames).toContain('campaign_objects');
+    expect(tableNames).toContain('campaign_object_revisions');
+    expect(tableNames).toContain('campaign_object_links');
+  });
+
+  it('persists campaign prep revisions and current backlinks atomically', async () => {
+    const noteId = randomUUID();
+    const planId = randomUUID();
+    const noteReference = {
+      target: 'campaign-object' as const,
+      campaignId: testCampaignId,
+      id: noteId,
+      revision: 1,
+    };
+
+    await dbService.campaignPrep.createObject(
+      {
+        id: noteId,
+        campaignId: testCampaignId,
+        kind: 'note',
+        title: "Harbormaster's Warning",
+        status: 'ready',
+        createdBy: testHostId,
+      },
+      {
+        revision: 1,
+        schemaVersion: 1,
+        data: { title: "Harbormaster's Warning" },
+        dependencies: [],
+        createdBy: testHostId,
+        requestId: randomUUID(),
+      },
+    );
+    await dbService.campaignPrep.createObject(
+      {
+        id: planId,
+        campaignId: testCampaignId,
+        kind: 'session-plan',
+        title: 'Session 12 - The Glass Harbor',
+        createdBy: testHostId,
+      },
+      {
+        revision: 1,
+        schemaVersion: 1,
+        data: { title: 'Session 12 - The Glass Harbor', status: 'draft' },
+        dependencies: [noteReference],
+        createdBy: testHostId,
+        requestId: randomUUID(),
+      },
+    );
+
+    const updated = await dbService.campaignPrep.addRevision(
+      testCampaignId,
+      planId,
+      1,
+      {
+        revision: 2,
+        schemaVersion: 1,
+        data: { title: 'Session 12 - The Glass Harbor', status: 'ready' },
+        dependencies: [noteReference],
+        createdBy: testHostId,
+        requestId: randomUUID(),
+        status: 'ready',
+      },
+    );
+
+    expect(updated.object).toMatchObject({
+      currentRevision: 2,
+      status: 'ready',
+    });
+    await expect(
+      dbService.campaignPrep.getBacklinks(noteReference),
+    ).resolves.toEqual([
+      expect.objectContaining({
+        sourceObjectId: planId,
+        sourceRevision: 2,
+      }),
+    ]);
+    await expect(
+      dbService.campaignPrep.addRevision(testCampaignId, planId, 1, {
+        revision: 2,
+        schemaVersion: 1,
+        data: {},
+        dependencies: [],
+        createdBy: testHostId,
+        requestId: randomUUID(),
+      }),
+    ).rejects.toBeInstanceOf(CampaignPrepRevisionConflictError);
   });
 
   describe('Session Operations', () => {

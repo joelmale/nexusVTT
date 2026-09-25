@@ -1,4 +1,5 @@
 import {
+  campaignObjectRefKey,
   sessionPlanSchema,
   type CampaignObjectRef,
   type SessionPlan,
@@ -35,6 +36,7 @@ export interface PrepDependencyResolver {
 export type SessionPlanPublishIssueCode =
   | 'invalid-plan'
   | 'campaign-mismatch'
+  | 'already-ready-plan'
   | 'retired-plan'
   | 'cross-campaign-reference'
   | 'missing-manifest-entry'
@@ -67,37 +69,6 @@ interface StepDependency {
   reference: CampaignObjectRef;
   expectedType: PrepDependencyObjectType;
   path: string;
-}
-
-function referenceKey(reference: CampaignObjectRef): string {
-  switch (reference.target) {
-    case 'campaign-object':
-      return [
-        reference.target,
-        reference.campaignId,
-        reference.id,
-        reference.revision,
-      ].join(':');
-    case 'definition':
-      return [
-        reference.target,
-        reference.ref.kind,
-        reference.ref.id,
-        reference.ref.revision,
-      ].join(':');
-    case 'rules-entity':
-      return [
-        reference.target,
-        reference.entityType,
-        reference.ruleset,
-        reference.slug,
-        reference.catalogVersion,
-      ].join(':');
-    case 'document':
-      return `${reference.target}:${reference.documentId}`;
-    case 'asset':
-      return `${reference.target}:${reference.assetId}`;
-  }
 }
 
 function getStepDependencies(plan: SessionPlan): StepDependency[] {
@@ -151,7 +122,7 @@ function getManifest(
   const keys = new Set<string>();
 
   for (const reference of plan.dependencies) {
-    const key = referenceKey(reference);
+    const key = campaignObjectRefKey(reference);
     if (!keys.has(key)) {
       references.push(reference);
       keys.add(key);
@@ -159,7 +130,7 @@ function getManifest(
   }
 
   for (const dependency of stepDependencies) {
-    const key = referenceKey(dependency.reference);
+    const key = campaignObjectRefKey(dependency.reference);
     if (!keys.has(key)) {
       references.push(dependency.reference);
       keys.add(key);
@@ -193,7 +164,7 @@ export class SessionPlanPublishValidator {
     const issues: SessionPlanPublishIssue[] = [];
     const stepDependencies = getStepDependencies(plan);
     const dependencyManifest = getManifest(plan, stepDependencies);
-    const declaredKeys = new Set(plan.dependencies.map(referenceKey));
+    const declaredKeys = new Set(plan.dependencies.map(campaignObjectRefKey));
 
     if (plan.campaignId !== context.campaignId) {
       issues.push({
@@ -211,8 +182,16 @@ export class SessionPlanPublishValidator {
       });
     }
 
+    if (plan.status === 'ready') {
+      issues.push({
+        code: 'already-ready-plan',
+        message: 'A ready session plan revision is already published',
+        path: 'status',
+      });
+    }
+
     for (const dependency of stepDependencies) {
-      if (!declaredKeys.has(referenceKey(dependency.reference))) {
+      if (!declaredKeys.has(campaignObjectRefKey(dependency.reference))) {
         issues.push({
           code: 'missing-manifest-entry',
           message: 'A session step dependency is absent from the plan manifest',
@@ -255,7 +234,8 @@ export class SessionPlanPublishValidator {
 
       const stepUses = stepDependencies.filter(
         (dependency) =>
-          referenceKey(dependency.reference) === referenceKey(reference),
+          campaignObjectRefKey(dependency.reference) ===
+          campaignObjectRefKey(reference),
       );
       for (const stepUse of stepUses) {
         if (resolution.objectType !== stepUse.expectedType) {

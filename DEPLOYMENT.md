@@ -36,6 +36,9 @@ Before updating backend replicas on an existing database, ensure the following m
 
 1. `2026-01-05-add-campaign-roomcode.sql`
 2. The three `2026-07-19` durability migrations (event-journal, game-state, entity-version order).
+3. `2026-09-24-add-campaign-actors-and-domain-commands.sql`
+4. `2026-09-24-add-encounter-runs.sql`
+5. `2026-09-25-add-campaign-prep.sql`
 
 Health checks:
 
