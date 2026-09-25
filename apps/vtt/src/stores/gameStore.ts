@@ -697,7 +697,11 @@ export const useGameStore = create<GameStore>()(
 
       updateCamera: (cameraUpdates) => {
         set((state) => {
-          Object.assign(state.sceneState.camera, cameraUpdates);
+          if (!state.sceneState.camera) {
+            state.sceneState.camera = { x: 0, y: 0, zoom: 0.54, ...cameraUpdates };
+          } else {
+            Object.assign(state.sceneState.camera, cameraUpdates);
+          }
         });
       },
 

@@ -132,6 +132,7 @@ describe('SessionPlanPanel', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     useGameStore.setState({
+      syncGameStateToServer: vi.fn(),
       user: {
         id: 'dm-user-1',
         name: 'Game Master',
@@ -241,6 +242,122 @@ describe('SessionPlanPanel', () => {
     await waitFor(() => {
       expect(screen.getByText(/switched to scene: glass harbor docks/i)).toBeInTheDocument();
     });
+  });
+
+  it('instantiates and activates scene with background map from template when not yet in room', async () => {
+    vi.mocked(campaignPrepClient.getActiveSessionPlan).mockResolvedValueOnce({
+      activation: { ...mockActivation, currentStepIndex: 1 },
+      plan: mockPlan,
+    });
+
+    // Set initial default empty room state (Scene 1 with no background)
+    useGameStore.setState({
+      syncGameStateToServer: vi.fn(),
+      sceneState: {
+        activeSceneId: 'scene-1',
+        scenes: [
+          {
+            id: 'scene-1',
+            name: 'Scene 1',
+            roomCode: 'room-abc',
+            description: '',
+            visibility: 'public',
+            isEditable: true,
+            createdBy: 'dm-user-1',
+            createdAt: Date.now(),
+            updatedAt: Date.now(),
+            gridSettings: {
+              enabled: true,
+              type: 'square',
+              size: 50,
+              color: '#ffffff',
+              opacity: 0.1,
+              snapToGrid: true,
+              showToPlayers: true,
+            },
+            lightingSettings: {
+              enabled: false,
+              globalIllumination: true,
+              ambientLight: 0.5,
+              darkness: 0,
+            },
+            drawings: [],
+            placedTokens: [],
+            placedProps: [],
+            isActive: true,
+            playerCount: 0,
+          },
+        ],
+        camera: { x: 0, y: 0, zoom: 1 },
+        activeTool: 'select',
+        followDM: false,
+      },
+    });
+
+    const originalFetch = globalThis.fetch;
+    const fetchSpy = vi.fn().mockImplementation((url: string) => {
+      if (url.includes('/prep/objects/')) {
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: () =>
+            Promise.resolve({
+              revision: {
+                data: {
+                  id: 'scene-docks-1',
+                  name: 'Glass Harbor Docks',
+                  backgroundAssetRef: {
+                    target: 'asset',
+                    assetId: 'glass-harbor-map',
+                  },
+                  grid: {
+                    enabled: true,
+                    type: 'square',
+                    size: 100,
+                    offsetX: 0,
+                    offsetY: 0,
+                    snapToGrid: true,
+                  },
+                  lighting: {
+                    enabled: true,
+                    globalIllumination: false,
+                    ambientLight: 0.35,
+                    darkness: 0.65,
+                  },
+                },
+              },
+            }),
+        } as Response);
+      }
+      return Promise.resolve({
+        ok: true,
+        status: 200,
+        json: () => Promise.resolve([]),
+      } as Response);
+    });
+    globalThis.fetch = fetchSpy;
+
+    try {
+      render(<SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />);
+
+      await waitFor(() => {
+        expect(screen.getByText('Glass Harbor Docks Scene')).toBeInTheDocument();
+      });
+
+      const activateBtn = screen.getByRole('button', { name: /activate scene/i });
+      fireEvent.click(activateBtn);
+
+      await waitFor(() => {
+        expect(screen.getByText(/activated scene: glass harbor docks/i)).toBeInTheDocument();
+      });
+
+      const updatedScene = useGameStore.getState().sceneState.scenes[0];
+      expect(updatedScene.name).toBe('Glass Harbor Docks');
+      expect(updatedScene.backgroundImage?.url).toBe('/demo/ashes-of-veyra/glass-harbor-map.png');
+      expect(updatedScene.gridSettings.size).toBe(100);
+    } finally {
+      globalThis.fetch = originalFetch;
+    }
   });
 
   it('handles deploying and starting an encounter', async () => {

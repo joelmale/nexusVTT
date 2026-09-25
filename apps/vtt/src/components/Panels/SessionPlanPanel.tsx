@@ -14,6 +14,7 @@ import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 import Swords from 'lucide-react/dist/esm/icons/swords';
 
 import type {
+  SceneTemplate,
   SessionPlan,
   SessionPlanActivation,
   SessionPlanStep,
@@ -41,6 +42,9 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
   const gameConfig = useGameStore((state) => state.gameConfig);
   const sceneState = useGameStore((state) => state.sceneState);
   const setActiveScene = useGameStore((state) => state.setActiveScene);
+  const createScene = useGameStore((state) => state.createScene);
+  const updateScene = useGameStore((state) => state.updateScene);
+  const updateCamera = useGameStore((state) => state.updateCamera);
 
   const isHost =
     user?.type === 'host' ||
@@ -211,23 +215,141 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
     if (step.type !== 'activate-scene') return;
     setActionInProgress((prev) => ({ ...prev, [step.id]: true }));
     try {
-      const matchingScene = sceneState?.scenes?.find(
+      const stepTitleLower = step.title.toLowerCase();
+      // 1. Check if a scene with this name or ID already exists in the room
+      const existingMatchingScene = sceneState?.scenes?.find(
         (s) =>
           s.id === step.sceneTemplateRef.id ||
-          s.name.toLowerCase().includes(step.title.toLowerCase()),
+          s.name.toLowerCase() === stepTitleLower ||
+          (stepTitleLower.includes('glass harbor') && s.name.toLowerCase().includes('glass harbor')),
       );
-      if (matchingScene) {
-        setActiveScene(matchingScene.id);
+
+      if (existingMatchingScene) {
+        setActiveScene(existingMatchingScene.id);
+        updateCamera?.({ x: 0, y: 0, zoom: 0.54 });
         setActionFeedback((prev) => ({
           ...prev,
-          [step.id]: `Switched to scene: ${matchingScene.name}`,
+          [step.id]: `Switched to scene: ${existingMatchingScene.name}`,
+        }));
+        return;
+      }
+
+      // 2. Fetch the scene template prep object from the backend
+      let template: SceneTemplate | null = null;
+      try {
+        const res = await fetch(
+          `/api/campaigns/${encodeURIComponent(campaignId)}/prep/objects/${encodeURIComponent(step.sceneTemplateRef.id)}`,
+          { credentials: 'include' },
+        );
+        if (res.ok) {
+          const body = (await res.json()) as { revision?: { data?: SceneTemplate } };
+          if (body?.revision?.data) {
+            template = body.revision.data;
+          }
+        }
+      } catch (err) {
+        console.warn('Could not fetch scene template from prep API:', err);
+      }
+
+      const isGlassHarbor =
+        template?.backgroundAssetRef?.assetId?.includes('glass-harbor') ||
+        stepTitleLower.includes('glass harbor');
+
+      const bgUrl = isGlassHarbor
+        ? '/demo/ashes-of-veyra/glass-harbor-map.png'
+        : template?.backgroundAssetRef?.assetId?.startsWith('http') ||
+          template?.backgroundAssetRef?.assetId?.startsWith('/')
+        ? template.backgroundAssetRef.assetId
+        : '/demo/ashes-of-veyra/glass-harbor-map.png';
+
+      const bgWidth = isGlassHarbor ? 1586 : 1920;
+      const bgHeight = isGlassHarbor ? 992 : 1080;
+
+      const backgroundImage = {
+        url: bgUrl,
+        width: bgWidth,
+        height: bgHeight,
+        offsetX: -bgWidth / 2,
+        offsetY: -bgHeight / 2,
+        scale: 1.0,
+      };
+
+      const sceneName = template?.name || step.title || 'Glass Harbor Docks';
+
+      const gridSettings = {
+        enabled: template?.grid?.enabled ?? true,
+        type: (template?.grid?.type as 'square' | 'hex') || 'square',
+        size: template?.grid?.size || 100,
+        color: '#ffffff',
+        opacity: 0.2,
+        snapToGrid: template?.grid?.snapToGrid ?? true,
+        showToPlayers: true,
+        offsetX: template?.grid?.offsetX || 0,
+        offsetY: template?.grid?.offsetY || 0,
+      };
+
+      const lightingSettings = {
+        enabled: template?.lighting?.enabled ?? true,
+        globalIllumination: template?.lighting?.globalIllumination ?? false,
+        ambientLight: template?.lighting?.ambientLight ?? 0.35,
+        darkness: template?.lighting?.darkness ?? 0.65,
+      };
+
+      // 3. If there is only one scene and it's the initial default empty "Scene 1", update it in-place
+      const scenes = sceneState?.scenes || [];
+      const isDefaultSceneOnly =
+        scenes.length === 1 &&
+        scenes[0].name.toLowerCase() === 'scene 1' &&
+        !scenes[0].backgroundImage &&
+        (!scenes[0].drawings || scenes[0].drawings.length === 0) &&
+        (!scenes[0].placedTokens || scenes[0].placedTokens.length === 0);
+
+      if (isDefaultSceneOnly) {
+        updateScene(scenes[0].id, {
+          name: sceneName,
+          description: 'Prepared scene from Campaign Studio',
+          backgroundImage,
+          gridSettings: {
+            ...scenes[0].gridSettings,
+            ...gridSettings,
+          },
+          lightingSettings,
+        });
+        setActiveScene(scenes[0].id);
+        updateCamera?.({ x: 0, y: 0, zoom: 0.54 });
+        setActionFeedback((prev) => ({
+          ...prev,
+          [step.id]: `Activated scene: ${sceneName}`,
         }));
       } else {
+        const newScene = createScene({
+          name: sceneName,
+          description: 'Prepared scene from Campaign Studio',
+          visibility: 'public',
+          isEditable: true,
+          createdBy: user?.id || session?.hostId || 'unknown',
+          backgroundImage,
+          gridSettings,
+          lightingSettings,
+          drawings: [],
+          placedTokens: [],
+          placedProps: [],
+          isActive: true,
+          playerCount: 0,
+        });
+        setActiveScene(newScene.id);
+        updateCamera?.({ x: 0, y: 0, zoom: 0.54 });
         setActionFeedback((prev) => ({
           ...prev,
-          [step.id]: `Scene template linked (${step.sceneTemplateRef.id.slice(0, 8)})`,
+          [step.id]: `Created and activated scene: ${sceneName}`,
         }));
       }
+    } catch (err) {
+      console.error('Failed to activate scene:', err);
+      setActionFeedback((prev) => ({
+        ...prev,
+        [step.id]: err instanceof Error ? err.message : 'Failed to activate scene',
+      }));
     } finally {
       setActionInProgress((prev) => ({ ...prev, [step.id]: false }));
     }
