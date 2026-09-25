@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "target": "es2022",
-    "module": "commonjs",
+    "module": "ESNext",
     "lib": ["es2022"],
     "declaration": true,
     "sourceMap": true,
@@ -11,7 +11,7 @@
     "esModuleInterop": true,
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
-    "moduleResolution": "node"
+    "moduleResolution": "bundler"
   },
   "include": ["src/**/*"]
 }

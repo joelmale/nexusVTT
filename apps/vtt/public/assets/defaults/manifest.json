@@ -1,6 +1,6 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-01-06T02:59:57.454Z",
+  "generatedAt": "2026-09-25T21:10:43.090Z",
   "totalAssets": 66,
   "tokens": {
     "count": 11,
@@ -100,6 +100,21 @@
       {
         "id": "default-token-7",
         "type": "token",
+        "name": "Halfling Ranger",
+        "category": "pc",
+        "size": "small",
+        "tags": [
+          "halfling",
+          "ranger"
+        ],
+        "path": "/assets/defaults/tokens/HalflingRanger.webp",
+        "thumbnail": "/assets/defaults/tokens/thumbnails/HalflingRanger.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-token-8",
+        "type": "token",
         "name": "Half Orc Artificer",
         "category": "pc",
         "size": "medium",
@@ -110,21 +125,6 @@
         ],
         "path": "/assets/defaults/tokens/HalfOrcArtificer.webp",
         "thumbnail": "/assets/defaults/tokens/thumbnails/HalfOrcArtificer.thumb.jpg",
-        "format": "webp",
-        "isDefault": true
-      },
-      {
-        "id": "default-token-8",
-        "type": "token",
-        "name": "Halfling Ranger",
-        "category": "pc",
-        "size": "small",
-        "tags": [
-          "halfling",
-          "ranger"
-        ],
-        "path": "/assets/defaults/tokens/HalflingRanger.webp",
-        "thumbnail": "/assets/defaults/tokens/thumbnails/HalflingRanger.thumb.jpg",
         "format": "webp",
         "isDefault": true
       },
@@ -626,6 +626,34 @@
       {
         "id": "default-map-28",
         "type": "map",
+        "name": "castle courtyard",
+        "category": "urban",
+        "gridSize": null,
+        "tags": [
+          "castle",
+          "courtyard"
+        ],
+        "path": "/assets/defaults/base_maps/castle courtyard.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-29",
+        "type": "map",
+        "name": "city battlements",
+        "category": "urban",
+        "gridSize": null,
+        "tags": [
+          "city",
+          "battlements"
+        ],
+        "path": "/assets/defaults/base_maps/city battlements.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-30",
+        "type": "map",
         "name": "City Park",
         "category": "urban",
         "gridSize": null,
@@ -638,7 +666,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-29",
+        "id": "default-map-31",
         "type": "map",
         "name": "Cliffside Observatory [50x65] -WM",
         "category": "outdoor",
@@ -656,7 +684,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-30",
+        "id": "default-map-32",
         "type": "map",
         "name": "Colossal Turtle, Sea Turtle, Day (44x32)",
         "category": "outdoor",
@@ -675,7 +703,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-31",
+        "id": "default-map-33",
         "type": "map",
         "name": "Crab Rock - Seaside - Clear - 44x32",
         "category": "outdoor",
@@ -693,7 +721,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-32",
+        "id": "default-map-34",
         "type": "map",
         "name": "Cramp City Street and Alleys [25x45] - WM",
         "category": "urban",
@@ -713,7 +741,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-33",
+        "id": "default-map-35",
         "type": "map",
         "name": "Cyclops Cave",
         "category": "dungeon",
@@ -727,7 +755,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-34",
+        "id": "default-map-36",
         "type": "map",
         "name": "Docks of the Dead  - Base map - Day - Top - 23x16",
         "category": "urban",
@@ -744,7 +772,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-35",
+        "id": "default-map-37",
         "type": "map",
         "name": "Docks of the Dead - Base map - Night - Bottom - 23x16",
         "category": "urban",
@@ -761,7 +789,22 @@
         "isDefault": true
       },
       {
-        "id": "default-map-36",
+        "id": "default-map-38",
+        "type": "map",
+        "name": "Forgotten Chamber of Heros",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "forgotten",
+          "chamber",
+          "heros"
+        ],
+        "path": "/assets/defaults/base_maps/Forgotten Chamber of Heros.webp",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-39",
         "type": "map",
         "name": "FREE Cliffside Dragon Remains [25x25](1)",
         "category": "outdoor",
@@ -780,22 +823,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-37",
-        "type": "map",
-        "name": "Forgotten Chamber of Heros",
-        "category": "dungeon",
-        "gridSize": null,
-        "tags": [
-          "forgotten",
-          "chamber",
-          "heros"
-        ],
-        "path": "/assets/defaults/base_maps/Forgotten Chamber of Heros.webp",
-        "format": "webp",
-        "isDefault": true
-      },
-      {
-        "id": "default-map-38",
+        "id": "default-map-40",
         "type": "map",
         "name": "Frozen Pond",
         "category": "outdoor",
@@ -809,7 +837,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-39",
+        "id": "default-map-41",
         "type": "map",
         "name": "Gareth's Rescue",
         "category": "outdoor",
@@ -823,7 +851,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-40",
+        "id": "default-map-42",
         "type": "map",
         "name": "Jail House",
         "category": "indoor",
@@ -837,7 +865,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-41",
+        "id": "default-map-43",
         "type": "map",
         "name": "King of the Giants",
         "category": "outdoor",
@@ -851,7 +879,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-42",
+        "id": "default-map-44",
         "type": "map",
         "name": "Lakeside Camp - Spring - Day - 44x32",
         "category": "outdoor",
@@ -868,7 +896,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-43",
+        "id": "default-map-45",
         "type": "map",
         "name": "Mountain Pass",
         "category": "outdoor",
@@ -882,7 +910,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-44",
+        "id": "default-map-46",
         "type": "map",
         "name": "Overgrown Guardhouse",
         "category": "indoor",
@@ -896,7 +924,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-45",
+        "id": "default-map-47",
         "type": "map",
         "name": "Overgrown Viking Throne [25x25] - WM",
         "category": "outdoor",
@@ -915,7 +943,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-46",
+        "id": "default-map-48",
         "type": "map",
         "name": "Rope Bridge [18x28] - WM",
         "category": "outdoor",
@@ -933,7 +961,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-47",
+        "id": "default-map-49",
         "type": "map",
         "name": "Shattered Sky - Astral Sea - Blue Star - 22x16 - 72 DPI vtt",
         "category": "outdoor",
@@ -952,7 +980,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-48",
+        "id": "default-map-50",
         "type": "map",
         "name": "Shifting Swamp - Jungle - 23x16",
         "category": "outdoor",
@@ -970,7 +998,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-49",
+        "id": "default-map-51",
         "type": "map",
         "name": "Sinister Woodland - Swamp - Day - Open - 44x32 vtt",
         "category": "outdoor",
@@ -988,7 +1016,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-50",
+        "id": "default-map-52",
         "type": "map",
         "name": "Slane the Winter Dragon",
         "category": "outdoor",
@@ -1002,7 +1030,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-51",
+        "id": "default-map-53",
         "type": "map",
         "name": "Tear of the Goddess",
         "category": "outdoor",
@@ -1016,7 +1044,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-52",
+        "id": "default-map-54",
         "type": "map",
         "name": "Undervault Market [30x40] - WM",
         "category": "dungeon",
@@ -1034,7 +1062,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-53",
+        "id": "default-map-55",
         "type": "map",
         "name": "Winery [50x46] - WM",
         "category": "indoor",
@@ -1047,34 +1075,6 @@
           "[50x46]"
         ],
         "path": "/assets/defaults/base_maps/Winery [50x46] - WM.webp",
-        "format": "webp",
-        "isDefault": true
-      },
-      {
-        "id": "default-map-54",
-        "type": "map",
-        "name": "castle courtyard",
-        "category": "urban",
-        "gridSize": null,
-        "tags": [
-          "castle",
-          "courtyard"
-        ],
-        "path": "/assets/defaults/base_maps/castle courtyard.webp",
-        "format": "webp",
-        "isDefault": true
-      },
-      {
-        "id": "default-map-55",
-        "type": "map",
-        "name": "city battlements",
-        "category": "urban",
-        "gridSize": null,
-        "tags": [
-          "city",
-          "battlements"
-        ],
-        "path": "/assets/defaults/base_maps/city battlements.webp",
         "format": "webp",
         "isDefault": true
       }

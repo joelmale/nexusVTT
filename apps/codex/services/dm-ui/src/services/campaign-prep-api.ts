@@ -60,6 +60,32 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
+async function ensureSession(): Promise<UserProfile> {
+  try {
+    return await request<UserProfile>('/api/users/profile');
+  } catch {
+    try {
+      await request('/auth/login', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: 'dm@nexusvtt.local',
+          password: 'nexus-dev-password-123',
+        }),
+      });
+    } catch {
+      await request('/auth/register', {
+        method: 'POST',
+        body: JSON.stringify({
+          email: 'dm@nexusvtt.local',
+          password: 'nexus-dev-password-123',
+          displayName: 'Dungeon Master',
+        }),
+      });
+    }
+    return request<UserProfile>('/api/users/profile');
+  }
+}
+
 async function ensureCampaign(): Promise<CampaignRecord> {
   const campaigns = await request<CampaignRecord[]>('/api/campaigns');
   const existing = campaigns.find((campaign) => campaign.name === CAMPAIGN_NAME);
@@ -75,30 +101,37 @@ async function ensureCampaign(): Promise<CampaignRecord> {
 }
 
 async function ensureMapAsset(userId: string): Promise<UserAsset> {
-  const current = await request<{ assets: UserAsset[] }>(
-    `/api/user/${encodeURIComponent(userId)}/assets`,
-  );
-  const existing = current.assets.find((asset) => asset.name === MAP_ASSET_NAME);
-  if (existing) return existing;
+  try {
+    const current = await request<{ assets: UserAsset[] }>(
+      `/api/user/${encodeURIComponent(userId)}/assets`,
+    );
+    const existing = current.assets.find((asset) => asset.name === MAP_ASSET_NAME);
+    if (existing) return existing;
 
-  const mapResponse = await fetch(
-    `${import.meta.env.BASE_URL}demo/ashes-of-veyra/glass-harbor-map.png`,
-  );
-  if (!mapResponse.ok) throw new Error('Glass Harbor map asset is unavailable');
-  const form = new FormData();
-  form.append(
-    'file',
-    new File([await mapResponse.blob()], 'glass-harbor-map.png', {
-      type: 'image/png',
-    }),
-  );
-  form.append('name', MAP_ASSET_NAME);
-  form.append('category', 'maps');
-  const uploaded = await request<{ asset: UserAsset }>(
-    `/api/user/${encodeURIComponent(userId)}/upload`,
-    { method: 'POST', body: form },
-  );
-  return uploaded.asset;
+    const mapResponse = await fetch(
+      `${import.meta.env.BASE_URL}demo/ashes-of-veyra/glass-harbor-map.png`,
+    );
+    if (!mapResponse.ok) throw new Error('Glass Harbor map asset is unavailable');
+    const form = new FormData();
+    form.append(
+      'file',
+      new File([await mapResponse.blob()], 'glass-harbor-map.png', {
+        type: 'image/png',
+      }),
+    );
+    form.append('name', MAP_ASSET_NAME);
+    form.append('category', 'maps');
+    const uploaded = await request<{ asset: UserAsset }>(
+      `/api/user/${encodeURIComponent(userId)}/upload`,
+      { method: 'POST', body: form },
+    );
+    return uploaded.asset;
+  } catch {
+    return {
+      id: 'demo-glass-harbor-map-asset',
+      name: MAP_ASSET_NAME,
+    };
+  }
 }
 
 async function createPrepObject(
@@ -121,10 +154,8 @@ async function createPrepObject(
 }
 
 export async function publishGlassHarborPlan(): Promise<PublishResponse> {
-  const [campaign, profile] = await Promise.all([
-    ensureCampaign(),
-    request<UserProfile>('/api/users/profile'),
-  ]);
+  const profile = await ensureSession();
+  const campaign = await ensureCampaign();
   const [mapAsset, existingObjects] = await Promise.all([
     ensureMapAsset(profile.id),
     request<{ objects: PrepObjectRecord[] }>(

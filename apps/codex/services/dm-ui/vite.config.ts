@@ -32,6 +32,10 @@ export default defineConfig({
         target: process.env.VITE_VTT_API_URL || 'http://localhost:5001',
         changeOrigin: true
       },
+      '/auth': {
+        target: process.env.VITE_VTT_API_URL || 'http://localhost:5001',
+        changeOrigin: true
+      },
       '/codex-api': {
         target: process.env.VITE_DOC_API_URL || 'http://localhost:3000',
         changeOrigin: true,
