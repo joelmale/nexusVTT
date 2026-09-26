@@ -1,6 +1,8 @@
 import type {
+  CampaignEntry,
   SessionPlan,
   SessionPlanActivation,
+  SessionPlanActivationStatus,
   SessionPlanStepState,
 } from '@nexus/game-contracts';
 
@@ -14,8 +16,20 @@ export interface ActivePlanResponse {
 }
 
 export interface UpdateProgressPayload {
-  currentStepIndex: number;
+  currentStepIndex?: number;
+  status?: SessionPlanActivationStatus;
   stepStates?: Record<string, SessionPlanStepState>;
+}
+
+export interface CampaignEntryResponse {
+  object: {
+    id: string;
+    kind: string;
+    title: string;
+  };
+  revision: {
+    data: CampaignEntry;
+  };
 }
 
 export class CampaignPrepClient {
@@ -32,7 +46,9 @@ export class CampaignPrepClient {
     campaignId: string,
     sessionId?: string,
   ): Promise<ActivePlanResponse | null> {
-    const query = sessionId ? `?sessionId=${encodeURIComponent(sessionId)}` : '';
+    const query = sessionId
+      ? `?sessionId=${encodeURIComponent(sessionId)}`
+      : '';
     const res = await fetch(
       `${this.baseUrl}/api/campaigns/${encodeURIComponent(campaignId)}/session-plans/active${query}`,
       {
@@ -47,7 +63,9 @@ export class CampaignPrepClient {
 
     if (!res.ok) {
       const errorText = await res.text().catch(() => 'Request failed');
-      throw new Error(`Failed to fetch active session plan (${res.status}): ${errorText}`);
+      throw new Error(
+        `Failed to fetch active session plan (${res.status}): ${errorText}`,
+      );
     }
 
     return (await res.json()) as ActivePlanResponse;
@@ -73,11 +91,35 @@ export class CampaignPrepClient {
 
     if (!res.ok) {
       const errorText = await res.text().catch(() => 'Request failed');
-      throw new Error(`Failed to update session plan progress (${res.status}): ${errorText}`);
+      throw new Error(
+        `Failed to update session plan progress (${res.status}): ${errorText}`,
+      );
     }
 
     const data = (await res.json()) as { activation: SessionPlanActivation };
     return data.activation;
+  }
+
+  async getCampaignEntry(
+    campaignId: string,
+    entryId: string,
+  ): Promise<CampaignEntryResponse> {
+    const res = await fetch(
+      `${this.baseUrl}/api/campaigns/${encodeURIComponent(campaignId)}/prep/objects/${encodeURIComponent(entryId)}`,
+      {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => 'Request failed');
+      throw new Error(
+        `Failed to fetch campaign entry (${res.status}): ${errorText}`,
+      );
+    }
+
+    return (await res.json()) as CampaignEntryResponse;
   }
 
   /**
@@ -105,7 +147,9 @@ export class CampaignPrepClient {
 
     if (!res.ok) {
       const errorText = await res.text().catch(() => 'Request failed');
-      throw new Error(`Failed to activate session plan (${res.status}): ${errorText}`);
+      throw new Error(
+        `Failed to activate session plan (${res.status}): ${errorText}`,
+      );
     }
 
     return (await res.json()) as ActivePlanResponse;

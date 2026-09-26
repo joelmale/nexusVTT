@@ -38,7 +38,6 @@ export class SessionPlanActivationError extends Error {
   }
 }
 
-
 interface CampaignPrepRevisionInput {
   revision: number;
   schemaVersion: number;
@@ -78,7 +77,7 @@ export interface ActivateSessionPlanInput {
 export interface UpdateSessionPlanActivationProgressInput {
   campaignId: string;
   activationId: string;
-  currentStepIndex: number;
+  currentStepIndex?: number;
   stepStates?: Record<string, unknown>;
   status?: SessionPlanActivationStatus;
 }
@@ -415,9 +414,14 @@ export class CampaignPrepRepository extends BaseRepository {
     const executor = this.getExecutor(client);
     const result = await executor.query<SessionPlanActivationRecord>(
       `UPDATE session_plan_activations
-       SET "currentStepIndex" = $3,
+       SET "currentStepIndex" = COALESCE($3, "currentStepIndex"),
            "stepStates" = COALESCE($4::jsonb, "stepStates"),
            status = COALESCE($5, status),
+           "completedAt" = CASE
+             WHEN $5 = 'completed' THEN COALESCE("completedAt", NOW())
+             WHEN $5 = 'active' THEN NULL
+             ELSE "completedAt"
+           END,
            "updatedAt" = NOW()
        WHERE id = $1 AND "campaignId" = $2
        RETURNING *`,
@@ -438,7 +442,6 @@ export class CampaignPrepRepository extends BaseRepository {
     }
     return updated;
   }
-
 
   private async insertRevision(
     objectId: string,

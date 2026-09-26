@@ -27,6 +27,8 @@ export interface SessionStepViewModel {
   title: string;
   durationMinutes: number;
   visibility: 'shared' | 'dm-only';
+  /** 'main' = sequential spine beat; 'parallel' = always-available thread */
+  track: 'main' | 'parallel';
   body?: string;
   referenceLabel?: string;
 }
@@ -45,6 +47,8 @@ export interface ChecklistViewModel {
 }
 
 export interface SessionPlanViewModel {
+  campaignDescription?: string;
+  campaignTitle: string;
   title: string;
   breadcrumb: string;
   dateLabel: string;
@@ -59,6 +63,7 @@ export interface SessionPlanViewModel {
   dependencies: DependencyViewModel[];
   checklist: ChecklistViewModel[];
   revision: number;
+  sceneMapPath?: string;
   lastEditedLabel: string;
   notes: string;
   playerFacing: string;

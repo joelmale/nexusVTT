@@ -4,7 +4,7 @@
  * admin forms, catalog adapters) may import these from
  * `@nexus/rules-contracts/dist/fixtures`.
  */
-import type { RulesEntityType, Ruleset } from '../common';
+import type { RulesEntityType, Ruleset } from '../common.js';
 
 export interface ValidRulesFixture {
   name: string;

@@ -7,6 +7,7 @@ import type { DomainCommand } from '@nexus/game-contracts';
 
 interface AppContext {
   baseUrl: string;
+  broadcastToRoom: ReturnType<typeof vi.fn>;
   server: Server;
   db: {
     campaignActors: {
@@ -20,6 +21,7 @@ interface AppContext {
 }
 
 async function startApp(): Promise<AppContext> {
+  const broadcastToRoom = vi.fn();
   const db = {
     campaignActors: {
       getActorsByCampaign: vi.fn(),
@@ -41,7 +43,9 @@ async function startApp(): Promise<AppContext> {
     next();
   });
 
-  registerCampaignActorRoutes(app, db as unknown as DatabaseService);
+  registerCampaignActorRoutes(app, db as unknown as DatabaseService, () => ({
+    broadcastToRoom,
+  }));
 
   const server = app.listen(0, '127.0.0.1');
   await new Promise<void>((resolve, reject) => {
@@ -56,6 +60,7 @@ async function startApp(): Promise<AppContext> {
 
   return {
     baseUrl: `http://127.0.0.1:${address.port}`,
+    broadcastToRoom,
     server,
     db,
   };
@@ -81,20 +86,30 @@ describe('campaignActors routes', () => {
       const mockActors = [
         { id: validActorId, name: 'Valeros', campaignId: validCampaignId },
       ];
-      ctx.db.campaignActors.getActorsByCampaign.mockResolvedValueOnce(mockActors);
+      ctx.db.campaignActors.getActorsByCampaign.mockResolvedValueOnce(
+        mockActors,
+      );
 
-      const res = await fetch(`${ctx.baseUrl}/api/campaigns/${validCampaignId}/actors`);
+      const res = await fetch(
+        `${ctx.baseUrl}/api/campaigns/${validCampaignId}/actors`,
+      );
       expect(res.status).toBe(200);
       const data = await res.json();
       expect(data).toEqual(mockActors);
-      expect(ctx.db.campaignActors.getActorsByCampaign).toHaveBeenCalledWith(validCampaignId);
+      expect(ctx.db.campaignActors.getActorsByCampaign).toHaveBeenCalledWith(
+        validCampaignId,
+      );
     });
 
     it('returns 500 when repository throws error', async () => {
       ctx = await startApp();
-      ctx.db.campaignActors.getActorsByCampaign.mockRejectedValueOnce(new Error('DB error'));
+      ctx.db.campaignActors.getActorsByCampaign.mockRejectedValueOnce(
+        new Error('DB error'),
+      );
 
-      const res = await fetch(`${ctx.baseUrl}/api/campaigns/${validCampaignId}/actors`);
+      const res = await fetch(
+        `${ctx.baseUrl}/api/campaigns/${validCampaignId}/actors`,
+      );
       expect(res.status).toBe(500);
       const data = await res.json();
       expect(data.error).toBe('Failed to fetch campaign actors');
@@ -104,7 +119,11 @@ describe('campaignActors routes', () => {
   describe('GET /api/campaigns/:campaignId/actors/:actorId', () => {
     it('returns actor when found in campaign', async () => {
       ctx = await startApp();
-      const mockActor = { id: validActorId, name: 'Valeros', campaignId: validCampaignId };
+      const mockActor = {
+        id: validActorId,
+        name: 'Valeros',
+        campaignId: validCampaignId,
+      };
       ctx.db.campaignActors.getActorById.mockResolvedValueOnce(mockActor);
 
       const res = await fetch(
@@ -140,7 +159,9 @@ describe('campaignActors routes', () => {
 
     it('returns 500 when query fails', async () => {
       ctx = await startApp();
-      ctx.db.campaignActors.getActorById.mockRejectedValueOnce(new Error('DB error'));
+      ctx.db.campaignActors.getActorById.mockRejectedValueOnce(
+        new Error('DB error'),
+      );
 
       const res = await fetch(
         `${ctx.baseUrl}/api/campaigns/${validCampaignId}/actors/${validActorId}`,
@@ -184,11 +205,14 @@ describe('campaignActors routes', () => {
         duplicate: false,
       });
 
-      const res = await fetch(`${ctx.baseUrl}/api/campaigns/${validCampaignId}/commands`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(validCommand),
-      });
+      const res = await fetch(
+        `${ctx.baseUrl}/api/campaigns/${validCampaignId}/commands`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(validCommand),
+        },
+      );
 
       expect(res.status).toBe(200);
       const data = await res.json();
@@ -196,13 +220,69 @@ describe('campaignActors routes', () => {
       expect(data.receipt).toEqual(mockReceipt);
     });
 
+    it('broadcasts a revealed handout after the command commits', async () => {
+      ctx = await startApp();
+      const revealCommand: DomainCommand = {
+        commandId: validCommandId,
+        protocolVersion: '1.0',
+        campaignId: validCampaignId,
+        issuerUserId: 'test-user-1',
+        timestamp: new Date().toISOString(),
+        expectedActorVersions: {},
+        payload: {
+          type: 'RevealHandout',
+          assetRef: { target: 'asset', assetId: 'harbor-map' },
+          stepId: validActorId,
+          title: 'Harbor Map',
+        },
+      };
+      ctx.db.domainCommands.execute.mockResolvedValueOnce({
+        receipt: {
+          commandId: validCommandId,
+          principalId: 'test-user-1',
+          campaignId: validCampaignId,
+          payloadHash: 'hash-handout',
+          committedAt: new Date().toISOString(),
+          result: { success: true },
+        },
+        duplicate: false,
+      });
+
+      const response = await fetch(
+        `${ctx.baseUrl}/api/campaigns/${validCampaignId}/commands`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-room-id': 'ROOM42',
+          },
+          body: JSON.stringify(revealCommand),
+        },
+      );
+
+      expect(response.status).toBe(200);
+      expect(ctx.broadcastToRoom).toHaveBeenCalledWith(
+        'ROOM42',
+        expect.objectContaining({
+          type: 'event',
+          data: expect.objectContaining({
+            name: 'handout/revealed',
+            title: 'Harbor Map',
+          }),
+        }),
+      );
+    });
+
     it('returns 400 when payload validation fails', async () => {
       ctx = await startApp();
-      const res = await fetch(`${ctx.baseUrl}/api/campaigns/${validCampaignId}/commands`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ invalid: 'payload' }),
-      });
+      const res = await fetch(
+        `${ctx.baseUrl}/api/campaigns/${validCampaignId}/commands`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ invalid: 'payload' }),
+        },
+      );
 
       expect(res.status).toBe(400);
       const data = await res.json();
@@ -216,11 +296,14 @@ describe('campaignActors routes', () => {
         campaignId: '99999999-9999-4999-8999-999999999999',
       };
 
-      const res = await fetch(`${ctx.baseUrl}/api/campaigns/${validCampaignId}/commands`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(mismatchedCommand),
-      });
+      const res = await fetch(
+        `${ctx.baseUrl}/api/campaigns/${validCampaignId}/commands`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(mismatchedCommand),
+        },
+      );
 
       expect(res.status).toBe(400);
       const data = await res.json();
@@ -245,11 +328,14 @@ describe('campaignActors routes', () => {
         duplicate: false,
       });
 
-      const res = await fetch(`${ctx.baseUrl}/api/campaigns/${validCampaignId}/commands`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(validCommand),
-      });
+      const res = await fetch(
+        `${ctx.baseUrl}/api/campaigns/${validCampaignId}/commands`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(validCommand),
+        },
+      );
 
       expect(res.status).toBe(409);
       const data = await res.json();

@@ -209,11 +209,9 @@ describe('campaign prep routes', () => {
 
   it('returns structured authoring validation errors', async () => {
     author.create.mockRejectedValue(
-      new CampaignPrepAuthoringError(
-        'invalid-payload',
-        'Invalid object',
-        [{ path: 'title', message: 'Required' }],
-      ),
+      new CampaignPrepAuthoringError('invalid-payload', 'Invalid object', [
+        { path: 'title', message: 'Required' },
+      ]),
     );
     const response = await fetch(
       `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/objects`,
@@ -422,6 +420,55 @@ describe('campaign prep routes', () => {
     expect(notFoundResponse.status).toBe(404);
   });
 
+  it('accepts a partial activation patch without a step index', async () => {
+    const activationId = '99999999-9999-4999-8999-999999999999';
+    campaignPrep.updateSessionPlanActivationProgress.mockResolvedValueOnce({
+      id: activationId,
+      campaignId: CAMPAIGN_ID,
+      currentStepIndex: 2,
+      status: 'completed',
+      stepStates: {},
+    });
+
+    const response = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans/activations/${activationId}/progress`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'completed' }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(
+      campaignPrep.updateSessionPlanActivationProgress,
+    ).toHaveBeenCalledWith(
+      expect.objectContaining({
+        activationId,
+        campaignId: CAMPAIGN_ID,
+        currentStepIndex: undefined,
+        status: 'completed',
+      }),
+    );
+  });
+
+  it('rejects an invalid activation status', async () => {
+    const activationId = '99999999-9999-4999-8999-999999999999';
+    const response = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans/activations/${activationId}/progress`,
+      {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ status: 'finished-ish' }),
+      },
+    );
+
+    expect(response.status).toBe(400);
+    expect(
+      campaignPrep.updateSessionPlanActivationProgress,
+    ).not.toHaveBeenCalled();
+  });
+
   it('fetches backlinks for a campaign prep object', async () => {
     campaignPrep.getObject.mockResolvedValueOnce({
       id: PLAN_ID,
@@ -456,4 +503,3 @@ describe('campaign prep routes', () => {
     );
   }
 });
-

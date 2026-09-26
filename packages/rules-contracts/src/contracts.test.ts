@@ -14,7 +14,7 @@ import {
   toCatalogEntity,
   type Monster,
   type RulesEntityData,
-} from './index';
+} from './index.js';
 import {
   fireball2014,
   goblin2014,
@@ -23,7 +23,7 @@ import {
   longsword2024,
   validRulesFixtures,
   wandOfFireballs2014,
-} from './fixtures';
+} from './fixtures/index.js';
 
 describe('valid fixtures', () => {
   it('cover every entity type in both rulesets', () => {

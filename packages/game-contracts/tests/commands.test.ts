@@ -41,9 +41,7 @@ describe('Domain Commands & Receipts', () => {
     const parsed = domainCommandReceiptSchema.parse(mockCommandReceipt);
     expect(parsed.result.success).toBe(true);
     expect(
-      parsed.result.committedVersions[
-        '77777777-7777-4777-8777-777777777777'
-      ],
+      parsed.result.committedVersions['77777777-7777-4777-8777-777777777777'],
     ).toBe(2);
     expect(parsed.result.roomStateVersion).toBe(43);
   });
@@ -76,5 +74,21 @@ describe('Domain Commands & Receipts', () => {
     });
     expect(parsed.payload.type).toBe('AdvanceSessionPlanStep');
   });
-});
 
+  it('validates a RevealHandout command payload', () => {
+    const parsed = domainCommandSchema.parse({
+      ...mockApplyDamageCommand,
+      payload: {
+        type: 'RevealHandout',
+        assetRef: {
+          target: 'asset',
+          assetId: 'port-authority-writ',
+        },
+        title: 'Port Authority Entry Writ',
+        stepId: '11111111-1111-4111-8111-111111111111',
+      },
+    });
+
+    expect(parsed.payload.type).toBe('RevealHandout');
+  });
+});

@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { render } from '@testing-library/react';
-import React, { useState } from 'react';
+import React, { StrictMode, useState } from 'react';
 import { WindowPortal } from './WindowPortal';
 
 /**
@@ -39,7 +39,8 @@ beforeEach(() => {
     return fakeWindow;
   });
   // Force the window.open fallback rather than the Document PiP path.
-  delete (window as unknown as Record<string, unknown>).documentPictureInPicture;
+  delete (window as unknown as Record<string, unknown>)
+    .documentPictureInPicture;
 });
 
 afterEach(() => {
@@ -114,7 +115,23 @@ describe('WindowPortal', () => {
     expect(openCalls).toBe(1);
 
     unmount();
+    await new Promise((resolve) => setTimeout(resolve, 0));
     expect(closeCalls).toBeGreaterThanOrEqual(1);
+  });
+
+  it('keeps the same external window through the Strict Mode effect replay', async () => {
+    render(
+      <StrictMode>
+        <WindowPortal title="Panel" width={400} height={600} onClose={() => {}}>
+          <div>content</div>
+        </WindowPortal>
+      </StrictMode>,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(openCalls).toBe(1);
+    expect(closeCalls).toBe(0);
   });
 
   it('calls onClose when the popup is blocked', async () => {

@@ -113,8 +113,55 @@ describe('CampaignPrepClient', () => {
       } as Response);
 
       await expect(
-        client.updateActivationProgress('camp-1', 'act-1', { currentStepIndex: 99 }),
-      ).rejects.toThrow('Failed to update session plan progress (400): Invalid step index');
+        client.updateActivationProgress('camp-1', 'act-1', {
+          currentStepIndex: 99,
+        }),
+      ).rejects.toThrow(
+        'Failed to update session plan progress (400): Invalid step index',
+      );
+    });
+
+    it('can update only the session status', async () => {
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({
+          activation: { id: 'act-1', currentStepIndex: 2, status: 'completed' },
+        }),
+      } as Response);
+
+      await client.updateActivationProgress('camp-1', 'act-1', {
+        status: 'completed',
+      });
+
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining('/activations/act-1/progress'),
+        expect.objectContaining({
+          body: JSON.stringify({ status: 'completed' }),
+        }),
+      );
+    });
+  });
+
+  describe('getCampaignEntry', () => {
+    it('fetches a campaign prep entry by ID', async () => {
+      const response = {
+        object: { id: 'entry-1', kind: 'note', title: 'Captain Serin' },
+        revision: { data: { id: 'entry-1', title: 'Captain Serin' } },
+      };
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => response,
+      } as Response);
+
+      await expect(
+        client.getCampaignEntry('camp-1', 'entry-1'),
+      ).resolves.toEqual(response);
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://localhost:5001/api/campaigns/camp-1/prep/objects/entry-1',
+        expect.objectContaining({ credentials: 'include' }),
+      );
     });
   });
 
@@ -131,7 +178,12 @@ describe('CampaignPrepClient', () => {
         json: async () => mockResult,
       } as Response);
 
-      const result = await client.activateSessionPlan('camp-1', 'plan-1', 2, 'session-12');
+      const result = await client.activateSessionPlan(
+        'camp-1',
+        'plan-1',
+        2,
+        'session-12',
+      );
       expect(result).toEqual(mockResult);
       expect(global.fetch).toHaveBeenCalledWith(
         'http://localhost:5001/api/campaigns/camp-1/session-plans/plan-1/activate',
@@ -150,7 +202,9 @@ describe('CampaignPrepClient', () => {
 
       await expect(
         client.activateSessionPlan('camp-1', 'plan-1', 1),
-      ).rejects.toThrow('Failed to activate session plan (409): Plan not ready');
+      ).rejects.toThrow(
+        'Failed to activate session plan (409): Plan not ready',
+      );
     });
   });
 });

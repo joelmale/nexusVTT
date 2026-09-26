@@ -8,6 +8,7 @@ import { SessionPlan } from './SessionPlan';
 const model: SessionPlanViewModel = {
   attachments: [],
   breadcrumb: 'Sessions > Session 12',
+  campaignTitle: 'Test Campaign',
   checklist: [
     { complete: true, id: 'ready-1', label: 'Scene linked' },
     { complete: false, id: 'ready-2', label: 'Summary written' },
@@ -36,6 +37,7 @@ const model: SessionPlanViewModel = {
       id: 'step-1',
       referenceLabel: 'Captain Serin',
       title: "Harbormaster's Warning",
+      track: 'main',
       visibility: 'shared',
     },
   ],
@@ -100,7 +102,7 @@ describe('SessionPlan', () => {
       />,
     );
     await user.click(screen.getByRole('button', { name: /publish plan/i }));
-    expect(onPublish).toHaveBeenCalledOnce();
+    expect(onPublish).toHaveBeenCalledWith(model.steps);
   });
 
   it('renders Play in VTT button when published and calls onActivate', async () => {
@@ -119,7 +121,7 @@ describe('SessionPlan', () => {
     const activateBtn = screen.getByRole('button', { name: /play in vtt/i });
     expect(activateBtn).toBeInTheDocument();
     await user.click(activateBtn);
-    expect(onActivate).toHaveBeenCalledOnce();
+    expect(onActivate).toHaveBeenCalledWith(model.steps);
 
     rerender(
       <SessionPlan
@@ -133,5 +135,27 @@ describe('SessionPlan', () => {
     expect(
       screen.getByRole('button', { name: /activating in vtt/i }),
     ).toBeDisabled();
+  });
+
+  it('moves the selected step to the parallel track before publishing', async () => {
+    const user = userEvent.setup();
+    const onPublish = vi.fn();
+    render(
+      <SessionPlan
+        model={model}
+        onCapability={vi.fn()}
+        onPublish={onPublish}
+      />,
+    );
+
+    await user.click(
+      screen.getByRole('button', { name: /select harbormaster's warning/i }),
+    );
+    await user.click(screen.getByRole('button', { name: 'Parallel' }));
+    await user.click(screen.getByRole('button', { name: /publish plan/i }));
+
+    expect(onPublish).toHaveBeenCalledWith([
+      expect.objectContaining({ id: 'step-1', track: 'parallel' }),
+    ]);
   });
 });

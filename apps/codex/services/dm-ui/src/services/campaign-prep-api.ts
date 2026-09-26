@@ -3,7 +3,10 @@ import type {
   CampaignObjectRef,
   SceneTemplate,
   SessionPlan,
+  SessionPlanStep,
 } from '@nexus/game-contracts';
+
+import type { SessionStepViewModel } from '@/features/session-plan/sessionPlanModels';
 
 interface CampaignRecord {
   id: string;
@@ -27,13 +30,25 @@ interface UserAsset {
   name: string;
 }
 
-interface PublishResponse {
+interface AuthoredObjectResponse {
+  object: PrepObjectRecord;
+}
+
+export interface PublishResponse {
   plan: SessionPlan;
   published: true;
 }
 
-const CAMPAIGN_NAME = 'Ashes of Veyra';
-const MAP_ASSET_NAME = 'Glass Harbor Docks Map';
+export interface PublishSessionPlanInput {
+  campaignDescription?: string;
+  campaignTitle: string;
+  planTitle: string;
+  revision: number;
+  sceneMapPath?: string;
+  steps: SessionStepViewModel[];
+}
+
+const DEFAULT_MAP_ASSET_NAME = 'Session Scene Map';
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
@@ -86,52 +101,94 @@ async function ensureSession(): Promise<UserProfile> {
   }
 }
 
-async function ensureCampaign(): Promise<CampaignRecord> {
+async function ensureCampaign(
+  title: string,
+  description?: string,
+): Promise<CampaignRecord> {
   const campaigns = await request<CampaignRecord[]>('/api/campaigns');
-  const existing = campaigns.find((campaign) => campaign.name === CAMPAIGN_NAME);
+  const existing = campaigns.find((campaign) => campaign.name === title);
   if (existing) return existing;
   return request<CampaignRecord>('/api/campaigns', {
     method: 'POST',
-    body: JSON.stringify({
-      name: CAMPAIGN_NAME,
-      description:
-        'A coastal campaign about the Ember Key, the Hollow Crown, and the factions of Glass Harbor.',
-    }),
+    body: JSON.stringify({ name: title, description: description || '' }),
   });
 }
 
-async function ensureMapAsset(userId: string): Promise<UserAsset> {
-  try {
-    const current = await request<{ assets: UserAsset[] }>(
-      `/api/user/${encodeURIComponent(userId)}/assets`,
-    );
-    const existing = current.assets.find((asset) => asset.name === MAP_ASSET_NAME);
-    if (existing) return existing;
+async function uploadAsset(
+  userId: string,
+  name: string,
+  content: Blob,
+  fileName: string,
+  category: 'documents' | 'maps',
+): Promise<UserAsset> {
+  const form = new FormData();
+  form.append('file', new File([content], fileName, { type: content.type }));
+  form.append('name', name);
+  form.append('category', category);
+  const uploaded = await request<{ asset: UserAsset }>(
+    `/api/user/${encodeURIComponent(userId)}/upload`,
+    { method: 'POST', body: form },
+  );
+  return uploaded.asset;
+}
 
-    const mapResponse = await fetch(
-      `${import.meta.env.BASE_URL}demo/ashes-of-veyra/glass-harbor-map.png`,
-    );
-    if (!mapResponse.ok) throw new Error('Glass Harbor map asset is unavailable');
-    const form = new FormData();
-    form.append(
-      'file',
-      new File([await mapResponse.blob()], 'glass-harbor-map.png', {
-        type: 'image/png',
-      }),
-    );
-    form.append('name', MAP_ASSET_NAME);
-    form.append('category', 'maps');
-    const uploaded = await request<{ asset: UserAsset }>(
-      `/api/user/${encodeURIComponent(userId)}/upload`,
-      { method: 'POST', body: form },
-    );
-    return uploaded.asset;
-  } catch {
-    return {
-      id: 'demo-glass-harbor-map-asset',
-      name: MAP_ASSET_NAME,
-    };
-  }
+async function ensureTextAsset(
+  userId: string,
+  assets: UserAsset[],
+  name: string,
+  text: string,
+): Promise<UserAsset> {
+  const existing = assets.find((asset) => asset.name === name);
+  if (existing) return existing;
+  const asset = await uploadAsset(
+    userId,
+    name,
+    new Blob([text || name], { type: 'text/plain' }),
+    `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.txt`,
+    'documents',
+  );
+  assets.push(asset);
+  return asset;
+}
+
+async function ensureMapAsset(
+  userId: string,
+  assets: UserAsset[],
+  sceneMapPath: string,
+): Promise<UserAsset> {
+  const existing = assets.find(
+    (asset) => asset.name === DEFAULT_MAP_ASSET_NAME,
+  );
+  if (existing) return existing;
+  const response = await fetch(sceneMapPath);
+  if (!response.ok) throw new Error('The session scene map is unavailable.');
+  const asset = await uploadAsset(
+    userId,
+    DEFAULT_MAP_ASSET_NAME,
+    await response.blob(),
+    'session-scene-map.png',
+    'maps',
+  );
+  assets.push(asset);
+  return asset;
+}
+
+function lexicalContent(text: string): CampaignEntry['content'] {
+  return {
+    format: 'lexical',
+    schemaVersion: 1,
+    value: {
+      root: {
+        type: 'root',
+        children: [
+          {
+            type: 'paragraph',
+            children: [{ type: 'text', text }],
+          },
+        ],
+      },
+    },
+  };
 }
 
 async function createPrepObject(
@@ -139,7 +196,7 @@ async function createPrepObject(
   kind: string,
   data: CampaignEntry | SceneTemplate | SessionPlan,
 ): Promise<PrepObjectRecord> {
-  const result = await request<{ object: PrepObjectRecord }>(
+  const result = await request<AuthoredObjectResponse>(
     `/api/campaigns/${campaignId}/prep/objects`,
     {
       method: 'POST',
@@ -153,143 +210,233 @@ async function createPrepObject(
   return result.object;
 }
 
-export async function publishGlassHarborPlan(): Promise<PublishResponse> {
+async function revisePrepObject(
+  campaignId: string,
+  object: PrepObjectRecord,
+  data: CampaignEntry | SceneTemplate | SessionPlan,
+): Promise<PrepObjectRecord> {
+  const result = await request<AuthoredObjectResponse>(
+    `/api/campaigns/${campaignId}/prep/objects/${object.id}`,
+    {
+      method: 'PUT',
+      body: JSON.stringify({
+        data,
+        expectedRevision: object.currentRevision,
+        requestId: crypto.randomUUID(),
+      }),
+    },
+  );
+  return result.object;
+}
+
+function campaignObjectRef(
+  campaignId: string,
+  object: PrepObjectRecord,
+): Extract<CampaignObjectRef, { target: 'campaign-object' }> {
+  return {
+    target: 'campaign-object',
+    campaignId,
+    id: object.id,
+    revision: object.currentRevision,
+  };
+}
+
+async function ensureEntry(
+  campaignId: string,
+  existingObjects: PrepObjectRecord[],
+  step: SessionStepViewModel,
+  now: string,
+): Promise<PrepObjectRecord> {
+  const existing = existingObjects.find(
+    (object) => object.kind === 'note' && object.title === step.title,
+  );
+  const data: CampaignEntry = {
+    id: existing?.id ?? crypto.randomUUID(),
+    campaignId,
+    schemaVersion: 1,
+    revision: existing ? existing.currentRevision + 1 : 1,
+    kind: 'note',
+    title: step.title,
+    visibility: step.visibility === 'shared' ? 'players' : 'dm-only',
+    content: lexicalContent(step.body || step.title),
+    links: [],
+    tags: step.track === 'parallel' ? ['parallel-thread'] : [],
+    createdAt: now,
+    updatedAt: now,
+  };
+  const saved = existing
+    ? await revisePrepObject(campaignId, existing, data)
+    : await createPrepObject(campaignId, 'note', data);
+  if (!existing) existingObjects.push(saved);
+  return saved;
+}
+
+async function ensureScene(
+  campaignId: string,
+  existingObjects: PrepObjectRecord[],
+  mapAsset: UserAsset,
+  title: string,
+  now: string,
+): Promise<PrepObjectRecord> {
+  const existing = existingObjects.find(
+    (object) => object.kind === 'scene-template' && object.title === title,
+  );
+  if (existing) return existing;
+  const data: SceneTemplate = {
+    id: crypto.randomUUID(),
+    campaignId,
+    schemaVersion: 1,
+    revision: 1,
+    name: title,
+    backgroundAssetRef: { target: 'asset', assetId: mapAsset.id },
+    grid: {
+      enabled: true,
+      type: 'square',
+      size: 100,
+      offsetX: 0,
+      offsetY: 0,
+      snapToGrid: true,
+    },
+    lighting: {
+      enabled: true,
+      globalIllumination: false,
+      ambientLight: 0.35,
+      darkness: 0.65,
+    },
+    fogPreset: { mode: 'concealed', revealedShapes: [] },
+    createdAt: now,
+    updatedAt: now,
+  };
+  const saved = await createPrepObject(campaignId, 'scene-template', data);
+  existingObjects.push(saved);
+  return saved;
+}
+
+async function buildContractSteps(
+  input: PublishSessionPlanInput,
+  campaignId: string,
+  userId: string,
+  assets: UserAsset[],
+  existingObjects: PrepObjectRecord[],
+  now: string,
+): Promise<SessionPlanStep[]> {
+  const orderedSteps = [
+    ...input.steps.filter((step) => step.track === 'main'),
+    ...input.steps.filter((step) => step.track === 'parallel'),
+  ];
+  const result: SessionPlanStep[] = [];
+
+  for (const step of orderedSteps) {
+    const base = {
+      id: crypto.randomUUID(),
+      title: step.title,
+      estimatedMinutes: step.durationMinutes,
+      visibility:
+        step.visibility === 'shared'
+          ? ('players' as const)
+          : ('dm-only' as const),
+      track: step.track,
+    };
+
+    if (step.command === 'Open note') {
+      const entry = await ensureEntry(campaignId, existingObjects, step, now);
+      result.push({
+        ...base,
+        type: 'open-entry',
+        entryRef: campaignObjectRef(campaignId, entry),
+      });
+      continue;
+    }
+
+    if (step.command === 'Activate scene' && input.sceneMapPath) {
+      const mapAsset = await ensureMapAsset(userId, assets, input.sceneMapPath);
+      const scene = await ensureScene(
+        campaignId,
+        existingObjects,
+        mapAsset,
+        step.title,
+        now,
+      );
+      result.push({
+        ...base,
+        type: 'activate-scene',
+        sceneTemplateRef: campaignObjectRef(campaignId, scene),
+      });
+      continue;
+    }
+
+    if (step.command === 'Share handout') {
+      const asset = await ensureTextAsset(
+        userId,
+        assets,
+        step.title,
+        step.body || step.title,
+      );
+      result.push({
+        ...base,
+        type: 'share-handout',
+        assetRef: { target: 'asset', assetId: asset.id },
+      });
+      continue;
+    }
+
+    result.push({
+      ...base,
+      type: 'reminder',
+      text: step.body || step.title,
+    });
+  }
+
+  return result;
+}
+
+export async function publishSessionPlan(
+  input: PublishSessionPlanInput,
+): Promise<PublishResponse> {
   const profile = await ensureSession();
-  const campaign = await ensureCampaign();
-  const [mapAsset, existingObjects] = await Promise.all([
-    ensureMapAsset(profile.id),
+  const campaign = await ensureCampaign(
+    input.campaignTitle,
+    input.campaignDescription,
+  );
+  const [assetResponse, objectResponse] = await Promise.all([
+    request<{ assets: UserAsset[] }>(
+      `/api/user/${encodeURIComponent(profile.id)}/assets`,
+    ),
     request<{ objects: PrepObjectRecord[] }>(
       `/api/campaigns/${campaign.id}/prep/objects`,
     ),
   ]);
   const now = new Date().toISOString();
-
-  let note = existingObjects.objects.find(
-    (object) => object.kind === 'note' && object.title === "Harbormaster's Warning",
+  const steps = await buildContractSteps(
+    input,
+    campaign.id,
+    profile.id,
+    assetResponse.assets,
+    objectResponse.objects,
+    now,
   );
-  if (!note) {
-    const id = crypto.randomUUID();
-    const data: CampaignEntry = {
-      id,
-      campaignId: campaign.id,
-      schemaVersion: 1,
-      revision: 1,
-      kind: 'note',
-      title: "Harbormaster's Warning",
-      visibility: 'dm-only',
-      content: {
-        format: 'lexical',
-        schemaVersion: 1,
-        value: {
-          root: {
-            type: 'root',
-            children: [
-              {
-                type: 'paragraph',
-                children: [
-                  {
-                    type: 'text',
-                    text: 'Watch the eastern pier without involving the Watch.',
-                  },
-                ],
-              },
-            ],
-          },
-        },
-      },
-      links: [],
-      tags: ['glass-harbor', 'captain-serin'],
-      createdAt: now,
-      updatedAt: now,
-    };
-    note = await createPrepObject(campaign.id, 'note', data);
-  }
-
-  let scene = existingObjects.objects.find(
+  let plan = objectResponse.objects.find(
     (object) =>
-      object.kind === 'scene-template' && object.title === 'Glass Harbor Docks',
+      object.kind === 'session-plan' && object.title === input.planTitle,
   );
-  if (!scene) {
-    const id = crypto.randomUUID();
-    const data: SceneTemplate = {
-      id,
-      campaignId: campaign.id,
-      schemaVersion: 1,
-      revision: 1,
-      name: 'Glass Harbor Docks',
-      backgroundAssetRef: { target: 'asset', assetId: mapAsset.id },
-      grid: {
-        enabled: true,
-        type: 'square',
-        size: 100,
-        offsetX: 0,
-        offsetY: 0,
-        snapToGrid: true,
-      },
-      lighting: {
-        enabled: true,
-        globalIllumination: false,
-        ambientLight: 0.35,
-        darkness: 0.65,
-      },
-      fogPreset: { mode: 'concealed', revealedShapes: [] },
-      createdAt: now,
-      updatedAt: now,
-    };
-    scene = await createPrepObject(campaign.id, 'scene-template', data);
-  }
+  const planId = plan?.id ?? crypto.randomUUID();
+  const revision = plan ? plan.currentRevision + 1 : 1;
+  const data: SessionPlan = {
+    id: planId,
+    campaignId: campaign.id,
+    schemaVersion: 1,
+    revision,
+    title: input.planTitle,
+    status: 'draft',
+    steps,
+    dependencies: [],
+    createdAt: now,
+    updatedAt: now,
+  };
 
-  let plan = existingObjects.objects.find(
-    (object) =>
-      object.kind === 'session-plan' &&
-      object.title === 'Session 12 - The Glass Harbor',
-  );
-  if (plan?.status === 'ready') {
-    const current = await request<{ revision: { data: SessionPlan } }>(
-      `/api/campaigns/${campaign.id}/prep/objects/${plan.id}`,
-    );
-    return { published: true, plan: current.revision.data };
-  }
-  if (!plan) {
-    const sceneRef: CampaignObjectRef = {
-      target: 'campaign-object',
-      campaignId: campaign.id,
-      id: scene.id,
-      revision: scene.currentRevision,
-    };
-    const noteRef: CampaignObjectRef = {
-      target: 'campaign-object',
-      campaignId: campaign.id,
-      id: note.id,
-      revision: note.currentRevision,
-    };
-    const id = crypto.randomUUID();
-    const data: SessionPlan = {
-      id,
-      campaignId: campaign.id,
-      schemaVersion: 1,
-      revision: 1,
-      title: 'Session 12 - The Glass Harbor',
-      status: 'draft',
-      steps: [
-        { id: crypto.randomUUID(), type: 'reminder', title: 'Opening recap', estimatedMinutes: 10, visibility: 'players', text: 'Re-establish the burned ledger and the pressure from the harbor factions.' },
-        { id: crypto.randomUUID(), type: 'activate-scene', title: 'Glass Harbor Docks', estimatedMinutes: 5, visibility: 'players', sceneTemplateRef: sceneRef },
-        { id: crypto.randomUUID(), type: 'open-entry', title: "Harbormaster's Warning", estimatedMinutes: 10, visibility: 'dm-only', entryRef: noteRef },
-        { id: crypto.randomUUID(), type: 'reminder', title: 'Deploy Dockside Ambush', estimatedMinutes: 30, visibility: 'dm-only', text: 'Encounter deployment becomes active when the encounter definition is persisted.' },
-        { id: crypto.randomUUID(), type: 'reminder', title: 'Share Burned Shipping Ledger', estimatedMinutes: 5, visibility: 'players', text: 'Handout sharing becomes active when the ledger asset is persisted.' },
-        { id: crypto.randomUUID(), type: 'reminder', title: 'Follow the fleeing bandit or confront the Watch', estimatedMinutes: 20, visibility: 'dm-only', text: 'Offer the chainwalk pursuit or the Watch negotiation.' },
-        { id: crypto.randomUUID(), type: 'reminder', title: 'The bell below the harbor', estimatedMinutes: 5, visibility: 'players', text: 'At low tide, a bell sounds beneath the harbor.' },
-      ],
-      dependencies: [
-        sceneRef,
-        noteRef,
-        { target: 'asset', assetId: mapAsset.id },
-      ],
-      createdAt: now,
-      updatedAt: now,
-    };
-    plan = await createPrepObject(campaign.id, 'session-plan', data);
-  }
+  plan = plan
+    ? await revisePrepObject(campaign.id, plan, data)
+    : await createPrepObject(campaign.id, 'session-plan', data);
 
   return request<PublishResponse>(
     `/api/campaigns/${campaign.id}/prep/objects/${plan.id}/publish`,
@@ -316,8 +463,10 @@ export interface ActivatePlanResponse {
   plan: SessionPlan;
 }
 
-export async function activateGlassHarborPlan(): Promise<ActivatePlanResponse> {
-  const published = await publishGlassHarborPlan();
+export async function activateSessionPlan(
+  input: PublishSessionPlanInput,
+): Promise<ActivatePlanResponse> {
+  const published = await publishSessionPlan(input);
   return request<ActivatePlanResponse>(
     `/api/campaigns/${published.plan.campaignId}/session-plans/${published.plan.id}/activate`,
     {
@@ -329,4 +478,3 @@ export async function activateGlassHarborPlan(): Promise<ActivatePlanResponse> {
     },
   );
 }
-

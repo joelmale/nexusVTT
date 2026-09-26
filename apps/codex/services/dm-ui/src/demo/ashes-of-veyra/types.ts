@@ -120,11 +120,13 @@ export interface SessionPlanStep {
   order: number;
   kind:
     'recap' | 'scene' | 'note' | 'encounter' | 'handout' | 'choice' | 'closing';
+  /** 'main' = sequential spine beat; 'parallel' = always-available thread */
+  track: 'main' | 'parallel';
   title: string;
   durationMinutes: number;
   visibility: 'shared' | 'dm-only';
   objectId?: FixtureId;
-  body: string;
+  body?: string;
 }
 
 export interface CampaignNpc {

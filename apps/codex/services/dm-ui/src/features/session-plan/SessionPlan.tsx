@@ -31,8 +31,8 @@ import styles from './SessionPlan.module.css';
 interface SessionPlanProps {
   model: SessionPlanViewModel;
   onCapability: (capabilityId: CapabilityId) => void;
-  onPublish?: () => void;
-  onActivate?: () => void;
+  onPublish?: (steps: SessionStepViewModel[]) => void;
+  onActivate?: (steps: SessionStepViewModel[]) => void;
   publishMessage?: string;
   publishState?: 'idle' | 'publishing' | 'published' | 'error';
   activateState?: 'idle' | 'activating' | 'activated' | 'error';
@@ -122,10 +122,17 @@ export function SessionPlan({
       durationMinutes: 5,
       id: `temporary-step-${steps.length + 1}`,
       title: 'Check in with the party before the final scene',
+      track: 'main',
       visibility: 'dm-only',
     };
     setSteps((current) => [...current, reminder]);
     setSelectedStepId(reminder.id);
+  }
+
+  function setStepTrack(stepId: string, track: SessionStepViewModel['track']) {
+    setSteps((current) =>
+      current.map((step) => (step.id === stepId ? { ...step, track } : step)),
+    );
   }
 
   return (
@@ -314,91 +321,64 @@ export function SessionPlan({
             </div>
 
             <div className={styles.steps}>
-              {steps.map((step, index) => {
-                const selected = step.id === selectedStepId;
-                return (
-                  <article
-                    className={`${styles.step} ${selected ? styles.selectedStep : ''}`}
-                    key={step.id}
-                  >
-                    <button
-                      aria-label={`Select ${step.title}`}
-                      className={styles.stepSelect}
-                      onClick={() => setSelectedStepId(step.id)}
-                      type="button"
-                    >
-                      <GripVertical className={styles.grip} size={16} />
-                      <span className={styles.stepNumber}>
-                        {String(index + 1).padStart(2, '0')}
-                      </span>
-                      <span className={styles.stepText}>
-                        <small>{step.command}</small>
-                        <strong>{step.title}</strong>
-                      </span>
-                      <span className={styles.stepMeta}>
-                        <span>{step.durationMinutes} min</span>
-                        <span>
-                          {step.visibility === 'shared' ? 'Shared' : 'DM only'}
-                        </span>
-                      </span>
-                    </button>
-                    {reorderMode && (
-                      <div className={styles.reorderControls}>
-                        <button
-                          disabled={index === 0}
-                          onClick={() => moveStep(step.id, -1)}
-                          type="button"
-                        >
-                          Up
-                        </button>
-                        <button
-                          disabled={index === steps.length - 1}
-                          onClick={() => moveStep(step.id, 1)}
-                          type="button"
-                        >
-                          Down
-                        </button>
-                      </div>
-                    )}
-                    {selected && step.body && (
-                      <div className={styles.editor}>
-                        <div className={styles.editorToolbar}>
-                          <button aria-label="Bold" title="Bold" type="button">
-                            <strong>B</strong>
-                          </button>
-                          <button
-                            aria-label="Italic"
-                            title="Italic"
-                            type="button"
-                          >
-                            <em>I</em>
-                          </button>
-                          <span />
-                          <button
-                            onClick={() => onCapability('campaign.search')}
-                            type="button"
-                          >
-                            @ Reference
-                          </button>
-                        </div>
-                        <div
-                          aria-label="Session step notes"
-                          className={styles.editorBody}
-                          contentEditable
-                          suppressContentEditableWarning
-                        >
-                          {step.body}{' '}
-                          {step.referenceLabel && (
-                            <span className={styles.reference}>
-                              @{step.referenceLabel}
-                            </span>
-                          )}
-                        </div>
-                      </div>
-                    )}
-                  </article>
-                );
-              })}
+              {/* ── MAIN TIMELINE ─────────────────────────────────────────── */}
+              {steps
+                .filter((s) => s.track === 'main')
+                .map((step, index) => {
+                  const selected = step.id === selectedStepId;
+                  return (
+                    <StepRow
+                      index={index}
+                      isSelected={selected}
+                      key={step.id}
+                      onSelect={() => setSelectedStepId(step.id)}
+                      onMoveUp={() => moveStep(step.id, -1)}
+                      onMoveDown={() => moveStep(step.id, 1)}
+                      reorderMode={reorderMode}
+                      step={step}
+                      onTrackChange={(track) => setStepTrack(step.id, track)}
+                      totalMainSteps={
+                        steps.filter((s) => s.track === 'main').length
+                      }
+                    />
+                  );
+                })}
+
+              {/* ── PARALLEL THREADS ──────────────────────────────────────── */}
+              {steps.some((s) => s.track === 'parallel') && (
+                <>
+                  <div className={styles.trackDivider}>
+                    <span>Parallel Threads</span>
+                    <small>
+                      Always available — not gated by timeline progress
+                    </small>
+                  </div>
+                  {steps
+                    .filter((s) => s.track === 'parallel')
+                    .map((step, index) => {
+                      const selected = step.id === selectedStepId;
+                      return (
+                        <StepRow
+                          index={index}
+                          isSelected={selected}
+                          isParallel
+                          key={step.id}
+                          onSelect={() => setSelectedStepId(step.id)}
+                          onMoveUp={() => moveStep(step.id, -1)}
+                          onMoveDown={() => moveStep(step.id, 1)}
+                          reorderMode={reorderMode}
+                          step={step}
+                          onTrackChange={(track) =>
+                            setStepTrack(step.id, track)
+                          }
+                          totalMainSteps={
+                            steps.filter((s) => s.track === 'parallel').length
+                          }
+                        />
+                      );
+                    })}
+                </>
+              )}
             </div>
           </div>
         ) : (
@@ -554,7 +534,11 @@ export function SessionPlan({
           <button
             className={styles.publishButton}
             disabled={publishState === 'publishing'}
-            onClick={onPublish ?? (() => onCapability('session-plan.publish'))}
+            onClick={() =>
+              onPublish
+                ? onPublish(steps)
+                : onCapability('session-plan.publish')
+            }
             type="button"
           >
             <Send size={15} />
@@ -568,8 +552,10 @@ export function SessionPlan({
             <button
               className={styles.activateButton}
               disabled={activateState === 'activating'}
-              onClick={
-                onActivate ?? (() => onCapability('session-plan.activate'))
+              onClick={() =>
+                onActivate
+                  ? onActivate(steps)
+                  : onCapability('session-plan.activate')
               }
               type="button"
             >
@@ -665,5 +651,126 @@ function WorkspacePlaceholder({
           </div>
         ))}
     </div>
+  );
+}
+
+interface StepRowProps {
+  index: number;
+  isSelected: boolean;
+  isParallel?: boolean;
+  onSelect: () => void;
+  onMoveUp: () => void;
+  onMoveDown: () => void;
+  reorderMode: boolean;
+  step: SessionStepViewModel;
+  onTrackChange: (track: SessionStepViewModel['track']) => void;
+  totalMainSteps: number;
+}
+
+function StepRow({
+  index,
+  isSelected,
+  isParallel = false,
+  onSelect,
+  onMoveUp,
+  onMoveDown,
+  onTrackChange,
+  reorderMode,
+  step,
+  totalMainSteps,
+}: StepRowProps) {
+  return (
+    <article
+      className={`${styles.step} ${isSelected ? styles.selectedStep : ''} ${isParallel ? styles.parallelStep : ''}`}
+    >
+      <button
+        aria-label={`Select ${step.title}`}
+        className={styles.stepSelect}
+        onClick={onSelect}
+        type="button"
+      >
+        <GripVertical className={styles.grip} size={16} />
+        <span className={styles.stepNumber}>
+          {String(index + 1).padStart(2, '0')}
+        </span>
+        <span className={styles.stepText}>
+          <small>
+            {step.command}
+            {isParallel && (
+              <span className={styles.parallelBadge}>Parallel</span>
+            )}
+          </small>
+          <strong>{step.title}</strong>
+        </span>
+        <span className={styles.stepMeta}>
+          {step.durationMinutes > 0 && <span>{step.durationMinutes} min</span>}
+          <span>{step.visibility === 'shared' ? 'Shared' : 'DM only'}</span>
+        </span>
+      </button>
+      {reorderMode && (
+        <div className={styles.reorderControls}>
+          <button disabled={index === 0} onClick={onMoveUp} type="button">
+            Up
+          </button>
+          <button
+            disabled={index === totalMainSteps - 1}
+            onClick={onMoveDown}
+            type="button"
+          >
+            Down
+          </button>
+        </div>
+      )}
+      {isSelected && (
+        <div className={styles.editor}>
+          <div className={styles.trackControl}>
+            <span>Track</span>
+            <div aria-label={`Track for ${step.title}`} role="group">
+              <button
+                aria-pressed={step.track === 'main'}
+                onClick={() => onTrackChange('main')}
+                type="button"
+              >
+                Main timeline
+              </button>
+              <button
+                aria-pressed={step.track === 'parallel'}
+                onClick={() => onTrackChange('parallel')}
+                type="button"
+              >
+                Parallel
+              </button>
+            </div>
+          </div>
+          {step.body && (
+            <>
+              <div className={styles.editorToolbar}>
+                <button aria-label="Bold" title="Bold" type="button">
+                  <strong>B</strong>
+                </button>
+                <button aria-label="Italic" title="Italic" type="button">
+                  <em>I</em>
+                </button>
+                <span />
+                <button type="button">@ Reference</button>
+              </div>
+              <div
+                aria-label="Session step notes"
+                className={styles.editorBody}
+                contentEditable
+                suppressContentEditableWarning
+              >
+                {step.body}{' '}
+                {step.referenceLabel && (
+                  <span className={styles.reference}>
+                    @{step.referenceLabel}
+                  </span>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </article>
   );
 }

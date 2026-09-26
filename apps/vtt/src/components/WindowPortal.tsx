@@ -100,6 +100,9 @@ export const WindowPortal: React.FC<WindowPortalProps> = ({
   const [container, setContainer] = useState<HTMLDivElement | null>(null);
   const externalWindow = useRef<Window | null>(null);
   const pipWindow = useRef<Window | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isMounted = useRef(false);
+  const setupStarted = useRef(false);
 
   // Keep the latest onClose without making it an effect dependency.
   const onCloseRef = useRef(onClose);
@@ -112,7 +115,26 @@ export const WindowPortal: React.FC<WindowPortalProps> = ({
   const initialRef = useRef({ title, width, height });
 
   useEffect(() => {
-    let isMounted = true;
+    isMounted.current = true;
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+
+    if (setupStarted.current) {
+      return () => {
+        isMounted.current = false;
+        closeTimer.current = setTimeout(() => {
+          if (isMounted.current) return;
+          pipWindow.current?.close();
+          pipWindow.current = null;
+          externalWindow.current?.close();
+          externalWindow.current = null;
+        }, 0);
+      };
+    }
+    setupStarted.current = true;
+
     const div = document.createElement('div');
     div.id = 'nexus-window-portal-root';
     div.style.width = '100%';
@@ -154,7 +176,7 @@ export const WindowPortal: React.FC<WindowPortalProps> = ({
             height: initialHeight,
           });
 
-          if (!isMounted) {
+          if (!isMounted.current) {
             pipWindow.current.close();
             return;
           }
@@ -163,7 +185,7 @@ export const WindowPortal: React.FC<WindowPortalProps> = ({
           pipWindow.current.document.title = initialTitle;
 
           pipWindow.current.addEventListener('pagehide', () => {
-            if (isMounted) onCloseRef.current();
+            if (isMounted.current) onCloseRef.current();
           });
 
           setContainer(div);
@@ -186,7 +208,7 @@ export const WindowPortal: React.FC<WindowPortalProps> = ({
         return;
       }
 
-      if (!isMounted) {
+      if (!isMounted.current) {
         externalWindow.current.close();
         return;
       }
@@ -195,7 +217,7 @@ export const WindowPortal: React.FC<WindowPortalProps> = ({
       prepare(externalWindow.current.document);
 
       externalWindow.current.addEventListener('beforeunload', () => {
-        if (isMounted) onCloseRef.current();
+        if (isMounted.current) onCloseRef.current();
       });
 
       setContainer(div);
@@ -204,11 +226,14 @@ export const WindowPortal: React.FC<WindowPortalProps> = ({
     void setupWindow();
 
     return () => {
-      isMounted = false;
-      pipWindow.current?.close();
-      pipWindow.current = null;
-      externalWindow.current?.close();
-      externalWindow.current = null;
+      isMounted.current = false;
+      closeTimer.current = setTimeout(() => {
+        if (isMounted.current) return;
+        pipWindow.current?.close();
+        pipWindow.current = null;
+        externalWindow.current?.close();
+        externalWindow.current = null;
+      }, 0);
     };
     // Mount/unmount only - see the component doc comment.
   }, []);

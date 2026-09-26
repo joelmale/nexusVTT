@@ -10,6 +10,16 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
+    },
+    "./dist/fixtures": {
+      "types": "./dist/fixtures/index.d.ts",
+      "import": "./dist/fixtures/index.js",
+      "default": "./dist/fixtures/index.js"
+    },
+    "./fixtures": {
+      "types": "./dist/fixtures/index.d.ts",
+      "import": "./dist/fixtures/index.js",
+      "default": "./dist/fixtures/index.js"
     }
   },
   "scripts": {

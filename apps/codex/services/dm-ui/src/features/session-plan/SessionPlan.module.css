@@ -472,6 +472,43 @@
   padding: 10px 14px 15px;
 }
 
+.trackControl {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.trackControl > span {
+  color: var(--studio-text-muted);
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.trackControl > div {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  display: flex;
+  padding: 2px;
+}
+
+.trackControl button {
+  background: transparent;
+  border: 0;
+  border-radius: calc(var(--studio-radius-control) - 2px);
+  color: var(--studio-text-muted);
+  cursor: pointer;
+  font-size: 10px;
+  padding: 4px 8px;
+}
+
+.trackControl button[aria-pressed='true'] {
+  background: var(--studio-surface-raised);
+  color: var(--studio-text);
+}
+
 .editorToolbar {
   background: var(--studio-surface-muted);
   border: 1px solid var(--studio-border);
@@ -663,7 +700,6 @@
   opacity: 0.6;
 }
 
-
 .publishMessage {
   color: var(--studio-text-muted);
   font-size: 11px;
@@ -748,4 +784,47 @@
     justify-content: flex-start;
     overflow-x: auto;
   }
+}
+
+/* ── Parallel threads ─────────────────────────────────────────────── */
+
+.trackDivider {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  padding: 12px 4px 4px;
+  margin-top: 4px;
+  border-top: 1px dashed rgba(251, 191, 36, 0.25);
+}
+
+.trackDivider span {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.07em;
+  color: var(--amber-400, #fbbf24);
+}
+
+.trackDivider small {
+  font-size: 10px;
+  color: var(--studio-text-subtle);
+}
+
+.parallelStep {
+  border-left: 2px solid rgba(251, 191, 36, 0.4);
+  background: rgba(251, 191, 36, 0.03);
+}
+
+.parallelBadge {
+  display: inline-block;
+  margin-left: 5px;
+  font-size: 9px;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 1px 4px;
+  border-radius: 3px;
+  background: rgba(251, 191, 36, 0.15);
+  color: var(--amber-400, #fbbf24);
+  border: 1px solid rgba(251, 191, 36, 0.3);
+  vertical-align: middle;
 }

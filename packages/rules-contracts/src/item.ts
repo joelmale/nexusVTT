@@ -4,7 +4,7 @@ import {
   DamageRollSchema,
   EntityRefSchema,
   NameSchema,
-} from './common';
+} from './common.js';
 
 export const ItemCategorySchema = z.enum([
   'weapon',

@@ -1,8 +1,34 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { publishGlassHarborPlan } from './campaign-prep-api';
+import {
+  publishSessionPlan,
+  type PublishSessionPlanInput,
+} from './campaign-prep-api';
 
 const CAMPAIGN_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
+const input: PublishSessionPlanInput = {
+  campaignTitle: 'A Real Campaign',
+  planTitle: 'Session 7 - Crossroads',
+  revision: 1,
+  steps: [
+    {
+      command: 'Reminder',
+      durationMinutes: 5,
+      id: 'main-step',
+      title: 'Main objective',
+      track: 'main',
+      visibility: 'dm-only',
+    },
+    {
+      command: 'Reminder',
+      durationMinutes: 0,
+      id: 'parallel-step',
+      title: 'Keep an eye on the rival party',
+      track: 'parallel',
+      visibility: 'shared',
+    },
+  ],
+};
 
 function json(body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -11,52 +37,52 @@ function json(body: unknown, status = 200): Response {
   });
 }
 
-describe('publishGlassHarborPlan', () => {
+describe('publishSessionPlan', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
-  it('publishes an existing draft through the VTT campaign-prep API', async () => {
+  it('publishes the edited tracks into the selected campaign', async () => {
+    let revisedPlan: Record<string, unknown> | undefined;
     const fetchMock = vi
       .spyOn(globalThis, 'fetch')
-      .mockImplementation(async (input, init) => {
-        const path = String(input);
-        if (path === '/api/campaigns') {
-          return json([{ id: CAMPAIGN_ID, name: 'Ashes of Veyra' }]);
-        }
+      .mockImplementation(async (request, requestInit) => {
+        const path = String(request);
         if (path === '/api/users/profile') {
           return json({ id: 'dm-1' });
         }
-        if (path === '/api/user/dm-1/assets') {
-          return json({
-            assets: [{ id: 'asset-map', name: 'Glass Harbor Docks Map' }],
-          });
+        if (path === '/api/campaigns') {
+          return json([{ id: CAMPAIGN_ID, name: input.campaignTitle }]);
         }
-        if (path.endsWith('/prep/objects') && init?.method !== 'POST') {
+        if (path === '/api/user/dm-1/assets') {
+          return json({ assets: [] });
+        }
+        if (path.endsWith('/prep/objects') && !requestInit?.method) {
           return json({
             objects: [
               {
-                id: 'note-1',
-                kind: 'note',
-                title: "Harbormaster's Warning",
-                currentRevision: 1,
-                status: 'draft',
-              },
-              {
-                id: 'scene-1',
-                kind: 'scene-template',
-                title: 'Glass Harbor Docks',
-                currentRevision: 1,
-                status: 'draft',
-              },
-              {
                 id: 'plan-1',
                 kind: 'session-plan',
-                title: 'Session 12 - The Glass Harbor',
+                title: input.planTitle,
                 currentRevision: 1,
                 status: 'draft',
               },
             ],
+          });
+        }
+        if (path.endsWith('/prep/objects/plan-1')) {
+          const body = JSON.parse(String(requestInit?.body)) as {
+            data: Record<string, unknown>;
+          };
+          revisedPlan = body.data;
+          return json({
+            object: {
+              id: 'plan-1',
+              kind: 'session-plan',
+              title: input.planTitle,
+              currentRevision: 2,
+              status: 'draft',
+            },
           });
         }
         if (path.endsWith('/prep/objects/plan-1/publish')) {
@@ -68,9 +94,19 @@ describe('publishGlassHarborPlan', () => {
         throw new Error(`Unexpected request: ${path}`);
       });
 
-    const result = await publishGlassHarborPlan();
+    const result = await publishSessionPlan(input);
 
     expect(result.plan.revision).toBe(2);
+    expect(revisedPlan).toMatchObject({
+      title: input.planTitle,
+      steps: [
+        expect.objectContaining({ title: 'Main objective', track: 'main' }),
+        expect.objectContaining({
+          title: 'Keep an eye on the rival party',
+          track: 'parallel',
+        }),
+      ],
+    });
     expect(fetchMock).toHaveBeenCalledWith(
       `/api/campaigns/${CAMPAIGN_ID}/prep/objects/plan-1/publish`,
       expect.objectContaining({ method: 'POST', credentials: 'include' }),
@@ -78,11 +114,11 @@ describe('publishGlassHarborPlan', () => {
   });
 
   it('surfaces an authentication response as a useful error', async () => {
-    vi.spyOn(globalThis, 'fetch').mockImplementation(
-      async () => json({ error: 'Authentication required' }, 401),
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>
+      json({ error: 'Authentication required' }, 401),
     );
 
-    await expect(publishGlassHarborPlan()).rejects.toThrow(
+    await expect(publishSessionPlan(input)).rejects.toThrow(
       'Authentication required',
     );
   });

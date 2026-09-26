@@ -7,10 +7,10 @@ import {
   SourceLicenseSchema,
   type RulesEntityType,
   type Ruleset,
-} from './common';
-import { ItemSchema, type Item } from './item';
-import { MonsterSchema, type Monster } from './monster';
-import { SpellSchema, type Spell } from './spell';
+} from './common.js';
+import { ItemSchema, type Item } from './item.js';
+import { MonsterSchema, type Monster } from './monster.js';
+import { SpellSchema, type Spell } from './spell.js';
 
 export interface RulesEntityDataMap {
   spell: Spell;

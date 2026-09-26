@@ -57,6 +57,7 @@ describe('DomainCommandClient', () => {
     } as unknown as Parameters<typeof useInitiativeStore.setState>[0]);
 
     useGameStore.setState({
+      session: null,
       sceneState: {
         activeSceneId: 'scene-1',
         scenes: [
@@ -122,19 +123,29 @@ describe('DomainCommandClient', () => {
     const windowListener = vi.fn();
     window.addEventListener('nexus-domain-command-executed', windowListener);
 
-    const result = await commandClient.applyDamage(campaignId, targetActorId, 10);
+    const result = await commandClient.applyDamage(
+      campaignId,
+      targetActorId,
+      10,
+    );
 
     expect(result.success).toBe(true);
     expect(result.receipt).toEqual(mockReceipt);
     expect(windowListener).toHaveBeenCalled();
 
     // 10 damage applied: 5 tempHp absorbed, 5 goes to currentHp: 20 - 5 = 15, tempHp = 0
-    const character = useCharacterStore.getState().characters.find((c) => c.id === targetActorId);
+    const character = useCharacterStore
+      .getState()
+      .characters.find((c) => c.id === targetActorId);
     expect(character?.hitPoints).toBe(15);
     expect(character?.temporaryHitPoints).toBe(0);
 
     // Initiative store check
-    const entry = (useInitiativeStore.getState() as unknown as { entries: Array<{ characterId?: string; currentHP: number }> }).entries.find((e) => e.characterId === targetActorId);
+    const entry = (
+      useInitiativeStore.getState() as unknown as {
+        entries: Array<{ characterId?: string; currentHP: number }>;
+      }
+    ).entries.find((e) => e.characterId === targetActorId);
     expect(entry?.currentHP).toBe(15);
 
     // Token check
@@ -173,10 +184,16 @@ describe('DomainCommandClient', () => {
 
     expect(result.success).toBe(true);
     // 15 + 8 = 23 (max is 25)
-    const character = useCharacterStore.getState().characters.find((c) => c.id === targetActorId);
+    const character = useCharacterStore
+      .getState()
+      .characters.find((c) => c.id === targetActorId);
     expect(character?.hitPoints).toBe(23);
 
-    const entry = (useInitiativeStore.getState() as unknown as { entries: Array<{ characterId?: string; currentHP: number }> }).entries.find((e) => e.characterId === targetActorId);
+    const entry = (
+      useInitiativeStore.getState() as unknown as {
+        entries: Array<{ characterId?: string; currentHP: number }>;
+      }
+    ).entries.find((e) => e.characterId === targetActorId);
     expect(entry?.currentHP).toBe(23);
   });
 
@@ -233,9 +250,14 @@ describe('DomainCommandClient', () => {
       }),
     });
 
-    const result = await commandClient.applyDamage(campaignId, targetActorId, 10, {
-      expectedVersion: 1,
-    });
+    const result = await commandClient.applyDamage(
+      campaignId,
+      targetActorId,
+      10,
+      {
+        expectedVersion: 1,
+      },
+    );
 
     expect(result.success).toBe(false);
     expect(result.error).toBe('State version mismatch');
@@ -287,7 +309,10 @@ describe('DomainCommandClient', () => {
     const startRes = await commandClient.startEncounter(campaignId, 'run-1');
     expect(startRes.success).toBe(true);
 
-    const advanceRes = await commandClient.advanceCombatTurn(campaignId, 'run-1');
+    const advanceRes = await commandClient.advanceCombatTurn(
+      campaignId,
+      'run-1',
+    );
     expect(advanceRes.success).toBe(true);
   });
 
@@ -328,7 +353,11 @@ describe('DomainCommandClient', () => {
     const res = await commandClient.castSpell(
       campaignId,
       targetActorId,
-      { kind: 'spell', id: '55555555-5555-4555-8555-555555555555', revision: 1 },
+      {
+        kind: 'spell',
+        id: '55555555-5555-4555-8555-555555555555',
+        revision: 1,
+      },
       'prof-1',
       2,
       { targetActorIds: ['target-1'] },
@@ -376,12 +405,21 @@ describe('DomainCommandClient', () => {
       }),
     });
 
-    const shortRes = await commandClient.restActor(campaignId, targetActorId, 'short', {
-      hitDiceToSpend: 2,
-    });
+    const shortRes = await commandClient.restActor(
+      campaignId,
+      targetActorId,
+      'short',
+      {
+        hitDiceToSpend: 2,
+      },
+    );
     expect(shortRes.success).toBe(true);
 
-    const longRes = await commandClient.restActor(campaignId, targetActorId, 'long');
+    const longRes = await commandClient.restActor(
+      campaignId,
+      targetActorId,
+      'long',
+    );
     expect(longRes.success).toBe(true);
   });
 
@@ -405,6 +443,44 @@ describe('DomainCommandClient', () => {
       expect.stringContaining(`/campaigns/${campaignId}/commands`),
       expect.objectContaining({
         body: expect.stringContaining('"type":"TransferItem"'),
+      }),
+    );
+  });
+
+  it('dispatches RevealHandout with the active room header', async () => {
+    useGameStore.setState({
+      session: {
+        roomCode: 'ROOM42',
+        hostId: 'user-1',
+        campaignId,
+        players: [],
+        status: 'connected',
+      },
+    });
+    global.fetch = vi.fn().mockResolvedValueOnce({
+      ok: true,
+      json: async () => ({
+        success: true,
+        receipt: { result: { success: true } },
+      }),
+    });
+
+    const result = await commandClient.revealHandout(
+      campaignId,
+      { target: 'asset', assetId: 'harbor-map' },
+      'Harbor Map',
+      '77777777-7777-4777-8777-777777777777',
+    );
+
+    expect(result.success).toBe(true);
+    expect(global.fetch).toHaveBeenCalledWith(
+      expect.stringContaining(`/campaigns/${campaignId}/commands`),
+      expect.objectContaining({
+        headers: {
+          'Content-Type': 'application/json',
+          'x-room-id': 'ROOM42',
+        },
+        body: expect.stringContaining('"type":"RevealHandout"'),
       }),
     );
   });

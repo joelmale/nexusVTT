@@ -9,9 +9,9 @@ import {
   type RulesEntityType,
   type RulesRevisionStatus,
   type Ruleset,
-} from './common';
-import type { CatalogEntity, RulesValidationIssue } from './entity';
-import type { JsonPatchOperation } from './jsonPatch';
+} from './common.js';
+import type { CatalogEntity, RulesValidationIssue } from './entity.js';
+import type { JsonPatchOperation } from './jsonPatch.js';
 
 /**
  * Wire contract for the Codex internal rules-admin API

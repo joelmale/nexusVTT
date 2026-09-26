@@ -221,7 +221,10 @@ class WebSocketService extends EventTarget {
         const resolvedUserId =
           userId || matchingContext?.userId || gameState.user.id;
         const resolvedUserName =
-          userName || matchingContext?.userName || gameState.user.name || 'Guest';
+          userName ||
+          matchingContext?.userName ||
+          gameState.user.name ||
+          'Guest';
         const resolvedCampaignId =
           campaignId || matchingContext?.campaignId || undefined;
 
@@ -326,10 +329,7 @@ class WebSocketService extends EventTarget {
         this.startHeartbeat(nextSocketInstanceId);
 
         socket.onclose = (event) => {
-          const superseded = !this.isActiveSocket(
-            socket,
-            nextSocketInstanceId,
-          );
+          const superseded = !this.isActiveSocket(socket, nextSocketInstanceId);
           console.info('[WebSocket] closed', {
             socketInstanceId: nextSocketInstanceId,
             participantId: resolvedUserId || null,
@@ -380,10 +380,7 @@ class WebSocketService extends EventTarget {
     return this.ws === socket && this.socketInstanceId === socketInstanceId;
   }
 
-  private handleMessage(
-    message: WebSocketMessage,
-    socketInstanceId: string,
-  ) {
+  private handleMessage(message: WebSocketMessage, socketInstanceId: string) {
     if (socketInstanceId !== this.socketInstanceId) {
       console.warn('[WebSocket] ignored message from superseded socket', {
         socketInstanceId,
@@ -431,10 +428,7 @@ class WebSocketService extends EventTarget {
     }
   }
 
-  private processMessage(
-    message: WebSocketMessage,
-    socketInstanceId: string,
-  ) {
+  private processMessage(message: WebSocketMessage, socketInstanceId: string) {
     console.log(
       '📨 Received WebSocket message:',
       sanitizeLog(message.type),
@@ -469,6 +463,14 @@ class WebSocketService extends EventTarget {
           this.disconnect();
           toast.error('Removed from game', { description: kickMessage });
           break;
+        }
+
+        if (message.data.name === 'handout/revealed') {
+          const title =
+            typeof message.data.title === 'string'
+              ? message.data.title
+              : 'Session handout';
+          toast.info('Handout revealed', { description: title });
         }
 
         if (
@@ -1219,7 +1221,6 @@ class WebSocketService extends EventTarget {
     } else {
       this.connectionQuality.quality = 'critical';
     }
-
   }
 
   disconnect() {

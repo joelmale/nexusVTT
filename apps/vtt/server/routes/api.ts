@@ -1,4 +1,3 @@
-
 import fs from 'fs';
 import path from 'path';
 import type express from 'express';
@@ -11,10 +10,11 @@ import {
   generateRandomScene,
 } from '../utils/mockGenerator.js';
 import { isDevMode } from '../utils/devMode.js';
-import { toAuthResponse, } from '../utils/publicUser.js';
+import { toAuthResponse } from '../utils/publicUser.js';
 import { requireAuthenticatedNonGuest } from '../middleware/assetWriteGuard.js';
 import { setupGeneratedMapsRoute } from './generatedMaps.js';
 import { registerCampaignActorRoutes } from './campaignActors.js';
+import type { SocketManager } from '../socket/SocketManager.js';
 
 interface ApiSession extends Session {
   guestUser?: { id: string; name: string; provider: string };
@@ -128,6 +128,7 @@ export function registerApiRoutes(
   app: express.Application,
   db: DatabaseService,
   assetsPath: string,
+  getSocketManager?: () => SocketManager,
 ): void {
   // ============================================================================
   // USER ACCOUNT ROUTES
@@ -1024,5 +1025,5 @@ export function registerApiRoutes(
 );
 
   setupGeneratedMapsRoute(app, requireAuthenticatedNonGuest);
-  registerCampaignActorRoutes(app, db);
+  registerCampaignActorRoutes(app, db, getSocketManager);
 }
