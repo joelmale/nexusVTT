@@ -94,7 +94,7 @@
         "file": "./apps/forge/Dockerfile",
         "target": "",
         "repository": "ghcr.io/joelmale/nexus-forge",
-        "platforms": "linux/amd64,linux/arm64",
+        "platforms": "linux/amd64",
         "securityScan": true
       }
     },
