@@ -361,5 +361,10 @@ async function createAndStore(hc: HandlerContext, file: SpooledFile, metadata: D
   }
 
   await audit('success', { ...summary, batchId: created.batchId, upstreamStatus: create.status, processingQueued }, { resourceId: documentId });
-  res.status(201).json({ batchId: created.batchId, documents: [created.created.document], processingQueued });
+  res.status(201).json({
+    document: created.created.document,
+    batchId: created.batchId,
+    documents: [created.created.document],
+    processingQueued,
+  });
 }

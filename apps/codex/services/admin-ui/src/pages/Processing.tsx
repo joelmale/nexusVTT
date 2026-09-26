@@ -23,6 +23,7 @@ interface Job {
   id: string
   documentId: string
   documentTitle: string
+  stage?: string
   status: string
   progress: number
   attempts: number
@@ -398,8 +399,13 @@ export default function Processing() {
                     <tr key={job.id}>
                       <td className="px-6 py-4 whitespace-nowrap">
                         <div>
-                          <div className="text-sm font-medium text-gray-900">
-                            {job.documentTitle}
+                          <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                            <span>{job.documentTitle}</span>
+                            {job.stage && (
+                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider bg-blue-100 text-blue-800">
+                                {job.stage}
+                              </span>
+                            )}
                           </div>
                           <div className="text-sm text-gray-500">
                             ID: {job.documentId}

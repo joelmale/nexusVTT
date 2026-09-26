@@ -102,6 +102,8 @@ export async function getJobs(filters: {
       const state = await job.getState();
       return {
         id: job.id,
+        name: job.name,
+        stage: job.data?.stage || job.name.replace(/^process-/, ''),
         documentId: job.data.documentId,
         status: state,
         progress: job.progress,

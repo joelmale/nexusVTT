@@ -346,6 +346,7 @@ services:
       METRICS_AUTH_TOKEN: ${CODEX_METRICS_AUTH_TOKEN:?CODEX_METRICS_AUTH_TOKEN is required, see deploy/homelab/.env.example}
     networks:
     - nexus-internal-net
+    - nexus-codex-egress-net
     depends_on:
       postgres:
         condition: service_healthy
@@ -377,7 +378,7 @@ services:
         condition: service_healthy
     restart: on-failure
   codex-ocr:
-    image: ${DOC_OCR_IMAGE:-ghcr.io/joelmale/nexuscodex-ocr:main}
+    image: ${DOC_OCR_IMAGE:-ghcr.io/joelmale/nexuscodex-ocr:latest}
     pull_policy: if_not_present
     container_name: nexus-vtt2-codex-ocr
     restart: on-failure
@@ -394,6 +395,7 @@ services:
               capabilities: [gpu]
     networks:
       - nexus-internal-net
+      - nexus-codex-egress-net
   # No standalone admin-ui/dm-ui containers (private-admin-control-plane.md
   # invariant 3): their nginx proxied /api/ to doc-api unauthenticated. The
   # frontend gateway serves /codex-dm/; the admin UI returns on the Phase 1
