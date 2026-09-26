@@ -45,7 +45,7 @@
         "@fastify/multipart": "^10.1.1",
         "@nexus/document-contracts": "*",
         "@nexus/rules-contracts": "*",
-        "@prisma/client": "^5.22.0",
+        "@prisma/client": "^7.10.0",
         "@types/prompts": "^2.4.9",
         "bcryptjs": "^3.0.3",
         "bullmq": "^5.81.5",
@@ -66,7 +66,7 @@
         "@types/node": "^20.10.6",
         "@types/sharp": "^0.32.0",
         "jest": "^29.7.0",
-        "prisma": "^5.7.1",
+        "prisma": "^7.10.0",
         "ts-jest": "^29.1.1",
         "tsx": "^4.20.6",
         "typescript": "^5.3.3"
