@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { codexFetch } from '@/lib/api'
 import { useCan } from '@/auth/AuthContext'
@@ -142,9 +142,46 @@ export default function Processing() {
     enabled: !!selectedJob?.id && showErrorModal,
   })
 
+  // Deduplicated list of selectable documents across active jobs and documents library
+  const documentOptions = useMemo(() => {
+    const map = new Map<string, { id: string; title: string; subtitle: string; active?: boolean }>()
+
+    // First add from queue jobs (gives real-time stage info)
+    if (jobsData?.jobs) {
+      for (const job of jobsData.jobs) {
+        if (!job.documentId) continue
+        const existing = map.get(job.documentId)
+        const isBetterState = !existing || job.status === 'active' || (existing.active !== true && job.status === 'failed')
+        if (isBetterState) {
+          map.set(job.documentId, {
+            id: job.documentId,
+            title: job.documentTitle || 'Untitled Document',
+            subtitle: `${job.stage || 'queued'} (${job.status})`,
+            active: job.status === 'active',
+          })
+        }
+      }
+    }
+
+    // Then ensure all documents from docsData are present
+    if (docsData?.documents) {
+      for (const doc of docsData.documents) {
+        if (!map.has(doc.id)) {
+          map.set(doc.id, {
+            id: doc.id,
+            title: doc.title,
+            subtitle: doc.ocrStatus,
+          })
+        }
+      }
+    }
+
+    return Array.from(map.values())
+  }, [jobsData?.jobs, docsData?.documents])
+
   const activeOrFailedJob = jobsData?.jobs?.find((j) => j.status === 'active') || jobsData?.jobs?.find((j) => j.status === 'failed') || jobsData?.jobs?.[0]
   const currentInspectJob = selectedJob || activeOrFailedJob || null
-  const targetDocId = documentIdParam || selectedDocumentId || currentInspectJob?.documentId || docsData?.documents?.[0]?.id || null
+  const targetDocId = documentIdParam || selectedDocumentId || currentInspectJob?.documentId || documentOptions[0]?.id || null
 
   const { data: reportData, isLoading: reportLoading } = useQuery<ProcessingReport>({
     queryKey: ['processing-report', targetDocId],
@@ -376,7 +413,7 @@ export default function Processing() {
             </p>
           </div>
 
-          {((jobsData?.jobs && jobsData.jobs.length > 0) || (docsData?.documents && docsData.documents.length > 0)) && (
+          {documentOptions.length > 0 && (
             <div className="flex items-center gap-2 text-xs">
               <label htmlFor="pipeline-job-select" className="text-gray-500 font-medium">
                 Viewing Document:
@@ -387,30 +424,17 @@ export default function Processing() {
                 onChange={(e) => {
                   const val = e.target.value
                   setSelectedDocumentId(val)
-                  const job = jobsData?.jobs.find((j) => j.documentId === val || j.id === val)
+                  const job = jobsData?.jobs.find((j) => j.documentId === val)
                   if (job) setSelectedJob(job)
                   setSearchParams(val ? { documentId: val } : {})
                 }}
                 className="px-2.5 py-1.5 border border-gray-300 rounded-md bg-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 max-w-xs truncate"
               >
-                {jobsData?.jobs && jobsData.jobs.length > 0 && (
-                  <optgroup label="Queue Jobs">
-                    {jobsData.jobs.map((job) => (
-                      <option key={job.id} value={job.documentId}>
-                        {job.documentTitle} ({job.stage || 'queued'} - {job.status})
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
-                {docsData?.documents && docsData.documents.length > 0 && (
-                  <optgroup label="Documents Library">
-                    {docsData.documents.map((doc) => (
-                      <option key={doc.id} value={doc.id}>
-                        {doc.title} ({doc.ocrStatus})
-                      </option>
-                    ))}
-                  </optgroup>
-                )}
+                {documentOptions.map((doc) => (
+                  <option key={doc.id} value={doc.id}>
+                    {doc.title} — {doc.subtitle}
+                  </option>
+                ))}
               </select>
             </div>
           )}
