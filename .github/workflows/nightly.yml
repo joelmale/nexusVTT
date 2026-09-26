@@ -1,0 +1,237 @@
+name: Nightly Validation
+
+on:
+  schedule:
+    - cron: '30 5 * * *'
+  workflow_dispatch:
+    inputs:
+      run_a2000:
+        description: Run the self-hosted RTX A2000 validation job
+        required: false
+        default: false
+        type: boolean
+
+concurrency:
+  group: nightly-validation
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '26.5.1'
+
+jobs:
+  catalog:
+    name: Resolve nightly catalog
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
+      security_images: ${{ steps.affected.outputs.security_images }}
+      codex_node_matrix: ${{ steps.affected.outputs.codex_node_matrix }}
+      codex_python_matrix: ${{ steps.affected.outputs.codex_python_matrix }}
+      has_codex_node: ${{ steps.affected.outputs.has_codex_node }}
+      has_codex_python: ${{ steps.affected.outputs.has_codex_python }}
+      codex_doc_api: ${{ steps.affected.outputs.codex_doc_api }}
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7
+        with:
+          ref: main
+          fetch-depth: 0
+
+      - name: Record source SHA
+        id: source
+        shell: bash
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Validate service catalog
+        run: node scripts/ci/service-catalog.mjs
+
+      - name: Generate full nightly matrices
+        id: affected
+        shell: bash
+        run: |
+          node scripts/ci/affected-targets.mjs \
+            --base HEAD^ \
+            --head HEAD \
+            --event schedule \
+            --ref refs/heads/main \
+            --full \
+            --github-output "$GITHUB_OUTPUT" \
+            --format summary
+
+  vtt-integration:
+    name: 'VTT: database integration suite'
+    needs: catalog
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/vtt
+    steps:
+      - name: Checkout nightly source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.catalog.outputs.source_sha }}
+
+      - name: Run integration tests with Docker Compose
+        run: docker compose -f docker/docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test
+        env:
+          HOST_WORKSPACE: ${{ github.workspace }}
+
+      - name: Tear down integration stack
+        if: always()
+        run: docker compose -f docker/docker-compose.test.yml down --volumes --remove-orphans
+
+  vtt-e2e:
+    name: 'VTT: managed E2E smoke'
+    needs: catalog
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    defaults:
+      run:
+        working-directory: apps/vtt
+    steps:
+      - name: Checkout nightly source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.catalog.outputs.source_sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ github.workspace }}
+
+      - name: Build shared contracts
+        run: npm run build:contracts
+        working-directory: ${{ github.workspace }}
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run production smoke tests
+        run: npm run test:e2e
+
+      - name: Upload Playwright diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: nightly-playwright-smoke-report
+          path: |
+            apps/vtt/playwright-report/
+            apps/vtt/test-results/e2e/
+          if-no-files-found: ignore
+          retention-days: 14
+
+  codex-integration:
+    name: Codex full validation
+    needs: catalog
+    uses: ./.github/workflows/codex-ci.yml
+    with:
+      source_sha: ${{ needs.catalog.outputs.source_sha }}
+      run_doc_api: ${{ needs.catalog.outputs.codex_doc_api == 'true' }}
+      run_integration: true
+      has_node_services: ${{ needs.catalog.outputs.has_codex_node == 'true' }}
+      node_services: ${{ needs.catalog.outputs.codex_node_matrix }}
+      has_python_services: ${{ needs.catalog.outputs.has_codex_python == 'true' }}
+      python_services: ${{ needs.catalog.outputs.codex_python_matrix }}
+
+  ocr-model-warmup:
+    name: 'Codex OCR: download and execute models'
+    needs: catalog
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: apps/codex/services/ocr-service
+    steps:
+      - name: Checkout nightly source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.catalog.outputs.source_sha }}
+
+      - name: Setup Python
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: pip
+          cache-dependency-path: apps/codex/services/ocr-service/requirements.txt
+
+      - name: Install OCR dependencies
+        run: python -m pip install --requirement requirements.txt
+
+      - name: Initialize OCR and embedding models
+        shell: bash
+        run: |
+          python - <<'PY'
+          from src.ocr_engine import ocr_engine
+
+          result = ocr_engine.generate_embeddings(['nightly model validation'])
+          assert result['dimension'] == 384
+          assert len(result['embeddings']) == 1
+          print(ocr_engine.get_gpu_telemetry())
+          PY
+
+  security:
+    name: Full security validation
+    needs: catalog
+    permissions:
+      actions: read
+      contents: read
+      security-events: write
+    uses: ./.github/workflows/security-reusable.yml
+    with:
+      source_sha: ${{ needs.catalog.outputs.source_sha }}
+      repository_scan: true
+      container_images: ${{ needs.catalog.outputs.security_images }}
+
+  multiplayer-soak:
+    name: Multiplayer soak and chaos
+    needs: catalog
+    uses: ./.github/workflows/multiplayer-soak.yml
+    with:
+      source_sha: ${{ needs.catalog.outputs.source_sha }}
+      rooms: '10'
+      clients_per_room: '4'
+      duration: '10m'
+      events_per_second: '20'
+      chaos: true
+
+  a2000-gpu:
+    name: 'Codex OCR: RTX A2000 CUDA validation'
+    if: vars.A2000_RUNNER_ENABLED == 'true' || inputs.run_a2000
+    needs: catalog
+    runs-on: [self-hosted, linux, x64, a2000]
+    timeout-minutes: 45
+    steps:
+      - name: Checkout nightly source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.catalog.outputs.source_sha }}
+
+      - name: Verify NVIDIA runtime
+        run: nvidia-smi
+
+      - name: Build OCR service image
+        run: docker build --file apps/codex/services/ocr-service/Dockerfile --tag nexus-codex-ocr:a2000 .
+
+      - name: Require CUDA execution and run an embedding
+        shell: bash
+        run: |
+          docker run --rm --interactive --gpus all nexus-codex-ocr:a2000 \
+            python - <<'PY'
+          from src.ocr_engine import ocr_engine
+
+          assert ocr_engine.has_cuda, ocr_engine.get_gpu_telemetry()
+          result = ocr_engine.generate_embeddings(['A2000 validation'])
+          assert result['dimension'] == 384
+          print(ocr_engine.get_gpu_telemetry())
+          PY

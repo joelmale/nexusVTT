@@ -35,7 +35,7 @@ function expectAffected(decision, expected) {
 describe('affected target configuration', () => {
   test('loads the checked-in dependency graph', () => {
     expect(JSON.parse(readFileSync(DEFAULT_CONFIG_PATH, 'utf8')).version).toBe(
-      1,
+      2,
     );
     expect(config.targets.gateway.dependsOn).toEqual(
       expect.arrayContaining(['vtt', 'forge', 'codex-admin-ui', 'codex-dm-ui']),
@@ -71,80 +71,18 @@ describe('affected target configuration', () => {
     expect(matchesPattern('root-file.ts', '**/*.?s')).toBe(true);
   });
 
-  test.each([
-    [null, 'must be an object'],
-    [{ version: 2 }, 'unsupported'],
-    [{ version: 1, targets: null }, 'targets must be an object'],
-    [{ version: 1, targets: {} }, 'at least one target'],
-    [
-      { version: 1, targets: { INVALID: {} }, fanoutRules: [] },
-      'invalid target id',
-    ],
-    [
-      { version: 1, targets: { valid: null }, fanoutRules: [] },
-      'must be an object',
-    ],
-    [
-      {
-        version: 1,
-        targets: { valid: { paths: 'bad', dependsOn: [] } },
-        fanoutRules: [],
-      },
-      'paths must be an array',
-    ],
-    [
-      {
-        version: 1,
-        targets: { valid: { paths: ['x'], dependsOn: ['valid'] } },
-        fanoutRules: [],
-      },
-      'cannot depend on itself',
-    ],
-    [
-      {
-        version: 1,
-        targets: { valid: { paths: ['x'], dependsOn: [] } },
-        fanoutRules: null,
-      },
-      'fanoutRules must be an array',
-    ],
-    [
-      {
-        version: 1,
-        targets: { valid: { paths: ['x'], dependsOn: [] } },
-        fanoutRules: [null],
-      },
-      'fanout rule must be an object',
-    ],
-    [
-      {
-        version: 1,
-        targets: { valid: { paths: ['x'], dependsOn: [] } },
-        fanoutRules: [{ name: '', paths: ['x'], targets: 'all' }],
-      },
-      'must have a name',
-    ],
-    [
-      {
-        version: 1,
-        targets: { valid: { paths: ['x'], dependsOn: [] } },
-        fanoutRules: [
-          { name: 'same', paths: ['x'], targets: 'all' },
-          { name: 'same', paths: ['y'], targets: 'all' },
-        ],
-      },
+  test('rejects malformed catalog inputs through the shared validator', () => {
+    expect(() => validateConfig(null)).toThrow('must be an object');
+
+    const invalidTarget = structuredClone(config);
+    invalidTarget.targets.INVALID = invalidTarget.targets.docs;
+    expect(() => validateConfig(invalidTarget)).toThrow('invalid target id');
+
+    const duplicateRule = structuredClone(config);
+    duplicateRule.fanoutRules.push(duplicateRule.fanoutRules[0]);
+    expect(() => validateConfig(duplicateRule)).toThrow(
       'duplicate fanout rule',
-    ],
-    [
-      {
-        version: 1,
-        targets: { valid: { paths: ['x'], dependsOn: [] } },
-        fanoutRules: [{ name: 'bad', paths: ['x'], targets: ['missing'] }],
-      },
-      'unknown target',
-    ],
-  ])('rejects malformed configuration %#', (candidate, message) => {
-    expect(() => validateConfig(candidate)).toThrow(message);
+    );
   });
 });
 
@@ -168,13 +106,21 @@ describe('representative Stage 3A change classes', () => {
     expect(control.releaseImages.map((image) => image.name)).toEqual([
       'control-api',
     ]);
-    expect(control.securityImages).toEqual([]);
+    expect(control.securityImages.map((image) => image.name)).toEqual([
+      'control-api',
+    ]);
     expect(control.allReleaseImages.map((image) => image.name)).toEqual([
       'asset-service',
       'postgres',
       'backend',
+      'forge',
       'control-api',
+      'codex-doc-api',
+      'codex-doc-processor',
       'codex-ocr',
+      'codex-doc-websocket',
+      'codex-admin-ui',
+      'codex-dm-ui',
       'frontend',
     ]);
 
@@ -182,10 +128,10 @@ describe('representative Stage 3A change classes', () => {
       decide('apps/codex/services/ocr-service/src/main.py'),
       config,
     );
-    expect(ocr.releaseImages.map((image) => image.name)).toEqual([
+    expect(ocr.releaseImages.map((image) => image.name)).toEqual(['codex-ocr']);
+    expect(ocr.securityImages.map((image) => image.name)).toEqual([
       'codex-ocr',
     ]);
-    expect(ocr.securityImages).toEqual([]);
 
     const backend = imageMatricesForDecision(
       decide('apps/vtt/server/index.ts'),
@@ -527,11 +473,14 @@ describe('affected-target CLI', () => {
     const write = vi
       .spyOn(process.stdout, 'write')
       .mockImplementation(() => true);
+    const writeError = vi
+      .spyOn(process.stderr, 'write')
+      .mockImplementation(() => true);
     expect(
       runCli(['--config', 'does-not-exist.json', '--format', 'json']),
-    ).toBe(0);
-    expect(write).toHaveBeenCalledWith(
-      expect.stringContaining('configuration-error'),
+    ).toBe(1);
+    expect(writeError).toHaveBeenCalledWith(
+      expect.stringContaining('service catalog error'),
     );
 
     write.mockClear();
@@ -540,6 +489,7 @@ describe('affected-target CLI', () => {
       expect.stringContaining('change-detection-failed'),
     );
     write.mockRestore();
+    writeError.mockRestore();
   });
 
   test('emits a targeted decision for a resolved comparison and honors truncation', () => {

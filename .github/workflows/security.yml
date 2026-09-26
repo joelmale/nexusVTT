@@ -20,6 +20,7 @@ jobs:
     timeout-minutes: 5
     outputs:
       sha: ${{ steps.source.outputs.sha }}
+      security_images: ${{ steps.catalog.outputs.security_images }}
     steps:
       - name: Validate manual source syntax
         if: github.event_name == 'workflow_dispatch'
@@ -50,6 +51,20 @@ jobs:
           fi
           echo "sha=$source_sha" >> "$GITHUB_OUTPUT"
 
+      - name: Validate service catalog and generate scan matrix
+        id: catalog
+        shell: bash
+        run: |
+          node scripts/ci/service-catalog.mjs
+          node scripts/ci/affected-targets.mjs \
+            --base HEAD^ \
+            --head HEAD \
+            --event release \
+            --ref "$GITHUB_REF" \
+            --full \
+            --github-output "$GITHUB_OUTPUT" \
+            --format summary
+
   security:
     name: Security validation
     needs: resolve-source
@@ -61,8 +76,7 @@ jobs:
     with:
       source_sha: ${{ needs.resolve-source.outputs.sha }}
       repository_scan: true
-      container_images: >-
-        [{"name":"frontend","file":"./apps/vtt/docker/frontend.Dockerfile","target":"production"},{"name":"backend","file":"./apps/vtt/docker/backend.Dockerfile","target":""}]
+      container_images: ${{ needs.resolve-source.outputs.security_images }}
 
   attach-release-sboms:
     name: Attach release SBOMs

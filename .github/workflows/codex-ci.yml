@@ -5,13 +5,32 @@ on:
     inputs:
       source_sha:
         description: 'Exact source SHA to verify'
-        required: false
+        required: true
         type: string
-  workflow_dispatch:
-    inputs:
-      source_sha:
-        description: 'Exact source SHA to verify'
+      run_doc_api:
+        description: 'Run the specialized doc-api unit validation'
+        required: true
+        type: boolean
+      run_integration:
+        description: 'Run database-backed Codex integration tests'
         required: false
+        default: false
+        type: boolean
+      has_node_services:
+        description: 'Whether the Node service matrix has entries'
+        required: true
+        type: boolean
+      node_services:
+        description: 'Catalog-generated Node service matrix'
+        required: true
+        type: string
+      has_python_services:
+        description: 'Whether the Python service matrix has entries'
+        required: true
+        type: boolean
+      python_services:
+        description: 'Catalog-generated Python service matrix'
+        required: true
         type: string
 
 permissions:
@@ -24,13 +43,14 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.source_sha || github.sha }}
+          ref: ${{ inputs.source_sha }}
 
       - name: Verify service test inventory
         run: node apps/codex/scripts/check-test-inventory.mjs
 
   verify-doc-api-unit:
     name: 'doc-api: unit tests and build'
+    if: inputs.run_doc_api
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -49,7 +69,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.source_sha || github.sha }}
+          ref: ${{ inputs.source_sha }}
 
       - uses: actions/setup-node@v7
         with:
@@ -76,6 +96,7 @@ jobs:
 
   verify-doc-api-integration:
     name: 'doc-api: API integration tests'
+    if: inputs.run_doc_api && inputs.run_integration
     runs-on: ubuntu-latest
     services:
       postgres:
@@ -136,7 +157,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.source_sha || github.sha }}
+          ref: ${{ inputs.source_sha }}
 
       - uses: actions/setup-node@v7
         with:
@@ -198,31 +219,15 @@ jobs:
 
   verify-services:
     name: '${{ matrix.service }}: validation'
+    if: inputs.has_node_services
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - service: doc-processor
-            prisma: true
-            test: true
-            lint: false
-          - service: doc-websocket
-            prisma: true
-            test: false
-            lint: false
-          - service: admin-ui
-            prisma: false
-            test: true
-            lint: true
-          - service: dm-ui
-            prisma: false
-            test: false
-            lint: true
+      matrix: ${{ fromJSON(inputs.node_services) }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.source_sha || github.sha }}
+          ref: ${{ inputs.source_sha }}
 
       - uses: actions/setup-node@v7
         with:
@@ -241,71 +246,49 @@ jobs:
       - name: Generate Prisma client
         if: matrix.prisma
         run: npm run prisma:generate
-        working-directory: apps/codex/services/${{ matrix.service }}
+        working-directory: ${{ matrix.directory }}
 
       - name: Run existing tests
         if: matrix.test
         run: npm test
-        working-directory: apps/codex/services/${{ matrix.service }}
+        working-directory: ${{ matrix.directory }}
 
       - name: Run UI lint
         if: matrix.lint
         run: npm run lint
-        working-directory: apps/codex/services/${{ matrix.service }}
+        working-directory: ${{ matrix.directory }}
 
       - name: Build
+        if: matrix.build
         run: npm run build
-        working-directory: apps/codex/services/${{ matrix.service }}
+        working-directory: ${{ matrix.directory }}
 
-  verify-ocr-service:
-    name: 'ocr-service: unit tests and validation'
+  verify-python-services:
+    name: '${{ matrix.service }}: unit tests and validation'
+    if: inputs.has_python_services
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: apps/codex/services/ocr-service
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJSON(inputs.python_services) }}
     steps:
       - uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.source_sha || github.sha }}
+          ref: ${{ inputs.source_sha }}
 
       - uses: actions/setup-python@v6
         with:
           python-version: '3.11'
           cache: pip
-          cache-dependency-path: apps/codex/services/ocr-service/requirements.txt
+          cache-dependency-path: ${{ matrix.directory }}/requirements.txt
 
       - name: Install dependencies
         run: python -m pip install --requirement requirements.txt
+        working-directory: ${{ matrix.directory }}
 
       - name: Run unit tests
         run: python -m pytest --quiet
+        working-directory: ${{ matrix.directory }}
 
       - name: Compile Python sources
         run: python -m compileall -q src
-
-  build-images:
-    name: '${{ matrix.service }}: image build'
-    runs-on: ubuntu-latest
-    strategy:
-      fail-fast: false
-      matrix:
-        service: [doc-api, doc-processor, doc-websocket, ocr-service, admin-ui, dm-ui]
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ inputs.source_sha || github.sha }}
-
-      - uses: docker/setup-buildx-action@v4
-
-      - name: Build image without publishing
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ./apps/codex/services/${{ matrix.service }}/Dockerfile
-          push: false
-          tags: nexuscodex/${{ matrix.service }}:ci
-          build-args: |
-            VERSION=ci-${{ github.sha }}
-            COMMIT_SHA=${{ github.sha }}
-          cache-from: type=gha,scope=codex-${{ matrix.service }}
-          cache-to: type=gha,mode=max,scope=codex-${{ matrix.service }}
+        working-directory: ${{ matrix.directory }}
