@@ -210,7 +210,7 @@ export default function Processing() {
       setRetryFeedback({ message: 'Job retry queued', type: 'success' })
       setTimeout(() => setRetryFeedback(null), 5000)
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setRetryFeedback({ message: `Job retry failed: ${err.message}`, type: 'error' })
       setTimeout(() => setRetryFeedback(null), 7000)
     },
@@ -235,13 +235,13 @@ export default function Processing() {
       setRetryFeedback({ message: 'Document reprocessing queued successfully! Refreshing status...', type: 'success' })
       setTimeout(() => setRetryFeedback(null), 5000)
     },
-    onError: (err: any) => {
+    onError: (err: Error) => {
       setRetryFeedback({ message: `Failed to retry stage: ${err.message}`, type: 'error' })
       setTimeout(() => setRetryFeedback(null), 7000)
     },
   })
 
-  const handleRetryStage = async (_stageKey: string) => {
+  const handleRetryStage = async () => {
     const docId = targetDocId || currentInspectJob?.documentId || reportData?.document?.id
     if (!docId) {
       if (currentInspectJob?.id) {
