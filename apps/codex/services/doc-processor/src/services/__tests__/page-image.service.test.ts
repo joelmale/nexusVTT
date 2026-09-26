@@ -137,5 +137,22 @@ describe('PageImageService', () => {
       expect(images).toEqual([]);
       expect(mockDestroy).toHaveBeenCalledTimes(1);
     });
+
+    it('renders only targetPages when targetPages option is supplied (per-page gating)', async () => {
+      const pdfBuffer = Buffer.from('sample pdf');
+      const renderedPages: number[] = [];
+
+      const images = await pageImageService.renderOcrImages(pdfBuffer, {
+        targetPages: [2],
+        onPage: async (page) => {
+          renderedPages.push(page.pageNumber);
+        },
+      });
+
+      expect(renderedPages).toEqual([2]);
+      expect(mockGetPage).toHaveBeenCalledWith(2);
+      expect(mockGetPage).not.toHaveBeenCalledWith(1);
+      expect(images).toEqual([]);
+    });
   });
 });

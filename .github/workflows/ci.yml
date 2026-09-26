@@ -932,6 +932,11 @@ jobs:
             file: ./apps/codex/services/doc-processor/Dockerfile
             image: ghcr.io/joelmale/nexuscodex-doc-processor
             platforms: linux/amd64
+          - name: codex-ocr
+            context: .
+            file: ./apps/codex/services/ocr-service/Dockerfile
+            image: ghcr.io/joelmale/nexuscodex-ocr
+            platforms: linux/amd64
           - name: codex-doc-websocket
             context: .
             file: ./apps/codex/services/doc-websocket/Dockerfile

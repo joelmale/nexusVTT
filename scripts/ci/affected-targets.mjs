@@ -19,6 +19,7 @@ export const FALLBACK_TARGET_IDS = [
   'control-api',
   'codex-doc-api',
   'codex-doc-processor',
+  'codex-ocr-service',
   'codex-doc-websocket',
   'codex-admin-ui',
   'codex-dm-ui',
@@ -51,6 +52,12 @@ const FALLBACK_RELEASE_IMAGES = {
     file: './apps/control-api/Dockerfile',
     target: '',
     repository: 'ghcr.io/joelmale/nexusvtt/control-api',
+  },
+  'codex-ocr-service': {
+    name: 'codex-ocr',
+    file: './apps/codex/services/ocr-service/Dockerfile',
+    target: '',
+    repository: 'ghcr.io/joelmale/nexuscodex-ocr',
   },
   gateway: {
     name: 'frontend',

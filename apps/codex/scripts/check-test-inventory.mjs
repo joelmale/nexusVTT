@@ -25,16 +25,33 @@ if (JSON.stringify(serviceNames) !== JSON.stringify(declaredServiceNames)) {
   );
 }
 
-const isTypeScriptSource = (path) => /\.(?:ts|tsx)$/.test(path) && !path.endsWith('.d.ts');
-const isTestFile = (path) => /\.(?:test|spec)\.(?:ts|tsx)$/.test(path);
-const isIntegrationTest = (path) => /\.integration\.test\.(?:ts|tsx)$/.test(path);
+const SUPPORTED_LANGUAGES = new Set(['typescript', 'python']);
+const isSourceFile = (path, language) =>
+  language === 'python'
+    ? path.endsWith('.py')
+    : /\.(?:ts|tsx)$/.test(path) && !path.endsWith('.d.ts');
+const isTestFile = (path, language) =>
+  language === 'python'
+    ? /(?:^|[\\/])(?:test_[^\\/]+|[^\\/]+_test)\.py$/.test(path)
+    : /\.(?:test|spec)\.(?:ts|tsx)$/.test(path);
+const isIntegrationTest = (path, language) =>
+  language === 'python'
+    ? /(?:^|[\\/])(?:test_[^\\/]*integration[^\\/]*|[^\\/]*integration[^\\/]*_test)\.py$/.test(path)
+    : /\.integration\.test\.(?:ts|tsx)$/.test(path);
 
 async function collectFiles(directory) {
   const entries = await readdir(directory, { withFileTypes: true });
   const files = [];
 
   for (const entry of entries) {
-    if (entry.name === 'dist' || entry.name === 'node_modules') {
+    if (
+      entry.name === 'dist' ||
+      entry.name === 'node_modules' ||
+      entry.name === 'coverage' ||
+      entry.name === '__pycache__' ||
+      entry.name === '.pytest_cache' ||
+      entry.name === '.venv'
+    ) {
       continue;
     }
 
@@ -53,16 +70,29 @@ let failed = false;
 
 for (const serviceName of serviceNames) {
   const serviceDirectory = join(servicesDirectory, serviceName);
-  const files = await collectFiles(join(serviceDirectory, 'src'));
-  const testFiles = files.filter(isTestFile);
-  const integrationTests = testFiles.filter(isIntegrationTest);
-  const unitTests = testFiles.filter((path) => !isIntegrationTest(path));
-  const sourceFiles = files.filter((path) => isTypeScriptSource(path) && !isTestFile(path));
-  const policy = manifest.services[serviceName].testPolicy;
+  const serviceConfig = manifest.services[serviceName];
+  const language = serviceConfig.language ?? 'typescript';
+  if (!SUPPORTED_LANGUAGES.has(language)) {
+    console.error(`${serviceName} has unknown source language: ${language}`);
+    failed = true;
+    continue;
+  }
+  const files = await collectFiles(serviceDirectory);
+  const testFiles = files.filter((path) => isTestFile(path, language));
+  const integrationTests = testFiles.filter((path) => isIntegrationTest(path, language));
+  const unitTests = testFiles.filter((path) => !isIntegrationTest(path, language));
+  const sourceRoot = join(serviceDirectory, 'src');
+  const sourceFiles = files.filter(
+    (path) =>
+      path.startsWith(sourceRoot) &&
+      isSourceFile(path, language) &&
+      !isTestFile(path, language),
+  );
+  const policy = serviceConfig.testPolicy;
 
   console.log(
-    `${serviceName}: ${sourceFiles.length} source files, ${unitTests.length} unit test files, ` +
-      `${integrationTests.length} integration test files (${policy})`,
+    `${serviceName}: ${sourceFiles.length} ${language} source files, ` +
+      `${unitTests.length} unit test files, ${integrationTests.length} integration test files (${policy})`,
   );
 
   if (policy === 'none' && testFiles.length > 0) {

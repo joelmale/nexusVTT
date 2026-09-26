@@ -1,5 +1,9 @@
 import pytest
+from fastapi.testclient import TestClient
 from src.layout_ordering import get_bbox_bounds, reorder_blocks_for_reading
+from src.main import app
+
+client = TestClient(app)
 
 
 def test_get_bbox_bounds():
@@ -65,3 +69,27 @@ def test_reorder_blocks_with_header_and_footer():
     assert texts[-1] == "Page 42"
     assert texts[1:3] == ["Left 1", "Left 2"]
     assert texts[3:5] == ["Right 1", "Right 2"]
+
+
+def test_health_endpoint():
+    res = client.get("/health")
+    assert res.status_code == 200
+    data = res.json()
+    assert data["status"] == "ok"
+    assert "gpu" in data
+    assert "onnx_providers" in data
+
+
+def test_metrics_endpoint():
+    res = client.get("/metrics")
+    assert res.status_code == 200
+    assert "codex_ocr_requests_total" in res.text
+
+
+def test_embed_endpoint():
+    res = client.post("/embed", json={"texts": ["Fireball 3rd level evocation", "Magic Missile 1st level"]})
+    assert res.status_code == 200
+    data = res.json()
+    assert data["count"] == 2
+    assert len(data["embeddings"]) == 2
+    assert data["dimension"] == 384

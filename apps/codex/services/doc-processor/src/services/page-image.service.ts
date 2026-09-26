@@ -31,6 +31,7 @@ export interface RenderPageImageOptions {
 }
 
 export interface RenderOcrImageOptions {
+  targetPages?: number[];
   onProgress?: (progress: PageImageRenderProgress) => void;
   onPage?: (page: RenderedOcrPage) => Promise<void>;
 }
@@ -110,6 +111,8 @@ class PageImageService {
 
   /**
    * Render PDF pages to PNG buffers for OCR.
+   * If options.targetPages is specified, only those specific pages are rendered,
+   * avoiding rendering and storing pages that already have clean digital text.
    * If options.onPage is provided, pages are yielded immediately and large buffers
    * are not retained in the returned array to preserve memory.
    */
@@ -125,9 +128,12 @@ class PageImageService {
 
     const totalPages = pdfDocument.numPages;
     const maxPages = Math.min(env.OCR_MAX_PAGES, totalPages);
+    const pagesToRender = options.targetPages
+      ? options.targetPages.filter((p) => p >= 1 && p <= maxPages)
+      : Array.from({ length: maxPages }, (_, i) => i + 1);
 
     try {
-      for (let pageNumber = 1; pageNumber <= maxPages; pageNumber++) {
+      for (const pageNumber of pagesToRender) {
         const page = await pdfDocument.getPage(pageNumber);
         const viewport = page.getViewport({ scale: 1.0 });
         const scale = env.PAGE_IMAGE_WIDTH / viewport.width;
@@ -155,7 +161,7 @@ class PageImageService {
         }
 
         if (options.onProgress) {
-          options.onProgress({ pageNumber, totalPages, maxPages });
+          options.onProgress({ pageNumber, totalPages, maxPages: pagesToRender.length });
         }
       }
 

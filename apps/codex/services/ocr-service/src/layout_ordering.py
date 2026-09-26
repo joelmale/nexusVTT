@@ -66,7 +66,7 @@ def reorder_blocks_for_reading(
                 right_count += 1
 
     # If distribution is clearly single-column, just sort top-to-bottom
-    if left_count < 3 or right_count < 3:
+    if left_count < 2 or right_count < 2:
         return sorted(blocks, key=lambda b: get_bbox_bounds(b["bbox"])[1])
 
     # Classify blocks
