@@ -13,7 +13,7 @@ export interface RenderedPageImage {
   ocrBuffer?: Buffer;
 }
 
-interface PageImageRenderProgress {
+export interface PageImageRenderProgress {
   pageNumber: number;
   totalPages: number;
   maxPages: number;
@@ -24,13 +24,26 @@ export interface RenderedOcrPage {
   buffer: Buffer;
 }
 
+export interface RenderPageImageOptions {
+  includeOcrBuffer?: boolean;
+  onProgress?: (progress: PageImageRenderProgress) => void;
+  onPage?: (page: RenderedPageImage) => Promise<void>;
+}
+
+export interface RenderOcrImageOptions {
+  onProgress?: (progress: PageImageRenderProgress) => void;
+  onPage?: (page: RenderedOcrPage) => Promise<void>;
+}
+
 class PageImageService {
   /**
-   * Render PDF pages to WebP buffers for reader consumption
+   * Render PDF pages to WebP buffers for reader consumption.
+   * If options.onPage is provided, pages are yielded immediately and large buffers
+   * are not retained in the returned array to preserve memory.
    */
   async renderPageImages(
     pdfBuffer: Buffer,
-    options: { includeOcrBuffer?: boolean; onProgress?: (progress: PageImageRenderProgress) => void } = {}
+    options: RenderPageImageOptions = {}
   ): Promise<RenderedPageImage[]> {
     const images: RenderedPageImage[] = [];
 
@@ -68,11 +81,17 @@ class PageImageService {
           .webp({ quality: env.PAGE_IMAGE_QUALITY })
           .toBuffer();
 
-        images.push({
+        const pageData: RenderedPageImage = {
           pageNumber,
           buffer: webpBuffer,
           ocrBuffer: options.includeOcrBuffer ? pngBuffer : undefined,
-        });
+        };
+
+        if (options.onPage) {
+          await options.onPage(pageData);
+        } else {
+          images.push(pageData);
+        }
 
         if (options.onProgress) {
           options.onProgress({
@@ -90,11 +109,13 @@ class PageImageService {
   }
 
   /**
-   * Render PDF pages to PNG buffers for OCR
+   * Render PDF pages to PNG buffers for OCR.
+   * If options.onPage is provided, pages are yielded immediately and large buffers
+   * are not retained in the returned array to preserve memory.
    */
   async renderOcrImages(
     pdfBuffer: Buffer,
-    options: { onProgress?: (progress: PageImageRenderProgress) => void } = {}
+    options: RenderOcrImageOptions = {}
   ): Promise<RenderedOcrPage[]> {
     const images: RenderedOcrPage[] = [];
 
@@ -125,7 +146,13 @@ class PageImageService {
         }).promise;
 
         const pngBuffer = canvas.toBuffer('image/png');
-        images.push({ pageNumber, buffer: pngBuffer });
+        const pageData: RenderedOcrPage = { pageNumber, buffer: pngBuffer };
+
+        if (options.onPage) {
+          await options.onPage(pageData);
+        } else {
+          images.push(pageData);
+        }
 
         if (options.onProgress) {
           options.onProgress({ pageNumber, totalPages, maxPages });

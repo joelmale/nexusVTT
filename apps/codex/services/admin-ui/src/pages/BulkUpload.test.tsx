@@ -83,7 +83,7 @@ describe('BulkUpload', () => {
     fireEvent.change(screen.getByLabelText('Documents to upload'), {
       target: { files: [doc('huge.pdf', DOCUMENT_UPLOAD_MAX_BYTES + 1)] },
     })
-    expect(screen.getByRole('alert').textContent).toMatch(/the limit is 200 MB/)
+    expect(screen.getByRole('alert').textContent).toMatch(/the limit is 320 MB/)
     const upload = screen.getByText('Upload Files') as HTMLButtonElement
     expect(upload.disabled).toBe(true)
 

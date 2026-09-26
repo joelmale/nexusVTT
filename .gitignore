@@ -147,6 +147,7 @@ apps/vtt/src/assets/temp/
 # Processed assets (user-generated, can be recreated)
 apps/vtt/static-assets/assets/
 !apps/vtt/static-assets/assets/.gitkeep
+apps/vtt/static-assets/users/
 
 # User asset processing working directories
 assets-working/

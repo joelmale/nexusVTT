@@ -4,7 +4,7 @@ import { ctx, sendError } from './context.js';
 
 /** Receiving any request body: at most this long overall. */
 export const BODY_DEADLINE_MS = 330_000;
-/** The server-side Codex upload (200 MB) over a slow link. */
+/** The server-side Codex upload (320 MiB) over a slow link. */
 export const UPLOAD_BODY_DEADLINE_MS = 30 * 60 * 1000;
 /** No body bytes at all for this long ends the request, on every route. */
 export const BODY_IDLE_TIMEOUT_MS = 60_000;

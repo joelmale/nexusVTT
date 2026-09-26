@@ -49,7 +49,7 @@ function main(): void {
     logger.info('control-api listening', { port: config.port });
   });
   // Headers must arrive quickly (slowloris). requestTimeout is one value for
-  // every route, so it only backstops the longest body allowance (the 200 MB
+  // every route, so it only backstops the longest body allowance (the 320 MiB
   // Codex upload); bodyDeadline() enforces the shorter per-route deadlines
   // and a no-progress idle timeout.
   server.headersTimeout = 30_000;

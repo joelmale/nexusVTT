@@ -207,7 +207,7 @@ describe('private admin listener (:8081)', () => {
 
   it('accepts bulk uploads up to the control-api cap and streams them', () => {
     const body = controlApiLocation().body;
-    expect(body).toContainEqual({ name: 'client_max_body_size', args: ['200m'] });
+    expect(body).toContainEqual({ name: 'client_max_body_size', args: ['321m'] });
     expect(body).toContainEqual({ name: 'proxy_request_buffering', args: ['off'] });
     // Everywhere else keeps nginx's small default.
     const elsewhere = [...walkDirectives(privateServer().block ?? [])].filter(

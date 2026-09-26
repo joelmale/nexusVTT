@@ -27,7 +27,7 @@ import type { Permission } from '../permissions.js';
  * The presigned URLs themselves never reach the browser.
  *
  * Bodies are capped at 1 MB (`CODEX_MAX_JSON_BYTES`) except the upload
- * (200 MB file). Annotation, reference, and bulk-create bodies have their
+ * (320 MiB file). Annotation, reference, and bulk-create bodies have their
  * actor fields (`userId`, `documents[].uploadedBy`) overwritten with the
  * session's user ID; client-supplied values are ignored.
  */
@@ -53,7 +53,7 @@ export const CodexRouteTable = RouteTable;
 export type CodexRouteTable = RouteTable;
 
 /** Server-side Codex upload (control-api spools the file and PUTs it to object storage). */
-export const CODEX_UPLOAD_MAX_FILE_BYTES = 200 * MB;
+export const CODEX_UPLOAD_MAX_FILE_BYTES = 320 * MB;
 /** Multipart framing and metadata fields on top of the file. */
 export const CODEX_UPLOAD_MAX_BODY_BYTES = CODEX_UPLOAD_MAX_FILE_BYTES + 1 * MB;
 /** Cap for every other Codex request body. */

@@ -12,13 +12,13 @@ const MAX_FILE = 4096;
 const leftoverSpools = () => readdirSync(tmpdir()).filter((name) => name.startsWith('nexus-control-upload-'));
 
 describe('Codex body caps', () => {
-  it('allows 200 MB for the upload route and at most 1 MB everywhere else', () => {
-    expect(CODEX_UPLOAD_MAX_FILE_BYTES).toBe(200 * MB);
+  it('allows 320 MiB for the upload route and at most 1 MiB everywhere else', () => {
+    expect(CODEX_UPLOAD_MAX_FILE_BYTES).toBe(320 * MB);
     for (const route of CODEX_ALLOWLIST) {
       if (route.body.kind === 'none') continue;
       if (route.path === 'documents/upload') {
         expect(route.body).toEqual({ kind: 'stream', maxBytes: CODEX_UPLOAD_MAX_BODY_BYTES, contentTypes: ['multipart/form-data'] });
-        expect(CODEX_UPLOAD_MAX_BODY_BYTES).toBeLessThanOrEqual(201 * MB);
+        expect(CODEX_UPLOAD_MAX_BODY_BYTES).toBeLessThanOrEqual(321 * MB);
       } else {
         expect(route.body.kind, route.path).toBe('json');
         expect(route.body.maxBytes, route.path).toBeLessThanOrEqual(CODEX_MAX_JSON_BYTES);
