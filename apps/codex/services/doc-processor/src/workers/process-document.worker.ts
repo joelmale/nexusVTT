@@ -335,20 +335,19 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
         if (document.format === 'pdf' && needsOCR) {
           console.log(`[Worker] Rendering OCR pages`);
           await loggingService.logInfo(jobId, 'Rendering OCR pages', undefined, { canvasBackend });
-          const ocrPages = await pageImageService.renderOcrImages(fileBuffer, {
+          ocrPageKeys = [];
+          await pageImageService.renderOcrImages(fileBuffer, {
+            onPage: async (page) => {
+              const pageKey = `ocr-temp/${documentId}/page-${page.pageNumber}.png`;
+              await s3Service.uploadFile(pageKey, page.buffer, 'image/png');
+              ocrPageKeys.push(pageKey);
+            },
             onProgress: ({ pageNumber, maxPages }) => {
               if (pageNumber % 10 === 0 || pageNumber === maxPages) {
                 loggingService.logInfo(jobId, `Rendered OCR page ${pageNumber}/${maxPages}`, 'render').catch(() => {});
               }
             },
           });
-
-          ocrPageKeys = [];
-          for (const page of ocrPages) {
-            const pageKey = `ocr-temp/${documentId}/page-${page.pageNumber}.png`;
-            await s3Service.uploadFile(pageKey, page.buffer, 'image/png');
-            ocrPageKeys.push(pageKey);
-          }
           await loggingService.logInfo(jobId, `Uploaded ${ocrPageKeys.length} OCR pages`);
         }
 
@@ -428,8 +427,18 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
         let ocrStatus: 'completed' | 'failed' = 'completed';
 
         try {
-          const ocrBuffers = await Promise.all(pageKeys.map((key) => s3Service.downloadFile(key)));
-          const ocrResult = await ocrService.extractTextFromImagesWithPool(ocrBuffers, env.OCR_WORKER_POOL_SIZE);
+          const ocrResult = await ocrService.extractTextFromKeysWithPool(
+            pageKeys,
+            (key) => s3Service.downloadFile(key),
+            env.OCR_WORKER_POOL_SIZE,
+            async (key) => {
+              try {
+                await s3Service.deleteFile(key);
+              } catch (error: any) {
+                await loggingService.logWarn(jobId, `Failed to delete OCR temp file: ${key}`);
+              }
+            }
+          );
           ocrText = ocrResult.results.join('\n');
           const durations = ocrResult.durations.filter((value) => Number.isFinite(value));
           const totalDuration = durations.reduce((sum, value) => sum + value, 0);
@@ -440,13 +449,12 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
         } catch (ocrError: any) {
           ocrStatus = 'failed';
           await loggingService.logError(jobId, `OCR failed: ${ocrError.message}`);
-        }
-
-        for (const key of pageKeys) {
-          try {
-            await s3Service.deleteFile(key);
-          } catch (error: any) {
-            await loggingService.logWarn(jobId, `Failed to delete OCR temp file: ${key}`);
+          for (const key of pageKeys) {
+            try {
+              await s3Service.deleteFile(key);
+            } catch (error: any) {
+              await loggingService.logWarn(jobId, `Failed to delete OCR temp file on error: ${key}`);
+            }
           }
         }
 
@@ -712,19 +720,19 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
         console.log(`[Worker] Rendering page images`);
         await loggingService.logInfo(jobId, 'Rendering page images', undefined, { canvasBackend });
         try {
-          const pageImages = await pageImageService.renderPageImages(fileBuffer, {
+          await pageImageService.renderPageImages(fileBuffer, {
+            onPage: async (image) => {
+              const pageKey = `page-images/${documentId}/page-${image.pageNumber}.webp`;
+              pageImagesTotalBytes += image.buffer.length;
+              await s3Service.uploadFile(pageKey, image.buffer, 'image/webp');
+              pageImageKeys.push(pageKey);
+            },
             onProgress: ({ pageNumber, maxPages }) => {
               if (pageNumber % 10 === 0 || pageNumber === maxPages) {
                 loggingService.logInfo(jobId, `Rendered page ${pageNumber}/${maxPages}`, 'page_images').catch(() => {});
               }
             },
           });
-          for (const image of pageImages) {
-            const pageKey = `page-images/${documentId}/page-${image.pageNumber}.webp`;
-            pageImagesTotalBytes += image.buffer.length;
-            await s3Service.uploadFile(pageKey, image.buffer, 'image/webp');
-            pageImageKeys.push(pageKey);
-          }
           await loggingService.logInfo(jobId, `Uploaded ${pageImageKeys.length} page images`);
         } catch (pageError: any) {
           console.warn(`[Worker] Page image rendering failed, continuing without page images: ${pageError.message}`);

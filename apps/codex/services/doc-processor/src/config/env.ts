@@ -33,11 +33,15 @@ const envSchema = z.object({
   THUMBNAIL_QUALITY: z.string().default('80').transform(Number),
   PAGE_IMAGE_WIDTH: z.string().default('1200').transform(Number),
   PAGE_IMAGE_QUALITY: z.string().default('80').transform(Number),
-  PAGE_IMAGE_MAX_PAGES: z.string().default('200').transform(Number),
-  OCR_MAX_PAGES: z.string().default('50').transform(Number),
+  PAGE_IMAGE_MAX_PAGES: z.string().default('350').transform(Number),
+  OCR_MAX_PAGES: z.string().default('350').transform(Number),
   OCR_WORKER_POOL_SIZE: z.string().default('2').transform(Number),
   OCR_TEXT_MIN_CHARS: z.string().default('50').transform(Number),
   OCR_TEXT_MIN_WORDS: z.string().default('10').transform(Number),
+
+  // OCR Service Sidecar (GPU accelerated RapidOCR/PaddleOCR sidecar)
+  OCR_SERVICE_URL: z.string().optional(),
+  OCR_SERVICE_TIMEOUT_MS: z.string().default('15000').transform(Number),
 
   // Embeddings
   EMBEDDINGS_PROVIDER: z.enum(['none', 'hash']).default('none'),

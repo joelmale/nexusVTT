@@ -164,7 +164,7 @@ Otherwise the API returns `401` with `{"error":"reauth_required"}`.
 The table covers exactly the calls the Admin UI makes. Anything not listed
 returns `404` without contacting `doc-api`. Path parameters are validated
 (`[A-Za-z0-9_-]+`); query strings are passed through only for listed keys.
-Request bodies are size-limited: 1 MB at most, except the 200 MB server-side
+Request bodies are size-limited: 1 MiB at most, except the 320 MiB server-side
 upload. `doc-api` errors are normalized to `{ error, requestId }` without
 internal hostnames or stack traces. The client does not forward browser
 cookies or `Authorization` to `doc-api`. Annotation
@@ -191,7 +191,7 @@ outcome (`409` is `conflict`). The `If-Match` value, or the body's
 **Server-side Codex upload.** Object storage (MinIO) is never browser-facing,
 and presigned URLs never reach the browser. `POST /codex/documents/upload`
 takes `multipart/form-data` with exactly one `file` part (`.pdf`, `.md`, or
-`.markdown`, at most 200 MB). Optional fields mirror the Admin UI bulk upload
+`.markdown`, at most 320 MiB). Optional fields mirror the Admin UI bulk upload
 form:
 
 | Field                              | Value                                                                  |

@@ -9,8 +9,8 @@ import { formatBytes } from './assetsApi'
 
 export const CODEX_UPLOAD_PATH = `${CODEX_API_BASE}/documents/upload`
 
-/** Matches the private gateway's `client_max_body_size 200m`. */
-export const DOCUMENT_UPLOAD_MAX_BYTES = 200 * 1024 * 1024
+/** The gateway allows one extra MiB for multipart framing and metadata. */
+export const DOCUMENT_UPLOAD_MAX_BYTES = 320 * 1024 * 1024
 export const DOCUMENT_UPLOAD_ACCEPT = '.pdf,.md,.markdown'
 const DOCUMENT_EXTENSIONS = ['pdf', 'md', 'markdown']
 

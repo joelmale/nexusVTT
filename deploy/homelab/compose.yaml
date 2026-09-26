@@ -238,7 +238,7 @@ services:
         EOF
     volumes:
       - garage-config:/etc/garage
-      - /mnt/docker-nas-vol1/nexusvtt/garage/data:/var/lib/garage/data
+      - ${NEXUS_STORAGE_ROOT:-/mnt/docker-nas-vol1/nexusvtt}/garage/data:/var/lib/garage/data
 
   codex-garage:
     image: dxflrs/garage:v2.4.1
@@ -262,7 +262,7 @@ services:
     volumes:
       - garage-config:/etc/garage:ro
       - garage-meta:/var/lib/garage/meta
-      - /mnt/docker-nas-vol1/nexusvtt/garage/data:/var/lib/garage/data
+      - ${NEXUS_STORAGE_ROOT:-/mnt/docker-nas-vol1/nexusvtt}/garage/data:/var/lib/garage/data
     networks:
       nexus-internal-net:
         aliases:
@@ -332,6 +332,9 @@ services:
       S3_BUCKET: documents
       S3_REGION: us-east-1
       S3_FORCE_PATH_STYLE: 'true'
+      PAGE_IMAGE_MAX_PAGES: ${CODEX_PAGE_IMAGE_MAX_PAGES:-350}
+      OCR_MAX_PAGES: ${CODEX_OCR_MAX_PAGES:-350}
+      OCR_SERVICE_URL: ${CODEX_OCR_SERVICE_URL:-http://codex-ocr:8000}
       JWT_SECRET: null
       AUTH_DISABLED: null
       EMBEDDINGS_PROVIDER: null
@@ -369,6 +372,24 @@ services:
       redis:
         condition: service_healthy
     restart: on-failure
+  codex-ocr:
+    image: ${DOC_OCR_IMAGE:-ghcr.io/joelmale/nexuscodex-ocr:main}
+    pull_policy: if_not_present
+    container_name: nexus-vtt2-codex-ocr
+    restart: on-failure
+    environment:
+      PORT: 8000
+      MAX_BATCH_SIZE: 4
+      CUDA_VISIBLE_DEVICES: ${CODEX_OCR_CUDA_VISIBLE_DEVICES:-0}
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [gpu]
+    networks:
+      - nexus-internal-net
   # No standalone admin-ui/dm-ui containers (private-admin-control-plane.md
   # invariant 3): their nginx proxied /api/ to doc-api unauthenticated. The
   # frontend gateway serves /codex-dm/; the admin UI returns on the Phase 1
@@ -384,8 +405,6 @@ networks:
 volumes:
   codex-elasticsearch-data:
     name: nexus-vtt2-codex-elasticsearch-data
-  codex-minio-data:
-    name: nexus-vtt2-codex-minio-data
   garage-config:
     name: nexus-vtt2-garage-config
   garage-meta:

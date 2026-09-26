@@ -14,7 +14,7 @@ import { docApiJson, objectStorageUrl, timedFetch, UpstreamFailure } from './int
  * `POST /control-api/v1/codex/documents/upload` (codex:write).
  *
  * multipart/form-data with exactly one `file` part (PDF or Markdown, at most
- * 200 MB) plus optional metadata fields mirroring the Admin UI's bulk upload
+ * 320 MiB) plus optional metadata fields mirroring the Admin UI's bulk upload
  * form: `title`, `description`, `type`, `author`, `isPublic`, `batchId`, and
  * `tags`/`campaigns`/`collections` (repeat the field once per value, or send
  * one JSON array). `uploadedBy`, `userId`, `format`, `fileName`, and

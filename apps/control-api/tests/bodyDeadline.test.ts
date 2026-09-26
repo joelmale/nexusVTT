@@ -63,7 +63,7 @@ describe('request body deadlines', () => {
     await h.close();
   });
 
-  it('uses production defaults that allow a slow 200 MB upload but not a slow JSON body', () => {
+  it('uses production defaults that allow a slow 320 MiB upload but not a slow JSON body', () => {
     expect(UPLOAD_BODY_DEADLINE_MS).toBeGreaterThanOrEqual(30 * 60 * 1000);
     expect(BODY_DEADLINE_MS).toBeLessThanOrEqual(330_000);
     expect(BODY_IDLE_TIMEOUT_MS).toBeLessThanOrEqual(60_000);

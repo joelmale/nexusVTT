@@ -93,26 +93,34 @@ For a manual UI check:
 4. Confirm Dockhand shows all `nexus-vtt2-doc-*` and `nexus-vtt2-codex-*`
    containers running with no restart loop.
 
-## Browser file-transfer limitation
+## Document upload and processing limits
 
-Health, document listing, metadata, and search are integrated. Browser upload
-and content URLs still require a public object-storage route. NexusCodex signs
-MinIO URLs, but MinIO currently remains private as
-`http://codex-minio:9000`. Publishing its console or raw API ports is not an
-acceptable workaround.
+The private Admin UI sends uploads through the authenticated control API;
+object-storage URLs remain internal. A document may be at most 320 MiB. The
+gateway permits a 321 MiB multipart body so form framing does not consume part
+of the file allowance.
 
-Complete file transfer by doing one of the following:
+The doc-processor renders reader page images and OCR input for at most 350
+pages per document. The homelab defaults can be tuned without rebuilding the
+worker image:
 
-1. Add a dedicated TLS hostname such as `codex-storage.nexusvtt.com` in the
-   existing reverse proxy, forward it to `codex-minio:9000`, and set
-   `S3_PUBLIC_ENDPOINT` on `doc-api` to that hostname.
-2. Preferably, add authenticated upload/content streaming routes to the
-   NexusVTT backend so browsers never receive an internal Docker hostname or a
-   directly exposed object-store endpoint.
+```env
+CODEX_PAGE_IMAGE_MAX_PAGES=350
+CODEX_OCR_MAX_PAGES=350
+```
 
-Also update `DocumentServiceClient.getDocumentContentUrl()` before declaring
-file viewing complete: it currently builds a URL from the internal
-`DOC_API_URL`, which a browser cannot resolve.
+These values are coverage limits, not concurrency settings. The worker keeps
+`WORKER_CONCURRENCY=2`, `ASSET_WORKER_CONCURRENCY=1`, and
+`OCR_WORKER_POOL_SIZE=2` by default. A large image-only PDF can therefore take
+substantially longer to process and can temporarily use the original file
+size plus rendered PNG data, while permanent storage gains one WebP image per
+rendered page. Upload large scans one at a time until worker memory, CPU time,
+queue depth, and object-storage growth have been measured on the homelab.
+
+Current rendering collects page buffers before their next stage. Before
+raising either page limit beyond 350, change OCR and page-image generation to
+render, upload, and release bounded batches instead of retaining every page in
+memory.
 
 ## Dockhand caution
 

@@ -846,6 +846,8 @@ S3_SECRET_KEY=password
 S3_BUCKET=documents
 S3_REGION=us-east-1
 S3_FORCE_PATH_STYLE=true
+PAGE_IMAGE_MAX_PAGES=350
+OCR_MAX_PAGES=350
 ```
 
 **services/doc-websocket/.env:**
