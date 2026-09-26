@@ -1,9 +1,10 @@
-import type {
-  CampaignEntry,
-  CampaignObjectRef,
-  SceneTemplate,
-  SessionPlan,
-  SessionPlanStep,
+import {
+  campaignObjectRefKey,
+  type CampaignEntry,
+  type CampaignObjectRef,
+  type SceneTemplate,
+  type SessionPlan,
+  type SessionPlanStep,
 } from '@nexus/game-contracts';
 
 import type { SessionStepViewModel } from '@/features/session-plan/sessionPlanModels';
@@ -50,6 +51,26 @@ export interface PublishSessionPlanInput {
 
 const DEFAULT_MAP_ASSET_NAME = 'Session Scene Map';
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === 'object' && value !== null;
+}
+
+function getRequestErrorMessage(body: unknown, status: number): string {
+  if (!isRecord(body)) return `Request failed with status ${status}`;
+  if (typeof body.error === 'string') return body.error;
+
+  if (isRecord(body.validation) && Array.isArray(body.validation.issues)) {
+    const issue = body.validation.issues.find(isRecord);
+    if (issue && typeof issue.message === 'string') {
+      return typeof issue.path === 'string'
+        ? `${issue.message} (${issue.path})`
+        : issue.message;
+    }
+  }
+
+  return `Request failed with status ${status}`;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(path, {
     credentials: 'include',
@@ -63,14 +84,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const body = (await response.json().catch(() => null)) as unknown;
   if (!response.ok) {
-    const message =
-      typeof body === 'object' &&
-      body !== null &&
-      'error' in body &&
-      typeof body.error === 'string'
-        ? body.error
-        : `Request failed with status ${response.status}`;
-    throw new Error(message);
+    throw new Error(getRequestErrorMessage(body, response.status));
   }
   return body as T;
 }
@@ -390,6 +404,42 @@ async function buildContractSteps(
   return result;
 }
 
+function getSessionPlanDependencies(
+  steps: SessionPlanStep[],
+): CampaignObjectRef[] {
+  const dependencies: CampaignObjectRef[] = [];
+  const dependencyKeys = new Set<string>();
+
+  for (const step of steps) {
+    let reference: CampaignObjectRef | undefined;
+
+    switch (step.type) {
+      case 'open-entry':
+        reference = step.entryRef;
+        break;
+      case 'activate-scene':
+        reference = step.sceneTemplateRef;
+        break;
+      case 'deploy-encounter':
+        reference = { target: 'definition', ref: step.encounterRef };
+        break;
+      case 'share-handout':
+        reference = step.assetRef;
+        break;
+      case 'reminder':
+        break;
+    }
+
+    if (!reference) continue;
+    const key = campaignObjectRefKey(reference);
+    if (dependencyKeys.has(key)) continue;
+    dependencyKeys.add(key);
+    dependencies.push(reference);
+  }
+
+  return dependencies;
+}
+
 export async function publishSessionPlan(
   input: PublishSessionPlanInput,
 ): Promise<PublishResponse> {
@@ -429,7 +479,7 @@ export async function publishSessionPlan(
     title: input.planTitle,
     status: 'draft',
     steps,
-    dependencies: [],
+    dependencies: getSessionPlanDependencies(steps),
     createdAt: now,
     updatedAt: now,
   };
