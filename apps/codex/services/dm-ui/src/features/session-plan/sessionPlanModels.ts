@@ -47,6 +47,8 @@ export interface ChecklistViewModel {
 }
 
 export interface SessionPlanViewModel {
+  campaignDescription?: string;
+  campaignTitle: string;
   title: string;
   breadcrumb: string;
   dateLabel: string;
@@ -61,6 +63,7 @@ export interface SessionPlanViewModel {
   dependencies: DependencyViewModel[];
   checklist: ChecklistViewModel[];
   revision: number;
+  sceneMapPath?: string;
   lastEditedLabel: string;
   notes: string;
   playerFacing: string;

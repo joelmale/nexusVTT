@@ -1,10 +1,49 @@
 import type express from 'express';
 import { domainCommandSchema } from '@nexus/game-contracts';
 import type { DatabaseService } from '../database.js';
+import type { SocketManager } from '../socket/SocketManager.js';
+
+type SocketManagerProvider = () => Pick<SocketManager, 'broadcastToRoom'>;
+
+function requestRoomId(
+  value: string | string[] | undefined,
+): string | undefined {
+  return Array.isArray(value) ? value[0] : value;
+}
+
+function broadcastRevealHandout(
+  getSocketManager: SocketManagerProvider | undefined,
+  roomId: string | undefined,
+  command: ReturnType<typeof domainCommandSchema.parse>,
+  duplicate: boolean | undefined,
+): void {
+  if (
+    !getSocketManager ||
+    !roomId ||
+    duplicate ||
+    command.payload.type !== 'RevealHandout'
+  ) {
+    return;
+  }
+
+  getSocketManager().broadcastToRoom(roomId, {
+    type: 'event',
+    data: {
+      name: 'handout/revealed',
+      assetRef: command.payload.assetRef,
+      commandId: command.commandId,
+      revealedBy: command.issuerUserId,
+      stepId: command.payload.stepId,
+      title: command.payload.title,
+    },
+    timestamp: Date.now(),
+  });
+}
 
 export function registerCampaignActorRoutes(
   app: express.Application,
   db: DatabaseService,
+  getSocketManager?: SocketManagerProvider,
 ): void {
   /**
    * GET /api/campaigns/:campaignId/actors
@@ -14,7 +53,9 @@ export function registerCampaignActorRoutes(
     try {
       const { campaignId } = req.params;
       if (!campaignId) {
-        return res.status(400).json({ error: 'campaignId parameter is required' });
+        return res
+          .status(400)
+          .json({ error: 'campaignId parameter is required' });
       }
 
       const actors = await db.campaignActors.getActorsByCampaign(campaignId);
@@ -74,7 +115,7 @@ export function registerCampaignActorRoutes(
       const { receipt, duplicate } = await db.domainCommands.execute(command, {
         principalId,
         isDm: true, // In active campaign session, DM or permitted user
-        roomId: req.headers['x-room-id'] as string | undefined,
+        roomId: requestRoomId(req.headers['x-room-id']),
       });
 
       if (!receipt.result.success) {
@@ -86,13 +127,23 @@ export function registerCampaignActorRoutes(
         });
       }
 
+      broadcastRevealHandout(
+        getSocketManager,
+        requestRoomId(req.headers['x-room-id']),
+        command,
+        duplicate,
+      );
+
       res.status(200).json({
         success: true,
         duplicate,
         receipt,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown command execution error';
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Unknown command execution error';
       console.error('Domain command execution failed:', error);
       res.status(500).json({ error: message });
     }
@@ -119,7 +170,7 @@ export function registerCampaignActorRoutes(
       const { receipt, duplicate } = await db.domainCommands.execute(command, {
         principalId,
         isDm: true,
-        roomId: req.headers['x-room-id'] as string | undefined,
+        roomId: requestRoomId(req.headers['x-room-id']),
       });
 
       if (!receipt.result.success) {
@@ -130,13 +181,23 @@ export function registerCampaignActorRoutes(
         });
       }
 
+      broadcastRevealHandout(
+        getSocketManager,
+        requestRoomId(req.headers['x-room-id']),
+        command,
+        duplicate,
+      );
+
       res.status(200).json({
         success: true,
         duplicate,
         receipt,
       });
     } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unknown command execution error';
+      const message =
+        error instanceof Error
+          ? error.message
+          : 'Unknown command execution error';
       console.error('Domain command execution failed:', error);
       res.status(500).json({ error: message });
     }

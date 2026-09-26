@@ -84,12 +84,57 @@ describe('DomainCommandService', () => {
         getRunById: vi.fn(),
         updateRun: vi.fn().mockResolvedValue({ id: 'run-1' }),
       },
-      withTransaction: vi.fn(async (cb: (client: PoolClient) => Promise<unknown>) => {
-        return cb(mockClient as unknown as PoolClient);
-      }),
+      withTransaction: vi.fn(
+        async (cb: (client: PoolClient) => Promise<unknown>) => {
+          return cb(mockClient as unknown as PoolClient);
+        },
+      ),
     };
 
     service = new DomainCommandService(mockDb as unknown as DatabaseService);
+  });
+
+  describe('RevealHandout', () => {
+    const revealCommand: DomainCommand = {
+      commandId: '88888888-8888-4888-8888-888888888888',
+      protocolVersion: '1.0',
+      campaignId: mockActor.campaignId,
+      issuerUserId: 'user-1',
+      timestamp: new Date().toISOString(),
+      expectedActorVersions: {},
+      payload: {
+        type: 'RevealHandout',
+        assetRef: { target: 'asset', assetId: 'harbor-map' },
+        stepId: '77777777-7777-4777-8777-777777777777',
+        title: 'Harbor Map',
+      },
+    };
+
+    it('records a successful DM reveal receipt', async () => {
+      const response = await service.execute(revealCommand, {
+        principalId: 'user-1',
+        isDm: true,
+      });
+
+      expect(response.receipt.result).toMatchObject({
+        success: true,
+        committedVersions: {},
+        data: {
+          assetRef: { target: 'asset', assetId: 'harbor-map' },
+          title: 'Harbor Map',
+        },
+      });
+      expect(mockDb.commandReceipts.saveReceipt).toHaveBeenCalledOnce();
+    });
+
+    it('rejects reveal commands from non-DM principals', async () => {
+      await expect(
+        service.execute(revealCommand, {
+          principalId: 'player-1',
+          isDm: false,
+        }),
+      ).rejects.toThrow('Only the Dungeon Master can reveal handouts');
+    });
   });
 
   describe('ApplyDamage', () => {
@@ -109,17 +154,23 @@ describe('DomainCommandService', () => {
     };
 
     it('reduces HP and advances version upon damage', async () => {
-      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce({ ...mockActor });
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce({
+        ...mockActor,
+      });
       mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
         status: 'updated',
         actor: { ...mockActor, currentHp: 12, stateVersion: 2 },
       });
 
-      const response = await service.execute(baseDamageCommand, { principalId: 'user-1' });
+      const response = await service.execute(baseDamageCommand, {
+        principalId: 'user-1',
+      });
 
       expect(response.receipt.result.success).toBe(true);
       expect(response.receipt.result.committedVersions[mockActor.id]).toBe(2);
-      expect((response.receipt.result.data as { currentHp: number }).currentHp).toBe(12);
+      expect(
+        (response.receipt.result.data as { currentHp: number }).currentHp,
+      ).toBe(12);
 
       expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
         mockActor.id,
@@ -134,13 +185,22 @@ describe('DomainCommandService', () => {
 
     it('absorbs damage through temporary HP first', async () => {
       const actorWithTempHp = { ...mockActor, tempHp: 5 };
-      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(actorWithTempHp);
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(
+        actorWithTempHp,
+      );
       mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
         status: 'updated',
-        actor: { ...actorWithTempHp, tempHp: 0, currentHp: 17, stateVersion: 2 },
+        actor: {
+          ...actorWithTempHp,
+          tempHp: 0,
+          currentHp: 17,
+          stateVersion: 2,
+        },
       });
 
-      const response = await service.execute(baseDamageCommand, { principalId: 'user-1' });
+      const response = await service.execute(baseDamageCommand, {
+        principalId: 'user-1',
+      });
 
       expect(response.receipt.result.success).toBe(true);
       expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
@@ -154,7 +214,10 @@ describe('DomainCommandService', () => {
     });
 
     it('applies unconscious condition and resets death saves when dropping to 0 HP', async () => {
-      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce({ ...mockActor, currentHp: 5 });
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce({
+        ...mockActor,
+        currentHp: 5,
+      });
       mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
         status: 'updated',
         actor: {
@@ -166,7 +229,9 @@ describe('DomainCommandService', () => {
         },
       });
 
-      const response = await service.execute(baseDamageCommand, { principalId: 'user-1' });
+      const response = await service.execute(baseDamageCommand, {
+        principalId: 'user-1',
+      });
 
       expect(response.receipt.result.success).toBe(true);
       expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
@@ -187,7 +252,9 @@ describe('DomainCommandService', () => {
         conditions: ['unconscious'],
         deathSaves: { successes: 0, failures: 1 },
       };
-      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(zeroHpActor);
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(
+        zeroHpActor,
+      );
       mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
         status: 'updated',
         actor: {
@@ -197,7 +264,9 @@ describe('DomainCommandService', () => {
         },
       });
 
-      const response = await service.execute(baseDamageCommand, { principalId: 'user-1' });
+      const response = await service.execute(baseDamageCommand, {
+        principalId: 'user-1',
+      });
 
       expect(response.receipt.result.success).toBe(true);
       expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
@@ -217,7 +286,9 @@ describe('DomainCommandService', () => {
         conditions: ['unconscious'],
         deathSaves: { successes: 0, failures: 2 },
       };
-      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(dyingActor);
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(
+        dyingActor,
+      );
       mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
         status: 'updated',
         actor: {
@@ -228,7 +299,9 @@ describe('DomainCommandService', () => {
         },
       });
 
-      const response = await service.execute(baseDamageCommand, { principalId: 'user-1' });
+      const response = await service.execute(baseDamageCommand, {
+        principalId: 'user-1',
+      });
 
       expect(response.receipt.result.success).toBe(true);
       expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
@@ -247,7 +320,9 @@ describe('DomainCommandService', () => {
         stateVersion: 3, // Contention: actor advanced to version 3
       });
 
-      const response = await service.execute(baseDamageCommand, { principalId: 'user-1' });
+      const response = await service.execute(baseDamageCommand, {
+        principalId: 'user-1',
+      });
 
       expect(response.receipt.result.success).toBe(false);
       expect(response.receipt.result.error).toContain('State version mismatch');
@@ -262,8 +337,13 @@ describe('DomainCommandService', () => {
       });
 
       await expect(
-        service.execute(baseDamageCommand, { principalId: 'unauthorized-user', isDm: false }),
-      ).rejects.toThrow('Principal unauthorized-user is not authorized to damage actor');
+        service.execute(baseDamageCommand, {
+          principalId: 'unauthorized-user',
+          isDm: false,
+        }),
+      ).rejects.toThrow(
+        'Principal unauthorized-user is not authorized to damage actor',
+      );
     });
 
     it('allows DM to damage any actor', async () => {
@@ -311,7 +391,9 @@ describe('DomainCommandService', () => {
         actor: { ...mockActor, currentHp: 25, stateVersion: 2 },
       });
 
-      const response = await service.execute(healCommand, { principalId: 'user-1' });
+      const response = await service.execute(healCommand, {
+        principalId: 'user-1',
+      });
 
       expect(response.receipt.result.success).toBe(true);
       expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
@@ -330,7 +412,9 @@ describe('DomainCommandService', () => {
         conditions: ['unconscious'],
         deathSaves: { successes: 1, failures: 2 },
       };
-      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(unconsciousActor);
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(
+        unconsciousActor,
+      );
       mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
         status: 'updated',
         actor: {
@@ -342,7 +426,9 @@ describe('DomainCommandService', () => {
         },
       });
 
-      const response = await service.execute(healCommand, { principalId: 'user-1' });
+      const response = await service.execute(healCommand, {
+        principalId: 'user-1',
+      });
 
       expect(response.receipt.result.success).toBe(true);
       expect(mockDb.campaignActors.updateActorState).toHaveBeenCalledWith(
@@ -367,7 +453,11 @@ describe('DomainCommandService', () => {
       expectedActorVersions: {},
       payload: {
         type: 'AdmitCharacter',
-        characterDefinitionRef: { kind: 'character', id: 'char-123', revision: 1 },
+        characterDefinitionRef: {
+          kind: 'character',
+          id: 'char-123',
+          revision: 1,
+        },
         initialControllerUserIds: ['user-1'],
       },
     };
@@ -388,10 +478,14 @@ describe('DomainCommandService', () => {
         maxHp: 18,
       });
 
-      const response = await service.execute(admitCommand, { principalId: 'user-1' });
+      const response = await service.execute(admitCommand, {
+        principalId: 'user-1',
+      });
 
       expect(response.receipt.result.success).toBe(true);
-      expect((response.receipt.result.data as { name: string }).name).toBe('Seoni');
+      expect((response.receipt.result.data as { name: string }).name).toBe(
+        'Seoni',
+      );
       expect(mockDb.campaignActors.createActor).toHaveBeenCalledWith(
         expect.objectContaining({
           name: 'Seoni',
@@ -414,9 +508,13 @@ describe('DomainCommandService', () => {
         ...mockActor,
         sourceRef: { kind: 'character', id: 'char-123' },
       };
-      mockDb.campaignActors.getActorsByCampaign.mockResolvedValueOnce([existingAdmittedActor]);
+      mockDb.campaignActors.getActorsByCampaign.mockResolvedValueOnce([
+        existingAdmittedActor,
+      ]);
 
-      const response = await service.execute(admitCommand, { principalId: 'user-1' });
+      const response = await service.execute(admitCommand, {
+        principalId: 'user-1',
+      });
 
       expect(response.receipt.result.success).toBe(true);
       expect(mockDb.campaignActors.createActor).not.toHaveBeenCalled();
@@ -444,7 +542,8 @@ describe('DomainCommandService', () => {
         commandId: command.commandId,
         principalId: 'user-1',
         campaignId: command.campaignId,
-        payloadHash: 'c744c82dae72352fa84b80ffbc52fc996d9a98ef2e379dd8a7c20ad4feceadcb',
+        payloadHash:
+          'c744c82dae72352fa84b80ffbc52fc996d9a98ef2e379dd8a7c20ad4feceadcb',
         committedAt: new Date().toISOString(),
         result: {
           success: true,
@@ -466,7 +565,9 @@ describe('DomainCommandService', () => {
         payloadHash: actualHash,
       });
 
-      const response = await service.execute(command, { principalId: 'user-1' });
+      const response = await service.execute(command, {
+        principalId: 'user-1',
+      });
 
       expect(response.duplicate).toBe(true);
       expect(response.receipt).toEqual(cachedReceipt);
@@ -582,7 +683,10 @@ describe('DomainCommandService', () => {
 
     it('throws error when non-DM attempts to deploy encounter', async () => {
       await expect(
-        service.execute(deployCommand, { principalId: 'player-1', isDm: false }),
+        service.execute(deployCommand, {
+          principalId: 'player-1',
+          isDm: false,
+        }),
       ).rejects.toThrow('Only the Dungeon Master can deploy encounters');
     });
   });
@@ -763,7 +867,9 @@ describe('DomainCommandService', () => {
     };
 
     it('successfully applies a valid preparation plan within limit', async () => {
-      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(actorWithProfiles);
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(
+        actorWithProfiles,
+      );
       mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
         status: 'updated',
         actor: { ...actorWithProfiles, stateVersion: 2 },
@@ -791,15 +897,24 @@ describe('DomainCommandService', () => {
     });
 
     it('rejects when caller is unauthorized', async () => {
-      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(actorWithProfiles);
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(
+        actorWithProfiles,
+      );
 
       await expect(
-        service.execute(prepCommand, { principalId: 'rogue-user', isDm: false }),
-      ).rejects.toThrow('Principal rogue-user is not authorized to prepare spells');
+        service.execute(prepCommand, {
+          principalId: 'rogue-user',
+          isDm: false,
+        }),
+      ).rejects.toThrow(
+        'Principal rogue-user is not authorized to prepare spells',
+      );
     });
 
     it('rejects when target profile does not exist', async () => {
-      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(actorWithProfiles);
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(
+        actorWithProfiles,
+      );
 
       const invalidProfCommand = {
         ...prepCommand,
@@ -810,12 +925,17 @@ describe('DomainCommandService', () => {
       };
 
       await expect(
-        service.execute(invalidProfCommand, { principalId: 'user-1', isDm: false }),
+        service.execute(invalidProfCommand, {
+          principalId: 'user-1',
+          isDm: false,
+        }),
       ).rejects.toThrow("Spellcasting profile 'nonexistent-prof' not found");
     });
 
     it('returns failure receipt when prepared spells exceed limit', async () => {
-      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(actorWithProfiles);
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(
+        actorWithProfiles,
+      );
 
       const exceedCommand = {
         ...prepCommand,
@@ -831,7 +951,9 @@ describe('DomainCommandService', () => {
       });
 
       expect(response.receipt.result.success).toBe(false);
-      expect(response.receipt.result.error).toContain('Plan exceeds preparation capacity');
+      expect(response.receipt.result.error).toContain(
+        'Plan exceeds preparation capacity',
+      );
     });
   });
 
@@ -897,7 +1019,9 @@ describe('DomainCommandService', () => {
     };
 
     it('successfully consumes slot and records cast', async () => {
-      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(actorCaster);
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(
+        actorCaster,
+      );
       mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
         status: 'updated',
         actor: { ...actorCaster, stateVersion: 2 },
@@ -918,7 +1042,12 @@ describe('DomainCommandService', () => {
           duration: '1 round',
           concentration: false,
           ritual: false,
-          components: { verbal: true, somatic: true, material: false, materialConsumed: false },
+          components: {
+            verbal: true,
+            somatic: true,
+            material: false,
+            materialConsumed: false,
+          },
           classes: [],
           description: 'Shield spell',
           ownerId: 'user-1',
@@ -965,7 +1094,9 @@ describe('DomainCommandService', () => {
         },
       };
 
-      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(concentratingActor);
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(
+        concentratingActor,
+      );
       mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
         status: 'updated',
         actor: { ...concentratingActor, stateVersion: 2 },
@@ -986,7 +1117,12 @@ describe('DomainCommandService', () => {
           duration: '1 minute',
           concentration: true,
           ritual: false,
-          components: { verbal: true, somatic: true, material: false, materialConsumed: false },
+          components: {
+            verbal: true,
+            somatic: true,
+            material: false,
+            materialConsumed: false,
+          },
           classes: [],
           description: 'Hold Person spell',
           ownerId: 'user-1',
@@ -1037,7 +1173,9 @@ describe('DomainCommandService', () => {
         },
       };
 
-      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(outOfSlotsActor);
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(
+        outOfSlotsActor,
+      );
       mockDb.libraryObjects.getRevision.mockResolvedValueOnce({
         id: '55555555-5555-4555-8555-555555555555',
         revision: 1,
@@ -1054,7 +1192,12 @@ describe('DomainCommandService', () => {
           duration: '1 round',
           concentration: false,
           ritual: false,
-          components: { verbal: true, somatic: true, material: false, materialConsumed: false },
+          components: {
+            verbal: true,
+            somatic: true,
+            material: false,
+            materialConsumed: false,
+          },
           classes: [],
           description: 'Shield spell',
           ownerId: 'user-1',
@@ -1073,7 +1216,9 @@ describe('DomainCommandService', () => {
       });
 
       expect(response.receipt.result.success).toBe(false);
-      expect(response.receipt.result.error).toContain('No level 1 spell slots remaining');
+      expect(response.receipt.result.error).toContain(
+        'No level 1 spell slots remaining',
+      );
     });
   });
 
@@ -1104,7 +1249,9 @@ describe('DomainCommandService', () => {
     };
 
     it('clears active concentration on actor', async () => {
-      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(concentratingActor);
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(
+        concentratingActor,
+      );
       mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
         status: 'updated',
         actor: { ...concentratingActor, stateVersion: 2 },
@@ -1152,7 +1299,9 @@ describe('DomainCommandService', () => {
     };
 
     it('performs short rest: resets short-rest pools and applies hit dice healing', async () => {
-      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(restedActor);
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(
+        restedActor,
+      );
       mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
         status: 'updated',
         actor: { ...restedActor, stateVersion: 2 },
@@ -1194,7 +1343,9 @@ describe('DomainCommandService', () => {
     });
 
     it('performs long rest: full heal, clears temp HP/unconscious/death saves, restores all pools', async () => {
-      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(restedActor);
+      mockDb.campaignActors.lockActorForUpdate.mockResolvedValueOnce(
+        restedActor,
+      );
       mockDb.campaignActors.updateActorState.mockResolvedValueOnce({
         status: 'updated',
         actor: { ...restedActor, stateVersion: 2 },
@@ -1336,8 +1487,13 @@ describe('DomainCommandService', () => {
         .mockResolvedValueOnce(actorTarget);
 
       await expect(
-        service.execute(transferCommand, { principalId: 'user-1', isDm: false }),
-      ).rejects.toThrow(`Item instance item-wand not found in actor ${actorSource.id}'s inventory`);
+        service.execute(transferCommand, {
+          principalId: 'user-1',
+          isDm: false,
+        }),
+      ).rejects.toThrow(
+        `Item instance item-wand not found in actor ${actorSource.id}'s inventory`,
+      );
     });
 
     it('rejects transfer when requested quantity exceeds available', async () => {

@@ -19,10 +19,7 @@ import {
   type PublishSessionPlanResult,
 } from '../campaign-prep/SessionPlanPublishingService.js';
 
-type CampaignPrepDatabase = Pick<
-  DatabaseService,
-  'campaigns' | 'campaignPrep'
->;
+type CampaignPrepDatabase = Pick<DatabaseService, 'campaigns' | 'campaignPrep'>;
 
 interface SessionPlanPublisher {
   publish(request: {
@@ -116,7 +113,9 @@ export function createCampaignPrepRouter({
 
       const campaignId = routeParameter(req.params.campaignId);
       if (!isUuid(campaignId)) {
-        return res.status(400).json({ error: 'campaignId must be a valid UUID' });
+        return res
+          .status(400)
+          .json({ error: 'campaignId must be a valid UUID' });
       }
       const campaign = await db.campaigns.getCampaignById(campaignId);
       if (!campaign) {
@@ -147,7 +146,8 @@ export function createCampaignPrepRouter({
   );
 
   router.get('/campaigns/:campaignId/prep/objects', async (req, res) => {
-    const kind = typeof req.query.kind === 'string' ? req.query.kind : undefined;
+    const kind =
+      typeof req.query.kind === 'string' ? req.query.kind : undefined;
     const status =
       typeof req.query.status === 'string' ? req.query.status : undefined;
     if (kind && !OBJECT_KINDS.has(kind as CampaignPrepObjectKind)) {
@@ -224,7 +224,9 @@ export function createCampaignPrepRouter({
         return res.json({ object, revision });
       } catch (error) {
         console.error('Failed to load campaign prep object:', error);
-        return res.status(500).json({ error: 'Failed to load campaign object' });
+        return res
+          .status(500)
+          .json({ error: 'Failed to load campaign object' });
       }
     },
   );
@@ -276,7 +278,8 @@ export function createCampaignPrepRouter({
         !isUuid(requestId)
       ) {
         return res.status(400).json({
-          error: 'expectedRevision must be positive and requestId must be a UUID',
+          error:
+            'expectedRevision must be positive and requestId must be a UUID',
         });
       }
 
@@ -311,7 +314,9 @@ export function createCampaignPrepRouter({
           });
         }
         console.error('Failed to publish session plan:', error);
-        return res.status(500).json({ error: 'Failed to publish session plan' });
+        return res
+          .status(500)
+          .json({ error: 'Failed to publish session plan' });
       }
     },
   );
@@ -392,7 +397,9 @@ export function createCampaignPrepRouter({
           });
         }
         console.error('Failed to activate session plan:', error);
-        return res.status(500).json({ error: 'Failed to activate session plan' });
+        return res
+          .status(500)
+          .json({ error: 'Failed to activate session plan' });
       }
     },
   );
@@ -406,13 +413,14 @@ export function createCampaignPrepRouter({
           typeof req.query.sessionId === 'string'
             ? req.query.sessionId
             : undefined;
-        const result =
-          await db.campaignPrep.getActiveSessionPlanActivation(
-            campaignId,
-            sessionId,
-          );
+        const result = await db.campaignPrep.getActiveSessionPlanActivation(
+          campaignId,
+          sessionId,
+        );
         if (!result) {
-          return res.status(404).json({ error: 'No active session plan found' });
+          return res
+            .status(404)
+            .json({ error: 'No active session plan found' });
         }
         return res.json(result);
       } catch (error) {
@@ -436,12 +444,19 @@ export function createCampaignPrepRouter({
       };
 
       if (
-        !Number.isInteger(body.currentStepIndex) ||
-        (body.currentStepIndex as number) < 0
+        body.currentStepIndex !== undefined &&
+        (!Number.isInteger(body.currentStepIndex) ||
+          (body.currentStepIndex as number) < 0)
       ) {
         return res
           .status(400)
           .json({ error: 'currentStepIndex must be a non-negative integer' });
+      }
+      if (
+        body.status !== undefined &&
+        !['active', 'completed', 'abandoned'].includes(String(body.status))
+      ) {
+        return res.status(400).json({ error: 'status is invalid' });
       }
       if (
         body.status !== undefined &&
@@ -457,16 +472,13 @@ export function createCampaignPrepRouter({
           await db.campaignPrep.updateSessionPlanActivationProgress({
             campaignId,
             activationId,
-            currentStepIndex: body.currentStepIndex as number,
+            currentStepIndex: body.currentStepIndex as number | undefined,
             stepStates:
               typeof body.stepStates === 'object' && body.stepStates !== null
                 ? (body.stepStates as Record<string, unknown>)
                 : undefined,
             status: body.status as
-              | 'active'
-              | 'completed'
-              | 'abandoned'
-              | undefined,
+              'active' | 'completed' | 'abandoned' | undefined,
           });
         return res.json({ activation });
       } catch (error) {
@@ -486,7 +498,6 @@ export function createCampaignPrepRouter({
   );
 
   return router;
-
 }
 
 function handleAuthoringError(error: unknown, res: Response): Response {

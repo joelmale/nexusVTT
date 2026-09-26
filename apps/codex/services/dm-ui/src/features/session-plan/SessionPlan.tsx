@@ -31,8 +31,8 @@ import styles from './SessionPlan.module.css';
 interface SessionPlanProps {
   model: SessionPlanViewModel;
   onCapability: (capabilityId: CapabilityId) => void;
-  onPublish?: () => void;
-  onActivate?: () => void;
+  onPublish?: (steps: SessionStepViewModel[]) => void;
+  onActivate?: (steps: SessionStepViewModel[]) => void;
   publishMessage?: string;
   publishState?: 'idle' | 'publishing' | 'published' | 'error';
   activateState?: 'idle' | 'activating' | 'activated' | 'error';
@@ -129,6 +129,11 @@ export function SessionPlan({
     setSelectedStepId(reminder.id);
   }
 
+  function setStepTrack(stepId: string, track: SessionStepViewModel['track']) {
+    setSteps((current) =>
+      current.map((step) => (step.id === stepId ? { ...step, track } : step)),
+    );
+  }
 
   return (
     <div className={styles.layout}>
@@ -331,7 +336,10 @@ export function SessionPlan({
                       onMoveDown={() => moveStep(step.id, 1)}
                       reorderMode={reorderMode}
                       step={step}
-                      totalMainSteps={steps.filter((s) => s.track === 'main').length}
+                      onTrackChange={(track) => setStepTrack(step.id, track)}
+                      totalMainSteps={
+                        steps.filter((s) => s.track === 'main').length
+                      }
                     />
                   );
                 })}
@@ -341,7 +349,9 @@ export function SessionPlan({
                 <>
                   <div className={styles.trackDivider}>
                     <span>Parallel Threads</span>
-                    <small>Always available — not gated by timeline progress</small>
+                    <small>
+                      Always available — not gated by timeline progress
+                    </small>
                   </div>
                   {steps
                     .filter((s) => s.track === 'parallel')
@@ -358,7 +368,12 @@ export function SessionPlan({
                           onMoveDown={() => moveStep(step.id, 1)}
                           reorderMode={reorderMode}
                           step={step}
-                          totalMainSteps={steps.filter((s) => s.track === 'parallel').length}
+                          onTrackChange={(track) =>
+                            setStepTrack(step.id, track)
+                          }
+                          totalMainSteps={
+                            steps.filter((s) => s.track === 'parallel').length
+                          }
                         />
                       );
                     })}
@@ -366,7 +381,6 @@ export function SessionPlan({
               )}
             </div>
           </div>
-
         ) : (
           <WorkspacePlaceholder
             attachments={model.attachments}
@@ -520,7 +534,11 @@ export function SessionPlan({
           <button
             className={styles.publishButton}
             disabled={publishState === 'publishing'}
-            onClick={onPublish ?? (() => onCapability('session-plan.publish'))}
+            onClick={() =>
+              onPublish
+                ? onPublish(steps)
+                : onCapability('session-plan.publish')
+            }
             type="button"
           >
             <Send size={15} />
@@ -534,8 +552,10 @@ export function SessionPlan({
             <button
               className={styles.activateButton}
               disabled={activateState === 'activating'}
-              onClick={
-                onActivate ?? (() => onCapability('session-plan.activate'))
+              onClick={() =>
+                onActivate
+                  ? onActivate(steps)
+                  : onCapability('session-plan.activate')
               }
               type="button"
             >
@@ -643,6 +663,7 @@ interface StepRowProps {
   onMoveDown: () => void;
   reorderMode: boolean;
   step: SessionStepViewModel;
+  onTrackChange: (track: SessionStepViewModel['track']) => void;
   totalMainSteps: number;
 }
 
@@ -653,6 +674,7 @@ function StepRow({
   onSelect,
   onMoveUp,
   onMoveDown,
+  onTrackChange,
   reorderMode,
   step,
   totalMainSteps,
@@ -682,9 +704,7 @@ function StepRow({
         </span>
         <span className={styles.stepMeta}>
           {step.durationMinutes > 0 && <span>{step.durationMinutes} min</span>}
-          <span>
-            {step.visibility === 'shared' ? 'Shared' : 'DM only'}
-          </span>
+          <span>{step.visibility === 'shared' ? 'Shared' : 'DM only'}</span>
         </span>
       </button>
       {reorderMode && (
@@ -701,29 +721,54 @@ function StepRow({
           </button>
         </div>
       )}
-      {isSelected && step.body && (
+      {isSelected && (
         <div className={styles.editor}>
-          <div className={styles.editorToolbar}>
-            <button aria-label="Bold" title="Bold" type="button">
-              <strong>B</strong>
-            </button>
-            <button aria-label="Italic" title="Italic" type="button">
-              <em>I</em>
-            </button>
-            <span />
-            <button type="button">@ Reference</button>
+          <div className={styles.trackControl}>
+            <span>Track</span>
+            <div aria-label={`Track for ${step.title}`} role="group">
+              <button
+                aria-pressed={step.track === 'main'}
+                onClick={() => onTrackChange('main')}
+                type="button"
+              >
+                Main timeline
+              </button>
+              <button
+                aria-pressed={step.track === 'parallel'}
+                onClick={() => onTrackChange('parallel')}
+                type="button"
+              >
+                Parallel
+              </button>
+            </div>
           </div>
-          <div
-            aria-label="Session step notes"
-            className={styles.editorBody}
-            contentEditable
-            suppressContentEditableWarning
-          >
-            {step.body}{' '}
-            {step.referenceLabel && (
-              <span className={styles.reference}>@{step.referenceLabel}</span>
-            )}
-          </div>
+          {step.body && (
+            <>
+              <div className={styles.editorToolbar}>
+                <button aria-label="Bold" title="Bold" type="button">
+                  <strong>B</strong>
+                </button>
+                <button aria-label="Italic" title="Italic" type="button">
+                  <em>I</em>
+                </button>
+                <span />
+                <button type="button">@ Reference</button>
+              </div>
+              <div
+                aria-label="Session step notes"
+                className={styles.editorBody}
+                contentEditable
+                suppressContentEditableWarning
+              >
+                {step.body}{' '}
+                {step.referenceLabel && (
+                  <span className={styles.reference}>
+                    @{step.referenceLabel}
+                  </span>
+                )}
+              </div>
+            </>
+          )}
         </div>
       )}
     </article>

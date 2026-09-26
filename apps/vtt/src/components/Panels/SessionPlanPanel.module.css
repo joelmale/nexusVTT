@@ -145,9 +145,61 @@
 
 .progressBarFill {
   height: 100%;
-  background: linear-gradient(90deg, var(--indigo-500, #6366f1), var(--emerald-400, #34d399));
+  background: linear-gradient(
+    90deg,
+    var(--indigo-500, #6366f1),
+    var(--emerald-400, #34d399)
+  );
   border-radius: 3px;
   transition: width 0.3s ease;
+}
+
+.sessionStatusButton {
+  align-items: center;
+  align-self: flex-end;
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  border-radius: 6px;
+  color: var(--text-primary);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 11px;
+  font-weight: 600;
+  gap: 5px;
+  padding: 5px 9px;
+}
+
+.sessionStatusButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.trackTabs {
+  border-bottom: 1px solid var(--glass-border);
+  display: flex;
+  gap: 4px;
+}
+
+.trackTabs button {
+  background: transparent;
+  border: 0;
+  border-bottom: 2px solid transparent;
+  color: var(--text-secondary);
+  cursor: pointer;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 7px 10px;
+}
+
+.trackTabs button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.trackTabs .activeTrackTab {
+  border-bottom-color: var(--indigo-400);
+  color: var(--text-primary);
 }
 
 .stepsContainer {

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import { definitionRefSchema } from './identity.js';
+import { assetObjectRefSchema } from './prep.js';
 
 /**
  * Base command envelope carrying metadata, CAS expected versions, and idempotency key
@@ -10,7 +11,9 @@ export const baseCommandEnvelopeSchema = z.object({
   campaignId: z.string().uuid(),
   issuerUserId: z.string().min(1),
   timestamp: z.string().datetime(),
-  expectedActorVersions: z.record(z.string().uuid(), z.number().int().nonnegative()).default({}),
+  expectedActorVersions: z
+    .record(z.string().uuid(), z.number().int().nonnegative())
+    .default({}),
   expectedRoomVersion: z.number().int().nonnegative().optional(),
 });
 
@@ -50,7 +53,9 @@ export const deployEncounterPayloadSchema = z.object({
   }),
   hiddenFromPlayers: z.boolean().default(false),
 });
-export type DeployEncounterPayload = z.infer<typeof deployEncounterPayloadSchema>;
+export type DeployEncounterPayload = z.infer<
+  typeof deployEncounterPayloadSchema
+>;
 
 export const startEncounterPayloadSchema = z.object({
   type: z.literal('StartEncounter'),
@@ -62,7 +67,9 @@ export const advanceCombatTurnPayloadSchema = z.object({
   type: z.literal('AdvanceCombatTurn'),
   encounterRunId: z.string().uuid(),
 });
-export type AdvanceCombatTurnPayload = z.infer<typeof advanceCombatTurnPayloadSchema>;
+export type AdvanceCombatTurnPayload = z.infer<
+  typeof advanceCombatTurnPayloadSchema
+>;
 
 export const applyPreparationPlanPayloadSchema = z.object({
   type: z.literal('ApplyPreparationPlan'),
@@ -70,7 +77,9 @@ export const applyPreparationPlanPayloadSchema = z.object({
   profileId: z.string(),
   preparedSpellSlugs: z.array(z.string()),
 });
-export type ApplyPreparationPlanPayload = z.infer<typeof applyPreparationPlanPayloadSchema>;
+export type ApplyPreparationPlanPayload = z.infer<
+  typeof applyPreparationPlanPayloadSchema
+>;
 
 export const castSpellPayloadSchema = z.object({
   type: z.literal('CastSpell'),
@@ -93,7 +102,9 @@ export const endConcentrationPayloadSchema = z.object({
   actorId: z.string().uuid(),
   castId: z.string().uuid(),
 });
-export type EndConcentrationPayload = z.infer<typeof endConcentrationPayloadSchema>;
+export type EndConcentrationPayload = z.infer<
+  typeof endConcentrationPayloadSchema
+>;
 
 export const restActorPayloadSchema = z.object({
   type: z.literal('RestActor'),
@@ -133,6 +144,14 @@ export type AdvanceSessionPlanStepPayload = z.infer<
   typeof advanceSessionPlanStepPayloadSchema
 >;
 
+export const revealHandoutPayloadSchema = z.object({
+  type: z.literal('RevealHandout'),
+  assetRef: assetObjectRefSchema,
+  title: z.string().trim().min(1),
+  stepId: z.string().uuid().optional(),
+});
+export type RevealHandoutPayload = z.infer<typeof revealHandoutPayloadSchema>;
+
 /**
  * Union of all domain command payloads
  */
@@ -150,6 +169,7 @@ export const domainCommandPayloadSchema = z.discriminatedUnion('type', [
   transferItemPayloadSchema,
   activateSessionPlanPayloadSchema,
   advanceSessionPlanStepPayloadSchema,
+  revealHandoutPayloadSchema,
 ]);
 export type DomainCommandPayload = z.infer<typeof domainCommandPayloadSchema>;
 

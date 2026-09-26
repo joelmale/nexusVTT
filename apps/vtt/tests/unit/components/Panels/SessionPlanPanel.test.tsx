@@ -6,7 +6,10 @@ import '@testing-library/jest-dom';
 import { SessionPlanPanel } from '../../../../src/components/Panels/SessionPlanPanel';
 import { campaignPrepClient } from '../../../../src/services/campaignPrepClient';
 import { commandClient } from '../../../../src/services/commandClient';
-import { panelRegistry, type ObjectLink } from '../../../../src/services/panelRegistry';
+import {
+  panelRegistry,
+  type ObjectLink,
+} from '../../../../src/services/panelRegistry';
 import { useGameStore } from '../../../../src/stores/gameStore';
 
 vi.mock('../../../../src/services/campaignPrepClient', () => ({
@@ -20,6 +23,7 @@ vi.mock('../../../../src/services/campaignPrepClient', () => ({
 vi.mock('../../../../src/services/commandClient', () => ({
   commandClient: {
     deployEncounter: vi.fn(),
+    revealHandout: vi.fn(),
     startEncounter: vi.fn(),
   },
 }));
@@ -155,7 +159,11 @@ describe('SessionPlanPanel', () => {
             name: 'Glass Harbor Docks',
             background: '',
             grid: { size: 50, color: '#fff', visible: true, type: 'square' },
-            lighting: { ambientColor: '#000', ambientIntensity: 1, enabled: false },
+            lighting: {
+              ambientColor: '#000',
+              ambientIntensity: 1,
+              enabled: false,
+            },
             fog: { enabled: false, shapes: [] },
             placedTokens: [],
             placedProps: [],
@@ -188,20 +196,28 @@ describe('SessionPlanPanel', () => {
       },
     });
 
-    render(<SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />);
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+    );
 
     expect(screen.getByText('DM Access Only')).toBeInTheDocument();
   });
 
   it('renders empty state when no active session plan exists', async () => {
-    vi.mocked(campaignPrepClient.getActiveSessionPlan).mockResolvedValueOnce(null);
+    vi.mocked(campaignPrepClient.getActiveSessionPlan).mockResolvedValueOnce(
+      null,
+    );
 
-    render(<SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />);
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText('No Active Session Plan')).toBeInTheDocument();
     });
-    expect(screen.getByRole('button', { name: /check for activated plan/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /check for activated plan/i }),
+    ).toBeInTheDocument();
   });
 
   it('renders active plan with steps and progress summary', async () => {
@@ -210,10 +226,14 @@ describe('SessionPlanPanel', () => {
       plan: mockPlan,
     });
 
-    render(<SessionPlanPanel isPopout={true} link={mockLink} onClose={vi.fn()} />);
+    render(
+      <SessionPlanPanel isPopout={true} link={mockLink} onClose={vi.fn()} />,
+    );
 
     await waitFor(() => {
-      expect(screen.getByText('Session 12 - The Glass Harbor')).toBeInTheDocument();
+      expect(
+        screen.getByText('Session 12 - The Glass Harbor'),
+      ).toBeInTheDocument();
     });
 
     expect(screen.getByText('Rev 3')).toBeInTheDocument();
@@ -230,7 +250,9 @@ describe('SessionPlanPanel', () => {
       plan: mockPlan,
     });
 
-    render(<SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />);
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Glass Harbor Docks Scene')).toBeInTheDocument();
@@ -240,7 +262,9 @@ describe('SessionPlanPanel', () => {
     fireEvent.click(activateBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/switched to scene: glass harbor docks/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/switched to scene: glass harbor docks/i),
+      ).toBeInTheDocument();
     });
   });
 
@@ -338,22 +362,32 @@ describe('SessionPlanPanel', () => {
     globalThis.fetch = fetchSpy;
 
     try {
-      render(<SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />);
+      render(
+        <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+      );
 
       await waitFor(() => {
-        expect(screen.getByText('Glass Harbor Docks Scene')).toBeInTheDocument();
+        expect(
+          screen.getByText('Glass Harbor Docks Scene'),
+        ).toBeInTheDocument();
       });
 
-      const activateBtn = screen.getByRole('button', { name: /activate scene/i });
+      const activateBtn = screen.getByRole('button', {
+        name: /activate scene/i,
+      });
       fireEvent.click(activateBtn);
 
       await waitFor(() => {
-        expect(screen.getByText(/activated scene: glass harbor docks/i)).toBeInTheDocument();
+        expect(
+          screen.getByText(/activated scene: glass harbor docks/i),
+        ).toBeInTheDocument();
       });
 
       const updatedScene = useGameStore.getState().sceneState.scenes[0];
       expect(updatedScene.name).toBe('Glass Harbor Docks');
-      expect(updatedScene.backgroundImage?.url).toBe('/demo/ashes-of-veyra/glass-harbor-map.png');
+      expect(updatedScene.backgroundImage?.url).toBe(
+        '/demo/ashes-of-veyra/glass-harbor-map.png',
+      );
       expect(updatedScene.gridSettings.size).toBe(100);
     } finally {
       globalThis.fetch = originalFetch;
@@ -386,7 +420,9 @@ describe('SessionPlanPanel', () => {
       success: true,
     });
 
-    render(<SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />);
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Smuggler Ambush')).toBeInTheDocument();
@@ -403,14 +439,21 @@ describe('SessionPlanPanel', () => {
         { x: 0, y: 0 },
         false,
       );
-      expect(screen.getByText(/encounter deployed on active scene/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/encounter deployed on active scene/i),
+      ).toBeInTheDocument();
     });
 
-    const startCombatBtn = screen.getByRole('button', { name: /start combat/i });
+    const startCombatBtn = screen.getByRole('button', {
+      name: /start combat/i,
+    });
     fireEvent.click(startCombatBtn);
 
     await waitFor(() => {
-      expect(commandClient.startEncounter).toHaveBeenCalledWith('camp-123', 'run-ambush-99');
+      expect(commandClient.startEncounter).toHaveBeenCalledWith(
+        'camp-123',
+        'run-ambush-99',
+      );
       expect(panelRegistry.open).toHaveBeenCalledWith(
         expect.objectContaining({
           kind: 'encounter',
@@ -426,7 +469,9 @@ describe('SessionPlanPanel', () => {
       plan: mockPlan,
     });
 
-    vi.mocked(campaignPrepClient.updateActivationProgress).mockResolvedValueOnce({
+    vi.mocked(
+      campaignPrepClient.updateActivationProgress,
+    ).mockResolvedValueOnce({
       ...mockActivation,
       currentStepIndex: 1,
       stepStates: {
@@ -434,13 +479,17 @@ describe('SessionPlanPanel', () => {
       },
     });
 
-    render(<SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />);
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Recap & Harbor Welcome')).toBeInTheDocument();
     });
 
-    const advanceBtn = screen.getByRole('button', { name: /complete & next beat/i });
+    const advanceBtn = screen.getByRole('button', {
+      name: /complete & next beat/i,
+    });
     fireEvent.click(advanceBtn);
 
     await waitFor(() => {
@@ -459,8 +508,13 @@ describe('SessionPlanPanel', () => {
       activation: { ...mockActivation, currentStepIndex: 3 },
       plan: mockPlan,
     });
+    vi.mocked(commandClient.revealHandout).mockResolvedValueOnce({
+      success: true,
+    });
 
-    render(<SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />);
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Harbor Map Handout')).toBeInTheDocument();
@@ -469,13 +523,31 @@ describe('SessionPlanPanel', () => {
     const shareBtn = screen.getByRole('button', { name: /reveal handout/i });
     fireEvent.click(shareBtn);
 
-    expect(screen.getByText(/handout revealed to players/i)).toBeInTheDocument();
+    await waitFor(() => {
+      expect(commandClient.revealHandout).toHaveBeenCalledWith(
+        'camp-123',
+        mockPlan.steps[3].assetRef,
+        'Harbor Map Handout',
+        'step-4',
+      );
+      expect(
+        screen.getByText(/handout revealed to players/i),
+      ).toBeInTheDocument();
+    });
 
     // Expand step 5
     fireEvent.click(screen.getByText('Captain Serin Profile'));
-    const viewEntryBtn = screen.getByRole('button', { name: /view campaign entry/i });
+    const viewEntryBtn = screen.getByRole('button', {
+      name: /view campaign entry/i,
+    });
     fireEvent.click(viewEntryBtn);
-    expect(screen.getByText(/opening entry: entry-se/i)).toBeInTheDocument();
+    expect(panelRegistry.open).toHaveBeenCalledWith({
+      kind: 'campaign-entry',
+      id: 'entry-serin-1',
+      campaignId: 'camp-123',
+      revision: 1,
+      title: 'Captain Serin Profile',
+    });
   });
 
   it('renders error state and handles retry button', async () => {
@@ -486,7 +558,9 @@ describe('SessionPlanPanel', () => {
         plan: mockPlan,
       });
 
-    render(<SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />);
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Error Loading Plan')).toBeInTheDocument();
@@ -497,7 +571,9 @@ describe('SessionPlanPanel', () => {
     fireEvent.click(retryBtn);
 
     await waitFor(() => {
-      expect(screen.getByText('Session 12 - The Glass Harbor')).toBeInTheDocument();
+      expect(
+        screen.getByText('Session 12 - The Glass Harbor'),
+      ).toBeInTheDocument();
     });
   });
 
@@ -511,7 +587,9 @@ describe('SessionPlanPanel', () => {
       new Error('Encounter template missing'),
     );
 
-    render(<SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />);
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Smuggler Ambush')).toBeInTheDocument();
@@ -521,7 +599,9 @@ describe('SessionPlanPanel', () => {
     fireEvent.click(deployBtn);
 
     await waitFor(() => {
-      expect(screen.getByText(/encounter template missing/i)).toBeInTheDocument();
+      expect(
+        screen.getByText(/encounter template missing/i),
+      ).toBeInTheDocument();
     });
   });
 
@@ -535,13 +615,17 @@ describe('SessionPlanPanel', () => {
       new Error('Combat start failed'),
     );
 
-    render(<SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />);
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+    );
 
     await waitFor(() => {
       expect(screen.getByText('Smuggler Ambush')).toBeInTheDocument();
     });
 
-    const startCombatBtn = screen.getByRole('button', { name: /start combat/i });
+    const startCombatBtn = screen.getByRole('button', {
+      name: /start combat/i,
+    });
     fireEvent.click(startCombatBtn);
 
     await waitFor(() => {
@@ -555,15 +639,21 @@ describe('SessionPlanPanel', () => {
       plan: mockPlan,
     });
 
-    vi.mocked(campaignPrepClient.updateActivationProgress).mockResolvedValueOnce({
+    vi.mocked(
+      campaignPrepClient.updateActivationProgress,
+    ).mockResolvedValueOnce({
       ...mockActivation,
       currentStepIndex: 4,
     });
 
-    render(<SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />);
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+    );
 
     await waitFor(() => {
-      expect(screen.getByText('Session 12 - The Glass Harbor')).toBeInTheDocument();
+      expect(
+        screen.getByText('Session 12 - The Glass Harbor'),
+      ).toBeInTheDocument();
     });
 
     // Expand step 5
@@ -580,7 +670,9 @@ describe('SessionPlanPanel', () => {
     });
 
     // Click refresh button in header
-    const refreshBtn = screen.getByRole('button', { name: /refresh run sheet/i });
+    const refreshBtn = screen.getByRole('button', {
+      name: /refresh run sheet/i,
+    });
     fireEvent.click(refreshBtn);
     expect(campaignPrepClient.getActiveSessionPlan).toHaveBeenCalledTimes(2);
   });
@@ -629,14 +721,22 @@ describe('SessionPlanPanel', () => {
       activation: mockActivation,
     });
 
-    render(<SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />);
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+    );
 
     await waitFor(() => {
-      expect(screen.getByText('Session 12 - The Glass Harbor')).toBeInTheDocument();
+      expect(
+        screen.getByText('Session 12 - The Glass Harbor'),
+      ).toBeInTheDocument();
     });
 
     // Main step visible
     expect(screen.getByText('Opening Recap')).toBeInTheDocument();
+
+    const parallelTab = screen.getByRole('tab', { name: 'Parallel (2)' });
+    expect(parallelTab).toBeInTheDocument();
+    fireEvent.click(parallelTab);
 
     // Parallel section header
     expect(screen.getByText('Parallel Threads')).toBeInTheDocument();
@@ -694,15 +794,24 @@ describe('SessionPlanPanel', () => {
       plan: planWithParallel,
       activation: { ...mockActivation, currentStepIndex: 0 },
     });
-    vi.mocked(campaignPrepClient.updateActivationProgress).mockResolvedValueOnce(
-      updatedActivation,
+    vi.mocked(
+      campaignPrepClient.updateActivationProgress,
+    ).mockResolvedValueOnce(updatedActivation);
+
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
     );
 
-    render(<SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />);
-
     await waitFor(() => {
-      expect(screen.getByText('Handout: Port Authority Writ')).toBeInTheDocument();
+      expect(
+        screen.getByRole('tab', { name: 'Parallel (1)' }),
+      ).toBeInTheDocument();
     });
+
+    fireEvent.click(screen.getByRole('tab', { name: 'Parallel (1)' }));
+    expect(
+      screen.getByText('Handout: Port Authority Writ'),
+    ).toBeInTheDocument();
 
     // Expand the parallel step
     fireEvent.click(screen.getByText('Handout: Port Authority Writ'));
@@ -710,7 +819,9 @@ describe('SessionPlanPanel', () => {
     await waitFor(() => {
       // The "Mark Done" toggle button should be available even though
       // currentStepIndex is 0 (the main step hasn't advanced)
-      expect(screen.getByRole('button', { name: /mark done/i })).toBeInTheDocument();
+      expect(
+        screen.getByRole('button', { name: /mark done/i }),
+      ).toBeInTheDocument();
     });
 
     fireEvent.click(screen.getByRole('button', { name: /mark done/i }));
@@ -725,6 +836,40 @@ describe('SessionPlanPanel', () => {
           }),
         }),
       );
+    });
+  });
+
+  it('marks the active session completed and can reopen it', async () => {
+    vi.mocked(campaignPrepClient.getActiveSessionPlan).mockResolvedValueOnce({
+      activation: mockActivation,
+      plan: mockPlan,
+    });
+    vi.mocked(campaignPrepClient.updateActivationProgress)
+      .mockResolvedValueOnce({ ...mockActivation, status: 'completed' })
+      .mockResolvedValueOnce({ ...mockActivation, status: 'active' });
+
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+    );
+
+    const completeButton = await screen.findByRole('button', {
+      name: /complete session/i,
+    });
+    fireEvent.click(completeButton);
+
+    await waitFor(() => {
+      expect(campaignPrepClient.updateActivationProgress).toHaveBeenCalledWith(
+        'camp-123',
+        'act-123',
+        { status: 'completed' },
+      );
+    });
+
+    fireEvent.click(screen.getByRole('button', { name: /reopen session/i }));
+    await waitFor(() => {
+      expect(
+        campaignPrepClient.updateActivationProgress,
+      ).toHaveBeenLastCalledWith('camp-123', 'act-123', { status: 'active' });
     });
   });
 });

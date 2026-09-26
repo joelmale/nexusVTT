@@ -1,5 +1,6 @@
 import { panelRegistry } from '@/services/panelRegistry';
 import { CharacterPanel } from './CharacterPanel';
+import { CampaignEntryPanel } from './CampaignEntryPanel';
 import { MonsterPanel } from './MonsterPanel';
 import { EncounterPanel } from './EncounterPanel';
 import { SpellbookPanel } from './SpellbookPanel';
@@ -11,6 +12,12 @@ let registered = false;
 export function registerDefaultPanels(): void {
   if (registered) return;
   registered = true;
+
+  panelRegistry.register({
+    kind: 'campaign-entry',
+    title: (link) => link.title || 'Campaign Entry',
+    component: CampaignEntryPanel,
+  });
 
   panelRegistry.register({
     kind: 'character',

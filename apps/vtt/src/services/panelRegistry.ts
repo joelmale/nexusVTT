@@ -8,6 +8,7 @@ export type ObjectKind =
   | 'spellbook'
   | 'item'
   | 'rule'
+  | 'campaign-entry'
   | 'session-plan';
 
 export interface ObjectLink {
@@ -118,7 +119,10 @@ class PanelRegistryService {
    * Close a registered object panel
    */
   close(linkOrId: ObjectLink | PanelId): void {
-    const panelId = typeof linkOrId === 'string' ? linkOrId : serializeObjectPanelId(linkOrId);
+    const panelId =
+      typeof linkOrId === 'string'
+        ? linkOrId
+        : serializeObjectPanelId(linkOrId);
     this.activeLinks.delete(panelId);
 
     const uiStack = useUIStackStore.getState();

@@ -22,7 +22,10 @@ import type {
 } from '@nexus/game-contracts';
 
 import { commandClient } from '@/services/commandClient';
-import { panelRegistry, type PanelComponentProps } from '@/services/panelRegistry';
+import {
+  panelRegistry,
+  type PanelComponentProps,
+} from '@/services/panelRegistry';
 import { campaignPrepClient } from '@/services/campaignPrepClient';
 import { useGameStore } from '@/stores/gameStore';
 import styles from './SessionPlanPanel.module.css';
@@ -49,13 +52,16 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
   const isHost =
     user?.type === 'host' ||
     (session
-      ? user?.id === session.hostId || (session.coHostIds?.includes(user?.id) ?? false)
+      ? user?.id === session.hostId ||
+        (session.coHostIds?.includes(user?.id) ?? false)
       : true);
 
   const [activeCampaignId, setActiveCampaignId] = useState<string | null>(
     (isValidCampaignId(link.campaignId) ? link.campaignId : null) ||
       (isValidCampaignId(session?.campaignId) ? session.campaignId : null) ||
-      (isValidCampaignId(gameConfig?.campaignId) ? gameConfig.campaignId : null),
+      (isValidCampaignId(gameConfig?.campaignId)
+        ? gameConfig.campaignId
+        : null),
   );
 
   const campaignId =
@@ -68,12 +74,23 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
 
   const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
-  const [activation, setActivation] = useState<SessionPlanActivation | null>(null);
+  const [activation, setActivation] = useState<SessionPlanActivation | null>(
+    null,
+  );
   const [plan, setPlan] = useState<SessionPlan | null>(null);
   const [expandedStepId, setExpandedStepId] = useState<string | null>(null);
-  const [actionFeedback, setActionFeedback] = useState<Record<string, string>>({});
-  const [actionInProgress, setActionInProgress] = useState<Record<string, boolean>>({});
-  const [deployedEncounters, setDeployedEncounters] = useState<Record<string, string>>({});
+  const [actionFeedback, setActionFeedback] = useState<Record<string, string>>(
+    {},
+  );
+  const [actionInProgress, setActionInProgress] = useState<
+    Record<string, boolean>
+  >({});
+  const [deployedEncounters, setDeployedEncounters] = useState<
+    Record<string, string>
+  >({});
+  const [activeTrackTab, setActiveTrackTab] = useState<'timeline' | 'parallel'>(
+    'timeline',
+  );
 
   const fetchActivePlan = useCallback(async () => {
     setLoading(true);
@@ -81,22 +98,31 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
     try {
       let targetCampaignId =
         (isValidCampaignId(link.campaignId) ? link.campaignId : undefined) ||
-        (isValidCampaignId(session?.campaignId) ? session.campaignId : undefined) ||
-        (isValidCampaignId(gameConfig?.campaignId) ? gameConfig.campaignId : undefined) ||
+        (isValidCampaignId(session?.campaignId)
+          ? session.campaignId
+          : undefined) ||
+        (isValidCampaignId(gameConfig?.campaignId)
+          ? gameConfig.campaignId
+          : undefined) ||
         (isValidCampaignId(activeCampaignId) ? activeCampaignId : undefined);
 
       if (!targetCampaignId) {
         try {
           const res = await fetch('/api/campaigns', { credentials: 'include' });
           if (res.ok) {
-            const campaigns = (await res.json()) as Array<{ id: string; name?: string; lastRoomCode?: string }>;
+            const campaigns = (await res.json()) as Array<{
+              id: string;
+              name?: string;
+              lastRoomCode?: string;
+            }>;
             const match =
               (session?.roomCode
                 ? campaigns.find(
-                    (c) => c.lastRoomCode?.toUpperCase() === session.roomCode.toUpperCase(),
+                    (c) =>
+                      c.lastRoomCode?.toUpperCase() ===
+                      session.roomCode.toUpperCase(),
                   )
                 : undefined) ||
-              campaigns.find((c) => c.name === 'Ashes of Veyra') ||
               (campaigns.length === 1 ? campaigns[0] : undefined);
             if (match) {
               targetCampaignId = match.id;
@@ -116,17 +142,24 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
       if (!targetCampaignId) {
         setActivation(null);
         setPlan(null);
-        setError('No active campaign linked to this session. Please launch from your campaign dashboard or activate a plan in Campaign Studio.');
+        setError(
+          'No active campaign linked to this session. Please launch from your campaign dashboard or activate a plan in Campaign Studio.',
+        );
         setLoading(false);
         return;
       }
 
-      const data = await campaignPrepClient.getActiveSessionPlan(targetCampaignId, sessionId);
+      const data = await campaignPrepClient.getActiveSessionPlan(
+        targetCampaignId,
+        sessionId,
+      );
       if (data) {
         setActivation(data.activation);
         setPlan(data.plan);
         setActiveCampaignId(data.activation.campaignId);
-        const currentStep = data.plan.steps[data.activation.currentStepIndex];
+        const currentStep = data.plan.steps.filter(
+          (step) => step.track !== 'parallel',
+        )[data.activation.currentStepIndex];
         if (currentStep) {
           setExpandedStepId(currentStep.id);
         }
@@ -135,11 +168,22 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
         setPlan(null);
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load active session plan');
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to load active session plan',
+      );
     } finally {
       setLoading(false);
     }
-  }, [link.campaignId, session?.campaignId, session?.roomCode, gameConfig?.campaignId, activeCampaignId, sessionId]);
+  }, [
+    link.campaignId,
+    session?.campaignId,
+    session?.roomCode,
+    gameConfig?.campaignId,
+    activeCampaignId,
+    sessionId,
+  ]);
 
   useEffect(() => {
     fetchActivePlan();
@@ -166,7 +210,8 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
     if (!mainSteps.length || !activation) return 0;
     return mainSteps.filter(
       (step, idx) =>
-        activation.stepStates?.[step.id]?.completed || idx < activation.currentStepIndex,
+        activation.stepStates?.[step.id]?.completed ||
+        idx < activation.currentStepIndex,
     ).length;
   }, [mainSteps, activation]);
 
@@ -177,7 +222,10 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
 
   const handleAdvanceStep = async (stepId: string, stepIndex: number) => {
     if (!activation) return;
-    const nextIndex = Math.min((plan?.steps.length ?? 1) - 1, stepIndex + 1);
+    const nextIndex = Math.min(
+      Math.max(mainSteps.length - 1, 0),
+      stepIndex + 1,
+    );
     const updatedStates: Record<string, SessionPlanStepState> = {
       ...(activation.stepStates || {}),
       [stepId]: {
@@ -197,7 +245,7 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
         },
       );
       setActivation(updated);
-      const nextStep = plan?.steps[nextIndex];
+      const nextStep = mainSteps[nextIndex];
       if (nextStep) {
         setExpandedStepId(nextStep.id);
       }
@@ -233,7 +281,8 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
         (s) =>
           s.id === step.sceneTemplateRef.id ||
           s.name.toLowerCase() === stepTitleLower ||
-          (stepTitleLower.includes('glass harbor') && s.name.toLowerCase().includes('glass harbor')),
+          (stepTitleLower.includes('glass harbor') &&
+            s.name.toLowerCase().includes('glass harbor')),
       );
 
       if (existingMatchingScene) {
@@ -254,7 +303,9 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
           { credentials: 'include' },
         );
         if (res.ok) {
-          const body = (await res.json()) as { revision?: { data?: SceneTemplate } };
+          const body = (await res.json()) as {
+            revision?: { data?: SceneTemplate };
+          };
           if (body?.revision?.data) {
             template = body.revision.data;
           }
@@ -270,9 +321,9 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
       const bgUrl = isGlassHarbor
         ? '/demo/ashes-of-veyra/glass-harbor-map.png'
         : template?.backgroundAssetRef?.assetId?.startsWith('http') ||
-          template?.backgroundAssetRef?.assetId?.startsWith('/')
-        ? template.backgroundAssetRef.assetId
-        : '/demo/ashes-of-veyra/glass-harbor-map.png';
+            template?.backgroundAssetRef?.assetId?.startsWith('/')
+          ? template.backgroundAssetRef.assetId
+          : '/demo/ashes-of-veyra/glass-harbor-map.png';
 
       const bgWidth = isGlassHarbor ? 1586 : 1920;
       const bgHeight = isGlassHarbor ? 992 : 1080;
@@ -360,7 +411,8 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
       console.error('Failed to activate scene:', err);
       setActionFeedback((prev) => ({
         ...prev,
-        [step.id]: err instanceof Error ? err.message : 'Failed to activate scene',
+        [step.id]:
+          err instanceof Error ? err.message : 'Failed to activate scene',
       }));
     } finally {
       setActionInProgress((prev) => ({ ...prev, [step.id]: false }));
@@ -381,8 +433,7 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
       );
 
       const receiptData = result.receipt?.result?.data as
-        | { encounterRunId?: string }
-        | undefined;
+        { encounterRunId?: string } | undefined;
       const runId = receiptData?.encounterRunId || `run-${step.id}`;
 
       setDeployedEncounters((prev) => ({ ...prev, [step.id]: runId }));
@@ -418,19 +469,76 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
     } catch (err) {
       setActionFeedback((prev) => ({
         ...prev,
-        [step.id]: err instanceof Error ? err.message : 'Failed to start combat',
+        [step.id]:
+          err instanceof Error ? err.message : 'Failed to start combat',
       }));
     } finally {
       setActionInProgress((prev) => ({ ...prev, [step.id]: false }));
     }
   };
 
-  const handleShareHandout = (step: SessionPlanStep) => {
+  const handleOpenEntry = (step: SessionPlanStep) => {
+    if (step.type !== 'open-entry') return;
+    panelRegistry.open({
+      kind: 'campaign-entry',
+      id: step.entryRef.id,
+      campaignId: step.entryRef.campaignId,
+      revision: step.entryRef.revision,
+      title: step.title,
+    });
+  };
+
+  const handleShareHandout = async (step: SessionPlanStep) => {
     if (step.type !== 'share-handout') return;
-    setActionFeedback((prev) => ({
-      ...prev,
-      [step.id]: 'Handout revealed to players in chat!',
-    }));
+    setActionInProgress((prev) => ({ ...prev, [step.id]: true }));
+    try {
+      const result = await commandClient.revealHandout(
+        campaignId,
+        step.assetRef,
+        step.title,
+        step.id,
+      );
+      if (!result.success) {
+        throw new Error(result.error || 'The handout could not be revealed.');
+      }
+      setActionFeedback((prev) => ({
+        ...prev,
+        [step.id]: 'Handout revealed to players.',
+      }));
+    } catch (shareError) {
+      setActionFeedback((prev) => ({
+        ...prev,
+        [step.id]:
+          shareError instanceof Error
+            ? shareError.message
+            : 'The handout could not be revealed.',
+      }));
+    } finally {
+      setActionInProgress((prev) => ({ ...prev, [step.id]: false }));
+    }
+  };
+
+  const handleSessionStatus = async () => {
+    if (!activation) return;
+    setActionInProgress((prev) => ({ ...prev, session: true }));
+    try {
+      const updated = await campaignPrepClient.updateActivationProgress(
+        campaignId,
+        activation.id,
+        {
+          status: activation.status === 'completed' ? 'active' : 'completed',
+        },
+      );
+      setActivation(updated);
+    } catch (statusError) {
+      setError(
+        statusError instanceof Error
+          ? statusError.message
+          : 'Failed to update session status.',
+      );
+    } finally {
+      setActionInProgress((prev) => ({ ...prev, session: false }));
+    }
   };
 
   if (!isHost) {
@@ -440,7 +548,8 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
           <AlertCircle size={32} color="var(--indigo-400)" />
           <h3 className={styles.emptyTitle}>DM Access Only</h3>
           <p className={styles.emptyText}>
-            Session run sheets contain confidential DM notes, hidden encounters, and campaign beats.
+            Session run sheets contain confidential DM notes, hidden encounters,
+            and campaign beats.
           </p>
         </div>
       </div>
@@ -464,7 +573,11 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
           <AlertCircle size={28} color="var(--rose-400, #f87171)" />
           <h3 className={styles.emptyTitle}>Error Loading Plan</h3>
           <p className={styles.emptyText}>{error}</p>
-          <button className={styles.actionBtnSecondary} onClick={fetchActivePlan} type="button">
+          <button
+            className={styles.actionBtnSecondary}
+            onClick={fetchActivePlan}
+            type="button"
+          >
             <RefreshCw size={14} /> Retry
           </button>
         </div>
@@ -479,10 +592,14 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
           <BookOpen size={36} color="var(--indigo-400)" />
           <h3 className={styles.emptyTitle}>No Active Session Plan</h3>
           <p className={styles.emptyText}>
-            Publish and activate a session plan from Campaign Studio to run your session sheet live
-            inside Nexus VTT.
+            Publish and activate a session plan from Campaign Studio to run your
+            session sheet live inside Nexus VTT.
           </p>
-          <button className={styles.actionBtnPrimary} onClick={fetchActivePlan} type="button">
+          <button
+            className={styles.actionBtnPrimary}
+            onClick={fetchActivePlan}
+            type="button"
+          >
             <RefreshCw size={14} /> Check for Activated Plan
           </button>
         </div>
@@ -498,7 +615,9 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
             <h2 className={styles.title}>{plan.title}</h2>
             <span className={styles.revBadge}>Rev {plan.revision}</span>
             <span className={styles.statusBadge}>{activation.status}</span>
-            {isPopout && <span className={styles.popoutBadge}>Multi-Display</span>}
+            {isPopout && (
+              <span className={styles.popoutBadge}>Multi-Display</span>
+            )}
           </div>
           <div className={styles.headerMeta}>
             <span>Session {activation.sessionId}</span>
@@ -533,7 +652,8 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
           <div className={styles.statItem}>
             <span>Progress:</span>
             <span className={styles.statValue}>
-              {completedStepsCount} of {mainSteps.length} beats ({progressPercent}%)
+              {completedStepsCount} of {mainSteps.length} beats (
+              {progressPercent}%)
             </span>
           </div>
           <div className={styles.statItem}>
@@ -541,167 +661,223 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
             <span>Total: {totalMinutes}m</span>
           </div>
         </div>
-        <div aria-label="Run sheet progress" className={styles.progressBarTrack} role="progressbar">
-          <div className={styles.progressBarFill} style={{ width: `${progressPercent}%` }} />
+        <div
+          aria-label="Run sheet progress"
+          className={styles.progressBarTrack}
+          role="progressbar"
+        >
+          <div
+            className={styles.progressBarFill}
+            style={{ width: `${progressPercent}%` }}
+          />
         </div>
+        <button
+          className={styles.sessionStatusButton}
+          disabled={actionInProgress.session}
+          onClick={handleSessionStatus}
+          type="button"
+        >
+          <Check size={13} />
+          {activation.status === 'completed'
+            ? 'Reopen Session'
+            : 'Complete Session'}
+        </button>
       </section>
 
+      <div
+        aria-label="Run sheet tracks"
+        className={styles.trackTabs}
+        role="tablist"
+      >
+        <button
+          aria-selected={activeTrackTab === 'timeline'}
+          className={activeTrackTab === 'timeline' ? styles.activeTrackTab : ''}
+          onClick={() => setActiveTrackTab('timeline')}
+          role="tab"
+          type="button"
+        >
+          Timeline ({mainSteps.length})
+        </button>
+        <button
+          aria-selected={activeTrackTab === 'parallel'}
+          className={activeTrackTab === 'parallel' ? styles.activeTrackTab : ''}
+          disabled={parallelSteps.length === 0}
+          onClick={() => setActiveTrackTab('parallel')}
+          role="tab"
+          type="button"
+        >
+          Parallel ({parallelSteps.length})
+        </button>
+      </div>
+
       <div className={styles.stepsContainer}>
-        {mainSteps.map((step, idx) => {
-          const isCompleted =
-            activation.stepStates?.[step.id]?.completed || idx < activation.currentStepIndex;
-          const isActive = idx === activation.currentStepIndex && !isCompleted;
-          const isExpanded = expandedStepId === step.id;
+        {activeTrackTab === 'timeline' &&
+          mainSteps.map((step, idx) => {
+            const isCompleted =
+              activation.stepStates?.[step.id]?.completed ||
+              idx < activation.currentStepIndex;
+            const isActive =
+              idx === activation.currentStepIndex && !isCompleted;
+            const isExpanded = expandedStepId === step.id;
 
-          const stepStatusClass = isActive
-            ? styles.activeStep
-            : isCompleted
-              ? styles.completedStep
-              : styles.upcomingStep;
+            const stepStatusClass = isActive
+              ? styles.activeStep
+              : isCompleted
+                ? styles.completedStep
+                : styles.upcomingStep;
 
-          return (
-            <article className={`${styles.stepCard} ${stepStatusClass}`} key={step.id}>
-              <button
-                aria-expanded={isExpanded}
-                aria-label={`Step ${idx + 1}: ${step.title}`}
-                className={styles.stepHeader}
-                onClick={() => setExpandedStepId(isExpanded ? null : step.id)}
-                type="button"
+            return (
+              <article
+                className={`${styles.stepCard} ${stepStatusClass}`}
+                key={step.id}
               >
-                <div className={styles.stepHeaderLeft}>
-                  <span className={styles.stepNumber}>{String(idx + 1).padStart(2, '0')}</span>
-                  <span className={styles.kindBadge}>
-                    {step.type === 'activate-scene' && <Sparkles size={12} />}
-                    {step.type === 'deploy-encounter' && <Swords size={12} />}
-                    {step.type === 'open-entry' && <BookOpen size={12} />}
-                    {step.type === 'share-handout' && <FileText size={12} />}
-                    {step.type === 'reminder' && <Clock size={12} />}
-                    {step.type.replace('-', ' ')}
-                  </span>
-                  <span className={styles.stepTitle}>{step.title}</span>
-                </div>
+                <button
+                  aria-expanded={isExpanded}
+                  aria-label={`Step ${idx + 1}: ${step.title}`}
+                  className={styles.stepHeader}
+                  onClick={() => setExpandedStepId(isExpanded ? null : step.id)}
+                  type="button"
+                >
+                  <div className={styles.stepHeaderLeft}>
+                    <span className={styles.stepNumber}>
+                      {String(idx + 1).padStart(2, '0')}
+                    </span>
+                    <span className={styles.kindBadge}>
+                      {step.type === 'activate-scene' && <Sparkles size={12} />}
+                      {step.type === 'deploy-encounter' && <Swords size={12} />}
+                      {step.type === 'open-entry' && <BookOpen size={12} />}
+                      {step.type === 'share-handout' && <FileText size={12} />}
+                      {step.type === 'reminder' && <Clock size={12} />}
+                      {step.type.replace('-', ' ')}
+                    </span>
+                    <span className={styles.stepTitle}>{step.title}</span>
+                  </div>
 
-                <div className={styles.stepHeaderRight}>
-                  <span className={styles.stepDuration}>
-                    <Clock size={11} /> {step.estimatedMinutes}m
-                  </span>
-                  <span
-                    className={`${styles.stepStatePill} ${
-                      isActive
-                        ? styles.pillActive
-                        : isCompleted
-                          ? styles.pillCompleted
-                          : styles.pillUpcoming
-                    }`}
-                  >
-                    {isActive ? 'Active' : isCompleted ? 'Done' : 'Pending'}
-                  </span>
-                  {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
-                </div>
-              </button>
+                  <div className={styles.stepHeaderRight}>
+                    <span className={styles.stepDuration}>
+                      <Clock size={11} /> {step.estimatedMinutes}m
+                    </span>
+                    <span
+                      className={`${styles.stepStatePill} ${
+                        isActive
+                          ? styles.pillActive
+                          : isCompleted
+                            ? styles.pillCompleted
+                            : styles.pillUpcoming
+                      }`}
+                    >
+                      {isActive ? 'Active' : isCompleted ? 'Done' : 'Pending'}
+                    </span>
+                    {isExpanded ? (
+                      <ChevronDown size={14} />
+                    ) : (
+                      <ChevronRight size={14} />
+                    )}
+                  </div>
+                </button>
 
-              {isExpanded && (
-                <div className={styles.stepBody}>
-                  {step.type === 'reminder' && <p className={styles.stepText}>{step.text}</p>}
-
-                  <div className={styles.actionRow}>
-                    {step.type === 'activate-scene' && (
-                      <button
-                        className={styles.actionBtnPrimary}
-                        disabled={actionInProgress[step.id]}
-                        onClick={() => handleActivateScene(step)}
-                        type="button"
-                      >
-                        <Sparkles size={14} /> Activate Scene
-                      </button>
+                {isExpanded && (
+                  <div className={styles.stepBody}>
+                    {step.type === 'reminder' && (
+                      <p className={styles.stepText}>{step.text}</p>
                     )}
 
-                    {step.type === 'deploy-encounter' && (
-                      <>
+                    <div className={styles.actionRow}>
+                      {step.type === 'activate-scene' && (
                         <button
                           className={styles.actionBtnPrimary}
                           disabled={actionInProgress[step.id]}
-                          onClick={() => handleDeployEncounter(step)}
+                          onClick={() => handleActivateScene(step)}
                           type="button"
                         >
-                          <Swords size={14} /> Deploy Encounter
+                          <Sparkles size={14} /> Activate Scene
                         </button>
+                      )}
 
+                      {step.type === 'deploy-encounter' && (
+                        <>
+                          <button
+                            className={styles.actionBtnPrimary}
+                            disabled={actionInProgress[step.id]}
+                            onClick={() => handleDeployEncounter(step)}
+                            type="button"
+                          >
+                            <Swords size={14} /> Deploy Encounter
+                          </button>
+
+                          <button
+                            className={styles.actionBtnSecondary}
+                            disabled={actionInProgress[step.id]}
+                            onClick={() => handleStartCombat(step)}
+                            type="button"
+                          >
+                            <Play size={14} /> Start Combat
+                          </button>
+                        </>
+                      )}
+
+                      {step.type === 'open-entry' && (
                         <button
                           className={styles.actionBtnSecondary}
-                          disabled={actionInProgress[step.id]}
-                          onClick={() => handleStartCombat(step)}
+                          onClick={() => handleOpenEntry(step)}
                           type="button"
                         >
-                          <Play size={14} /> Start Combat
+                          <ExternalLink size={14} /> View Campaign Entry
                         </button>
-                      </>
-                    )}
+                      )}
 
-                    {step.type === 'open-entry' && (
+                      {step.type === 'share-handout' && (
+                        <button
+                          className={styles.actionBtnPrimary}
+                          disabled={actionInProgress[step.id]}
+                          onClick={() => handleShareHandout(step)}
+                          type="button"
+                        >
+                          <Share2 size={14} /> Reveal Handout
+                        </button>
+                      )}
+
+                      {actionFeedback[step.id] && (
+                        <span className={styles.actionFeedback}>
+                          <Check size={13} /> {actionFeedback[step.id]}
+                        </span>
+                      )}
+                    </div>
+
+                    <div className={styles.progressControls}>
                       <button
-                        className={styles.actionBtnSecondary}
-                        onClick={() =>
-                          setActionFeedback((prev) => ({
-                            ...prev,
-                            [step.id]: `Opening entry: ${step.entryRef.id.slice(0, 8)}`,
-                          }))
-                        }
+                        className={styles.advanceBtn}
+                        onClick={() => handleAdvanceStep(step.id, idx)}
                         type="button"
                       >
-                        <ExternalLink size={14} /> View Campaign Entry
+                        <Check size={13} />
+                        {isActive ? 'Complete & Next Beat' : 'Mark Completed'}
                       </button>
-                    )}
 
-                    {step.type === 'share-handout' && (
-                      <button
-                        className={styles.actionBtnPrimary}
-                        onClick={() => handleShareHandout(step)}
-                        type="button"
-                      >
-                        <Share2 size={14} /> Reveal Handout
-                      </button>
-                    )}
-
-                    {actionFeedback[step.id] && (
-                      <span className={styles.actionFeedback}>
-                        <Check size={13} /> {actionFeedback[step.id]}
-                      </span>
-                    )}
+                      {!isActive && (
+                        <button
+                          className={styles.jumpBtn}
+                          onClick={() => handleJumpToStep(idx, step.id)}
+                          type="button"
+                        >
+                          Set Active
+                        </button>
+                      )}
+                    </div>
                   </div>
-
-                  <div className={styles.progressControls}>
-                    <button
-                      className={styles.advanceBtn}
-                      onClick={() => handleAdvanceStep(step.id, idx)}
-                      type="button"
-                    >
-                      <Check size={13} />
-                      {isActive ? 'Complete & Next Beat' : 'Mark Completed'}
-                    </button>
-
-                    {!isActive && (
-                      <button
-                        className={styles.jumpBtn}
-                        onClick={() => handleJumpToStep(idx, step.id)}
-                        type="button"
-                      >
-                        Set Active
-                      </button>
-                    )}
-                  </div>
-                </div>
-              )}
-            </article>
-          );
-        })}
+                )}
+              </article>
+            );
+          })}
 
         {/* ── PARALLEL THREADS ──────────────────────────────────────── */}
-        {parallelSteps.length > 0 && (
+        {activeTrackTab === 'parallel' && parallelSteps.length > 0 && (
           <>
             <div className={styles.trackDivider}>
               <span>Parallel Threads</span>
-              <small>Always available — act independently of timeline progress</small>
+              <small>
+                Always available — act independently of timeline progress
+              </small>
             </div>
 
             {parallelSteps.map((step) => {
@@ -713,12 +889,17 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
                 : styles.parallelStep;
 
               return (
-                <article className={`${styles.stepCard} ${stepStatusClass}`} key={step.id}>
+                <article
+                  className={`${styles.stepCard} ${stepStatusClass}`}
+                  key={step.id}
+                >
                   <button
                     aria-expanded={isExpanded}
                     aria-label={`Parallel: ${step.title}`}
                     className={styles.stepHeader}
-                    onClick={() => setExpandedStepId(isExpanded ? null : step.id)}
+                    onClick={() =>
+                      setExpandedStepId(isExpanded ? null : step.id)
+                    }
                     type="button"
                   >
                     <div className={styles.stepHeaderLeft}>
@@ -726,10 +907,16 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
                         <span className={styles.parallelBadge}>⇌</span>
                       </span>
                       <span className={styles.kindBadge}>
-                        {step.type === 'activate-scene' && <Sparkles size={12} />}
-                        {step.type === 'deploy-encounter' && <Swords size={12} />}
+                        {step.type === 'activate-scene' && (
+                          <Sparkles size={12} />
+                        )}
+                        {step.type === 'deploy-encounter' && (
+                          <Swords size={12} />
+                        )}
                         {step.type === 'open-entry' && <BookOpen size={12} />}
-                        {step.type === 'share-handout' && <FileText size={12} />}
+                        {step.type === 'share-handout' && (
+                          <FileText size={12} />
+                        )}
                         {step.type === 'reminder' && <Clock size={12} />}
                         {step.type.replace('-', ' ')}
                       </span>
@@ -744,12 +931,18 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
                       )}
                       <span
                         className={`${styles.stepStatePill} ${
-                          isCompleted ? styles.pillCompleted : styles.pillParallel
+                          isCompleted
+                            ? styles.pillCompleted
+                            : styles.pillParallel
                         }`}
                       >
                         {isCompleted ? 'Done' : 'Open'}
                       </span>
-                      {isExpanded ? <ChevronDown size={14} /> : <ChevronRight size={14} />}
+                      {isExpanded ? (
+                        <ChevronDown size={14} />
+                      ) : (
+                        <ChevronRight size={14} />
+                      )}
                     </div>
                   </button>
 
@@ -795,12 +988,7 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
                         {step.type === 'open-entry' && (
                           <button
                             className={styles.actionBtnSecondary}
-                            onClick={() =>
-                              setActionFeedback((prev) => ({
-                                ...prev,
-                                [step.id]: `Opening entry: ${step.entryRef.id.slice(0, 8)}`,
-                              }))
-                            }
+                            onClick={() => handleOpenEntry(step)}
                             type="button"
                           >
                             <ExternalLink size={14} /> View Campaign Entry
@@ -810,6 +998,7 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
                         {step.type === 'share-handout' && (
                           <button
                             className={styles.actionBtnPrimary}
+                            disabled={actionInProgress[step.id]}
                             onClick={() => handleShareHandout(step)}
                             type="button"
                           >
@@ -847,7 +1036,10 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
                                 );
                               setActivation(updated);
                             } catch (err) {
-                              console.error('Failed to toggle parallel step:', err);
+                              console.error(
+                                'Failed to toggle parallel step:',
+                                err,
+                              );
                             }
                           }}
                           type="button"

@@ -12,12 +12,14 @@ import { SessionPlan } from '@/features/session-plan/SessionPlan';
 import type {
   LibraryObject,
   LibraryObjectType,
+  SessionStepViewModel,
   SessionPlanViewModel,
 } from '@/features/session-plan/sessionPlanModels';
 import { StudioFrame } from '@/features/studio-shell/StudioFrame';
 import {
-  activateGlassHarborPlan,
-  publishGlassHarborPlan,
+  activateSessionPlan,
+  publishSessionPlan,
+  type PublishSessionPlanInput,
 } from '@/services/campaign-prep-api';
 
 const COMPENDIUM_OBJECTS: LibraryObject[] = [
@@ -98,6 +100,8 @@ function buildSessionPlanModel(): SessionPlanViewModel {
         type: item.kind,
       })),
     breadcrumb: 'Sessions > Session 12',
+    campaignDescription: ashesOfVeyra.campaign.premise,
+    campaignTitle: ashesOfVeyra.campaign.title,
     checklist: session12Plan.readiness,
     compendiumObjects: COMPENDIUM_OBJECTS,
     counts: [
@@ -164,6 +168,7 @@ function buildSessionPlanModel(): SessionPlanViewModel {
       };
     }),
     revision: session12Plan.revision,
+    sceneMapPath: ashesOfVeyra.maps[0]?.imagePath,
     steps: session12Plan.steps.map((step) => ({
       body: step.body
         ? step.body.replace(/Typed reference: @Captain Serin.*$/, '').trim()
@@ -192,26 +197,45 @@ export function SessionPlanRoute() {
     'idle' | 'activating' | 'activated' | 'error'
   >('idle');
 
-  async function publishPlan() {
+  function createPublishInput(
+    steps: SessionStepViewModel[],
+  ): PublishSessionPlanInput {
+    return {
+      campaignDescription: model.campaignDescription,
+      campaignTitle: model.campaignTitle,
+      planTitle: model.title,
+      revision: model.revision,
+      sceneMapPath: model.sceneMapPath,
+      steps,
+    };
+  }
+
+  async function publishPlan(steps: SessionStepViewModel[]) {
     setPublishState('publishing');
-    setPublishMessage('Saving the campaign objects and validating dependencies.');
+    setPublishMessage(
+      'Saving the campaign objects and validating dependencies.',
+    );
     try {
-      const result = await publishGlassHarborPlan();
+      const result = await publishSessionPlan(createPublishInput(steps));
       setPublishState('published');
-      setPublishMessage(`Published revision ${result.plan.revision} to Nexus VTT.`);
+      setPublishMessage(
+        `Published revision ${result.plan.revision} to Nexus VTT.`,
+      );
     } catch (error) {
       setPublishState('error');
       setPublishMessage(
-        error instanceof Error ? error.message : 'The plan could not be published.',
+        error instanceof Error
+          ? error.message
+          : 'The plan could not be published.',
       );
     }
   }
 
-  async function activatePlan() {
+  async function activatePlan(steps: SessionStepViewModel[]) {
     setActivateState('activating');
     setPublishMessage('Activating plan in Nexus VTT...');
     try {
-      const result = await activateGlassHarborPlan();
+      const result = await activateSessionPlan(createPublishInput(steps));
       setActivateState('activated');
       setPublishMessage(
         `Plan activated for session ${result.activation.sessionId}! Step 1 is ready in VTT.`,
@@ -219,7 +243,9 @@ export function SessionPlanRoute() {
     } catch (error) {
       setActivateState('error');
       setPublishMessage(
-        error instanceof Error ? error.message : 'The plan could not be activated.',
+        error instanceof Error
+          ? error.message
+          : 'The plan could not be activated.',
       );
     }
   }

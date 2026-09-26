@@ -1,7 +1,10 @@
 import crypto from 'crypto';
 import type { PoolClient } from 'pg';
 import type { DatabaseService } from '../database.js';
-import type { DomainCommandReceiptRecord, CampaignActorRecord } from '../repositories/base.js';
+import type {
+  DomainCommandReceiptRecord,
+  CampaignActorRecord,
+} from '../repositories/base.js';
 import type {
   DomainCommand,
   DomainCommandPayload,
@@ -191,6 +194,16 @@ export class DomainCommandService {
           break;
         }
 
+        case 'RevealHandout': {
+          receipt = this.handleRevealHandout(
+            command,
+            command.payload,
+            payloadHash,
+            context,
+          );
+          break;
+        }
+
         default: {
           const unhandledType = (command.payload as { type: string }).type;
           throw new Error(`Unsupported domain command type: ${unhandledType}`);
@@ -215,6 +228,34 @@ export class DomainCommandService {
     });
   }
 
+  private handleRevealHandout(
+    command: DomainCommand,
+    payload: Extract<DomainCommandPayload, { type: 'RevealHandout' }>,
+    payloadHash: string,
+    context: DomainCommandContext,
+  ): DomainCommandReceipt {
+    if (!context.isDm) {
+      throw new Error('Only the Dungeon Master can reveal handouts');
+    }
+
+    return {
+      commandId: command.commandId,
+      principalId: context.principalId,
+      campaignId: command.campaignId,
+      payloadHash,
+      committedAt: new Date().toISOString(),
+      result: {
+        success: true,
+        committedVersions: {},
+        data: {
+          assetRef: payload.assetRef,
+          stepId: payload.stepId,
+          title: payload.title,
+        },
+      },
+    };
+  }
+
   private async handleApplyDamage(
     command: DomainCommand,
     payload: Extract<DomainCommandPayload, { type: 'ApplyDamage' }>,
@@ -231,7 +272,11 @@ export class DomainCommandService {
     }
 
     // Authorization: owner or DM
-    if (!context.isDm && actor.ownerId && actor.ownerId !== context.principalId) {
+    if (
+      !context.isDm &&
+      actor.ownerId &&
+      actor.ownerId !== context.principalId
+    ) {
       throw new Error(
         `Principal ${context.principalId} is not authorized to damage actor ${actor.id}`,
       );
@@ -239,7 +284,10 @@ export class DomainCommandService {
 
     // CAS check on actor version if specified
     const expectedVersion = command.expectedActorVersions?.[actor.id];
-    if (expectedVersion !== undefined && expectedVersion !== actor.stateVersion) {
+    if (
+      expectedVersion !== undefined &&
+      expectedVersion !== actor.stateVersion
+    ) {
       return {
         commandId: command.commandId,
         principalId: context.principalId,
@@ -308,7 +356,9 @@ export class DomainCommandService {
         committedAt: new Date().toISOString(),
         result: {
           success: false,
-          committedVersions: { [actor.id]: updateResult.currentActor.stateVersion },
+          committedVersions: {
+            [actor.id]: updateResult.currentActor.stateVersion,
+          },
           error: 'Concurrent mutation conflict on actor update',
         },
       };
@@ -345,7 +395,10 @@ export class DomainCommandService {
     }
 
     const expectedVersion = command.expectedActorVersions?.[actor.id];
-    if (expectedVersion !== undefined && expectedVersion !== actor.stateVersion) {
+    if (
+      expectedVersion !== undefined &&
+      expectedVersion !== actor.stateVersion
+    ) {
       return {
         commandId: command.commandId,
         principalId: context.principalId,
@@ -393,7 +446,9 @@ export class DomainCommandService {
         committedAt: new Date().toISOString(),
         result: {
           success: false,
-          committedVersions: { [actor.id]: updateResult.currentActor.stateVersion },
+          committedVersions: {
+            [actor.id]: updateResult.currentActor.stateVersion,
+          },
           error: 'Concurrent mutation conflict on actor update',
         },
       };
@@ -449,7 +504,9 @@ export class DomainCommandService {
         committedAt: new Date().toISOString(),
         result: {
           success: true,
-          committedVersions: { [alreadyAdmitted.id]: alreadyAdmitted.stateVersion },
+          committedVersions: {
+            [alreadyAdmitted.id]: alreadyAdmitted.stateVersion,
+          },
           data: alreadyAdmitted,
         },
       };
@@ -463,7 +520,11 @@ export class DomainCommandService {
     const createdActor = await this.db.campaignActors.createActor(
       {
         campaignId: command.campaignId,
-        sourceRef: { kind: 'character', id: character.id, revision: payload.characterDefinitionRef.revision },
+        sourceRef: {
+          kind: 'character',
+          id: character.id,
+          revision: payload.characterDefinitionRef.revision,
+        },
         ownerId: character.ownerId,
         name: character.name,
         ruleset: {
@@ -857,7 +918,11 @@ export class DomainCommandService {
     context: DomainCommandContext,
     action: string = 'modify',
   ): void {
-    if (!context.isDm && actor.ownerId && actor.ownerId !== context.principalId) {
+    if (
+      !context.isDm &&
+      actor.ownerId &&
+      actor.ownerId !== context.principalId
+    ) {
       throw new Error(
         `Principal ${context.principalId} is not authorized to ${action} actor ${actor.id}`,
       );
@@ -882,7 +947,10 @@ export class DomainCommandService {
     this.assertCanControlActor(actor, context, 'prepare spells for');
 
     const expectedVersion = command.expectedActorVersions?.[actor.id];
-    if (expectedVersion !== undefined && expectedVersion !== actor.stateVersion) {
+    if (
+      expectedVersion !== undefined &&
+      expectedVersion !== actor.stateVersion
+    ) {
       return {
         commandId: command.commandId,
         principalId: context.principalId,
@@ -897,7 +965,8 @@ export class DomainCommandService {
       };
     }
 
-    const profiles = (actor.spellcastingProfiles as SpellcastingProfile[]) || [];
+    const profiles =
+      (actor.spellcastingProfiles as SpellcastingProfile[]) || [];
     const profile = profiles.find((p) => p.profileId === payload.profileId);
     if (!profile) {
       throw new Error(
@@ -905,7 +974,10 @@ export class DomainCommandService {
       );
     }
 
-    const valResult = evaluatePreparationPlan(profile, payload.preparedSpellSlugs);
+    const valResult = evaluatePreparationPlan(
+      profile,
+      payload.preparedSpellSlugs,
+    );
     if (!valResult.isValid) {
       return {
         commandId: command.commandId,
@@ -941,7 +1013,9 @@ export class DomainCommandService {
         committedAt: new Date().toISOString(),
         result: {
           success: false,
-          committedVersions: { [actor.id]: updateResult.currentActor.stateVersion },
+          committedVersions: {
+            [actor.id]: updateResult.currentActor.stateVersion,
+          },
           error: 'Concurrent mutation conflict on actor update',
         },
       };
@@ -985,7 +1059,10 @@ export class DomainCommandService {
     this.assertCanControlActor(actor, context, 'cast spell with');
 
     const expectedVersion = command.expectedActorVersions?.[actor.id];
-    if (expectedVersion !== undefined && expectedVersion !== actor.stateVersion) {
+    if (
+      expectedVersion !== undefined &&
+      expectedVersion !== actor.stateVersion
+    ) {
       return {
         commandId: command.commandId,
         principalId: context.principalId,
@@ -1060,7 +1137,8 @@ export class DomainCommandService {
       archived: false,
     };
 
-    const profiles = (actor.spellcastingProfiles as SpellcastingProfile[]) || [];
+    const profiles =
+      (actor.spellcastingProfiles as SpellcastingProfile[]) || [];
     const pools = (actor.resourcePools as Record<string, ResourcePool>) || {};
 
     const evalResult = evaluateCastEligibility({
@@ -1089,7 +1167,11 @@ export class DomainCommandService {
       };
     }
 
-    const consumedResources: Array<{ poolId: string; amount: number; slotLevel?: number }> = [];
+    const consumedResources: Array<{
+      poolId: string;
+      amount: number;
+      slotLevel?: number;
+    }> = [];
     if (evalResult.poolIdToCharge) {
       const pool = pools[evalResult.poolIdToCharge];
       if (pool) {
@@ -1132,7 +1214,11 @@ export class DomainCommandService {
     const currentPayload = (actor.payload as Record<string, unknown>) || {};
     const updatedPayload = {
       ...currentPayload,
-      concentration: newConcentration ?? (evalResult.willBreakConcentration ? null : currentPayload.concentration),
+      concentration:
+        newConcentration ??
+        (evalResult.willBreakConcentration
+          ? null
+          : currentPayload.concentration),
     };
 
     const updateResult = await this.db.campaignActors.updateActorState(
@@ -1154,7 +1240,9 @@ export class DomainCommandService {
         committedAt: new Date().toISOString(),
         result: {
           success: false,
-          committedVersions: { [actor.id]: updateResult.currentActor.stateVersion },
+          committedVersions: {
+            [actor.id]: updateResult.currentActor.stateVersion,
+          },
           error: 'Concurrent mutation conflict on actor update',
         },
       };
@@ -1210,7 +1298,10 @@ export class DomainCommandService {
     this.assertCanControlActor(actor, context, 'end concentration for');
 
     const expectedVersion = command.expectedActorVersions?.[actor.id];
-    if (expectedVersion !== undefined && expectedVersion !== actor.stateVersion) {
+    if (
+      expectedVersion !== undefined &&
+      expectedVersion !== actor.stateVersion
+    ) {
       return {
         commandId: command.commandId,
         principalId: context.principalId,
@@ -1249,7 +1340,9 @@ export class DomainCommandService {
         committedAt: new Date().toISOString(),
         result: {
           success: false,
-          committedVersions: { [actor.id]: updateResult.currentActor.stateVersion },
+          committedVersions: {
+            [actor.id]: updateResult.currentActor.stateVersion,
+          },
           error: 'Concurrent mutation conflict on actor update',
         },
       };
@@ -1292,7 +1385,10 @@ export class DomainCommandService {
     this.assertCanControlActor(actor, context, 'rest');
 
     const expectedVersion = command.expectedActorVersions?.[actor.id];
-    if (expectedVersion !== undefined && expectedVersion !== actor.stateVersion) {
+    if (
+      expectedVersion !== undefined &&
+      expectedVersion !== actor.stateVersion
+    ) {
       return {
         commandId: command.commandId,
         principalId: context.principalId,
@@ -1309,9 +1405,16 @@ export class DomainCommandService {
 
     let currentHp = actor.currentHp;
     let tempHp = actor.tempHp;
-    let conditions = Array.isArray(actor.conditions) ? [...actor.conditions] : [];
-    let deathSaves = (actor.deathSaves as { successes: number; failures: number }) || { successes: 0, failures: 0 };
-    const pools = JSON.parse(JSON.stringify(actor.resourcePools || {})) as Record<string, ResourcePool>;
+    let conditions = Array.isArray(actor.conditions)
+      ? [...actor.conditions]
+      : [];
+    let deathSaves = (actor.deathSaves as {
+      successes: number;
+      failures: number;
+    }) || { successes: 0, failures: 0 };
+    const pools = JSON.parse(
+      JSON.stringify(actor.resourcePools || {}),
+    ) as Record<string, ResourcePool>;
 
     if (payload.restType === 'long') {
       currentHp = actor.maxHp;
@@ -1344,7 +1447,10 @@ export class DomainCommandService {
 
       if (payload.hitDiceToSpend && payload.hitDiceToSpend > 0) {
         const healPerDie = Math.max(1, Math.floor(actor.maxHp / 4));
-        currentHp = Math.min(actor.maxHp, currentHp + payload.hitDiceToSpend * healPerDie);
+        currentHp = Math.min(
+          actor.maxHp,
+          currentHp + payload.hitDiceToSpend * healPerDie,
+        );
         if (currentHp > 0) {
           conditions = conditions.filter((c) => c !== 'unconscious');
           deathSaves = { successes: 0, failures: 0 };
@@ -1374,7 +1480,9 @@ export class DomainCommandService {
         committedAt: new Date().toISOString(),
         result: {
           success: false,
-          committedVersions: { [actor.id]: updateResult.currentActor.stateVersion },
+          committedVersions: {
+            [actor.id]: updateResult.currentActor.stateVersion,
+          },
           error: 'Concurrent mutation conflict on actor update',
         },
       };
@@ -1409,7 +1517,9 @@ export class DomainCommandService {
     client: PoolClient,
   ): Promise<DomainCommandReceipt> {
     if (!payload.sourceActorId && !payload.targetActorId) {
-      throw new Error('TransferItem must specify at least sourceActorId or targetActorId');
+      throw new Error(
+        'TransferItem must specify at least sourceActorId or targetActorId',
+      );
     }
 
     const sourceId = payload.sourceActorId;
@@ -1419,15 +1529,28 @@ export class DomainCommandService {
     let targetActor: CampaignActorRecord | null = null;
 
     if (sourceId && targetId) {
-      const [firstId, secondId] = sourceId < targetId ? [sourceId, targetId] : [targetId, sourceId];
-      const first = await this.db.campaignActors.lockActorForUpdate(firstId, client);
-      const second = await this.db.campaignActors.lockActorForUpdate(secondId, client);
+      const [firstId, secondId] =
+        sourceId < targetId ? [sourceId, targetId] : [targetId, sourceId];
+      const first = await this.db.campaignActors.lockActorForUpdate(
+        firstId,
+        client,
+      );
+      const second = await this.db.campaignActors.lockActorForUpdate(
+        secondId,
+        client,
+      );
       sourceActor = sourceId === firstId ? first : second;
       targetActor = targetId === firstId ? first : second;
     } else if (sourceId) {
-      sourceActor = await this.db.campaignActors.lockActorForUpdate(sourceId, client);
+      sourceActor = await this.db.campaignActors.lockActorForUpdate(
+        sourceId,
+        client,
+      );
     } else if (targetId) {
-      targetActor = await this.db.campaignActors.lockActorForUpdate(targetId, client);
+      targetActor = await this.db.campaignActors.lockActorForUpdate(
+        targetId,
+        client,
+      );
     }
 
     if (sourceId && !sourceActor) {
@@ -1440,7 +1563,10 @@ export class DomainCommandService {
     if (sourceActor) {
       this.assertCanControlActor(sourceActor, context, 'transfer items from');
       const expectedSourceVer = command.expectedActorVersions?.[sourceActor.id];
-      if (expectedSourceVer !== undefined && expectedSourceVer !== sourceActor.stateVersion) {
+      if (
+        expectedSourceVer !== undefined &&
+        expectedSourceVer !== sourceActor.stateVersion
+      ) {
         return {
           commandId: command.commandId,
           principalId: context.principalId,
@@ -1458,7 +1584,10 @@ export class DomainCommandService {
 
     if (targetActor) {
       const expectedTargetVer = command.expectedActorVersions?.[targetActor.id];
-      if (expectedTargetVer !== undefined && expectedTargetVer !== targetActor.stateVersion) {
+      if (
+        expectedTargetVer !== undefined &&
+        expectedTargetVer !== targetActor.stateVersion
+      ) {
         return {
           commandId: command.commandId,
           principalId: context.principalId,
@@ -1479,8 +1608,12 @@ export class DomainCommandService {
     let transferredItem: ItemInstance | null = null;
 
     if (sourceActor) {
-      const inventory = JSON.parse(JSON.stringify(sourceActor.inventory || [])) as ItemInstance[];
-      const itemIndex = inventory.findIndex((item) => item.instanceId === payload.itemInstanceId);
+      const inventory = JSON.parse(
+        JSON.stringify(sourceActor.inventory || []),
+      ) as ItemInstance[];
+      const itemIndex = inventory.findIndex(
+        (item) => item.instanceId === payload.itemInstanceId,
+      );
       if (itemIndex === -1) {
         throw new Error(
           `Item instance ${payload.itemInstanceId} not found in actor ${sourceActor.id}'s inventory`,
@@ -1522,7 +1655,9 @@ export class DomainCommandService {
           committedAt: new Date().toISOString(),
           result: {
             success: false,
-            committedVersions: { [sourceActor.id]: updateResult.currentActor.stateVersion },
+            committedVersions: {
+              [sourceActor.id]: updateResult.currentActor.stateVersion,
+            },
             error: 'Concurrent mutation conflict on source actor',
           },
         };
@@ -1532,7 +1667,9 @@ export class DomainCommandService {
     }
 
     if (targetActor && transferredItem) {
-      const inventory = JSON.parse(JSON.stringify(targetActor.inventory || [])) as ItemInstance[];
+      const inventory = JSON.parse(
+        JSON.stringify(targetActor.inventory || []),
+      ) as ItemInstance[];
       inventory.push(transferredItem);
 
       const updateResult = await this.db.campaignActors.updateActorState(
@@ -1553,7 +1690,9 @@ export class DomainCommandService {
           committedAt: new Date().toISOString(),
           result: {
             success: false,
-            committedVersions: { [targetActor.id]: updateResult.currentActor.stateVersion },
+            committedVersions: {
+              [targetActor.id]: updateResult.currentActor.stateVersion,
+            },
             error: 'Concurrent mutation conflict on target actor',
           },
         };

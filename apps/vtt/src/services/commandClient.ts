@@ -1,4 +1,5 @@
 import type {
+  AssetObjectRef,
   DomainCommand,
   DomainCommandReceipt,
   DefinitionRef,
@@ -466,6 +467,32 @@ export class DomainCommandClient {
     return this.dispatchCommand(campaignId, command);
   }
 
+  /** Reveal a session-plan handout to every client in the active room. */
+  async revealHandout(
+    campaignId: string,
+    assetRef: AssetObjectRef,
+    title: string,
+    stepId?: string,
+  ): Promise<CommandExecutionResult> {
+    const { user } = useGameStore.getState();
+    const command: DomainCommand = {
+      commandId: crypto.randomUUID(),
+      protocolVersion: '1.0',
+      campaignId,
+      issuerUserId: user?.id || 'anonymous',
+      timestamp: new Date().toISOString(),
+      expectedActorVersions: {},
+      payload: {
+        type: 'RevealHandout',
+        assetRef,
+        title,
+        stepId,
+      },
+    };
+
+    return this.dispatchCommand(campaignId, command);
+  }
+
   /**
    * Post command envelope to the server and coordinate local projection updates
    */
@@ -474,13 +501,18 @@ export class DomainCommandClient {
     command: DomainCommand,
   ): Promise<CommandExecutionResult> {
     try {
-      const response = await fetch(`${this.baseUrl}/campaigns/${campaignId}/commands`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
+      const roomCode = useGameStore.getState().session?.roomCode;
+      const response = await fetch(
+        `${this.baseUrl}/campaigns/${campaignId}/commands`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(roomCode ? { 'x-room-id': roomCode } : {}),
+          },
+          body: JSON.stringify(command),
         },
-        body: JSON.stringify(command),
-      });
+      );
 
       const data = await response.json();
 
@@ -513,7 +545,10 @@ export class DomainCommandClient {
       console.error('Failed to dispatch domain command:', error);
       return {
         success: false,
-        error: error instanceof Error ? error.message : 'Network error dispatching command',
+        error:
+          error instanceof Error
+            ? error.message
+            : 'Network error dispatching command',
       };
     }
   }
@@ -527,7 +562,10 @@ export class DomainCommandClient {
   ): void {
     if (!receipt.result.success) return;
 
-    if (command.payload.type === 'ApplyDamage' || command.payload.type === 'HealActor') {
+    if (
+      command.payload.type === 'ApplyDamage' ||
+      command.payload.type === 'HealActor'
+    ) {
       const targetActorId = command.payload.targetActorId;
 
       // 1. Update Character Store
@@ -571,7 +609,9 @@ export class DomainCommandClient {
       // 3. Update Placed Tokens on Canvas
       const gameStore = useGameStore.getState();
       const { sceneState } = gameStore;
-      const activeScene = sceneState.scenes.find((s) => s.id === sceneState.activeSceneId);
+      const activeScene = sceneState.scenes.find(
+        (s) => s.id === sceneState.activeSceneId,
+      );
       if (activeScene && activeScene.placedTokens) {
         const token = activeScene.placedTokens.find(
           (t) => t.characterId === targetActorId,

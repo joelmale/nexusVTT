@@ -382,6 +382,21 @@ describe('CampaignPrepRepository', () => {
       currentStepIndex: 2,
     });
     expect(progress.currentStepIndex).toBe(2);
+
+    poolQuery.mockResolvedValueOnce({
+      rows: [{ ...updatedRecord, status: 'completed' }],
+    });
+    await repository.updateSessionPlanActivationProgress({
+      campaignId: IDS.campaign,
+      activationId: activationRecord.id,
+      status: 'completed',
+    });
+    expect(poolQuery).toHaveBeenLastCalledWith(
+      expect.stringContaining('COALESCE($3, "currentStepIndex")'),
+      [activationRecord.id, IDS.campaign, undefined, null, 'completed'],
+    );
+    expect(poolQuery.mock.calls.at(-1)?.[0]).toContain(
+      'WHEN $5 = \'completed\' THEN COALESCE("completedAt", NOW())',
+    );
   });
 });
-
