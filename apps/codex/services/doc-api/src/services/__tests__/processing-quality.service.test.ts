@@ -1,4 +1,7 @@
-import { buildProcessingIssues, buildProcessingSummary } from '../processing-quality.service';
+import {
+  buildProcessingIssues,
+  buildProcessingSummary,
+} from '../processing-quality.service';
 
 const makeDoc = (overrides: Partial<any>) => ({
   id: 'doc-id',
@@ -9,7 +12,6 @@ const makeDoc = (overrides: Partial<any>) => ({
   metadata: {},
   ...overrides,
 });
-
 describe('processing-quality.service', () => {
   it('builds summary metrics from processing metadata', () => {
     const docs = [
@@ -66,11 +68,40 @@ describe('processing-quality.service', () => {
 
     const issues = buildProcessingIssues(docs);
 
-    const issueTypes = issues.map(issue => issue.type);
+    const issueTypes = issues.map((issue) => issue.type);
     expect(issueTypes).toContain('missing_text');
     expect(issueTypes).toContain('missing_index');
     expect(issueTypes).toContain('low_text');
     expect(issueTypes).toContain('ocr_pending');
     expect(issueTypes).not.toContain('ocr_failed');
+  });
+
+  it('uses ocr textLength when primary textLength is low but OCR succeeded', () => {
+    const docs = [
+      makeDoc({
+        id: '8720e758-4693-4e78-a0be-3f8d31d062a5',
+        title: 'OCR Scanned Document',
+        searchIndex: '8720e758-4693-4e78-a0be-3f8d31d062a5',
+        ocrStatus: 'completed',
+        metadata: {
+          processing: {
+            textLength: 124, // low layout text
+            ocr: {
+              status: 'completed',
+              performed: true,
+              textLength: 45000, // full OCR extracted text
+            },
+          },
+        },
+      }),
+    ];
+
+    const summary = buildProcessingSummary(docs);
+    expect(summary.withText).toBe(1);
+    expect(summary.lowText).toBe(0);
+    expect(summary.noText).toBe(0);
+
+    const issues = buildProcessingIssues(docs);
+    expect(issues.length).toBe(0);
   });
 });

@@ -1,4 +1,4 @@
-# NexusCodex DM Campaign Planner
+# Campaign Studio
 
 A client-side first, offline-capable campaign planning interface for D&D/TTRPG Dungeon Masters.
 

@@ -827,13 +827,13 @@ Route classification (old public path -> new public behavior -> reason):
 | `/api/references/*`                                                                           | `404`                                                                    | Not an approved player/DM function; no VTT BFF equivalent yet                                                                                                                                   |
 | `/api/annotations/*`                                                                          | `404`                                                                    | Not an approved player/DM function; no VTT BFF equivalent yet                                                                                                                                   |
 | `/codex-api/*` (generic proxy)                                                                | `404` except four allowlisted GET reads                                  | A blanket proxy to `doc-api` bypassed authentication entirely; only the DM UI's actual read calls are preserved                                                                                 |
-| `/codex-api/api/search/quick`, `/structured-data`, `/documents/:id`, `/documents/:id/content` | Proxied, GET/HEAD only, gated by `auth_request` -> `/auth/session-check` | These are the DM UI's real read calls (`apps/codex/services/dm-ui/src/services/codex-api.ts`); scoping and authenticating them keeps the DM planner working without reopening the generic proxy |
+| `/codex-api/api/search/quick`, `/structured-data`, `/documents/:id`, `/documents/:id/content` | Proxied, GET/HEAD only, gated by `auth_request` -> `/auth/session-check` | These are Campaign Studio's real read calls (`apps/codex/services/dm-ui/src/services/codex-api.ts`); scoping and authenticating them keeps Campaign Studio working without reopening the generic proxy |
 | `/codex-ws`                                                                                   | Unchanged                                                                | Already requires a JWT                                                                                                                                                                          |
 
 Known behavior change: the four remaining `/codex-api/` reads used by the DM
 UI now require a **signed-in, non-guest** VTT account. A guest session (the
 common way to start a quick game) gets `401` from `/auth/session-check` and
-the DM planner's document reads will fail until the user is authenticated
+Campaign Studio's document reads will fail until the user is authenticated
 with a real account. This was not previously enforced at the gateway.
 
 Accepted tradeoff: the gate checks authentication, not per-document

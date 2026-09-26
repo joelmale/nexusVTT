@@ -44,7 +44,9 @@ export interface ProcessingIssue {
 
 const getTextLength = (metadata: unknown): number => {
   const processing = (metadata as any)?.processing || {};
-  return Number(processing.textLength || 0);
+  const textLength = Number(processing.textLength || 0);
+  const ocrLength = Number(processing.ocr?.textLength || 0);
+  return Math.max(textLength, ocrLength);
 };
 
 export const buildProcessingSummary = (documents: ProcessingDocumentSnapshot[]): ProcessingSummary => {

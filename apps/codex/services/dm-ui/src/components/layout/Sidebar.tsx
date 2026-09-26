@@ -147,7 +147,7 @@ export function Sidebar({ open }: SidebarProps) {
         {/* Footer */}
         <div className="mt-auto border-t pt-4">
           <p className="text-xs text-muted-foreground">
-            NexusCodex DM Planner v1.0.0
+            Campaign Studio v1.0.0
           </p>
           <p className="text-xs text-muted-foreground">100% Offline Capable</p>
         </div>

@@ -9,6 +9,7 @@
 
 import React, { useState, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CompanionLaunches } from '@/components/CompanionLaunches';
 import { useGameStore } from '@/stores/gameStore';
 import { useQuickStart } from '@/hooks/useQuickStart';
 import { PopoverMenu } from './PopoverMenu';
@@ -17,6 +18,10 @@ import { useShallow } from 'zustand/react/shallow';
 import DnDTeamBackground from '@/assets/DnDTeamPosing.webp';
 import { isDevMode } from '@/utils/devMode';
 import { useDevToolsEnabled } from '@/utils/devToolsFlag';
+import {
+  getCampaignStudioUrl,
+  getCharacterForgeUrl,
+} from '@/utils/productUrls';
 
 interface Campaign {
   id: string;
@@ -126,14 +131,8 @@ export const LinearWelcomePage: React.FC = () => {
       ? configuredHubUrl
       : new URL(configuredHubUrl, window.location.href).toString();
 
-  const forgeUrl =
-    import.meta.env.VITE_FORGE_URL ||
-    (import.meta.env.DEV ? 'http://localhost:3000' : '/forge/');
-
-  const codexDmUrl =
-    import.meta.env.VITE_CODEX_DM_URL ||
-    import.meta.env.VITE_CODEX_URL ||
-    (import.meta.env.DEV ? 'http://localhost:3003' : '/codex-dm/');
+  const campaignStudioUrl = getCampaignStudioUrl();
+  const characterForgeUrl = getCharacterForgeUrl();
 
   // Detect if we're returning from OAuth (check for common OAuth params)
   const isOAuthRedirect = React.useMemo(() => {
@@ -1027,6 +1026,11 @@ export const LinearWelcomePage: React.FC = () => {
                 </div>
               </div>
             </fieldset>
+
+            <CompanionLaunches
+              campaignStudioUrl={campaignStudioUrl}
+              characterForgeUrl={characterForgeUrl}
+            />
           </form>
 
           {/* Development Tools.
@@ -1068,24 +1072,6 @@ export const LinearWelcomePage: React.FC = () => {
                 >
                   👤 Quick Player
                 </button>
-                <a
-                  href={codexDmUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="dev-btn glass-button secondary small"
-                  title="Open Codex DM Campaign Planner in a new tab"
-                >
-                  🗺️ Codex DM Planner
-                </a>
-                <a
-                  href={forgeUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="dev-btn glass-button secondary small"
-                  title="Open Character Forge in a new tab"
-                >
-                  ⚒️ Character Forge
-                </a>
                 <a
                   href={generatorsUrl}
                   target="_blank"

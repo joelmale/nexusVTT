@@ -1,4 +1,4 @@
-# NexusCodex DM Campaign Planner - Implementation Plan
+# Campaign Studio - Implementation Plan
 
 ## Vision Statement
 

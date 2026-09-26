@@ -100,6 +100,30 @@ describe('LinearWelcomePage', () => {
     expect(screen.queryByText('🗝️ Have a room code?')).not.toBeInTheDocument();
   });
 
+  it('features Campaign Studio and the focused Character Forge', () => {
+    mockStore(defaultState());
+    render(<LinearWelcomePage />);
+
+    const campaignStudio = screen.getByRole('link', {
+      name: /Campaign Studio/i,
+    });
+    const characterForge = screen.getByRole('link', {
+      name: /Character Forge/i,
+    });
+
+    expect(new URL(campaignStudio.getAttribute('href')!).pathname).toBe(
+      '/codex-dm/',
+    );
+    expect(new URL(characterForge.getAttribute('href')!).pathname).toBe(
+      '/forge/character-creator',
+    );
+    expect(
+      screen.getByText(
+        'Great characters are forged in fire even if they start on paper.',
+      ),
+    ).toBeInTheDocument();
+  });
+
   it('reveals the quick-join form when the player role is selected', () => {
     mockStore(defaultState());
     render(<LinearWelcomePage />);

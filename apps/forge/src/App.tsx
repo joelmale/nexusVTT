@@ -46,6 +46,7 @@ import { Ability, Character, Equipment, EquippedItem, Feature, Monster, UserMons
 
 import { useDiceContext, useLayout } from './hooks';
 import { TabNavigation, TabId } from './components/TabNavigation';
+import { CharacterForgeRoute } from './routes/CharacterForgeRoute';
 
 
 
@@ -1079,6 +1080,7 @@ const App: React.FC = () => {
 
   return (
     <Routes>
+      <Route path="/character-creator" element={<CharacterForgeRoute />} />
       <Route path="/monster/:monsterId" element={<EmbeddableMonsterPage />} />
       <Route path="/encounter/:encounterId" element={<EmbeddableEncounterPage />} />
       <Route path="*" element={
