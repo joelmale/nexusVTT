@@ -4,6 +4,7 @@ import { CampaignCard } from '../molecules/CampaignCard';
 import { GothicHeader } from '../atoms/Typography';
 import { Button } from '../atoms/Button';
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
+import Map from 'lucide-react/dist/esm/icons/map';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 
 interface CampaignGridProps {
@@ -12,6 +13,7 @@ interface CampaignGridProps {
   onEdit?: (campaign: Campaign) => void;
   onDelete?: (campaign: Campaign) => void;
   onCreateCampaign?: () => void;
+  onOpenCampaignStudio?: () => void;
   loading?: boolean;
   className?: string;
 }
@@ -22,27 +24,40 @@ export const CampaignGrid: React.FC<CampaignGridProps> = ({
   onEdit,
   onDelete,
   onCreateCampaign,
+  onOpenCampaignStudio,
   loading = false,
   className = '',
 }) => {
   return (
     <section className={`flex flex-col gap-4 ${className}`}>
       {/* Grid Header */}
-      <div className="flex items-center justify-between border-b border-[#8c6b4a]/30 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#8c6b4a]/30 pb-3">
         <GothicHeader level={2} variant="medieval" className="flex items-center gap-2">
           <BookOpen size={20} className="text-amber-500" />
           Recent Campaigns
         </GothicHeader>
-        {onCreateCampaign && (
-          <Button
-            variant="ghost"
-            onClick={onCreateCampaign}
-            icon={<Plus size={14} />}
-            className="text-xs"
-          >
-            New Campaign
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center justify-end gap-1">
+          {onOpenCampaignStudio && (
+            <Button
+              variant="ghost"
+              onClick={onOpenCampaignStudio}
+              icon={<Map size={14} />}
+              className="text-xs"
+            >
+              Campaign Studio
+            </Button>
+          )}
+          {onCreateCampaign && (
+            <Button
+              variant="ghost"
+              onClick={onCreateCampaign}
+              icon={<Plus size={14} />}
+              className="text-xs"
+            >
+              New Campaign
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Grid Content */}

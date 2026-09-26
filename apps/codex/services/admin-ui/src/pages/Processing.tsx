@@ -3,6 +3,7 @@ import { codexFetch } from '@/lib/api'
 import { useCan } from '@/auth/AuthContext'
 import { permissionHint } from '@/auth/permissions'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import PipelineGraph from '@/components/PipelineGraph'
 
 interface ProcessingLog {
   timestamp: string;
@@ -124,15 +125,19 @@ export default function Processing() {
     enabled: !!selectedJob?.id && showErrorModal,
   })
 
+  const activeOrFailedJob = jobsData?.jobs?.find((j) => j.status === 'active') || jobsData?.jobs?.find((j) => j.status === 'failed') || jobsData?.jobs?.[0]
+  const currentInspectJob = selectedJob || activeOrFailedJob || null
+
   const { data: reportData, isLoading: reportLoading } = useQuery<ProcessingReport>({
-    queryKey: ['processing-report', selectedJob?.documentId],
+    queryKey: ['processing-report', currentInspectJob?.documentId],
     queryFn: async () => {
-      if (!selectedJob?.documentId) throw new Error('No document selected')
-      const response = await codexFetch(`/api/admin/processing/report/${selectedJob.documentId}`)
+      if (!currentInspectJob?.documentId) throw new Error('No document selected')
+      const response = await codexFetch(`/api/admin/processing/report/${currentInspectJob.documentId}`)
       if (!response.ok) throw new Error('Failed to fetch processing report')
       return response.json()
     },
-    enabled: !!selectedJob?.documentId && showDetailsModal,
+    enabled: !!currentInspectJob?.documentId,
+    refetchInterval: autoRefresh ? 10000 : false,
   })
 
   // Retry job mutation
@@ -195,16 +200,6 @@ export default function Processing() {
         {status}
       </span>
     )
-  }
-
-  const getStepBadge = (status: 'ok' | 'warn' | 'error' | 'pending') => {
-    const styles: Record<string, string> = {
-      ok: 'bg-green-100 text-green-800',
-      warn: 'bg-yellow-100 text-yellow-800',
-      error: 'bg-red-100 text-red-800',
-      pending: 'bg-gray-100 text-gray-700',
-    }
-    return `px-2 py-1 rounded-full text-xs font-medium ${styles[status]}`
   }
 
   const formatDate = (timestamp?: number) => {
@@ -296,6 +291,60 @@ export default function Processing() {
             </div>
           </div>
         </div>
+      </div>
+
+      {/* ComfyUI Pipeline Graph Hero Section */}
+      <div className="mb-8">
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+              <span>Pipeline Architecture & Live Status</span>
+              <span className="text-xs font-normal px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                Visual Graph
+              </span>
+            </h2>
+            <p className="text-xs text-gray-500">
+              Interactive node-flow diagram showing document ingestion, layout detection, GPU OCR sidecar, entity extraction, search indexing, and asset generation.
+            </p>
+          </div>
+
+          {jobsData?.jobs && jobsData.jobs.length > 0 && (
+            <div className="flex items-center gap-2 text-xs">
+              <label htmlFor="pipeline-job-select" className="text-gray-500 font-medium">
+                Viewing Document:
+              </label>
+              <select
+                id="pipeline-job-select"
+                value={currentInspectJob?.id || ''}
+                onChange={(e) => {
+                  const job = jobsData.jobs.find((j) => j.id === e.target.value)
+                  if (job) setSelectedJob(job)
+                }}
+                className="px-2.5 py-1.5 border border-gray-300 rounded-md bg-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 max-w-xs truncate"
+              >
+                {jobsData.jobs.map((job) => (
+                  <option key={job.id} value={job.id}>
+                    {job.documentTitle} ({job.stage || 'queued'} - {job.status})
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+
+        <PipelineGraph
+          documentTitle={currentInspectJob?.documentTitle || 'No Document Selected'}
+          documentId={currentInspectJob?.documentId}
+          format={reportData?.document?.format || 'PDF'}
+          fileSize={reportData?.document?.fileSize || 0}
+          pageCount={reportData?.document?.pageCount || 0}
+          searchIndex={reportData?.document?.searchIndex}
+          currentStage={currentInspectJob?.stage}
+          jobStatus={currentInspectJob?.status}
+          reportProcessing={reportData?.processing}
+          onRetryStage={canRetry && currentInspectJob ? () => retryMutation.mutate(currentInspectJob.id) : undefined}
+          isLoading={reportLoading}
+        />
       </div>
 
       {/* Controls */}
@@ -395,79 +444,114 @@ export default function Processing() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {jobsData?.jobs.map((job) => (
-                    <tr key={job.id}>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        <div>
-                          <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
-                            <span>{job.documentTitle}</span>
-                            {job.stage && (
-                              <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider bg-blue-100 text-blue-800">
-                                {job.stage}
-                              </span>
+                  {jobsData?.jobs.map((job) => {
+                    const isInspected = currentInspectJob?.id === job.id
+                    return (
+                      <tr
+                        key={job.id}
+                        onClick={() => setSelectedJob(job)}
+                        className={`cursor-pointer transition-colors ${
+                          isInspected ? 'bg-indigo-50/70 border-l-4 border-indigo-600' : 'hover:bg-gray-50'
+                        }`}
+                      >
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          <div>
+                            <div className="text-sm font-medium text-gray-900 flex items-center gap-2">
+                              <span>{job.documentTitle}</span>
+                              {job.stage && (
+                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-semibold uppercase tracking-wider bg-blue-100 text-blue-800">
+                                  {job.stage}
+                                </span>
+                              )}
+                              {isInspected && (
+                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-semibold bg-indigo-100 text-indigo-700">
+                                  Visualizing
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-sm text-gray-500 font-mono text-xs">
+                              ID: {job.documentId}
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap">
+                          {getStatusBadge(job.status)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {job.progress}%
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {job.attempts}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                          {formatDate(job.createdAt)}
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                          <div className="flex items-center gap-2">
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedJob(job)
+                              }}
+                              className={`px-2 py-1 rounded text-xs font-medium transition ${
+                                isInspected
+                                  ? 'bg-indigo-600 text-white font-semibold'
+                                  : 'text-indigo-600 hover:bg-indigo-50 border border-indigo-200'
+                              }`}
+                            >
+                              {isInspected ? 'Inspecting' : 'Inspect'}
+                            </button>
+                            {job.status === 'failed' && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  retryMutation.mutate(job.id)
+                                }}
+                                disabled={!canRetry || retryMutation.isPending}
+                                title={canRetry ? undefined : permissionHint('retryJob')}
+                                className="text-green-600 hover:text-green-900 disabled:opacity-50 text-xs"
+                              >
+                                Retry
+                              </button>
+                            )}
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                removeMutation.mutate(job.id)
+                              }}
+                              disabled={!canRemove || removeMutation.isPending}
+                              title={canRemove ? undefined : permissionHint('removeJob')}
+                              className="text-red-600 hover:text-red-900 disabled:opacity-50 text-xs"
+                            >
+                              Remove
+                            </button>
+                            <button
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                setSelectedJob(job)
+                                setShowDetailsModal(true)
+                              }}
+                              className="text-indigo-600 hover:text-indigo-900 text-xs"
+                            >
+                              Details
+                            </button>
+                            {(job.failedReason || job.status === 'failed') && (
+                              <button
+                                onClick={(e) => {
+                                  e.stopPropagation()
+                                  setSelectedJob(job)
+                                  setShowErrorModal(true)
+                                }}
+                                className="text-blue-600 hover:text-blue-900 text-xs"
+                              >
+                                View Logs
+                              </button>
                             )}
                           </div>
-                          <div className="text-sm text-gray-500">
-                            ID: {job.documentId}
-                          </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap">
-                        {getStatusBadge(job.status)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {job.progress}%
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {job.attempts}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {formatDate(job.createdAt)}
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                        <div className="flex gap-2">
-                          {job.status === 'failed' && (
-                            <button
-                              onClick={() => retryMutation.mutate(job.id)}
-                              disabled={!canRetry || retryMutation.isPending}
-                              title={canRetry ? undefined : permissionHint('retryJob')}
-                              className="text-green-600 hover:text-green-900 disabled:opacity-50"
-                            >
-                              Retry
-                            </button>
-                          )}
-                          <button
-                            onClick={() => removeMutation.mutate(job.id)}
-                            disabled={!canRemove || removeMutation.isPending}
-                            title={canRemove ? undefined : permissionHint('removeJob')}
-                            className="text-red-600 hover:text-red-900 disabled:opacity-50"
-                          >
-                            Remove
-                          </button>
-                          <button
-                            onClick={() => {
-                              setSelectedJob(job)
-                              setShowDetailsModal(true)
-                            }}
-                            className="text-indigo-600 hover:text-indigo-900"
-                          >
-                            Details
-                          </button>
-                          {(job.failedReason || job.status === 'failed') && (
-                            <button
-                              onClick={() => {
-                                setSelectedJob(job)
-                                setShowErrorModal(true)
-                              }}
-                              className="text-blue-600 hover:text-blue-900"
-                            >
-                              View Logs
-                            </button>
-                          )}
-                        </div>
-                      </td>
-                    </tr>
-                  ))}
+                        </td>
+                      </tr>
+                    )
+                  })}
                 </tbody>
               </table>
             </div>
@@ -556,90 +640,62 @@ export default function Processing() {
 
       {/* Details Modal */}
       {showDetailsModal && selectedJob && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg shadow-xl max-w-4xl w-full mx-4 max-h-[80vh] overflow-hidden">
-            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center">
-              <h3 className="text-lg font-medium">
-                Processing Details - {selectedJob.documentTitle}
-              </h3>
+        <div className="fixed inset-0 bg-black bg-opacity-60 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-5xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="px-6 py-4 border-b border-gray-200 flex justify-between items-center bg-gray-50">
+              <div>
+                <h3 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
+                  <span>Pipeline Details - {selectedJob.documentTitle}</span>
+                  {selectedJob.stage && (
+                    <span className="text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-800 font-semibold uppercase tracking-wider">
+                      {selectedJob.stage}
+                    </span>
+                  )}
+                </h3>
+                <p className="text-xs text-gray-500 font-mono">Document ID: {selectedJob.documentId}</p>
+              </div>
               <button
                 onClick={() => {
                   setShowDetailsModal(false)
-                  setSelectedJob(null)
                 }}
-                className="text-gray-400 hover:text-gray-600"
+                className="text-gray-400 hover:text-gray-600 p-1.5 rounded-lg hover:bg-gray-200 transition"
               >
                 ✕
               </button>
             </div>
-            <div className="p-6 overflow-y-auto max-h-[60vh] space-y-4">
+            <div className="p-6 overflow-y-auto max-h-[75vh] space-y-6">
               {reportLoading ? (
-                <div className="text-center py-8 text-gray-500">Loading processing report...</div>
-              ) : reportData ? (
-                <>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-medium mb-2">Pipeline Steps</h4>
-                      <div className="space-y-2 text-sm">
-                        <div className="flex items-center justify-between">
-                          <span>Text extraction</span>
-                          <span className={getStepBadge((reportData.processing?.textLength || 0) > 0 ? 'ok' : 'error')}>
-                            {(reportData.processing?.textLength || 0) > 0 ? 'ok' : 'missing'}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span>OCR status</span>
-                          <span className={getStepBadge(
-                            reportData.processing?.ocr?.status === 'completed'
-                              ? 'ok'
-                              : reportData.processing?.ocr?.status === 'failed'
-                              ? 'error'
-                              : reportData.processing?.ocr?.status
-                              ? 'warn'
-                              : 'pending'
-                          )}>
-                            {reportData.processing?.ocr?.status || 'n/a'}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span>Page images</span>
-                          <span className={getStepBadge((reportData.processing?.pageImages?.count || 0) > 0 ? 'ok' : 'warn')}>
-                            {reportData.processing?.pageImages?.count || 0}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span>Search indexing</span>
-                          <span className={getStepBadge(reportData.processing?.search?.indexed ? 'ok' : 'error')}>
-                            {reportData.processing?.search?.indexed ? 'indexed' : 'missing'}
-                          </span>
-                        </div>
-                        <div className="flex items-center justify-between">
-                          <span>Structured data</span>
-                          <span className={getStepBadge(
-                            (reportData.processing?.extraction?.spells || 0) +
-                            (reportData.processing?.extraction?.monsters || 0) +
-                            (reportData.processing?.extraction?.items || 0) > 0 ? 'ok' : 'pending'
-                          )}>
-                            {(reportData.processing?.extraction?.spells || 0) +
-                              (reportData.processing?.extraction?.monsters || 0) +
-                              (reportData.processing?.extraction?.items || 0)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                    <div className="border rounded-lg p-4">
-                      <h4 className="font-medium mb-2">Text Preview</h4>
-                      <p className="text-xs text-gray-500 mb-2">
-                        {reportData.processing?.textLength || 0} characters
-                      </p>
-                      <div className="text-sm text-gray-700 whitespace-pre-wrap">
-                        {reportData.processing?.textSample || 'No text sample available.'}
-                      </div>
-                    </div>
-                  </div>
-                </>
+                <div className="text-center py-12 text-gray-500">Loading processing report...</div>
               ) : (
-                <div className="text-center py-8 text-gray-500">No processing report available</div>
+                <>
+                  <PipelineGraph
+                    documentTitle={selectedJob.documentTitle}
+                    documentId={selectedJob.documentId}
+                    format={reportData?.document?.format || 'PDF'}
+                    fileSize={reportData?.document?.fileSize || 0}
+                    pageCount={reportData?.document?.pageCount || 0}
+                    searchIndex={reportData?.document?.searchIndex}
+                    currentStage={selectedJob.stage}
+                    jobStatus={selectedJob.status}
+                    reportProcessing={reportData?.processing}
+                    onRetryStage={canRetry ? () => retryMutation.mutate(selectedJob.id) : undefined}
+                    isLoading={reportLoading}
+                  />
+
+                  {reportData?.processing?.textSample && (
+                    <div className="border rounded-xl p-4 bg-gray-50">
+                      <div className="flex items-center justify-between mb-2">
+                        <h4 className="font-semibold text-sm text-gray-900">Extracted Text Preview</h4>
+                        <span className="text-xs font-mono text-gray-500">
+                          {reportData.processing.textLength || 0} characters
+                        </span>
+                      </div>
+                      <div className="text-xs font-mono text-gray-700 bg-white p-3 rounded-lg border max-h-48 overflow-y-auto whitespace-pre-wrap">
+                        {reportData.processing.textSample}
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
             </div>
           </div>

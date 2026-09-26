@@ -85,6 +85,12 @@ describe('Dashboard', () => {
     expect(await screen.findByText('Document Library')).toBeInTheDocument();
     expect(await screen.findByText('Lost Mine of Phandelver')).toBeInTheDocument();
     expect(await screen.findByText('Gimli')).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Campaign Studio/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: /Character Forge/i }),
+    ).toBeInTheDocument();
   });
 
   it('renders character race objects using their display name', async () => {

@@ -252,14 +252,32 @@ export async function adminDocumentRoutes(fastify: FastifyInstance) {
           return reply.status(404).send({ error: 'Document not found' });
         }
 
-        // Enqueue processing job
-        const jobId = await enqueueDocumentProcessing(documentId);
+        // Reset status & clear stage checkpoints so reprocess re-executes pipeline stages
+        const metadata = (document.metadata as any) || {};
+        const processing = metadata.processing || {};
+        const updatedMetadata = {
+          ...metadata,
+          processing: {
+            ...processing,
+            stage: 'ingest',
+            stageUpdatedAt: new Date().toISOString(),
+            checkpoints: {
+              ...(processing.checkpoints || {}),
+              stages: {},
+            },
+          },
+        };
 
-        // Reset status
         await prisma.document.update({
           where: { id: documentId },
-          data: { ocrStatus: 'pending' },
+          data: {
+            ocrStatus: 'pending',
+            metadata: updatedMetadata,
+          },
         });
+
+        // Enqueue processing job
+        const jobId = await enqueueDocumentProcessing(documentId);
 
         return reply.status(202).send({
           message: 'Document reprocessing queued',
@@ -438,7 +456,11 @@ export async function adminDocumentRoutes(fastify: FastifyInstance) {
 
           // Check if processing documents are stuck (older than 1 hour)
           if (doc.ocrStatus === 'processing') {
-            const processingTime = Date.now() - new Date(doc.uploadedAt).getTime();
+            const stageUpdatedAt = (doc.metadata as any)?.processing?.stageUpdatedAt;
+            const referenceTime = stageUpdatedAt
+              ? new Date(stageUpdatedAt).getTime()
+              : new Date(doc.lastModified || doc.uploadedAt).getTime();
+            const processingTime = Date.now() - referenceTime;
             if (processingTime > 60 * 60 * 1000) { // 1 hour
               issues.push('Document stuck in processing for over 1 hour');
             }
@@ -496,8 +518,8 @@ export async function adminDocumentRoutes(fastify: FastifyInstance) {
             // Try to get the document from ElasticSearch
             // Note: This is a simplified check - in practice you'd want to query ES
             if (doc.searchIndex) {
-              // For now, just check if the searchIndex looks valid
-              if (!doc.searchIndex.match(/^[a-f0-9]{8,}$/i)) {
+              // Check if searchIndex matches valid ID format (UUID or alphanumeric Elasticsearch ID)
+              if (!doc.searchIndex.match(/^[a-zA-Z0-9_-]{8,}$/)) {
                 elasticIssues.push({
                   id: doc.id,
                   title: doc.title,

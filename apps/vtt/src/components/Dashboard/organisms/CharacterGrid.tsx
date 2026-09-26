@@ -1,10 +1,11 @@
 import React from 'react';
+import Hammer from 'lucide-react/dist/esm/icons/hammer';
+import Plus from 'lucide-react/dist/esm/icons/plus';
+import Shield from 'lucide-react/dist/esm/icons/shield';
 import { CharacterRecord } from '../types';
 import { CharacterCard } from '../molecules/CharacterCard';
 import { GothicHeader } from '../atoms/Typography';
 import { Button } from '../atoms/Button';
-import Shield from 'lucide-react/dist/esm/icons/shield';
-import Plus from 'lucide-react/dist/esm/icons/plus';
 
 interface CharacterGridProps {
   characters: CharacterRecord[];
@@ -12,6 +13,7 @@ interface CharacterGridProps {
   onEdit?: (char: CharacterRecord) => void;
   onDelete?: (char: CharacterRecord) => void;
   onCreateCharacter?: () => void;
+  onOpenCharacterForge?: () => void;
   loading?: boolean;
   className?: string;
 }
@@ -22,27 +24,40 @@ export const CharacterGrid: React.FC<CharacterGridProps> = ({
   onEdit,
   onDelete,
   onCreateCharacter,
+  onOpenCharacterForge,
   loading = false,
   className = '',
 }) => {
   return (
     <section className={`flex flex-col gap-4 ${className}`}>
       {/* Grid Header */}
-      <div className="flex items-center justify-between border-b border-[#8c6b4a]/30 pb-3">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#8c6b4a]/30 pb-3">
         <GothicHeader level={2} variant="medieval" className="flex items-center gap-2">
           <Shield size={20} className="text-amber-500" />
           Recent Characters
         </GothicHeader>
-        {onCreateCharacter && (
-          <Button
-            variant="ghost"
-            onClick={onCreateCharacter}
-            icon={<Plus size={14} />}
-            className="text-xs"
-          >
-            New Character
-          </Button>
-        )}
+        <div className="flex flex-wrap items-center justify-end gap-1">
+          {onOpenCharacterForge && (
+            <Button
+              variant="ghost"
+              onClick={onOpenCharacterForge}
+              icon={<Hammer size={14} />}
+              className="text-xs"
+            >
+              Character Forge
+            </Button>
+          )}
+          {onCreateCharacter && (
+            <Button
+              variant="ghost"
+              onClick={onCreateCharacter}
+              icon={<Plus size={14} />}
+              className="text-xs"
+            >
+              New Character
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Grid Content */}

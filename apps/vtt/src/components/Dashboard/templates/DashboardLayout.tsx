@@ -29,10 +29,12 @@ interface DashboardLayoutProps {
   onEditCampaign?: (campaign: Campaign) => void;
   onDeleteCampaign?: (campaign: Campaign) => void;
   onCreateCampaign?: () => void;
+  onOpenCampaignStudio?: () => void;
 
   onStartCharacterSession?: (char: CharacterRecord) => void;
   onEditCharacter?: (char: CharacterRecord) => void;
   onDeleteCharacter?: (char: CharacterRecord) => void;
+  onOpenCharacterForge?: () => void;
 
   className?: string;
 }
@@ -56,10 +58,12 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   onEditCampaign,
   onDeleteCampaign,
   onCreateCampaign,
+  onOpenCampaignStudio,
 
   onStartCharacterSession,
   onEditCharacter,
   onDeleteCharacter,
+  onOpenCharacterForge,
 
   className = '',
 }) => {
@@ -123,6 +127,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             onEdit={onEditCampaign}
             onDelete={onDeleteCampaign}
             onCreateCampaign={onCreateCampaign}
+            onOpenCampaignStudio={onOpenCampaignStudio}
             loading={loading}
           />
 
@@ -133,6 +138,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
             onEdit={onEditCharacter}
             onDelete={onDeleteCharacter}
             onCreateCharacter={onCreateCharacter}
+            onOpenCharacterForge={onOpenCharacterForge}
             loading={loading}
           />
 

@@ -31,8 +31,8 @@ export function Navbar({ onMenuClick }: NavbarProps) {
             <Link to="/" className="flex items-center gap-2">
               <Book className="h-6 w-6 text-primary" />
               <div>
-                <h1 className="text-lg font-bold">NexusCodex</h1>
-                <p className="text-xs text-muted-foreground">DM Campaign Planner</p>
+                <h1 className="text-lg font-bold">Campaign Studio</h1>
+                <p className="text-xs text-muted-foreground">NexusCodex</p>
               </div>
             </Link>
           </div>

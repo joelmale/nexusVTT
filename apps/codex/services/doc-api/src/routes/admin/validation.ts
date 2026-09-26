@@ -106,19 +106,25 @@ export async function adminValidationRoutes(fastify: FastifyInstance) {
             id: true,
             title: true,
             uploadedAt: true,
+            lastModified: true,
+            metadata: true,
           },
         });
 
         for (const doc of stuckDocs) {
-          const hoursSinceUpload = (Date.now() - new Date(doc.uploadedAt).getTime()) / (1000 * 60 * 60);
+          const stageUpdatedAt = (doc.metadata as any)?.processing?.stageUpdatedAt;
+          const referenceTime = stageUpdatedAt
+            ? new Date(stageUpdatedAt).getTime()
+            : new Date(doc.lastModified || doc.uploadedAt).getTime();
+          const hoursSinceUpdate = (Date.now() - referenceTime) / (1000 * 60 * 60);
 
-          if (hoursSinceUpload > 1) {
+          if (hoursSinceUpdate > 1) {
             issues.push({
               id: `stuck-processing-${doc.id}`,
               type: 'stuck_processing',
               severity: 'error',
               title: 'Document stuck in processing',
-              description: `Document "${doc.title}" has been processing for ${Math.floor(hoursSinceUpload)} hours`,
+              description: `Document "${doc.title}" has been processing for ${Math.floor(hoursSinceUpdate)} hours`,
               autoFixable: true,
               documentId: doc.id,
               documentTitle: doc.title,
@@ -357,20 +363,43 @@ export async function adminValidationRoutes(fastify: FastifyInstance) {
         if (shouldFix('stuck-processing', 'stuck_processing') || issueTypes?.includes('stuck_processing')) {
           const stuckDocs = await prisma.document.findMany({
             where: { ocrStatus: 'processing' },
-            select: { id: true, title: true, uploadedAt: true },
+            select: { id: true, title: true, uploadedAt: true, lastModified: true, metadata: true },
           });
 
           for (const doc of stuckDocs) {
-            const hoursSinceUpload = (Date.now() - new Date(doc.uploadedAt).getTime()) / (1000 * 60 * 60);
+            const stageUpdatedAt = (doc.metadata as any)?.processing?.stageUpdatedAt;
+            const referenceTime = stageUpdatedAt
+              ? new Date(stageUpdatedAt).getTime()
+              : new Date(doc.lastModified || doc.uploadedAt).getTime();
+            const hoursSinceUpdate = (Date.now() - referenceTime) / (1000 * 60 * 60);
 
-            if (hoursSinceUpload > 1) {
+            if (hoursSinceUpdate > 1) {
               try {
                 if (!dryRun) {
-                  await enqueueDocumentProcessing(doc.id);
+                  const metadata = (doc.metadata as any) || {};
+                  const processing = metadata.processing || {};
+                  const updatedMetadata = {
+                    ...metadata,
+                    processing: {
+                      ...processing,
+                      stage: 'ingest',
+                      stageUpdatedAt: new Date().toISOString(),
+                      checkpoints: {
+                        ...(processing.checkpoints || {}),
+                        stages: {},
+                      },
+                    },
+                  };
+
                   await prisma.document.update({
                     where: { id: doc.id },
-                    data: { ocrStatus: 'pending' },
+                    data: {
+                      ocrStatus: 'pending',
+                      metadata: updatedMetadata,
+                    },
                   });
+
+                  await enqueueDocumentProcessing(doc.id);
                 }
 
                 results.fixed.push({

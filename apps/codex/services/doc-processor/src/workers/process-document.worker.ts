@@ -170,6 +170,14 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
     if (stage !== 'ingest' && contentHash && isStageComplete(checkpoints, stage, contentHash)) {
       await loggingService.logInfo(jobId, `Stage ${stage} already completed, skipping`);
       const skipOcr = processing.ocr?.detected === false;
+      if (stage === 'assets') {
+        const finalStatus = processing.ocr?.status === 'failed' ? 'failed' : 'completed';
+        await prisma.document.update({
+          where: { id: documentId },
+          data: { ocrStatus: finalStatus },
+        });
+        return;
+      }
       await queueNextStage(documentId, stage, skipOcr);
       return;
     }
@@ -494,6 +502,7 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
           completedAt: new Date().toISOString(),
           durationMs: Date.now() - start,
         }, {
+          textLength: ocrText.length > 0 ? ocrText.length : processing.textLength,
           ocr: {
             ...(processing.ocr || {}),
             status: ocrStatus,
@@ -767,6 +776,7 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
           },
         }, {
           thumbnailKey,
+          ocrStatus: 'completed',
         }, {
           pageImages: pageImageKeys,
         });

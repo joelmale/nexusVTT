@@ -9,6 +9,10 @@ import { useGameStore } from '@/stores/gameStore';
 import { useCharacterCreationLauncher } from '@/hooks';
 import { clearAll, seedData } from '@/services/devSeed';
 import { useDevToolsEnabled } from '@/utils/devToolsFlag';
+import {
+  getCampaignStudioUrl,
+  getCharacterForgeUrl,
+} from '@/utils/productUrls';
 import type { GameConfig, PlayerCharacter } from '@/types/game';
 
 // Import our new Atomic components
@@ -436,10 +440,16 @@ export const Dashboard: React.FC = () => {
         onSeedData={devToolsEnabled ? handleSeedData : undefined}
         seeding={seeding}
         onPlayCampaign={handlePlayCampaign}
+        onOpenCampaignStudio={() =>
+          window.location.assign(getCampaignStudioUrl())
+        }
         onCreateCampaign={handleCreateCampaign}
         onEditCampaign={handleEditCampaign}
         onDeleteCampaign={handleDeleteCampaign}
         onStartCharacterSession={handleStartSession}
+        onOpenCharacterForge={() =>
+          window.location.assign(getCharacterForgeUrl())
+        }
         onEditCharacter={handleEditCharacter}
         onDeleteCharacter={handleDeleteCharacter}
       />
