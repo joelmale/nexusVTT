@@ -122,4 +122,121 @@ describe('publishSessionPlan', () => {
       'Authentication required',
     );
   });
+
+  it('declares referenced steps in the plan dependency manifest', async () => {
+    let createdPlan: Record<string, unknown> | undefined;
+    const referencedInput: PublishSessionPlanInput = {
+      ...input,
+      steps: [
+        {
+          command: 'Open note',
+          durationMinutes: 5,
+          id: 'note-step',
+          title: 'Read the warning',
+          track: 'main',
+          visibility: 'dm-only',
+        },
+        {
+          body: 'The sealed gate will open at midnight.',
+          command: 'Share handout',
+          durationMinutes: 0,
+          id: 'handout-step',
+          title: 'Sealed warning',
+          track: 'parallel',
+          visibility: 'shared',
+        },
+      ],
+    };
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async (request, requestInit) => {
+        const path = String(request);
+        if (path === '/api/users/profile') return json({ id: 'dm-1' });
+        if (path === '/api/campaigns') {
+          return json([{ id: CAMPAIGN_ID, name: input.campaignTitle }]);
+        }
+        if (path === '/api/user/dm-1/assets') return json({ assets: [] });
+        if (path.endsWith('/prep/objects') && !requestInit?.method) {
+          return json({ objects: [] });
+        }
+        if (path === `/api/campaigns/${CAMPAIGN_ID}/prep/objects`) {
+          const body = JSON.parse(String(requestInit?.body)) as {
+            data: Record<string, unknown>;
+            kind: string;
+          };
+          if (body.kind === 'note') {
+            return json({
+              object: {
+                id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+                kind: 'note',
+                title: 'Read the warning',
+                currentRevision: 1,
+                status: 'draft',
+              },
+            });
+          }
+          createdPlan = body.data;
+          return json({
+            object: {
+              id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+              kind: 'session-plan',
+              title: input.planTitle,
+              currentRevision: 1,
+              status: 'draft',
+            },
+          });
+        }
+        if (path === '/api/user/dm-1/upload') {
+          return json({
+            asset: { id: 'handout-asset', name: 'Sealed warning' },
+          });
+        }
+        if (path.endsWith('/publish')) {
+          return json({
+            published: true,
+            plan: { id: 'plan-1', revision: 1, status: 'ready' },
+          });
+        }
+        throw new Error(`Unexpected request: ${path}`);
+      },
+    );
+
+    await publishSessionPlan(referencedInput);
+
+    expect(createdPlan).toMatchObject({
+      dependencies: [
+        {
+          target: 'campaign-object',
+          campaignId: CAMPAIGN_ID,
+          id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
+          revision: 1,
+        },
+        { target: 'asset', assetId: 'handout-asset' },
+      ],
+    });
+  });
+
+  it('surfaces the first publish validation issue', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>
+      json(
+        {
+          published: false,
+          validation: {
+            issues: [
+              {
+                message:
+                  'A session step dependency is absent from the plan manifest',
+                path: 'steps.0',
+              },
+            ],
+          },
+        },
+        422,
+      ),
+    );
+
+    await expect(publishSessionPlan(input)).rejects.toThrow(
+      'A session step dependency is absent from the plan manifest (steps.0)',
+    );
+  });
 });
