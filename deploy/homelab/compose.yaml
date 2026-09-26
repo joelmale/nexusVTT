@@ -346,6 +346,7 @@ services:
       METRICS_AUTH_TOKEN: ${CODEX_METRICS_AUTH_TOKEN:?CODEX_METRICS_AUTH_TOKEN is required, see deploy/homelab/.env.example}
     networks:
     - nexus-internal-net
+    - nexus-codex-egress-net
     depends_on:
       postgres:
         condition: service_healthy

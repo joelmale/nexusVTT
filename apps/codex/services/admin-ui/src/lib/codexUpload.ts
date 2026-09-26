@@ -58,11 +58,11 @@ export async function codexUploadDocument(file: File, fields: DocumentUploadFiel
   form.append('collections', JSON.stringify(fields.collections ?? []))
   // The file goes last so the metadata is known before the bytes stream in.
   form.append('file', file, file.name)
-  const body = await controlJson<{ document?: UploadedDocument } & Partial<UploadedDocument>>(CODEX_UPLOAD_PATH, {
+  const body = await controlJson<{ document?: UploadedDocument; documents?: UploadedDocument[] } & Partial<UploadedDocument>>(CODEX_UPLOAD_PATH, {
     method: 'POST',
     body: form,
   })
-  const document = body?.document ?? (body?.id ? (body as UploadedDocument) : undefined)
+  const document = body?.document ?? body?.documents?.[0] ?? (body?.id ? (body as UploadedDocument) : undefined)
   if (!document) throw new Error('Upload succeeded but the response did not describe the document')
   return document
 }
