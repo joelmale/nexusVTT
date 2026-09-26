@@ -1,47 +1,15 @@
 name: CI Pipeline
 
 on:
-  push:
-    branches: [main]
-    tags:
-      - 'v*'
-    paths:
-      - 'apps/vtt/**'
-      - 'apps/forge/**'
-      - 'apps/codex/**'
-      - 'apps/docs/**'
-      - 'packages/**'
-      - 'scripts/**'
-      # 'deploy/**' is deliberately absent. That tree holds deployment
-      # manifests (image digests, compose topology) which cannot change image
-      # contents, so rebuilding on them publishes images nobody asked for and
-      # immediately staleness-races the digests the manifest just pinned.
-      # Pull requests have no paths filter, so deploy changes are still
-      # validated there.
-      - 'monitoring/**'
-      - '.github/ci/**'
-      - '.github/workflows/**'
-      - '.github/dependabot.yml'
-      - '.husky/**'
-      - 'Makefile'
-      - 'package.json'
-      - 'package-lock.json'
   pull_request:
     branches: [main]
+  merge_group:
   workflow_dispatch:
-    inputs:
-      candidate_sha:
-        description: 'Exact 40-character commit SHA to publish as candidate-only images'
-        required: false
-        type: string
 
-# Only pull-request updates supersede one another. Pushes, tags and manual
-# candidates retain independent groups so a new event cannot cancel delivery
-# or cleanup belonging to another source revision.
 concurrency:
   group: >-
-    ci-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('{0}-{1}', github.event_name, github.run_id) }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+    pr-ci-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
 
 permissions:
   contents: read
@@ -59,57 +27,41 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       vtt: ${{ steps.affected.outputs.vtt }}
+      assets: ${{ steps.affected.outputs.assets }}
       forge: ${{ steps.affected.outputs.forge }}
       codex: ${{ steps.affected.outputs.codex }}
       docs: ${{ steps.affected.outputs.docs }}
-      control-api: ${{ steps.affected.outputs.control_api }}
+      control_api: ${{ steps.affected.outputs.control_api }}
       gateway: ${{ steps.affected.outputs.gateway }}
-      all_release_images: ${{ steps.affected.outputs.all_release_images }}
-      release_images: ${{ steps.affected.outputs.release_images }}
-      security_images: ${{ steps.affected.outputs.security_images }}
-      has_release_images: ${{ steps.affected.outputs.has_release_images }}
-      repository_security: ${{ steps.affected.outputs.repository_security }}
+      codex_node_matrix: ${{ steps.affected.outputs.codex_node_matrix }}
+      codex_python_matrix: ${{ steps.affected.outputs.codex_python_matrix }}
+      has_codex_node: ${{ steps.affected.outputs.has_codex_node }}
+      has_codex_python: ${{ steps.affected.outputs.has_codex_python }}
+      codex_doc_api: ${{ steps.affected.outputs.codex_doc_api }}
       source_sha: ${{ steps.source.outputs.sha }}
-      affected_decision: ${{ steps.affected.outputs.decision }}
     steps:
-      - name: Validate requested source syntax
-        if: github.event_name == 'workflow_dispatch' && inputs.candidate_sha != ''
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        env:
-          REQUESTED_SHA: ${{ inputs.candidate_sha }}
-        run: |
-          if [[ ! "$REQUESTED_SHA" =~ ^[0-9a-f]{40}$ ]]; then
-            echo 'candidate_sha must be a full lowercase 40-character Git SHA' >&2
-            exit 1
-          fi
-
       - name: Checkout exact validation source
         uses: actions/checkout@v7
         with:
-          ref: ${{ inputs.candidate_sha || github.sha }}
+          ref: ${{ github.sha }}
           fetch-depth: 0
 
-      - name: Resolve and verify validation source
+      - name: Resolve validation source
         id: source
         shell: bash
         working-directory: ${{ github.workspace }}
-        env:
-          REQUESTED_SHA: ${{ inputs.candidate_sha }}
-        run: |
-          resolved_sha=$(git rev-parse HEAD)
-          if [[ -n "$REQUESTED_SHA" && "$resolved_sha" != "$REQUESTED_SHA" ]]; then
-            echo 'checked-out source does not match candidate_sha' >&2
-            exit 1
-          fi
-          echo "sha=$resolved_sha" >> "$GITHUB_OUTPUT"
+        run: echo "sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
+
+      - name: Validate service catalog
+        working-directory: ${{ github.workspace }}
+        run: node scripts/ci/service-catalog.mjs
 
       - name: Resolve affected targets
         id: affected
         shell: bash
         working-directory: ${{ github.workspace }}
         env:
-          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event.before }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'merge_group' && github.event.merge_group.base_sha || 'HEAD^' }}
           EVENT_NAME: ${{ github.event_name }}
           VALIDATION_REF: ${{ github.ref }}
         run: |
@@ -130,11 +82,11 @@ jobs:
           if-no-files-found: error
           retention-days: 30
 
-  docker-build-contracts:
-    name: Docker build contracts
+  repository-contracts:
+    name: Repository CI contracts
     needs: changes
     runs-on: ubuntu-latest
-    timeout-minutes: 5
+    timeout-minutes: 15
     steps:
       - name: Checkout validated source
         uses: actions/checkout@v7
@@ -145,27 +97,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-
-      - name: Validate Docker workspace dependency contracts
-        working-directory: ${{ github.workspace }}
-        run: npm run check:docker-build-contracts
-
-  lint-and-type:
-    name: 'VTT: lint and type-check'
-    runs-on: ubuntu-latest
-    needs: changes
-    timeout-minutes: 15
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.changes.outputs.source_sha }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
@@ -176,8 +108,43 @@ jobs:
         run: npm run check:workspace-lock
         working-directory: ${{ github.workspace }}
 
-      - name: Test release promotion policy
-        run: npx vitest run --config scripts/ci/release-promotion.vitest.config.mjs --coverage
+      - name: Validate service catalog
+        run: npm run check:service-catalog
+        working-directory: ${{ github.workspace }}
+
+      - name: Validate Docker build contracts
+        run: npm run check:docker-build-contracts
+        working-directory: ${{ github.workspace }}
+
+      - name: Run CI contract tests
+        run: npm run test:ci-contracts
+        working-directory: ${{ github.workspace }}
+
+      - name: Validate GitHub Actions workflows
+        run: npm run check:workflows
+        working-directory: ${{ github.workspace }}
+
+  vtt-static:
+    name: 'VTT: lint, type-check, and build'
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.vtt == 'true'
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Checkout validated source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.changes.outputs.source_sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
         working-directory: ${{ github.workspace }}
 
       - name: Build shared contracts
@@ -196,17 +163,21 @@ jobs:
       - name: Verify dice assets
         run: npm run check:dice-assets --workspace=nexus-vtt
 
-  unit-tests:
-    name: 'VTT: unit tests'
-    runs-on: ubuntu-latest
+      - name: Build client and server
+        run: npm run build:all --workspace=nexus-vtt
+
+  vtt-unit:
+    name: 'VTT: unit tests (${{ matrix.shard }}/3)'
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.vtt == 'true'
     needs: changes
-    timeout-minutes: 20
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
     strategy:
       fail-fast: false
       matrix:
         shard: [1, 2, 3]
     steps:
-      - name: Checkout code
+      - name: Checkout validated source
         uses: actions/checkout@v7
         with:
           ref: ${{ needs.changes.outputs.source_sha }}
@@ -215,7 +186,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
@@ -226,112 +197,20 @@ jobs:
         run: npm run build:contracts
         working-directory: ${{ github.workspace }}
 
-      - name: Run unit tests and collect shard coverage
-        run: >-
-          npm run test:unit --
-          --shard=${{ matrix.shard }}/3
-          --coverage
-          --coverage.thresholds.lines=0
-          --coverage.thresholds.functions=0
-          --coverage.thresholds.branches=0
-          --coverage.thresholds.statements=0
-          --reporter=default
-          --reporter=blob
-          --outputFile.blob=.vitest-reports/unit-${{ matrix.shard }}.json
+      - name: Run unit test shard
+        run: npm run test:unit -- --shard=${{ matrix.shard }}/3
         env:
           CI: true
           NODE_OPTIONS: --max-old-space-size=4096
 
-      - name: Write coverage provenance manifest
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        env:
-          SOURCE_SHA: ${{ needs.changes.outputs.source_sha }}
-          SHARD: ${{ matrix.shard }}
-        run: |
-          node scripts/ci/coverage-manifest.mjs create \
-            --kind unit --index "$SHARD" --count 3 \
-            --source-sha "$SOURCE_SHA" \
-            --blob "apps/vtt/.vitest-reports/unit-$SHARD.json" \
-            --output apps/vtt/.vitest-reports/coverage-manifest.json
-
-      - name: Upload unit coverage blob
-        uses: actions/upload-artifact@v7
-        with:
-          name: vtt-coverage-unit-${{ matrix.shard }}
-          path: apps/vtt/.vitest-reports/
-          # .vitest-reports is a dot-prefixed (hidden) directory, and
-          # upload-artifact treats the whole tree as hidden and skips it
-          # under the default include-hidden-files: false -- silently
-          # uploading nothing and then hard-failing on if-no-files-found.
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 7
-
-  ui-tests:
-    name: 'VTT: UI layout tests'
-    runs-on: ubuntu-latest
-    needs: changes
-    timeout-minutes: 15
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.changes.outputs.source_sha }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-        working-directory: ${{ github.workspace }}
-
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Build shared contracts
-        run: npm run build:contracts
-        working-directory: ${{ github.workspace }}
-
-      # No Docker, no PostgreSQL, no Redis: this suite stubs the network and
-      # seeds the stores through the dev-only bridge, so it needs nothing but a
-      # Vite dev server, which playwright.config.ts starts itself.
-      #
-      # --workers: `workers` is a top-level Playwright option, so the ui
-      # project's own `fullyParallel: true` cannot raise it off the 1 the smoke
-      # suite needs. Measured on this suite: 1m16s serial vs 30s at 4.
-      #
-      # --retries=0 is REQUIRED, not a tuning choice. tests/ui/panel-cycle-crash
-      # uses test.fail() to assert a live renderer bug still reproduces. Under
-      # the shared retries a run where it does not reproduce gets retried until
-      # it does, so the day the bug is fixed CI would hide it.
-      - name: Run UI layout tests
-        run: npm run test:ui -- --workers=4 --retries=0
-        env:
-          CI: true
-
-      - name: Upload Playwright diagnostics
-        uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
-        with:
-          name: playwright-ui-report
-          path: |
-            apps/vtt/playwright-report/
-            apps/vtt/test-results/e2e/
-          if-no-files-found: ignore
-          retention-days: 14
-
-  asset-service-tests:
+  asset-service:
     name: 'VTT: asset-service tests'
-    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.assets == 'true'
     needs: changes
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout code
+      - name: Checkout validated source
         uses: actions/checkout@v7
         with:
           ref: ${{ needs.changes.outputs.source_sha }}
@@ -340,7 +219,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
@@ -351,170 +230,33 @@ jobs:
         run: npm run build:contracts
         working-directory: ${{ github.workspace }}
 
-      - name: Run asset service tests
+      - name: Run asset-service tests
         run: npm run test:asset-service
 
-  integration-tests:
-    name: 'VTT: integration tests'
-    runs-on: ubuntu-latest
-    needs: changes
-    timeout-minutes: 20
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.changes.outputs.source_sha }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-
-      # Only needed so "Write coverage provenance manifest" below can resolve
-      # vitest/package.json on the runner -- the tests themselves run inside
-      # Docker Compose, which installs its own node_modules in-container.
-      - name: Install dependencies
-        run: npm ci
-        working-directory: ${{ github.workspace }}
-
-      - name: Run integration tests with Docker Compose
-        run: docker compose -f docker/docker-compose.test.yml up --build --abort-on-container-exit --exit-code-from test
-        env:
-          # Mounts the repo inside the container at the identical absolute
-          # path it has on the runner, so vitest's `@/...` alias resolution
-          # (path.resolve(__dirname, ...)) produces the same file identity
-          # here as it does for the unit-test shards. Without this, the
-          # coverage-gate merge step double-counts every apps/vtt/src file.
-          # See docker/docker-compose.test.yml for the full explanation.
-          HOST_WORKSPACE: ${{ github.workspace }}
-          VITEST_CI_ARGS: >-
-            --coverage
-            --coverage.thresholds.lines=0
-            --coverage.thresholds.functions=0
-            --coverage.thresholds.branches=0
-            --coverage.thresholds.statements=0
-            --reporter=default
-            --reporter=blob
-            --outputFile.blob=.vitest-reports/integration.json
-
-      - name: Fix report directory permissions
-        if: success()
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        run: |
-          if [ -d apps/vtt/.vitest-reports ]; then
-            sudo chown -R "$(id -u):$(id -g)" apps/vtt/.vitest-reports
-          fi
-
-      - name: Write coverage provenance manifest
-        if: success()
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        env:
-          SOURCE_SHA: ${{ needs.changes.outputs.source_sha }}
-        run: |
-          node scripts/ci/coverage-manifest.mjs create \
-            --kind integration --index 1 --count 1 \
-            --source-sha "$SOURCE_SHA" \
-            --blob apps/vtt/.vitest-reports/integration.json \
-            --output apps/vtt/.vitest-reports/coverage-manifest.json
-
-      - name: Upload integration coverage blob
-        if: success()
-        uses: actions/upload-artifact@v7
-        with:
-          name: vtt-coverage-integration
-          path: apps/vtt/.vitest-reports/
-          # See the unit-coverage upload step above: .vitest-reports is a
-          # dot-prefixed directory, invisible to upload-artifact by default.
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Teardown Docker Compose
-        if: always()
-        run: docker compose -f docker/docker-compose.test.yml down -v
-
-  e2e-smoke:
-    name: 'VTT: E2E smoke (managed stack)'
-    runs-on: ubuntu-latest
-    needs: changes
-    timeout-minutes: 30
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.changes.outputs.source_sha }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-        working-directory: ${{ github.workspace }}
-
-      - name: Build shared contracts
-        run: npm run build:contracts
-        working-directory: ${{ github.workspace }}
-
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Run production smoke tests
-        run: npm run test:e2e
-
-      - name: Upload Playwright diagnostics
-        uses: actions/upload-artifact@v7
-        if: ${{ !cancelled() }}
-        with:
-          name: playwright-smoke-report
-          path: |
-            apps/vtt/playwright-report/
-            apps/vtt/test-results/e2e/
-          if-no-files-found: ignore
-          retention-days: 14
-
-  gateway-route-matrix:
+  gateway-contracts:
     name: 'VTT: gateway route matrix'
-    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.gateway == 'true'
     needs: changes
-    # A manual dispatch is never gated, as for forge-checks and codex-checks.
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      needs.changes.outputs.vtt == 'true'
+    runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
-      - name: Checkout code
+      - name: Checkout validated source
         uses: actions/checkout@v7
         with:
           ref: ${{ needs.changes.outputs.source_sha }}
 
-      # Runs the real apps/vtt/docker/nginx.conf in the frontend image's nginx
-      # base with stub upstreams, and replays the public (:80) and private
-      # admin (:8081) route matrix from
-      # apps/docs/platform/private-admin-control-plane.md. Docker only; no
-      # Node install and no image build.
       - name: Run gateway route matrix
         run: bash scripts/ci/gateway-route-matrix.sh
         working-directory: ${{ github.workspace }}
 
-  control-api-tests:
-    name: 'Control API: tests'
-    runs-on: ubuntu-latest
+  control-api:
+    name: 'Control API: validation'
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.control_api == 'true'
     needs: changes
-    # A manual dispatch is never gated, as for forge-checks and codex-checks.
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      needs.changes.outputs.control-api == 'true'
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout code
+      - name: Checkout validated source
         uses: actions/checkout@v7
         with:
           ref: ${{ needs.changes.outputs.source_sha }}
@@ -523,7 +265,7 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: ${{ env.NODE_VERSION }}
-          cache: 'npm'
+          cache: npm
           cache-dependency-path: package-lock.json
 
       - name: Install dependencies
@@ -534,44 +276,48 @@ jobs:
         run: npm run build:contracts
         working-directory: ${{ github.workspace }}
 
-      - name: Run ESLint
+      - name: Lint
         run: npm run lint --workspace=nexus-control-api
+        working-directory: ${{ github.workspace }}
 
-      - name: Run TypeScript type check
+      - name: Type-check
         run: npm run type-check --workspace=nexus-control-api
+        working-directory: ${{ github.workspace }}
 
-      - name: Run tests
+      - name: Test
         run: npm run test --workspace=nexus-control-api
+        working-directory: ${{ github.workspace }}
 
-  forge-checks:
+  forge:
     name: Forge
-    needs: [changes]
-    # A manual dispatch is never gated: candidate-images and the release path
-    # both need this job, and a skipped dependency skips them too.
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      needs.changes.outputs.forge == 'true'
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.forge == 'true'
+    needs: changes
     uses: ./.github/workflows/forge-ci.yml
     with:
       source_sha: ${{ needs.changes.outputs.source_sha }}
 
-  codex-checks:
+  codex:
     name: Codex
-    needs: [changes]
-    if: >-
-      github.event_name == 'workflow_dispatch' ||
-      needs.changes.outputs.codex == 'true'
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.codex == 'true'
+    needs: changes
     uses: ./.github/workflows/codex-ci.yml
     with:
       source_sha: ${{ needs.changes.outputs.source_sha }}
+      run_doc_api: ${{ needs.changes.outputs.codex_doc_api == 'true' }}
+      run_integration: false
+      has_node_services: ${{ needs.changes.outputs.has_codex_node == 'true' }}
+      node_services: ${{ needs.changes.outputs.codex_node_matrix }}
+      has_python_services: ${{ needs.changes.outputs.has_codex_python == 'true' }}
+      python_services: ${{ needs.changes.outputs.codex_python_matrix }}
 
-  docs-checks:
+  docs:
     name: Documentation checks
-    runs-on: ubuntu-latest
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.docs == 'true'
     needs: changes
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
-      - name: Checkout code
+      - name: Checkout validated source
         uses: actions/checkout@v7
         with:
           ref: ${{ needs.changes.outputs.source_sha }}
@@ -591,141 +337,50 @@ jobs:
         run: npm run test:docs
         working-directory: ${{ github.workspace }}
 
-      - name: Configure GitHub Pages artifact
-        uses: actions/configure-pages@v6
-
-      - name: Upload validated documentation artifact
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: apps/docs/build
-
-  coverage-gate:
-    name: 'VTT: aggregate coverage'
-    runs-on: ubuntu-latest
-    needs: [changes, unit-tests, integration-tests]
-    timeout-minutes: 15
-    steps:
-      - name: Checkout exact validation source
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.changes.outputs.source_sha }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-        working-directory: ${{ github.workspace }}
-
-      - name: Download every coverage report
-        uses: actions/download-artifact@v8
-        with:
-          pattern: vtt-coverage-*
-          path: coverage-input
-
-      - name: Validate coverage provenance and expected report set
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        env:
-          SOURCE_SHA: ${{ needs.changes.outputs.source_sha }}
-        run: |
-          node scripts/ci/coverage-manifest.mjs validate \
-            --directory coverage-input \
-            --output apps/vtt/.vitest-reports \
-            --source-sha "$SOURCE_SHA" \
-            --unit-count 3
-
-      - name: Merge reports and enforce aggregate thresholds
-        run: >-
-          npm exec vitest --
-          --merge-reports=.vitest-reports
-          --reporter=default
-          --coverage
-
-      - name: Upload complete coverage report
-        uses: actions/upload-artifact@v7
-        with:
-          name: vtt-coverage-complete-${{ needs.changes.outputs.source_sha }}
-          path: apps/vtt/coverage/
-          if-no-files-found: error
-          retention-days: 14
-
-  security-checks:
-    name: Security validation
-    needs: changes
-    permissions:
-      actions: read
-      contents: read
-      security-events: write
-    uses: ./.github/workflows/security-reusable.yml
-    with:
-      source_sha: ${{ needs.changes.outputs.source_sha }}
-      repository_scan: ${{ needs.changes.outputs.repository_security == 'true' }}
-      container_images: ${{ needs.changes.outputs.security_images }}
-
   required:
     name: All required checks
     if: always()
     needs:
       - changes
-      - docker-build-contracts
-      - lint-and-type
-      - unit-tests
-      - ui-tests
-      - asset-service-tests
-      - integration-tests
-      - e2e-smoke
-      - gateway-route-matrix
-      - coverage-gate
-      - forge-checks
-      - codex-checks
-      - control-api-tests
-      - docs-checks
-      - security-checks
+      - repository-contracts
+      - vtt-static
+      - vtt-unit
+      - asset-service
+      - gateway-contracts
+      - control-api
+      - forge
+      - codex
+      - docs
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
-      - name: Require every expected validation gate
+      - name: Require every expected PR validation
         shell: bash
         working-directory: ${{ github.workspace }}
         env:
           EVENT_NAME: ${{ github.event_name }}
-          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
           VTT_AFFECTED: ${{ needs.changes.outputs.vtt }}
+          ASSETS_AFFECTED: ${{ needs.changes.outputs.assets }}
+          GATEWAY_AFFECTED: ${{ needs.changes.outputs.gateway }}
+          CONTROL_API_AFFECTED: ${{ needs.changes.outputs.control_api }}
           FORGE_AFFECTED: ${{ needs.changes.outputs.forge }}
           CODEX_AFFECTED: ${{ needs.changes.outputs.codex }}
-          CONTROL_API_AFFECTED: ${{ needs.changes.outputs.control-api }}
+          DOCS_AFFECTED: ${{ needs.changes.outputs.docs }}
           CHANGES_RESULT: ${{ needs.changes.result }}
-          DOCKER_CONTRACT_RESULT: ${{ needs.docker-build-contracts.result }}
-          LINT_RESULT: ${{ needs.lint-and-type.result }}
-          UNIT_RESULT: ${{ needs.unit-tests.result }}
-          UI_RESULT: ${{ needs.ui-tests.result }}
-          ASSET_RESULT: ${{ needs.asset-service-tests.result }}
-          INTEGRATION_RESULT: ${{ needs.integration-tests.result }}
-          E2E_RESULT: ${{ needs.e2e-smoke.result }}
-          GATEWAY_RESULT: ${{ needs.gateway-route-matrix.result }}
-          COVERAGE_RESULT: ${{ needs.coverage-gate.result }}
-          FORGE_RESULT: ${{ needs.forge-checks.result }}
-          CODEX_RESULT: ${{ needs.codex-checks.result }}
-          CONTROL_API_RESULT: ${{ needs.control-api-tests.result }}
-          DOCS_RESULT: ${{ needs.docs-checks.result }}
-          SECURITY_RESULT: ${{ needs.security-checks.result }}
+          CONTRACTS_RESULT: ${{ needs.repository-contracts.result }}
+          VTT_STATIC_RESULT: ${{ needs.vtt-static.result }}
+          VTT_UNIT_RESULT: ${{ needs.vtt-unit.result }}
+          ASSET_RESULT: ${{ needs.asset-service.result }}
+          GATEWAY_RESULT: ${{ needs.gateway-contracts.result }}
+          CONTROL_API_RESULT: ${{ needs.control-api.result }}
+          FORGE_RESULT: ${{ needs.forge.result }}
+          CODEX_RESULT: ${{ needs.codex.result }}
+          DOCS_RESULT: ${{ needs.docs.result }}
         run: |
-          for result in \
-            "$CHANGES_RESULT" "$DOCKER_CONTRACT_RESULT" "$LINT_RESULT" "$UNIT_RESULT" "$UI_RESULT" \
-            "$ASSET_RESULT" "$INTEGRATION_RESULT" "$E2E_RESULT" \
-            "$COVERAGE_RESULT" "$DOCS_RESULT" "$SECURITY_RESULT"; do
-            if [[ "$result" != 'success' ]]; then
-              echo "required validation result was $result" >&2
-              exit 1
-            fi
-          done
+          [[ "$CHANGES_RESULT" == 'success' ]]
+          [[ "$CONTRACTS_RESULT" == 'success' ]]
 
-          require_conditional_result() {
+          require_result() {
             local target=$1 affected=$2 result=$3
             local expected='success'
             if [[ "$EVENT_NAME" != 'workflow_dispatch' && "$affected" != 'true' ]]; then
@@ -737,363 +392,11 @@ jobs:
             fi
           }
 
-          require_conditional_result forge "$FORGE_AFFECTED" "$FORGE_RESULT"
-          require_conditional_result codex "$CODEX_AFFECTED" "$CODEX_RESULT"
-          require_conditional_result gateway-route-matrix "$VTT_AFFECTED" "$GATEWAY_RESULT"
-          require_conditional_result control-api-tests "$CONTROL_API_AFFECTED" "$CONTROL_API_RESULT"
-
-  publish-images:
-    name: 'Build immutable release image: ${{ matrix.name }}'
-    if: >-
-      ${{ always() && needs.required.result == 'success' && (
-        (github.event_name == 'push' && needs.changes.outputs.has_release_images == 'true') ||
-        (github.event_name == 'workflow_dispatch' && inputs.candidate_sha == '')
-      ) }}
-    needs: [changes, required]
-    runs-on: ubuntu-latest
-    timeout-minutes: 45
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include: ${{ fromJSON(needs.changes.outputs.release_images) }}
-    steps:
-      - name: Checkout validated source
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.changes.outputs.source_sha }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push immutable source image
-        uses: docker/build-push-action@v7
-        with:
-          context: .
-          file: ${{ matrix.file }}
-          target: ${{ matrix.target }}
-          push: true
-          tags: ${{ matrix.repository }}:sha-${{ needs.changes.outputs.source_sha }}
-          cache-from: type=gha,scope=release-${{ matrix.name }}
-          cache-to: type=gha,mode=max,scope=release-${{ matrix.name }}
-          build-args: |
-            VERSION=sha-${{ needs.changes.outputs.source_sha }}
-            COMMIT_SHA=${{ needs.changes.outputs.source_sha }}
-
-  promote-release:
-    name: Promote validated release manifest
-    if: ${{ always() && needs.publish-images.result == 'success' }}
-    needs: [changes, required, publish-images]
-    outputs:
-      disposition: ${{ steps.eligibility.outputs.disposition }}
-      publication: ${{ steps.promotion.outcome }}
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    concurrency:
-      group: nexus-release-promotion
-      cancel-in-progress: false
-    permissions:
-      contents: read
-      packages: write
-    steps:
-      - name: Checkout validated source
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.changes.outputs.source_sha }}
-          fetch-depth: 0
-
-      - name: Check release promotion eligibility
-        id: eligibility
-        working-directory: ${{ github.workspace }}
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          EVENT_REF: ${{ github.ref }}
-          SOURCE_SHA: ${{ needs.changes.outputs.source_sha }}
-        run: node scripts/ci/release-promotion.mjs
-
-      - name: Set up Docker Buildx
-        if: steps.eligibility.outputs.disposition == 'eligible'
-        uses: docker/setup-buildx-action@v4
-
-      - name: Log in to GitHub Container Registry
-        if: steps.eligibility.outputs.disposition == 'eligible'
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Promote immutable digests and write release manifest
-        id: promotion
-        if: steps.eligibility.outputs.disposition == 'eligible'
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        env:
-          SOURCE_SHA: ${{ needs.changes.outputs.source_sha }}
-          AFFECTED_RELEASE_IMAGES: ${{ needs.changes.outputs.release_images }}
-          ALL_RELEASE_IMAGES: ${{ needs.changes.outputs.all_release_images }}
-        run: |
-          if [[ "$GITHUB_REF" == refs/tags/v* ]]; then
-            version=${GITHUB_REF#refs/tags/v}
-          else
-            version=$(date -u +%Y%m%d)-${SOURCE_SHA:0:7}
-          fi
-
-          mkdir -p release
-          printf '{"schemaVersion":1,"sourceSha":"%s","images":[' "$SOURCE_SHA" > release/images.json
-          separator=''
-          while IFS=$'\t' read -r image repository; do
-            changed=false
-            source="$repository:latest"
-            tags=(--tag "$repository:$version")
-            if jq -e --arg image "$image" '.[] | select(.name == $image)' \
-              <<< "$AFFECTED_RELEASE_IMAGES" >/dev/null; then
-              changed=true
-              source="$repository:sha-$SOURCE_SHA"
-              tags+=(--tag "$repository:latest")
-            fi
-            # awk must drain its input: exiting early can SIGPIPE inspect and
-            # fail the step under pipefail.
-            digest=$(docker buildx imagetools inspect "$source" | awk '/^Digest:/ && !d {d=$2} END {print d}')
-            if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
-              echo "could not resolve digest for $source" >&2
-              exit 1
-            fi
-            docker buildx imagetools create "${tags[@]}" "$repository@$digest"
-            printf '%s{"name":"%s","source":"%s","digest":"%s","changed":%s}' \
-              "$separator" "$image" "$source" "$digest" "$changed" >> release/images.json
-            separator=','
-          done < <(jq -r '.[] | [.name, .repository] | @tsv' <<< "$ALL_RELEASE_IMAGES")
-          printf '],"version":"%s"}\n' "$version" >> release/images.json
-
-      - name: Upload complete image manifest
-        if: steps.eligibility.outputs.disposition == 'eligible'
-        uses: actions/upload-artifact@v7
-        with:
-          name: release-images-${{ needs.changes.outputs.source_sha }}
-          path: release/images.json
-          if-no-files-found: error
-          retention-days: 90
-
-  candidate-images:
-    name: 'Candidate image: ${{ matrix.name }}'
-    if: github.event_name == 'workflow_dispatch' && inputs.candidate_sha != ''
-    needs: [changes, required]
-    runs-on: ubuntu-latest
-    timeout-minutes: 60
-    permissions:
-      contents: read
-      packages: write
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: vtt-frontend
-            context: .
-            file: ./apps/vtt/docker/frontend.Dockerfile
-            image: ghcr.io/joelmale/nexusvtt/frontend
-            platforms: linux/amd64
-          - name: vtt-backend
-            context: .
-            file: ./apps/vtt/docker/backend.Dockerfile
-            image: ghcr.io/joelmale/nexusvtt/backend
-            platforms: linux/amd64
-          - name: vtt-asset-service
-            context: .
-            file: ./apps/vtt/docker/asset-service.Dockerfile
-            image: ghcr.io/joelmale/nexusvtt/asset-service
-            platforms: linux/amd64
-          - name: vtt-postgres
-            context: .
-            file: ./apps/vtt/docker/postgres.Dockerfile
-            image: ghcr.io/joelmale/nexusvtt/postgres
-            platforms: linux/amd64
-          - name: forge
-            context: .
-            file: ./apps/forge/Dockerfile
-            image: ghcr.io/joelmale/nexus-forge
-            platforms: linux/amd64,linux/arm64
-          - name: codex-doc-api
-            context: .
-            file: ./apps/codex/services/doc-api/Dockerfile
-            image: ghcr.io/joelmale/nexuscodex-doc-api
-            platforms: linux/amd64
-          - name: codex-doc-processor
-            context: .
-            file: ./apps/codex/services/doc-processor/Dockerfile
-            image: ghcr.io/joelmale/nexuscodex-doc-processor
-            platforms: linux/amd64
-          - name: codex-ocr
-            context: .
-            file: ./apps/codex/services/ocr-service/Dockerfile
-            image: ghcr.io/joelmale/nexuscodex-ocr
-            platforms: linux/amd64
-          - name: codex-doc-websocket
-            context: .
-            file: ./apps/codex/services/doc-websocket/Dockerfile
-            image: ghcr.io/joelmale/nexuscodex-doc-websocket
-            platforms: linux/amd64
-          - name: codex-admin-ui
-            context: .
-            file: ./apps/codex/services/admin-ui/Dockerfile
-            image: ghcr.io/joelmale/nexuscodex-admin-ui
-            platforms: linux/amd64
-          - name: codex-dm-ui
-            context: .
-            file: ./apps/codex/services/dm-ui/Dockerfile
-            image: ghcr.io/joelmale/nexuscodex-dm-ui
-            platforms: linux/amd64
-    steps:
-      - name: Checkout exact candidate source
-        uses: actions/checkout@v7
-        with:
-          ref: ${{ needs.changes.outputs.source_sha }}
-
-      - name: Verify exact candidate source
-        id: source
-        shell: bash
-        env:
-          SOURCE_SHA: ${{ needs.changes.outputs.source_sha }}
-        run: |
-          checked_out_sha=$(git rev-parse HEAD)
-          if [[ "$checked_out_sha" != "$SOURCE_SHA" ]]; then
-            echo 'checked-out source does not match candidate_sha' >&2
-            exit 1
-          fi
-          echo "sha=$SOURCE_SHA" >> "$GITHUB_OUTPUT"
-          echo "short_sha=${SOURCE_SHA:0:7}" >> "$GITHUB_OUTPUT"
-
-      - name: Set up QEMU for Forge ARM64 parity
-        if: matrix.name == 'forge'
-        uses: docker/setup-qemu-action@v4
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Build and push immutable candidate
-        uses: docker/build-push-action@v7
-        with:
-          context: ${{ matrix.context }}
-          file: ${{ matrix.file }}
-          platforms: ${{ matrix.platforms }}
-          push: true
-          tags: ${{ matrix.image }}:candidate-${{ steps.source.outputs.short_sha }}
-          build-args: |
-            VERSION=monorepo-${{ steps.source.outputs.short_sha }}
-            COMMIT_SHA=${{ steps.source.outputs.sha }}
-          cache-from: type=gha,scope=candidate-${{ matrix.name }}
-          cache-to: type=gha,mode=max,scope=candidate-${{ matrix.name }}
-
-  deploy-docs:
-    name: Deploy validated documentation
-    # Explicit status checks: the implicit success() is false whenever any
-    # transitive dependency of `required` was skipped, which is most pushes.
-    if: >-
-      !cancelled() && !failure() &&
-      github.event_name == 'push' &&
-      github.ref == 'refs/heads/main' &&
-      needs.changes.outputs.docs == 'true' &&
-      needs.docs-checks.result == 'success' &&
-      needs.required.result == 'success'
-    needs: [changes, docs-checks, required]
-    runs-on: ubuntu-latest
-    timeout-minutes: 10
-    permissions:
-      contents: read
-      pages: write
-      id-token: write
-    concurrency:
-      group: github-pages
-      cancel-in-progress: false
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-    steps:
-      - name: Deploy the validated Pages artifact
-        id: deployment
-        uses: actions/deploy-pages@v5
-
-  delivery-result:
-    name: Delivery result
-    if: always()
-    needs:
-      - changes
-      - required
-      - publish-images
-      - promote-release
-      - candidate-images
-      - deploy-docs
-    runs-on: ubuntu-latest
-    timeout-minutes: 5
-    steps:
-      - name: Verify expected delivery outcomes
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        env:
-          EVENT_NAME: ${{ github.event_name }}
-          EVENT_REF: ${{ github.ref }}
-          CANDIDATE_SHA: ${{ inputs.candidate_sha }}
-          VTT_AFFECTED: ${{ needs.changes.outputs.vtt }}
-          CONTROL_API_AFFECTED: ${{ needs.changes.outputs.control-api }}
-          HAS_RELEASE_IMAGES: ${{ needs.changes.outputs.has_release_images }}
-          DOCS_AFFECTED: ${{ needs.changes.outputs.docs }}
-          GATE_RESULT: ${{ needs.required.result }}
-          BUILD_RESULT: ${{ needs.publish-images.result }}
-          PROMOTION_RESULT: ${{ needs.promote-release.result }}
-          PROMOTION_DISPOSITION: ${{ needs.promote-release.outputs.disposition }}
-          PUBLICATION_RESULT: ${{ needs.promote-release.outputs.publication }}
-          CANDIDATE_RESULT: ${{ needs.candidate-images.result }}
-          DOCS_RESULT: ${{ needs.deploy-docs.result }}
-        run: |
-          [[ "$GATE_RESULT" == 'success' ]]
-
-          if [[ "$PROMOTION_RESULT" == 'success' ]]; then
-            case "$PROMOTION_DISPOSITION:$PUBLICATION_RESULT" in
-              eligible:success) ;;
-              superseded:skipped)
-                [[ "$EVENT_REF" == 'refs/heads/main' ]]
-                [[ "$EVENT_NAME" == 'push' || "$EVENT_NAME" == 'workflow_dispatch' ]]
-                echo 'Validated release was superseded; latest tags were not changed.' >> "$GITHUB_STEP_SUMMARY"
-                ;;
-              *)
-                echo "Unexpected promotion outcome: $PROMOTION_DISPOSITION:$PUBLICATION_RESULT" >&2
-                exit 1
-                ;;
-            esac
-          fi
-
-          if [[ "$EVENT_NAME" == 'workflow_dispatch' && -n "$CANDIDATE_SHA" ]]; then
-            [[ "$CANDIDATE_RESULT" == 'success' ]]
-            [[ "$BUILD_RESULT" == 'skipped' && "$PROMOTION_RESULT" == 'skipped' ]]
-          elif [[ "$EVENT_NAME" == 'workflow_dispatch' ]]; then
-            [[ "$BUILD_RESULT" == 'success' && "$PROMOTION_RESULT" == 'success' ]]
-            [[ "$CANDIDATE_RESULT" == 'skipped' ]]
-          elif [[ "$EVENT_NAME" == 'push' && "$HAS_RELEASE_IMAGES" == 'true' ]]; then
-            [[ "$BUILD_RESULT" == 'success' && "$PROMOTION_RESULT" == 'success' ]]
-            [[ "$CANDIDATE_RESULT" == 'skipped' ]]
-          else
-            [[ "$BUILD_RESULT" == 'skipped' && "$PROMOTION_RESULT" == 'skipped' ]]
-            [[ "$CANDIDATE_RESULT" == 'skipped' ]]
-          fi
-
-          if [[ "$EVENT_NAME" == 'push' && "$EVENT_REF" == 'refs/heads/main' && "$DOCS_AFFECTED" == 'true' ]]; then
-            [[ "$DOCS_RESULT" == 'success' ]]
-          else
-            [[ "$DOCS_RESULT" == 'skipped' ]]
-          fi
+          require_result vtt-static "$VTT_AFFECTED" "$VTT_STATIC_RESULT"
+          require_result vtt-unit "$VTT_AFFECTED" "$VTT_UNIT_RESULT"
+          require_result asset-service "$ASSETS_AFFECTED" "$ASSET_RESULT"
+          require_result gateway "$GATEWAY_AFFECTED" "$GATEWAY_RESULT"
+          require_result control-api "$CONTROL_API_AFFECTED" "$CONTROL_API_RESULT"
+          require_result forge "$FORGE_AFFECTED" "$FORGE_RESULT"
+          require_result codex "$CODEX_AFFECTED" "$CODEX_RESULT"
+          require_result docs "$DOCS_AFFECTED" "$DOCS_RESULT"

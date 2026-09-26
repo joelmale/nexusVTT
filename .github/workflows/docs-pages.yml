@@ -1,9 +1,8 @@
 name: Deploy documentation to GitHub Pages
 
 on:
-  # Automatic main deployment is performed in ci.yml from the exact artifact
-  # that passed the validation gate. This manual fallback intentionally keeps
-  # its own build for operational recovery only.
+  # Automatic main deployment is performed in delivery.yml. This manual
+  # fallback intentionally keeps its own build for operational recovery only.
   workflow_dispatch:
 
 permissions:

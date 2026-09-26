@@ -1,8 +1,10 @@
 {
-  "version": 1,
+  "version": 2,
   "targets": {
     "assets": {
       "description": "VTT asset service, seed assets, and asset generation",
+      "ciGroup": "vtt",
+      "lanes": ["pr", "delivery", "nightly"],
       "paths": [
         "apps/vtt/services/asset-service/**",
         "apps/vtt/public/assets/**",
@@ -17,13 +19,18 @@
       "dependsOn": [],
       "releaseImage": {
         "name": "asset-service",
+        "context": ".",
         "file": "./apps/vtt/docker/asset-service.Dockerfile",
         "target": "",
-        "repository": "ghcr.io/joelmale/nexusvtt/asset-service"
+        "repository": "ghcr.io/joelmale/nexusvtt/asset-service",
+        "platforms": "linux/amd64",
+        "securityScan": true
       }
     },
     "postgres": {
       "description": "VTT PostgreSQL image, schema, and migrations",
+      "ciGroup": "vtt",
+      "lanes": ["pr", "delivery", "nightly"],
       "paths": [
         "apps/vtt/docker/postgres.Dockerfile",
         "apps/vtt/docker/init-db.sh",
@@ -33,13 +40,18 @@
       "dependsOn": [],
       "releaseImage": {
         "name": "postgres",
+        "context": ".",
         "file": "./apps/vtt/docker/postgres.Dockerfile",
         "target": "",
-        "repository": "ghcr.io/joelmale/nexusvtt/postgres"
+        "repository": "ghcr.io/joelmale/nexusvtt/postgres",
+        "platforms": "linux/amd64",
+        "securityScan": true
       }
     },
     "vtt": {
       "description": "VTT client, backend, generator hub, and validation",
+      "ciGroup": "vtt",
+      "lanes": ["pr", "delivery", "nightly"],
       "paths": [
         "apps/vtt/src/**",
         "apps/vtt/server/**",
@@ -62,71 +74,231 @@
       "dependsOn": ["assets", "postgres"],
       "releaseImage": {
         "name": "backend",
+        "context": ".",
         "file": "./apps/vtt/docker/backend.Dockerfile",
         "target": "",
         "repository": "ghcr.io/joelmale/nexusvtt/backend",
+        "platforms": "linux/amd64",
         "securityScan": true
       }
     },
     "forge": {
       "description": "Nexus Forge application",
+      "ciGroup": "forge",
+      "lanes": ["pr", "delivery", "nightly"],
       "paths": ["apps/forge/**"],
-      "dependsOn": []
+      "dependsOn": [],
+      "releaseImage": {
+        "name": "forge",
+        "context": ".",
+        "file": "./apps/forge/Dockerfile",
+        "target": "",
+        "repository": "ghcr.io/joelmale/nexus-forge",
+        "platforms": "linux/amd64,linux/arm64",
+        "securityScan": true
+      }
     },
     "control-api": {
       "description": "Control API service (private admin control plane)",
+      "ciGroup": "control-api",
+      "lanes": ["pr", "delivery", "nightly"],
       "paths": ["apps/control-api/**", "apps/codex/services/admin-ui/**"],
       "dependsOn": [],
       "releaseImage": {
         "name": "control-api",
+        "context": ".",
         "file": "./apps/control-api/Dockerfile",
         "target": "",
-        "repository": "ghcr.io/joelmale/nexusvtt/control-api"
+        "repository": "ghcr.io/joelmale/nexusvtt/control-api",
+        "platforms": "linux/amd64",
+        "securityScan": true
       }
     },
     "codex-doc-api": {
       "description": "Codex document API",
+      "ciGroup": "codex",
+      "lanes": ["pr", "delivery", "nightly"],
       "paths": ["apps/codex/services/doc-api/**"],
-      "dependsOn": []
+      "dependsOn": [],
+      "service": {
+        "name": "doc-api",
+        "directory": "apps/codex/services/doc-api",
+        "language": "typescript",
+        "testPolicy": "unit-and-integration",
+        "validation": {
+          "profile": "doc-api",
+          "prisma": true,
+          "test": true,
+          "lint": false,
+          "build": true
+        }
+      },
+      "releaseImage": {
+        "name": "codex-doc-api",
+        "context": ".",
+        "file": "./apps/codex/services/doc-api/Dockerfile",
+        "target": "",
+        "repository": "ghcr.io/joelmale/nexuscodex-doc-api",
+        "platforms": "linux/amd64",
+        "securityScan": true
+      }
     },
     "codex-doc-processor": {
       "description": "Codex document processor",
+      "ciGroup": "codex",
+      "lanes": ["pr", "delivery", "nightly"],
       "paths": ["apps/codex/services/doc-processor/**"],
-      "dependsOn": []
+      "dependsOn": [],
+      "service": {
+        "name": "doc-processor",
+        "directory": "apps/codex/services/doc-processor",
+        "language": "typescript",
+        "testPolicy": "unit",
+        "validation": {
+          "profile": "node",
+          "prisma": true,
+          "test": true,
+          "lint": false,
+          "build": true
+        }
+      },
+      "releaseImage": {
+        "name": "codex-doc-processor",
+        "context": ".",
+        "file": "./apps/codex/services/doc-processor/Dockerfile",
+        "target": "",
+        "repository": "ghcr.io/joelmale/nexuscodex-doc-processor",
+        "platforms": "linux/amd64",
+        "securityScan": true
+      }
     },
     "codex-ocr-service": {
       "description": "Codex GPU OCR and embeddings sidecar",
+      "ciGroup": "codex",
+      "lanes": ["pr", "delivery", "nightly"],
       "paths": ["apps/codex/services/ocr-service/**"],
       "dependsOn": [],
+      "service": {
+        "name": "ocr-service",
+        "directory": "apps/codex/services/ocr-service",
+        "language": "python",
+        "testPolicy": "unit",
+        "validation": {
+          "profile": "python",
+          "prisma": false,
+          "test": true,
+          "lint": false,
+          "build": false
+        }
+      },
       "releaseImage": {
         "name": "codex-ocr",
+        "context": ".",
         "file": "./apps/codex/services/ocr-service/Dockerfile",
         "target": "",
-        "repository": "ghcr.io/joelmale/nexuscodex-ocr"
+        "repository": "ghcr.io/joelmale/nexuscodex-ocr",
+        "platforms": "linux/amd64",
+        "securityScan": true
       }
     },
     "codex-doc-websocket": {
       "description": "Codex document WebSocket service",
+      "ciGroup": "codex",
+      "lanes": ["pr", "delivery", "nightly"],
       "paths": ["apps/codex/services/doc-websocket/**"],
-      "dependsOn": []
+      "dependsOn": [],
+      "service": {
+        "name": "doc-websocket",
+        "directory": "apps/codex/services/doc-websocket",
+        "language": "typescript",
+        "testPolicy": "none",
+        "validation": {
+          "profile": "node",
+          "prisma": true,
+          "test": false,
+          "lint": false,
+          "build": true
+        }
+      },
+      "releaseImage": {
+        "name": "codex-doc-websocket",
+        "context": ".",
+        "file": "./apps/codex/services/doc-websocket/Dockerfile",
+        "target": "",
+        "repository": "ghcr.io/joelmale/nexuscodex-doc-websocket",
+        "platforms": "linux/amd64",
+        "securityScan": true
+      }
     },
     "codex-admin-ui": {
       "description": "Codex administration UI",
+      "ciGroup": "codex",
+      "lanes": ["pr", "delivery", "nightly"],
       "paths": ["apps/codex/services/admin-ui/**"],
-      "dependsOn": []
+      "dependsOn": [],
+      "service": {
+        "name": "admin-ui",
+        "directory": "apps/codex/services/admin-ui",
+        "language": "typescript",
+        "testPolicy": "unit",
+        "validation": {
+          "profile": "node",
+          "prisma": false,
+          "test": true,
+          "lint": true,
+          "build": true
+        }
+      },
+      "releaseImage": {
+        "name": "codex-admin-ui",
+        "context": ".",
+        "file": "./apps/codex/services/admin-ui/Dockerfile",
+        "target": "",
+        "repository": "ghcr.io/joelmale/nexuscodex-admin-ui",
+        "platforms": "linux/amd64",
+        "securityScan": true
+      }
     },
     "codex-dm-ui": {
       "description": "Codex dungeon-master UI",
+      "ciGroup": "codex",
+      "lanes": ["pr", "delivery", "nightly"],
       "paths": ["apps/codex/services/dm-ui/**"],
-      "dependsOn": []
+      "dependsOn": [],
+      "service": {
+        "name": "dm-ui",
+        "directory": "apps/codex/services/dm-ui",
+        "language": "typescript",
+        "testPolicy": "unit",
+        "validation": {
+          "profile": "node",
+          "prisma": false,
+          "test": true,
+          "lint": true,
+          "build": true
+        }
+      },
+      "releaseImage": {
+        "name": "codex-dm-ui",
+        "context": ".",
+        "file": "./apps/codex/services/dm-ui/Dockerfile",
+        "target": "",
+        "repository": "ghcr.io/joelmale/nexuscodex-dm-ui",
+        "platforms": "linux/amd64",
+        "securityScan": true
+      }
     },
     "docs": {
       "description": "Unified Docusaurus documentation",
+      "ciGroup": "docs",
+      "lanes": ["pr", "delivery", "nightly"],
       "paths": ["apps/docs/**"],
       "dependsOn": []
     },
     "gateway": {
       "description": "Unified nginx gateway and bundled application UIs",
+      "ciGroup": "gateway",
+      "lanes": ["pr", "delivery", "nightly"],
       "paths": [
         "apps/vtt/docker/frontend.Dockerfile",
         "apps/vtt/docker/nginx.conf",
@@ -136,9 +308,11 @@
       "dependsOn": ["assets", "vtt", "forge", "codex-admin-ui", "codex-dm-ui"],
       "releaseImage": {
         "name": "frontend",
+        "context": ".",
         "file": "./apps/vtt/docker/frontend.Dockerfile",
         "target": "production",
         "repository": "ghcr.io/joelmale/nexusvtt/frontend",
+        "platforms": "linux/amd64",
         "securityScan": true
       }
     }

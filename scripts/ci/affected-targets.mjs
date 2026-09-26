@@ -1,72 +1,21 @@
 #!/usr/bin/env node
 
 import { execFileSync } from 'node:child_process';
-import { appendFileSync, readFileSync, writeFileSync } from 'node:fs';
-import { dirname, resolve } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
+import { appendFileSync, writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
+import { pathToFileURL } from 'node:url';
 
-const SCRIPT_DIRECTORY = dirname(fileURLToPath(import.meta.url));
-export const DEFAULT_CONFIG_PATH = resolve(
-  SCRIPT_DIRECTORY,
-  '../../.github/ci/affected-targets.json',
-);
+import {
+  DEFAULT_CATALOG_PATH,
+  appendCatalogGithubOutputs,
+  catalogMatrices,
+  loadServiceCatalog,
+  validateServiceCatalog,
+} from './service-catalog.mjs';
 
-export const FALLBACK_TARGET_IDS = [
-  'assets',
-  'postgres',
-  'vtt',
-  'forge',
-  'control-api',
-  'codex-doc-api',
-  'codex-doc-processor',
-  'codex-ocr-service',
-  'codex-doc-websocket',
-  'codex-admin-ui',
-  'codex-dm-ui',
-  'docs',
-  'gateway',
-];
-
-const FALLBACK_RELEASE_IMAGES = {
-  assets: {
-    name: 'asset-service',
-    file: './apps/vtt/docker/asset-service.Dockerfile',
-    target: '',
-    repository: 'ghcr.io/joelmale/nexusvtt/asset-service',
-  },
-  postgres: {
-    name: 'postgres',
-    file: './apps/vtt/docker/postgres.Dockerfile',
-    target: '',
-    repository: 'ghcr.io/joelmale/nexusvtt/postgres',
-  },
-  vtt: {
-    name: 'backend',
-    file: './apps/vtt/docker/backend.Dockerfile',
-    target: '',
-    repository: 'ghcr.io/joelmale/nexusvtt/backend',
-    securityScan: true,
-  },
-  'control-api': {
-    name: 'control-api',
-    file: './apps/control-api/Dockerfile',
-    target: '',
-    repository: 'ghcr.io/joelmale/nexusvtt/control-api',
-  },
-  'codex-ocr-service': {
-    name: 'codex-ocr',
-    file: './apps/codex/services/ocr-service/Dockerfile',
-    target: '',
-    repository: 'ghcr.io/joelmale/nexuscodex-ocr',
-  },
-  gateway: {
-    name: 'frontend',
-    file: './apps/vtt/docker/frontend.Dockerfile',
-    target: 'production',
-    repository: 'ghcr.io/joelmale/nexusvtt/frontend',
-    securityScan: true,
-  },
-};
+export const DEFAULT_CONFIG_PATH = DEFAULT_CATALOG_PATH;
+export const validateConfig = validateServiceCatalog;
+export const loadConfig = loadServiceCatalog;
 
 const SUPPORTED_CHANGE_STATUSES = new Set(['A', 'C', 'D', 'M', 'R', 'T', 'U']);
 const FULL_SUITE_EVENTS = new Set([
@@ -75,148 +24,6 @@ const FULL_SUITE_EVENTS = new Set([
   'schedule',
   'workflow_dispatch',
 ]);
-
-function assertStringArray(value, label) {
-  if (
-    !Array.isArray(value) ||
-    value.some((entry) => typeof entry !== 'string' || entry.length === 0)
-  ) {
-    throw new Error(`${label} must be an array of non-empty strings`);
-  }
-}
-
-export function validateConfig(config) {
-  if (config === null || typeof config !== 'object' || Array.isArray(config)) {
-    throw new Error('affected-target configuration must be an object');
-  }
-  if (config.version !== 1) {
-    throw new Error(
-      `unsupported affected-target configuration version: ${config.version}`,
-    );
-  }
-  if (
-    config.targets === null ||
-    typeof config.targets !== 'object' ||
-    Array.isArray(config.targets)
-  ) {
-    throw new Error('targets must be an object');
-  }
-
-  const targetIds = Object.keys(config.targets);
-  if (targetIds.length === 0) {
-    throw new Error('at least one target must be configured');
-  }
-
-  const imageNames = new Set();
-  const imageRepositories = new Set();
-  for (const [targetId, target] of Object.entries(config.targets)) {
-    if (!/^[a-z][a-z0-9-]*$/.test(targetId)) {
-      throw new Error(`invalid target id: ${targetId}`);
-    }
-    if (
-      target === null ||
-      typeof target !== 'object' ||
-      Array.isArray(target)
-    ) {
-      throw new Error(`target ${targetId} must be an object`);
-    }
-    assertStringArray(target.paths, `target ${targetId}.paths`);
-    assertStringArray(target.dependsOn, `target ${targetId}.dependsOn`);
-    for (const dependency of target.dependsOn) {
-      if (!Object.hasOwn(config.targets, dependency)) {
-        throw new Error(
-          `target ${targetId} has unknown dependency ${dependency}`,
-        );
-      }
-      if (dependency === targetId) {
-        throw new Error(`target ${targetId} cannot depend on itself`);
-      }
-    }
-    if (target.releaseImage !== undefined) {
-      const image = target.releaseImage;
-      if (image === null || typeof image !== 'object' || Array.isArray(image)) {
-        throw new Error(`target ${targetId}.releaseImage must be an object`);
-      }
-      for (const field of ['name', 'file', 'target', 'repository']) {
-        if (typeof image[field] !== 'string') {
-          throw new Error(
-            `target ${targetId}.releaseImage.${field} must be a string`,
-          );
-        }
-      }
-      if (
-        image.securityScan !== undefined &&
-        typeof image.securityScan !== 'boolean'
-      ) {
-        throw new Error(
-          `target ${targetId}.releaseImage.securityScan must be boolean`,
-        );
-      }
-      if (imageNames.has(image.name)) {
-        throw new Error(`duplicate release image name: ${image.name}`);
-      }
-      if (imageRepositories.has(image.repository)) {
-        throw new Error(
-          `duplicate release image repository: ${image.repository}`,
-        );
-      }
-      imageNames.add(image.name);
-      imageRepositories.add(image.repository);
-    }
-  }
-
-  const visiting = new Set();
-  const visited = new Set();
-  const visit = (targetId) => {
-    if (visiting.has(targetId)) {
-      throw new Error(`target dependency cycle includes ${targetId}`);
-    }
-    if (visited.has(targetId)) {
-      return;
-    }
-    visiting.add(targetId);
-    for (const dependency of config.targets[targetId].dependsOn) {
-      visit(dependency);
-    }
-    visiting.delete(targetId);
-    visited.add(targetId);
-  };
-  targetIds.forEach(visit);
-
-  if (!Array.isArray(config.fanoutRules)) {
-    throw new Error('fanoutRules must be an array');
-  }
-  const ruleNames = new Set();
-  for (const rule of config.fanoutRules) {
-    if (rule === null || typeof rule !== 'object' || Array.isArray(rule)) {
-      throw new Error('each fanout rule must be an object');
-    }
-    if (typeof rule.name !== 'string' || rule.name.length === 0) {
-      throw new Error('each fanout rule must have a name');
-    }
-    if (ruleNames.has(rule.name)) {
-      throw new Error(`duplicate fanout rule: ${rule.name}`);
-    }
-    ruleNames.add(rule.name);
-    assertStringArray(rule.paths, `fanout rule ${rule.name}.paths`);
-    if (rule.targets !== 'all') {
-      assertStringArray(rule.targets, `fanout rule ${rule.name}.targets`);
-      for (const targetId of rule.targets) {
-        if (!Object.hasOwn(config.targets, targetId)) {
-          throw new Error(
-            `fanout rule ${rule.name} has unknown target ${targetId}`,
-          );
-        }
-      }
-    }
-  }
-
-  return config;
-}
-
-export function loadConfig(configPath = DEFAULT_CONFIG_PATH) {
-  return validateConfig(JSON.parse(readFileSync(configPath, 'utf8')));
-}
 
 function globToRegExp(glob) {
   let expression = '^';
@@ -536,35 +343,7 @@ export function formatSummary(decision) {
 }
 
 export function imageMatricesForDecision(decision, config) {
-  const configuredTargets = config?.targets ?? {};
-  const allReleaseImages = Object.keys(
-    Object.keys(configuredTargets).length > 0
-      ? configuredTargets
-      : Object.fromEntries(
-          Object.keys(FALLBACK_RELEASE_IMAGES).map((targetId) => [
-            targetId,
-            { releaseImage: FALLBACK_RELEASE_IMAGES[targetId] },
-          ]),
-        ),
-  ).flatMap((targetId) => {
-    const image =
-      configuredTargets[targetId]?.releaseImage ??
-      FALLBACK_RELEASE_IMAGES[targetId];
-    return image ? [{ ...image }] : [];
-  });
-  const releaseImages = decision.affectedTargets.flatMap((targetId) => {
-    const image =
-      config?.targets?.[targetId]?.releaseImage ??
-      FALLBACK_RELEASE_IMAGES[targetId];
-    return image ? [{ ...image }] : [];
-  });
-  return {
-    allReleaseImages,
-    releaseImages,
-    securityImages: releaseImages.filter(
-      (image) => image.securityScan === true,
-    ),
-  };
+  return catalogMatrices(config, decision.affectedTargets);
 }
 
 function parseArguments(argv) {
@@ -620,13 +399,13 @@ Options:
   --github-output <path>    Append workflow outputs for every target and the JSON decision
   --help                    Show this help
 
-If comparison or configuration loading fails, the command emits a conservative
-all-target decision instead of silently skipping work.`;
+If comparison fails, the command emits a conservative all-target decision.
+An invalid service catalog fails the command because no trustworthy fallback
+target or image list exists outside the catalog.`;
 }
 
 function appendGithubOutputs(outputPath, decision, config) {
-  const { allReleaseImages, releaseImages, securityImages } =
-    imageMatricesForDecision(decision, config);
+  const matrices = imageMatricesForDecision(decision, config);
   const codexAffected = decision.affectedTargets.some((targetId) =>
     targetId.startsWith('codex-'),
   );
@@ -639,16 +418,13 @@ function appendGithubOutputs(outputPath, decision, config) {
     `affected_targets=${JSON.stringify(decision.affectedTargets)}`,
     `decision=${JSON.stringify(decision)}`,
     `codex=${codexAffected}`,
-    `all_release_images=${JSON.stringify(allReleaseImages)}`,
-    `release_images=${JSON.stringify(releaseImages)}`,
-    `security_images=${JSON.stringify(securityImages)}`,
-    `has_release_images=${releaseImages.length > 0}`,
     `repository_security=${repositorySecurity}`,
   ];
   for (const [targetId, targetDecision] of Object.entries(decision.decisions)) {
     lines.push(`${targetId.replaceAll('-', '_')}=${targetDecision.affected}`);
   }
   appendFileSync(outputPath, `${lines.join('\n')}\n`, 'utf8');
+  appendCatalogGithubOutputs(outputPath, matrices);
 }
 
 export function runCli(argv) {
@@ -662,13 +438,10 @@ export function runCli(argv) {
   try {
     config = loadConfig(options.config ?? DEFAULT_CONFIG_PATH);
   } catch (error) {
-    const decision = allTargetDecision(
-      FALLBACK_TARGET_IDS,
-      `configuration-error:${error instanceof Error ? error.message : String(error)}`,
-      { detectionStatus: 'failed' },
+    process.stderr.write(
+      `service catalog error: ${error instanceof Error ? error.message : String(error)}\n`,
     );
-    emitDecision(decision, options, config);
-    return 0;
+    return 1;
   }
 
   const fullSuiteReason = fullSuiteReasonFor({

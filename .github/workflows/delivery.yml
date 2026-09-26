@@ -1,0 +1,325 @@
+name: Delivery Pipeline
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Optional full SHA already reachable from main
+        required: false
+        type: string
+
+concurrency:
+  group: delivery-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: '26.5.1'
+
+jobs:
+  resolve:
+    name: Resolve delivery manifest
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    outputs:
+      source_sha: ${{ steps.source.outputs.sha }}
+      docs: ${{ steps.affected.outputs.docs }}
+      release_images: ${{ steps.affected.outputs.release_images }}
+      all_release_images: ${{ steps.affected.outputs.all_release_images }}
+      has_release_images: ${{ steps.affected.outputs.has_release_images }}
+    steps:
+      - name: Validate manual source syntax
+        if: github.event_name == 'workflow_dispatch' && inputs.source_sha != ''
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+            echo 'source_sha must be a full lowercase 40-character Git SHA' >&2
+            exit 1
+          }
+
+      - name: Checkout delivery source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ inputs.source_sha || github.sha }}
+          fetch-depth: 0
+
+      - name: Verify source belongs to main
+        id: source
+        shell: bash
+        env:
+          PUSH_SHA: ${{ github.sha }}
+          REQUESTED_SHA: ${{ inputs.source_sha }}
+        run: |
+          source_sha=$(git rev-parse HEAD)
+          git fetch --no-tags origin main
+          git merge-base --is-ancestor "$source_sha" origin/main || {
+            echo 'delivery source must be reachable from main' >&2
+            exit 1
+          }
+          if [[ -n "$REQUESTED_SHA" && "$source_sha" != "$REQUESTED_SHA" ]]; then
+            echo 'checked-out source does not match source_sha' >&2
+            exit 1
+          fi
+          if [[ "$GITHUB_EVENT_NAME" == 'push' && "$source_sha" != "$PUSH_SHA" ]]; then
+            echo 'checked-out source does not match the pushed commit' >&2
+            exit 1
+          fi
+          echo "sha=$source_sha" >> "$GITHUB_OUTPUT"
+
+      - name: Validate service catalog
+        run: node scripts/ci/service-catalog.mjs
+
+      - name: Resolve affected delivery targets
+        id: affected
+        shell: bash
+        env:
+          BASE_SHA: ${{ github.event.before || 'HEAD^' }}
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REF: ${{ github.ref }}
+        run: |
+          node scripts/ci/affected-targets.mjs \
+            --base "${BASE_SHA:-HEAD^}" \
+            --head HEAD \
+            --event "$EVENT_NAME" \
+            --ref "$EVENT_REF" \
+            --github-output "$GITHUB_OUTPUT" \
+            --format summary
+
+  publish-images:
+    name: 'Publish immutable image: ${{ matrix.name }}'
+    if: needs.resolve.outputs.has_release_images == 'true'
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 60
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include: ${{ fromJSON(needs.resolve.outputs.release_images) }}
+    steps:
+      - name: Checkout delivery source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.source_sha }}
+
+      - name: Set up QEMU for multi-platform images
+        if: contains(matrix.platforms, ',')
+        uses: docker/setup-qemu-action@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push immutable source image
+        uses: docker/build-push-action@v7
+        with:
+          context: ${{ matrix.context }}
+          file: ${{ matrix.file }}
+          target: ${{ matrix.target }}
+          platforms: ${{ matrix.platforms }}
+          push: true
+          tags: ${{ matrix.repository }}:sha-${{ needs.resolve.outputs.source_sha }}
+          cache-from: type=gha,scope=release-${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=release-${{ matrix.name }}
+          build-args: |
+            VERSION=sha-${{ needs.resolve.outputs.source_sha }}
+            COMMIT_SHA=${{ needs.resolve.outputs.source_sha }}
+
+  promote-release:
+    name: Promote immutable image digests
+    if: needs.publish-images.result == 'success'
+    needs: [resolve, publish-images]
+    outputs:
+      disposition: ${{ steps.eligibility.outputs.disposition }}
+      publication: ${{ steps.promotion.outcome }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    concurrency:
+      group: nexus-release-promotion
+      cancel-in-progress: false
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - name: Checkout delivery source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.source_sha }}
+          fetch-depth: 0
+
+      - name: Check release promotion eligibility
+        id: eligibility
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          EVENT_REF: refs/heads/main
+          SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}
+        run: node scripts/ci/release-promotion.mjs
+
+      - name: Set up Docker Buildx
+        if: steps.eligibility.outputs.disposition == 'eligible'
+        uses: docker/setup-buildx-action@v4
+
+      - name: Log in to GitHub Container Registry
+        if: steps.eligibility.outputs.disposition == 'eligible'
+        uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Promote digests and write release manifest
+        id: promotion
+        if: steps.eligibility.outputs.disposition == 'eligible'
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}
+          AFFECTED_RELEASE_IMAGES: ${{ needs.resolve.outputs.release_images }}
+          ALL_RELEASE_IMAGES: ${{ needs.resolve.outputs.all_release_images }}
+        run: |
+          version=$(date -u +%Y%m%d)-${SOURCE_SHA:0:7}
+          mkdir -p release
+          printf '{"schemaVersion":1,"sourceSha":"%s","images":[' "$SOURCE_SHA" > release/images.json
+          separator=''
+          while IFS=$'\t' read -r image repository; do
+            changed=false
+            source="$repository:latest"
+            tags=(--tag "$repository:$version")
+            if jq -e --arg image "$image" '.[] | select(.name == $image)' \
+              <<< "$AFFECTED_RELEASE_IMAGES" >/dev/null; then
+              changed=true
+              source="$repository:sha-$SOURCE_SHA"
+              tags+=(--tag "$repository:latest")
+            fi
+            digest=$(docker buildx imagetools inspect "$source" | awk '/^Digest:/ && !d {d=$2} END {print d}')
+            if [[ ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
+              echo "could not resolve digest for $source" >&2
+              exit 1
+            fi
+            docker buildx imagetools create "${tags[@]}" "$repository@$digest"
+            printf '%s{"name":"%s","source":"%s","digest":"%s","changed":%s}' \
+              "$separator" "$image" "$source" "$digest" "$changed" >> release/images.json
+            separator=','
+          done < <(jq -r '.[] | [.name, .repository] | @tsv' <<< "$ALL_RELEASE_IMAGES")
+          printf '],"version":"%s"}\n' "$version" >> release/images.json
+
+      - name: Upload complete image manifest
+        if: steps.eligibility.outputs.disposition == 'eligible'
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-images-${{ needs.resolve.outputs.source_sha }}
+          path: release/images.json
+          if-no-files-found: error
+          retention-days: 90
+
+  build-docs:
+    name: Build documentation for delivery
+    if: needs.resolve.outputs.docs == 'true'
+    needs: resolve
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout delivery source
+        uses: actions/checkout@v7
+        with:
+          ref: ${{ needs.resolve.outputs.source_sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Configure GitHub Pages
+        uses: actions/configure-pages@v6
+
+      - name: Build documentation
+        run: npm run build:docs
+
+      - name: Upload GitHub Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: apps/docs/build
+
+  deploy-docs:
+    name: Deploy documentation
+    if: needs.build-docs.result == 'success'
+    needs: [resolve, build-docs]
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: github-pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+  result:
+    name: Delivery result
+    if: always()
+    needs: [resolve, publish-images, promote-release, build-docs, deploy-docs]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Verify delivery outcomes
+        shell: bash
+        env:
+          RESOLVE_RESULT: ${{ needs.resolve.result }}
+          HAS_IMAGES: ${{ needs.resolve.outputs.has_release_images }}
+          DOCS_AFFECTED: ${{ needs.resolve.outputs.docs }}
+          PUBLISH_RESULT: ${{ needs.publish-images.result }}
+          PROMOTION_RESULT: ${{ needs.promote-release.result }}
+          PROMOTION_DISPOSITION: ${{ needs.promote-release.outputs.disposition }}
+          PUBLICATION_RESULT: ${{ needs.promote-release.outputs.publication }}
+          BUILD_DOCS_RESULT: ${{ needs.build-docs.result }}
+          DEPLOY_DOCS_RESULT: ${{ needs.deploy-docs.result }}
+        run: |
+          [[ "$RESOLVE_RESULT" == 'success' ]]
+
+          if [[ "$HAS_IMAGES" == 'true' ]]; then
+            [[ "$PUBLISH_RESULT" == 'success' ]]
+            [[ "$PROMOTION_RESULT" == 'success' ]]
+            case "$PROMOTION_DISPOSITION:$PUBLICATION_RESULT" in
+              eligible:success|superseded:skipped) ;;
+              *)
+                echo "unexpected promotion outcome: $PROMOTION_DISPOSITION:$PUBLICATION_RESULT" >&2
+                exit 1
+                ;;
+            esac
+          else
+            [[ "$PUBLISH_RESULT" == 'skipped' ]]
+            [[ "$PROMOTION_RESULT" == 'skipped' ]]
+          fi
+
+          if [[ "$DOCS_AFFECTED" == 'true' ]]; then
+            [[ "$BUILD_DOCS_RESULT" == 'success' ]]
+            [[ "$DEPLOY_DOCS_RESULT" == 'success' ]]
+          else
+            [[ "$BUILD_DOCS_RESULT" == 'skipped' ]]
+            [[ "$DEPLOY_DOCS_RESULT" == 'skipped' ]]
+          fi
