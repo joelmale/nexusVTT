@@ -95,6 +95,34 @@ describe('asset-service user asset routes', () => {
       expect(manifest.assets[0].id).toBe(res.body.asset.id);
     });
 
+    it('accepts a plain-text campaign handout', async () => {
+      const res = await request(app)
+        .post(`/user/${userId}/upload`)
+        .set('x-nexus-auth', SECRET)
+        .field('name', 'Burned Shipping Ledger')
+        .field('category', 'documents')
+        .attach('file', Buffer.from('Ledger contents'), 'burned-ledger.txt');
+
+      expect(res.status).toBe(200);
+      expect(res.body.asset).toMatchObject({
+        category: 'documents',
+        name: 'Burned Shipping Ledger',
+        source: 'user',
+      });
+      expect(res.body.asset.fullImage).toMatch(/\.txt$/);
+    });
+
+    it('continues to reject unsupported document formats', async () => {
+      const res = await request(app)
+        .post(`/user/${userId}/upload`)
+        .set('x-nexus-auth', SECRET)
+        .field('category', 'documents')
+        .attach('file', Buffer.from('%PDF'), 'handout.pdf');
+
+      expect(res.status).toBe(400);
+      expect(res.body).toEqual({ error: 'Invalid file type' });
+    });
+
     it('rejects a path-traversal userId with 400', async () => {
       const res = await request(app)
         .post('/user/..%2Fevil/upload')
