@@ -24,6 +24,8 @@ class S3Service {
         secretAccessKey: env.S3_SECRET_KEY,
       },
       forcePathStyle: env.S3_FORCE_PATH_STYLE,
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     });
 
     // Create a separate client for public pre-signed URLs
@@ -36,6 +38,8 @@ class S3Service {
         secretAccessKey: env.S3_SECRET_KEY,
       },
       forcePathStyle: env.S3_FORCE_PATH_STYLE,
+      requestChecksumCalculation: 'WHEN_REQUIRED',
+      responseChecksumValidation: 'WHEN_REQUIRED',
     });
 
     this.bucket = env.S3_BUCKET;
