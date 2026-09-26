@@ -3,7 +3,6 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 // Node.js core modules
-import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import type { Server as HttpServer } from 'http';
@@ -30,6 +29,7 @@ import {
 import { SocketManager } from './socket/SocketManager.js';
 import { ConnectionLifecycle } from './socket/ConnectionLifecycle.js';
 import { GameStateCommitService } from './socket/GameStateCommitService.js';
+import { runStartupMigrations } from './startupMigrations.js';
 
 export interface ExpressSessionUser {
   id: string;
@@ -134,35 +134,11 @@ export class NexusServer {
     }
   }
 
-  /**
-   * Runs lightweight, idempotent migrations for local deployments.
-   * Currently applies local auth columns if missing.
-   */
-  private async runLocalMigrations() {
-    try {
-      // Check for passwordHash column; if missing, apply migration file
-      const pool = this.db.getPool();
-      const columnCheck = await pool.query(
-        `SELECT column_name FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'passwordHash'`,
-      );
-
-      if (columnCheck.rowCount === 0) {
-        const migrationPath = path.join(
-          __dirname,
-          './migrations/2025-12-08-add-local-auth.sql',
-        );
-        if (fs.existsSync(migrationPath)) {
-          const migrationSql = fs.readFileSync(migrationPath, 'utf-8');
-          await pool.query(migrationSql);
-          console.log('✅ Applied local auth migration');
-        } else {
-          console.warn(
-            '⚠️ Local auth migration file not found; skipping schema update',
-          );
-        }
-      }
-    } catch (err) {
-      console.warn('⚠️ Local migrations skipped:', err);
+  /** Runs required, idempotent schema updates before accepting traffic. */
+  private async runLocalMigrations(): Promise<void> {
+    const applied = await runStartupMigrations(this.db.getPool());
+    for (const migration of applied) {
+      console.log(`✅ Applied startup migration: ${migration}`);
     }
   }
 
