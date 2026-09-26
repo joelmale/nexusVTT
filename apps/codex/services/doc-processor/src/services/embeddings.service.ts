@@ -8,8 +8,8 @@ export type EmbeddingProvider = {
 const tokenize = (text: string) =>
   text
     .toLowerCase()
-    .replace(/[^a-z0-9\\s]/g, ' ')
-    .split(/\\s+/)
+    .replace(/[^a-z0-9\s]/g, ' ')
+    .split(/\s+/)
     .filter(Boolean);
 
 const hashToken = (token: string) => {
@@ -37,6 +37,36 @@ const createHashProvider = (): EmbeddingProvider => ({
   },
 });
 
+const createSidecarProvider = (): EmbeddingProvider => ({
+  name: 'sidecar',
+  embed: async (inputs: string[]) => {
+    if (!env.OCR_SERVICE_URL) {
+      console.warn('[EmbeddingsService] OCR_SERVICE_URL unset for sidecar embeddings. Falling back to hash.');
+      return createHashProvider().embed(inputs);
+    }
+
+    try {
+      const baseUrl = env.OCR_SERVICE_URL.replace(/\/$/, '');
+      const response = await fetch(`${baseUrl}/embed`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ texts: inputs }),
+        signal: AbortSignal.timeout(env.OCR_SERVICE_TIMEOUT_MS),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ${response.statusText}`);
+      }
+
+      const data = (await response.json()) as any;
+      return data.embeddings || [];
+    } catch (error: any) {
+      console.warn(`[EmbeddingsService] GPU Sidecar embeddings failed: ${error?.message}. Falling back to hash.`);
+      return createHashProvider().embed(inputs);
+    }
+  },
+});
+
 const createNoneProvider = (): EmbeddingProvider => ({
   name: 'none',
   embed: async () => [],
@@ -46,7 +76,13 @@ export class EmbeddingsService {
   private provider: EmbeddingProvider;
 
   constructor() {
-    this.provider = env.EMBEDDINGS_PROVIDER === 'hash' ? createHashProvider() : createNoneProvider();
+    if (env.EMBEDDINGS_PROVIDER === 'sidecar') {
+      this.provider = createSidecarProvider();
+    } else if (env.EMBEDDINGS_PROVIDER === 'hash') {
+      this.provider = createHashProvider();
+    } else {
+      this.provider = createNoneProvider();
+    }
   }
 
   getProviderName() {

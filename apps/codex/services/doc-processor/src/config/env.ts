@@ -44,7 +44,7 @@ const envSchema = z.object({
   OCR_SERVICE_TIMEOUT_MS: z.string().default('15000').transform(Number),
 
   // Embeddings
-  EMBEDDINGS_PROVIDER: z.enum(['none', 'hash']).default('none'),
+  EMBEDDINGS_PROVIDER: z.enum(['none', 'hash', 'sidecar']).default('none'),
   EMBEDDINGS_DIM: z.string().default('64').transform(Number),
   EMBEDDINGS_BATCH_SIZE: z.string().default('20').transform(Number),
 

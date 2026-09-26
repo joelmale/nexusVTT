@@ -120,6 +120,56 @@ describe('OCRService', () => {
     });
   });
 
+  describe('callSidecarOcrS3', () => {
+    it('returns null if OCR_SERVICE_URL is unset', async () => {
+      const originalUrl = env.OCR_SERVICE_URL;
+      (env as any).OCR_SERVICE_URL = undefined;
+      const result = await ocrService.callSidecarOcrS3('documents', 'key.png', 1);
+      expect(result).toBeNull();
+      (env as any).OCR_SERVICE_URL = originalUrl;
+    });
+
+    it('calls /ocr/s3 endpoint with bucket and key payload', async () => {
+      (env as any).OCR_SERVICE_URL = 'http://localhost:8000';
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ text: 'S3 direct text', confidence: 0.99, duration_ms: 45 }),
+      }) as any;
+
+      const result = await ocrService.callSidecarOcrS3('documents', 'ocr-temp/page-1.png', 1);
+      expect(result).toEqual({
+        text: 'S3 direct text',
+        confidence: 0.99,
+        durationMs: 45,
+        blocks: undefined,
+      });
+
+      expect(globalThis.fetch).toHaveBeenCalledWith(
+        'http://localhost:8000/ocr/s3',
+        expect.objectContaining({
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            bucket: 'documents',
+            key: 'ocr-temp/page-1.png',
+            page_number: 1,
+            reorder_columns: true,
+          }),
+        })
+      );
+      (env as any).OCR_SERVICE_URL = undefined;
+    });
+
+    it('returns null and catches error when /ocr/s3 fails', async () => {
+      (env as any).OCR_SERVICE_URL = 'http://localhost:8000';
+      globalThis.fetch = vi.fn().mockRejectedValue(new Error('S3 direct error'));
+
+      const result = await ocrService.callSidecarOcrS3('documents', 'bad-key.png', 1);
+      expect(result).toBeNull();
+      (env as any).OCR_SERVICE_URL = undefined;
+    });
+  });
+
   describe('extractTextFromImage', () => {
     it('uses sidecar when available and non-empty', async () => {
       (env as any).OCR_SERVICE_URL = 'http://localhost:8000';
@@ -221,6 +271,30 @@ describe('OCRService', () => {
       expect(loadedKeys).toEqual(keys);
       expect(completedKeys).toEqual(keys);
       expect(mockWorker.recognize).toHaveBeenCalledTimes(2);
+    });
+
+    it('uses direct S3 handoff when s3Bucket is supplied, avoiding buffer loader download', async () => {
+      (env as any).OCR_SERVICE_URL = 'http://localhost:8000';
+      globalThis.fetch = vi.fn().mockResolvedValue({
+        ok: true,
+        json: vi.fn().mockResolvedValue({ text: 'Direct S3 Text' }),
+      }) as any;
+
+      const keys = ['ocr-temp/page-1.png'];
+      const loader = vi.fn();
+
+      const res = await ocrService.extractTextFromKeysWithPool(
+        keys,
+        loader,
+        1,
+        undefined,
+        'documents'
+      );
+
+      expect(res.results).toEqual(['Direct S3 Text']);
+      expect(loader).not.toHaveBeenCalled(); // Node RAM spared from image download
+      expect(mockWorker.recognize).not.toHaveBeenCalled();
+      (env as any).OCR_SERVICE_URL = undefined;
     });
 
     it('uses sidecar with fallback to worker on error in on-demand pool', async () => {

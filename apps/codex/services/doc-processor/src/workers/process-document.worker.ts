@@ -262,6 +262,7 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
         let pageCount = 0;
         let needsOCR = false;
         let ocrPageKeys: string[] = [];
+        let scannedPageNumbers: number[] = [];
 
         let layoutInfo: { pages: { pageNumber: number; columns: number; confidence: number }[]; confidence?: number; failureReason?: string } | undefined;
 
@@ -270,10 +271,12 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
           await loggingService.logInfo(jobId, 'Extracting text from PDF');
           let layoutPages: { pageNumber: number; columns: number; confidence: number }[] = [];
           let layoutFailure: string | undefined;
+          let extractedPageResults: { pageNumber: number; text: string; columns: number; confidence: number }[] = [];
           try {
             const extracted = await layoutService.extractTextWithLayout(fileBuffer);
             text = extracted.text;
             pageCount = extracted.pageCount;
+            extractedPageResults = extracted.pages;
             layoutPages = extracted.pages.map((page) => ({
               pageNumber: page.pageNumber,
               columns: page.columns,
@@ -290,10 +293,20 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
 
           await loggingService.logInfo(jobId, `Extracted text: ${text.length} characters, ${pageCount} pages`);
 
-          needsOCR = ocrService.isImageBasedPage(text);
+          // Per-page OCR Gating: only trigger OCR for pages lacking digital text
+          scannedPageNumbers = [];
+          if (extractedPageResults.length > 0) {
+            scannedPageNumbers = extractedPageResults
+              .filter((p) => ocrService.isImageBasedPage(p.text))
+              .map((p) => p.pageNumber);
+          } else if (ocrService.isImageBasedPage(text)) {
+            scannedPageNumbers = Array.from({ length: pageCount }, (_, i) => i + 1);
+          }
+
+          needsOCR = scannedPageNumbers.length > 0;
           if (needsOCR) {
-            console.log(`[Worker] PDF appears to be image-based, OCR will be performed`);
-            await loggingService.logWarn(jobId, 'PDF appears to be image-based, OCR will be performed');
+            console.log(`[Worker] PDF contains ${scannedPageNumbers.length} image-based page(s), targeted OCR will be performed`);
+            await loggingService.logWarn(jobId, `PDF contains ${scannedPageNumbers.length} image-based page(s), targeted OCR will be performed`);
           }
           const averageConfidence = layoutPages.length
             ? Math.round((layoutPages.reduce((sum, page) => sum + page.confidence, 0) / layoutPages.length) * 100) / 100
@@ -333,10 +346,11 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
         }
 
         if (document.format === 'pdf' && needsOCR) {
-          console.log(`[Worker] Rendering OCR pages`);
-          await loggingService.logInfo(jobId, 'Rendering OCR pages', undefined, { canvasBackend });
+          console.log(`[Worker] Rendering OCR pages (${scannedPageNumbers.length} targeted)`);
+          await loggingService.logInfo(jobId, `Rendering ${scannedPageNumbers.length} OCR pages`, undefined, { canvasBackend });
           ocrPageKeys = [];
           await pageImageService.renderOcrImages(fileBuffer, {
+            targetPages: scannedPageNumbers.length > 0 ? scannedPageNumbers : undefined,
             onPage: async (page) => {
               const pageKey = `ocr-temp/${documentId}/page-${page.pageNumber}.png`;
               await s3Service.uploadFile(pageKey, page.buffer, 'image/png');
@@ -437,7 +451,8 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
               } catch (error: any) {
                 await loggingService.logWarn(jobId, `Failed to delete OCR temp file: ${key}`);
               }
-            }
+            },
+            env.S3_BUCKET
           );
           ocrText = ocrResult.results.join('\n');
           const durations = ocrResult.durations.filter((value) => Number.isFinite(value));

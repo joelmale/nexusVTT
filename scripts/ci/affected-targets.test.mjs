@@ -174,8 +174,18 @@ describe('representative Stage 3A change classes', () => {
       'postgres',
       'backend',
       'control-api',
+      'codex-ocr',
       'frontend',
     ]);
+
+    const ocr = imageMatricesForDecision(
+      decide('apps/codex/services/ocr-service/src/main.py'),
+      config,
+    );
+    expect(ocr.releaseImages.map((image) => image.name)).toEqual([
+      'codex-ocr',
+    ]);
+    expect(ocr.securityImages).toEqual([]);
 
     const backend = imageMatricesForDecision(
       decide('apps/vtt/server/index.ts'),
@@ -224,6 +234,11 @@ describe('representative Stage 3A change classes', () => {
       ['codex-doc-processor'],
     ],
     [
+      'OCR service',
+      'apps/codex/services/ocr-service/src/main.py',
+      ['codex-ocr-service'],
+    ],
+    [
       'document websocket',
       'apps/codex/services/doc-websocket/src/index.ts',
       ['codex-doc-websocket'],
@@ -260,6 +275,7 @@ describe('representative Stage 3A change classes', () => {
     ['apps/vtt/docker/postgres.Dockerfile', ['postgres', 'vtt', 'gateway']],
     ['apps/forge/Dockerfile', ['forge', 'gateway']],
     ['apps/codex/services/doc-api/Dockerfile', ['codex-doc-api']],
+    ['apps/codex/services/ocr-service/Dockerfile', ['codex-ocr-service']],
   ])('classifies Docker input %s', (path, expected) => {
     expectAffected(decide(path), expected);
   });

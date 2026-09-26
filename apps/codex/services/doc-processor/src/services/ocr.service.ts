@@ -17,7 +17,7 @@ export interface SidecarOcrResult {
 
 class OcrService {
   /**
-   * Calls the GPU-accelerated OCR sidecar microservice if configured.
+   * Calls the GPU-accelerated OCR sidecar microservice via binary octet-stream body.
    * Returns parsed OCR results or null if the service is disabled or errors out.
    */
   async callSidecarOcr(
@@ -54,6 +54,52 @@ class OcrService {
       };
     } catch (error: any) {
       console.warn(`[OcrService] Sidecar OCR failed (${error?.message}). Falling back to Tesseract.`);
+      return null;
+    }
+  }
+
+  /**
+   * Calls the GPU-accelerated OCR sidecar using direct S3 object key reference.
+   * The sidecar downloads the image directly from storage, completely bypassing Node.js buffer transit.
+   */
+  async callSidecarOcrS3(
+    bucket: string,
+    key: string,
+    pageNumber: number = 1
+  ): Promise<SidecarOcrResult | null> {
+    if (!env.OCR_SERVICE_URL) {
+      return null;
+    }
+
+    try {
+      const baseUrl = env.OCR_SERVICE_URL.replace(/\/$/, '');
+      const response = await fetch(`${baseUrl}/ocr/s3`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bucket,
+          key,
+          page_number: pageNumber,
+          reorder_columns: true,
+        }),
+        signal: AbortSignal.timeout(env.OCR_SERVICE_TIMEOUT_MS),
+      });
+
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status} ${response.statusText}`);
+      }
+
+      const data = (await response.json()) as any;
+      return {
+        text: data.text || '',
+        confidence: typeof data.confidence === 'number' ? data.confidence : 1.0,
+        durationMs: typeof data.duration_ms === 'number' ? data.duration_ms : 0,
+        blocks: data.blocks,
+      };
+    } catch (error: any) {
+      console.warn(`[OcrService] Direct S3 OCR failed (${error?.message}). Falling back to buffer loader.`);
       return null;
     }
   }
@@ -140,15 +186,15 @@ class OcrService {
 
   /**
    * Extract text from multiple pages on-demand using a worker pool.
-   * Downloads each page buffer via loader only when a worker is free,
-   * keeping RAM usage bounded to poolSize buffers at any time.
-   * Attempts GPU sidecar first; falls back to Tesseract worker on failure.
+   * If s3Bucket is supplied and sidecar is available, uses Direct S3 Handoff so Node does not
+   * download images into host RAM. Falls back to buffer loader and local Tesseract as needed.
    */
   async extractTextFromKeysWithPool(
     pageKeys: string[],
     loader: (key: string, index: number) => Promise<Buffer>,
     workerCount: number = env.OCR_WORKER_POOL_SIZE,
-    onPageComplete?: (key: string, index: number, text: string) => Promise<void>
+    onPageComplete?: (key: string, index: number, text: string) => Promise<void>,
+    s3Bucket?: string
   ): Promise<WorkerPoolResult<string>> {
     const poolSize = Math.max(1, Math.min(workerCount, pageKeys.length || 1));
     const result = await runWorkerPool<string, string, any>(
@@ -156,17 +202,29 @@ class OcrService {
       poolSize,
       () => createWorker('eng'),
       async (worker, key, index) => {
-        const buffer = await loader(key, index);
         let text = '';
 
-        // Attempt GPU sidecar first
-        const sidecar = await this.callSidecarOcr(buffer, index + 1);
-        if (sidecar !== null && sidecar.text.trim().length > 0) {
-          text = sidecar.text;
-        } else {
-          // Fall back to local CPU Tesseract worker
-          const { data } = await worker.recognize(buffer);
-          text = data.text;
+        // 1. Try Direct S3 Handoff if bucket provided
+        if (s3Bucket && env.OCR_SERVICE_URL) {
+          const s3Result = await this.callSidecarOcrS3(s3Bucket, key, index + 1);
+          if (s3Result !== null && s3Result.text.trim().length > 0) {
+            text = s3Result.text;
+          }
+        }
+
+        // 2. If Direct S3 was not used or failed, load buffer
+        if (!text) {
+          const buffer = await loader(key, index);
+
+          // 2a. Try buffer-based sidecar
+          const sidecar = await this.callSidecarOcr(buffer, index + 1);
+          if (sidecar !== null && sidecar.text.trim().length > 0) {
+            text = sidecar.text;
+          } else {
+            // 2b. Fall back to local CPU Tesseract worker
+            const { data } = await worker.recognize(buffer);
+            text = data.text;
+          }
         }
 
         if (onPageComplete) {
@@ -185,7 +243,6 @@ class OcrService {
    * This is a heuristic - checks if extracted text is very short
    */
   isImageBasedPage(extractedText: string): boolean {
-    // If extracted text is very short or empty, likely an image-based PDF
     const trimmed = extractedText.trim();
     return trimmed.length < env.OCR_TEXT_MIN_CHARS || trimmed.split(/\s+/).length < env.OCR_TEXT_MIN_WORDS;
   }

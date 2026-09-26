@@ -94,6 +94,17 @@
       "paths": ["apps/codex/services/doc-processor/**"],
       "dependsOn": []
     },
+    "codex-ocr-service": {
+      "description": "Codex GPU OCR and embeddings sidecar",
+      "paths": ["apps/codex/services/ocr-service/**"],
+      "dependsOn": [],
+      "releaseImage": {
+        "name": "codex-ocr",
+        "file": "./apps/codex/services/ocr-service/Dockerfile",
+        "target": "",
+        "repository": "ghcr.io/joelmale/nexuscodex-ocr"
+      }
+    },
     "codex-doc-websocket": {
       "description": "Codex document WebSocket service",
       "paths": ["apps/codex/services/doc-websocket/**"],
@@ -169,6 +180,7 @@
       "targets": [
         "codex-doc-api",
         "codex-doc-processor",
+        "codex-ocr-service",
         "codex-doc-websocket",
         "codex-admin-ui",
         "codex-dm-ui"

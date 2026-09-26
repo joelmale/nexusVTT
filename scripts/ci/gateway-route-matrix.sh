@@ -385,11 +385,11 @@ for host in admin.internal.nexusvtt.com admin.internal.nexusvtt.com:8081 ADMIN.I
 done
 
 # --- :8081 private admin listener ------------------------------------------
-# Upload bodies for the /control-api/ size cap (200m, matching control-api):
+# Upload bodies for the /control-api/ size cap (321m, matching control-api):
 # one well above the gateway's 20M default, one just above the cap.
 docker exec "$client" sh -c '
   head -c 26214400 /dev/zero > /tmp/matrix-25m.bin &&
-  head -c 210763776 /dev/zero > /tmp/matrix-201m.bin'
+  head -c 337641472 /dev/zero > /tmp/matrix-322m.bin'
 
 hits_before_private=$(stub_hits)
 control_hits_before=$(stub_hits 4000)
@@ -434,7 +434,7 @@ control_probe POST /control-api/v1/auth/logout --admin-cookie --status 200 --has
 control_probe POST /control-api/v1/codex/documents/bulk --admin-cookie \
   --upload /tmp/matrix-25m.bin --status 200 --has 'uri=/control-api/v1/codex/documents/bulk '
 private_probe POST /control-api/v1/codex/documents/bulk --admin-cookie \
-  --upload /tmp/matrix-201m.bin --status 413
+  --upload /tmp/matrix-322m.bin --status 413
 
 echo '== :8081 private listener: reserved gateway namespaces are 404'
 for path in \
