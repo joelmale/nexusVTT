@@ -341,15 +341,16 @@ async function createAndStore(hc: HandlerContext, file: SpooledFile, metadata: D
       headers: { 'content-type': STORED_CONTENT_TYPE[file.format] },
       body: blob,
     }, PUT_TIMEOUT_MS, 'object_storage');
-    await put.body?.cancel().catch(() => undefined);
   } catch (error) {
     deps.logger.warn('object storage upload failed', { requestId: context.requestId, documentId, error });
     return discard('object_storage_error');
   }
   if (put.status < 200 || put.status >= 300) {
-    deps.logger.warn('object storage rejected the upload', { requestId: context.requestId, documentId, status: put.status });
+    const errorBody = await put.text().catch(() => '');
+    deps.logger.warn('object storage rejected the upload', { requestId: context.requestId, documentId, status: put.status, body: errorBody });
     return discard('object_storage_error');
   }
+  await put.body?.cancel().catch(() => undefined);
 
   let processingQueued = false;
   try {
