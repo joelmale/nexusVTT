@@ -15,15 +15,18 @@ export const isStageComplete = (
   if (contentHash && checkpoints.contentHash && checkpoints.contentHash !== contentHash) {
     return false;
   }
-  return Boolean(checkpoints.stages?.[stage]?.completedAt);
+  const cp = checkpoints.stages?.[stage];
+  return Boolean(cp?.completedAt && !cp?.error);
 };
 
 export const getNextStage = (checkpoints: ProcessingCheckpoints, skipOcr: boolean) => {
   for (const stage of STAGES) {
     if (stage === 'ocr' && skipOcr) continue;
-    if (!checkpoints.stages?.[stage]?.completedAt) {
+    const cp = checkpoints.stages?.[stage];
+    if (!cp?.completedAt || cp?.error) {
       return stage;
     }
   }
   return null;
 };
+

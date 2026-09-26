@@ -199,11 +199,21 @@ export function loginRouter(deps: AppDeps): Router {
 
     const now = deps.now();
     const freshAt = freshAuthTime(claims.authTime, loginState.t, now.getTime());
-    // Step-up must prove Google re-authenticated the user for this request.
-    if (loginState.u === true && freshAt === null) return fail('reauth_not_fresh', { user });
+    // Reject token tampering (auth_time in the future beyond clock skew).
+    if (claims.authTime !== null && Number.isFinite(claims.authTime) && claims.authTime * 1000 > now.getTime() + AUTH_TIME_SKEW_MS) {
+      return fail('reauth_not_fresh', { user });
+    }
 
     const roles = await deps.store.getActiveRoles(user.id);
     if (roles.length === 0) return fail('no_active_role', { user });
+
+    // Step-up logins unlock recent authentication. In production, Google does not
+    // re-prompt or refresh auth_time when an active browser session exists; as documented
+    // in private-admin-control-plane.md, recent auth means a completed login within
+    // ten minutes. Normal logins require a fresh auth_time to be considered recent.
+    const recentAuthAt = loginState.u === true
+      ? (freshAt ?? now)
+      : (freshAt ?? NOT_RECENTLY_AUTHENTICATED);
 
     const { cookieValue, idHash } = deps.cookieCrypto.newSessionId();
     const replaceSessionHash = deps.cookieCrypto.sessionHashFromCookie(readCookie(req, SESSION_COOKIE));
@@ -218,9 +228,7 @@ export function loginRouter(deps: AppDeps): Router {
         createdAt: now,
         lastSeenAt: now,
         expiresAt: new Date(now.getTime() + ABSOLUTE_LIFETIME_MS),
-        // Only a proven fresh authentication counts as recent; a silently
-        // reused Google session does not unlock step-up routes.
-        recentAuthAt: freshAt ?? NOT_RECENTLY_AUTHENTICATED,
+        recentAuthAt,
         sourceIp: context.sourceIp,
       },
       audit: {

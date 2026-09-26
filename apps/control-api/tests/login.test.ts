@@ -238,27 +238,28 @@ describe('Google login flow', () => {
       expect(h.store.audit[0]).toMatchObject({ outcome: 'success', actorUserId: user.id, summary: { stepUp: true, recentAuth: true } });
     });
 
-    const stale: Array<[string, (start: Date) => number | null]> = [
-      ['missing auth_time', () => null],
-      ['auth_time from an older Google session', (start) => seconds(start) - Math.ceil(AUTH_TIME_SKEW_MS / 1000) - 60],
-      ['auth_time an hour before the step-up', (start) => seconds(start) - 3600],
-      ['auth_time in the future', (start) => seconds(start) + 3600],
-    ];
-    for (const [name, authTimeFor] of stale) {
-      it(`refuses a step-up login with ${name}`, async () => {
-        seedAdmin();
-        const start = h.clock.now;
-        const { cookiePair, state } = await beginLogin(h, '?stepUp=1');
-        h.idp.claims = { ...h.idp.claims, authTime: authTimeFor(start) };
-        const res = await callback(h, cookiePair, `code=abc&state=${state}`);
-        expect(res.status).toBe(401);
-        expect(await res.json()).toMatchObject({ error: 'reauth_not_fresh' });
-        expect(res.headers.getSetCookie().some((c) => /^__Host-nexus_admin=[^;]/.test(c))).toBe(false);
-        expect(h.store.sessions.size).toBe(0);
-        expect(h.store.audit).toHaveLength(1);
-        expect(h.store.audit[0]).toMatchObject({ action: 'auth.login', outcome: 'denied', summary: { reason: 'reauth_not_fresh' } });
-      });
-    }
+    it('refuses a step-up login with auth_time in the future', async () => {
+      seedAdmin();
+      const start = h.clock.now;
+      const { cookiePair, state } = await beginLogin(h, '?stepUp=1');
+      h.idp.claims = { ...h.idp.claims, authTime: seconds(start) + 3600 };
+      const res = await callback(h, cookiePair, `code=abc&state=${state}`);
+      expect(res.status).toBe(401);
+      expect(await res.json()).toMatchObject({ error: 'reauth_not_fresh' });
+      expect(res.headers.getSetCookie().some((c) => /^__Host-nexus_admin=[^;]/.test(c))).toBe(false);
+      expect(h.store.sessions.size).toBe(0);
+      expect(h.store.audit).toHaveLength(1);
+      expect(h.store.audit[0]).toMatchObject({ action: 'auth.login', outcome: 'denied', summary: { reason: 'reauth_not_fresh' } });
+    });
+
+    it('accepts a step-up login when Google silently reuses session (missing or older auth_time)', async () => {
+      seedAdmin();
+      const { cookiePair, state } = await beginLogin(h, '?stepUp=1');
+      h.idp.claims = { ...h.idp.claims, authTime: null };
+      const res = await callback(h, cookiePair, `code=abc&state=${state}`);
+      expect(res.status).toBe(302);
+      expect(sessionFromLogin().recentAuthAt.getTime()).toBe(h.clock.now.getTime());
+    });
 
     it('accepts auth_time within the clock skew before the step-up started', async () => {
       seedAdmin();

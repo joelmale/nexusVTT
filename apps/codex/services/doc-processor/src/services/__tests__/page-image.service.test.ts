@@ -25,6 +25,13 @@ vi.mock('../../utils/canvas', () => ({
   createCanvas: vi.fn().mockImplementation(() => mockCanvas),
   CanvasImage: {},
   canvasBackend: 'mock-canvas',
+  CustomCanvasFactory: class {
+    create() {
+      return { canvas: mockCanvas, context: mockCanvas.getContext('2d') };
+    }
+    reset() {}
+    destroy() {}
+  },
 }));
 
 vi.mock('pdfjs-dist/legacy/build/pdf.mjs', () => ({

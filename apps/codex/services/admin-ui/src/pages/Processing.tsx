@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { codexFetch } from '@/lib/api'
 import { useCan } from '@/auth/AuthContext'
 import { permissionHint } from '@/auth/permissions'
@@ -76,12 +77,18 @@ interface ProcessingReport {
 }
 
 export default function Processing() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const documentIdParam = searchParams.get('documentId')
+
   const [statusFilter, setStatusFilter] = useState<string>('')
   const [autoRefresh, setAutoRefresh] = useState(true)
   const [cleanDays, setCleanDays] = useState(7)
   const [selectedJob, setSelectedJob] = useState<Job | null>(null)
+  const [selectedDocumentId, setSelectedDocumentId] = useState<string | null>(null)
   const [showErrorModal, setShowErrorModal] = useState(false)
   const [showDetailsModal, setShowDetailsModal] = useState(false)
+  const [retryFeedback, setRetryFeedback] = useState<{ message: string; type: 'success' | 'error' } | null>(null)
+
   const queryClient = useQueryClient()
   const canRetry = useCan('retryJob')
   const canRemove = useCan('removeJob')
@@ -113,6 +120,16 @@ export default function Processing() {
     refetchInterval: autoRefresh ? 10000 : false,
   })
 
+  // Recent documents query so the pipeline graph can inspect and reprocess any document
+  const { data: docsData } = useQuery<{ documents: Array<{ id: string; title: string; ocrStatus: string }> }>({
+    queryKey: ['admin-documents-recent'],
+    queryFn: async () => {
+      const response = await codexFetch('/api/admin/documents?limit=25')
+      if (!response.ok) return { documents: [] }
+      return response.json()
+    },
+  })
+
   // Logs query
   const { data: logsData } = useQuery<{ jobId: string; logs: ProcessingLog[] }>({
     queryKey: ['job-logs', selectedJob?.id],
@@ -127,20 +144,21 @@ export default function Processing() {
 
   const activeOrFailedJob = jobsData?.jobs?.find((j) => j.status === 'active') || jobsData?.jobs?.find((j) => j.status === 'failed') || jobsData?.jobs?.[0]
   const currentInspectJob = selectedJob || activeOrFailedJob || null
+  const targetDocId = documentIdParam || selectedDocumentId || currentInspectJob?.documentId || docsData?.documents?.[0]?.id || null
 
   const { data: reportData, isLoading: reportLoading } = useQuery<ProcessingReport>({
-    queryKey: ['processing-report', currentInspectJob?.documentId],
+    queryKey: ['processing-report', targetDocId],
     queryFn: async () => {
-      if (!currentInspectJob?.documentId) throw new Error('No document selected')
-      const response = await codexFetch(`/api/admin/processing/report/${currentInspectJob.documentId}`)
+      if (!targetDocId) throw new Error('No document selected')
+      const response = await codexFetch(`/api/admin/processing/report/${targetDocId}`)
       if (!response.ok) throw new Error('Failed to fetch processing report')
       return response.json()
     },
-    enabled: !!currentInspectJob?.documentId,
+    enabled: !!targetDocId,
     refetchInterval: autoRefresh ? 10000 : false,
   })
 
-  // Retry job mutation
+  // Retry job mutation (fallback for raw BullMQ queue jobs)
   const retryMutation = useMutation({
     mutationFn: async (jobId: string) => {
       const response = await codexFetch(`/api/admin/queue/jobs/${jobId}/retry`, {
@@ -152,8 +170,58 @@ export default function Processing() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['queue-stats'] })
       queryClient.invalidateQueries({ queryKey: ['queue-jobs'] })
+      setRetryFeedback({ message: 'Job retry queued', type: 'success' })
+      setTimeout(() => setRetryFeedback(null), 5000)
+    },
+    onError: (err: any) => {
+      setRetryFeedback({ message: `Job retry failed: ${err.message}`, type: 'error' })
+      setTimeout(() => setRetryFeedback(null), 7000)
     },
   })
+
+  // Reprocess document mutation (for pipeline graph Retry Stage and document re-execution)
+  const reprocessMutation = useMutation({
+    mutationFn: async (docId: string) => {
+      const response = await codexFetch(`/api/admin/documents/${docId}/reprocess`, {
+        method: 'POST',
+      })
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}))
+        throw new Error(err.error || err.message || 'Failed to reprocess document')
+      }
+      return response.json()
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['queue-stats'] })
+      queryClient.invalidateQueries({ queryKey: ['queue-jobs'] })
+      queryClient.invalidateQueries({ queryKey: ['processing-report'] })
+      setRetryFeedback({ message: 'Document reprocessing queued successfully! Refreshing status...', type: 'success' })
+      setTimeout(() => setRetryFeedback(null), 5000)
+    },
+    onError: (err: any) => {
+      setRetryFeedback({ message: `Failed to retry stage: ${err.message}`, type: 'error' })
+      setTimeout(() => setRetryFeedback(null), 7000)
+    },
+  })
+
+  const handleRetryStage = async (_stageKey: string) => {
+    const docId = targetDocId || currentInspectJob?.documentId || reportData?.document?.id
+    if (!docId) {
+      if (currentInspectJob?.id) {
+        retryMutation.mutate(currentInspectJob.id)
+      } else {
+        setRetryFeedback({ message: 'No document or job selected to retry', type: 'error' })
+      }
+      return
+    }
+
+    try {
+      await reprocessMutation.mutateAsync(docId)
+    } catch {
+      // Handled in onError
+    }
+  }
+
 
   // Remove job mutation
   const removeMutation = useMutation({
@@ -308,33 +376,61 @@ export default function Processing() {
             </p>
           </div>
 
-          {jobsData?.jobs && jobsData.jobs.length > 0 && (
+          {((jobsData?.jobs && jobsData.jobs.length > 0) || (docsData?.documents && docsData.documents.length > 0)) && (
             <div className="flex items-center gap-2 text-xs">
               <label htmlFor="pipeline-job-select" className="text-gray-500 font-medium">
                 Viewing Document:
               </label>
               <select
                 id="pipeline-job-select"
-                value={currentInspectJob?.id || ''}
+                value={targetDocId || ''}
                 onChange={(e) => {
-                  const job = jobsData.jobs.find((j) => j.id === e.target.value)
+                  const val = e.target.value
+                  setSelectedDocumentId(val)
+                  const job = jobsData?.jobs.find((j) => j.documentId === val || j.id === val)
                   if (job) setSelectedJob(job)
+                  setSearchParams(val ? { documentId: val } : {})
                 }}
                 className="px-2.5 py-1.5 border border-gray-300 rounded-md bg-white text-xs font-medium focus:outline-none focus:ring-2 focus:ring-indigo-500 max-w-xs truncate"
               >
-                {jobsData.jobs.map((job) => (
-                  <option key={job.id} value={job.id}>
-                    {job.documentTitle} ({job.stage || 'queued'} - {job.status})
-                  </option>
-                ))}
+                {jobsData?.jobs && jobsData.jobs.length > 0 && (
+                  <optgroup label="Queue Jobs">
+                    {jobsData.jobs.map((job) => (
+                      <option key={job.id} value={job.documentId}>
+                        {job.documentTitle} ({job.stage || 'queued'} - {job.status})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
+                {docsData?.documents && docsData.documents.length > 0 && (
+                  <optgroup label="Documents Library">
+                    {docsData.documents.map((doc) => (
+                      <option key={doc.id} value={doc.id}>
+                        {doc.title} ({doc.ocrStatus})
+                      </option>
+                    ))}
+                  </optgroup>
+                )}
               </select>
             </div>
           )}
         </div>
 
+        {retryFeedback && (
+          <div className={`mb-4 p-3 rounded-lg text-xs font-medium flex items-center justify-between transition ${
+            retryFeedback.type === 'success' ? 'bg-green-50 text-green-800 border border-green-200' : 'bg-red-50 text-red-800 border border-red-200'
+          }`}>
+            <span className="flex items-center gap-2">
+              <span className={`w-2 h-2 rounded-full ${retryFeedback.type === 'success' ? 'bg-green-500' : 'bg-red-500'}`} />
+              {retryFeedback.message}
+            </span>
+            <button onClick={() => setRetryFeedback(null)} className="text-gray-400 hover:text-gray-600 ml-2">✕</button>
+          </div>
+        )}
+
         <PipelineGraph
-          documentTitle={currentInspectJob?.documentTitle || 'No Document Selected'}
-          documentId={currentInspectJob?.documentId}
+          documentTitle={reportData?.document?.title || currentInspectJob?.documentTitle || 'No Document Selected'}
+          documentId={targetDocId || currentInspectJob?.documentId}
           format={reportData?.document?.format || 'PDF'}
           fileSize={reportData?.document?.fileSize || 0}
           pageCount={reportData?.document?.pageCount || 0}
@@ -342,7 +438,8 @@ export default function Processing() {
           currentStage={currentInspectJob?.stage}
           jobStatus={currentInspectJob?.status}
           reportProcessing={reportData?.processing}
-          onRetryStage={canRetry && currentInspectJob ? () => retryMutation.mutate(currentInspectJob.id) : undefined}
+          onRetryStage={canRetry && (targetDocId || currentInspectJob?.id) ? handleRetryStage : undefined}
+          isRetrying={reprocessMutation.isPending || retryMutation.isPending}
           isLoading={reportLoading}
         />
       </div>
@@ -678,7 +775,8 @@ export default function Processing() {
                     currentStage={selectedJob.stage}
                     jobStatus={selectedJob.status}
                     reportProcessing={reportData?.processing}
-                    onRetryStage={canRetry ? () => retryMutation.mutate(selectedJob.id) : undefined}
+                    onRetryStage={canRetry ? handleRetryStage : undefined}
+                    isRetrying={reprocessMutation.isPending || retryMutation.isPending}
                     isLoading={reportLoading}
                   />
 

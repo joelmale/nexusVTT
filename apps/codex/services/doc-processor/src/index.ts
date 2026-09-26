@@ -1,5 +1,7 @@
-import { createWorker, createAssetWorker } from './services/queue.service';
+import { canvasBackend } from './utils/canvas';
+import { createWorker, createAssetWorker, enqueueStage } from './services/queue.service';
 import { elasticService } from './services/elastic.service';
+import { prisma } from './services/database.service';
 import { processDocumentWorker } from './workers/process-document.worker';
 import { centralLoggingService } from './services/central-logging.service';
 import { env } from './config/env';
@@ -12,9 +14,18 @@ function jobDurationSeconds(job: { processedOn?: number | null; finishedOn?: num
 }
 
 async function start() {
-  console.log('Starting document processor worker...');
-  await centralLoggingService.log('info', 'doc-processor starting');
+  console.log(`Starting document processor worker (canvas backend: ${canvasBackend})...`);
+  await centralLoggingService.log('info', `doc-processor starting (canvas: ${canvasBackend})`);
   startMetricsServer();
+
+  if (env.OCR_SERVICE_URL) {
+    try {
+      const ocrRes = await fetch(`${env.OCR_SERVICE_URL.replace(/\/$/, '')}/health`);
+      console.log(`[doc-processor] OCR sidecar health check: ${ocrRes.status} ${ocrRes.statusText}`);
+    } catch (err: any) {
+      console.warn(`[doc-processor] Warning: OCR sidecar unreachable at ${env.OCR_SERVICE_URL}: ${err.message}`);
+    }
+  }
 
   try {
     // Initialize ElasticSearch index
@@ -63,6 +74,42 @@ async function start() {
     console.log('Document processor worker started successfully');
     console.log('Waiting for jobs...');
     await centralLoggingService.log('info', 'doc-processor ready');
+
+    // Auto-reprocess any documents stuck in failed/incomplete status or with failed stages
+    try {
+      const allDocs = await prisma.document.findMany({
+        select: { id: true, title: true, ocrStatus: true, metadata: true },
+      });
+      console.log(`[doc-processor] Found ${allDocs.length} total document(s) in database`);
+      for (const doc of allDocs) {
+        const metadata = (doc.metadata as any) || {};
+        const processing = metadata.processing || {};
+        const stages = processing.checkpoints?.stages || {};
+        const hasFailedStage = Object.values(stages).some((s: any) => s?.error || s?.status === 'failed');
+        console.log(`[doc-processor] Doc: "${doc.title}" (${doc.id}), ocrStatus: ${doc.ocrStatus}, hasFailedStage: ${hasFailedStage}`);
+        if (doc.ocrStatus === 'failed' || doc.ocrStatus === 'pending' || hasFailedStage) {
+          console.log(`[doc-processor] Auto-reprocessing document: "${doc.title}" (${doc.id})`);
+          await prisma.document.update({
+            where: { id: doc.id },
+            data: {
+              ocrStatus: 'pending',
+              metadata: {
+                ...metadata,
+                processing: {
+                  ...processing,
+                  stage: 'ingest',
+                  stageUpdatedAt: new Date().toISOString(),
+                  checkpoints: { stages: {} },
+                },
+              },
+            },
+          });
+          await enqueueStage(doc.id, 'ingest');
+        }
+      }
+    } catch (reprocessErr: any) {
+      console.warn(`[doc-processor] Could not check failed documents on startup: ${reprocessErr.message}`);
+    }
   } catch (error) {
     console.error('Failed to start worker:', error);
     await centralLoggingService.log('critical', 'doc-processor failed to start', {
@@ -71,5 +118,6 @@ async function start() {
     process.exit(1);
   }
 }
+
 
 start();

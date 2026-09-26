@@ -1,3 +1,4 @@
+import '../utils/canvas';
 import { PDFParse } from 'pdf-parse';
 
 class PDFService {
