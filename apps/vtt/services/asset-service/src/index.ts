@@ -340,6 +340,13 @@ const upload = multer({
 });
 
 const USER_QUOTA_BYTES = 50 * 1024 * 1024; // 50MB
+const ALLOWED_USER_ASSET_EXTENSIONS = new Set([
+  '.jpeg',
+  '.jpg',
+  '.png',
+  '.txt',
+  '.webp',
+]);
 
 interface UserAsset {
   id: string;
@@ -491,7 +498,7 @@ app.post(
     }
 
     const ext = path.extname(req.file.originalname).toLowerCase();
-    if (!['.png', '.webp', '.jpg', '.jpeg'].includes(ext)) {
+    if (!ALLOWED_USER_ASSET_EXTENSIONS.has(ext)) {
       return res.status(400).json({ error: 'Invalid file type' });
     }
 
