@@ -9,7 +9,7 @@ import {
   NameSchema,
   RulesTextSchema,
   averageForDice,
-} from './common';
+} from './common.js';
 
 export const CreatureSizeSchema = z.enum([
   'tiny',

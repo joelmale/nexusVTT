@@ -8,11 +8,11 @@
  * Test fixtures live in `@nexus/rules-contracts/dist/fixtures` and are not
  * re-exported here so runtime bundles do not carry them.
  */
-export * from './common';
-export * from './spell';
-export * from './item';
-export * from './monster';
-export * from './entity';
-export * from './jsonPatch';
-export * from './api';
-export * from './catalogClient';
+export * from './common.js';
+export * from './spell.js';
+export * from './item.js';
+export * from './monster.js';
+export * from './entity.js';
+export * from './jsonPatch.js';
+export * from './api.js';
+export * from './catalogClient.js';

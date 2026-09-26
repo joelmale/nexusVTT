@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { diffJson, type JsonPatchOperation } from './jsonPatch';
+import { diffJson, type JsonPatchOperation } from './jsonPatch.js';
 
 /** Tiny RFC 6902 applier used only to prove diffs round-trip. */
 function applyPatch(document: unknown, operations: JsonPatchOperation[]): unknown {

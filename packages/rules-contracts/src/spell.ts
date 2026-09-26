@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { NameSchema, RulesTextSchema, SlugSchema } from './common';
+import { NameSchema, RulesTextSchema, SlugSchema } from './common.js';
 
 export const SpellSchoolSchema = z.enum([
   'abjuration',

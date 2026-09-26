@@ -10,8 +10,8 @@ import {
   type CatalogManifestFetchResult,
   type RulesCatalogTransport,
   type SyncKeyValueStorage,
-} from './catalogClient';
-import type { CatalogEntity, CatalogRemovedEntity } from './entity';
+} from './catalogClient.js';
+import type { CatalogEntity, CatalogRemovedEntity } from './entity.js';
 
 function makeEntity(overrides: Partial<CatalogEntity> & { slug: string }): CatalogEntity {
   return {

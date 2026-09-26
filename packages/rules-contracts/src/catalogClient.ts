@@ -1,6 +1,6 @@
 import { z } from 'zod';
-import { RulesEntityTypeSchema, RulesetSchema, type Ruleset, type RulesEntityType } from './common';
-import type { CatalogEntity, CatalogEntitiesResponse, CatalogManifest, CatalogRemovedEntity } from './entity';
+import { RulesEntityTypeSchema, RulesetSchema, type Ruleset, type RulesEntityType } from './common.js';
+import type { CatalogEntity, CatalogEntitiesResponse, CatalogManifest, CatalogRemovedEntity } from './entity.js';
 
 /**
  * Runtime consumption of the Codex rules registry (Phase 4 of the private
