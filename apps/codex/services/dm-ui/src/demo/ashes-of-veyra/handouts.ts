@@ -42,6 +42,42 @@ export const handouts: CampaignHandout[] = [
     factionIds: ['faction-harbor-watch'],
   },
   {
+    id: 'handout-port-authority-writ',
+    campaignId: 'campaign-ashes-of-veyra',
+    title: 'Port Authority Entry Writ',
+    kind: 'handout',
+    summary:
+      'An official stamped permit granting access through warehouse district gates during restricted hours.',
+    content: [
+      'Issued under the seal of the Veyra Port Authority. Bearer is authorized passage through Gates 3 through 7 between second and fourth bell.',
+      'A handwritten endorsement at the bottom notes: "Approved by Inspector Vane for dry cargo inspection only."',
+    ],
+    visibility: 'shared',
+    sessionIds: ['session-12'],
+    clueIds: ['clue-smuggler-note'],
+    questIds: ['quest-find-ember-key'],
+    locationIds: ['location-harbor-warehouse', 'location-south-pier'],
+    factionIds: ['faction-harbor-watch'],
+  },
+  {
+    id: 'handout-unsigned-letter-pier6',
+    campaignId: 'campaign-ashes-of-veyra',
+    title: 'Mysterious Unsigned Letter (pier 6)',
+    kind: 'handout',
+    summary:
+      'A hastily penned message recovered near pier 6 referencing the third bell cargo exchange.',
+    content: [
+      'The exchange happens at the third bell by the east chain mooring. Bring the secondary key or the arrangement is void.',
+      'Do not trust the red lanterns. If you are followed into the warehouse, scatter toward the fishmongers.',
+    ],
+    visibility: 'shared',
+    sessionIds: ['session-12'],
+    clueIds: ['clue-smuggler-note', 'clue-strange-symbol'],
+    questIds: ['quest-find-ember-key'],
+    locationIds: ['location-south-pier'],
+    factionIds: ['faction-crimson-wake'],
+  },
+  {
     id: 'lore-azure-compact',
     campaignId: 'campaign-ashes-of-veyra',
     title: 'The Azure Compact',

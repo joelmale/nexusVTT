@@ -238,13 +238,8 @@ export function registerApiRoutes(
         return res.status(401).json({ error: 'Authentication required' });
       }
 
-      const {
-        allowSpectators,
-        shareCharacterSheets,
-        logSessions,
-        hpSync,
-        ...rest
-      } = req.body || {};
+      const { allowSpectators, shareCharacterSheets, logSessions, hpSync, ...rest } =
+        req.body || {};
 
       const invalid =
         (allowSpectators !== undefined &&
@@ -978,56 +973,56 @@ export function registerApiRoutes(
       try {
         const { tokenId, imageData, name } = req.body;
 
-        if (!tokenId || !imageData || !name) {
-          return res.status(400).json({ error: 'Missing required fields' });
-        }
-
-        // Validate that imageData is a base64 PNG
-        if (!imageData.startsWith('data:image/png;base64,')) {
-          return res.status(400).json({ error: 'Invalid image format' });
-        }
-
-        // Extract base64 data
-        const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
-        const buffer = Buffer.from(base64Data, 'base64');
-
-        // Create custom tokens directory if it doesn't exist
-        // Save to ASSETS_PATH/assets/tokens/custom to match the static serve path
-        const customTokensDir = path.join(
-          assetsPath,
-          'assets',
-          'tokens',
-          'custom',
-        );
-        if (!fs.existsSync(customTokensDir)) {
-          fs.mkdirSync(customTokensDir, { recursive: true });
-        }
-
-        // Generate filename from tokenId
-        const sanitizedName = name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
-        const sanitizedId = String(tokenId).replace(/[^a-z0-9]/gi, '_');
-        const filename = `${sanitizedName}_${sanitizedId}.png`;
-        const filepath = path.join(customTokensDir, filename);
-
-        // Reject if resolved path escapes the tokens directory
-        if (!filepath.startsWith(path.resolve(customTokensDir) + path.sep)) {
-          return res.status(400).json({ error: 'Invalid token path' });
-        }
-
-        // Write the file
-        fs.writeFileSync(filepath, buffer);
-
-        // Return the server path
-        const serverPath = `/assets/tokens/custom/${filename}`;
-
-        console.log(`💾 Saved custom token: ${sanitizeLog(serverPath)}`);
-        res.json({ success: true, path: serverPath });
-      } catch (error) {
-        console.error('Failed to save token:', error);
-        res.status(500).json({ error: 'Failed to save token' });
+      if (!tokenId || !imageData || !name) {
+        return res.status(400).json({ error: 'Missing required fields' });
       }
-    },
-  );
+
+      // Validate that imageData is a base64 PNG
+      if (!imageData.startsWith('data:image/png;base64,')) {
+        return res.status(400).json({ error: 'Invalid image format' });
+      }
+
+      // Extract base64 data
+      const base64Data = imageData.replace(/^data:image\/png;base64,/, '');
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      // Create custom tokens directory if it doesn't exist
+      // Save to ASSETS_PATH/assets/tokens/custom to match the static serve path
+      const customTokensDir = path.join(
+        assetsPath,
+        'assets',
+        'tokens',
+        'custom',
+      );
+      if (!fs.existsSync(customTokensDir)) {
+        fs.mkdirSync(customTokensDir, { recursive: true });
+      }
+
+      // Generate filename from tokenId
+      const sanitizedName = name.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+      const sanitizedId = String(tokenId).replace(/[^a-z0-9]/gi, '_');
+      const filename = `${sanitizedName}_${sanitizedId}.png`;
+      const filepath = path.join(customTokensDir, filename);
+
+      // Reject if resolved path escapes the tokens directory
+      if (!filepath.startsWith(path.resolve(customTokensDir) + path.sep)) {
+        return res.status(400).json({ error: 'Invalid token path' });
+      }
+
+      // Write the file
+      fs.writeFileSync(filepath, buffer);
+
+      // Return the server path
+      const serverPath = `/assets/tokens/custom/${filename}`;
+
+      console.log(`💾 Saved custom token: ${sanitizeLog(serverPath)}`);
+      res.json({ success: true, path: serverPath });
+    } catch (error) {
+      console.error('Failed to save token:', error);
+      res.status(500).json({ error: 'Failed to save token' });
+    }
+  },
+);
 
   setupGeneratedMapsRoute(app, requireAuthenticatedNonGuest);
   registerCampaignActorRoutes(app, db, getSocketManager);

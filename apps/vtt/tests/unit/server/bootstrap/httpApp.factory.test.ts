@@ -59,7 +59,12 @@ describe('HTTP app factory', () => {
     });
     expect(result.app).toBeDefined();
     expect(result.sessionMiddleware).toBeTypeOf('function');
-    expect(mocks.registerApiRoutes).toHaveBeenCalledWith(result.app, expect.anything(), '/assets');
+    expect(mocks.registerApiRoutes).toHaveBeenCalledWith(
+      result.app,
+      expect.anything(),
+      '/assets',
+      expect.any(Function),
+    );
     expect(mocks.createDocumentRoutes).toHaveBeenCalledWith(null, false, expect.anything());
     expect(mocks.createCampaignPrepRouter).toHaveBeenCalledWith(
       expect.objectContaining({

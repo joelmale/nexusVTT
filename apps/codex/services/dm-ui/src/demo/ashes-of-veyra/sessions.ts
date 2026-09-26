@@ -288,6 +288,8 @@ export const session12Plan: SessionPlan = {
     'handout-harbormasters-warning',
     'handout-burned-shipping-ledger',
     'lore-bell-rhyme-shoals',
+    'handout-port-authority-writ',
+    'handout-unsigned-letter-pier6',
   ],
 };
 
