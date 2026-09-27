@@ -1,5 +1,5 @@
+import { createCanvas, CustomCanvasFactory } from '../utils/canvas';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { createCanvas } from '../utils/canvas';
 import sharp from 'sharp';
 import { env } from '../config/env';
 
@@ -50,7 +50,10 @@ class PageImageService {
 
     // Convert Buffer to Uint8Array for PDF.js
     const uint8Array = new Uint8Array(pdfBuffer);
-    const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
+    const loadingTask = pdfjsLib.getDocument({
+      data: uint8Array,
+      CanvasFactory: CustomCanvasFactory as any,
+    });
     const pdfDocument = await loadingTask.promise;
 
     const totalPages = pdfDocument.numPages;
@@ -123,7 +126,10 @@ class PageImageService {
     const images: RenderedOcrPage[] = [];
 
     const uint8Array = new Uint8Array(pdfBuffer);
-    const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
+    const loadingTask = pdfjsLib.getDocument({
+      data: uint8Array,
+      CanvasFactory: CustomCanvasFactory as any,
+    });
     const pdfDocument = await loadingTask.promise;
 
     const totalPages = pdfDocument.numPages;

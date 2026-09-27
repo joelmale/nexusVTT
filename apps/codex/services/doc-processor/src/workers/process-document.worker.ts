@@ -429,20 +429,21 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
 
         const pageKeys = processing.ocr?.pageKeys || [];
         if (pageKeys.length === 0) {
-        await updateProcessing(documentId, document, 'ocr', {
-          completedAt: new Date().toISOString(),
-          durationMs: Date.now() - start,
-        }, {
-          ocr: {
-            ...(processing.ocr || {}),
-            status: 'failed',
-            performed: false,
-          },
-        });
-        await loggingService.logInfo(jobId, 'Stage ocr completed');
-        await queueNextStage(documentId, 'ocr', false);
-        return;
-      }
+          await updateProcessing(documentId, document, 'ocr', {
+            error: 'No rendered OCR pages available',
+            durationMs: Date.now() - start,
+          }, {
+            ocr: {
+              ...(processing.ocr || {}),
+              status: 'failed',
+              reason: 'No rendered OCR pages available',
+              performed: false,
+            },
+          });
+          await loggingService.logWarn(jobId, 'Stage ocr failed: no rendered OCR pages available');
+          await queueNextStage(documentId, 'ocr', false);
+          return;
+        }
 
         await loggingService.logInfo(jobId, `Running OCR on ${pageKeys.length} pages (pool=${env.OCR_WORKER_POOL_SIZE})`);
         let ocrText = '';
@@ -798,7 +799,6 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
     if (document) {
       const { metadata, processing } = getProcessingState(document);
       const nextProcessing = buildNextProcessing(processing, stage, {
-        completedAt: new Date().toISOString(),
         error: error.message,
       }, {});
 

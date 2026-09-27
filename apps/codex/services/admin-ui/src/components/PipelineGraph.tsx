@@ -84,6 +84,7 @@ export interface PipelineGraphProps {
   }
   onRetryStage?: (stageKey: StageKey) => void
   isLoading?: boolean
+  isRetrying?: boolean
 }
 
 const STAGE_ORDER: StageKey[] = ['ingest', 'render', 'ocr', 'extract', 'index', 'assets']
@@ -114,6 +115,7 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
   reportProcessing,
   onRetryStage,
   isLoading = false,
+  isRetrying = false,
 }) => {
   const [selectedStageKey, setSelectedStageKey] = useState<StageKey>('render')
 
@@ -142,17 +144,20 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
         return { status: 'completed', durationMs: cp?.durationMs }
       }
       if (ocr?.status === 'failed') {
-        return { status: 'failed', durationMs: cp?.durationMs, error: ocr.reason || 'OCR processing failed' }
+        return { status: 'failed', durationMs: cp?.durationMs, error: ocr.reason || cp?.error || 'OCR processing failed' }
       }
     }
 
-    // 2. If explicit checkpoint completed
+    // 2. If explicit checkpoint error
+    if (cp?.error) {
+      return { status: 'failed', durationMs: cp?.durationMs, error: cp.error }
+    }
+
+    // 3. If explicit checkpoint completed
     if (cp?.completedAt) {
-      if (cp.error) {
-        return { status: 'failed', durationMs: cp.durationMs, error: cp.error }
-      }
       return { status: 'completed', durationMs: cp.durationMs }
     }
+
 
     // 3. Current active stage from queue job
     if (normalizedCurrentStage === key) {
@@ -668,10 +673,11 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
           {selectedStage.status === 'failed' && onRetryStage && (
             <button
               onClick={() => onRetryStage(selectedStage.key)}
-              className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition shadow-sm"
+              disabled={isRetrying}
+              className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
-              Retry Stage
+              <RefreshCw className={`w-3.5 h-3.5 ${isRetrying ? 'animate-spin' : ''}`} />
+              {isRetrying ? 'Retrying...' : 'Retry Stage'}
             </button>
           )}
         </div>

@@ -1,5 +1,5 @@
+import { createCanvas, CustomCanvasFactory } from '../utils/canvas';
 import * as pdfjsLib from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { createCanvas } from '../utils/canvas';
 import sharp from 'sharp';
 import { env } from '../config/env';
 
@@ -16,7 +16,10 @@ class ThumbnailService {
       // Load PDF document
       // Convert Buffer to Uint8Array for Node.js 22 compatibility
       const uint8Array = new Uint8Array(pdfBuffer);
-      const loadingTask = pdfjsLib.getDocument({ data: uint8Array });
+      const loadingTask = pdfjsLib.getDocument({
+        data: uint8Array,
+        CanvasFactory: CustomCanvasFactory as any,
+      });
       const pdfDocument = await loadingTask.promise;
 
       // Get first page
