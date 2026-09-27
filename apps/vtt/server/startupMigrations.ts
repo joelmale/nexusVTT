@@ -4,17 +4,17 @@ import { fileURLToPath } from 'url';
 
 import type { Pool, PoolClient } from 'pg';
 
-interface StartupMigration {
+export interface StartupMigration {
   fileName: string;
   isApplied: (client: PoolClient) => Promise<boolean>;
 }
 
-type MigrationSqlLoader = (fileName: string) => string;
+export type MigrationSqlLoader = (fileName: string) => string;
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const STARTUP_MIGRATIONS: StartupMigration[] = [
+export const STARTUP_MIGRATIONS: StartupMigration[] = [
   {
     fileName: '2025-12-08-add-local-auth.sql',
     isApplied: (client) => hasColumn(client, 'users', 'passwordHash'),
@@ -26,6 +26,46 @@ const STARTUP_MIGRATIONS: StartupMigration[] = [
   {
     fileName: '2026-09-25-add-session-plan-activations.sql',
     isApplied: (client) => hasTable(client, 'session_plan_activations'),
+  },
+];
+
+export interface NonStartupMigration {
+  fileName: string;
+  reason: string;
+}
+
+export const KNOWN_NON_STARTUP_MIGRATIONS: NonStartupMigration[] = [
+  {
+    fileName: '2025-12-08-add-account-fields.sql',
+    reason: 'Baseline user table OAuth columns already represented in initial schema.sql',
+  },
+  {
+    fileName: '2026-01-05-add-campaign-roomcode.sql',
+    reason: 'Pre-deploy manual replica migration documented in AGENTS.md; represented in schema.sql',
+  },
+  {
+    fileName: '2026-07-19-add-room-event-journal.sql',
+    reason: 'Durability migration step 1 applied pre-deploy in event-journal order; represented in schema.sql',
+  },
+  {
+    fileName: '2026-07-19-add-durable-game-state-commits.sql',
+    reason: 'Durability migration step 2 applied pre-deploy in game-state order; represented in schema.sql',
+  },
+  {
+    fileName: '2026-07-19-add-room-entity-versions.sql',
+    reason: 'Durability migration step 3 applied pre-deploy in entity-version order; represented in schema.sql',
+  },
+  {
+    fileName: '2026-09-24-add-campaign-actors-and-domain-commands.sql',
+    reason: 'Forge-VTT Phase 2 manual migration; represented in schema.sql',
+  },
+  {
+    fileName: '2026-09-24-add-control-plane-identity.sql',
+    reason: 'Control API standalone identity/roles migration executed separately by operator/control service',
+  },
+  {
+    fileName: '2026-09-24-add-encounter-runs.sql',
+    reason: 'Live combat execution encounter_runs table represented in schema.sql',
   },
 ];
 

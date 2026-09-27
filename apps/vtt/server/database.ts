@@ -13,6 +13,7 @@ import { LibraryObjectRepository } from './repositories/LibraryObjectRepository.
 import { EncounterRunRepository } from './repositories/EncounterRunRepository.js';
 import { CampaignPrepRepository } from './repositories/CampaignPrepRepository.js';
 import { DomainCommandService } from './commands/DomainCommandService.js';
+import { runStartupMigrations } from './startupMigrations.js';
 import type {
   DatabaseConfig,
   OAuthProfile,
@@ -114,6 +115,7 @@ export class DatabaseService {
         console.log('✅ Database connection successful');
 
         await this.initSchema();
+        await runStartupMigrations(this.pool);
         await this.sessions.initialize();
         await this.eventJournal.initialize();
         return;

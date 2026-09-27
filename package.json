@@ -33,6 +33,7 @@
     "check:workspace-lock": "node scripts/validate-workspace-lock.mjs",
     "check:service-catalog": "node scripts/ci/service-catalog.mjs",
     "check:docker-build-contracts": "node scripts/ci/validate-docker-build-contracts.mjs",
+    "check:startup-migrations": "node scripts/ci/check-startup-migrations.mjs",
     "check:workflows": "node scripts/ci/run-actionlint.mjs",
     "ci:preflight": "node scripts/ci/preflight.mjs",
     "build:workspace-deps": "node scripts/build-workspace-dependencies.mjs",

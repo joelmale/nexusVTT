@@ -59,7 +59,11 @@ describe('SessionPlan', () => {
       screen.getByText('Check in with the party before the final scene'),
     ).toBeInTheDocument();
 
-    await user.click(screen.getByRole('button', { name: /publish plan/i }));
+    const publishButtons = screen.getAllByRole('button', {
+      name: /publish plan/i,
+    });
+    expect(publishButtons).toHaveLength(2);
+    await user.click(publishButtons[0]);
     expect(onCapability).toHaveBeenCalledWith('session-plan.publish');
   });
 
@@ -76,7 +80,7 @@ describe('SessionPlan', () => {
     ).toBeInTheDocument();
   });
 
-  it('uses the functional publisher and reports its current state', async () => {
+  it('uses the functional publisher and reports its current state across both controls', async () => {
     const user = userEvent.setup();
     const onPublish = vi.fn();
     const { rerender } = render(
@@ -89,10 +93,15 @@ describe('SessionPlan', () => {
       />,
     );
 
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Saving campaign objects.',
-    );
-    expect(screen.getByRole('button', { name: /publishing/i })).toBeDisabled();
+    const statuses = screen.getAllByRole('status');
+    expect(statuses.length).toBeGreaterThanOrEqual(1);
+    expect(statuses[0]).toHaveTextContent('Saving campaign objects.');
+
+    const publishingButtons = screen.getAllByRole('button', {
+      name: /publishing/i,
+    });
+    expect(publishingButtons).toHaveLength(2);
+    publishingButtons.forEach((btn) => expect(btn).toBeDisabled());
 
     rerender(
       <SessionPlan
@@ -101,7 +110,11 @@ describe('SessionPlan', () => {
         onPublish={onPublish}
       />,
     );
-    await user.click(screen.getByRole('button', { name: /publish plan/i }));
+    const publishButtons = screen.getAllByRole('button', {
+      name: /publish plan/i,
+    });
+    expect(publishButtons).toHaveLength(2);
+    await user.click(publishButtons[1]); // Test clicking the mobile action bar button
     expect(onPublish).toHaveBeenCalledWith(model.steps);
   });
 
@@ -118,9 +131,11 @@ describe('SessionPlan', () => {
       />,
     );
 
-    const activateBtn = screen.getByRole('button', { name: /play in vtt/i });
-    expect(activateBtn).toBeInTheDocument();
-    await user.click(activateBtn);
+    const activateBtns = screen.getAllByRole('button', {
+      name: /play in vtt/i,
+    });
+    expect(activateBtns).toHaveLength(2);
+    await user.click(activateBtns[0]);
     expect(onActivate).toHaveBeenCalledWith(model.steps);
 
     rerender(
@@ -132,9 +147,37 @@ describe('SessionPlan', () => {
         publishState="published"
       />,
     );
+    const activatingBtns = screen.getAllByRole('button', {
+      name: /activating in vtt/i,
+    });
+    expect(activatingBtns).toHaveLength(2);
+    activatingBtns.forEach((btn) => expect(btn).toBeDisabled());
+  });
+
+  it('updates header draft button to show revision when published', () => {
+    const { rerender } = render(
+      <SessionPlan model={model} onCapability={vi.fn()} publishState="idle" />,
+    );
+    expect(screen.getByRole('button', { name: /^draft/i })).toBeInTheDocument();
+
+    rerender(
+      <SessionPlan
+        model={model}
+        onCapability={vi.fn()}
+        publishState="published"
+      />,
+    );
     expect(
-      screen.getByRole('button', { name: /activating in vtt/i }),
-    ).toBeDisabled();
+      screen.getByRole('button', {
+        name: new RegExp(`published \\(rev ${model.revision}\\)`, 'i'),
+      }),
+    ).toBeInTheDocument();
+  });
+
+  it('exposes a dedicated mobile action bar region with accessibility attributes', () => {
+    render(<SessionPlan model={model} onCapability={vi.fn()} />);
+    const region = screen.getByRole('region', { name: 'Session actions' });
+    expect(region).toBeInTheDocument();
   });
 
   it('moves the selected step to the parallel track before publishing', async () => {
@@ -152,7 +195,10 @@ describe('SessionPlan', () => {
       screen.getByRole('button', { name: /select harbormaster's warning/i }),
     );
     await user.click(screen.getByRole('button', { name: 'Parallel' }));
-    await user.click(screen.getByRole('button', { name: /publish plan/i }));
+    const publishButtons = screen.getAllByRole('button', {
+      name: /publish plan/i,
+    });
+    await user.click(publishButtons[0]);
 
     expect(onPublish).toHaveBeenCalledWith([
       expect.objectContaining({ id: 'step-1', track: 'parallel' }),

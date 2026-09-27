@@ -19,7 +19,11 @@ export const CAPABILITY_IDS = [
 ] as const;
 
 export type CapabilityId = (typeof CAPABILITY_IDS)[number];
-export type PrototypeCapabilityStatus = 'local-demo' | 'planned' | 'disabled';
+export type PrototypeCapabilityStatus =
+  | 'local-demo'
+  | 'planned'
+  | 'disabled'
+  | 'implemented';
 
 export interface PrototypeCapability {
   id: CapabilityId;
@@ -84,7 +88,7 @@ export const CAPABILITY_REGISTRY: Record<CapabilityId, PrototypeCapability> = {
   'session-plan.publish': {
     id: 'session-plan.publish',
     label: 'Publish session plan',
-    status: 'planned',
+    status: 'implemented',
     targetPhase: 'Session plan repository',
     description: 'Publish this plan and create a durable session revision.',
   },
@@ -98,7 +102,7 @@ export const CAPABILITY_REGISTRY: Record<CapabilityId, PrototypeCapability> = {
   'session-plan.activate': {
     id: 'session-plan.activate',
     label: 'Play in VTT',
-    status: 'planned',
+    status: 'implemented',
     targetPhase: 'VTT domain command',
     description: 'Open this session in the VTT using a domain command.',
   },
