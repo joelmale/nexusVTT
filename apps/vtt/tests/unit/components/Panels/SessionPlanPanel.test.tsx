@@ -14,6 +14,7 @@ import { useGameStore } from '../../../../src/stores/gameStore';
 
 vi.mock('../../../../src/services/campaignPrepClient', () => ({
   campaignPrepClient: {
+    advanceActivationStep: vi.fn(),
     getActiveSessionPlan: vi.fn(),
     updateActivationProgress: vi.fn(),
     activateSessionPlan: vi.fn(),
@@ -469,9 +470,7 @@ describe('SessionPlanPanel', () => {
       plan: mockPlan,
     });
 
-    vi.mocked(
-      campaignPrepClient.updateActivationProgress,
-    ).mockResolvedValueOnce({
+    vi.mocked(campaignPrepClient.advanceActivationStep).mockResolvedValueOnce({
       ...mockActivation,
       currentStepIndex: 1,
       stepStates: {
@@ -493,14 +492,39 @@ describe('SessionPlanPanel', () => {
     fireEvent.click(advanceBtn);
 
     await waitFor(() => {
-      expect(campaignPrepClient.updateActivationProgress).toHaveBeenCalledWith(
+      expect(campaignPrepClient.advanceActivationStep).toHaveBeenCalledWith(
         'camp-123',
         'act-123',
-        expect.objectContaining({
-          currentStepIndex: 1,
-        }),
+        'step-1',
+        0,
       );
     });
+  });
+
+  it('shows an actionable error when advancing a beat fails', async () => {
+    vi.mocked(campaignPrepClient.getActiveSessionPlan).mockResolvedValueOnce({
+      activation: mockActivation,
+      plan: mockPlan,
+    });
+    vi.mocked(campaignPrepClient.advanceActivationStep).mockRejectedValueOnce(
+      new Error('Campaign DM access required'),
+    );
+
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+    );
+
+    fireEvent.click(
+      await screen.findByRole('button', {
+        name: /complete & next beat/i,
+      }),
+    );
+
+    expect(
+      await screen.findByRole('alert', {
+        name: '',
+      }),
+    ).toHaveTextContent('Campaign DM access required');
   });
 
   it('shares handout and opens entry', async () => {

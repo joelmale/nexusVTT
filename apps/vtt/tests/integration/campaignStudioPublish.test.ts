@@ -6,7 +6,10 @@ import { CampaignPrepAuthoringService } from '../../server/campaign-prep/Campaig
 import { CampaignPrepDependencyResolver } from '../../server/campaign-prep/CampaignPrepDependencyResolver.js';
 import { SessionPlanPublishingService } from '../../server/campaign-prep/SessionPlanPublishingService.js';
 import { SessionPlanPublishValidator } from '../../server/campaign-prep/SessionPlanPublishValidator.js';
-import { createDatabaseService, type DatabaseService } from '../../server/database.js';
+import {
+  createDatabaseService,
+  type DatabaseService,
+} from '../../server/database.js';
 import { runStartupMigrations } from '../../server/startupMigrations.js';
 import type { UserAssetResolution } from '../../server/services/userAssetCatalogClient.js';
 import { assertTestDatabase } from './assertTestDatabase.js';
@@ -91,7 +94,7 @@ describeIntegration('Campaign Studio Publish Integration Smoke Test', () => {
     expect(tableNames.has('session_plan_activations')).toBe(true);
   });
 
-  it('3 through 9: exercises complete end-to-end Publish Plan path with dependencies', async () => {
+  it('3 through 12: publishes, republishes, advances, and restarts a run', async () => {
     // Step 3: Create test user without production shortcuts
     const userEmail = `smoke-dm-${Date.now()}@nexusvtt.test`;
     const user = await dbService.users.createLocalUser(
@@ -124,7 +127,9 @@ describeIntegration('Campaign Studio Publish Integration Smoke Test', () => {
             root: {
               children: [
                 {
-                  children: [{ text: 'Smuggler schedule details', type: 'text' }],
+                  children: [
+                    { text: 'Smuggler schedule details', type: 'text' },
+                  ],
                   type: 'paragraph',
                 },
               ],
@@ -290,7 +295,8 @@ describeIntegration('Campaign Studio Publish Integration Smoke Test', () => {
     });
 
     expect(publishResult.published).toBe(true);
-    if (!publishResult.published) throw new Error('Publish expected to succeed');
+    if (!publishResult.published)
+      throw new Error('Publish expected to succeed');
 
     expect(publishResult.plan.status).toBe('ready');
     expect(publishResult.plan.revision).toBe(2);
@@ -320,6 +326,65 @@ describeIntegration('Campaign Studio Publish Integration Smoke Test', () => {
     });
     expect(links.length).toBeGreaterThanOrEqual(1);
     expect(links[0].sourceObjectId).toBe(planId);
+
+    // Step 10: Publish edited content as exactly one new ready revision.
+    const proposedPlan = {
+      ...draftPlanData,
+      revision: 3,
+      status: 'draft' as const,
+      updatedAt: new Date().toISOString(),
+      steps: draftPlanData.steps.map((step, index) =>
+        index === 0
+          ? { ...step, title: 'Review the Revised Dock Ledger' }
+          : step,
+      ),
+    };
+    const republishResult = await publishingService.publish({
+      campaignId: campaign.id,
+      expectedRevision: 2,
+      planId,
+      principalId: user.id,
+      proposedPlan,
+      requestId: randomUUID(),
+    });
+    expect(republishResult.published).toBe(true);
+    if (!republishResult.published) {
+      throw new Error('Republish expected to succeed');
+    }
+    expect(republishResult.plan.revision).toBe(3);
+    expect(republishResult.plan.status).toBe('ready');
+
+    // Step 11: Activate and atomically complete the first main step.
+    const activated = await dbService.campaignPrep.activateSessionPlan({
+      activatedBy: user.id,
+      campaignId: campaign.id,
+      planRevision: 3,
+      sessionId: 'smoke-session',
+      sessionPlanId: planId,
+    });
+    const advanced = await dbService.campaignPrep.advanceSessionPlanActivation({
+      activationId: activated.activation.id,
+      campaignId: campaign.id,
+      completedBy: user.id,
+      stepId: proposedPlan.steps[0].id,
+      stepIndex: 0,
+    });
+    expect(advanced.currentStepIndex).toBe(1);
+    expect(advanced.stepStates[proposedPlan.steps[0].id]).toMatchObject({
+      completed: true,
+    });
+
+    // Step 12: Restarting creates a fresh activation at step one.
+    const restarted = await dbService.campaignPrep.activateSessionPlan({
+      activatedBy: user.id,
+      campaignId: campaign.id,
+      planRevision: 3,
+      sessionId: 'smoke-session',
+      sessionPlanId: planId,
+    });
+    expect(restarted.activation.id).not.toBe(activated.activation.id);
+    expect(restarted.activation.currentStepIndex).toBe(0);
+    expect(restarted.activation.stepStates).toEqual({});
   });
 
   it('10 & 11: validates that a missing dependency produces the expected validation issue deterministically', async () => {

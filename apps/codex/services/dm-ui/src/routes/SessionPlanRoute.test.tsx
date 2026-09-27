@@ -11,7 +11,8 @@ import * as campaignPrepApi from '@/services/campaign-prep-api';
 import { SessionPlanRoute } from './SessionPlanRoute';
 
 vi.mock('@/services/campaign-prep-api', async (importOriginal) => {
-  const actual = await importOriginal<typeof import('@/services/campaign-prep-api')>();
+  const actual =
+    await importOriginal<typeof import('@/services/campaign-prep-api')>();
   return {
     ...actual,
     activateSessionPlan: vi.fn(),
@@ -260,5 +261,82 @@ describe('SessionPlanRoute', () => {
         screen.getAllByText(/Plan activated for session session-12!/i).length,
       ).toBeGreaterThanOrEqual(1);
     });
+  });
+
+  it('creates a local draft from a published revision before republishing', async () => {
+    const user = userEvent.setup();
+    vi.mocked(campaignPrepApi.fetchSessionPlanStatus).mockResolvedValueOnce({
+      isActivated: false,
+      published: true,
+      revision: 4,
+      status: 'ready',
+    });
+
+    renderRoute();
+
+    const createDraftButtons = await screen.findAllByRole('button', {
+      name: /create draft/i,
+    });
+    await user.click(createDraftButtons[0]);
+
+    expect(
+      screen.getByRole('button', { name: /draft from rev 4/i }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByText('Draft created from published revision 4.').length,
+    ).toBeGreaterThanOrEqual(1);
+    screen
+      .getAllByRole('button', { name: /publish changes/i })
+      .forEach((button) => expect(button).toBeEnabled());
+  });
+
+  it('restarts an activated plan and reports step one ready', async () => {
+    const user = userEvent.setup();
+    vi.mocked(campaignPrepApi.fetchSessionPlanStatus).mockResolvedValueOnce({
+      activeSessionId: 'session-12',
+      isActivated: true,
+      published: true,
+      revision: 4,
+      status: 'ready',
+    });
+    vi.mocked(campaignPrepApi.activateSessionPlan).mockResolvedValueOnce({
+      activation: {
+        id: 'act-2',
+        campaignId: 'camp-1',
+        sessionPlanId: 'plan-12',
+        planRevision: 4,
+        sessionId: 'session-12',
+        currentStepIndex: 0,
+        status: 'active',
+      },
+      plan: {
+        id: 'plan-12',
+        campaignId: 'camp-1',
+        schemaVersion: 1,
+        revision: 4,
+        title: 'Session 12 - The Glass Harbor',
+        status: 'ready',
+        steps: [],
+        dependencies: [],
+        createdAt: '2026-04-26T12:00:00Z',
+        updatedAt: '2026-04-26T12:00:00Z',
+      },
+    });
+
+    renderRoute();
+
+    const restartButtons = await screen.findAllByRole('button', {
+      name: /restart run in vtt/i,
+    });
+    await user.click(restartButtons[0]);
+
+    await waitFor(() => {
+      expect(campaignPrepApi.activateSessionPlan).toHaveBeenCalledOnce();
+    });
+    expect(
+      screen.getAllByText(
+        'Run restarted for session session-12. Step 1 is ready in VTT.',
+      ).length,
+    ).toBeGreaterThanOrEqual(1);
   });
 });

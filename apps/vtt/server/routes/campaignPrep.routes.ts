@@ -28,6 +28,7 @@ interface SessionPlanPublisher {
     expectedRevision: number;
     principalId: string;
     requestId: string;
+    proposedPlan?: unknown;
   }): Promise<PublishSessionPlanResult>;
 }
 
@@ -269,9 +270,13 @@ export function createCampaignPrepRouter({
   router.post(
     '/campaigns/:campaignId/prep/objects/:objectId/publish',
     async (req: Request, res: Response) => {
-      const expectedRevision = (req.body as { expectedRevision?: unknown })
-        ?.expectedRevision;
-      const requestId = (req.body as { requestId?: unknown })?.requestId;
+      const body = req.body as {
+        data?: unknown;
+        expectedRevision?: unknown;
+        requestId?: unknown;
+      };
+      const expectedRevision = body?.expectedRevision;
+      const requestId = body?.requestId;
       if (
         !Number.isInteger(expectedRevision) ||
         (expectedRevision as number) < 1 ||
@@ -290,6 +295,7 @@ export function createCampaignPrepRouter({
           expectedRevision: expectedRevision as number,
           principalId: sessionUserId(req) ?? '',
           requestId,
+          proposedPlan: body.data,
         });
         if (!result.published) {
           const unavailable = result.validation.issues.some(
@@ -493,6 +499,57 @@ export function createCampaignPrepRouter({
         return res
           .status(500)
           .json({ error: 'Failed to update session plan progress' });
+      }
+    },
+  );
+
+  router.post(
+    '/campaigns/:campaignId/session-plans/activations/:activationId/advance',
+    async (req, res) => {
+      const campaignId = routeParameter(req.params.campaignId);
+      const activationId = routeParameter(req.params.activationId);
+      const body = req.body as {
+        stepId?: unknown;
+        stepIndex?: unknown;
+      };
+
+      if (
+        typeof body.stepId !== 'string' ||
+        !body.stepId ||
+        !Number.isInteger(body.stepIndex) ||
+        (body.stepIndex as number) < 0
+      ) {
+        return res.status(400).json({
+          error: 'stepId and a non-negative stepIndex are required',
+        });
+      }
+
+      try {
+        const activation = await db.campaignPrep.advanceSessionPlanActivation({
+          campaignId,
+          activationId,
+          stepId: body.stepId,
+          stepIndex: body.stepIndex as number,
+          completedBy: sessionUserId(req) ?? undefined,
+        });
+        return res.json({ activation });
+      } catch (error) {
+        if (error instanceof SessionPlanActivationError) {
+          const status =
+            error.code === 'not-found'
+              ? 404
+              : error.code === 'conflict'
+                ? 409
+                : 422;
+          return res.status(status).json({
+            error: error.message,
+            code: error.code,
+          });
+        }
+        console.error('Failed to advance session plan:', error);
+        return res.status(500).json({
+          error: 'Failed to advance session plan',
+        });
       }
     },
   );

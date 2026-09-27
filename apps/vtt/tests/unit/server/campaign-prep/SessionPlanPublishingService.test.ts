@@ -125,6 +125,52 @@ describe('SessionPlanPublishingService', () => {
     );
   });
 
+  it('validates and publishes proposed edits as one ready revision', async () => {
+    const proposedPlan: SessionPlan = {
+      ...draftPlan,
+      revision: 4,
+      title: 'Session 12 - Revised Harbor',
+    };
+    repository.getObject.mockResolvedValueOnce({
+      ...objectRecord,
+      status: 'ready',
+    });
+    validator.validate.mockResolvedValueOnce({
+      canPublish: true,
+      plan: proposedPlan,
+      dependencyManifest: [],
+      issues: [],
+    });
+
+    const result = await service.publish({
+      ...request,
+      proposedPlan,
+    });
+
+    expect(result).toMatchObject({
+      published: true,
+      plan: {
+        revision: 4,
+        status: 'ready',
+        title: proposedPlan.title,
+      },
+    });
+    expect(repository.getRevision).not.toHaveBeenCalled();
+    expect(validator.validate).toHaveBeenCalledWith(proposedPlan, {
+      campaignId: IDS.campaign,
+      principalId: IDS.user,
+    });
+    expect(repository.addRevision).toHaveBeenCalledWith(
+      IDS.campaign,
+      IDS.plan,
+      3,
+      expect.objectContaining({
+        revision: 4,
+        status: 'ready',
+      }),
+    );
+  });
+
   it('returns validation issues without writing a revision', async () => {
     validator.validate.mockResolvedValueOnce({
       canPublish: false,

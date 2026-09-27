@@ -143,6 +143,46 @@ describe('CampaignPrepClient', () => {
     });
   });
 
+  describe('advanceActivationStep', () => {
+    it('completes the active step through the atomic advance endpoint', async () => {
+      const activation = {
+        id: 'act-1',
+        currentStepIndex: 1,
+        stepStates: { 'step-1': { completed: true } },
+      };
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => ({ activation }),
+      } as Response);
+
+      await expect(
+        client.advanceActivationStep('camp-1', 'act-1', 'step-1', 0),
+      ).resolves.toEqual(activation);
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://localhost:5001/api/campaigns/camp-1/session-plans/activations/act-1/advance',
+        expect.objectContaining({
+          method: 'POST',
+          body: JSON.stringify({ stepId: 'step-1', stepIndex: 0 }),
+        }),
+      );
+    });
+
+    it('surfaces an advance failure', async () => {
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 409,
+        text: async () => 'Progress changed',
+      } as Response);
+
+      await expect(
+        client.advanceActivationStep('camp-1', 'act-1', 'step-1', 0),
+      ).rejects.toThrow(
+        'Failed to advance session plan (409): Progress changed',
+      );
+    });
+  });
+
   describe('getCampaignEntry', () => {
     it('fetches a campaign prep entry by ID', async () => {
       const response = {
