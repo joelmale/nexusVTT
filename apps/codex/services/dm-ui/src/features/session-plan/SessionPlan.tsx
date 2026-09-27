@@ -249,7 +249,10 @@ export function SessionPlan({
             </div>
             <div className={styles.draftActions}>
               <button className={styles.draftButton} type="button">
-                Draft <ChevronDown size={14} />
+                {publishState === 'published'
+                  ? `Published (rev ${model.revision})`
+                  : 'Draft'}{' '}
+                <ChevronDown size={14} />
               </button>
               <button
                 aria-label="More session actions"
@@ -394,6 +397,61 @@ export function SessionPlan({
             tab={workspaceTab}
           />
         )}
+
+        <div
+          aria-label="Session actions"
+          className={styles.mobileActionBar}
+          role="region"
+        >
+          {publishMessage && (
+            <p
+              className={`${styles.mobilePublishMessage} ${
+                publishState === 'error' ? styles.publishError : ''
+              }`}
+              role="status"
+            >
+              {publishMessage}
+            </p>
+          )}
+          <div className={styles.mobileActionsGroup}>
+            <button
+              className={styles.mobilePublishButton}
+              disabled={publishState === 'publishing'}
+              onClick={() =>
+                onPublish
+                  ? onPublish(steps)
+                  : onCapability('session-plan.publish')
+              }
+              type="button"
+            >
+              <Send size={15} />
+              {publishState === 'publishing'
+                ? 'Publishing...'
+                : publishState === 'published'
+                  ? 'Published'
+                  : 'Publish plan'}
+            </button>
+            {publishState === 'published' && (
+              <button
+                className={styles.mobileActivateButton}
+                disabled={activateState === 'activating'}
+                onClick={() =>
+                  onActivate
+                    ? onActivate(steps)
+                    : onCapability('session-plan.activate')
+                }
+                type="button"
+              >
+                <Play size={15} />
+                {activateState === 'activating'
+                  ? 'Activating in VTT...'
+                  : activateState === 'activated'
+                    ? 'Activated in VTT'
+                    : 'Play in VTT'}
+              </button>
+            )}
+          </div>
+        </div>
       </main>
 
       <aside className={styles.inspector} aria-label="Session details">

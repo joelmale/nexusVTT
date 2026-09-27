@@ -18,6 +18,7 @@ const steps = [
   ['workspace lock', 'check:workspace-lock'],
   ['service catalog', 'check:service-catalog'],
   ['Docker build contracts', 'check:docker-build-contracts'],
+  ['startup migrations', 'check:startup-migrations'],
   ['CI contract tests', 'test:ci-contracts'],
   ['GitHub Actions workflows', 'check:workflows'],
 ];

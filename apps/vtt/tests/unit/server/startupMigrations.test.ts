@@ -100,4 +100,57 @@ describe('runStartupMigrations', () => {
     expect(query).toHaveBeenCalledWith('ROLLBACK');
     expect(release).toHaveBeenCalledOnce();
   });
+
+  it('fails with a fatal error when a startup migration file is missing from disk', async () => {
+    const { pool } = createPool({
+      campaignObjects: false,
+      localAuth: false,
+      sessionPlanActivations: false,
+    });
+
+    await expect(
+      runStartupMigrations(pool, () => {
+        throw new Error('Required startup migration not found: missing.sql');
+      }),
+    ).rejects.toThrow('Required startup migration not found');
+  });
+
+  it('accounts for all SQL migration files in either startup or non-startup registries', async () => {
+    const fs = await import('fs');
+    const path = await import('path');
+    const migrationsDir = path.resolve(
+      __dirname,
+      '../../../server/migrations',
+    );
+    const diskFiles = fs
+      .readdirSync(migrationsDir)
+      .filter((file) => file.endsWith('.sql'));
+
+    const { STARTUP_MIGRATIONS, KNOWN_NON_STARTUP_MIGRATIONS } = await import(
+      '../../../server/startupMigrations'
+    );
+
+    const startupFileNames = STARTUP_MIGRATIONS.map((m) => m.fileName);
+    const nonStartupFileNames = KNOWN_NON_STARTUP_MIGRATIONS.map(
+      (m) => m.fileName,
+    );
+
+    // No overlap
+    const intersection = startupFileNames.filter((name) =>
+      nonStartupFileNames.includes(name),
+    );
+    expect(intersection).toEqual([]);
+
+    // Every disk file is registered
+    const allRegistered = new Set([
+      ...startupFileNames,
+      ...nonStartupFileNames,
+    ]);
+    const unmapped = diskFiles.filter((file) => !allRegistered.has(file));
+    expect(unmapped).toEqual([]);
+
+    // Startup migrations are ordered chronologically
+    const sortedStartup = [...startupFileNames].sort();
+    expect(startupFileNames).toEqual(sortedStartup);
+  });
 });

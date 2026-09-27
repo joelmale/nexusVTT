@@ -89,30 +89,64 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return body as T;
 }
 
-async function ensureSession(): Promise<UserProfile> {
-  try {
-    return await request<UserProfile>('/api/users/profile');
-  } catch {
+export class AuthenticationRequiredError extends Error {
+  readonly code = 'authentication-required';
+
+  constructor(
+    message = 'Authentication required. Please sign in to Nexus VTT.',
+  ) {
+    super(message);
+    this.name = 'AuthenticationRequiredError';
+  }
+}
+
+export async function ensureSession(): Promise<UserProfile> {
+  const profileResponse = await fetch('/api/users/profile', {
+    credentials: 'include',
+    headers: { 'Content-Type': 'application/json' },
+  });
+
+  if (profileResponse.ok) {
+    return (await profileResponse.json()) as UserProfile;
+  }
+
+  // Development-only bootstrapping: explicitly opt-in and dead-code-eliminated in production
+  if (
+    import.meta.env.DEV &&
+    import.meta.env.VITE_DEV_AUTH_BOOTSTRAP === 'true'
+  ) {
+    const devEmail = import.meta.env.VITE_DEV_AUTH_EMAIL || 'dm@nexusvtt.local';
+    const devPassword =
+      import.meta.env.VITE_DEV_AUTH_PASSWORD || 'nexus-dev-password-123';
+
     try {
       await request('/auth/login', {
         method: 'POST',
-        body: JSON.stringify({
-          email: 'dm@nexusvtt.local',
-          password: 'nexus-dev-password-123',
-        }),
+        body: JSON.stringify({ email: devEmail, password: devPassword }),
       });
     } catch {
       await request('/auth/register', {
         method: 'POST',
         body: JSON.stringify({
-          email: 'dm@nexusvtt.local',
-          password: 'nexus-dev-password-123',
+          email: devEmail,
+          password: devPassword,
           displayName: 'Dungeon Master',
         }),
       });
     }
     return request<UserProfile>('/api/users/profile');
   }
+
+  const body = (await profileResponse.json().catch(() => null)) as unknown;
+  const message = getRequestErrorMessage(body, profileResponse.status);
+  if (profileResponse.status === 401 || profileResponse.status === 403) {
+    throw new AuthenticationRequiredError(
+      message.includes('status')
+        ? 'Authentication required. Please sign in to Nexus VTT.'
+        : message,
+    );
+  }
+  throw new Error(message);
 }
 
 async function ensureCampaign(
@@ -500,6 +534,65 @@ export async function publishSessionPlan(
   );
 }
 
+export interface SessionPlanStatus {
+  planId?: string;
+  campaignId?: string;
+  status: 'draft' | 'ready' | 'none';
+  revision?: number;
+  published: boolean;
+  activeSessionId?: string;
+  isActivated?: boolean;
+}
+
+export async function fetchSessionPlanStatus(input: {
+  campaignTitle: string;
+  planTitle: string;
+}): Promise<SessionPlanStatus> {
+  await ensureSession();
+  const campaigns = await request<CampaignRecord[]>('/api/campaigns');
+  const campaign = campaigns.find((c) => c.name === input.campaignTitle);
+  if (!campaign) {
+    return { status: 'none', published: false };
+  }
+
+  const objectResponse = await request<{ objects: PrepObjectRecord[] }>(
+    `/api/campaigns/${campaign.id}/prep/objects?kind=session-plan`,
+  );
+  const plan = objectResponse.objects.find(
+    (obj) => obj.kind === 'session-plan' && obj.title === input.planTitle,
+  );
+  if (!plan) {
+    return {
+      campaignId: campaign.id,
+      status: 'draft',
+      published: false,
+    };
+  }
+
+  const activeRes = await request<{
+    activation?: {
+      id: string;
+      sessionId: string;
+      sessionPlanId: string;
+      status: string;
+    };
+  }>(`/api/campaigns/${campaign.id}/session-plans/active`).catch(() => null);
+
+  const isActivated =
+    activeRes?.activation?.sessionPlanId === plan.id &&
+    activeRes.activation.status === 'active';
+
+  return {
+    planId: plan.id,
+    campaignId: campaign.id,
+    status: plan.status === 'ready' ? 'ready' : 'draft',
+    revision: plan.currentRevision,
+    published: plan.status === 'ready',
+    activeSessionId: activeRes?.activation?.sessionId,
+    isActivated,
+  };
+}
+
 export interface ActivatePlanResponse {
   activation: {
     id: string;
@@ -516,6 +609,34 @@ export interface ActivatePlanResponse {
 export async function activateSessionPlan(
   input: PublishSessionPlanInput,
 ): Promise<ActivatePlanResponse> {
+  await ensureSession();
+  const campaigns = await request<CampaignRecord[]>('/api/campaigns');
+  const campaign = campaigns.find((c) => c.name === input.campaignTitle);
+
+  if (campaign) {
+    const objectResponse = await request<{ objects: PrepObjectRecord[] }>(
+      `/api/campaigns/${campaign.id}/prep/objects?kind=session-plan`,
+    );
+    const existingPlan = objectResponse.objects.find(
+      (obj) => obj.kind === 'session-plan' && obj.title === input.planTitle,
+    );
+
+    // If the plan is already published (ready), activate without creating a new revision
+    if (existingPlan && existingPlan.status === 'ready') {
+      return request<ActivatePlanResponse>(
+        `/api/campaigns/${campaign.id}/session-plans/${existingPlan.id}/activate`,
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            planRevision: existingPlan.currentRevision,
+            requestId: crypto.randomUUID(),
+          }),
+        },
+      );
+    }
+  }
+
+  // Not yet published: publish first, then activate
   const published = await publishSessionPlan(input);
   return request<ActivatePlanResponse>(
     `/api/campaigns/${published.plan.campaignId}/session-plans/${published.plan.id}/activate`,

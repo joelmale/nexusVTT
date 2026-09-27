@@ -1,6 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  activateSessionPlan,
+  AuthenticationRequiredError,
+  ensureSession,
+  fetchSessionPlanStatus,
   publishSessionPlan,
   type PublishSessionPlanInput,
 } from './campaign-prep-api';
@@ -238,5 +242,199 @@ describe('publishSessionPlan', () => {
     await expect(publishSessionPlan(input)).rejects.toThrow(
       'A session step dependency is absent from the plan manifest (steps.0)',
     );
+  });
+});
+
+describe('ensureSession', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+    vi.unstubAllEnvs();
+  });
+
+  it('returns profile when authenticated', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      if (String(url) === '/api/users/profile') {
+        return json({ id: 'user-42' });
+      }
+      throw new Error(`Unexpected url: ${url}`);
+    });
+
+    const profile = await ensureSession();
+    expect(profile.id).toBe('user-42');
+  });
+
+  it('throws AuthenticationRequiredError on 401 in production and never calls login or register', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      if (String(url) === '/api/users/profile') {
+        return json({ error: 'Unauthorized' }, 401);
+      }
+      return json({ ok: true });
+    });
+
+    await expect(ensureSession()).rejects.toThrow(AuthenticationRequiredError);
+    // Must only have called /api/users/profile once, never /auth/login or /auth/register
+    expect(fetchSpy).toHaveBeenCalledTimes(1);
+    expect(fetchSpy).toHaveBeenCalledWith(
+      '/api/users/profile',
+      expect.objectContaining({ credentials: 'include' }),
+    );
+  });
+
+  it('attempts dev bootstrap only when VITE_DEV_AUTH_BOOTSTRAP is explicitly enabled in dev mode', async () => {
+    vi.stubEnv('VITE_DEV_AUTH_BOOTSTRAP', 'true');
+    vi.stubEnv('VITE_DEV_AUTH_EMAIL', 'test-dm@nexus.local');
+    vi.stubEnv('VITE_DEV_AUTH_PASSWORD', 'test-password');
+
+    let profileCalls = 0;
+    let loginCalled = false;
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+      const path = String(url);
+      if (path === '/api/users/profile') {
+        profileCalls++;
+        if (profileCalls === 1) {
+          return json({ error: 'Unauthorized' }, 401);
+        }
+        return json({ id: 'bootstrapped-dm' });
+      }
+      if (path === '/auth/login') {
+        loginCalled = true;
+        const body = JSON.parse(String(init?.body));
+        expect(body.email).toBe('test-dm@nexus.local');
+        expect(body.password).toBe('test-password');
+        return json({ success: true });
+      }
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    const profile = await ensureSession();
+    expect(profile.id).toBe('bootstrapped-dm');
+    expect(loginCalled).toBe(true);
+    expect(profileCalls).toBe(2);
+  });
+});
+
+describe('fetchSessionPlanStatus', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('returns draft status when no plan object exists for the campaign', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const path = String(url);
+      if (path === '/api/users/profile') return json({ id: 'dm-1' });
+      if (path === '/api/campaigns') return json([{ id: CAMPAIGN_ID, name: input.campaignTitle }]);
+      if (path.endsWith('/prep/objects?kind=session-plan')) return json({ objects: [] });
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    const status = await fetchSessionPlanStatus({
+      campaignTitle: input.campaignTitle,
+      planTitle: input.planTitle,
+    });
+
+    expect(status).toEqual({
+      campaignId: CAMPAIGN_ID,
+      status: 'draft',
+      published: false,
+    });
+  });
+
+  it('hydrates ready status and revision when plan is published', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (url) => {
+      const path = String(url);
+      if (path === '/api/users/profile') return json({ id: 'dm-1' });
+      if (path === '/api/campaigns') return json([{ id: CAMPAIGN_ID, name: input.campaignTitle }]);
+      if (path.endsWith('/prep/objects?kind=session-plan')) {
+        return json({
+          objects: [
+            {
+              id: 'plan-101',
+              kind: 'session-plan',
+              title: input.planTitle,
+              currentRevision: 4,
+              status: 'ready',
+            },
+          ],
+        });
+      }
+      if (path.endsWith('/session-plans/active')) {
+        return json({
+          activation: {
+            id: 'act-1',
+            sessionId: 'sess-12',
+            sessionPlanId: 'plan-101',
+            status: 'active',
+          },
+        });
+      }
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    const status = await fetchSessionPlanStatus({
+      campaignTitle: input.campaignTitle,
+      planTitle: input.planTitle,
+    });
+
+    expect(status).toEqual({
+      planId: 'plan-101',
+      campaignId: CAMPAIGN_ID,
+      status: 'ready',
+      revision: 4,
+      published: true,
+      activeSessionId: 'sess-12',
+      isActivated: true,
+    });
+  });
+});
+
+describe('activateSessionPlan', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('activates an already published plan directly without publishing a new revision', async () => {
+    const fetchSpy = vi.spyOn(globalThis, 'fetch').mockImplementation(async (url, init) => {
+      const path = String(url);
+      if (path === '/api/users/profile') return json({ id: 'dm-1' });
+      if (path === '/api/campaigns') return json([{ id: CAMPAIGN_ID, name: input.campaignTitle }]);
+      if (path.endsWith('/prep/objects?kind=session-plan')) {
+        return json({
+          objects: [
+            {
+              id: 'plan-101',
+              kind: 'session-plan',
+              title: input.planTitle,
+              currentRevision: 4,
+              status: 'ready',
+            },
+          ],
+        });
+      }
+      if (path === `/api/campaigns/${CAMPAIGN_ID}/session-plans/plan-101/activate`) {
+        const body = JSON.parse(String(init?.body));
+        expect(body.planRevision).toBe(4);
+        return json({
+          activation: {
+            id: 'act-1',
+            campaignId: CAMPAIGN_ID,
+            sessionPlanId: 'plan-101',
+            planRevision: 4,
+            sessionId: 'sess-12',
+            currentStepIndex: 0,
+            status: 'active',
+          },
+          plan: { id: 'plan-101', revision: 4, status: 'ready' },
+        });
+      }
+      throw new Error(`Unexpected path: ${path}`);
+    });
+
+    const result = await activateSessionPlan(input);
+
+    expect(result.activation.planRevision).toBe(4);
+    // Verify publish endpoint was NEVER called
+    const calls = fetchSpy.mock.calls.map(([url]) => String(url));
+    expect(calls.some((url) => url.endsWith('/publish'))).toBe(false);
   });
 });

@@ -751,6 +751,10 @@
   padding: 10px;
 }
 
+.mobileActionBar {
+  display: none;
+}
+
 @media (max-width: 1180px) {
   .layout {
     grid-template-columns: 290px minmax(420px, 1fr);
@@ -758,6 +762,87 @@
 
   .inspector {
     display: none;
+  }
+
+  .mobileActionBar {
+    position: sticky;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 20;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 10px 14px;
+    padding-bottom: max(10px, env(safe-area-inset-bottom, 10px));
+    background: var(--studio-surface-raised);
+    border-top: 1px solid var(--studio-border);
+    box-shadow: 0 -4px 12px rgba(0, 0, 0, 0.15);
+  }
+
+  .mobileActionsGroup {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .mobilePublishButton,
+  .mobileActivateButton {
+    align-items: center;
+    border-radius: var(--studio-radius-control);
+    cursor: pointer;
+    display: inline-flex;
+    flex: 1;
+    font-size: 13px;
+    font-weight: 650;
+    gap: 6px;
+    justify-content: center;
+    min-height: 38px;
+    padding: 0 12px;
+  }
+
+  .mobilePublishButton {
+    background: var(--studio-positive);
+    border: 1px solid var(--studio-positive);
+    color: var(--studio-text-on-chrome);
+  }
+
+  .mobilePublishButton:hover:not(:disabled) {
+    opacity: 0.92;
+  }
+
+  .mobilePublishButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .mobileActivateButton {
+    background: var(--studio-positive);
+    border: 1px solid var(--studio-positive);
+    color: #fff;
+  }
+
+  .mobileActivateButton:hover:not(:disabled) {
+    opacity: 0.92;
+  }
+
+  .mobileActivateButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.6;
+  }
+
+  .mobilePublishButton:focus-visible,
+  .mobileActivateButton:focus-visible {
+    outline: 2px solid var(--studio-focus, #3b82f6);
+    outline-offset: 2px;
+  }
+
+  .mobilePublishMessage {
+    color: var(--studio-text-muted);
+    font-size: 11px;
+    line-height: 1.4;
+    margin: 0;
   }
 }
 

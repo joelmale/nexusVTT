@@ -36,8 +36,16 @@ export function CapabilityNoticeProvider({
           <div className={styles.content} role="status" aria-live="polite">
             <p className={styles.title}>{capability.label}</p>
             <p className={styles.description}>{capability.description}</p>
-            <p className={styles.phase}>Planned: {capability.targetPhase}</p>
-            <p className={styles.unchanged}>No data changed.</p>
+            <p className={styles.phase}>
+              {capability.status === 'implemented'
+                ? `Implemented: ${capability.targetPhase}`
+                : `Planned: ${capability.targetPhase}`}
+            </p>
+            <p className={styles.unchanged}>
+              {capability.status === 'implemented'
+                ? 'Active in Campaign Studio.'
+                : 'No data changed.'}
+            </p>
           </div>
           <button
             aria-label="Dismiss capability notice"

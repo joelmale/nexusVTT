@@ -1,3 +1,4 @@
+import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import {
@@ -8,7 +9,19 @@ import {
   useCapabilityNotice,
 } from './index';
 
-function Trigger() {
+function PlannedTrigger() {
+  const { notifyCapability } = useCapabilityNotice();
+  return (
+    <button
+      onClick={() => notifyCapability('campaign.search')}
+      type="button"
+    >
+      Search
+    </button>
+  );
+}
+
+function ImplementedTrigger() {
   const { notifyCapability } = useCapabilityNotice();
   return (
     <button
@@ -21,7 +34,7 @@ function Trigger() {
 }
 
 describe('capability registry', () => {
-  it('registers every planned capability with complete metadata', () => {
+  it('registers every capability with complete metadata and valid status', () => {
     expect(Object.keys(CAPABILITY_REGISTRY).sort()).toEqual(
       [...CAPABILITY_IDS].sort(),
     );
@@ -29,7 +42,11 @@ describe('capability registry', () => {
       const capability = getCapability(id);
       expect(capability.id).toBe(id);
       expect(capability.label).not.toBe('');
-      expect(capability.status).toBe('planned');
+      if (id === 'session-plan.publish' || id === 'session-plan.activate') {
+        expect(capability.status).toBe('implemented');
+      } else {
+        expect(capability.status).toBe('planned');
+      }
       expect(capability.targetPhase).not.toBe('');
       expect(capability.description).not.toBe('');
     }
@@ -37,10 +54,26 @@ describe('capability registry', () => {
 });
 
 describe('CapabilityNoticeProvider', () => {
-  it('shows an accessible capability notice with phase and unchanged-data state', () => {
+  it('shows an accessible capability notice with phase and unchanged-data state for planned capabilities', () => {
     render(
       <CapabilityNoticeProvider>
-        <Trigger />
+        <PlannedTrigger />
+      </CapabilityNoticeProvider>,
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: 'Search' }));
+
+    expect(screen.getByRole('status')).toHaveTextContent('Campaign search');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Planned: Unified prep search',
+    );
+    expect(screen.getByRole('status')).toHaveTextContent('No data changed.');
+  });
+
+  it('shows implemented status for implemented capabilities', () => {
+    render(
+      <CapabilityNoticeProvider>
+        <ImplementedTrigger />
       </CapabilityNoticeProvider>,
     );
 
@@ -50,15 +83,17 @@ describe('CapabilityNoticeProvider', () => {
       'Publish session plan',
     );
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Planned: Session plan repository',
+      'Implemented: Session plan repository',
     );
-    expect(screen.getByRole('status')).toHaveTextContent('No data changed.');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Active in Campaign Studio.',
+    );
   });
 
   it('allows the notice to be dismissed accessibly', () => {
     render(
       <CapabilityNoticeProvider>
-        <Trigger />
+        <ImplementedTrigger />
       </CapabilityNoticeProvider>,
     );
     fireEvent.click(screen.getByRole('button', { name: 'Publish' }));
@@ -69,7 +104,7 @@ describe('CapabilityNoticeProvider', () => {
   });
 
   it('requires consumers to be inside the provider', () => {
-    expect(() => render(<Trigger />)).toThrow(
+    expect(() => render(<ImplementedTrigger />)).toThrow(
       'useCapabilityNotice must be used within CapabilityNoticeProvider',
     );
   });

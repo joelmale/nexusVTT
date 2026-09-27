@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import {
   ashesOfVeyra,
@@ -18,6 +18,7 @@ import type {
 import { StudioFrame } from '@/features/studio-shell/StudioFrame';
 import {
   activateSessionPlan,
+  fetchSessionPlanStatus,
   publishSessionPlan,
   type PublishSessionPlanInput,
 } from '@/services/campaign-prep-api';
@@ -189,6 +190,7 @@ function buildSessionPlanModel(): SessionPlanViewModel {
 export function SessionPlanRoute() {
   const { notifyCapability } = useCapabilityNotice();
   const model = useMemo(buildSessionPlanModel, []);
+  const [persistedRevision, setPersistedRevision] = useState<number>();
   const [publishState, setPublishState] = useState<
     'idle' | 'publishing' | 'published' | 'error'
   >('idle');
@@ -197,15 +199,52 @@ export function SessionPlanRoute() {
     'idle' | 'activating' | 'activated' | 'error'
   >('idle');
 
+  const activeModel = useMemo(() => {
+    if (persistedRevision === undefined) return model;
+    return {
+      ...model,
+      revision: persistedRevision,
+    };
+  }, [model, persistedRevision]);
+
+  useEffect(() => {
+    let mounted = true;
+    async function hydrate() {
+      try {
+        const status = await fetchSessionPlanStatus({
+          campaignTitle: model.campaignTitle,
+          planTitle: model.title,
+        });
+        if (!mounted) return;
+        if (status.published && status.revision) {
+          setPersistedRevision(status.revision);
+          setPublishState('published');
+          setPublishMessage(
+            `Published revision ${status.revision} is ready in Nexus VTT.`,
+          );
+          if (status.isActivated) {
+            setActivateState('activated');
+          }
+        }
+      } catch {
+        // Unauthenticated or offline: keep initial draft state without blocking the UI
+      }
+    }
+    hydrate();
+    return () => {
+      mounted = false;
+    };
+  }, [model.campaignTitle, model.title]);
+
   function createPublishInput(
     steps: SessionStepViewModel[],
   ): PublishSessionPlanInput {
     return {
-      campaignDescription: model.campaignDescription,
-      campaignTitle: model.campaignTitle,
-      planTitle: model.title,
-      revision: model.revision,
-      sceneMapPath: model.sceneMapPath,
+      campaignDescription: activeModel.campaignDescription,
+      campaignTitle: activeModel.campaignTitle,
+      planTitle: activeModel.title,
+      revision: activeModel.revision,
+      sceneMapPath: activeModel.sceneMapPath,
       steps,
     };
   }
@@ -218,6 +257,7 @@ export function SessionPlanRoute() {
     try {
       const result = await publishSessionPlan(createPublishInput(steps));
       setPublishState('published');
+      setPersistedRevision(result.plan.revision);
       setPublishMessage(
         `Published revision ${result.plan.revision} to Nexus VTT.`,
       );
@@ -237,6 +277,9 @@ export function SessionPlanRoute() {
     try {
       const result = await activateSessionPlan(createPublishInput(steps));
       setActivateState('activated');
+      if (result.plan?.revision) {
+        setPersistedRevision(result.plan.revision);
+      }
       setPublishMessage(
         `Plan activated for session ${result.activation.sessionId}! Step 1 is ready in VTT.`,
       );
@@ -259,7 +302,7 @@ export function SessionPlanRoute() {
     >
       <SessionPlan
         activateState={activateState}
-        model={model}
+        model={activeModel}
         onActivate={activatePlan}
         onCapability={notifyCapability}
         onPublish={publishPlan}
