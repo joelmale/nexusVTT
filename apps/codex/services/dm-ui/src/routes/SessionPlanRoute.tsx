@@ -306,6 +306,7 @@ export function SessionPlanRoute() {
         onActivate={activatePlan}
         onCapability={notifyCapability}
         onPublish={publishPlan}
+        persistedRevision={persistedRevision}
         publishMessage={publishMessage}
         publishState={publishState}
       />

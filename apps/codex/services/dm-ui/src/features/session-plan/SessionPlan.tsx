@@ -34,6 +34,7 @@ interface SessionPlanProps {
   onPublish?: (steps: SessionStepViewModel[]) => void;
   onActivate?: (steps: SessionStepViewModel[]) => void;
   publishMessage?: string;
+  persistedRevision?: number;
   publishState?: 'idle' | 'publishing' | 'published' | 'error';
   activateState?: 'idle' | 'activating' | 'activated' | 'error';
 }
@@ -55,6 +56,7 @@ export function SessionPlan({
   onPublish,
   onActivate,
   publishMessage,
+  persistedRevision,
   publishState = 'idle',
   activateState = 'idle',
 }: SessionPlanProps) {
@@ -431,7 +433,7 @@ export function SessionPlan({
                   ? 'Published'
                   : 'Publish plan'}
             </button>
-            {publishState === 'published' && (
+            {(publishState === 'published' || persistedRevision !== undefined) && (
               <button
                 className={styles.mobileActivateButton}
                 disabled={activateState === 'activating'}
@@ -606,7 +608,7 @@ export function SessionPlan({
                 ? 'Published'
                 : 'Publish plan'}
           </button>
-          {publishState === 'published' && (
+          {(publishState === 'published' || persistedRevision !== undefined) && (
             <button
               className={styles.activateButton}
               disabled={activateState === 'activating'}

@@ -503,6 +503,24 @@ export async function publishSessionPlan(
     (object) =>
       object.kind === 'session-plan' && object.title === input.planTitle,
   );
+
+  // Idempotency guard: if the plan is already published (ready), skip draft
+  // creation and re-publish the current revision directly. Without this guard,
+  // revisePrepObject() advances currentRevision to N+1, then the publish
+  // endpoint advances it again to N+2, causing the observed +2 double-increment.
+  if (plan && plan.status === 'ready') {
+    return request<PublishResponse>(
+      `/api/campaigns/${campaign.id}/prep/objects/${plan.id}/publish`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          expectedRevision: plan.currentRevision,
+          requestId: crypto.randomUUID(),
+        }),
+      },
+    );
+  }
+
   const planId = plan?.id ?? crypto.randomUUID();
   const revision = plan ? plan.currentRevision + 1 : 1;
   const data: SessionPlan = {
