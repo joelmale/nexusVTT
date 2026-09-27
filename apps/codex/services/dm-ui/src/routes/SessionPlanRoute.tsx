@@ -195,6 +195,7 @@ export function SessionPlanRoute() {
     'idle' | 'publishing' | 'published' | 'error'
   >('idle');
   const [publishMessage, setPublishMessage] = useState<string>();
+  const [isDirty, setIsDirty] = useState(false);
   const [activateState, setActivateState] = useState<
     'idle' | 'activating' | 'activated' | 'error'
   >('idle');
@@ -219,6 +220,7 @@ export function SessionPlanRoute() {
         if (status.published && status.revision) {
           setPersistedRevision(status.revision);
           setPublishState('published');
+          setIsDirty(false);
           setPublishMessage(
             `Published revision ${status.revision} is ready in Nexus VTT.`,
           );
@@ -257,6 +259,7 @@ export function SessionPlanRoute() {
     try {
       const result = await publishSessionPlan(createPublishInput(steps));
       setPublishState('published');
+      setIsDirty(false);
       setPersistedRevision(result.plan.revision);
       setPublishMessage(
         `Published revision ${result.plan.revision} to Nexus VTT.`,
@@ -272,8 +275,13 @@ export function SessionPlanRoute() {
   }
 
   async function activatePlan(steps: SessionStepViewModel[]) {
+    const isRestart = activateState === 'activated';
     setActivateState('activating');
-    setPublishMessage('Activating plan in Nexus VTT...');
+    setPublishMessage(
+      isRestart
+        ? 'Restarting the run sheet at step 1...'
+        : 'Activating plan in Nexus VTT...',
+    );
     try {
       const result = await activateSessionPlan(createPublishInput(steps));
       setActivateState('activated');
@@ -281,7 +289,9 @@ export function SessionPlanRoute() {
         setPersistedRevision(result.plan.revision);
       }
       setPublishMessage(
-        `Plan activated for session ${result.activation.sessionId}! Step 1 is ready in VTT.`,
+        isRestart
+          ? `Run restarted for session ${result.activation.sessionId}. Step 1 is ready in VTT.`
+          : `Plan activated for session ${result.activation.sessionId}! Step 1 is ready in VTT.`,
       );
     } catch (error) {
       setActivateState('error');
@@ -293,6 +303,20 @@ export function SessionPlanRoute() {
     }
   }
 
+  function beginDraft() {
+    setIsDirty(true);
+    setPublishState('idle');
+    setPublishMessage(
+      `Draft created from published revision ${persistedRevision ?? model.revision}.`,
+    );
+  }
+
+  function markDirty() {
+    setIsDirty(true);
+    setPublishState('idle');
+    setPublishMessage('You have unpublished changes.');
+  }
+
   return (
     <StudioFrame
       onCapability={notifyCapability}
@@ -302,9 +326,12 @@ export function SessionPlanRoute() {
     >
       <SessionPlan
         activateState={activateState}
+        isDirty={isDirty}
         model={activeModel}
         onActivate={activatePlan}
+        onBeginDraft={beginDraft}
         onCapability={notifyCapability}
+        onDirty={markDirty}
         onPublish={publishPlan}
         persistedRevision={persistedRevision}
         publishMessage={publishMessage}

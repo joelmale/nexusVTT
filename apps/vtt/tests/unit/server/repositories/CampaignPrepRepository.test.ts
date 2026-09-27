@@ -399,4 +399,59 @@ describe('CampaignPrepRepository', () => {
       'WHEN $5 = \'completed\' THEN COALESCE("completedAt", NOW())',
     );
   });
+
+  it('completes the active step and advances in one transaction', async () => {
+    const stepId = '10000000-0000-4000-8000-000000000001';
+    const nextStepId = '10000000-0000-4000-8000-000000000002';
+    const activationRecord = {
+      id: '99999999-9999-4999-8999-999999999999',
+      campaignId: IDS.campaign,
+      sessionPlanId: IDS.object,
+      planRevision: 1,
+      sessionId: 'session-123',
+      currentStepIndex: 0,
+      status: 'active' as const,
+      stepStates: {},
+      activatedBy: IDS.user,
+      createdAt: new Date(),
+      updatedAt: new Date(),
+    };
+    const planRevision = {
+      ...revisionRecord,
+      data: {
+        steps: [
+          { id: stepId, track: 'main' },
+          { id: nextStepId, track: 'main' },
+        ],
+      },
+    };
+    const updatedActivation = {
+      ...activationRecord,
+      currentStepIndex: 1,
+      stepStates: { [stepId]: { completed: true } },
+    };
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [activationRecord] })
+      .mockResolvedValueOnce({ rows: [planRevision] })
+      .mockResolvedValueOnce({ rows: [updatedActivation] })
+      .mockResolvedValueOnce({ rows: [] });
+
+    const result = await repository.advanceSessionPlanActivation({
+      activationId: activationRecord.id,
+      campaignId: IDS.campaign,
+      completedBy: IDS.user,
+      stepId,
+      stepIndex: 0,
+    });
+
+    expect(result.currentStepIndex).toBe(1);
+    expect(clientQuery).toHaveBeenCalledWith('COMMIT');
+    expect(clientQuery.mock.calls[3]?.[1]).toMatchObject({
+      0: activationRecord.id,
+      1: IDS.campaign,
+      2: 1,
+      4: 0,
+    });
+  });
 });

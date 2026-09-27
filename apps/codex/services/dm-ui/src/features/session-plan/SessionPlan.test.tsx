@@ -152,6 +152,63 @@ describe('SessionPlan', () => {
     });
     expect(activatingBtns).toHaveLength(2);
     activatingBtns.forEach((btn) => expect(btn).toBeDisabled());
+
+    rerender(
+      <SessionPlan
+        activateState="activated"
+        model={model}
+        onActivate={onActivate}
+        onCapability={vi.fn()}
+        publishState="published"
+      />,
+    );
+    const restartButtons = screen.getAllByRole('button', {
+      name: /restart run in vtt/i,
+    });
+    expect(restartButtons).toHaveLength(2);
+    await user.click(restartButtons[0]);
+    expect(onActivate).toHaveBeenCalledTimes(2);
+  });
+
+  it('protects an unchanged publication and can create an editable draft', async () => {
+    const user = userEvent.setup();
+    const onBeginDraft = vi.fn();
+    const { rerender } = render(
+      <SessionPlan
+        isDirty={false}
+        model={model}
+        onBeginDraft={onBeginDraft}
+        onCapability={vi.fn()}
+        persistedRevision={3}
+        publishState="published"
+      />,
+    );
+
+    const publishedButtons = screen.getAllByRole('button', {
+      name: /^published$/i,
+    });
+    expect(publishedButtons).toHaveLength(2);
+    publishedButtons.forEach((button) => expect(button).toBeDisabled());
+
+    const draftButtons = screen.getAllByRole('button', {
+      name: /create draft/i,
+    });
+    expect(draftButtons).toHaveLength(2);
+    await user.click(draftButtons[0]);
+    expect(onBeginDraft).toHaveBeenCalledOnce();
+
+    rerender(
+      <SessionPlan
+        isDirty
+        model={model}
+        onCapability={vi.fn()}
+        persistedRevision={3}
+        publishState="idle"
+      />,
+    );
+    screen
+      .getAllByRole('button', { name: /publish changes/i })
+      .forEach((button) => expect(button).toBeEnabled());
   });
 
   it('updates header draft button to show revision when published', () => {

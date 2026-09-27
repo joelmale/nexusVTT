@@ -30,6 +30,7 @@ describe('campaign prep routes', () => {
     activateSessionPlan: ReturnType<typeof vi.fn>;
     getActiveSessionPlanActivation: ReturnType<typeof vi.fn>;
     getActivation: ReturnType<typeof vi.fn>;
+    advanceSessionPlanActivation: ReturnType<typeof vi.fn>;
     updateSessionPlanActivationProgress: ReturnType<typeof vi.fn>;
   };
   let publisher: { publish: ReturnType<typeof vi.fn> };
@@ -55,6 +56,7 @@ describe('campaign prep routes', () => {
       activateSessionPlan: vi.fn(),
       getActiveSessionPlanActivation: vi.fn(),
       getActivation: vi.fn(),
+      advanceSessionPlanActivation: vi.fn(),
       updateSessionPlanActivationProgress: vi.fn(),
     };
     publisher = { publish: vi.fn() };
@@ -241,6 +243,7 @@ describe('campaign prep routes', () => {
       revision: { objectId: PLAN_ID, revision: 4 },
     });
     const response = await publish({
+      data: { id: PLAN_ID, revision: 4, status: 'draft' },
       expectedRevision: 3,
       requestId: REQUEST_ID,
     });
@@ -252,6 +255,7 @@ describe('campaign prep routes', () => {
       expectedRevision: 3,
       principalId: USER_ID,
       requestId: REQUEST_ID,
+      proposedPlan: { id: PLAN_ID, revision: 4, status: 'draft' },
     });
   });
 
@@ -450,6 +454,34 @@ describe('campaign prep routes', () => {
         status: 'completed',
       }),
     );
+  });
+
+  it('advances the active session-plan step atomically', async () => {
+    const activationId = '99999999-9999-4999-8999-999999999999';
+    campaignPrep.advanceSessionPlanActivation.mockResolvedValueOnce({
+      id: activationId,
+      currentStepIndex: 1,
+      status: 'active',
+      stepStates: { 'step-1': { completed: true } },
+    });
+
+    const response = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans/activations/${activationId}/advance`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stepId: 'step-1', stepIndex: 0 }),
+      },
+    );
+
+    expect(response.status).toBe(200);
+    expect(campaignPrep.advanceSessionPlanActivation).toHaveBeenCalledWith({
+      activationId,
+      campaignId: CAMPAIGN_ID,
+      completedBy: USER_ID,
+      stepId: 'step-1',
+      stepIndex: 0,
+    });
   });
 
   it('rejects an invalid activation status', async () => {

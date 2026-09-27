@@ -100,6 +100,33 @@ export class CampaignPrepClient {
     return data.activation;
   }
 
+  async advanceActivationStep(
+    campaignId: string,
+    activationId: string,
+    stepId: string,
+    stepIndex: number,
+  ): Promise<SessionPlanActivation> {
+    const res = await fetch(
+      `${this.baseUrl}/api/campaigns/${encodeURIComponent(campaignId)}/session-plans/activations/${encodeURIComponent(activationId)}/advance`,
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ stepId, stepIndex }),
+      },
+    );
+
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => 'Request failed');
+      throw new Error(
+        `Failed to advance session plan (${res.status}): ${errorText}`,
+      );
+    }
+
+    const data = (await res.json()) as { activation: SessionPlanActivation };
+    return data.activation;
+  }
+
   async getCampaignEntry(
     campaignId: string,
     entryId: string,

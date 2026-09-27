@@ -31,7 +31,13 @@ export class CampaignPrepRevisionConflictError extends Error {
 export class SessionPlanActivationError extends Error {
   constructor(
     message: string,
-    public readonly code: 'not-found' | 'not-ready' | 'invalid-revision',
+    public readonly code:
+      | 'not-found'
+      | 'not-ready'
+      | 'invalid-revision'
+      | 'inactive'
+      | 'invalid-step'
+      | 'conflict',
   ) {
     super(message);
     this.name = 'SessionPlanActivationError';
@@ -80,6 +86,14 @@ export interface UpdateSessionPlanActivationProgressInput {
   currentStepIndex?: number;
   stepStates?: Record<string, unknown>;
   status?: SessionPlanActivationStatus;
+}
+
+export interface AdvanceSessionPlanActivationInput {
+  campaignId: string;
+  activationId: string;
+  stepId: string;
+  stepIndex: number;
+  completedBy?: string;
 }
 
 export class CampaignPrepRepository extends BaseRepository {
@@ -441,6 +455,99 @@ export class CampaignPrepRepository extends BaseRepository {
       );
     }
     return updated;
+  }
+
+  async advanceSessionPlanActivation(
+    input: AdvanceSessionPlanActivationInput,
+    client?: PoolClient,
+  ): Promise<SessionPlanActivationRecord> {
+    return this.withTransaction(client, async (executor) => {
+      const activationResult =
+        await executor.query<SessionPlanActivationRecord>(
+          `SELECT * FROM session_plan_activations
+           WHERE id = $1 AND "campaignId" = $2
+           FOR UPDATE`,
+          [input.activationId, input.campaignId],
+        );
+      const activation = activationResult.rows[0];
+      if (!activation) {
+        throw new SessionPlanActivationError(
+          `Session plan activation ${input.activationId} was not found`,
+          'not-found',
+        );
+      }
+      if (activation.status !== 'active') {
+        throw new SessionPlanActivationError(
+          'Only an active session plan can advance',
+          'inactive',
+        );
+      }
+
+      const revision = await this.getRevision(
+        activation.sessionPlanId,
+        activation.planRevision,
+        executor,
+      );
+      if (!revision) {
+        throw new SessionPlanActivationError(
+          `Session plan revision ${activation.planRevision} does not exist`,
+          'invalid-revision',
+        );
+      }
+
+      const plan = revision.data as SessionPlan;
+      const mainSteps = plan.steps.filter((step) => step.track !== 'parallel');
+      const step = mainSteps[input.stepIndex];
+      if (
+        !step ||
+        step.id !== input.stepId ||
+        input.stepIndex !== activation.currentStepIndex
+      ) {
+        throw new SessionPlanActivationError(
+          'The requested step is not the active session-plan step',
+          'invalid-step',
+        );
+      }
+
+      const stepStates = {
+        ...activation.stepStates,
+        [input.stepId]: {
+          completed: true,
+          completedAt: new Date().toISOString(),
+          completedBy: input.completedBy,
+        },
+      };
+      const nextStepIndex = Math.min(
+        input.stepIndex + 1,
+        Math.max(mainSteps.length - 1, 0),
+      );
+      const updatedResult = await executor.query<SessionPlanActivationRecord>(
+        `UPDATE session_plan_activations
+           SET "currentStepIndex" = $3,
+               "stepStates" = $4::jsonb,
+               "updatedAt" = NOW()
+           WHERE id = $1
+             AND "campaignId" = $2
+             AND status = 'active'
+             AND "currentStepIndex" = $5
+           RETURNING *`,
+        [
+          input.activationId,
+          input.campaignId,
+          nextStepIndex,
+          JSON.stringify(stepStates),
+          input.stepIndex,
+        ],
+      );
+      const updated = updatedResult.rows[0];
+      if (!updated) {
+        throw new SessionPlanActivationError(
+          'Session plan progress changed while the step was being completed',
+          'conflict',
+        );
+      }
+      return updated;
+    });
   }
 
   private async insertRevision(

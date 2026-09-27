@@ -4,6 +4,7 @@ import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
 import Clock3 from 'lucide-react/dist/esm/icons/clock-3';
 import Eye from 'lucide-react/dist/esm/icons/eye';
+import FilePenLine from 'lucide-react/dist/esm/icons/file-pen-line';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
 import GripVertical from 'lucide-react/dist/esm/icons/grip-vertical';
 import ListFilter from 'lucide-react/dist/esm/icons/list-filter';
@@ -11,6 +12,7 @@ import MessageSquareText from 'lucide-react/dist/esm/icons/message-square-text';
 import MoreHorizontal from 'lucide-react/dist/esm/icons/more-horizontal';
 import Play from 'lucide-react/dist/esm/icons/play';
 import Plus from 'lucide-react/dist/esm/icons/plus';
+import RotateCcw from 'lucide-react/dist/esm/icons/rotate-ccw';
 import Search from 'lucide-react/dist/esm/icons/search';
 import Send from 'lucide-react/dist/esm/icons/send';
 import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
@@ -33,8 +35,11 @@ interface SessionPlanProps {
   onCapability: (capabilityId: CapabilityId) => void;
   onPublish?: (steps: SessionStepViewModel[]) => void;
   onActivate?: (steps: SessionStepViewModel[]) => void;
+  onBeginDraft?: () => void;
+  onDirty?: () => void;
   publishMessage?: string;
   persistedRevision?: number;
+  isDirty?: boolean;
   publishState?: 'idle' | 'publishing' | 'published' | 'error';
   activateState?: 'idle' | 'activating' | 'activated' | 'error';
 }
@@ -55,8 +60,11 @@ export function SessionPlan({
   onCapability,
   onPublish,
   onActivate,
+  onBeginDraft,
+  onDirty,
   publishMessage,
   persistedRevision,
+  isDirty = false,
   publishState = 'idle',
   activateState = 'idle',
 }: SessionPlanProps) {
@@ -94,6 +102,16 @@ export function SessionPlan({
   }, [libraryObjects, search]);
 
   const completedChecks = checklist.filter((item) => item.complete).length;
+  const publishDisabled =
+    publishState === 'publishing' || (publishState === 'published' && !isDirty);
+  const publishLabel =
+    publishState === 'publishing'
+      ? 'Publishing...'
+      : publishState === 'published' && !isDirty
+        ? 'Published'
+        : persistedRevision !== undefined
+          ? 'Publish changes'
+          : 'Publish plan';
 
   function toggleFolder(folderId: string) {
     setExpandedFolders((current) => {
@@ -105,17 +123,18 @@ export function SessionPlan({
   }
 
   function moveStep(stepId: string, offset: -1 | 1) {
+    const fromIndex = steps.findIndex((step) => step.id === stepId);
+    const toIndex = fromIndex + offset;
+    if (fromIndex < 0 || toIndex < 0 || toIndex >= steps.length) {
+      return;
+    }
     setSteps((current) => {
-      const fromIndex = current.findIndex((step) => step.id === stepId);
-      const toIndex = fromIndex + offset;
-      if (fromIndex < 0 || toIndex < 0 || toIndex >= current.length) {
-        return current;
-      }
       const next = [...current];
       const [moved] = next.splice(fromIndex, 1);
       next.splice(toIndex, 0, moved);
       return next;
     });
+    onDirty?.();
   }
 
   function addStep() {
@@ -129,12 +148,14 @@ export function SessionPlan({
     };
     setSteps((current) => [...current, reminder]);
     setSelectedStepId(reminder.id);
+    onDirty?.();
   }
 
   function setStepTrack(stepId: string, track: SessionStepViewModel['track']) {
     setSteps((current) =>
       current.map((step) => (step.id === stepId ? { ...step, track } : step)),
     );
+    onDirty?.();
   }
 
   return (
@@ -251,9 +272,11 @@ export function SessionPlan({
             </div>
             <div className={styles.draftActions}>
               <button className={styles.draftButton} type="button">
-                {publishState === 'published'
+                {publishState === 'published' && !isDirty
                   ? `Published (rev ${model.revision})`
-                  : 'Draft'}{' '}
+                  : persistedRevision !== undefined
+                    ? `Draft from rev ${persistedRevision}`
+                    : 'Draft'}{' '}
                 <ChevronDown size={14} />
               </button>
               <button
@@ -418,7 +441,7 @@ export function SessionPlan({
           <div className={styles.mobileActionsGroup}>
             <button
               className={styles.mobilePublishButton}
-              disabled={publishState === 'publishing'}
+              disabled={publishDisabled}
               onClick={() =>
                 onPublish
                   ? onPublish(steps)
@@ -427,13 +450,19 @@ export function SessionPlan({
               type="button"
             >
               <Send size={15} />
-              {publishState === 'publishing'
-                ? 'Publishing...'
-                : publishState === 'published'
-                  ? 'Published'
-                  : 'Publish plan'}
+              {publishLabel}
             </button>
-            {(publishState === 'published' || persistedRevision !== undefined) && (
+            {publishState === 'published' && !isDirty && (
+              <button
+                className={styles.mobileDraftButton}
+                onClick={onBeginDraft}
+                type="button"
+              >
+                <FilePenLine size={15} /> Create draft
+              </button>
+            )}
+            {(publishState === 'published' ||
+              persistedRevision !== undefined) && (
               <button
                 className={styles.mobileActivateButton}
                 disabled={activateState === 'activating'}
@@ -444,11 +473,15 @@ export function SessionPlan({
                 }
                 type="button"
               >
-                <Play size={15} />
+                {activateState === 'activated' ? (
+                  <RotateCcw size={15} />
+                ) : (
+                  <Play size={15} />
+                )}
                 {activateState === 'activating'
                   ? 'Activating in VTT...'
                   : activateState === 'activated'
-                    ? 'Activated in VTT'
+                    ? 'Restart run in VTT'
                     : 'Play in VTT'}
               </button>
             )}
@@ -593,7 +626,7 @@ export function SessionPlan({
           )}
           <button
             className={styles.publishButton}
-            disabled={publishState === 'publishing'}
+            disabled={publishDisabled}
             onClick={() =>
               onPublish
                 ? onPublish(steps)
@@ -602,13 +635,19 @@ export function SessionPlan({
             type="button"
           >
             <Send size={15} />
-            {publishState === 'publishing'
-              ? 'Publishing...'
-              : publishState === 'published'
-                ? 'Published'
-                : 'Publish plan'}
+            {publishLabel}
           </button>
-          {(publishState === 'published' || persistedRevision !== undefined) && (
+          {publishState === 'published' && !isDirty && (
+            <button
+              className={styles.draftActionButton}
+              onClick={onBeginDraft}
+              type="button"
+            >
+              <FilePenLine size={15} /> Create draft
+            </button>
+          )}
+          {(publishState === 'published' ||
+            persistedRevision !== undefined) && (
             <button
               className={styles.activateButton}
               disabled={activateState === 'activating'}
@@ -619,11 +658,15 @@ export function SessionPlan({
               }
               type="button"
             >
-              <Play size={15} />
+              {activateState === 'activated' ? (
+                <RotateCcw size={15} />
+              ) : (
+                <Play size={15} />
+              )}
               {activateState === 'activating'
                 ? 'Activating in VTT...'
                 : activateState === 'activated'
-                  ? 'Activated in VTT'
+                  ? 'Restart run in VTT'
                   : 'Play in VTT'}
             </button>
           )}

@@ -691,6 +691,27 @@
   width: 100%;
 }
 
+.draftActionButton {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  cursor: pointer;
+  display: flex;
+  font-size: 13px;
+  font-weight: 650;
+  gap: 8px;
+  justify-content: center;
+  margin-top: 8px;
+  min-height: 38px;
+  width: 100%;
+}
+
+.draftActionButton:hover {
+  background: var(--studio-surface-hover);
+}
+
 .activateButton:hover:not(:disabled) {
   opacity: 0.92;
 }
@@ -788,6 +809,7 @@
   }
 
   .mobilePublishButton,
+  .mobileDraftButton,
   .mobileActivateButton {
     align-items: center;
     border-radius: var(--studio-radius-control);
@@ -800,6 +822,16 @@
     justify-content: center;
     min-height: 38px;
     padding: 0 12px;
+  }
+
+  .mobileDraftButton {
+    background: transparent;
+    border: 1px solid var(--studio-border-strong);
+    color: var(--studio-text);
+  }
+
+  .mobileDraftButton:hover {
+    background: var(--studio-surface-hover);
   }
 
   .mobilePublishButton {
@@ -833,6 +865,7 @@
   }
 
   .mobilePublishButton:focus-visible,
+  .mobileDraftButton:focus-visible,
   .mobileActivateButton:focus-visible {
     outline: 2px solid var(--studio-focus, #3b82f6);
     outline-offset: 2px;

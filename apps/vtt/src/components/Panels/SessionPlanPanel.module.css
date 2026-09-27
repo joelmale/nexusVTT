@@ -433,6 +433,12 @@
   border-top: 1px dashed rgba(255, 255, 255, 0.08);
 }
 
+.progressError {
+  color: var(--color-error);
+  font-size: 11px;
+  margin: 8px 0 0;
+}
+
 .advanceBtn {
   background: rgba(16, 185, 129, 0.2);
   color: var(--emerald-300, #6ee7b7);

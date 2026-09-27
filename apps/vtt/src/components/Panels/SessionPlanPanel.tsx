@@ -18,7 +18,6 @@ import type {
   SessionPlan,
   SessionPlanActivation,
   SessionPlanStep,
-  SessionPlanStepState,
 } from '@nexus/game-contracts';
 
 import { commandClient } from '@/services/commandClient';
@@ -85,6 +84,7 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
   const [actionInProgress, setActionInProgress] = useState<
     Record<string, boolean>
   >({});
+  const [progressError, setProgressError] = useState<string | null>(null);
   const [deployedEncounters, setDeployedEncounters] = useState<
     Record<string, string>
   >({});
@@ -222,43 +222,35 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
 
   const handleAdvanceStep = async (stepId: string, stepIndex: number) => {
     if (!activation) return;
-    const nextIndex = Math.min(
-      Math.max(mainSteps.length - 1, 0),
-      stepIndex + 1,
-    );
-    const updatedStates: Record<string, SessionPlanStepState> = {
-      ...(activation.stepStates || {}),
-      [stepId]: {
-        completed: true,
-        completedAt: new Date().toISOString(),
-        completedBy: user?.id,
-      },
-    };
-
+    setActionInProgress((current) => ({ ...current, [stepId]: true }));
+    setProgressError(null);
     try {
-      const updated = await campaignPrepClient.updateActivationProgress(
-        campaignId,
+      const updated = await campaignPrepClient.advanceActivationStep(
+        activation.campaignId,
         activation.id,
-        {
-          currentStepIndex: nextIndex,
-          stepStates: updatedStates,
-        },
+        stepId,
+        stepIndex,
       );
       setActivation(updated);
-      const nextStep = mainSteps[nextIndex];
+      const nextStep = mainSteps[updated.currentStepIndex];
       if (nextStep) {
         setExpandedStepId(nextStep.id);
       }
     } catch (err) {
-      console.error('Failed to advance step:', err);
+      setProgressError(
+        err instanceof Error ? err.message : 'Failed to complete the step.',
+      );
+    } finally {
+      setActionInProgress((current) => ({ ...current, [stepId]: false }));
     }
   };
 
   const handleJumpToStep = async (targetIndex: number, stepId: string) => {
     if (!activation) return;
+    setProgressError(null);
     try {
       const updated = await campaignPrepClient.updateActivationProgress(
-        campaignId,
+        activation.campaignId,
         activation.id,
         {
           currentStepIndex: targetIndex,
@@ -267,7 +259,9 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
       setActivation(updated);
       setExpandedStepId(stepId);
     } catch (err) {
-      console.error('Failed to set active step:', err);
+      setProgressError(
+        err instanceof Error ? err.message : 'Failed to set the active step.',
+      );
     }
   };
 
@@ -523,7 +517,7 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
     setActionInProgress((prev) => ({ ...prev, session: true }));
     try {
       const updated = await campaignPrepClient.updateActivationProgress(
-        campaignId,
+        activation.campaignId,
         activation.id,
         {
           status: activation.status === 'completed' ? 'active' : 'completed',
@@ -845,14 +839,19 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
                     </div>
 
                     <div className={styles.progressControls}>
-                      <button
-                        className={styles.advanceBtn}
-                        onClick={() => handleAdvanceStep(step.id, idx)}
-                        type="button"
-                      >
-                        <Check size={13} />
-                        {isActive ? 'Complete & Next Beat' : 'Mark Completed'}
-                      </button>
+                      {isActive && (
+                        <button
+                          className={styles.advanceBtn}
+                          disabled={actionInProgress[step.id]}
+                          onClick={() => handleAdvanceStep(step.id, idx)}
+                          type="button"
+                        >
+                          <Check size={13} />
+                          {actionInProgress[step.id]
+                            ? 'Completing...'
+                            : 'Complete & Next Beat'}
+                        </button>
+                      )}
 
                       {!isActive && (
                         <button
@@ -864,6 +863,11 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
                         </button>
                       )}
                     </div>
+                    {progressError && (
+                      <p className={styles.progressError} role="alert">
+                        {progressError}
+                      </p>
+                    )}
                   </div>
                 )}
               </article>
@@ -1030,15 +1034,16 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
                             try {
                               const updated =
                                 await campaignPrepClient.updateActivationProgress(
-                                  campaignId,
+                                  activation.campaignId,
                                   activation.id,
                                   { stepStates: updatedStates },
                                 );
                               setActivation(updated);
                             } catch (err) {
-                              console.error(
-                                'Failed to toggle parallel step:',
-                                err,
+                              setProgressError(
+                                err instanceof Error
+                                  ? err.message
+                                  : 'Failed to update the parallel thread.',
                               );
                             }
                           }}

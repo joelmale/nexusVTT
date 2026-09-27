@@ -35,6 +35,7 @@ export interface PublishSessionPlanRequest {
   expectedRevision: number;
   principalId: string;
   requestId: string;
+  proposedPlan?: unknown;
 }
 
 export type PublishSessionPlanResult =
@@ -87,18 +88,26 @@ export class SessionPlanPublishingService {
       );
     }
 
-    const revision = await this.repository.getRevision(
-      request.planId,
-      request.expectedRevision,
-    );
-    if (!revision) {
-      throw new SessionPlanPublishingError(
-        'missing-revision',
-        `Session plan ${request.planId} is missing revision ${request.expectedRevision}`,
+    const proposedRevision = request.expectedRevision + 1;
+    let candidateRevision = request.expectedRevision;
+    let candidateData = request.proposedPlan;
+    if (candidateData !== undefined) {
+      candidateRevision = proposedRevision;
+    } else {
+      const revision = await this.repository.getRevision(
+        request.planId,
+        request.expectedRevision,
       );
+      if (!revision) {
+        throw new SessionPlanPublishingError(
+          'missing-revision',
+          `Session plan ${request.planId} is missing revision ${request.expectedRevision}`,
+        );
+      }
+      candidateData = revision.data;
     }
 
-    const validation = await this.validator.validate(revision.data, {
+    const validation = await this.validator.validate(candidateData, {
       campaignId: request.campaignId,
       principalId: request.principalId,
     });
@@ -108,7 +117,7 @@ export class SessionPlanPublishingService {
 
     if (
       validation.plan.id !== request.planId ||
-      validation.plan.revision !== request.expectedRevision
+      validation.plan.revision !== candidateRevision
     ) {
       throw new SessionPlanPublishingError(
         'stored-identity-mismatch',
@@ -118,7 +127,7 @@ export class SessionPlanPublishingService {
 
     const publishedPlan: SessionPlan = {
       ...validation.plan,
-      revision: request.expectedRevision + 1,
+      revision: proposedRevision,
       status: 'ready',
       updatedAt: this.now().toISOString(),
       dependencies: validation.dependencyManifest,
