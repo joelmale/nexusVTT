@@ -686,6 +686,7 @@ jobs:
     permissions:
       actions: read
       contents: read
+      packages: read
       security-events: write
     uses: ./.github/workflows/security-reusable.yml
     with:
