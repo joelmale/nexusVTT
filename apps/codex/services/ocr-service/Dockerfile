@@ -1,4 +1,4 @@
-FROM python:3.11-slim
+FROM python:3.13-slim
 
 # Install system runtime libraries for image processing and ONNX
 RUN apt-get update && \
