@@ -21,6 +21,8 @@ RUN node scripts/build-workspace-dependencies.mjs --workspace admin-ui && \
 # Production stage
 FROM nginx:alpine
 
+RUN apk upgrade --no-cache
+
 ARG VERSION=dev
 ARG COMMIT_SHA=unknown
 

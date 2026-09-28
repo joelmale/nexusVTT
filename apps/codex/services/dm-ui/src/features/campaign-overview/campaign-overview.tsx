@@ -5,7 +5,6 @@ import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import CalendarDays from 'lucide-react/dist/esm/icons/calendar-days';
 import CheckSquare from 'lucide-react/dist/esm/icons/check-square';
-import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
 import Compass from 'lucide-react/dist/esm/icons/compass';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
@@ -27,6 +26,7 @@ import { encounters } from '@/demo/ashes-of-veyra/encounters';
 import { factions } from '@/demo/ashes-of-veyra/factions';
 import { npcs } from '@/demo/ashes-of-veyra/npcs';
 import { quests } from '@/demo/ashes-of-veyra/quests';
+import { CampaignSwitcher } from '@/features/campaigns/CampaignSwitcher';
 import { useCapabilityNotice } from '@/features/capability-notice';
 
 type Icon = typeof Compass;
@@ -65,78 +65,67 @@ const sections: OverviewSection[] = [
     id: 'quests',
     title: 'Active Quests',
     icon: CheckSquare,
-    records: quests
-      .slice(0, 4)
-      .map((quest) => ({
-        id: quest.id,
-        title: quest.title,
-        subtitle: quest.summary,
-        meta: quest.status === 'active' ? 'In Progress' : quest.status,
-        tone: quest.status === 'active' ? 'positive' : 'warning',
-      })),
+    records: quests.slice(0, 4).map((quest) => ({
+      id: quest.id,
+      title: quest.title,
+      subtitle: quest.summary,
+      meta: quest.status === 'active' ? 'In Progress' : quest.status,
+      tone: quest.status === 'active' ? 'positive' : 'warning',
+    })),
   },
   {
     id: 'encounters',
     title: 'Prepared Encounters',
     icon: Swords,
-    records: encounters
-      .slice(0, 4)
-      .map((encounter) => ({
-        id: encounter.id,
-        title: encounter.title,
-        subtitle:
-          encounter.locationIds[0]?.replace(/-/g, ' ') ?? encounter.kind,
-        meta: encounter.difficulty,
-        tone:
-          encounter.difficulty === 'high'
-            ? 'danger'
-            : encounter.difficulty === 'moderate'
-              ? 'warning'
-              : 'neutral',
-      })),
+    records: encounters.slice(0, 4).map((encounter) => ({
+      id: encounter.id,
+      title: encounter.title,
+      subtitle: encounter.locationIds[0]?.replace(/-/g, ' ') ?? encounter.kind,
+      meta: encounter.difficulty,
+      tone:
+        encounter.difficulty === 'high'
+          ? 'danger'
+          : encounter.difficulty === 'moderate'
+            ? 'warning'
+            : 'neutral',
+    })),
   },
   {
     id: 'clues',
     title: 'Unresolved Clues',
     icon: Search,
-    records: clues
-      .slice(0, 4)
-      .map((clue) => ({
-        id: clue.id,
-        title: clue.title,
-        subtitle: clue.meaning,
-        meta: clue.priority,
-        tone:
-          clue.priority === 'high'
-            ? 'danger'
-            : clue.priority === 'medium'
-              ? 'warning'
-              : 'neutral',
-      })),
+    records: clues.slice(0, 4).map((clue) => ({
+      id: clue.id,
+      title: clue.title,
+      subtitle: clue.meaning,
+      meta: clue.priority,
+      tone:
+        clue.priority === 'high'
+          ? 'danger'
+          : clue.priority === 'medium'
+            ? 'warning'
+            : 'neutral',
+    })),
   },
   {
     id: 'objects',
     title: 'Recent Campaign Objects',
     icon: FileText,
     records: [
-      ...npcs
-        .slice(0, 2)
-        .map((npc) => ({
-          id: npc.id,
-          title: npc.name,
-          subtitle: 'NPC · ' + npc.role,
-          meta: '2 hours ago',
-          icon: UserRound,
-        })),
-      ...factions
-        .slice(0, 2)
-        .map((faction) => ({
-          id: faction.id,
-          title: faction.name,
-          subtitle: 'Faction · ' + faction.publicFace,
-          meta: '1 day ago',
-          icon: Shield,
-        })),
+      ...npcs.slice(0, 2).map((npc) => ({
+        id: npc.id,
+        title: npc.name,
+        subtitle: 'NPC · ' + npc.role,
+        meta: '2 hours ago',
+        icon: UserRound,
+      })),
+      ...factions.slice(0, 2).map((faction) => ({
+        id: faction.id,
+        title: faction.name,
+        subtitle: 'Faction · ' + faction.publicFace,
+        meta: '1 day ago',
+        icon: Shield,
+      })),
     ],
   },
 ];
@@ -230,11 +219,11 @@ export function CampaignOverview() {
   const selectNavigation = (label: string) => {
     setActiveNav(label);
     if (label === 'Sessions') {
-      navigate('/campaigns/ashes-of-veyra/sessions/session-12');
+      navigate('/demo/ashes-of-veyra/sessions/session-12');
       return;
     }
     if (label === 'Maps') {
-      navigate('/campaigns/ashes-of-veyra/maps/glass-harbor');
+      navigate('/demo/ashes-of-veyra/maps/glass-harbor');
       return;
     }
     if (label !== 'Overview') notifyCapability('campaign.section.open');
@@ -253,15 +242,7 @@ export function CampaignOverview() {
           </div>
         </div>
         <div className={styles.campaignLabel}>Campaigns</div>
-        <button
-          className={styles.campaignSelect}
-          type="button"
-          title="Current campaign"
-        >
-          <span className={styles.liveDot} />
-          Ashes of Veyra
-          <ChevronDown size={15} />
-        </button>
+        <CampaignSwitcher />
         <nav className={styles.navigation}>
           {navigation.map(({ label, icon: NavIcon }) => (
             <button
@@ -342,7 +323,7 @@ export function CampaignOverview() {
                   className={styles.primaryButton}
                   type="button"
                   onClick={() =>
-                    navigate('/campaigns/ashes-of-veyra/sessions/session-12')
+                    navigate('/demo/ashes-of-veyra/sessions/session-12')
                   }
                 >
                   <CalendarDays size={18} />

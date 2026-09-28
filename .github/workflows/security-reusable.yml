@@ -15,6 +15,11 @@ on:
         description: JSON matrix of affected container images to scan
         required: true
         type: string
+      prebuilt_tag_prefix:
+        description: Optional immutable registry tag prefix to scan instead of rebuilding
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: read
@@ -47,19 +52,29 @@ jobs:
       security-events: write
     steps:
       - name: Checkout exact source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.source_sha }}
 
+      - name: Verify checked-out source identity
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          [[ "$(git rev-parse HEAD)" == "$SOURCE_SHA" ]] || {
+            echo 'CodeQL checkout does not match source_sha' >&2
+            exit 1
+          }
+
       - name: Initialize CodeQL security-extended suite
-        uses: github/codeql-action/init@v4
+        uses: github/codeql-action/init@7999b86c43a865dc79d8923397f35af22de63401 # v4
         with:
           languages: javascript-typescript
           build-mode: none
           config-file: ./.github/codeql-config.yml
 
       - name: Perform CodeQL analysis
-        uses: github/codeql-action/analyze@v4
+        uses: github/codeql-action/analyze@7999b86c43a865dc79d8923397f35af22de63401 # v4
         with:
           category: '/language:javascript-typescript'
 
@@ -74,12 +89,22 @@ jobs:
       security-events: write
     steps:
       - name: Checkout exact source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.source_sha }}
 
+      - name: Verify checked-out source identity
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          [[ "$(git rev-parse HEAD)" == "$SOURCE_SHA" ]] || {
+            echo 'filesystem scan checkout does not match source_sha' >&2
+            exit 1
+          }
+
       - name: Produce complete filesystem SARIF
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           version: 'v0.74.0'
           scan-type: fs
@@ -91,14 +116,14 @@ jobs:
           exit-code: '0'
 
       - name: Upload filesystem SARIF
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@7999b86c43a865dc79d8923397f35af22de63401 # v4
         if: always() && hashFiles('trivy-fs.sarif') != ''
         with:
           sarif_file: trivy-fs.sarif
           category: trivy-fs-scan
 
       - name: Block high and critical filesystem vulnerabilities
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           version: 'v0.74.0'
           scan-type: fs
@@ -111,7 +136,7 @@ jobs:
 
       - name: Generate filesystem CycloneDX SBOM
         if: github.event_name != 'pull_request'
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           version: 'v0.74.0'
           scan-type: fs
@@ -122,7 +147,7 @@ jobs:
 
       - name: Upload filesystem SBOM
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sbom-filesystem-${{ inputs.source_sha }}
           path: sbom-filesystem.cdx.json
@@ -137,6 +162,7 @@ jobs:
     timeout-minutes: 45
     permissions:
       contents: read
+      packages: read
       security-events: write
     strategy:
       fail-fast: false
@@ -144,19 +170,32 @@ jobs:
         include: ${{ fromJSON(inputs.container_images) }}
     steps:
       - name: Checkout exact source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.source_sha }}
 
+      - name: Verify checked-out source identity
+        shell: bash
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          [[ "$(git rev-parse HEAD)" == "$SOURCE_SHA" ]] || {
+            echo 'container scan checkout does not match source_sha' >&2
+            exit 1
+          }
+
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        if: inputs.prebuilt_tag_prefix == ''
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Build one scanner image
-        uses: docker/build-push-action@v7
+        if: inputs.prebuilt_tag_prefix == ''
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: .
           file: ${{ matrix.file }}
           target: ${{ matrix.target }}
+          pull: true
           push: false
           load: true
           tags: nexus-vtt/${{ matrix.name }}:scan-${{ inputs.source_sha }}
@@ -166,56 +205,146 @@ jobs:
             VERSION=security-${{ inputs.source_sha }}
             COMMIT_SHA=${{ inputs.source_sha }}
 
+      - name: Validate prebuilt tag prefix
+        if: inputs.prebuilt_tag_prefix != ''
+        shell: bash
+        env:
+          PREBUILT_TAG_PREFIX: ${{ inputs.prebuilt_tag_prefix }}
+        run: |
+          [[ "$PREBUILT_TAG_PREFIX" == 'sha' || "$PREBUILT_TAG_PREFIX" == 'candidate' ]] || {
+            echo 'prebuilt_tag_prefix must be sha, candidate, or empty' >&2
+            exit 1
+          }
+
+      - name: Log in to GitHub Container Registry
+        if: inputs.prebuilt_tag_prefix != ''
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Pull exact immutable delivery image
+        if: inputs.prebuilt_tag_prefix != ''
+        shell: bash
+        env:
+          IMAGE_REPOSITORY: ${{ matrix.repository }}
+          PREBUILT_TAG_PREFIX: ${{ inputs.prebuilt_tag_prefix }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: docker pull "$IMAGE_REPOSITORY:$PREBUILT_TAG_PREFIX-$SOURCE_SHA"
+
+      - name: Verify image identity and write provenance
+        id: image
+        shell: bash
+        env:
+          IMAGE_NAME: ${{ matrix.name }}
+          IMAGE_REPOSITORY: ${{ matrix.repository }}
+          IMAGE_PLATFORMS: ${{ matrix.platforms }}
+          PREBUILT_TAG_PREFIX: ${{ inputs.prebuilt_tag_prefix }}
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          if [[ -n "$PREBUILT_TAG_PREFIX" ]]; then
+            image_ref="$IMAGE_REPOSITORY:$PREBUILT_TAG_PREFIX-$SOURCE_SHA"
+            transport=registry
+            version="$PREBUILT_TAG_PREFIX-$SOURCE_SHA"
+          else
+            image_ref="nexus-vtt/$IMAGE_NAME:scan-$SOURCE_SHA"
+            transport=local-daemon
+            version="security-$SOURCE_SHA"
+          fi
+
+          revision=$(docker image inspect --format '{{ index .Config.Labels "org.opencontainers.image.revision" }}' "$image_ref")
+          delta_sync=''
+          if [[ "$IMAGE_NAME" == 'frontend' ]]; then
+            delta_sync=$(docker image inspect --format '{{ index .Config.Labels "org.nexusvtt.frontend.delta-sync" }}' "$image_ref")
+          fi
+
+          digest=$(docker image inspect --format '{{.Id}}' "$image_ref")
+          if [[ "$transport" == 'registry' ]]; then
+            repo_digest=$(docker image inspect --format '{{ index .RepoDigests 0 }}' "$image_ref")
+            digest="${repo_digest##*@}"
+          fi
+          provenance_args=(
+            create
+            --source-sha "$SOURCE_SHA"
+            --revision "$revision"
+            --image-name "$IMAGE_NAME"
+            --image-ref "$image_ref"
+            --repository "$IMAGE_REPOSITORY"
+            --digest "$digest"
+            --platforms "$IMAGE_PLATFORMS"
+            --transport "$transport"
+            --version "$version"
+            --output "security-provenance/$IMAGE_NAME.json"
+          )
+          if [[ "$IMAGE_NAME" == 'frontend' ]]; then
+            provenance_args+=(--delta-sync "$delta_sync")
+          fi
+          node scripts/ci/image-provenance.mjs "${provenance_args[@]}"
+          echo "ref=$image_ref" >> "$GITHUB_OUTPUT"
+          echo "digest=$digest" >> "$GITHUB_OUTPUT"
+
       - name: Produce container SARIF
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           version: 'v0.74.0'
-          image-ref: nexus-vtt/${{ matrix.name }}:scan-${{ inputs.source_sha }}
+          image-ref: ${{ steps.image.outputs.ref }}
           format: sarif
           output: trivy-${{ matrix.name }}.sarif
           severity: CRITICAL,HIGH
           exit-code: '0'
 
       - name: Upload container SARIF
-        uses: github/codeql-action/upload-sarif@v4
+        uses: github/codeql-action/upload-sarif@7999b86c43a865dc79d8923397f35af22de63401 # v4
         if: ${{ always() && hashFiles(format('trivy-{0}.sarif', matrix.name)) != '' }}
         with:
           sarif_file: trivy-${{ matrix.name }}.sarif
           category: trivy-container-${{ matrix.name }}
 
       - name: Enforce Trivy high and critical policy
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           version: 'v0.74.0'
-          image-ref: nexus-vtt/${{ matrix.name }}:scan-${{ inputs.source_sha }}
+          image-ref: ${{ steps.image.outputs.ref }}
           format: table
           severity: CRITICAL,HIGH
           ignore-unfixed: false
           exit-code: '1'
 
       - name: Enforce Grype high and critical policy
-        uses: anchore/scan-action@v7
+        uses: anchore/scan-action@e1165082ffb1fe366ebaf02d8526e7c4989ea9d2 # v7
         with:
-          image: nexus-vtt/${{ matrix.name }}:scan-${{ inputs.source_sha }}
+          image: ${{ steps.image.outputs.ref }}
           fail-build: true
           severity-cutoff: high
           only-fixed: true
 
       - name: Generate container CycloneDX SBOM from the scanned image
         if: github.event_name != 'pull_request'
-        uses: aquasecurity/trivy-action@v0.36.0
+        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
         with:
           version: 'v0.74.0'
           scan-type: image
-          image-ref: nexus-vtt/${{ matrix.name }}:scan-${{ inputs.source_sha }}
+          image-ref: ${{ steps.image.outputs.ref }}
           format: cyclonedx
           output: sbom-${{ matrix.name }}.cdx.json
 
       - name: Upload container SBOM
         if: github.event_name != 'pull_request'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: sbom-${{ matrix.name }}-${{ inputs.source_sha }}
-          path: sbom-${{ matrix.name }}.cdx.json
+          path: |
+            sbom-${{ matrix.name }}.cdx.json
+            security-provenance/${{ matrix.name }}.json
           if-no-files-found: error
           retention-days: 90
+
+      - name: Upload image provenance
+        if: github.event_name == 'pull_request'
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: image-provenance-${{ matrix.name }}-${{ inputs.source_sha }}
+          path: security-provenance/${{ matrix.name }}.json
+          if-no-files-found: error
+          retention-days: 30

@@ -1,7 +1,6 @@
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import CalendarDays from 'lucide-react/dist/esm/icons/calendar-days';
 import CheckSquare from 'lucide-react/dist/esm/icons/check-square';
-import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import Compass from 'lucide-react/dist/esm/icons/compass';
 import MapIcon from 'lucide-react/dist/esm/icons/map';
 import MapPin from 'lucide-react/dist/esm/icons/map-pin';
@@ -12,6 +11,9 @@ import Swords from 'lucide-react/dist/esm/icons/swords';
 import UserRound from 'lucide-react/dist/esm/icons/user-round';
 import { useLocation, useNavigate } from 'react-router-dom';
 
+import { getVisibleCampaignCatalog } from '@/demo/campaign-catalog';
+import { useCampaignContext } from '@/features/campaigns/CampaignContext';
+import { CampaignSwitcher } from '@/features/campaigns/CampaignSwitcher';
 import type { CapabilityId } from '@/features/capability-notice';
 
 import { useStudioNavigation } from './StudioNavigationContext';
@@ -36,7 +38,18 @@ const NAVIGATION_ITEMS = [
 export function StudioCampaignRail({ onCapability }: StudioCampaignRailProps) {
   const location = useLocation();
   const navigate = useNavigate();
+  const { activeCampaign, isDemoCampaign } = useCampaignContext();
   const { collapseCampaignRail } = useStudioNavigation();
+  const activeExample = getVisibleCampaignCatalog().find((entry) =>
+    location.pathname.startsWith(`/demo/${entry.slug}/`),
+  );
+  const campaignBase = isDemoCampaign
+    ? activeExample
+      ? `/demo/${activeExample.slug}`
+      : undefined
+    : activeCampaign
+      ? `/campaigns/${encodeURIComponent(activeCampaign.id)}`
+      : undefined;
 
   const activeRoute = location.pathname.includes('/sessions/')
     ? 'sessions'
@@ -45,16 +58,25 @@ export function StudioCampaignRail({ onCapability }: StudioCampaignRailProps) {
       : 'overview';
 
   function selectRoute(route: (typeof NAVIGATION_ITEMS)[number]['route']) {
+    if (!campaignBase) return;
     if (route === 'overview') {
-      navigate('/campaigns/ashes-of-veyra/overview');
+      navigate(`${campaignBase}/overview`);
       return;
     }
-    if (route === 'sessions') {
-      navigate('/campaigns/ashes-of-veyra/sessions/session-12');
+    if (isDemoCampaign && route === 'sessions' && activeExample) {
+      navigate(
+        activeExample.slug === 'ashes-of-veyra'
+          ? `${campaignBase}/sessions/session-12`
+          : `${campaignBase}/overview#sessions`,
+      );
       return;
     }
-    if (route === 'maps') {
-      navigate('/campaigns/ashes-of-veyra/maps/glass-harbor');
+    if (
+      isDemoCampaign &&
+      activeExample?.slug === 'ashes-of-veyra' &&
+      route === 'maps'
+    ) {
+      navigate(`${campaignBase}/maps/glass-harbor`);
       return;
     }
     onCapability('campaign.section.open');
@@ -89,11 +111,7 @@ export function StudioCampaignRail({ onCapability }: StudioCampaignRailProps) {
       </div>
 
       <span className={styles.campaignLabel}>Campaigns</span>
-      <button className={styles.campaignSelect} type="button">
-        <span className={styles.liveDot} />
-        <span>Ashes of Veyra</span>
-        <ChevronDown size={15} />
-      </button>
+      <CampaignSwitcher />
 
       <nav className={styles.navigation}>
         {NAVIGATION_ITEMS.map((item) => {
@@ -103,6 +121,7 @@ export function StudioCampaignRail({ onCapability }: StudioCampaignRailProps) {
             <button
               aria-current={active ? 'page' : undefined}
               className={`${styles.navItem} ${active ? styles.navActive : ''}`}
+              disabled={!campaignBase}
               key={item.route}
               onClick={() => selectRoute(item.route)}
               type="button"

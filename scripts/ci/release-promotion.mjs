@@ -17,8 +17,11 @@ export function decidePromotion(env, readMainRef) {
     throw new Error('EVENT_REF must be a full Git ref');
   }
 
+  if (EVENT_NAME === 'workflow_dispatch') {
+    return { disposition: 'candidate', sourceSha: SOURCE_SHA };
+  }
   if (EVENT_REF !== 'refs/heads/main') {
-    return { disposition: 'eligible', sourceSha: SOURCE_SHA };
+    throw new Error('Push promotion is restricted to refs/heads/main');
   }
 
   const remote = readMainRef().trim();
@@ -50,6 +53,8 @@ export function runPromotionCheck(
   const message =
     decision.disposition === 'superseded'
       ? `Release ${decision.sourceSha} was superseded by main at ${decision.currentMain}. Immutable images remain available; latest tags were not changed.`
+      : decision.disposition === 'candidate'
+        ? `Candidate ${decision.sourceSha} is immutable and will not update release or latest aliases.`
       : `Release ${decision.sourceSha} is eligible for promotion.`;
 
   appendFileSync(

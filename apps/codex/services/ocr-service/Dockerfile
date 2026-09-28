@@ -1,7 +1,9 @@
 FROM python:3.11-slim
 
 # Install system runtime libraries for image processing and ONNX
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
+    apt-get install -y --no-install-recommends \
     libgl1 \
     libglib2.0-0 \
     libgomp1 \

@@ -2,6 +2,7 @@ FROM node:26.9.0-bookworm-slim AS base
 
 # Install build dependencies for native modules (canvas, sharp) and OpenSSL for Prisma
 RUN apt-get update && \
+    DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
     build-essential \
     python3 \

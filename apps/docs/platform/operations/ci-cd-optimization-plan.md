@@ -1,9 +1,64 @@
 # CI/CD optimization rollout plan
 
-Date: 2026-09-22  
-Status: Proposed; implementation and repository settings changes are pending  
-Repository: `joelmale/nexusVTT`  
+Date: 2026-09-22
+
+Last audited: 2026-09-28
+
+Status: Repository implementation in progress; rollout acceptance is pending
+
+Repository: `joelmale/nexusVTT`
+
 Planning baseline: checkout `9c8e038d`; timing baseline includes `9266658d`
+
+## Implementation audit (2026-09-28)
+
+The repository now contains the scheduling, validation, affected-target,
+security, and release-promotion foundations described by this plan. The current
+working change restores the complete Stage 1 validation gate on pull requests,
+merge queues, main pushes, and manual validation: VTT unit shards, UI layout,
+database integration, managed two-replica smoke, aggregate coverage, applicable
+Forge/Codex/docs checks, and reusable security all feed the stable
+`All required checks` result. Coverage thresholds are enforced at the contract
+values in this document. Delivery fails closed until the exact source SHA has a
+successful CI run and a fresh exact-SHA security run. Manual delivery produces
+candidate-only immutable tags and cannot update release aliases or deploy Pages.
+
+Implemented foundations also include the Actions timing reporter, service and
+image catalog, fail-closed affected-target detector and tests, coverage artifact
+manifests, Docker contract validation, BuildKit cache scopes, immutable image
+tags, stale-promotion protection, and a complete release digest manifest.
+Managed smoke now builds its backend, asset-service, and delta-enabled frontend
+images once in the smoke job and rejects missing images, source-SHA label
+mismatches, or frontend variant mismatches instead of silently rebuilding.
+Trusted delivery builds each affected release image once under an immutable
+full-SHA tag; Trivy, Grype, CycloneDX, source-label, digest, run-attempt, and
+release-frontend variant validation consume that exact registry artifact before
+any mutable alias is promoted. PR security retains an unprivileged local image
+transport. Per-image provenance manifests bind reports to the source, digest,
+platform, build arguments, workflow run, and attempt.
+Main documentation validation packages the Pages payload, and trusted delivery
+re-stages that exact-run artifact rather than rebuilding the site.
+Every third-party GitHub Action used by the repository workflows is pinned to
+an immutable reviewed commit SHA, with the corresponding release tag retained
+as an inline maintenance comment.
+`npm run ci:preflight` passes locally, including actionlint and the CI contract
+suites. This evidence validates repository contracts; it is not a substitute
+for hosted cold/warm runs or failure-injection acceptance.
+
+The rollout is not complete. The published digest is now the exact scanned and
+SBOM-attributed artifact, but managed smoke still uses separately built images;
+the backend/asset release artifacts therefore are not yet proven byte-identical
+to the smoke-tested artifacts, and the distinct delta-enabled smoke frontend is
+intentionally not the release frontend. The required shadow period and the
+three cold, ten warm, and twenty normal observations per stage have not been
+recorded.
+Main branch protection requires `All required checks`, enforces administrators,
+and blocks force pushes/deletion, but still requires zero approving reviews and
+has no separate code-scanning ruleset. The latest audited nightly run
+(`36313335210`) failed blocking container scans, including `libexpat`
+`CVE-2026-93990` in the Codex admin UI image; rollout acceptance remains blocked
+until current scans are green and the remaining settings/measurement work is
+recorded.
 
 ## Outcome and constraints
 

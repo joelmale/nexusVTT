@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MemoryRouter } from 'react-router-dom';
 
+import { CampaignContext } from '@/features/campaigns/CampaignContext';
 import { CapabilityNoticeProvider } from '@/features/capability-notice';
 import { StudioNavigationProvider } from '@/features/studio-shell/StudioNavigationProvider';
 import * as campaignPrepApi from '@/services/campaign-prep-api';
@@ -23,12 +24,23 @@ vi.mock('@/services/campaign-prep-api', async (importOriginal) => {
 
 function renderRoute() {
   return render(
-    <MemoryRouter>
-      <CapabilityNoticeProvider>
-        <StudioNavigationProvider>
-          <SessionPlanRoute />
-        </StudioNavigationProvider>
-      </CapabilityNoticeProvider>
+    <MemoryRouter initialEntries={['/demo/ashes-of-veyra/sessions/session-12']}>
+      <CampaignContext.Provider
+        value={{
+          campaigns: [],
+          createCampaign: vi.fn(),
+          isDemoCampaign: true,
+          reload: vi.fn(),
+          rememberCampaign: vi.fn(),
+          state: 'ready',
+        }}
+      >
+        <CapabilityNoticeProvider>
+          <StudioNavigationProvider>
+            <SessionPlanRoute />
+          </StudioNavigationProvider>
+        </CapabilityNoticeProvider>
+      </CampaignContext.Provider>
     </MemoryRouter>,
   );
 }
@@ -68,7 +80,7 @@ describe('SessionPlanRoute', () => {
 
     await waitFor(() => {
       expect(campaignPrepApi.fetchSessionPlanStatus).toHaveBeenCalledWith({
-        campaignTitle: 'Ashes of Veyra',
+        campaignId: 'campaign-ashes-of-veyra',
         planTitle: 'Session 12 - The Glass Harbor',
       });
     });

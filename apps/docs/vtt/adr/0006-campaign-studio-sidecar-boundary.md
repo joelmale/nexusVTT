@@ -41,6 +41,14 @@ fixture contains a pinned scene, encounter, note, and player handout. Broken
 reference fixtures remain structurally valid so publication can report missing
 dependencies separately from malformed JSON.
 
+Campaign identity is the VTT PostgreSQL campaign UUID, carried in Studio routes
+as `/campaigns/:campaignId/*` and passed explicitly to preparation status,
+publication, and activation operations. Display names are non-unique labels and
+must never be used to discover, create, or associate canonical campaign data.
+The Ashes of Veyra fixture is instead addressed in the separate
+`/demo/ashes-of-veyra/*` namespace; compatibility redirects do not turn its
+slug into a server campaign identity.
+
 ## Consequences
 
 Campaign Studio can evolve independently from its temporary UI location while

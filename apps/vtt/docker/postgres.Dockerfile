@@ -1,5 +1,7 @@
 FROM postgres:18-alpine
 
+RUN apk upgrade --no-cache
+
 # Copy the schema file to the entrypoint directory
 # Build context is the repo root, so path is relative to root
 COPY apps/vtt/server/schema.sql /docker-entrypoint-initdb.d/

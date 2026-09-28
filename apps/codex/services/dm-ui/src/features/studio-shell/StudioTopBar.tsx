@@ -3,7 +3,11 @@ import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import Moon from 'lucide-react/dist/esm/icons/moon';
 import Search from 'lucide-react/dist/esm/icons/search';
 import Settings from 'lucide-react/dist/esm/icons/settings';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+
+import { getVisibleCampaignCatalog } from '@/demo/campaign-catalog';
+import { useCampaignContext } from '@/features/campaigns/CampaignContext';
+import { CampaignSwitcher } from '@/features/campaigns/CampaignSwitcher';
 
 import styles from './StudioTopBar.module.css';
 
@@ -16,17 +20,32 @@ interface StudioTopBarProps {
 }
 
 export function StudioTopBar({
-  contextLabel = 'Ashes of Veyra',
+  contextLabel,
   onSearch,
   onSettings,
   onTheme,
   onRestoreNavigation,
 }: StudioTopBarProps) {
+  const location = useLocation();
   const navigate = useNavigate();
+  const { activeCampaign, isDemoCampaign } = useCampaignContext();
+  const activeExample = getVisibleCampaignCatalog().find((entry) =>
+    location.pathname.startsWith(`/demo/${entry.slug}/`),
+  );
+  const overviewPath = isDemoCampaign
+    ? activeExample
+      ? `/demo/${activeExample.slug}/overview`
+      : '/campaigns'
+    : activeCampaign
+      ? `/campaigns/${encodeURIComponent(activeCampaign.id)}/overview`
+      : '/campaigns';
+  const resolvedContextLabel =
+    contextLabel ??
+    (isDemoCampaign ? activeExample?.campaign.name : activeCampaign?.name);
 
   function restoreCampaignRail() {
     onRestoreNavigation?.();
-    navigate('/campaigns/ashes-of-veyra/overview');
+    navigate(overviewPath);
   }
 
   return (
@@ -36,7 +55,7 @@ export function StudioTopBar({
           aria-label="Campaign Studio overview"
           className={styles.brand}
           onClick={onRestoreNavigation}
-          to="/campaigns/ashes-of-veyra/overview"
+          to={overviewPath}
         >
           <span className={styles.brandMark} aria-hidden="true">
             <BookOpen size={17} strokeWidth={1.8} />
@@ -56,8 +75,14 @@ export function StudioTopBar({
         </button>
       </div>
 
+      <div className={styles.mobileSwitcher}>
+        <CampaignSwitcher compact />
+      </div>
+
       <div className={styles.actions}>
-        <span className={styles.context}>{contextLabel}</span>
+        {resolvedContextLabel && (
+          <span className={styles.context}>{resolvedContextLabel}</span>
+        )}
         <button
           aria-label="Search campaign"
           className={styles.iconButton}
