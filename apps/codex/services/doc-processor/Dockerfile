@@ -1,42 +1,49 @@
-FROM node:26.10.0-bookworm-slim AS base
-
-# Install build dependencies for native modules (canvas, sharp) and OpenSSL for Prisma
-RUN apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get upgrade -y && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
-    build-essential \
-    python3 \
-    pkg-config \
-    libc6-dev \
-    libjpeg-dev \
-    libpng-dev \
-    libgif-dev \
-    libpango1.0-dev \
-    libcairo2-dev \
-    libpixman-1-dev \
-    libpangomm-1.4-dev \
-    libfreetype6-dev \
-    libssl-dev \
-    git && \
-    rm -rf /var/lib/apt/lists/*
+# Alpine, like the other Node services: the Debian image carried hundreds of
+# unfixed HIGH/CRITICAL CVEs (the release scan does not ignore unfixed ones),
+# and its runtime stage inherited the whole build toolchain.
+#
+# Canvas: @napi-rs/canvas and sharp ship musl prebuilds, so the runtime needs
+# no build tools. node-canvas (the fallback backend in src/utils/canvas.ts) is
+# compiled in the deps stage; its shared libraries are installed at runtime.
+FROM node:26.10.0-alpine AS base
+RUN apk upgrade --no-cache
 
 # Install dependencies only when needed
 FROM base AS deps
+RUN apk add --no-cache \
+    build-base \
+    python3 \
+    pkgconf \
+    cairo-dev \
+    pango-dev \
+    jpeg-dev \
+    giflib-dev \
+    pixman-dev \
+    freetype-dev
 WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY apps/codex/services/doc-processor/package.json ./apps/codex/services/doc-processor/
 RUN npm ci --workspace=nexus-codex-doc-processor --include-workspace-root
 
+# The lockfile does not record @napi-rs/canvas's musl prebuild (npm only
+# resolves the optional dependencies of the platform that generated the lock),
+# so unpack the matching one explicitly; without it src/utils/canvas.ts
+# silently falls back to node-canvas. Unpacked by hand rather than with
+# `npm install`, which would re-reify node_modules and drop node-canvas's
+# compiled canvas.node.
+RUN arch="$(uname -m | sed 's/x86_64/x64/;s/aarch64/arm64/')" && \
+    ver="$(node -p "require('./node_modules/@napi-rs/canvas/package.json').version")" && \
+    dest="node_modules/@napi-rs/canvas-linux-${arch}-musl" && \
+    (cd /tmp && npm pack --silent "@napi-rs/canvas-linux-${arch}-musl@${ver}") && \
+    mkdir -p "$dest" && \
+    tar -xzf "/tmp/napi-rs-canvas-linux-${arch}-musl-${ver}.tgz" --strip-components=1 -C "$dest" && \
+    rm -f /tmp/*.tgz
+
 # Rebuild the source code only when needed
-FROM base AS builder
+FROM deps AS builder
 WORKDIR /app
 
-COPY --from=deps /app/node_modules ./node_modules
-# Dependencies that could not hoist (bullmq@5 here, because doc-api pins
-# bullmq@4 at the root) install into the workspace's own node_modules.
-# Copying only /app/node_modules silently drops them.
-COPY --from=deps /app/apps/codex/services/doc-processor/node_modules ./apps/codex/services/doc-processor/node_modules
 COPY . .
 
 RUN npm run prisma:generate --workspace=nexus-codex-doc-processor && \
@@ -48,20 +55,29 @@ WORKDIR /app
 
 ENV NODE_ENV=production
 
+# Runtime libraries only: OpenSSL for Prisma, cairo/pango for node-canvas.
+RUN apk add --no-cache \
+    openssl \
+    cairo \
+    pango \
+    libjpeg-turbo \
+    giflib \
+    pixman \
+    freetype
+
 # Create a non-root user
-RUN addgroup --system --gid 1001 nodejs && \
-    adduser --system --uid 1001 worker
+RUN addgroup -S -g 1001 nodejs && \
+    adduser -S -u 1001 -G nodejs worker
 
-# Copy necessary files
-COPY --from=builder /app/node_modules ./node_modules
-COPY --from=builder /app/apps/codex/services/doc-processor/node_modules ./apps/codex/services/doc-processor/node_modules
-COPY --from=builder /app/apps/codex/services/doc-processor/dist ./apps/codex/services/doc-processor/dist
-COPY --from=builder /app/apps/codex/services/doc-processor/prisma ./apps/codex/services/doc-processor/prisma
-COPY --from=builder /app/apps/codex/services/doc-processor/package.json ./apps/codex/services/doc-processor/package.json
-COPY --from=builder /app/package.json ./package.json
-
-# Change ownership
-RUN chown -R worker:nodejs /app
+# Dependencies that could not hoist (bullmq@5 here, because doc-api pins
+# bullmq@4 at the root) install into the workspace's own node_modules.
+# Copying only /app/node_modules silently drops them.
+COPY --from=builder --chown=worker:nodejs /app/node_modules ./node_modules
+COPY --from=builder --chown=worker:nodejs /app/apps/codex/services/doc-processor/node_modules ./apps/codex/services/doc-processor/node_modules
+COPY --from=builder --chown=worker:nodejs /app/apps/codex/services/doc-processor/dist ./apps/codex/services/doc-processor/dist
+COPY --from=builder --chown=worker:nodejs /app/apps/codex/services/doc-processor/prisma ./apps/codex/services/doc-processor/prisma
+COPY --from=builder --chown=worker:nodejs /app/apps/codex/services/doc-processor/package.json ./apps/codex/services/doc-processor/package.json
+COPY --from=builder --chown=worker:nodejs /app/package.json ./package.json
 
 USER worker
 WORKDIR /app/apps/codex/services/doc-processor

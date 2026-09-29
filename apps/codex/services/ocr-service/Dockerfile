@@ -63,6 +63,14 @@ ENV PATH="/opt/venv/bin:$PATH" \
     HF_HOME=/models \
     FASTEMBED_CACHE_PATH=/models/fastembed
 
+ARG VERSION=dev
+ARG COMMIT_SHA=unknown
+
+LABEL org.opencontainers.image.title="Nexus Codex OCR Service" \
+      org.opencontainers.image.source="https://github.com/joelmale/nexusVTT" \
+      org.opencontainers.image.version="$VERSION" \
+      org.opencontainers.image.revision="$COMMIT_SHA"
+
 USER app
 
 # Port stays 8000: doc-processor's OCR_SERVICE_URL depends on it.
