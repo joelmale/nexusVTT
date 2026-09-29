@@ -67,7 +67,7 @@ describe('Codex allowlist table', () => {
       expect(route.action).toMatch(/^codex\./);
       if (route.method !== 'GET' && route.path !== 'search/ask') expect(route.audited).toBe(true);
     }
-    expect(CODEX_ALLOWLIST).toHaveLength(48);
+    expect(CODEX_ALLOWLIST).toHaveLength(53);
   });
 
   it('rejects duplicate entries', () => {

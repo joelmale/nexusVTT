@@ -1,0 +1,98 @@
+.dialog {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-panel);
+  color: var(--studio-text);
+  max-width: min(460px, calc(100vw - 28px));
+  padding: 0;
+  width: 100%;
+}
+
+.dialog::backdrop {
+  background: var(--studio-overlay);
+}
+
+.form {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+}
+
+.heading h2,
+.heading p {
+  margin: 0;
+}
+
+.heading h2 {
+  font-size: 21px;
+}
+
+.heading p {
+  color: var(--studio-text-muted);
+  font-size: 13px;
+  margin-top: 6px;
+}
+
+.field {
+  display: grid;
+  font-size: 13px;
+  font-weight: 650;
+  gap: 7px;
+}
+
+.field small {
+  color: var(--studio-text-muted);
+  font-weight: 400;
+}
+
+.field input,
+.field textarea {
+  background: var(--studio-canvas);
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  font: inherit;
+  padding: 10px 11px;
+  resize: vertical;
+}
+
+.field input:focus,
+.field textarea:focus {
+  border-color: var(--studio-positive);
+  outline: 2px solid var(--studio-positive-soft);
+}
+
+.message {
+  color: var(--studio-danger);
+  font-size: 12px;
+  min-height: 16px;
+}
+
+.actions {
+  display: flex;
+  gap: 9px;
+  justify-content: flex-end;
+}
+
+.actions button {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  cursor: pointer;
+  font: inherit;
+  min-height: 38px;
+  padding: 0 14px;
+}
+
+.actions button:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
+.actions .primary {
+  background: var(--studio-positive);
+  border-color: var(--studio-positive);
+  color: var(--studio-positive-contrast);
+  font-weight: 650;
+}

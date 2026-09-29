@@ -1,15 +1,22 @@
 name: CI Pipeline
 
 on:
+  push:
+    branches: [main]
   pull_request:
     branches: [main]
   merge_group:
   workflow_dispatch:
+    inputs:
+      source_sha:
+        description: Optional full current-main SHA for full validation
+        required: false
+        type: string
 
 concurrency:
   group: >-
-    pr-ci-${{ github.event_name == 'pull_request' && github.event.pull_request.number || github.ref }}
-  cancel-in-progress: true
+    ${{ github.event_name == 'pull_request' && format('pr-ci-{0}', github.event.pull_request.number) || format('ci-{0}-{1}', github.event_name, github.ref) }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 permissions:
   contents: read
@@ -38,13 +45,35 @@ jobs:
       has_codex_node: ${{ steps.affected.outputs.has_codex_node }}
       has_codex_python: ${{ steps.affected.outputs.has_codex_python }}
       codex_doc_api: ${{ steps.affected.outputs.codex_doc_api }}
+      security_images: ${{ steps.affected.outputs.security_images }}
       source_sha: ${{ steps.source.outputs.sha }}
     steps:
       - name: Checkout exact validation source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
-          ref: ${{ github.sha }}
+          ref: ${{ inputs.source_sha || github.sha }}
           fetch-depth: 0
+
+      - name: Validate manual source
+        if: github.event_name == 'workflow_dispatch' && inputs.source_sha != ''
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          SOURCE_SHA: ${{ inputs.source_sha }}
+        run: |
+          [[ "$SOURCE_SHA" =~ ^[0-9a-f]{40}$ ]] || {
+            echo 'source_sha must be a full lowercase 40-character Git SHA' >&2
+            exit 1
+          }
+          [[ "$(git rev-parse HEAD)" == "$SOURCE_SHA" ]] || {
+            echo 'checked-out source does not match source_sha' >&2
+            exit 1
+          }
+          git fetch --no-tags origin main
+          [[ "$(git rev-parse origin/main)" == "$SOURCE_SHA" ]] || {
+            echo 'manual validation source must equal current main' >&2
+            exit 1
+          }
 
       - name: Resolve validation source
         id: source
@@ -61,7 +90,7 @@ jobs:
         shell: bash
         working-directory: ${{ github.workspace }}
         env:
-          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'merge_group' && github.event.merge_group.base_sha || 'HEAD^' }}
+          BASE_SHA: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.event_name == 'merge_group' && github.event.merge_group.base_sha || github.event_name == 'push' && github.event.before || 'HEAD^' }}
           EVENT_NAME: ${{ github.event_name }}
           VALIDATION_REF: ${{ github.ref }}
         run: |
@@ -75,7 +104,7 @@ jobs:
             --github-output "$GITHUB_OUTPUT"
 
       - name: Upload affected-target report
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: affected-targets-${{ steps.source.outputs.sha }}
           path: ci-reports/affected-targets.json
@@ -89,12 +118,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout validated source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.changes.outputs.source_sha }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -132,12 +161,12 @@ jobs:
     timeout-minutes: 20
     steps:
       - name: Checkout validated source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.changes.outputs.source_sha }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -178,12 +207,12 @@ jobs:
         shard: [1, 2, 3]
     steps:
       - name: Checkout validated source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.changes.outputs.source_sha }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -197,11 +226,89 @@ jobs:
         run: npm run build:contracts
         working-directory: ${{ github.workspace }}
 
-      - name: Run unit test shard
-        run: npm run test:unit -- --shard=${{ matrix.shard }}/3
+      - name: Run unit tests and collect shard coverage
+        run: >-
+          npm run test:unit --
+          --shard=${{ matrix.shard }}/3
+          --coverage
+          --coverage.thresholds.lines=0
+          --coverage.thresholds.functions=0
+          --coverage.thresholds.branches=0
+          --coverage.thresholds.statements=0
+          --reporter=default
+          --reporter=blob
+          --outputFile.blob=.vitest-reports/unit-${{ matrix.shard }}.json
         env:
           CI: true
           NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Write coverage provenance manifest
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          SOURCE_SHA: ${{ needs.changes.outputs.source_sha }}
+          SHARD: ${{ matrix.shard }}
+        run: |
+          node scripts/ci/coverage-manifest.mjs create \
+            --kind unit --index "$SHARD" --count 3 \
+            --source-sha "$SOURCE_SHA" \
+            --blob "apps/vtt/.vitest-reports/unit-$SHARD.json" \
+            --output apps/vtt/.vitest-reports/coverage-manifest.json
+
+      - name: Upload unit coverage blob
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vtt-coverage-unit-${{ matrix.shard }}
+          path: apps/vtt/.vitest-reports/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+  vtt-ui:
+    name: 'VTT: UI layout tests'
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.vtt == 'true'
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout validated source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.changes.outputs.source_sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ github.workspace }}
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Build shared contracts
+        run: npm run build:contracts
+        working-directory: ${{ github.workspace }}
+
+      - name: Run UI layout tests
+        run: npm run test:ui -- --workers=4 --retries=0
+        env:
+          CI: true
+
+      - name: Upload Playwright diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: playwright-ui-report
+          path: |
+            apps/vtt/playwright-report/
+            apps/vtt/test-results/e2e/
+          if-no-files-found: ignore
+          retention-days: 14
 
   asset-service:
     name: 'VTT: asset-service tests'
@@ -211,12 +318,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout validated source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.changes.outputs.source_sha }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -233,6 +340,179 @@ jobs:
       - name: Run asset-service tests
         run: npm run test:asset-service
 
+  vtt-integration:
+    name: 'VTT: database integration suite'
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.vtt == 'true'
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout validated source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.changes.outputs.source_sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies for coverage provenance
+        run: npm ci
+        working-directory: ${{ github.workspace }}
+
+      - name: Run integration tests with Docker Compose
+        run: >-
+          docker compose -f docker/docker-compose.test.yml up
+          --build --abort-on-container-exit --exit-code-from test
+        env:
+          HOST_WORKSPACE: ${{ github.workspace }}
+          VITEST_CI_ARGS: >-
+            --coverage
+            --coverage.thresholds.lines=0
+            --coverage.thresholds.functions=0
+            --coverage.thresholds.branches=0
+            --coverage.thresholds.statements=0
+            --reporter=default
+            --reporter=blob
+            --outputFile.blob=.vitest-reports/integration.json
+
+      - name: Fix report directory permissions
+        if: success()
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        run: |
+          if [ -d apps/vtt/.vitest-reports ]; then
+            sudo chown -R "$(id -u):$(id -g)" apps/vtt/.vitest-reports
+          fi
+
+      - name: Write coverage provenance manifest
+        if: success()
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          SOURCE_SHA: ${{ needs.changes.outputs.source_sha }}
+        run: |
+          node scripts/ci/coverage-manifest.mjs create \
+            --kind integration --index 1 --count 1 \
+            --source-sha "$SOURCE_SHA" \
+            --blob apps/vtt/.vitest-reports/integration.json \
+            --output apps/vtt/.vitest-reports/coverage-manifest.json
+
+      - name: Upload integration coverage blob
+        if: success()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vtt-coverage-integration
+          path: apps/vtt/.vitest-reports/
+          include-hidden-files: true
+          if-no-files-found: error
+          retention-days: 7
+
+      - name: Tear down integration stack
+        if: always()
+        run: docker compose -f docker/docker-compose.test.yml down -v
+
+  vtt-e2e:
+    name: 'VTT: exact-image managed E2E smoke'
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.vtt == 'true'
+    needs: changes
+    runs-on: ubuntu-latest
+    timeout-minutes: 35
+    steps:
+      - name: Checkout validated source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.changes.outputs.source_sha }}
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Build exact-source asset-service image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          file: apps/vtt/docker/asset-service.Dockerfile
+          load: true
+          push: false
+          tags: nexus-vtt/asset-service:ci-${{ needs.changes.outputs.source_sha }}
+          cache-from: type=gha,scope=smoke-asset-service
+          cache-to: type=gha,mode=max,scope=smoke-asset-service
+          build-args: |
+            VERSION=ci-${{ needs.changes.outputs.source_sha }}
+            COMMIT_SHA=${{ needs.changes.outputs.source_sha }}
+
+      - name: Build exact-source backend image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          file: apps/vtt/docker/backend.Dockerfile
+          load: true
+          push: false
+          tags: nexus-vtt/backend:ci-${{ needs.changes.outputs.source_sha }}
+          cache-from: type=gha,scope=smoke-backend
+          cache-to: type=gha,mode=max,scope=smoke-backend
+          build-args: |
+            VERSION=ci-${{ needs.changes.outputs.source_sha }}
+            COMMIT_SHA=${{ needs.changes.outputs.source_sha }}
+
+      - name: Build exact-source delta-enabled frontend image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          file: apps/vtt/docker/frontend.Dockerfile
+          target: production
+          load: true
+          push: false
+          tags: nexus-vtt/frontend:ci-delta-${{ needs.changes.outputs.source_sha }}
+          cache-from: type=gha,scope=smoke-frontend-delta
+          cache-to: type=gha,mode=max,scope=smoke-frontend-delta
+          build-args: |
+            VERSION=ci-${{ needs.changes.outputs.source_sha }}
+            COMMIT_SHA=${{ needs.changes.outputs.source_sha }}
+            VITE_DELTA_SYNC=true
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ github.workspace }}
+
+      - name: Build shared contracts
+        run: npm run build:contracts
+        working-directory: ${{ github.workspace }}
+
+      - name: Install Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Run production smoke tests
+        run: npm run test:e2e
+        env:
+          E2E_ASSET_IMAGE: nexus-vtt/asset-service:ci-${{ needs.changes.outputs.source_sha }}
+          E2E_BACKEND_IMAGE: nexus-vtt/backend:ci-${{ needs.changes.outputs.source_sha }}
+          E2E_EXPECTED_DELTA_SYNC: 'true'
+          E2E_FRONTEND_IMAGE: nexus-vtt/frontend:ci-delta-${{ needs.changes.outputs.source_sha }}
+          E2E_PREBUILT: '1'
+          E2E_SOURCE_SHA: ${{ needs.changes.outputs.source_sha }}
+
+      - name: Upload Playwright diagnostics
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: playwright-smoke-report
+          path: |
+            apps/vtt/playwright-report/
+            apps/vtt/test-results/e2e/
+          if-no-files-found: ignore
+          retention-days: 14
+
   gateway-contracts:
     name: 'VTT: gateway route matrix'
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.gateway == 'true'
@@ -241,7 +521,7 @@ jobs:
     timeout-minutes: 10
     steps:
       - name: Checkout validated source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.changes.outputs.source_sha }}
 
@@ -257,12 +537,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout validated source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.changes.outputs.source_sha }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -304,7 +584,7 @@ jobs:
     with:
       source_sha: ${{ needs.changes.outputs.source_sha }}
       run_doc_api: ${{ needs.changes.outputs.codex_doc_api == 'true' }}
-      run_integration: false
+      run_integration: true
       has_node_services: ${{ needs.changes.outputs.has_codex_node == 'true' }}
       node_services: ${{ needs.changes.outputs.codex_node_matrix }}
       has_python_services: ${{ needs.changes.outputs.has_codex_python == 'true' }}
@@ -318,12 +598,12 @@ jobs:
     timeout-minutes: 15
     steps:
       - name: Checkout validated source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.changes.outputs.source_sha }}
 
       - name: Setup Node.js
-        uses: actions/setup-node@v7
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
         with:
           node-version: ${{ env.NODE_VERSION }}
           cache: npm
@@ -337,6 +617,83 @@ jobs:
         run: npm run test:docs
         working-directory: ${{ github.workspace }}
 
+      - name: Upload validated Pages artifact
+        if: github.event_name == 'push'
+        uses: actions/upload-pages-artifact@fc324d3547104276b827a68afc52ff2a11cc49c9 # v5
+        with:
+          path: apps/docs/build
+          retention-days: 7
+
+  vtt-coverage:
+    name: 'VTT: aggregate coverage'
+    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.vtt == 'true'
+    needs: [changes, vtt-unit, vtt-integration]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout validated source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.changes.outputs.source_sha }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+        working-directory: ${{ github.workspace }}
+
+      - name: Download every coverage report
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
+        with:
+          pattern: vtt-coverage-*
+          path: coverage-input
+
+      - name: Validate coverage provenance and expected report set
+        shell: bash
+        working-directory: ${{ github.workspace }}
+        env:
+          SOURCE_SHA: ${{ needs.changes.outputs.source_sha }}
+        run: |
+          node scripts/ci/coverage-manifest.mjs validate \
+            --directory coverage-input \
+            --output apps/vtt/.vitest-reports \
+            --source-sha "$SOURCE_SHA" \
+            --unit-count 3
+
+      - name: Merge reports and enforce aggregate thresholds
+        run: >-
+          npm exec vitest --
+          --merge-reports=.vitest-reports
+          --reporter=default
+          --coverage
+
+      - name: Upload complete coverage report
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: vtt-coverage-complete-${{ needs.changes.outputs.source_sha }}
+          path: apps/vtt/coverage/
+          if-no-files-found: error
+          retention-days: 14
+
+  security:
+    name: Security validation
+    needs: changes
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+      security-events: write
+    uses: ./.github/workflows/security-reusable.yml
+    with:
+      source_sha: ${{ needs.changes.outputs.source_sha }}
+      repository_scan: true
+      container_images: ${{ needs.changes.outputs.security_images }}
+
   required:
     name: All required checks
     if: always()
@@ -345,12 +702,17 @@ jobs:
       - repository-contracts
       - vtt-static
       - vtt-unit
+      - vtt-ui
       - asset-service
+      - vtt-integration
+      - vtt-e2e
       - gateway-contracts
       - control-api
       - forge
       - codex
       - docs
+      - vtt-coverage
+      - security
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -370,15 +732,27 @@ jobs:
           CONTRACTS_RESULT: ${{ needs.repository-contracts.result }}
           VTT_STATIC_RESULT: ${{ needs.vtt-static.result }}
           VTT_UNIT_RESULT: ${{ needs.vtt-unit.result }}
+          VTT_UI_RESULT: ${{ needs.vtt-ui.result }}
           ASSET_RESULT: ${{ needs.asset-service.result }}
+          VTT_INTEGRATION_RESULT: ${{ needs.vtt-integration.result }}
+          VTT_E2E_RESULT: ${{ needs.vtt-e2e.result }}
           GATEWAY_RESULT: ${{ needs.gateway-contracts.result }}
           CONTROL_API_RESULT: ${{ needs.control-api.result }}
           FORGE_RESULT: ${{ needs.forge.result }}
           CODEX_RESULT: ${{ needs.codex.result }}
           DOCS_RESULT: ${{ needs.docs.result }}
+          VTT_COVERAGE_RESULT: ${{ needs.vtt-coverage.result }}
+          SECURITY_RESULT: ${{ needs.security.result }}
         run: |
           [[ "$CHANGES_RESULT" == 'success' ]]
           [[ "$CONTRACTS_RESULT" == 'success' ]]
+
+          # Security validation is advisory — failures surface as PR annotations
+          # but do not block merge. Remove this comment and restore the assertion
+          # below once all base-image CVEs have upstream fixes available.
+          if [[ "$SECURITY_RESULT" != 'success' && "$SECURITY_RESULT" != 'skipped' ]]; then
+            echo "::warning::Security validation did not pass ($SECURITY_RESULT) — merge is allowed but CVEs should be addressed before release."
+          fi
 
           require_result() {
             local target=$1 affected=$2 result=$3
@@ -394,6 +768,10 @@ jobs:
 
           require_result vtt-static "$VTT_AFFECTED" "$VTT_STATIC_RESULT"
           require_result vtt-unit "$VTT_AFFECTED" "$VTT_UNIT_RESULT"
+          require_result vtt-ui "$VTT_AFFECTED" "$VTT_UI_RESULT"
+          require_result vtt-integration "$VTT_AFFECTED" "$VTT_INTEGRATION_RESULT"
+          require_result vtt-e2e "$VTT_AFFECTED" "$VTT_E2E_RESULT"
+          require_result vtt-coverage "$VTT_AFFECTED" "$VTT_COVERAGE_RESULT"
           require_result asset-service "$ASSETS_AFFECTED" "$ASSET_RESULT"
           require_result gateway "$GATEWAY_AFFECTED" "$GATEWAY_RESULT"
           require_result control-api "$CONTROL_API_AFFECTED" "$CONTROL_API_RESULT"

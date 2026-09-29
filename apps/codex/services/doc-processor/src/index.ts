@@ -5,6 +5,7 @@ import { prisma } from './services/database.service';
 import { processDocumentWorker } from './workers/process-document.worker';
 import { centralLoggingService } from './services/central-logging.service';
 import { env } from './config/env';
+import { ocrHealthService } from './services/ocr-health.service';
 import { startMetricsServer } from './metrics-server';
 import { recordJobOutcome } from './observability/metrics';
 
@@ -19,11 +20,14 @@ async function start() {
   startMetricsServer();
 
   if (env.OCR_SERVICE_URL) {
+    // Non-fatal at startup: stages that need ocr-service re-check and fail
+    // themselves, so BullMQ retries them once the sidecar is back.
     try {
-      const ocrRes = await fetch(`${env.OCR_SERVICE_URL.replace(/\/$/, '')}/health`);
-      console.log(`[doc-processor] OCR sidecar health check: ${ocrRes.status} ${ocrRes.statusText}`);
+      const health = await ocrHealthService.check('startup');
+      const embed = health.embed ? `${health.embed.model} (dim ${health.embed.dim})` : 'not reported';
+      console.log(`[doc-processor] ocr-service healthy; embed model: ${embed}`);
     } catch (err: any) {
-      console.warn(`[doc-processor] Warning: OCR sidecar unreachable at ${env.OCR_SERVICE_URL}: ${err.message}`);
+      console.warn(`[doc-processor] Warning: ${err.message}`);
     }
   }
 

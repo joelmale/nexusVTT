@@ -386,6 +386,11 @@ services:
       PORT: 8000
       MAX_BATCH_SIZE: 4
       CUDA_VISIBLE_DEVICES: ${CODEX_OCR_CUDA_VISIBLE_DEVICES:-0}
+      # Ingestion v2 layout engine (Marker). Weights persist in codex-ocr-models.
+      HF_HOME: /models
+      LAYOUT_PRELOAD: ${CODEX_OCR_LAYOUT_PRELOAD:-true}
+    volumes:
+      - codex-ocr-models:/models
     deploy:
       resources:
         reservations:
@@ -411,6 +416,8 @@ networks:
 volumes:
   codex-elasticsearch-data:
     name: nexus-vtt2-codex-elasticsearch-data
+  codex-ocr-models:
+    name: nexus-vtt2-codex-ocr-models
   garage-config:
     name: nexus-vtt2-garage-config
   garage-meta:

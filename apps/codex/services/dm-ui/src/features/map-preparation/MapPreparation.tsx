@@ -91,7 +91,7 @@ export function MapPreparation({ model, onCapability }: MapPreparationProps) {
                 <Link
                   className={styles.appRailItem}
                   key={item.target}
-                  to="/campaigns/ashes-of-veyra/overview"
+                  to="/demo/ashes-of-veyra/overview"
                 >
                   <Icon size={17} />
                   <span>{item.label}</span>

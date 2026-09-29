@@ -22,6 +22,8 @@ export interface ProcessingSummary {
   ocrPending: number;
   ocrFailed: number;
   lowTextThreshold: number;
+  /** Documents per DocumentChunk.embeddingModel label (metadata.processing.chunks.embeddingModel). */
+  embeddingModels: Record<string, number>;
   recentIssues: Array<{
     id: string;
     title: string;
@@ -34,7 +36,7 @@ export interface ProcessingIssue {
   id: string;
   documentId: string;
   title: string;
-  type: 'missing_text' | 'low_text' | 'missing_index' | 'ocr_pending' | 'ocr_failed';
+  type: 'missing_text' | 'low_text' | 'missing_index' | 'ocr_pending' | 'ocr_failed' | 'embedding_model_mixed';
   severity: 'error' | 'warning';
   description: string;
   textLength: number;
@@ -48,6 +50,24 @@ const getTextLength = (metadata: unknown): number => {
   const ocrLength = Number(processing.ocr?.textLength || 0);
   return Math.max(textLength, ocrLength);
 };
+
+const getEmbeddingModel = (metadata: unknown): string | undefined => {
+  const model = (metadata as any)?.processing?.chunks?.embeddingModel;
+  return typeof model === 'string' && model ? model : undefined;
+};
+
+export const countEmbeddingModels = (documents: ProcessingDocumentSnapshot[]): Record<string, number> => {
+  const counts: Record<string, number> = {};
+  for (const doc of documents) {
+    const model = getEmbeddingModel(doc.metadata);
+    if (model) counts[model] = (counts[model] || 0) + 1;
+  }
+  return counts;
+};
+
+/** The label most documents carry; vectors from any other model are not comparable to it. */
+const dominantEmbeddingModel = (counts: Record<string, number>): string | undefined =>
+  Object.entries(counts).sort((a, b) => b[1] - a[1] || a[0].localeCompare(b[0]))[0]?.[0];
 
 export const buildProcessingSummary = (documents: ProcessingDocumentSnapshot[]): ProcessingSummary => {
   let withText = 0;
@@ -101,12 +121,14 @@ export const buildProcessingSummary = (documents: ProcessingDocumentSnapshot[]):
     ocrPending,
     ocrFailed,
     lowTextThreshold: LOW_TEXT_THRESHOLD,
+    embeddingModels: countEmbeddingModels(documents),
     recentIssues: recentIssues.slice(0, 10),
   };
 };
 
 export const buildProcessingIssues = (documents: ProcessingDocumentSnapshot[]): ProcessingIssue[] => {
   const issues: ProcessingIssue[] = [];
+  const dominantModel = dominantEmbeddingModel(countEmbeddingModels(documents));
 
   for (const doc of documents) {
     const textLength = getTextLength(doc.metadata);
@@ -174,6 +196,21 @@ export const buildProcessingIssues = (documents: ProcessingDocumentSnapshot[]): 
         type: 'ocr_failed',
         severity: 'error',
         description: 'OCR failed during processing.',
+        textLength,
+        ocrStatus: doc.ocrStatus,
+        indexed,
+      });
+    }
+
+    const embeddingModel = getEmbeddingModel(doc.metadata);
+    if (embeddingModel && dominantModel && embeddingModel !== dominantModel) {
+      issues.push({
+        id: `embedding-model-${doc.id}`,
+        documentId: doc.id,
+        title: doc.title,
+        type: 'embedding_model_mixed',
+        severity: 'warning',
+        description: `Chunks embedded with "${embeddingModel}" but most documents use "${dominantModel}". Reprocess to re-embed.`,
         textLength,
         ocrStatus: doc.ocrStatus,
         indexed,

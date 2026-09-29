@@ -9,11 +9,6 @@ import {
 
 import type { SessionStepViewModel } from '@/features/session-plan/sessionPlanModels';
 
-interface CampaignRecord {
-  id: string;
-  name: string;
-}
-
 interface UserProfile {
   id: string;
 }
@@ -41,6 +36,7 @@ export interface PublishResponse {
 }
 
 export interface PublishSessionPlanInput {
+  campaignId: string;
   campaignDescription?: string;
   campaignTitle: string;
   planTitle: string;
@@ -147,19 +143,6 @@ export async function ensureSession(): Promise<UserProfile> {
     );
   }
   throw new Error(message);
-}
-
-async function ensureCampaign(
-  title: string,
-  description?: string,
-): Promise<CampaignRecord> {
-  const campaigns = await request<CampaignRecord[]>('/api/campaigns');
-  const existing = campaigns.find((campaign) => campaign.name === title);
-  if (existing) return existing;
-  return request<CampaignRecord>('/api/campaigns', {
-    method: 'POST',
-    body: JSON.stringify({ name: title, description: description || '' }),
-  });
 }
 
 async function uploadAsset(
@@ -478,22 +461,19 @@ export async function publishSessionPlan(
   input: PublishSessionPlanInput,
 ): Promise<PublishResponse> {
   const profile = await ensureSession();
-  const campaign = await ensureCampaign(
-    input.campaignTitle,
-    input.campaignDescription,
-  );
+  const campaignId = input.campaignId;
   const [assetResponse, objectResponse] = await Promise.all([
     request<{ assets: UserAsset[] }>(
       `/api/user/${encodeURIComponent(profile.id)}/assets`,
     ),
     request<{ objects: PrepObjectRecord[] }>(
-      `/api/campaigns/${campaign.id}/prep/objects`,
+      `/api/campaigns/${campaignId}/prep/objects`,
     ),
   ]);
   const now = new Date().toISOString();
   const steps = await buildContractSteps(
     input,
-    campaign.id,
+    campaignId,
     profile.id,
     assetResponse.assets,
     objectResponse.objects,
@@ -508,7 +488,7 @@ export async function publishSessionPlan(
   const revision = plan ? plan.currentRevision + 1 : 1;
   const data: SessionPlan = {
     id: planId,
-    campaignId: campaign.id,
+    campaignId,
     schemaVersion: 1,
     revision,
     title: input.planTitle,
@@ -520,11 +500,11 @@ export async function publishSessionPlan(
   };
 
   if (!plan) {
-    plan = await createPrepObject(campaign.id, 'session-plan', data);
+    plan = await createPrepObject(campaignId, 'session-plan', data);
   }
 
   return request<PublishResponse>(
-    `/api/campaigns/${campaign.id}/prep/objects/${plan.id}/publish`,
+    `/api/campaigns/${campaignId}/prep/objects/${plan.id}/publish`,
     {
       method: 'POST',
       body: JSON.stringify({
@@ -547,25 +527,19 @@ export interface SessionPlanStatus {
 }
 
 export async function fetchSessionPlanStatus(input: {
-  campaignTitle: string;
+  campaignId: string;
   planTitle: string;
 }): Promise<SessionPlanStatus> {
   await ensureSession();
-  const campaigns = await request<CampaignRecord[]>('/api/campaigns');
-  const campaign = campaigns.find((c) => c.name === input.campaignTitle);
-  if (!campaign) {
-    return { status: 'none', published: false };
-  }
-
   const objectResponse = await request<{ objects: PrepObjectRecord[] }>(
-    `/api/campaigns/${campaign.id}/prep/objects?kind=session-plan`,
+    `/api/campaigns/${input.campaignId}/prep/objects?kind=session-plan`,
   );
   const plan = objectResponse.objects.find(
     (obj) => obj.kind === 'session-plan' && obj.title === input.planTitle,
   );
   if (!plan) {
     return {
-      campaignId: campaign.id,
+      campaignId: input.campaignId,
       status: 'draft',
       published: false,
     };
@@ -578,7 +552,9 @@ export async function fetchSessionPlanStatus(input: {
       sessionPlanId: string;
       status: string;
     };
-  }>(`/api/campaigns/${campaign.id}/session-plans/active`).catch(() => null);
+  }>(`/api/campaigns/${input.campaignId}/session-plans/active`).catch(
+    () => null,
+  );
 
   const isActivated =
     activeRes?.activation?.sessionPlanId === plan.id &&
@@ -586,7 +562,7 @@ export async function fetchSessionPlanStatus(input: {
 
   return {
     planId: plan.id,
-    campaignId: campaign.id,
+    campaignId: input.campaignId,
     status: plan.status === 'ready' ? 'ready' : 'draft',
     revision: plan.currentRevision,
     published: plan.status === 'ready',
@@ -612,30 +588,25 @@ export async function activateSessionPlan(
   input: PublishSessionPlanInput,
 ): Promise<ActivatePlanResponse> {
   await ensureSession();
-  const campaigns = await request<CampaignRecord[]>('/api/campaigns');
-  const campaign = campaigns.find((c) => c.name === input.campaignTitle);
+  const objectResponse = await request<{ objects: PrepObjectRecord[] }>(
+    `/api/campaigns/${input.campaignId}/prep/objects?kind=session-plan`,
+  );
+  const existingPlan = objectResponse.objects.find(
+    (obj) => obj.kind === 'session-plan' && obj.title === input.planTitle,
+  );
 
-  if (campaign) {
-    const objectResponse = await request<{ objects: PrepObjectRecord[] }>(
-      `/api/campaigns/${campaign.id}/prep/objects?kind=session-plan`,
+  // If the plan is already published (ready), activate without creating a new revision
+  if (existingPlan && existingPlan.status === 'ready') {
+    return request<ActivatePlanResponse>(
+      `/api/campaigns/${input.campaignId}/session-plans/${existingPlan.id}/activate`,
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          planRevision: existingPlan.currentRevision,
+          requestId: crypto.randomUUID(),
+        }),
+      },
     );
-    const existingPlan = objectResponse.objects.find(
-      (obj) => obj.kind === 'session-plan' && obj.title === input.planTitle,
-    );
-
-    // If the plan is already published (ready), activate without creating a new revision
-    if (existingPlan && existingPlan.status === 'ready') {
-      return request<ActivatePlanResponse>(
-        `/api/campaigns/${campaign.id}/session-plans/${existingPlan.id}/activate`,
-        {
-          method: 'POST',
-          body: JSON.stringify({
-            planRevision: existingPlan.currentRevision,
-            requestId: crypto.randomUUID(),
-          }),
-        },
-      );
-    }
   }
 
   // Not yet published: publish first, then activate

@@ -32,6 +32,8 @@ export interface RenderPageImageOptions {
 
 export interface RenderOcrImageOptions {
   targetPages?: number[];
+  /** Render at this DPI instead of PAGE_IMAGE_WIDTH (v2 monster crops use ~200). */
+  dpi?: number;
   onProgress?: (progress: PageImageRenderProgress) => void;
   onPage?: (page: RenderedOcrPage) => Promise<void>;
 }
@@ -142,7 +144,8 @@ class PageImageService {
       for (const pageNumber of pagesToRender) {
         const page = await pdfDocument.getPage(pageNumber);
         const viewport = page.getViewport({ scale: 1.0 });
-        const scale = env.PAGE_IMAGE_WIDTH / viewport.width;
+        // PDF user space is 72 units per inch.
+        const scale = options.dpi ? options.dpi / 72 : env.PAGE_IMAGE_WIDTH / viewport.width;
         const scaledViewport = page.getViewport({ scale });
 
         const canvas = createCanvas(scaledViewport.width, scaledViewport.height);

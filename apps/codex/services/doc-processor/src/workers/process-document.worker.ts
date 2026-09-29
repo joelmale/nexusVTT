@@ -12,17 +12,41 @@ import { markdownService } from '../services/markdown.service';
 import { extractionService } from '../services/extraction.service';
 import { contentHashService } from '../services/content-hash.service';
 import { loggingService } from '../services/logging.service';
-import { chunkingService } from '../services/chunking.service';
+import { chunkingService, DocumentChunkInput } from '../services/chunking.service';
 import { embeddingsService } from '../services/embeddings.service';
+import { ocrHealthService } from '../services/ocr-health.service';
 import { entityResolverService } from '../services/entity-resolver.service';
 import { entityLinkingService } from '../services/entity-linking.service';
 import { env } from '../config/env';
 import { canvasBackend } from '../utils/canvas';
-import { STAGES, Stage, ProcessingCheckpoints, isStageComplete, getNextStage } from './stage-utils';
+import {
+  Stage,
+  PipelineVersion,
+  ProcessingCheckpoints,
+  isStageComplete,
+  getNextStage,
+  getFollowingStage,
+  resolvePipelineVersion,
+} from './stage-utils';
+import { runLayoutStage } from './layout-stage';
+import { runExtractStage } from './extract-stage';
+import {
+  processingEvents,
+  candidateEvents,
+  describePageLayout,
+  describePageMarkdown,
+  describeQuality,
+  describeStageCompleted,
+  describeStageFailed,
+  stageLabel,
+} from '../services/processing-events.service';
 
 const MAX_TEXT_SAMPLE_LENGTH = 500;
 const CONFIDENCE_THRESHOLD = 0.6;
 type ProcessingMetadata = {
+  pipelineVersion?: PipelineVersion;
+  // Groups ProcessingEvent rows; a new one per ingest (processing run).
+  runId?: string;
   stage?: Stage;
   stageUpdatedAt?: string;
   checkpoints?: ProcessingCheckpoints;
@@ -39,10 +63,17 @@ type ProcessingMetadata = {
     spells?: number;
     monsters?: number;
     items?: number;
+    // v2 only
+    candidates?: number;
+    needsReview?: number;
+    cachedCalls?: number;
+    model?: string;
+    promptVersion?: string;
   };
   chunks?: {
     count?: number;
     source?: string;
+    embeddingModel?: string;
   };
   search?: {
     indexed?: boolean;
@@ -58,6 +89,14 @@ type ProcessingMetadata = {
     pages: Array<{ pageNumber: number; columns: number; confidence: number }>;
     confidence?: number;
     failureReason?: string;
+  };
+  // v2 layout stage summary (DocumentPage rows hold the detail).
+  pages?: {
+    count: number;
+    engine: string;
+    batchesRun: number;
+    batchesSkipped: number;
+    averageWordValidity?: number;
   };
   format?: string;
   textLength?: number;
@@ -117,9 +156,26 @@ const updateProcessing = async (
       ...extraUpdates,
     },
   });
+  if (checkpointUpdate.completedAt && !checkpointUpdate.error && nextProcessing.runId) {
+    await processingEvents.emit({
+      documentId,
+      runId: nextProcessing.runId,
+      stage,
+      kind: 'stage_completed',
+      message: describeStageCompleted(stage, checkpointUpdate.durationMs),
+      payload: { durationMs: checkpointUpdate.durationMs },
+    });
+  }
 };
 
-const resolveTextForProcessing = async (documentId: string, preferOcr: boolean) => {
+const resolveTextForProcessing = async (documentId: string, preferOcr: boolean, version: PipelineVersion = 'v1') => {
+  if (version === 'v2') {
+    const layoutText = await prisma.documentText.findFirst({
+      where: { documentId, source: 'layout' },
+    });
+    if (layoutText?.content) return layoutText.content;
+  }
+
   if (preferOcr) {
     const ocrText = await prisma.documentText.findFirst({
       where: { documentId, source: 'ocr' },
@@ -138,9 +194,34 @@ const resolveTextForProcessing = async (documentId: string, preferOcr: boolean) 
   return markdownText?.content || '';
 };
 
-const queueNextStage = async (documentId: string, stage: Stage, skipOcr: boolean) => {
-  const stageIndex = STAGES.indexOf(stage);
-  const next = STAGES.slice(stageIndex + 1).find((candidate) => !(candidate === 'ocr' && skipOcr));
+/**
+ * Embeds chunks before anything is deleted, so an embeddings failure leaves the
+ * previous chunks in place and fails the stage for BullMQ to retry. Every row
+ * is labelled with the model that produced its vector (or `none`).
+ */
+const embedChunks = async (jobId: string, chunks: DocumentChunkInput[]) => {
+  if (chunks.length === 0) return { rows: [], model: embeddingsService.getProviderName() };
+
+  const health = await ocrHealthService.assertEmbeddingsReady();
+  if (health?.embed) {
+    await loggingService.logInfo(jobId, `ocr-service embed model: ${health.embed.model} (dim ${health.embed.dim})`);
+  }
+
+  const { embeddings, model } = await embeddingsService.embedTextsWithModel(chunks.map((chunk) => chunk.content));
+  if (model !== 'none' && embeddings.length !== chunks.length) {
+    throw new Error(`Embedding count mismatch: expected ${chunks.length}, got ${embeddings.length}`);
+  }
+
+  const rows = chunks.map((chunk, index) => ({
+    ...chunk,
+    embedding: embeddings[index] ?? [],
+    embeddingModel: model,
+  }));
+  return { rows, model };
+};
+
+const queueNextStage = async (documentId: string, stage: Stage, skipOcr: boolean, version: PipelineVersion = 'v1') => {
+  const next = getFollowingStage(stage, skipOcr, version);
   if (!next) return;
   if (next === 'assets') {
     await enqueueAssetStage(documentId);
@@ -153,6 +234,7 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
   const { documentId } = job.data;
   const stage = (job.data.stage || 'ingest') as Stage;
   const jobId = job.id || 'unknown';
+  let runId: string | undefined;
 
   console.log(`[Worker] Processing document ${documentId} at stage ${stage}`);
   await loggingService.logInfo(jobId, `Stage ${stage} started for document ${documentId}`);
@@ -166,6 +248,9 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
 
     const { processing, checkpoints } = getProcessingState(document);
     const contentHash = document.contentHash || checkpoints.contentHash || null;
+    // Pinned at ingest; documents from before pipelineVersion existed stay on v1.
+    const version = resolvePipelineVersion(processing, env.PIPELINE_VERSION);
+    runId = processing.runId;
 
     if (stage !== 'ingest' && contentHash && isStageComplete(checkpoints, stage, contentHash)) {
       await loggingService.logInfo(jobId, `Stage ${stage} already completed, skipping`);
@@ -178,8 +263,29 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
         });
         return;
       }
-      await queueNextStage(documentId, stage, skipOcr);
+      await queueNextStage(documentId, stage, skipOcr, version);
       return;
+    }
+
+    if (stage === 'ingest') {
+      // Every ingest is a new processing run for the live view. Persist the
+      // runId now (a resume returns before any checkpoint write) and in the
+      // in-memory document so later writes in this job keep it.
+      runId = await processingEvents.startRun(documentId);
+      processing.runId = runId;
+      document.metadata = { ...(document.metadata as any), processing: { ...processing } };
+      await prisma.document.update({ where: { id: documentId }, data: { metadata: document.metadata as any } });
+    }
+    // v2 extract announces itself once candidates are known.
+    if (runId && !(stage === 'extract' && version === 'v2')) {
+      await processingEvents.emit({
+        documentId,
+        runId,
+        stage,
+        kind: 'stage_started',
+        message: `${stageLabel(stage)} started${stage === 'ingest' ? ` (pipeline ${version})` : ''}`,
+        payload: { pipelineVersion: version },
+      });
     }
 
     switch (stage) {
@@ -240,7 +346,7 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
 
         const checkpointMatches = checkpoints.contentHash && checkpoints.contentHash === calculatedHash;
         if (checkpointMatches) {
-          const nextStage = getNextStage(checkpoints, processing.ocr?.detected === false);
+          const nextStage = getNextStage(checkpoints, processing.ocr?.detected === false, version);
           if (nextStage && nextStage !== 'ingest') {
             await loggingService.logInfo(jobId, `Resuming from stage ${nextStage}`);
             await enqueueStage(documentId, nextStage);
@@ -253,14 +359,15 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
           durationMs: Date.now() - start,
         }, {
           format: document.format,
+          pipelineVersion: version,
           checkpoints: {
             ...checkpoints,
             contentHash: calculatedHash,
           },
         });
 
-        await loggingService.logInfo(jobId, 'Stage ingest completed');
-        await queueNextStage(documentId, 'ingest', false);
+        await loggingService.logInfo(jobId, `Stage ingest completed (pipeline ${version})`);
+        await queueNextStage(documentId, 'ingest', false, version);
         return;
       }
       case 'render': {
@@ -516,10 +623,137 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
         await queueNextStage(documentId, 'ocr', false);
         return;
       }
+      case 'layout': {
+        const start = Date.now();
+        const result = await runLayoutStage(jobId, document, async (pages) => {
+          if (!runId) return;
+          const events = pages.flatMap((page) => [
+            {
+              documentId,
+              runId: runId as string,
+              stage: 'layout',
+              kind: 'page_layout' as const,
+              pageNumber: page.pageNumber,
+              message: describePageLayout(page),
+              payload: { blocks: page.blocks.length, previewKey: page.previewKey ?? null },
+            },
+            {
+              documentId,
+              runId: runId as string,
+              stage: 'layout',
+              kind: 'page_markdown' as const,
+              pageNumber: page.pageNumber,
+              message: describePageMarkdown(page),
+              payload: { quality: page.quality ?? {} },
+            },
+          ]);
+          await processingEvents.emitMany(events);
+        });
+        if (runId) {
+          const quality = describeQuality(result.pageQuality);
+          await processingEvents.emit({
+            documentId,
+            runId,
+            stage: 'layout',
+            kind: 'quality',
+            message: quality.message,
+            payload: { average: quality.average, lowPages: quality.lowPages },
+          });
+        }
+        await loggingService.logInfo(
+          jobId,
+          `Layout: ${result.pageCount} pages via ${result.engine} (${result.batchesRun} batches run, ${result.batchesSkipped} resumed)`
+        );
+
+        // Re-read: runLayoutStage recorded batch checkpoints after `document` was loaded.
+        const current = await prisma.document.findUnique({ where: { id: documentId } });
+        const textSample = result.text.trim().slice(0, MAX_TEXT_SAMPLE_LENGTH);
+        await updateProcessing(documentId, current ?? document, 'layout', {
+          completedAt: new Date().toISOString(),
+          durationMs: Date.now() - start,
+          error: undefined,
+        }, {
+          format: document.format,
+          textLength: result.text.length,
+          textSample: textSample || undefined,
+          textCharsPerPage: result.pageCount > 0 ? Math.round(result.text.length / result.pageCount) : 0,
+          pages: {
+            count: result.pageCount,
+            engine: result.engine,
+            batchesRun: result.batchesRun,
+            batchesSkipped: result.batchesSkipped,
+            averageWordValidity: result.averageWordValidity,
+          },
+        }, {
+          pageCount: result.pageCount,
+        });
+
+        await loggingService.logInfo(jobId, 'Stage layout completed');
+        await queueNextStage(documentId, 'layout', false, version);
+        return;
+      }
       case 'extract': {
         const start = Date.now();
+        if (version === 'v2') {
+          const result = await runExtractStage(jobId, document, {
+            onCandidates: async (candidates) => {
+              if (!runId) return;
+              const byType = ['monster', 'spell', 'item']
+                .map((type) => `${candidates.filter((c) => c.type === type).length} ${type}`)
+                .join(', ');
+              await processingEvents.emit({
+                documentId,
+                runId,
+                stage: 'extract',
+                kind: 'stage_started',
+                message: `Extraction started: ${candidates.length} candidate${candidates.length === 1 ? '' : 's'} (${byType}) via ${env.VLM_MODEL}`,
+                payload: {
+                  model: env.VLM_MODEL,
+                  candidates: candidates.map((c) => ({
+                    key: c.key,
+                    type: c.type,
+                    title: c.title,
+                    pageNumber: c.pageNumber,
+                    regions: c.regions,
+                  })),
+                },
+              });
+            },
+            onCandidate: async (candidateResult) => {
+              if (!runId) return;
+              const events = candidateEvents(candidateResult, env.VLM_MODEL)
+                .map((event) => ({ ...event, documentId, runId: runId as string }));
+              await processingEvents.emitMany(events);
+            },
+          });
+          await loggingService.logInfo(
+            jobId,
+            `Extracted ${result.counts.spell} spells, ${result.counts.monster} monsters, ${result.counts.item} items ` +
+              `from ${result.candidates} candidates (${result.needsReview} need review, ${result.cachedCalls} cached)`
+          );
+          await updateProcessing(documentId, document, 'extract', {
+            completedAt: new Date().toISOString(),
+            durationMs: Date.now() - start,
+            error: undefined,
+          }, {
+            extraction: {
+              spells: result.counts.spell,
+              monsters: result.counts.monster,
+              items: result.counts.item,
+              candidates: result.candidates,
+              needsReview: result.needsReview,
+              cachedCalls: result.cachedCalls,
+              model: env.VLM_MODEL,
+              promptVersion: env.EXTRACT_PROMPT_VERSION,
+            },
+          });
+          await loggingService.logInfo(jobId, 'Stage extract completed');
+          await queueNextStage(documentId, 'extract', false, version);
+          return;
+        }
+
         const preferOcr = processing.ocr?.status === 'completed';
-        const text = await resolveTextForProcessing(documentId, preferOcr);
+        const text = await resolveTextForProcessing(documentId, preferOcr, version);
 
         console.log(`[Worker] Extracting structured data`);
         await loggingService.logInfo(jobId, 'Extracting structured data');
@@ -623,36 +857,24 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
           await loggingService.logInfo(jobId, `Linked ${monsterMentions.length} monster spell mentions`);
         }
 
-        const chunkSource = preferOcr ? 'ocr' : (document.format === 'markdown' ? 'markdown' : 'pdf_extraction');
-        const chunks = chunkingService.chunkText({
-          text,
-          documentId: document.id,
-          source: chunkSource,
-          pageCount: document.pageCount || 0,
-        });
+        // v1 chunks here; v2 chunks per page in the index stage.
+        let chunkSummary: ProcessingMetadata['chunks'];
+        {
+          const chunkSource = preferOcr ? 'ocr' : (document.format === 'markdown' ? 'markdown' : 'pdf_extraction');
+          const chunks = chunkingService.chunkText({
+            text,
+            documentId: document.id,
+            source: chunkSource,
+            pageCount: document.pageCount || 0,
+          });
 
-        await prisma.documentChunk.deleteMany({ where: { documentId: document.id } });
-        if (chunks.length > 0) {
-          const embeddingsProvider = embeddingsService.getProviderName();
-          const embeddings = embeddingsProvider === 'none'
-            ? []
-            : await embeddingsService.embedTexts(chunks.map((chunk) => chunk.content));
-
-          if (embeddingsProvider !== 'none' && embeddings.length !== chunks.length) {
-            await loggingService.logWarn(jobId, `Embedding count mismatch: expected ${chunks.length}, got ${embeddings.length}`);
+          const embedded = await embedChunks(jobId, chunks);
+          await prisma.documentChunk.deleteMany({ where: { documentId: document.id } });
+          if (embedded.rows.length > 0) {
+            await prisma.documentChunk.createMany({ data: embedded.rows });
+            await loggingService.logInfo(jobId, `Stored ${chunks.length} document chunks (embeddingModel=${embedded.model})`);
           }
-
-          const chunksWithEmbeddings = chunks.map((chunk, index) => ({
-            ...chunk,
-            embedding: embeddings[index] ?? [],
-            embeddingModel: embeddingsProvider === 'none' ? null : embeddingsProvider,
-          }));
-
-          await prisma.documentChunk.createMany({ data: chunksWithEmbeddings });
-          await loggingService.logInfo(jobId, `Stored ${chunks.length} document chunks`);
-          if (embeddingsProvider !== 'none') {
-            await loggingService.logInfo(jobId, `Stored embeddings for ${chunks.length} chunks (provider=${embeddingsProvider})`);
-          }
+          chunkSummary = { count: chunks.length, source: chunkSource, embeddingModel: embedded.model };
         }
 
         await updateProcessing(documentId, document, 'extract', {
@@ -664,20 +886,36 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
             monsters: extracted.monsters.length,
             items: extracted.items.length,
           },
-          chunks: {
-            count: chunks.length,
-            source: chunkSource,
-          },
+          ...(chunkSummary ? { chunks: chunkSummary } : {}),
         });
 
         await loggingService.logInfo(jobId, 'Stage extract completed');
-        await queueNextStage(documentId, 'extract', preferOcr ? false : processing.ocr?.detected === false);
+        await queueNextStage(documentId, 'extract', preferOcr ? false : processing.ocr?.detected === false, version);
         return;
       }
       case 'index': {
         const start = Date.now();
         const preferOcr = processing.ocr?.status === 'completed';
-        const text = await resolveTextForProcessing(documentId, preferOcr);
+        const text = await resolveTextForProcessing(documentId, preferOcr, version);
+
+        let chunkSummary: ProcessingMetadata['chunks'];
+        if (version === 'v2') {
+          // Page-aware chunks: pageStart/pageEnd are exact.
+          const pages = await prisma.documentPage.findMany({
+            where: { documentId },
+            orderBy: { pageNumber: 'asc' },
+            select: { pageNumber: true, markdown: true },
+          });
+          const chunks = chunkingService.chunkPages({ pages, documentId, source: 'layout' });
+          const embedded = await embedChunks(jobId, chunks);
+          await prisma.documentChunk.deleteMany({ where: { documentId } });
+          if (embedded.rows.length > 0) {
+            // Identical text on two pages hashes the same; keep the first.
+            await prisma.documentChunk.createMany({ data: embedded.rows, skipDuplicates: true });
+            await loggingService.logInfo(jobId, `Stored ${chunks.length} page-aware chunks (embeddingModel=${embedded.model})`);
+          }
+          chunkSummary = { count: chunks.length, source: 'layout', embeddingModel: embedded.model };
+        }
 
         console.log(`[Worker] Indexing document in ElasticSearch`);
         await loggingService.logInfo(jobId, 'Indexing document in ElasticSearch');
@@ -708,13 +946,14 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
             indexedAt: new Date().toISOString(),
             indexDurationMs,
           },
+          ...(chunkSummary ? { chunks: chunkSummary } : {}),
         }, {
           searchIndex,
           ocrStatus,
         });
 
         await loggingService.logInfo(jobId, 'Stage index completed');
-        await queueNextStage(documentId, 'index', processing.ocr?.detected === false);
+        await queueNextStage(documentId, 'index', processing.ocr?.detected === false, version);
         return;
       }
       case 'assets': {
@@ -790,6 +1029,16 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
     }
   } catch (error: any) {
     console.error(`[Worker] Stage ${stage} failed for document ${documentId}:`, error.message);
+    if (runId) {
+      await processingEvents.emit({
+        documentId,
+        runId,
+        stage,
+        kind: 'stage_failed',
+        message: describeStageFailed(stage, error.message),
+        payload: { error: error.message, attempt: job.attemptsMade },
+      });
+    }
     await loggingService.logError(jobId, `Stage ${stage} failed: ${error.message}`, 'error', {
       error: error.message,
       stack: error.stack,

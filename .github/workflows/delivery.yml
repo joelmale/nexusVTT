@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       source_sha:
-        description: Optional full SHA already reachable from main
+        description: Optional full SHA for the current main commit
         required: false
         type: string
 
@@ -15,6 +15,7 @@ concurrency:
   cancel-in-progress: false
 
 permissions:
+  actions: read
   contents: read
 
 env:
@@ -29,6 +30,7 @@ jobs:
       source_sha: ${{ steps.source.outputs.sha }}
       docs: ${{ steps.affected.outputs.docs }}
       release_images: ${{ steps.affected.outputs.release_images }}
+      security_images: ${{ steps.affected.outputs.security_images }}
       all_release_images: ${{ steps.affected.outputs.all_release_images }}
       has_release_images: ${{ steps.affected.outputs.has_release_images }}
     steps:
@@ -44,7 +46,7 @@ jobs:
           }
 
       - name: Checkout delivery source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ inputs.source_sha || github.sha }}
           fetch-depth: 0
@@ -62,6 +64,10 @@ jobs:
             echo 'delivery source must be reachable from main' >&2
             exit 1
           }
+          if [[ "$GITHUB_EVENT_NAME" == 'workflow_dispatch' && "$source_sha" != "$(git rev-parse origin/main)" ]]; then
+            echo 'manual candidate source must equal current main' >&2
+            exit 1
+          fi
           if [[ -n "$REQUESTED_SHA" && "$source_sha" != "$REQUESTED_SHA" ]]; then
             echo 'checked-out source does not match source_sha' >&2
             exit 1
@@ -91,10 +97,57 @@ jobs:
             --github-output "$GITHUB_OUTPUT" \
             --format summary
 
+  validation-evidence:
+    name: Verify exact-source validation
+    needs: resolve
+    outputs:
+      run_id: ${{ steps.validation.outputs.run_id }}
+      run_url: ${{ steps.validation.outputs.run_url }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    permissions:
+      actions: read
+      contents: read
+    steps:
+      - name: Checkout delivery source
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          ref: ${{ needs.resolve.outputs.source_sha }}
+
+      - name: Require successful CI for the exact source
+        id: validation
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          REQUIRED_VALIDATION_EVENT: ${{ github.event_name == 'workflow_dispatch' && 'workflow_dispatch' || 'push' }}
+          SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}
+          VALIDATION_POLL_MS: '15000'
+          VALIDATION_WAIT_MS: '2400000'
+        run: node scripts/ci/release-validation-evidence.mjs
+
+  security:
+    name: Verify exact-source security
+    if: >-
+      always() &&
+      needs.resolve.result == 'success' &&
+      needs.validation-evidence.result == 'success' &&
+      (needs.publish-images.result == 'success' || needs.publish-images.result == 'skipped')
+    needs: [resolve, validation-evidence, publish-images]
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+      security-events: write
+    uses: ./.github/workflows/security-reusable.yml
+    with:
+      source_sha: ${{ needs.resolve.outputs.source_sha }}
+      repository_scan: true
+      container_images: ${{ needs.resolve.outputs.security_images }}
+      prebuilt_tag_prefix: ${{ github.event_name == 'workflow_dispatch' && 'candidate' || 'sha' }}
+
   publish-images:
     name: 'Publish immutable image: ${{ matrix.name }}'
     if: needs.resolve.outputs.has_release_images == 'true'
-    needs: resolve
+    needs: [resolve, validation-evidence]
     runs-on: ubuntu-latest
     timeout-minutes: 60
     permissions:
@@ -106,33 +159,47 @@ jobs:
         include: ${{ fromJSON(needs.resolve.outputs.release_images) }}
     steps:
       - name: Checkout delivery source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.resolve.outputs.source_sha }}
 
       - name: Set up QEMU for multi-platform images
         if: contains(matrix.platforms, ',')
-        uses: docker/setup-qemu-action@v4
+        uses: docker/setup-qemu-action@99012661954931238ded8c8b007157a8430204e1 # v4
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Resolve immutable publication tag
+        id: image-tag
+        shell: bash
+        env:
+          EVENT_NAME: ${{ github.event_name }}
+          REPOSITORY: ${{ matrix.repository }}
+          SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}
+        run: |
+          prefix=sha
+          if [[ "$EVENT_NAME" == 'workflow_dispatch' ]]; then
+            prefix=candidate
+          fi
+          echo "tag=$REPOSITORY:$prefix-$SOURCE_SHA" >> "$GITHUB_OUTPUT"
+
       - name: Build and push immutable source image
-        uses: docker/build-push-action@v7
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
           context: ${{ matrix.context }}
           file: ${{ matrix.file }}
           target: ${{ matrix.target }}
           platforms: ${{ matrix.platforms }}
           push: true
-          tags: ${{ matrix.repository }}:sha-${{ needs.resolve.outputs.source_sha }}
+          tags: ${{ steps.image-tag.outputs.tag }}
           cache-from: type=gha,scope=release-${{ matrix.name }}
           cache-to: type=gha,mode=max,scope=release-${{ matrix.name }}
           build-args: |
@@ -142,7 +209,7 @@ jobs:
   promote-release:
     name: Promote immutable image digests
     if: needs.publish-images.result == 'success'
-    needs: [resolve, publish-images]
+    needs: [resolve, publish-images, security]
     outputs:
       disposition: ${{ steps.eligibility.outputs.disposition }}
       publication: ${{ steps.promotion.outcome }}
@@ -156,7 +223,7 @@ jobs:
       packages: write
     steps:
       - name: Checkout delivery source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.resolve.outputs.source_sha }}
           fetch-depth: 0
@@ -165,17 +232,17 @@ jobs:
         id: eligibility
         env:
           EVENT_NAME: ${{ github.event_name }}
-          EVENT_REF: refs/heads/main
+          EVENT_REF: ${{ github.ref }}
           SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}
         run: node scripts/ci/release-promotion.mjs
 
       - name: Set up Docker Buildx
         if: steps.eligibility.outputs.disposition == 'eligible'
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
 
       - name: Log in to GitHub Container Registry
         if: steps.eligibility.outputs.disposition == 'eligible'
-        uses: docker/login-action@v4
+        uses: docker/login-action@dbcb813823bdd20940b903addbd779551569679f # v4
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -218,7 +285,7 @@ jobs:
 
       - name: Upload complete image manifest
         if: steps.eligibility.outputs.disposition == 'eligible'
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: release-images-${{ needs.resolve.outputs.source_sha }}
           path: release/images.json
@@ -226,42 +293,32 @@ jobs:
           retention-days: 90
 
   build-docs:
-    name: Build documentation for delivery
-    if: needs.resolve.outputs.docs == 'true'
-    needs: resolve
+    name: Stage validated documentation artifact
+    if: github.event_name == 'push' && needs.resolve.outputs.docs == 'true'
+    needs: [resolve, validation-evidence, security]
     runs-on: ubuntu-latest
-    timeout-minutes: 15
+    timeout-minutes: 10
     steps:
-      - name: Checkout delivery source
-        uses: actions/checkout@v7
+      - name: Download exact validation Pages artifact
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
-          ref: ${{ needs.resolve.outputs.source_sha }}
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          name: github-pages
+          path: validated-pages
+          run-id: ${{ needs.validation-evidence.outputs.run_id }}
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v7
+      - name: Re-stage exact validated Pages artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Configure GitHub Pages
-        uses: actions/configure-pages@v6
-
-      - name: Build documentation
-        run: npm run build:docs
-
-      - name: Upload GitHub Pages artifact
-        uses: actions/upload-pages-artifact@v5
-        with:
-          path: apps/docs/build
+          name: github-pages
+          path: validated-pages/
+          if-no-files-found: error
+          retention-days: 7
 
   deploy-docs:
     name: Deploy documentation
-    if: needs.build-docs.result == 'success'
-    needs: [resolve, build-docs]
+    if: github.event_name == 'push' && needs.build-docs.result == 'success'
+    needs: [resolve, validation-evidence, security, build-docs]
     runs-on: ubuntu-latest
     timeout-minutes: 10
     permissions:
@@ -277,12 +334,19 @@ jobs:
     steps:
       - name: Deploy to GitHub Pages
         id: deployment
-        uses: actions/deploy-pages@v5
+        uses: actions/deploy-pages@368f82528645a54fb793d4d04e342629a3f51346 # v5
 
   result:
     name: Delivery result
     if: always()
-    needs: [resolve, publish-images, promote-release, build-docs, deploy-docs]
+    needs:
+      - resolve
+      - validation-evidence
+      - security
+      - publish-images
+      - promote-release
+      - build-docs
+      - deploy-docs
     runs-on: ubuntu-latest
     timeout-minutes: 5
     steps:
@@ -290,6 +354,8 @@ jobs:
         shell: bash
         env:
           RESOLVE_RESULT: ${{ needs.resolve.result }}
+          VALIDATION_RESULT: ${{ needs.validation-evidence.result }}
+          SECURITY_RESULT: ${{ needs.security.result }}
           HAS_IMAGES: ${{ needs.resolve.outputs.has_release_images }}
           DOCS_AFFECTED: ${{ needs.resolve.outputs.docs }}
           PUBLISH_RESULT: ${{ needs.publish-images.result }}
@@ -300,12 +366,14 @@ jobs:
           DEPLOY_DOCS_RESULT: ${{ needs.deploy-docs.result }}
         run: |
           [[ "$RESOLVE_RESULT" == 'success' ]]
+          [[ "$VALIDATION_RESULT" == 'success' ]]
+          [[ "$SECURITY_RESULT" == 'success' ]]
 
           if [[ "$HAS_IMAGES" == 'true' ]]; then
             [[ "$PUBLISH_RESULT" == 'success' ]]
             [[ "$PROMOTION_RESULT" == 'success' ]]
             case "$PROMOTION_DISPOSITION:$PUBLICATION_RESULT" in
-              eligible:success|superseded:skipped) ;;
+              eligible:success|superseded:skipped|candidate:skipped) ;;
               *)
                 echo "unexpected promotion outcome: $PROMOTION_DISPOSITION:$PUBLICATION_RESULT" >&2
                 exit 1
@@ -316,7 +384,7 @@ jobs:
             [[ "$PROMOTION_RESULT" == 'skipped' ]]
           fi
 
-          if [[ "$DOCS_AFFECTED" == 'true' ]]; then
+          if [[ "$DOCS_AFFECTED" == 'true' && "$GITHUB_EVENT_NAME" == 'push' ]]; then
             [[ "$BUILD_DOCS_RESULT" == 'success' ]]
             [[ "$DEPLOY_DOCS_RESULT" == 'success' ]]
           else

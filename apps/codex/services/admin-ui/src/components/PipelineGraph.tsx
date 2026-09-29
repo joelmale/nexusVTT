@@ -11,9 +11,10 @@ import {
   Clock,
   SkipForward,
   RefreshCw,
+  ScanText,
 } from 'lucide-react'
 
-export type StageKey = 'ingest' | 'render' | 'ocr' | 'extract' | 'index' | 'assets'
+export type StageKey = 'ingest' | 'render' | 'ocr' | 'layout' | 'extract' | 'index' | 'assets'
 
 export type StageStatus = 'completed' | 'active' | 'waiting' | 'skipped' | 'failed' | 'pending'
 
@@ -39,6 +40,7 @@ export interface PipelineGraphProps {
   currentStage?: string
   jobStatus?: string
   reportProcessing?: {
+    pipelineVersion?: 'v1' | 'v2'
     format?: string
     stage?: string
     stageUpdatedAt?: string
@@ -71,6 +73,23 @@ export interface PipelineGraphProps {
       spells?: number
       monsters?: number
       items?: number
+      candidates?: number
+      needsReview?: number
+      cachedCalls?: number
+      model?: string
+    }
+    // v2 layout stage summary
+    pages?: {
+      count?: number
+      engine?: string
+      batchesRun?: number
+      batchesSkipped?: number
+      averageWordValidity?: number
+    }
+    chunks?: {
+      count?: number
+      source?: string
+      embeddingModel?: string
     }
     search?: {
       indexed?: boolean
@@ -87,7 +106,9 @@ export interface PipelineGraphProps {
   isRetrying?: boolean
 }
 
-const STAGE_ORDER: StageKey[] = ['ingest', 'render', 'ocr', 'extract', 'index', 'assets']
+const STAGE_ORDER_V1: StageKey[] = ['ingest', 'render', 'ocr', 'extract', 'index', 'assets']
+// v2 merges render + ocr into one checkpointed layout stage.
+const STAGE_ORDER_V2: StageKey[] = ['ingest', 'layout', 'extract', 'index', 'assets']
 
 const formatDuration = (ms?: number): string => {
   if (ms === undefined || ms === null || isNaN(ms)) return ''
@@ -117,7 +138,9 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
   isLoading = false,
   isRetrying = false,
 }) => {
-  const [selectedStageKey, setSelectedStageKey] = useState<StageKey>('render')
+  const [selectedStageKey, setSelectedStageKey] = useState<StageKey | null>(null)
+  const isV2 = reportProcessing?.pipelineVersion === 'v2'
+  const stageOrder = isV2 ? STAGE_ORDER_V2 : STAGE_ORDER_V1
 
   // Extract checkpoints and processing metadata
   const checkpoints = reportProcessing?.checkpoints?.stages || {}
@@ -129,11 +152,13 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
   const pageImages = reportProcessing?.pageImages
 
   const normalizedCurrentStage = currentStage?.toLowerCase() as StageKey | undefined
-  const currentStageIndex = normalizedCurrentStage ? STAGE_ORDER.indexOf(normalizedCurrentStage) : -1
+  const currentStageIndex = normalizedCurrentStage ? stageOrder.indexOf(normalizedCurrentStage) : -1
+  const pagesInfo = reportProcessing?.pages
 
   // Calculate status for each stage
-  const getStageStatus = (key: StageKey, index: number): { status: StageStatus; durationMs?: number; error?: string } => {
+  const getStageStatus = (key: StageKey): { status: StageStatus; durationMs?: number; error?: string } => {
     const cp = checkpoints[key]
+    const index = stageOrder.indexOf(key)
 
     // 1. OCR special gating (bypass if digital text was adequate)
     if (key === 'ocr') {
@@ -200,11 +225,11 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
     return { status: 'pending' }
   }
 
-  // Build model for all 6 sequential nodes
-  const stages: PipelineStageInfo[] = [
+  // Build a node per stage; the pipeline version picks and numbers them.
+  const allStages: PipelineStageInfo[] = [
     // 1. Ingest
     (() => {
-      const { status, durationMs, error } = getStageStatus('ingest', 0)
+      const { status, durationMs, error } = getStageStatus('ingest')
       return {
         key: 'ingest',
         number: 1,
@@ -224,7 +249,7 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
 
     // 2. Render & Layout
     (() => {
-      const { status, durationMs, error } = getStageStatus('render', 1)
+      const { status, durationMs, error } = getStageStatus('render')
       const textLen = reportProcessing?.textLength ?? 0
       const colCount = layout?.pages?.[0]?.columns ?? 1
       const ocrNeeded = ocr?.detected ?? (textLen < 200)
@@ -248,7 +273,7 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
 
     // 3. GPU OCR Sidecar
     (() => {
-      const { status, durationMs, error } = getStageStatus('ocr', 2)
+      const { status, durationMs, error } = getStageStatus('ocr')
       const ocrChars = ocr?.textLength ?? 0
       const pagesRendered = ocr?.pagesRendered ?? (ocr?.pageKeys?.length ?? 0)
 
@@ -269,9 +294,31 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
       }
     })(),
 
+
+    // Layout (v2): Marker/Surya layout + OCR, checkpointed per page batch
+    (() => {
+      const { status, durationMs, error } = getStageStatus('layout')
+      const cleanliness = pagesInfo?.averageWordValidity
+      return {
+        key: 'layout',
+        number: 0,
+        title: 'Layout & OCR',
+        subtitle: 'Marker page batches',
+        status,
+        durationMs,
+        error,
+        tag: { label: 'GPU Marker', variant: 'amber' },
+        metrics: [
+          { label: 'pages', value: pagesInfo?.count ?? pageCount },
+          { label: 'batches', value: pagesInfo ? `${pagesInfo.batchesRun ?? 0} run / ${pagesInfo.batchesSkipped ?? 0} resumed` : 'n/a' },
+          { label: 'cleanliness', value: cleanliness !== undefined ? `${(cleanliness * 100).toFixed(1)}%` : 'n/a' },
+        ],
+      }
+    })(),
+
     // 4. Entity Extraction
     (() => {
-      const { status, durationMs, error } = getStageStatus('extract', 3)
+      const { status, durationMs, error } = getStageStatus('extract')
       const spells = extraction?.spells ?? 0
       const monsters = extraction?.monsters ?? 0
       const items = extraction?.items ?? 0
@@ -286,17 +333,23 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
         durationMs,
         error,
         tag: { label: '5e Entities', variant: 'purple' },
-        metrics: [
-          { label: 'spells', value: spells },
-          { label: 'monsters', value: monsters },
-          { label: 'items', value: items },
-        ],
+        metrics: isV2
+          ? [
+              { label: 'entities', value: `${spells}S / ${monsters}M / ${items}I` },
+              { label: 'needs_review', value: extraction?.needsReview ?? 0 },
+              { label: 'model', value: extraction?.model ?? 'n/a' },
+            ]
+          : [
+              { label: 'spells', value: spells },
+              { label: 'monsters', value: monsters },
+              { label: 'items', value: items },
+            ],
       }
     })(),
 
     // 5. Elasticsearch Index
     (() => {
-      const { status, durationMs, error } = getStageStatus('index', 4)
+      const { status, durationMs, error } = getStageStatus('index')
       const isIndexed = searchIndex || search?.indexed
 
       return {
@@ -318,7 +371,7 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
 
     // 6. Reader Assets
     (() => {
-      const { status, durationMs, error } = getStageStatus('assets', 5)
+      const { status, durationMs, error } = getStageStatus('assets')
       const imgCount = pageImages?.count ?? 0
       const totalBytes = pageImages?.totalBytes ?? 0
 
@@ -340,6 +393,11 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
     })(),
   ]
 
+  const stages: PipelineStageInfo[] = stageOrder.map((key, index) => ({
+    ...allStages.find((stage) => stage.key === key)!,
+    number: index + 1,
+  }))
+
   // Overall pipeline stats
   const completedStagesCount = stages.filter((s) => s.status === 'completed' || s.status === 'skipped').length
   const totalStagesCount = stages.length
@@ -347,7 +405,10 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
   const isAnyActive = stages.some((s) => s.status === 'active')
   const isAnyFailed = stages.some((s) => s.status === 'failed')
 
-  const selectedStage = stages.find((s) => s.key === selectedStageKey) || stages[0]
+  const selectedStage =
+    stages.find((s) => s.key === selectedStageKey) ||
+    stages.find((s) => s.key === (isV2 ? 'layout' : 'render')) ||
+    stages[0]
 
   const getStageHeaderStyles = (key: StageKey) => {
     switch (key) {
@@ -356,6 +417,7 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
       case 'render':
         return 'border-blue-200 bg-blue-50 text-blue-900'
       case 'ocr':
+      case 'layout':
         return 'border-amber-200 bg-amber-50 text-amber-900'
       case 'extract':
         return 'border-purple-200 bg-purple-50 text-purple-900'
@@ -374,6 +436,8 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
         return <Layers className="w-4 h-4" />
       case 'ocr':
         return <Cpu className="w-4 h-4" />
+      case 'layout':
+        return <ScanText className="w-4 h-4" />
       case 'extract':
         return <Sparkles className="w-4 h-4" />
       case 'index':
@@ -394,8 +458,8 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
         )
       case 'active':
         return (
-          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-blue-50 text-blue-700 border border-blue-200 animate-pulse">
-            <RefreshCw className="w-3 h-3 text-blue-600 animate-spin" />
+          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold tracking-wide bg-blue-50 text-blue-700 border border-blue-200 motion-safe:animate-pulse">
+            <RefreshCw className="w-3 h-3 text-blue-600 motion-safe:animate-spin" />
             RUNNING
           </span>
         )
@@ -441,8 +505,10 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
           <div>
             <div className="flex items-center gap-2">
               <span className="text-xs font-mono uppercase tracking-wider text-gray-500">Document Processing Graph</span>
-              <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-700 font-mono font-medium">v2.0 (GPU)</span>
-              {isLoading && <RefreshCw className="w-3 h-3 text-blue-600 animate-spin" />}
+              <span className="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-700 font-mono font-medium">
+                pipeline {isV2 ? 'v2' : 'v1'}
+              </span>
+              {isLoading && <RefreshCw className="w-3 h-3 text-blue-600 motion-safe:animate-spin" />}
             </div>
             <h3 className="text-sm font-semibold text-gray-900 truncate max-w-md" title={documentTitle}>
               {documentTitle}
@@ -470,7 +536,7 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
                 isAnyFailed
                   ? 'bg-red-500'
                   : isAnyActive
-                  ? 'bg-blue-600 animate-pulse'
+                  ? 'bg-blue-600 motion-safe:animate-pulse'
                   : 'bg-emerald-500'
               }`}
               style={{ width: `${progressPercent}%` }}
@@ -483,7 +549,7 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
       <div className="p-6 overflow-x-auto bg-[radial-gradient(#cbd5e1_1px,transparent_1px)] [background-size:16px_16px] bg-slate-50/60 border-b border-gray-200">
         <div className="flex items-stretch min-w-[960px] gap-0 relative">
           {stages.map((stage, idx) => {
-            const isSelected = selectedStageKey === stage.key
+            const isSelected = selectedStage.key === stage.key
             const isLast = idx === stages.length - 1
             const nextStage = stages[idx + 1]
 
@@ -519,7 +585,7 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
                         stage.status === 'completed'
                           ? 'bg-emerald-500 shadow-[0_0_6px_rgba(16,185,129,0.5)]'
                           : stage.status === 'active'
-                          ? 'bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.5)] animate-ping'
+                          ? 'bg-blue-500 shadow-[0_0_6px_rgba(59,130,246,0.5)] motion-safe:animate-ping'
                           : stage.status === 'skipped'
                           ? 'bg-gray-400'
                           : 'bg-gray-300'
@@ -646,7 +712,7 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
                         }
                         strokeWidth={isConnectorActive || isConnectorComplete ? '2.5' : '2'}
                         strokeDasharray={isConnectorActive ? '4 2' : isConnectorSkipped ? '3 3' : undefined}
-                        className={isConnectorActive ? 'animate-pulse' : undefined}
+                        className={isConnectorActive ? 'motion-safe:animate-pulse' : undefined}
                         markerEnd={`url(#arrow-${stage.key})`}
                       />
                     </svg>
@@ -676,7 +742,7 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
               disabled={isRetrying}
               className="inline-flex items-center gap-1.5 px-3 py-1 bg-red-600 hover:bg-red-700 text-white rounded text-xs font-medium transition shadow-sm disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${isRetrying ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${isRetrying ? 'motion-safe:animate-spin' : ''}`} />
               {isRetrying ? 'Retrying...' : 'Retry Stage'}
             </button>
           )}
@@ -736,6 +802,19 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
                 <p className="text-[11px] text-gray-500 italic">
                   {ocr?.reason || (ocr?.detected === false ? 'Digital text sufficient, bypassed' : 'GPU worker pool active')}
                 </p>
+              </div>
+            ) : selectedStage.key === 'layout' ? (
+              <div className="text-gray-800 space-y-1">
+                <p>
+                  Engine: <span className="text-amber-700 font-semibold">{pagesInfo?.engine || 'Marker (ocr-service)'}</span>
+                </p>
+                <p>
+                  Text cleanliness:{' '}
+                  <span className="text-gray-900">
+                    {pagesInfo?.averageWordValidity !== undefined ? `${(pagesInfo.averageWordValidity * 100).toFixed(1)}%` : 'n/a'}
+                  </span>
+                </p>
+                <p className="text-[11px] text-gray-500">Checkpointed per page batch; a retry skips finished batches.</p>
               </div>
             ) : selectedStage.key === 'render' ? (
               <div className="text-gray-800 space-y-1">
