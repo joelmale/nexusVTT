@@ -37,6 +37,7 @@ export function CampaignSwitcher({ compact = false }: CampaignSwitcherProps) {
   const popoverId = `campaign-switcher-${useId().replace(/:/g, '')}`;
   const popoverRef = useRef<HTMLDivElement>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const closedAtRef = useRef(0);
   const [open, setOpen] = useState(false);
   const [dialogOpen, setDialogOpen] = useState(false);
   const exampleCampaigns = getVisibleCampaignCatalog();
@@ -73,8 +74,13 @@ export function CampaignSwitcher({ compact = false }: CampaignSwitcherProps) {
         aria-haspopup="menu"
         className={styles.trigger}
         disabled={state === 'loading'}
-        onClick={() => setOpen((current) => !current)}
+        onClick={() => {
+          // Light-dismiss already closed the popover on pointerdown; don't reopen it.
+          if (open || Date.now() - closedAtRef.current < 150) return;
+          setOpen(true);
+        }}
         ref={triggerRef}
+        style={{ anchorName: `--${popoverId}` }}
         type="button"
       >
         <span className={styles.label}>{label}</span>
@@ -87,10 +93,14 @@ export function CampaignSwitcher({ compact = false }: CampaignSwitcherProps) {
         id={popoverId}
         onToggle={(event) => {
           if (event.currentTarget.matches(':popover-open')) setOpen(true);
-          else setOpen(false);
+          else {
+            closedAtRef.current = Date.now();
+            setOpen(false);
+          }
         }}
         popover="auto"
         ref={popoverRef}
+        style={{ positionAnchor: `--${popoverId}` }}
       >
         <div aria-label="Campaigns" className={styles.menu} role="menu">
           <span className={styles.sectionLabel}>Examples</span>
