@@ -81,7 +81,7 @@
     "@rolldown/binding-linux-x64-musl": "1.2.11",
     "@rollup/rollup-linux-x64-gnu": "4.63.5",
     "@rollup/rollup-linux-x64-musl": "4.63.5",
-    "@rspack/binding-linux-x64-gnu": "1.7.12",
+    "@rspack/binding-linux-x64-gnu": "2.2.7",
     "@rspack/binding-linux-x64-musl": "1.7.12",
     "@swc/core-linux-x64-gnu": "1.16.2",
     "@swc/core-linux-x64-musl": "1.16.2",
