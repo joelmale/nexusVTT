@@ -62,6 +62,29 @@ describe('service catalog', () => {
     ).toBe(true);
   });
 
+  test('keeps advisory images out of the CI gating scan matrix', () => {
+    const all = catalogMatrices(catalog);
+    const gating = all.gatingSecurityImages.map((image) => image.name);
+    expect(gating).not.toContain('codex-ocr');
+    // Every other scanned image still gates.
+    expect(gating).toHaveLength(all.securityImages.length - 1);
+
+    const ocrOnly = catalogMatrices(catalog, ['codex-ocr-service']);
+    expect(ocrOnly.securityImages.map((image) => image.name)).toEqual([
+      'codex-ocr',
+    ]);
+    expect(ocrOnly.gatingSecurityImages).toEqual([]);
+
+    const outputPath = join(
+      mkdtempSync(join(tmpdir(), 'service-catalog-')),
+      'github-output.txt',
+    );
+    appendCatalogGithubOutputs(outputPath, ocrOnly);
+    const output = readFileSync(outputPath, 'utf8');
+    expect(output).toContain('gating_security_images=[]');
+    expect(output).toContain('"name":"codex-ocr"');
+  });
+
   test('rejects a non-boolean securityAdvisory flag', () => {
     const bad = structuredClone(catalog);
     bad.targets['codex-ocr-service'].releaseImage.securityAdvisory = 'yes';

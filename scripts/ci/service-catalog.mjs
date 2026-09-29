@@ -366,6 +366,12 @@ export function catalogMatrices(catalog, affectedTargetIds) {
     allReleaseImages,
     releaseImages,
     securityImages: releaseImages.filter((image) => image.securityScan),
+    // Images whose scan can fail the gate. Advisory images are left out so the
+    // slow ones (codex-ocr) do not hold up CI; they are still scanned on the
+    // weekly sweep, on release, and when the published image is scanned.
+    gatingSecurityImages: releaseImages.filter(
+      (image) => image.securityScan && !image.securityAdvisory,
+    ),
     codexDocApi,
     codexNodeServices,
     codexPythonServices,
@@ -377,6 +383,7 @@ export function appendCatalogGithubOutputs(outputPath, matrices) {
     `all_release_images=${JSON.stringify(matrices.allReleaseImages)}`,
     `release_images=${JSON.stringify(matrices.releaseImages)}`,
     `security_images=${JSON.stringify(matrices.securityImages)}`,
+    `gating_security_images=${JSON.stringify(matrices.gatingSecurityImages)}`,
     `has_release_images=${matrices.releaseImages.length > 0}`,
     `codex_node_matrix=${JSON.stringify({ include: matrices.codexNodeServices })}`,
     `codex_python_matrix=${JSON.stringify({ include: matrices.codexPythonServices })}`,
