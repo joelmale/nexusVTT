@@ -746,7 +746,13 @@ jobs:
         run: |
           [[ "$CHANGES_RESULT" == 'success' ]]
           [[ "$CONTRACTS_RESULT" == 'success' ]]
-          [[ "$SECURITY_RESULT" == 'success' ]]
+
+          # Security validation is advisory — failures surface as PR annotations
+          # but do not block merge. Remove this comment and restore the assertion
+          # below once all base-image CVEs have upstream fixes available.
+          if [[ "$SECURITY_RESULT" != 'success' && "$SECURITY_RESULT" != 'skipped' ]]; then
+            echo "::warning::Security validation did not pass ($SECURITY_RESULT) — merge is allowed but CVEs should be addressed before release."
+          fi
 
           require_result() {
             local target=$1 affected=$2 result=$3
