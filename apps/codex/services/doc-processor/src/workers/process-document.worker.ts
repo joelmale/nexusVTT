@@ -19,11 +19,21 @@ import { entityResolverService } from '../services/entity-resolver.service';
 import { entityLinkingService } from '../services/entity-linking.service';
 import { env } from '../config/env';
 import { canvasBackend } from '../utils/canvas';
-import { STAGES, Stage, ProcessingCheckpoints, isStageComplete, getNextStage } from './stage-utils';
+import {
+  Stage,
+  PipelineVersion,
+  ProcessingCheckpoints,
+  isStageComplete,
+  getNextStage,
+  getFollowingStage,
+  resolvePipelineVersion,
+} from './stage-utils';
+import { runLayoutStage } from './layout-stage';
 
 const MAX_TEXT_SAMPLE_LENGTH = 500;
 const CONFIDENCE_THRESHOLD = 0.6;
 type ProcessingMetadata = {
+  pipelineVersion?: PipelineVersion;
   stage?: Stage;
   stageUpdatedAt?: string;
   checkpoints?: ProcessingCheckpoints;
@@ -60,6 +70,14 @@ type ProcessingMetadata = {
     pages: Array<{ pageNumber: number; columns: number; confidence: number }>;
     confidence?: number;
     failureReason?: string;
+  };
+  // v2 layout stage summary (DocumentPage rows hold the detail).
+  pages?: {
+    count: number;
+    engine: string;
+    batchesRun: number;
+    batchesSkipped: number;
+    averageWordValidity?: number;
   };
   format?: string;
   textLength?: number;
@@ -121,7 +139,14 @@ const updateProcessing = async (
   });
 };
 
-const resolveTextForProcessing = async (documentId: string, preferOcr: boolean) => {
+const resolveTextForProcessing = async (documentId: string, preferOcr: boolean, version: PipelineVersion = 'v1') => {
+  if (version === 'v2') {
+    const layoutText = await prisma.documentText.findFirst({
+      where: { documentId, source: 'layout' },
+    });
+    if (layoutText?.content) return layoutText.content;
+  }
+
   if (preferOcr) {
     const ocrText = await prisma.documentText.findFirst({
       where: { documentId, source: 'ocr' },
@@ -166,9 +191,8 @@ const embedChunks = async (jobId: string, chunks: DocumentChunkInput[]) => {
   return { rows, model };
 };
 
-const queueNextStage = async (documentId: string, stage: Stage, skipOcr: boolean) => {
-  const stageIndex = STAGES.indexOf(stage);
-  const next = STAGES.slice(stageIndex + 1).find((candidate) => !(candidate === 'ocr' && skipOcr));
+const queueNextStage = async (documentId: string, stage: Stage, skipOcr: boolean, version: PipelineVersion = 'v1') => {
+  const next = getFollowingStage(stage, skipOcr, version);
   if (!next) return;
   if (next === 'assets') {
     await enqueueAssetStage(documentId);
@@ -194,6 +218,8 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
 
     const { processing, checkpoints } = getProcessingState(document);
     const contentHash = document.contentHash || checkpoints.contentHash || null;
+    // Pinned at ingest; documents from before pipelineVersion existed stay on v1.
+    const version = resolvePipelineVersion(processing, env.PIPELINE_VERSION);
 
     if (stage !== 'ingest' && contentHash && isStageComplete(checkpoints, stage, contentHash)) {
       await loggingService.logInfo(jobId, `Stage ${stage} already completed, skipping`);
@@ -206,7 +232,7 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
         });
         return;
       }
-      await queueNextStage(documentId, stage, skipOcr);
+      await queueNextStage(documentId, stage, skipOcr, version);
       return;
     }
 
@@ -268,7 +294,7 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
 
         const checkpointMatches = checkpoints.contentHash && checkpoints.contentHash === calculatedHash;
         if (checkpointMatches) {
-          const nextStage = getNextStage(checkpoints, processing.ocr?.detected === false);
+          const nextStage = getNextStage(checkpoints, processing.ocr?.detected === false, version);
           if (nextStage && nextStage !== 'ingest') {
             await loggingService.logInfo(jobId, `Resuming from stage ${nextStage}`);
             await enqueueStage(documentId, nextStage);
@@ -281,14 +307,15 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
           durationMs: Date.now() - start,
         }, {
           format: document.format,
+          pipelineVersion: version,
           checkpoints: {
             ...checkpoints,
             contentHash: calculatedHash,
           },
         });
 
-        await loggingService.logInfo(jobId, 'Stage ingest completed');
-        await queueNextStage(documentId, 'ingest', false);
+        await loggingService.logInfo(jobId, `Stage ingest completed (pipeline ${version})`);
+        await queueNextStage(documentId, 'ingest', false, version);
         return;
       }
       case 'render': {
@@ -544,10 +571,45 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
         await queueNextStage(documentId, 'ocr', false);
         return;
       }
+      case 'layout': {
+        const start = Date.now();
+        const result = await runLayoutStage(jobId, document);
+        await loggingService.logInfo(
+          jobId,
+          `Layout: ${result.pageCount} pages via ${result.engine} (${result.batchesRun} batches run, ${result.batchesSkipped} resumed)`
+        );
+
+        // Re-read: runLayoutStage recorded batch checkpoints after `document` was loaded.
+        const current = await prisma.document.findUnique({ where: { id: documentId } });
+        const textSample = result.text.trim().slice(0, MAX_TEXT_SAMPLE_LENGTH);
+        await updateProcessing(documentId, current ?? document, 'layout', {
+          completedAt: new Date().toISOString(),
+          durationMs: Date.now() - start,
+          error: undefined,
+        }, {
+          format: document.format,
+          textLength: result.text.length,
+          textSample: textSample || undefined,
+          textCharsPerPage: result.pageCount > 0 ? Math.round(result.text.length / result.pageCount) : 0,
+          pages: {
+            count: result.pageCount,
+            engine: result.engine,
+            batchesRun: result.batchesRun,
+            batchesSkipped: result.batchesSkipped,
+            averageWordValidity: result.averageWordValidity,
+          },
+        }, {
+          pageCount: result.pageCount,
+        });
+
+        await loggingService.logInfo(jobId, 'Stage layout completed');
+        await queueNextStage(documentId, 'layout', false, version);
+        return;
+      }
       case 'extract': {
         const start = Date.now();
         const preferOcr = processing.ocr?.status === 'completed';
-        const text = await resolveTextForProcessing(documentId, preferOcr);
+        const text = await resolveTextForProcessing(documentId, preferOcr, version);
 
         console.log(`[Worker] Extracting structured data`);
         await loggingService.logInfo(jobId, 'Extracting structured data');
@@ -651,19 +713,24 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
           await loggingService.logInfo(jobId, `Linked ${monsterMentions.length} monster spell mentions`);
         }
 
-        const chunkSource = preferOcr ? 'ocr' : (document.format === 'markdown' ? 'markdown' : 'pdf_extraction');
-        const chunks = chunkingService.chunkText({
-          text,
-          documentId: document.id,
-          source: chunkSource,
-          pageCount: document.pageCount || 0,
-        });
+        // v2 chunks per page in the index stage instead.
+        let chunkSummary: ProcessingMetadata['chunks'];
+        if (version === 'v1') {
+          const chunkSource = preferOcr ? 'ocr' : (document.format === 'markdown' ? 'markdown' : 'pdf_extraction');
+          const chunks = chunkingService.chunkText({
+            text,
+            documentId: document.id,
+            source: chunkSource,
+            pageCount: document.pageCount || 0,
+          });
 
-        const embedded = await embedChunks(jobId, chunks);
-        await prisma.documentChunk.deleteMany({ where: { documentId: document.id } });
-        if (embedded.rows.length > 0) {
-          await prisma.documentChunk.createMany({ data: embedded.rows });
-          await loggingService.logInfo(jobId, `Stored ${chunks.length} document chunks (embeddingModel=${embedded.model})`);
+          const embedded = await embedChunks(jobId, chunks);
+          await prisma.documentChunk.deleteMany({ where: { documentId: document.id } });
+          if (embedded.rows.length > 0) {
+            await prisma.documentChunk.createMany({ data: embedded.rows });
+            await loggingService.logInfo(jobId, `Stored ${chunks.length} document chunks (embeddingModel=${embedded.model})`);
+          }
+          chunkSummary = { count: chunks.length, source: chunkSource, embeddingModel: embedded.model };
         }
 
         await updateProcessing(documentId, document, 'extract', {
@@ -675,21 +742,36 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
             monsters: extracted.monsters.length,
             items: extracted.items.length,
           },
-          chunks: {
-            count: chunks.length,
-            source: chunkSource,
-            embeddingModel: embedded.model,
-          },
+          ...(chunkSummary ? { chunks: chunkSummary } : {}),
         });
 
         await loggingService.logInfo(jobId, 'Stage extract completed');
-        await queueNextStage(documentId, 'extract', preferOcr ? false : processing.ocr?.detected === false);
+        await queueNextStage(documentId, 'extract', preferOcr ? false : processing.ocr?.detected === false, version);
         return;
       }
       case 'index': {
         const start = Date.now();
         const preferOcr = processing.ocr?.status === 'completed';
-        const text = await resolveTextForProcessing(documentId, preferOcr);
+        const text = await resolveTextForProcessing(documentId, preferOcr, version);
+
+        let chunkSummary: ProcessingMetadata['chunks'];
+        if (version === 'v2') {
+          // Page-aware chunks: pageStart/pageEnd are exact.
+          const pages = await prisma.documentPage.findMany({
+            where: { documentId },
+            orderBy: { pageNumber: 'asc' },
+            select: { pageNumber: true, markdown: true },
+          });
+          const chunks = chunkingService.chunkPages({ pages, documentId, source: 'layout' });
+          const embedded = await embedChunks(jobId, chunks);
+          await prisma.documentChunk.deleteMany({ where: { documentId } });
+          if (embedded.rows.length > 0) {
+            // Identical text on two pages hashes the same; keep the first.
+            await prisma.documentChunk.createMany({ data: embedded.rows, skipDuplicates: true });
+            await loggingService.logInfo(jobId, `Stored ${chunks.length} page-aware chunks (embeddingModel=${embedded.model})`);
+          }
+          chunkSummary = { count: chunks.length, source: 'layout', embeddingModel: embedded.model };
+        }
 
         console.log(`[Worker] Indexing document in ElasticSearch`);
         await loggingService.logInfo(jobId, 'Indexing document in ElasticSearch');
@@ -720,13 +802,14 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
             indexedAt: new Date().toISOString(),
             indexDurationMs,
           },
+          ...(chunkSummary ? { chunks: chunkSummary } : {}),
         }, {
           searchIndex,
           ocrStatus,
         });
 
         await loggingService.logInfo(jobId, 'Stage index completed');
-        await queueNextStage(documentId, 'index', processing.ocr?.detected === false);
+        await queueNextStage(documentId, 'index', processing.ocr?.detected === false, version);
         return;
       }
       case 'assets': {

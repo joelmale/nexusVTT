@@ -43,6 +43,13 @@ const envSchema = z.object({
   OCR_SERVICE_URL: z.string().optional(),
   OCR_SERVICE_TIMEOUT_MS: z.string().default('15000').transform(Number),
 
+  // Ingestion pipeline v2 (apps/docs/codex/ingestion-pipeline-v2-plan.md).
+  // New documents take PIPELINE_VERSION; a document keeps the version it was
+  // first processed with (metadata.processing.pipelineVersion).
+  PIPELINE_VERSION: z.enum(['v1', 'v2']).default('v1'),
+  LAYOUT_BATCH_PAGES: z.string().default('5').transform(Number),
+  LAYOUT_SERVICE_TIMEOUT_MS: z.string().default('600000').transform(Number),
+
   // Embeddings
   EMBEDDINGS_PROVIDER: z.enum(['none', 'hash', 'sidecar']).default('none'),
   EMBEDDINGS_DIM: z.string().default('64').transform(Number),

@@ -236,12 +236,22 @@ export async function adminDocumentRoutes(fastify: FastifyInstance) {
 
   /**
    * POST /api/admin/documents/:id/reprocess - Retry failed processing
+   * Optional body { pipelineVersion: 'v1' | 'v2' } picks the ingestion
+   * pipeline; without it the document keeps its pinned version (a document
+   * processed before versioning existed takes the worker's PIPELINE_VERSION).
    */
-  fastify.post<{ Params: { id: string } }>(
+  fastify.post<{ Params: { id: string }; Body: { pipelineVersion?: string } | undefined }>(
     '/api/admin/documents/:id/reprocess',
-    async (request: FastifyRequest<{ Params: { id: string } }>, reply: FastifyReply) => {
+    async (
+      request: FastifyRequest<{ Params: { id: string }; Body: { pipelineVersion?: string } | undefined }>,
+      reply: FastifyReply
+    ) => {
       try {
         const documentId = request.params.id;
+        const pipelineVersion = request.body?.pipelineVersion;
+        if (pipelineVersion !== undefined && pipelineVersion !== 'v1' && pipelineVersion !== 'v2') {
+          return reply.status(400).send({ error: "pipelineVersion must be 'v1' or 'v2'" });
+        }
 
         // Verify document exists
         const document = await prisma.document.findUnique({
@@ -259,6 +269,7 @@ export async function adminDocumentRoutes(fastify: FastifyInstance) {
           ...metadata,
           processing: {
             ...processing,
+            ...(pipelineVersion ? { pipelineVersion } : {}),
             stage: 'ingest',
             stageUpdatedAt: new Date().toISOString(),
             checkpoints: {

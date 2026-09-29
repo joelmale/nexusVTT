@@ -75,6 +75,7 @@ enum DocumentTextSource {
   pdf_extraction
   ocr
   markdown
+  layout          // v2: Marker output, concatenated DocumentPage markdown
 }
 
 enum UserRole {
@@ -122,6 +123,7 @@ model Document {
   structuredData  StructuredData[]
   textEntries     DocumentText[]
   chunks          DocumentChunk[]
+  pages           DocumentPage[]
   entityMentions  EntityMention[]
   uploader        User?               @relation("DocumentUploadedBy", fields: [uploadedById], references: [id])
 
@@ -146,6 +148,32 @@ model DocumentText {
   @@unique([documentId, source])
   @@index([source])
   @@map("document_texts")
+}
+
+// Ingestion v2 page model (apps/docs/codex/ingestion-pipeline-v2-plan.md#page-model).
+// One row per PDF page (or Markdown heading section). `blocks` holds
+// LayoutBlock[] with bboxes normalized to 0..1, the same convention future
+// annotation positions use. Written by the layout stage with upsert, so
+// retried batches never duplicate pages.
+model DocumentPage {
+  id          String   @id @default(uuid())
+  documentId  String
+  pageNumber  Int                     // 1-based, matches PDF page index + 1
+  markdown    String
+  blocks      Json     @default("[]") // LayoutBlock[]
+  widthPt     Float?                  // PDF page size in points
+  heightPt    Float?
+  previewKey  String?                 // S3 key of the page preview (webp)
+  quality     Json     @default("{}") // PageQuality
+  engine      String                  // e.g. "marker@1.x.y"
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  document    Document @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, pageNumber])
+  @@index([documentId])
+  @@map("document_pages")
 }
 
 model DocumentChunk {
