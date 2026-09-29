@@ -54,6 +54,7 @@ interface ProcessingReport {
   }
   processing: {
     pipelineVersion?: 'v1' | 'v2'
+    checkpoints?: { contentHash?: string }
     textLength?: number
     textSample?: string
     ocr?: {
@@ -475,6 +476,7 @@ export default function Processing() {
             <LiveProof
               documentId={targetDocId}
               documentTitle={reportData?.document?.title}
+              contentHash={reportData?.processing?.checkpoints?.contentHash}
               active={Boolean(jobsData?.jobs?.some((job) => job.documentId === targetDocId && (job.status === 'active' || job.status === 'waiting')))}
               rawLogs={<RawJobLogs jobId={jobsData?.jobs?.find((job) => job.documentId === targetDocId)?.id ?? currentInspectJob?.id} />}
             />

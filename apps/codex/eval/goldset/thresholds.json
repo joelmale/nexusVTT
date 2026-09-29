@@ -1,0 +1,6 @@
+{
+  "_comment": "Go/no-go lines for a v2 scorecard (v1 scoring is optional, so v2 is judged against fixed thresholds). PROVISIONAL: revisit once goldset@1 is labelled; eval-pipeline.js --enforce exits non-zero when a line is missed.",
+  "readingOrder": { "maxCer": 0.03, "minOrderScore": 0.9 },
+  "regions": { "minRecall": { "stat_block": 0.9, "table": 0.8, "art": 0.8 }, "minPrecision": { "stat_block": 0.9, "table": 0.8, "art": 0.8 } },
+  "entities": { "minRecall": 0.9, "minPrecision": 0.95, "minNumericExact": 0.98, "maxWrongUnflagged": 0 }
+}

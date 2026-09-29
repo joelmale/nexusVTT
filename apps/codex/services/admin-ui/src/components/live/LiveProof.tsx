@@ -1,8 +1,10 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { Pause, Play, RotateCcw, SkipForward } from 'lucide-react'
+import { ClipboardCheck, Pause, Play, RotateCcw, SkipForward } from 'lucide-react'
 import { codexFetch, codexUrl } from '@/lib/api'
 import { ActionFeed } from './ActionFeed'
+import { GoldsetEditor } from './GoldsetEditor'
+import type { GoldLabel } from './goldset'
 import { EntityCard } from './EntityCard'
 import { OverlayLegend, PageOverlay } from './PageOverlay'
 import { QualityBadge } from './QualityBadge'
@@ -60,9 +62,11 @@ export interface LiveProofProps {
   /** A job for this document is running: poll every 1.5 s. */
   active: boolean
   rawLogs?: ReactNode
+  /** Document.contentHash: identifies the source PDF in gold-set labels. */
+  contentHash?: string | null
 }
 
-export function LiveProof({ documentId, documentTitle, active, rawLogs }: LiveProofProps) {
+export function LiveProof({ documentId, documentTitle, active, rawLogs, contentHash }: LiveProofProps) {
   const reducedMotion = useReducedMotion()
   const [replayRunId, setReplayRunId] = useState<string | null>(null)
   const { events, runs, runId, error, replay } = useProcessingEvents(documentId, { active, replayRunId })
@@ -72,6 +76,10 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs }: LivePr
   const [manualPage, setManualPage] = useState<number | null>(null)
   const [highlight, setHighlight] = useState<BBox[]>([])
   const [selectedBlock, setSelectedBlock] = useState<LayoutBlock | null>(null)
+  const [goldsetMode, setGoldsetMode] = useState(false)
+  // Labels being edited, per page, so switching pages keeps unsaved work.
+  const [goldLabels, setGoldLabels] = useState<Record<number, GoldLabel | null>>({})
+  const [goldRegion, setGoldRegion] = useState<number | null>(null)
   const revealed = useRevealedLatest(live.completedPages, reducedMotion)
 
   const { data: pagesData } = useQuery<{ pages: PageSummary[] }>({
@@ -98,7 +106,13 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs }: LivePr
 
   useEffect(() => {
     setSelectedBlock(null)
+    setGoldRegion(null)
   }, [pageNumber])
+
+  const goldLabel = pageNumber !== null ? goldLabels[pageNumber] ?? null : null
+  const setGoldLabel = (label: GoldLabel | null) => {
+    if (pageNumber !== null) setGoldLabels((labels) => ({ ...labels, [pageNumber]: label }))
+  }
 
   const selectPage = (value: number) => {
     setFollowLive(false)
@@ -152,6 +166,19 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs }: LivePr
         </div>
 
         <div className="flex flex-wrap items-center gap-2 text-xs">
+          <button
+            type="button"
+            aria-pressed={goldsetMode}
+            onClick={() => {
+              setGoldsetMode((value) => !value)
+              setFollowLive(false)
+              setManualPage(pageNumber)
+            }}
+            className={`inline-flex items-center gap-1 rounded border px-2 py-1 ${goldsetMode ? 'border-yellow-500 bg-yellow-50 text-yellow-900' : 'border-gray-300'}`}
+          >
+            <ClipboardCheck className="h-3.5 w-3.5" aria-hidden="true" />
+            Gold-set edit
+          </button>
           <label className="flex items-center gap-1">
             <span className="text-gray-500">Run</span>
             <select
@@ -231,10 +258,21 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs }: LivePr
               widthPt={page.widthPt}
               heightPt={page.heightPt}
               blocks={page.blocks}
-              candidates={live.candidates}
+              candidates={goldsetMode ? [] : live.candidates}
               highlight={highlight}
               selectedBlockId={selectedBlock?.id}
-              onSelectBlock={setSelectedBlock}
+              onSelectBlock={goldsetMode ? undefined : setSelectedBlock}
+              goldRegions={goldsetMode ? goldLabel?.regions : undefined}
+              selectedGoldRegion={goldRegion}
+              onSelectGoldRegion={setGoldRegion}
+              onDrawBox={
+                goldsetMode && goldLabel
+                  ? (bbox) => {
+                      setGoldLabel({ ...goldLabel, regions: [...goldLabel.regions, { class: 'stat_block', bbox }] })
+                      setGoldRegion(goldLabel.regions.length)
+                    }
+                  : undefined
+              }
             />
           ) : (
             <div className="flex aspect-[612/792] items-center justify-center rounded-md border border-dashed border-gray-300 text-xs text-gray-400">
@@ -244,6 +282,21 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs }: LivePr
           <OverlayLegend />
         </div>
 
+        {goldsetMode && page ? (
+          <div className="min-w-0 space-y-2">
+            <h3 className="text-sm font-semibold text-gray-900">Gold-set label · page {page.pageNumber}</h3>
+            <GoldsetEditor
+              documentId={documentId}
+              documentTitle={documentTitle}
+              contentHash={contentHash}
+              page={page}
+              label={goldLabel}
+              onChange={setGoldLabel}
+              selectedRegion={goldRegion}
+              onSelectRegion={setGoldRegion}
+            />
+          </div>
+        ) : (
         <div className="min-w-0 space-y-2">
           <h3 className="text-sm font-semibold text-gray-900">Artifact stream</h3>
           {selectedBlock && (
@@ -271,6 +324,7 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs }: LivePr
             )}
           </div>
         </div>
+        )}
       </div>
 
       <div className="px-4 pb-4">
