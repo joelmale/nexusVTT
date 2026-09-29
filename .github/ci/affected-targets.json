@@ -198,7 +198,8 @@
         "target": "",
         "repository": "ghcr.io/joelmale/nexuscodex-ocr",
         "platforms": "linux/amd64",
-        "securityScan": true
+        "securityScan": true,
+        "securityAdvisory": true
       }
     },
     "codex-doc-websocket": {

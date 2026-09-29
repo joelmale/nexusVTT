@@ -49,6 +49,27 @@ describe('service catalog', () => {
     expect(ocr.codexPythonServices).toHaveLength(1);
   });
 
+  test('marks only codex-ocr as an advisory security scan', () => {
+    const { securityImages } = catalogMatrices(catalog);
+    const advisory = securityImages
+      .filter((image) => image.securityAdvisory)
+      .map((image) => image.name);
+    expect(advisory).toEqual(['codex-ocr']);
+    // Advisory images are still scanned: they must stay in the scan matrix.
+    expect(securityImages.map((image) => image.name)).toContain('codex-ocr');
+    expect(
+      securityImages.every((image) => typeof image.securityAdvisory === 'boolean'),
+    ).toBe(true);
+  });
+
+  test('rejects a non-boolean securityAdvisory flag', () => {
+    const bad = structuredClone(catalog);
+    bad.targets['codex-ocr-service'].releaseImage.securityAdvisory = 'yes';
+    expect(() => validateServiceCatalog(bad)).toThrow(
+      'securityAdvisory must be boolean',
+    );
+  });
+
   test('writes workflow-ready JSON matrices', () => {
     const outputPath = join(
       mkdtempSync(join(tmpdir(), 'service-catalog-')),

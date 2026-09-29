@@ -66,6 +66,14 @@ function validateReleaseImage(image, targetId, imageNames, repositories) {
       `target ${targetId}.releaseImage.securityScan must be boolean`,
     );
   }
+  if (
+    image.securityAdvisory !== undefined &&
+    typeof image.securityAdvisory !== 'boolean'
+  ) {
+    throw new Error(
+      `target ${targetId}.releaseImage.securityAdvisory must be boolean when set`,
+    );
+  }
   if (imageNames.has(image.name)) {
     throw new Error(`duplicate release image name: ${image.name}`);
   }
@@ -310,6 +318,8 @@ function imageEntry(image) {
     repository: image.repository,
     platforms: image.platforms,
     securityScan: image.securityScan,
+    // Advisory images are scanned and reported but do not fail the gate.
+    securityAdvisory: image.securityAdvisory === true,
   };
 }
 
