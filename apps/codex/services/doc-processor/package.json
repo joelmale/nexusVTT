@@ -45,7 +45,7 @@
     "tesseract.js": "^5.0.4",
     "test-exclude": "^7.0.1",
     "unified": "^11.0.4",
-    "zod": "^3.22.4"
+    "zod": "^3.25.0"
   },
   "devDependencies": {
     "@types/jest": "^29.5.11",

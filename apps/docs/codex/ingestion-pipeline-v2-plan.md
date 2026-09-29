@@ -252,9 +252,9 @@ Surya (inside Marker) and the VLM share the server's GPU. Rules:
   documents, so layout and VLM never run at the same time for one worker.
 - Ollama uses `keep_alive` (for example `10m`) so the VLM stays loaded across a
   document's extraction calls and then frees VRAM.
-- Phase 0 records VRAM for Marker alone, the VLM alone, and both. If both fit, extract
-  may overlap with the next document's layout. If they don't, layout and extract
-  alternate.
+- The GPU is 6 GB, so layout and extract alternate and hand VRAM over explicitly
+  (`GPU_HANDOFF`, see open question 1). Phase 0 still records VRAM for Marker alone
+  and the VLM alone.
 
 ## Embeddings safety
 
@@ -408,10 +408,11 @@ response kept in the cache.
 | `LAYOUT_SERVICE_TIMEOUT_MS` | `600000` | Per batch |
 | `OLLAMA_URL` | `http://ollama:11434` | The Dockhand server's Ollama on a shared internal network; the port is not published |
 | `VLM_MODEL` | chosen by gold set | Candidates: `qwen2.5vl:7b`, `qwen3-vl:8b` (confirm exact Ollama tags) |
-| `TEXT_LLM_MODEL` | `VLM_MODEL` | One model avoids reload churn; split only if the gold set favours it |
 | `OLLAMA_KEEP_ALIVE` | `10m` | |
 | `LLM_TIMEOUT_MS` | `120000` | |
 | `EXTRACT_PROMPT_VERSION` | `1` | Part of the cache key |
+| `EXTRACT_CROP_DPI` | `200` | Render DPI for monster crops |
+| `GPU_HANDOFF` | `true` | Unload layout models before extract and the VLM after (6 GB GPU) |
 
 ## Live processing UI
 
@@ -675,11 +676,16 @@ finished run can be replayed.
 | Slow full-library reprocess | Checkpointed batches; run overnight; the extraction cache keeps re-runs cheap |
 | Sidebar heuristic unreliable | Labelled heuristic; falls back to body text if the gold set says so |
 
-**Open questions for review:**
+**Open questions (answered 2026-09-28):**
 
-1. Is the GPU on the Dockhand server the RTX A2000 referenced in `ocr_engine.py`, and
-   is it the 6 GB or 12 GB model? This decides whether layout and VLM can overlap.
-2. Should gold-set source PDFs live on the Dockhand server's S3 (Garage) or on local
-   disk?
-3. Is one model for text and vision acceptable if the gold set shows only a small
-   difference? It keeps VRAM simpler.
+1. **GPU:** the Dockhand server's RTX A2000 is the **6 GB** model. Layout and the
+   VLM never overlap: with `GPU_HANDOFF=true` (default) the extract stage calls
+   ocr-service `POST /layout/unload` before its first model call and asks Ollama
+   to unload the VLM (`keep_alive: 0`) when it finishes; `/layout/s3` reloads
+   Marker on demand. Phase 0 must confirm the chosen VLM fits in 6 GB on its
+   own; include smaller variants (for example `qwen2.5vl:3b`) in the VRAM spike.
+2. **Gold-set sources** live on the Dockhand server's S3 (Garage), in a
+   `codex-eval` bucket, keyed by file hash and page number. Labels stay in git.
+3. **One model** for text and vision (`VLM_MODEL`; `TEXT_LLM_MODEL` is dropped).
+   Other models are tried by switching `VLM_MODEL`, never run side by side. The
+   model name is part of the extraction cache key.

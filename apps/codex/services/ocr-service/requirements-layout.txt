@@ -1,0 +1,8 @@
+# Ingestion v2 layout engine (src/layout_engine.py). Installed by the Dockerfile
+# after torch (which comes from the CUDA wheel index, see TORCH_INDEX_URL), and
+# not by CI: the unit tests mock Marker.
+#
+# Exact pin: layout_engine.py was verified against this version's converter,
+# renderer, block-type and page-separator APIs. Re-verify before bumping
+# (2.x exists and is a different API line).
+marker-pdf==1.10.2

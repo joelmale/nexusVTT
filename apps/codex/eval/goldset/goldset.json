@@ -1,0 +1,15 @@
+{
+  "version": 1,
+  "status": "draft",
+  "description": "goldset@1. Freeze by setting status to \"frozen\" once every page is verified; after that, changes go into a new version. Scorecards record the version and are only compared within one version.",
+  "sources": {
+    "synthetic-0000000000000000000000000000000000000000000000000000000001": {
+      "title": "Synthetic example",
+      "bucketKey": null,
+      "documentId": null
+    }
+  },
+  "pages": [
+    { "id": "synthetic-001", "file": "pages/synthetic-001.json" }
+  ]
+}

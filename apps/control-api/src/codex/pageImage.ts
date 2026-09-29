@@ -53,6 +53,16 @@ export async function pageImageHandler(hc: HandlerContext): Promise<void> {
     return sendError(res, 502, 'upstream_error');
   }
 
+  await streamObjectImage(hc, source, typeof entry.key === 'string' ? entry.key : undefined, 'documents/:id/pages/:page/image');
+}
+
+/**
+ * Fetches an image from a presigned URL already validated as internal object
+ * storage and streams it with safe headers. Shared by the page-image and
+ * layout-preview handlers; the URL never reaches the browser.
+ */
+export async function streamObjectImage(hc: HandlerContext, source: URL, keyHint: string | undefined, route: string): Promise<void> {
+  const { deps, res, context } = hc;
   const abort = new AbortController();
   const timeout = setTimeout(() => abort.abort(new Error('timeout')), IMAGE_TIMEOUT_MS);
   res.on('close', () => {
@@ -76,7 +86,7 @@ export async function pageImageHandler(hc: HandlerContext): Promise<void> {
   let contentType = (image.headers.get('content-type') ?? '').split(';')[0]!.trim().toLowerCase();
   if (GENERIC_TYPES.has(contentType)) {
     // MinIO reports a generic type when none was stored; use the key's extension.
-    const key = typeof entry.key === 'string' ? entry.key : source.pathname;
+    const key = keyHint ?? source.pathname;
     contentType = TYPE_BY_EXTENSION[key.slice(key.lastIndexOf('.') + 1).toLowerCase()] ?? '';
   }
   if (!isImageType(contentType)) {
@@ -88,5 +98,5 @@ export async function pageImageHandler(hc: HandlerContext): Promise<void> {
   setImageHeaders(res, contentType);
   const length = image.headers.get('content-length');
   if (length && /^\d{1,12}$/.test(length)) res.setHeader('Content-Length', length);
-  pipeUpstream(deps, context, 'object storage', 'documents/:id/pages/:page/image', image.body, res, () => clearTimeout(timeout));
+  pipeUpstream(deps, context, 'object storage', route, image.body, res, () => clearTimeout(timeout));
 }
