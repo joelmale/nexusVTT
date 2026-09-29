@@ -63,6 +63,14 @@
   gap: 4px;
 }
 
+.mobileSwitcher {
+  display: none;
+  flex: 1;
+  justify-content: center;
+  min-width: 0;
+  padding: 0 8px;
+}
+
 .context {
   border-right: 1px solid var(--studio-chrome-border);
   margin-right: 6px;
@@ -104,10 +112,21 @@
   margin-left: 5px;
 }
 
-@media (max-width: 720px) {
+@media (max-width: 820px) {
+  .mobileSwitcher {
+    display: flex;
+  }
+
   .studio,
   .context,
   .divider {
+    display: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .product,
+  .iconButton {
     display: none;
   }
 }

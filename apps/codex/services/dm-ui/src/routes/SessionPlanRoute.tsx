@@ -213,7 +213,7 @@ export function SessionPlanRoute() {
     async function hydrate() {
       try {
         const status = await fetchSessionPlanStatus({
-          campaignTitle: model.campaignTitle,
+          campaignId: ashesOfVeyra.campaign.id,
           planTitle: model.title,
         });
         if (!mounted) return;
@@ -242,6 +242,7 @@ export function SessionPlanRoute() {
     steps: SessionStepViewModel[],
   ): PublishSessionPlanInput {
     return {
+      campaignId: ashesOfVeyra.campaign.id,
       campaignDescription: activeModel.campaignDescription,
       campaignTitle: activeModel.campaignTitle,
       planTitle: activeModel.title,

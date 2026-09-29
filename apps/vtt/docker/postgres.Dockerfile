@@ -1,4 +1,6 @@
-FROM postgres:18-alpine
+FROM postgres:18.6-alpine
+
+RUN apk upgrade --no-cache
 
 # Copy the schema file to the entrypoint directory
 # Build context is the repo root, so path is relative to root

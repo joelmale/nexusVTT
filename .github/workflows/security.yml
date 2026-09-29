@@ -34,7 +34,7 @@ jobs:
           }
 
       - name: Checkout release source
-        uses: actions/checkout@v7
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ github.event_name == 'release' && github.event.release.tag_name || inputs.source_sha }}
 
@@ -89,14 +89,14 @@ jobs:
       contents: write
     steps:
       - name: Download exact-run SBOM artifacts
-        uses: actions/download-artifact@v8
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8
         with:
           pattern: sbom-*-${{ needs.resolve-source.outputs.sha }}
           path: sboms
           merge-multiple: true
 
       - name: Attach SBOMs to the published release
-        uses: softprops/action-gh-release@v3
+        uses: softprops/action-gh-release@5113cdc90fd4d541c801c55356214017bf5ae34b # v3
         with:
           files: sboms/*.cdx.json
           fail_on_unmatched_files: true

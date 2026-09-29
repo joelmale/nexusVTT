@@ -1,10 +1,12 @@
 #!/usr/bin/env node
 
-import { spawn } from 'node:child_process';
+import { execFile, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';
 import path from 'node:path';
 import process from 'node:process';
+import { pathToFileURL } from 'node:url';
+import { promisify } from 'node:util';
 
 // Docker Compose files and test paths are relative to the VTT workspace, which
 // is where npm runs this script from. It is NOT the repository root -- npm owns
@@ -21,13 +23,17 @@ const assetPort = process.env.E2E_ASSET_PORT ?? '15003';
 // the CLI entry point from the package's own bin field -- "./cli.js" is not in
 // its exports map, so it cannot be resolved as a subpath directly.
 const require = createRequire(import.meta.url);
+const execFileAsync = promisify(execFile);
+const SHA_PATTERN = /^[0-9a-f]{40}$/;
 
 function resolvePlaywrightCli() {
   try {
     const manifestPath = require.resolve('@playwright/test/package.json');
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
     const binary =
-      typeof manifest.bin === 'string' ? manifest.bin : manifest.bin?.playwright;
+      typeof manifest.bin === 'string'
+        ? manifest.bin
+        : manifest.bin?.playwright;
     return path.join(path.dirname(manifestPath), binary ?? 'cli.js');
   } catch {
     return null;
@@ -80,6 +86,70 @@ function handleSignal(signal) {
   activeChild?.kill(signal);
 }
 
+export function validatePrebuiltConfiguration(environment = process.env) {
+  if (environment.E2E_PREBUILT !== '1') return [];
+  if (!SHA_PATTERN.test(environment.E2E_SOURCE_SHA ?? '')) {
+    throw new Error('E2E_SOURCE_SHA must be a full lowercase Git SHA.');
+  }
+  if (!['true', 'false'].includes(environment.E2E_EXPECTED_DELTA_SYNC)) {
+    throw new Error('E2E_EXPECTED_DELTA_SYNC must be true or false.');
+  }
+
+  return [
+    ['asset-service', 'E2E_ASSET_IMAGE', environment.E2E_ASSET_IMAGE],
+    ['backend', 'E2E_BACKEND_IMAGE', environment.E2E_BACKEND_IMAGE],
+    ['frontend', 'E2E_FRONTEND_IMAGE', environment.E2E_FRONTEND_IMAGE],
+  ].map(([name, variable, image]) => {
+    if (!image) {
+      throw new Error(`${variable} is required in prebuilt mode.`);
+    }
+    return { name, image };
+  });
+}
+
+async function inspectImageLabel(image, label) {
+  try {
+    const { stdout } = await execFileAsync('docker', [
+      'image',
+      'inspect',
+      '--format',
+      `{{ index .Config.Labels "${label}" }}`,
+      image,
+    ]);
+    return stdout.trim();
+  } catch {
+    throw new Error(`Required prebuilt image is unavailable: ${image}`);
+  }
+}
+
+async function verifyPrebuiltImages(environment = process.env) {
+  const images = validatePrebuiltConfiguration(environment);
+  for (const { name, image } of images) {
+    const revision = await inspectImageLabel(
+      image,
+      'org.opencontainers.image.revision',
+    );
+    if (revision !== environment.E2E_SOURCE_SHA) {
+      throw new Error(
+        `Prebuilt ${name} image revision ${revision || '<missing>'} does not match ${environment.E2E_SOURCE_SHA}.`,
+      );
+    }
+  }
+
+  if (images.length > 0) {
+    const frontend = images.find(({ name }) => name === 'frontend');
+    const deltaSync = await inspectImageLabel(
+      frontend.image,
+      'org.nexusvtt.frontend.delta-sync',
+    );
+    if (deltaSync !== environment.E2E_EXPECTED_DELTA_SYNC) {
+      throw new Error(
+        `Prebuilt frontend delta-sync ${deltaSync || '<missing>'} does not match ${environment.E2E_EXPECTED_DELTA_SYNC}.`,
+      );
+    }
+  }
+}
+
 process.once('SIGINT', () => handleSignal('SIGINT'));
 process.once('SIGTERM', () => handleSignal('SIGTERM'));
 
@@ -94,6 +164,7 @@ async function main() {
   let exitCode = 1;
 
   try {
+    await verifyPrebuiltImages();
     composeAttempted = true;
     const buildFlag =
       process.env.E2E_NO_BUILD === '1' || process.env.E2E_PREBUILT === '1'
@@ -153,7 +224,12 @@ async function main() {
   process.exitCode = interrupted ? 130 : exitCode;
 }
 
-main().catch((error) => {
-  console.error(error instanceof Error ? error.message : error);
-  process.exitCode = 1;
-});
+if (
+  process.argv[1] &&
+  import.meta.url === pathToFileURL(path.resolve(process.argv[1])).href
+) {
+  main().catch((error) => {
+    console.error(error instanceof Error ? error.message : error);
+    process.exitCode = 1;
+  });
+}
