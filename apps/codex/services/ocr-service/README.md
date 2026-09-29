@@ -20,14 +20,14 @@ GPU-accelerated, layout-aware OCR sidecar service for Nexus Codex, optimized for
 
 ## API Endpoints
 
-- `GET /health`: Health probe returning status, GPU availability, and VRAM telemetry.
+- `GET /health`: Health probe returning status, GPU availability, VRAM telemetry and `embed: { model, dim }`.
 - `GET /metrics`: Prometheus metric scrape endpoint.
 - `POST /ocr/image`: Process a single image file (`multipart/form-data`).
   - Query params: `page_number` (int), `reorder_columns` (bool, default `true`).
 - `POST /ocr/bytes`: Process raw image bytes from HTTP body.
 - `POST /ocr/s3`: Process page image directly from S3/Garage by bucket and key.
 - `POST /ocr/batch`: Process up to `MAX_BATCH_SIZE` images concurrently.
-- `POST /embed`: Generate dense text embeddings using GPU acceleration (`{ "texts": ["..."] }`).
+- `POST /embed`: Generate dense text embeddings using GPU acceleration (`{ "texts": ["..."] }`). The response's `model` names the model that produced the vectors; `fallback-hash-384` means fastembed failed and doc-processor will refuse the vectors. `tests/test_contract.py` pins this contract.
 
 ## Docker Compose Configuration
 

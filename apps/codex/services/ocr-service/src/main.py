@@ -11,7 +11,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
-from .ocr_engine import ocr_engine
+from .ocr_engine import ocr_engine, EMBED_DIM
 
 MAX_BATCH_SIZE = int(os.getenv("MAX_BATCH_SIZE", "8"))
 
@@ -94,6 +94,12 @@ class EmbedResponse(BaseModel):
     dimension: int
     count: int
     duration_ms: float
+    model: str = Field(..., description="Model that produced the vectors; 'fallback-*' means the real model failed to load")
+
+
+class EmbedHealth(BaseModel):
+    model: str
+    dim: int
 
 
 class HealthResponse(BaseModel):
@@ -107,6 +113,7 @@ class HealthResponse(BaseModel):
     vram_free_mb: Optional[float] = None
     gpu_utilization_pct: Optional[float] = None
     onnx_providers: List[str]
+    embed: EmbedHealth
 
 
 def update_gpu_metrics():
@@ -145,6 +152,7 @@ async def health_check():
         vram_free_mb=telemetry["vram_free_mb"],
         gpu_utilization_pct=telemetry["gpu_utilization_pct"],
         onnx_providers=telemetry["onnx_providers"],
+        embed=EmbedHealth(model=ocr_engine.embed_model_name, dim=EMBED_DIM),
     )
 
 
@@ -308,7 +316,8 @@ async def generate_embeddings(request: EmbedRequest):
             embeddings=res["embeddings"],
             dimension=res["dimension"],
             count=len(res["embeddings"]),
-            duration_ms=res["duration_ms"]
+            duration_ms=res["duration_ms"],
+            model=res["model"],
         )
     except Exception as e:
         METRIC_REQUESTS_TOTAL.labels(endpoint=endpoint, status="error").inc()
