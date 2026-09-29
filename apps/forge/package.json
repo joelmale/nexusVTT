@@ -55,7 +55,7 @@
     "globals": "^16.5.0",
     "jsdom": "^27.2.0",
     "postcss": "^8.4.49",
-    "tailwindcss": "^4.1.17",
+    "tailwindcss": "^4.3.3",
     "terser": "^5.37.0",
     "typescript": "^5.7.2",
     "typescript-eslint": "^8.15.0",
