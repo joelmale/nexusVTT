@@ -1,8 +1,12 @@
 # Multi-stage: the builder carries the compiler toolchain, the runtime image
 # only the virtualenv. Build context is the repository root.
+#
+# Python 3.12, not 3.13: rapidocr-onnxruntime (still serving /ocr/* until the
+# v2 cutover) publishes no 3.13 wheels, so a 3.13 image cannot install
+# requirements.txt. Move to 3.13 when RapidOCR is removed (plan Phase 5).
 
 # ---- builder -------------------------------------------------------------
-FROM python:3.13-slim AS builder
+FROM python:3.12-slim AS builder
 
 RUN apt-get update && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
@@ -30,7 +34,7 @@ RUN if [ "$INSTALL_LAYOUT" = "true" ]; then \
     fi
 
 # ---- runtime -------------------------------------------------------------
-FROM python:3.13-slim AS runtime
+FROM python:3.12-slim AS runtime
 
 # Runtime libraries for image processing and ONNX Runtime.
 RUN apt-get update && \
