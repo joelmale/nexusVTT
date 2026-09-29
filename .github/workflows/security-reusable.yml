@@ -199,8 +199,11 @@ jobs:
           push: false
           load: true
           tags: nexus-vtt/${{ matrix.name }}:scan-${{ inputs.source_sha }}
-          cache-from: type=gha,scope=security-${{ matrix.name }}
-          cache-to: type=gha,mode=max,scope=security-${{ matrix.name }}
+          # Advisory images (codex-ocr) read the GHCR build cache that Delivery
+          # writes and never export a GitHub Actions cache: exporting multi-GB
+          # layers cost more than the build. This job only has packages: read.
+          cache-from: ${{ matrix.securityAdvisory == true && format('type=registry,ref={0}:buildcache', matrix.repository) || format('type=gha,scope=security-{0}', matrix.name) }}
+          cache-to: ${{ matrix.securityAdvisory != true && format('type=gha,mode=max,scope=security-{0}', matrix.name) || '' }}
           build-args: |
             VERSION=security-${{ inputs.source_sha }}
             COMMIT_SHA=${{ inputs.source_sha }}
