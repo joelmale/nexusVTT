@@ -336,8 +336,29 @@
     },
     {
       "name": "ci-configuration",
-      "paths": [".github/**"],
+      "paths": [
+        ".github/actionlint.yaml",
+        ".github/codeql-config.yml",
+        ".github/ci/**",
+        ".github/workflows/ci.yml",
+        ".github/workflows/codex-ci.yml",
+        ".github/workflows/delivery.yml",
+        ".github/workflows/docs-pages.yml",
+        ".github/workflows/forge-ci.yml",
+        ".github/workflows/multiplayer-soak.yml",
+        ".github/workflows/nightly.yml",
+        ".github/workflows/security-reusable.yml",
+        ".github/workflows/security.yml"
+      ],
       "targets": "all"
+    },
+    {
+      "name": "dependabot-automation",
+      "paths": [
+        ".github/dependabot.yml",
+        ".github/workflows/dependabot-auto-merge.yml"
+      ],
+      "targets": []
     },
     {
       "name": "deployment-and-monitoring",
