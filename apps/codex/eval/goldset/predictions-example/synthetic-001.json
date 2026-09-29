@@ -1,0 +1,51 @@
+{
+  "_comment": "Example pipeline output for synthetic-001 in the format eval-pipeline.js reads with --predictions (and writes with --save-predictions). Deliberate mistakes: an OCR typo, paragraphs 2 and 3 swapped, HP misread (flagged), an invented entity (not flagged), the sidebar missed.",
+  "pageId": "synthetic-001",
+  "text": "Cinder Hounds\n\nCinder Hound\n\nCinder hounds prowl the ash fie1ds, following the smell of smoke for miles.\n\nMedium elemental, unaligned\n\nArmor Class 14 (natural armor)\n\nHit Points 32 (5d8 + 10)\n\nSpeed 40 ft.\n\nSTR 15 (+2) DEX 14 (+2) CON 14 (+2) INT 3 (-4) WIS 12 (+1) CHA 6 (-2)\n\nChallenge 1 (200 XP)\n\nActions\n\nBite. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (1d10 + 2) fire damage.\n\nAsh Lantern\n\nWondrous item, uncommon\n\nThis lantern sheds dim light in a 20-foot radius and never goes out.",
+  "quality": { "wordValidity": 0.97 },
+  "regions": [
+    { "class": "stat_block", "bbox": [0.52, 0.09, 0.94, 0.6] },
+    { "class": "art", "bbox": [0.07, 0.57, 0.45, 0.92] },
+    { "class": "table", "bbox": [0.1, 0.1, 0.2, 0.2] }
+  ],
+  "entities": [
+    {
+      "type": "monster",
+      "review": { "status": "needs_review", "confidence": 0.3, "reasons": ["ungrounded:hitPoints=34"] },
+      "data": {
+        "name": "Cinder Hound",
+        "size": "Medium",
+        "type": "elemental",
+        "alignment": "unaligned",
+        "armorClass": 14,
+        "armorType": "natural armor",
+        "hitPoints": 34,
+        "hitDice": "5d8 + 10",
+        "speed": "40 ft.",
+        "abilities": { "str": 15, "dex": 14, "con": 14, "int": 3, "wis": 12, "cha": 6 },
+        "challengeRating": "1 (200 XP)",
+        "traits": [],
+        "actions": [
+          { "name": "Bite", "description": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (1d10 + 2) fire damage." }
+        ]
+      }
+    },
+    {
+      "type": "item",
+      "review": { "status": "auto", "confidence": 0.95, "reasons": [] },
+      "data": {
+        "name": "Ash Lantern",
+        "type": "Wondrous item",
+        "rarity": "uncommon",
+        "requiresAttunement": false,
+        "description": "This lantern sheds dim light in a 20-foot radius and never goes out."
+      }
+    },
+    {
+      "type": "spell",
+      "review": { "status": "auto", "confidence": 0.9, "reasons": [] },
+      "data": { "name": "Smoke Step", "level": 1, "school": "conjuration" }
+    }
+  ],
+  "timing": { "layoutMsPerPage": 4100, "extractMsPerPage": 6200 }
+}

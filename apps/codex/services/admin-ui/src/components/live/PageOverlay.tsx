@@ -1,3 +1,4 @@
+import { useRef, useState, type PointerEvent } from 'react'
 import { BLOCK_STYLES, CANDIDATE_STATUS_LABEL, DEFAULT_PAGE_SIZE, scaleBBox } from './overlay'
 import type { BBox, CandidateState, LayoutBlock, LayoutBlockClass } from './types'
 
@@ -21,7 +22,15 @@ export interface PageOverlayProps {
   highlight?: BBox[]
   selectedBlockId?: string | null
   onSelectBlock?: (block: LayoutBlock) => void
+  /** Gold-set edit mode: the label's region boxes, drawn over the page. */
+  goldRegions?: Array<{ class: string; bbox: BBox }>
+  selectedGoldRegion?: number | null
+  onSelectGoldRegion?: (index: number) => void
+  /** Gold-set edit mode: dragging on the page draws a new box (normalized). */
+  onDrawBox?: (bbox: BBox) => void
 }
+
+const MIN_DRAWN_SIZE = 0.01
 
 export function PageOverlay({
   pageNumber,
@@ -33,11 +42,48 @@ export function PageOverlay({
   highlight = [],
   selectedBlockId,
   onSelectBlock,
+  goldRegions,
+  selectedGoldRegion,
+  onSelectGoldRegion,
+  onDrawBox,
 }: PageOverlayProps) {
   const width = widthPt || DEFAULT_PAGE_SIZE.widthPt
   const height = heightPt || DEFAULT_PAGE_SIZE.heightPt
   const labelSize = Math.max(7, width / 60)
+  const svgRef = useRef<SVGSVGElement>(null)
+  const [drawing, setDrawing] = useState<{ start: [number, number]; end: [number, number] } | null>(null)
   let order = 0
+
+  // Pointer position as a normalized page coordinate (the SVG fills the preview).
+  const toNormalized = (event: PointerEvent<SVGSVGElement>): [number, number] => {
+    const rect = svgRef.current!.getBoundingClientRect()
+    const clamp = (value: number) => Math.min(1, Math.max(0, value))
+    return [clamp((event.clientX - rect.left) / (rect.width || 1)), clamp((event.clientY - rect.top) / (rect.height || 1))]
+  }
+  const drawnBox = (d: NonNullable<typeof drawing>): BBox => [
+    Math.min(d.start[0], d.end[0]),
+    Math.min(d.start[1], d.end[1]),
+    Math.max(d.start[0], d.end[0]),
+    Math.max(d.start[1], d.end[1]),
+  ]
+  const drawHandlers = onDrawBox
+    ? {
+        onPointerDown: (event: PointerEvent<SVGSVGElement>) => {
+          if ((event.target as Element).closest('[data-gold-region]')) return
+          const point = toNormalized(event)
+          setDrawing({ start: point, end: point })
+        },
+        onPointerMove: (event: PointerEvent<SVGSVGElement>) => {
+          if (drawing) setDrawing({ ...drawing, end: toNormalized(event) })
+        },
+        onPointerUp: (event: PointerEvent<SVGSVGElement>) => {
+          if (!drawing) return
+          const box = drawnBox({ ...drawing, end: toNormalized(event) })
+          setDrawing(null)
+          if (box[2] - box[0] >= MIN_DRAWN_SIZE && box[3] - box[1] >= MIN_DRAWN_SIZE) onDrawBox(box)
+        },
+      }
+    : {}
 
   return (
     <div
@@ -51,8 +97,10 @@ export function PageOverlay({
         <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400">No page preview</div>
       )}
       <svg
-        className="absolute inset-0 h-full w-full"
+        ref={svgRef}
+        className={`absolute inset-0 h-full w-full ${onDrawBox ? 'cursor-crosshair touch-none' : ''}`}
         viewBox={`0 0 ${width} ${height}`}
+        {...drawHandlers}
         role="img"
         aria-label={`Layout of page ${pageNumber}: ${blocks.length} blocks`}
       >
@@ -129,6 +177,38 @@ export function PageOverlay({
               )
             })
         )}
+
+        {goldRegions?.map((region, index) => {
+          const box = scaleBBox(region.bbox, width, height)
+          const selected = index === selectedGoldRegion
+          return (
+            <g
+              key={`gold-${index}`}
+              data-gold-region={index}
+              data-testid={`gold-box-${index}`}
+              onClick={onSelectGoldRegion ? () => onSelectGoldRegion(index) : undefined}
+              style={{ cursor: 'pointer' }}
+            >
+              <rect
+                x={box.x}
+                y={box.y}
+                width={box.width}
+                height={box.height}
+                fill={selected ? 'rgba(250,204,21,0.18)' : 'rgba(15,23,42,0.04)'}
+                stroke={selected ? '#ca8a04' : '#0f172a'}
+                strokeWidth={selected ? 3 : 2}
+              />
+              <text x={box.x + 3} y={box.y + labelSize} fontSize={labelSize} fontFamily="monospace" fill="#0f172a">
+                {`#${index + 1} ${region.class}`}
+              </text>
+            </g>
+          )
+        })}
+
+        {drawing && (() => {
+          const box = scaleBBox(drawnBox(drawing), width, height)
+          return <rect data-testid="drawing-box" x={box.x} y={box.y} width={box.width} height={box.height} fill="none" stroke="#ca8a04" strokeWidth={2} strokeDasharray="4 2" />
+        })()}
 
         {highlight.map((bbox, index) => {
           const box = scaleBBox(bbox, width, height)

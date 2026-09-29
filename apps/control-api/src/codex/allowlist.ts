@@ -14,7 +14,8 @@ import type { Permission } from '../permissions.js';
  * - admin/validation/fix    validation auto-fix (add with codex:maintain + recent auth when the UI needs it).
  * - admin/documents/bulk-delete, bulk-update, admin/tags*, admin/duplicates*
  * - admin/alerts/rules (PUT), admin/metrics/cleanup, admin/alerts/cleanup
- * - documents (POST single create), documents/:id (PUT/DELETE), structured-data, vtt/*
+ * - documents (POST single create), documents/:id (PUT/DELETE), structured-data/* (the
+ *   per-document read `documents/:id/structured-data` IS listed, for the gold-set editor), vtt/*
  *
  * Object storage (MinIO) is never browser-facing. Two entries are served by
  * control-api handlers (`handler`) that talk to object storage server-side:
@@ -135,6 +136,8 @@ export const CODEX_ALLOWLIST: readonly CodexRoute[] = [
   read('admin/processing/:id/pages', 'document'),
   read('admin/processing/:id/pages/:page', 'document'),
   read('admin/processing/:id/pages/:page/preview', 'document', { handler: 'layoutPreview', response: 'image', timeoutMs: 60_000 }),
+  // Gold-set edit mode drafts entity labels from the extracted StructuredData.
+  read('documents/:id/structured-data', 'document', { query: { type: ID, name: TEXT } }),
   mutate({ method: 'POST', path: 'admin/queue/jobs/:id/retry', permission: ['codex:write', 'codex:operate'], action: 'codex.queue.job_retry', resourceType: 'queue_job' }),
   mutate({ method: 'DELETE', path: 'admin/queue/jobs/:id', permission: MAINTAIN, action: 'codex.queue.job_remove', resourceType: 'queue_job' }),
   mutate({ method: 'POST', path: 'admin/queue/clean', permission: OPERATE, action: 'codex.queue.clean', resourceType: 'queue', body: json(1 * KB), auditBodyKeys: ['olderThanDays'] }),
