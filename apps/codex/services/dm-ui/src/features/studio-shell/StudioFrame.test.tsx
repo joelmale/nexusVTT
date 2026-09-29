@@ -3,6 +3,8 @@ import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
+import { CampaignContext } from '@/features/campaigns/CampaignContext';
+
 import { StudioFrame } from './StudioFrame';
 import { StudioNavigationProvider } from './StudioNavigationProvider';
 
@@ -11,17 +13,28 @@ function LocationProbe() {
   return <output aria-label="Current route">{location.pathname}</output>;
 }
 
+const campaignContext = {
+  campaigns: [],
+  createCampaign: vi.fn(),
+  isDemoCampaign: true,
+  reload: vi.fn(),
+  rememberCampaign: vi.fn(),
+  state: 'ready' as const,
+};
+
 describe('StudioFrame navigation', () => {
   it('keeps the campaign rail open on session routes', () => {
     render(
       <MemoryRouter
-        initialEntries={['/campaigns/ashes-of-veyra/sessions/session-12']}
+        initialEntries={['/demo/ashes-of-veyra/sessions/session-12']}
       >
-        <StudioNavigationProvider>
-          <StudioFrame onCapability={vi.fn()}>
-            <p>Session workspace</p>
-          </StudioFrame>
-        </StudioNavigationProvider>
+        <CampaignContext.Provider value={campaignContext}>
+          <StudioNavigationProvider>
+            <StudioFrame onCapability={vi.fn()}>
+              <p>Session workspace</p>
+            </StudioFrame>
+          </StudioNavigationProvider>
+        </CampaignContext.Provider>
       </MemoryRouter>,
     );
 
@@ -37,13 +50,15 @@ describe('StudioFrame navigation', () => {
     const user = userEvent.setup();
     render(
       <MemoryRouter
-        initialEntries={['/campaigns/ashes-of-veyra/sessions/session-12']}
+        initialEntries={['/demo/ashes-of-veyra/sessions/session-12']}
       >
-        <StudioNavigationProvider>
-          <StudioFrame onCapability={vi.fn()}>
-            <LocationProbe />
-          </StudioFrame>
-        </StudioNavigationProvider>
+        <CampaignContext.Provider value={campaignContext}>
+          <StudioNavigationProvider>
+            <StudioFrame onCapability={vi.fn()}>
+              <LocationProbe />
+            </StudioFrame>
+          </StudioNavigationProvider>
+        </CampaignContext.Provider>
       </MemoryRouter>,
     );
 
@@ -60,7 +75,7 @@ describe('StudioFrame navigation', () => {
       }),
     );
     expect(screen.getByLabelText('Current route')).toHaveTextContent(
-      '/campaigns/ashes-of-veyra/overview',
+      '/demo/ashes-of-veyra/overview',
     );
     expect(
       screen.getByRole('complementary', { name: 'Campaign navigation' }),

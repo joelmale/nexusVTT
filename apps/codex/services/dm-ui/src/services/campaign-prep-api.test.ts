@@ -11,6 +11,7 @@ import {
 
 const CAMPAIGN_ID = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa';
 const input: PublishSessionPlanInput = {
+  campaignId: CAMPAIGN_ID,
   campaignTitle: 'A Real Campaign',
   planTitle: 'Session 7 - Crossroads',
   revision: 1,
@@ -322,7 +323,7 @@ describe('fetchSessionPlanStatus', () => {
     });
 
     const status = await fetchSessionPlanStatus({
-      campaignTitle: input.campaignTitle,
+      campaignId: CAMPAIGN_ID,
       planTitle: input.planTitle,
     });
 
@@ -366,7 +367,7 @@ describe('fetchSessionPlanStatus', () => {
     });
 
     const status = await fetchSessionPlanStatus({
-      campaignTitle: input.campaignTitle,
+      campaignId: CAMPAIGN_ID,
       planTitle: input.planTitle,
     });
 

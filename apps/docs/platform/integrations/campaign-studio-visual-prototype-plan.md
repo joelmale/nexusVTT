@@ -52,6 +52,17 @@ HTML/CSS. The harbor artwork and portraits may be raster assets.
 
 ## 3. Scope and non-goals
 
+> **Current implementation note (2026-09-27):** Campaign Studio now lists and
+> creates authenticated PostgreSQL-backed campaigns through `/api/campaigns`.
+> Real campaigns use canonical ID routes such as
+> `/campaigns/:campaignId/overview`; the last valid ID is remembered only as a
+> navigation preference and is verified against the server list before use.
+> Ashes of Veyra remains an explicit read-only fixture namespace under
+> `/demo/ashes-of-veyra/*`, with redirects from its former campaign-shaped URLs.
+> Publication, status, and activation contracts receive a campaign ID directly
+> and never discover or create a campaign by matching its display name. The
+> bullets below describe the original representative-prototype milestone.
+
 ### Required in the representative frontend
 
 - The three routes render directly on first load without account setup.

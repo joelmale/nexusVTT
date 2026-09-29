@@ -57,6 +57,7 @@ interface ProcessingSummary {
   ocrPending: number
   ocrFailed: number
   lowTextThreshold: number
+  embeddingModels?: Record<string, number>
   recentIssues: Array<{
     id: string
     title: string
@@ -321,6 +322,17 @@ export default function DataQuality() {
               <p className="text-xs text-muted-foreground">
                 Searchable in ElasticSearch
               </p>
+              {processingSummary.embeddingModels && Object.keys(processingSummary.embeddingModels).length > 0 && (
+                <p
+                  className={`text-xs ${Object.keys(processingSummary.embeddingModels).length > 1 ? 'text-yellow-600' : 'text-muted-foreground'}`}
+                  data-testid="embedding-models"
+                >
+                  Vectors:{' '}
+                  {Object.entries(processingSummary.embeddingModels)
+                    .map(([model, count]) => `${model} (${count})`)
+                    .join(', ')}
+                </p>
+              )}
             </CardContent>
           </Card>
 

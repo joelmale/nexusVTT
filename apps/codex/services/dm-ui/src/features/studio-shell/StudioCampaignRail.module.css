@@ -84,32 +84,6 @@
   margin-bottom: 8px;
 }
 
-.campaignSelect {
-  align-items: center;
-  background: var(--studio-chrome-raised);
-  border: 1px solid var(--studio-chrome-border);
-  border-radius: var(--studio-radius-control);
-  color: inherit;
-  cursor: pointer;
-  display: flex;
-  font-size: 12px;
-  gap: 9px;
-  height: 39px;
-  padding: 0 10px;
-  text-align: left;
-}
-
-.campaignSelect span:nth-child(2) {
-  flex: 1;
-}
-
-.liveDot {
-  background: var(--studio-positive);
-  border-radius: 50%;
-  height: 9px;
-  width: 9px;
-}
-
 .navigation {
   display: flex;
   flex-direction: column;
@@ -144,6 +118,11 @@
 
 .navActive {
   box-shadow: inset 3px 0 0 var(--studio-positive);
+}
+
+.navItem:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
 }
 
 .settings {

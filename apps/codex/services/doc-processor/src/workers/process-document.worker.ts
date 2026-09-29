@@ -12,8 +12,9 @@ import { markdownService } from '../services/markdown.service';
 import { extractionService } from '../services/extraction.service';
 import { contentHashService } from '../services/content-hash.service';
 import { loggingService } from '../services/logging.service';
-import { chunkingService } from '../services/chunking.service';
+import { chunkingService, DocumentChunkInput } from '../services/chunking.service';
 import { embeddingsService } from '../services/embeddings.service';
+import { ocrHealthService } from '../services/ocr-health.service';
 import { entityResolverService } from '../services/entity-resolver.service';
 import { entityLinkingService } from '../services/entity-linking.service';
 import { env } from '../config/env';
@@ -43,6 +44,7 @@ type ProcessingMetadata = {
   chunks?: {
     count?: number;
     source?: string;
+    embeddingModel?: string;
   };
   search?: {
     indexed?: boolean;
@@ -136,6 +138,32 @@ const resolveTextForProcessing = async (documentId: string, preferOcr: boolean) 
     where: { documentId, source: 'markdown' },
   });
   return markdownText?.content || '';
+};
+
+/**
+ * Embeds chunks before anything is deleted, so an embeddings failure leaves the
+ * previous chunks in place and fails the stage for BullMQ to retry. Every row
+ * is labelled with the model that produced its vector (or `none`).
+ */
+const embedChunks = async (jobId: string, chunks: DocumentChunkInput[]) => {
+  if (chunks.length === 0) return { rows: [], model: embeddingsService.getProviderName() };
+
+  const health = await ocrHealthService.assertEmbeddingsReady();
+  if (health?.embed) {
+    await loggingService.logInfo(jobId, `ocr-service embed model: ${health.embed.model} (dim ${health.embed.dim})`);
+  }
+
+  const { embeddings, model } = await embeddingsService.embedTextsWithModel(chunks.map((chunk) => chunk.content));
+  if (model !== 'none' && embeddings.length !== chunks.length) {
+    throw new Error(`Embedding count mismatch: expected ${chunks.length}, got ${embeddings.length}`);
+  }
+
+  const rows = chunks.map((chunk, index) => ({
+    ...chunk,
+    embedding: embeddings[index] ?? [],
+    embeddingModel: model,
+  }));
+  return { rows, model };
 };
 
 const queueNextStage = async (documentId: string, stage: Stage, skipOcr: boolean) => {
@@ -631,28 +659,11 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
           pageCount: document.pageCount || 0,
         });
 
+        const embedded = await embedChunks(jobId, chunks);
         await prisma.documentChunk.deleteMany({ where: { documentId: document.id } });
-        if (chunks.length > 0) {
-          const embeddingsProvider = embeddingsService.getProviderName();
-          const embeddings = embeddingsProvider === 'none'
-            ? []
-            : await embeddingsService.embedTexts(chunks.map((chunk) => chunk.content));
-
-          if (embeddingsProvider !== 'none' && embeddings.length !== chunks.length) {
-            await loggingService.logWarn(jobId, `Embedding count mismatch: expected ${chunks.length}, got ${embeddings.length}`);
-          }
-
-          const chunksWithEmbeddings = chunks.map((chunk, index) => ({
-            ...chunk,
-            embedding: embeddings[index] ?? [],
-            embeddingModel: embeddingsProvider === 'none' ? null : embeddingsProvider,
-          }));
-
-          await prisma.documentChunk.createMany({ data: chunksWithEmbeddings });
-          await loggingService.logInfo(jobId, `Stored ${chunks.length} document chunks`);
-          if (embeddingsProvider !== 'none') {
-            await loggingService.logInfo(jobId, `Stored embeddings for ${chunks.length} chunks (provider=${embeddingsProvider})`);
-          }
+        if (embedded.rows.length > 0) {
+          await prisma.documentChunk.createMany({ data: embedded.rows });
+          await loggingService.logInfo(jobId, `Stored ${chunks.length} document chunks (embeddingModel=${embedded.model})`);
         }
 
         await updateProcessing(documentId, document, 'extract', {
@@ -667,6 +678,7 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
           chunks: {
             count: chunks.length,
             source: chunkSource,
+            embeddingModel: embedded.model,
           },
         });
 

@@ -174,11 +174,13 @@ COPY --from=codex-admin-builder /workspace/apps/codex/services/admin-ui/dist /us
 
 ARG VERSION=dev
 ARG COMMIT_SHA=unknown
+ARG VITE_DELTA_SYNC=false
 
 LABEL org.opencontainers.image.title="Nexus Unified Frontend" \
       org.opencontainers.image.source="https://github.com/joelmale/nexusVTT" \
       org.opencontainers.image.version="$VERSION" \
-      org.opencontainers.image.revision="$COMMIT_SHA"
+      org.opencontainers.image.revision="$COMMIT_SHA" \
+      org.nexusvtt.frontend.delta-sync="$VITE_DELTA_SYNC"
 
 # 80 is the public gateway. 8081 is the private admin listener: it is reached
 # only over Docker networks by the edge proxy and must never be published on

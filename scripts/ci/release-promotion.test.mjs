@@ -40,50 +40,46 @@ afterEach(() => {
 });
 
 describe('release promotion eligibility', () => {
-  test.each(['push', 'workflow_dispatch'])(
-    'allows the current main source for %s',
-    (eventName) => {
-      expect(
-        decidePromotion(
-          { ...mainEnv, EVENT_NAME: eventName },
-          () => `${sourceSha}\trefs/heads/main\n`,
-        ).disposition,
-      ).toBe('eligible');
-    },
-  );
+  test('allows the current main source for a push', () => {
+    expect(
+      decidePromotion(mainEnv, () => `${sourceSha}\trefs/heads/main\n`)
+        .disposition,
+    ).toBe('eligible');
+  });
 
-  test.each(['push', 'workflow_dispatch'])(
-    'supersedes an older main source for %s',
-    (eventName) => {
-      expect(
-        decidePromotion(
-          { ...mainEnv, EVENT_NAME: eventName },
-          () => `${newerSha}\trefs/heads/main\n`,
-        ),
-      ).toEqual({
-        disposition: 'superseded',
-        sourceSha,
-        currentMain: newerSha,
-      });
-    },
-  );
+  test('supersedes an older main source for a push', () => {
+    expect(
+      decidePromotion(mainEnv, () => `${newerSha}\trefs/heads/main\n`),
+    ).toEqual({
+      disposition: 'superseded',
+      sourceSha,
+      currentMain: newerSha,
+    });
+  });
 
-  test.each([
-    ['push', 'refs/tags/v1.2.3'],
-    ['workflow_dispatch', 'refs/heads/release'],
-  ])(
-    'preserves explicit non-main release behavior for %s %s',
-    (eventName, ref) => {
-      const readMain = vi.fn();
-      expect(
-        decidePromotion(
-          { ...mainEnv, EVENT_NAME: eventName, EVENT_REF: ref },
-          readMain,
-        ).disposition,
-      ).toBe('eligible');
-      expect(readMain).not.toHaveBeenCalled();
-    },
-  );
+  test('makes every manual dispatch candidate-only', () => {
+    const readMain = vi.fn();
+    expect(
+      decidePromotion(
+        {
+          ...mainEnv,
+          EVENT_NAME: 'workflow_dispatch',
+          EVENT_REF: 'refs/heads/main',
+        },
+        readMain,
+      ).disposition,
+    ).toBe('candidate');
+    expect(readMain).not.toHaveBeenCalled();
+  });
+
+  test('rejects push promotion outside main', () => {
+    expect(() =>
+      decidePromotion(
+        { ...mainEnv, EVENT_REF: 'refs/tags/v1.2.3' },
+        vi.fn(),
+      ),
+    ).toThrow('restricted to refs/heads/main');
+  });
 
   test.each([
     '',
@@ -118,11 +114,14 @@ describe('release promotion eligibility', () => {
     expect(() => readFileSync(env.GITHUB_OUTPUT)).toThrow();
   });
 
-  test.each(['eligible', 'superseded'])(
+  test.each(['eligible', 'superseded', 'candidate'])(
     'records the %s outcome for Actions',
     (disposition) => {
       const env = outputEnv();
       const sha = disposition === 'eligible' ? sourceSha : newerSha;
+      if (disposition === 'candidate') {
+        env.EVENT_NAME = 'workflow_dispatch';
+      }
       runPromotionCheck(env, () => `${sha}\trefs/heads/main`);
       expect(readFileSync(env.GITHUB_OUTPUT, 'utf8')).toBe(
         `disposition=${disposition}\n`,
@@ -132,6 +131,8 @@ describe('release promotion eligibility', () => {
       expect(summary).toContain(
         disposition === 'eligible'
           ? 'eligible for promotion'
+          : disposition === 'candidate'
+            ? 'will not update release or latest aliases'
           : 'latest tags were not changed',
       );
     },
@@ -168,8 +169,8 @@ describe('release promotion eligibility', () => {
     expect(() => readFileSync(env.GITHUB_OUTPUT)).toThrow();
   });
 
-  test('the executable writes outputs for a tagged release', () => {
-    const env = outputEnv({ EVENT_REF: 'refs/tags/v1.2.3' });
+  test('the executable records a manual dispatch as candidate-only', () => {
+    const env = outputEnv({ EVENT_NAME: 'workflow_dispatch' });
     execFileSync(
       process.execPath,
       [fileURLToPath(new URL('./release-promotion.mjs', import.meta.url))],
@@ -178,7 +179,7 @@ describe('release promotion eligibility', () => {
       },
     );
     expect(readFileSync(env.GITHUB_OUTPUT, 'utf8')).toBe(
-      'disposition=eligible\n',
+      'disposition=candidate\n',
     );
   });
 });

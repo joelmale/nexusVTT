@@ -26,12 +26,20 @@ S3_SECRET_KEY = os.getenv("S3_SECRET_KEY", os.getenv("CODEX_S3_SECRET_KEY", "min
 S3_REGION = os.getenv("S3_REGION", "us-east-1")
 
 
+EMBED_MODEL_NAME = "BAAI/bge-small-en-v1.5"
+EMBED_DIM = 384
+FALLBACK_EMBED_MODEL = f"fallback-hash-{EMBED_DIM}"
+
+
 class OCREngine:
     def __init__(self):
         self.has_cuda = "CUDAExecutionProvider" in AVAILABLE_PROVIDERS
         self.has_tensorrt = "TensorrtExecutionProvider" in AVAILABLE_PROVIDERS
         self.engine = None
         self.embed_model = None
+        # Label for the vectors /embed returns. Becomes FALLBACK_EMBED_MODEL if
+        # fastembed fails, so callers can refuse hash-like vectors loudly.
+        self.embed_model_name = EMBED_MODEL_NAME
         self.s3_client = None
         self._init_providers()
         self._init_engine()
@@ -184,23 +192,25 @@ class OCREngine:
         """
         start_time = time.time()
         if not texts:
-            return {"embeddings": [], "dimension": 0, "duration_ms": 0}
+            return {"embeddings": [], "dimension": 0, "duration_ms": 0, "model": self.embed_model_name}
 
         try:
             if self.embed_model is None:
                 from fastembed import TextEmbedding
                 # Use standard BAAI/bge-small-en-v1.5 (384-dimensional dense vectors)
                 providers = ["CUDAExecutionProvider", "CPUExecutionProvider"] if self.has_cuda else ["CPUExecutionProvider"]
-                self.embed_model = TextEmbedding(model_name="BAAI/bge-small-en-v1.5", providers=providers)
+                self.embed_model = TextEmbedding(model_name=EMBED_MODEL_NAME, providers=providers)
 
             embeddings = [arr.tolist() for arr in self.embed_model.embed(texts)]
-            dim = len(embeddings[0]) if embeddings else 384
+            dim = len(embeddings[0]) if embeddings else EMBED_DIM
             duration_ms = round((time.time() - start_time) * 1000, 2)
-            return {"embeddings": embeddings, "dimension": dim, "duration_ms": duration_ms}
+            self.embed_model_name = EMBED_MODEL_NAME
+            return {"embeddings": embeddings, "dimension": dim, "duration_ms": duration_ms, "model": EMBED_MODEL_NAME}
         except Exception as e:
             print(f"[OCREngine] FastEmbed execution error: {e}. Using deterministic fallback.")
             # Deterministic dense fallback (384-dim)
-            dim = 384
+            dim = EMBED_DIM
+            self.embed_model_name = FALLBACK_EMBED_MODEL
             fallback_embeddings = []
             for t in texts:
                 vec = [0.0] * dim
@@ -210,7 +220,7 @@ class OCREngine:
                 norm = sum(x * x for x in vec) ** 0.5 or 1.0
                 fallback_embeddings.append([round(x / norm, 6) for x in vec])
             duration_ms = round((time.time() - start_time) * 1000, 2)
-            return {"embeddings": fallback_embeddings, "dimension": dim, "duration_ms": duration_ms}
+            return {"embeddings": fallback_embeddings, "dimension": dim, "duration_ms": duration_ms, "model": FALLBACK_EMBED_MODEL}
 
 
 ocr_engine = OCREngine()
