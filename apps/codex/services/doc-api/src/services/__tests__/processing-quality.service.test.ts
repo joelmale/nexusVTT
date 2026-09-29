@@ -104,4 +104,25 @@ describe('processing-quality.service', () => {
     const issues = buildProcessingIssues(docs);
     expect(issues.length).toBe(0);
   });
+
+  it('counts embedding models and flags documents whose vectors differ from the dominant model', () => {
+    const withModel = (id: string, embeddingModel: string) =>
+      makeDoc({ id, metadata: { processing: { textLength: 500, chunks: { count: 3, embeddingModel } } } });
+    const docs = [
+      withModel('doc-1', 'BAAI/bge-small-en-v1.5'),
+      withModel('doc-2', 'BAAI/bge-small-en-v1.5'),
+      withModel('doc-3', 'hash'),
+      makeDoc({ id: 'doc-4', metadata: { processing: { textLength: 500 } } }),
+    ];
+
+    expect(buildProcessingSummary(docs).embeddingModels).toEqual({
+      'BAAI/bge-small-en-v1.5': 2,
+      hash: 1,
+    });
+
+    const issues = buildProcessingIssues(docs).filter((issue) => issue.type === 'embedding_model_mixed');
+    expect(issues).toHaveLength(1);
+    expect(issues[0].documentId).toBe('doc-3');
+    expect(issues[0].severity).toBe('warning');
+  });
 });

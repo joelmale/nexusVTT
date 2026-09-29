@@ -2,7 +2,13 @@ import { env } from '../config/env';
 
 export type EmbeddingProvider = {
   name: string;
-  embed: (inputs: string[]) => Promise<number[][]>;
+  // `model` labels the vectors (DocumentChunk.embeddingModel).
+  embed: (inputs: string[]) => Promise<{ embeddings: number[][]; model: string }>;
+};
+
+export type EmbeddingResult = {
+  embeddings: number[][];
+  model: string;
 };
 
 const tokenize = (text: string) =>
@@ -24,7 +30,7 @@ const createHashProvider = (): EmbeddingProvider => ({
   name: 'hash',
   embed: async (inputs: string[]) => {
     const dim = env.EMBEDDINGS_DIM;
-    return inputs.map((input) => {
+    const embeddings = inputs.map((input) => {
       const vector = new Array(dim).fill(0);
       const tokens = tokenize(input);
       tokens.forEach((token) => {
@@ -34,42 +40,49 @@ const createHashProvider = (): EmbeddingProvider => ({
       const norm = Math.sqrt(vector.reduce((sum, value) => sum + value * value, 0));
       return norm ? vector.map((value) => value / norm) : vector;
     });
+    return { embeddings, model: 'hash' };
   },
 });
 
+// Sidecar failures throw so the stage fails and BullMQ retries it. Silently
+// substituting hash vectors would collapse search quality with no error.
 const createSidecarProvider = (): EmbeddingProvider => ({
   name: 'sidecar',
   embed: async (inputs: string[]) => {
     if (!env.OCR_SERVICE_URL) {
-      console.warn('[EmbeddingsService] OCR_SERVICE_URL unset for sidecar embeddings. Falling back to hash.');
-      return createHashProvider().embed(inputs);
+      throw new Error('EMBEDDINGS_PROVIDER=sidecar but OCR_SERVICE_URL is unset');
     }
 
-    try {
-      const baseUrl = env.OCR_SERVICE_URL.replace(/\/$/, '');
-      const response = await fetch(`${baseUrl}/embed`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ texts: inputs }),
-        signal: AbortSignal.timeout(env.OCR_SERVICE_TIMEOUT_MS),
-      });
+    const baseUrl = env.OCR_SERVICE_URL.replace(/\/$/, '');
+    const response = await fetch(`${baseUrl}/embed`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ texts: inputs }),
+      signal: AbortSignal.timeout(env.OCR_SERVICE_TIMEOUT_MS),
+    });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status} ${response.statusText}`);
-      }
-
-      const data = (await response.json()) as any;
-      return data.embeddings || [];
-    } catch (error: any) {
-      console.warn(`[EmbeddingsService] GPU Sidecar embeddings failed: ${error?.message}. Falling back to hash.`);
-      return createHashProvider().embed(inputs);
+    if (!response.ok) {
+      throw new Error(`Sidecar /embed failed: HTTP ${response.status} ${response.statusText}`);
     }
+
+    const data = (await response.json()) as { embeddings?: number[][]; model?: string };
+    const embeddings = data.embeddings;
+    if (!Array.isArray(embeddings) || embeddings.length !== inputs.length) {
+      throw new Error(
+        `Sidecar /embed returned ${Array.isArray(embeddings) ? embeddings.length : 'no'} vectors for ${inputs.length} inputs`
+      );
+    }
+    if (data.model?.startsWith('fallback')) {
+      throw new Error(`Sidecar /embed is serving fallback vectors (${data.model}); its embedding model failed to load`);
+    }
+
+    return { embeddings, model: data.model || 'sidecar' };
   },
 });
 
 const createNoneProvider = (): EmbeddingProvider => ({
   name: 'none',
-  embed: async () => [],
+  embed: async () => ({ embeddings: [], model: 'none' }),
 });
 
 export class EmbeddingsService {
@@ -90,18 +103,29 @@ export class EmbeddingsService {
   }
 
   async embedTexts(texts: string[]) {
+    return (await this.embedTextsWithModel(texts)).embeddings;
+  }
+
+  async embedTextsWithModel(texts: string[]): Promise<EmbeddingResult> {
     if (this.provider.name === 'none') {
-      return [];
+      return { embeddings: [], model: 'none' };
     }
 
     const batches: number[][][] = [];
+    const models = new Set<string>();
     for (let i = 0; i < texts.length; i += env.EMBEDDINGS_BATCH_SIZE) {
       const batch = texts.slice(i, i + env.EMBEDDINGS_BATCH_SIZE);
-      const vectors = await this.provider.embed(batch);
-      batches.push(vectors);
+      const result = await this.provider.embed(batch);
+      batches.push(result.embeddings);
+      models.add(result.model);
     }
 
-    return batches.flat();
+    if (models.size > 1) {
+      // A sidecar restart mid-document swapped models; mixed vectors are not comparable.
+      throw new Error(`Embedding model changed mid-document: ${[...models].join(', ')}`);
+    }
+
+    return { embeddings: batches.flat(), model: [...models][0] ?? this.provider.name };
   }
 }
 
