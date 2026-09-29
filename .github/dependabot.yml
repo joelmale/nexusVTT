@@ -19,6 +19,12 @@ updates:
       docusaurus:
         patterns:
           - '@docusaurus/*'
+      # Lexical packages must stay on one version; a split bump installs two
+      # copies of lexical core and breaks the editor types.
+      lexical:
+        patterns:
+          - 'lexical'
+          - '@lexical/*'
       typescript-tooling:
         patterns:
           - 'typescript'
@@ -62,6 +68,38 @@ updates:
       - dependency-name: 'react'
         update-types: ['version-update:semver-major']
       - dependency-name: 'react-dom'
+        update-types: ['version-update:semver-major']
+      # Major upgrades below are migrations (breaking APIs, config, or test
+      # rewrites), not routine bumps. Do them deliberately as their own PRs;
+      # minor/patch updates for these packages still flow through.
+      - dependency-name: 'prisma'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@prisma/client'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'typescript'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'eslint'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@eslint/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'eslint-plugin-*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@vitejs/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'vitest'
+        update-types: ['version-update:semver-major']
+      - dependency-name: '@vitest/*'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'jsdom'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'zod'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'bullmq'
+        update-types: ['version-update:semver-major']
+      - dependency-name: 'ioredis'
+        update-types: ['version-update:semver-major']
+      # Platform bindings must match @rspack/core exactly.
+      - dependency-name: '@rspack/*'
         update-types: ['version-update:semver-major']
 
   # Every Dockerfile location in the monorepo. Base-image bumps are grouped so
