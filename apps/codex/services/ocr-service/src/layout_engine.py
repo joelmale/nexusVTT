@@ -209,6 +209,28 @@ class LayoutEngine:
             self.load_error = str(error)
             raise LayoutUnavailable(f"Marker models failed to load: {error}") from error
 
+    def unload(self) -> bool:
+        """
+        Drop the Surya models and release their VRAM so the VLM can use the GPU
+        (6 GB RTX A2000: the two never fit together). The next conversion
+        reloads them. Returns whether anything was loaded.
+        """
+        with self._lock:
+            if self._artifacts is None:
+                return False
+            self._artifacts = None
+            import gc
+
+            gc.collect()
+            try:
+                import torch
+
+                if torch.cuda.is_available():
+                    torch.cuda.empty_cache()
+            except ImportError:
+                pass
+            return True
+
     def health(self) -> Dict[str, Any]:
         return {
             "engine": "marker",

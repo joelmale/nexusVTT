@@ -231,3 +231,12 @@ def test_health_reports_layout_engine():
     assert layout["version"]
     assert isinstance(layout["modelsLoaded"], bool)
     assert "device" in layout
+
+
+def test_layout_unload_releases_models(monkeypatch):
+    monkeypatch.setattr(layout_engine, "_artifacts", {"layout_model": "fake"})
+    res = client.post("/layout/unload")
+    assert res.status_code == 200
+    assert res.json()["unloaded"] is True
+    assert res.json()["layout"]["modelsLoaded"] is False
+    assert client.post("/layout/unload").json()["unloaded"] is False

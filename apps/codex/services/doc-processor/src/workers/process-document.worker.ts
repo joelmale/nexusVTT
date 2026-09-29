@@ -29,6 +29,7 @@ import {
   resolvePipelineVersion,
 } from './stage-utils';
 import { runLayoutStage } from './layout-stage';
+import { runExtractStage } from './extract-stage';
 
 const MAX_TEXT_SAMPLE_LENGTH = 500;
 const CONFIDENCE_THRESHOLD = 0.6;
@@ -50,6 +51,12 @@ type ProcessingMetadata = {
     spells?: number;
     monsters?: number;
     items?: number;
+    // v2 only
+    candidates?: number;
+    needsReview?: number;
+    cachedCalls?: number;
+    model?: string;
+    promptVersion?: string;
   };
   chunks?: {
     count?: number;
@@ -608,6 +615,34 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
       }
       case 'extract': {
         const start = Date.now();
+        if (version === 'v2') {
+          const result = await runExtractStage(jobId, document);
+          await loggingService.logInfo(
+            jobId,
+            `Extracted ${result.counts.spell} spells, ${result.counts.monster} monsters, ${result.counts.item} items ` +
+              `from ${result.candidates} candidates (${result.needsReview} need review, ${result.cachedCalls} cached)`
+          );
+          await updateProcessing(documentId, document, 'extract', {
+            completedAt: new Date().toISOString(),
+            durationMs: Date.now() - start,
+            error: undefined,
+          }, {
+            extraction: {
+              spells: result.counts.spell,
+              monsters: result.counts.monster,
+              items: result.counts.item,
+              candidates: result.candidates,
+              needsReview: result.needsReview,
+              cachedCalls: result.cachedCalls,
+              model: env.VLM_MODEL,
+              promptVersion: env.EXTRACT_PROMPT_VERSION,
+            },
+          });
+          await loggingService.logInfo(jobId, 'Stage extract completed');
+          await queueNextStage(documentId, 'extract', false, version);
+          return;
+        }
+
         const preferOcr = processing.ocr?.status === 'completed';
         const text = await resolveTextForProcessing(documentId, preferOcr, version);
 
@@ -713,9 +748,9 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
           await loggingService.logInfo(jobId, `Linked ${monsterMentions.length} monster spell mentions`);
         }
 
-        // v2 chunks per page in the index stage instead.
+        // v1 chunks here; v2 chunks per page in the index stage.
         let chunkSummary: ProcessingMetadata['chunks'];
-        if (version === 'v1') {
+        {
           const chunkSource = preferOcr ? 'ocr' : (document.format === 'markdown' ? 'markdown' : 'pdf_extraction');
           const chunks = chunkingService.chunkText({
             text,

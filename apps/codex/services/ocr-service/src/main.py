@@ -448,6 +448,16 @@ async def layout_s3(request: LayoutS3Request):
     return response
 
 
+@app.post("/layout/unload")
+async def layout_unload():
+    """
+    Releases the layout models' VRAM. doc-processor calls this before the VLM
+    extract stage (GPU handoff); /layout/s3 reloads them on demand.
+    """
+    unloaded = await asyncio.to_thread(layout_engine.unload)
+    return {"unloaded": unloaded, "layout": layout_engine.health()}
+
+
 if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", "8000"))

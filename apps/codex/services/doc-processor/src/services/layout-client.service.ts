@@ -43,6 +43,23 @@ export class LayoutClientService {
     }
     return data;
   }
+
+  /**
+   * Asks ocr-service to drop the Marker models and free their VRAM (6 GB GPU
+   * handoff to the VLM). They reload on the next /layout/s3 call. Best effort.
+   */
+  async unloadModels(): Promise<boolean> {
+    if (!env.OCR_SERVICE_URL) return false;
+    try {
+      const response = await fetch(`${env.OCR_SERVICE_URL.replace(/\/$/, '')}/layout/unload`, {
+        method: 'POST',
+        signal: AbortSignal.timeout(30000),
+      });
+      return response.ok;
+    } catch {
+      return false;
+    }
+  }
 }
 
 export const layoutClientService = new LayoutClientService();
