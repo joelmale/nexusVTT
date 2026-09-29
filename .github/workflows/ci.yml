@@ -46,6 +46,7 @@ jobs:
       has_codex_python: ${{ steps.affected.outputs.has_codex_python }}
       codex_doc_api: ${{ steps.affected.outputs.codex_doc_api }}
       security_images: ${{ steps.affected.outputs.security_images }}
+      gating_security_images: ${{ steps.affected.outputs.gating_security_images }}
       source_sha: ${{ steps.source.outputs.sha }}
     steps:
       - name: Checkout exact validation source
@@ -692,7 +693,15 @@ jobs:
     with:
       source_sha: ${{ needs.changes.outputs.source_sha }}
       repository_scan: true
-      container_images: ${{ needs.changes.outputs.security_images }}
+      # Advisory images (codex-ocr) are scanned weekly and on release, not here:
+      # their scan is the slowest job and cannot fail the gate. Dependabot npm and
+      # Actions bumps skip image scans; the filesystem scan and CodeQL still run,
+      # and image scans run whenever a Dockerfile or base image changes.
+      container_images: >-
+        ${{ (github.event_name == 'pull_request' &&
+        (startsWith(github.head_ref, 'dependabot/npm_and_yarn/') ||
+        startsWith(github.head_ref, 'dependabot/github_actions/')))
+        && '[]' || needs.changes.outputs.gating_security_images }}
 
   required:
     name: All required checks

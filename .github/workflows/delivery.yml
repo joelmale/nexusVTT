@@ -140,7 +140,10 @@ jobs:
     uses: ./.github/workflows/security-reusable.yml
     with:
       source_sha: ${{ needs.resolve.outputs.source_sha }}
-      repository_scan: true
+      # CodeQL and the filesystem scan already ran on this exact commit in CI,
+      # and validation-evidence requires that run to be green. Delivery only
+      # needs to scan the published images.
+      repository_scan: false
       container_images: ${{ needs.resolve.outputs.security_images }}
       prebuilt_tag_prefix: ${{ github.event_name == 'workflow_dispatch' && 'candidate' || 'sha' }}
 
