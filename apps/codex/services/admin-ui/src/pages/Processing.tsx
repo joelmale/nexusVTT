@@ -5,6 +5,8 @@ import { useCan } from '@/auth/AuthContext'
 import { permissionHint } from '@/auth/permissions'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import PipelineGraph from '@/components/PipelineGraph'
+import LiveProof from '@/components/live/LiveProof'
+import { RawJobLogs } from '@/components/live/RawJobLogs'
 
 interface ProcessingLog {
   timestamp: string;
@@ -51,6 +53,7 @@ interface ProcessingReport {
     searchIndex: string | null
   }
   processing: {
+    pipelineVersion?: 'v1' | 'v2'
     textLength?: number
     textSample?: string
     ocr?: {
@@ -466,6 +469,17 @@ export default function Processing() {
           isRetrying={reprocessMutation.isPending || retryMutation.isPending}
           isLoading={reportLoading}
         />
+
+        {targetDocId && (
+          <div className="mt-6">
+            <LiveProof
+              documentId={targetDocId}
+              documentTitle={reportData?.document?.title}
+              active={Boolean(jobsData?.jobs?.some((job) => job.documentId === targetDocId && (job.status === 'active' || job.status === 'waiting')))}
+              rawLogs={<RawJobLogs jobId={jobsData?.jobs?.find((job) => job.documentId === targetDocId)?.id ?? currentInspectJob?.id} />}
+            />
+          </div>
+        )}
       </div>
 
       {/* Controls */}

@@ -24,6 +24,10 @@ import type { Permission } from '../permissions.js';
  * - `GET documents/:id/pages/:page/image` streams one page image from the
  *   presigned URL doc-api `documents/:id/page-images` returns
  *   (src/codex/pageImage.ts).
+ * - `GET admin/processing/:id/pages/:page/preview` streams one ingestion v2
+ *   layout preview from the URL doc-api
+ *   `admin/processing/:id/pages/:page/preview-source` returns
+ *   (src/codex/layoutPreview.ts). `preview-source` itself is not listed.
  * The presigned URLs themselves never reach the browser.
  *
  * Bodies are capped at 1 MB (`CODEX_MAX_JSON_BYTES`) except the upload
@@ -58,6 +62,9 @@ export const CODEX_UPLOAD_MAX_FILE_BYTES = 320 * MB;
 export const CODEX_UPLOAD_MAX_BODY_BYTES = CODEX_UPLOAD_MAX_FILE_BYTES + 1 * MB;
 /** Cap for every other Codex request body. */
 export const CODEX_MAX_JSON_BYTES = 1 * MB;
+
+/** ProcessingEvent ids are BIGSERIAL; INT stops at six digits. */
+const EVENT_ID = /^\d{1,19}$/;
 
 const READ: readonly Permission[] = ['codex:read'];
 const WRITE: readonly Permission[] = ['codex:write'];
@@ -123,6 +130,11 @@ export const CODEX_ALLOWLIST: readonly CodexRoute[] = [
   read('admin/queue/jobs', 'queue_job', { query: { status: ID, limit: INT } }),
   read('admin/queue/jobs/:id/logs', 'queue_job'),
   read('admin/processing/report/:id', 'document'),
+  // Ingestion v2 live processing view (Live Proof canvas and Action Feed).
+  read('admin/processing/:id/events', 'processing', { query: { after: EVENT_ID, limit: INT, runId: ID } }),
+  read('admin/processing/:id/pages', 'document'),
+  read('admin/processing/:id/pages/:page', 'document'),
+  read('admin/processing/:id/pages/:page/preview', 'document', { handler: 'layoutPreview', response: 'image', timeoutMs: 60_000 }),
   mutate({ method: 'POST', path: 'admin/queue/jobs/:id/retry', permission: ['codex:write', 'codex:operate'], action: 'codex.queue.job_retry', resourceType: 'queue_job' }),
   mutate({ method: 'DELETE', path: 'admin/queue/jobs/:id', permission: MAINTAIN, action: 'codex.queue.job_remove', resourceType: 'queue_job' }),
   mutate({ method: 'POST', path: 'admin/queue/clean', permission: OPERATE, action: 'codex.queue.clean', resourceType: 'queue', body: json(1 * KB), auditBodyKeys: ['olderThanDays'] }),

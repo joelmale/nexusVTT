@@ -30,11 +30,23 @@ import {
 } from './stage-utils';
 import { runLayoutStage } from './layout-stage';
 import { runExtractStage } from './extract-stage';
+import {
+  processingEvents,
+  candidateEvents,
+  describePageLayout,
+  describePageMarkdown,
+  describeQuality,
+  describeStageCompleted,
+  describeStageFailed,
+  stageLabel,
+} from '../services/processing-events.service';
 
 const MAX_TEXT_SAMPLE_LENGTH = 500;
 const CONFIDENCE_THRESHOLD = 0.6;
 type ProcessingMetadata = {
   pipelineVersion?: PipelineVersion;
+  // Groups ProcessingEvent rows; a new one per ingest (processing run).
+  runId?: string;
   stage?: Stage;
   stageUpdatedAt?: string;
   checkpoints?: ProcessingCheckpoints;
@@ -144,6 +156,16 @@ const updateProcessing = async (
       ...extraUpdates,
     },
   });
+  if (checkpointUpdate.completedAt && !checkpointUpdate.error && nextProcessing.runId) {
+    await processingEvents.emit({
+      documentId,
+      runId: nextProcessing.runId,
+      stage,
+      kind: 'stage_completed',
+      message: describeStageCompleted(stage, checkpointUpdate.durationMs),
+      payload: { durationMs: checkpointUpdate.durationMs },
+    });
+  }
 };
 
 const resolveTextForProcessing = async (documentId: string, preferOcr: boolean, version: PipelineVersion = 'v1') => {
@@ -212,6 +234,7 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
   const { documentId } = job.data;
   const stage = (job.data.stage || 'ingest') as Stage;
   const jobId = job.id || 'unknown';
+  let runId: string | undefined;
 
   console.log(`[Worker] Processing document ${documentId} at stage ${stage}`);
   await loggingService.logInfo(jobId, `Stage ${stage} started for document ${documentId}`);
@@ -227,6 +250,7 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
     const contentHash = document.contentHash || checkpoints.contentHash || null;
     // Pinned at ingest; documents from before pipelineVersion existed stay on v1.
     const version = resolvePipelineVersion(processing, env.PIPELINE_VERSION);
+    runId = processing.runId;
 
     if (stage !== 'ingest' && contentHash && isStageComplete(checkpoints, stage, contentHash)) {
       await loggingService.logInfo(jobId, `Stage ${stage} already completed, skipping`);
@@ -241,6 +265,27 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
       }
       await queueNextStage(documentId, stage, skipOcr, version);
       return;
+    }
+
+    if (stage === 'ingest') {
+      // Every ingest is a new processing run for the live view. Persist the
+      // runId now (a resume returns before any checkpoint write) and in the
+      // in-memory document so later writes in this job keep it.
+      runId = await processingEvents.startRun(documentId);
+      processing.runId = runId;
+      document.metadata = { ...(document.metadata as any), processing: { ...processing } };
+      await prisma.document.update({ where: { id: documentId }, data: { metadata: document.metadata as any } });
+    }
+    // v2 extract announces itself once candidates are known.
+    if (runId && !(stage === 'extract' && version === 'v2')) {
+      await processingEvents.emit({
+        documentId,
+        runId,
+        stage,
+        kind: 'stage_started',
+        message: `${stageLabel(stage)} started${stage === 'ingest' ? ` (pipeline ${version})` : ''}`,
+        payload: { pipelineVersion: version },
+      });
     }
 
     switch (stage) {
@@ -580,7 +625,41 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
       }
       case 'layout': {
         const start = Date.now();
-        const result = await runLayoutStage(jobId, document);
+        const result = await runLayoutStage(jobId, document, async (pages) => {
+          if (!runId) return;
+          const events = pages.flatMap((page) => [
+            {
+              documentId,
+              runId: runId as string,
+              stage: 'layout',
+              kind: 'page_layout' as const,
+              pageNumber: page.pageNumber,
+              message: describePageLayout(page),
+              payload: { blocks: page.blocks.length, previewKey: page.previewKey ?? null },
+            },
+            {
+              documentId,
+              runId: runId as string,
+              stage: 'layout',
+              kind: 'page_markdown' as const,
+              pageNumber: page.pageNumber,
+              message: describePageMarkdown(page),
+              payload: { quality: page.quality ?? {} },
+            },
+          ]);
+          await processingEvents.emitMany(events);
+        });
+        if (runId) {
+          const quality = describeQuality(result.pageQuality);
+          await processingEvents.emit({
+            documentId,
+            runId,
+            stage: 'layout',
+            kind: 'quality',
+            message: quality.message,
+            payload: { average: quality.average, lowPages: quality.lowPages },
+          });
+        }
         await loggingService.logInfo(
           jobId,
           `Layout: ${result.pageCount} pages via ${result.engine} (${result.batchesRun} batches run, ${result.batchesSkipped} resumed)`
@@ -616,7 +695,37 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
       case 'extract': {
         const start = Date.now();
         if (version === 'v2') {
-          const result = await runExtractStage(jobId, document);
+          const result = await runExtractStage(jobId, document, {
+            onCandidates: async (candidates) => {
+              if (!runId) return;
+              const byType = ['monster', 'spell', 'item']
+                .map((type) => `${candidates.filter((c) => c.type === type).length} ${type}`)
+                .join(', ');
+              await processingEvents.emit({
+                documentId,
+                runId,
+                stage: 'extract',
+                kind: 'stage_started',
+                message: `Extraction started: ${candidates.length} candidate${candidates.length === 1 ? '' : 's'} (${byType}) via ${env.VLM_MODEL}`,
+                payload: {
+                  model: env.VLM_MODEL,
+                  candidates: candidates.map((c) => ({
+                    key: c.key,
+                    type: c.type,
+                    title: c.title,
+                    pageNumber: c.pageNumber,
+                    regions: c.regions,
+                  })),
+                },
+              });
+            },
+            onCandidate: async (candidateResult) => {
+              if (!runId) return;
+              const events = candidateEvents(candidateResult, env.VLM_MODEL)
+                .map((event) => ({ ...event, documentId, runId: runId as string }));
+              await processingEvents.emitMany(events);
+            },
+          });
           await loggingService.logInfo(
             jobId,
             `Extracted ${result.counts.spell} spells, ${result.counts.monster} monsters, ${result.counts.item} items ` +
@@ -920,6 +1029,16 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
     }
   } catch (error: any) {
     console.error(`[Worker] Stage ${stage} failed for document ${documentId}:`, error.message);
+    if (runId) {
+      await processingEvents.emit({
+        documentId,
+        runId,
+        stage,
+        kind: 'stage_failed',
+        message: describeStageFailed(stage, error.message),
+        payload: { error: error.message, attempt: job.attemptsMade },
+      });
+    }
     await loggingService.logError(jobId, `Stage ${stage} failed: ${error.message}`, 'error', {
       error: error.message,
       stack: error.stack,

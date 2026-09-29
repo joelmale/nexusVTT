@@ -1,0 +1,186 @@
+import { BLOCK_STYLES, CANDIDATE_STATUS_LABEL, DEFAULT_PAGE_SIZE, scaleBBox } from './overlay'
+import type { BBox, CandidateState, LayoutBlock, LayoutBlockClass } from './types'
+
+/**
+ * Live Proof canvas, left side: the layout-stage page preview with the page's
+ * blocks drawn over it. Block bboxes are normalized (0..1), so they scale onto
+ * the preview at any rendered size: the SVG's viewBox is the page size in
+ * points and every rect is bbox × page size.
+ *
+ * Each class has its own stroke pattern and label as well as colour, so the
+ * overlay does not rely on colour alone (see OverlayLegend).
+ */
+
+export interface PageOverlayProps {
+  pageNumber: number
+  previewUrl: string | null
+  widthPt?: number | null
+  heightPt?: number | null
+  blocks: LayoutBlock[]
+  candidates?: CandidateState[]
+  highlight?: BBox[]
+  selectedBlockId?: string | null
+  onSelectBlock?: (block: LayoutBlock) => void
+}
+
+export function PageOverlay({
+  pageNumber,
+  previewUrl,
+  widthPt,
+  heightPt,
+  blocks,
+  candidates = [],
+  highlight = [],
+  selectedBlockId,
+  onSelectBlock,
+}: PageOverlayProps) {
+  const width = widthPt || DEFAULT_PAGE_SIZE.widthPt
+  const height = heightPt || DEFAULT_PAGE_SIZE.heightPt
+  const labelSize = Math.max(7, width / 60)
+  let order = 0
+
+  return (
+    <div
+      className="relative w-full overflow-hidden rounded-md border border-gray-300 bg-white"
+      style={{ aspectRatio: `${width} / ${height}` }}
+      data-testid="page-overlay"
+    >
+      {previewUrl ? (
+        <img src={previewUrl} alt={`Page ${pageNumber} preview`} className="absolute inset-0 h-full w-full object-fill" />
+      ) : (
+        <div className="absolute inset-0 flex items-center justify-center text-xs text-gray-400">No page preview</div>
+      )}
+      <svg
+        className="absolute inset-0 h-full w-full"
+        viewBox={`0 0 ${width} ${height}`}
+        role="img"
+        aria-label={`Layout of page ${pageNumber}: ${blocks.length} blocks`}
+      >
+        <defs>
+          <pattern id="overlay-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+            <rect width="6" height="6" fill="rgba(148,163,184,0.15)" />
+            <line x1="0" y1="0" x2="0" y2="6" stroke="#94a3b8" strokeWidth="1.5" />
+          </pattern>
+        </defs>
+
+        {blocks.map((block) => {
+          const style = BLOCK_STYLES[block.class] ?? BLOCK_STYLES.body
+          const box = scaleBBox(block.bbox, width, height)
+          const inText = !style.hatched
+          const number = inText ? ++order : null
+          const selected = block.id === selectedBlockId
+          return (
+            <g
+              key={block.id}
+              data-testid={`block-${block.id}`}
+              data-class={block.class}
+              onClick={onSelectBlock ? () => onSelectBlock(block) : undefined}
+              style={onSelectBlock ? { cursor: 'pointer' } : undefined}
+            >
+              <rect
+                x={box.x}
+                y={box.y}
+                width={box.width}
+                height={box.height}
+                fill={style.fill}
+                stroke={style.stroke}
+                strokeWidth={selected ? 2.5 : 1.2}
+                strokeDasharray={style.dash}
+              >
+                <title>{`${style.label}${number ? ` #${number} in reading order` : ''} (${block.markerType})`}</title>
+              </rect>
+              {number !== null && (
+                <text x={box.x + 2} y={box.y + labelSize} fontSize={labelSize} fontFamily="monospace" fill={style.stroke}>
+                  {number}
+                </text>
+              )}
+              {style.hatched && box.width > width * 0.2 && box.height > labelSize * 1.6 && (
+                <text x={box.x + 3} y={box.y + labelSize} fontSize={labelSize * 0.85} fontFamily="monospace" fill="#475569">
+                  excluded from text
+                </text>
+              )}
+            </g>
+          )
+        })}
+
+        {candidates.flatMap((candidate) =>
+          candidate.regions
+            .filter((region) => region.pageNumber === pageNumber)
+            .map((region) => {
+              const box = scaleBBox(region.bbox, width, height)
+              const style = BLOCK_STYLES.stat_block
+              return (
+                <g key={`${candidate.key}-${region.pageNumber}`} data-testid={`candidate-${candidate.key}`} data-status={candidate.status}>
+                  <rect
+                    x={box.x}
+                    y={box.y}
+                    width={box.width}
+                    height={box.height}
+                    fill={style.fill}
+                    stroke={candidate.status === 'needs_review' ? '#dc2626' : style.stroke}
+                    strokeWidth={2}
+                    strokeDasharray={style.dash}
+                  />
+                  <rect x={box.x} y={box.y - labelSize * 1.4} width={Math.min(box.width, labelSize * 18)} height={labelSize * 1.4} fill={style.stroke} />
+                  <text x={box.x + 3} y={box.y - labelSize * 0.35} fontSize={labelSize} fontFamily="monospace" fill="#ffffff">
+                    {`${candidate.type.toUpperCase()} · ${CANDIDATE_STATUS_LABEL[candidate.status]}`}
+                  </text>
+                </g>
+              )
+            })
+        )}
+
+        {highlight.map((bbox, index) => {
+          const box = scaleBBox(bbox, width, height)
+          return (
+            <rect
+              key={`highlight-${index}`}
+              data-testid="source-highlight"
+              x={box.x - 3}
+              y={box.y - 3}
+              width={box.width + 6}
+              height={box.height + 6}
+              fill="none"
+              stroke="#facc15"
+              strokeWidth={3}
+            />
+          )
+        })}
+      </svg>
+    </div>
+  )
+}
+
+const LEGEND_ORDER: LayoutBlockClass[] = ['body', 'table', 'stat_block', 'sidebar', 'art']
+
+export function OverlayLegend() {
+  return (
+    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-600" aria-label="Overlay legend">
+      {LEGEND_ORDER.map((cls) => {
+        const style = BLOCK_STYLES[cls]
+        return (
+          <li key={cls} className="flex items-center gap-1.5">
+            <svg width="22" height="12" aria-hidden="true">
+              <defs>
+                <pattern id={`legend-hatch-${cls}`} width="4" height="4" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                  <line x1="0" y1="0" x2="0" y2="4" stroke="#94a3b8" strokeWidth="1.5" />
+                </pattern>
+              </defs>
+              <rect
+                x="1"
+                y="1"
+                width="20"
+                height="10"
+                fill={style.hatched ? `url(#legend-hatch-${cls})` : style.fill}
+                stroke={style.stroke}
+                strokeWidth="1.5"
+                strokeDasharray={style.dash}
+              />
+            </svg>
+            <span>{cls === 'body' ? 'Text & headings (numbered in reading order)' : style.label}</span>
+          </li>
+        )
+      })}
+    </ul>
+  )
+}

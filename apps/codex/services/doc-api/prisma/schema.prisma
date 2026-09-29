@@ -176,6 +176,27 @@ model DocumentPage {
   @@map("document_pages")
 }
 
+// Ingestion v2 live processing view (plan: "Event stream"). Structured,
+// human-readable events the worker emits as it goes; the admin UI polls them
+// with ?after=<id> and replays finished runs. Only the last three runs per
+// document are kept (pruned by doc-processor at the start of each run).
+model ProcessingEvent {
+  id          BigInt   @id @default(autoincrement())
+  documentId  String
+  runId       String               // one per processing run or reprocess
+  stage       String
+  pageNumber  Int?
+  kind        String               // stage_started | page_layout | page_markdown | entity_extracted |
+                                   // entity_rejected | quality | stage_completed | stage_failed
+  message     String               // human-readable sentence for the Action Feed
+  payload     Json     @default("{}")
+  createdAt   DateTime @default(now())
+
+  @@index([documentId, id])
+  @@index([documentId, runId])
+  @@map("processing_events")
+}
+
 model DocumentChunk {
   id         String              @id @default(uuid())
   documentId String

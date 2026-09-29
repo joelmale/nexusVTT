@@ -11,6 +11,7 @@ const db = vi.hoisted(() => {
     document: null as any,
     pages: new Map<number, any>(),
     texts: new Map<string, string>(),
+    events: [] as any[],
     upsertCalls: 0,
     failDocumentUpdateOnce: null as null | ((data: any) => boolean),
   };
@@ -46,6 +47,11 @@ const db = vi.hoisted(() => {
     documentText: {
       upsert: async ({ where, create }: any) => {
         state.texts.set(where.documentId_source.source, create.content);
+      },
+    },
+    processingEvent: {
+      createMany: async ({ data }: any) => {
+        state.events.push(...data);
       },
     },
   };
@@ -103,6 +109,7 @@ describe('v2 layout stage resume', () => {
     layoutCalls.failOn = null;
     db.state.pages.clear();
     db.state.texts.clear();
+    db.state.events = [];
     db.state.upsertCalls = 0;
     db.state.failDocumentUpdateOnce = null;
     db.state.document = {
@@ -184,5 +191,25 @@ describe('v2 layout stage resume', () => {
       [2, 'markdown-sections'],
     ]);
     expect(db.state.document.pageCount).toBe(2);
+  });
+
+  it('emits page events per batch, a quality summary and stage events for the live view', async () => {
+    db.state.document.metadata.processing.runId = 'run-1';
+    layoutCalls.failOn = '5-6';
+    await expect(runLayoutJob()).rejects.toThrow('worker killed');
+    await runLayoutJob();
+
+    const kinds = db.state.events.map((e) => `${e.kind}${e.pageNumber ? `:${e.pageNumber}` : ''}`);
+    expect(db.state.events.every((e) => e.runId === 'run-1' && e.documentId === 'doc-1')).toBe(true);
+    expect(kinds.filter((k) => k.startsWith('page_layout')).sort()).toEqual(
+      [1, 2, 3, 4, 5, 6, 7].map((n) => `page_layout:${n}`).sort()
+    );
+    expect(kinds.filter((k) => k.startsWith('page_markdown'))).toHaveLength(7);
+    expect(kinds).toContain('stage_failed');
+    expect(kinds.filter((k) => k === 'stage_started')).toHaveLength(2);
+    expect(kinds[kinds.length - 1]).toBe('stage_completed');
+    const quality = db.state.events.find((e) => e.kind === 'quality');
+    expect(quality.message).toBe('Text cleanliness 90.0% average over 7 pages');
+    expect(db.state.events.find((e) => e.kind === 'page_layout').message).toMatch(/^Page 1: one-column layout, 0 text blocks$/);
   });
 });

@@ -28,6 +28,7 @@ export type LayoutStageResult = {
   batchesRun: number;
   batchesSkipped: number;
   averageWordValidity?: number;
+  pageQuality: Array<{ pageNumber: number; wordValidity?: number }>;
 };
 
 const layoutCheckpoint = (metadata: unknown): StageCheckpoint =>
@@ -104,7 +105,12 @@ const recordBatch = async (documentId: string, key: string, pages: number, conte
  * Writes DocumentText(source=layout) as the concatenation of pages so existing
  * search and report code keeps working.
  */
-export async function runLayoutStage(jobId: string, document: LayoutStageDocument): Promise<LayoutStageResult> {
+export async function runLayoutStage(
+  jobId: string,
+  document: LayoutStageDocument,
+  /** Called after each persisted batch (live processing view). */
+  onBatch?: (pages: LayoutPage[]) => Promise<void>
+): Promise<LayoutStageResult> {
   let engine: string;
   let pageCount: number;
   let batchesRun = 0;
@@ -116,6 +122,7 @@ export async function runLayoutStage(jobId: string, document: LayoutStageDocumen
     engine = MARKDOWN_ENGINE;
     pageCount = pages.length;
     if (pages.length > 0) await upsertPages(document.id, engine, pages);
+    if (onBatch && pages.length > 0) await onBatch(pages);
     await loggingService.logInfo(jobId, `Markdown split into ${pageCount} section pages`, 'layout');
   } else {
     const health = await ocrHealthService.check('layout');
@@ -154,6 +161,7 @@ export async function runLayoutStage(jobId: string, document: LayoutStageDocumen
       await upsertPages(document.id, engine, response.pages);
       await recordBatch(document.id, batch.key, response.pages.length, document.contentHash);
       batchesRun += 1;
+      if (onBatch) await onBatch(response.pages);
       await loggingService.logInfo(jobId, `Layout pages ${batch.key}/${pageCount} stored (${response.pages.length} pages)`, 'layout');
     }
   }
@@ -184,5 +192,10 @@ export async function runLayoutStage(jobId: string, document: LayoutStageDocumen
     ? Math.round((validities.reduce((sum, value) => sum + value, 0) / validities.length) * 1000) / 1000
     : undefined;
 
-  return { pageCount, engine, text, batchesRun, batchesSkipped, averageWordValidity };
+  const pageQuality = pages.map((page) => ({
+    pageNumber: page.pageNumber,
+    wordValidity: (page.quality as any)?.wordValidity as number | undefined,
+  }));
+
+  return { pageCount, engine, text, batchesRun, batchesSkipped, averageWordValidity, pageQuality };
 }

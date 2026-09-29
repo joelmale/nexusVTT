@@ -59,10 +59,17 @@ const searchTextFor = (type: EntityType, entity: ExtractedEntity) => {
  * document, as in v1, so a retry is idempotent; the extraction cache makes it
  * cheap.
  */
+export type ExtractStageHooks = {
+  /** After detection, before any model call. */
+  onCandidates?: (candidates: Candidate[]) => Promise<void>;
+  /** After each candidate is extracted and validated. */
+  onCandidate?: (result: CandidateResult) => Promise<void>;
+};
+
 export async function runExtractStage(
   jobId: string,
   document: ExtractStageDocument,
-  onCandidate?: (result: CandidateResult) => Promise<void>
+  hooks: ExtractStageHooks = {}
 ): Promise<ExtractStageResult> {
   const pages = await prisma.documentPage.findMany({
     where: { documentId: document.id },
@@ -77,6 +84,7 @@ export async function runExtractStage(
     }))
   );
   await loggingService.logInfo(jobId, `Detected ${candidates.length} extraction candidates`, 'extract');
+  if (hooks.onCandidates) await hooks.onCandidates(candidates);
 
   if (env.GPU_HANDOFF && candidates.length > 0) {
     const unloaded = await layoutClientService.unloadModels();
@@ -184,7 +192,7 @@ export async function runExtractStage(
       }
 
       results.push(result);
-      if (onCandidate) await onCandidate(result);
+      if (hooks.onCandidate) await hooks.onCandidate(result);
     }
   } finally {
     if (env.GPU_HANDOFF && candidates.length > 0) {
