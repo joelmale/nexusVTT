@@ -1,0 +1,171 @@
+import type { CampaignHandout } from '../ashes-of-veyra/types';
+import { MOURNINGFEN_CAMPAIGN_ID, mourningfenSessionId as s } from './campaign';
+
+export const handouts: CampaignHandout[] = [
+  {
+    id: 'handout-ferrymans-lantern-tag',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    title: "Ferryman's Lantern Tag",
+    kind: 'handout',
+    summary:
+      'A brass tag on Odo Tarn’s lantern, stamped with a crossing number and a scratched-out passenger line.',
+    content: [
+      'Crossing 41. Landing: Verrow. Passenger: [scratched out]. Fare: one coin, paid.',
+      'On the reverse, in a different hand: "Do not carry them back."',
+    ],
+    visibility: 'shared',
+    sessionIds: [s(1)],
+    clueIds: ['clue-repeating-landmarks', 'clue-ferry-toll-coin'],
+    questIds: ['quest-follow-the-blue-lantern', 'quest-ferrymans-last-fare'],
+    locationIds: ['location-crossing-ferry-landing'],
+    factionIds: ['faction-reedbound', 'faction-lantern-wardens'],
+  },
+  {
+    id: 'handout-births-register-extract',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    title: 'Birth Register Extract',
+    kind: 'handout',
+    summary:
+      'A page from the village register with five births recorded under a family name that has been struck from every other book.',
+    content: [
+      'Five entries share a surname that has been scraped away and rewritten as "—". Each births entry has a matching baptism. None has a death.',
+      'A margin note in a tidy hand: "Count again in spring." The count has been done every year since.',
+    ],
+    visibility: 'shared',
+    sessionIds: [s(1)],
+    clueIds: ['clue-extra-births'],
+    questIds: ['quest-village-that-forgot'],
+    locationIds: ['location-mourningfen-village'],
+    factionIds: ['faction-burial-society'],
+  },
+  {
+    id: 'handout-blank-funeral-page',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    title: 'The Blank Page',
+    kind: 'handout',
+    summary:
+      'A page in Ves Nymm’s funeral records that no ink will take. Held to a lantern, faint ruled lines show a list of signatures.',
+    content: [
+      'Every ink slides off the page, and a quill leaves only a damp mark that dries to nothing.',
+      'Held to blue light, seven ruled lines appear, and a signature leaf has been torn from the bottom edge.',
+    ],
+    visibility: 'shared',
+    sessionIds: [s(1), s(3)],
+    clueIds: ['clue-blank-funeral-page'],
+    questIds: ['quest-village-that-forgot'],
+    locationIds: ['location-mourningfen-village'],
+    factionIds: ['faction-burial-society'],
+  },
+  {
+    id: 'handout-wardens-tithe-tally',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    title: "Tamsin's Folded Tally",
+    kind: 'handout',
+    summary:
+      'A hurried tally of lamp oil bought against oil burned, with a column of "well nights" beside it.',
+    content: [
+      'Oil bought this year: 96 flasks. Oil burned in the marsh lamps: 31. Remainder: "the tithe".',
+      'The last line is underlined twice: "Reeve says do not ask where it goes."',
+    ],
+    visibility: 'shared',
+    sessionIds: [s(1), s(3)],
+    clueIds: ['clue-lamp-oil-tithe'],
+    questIds: ['quest-village-that-forgot', 'quest-the-eighth-voice'],
+    locationIds: ['location-wardens-lamp-house'],
+    factionIds: ['faction-lantern-wardens'],
+  },
+  {
+    id: 'handout-counting-rhyme',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    title: "Pim's Counting Rhyme",
+    kind: 'handout',
+    summary:
+      'The counting rhyme the youngest Verrow child keeps starting, with the last verse missing.',
+    content: [
+      'One for the mother who lit the lamp, two for the father who kept the door, three for the sister who sang the reeds, four for the brother who taught the oars.',
+      'Five for the grandam, six for the babe, seven for the boy who counts them all. And eight is the voice at the bottom of the well, and eight is the name that nobody calls.',
+    ],
+    visibility: 'shared',
+    sessionIds: [s(2), s(4)],
+    clueIds: ['clue-eighth-verse'],
+    questIds: ['quest-what-the-house-remembers', 'quest-the-eighth-voice'],
+    locationIds: ['location-homestead-nursery', 'location-verrow-well'],
+    factionIds: ['faction-reedbound', 'faction-mere-below'],
+  },
+  {
+    id: 'handout-family-portrait-frames',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    title: 'Seven Empty Portrait Frames',
+    kind: 'handout',
+    summary:
+      'Seven empty frames in the homestead hall; each has a name carved on its back. Not yet illustrated.',
+    content: [
+      'Seven frames, one per room. Each holds a blank canvas that darkens when someone speaks the name carved on the back.',
+      'The eighth frame hangs above the well-room door, and its back has no carving.',
+    ],
+    visibility: 'shared',
+    sessionIds: [s(2)],
+    clueIds: ['clue-mirror-covers'],
+    questIds: ['quest-what-the-house-remembers'],
+    locationIds: ['location-verrow-homestead', 'location-homestead-nursery'],
+    factionIds: ['faction-reedbound'],
+  },
+  {
+    id: 'lore-forgetting-bargain',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    title: 'The Forgetting Bargain',
+    kind: 'lore',
+    summary:
+      'What the village promised the well sixty years ago to end the fen fever, and what the well actually took.',
+    content: [
+      'The founders of the Tidewake Burial Society and the first Lantern Wardens agreed to give the well the Verrow family’s memory, which the well accepted in place of a name of its own.',
+      'The bargain must be renewed yearly with a tithe of remembered things. If it lapses, the well takes memories from the living until it is satisfied.',
+    ],
+    visibility: 'dm-only',
+    sessionIds: [s(2), s(4)],
+    clueIds: ['clue-eighth-verse'],
+    questIds: ['quest-what-the-house-remembers', 'quest-the-eighth-voice'],
+    locationIds: ['location-verrow-well', 'location-mourningfen-village'],
+    factionIds: [
+      'faction-lantern-wardens',
+      'faction-burial-society',
+      'faction-mere-below',
+    ],
+  },
+  {
+    id: 'lore-reedbound-procession',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    title: 'The Reedbound Procession',
+    kind: 'lore',
+    summary:
+      'What the villagers say about the lantern-bearers, and what the Reedbound remember about themselves.',
+    content: [
+      'Villagers call them the Mourners and avoid the reeds at dusk. They walk from the drowned shrine to the homestead and back, once each night.',
+      'They are not hostile unless their names are used against them, and they will follow any voice that speaks all seven correctly.',
+    ],
+    visibility: 'shared',
+    sessionIds: [s(1)],
+    clueIds: ['clue-repeating-landmarks'],
+    questIds: ['quest-follow-the-blue-lantern'],
+    locationIds: ['location-drowned-shrine', 'location-verrow-homestead'],
+    factionIds: ['faction-reedbound'],
+  },
+  {
+    id: 'lore-fen-fever',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    title: 'The Fen Fever',
+    kind: 'lore',
+    summary:
+      'The wasting illness that drove the founders to the bargain, and the real reason it stopped.',
+    content: [
+      'Sixty winters ago a fever emptied a third of the marsh in a season. The old records call it a plague of the water.',
+      'The fever ended the night the Verrow homestead was abandoned. Nobody kept a record of why.',
+    ],
+    visibility: 'dm-only',
+    sessionIds: [s(3)],
+    clueIds: ['clue-extra-births'],
+    questIds: ['quest-village-that-forgot'],
+    locationIds: ['location-mourningfen-village'],
+    factionIds: ['faction-burial-society', 'faction-lantern-wardens'],
+  },
+];

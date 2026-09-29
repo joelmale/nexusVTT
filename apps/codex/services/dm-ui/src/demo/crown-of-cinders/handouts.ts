@@ -1,0 +1,150 @@
+import type { CampaignHandout } from '../ashes-of-veyra/types';
+import { CROWN_CAMPAIGN_ID, crownSessionId } from './campaign';
+
+export const crownHandouts: CampaignHandout[] = [
+  {
+    id: 'handout-coronation-program',
+    campaignId: CROWN_CAMPAIGN_ID,
+    title: 'Coronation Program',
+    kind: 'handout',
+    summary:
+      'A printed order of ceremony listing the three heirs, their sponsors, and the moment the crown is to be presented.',
+    content: [
+      'The Investiture of the Crown of Cinders. Order of ceremony: the Calling of the Banners, the Oath of the Wardens, the Presentation of the Crown, the Blessing of Ash.',
+      'Beneath each heir’s name is a sponsor and a line of neat pencilled gossip in an unknown hand. Corvin: "owes the border lords." Ysolde: "owes the Ledger." Tamsin: "was not at the funeral."',
+    ],
+    visibility: 'shared',
+    sessionIds: [crownSessionId(1)],
+    clueIds: ['clue-heirs-contradictions'],
+    questIds: ['quest-who-wears-the-crown'],
+    locationIds: ['location-hall-of-nine-banners'],
+    factionIds: ['faction-house-vell'],
+  },
+  {
+    id: 'handout-crown-voice-transcript',
+    campaignId: CROWN_CAMPAIGN_ID,
+    title: 'The Crown Speaks (transcript)',
+    kind: 'handout',
+    summary:
+      'A player-facing transcript of the crown’s first words. Audio recording still to be made.',
+    content: [
+      'Three come to wear me. Three have lied to me. Only one lie has blood on it.',
+      'Do not ask which. Ask what each of them was doing when the old queen stopped breathing.',
+    ],
+    visibility: 'shared',
+    sessionIds: [crownSessionId(1)],
+    clueIds: ['clue-heirs-contradictions'],
+    questIds: ['quest-who-wears-the-crown'],
+    locationIds: ['location-hall-of-nine-banners'],
+    factionIds: ['faction-house-vell'],
+  },
+  {
+    id: 'handout-sealed-genealogy',
+    campaignId: CROWN_CAMPAIGN_ID,
+    title: 'The Sealed Genealogy',
+    kind: 'handout',
+    summary:
+      'A folded genealogy sealed with a royal ring, naming Prince Aurel Vell as the queen’s firstborn.',
+    content: [
+      'A single sheet stained with soot. Beneath the queen’s name is a line to a first son, Aurel, born before Corvin and declared dead in infancy.',
+      'The seal impression is a royal ring pattern. The wax is fresh, and the ink is not.',
+    ],
+    visibility: 'shared',
+    sessionIds: [crownSessionId(1), crownSessionId(3)],
+    clueIds: ['clue-dead-prince-seal'],
+    questIds: ['quest-dead-princes-genealogy'],
+    locationIds: ['location-ashwater-quay', 'location-gilded-exchange'],
+    factionIds: ['faction-house-vell', 'faction-gilded-ledger'],
+  },
+  {
+    id: 'handout-heir-relationship-cards',
+    campaignId: CROWN_CAMPAIGN_ID,
+    title: 'Heir Relationship Cards',
+    kind: 'handout',
+    summary:
+      'DM reference cards for each heir: what they want, what they hide, how they treat each player character.',
+    content: [
+      'Corvin: wants the party’s swords, hides a war debt to the border lords, respects Bryn’s oath.',
+      'Ysolde: wants the party’s discretion, hides an unpaid loan from the Ledger, admires Sable’s speechwriting.',
+      'Tamsin: wants the party’s trust, hides that she has already spoken with the crown in private, recognises Ivo from the cloister kitchens.',
+    ],
+    visibility: 'dm-only',
+    sessionIds: [crownSessionId(1)],
+    clueIds: ['clue-heirs-contradictions'],
+    questIds: ['quest-who-wears-the-crown'],
+    locationIds: ['location-hall-of-nine-banners'],
+    factionIds: ['faction-house-vell'],
+  },
+  {
+    id: 'handout-flame-signal-sketch',
+    campaignId: CROWN_CAMPAIGN_ID,
+    title: 'Flame Signal Sketch',
+    kind: 'handout',
+    summary:
+      'A hasty sketch of the three-long, one-short lamp flame pattern used by the assassins.',
+    content: [
+      'A sketch of a guttering lamp with a pattern of marks beneath it: three long strokes, one short, a pause.',
+      'Ivo will know the guild meaning immediately. Anyone else will need to ask around at the Guttered Candle.',
+    ],
+    visibility: 'shared',
+    sessionIds: [crownSessionId(2)],
+    clueIds: ['clue-flame-signal'],
+    questIds: ['quest-trace-the-cinder-assassins'],
+    locationIds: ['location-guttered-candle', 'location-ashwater-quay'],
+    factionIds: ['faction-soot-hands'],
+  },
+  {
+    id: 'lore-burned-rulers-roll',
+    campaignId: CROWN_CAMPAIGN_ID,
+    title: 'Roll of the Burned Rulers',
+    kind: 'lore',
+    summary:
+      'The crown’s private memory: nine names, nine deaths, and who stood beside each ruler at the end.',
+    content: [
+      'The crown recalls each bearer’s name and the last lie told to it. Seven died of fire; two were pulled from the flames by Warden hands.',
+      'The roll is the campaign’s late-game reveal. Do not surface it before session 4.',
+    ],
+    visibility: 'dm-only',
+    sessionIds: [crownSessionId(4)],
+    clueIds: ['clue-burn-list'],
+    questIds: ['quest-crown-remembers'],
+    locationIds: ['location-crown-vault'],
+    factionIds: ['faction-ember-wardens'],
+  },
+  {
+    id: 'lore-unquenched-creed',
+    campaignId: CROWN_CAMPAIGN_ID,
+    title: 'Creed of the Unquenched',
+    kind: 'lore',
+    summary:
+      'A cult catechism explaining why the Unquenched want the crown’s judgement burned out of the realm.',
+    content: [
+      'We are the fire the crown cannot weigh. No ruler may sit in judgement of the flame that made them.',
+      'Recruits are branded beneath the collarbone with three flames. The brand does not scar until the rite is complete.',
+    ],
+    visibility: 'dm-only',
+    sessionIds: [crownSessionId(1), crownSessionId(5)],
+    clueIds: ['clue-unquenched-brand'],
+    questIds: ['quest-trace-the-cinder-assassins'],
+    locationIds: ['location-ashen-catacombs'],
+    factionIds: ['faction-unquenched'],
+  },
+  {
+    id: 'lore-succession-law',
+    campaignId: CROWN_CAMPAIGN_ID,
+    title: 'The Law of Succession',
+    kind: 'lore',
+    summary:
+      'The old law that lets the crown itself name the bearer when a monarch dies without naming an heir.',
+    content: [
+      'When no heir is named, the crown chooses. The bearer is confirmed by three witnesses of the hall who are not of the blood.',
+      'Nobody has invoked the witness clause in three hundred years, which is why the party matters.',
+    ],
+    visibility: 'dm-only',
+    sessionIds: [crownSessionId(1), crownSessionId(6)],
+    clueIds: [],
+    questIds: ['quest-who-wears-the-crown'],
+    locationIds: ['location-hall-of-nine-banners'],
+    factionIds: ['faction-house-vell'],
+  },
+];

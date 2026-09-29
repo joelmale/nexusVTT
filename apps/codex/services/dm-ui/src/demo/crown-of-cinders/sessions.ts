@@ -1,0 +1,330 @@
+import type {
+  CampaignSession,
+  SessionPlan,
+  SessionPlanStep,
+} from '../ashes-of-veyra/types';
+import { CROWN_CAMPAIGN_ID, crownSessionId } from './campaign';
+
+const ACT_1 = `${CROWN_CAMPAIGN_ID}-act-1`;
+const ACT_2 = `${CROWN_CAMPAIGN_ID}-act-2`;
+const ACT_3 = `${CROWN_CAMPAIGN_ID}-act-3`;
+
+const PLAN_PREFIX = `${CROWN_CAMPAIGN_ID}-session-1`;
+
+// Steps 1-4 keep the ids, titles and bodies from the catalog entry
+// (campaign-catalog/catalog.ts). Steps 5+ are added parallel threads.
+const session1StepInputs: Omit<SessionPlanStep, 'id' | 'order'>[] = [
+  {
+    kind: 'scene',
+    track: 'main',
+    title: 'The Hall of Nine Banners',
+    durationMinutes: 25,
+    visibility: 'shared',
+    objectId: 'scene-hall-of-nine-banners',
+    body: 'Let each character meet an heir and hear one contradictory rumor before the ceremony begins.',
+  },
+  {
+    kind: 'encounter',
+    track: 'main',
+    title: 'Cinder wights breach the dais',
+    durationMinutes: 55,
+    visibility: 'dm-only',
+    objectId: 'encounter-cinder-wights-dais',
+    body: 'Wights ignite curtains to split the room; rescuing guests matters more than defeating every attacker.',
+  },
+  {
+    kind: 'choice',
+    track: 'main',
+    title: 'Choose which heir receives the crown',
+    durationMinutes: 30,
+    visibility: 'shared',
+    body: 'The crown whispers that all three heirs are lying, but only one lie concerns the assassination.',
+  },
+  {
+    kind: 'closing',
+    track: 'main',
+    title: 'A fourth claimant arrives',
+    durationMinutes: 10,
+    visibility: 'shared',
+    objectId: 'handout-sealed-genealogy',
+    body: 'End as an ash-streaked courier presents a sealed genealogy naming a dead prince.',
+  },
+  {
+    kind: 'note',
+    track: 'parallel',
+    title: 'Note: The three heirs',
+    durationMinutes: 0,
+    visibility: 'dm-only',
+    objectId: 'handout-heir-relationship-cards',
+    body: 'Keep the three heirs sympathetic. Corvin wants swords, Ysolde wants discretion, Tamsin wants trust. Reveal lies only when the party asks the right question.',
+  },
+  {
+    kind: 'encounter',
+    track: 'parallel',
+    title: 'Optional: Audience with the Heirs',
+    durationMinutes: 15,
+    visibility: 'dm-only',
+    objectId: 'encounter-heirs-audience',
+    body: 'Use if the party wants a private word with an heir before the wights arrive. Skip if pacing is tight.',
+  },
+  {
+    kind: 'handout',
+    track: 'parallel',
+    title: 'Share handout: Coronation Program',
+    durationMinutes: 3,
+    visibility: 'shared',
+    objectId: 'handout-coronation-program',
+    body: 'Hand it out as the ceremony begins. The pencilled gossip seeds the three contradictory rumors.',
+  },
+  {
+    kind: 'handout',
+    track: 'parallel',
+    title: 'Share handout: The Crown Speaks',
+    durationMinutes: 2,
+    visibility: 'shared',
+    objectId: 'handout-crown-voice-transcript',
+    body: 'Read it aloud in the recorded crown voice once the recording is ready; otherwise read in a low, dry whisper.',
+  },
+  {
+    kind: 'note',
+    track: 'parallel',
+    title: 'Quest: Trace the Cinder Assassins',
+    durationMinutes: 0,
+    visibility: 'dm-only',
+    body: 'Seed the flame signal only if Ivo’s player asks about it. The brand under the wights’ collarbones is the physical clue.',
+  },
+];
+
+export const crownSession1Plan: SessionPlan = {
+  revision: 1,
+  lastEdited: '20 minutes ago',
+  estimatedMinutes: session1StepInputs.reduce(
+    (total, step) => total + step.durationMinutes,
+    0,
+  ),
+  readiness: [
+    {
+      id: `${PLAN_PREFIX}-ready-1`,
+      label: 'Heir relationship cards written',
+      complete: true,
+    },
+    {
+      id: `${PLAN_PREFIX}-ready-2`,
+      label: 'Ballroom hazard map reviewed',
+      complete: true,
+    },
+    {
+      id: `${PLAN_PREFIX}-ready-3`,
+      label: 'Crown voice handout recorded',
+      complete: false,
+    },
+    {
+      id: `${PLAN_PREFIX}-ready-4`,
+      label: 'Cinder wight stat block playtested',
+      complete: false,
+    },
+    {
+      id: `${PLAN_PREFIX}-ready-5`,
+      label: 'Player-facing summary written',
+      complete: false,
+    },
+    {
+      id: `${PLAN_PREFIX}-ready-6`,
+      label: 'Closing beat checked',
+      complete: false,
+    },
+  ],
+  dependencies: [
+    { objectId: 'scene-hall-of-nine-banners', status: 'ready' },
+    { objectId: 'encounter-cinder-wights-dais', status: 'needs-review' },
+    { objectId: 'handout-crown-voice-transcript', status: 'needs-review' },
+    { objectId: 'handout-sealed-genealogy', status: 'ready' },
+  ],
+  steps: session1StepInputs.map((step, index) => ({
+    ...step,
+    id: `${PLAN_PREFIX}-step-${index + 1}`,
+    order: index + 1,
+  })),
+  notes: [
+    'Keep the three heirs sympathetic; this is a values choice, not a correct-answer puzzle.',
+    'Use the burning tapestries as a visible three-round clock.',
+  ],
+  playerFacingSummary:
+    'You came to witness a coronation. By nightfall, the realm may ask you to choose its ruler.',
+  attachments: [
+    'handout-coronation-program',
+    'handout-crown-voice-transcript',
+    'handout-sealed-genealogy',
+    'lore-succession-law',
+  ],
+};
+
+const emptyLinks = {
+  questIds: [] as string[],
+  npcIds: [] as string[],
+  factionIds: [] as string[],
+  locationIds: [] as string[],
+  encounterIds: [] as string[],
+  clueIds: [] as string[],
+  handoutIds: [] as string[],
+};
+
+export const crownSessions: CampaignSession[] = [
+  {
+    ...emptyLinks,
+    id: crownSessionId(1),
+    campaignId: CROWN_CAMPAIGN_ID,
+    actId: ACT_1,
+    number: 1,
+    title: 'Embers at the Coronation',
+    status: 'planned',
+    summary:
+      'A royal investiture erupts into an elemental assassination, leaving the party with a talking crown and three competing heirs.',
+    plannedDate: '2026-10-03',
+    durationHours: 3,
+    partyLevel: 1,
+    tags: ['Court intrigue', 'Mystery', 'Elemental hazard'],
+    questIds: [
+      'quest-who-wears-the-crown',
+      'quest-trace-the-cinder-assassins',
+      'quest-dead-princes-genealogy',
+    ],
+    npcIds: [
+      'npc-corvin-vell',
+      'npc-ysolde-vell',
+      'npc-tamsin-vell',
+      'npc-the-crown',
+      'npc-halden-brack',
+      'npc-courier-wren',
+    ],
+    factionIds: [
+      'faction-house-vell',
+      'faction-ember-wardens',
+      'faction-unquenched',
+    ],
+    locationIds: ['location-hall-of-nine-banners'],
+    encounterIds: [
+      'encounter-cinder-wights-dais',
+      'encounter-heirs-audience',
+    ],
+    clueIds: [
+      'clue-heirs-contradictions',
+      'clue-unquenched-brand',
+      'clue-dead-prince-seal',
+    ],
+    handoutIds: [
+      'handout-coronation-program',
+      'handout-crown-voice-transcript',
+      'handout-sealed-genealogy',
+      'handout-heir-relationship-cards',
+      'lore-succession-law',
+    ],
+    plan: crownSession1Plan,
+  },
+  {
+    ...emptyLinks,
+    id: crownSessionId(2),
+    campaignId: CROWN_CAMPAIGN_ID,
+    actId: ACT_1,
+    number: 2,
+    title: 'The Guttered Candle',
+    status: 'draft',
+    summary:
+      'The party follows the stolen guild flame signal into the Ashgate underworld and meets Nell Soot.',
+    partyLevel: 1,
+    tags: ['Urban', 'Investigation', 'Social'],
+    questIds: ['quest-trace-the-cinder-assassins'],
+    npcIds: ['npc-nell-soot', 'npc-halden-brack', 'npc-courier-wren'],
+    factionIds: ['faction-soot-hands', 'faction-ember-wardens'],
+    locationIds: ['location-guttered-candle', 'location-ashwater-quay'],
+    encounterIds: ['encounter-guttered-candle-brawl'],
+    clueIds: ['clue-flame-signal'],
+    handoutIds: ['handout-flame-signal-sketch'],
+  },
+  {
+    ...emptyLinks,
+    id: crownSessionId(3),
+    campaignId: CROWN_CAMPAIGN_ID,
+    actId: ACT_2,
+    number: 3,
+    title: 'Ledgers and Lies',
+    status: 'draft',
+    summary:
+      'Each heir courts the party while the Gilded Ledger offers contracts and the genealogy is put under a magnifying glass.',
+    partyLevel: 2,
+    tags: ['Urban', 'Intrigue'],
+    questIds: [
+      'quest-who-wears-the-crown',
+      'quest-dead-princes-genealogy',
+    ],
+    npcIds: ['npc-oswin-pell', 'npc-ysolde-vell', 'npc-corvin-vell'],
+    factionIds: ['faction-gilded-ledger', 'faction-house-vell'],
+    locationIds: ['location-gilded-exchange'],
+    clueIds: ['clue-heirs-contradictions', 'clue-dead-prince-seal'],
+    handoutIds: ['handout-sealed-genealogy'],
+  },
+  {
+    ...emptyLinks,
+    id: crownSessionId(4),
+    campaignId: CROWN_CAMPAIGN_ID,
+    actId: ACT_2,
+    number: 4,
+    title: 'The Crown Vault',
+    status: 'draft',
+    summary:
+      'Tamsin opens the sealed vault; the crown recites the names of the rulers it has burned.',
+    partyLevel: 3,
+    tags: ['Dungeon', 'Lore', 'Puzzle'],
+    questIds: ['quest-crown-remembers', 'quest-dead-princes-genealogy'],
+    npcIds: ['npc-tamsin-vell', 'npc-the-crown', 'npc-oswin-pell'],
+    factionIds: ['faction-ember-wardens', 'faction-house-vell'],
+    locationIds: ['location-crown-vault'],
+    encounterIds: ['encounter-vault-guardians'],
+    clueIds: ['clue-burn-list'],
+    handoutIds: ['lore-burned-rulers-roll'],
+  },
+  {
+    ...emptyLinks,
+    id: crownSessionId(5),
+    campaignId: CROWN_CAMPAIGN_ID,
+    actId: ACT_3,
+    number: 5,
+    title: 'Beneath the Ember Cloister',
+    status: 'draft',
+    summary:
+      'The paymaster trail leads under the Cloister, where the Unquenched are feeding a rite pit.',
+    partyLevel: 4,
+    tags: ['Dungeon', 'Combat', 'Villain reveal'],
+    questIds: ['quest-trace-the-cinder-assassins', 'quest-crown-remembers'],
+    npcIds: ['npc-mother-cinder', 'npc-halden-brack'],
+    factionIds: ['faction-unquenched', 'faction-ember-wardens'],
+    locationIds: ['location-ashen-catacombs', 'location-ember-cloister'],
+    encounterIds: ['encounter-catacomb-ashbound'],
+    clueIds: ['clue-unquenched-brand'],
+    handoutIds: ['lore-unquenched-creed'],
+  },
+  {
+    ...emptyLinks,
+    id: crownSessionId(6),
+    campaignId: CROWN_CAMPAIGN_ID,
+    actId: ACT_3,
+    number: 6,
+    title: 'The Crown Remembers',
+    status: 'draft',
+    summary:
+      'Back in the Hall of Nine Banners, the party invokes the witness clause and decides who wears the crown.',
+    partyLevel: 4,
+    tags: ['Court intrigue', 'Finale', 'Choice'],
+    questIds: ['quest-who-wears-the-crown', 'quest-crown-remembers'],
+    npcIds: [
+      'npc-corvin-vell',
+      'npc-ysolde-vell',
+      'npc-tamsin-vell',
+      'npc-the-crown',
+      'npc-mother-cinder',
+    ],
+    factionIds: ['faction-house-vell', 'faction-unquenched'],
+    locationIds: ['location-hall-of-nine-banners'],
+    handoutIds: ['lore-succession-law'],
+  },
+];

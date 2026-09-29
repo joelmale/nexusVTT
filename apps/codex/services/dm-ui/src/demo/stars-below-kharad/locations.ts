@@ -1,0 +1,210 @@
+import type { CampaignLocation } from '../ashes-of-veyra/types';
+import { KHARAD_CAMPAIGN_ID as C } from './campaign';
+
+const MAP = 'map-buried-constellation';
+
+export const kharadLocations: CampaignLocation[] = [
+  {
+    id: 'location-kharad-mine',
+    campaignId: C,
+    name: 'Kharad Mine',
+    type: 'district',
+    shortDescription:
+      'A deep working mine whose collapse exposed the observatory.',
+    description: [
+      'Lamp-lit galleries run down through seams of blue quartz. The collapse shows as a raw scar across the lowest shaft.',
+      'Miners’ families keep a shrine at the lift head for those who did not come back from earlier accidents.',
+    ],
+    tags: ['Mine', 'Surface', 'Delvers'],
+    mapId: MAP,
+    pinId: 'pin-kharad-mine',
+    npcIds: ['npc-tamsin-brack'],
+    factionIds: ['faction-kharad-delvers-union'],
+    encounterIds: ['encounter-resonant-fault-collapse'],
+    questIds: ['quest-rescue-survey-crew'],
+    handoutIds: ['handout-survey-crew-log'],
+    notes: 'The party started here and was welcomed back here after the finale.',
+  },
+  {
+    id: 'location-singing-fault',
+    campaignId: C,
+    name: 'The Singing Fault',
+    type: 'landmark',
+    shortDescription:
+      'A crystalline crack that answers voices a minute before they speak.',
+    description: [
+      'Quartz spurs hum a low chord that shifts as anyone approaches. The echoes are always slightly ahead of the speaker.',
+      'Yarrow Stonesinger can name each spur by its pitch and warns which ones will not hold weight.',
+    ],
+    tags: ['Fault', 'Hazard', 'Echoes'],
+    mapId: MAP,
+    pinId: 'pin-singing-fault',
+    npcIds: ['npc-yarrow-stonesinger'],
+    factionIds: ['faction-kharad-delvers-union'],
+    encounterIds: ['encounter-resonant-fault-collapse'],
+    questIds: ['quest-rescue-survey-crew'],
+    handoutIds: ['handout-survey-crew-log'],
+    notes: 'The echoes fell silent once the deep sun was kindled.',
+  },
+  {
+    id: 'location-inverted-observatory',
+    campaignId: C,
+    name: 'The Inverted Observatory',
+    type: 'landmark',
+    shortDescription:
+      'An ancient observatory whose chart shows caverns instead of stars.',
+    description: [
+      'Domed and open to solid rock, the observatory’s lenses point down. The chart table glows faintly violet.',
+      'Pell Quartz spent nights copying the chart, insisting every line was deliberate.',
+    ],
+    tags: ['Observatory', 'Discovery', 'Ancient'],
+    mapId: MAP,
+    pinId: 'pin-inverted-observatory',
+    npcIds: ['npc-pell-quartz', 'npc-yarrow-stonesinger'],
+    factionIds: ['faction-chalkline-collegium'],
+    encounterIds: ['encounter-survey-crew-defense'],
+    questIds: ['quest-read-inverted-chart'],
+    handoutIds: ['handout-inverted-star-chart'],
+    notes: 'Now a Collegium research hall open to all seven holds.',
+  },
+  {
+    id: 'location-broken-gate-hall',
+    campaignId: C,
+    name: 'Hall of the Broken Gate',
+    type: 'government',
+    shortDescription:
+      'Where the Concord meets before a sealed and fractured transit gate.',
+    description: [
+      'Seven carved seats face a cracked arch of dark metal. Delegates bicker beneath banners hung in order of precedence.',
+      'Magistrate Ilsa Vaunt keeps the charter on a lectern beside the gate.',
+    ],
+    tags: ['Council', 'Politics', 'Gate'],
+    mapId: MAP,
+    pinId: 'pin-broken-gate-hall',
+    npcIds: ['npc-hrolda-ironvein', 'npc-oskar-deepfire', 'npc-ilsa-vaunt'],
+    factionIds: ['faction-seven-hold-concord', 'faction-duskforge-hold'],
+    encounterIds: ['encounter-council-at-broken-gate'],
+    questIds: [
+      'quest-open-the-transit-gate',
+      'quest-sabotage-for-the-holds',
+      'quest-read-inverted-chart',
+    ],
+    handoutIds: [
+      'lore-seven-holds-charter',
+      'handout-concord-writ-of-custodianship',
+    ],
+    notes: 'The gate answers only to its custodian, Dagna.',
+  },
+  {
+    id: 'location-transit-line',
+    campaignId: C,
+    name: 'The Transit Line',
+    type: 'landmark',
+    shortDescription:
+      'A chain of abandoned stations ending at Meridian Station.',
+    description: [
+      'Rails hum with unstable gravity. Each station rearranges its platform when the line is disturbed.',
+      'Meridian Station is the last stop before the vault and the natural place for an ambush.',
+    ],
+    tags: ['Rail', 'Chase', 'Hazard'],
+    mapId: MAP,
+    pinId: 'pin-transit-line',
+    npcIds: ['npc-vessa-ordrun'],
+    factionIds: ['faction-ardent-deep-company'],
+    encounterIds: [
+      'encounter-transit-line-chase',
+      'encounter-ordrun-station-ambush',
+    ],
+    questIds: [
+      'quest-open-the-transit-gate',
+      'quest-race-ordrun-to-the-engine',
+    ],
+    handoutIds: ['handout-ordrun-sealed-orders'],
+    notes: 'The line was sealed after the finale to prevent another race.',
+  },
+  {
+    id: 'location-zero-gravity-vault',
+    campaignId: C,
+    name: 'The Zero-Gravity Vault',
+    type: 'landmark',
+    shortDescription:
+      'A vast chamber of floating fragments from the seven holds’ history.',
+    description: [
+      'Shards of carved stone drift in the dark, each replaying a scene from a hold’s past when touched.',
+      'Gargoyle statues cling to the larger fragments and wake when anyone crosses too close.',
+    ],
+    tags: ['Vault', 'Zero-g', 'History'],
+    mapId: MAP,
+    pinId: 'pin-zero-gravity-vault',
+    npcIds: ['npc-the-astronomer'],
+    factionIds: ['faction-astronomers-watch'],
+    encounterIds: ['encounter-zero-gravity-vault'],
+    questIds: [
+      'quest-race-ordrun-to-the-engine',
+      'quest-fate-of-the-vessel',
+    ],
+    handoutIds: ['handout-astronomers-final-message'],
+    notes: 'Its fragments now hang as memorials in the Commons.',
+  },
+  {
+    id: 'location-engine-heart',
+    campaignId: C,
+    name: 'The Engine Heart',
+    type: 'landmark',
+    shortDescription:
+      'The chamber of three alignable rings, now home to the deep sun.',
+    description: [
+      'Three concentric rings turn around a vessel the size of a small fortress. The rings’ alignment decides its fate.',
+      'After the finale a soft golden sun hangs in the chamber, warming the deep caverns beyond.',
+    ],
+    tags: ['Finale', 'Rings', 'Deep sun'],
+    mapId: MAP,
+    pinId: 'pin-engine-heart',
+    npcIds: ['npc-the-astronomer', 'npc-vessa-ordrun', 'npc-oskar-deepfire'],
+    factionIds: [
+      'faction-astronomers-watch',
+      'faction-ardent-deep-company',
+      'faction-duskforge-hold',
+    ],
+    encounterIds: [
+      'encounter-astronomer-awakens',
+      'encounter-fate-of-the-vessel',
+    ],
+    questIds: [
+      'quest-fate-of-the-vessel',
+      'quest-honor-the-seven-promises',
+    ],
+    handoutIds: ['lore-star-engine-purpose', 'lore-legacy-of-kharad'],
+    notes: 'The Astronomer remains here as the deep sun’s steward.',
+  },
+  {
+    id: 'location-kharad-commons',
+    campaignId: C,
+    name: 'The Commons of Seven Chalks',
+    type: 'market',
+    shortDescription:
+      'The new gathering hall and market built beneath the deep sun.',
+    description: [
+      'Miners, scholars, and delegates share long tables in a hall lit by the deep sun’s glow.',
+      'An evening bell tuned to the fault’s hum marks the end of each shift.',
+    ],
+    tags: ['Epilogue', 'Market', 'Legacy'],
+    mapId: MAP,
+    pinId: 'pin-kharad-commons',
+    npcIds: [
+      'npc-tamsin-brack',
+      'npc-pell-quartz',
+      'npc-hrolda-ironvein',
+      'npc-ilsa-vaunt',
+    ],
+    factionIds: [
+      'faction-seven-hold-concord',
+      'faction-chalkline-collegium',
+      'faction-kharad-delvers-union',
+    ],
+    encounterIds: ['encounter-fate-of-the-vessel'],
+    questIds: ['quest-honor-the-seven-promises'],
+    handoutIds: ['handout-epilogue-proclamation', 'lore-legacy-of-kharad'],
+    notes: 'Epilogue location; each hero has an assigned seat.',
+  },
+];
