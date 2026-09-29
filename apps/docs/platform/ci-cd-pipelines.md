@@ -31,6 +31,12 @@ flowchart LR
 - Codex service language, test policy, and validation commands;
 - full and affected delivery, security, Node, and Python matrices.
 
+Changes to pipeline workflows and `.github/ci/**` fan out to every target.
+Dependabot configuration and its auto-merge workflow are classified by the
+`dependabot-automation` rule with no targets, so those PRs skip the target
+suites. A `.github` file that no rule lists is treated as unknown and runs the
+full suite; add new workflow files to `ci-configuration` deliberately.
+
 Run `npm run check:service-catalog` after changing it. The validator checks the
 schema, dependency graph, repository paths, Dockerfiles, service manifests,
 unique image names, and the complete `apps/codex/services` inventory. Invalid

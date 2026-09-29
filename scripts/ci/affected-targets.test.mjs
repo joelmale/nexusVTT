@@ -236,6 +236,25 @@ describe('representative Stage 3A change classes', () => {
     expectAffected(decide(path), allTargets);
   });
 
+  test.each([
+    '.github/dependabot.yml',
+    '.github/workflows/dependabot-auto-merge.yml',
+  ])('classifies Dependabot automation %s without affecting any target', (path) => {
+    const decision = decide(path);
+    expect(decision.mode).toBe('targeted');
+    expect(decision.unknownPaths).toEqual([]);
+    expectAffected(decision, []);
+  });
+
+  test('runs every target for an unclassified workflow file', () => {
+    const decision = decide('.github/workflows/future-workflow.yml');
+    expect(decision.mode).toBe('full');
+    expect(decision.unknownPaths).toEqual([
+      '.github/workflows/future-workflow.yml',
+    ]);
+    expectAffected(decision, allTargets);
+  });
+
   test('fans a Codex Prisma migration out to every schema consumer', () => {
     expectAffected(
       decide(
