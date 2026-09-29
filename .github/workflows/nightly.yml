@@ -2,7 +2,9 @@ name: Nightly Validation
 
 on:
   schedule:
-    - cron: '30 5 * * *'
+    # Weekly (Monday) full-suite sweep. PR and push runs are path-targeted, so
+    # this is what catches anything a targeted run skipped.
+    - cron: '30 5 * * 1'
   workflow_dispatch:
     inputs:
       run_a2000:
