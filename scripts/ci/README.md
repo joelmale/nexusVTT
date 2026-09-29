@@ -89,16 +89,44 @@ npm run test:ci-report
 
 # Release promotion policy
 
-`release-promotion.mjs` checks the validated source against remote `main`
-immediately before publishing mutable release tags. If a newer push has
-superseded the run, promotion is recorded as `superseded` and registry writes
-and release-manifest upload are skipped. Validation and immutable image builds
-remain required, and lookup, build, upload, or registry errors still fail CI.
-Explicit tag releases keep their existing promotion behavior.
+Delivery requires a successful `CI Pipeline` run for the exact source SHA. It
+then builds affected images once under immutable full-SHA tags and makes the
+reusable security workflow pull those exact registry artifacts for Trivy,
+Grype, CycloneDX, source-label, digest, run-attempt, and release-frontend
+variant validation. Only successfully scanned digests can reach mutable release
+aliases. Push delivery
+accepts only `push` validation evidence. Manual candidates accept only a prior
+full `workflow_dispatch` validation; run CI manually with the same optional
+`source_sha` on `main` before dispatching delivery. Manual candidates are
+restricted to the current main commit so GitHub's run metadata and the checked
+out source have the same identity. `release-validation-evidence.mjs`
+polls while a concurrently started validation is still running and fails closed
+on missing, malformed, or unsuccessful evidence.
 
-The delivery gate checks both the eligibility decision and the publication
-step outcome, so a skipped publication only succeeds for a superseded main
-run. Compose continues to consume `latest`; stale runs cannot replace it.
+`release-promotion.mjs` checks a push source against remote `main` immediately
+before publishing mutable release tags. If a newer push has superseded the run,
+promotion is recorded as `superseded` and registry writes and release-manifest
+upload are skipped. Manual delivery publishes only
+`candidate-<full-source-sha>` and never updates `latest`, dated release aliases,
+or GitHub Pages.
+
+The delivery gate checks validation, security, eligibility, and publication
+outcomes. A skipped promotion succeeds only for a superseded main run or an
+immutable manual candidate. Compose continues to consume `latest`; stale and
+candidate runs cannot replace it.
+
+For documentation changes, the main-branch CI run packages the already
+type-checked and built site as its `github-pages` artifact. Delivery downloads
+that artifact by the exact validation run ID, re-stages the same payload in the
+trusted delivery run, and deploys it without another documentation build.
+Manual candidate delivery never deploys Pages.
+
+`image-provenance.mjs` writes the per-image companion manifest uploaded with
+each SBOM. It rejects a wrong or missing source revision, malformed digest,
+unsupported transport, malformed run identity, and a release frontend whose
+`org.nexusvtt.frontend.delta-sync` label is not `false`. PR security retains its
+unprivileged local-daemon build path and uploads the same provenance shape
+without writing to the registry.
 
 ```powershell
 npx vitest run --config scripts/ci/release-promotion.vitest.config.mjs --coverage
