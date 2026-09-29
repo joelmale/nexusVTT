@@ -42,7 +42,7 @@
         "@elastic/elasticsearch": "^9.5.1",
         "@fastify/cors": "^11.3.0",
         "@fastify/jwt": "^10.2.2",
-        "@fastify/multipart": "^10.1.1",
+        "@fastify/multipart": "^10.1.2",
         "@nexus/document-contracts": "*",
         "@nexus/rules-contracts": "*",
         "@prisma/client": "^5.22.0",
