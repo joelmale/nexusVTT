@@ -24,6 +24,18 @@ class PDFService {
       await parser.destroy();
     }
   }
+
+  /**
+   * Page count only, without extracting text.
+   */
+  async getPageCount(buffer: Buffer): Promise<number> {
+    const parser = new PDFParse({ data: buffer });
+    try {
+      return (await parser.getInfo()).total;
+    } finally {
+      await parser.destroy();
+    }
+  }
 }
 
 export const pdfService = new PDFService();

@@ -2,6 +2,7 @@ import type { RequestHandler } from 'express';
 import { API_PREFIX, type AppDeps } from '../deps.js';
 import { allowlistProxy } from '../proxy/forward.js';
 import { pageImageHandler } from './pageImage.js';
+import { layoutPreviewHandler } from './layoutPreview.js';
 import { uploadHandler } from './upload.js';
 
 export { normalizeUpstreamError } from '../proxy/forward.js';
@@ -15,6 +16,6 @@ export function codexProxy(deps: AppDeps): RequestHandler {
     prefix: CODEX_PREFIX,
     table: (d) => d.codexRoutes,
     upstreamUrl: (d, path, search) => `${d.config.docApiUrl}/api/${path}${search ? `?${search}` : ''}`,
-    handlers: { upload: uploadHandler, pageImage: pageImageHandler },
+    handlers: { upload: uploadHandler, pageImage: pageImageHandler, layoutPreview: layoutPreviewHandler },
   });
 }

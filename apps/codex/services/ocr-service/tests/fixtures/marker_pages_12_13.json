@@ -1,0 +1,35 @@
+{
+  "_comment": "Hand-written in the shape of marker-pdf 1.10.2 output for page_range 11-12 (pages 12-13): MarkdownRenderer(paginate_output=True).markdown and JSONRenderer(...).model_dump(). Page 13's page bbox has a non-zero origin to exercise normalization.",
+  "markdown": "\n\n{11}------------------------------------------------\n\n## Gorgon\n\n*Large monstrosity, unaligned*\n\n**Armor Class** 19 (natural armor)\n\n**Hit Points** 114 (12d10 + 48)\n\n\n\n{12}------------------------------------------------\n\n# Sidebar: Petrification\n\nA creature turned to stone is petrified.\n\n",
+  "json": {
+    "block_type": "Document",
+    "metadata": {},
+    "children": [
+      {
+        "id": "/page/11/Page/0",
+        "block_type": "Page",
+        "html": "",
+        "polygon": [[0, 0], [612, 0], [612, 792], [0, 792]],
+        "bbox": [0, 0, 612, 792],
+        "children": [
+          {"id": "/page/11/PageHeader/0", "block_type": "PageHeader", "html": "<p>Monsters</p>", "polygon": [], "bbox": [36, 10, 576, 30]},
+          {"id": "/page/11/SectionHeader/1", "block_type": "SectionHeader", "html": "<h2>Gorgon</h2>", "polygon": [], "bbox": [36, 60, 300, 80]},
+          {"id": "/page/11/Text/2", "block_type": "Text", "html": "<p><b>Armor Class</b> 19 (natural armor)</p>", "polygon": [], "bbox": [36, 90, 300, 104]},
+          {"id": "/page/11/Picture/3", "block_type": "Picture", "html": "<img src='x'>", "polygon": [], "bbox": [320, 60, 576, 400]},
+          {"id": "/page/11/PageFooter/4", "block_type": "PageFooter", "html": "<p>142</p>", "polygon": [], "bbox": [290, 760, 322, 780]}
+        ]
+      },
+      {
+        "id": "/page/12/Page/1",
+        "block_type": "Page",
+        "html": "",
+        "polygon": [],
+        "bbox": [10, 20, 622, 812],
+        "children": [
+          {"id": "/page/12/SectionHeader/0", "block_type": "SectionHeader", "html": "<h1>Sidebar: Petrification</h1>", "polygon": [], "bbox": [46, 80, 316, 100]},
+          {"id": "/page/12/TableGroup/1", "block_type": "TableGroup", "html": "<table><tr><td>CR</td><td>XP</td></tr></table>", "polygon": [], "bbox": [316, 420, 622, 812]}
+        ]
+      }
+    ]
+  }
+}

@@ -3,8 +3,11 @@ NexusCodex OCR Sidecar Service
 FastAPI-based OCR & Embedding service utilizing RapidOCR, FastEmbed, and ONNX Runtime with NVIDIA CUDA acceleration.
 Supports direct S3 object retrieval, Prometheus metrics, and layout-aware reading order.
 """
+import asyncio
 import os
+import tempfile
 import time
+from contextlib import asynccontextmanager
 from typing import List, Optional
 from fastapi import FastAPI, File, UploadFile, Query, HTTPException, Request, Response
 from fastapi.middleware.cors import CORSMiddleware
@@ -12,13 +15,27 @@ from pydantic import BaseModel, Field
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
 from .ocr_engine import ocr_engine, EMBED_DIM
+from .layout_engine import LayoutUnavailable, layout_engine, render_preview
 
 MAX_BATCH_SIZE = int(os.getenv("MAX_BATCH_SIZE", "8"))
+
+
+@asynccontextmanager
+async def lifespan(_app):
+    """Load Marker once at startup when installed (LAYOUT_PRELOAD=false defers it to the first request)."""
+    if os.getenv("LAYOUT_PRELOAD", "true").lower() == "true" and layout_engine.installed():
+        try:
+            await asyncio.to_thread(layout_engine.load)
+        except LayoutUnavailable as error:
+            print(f"[layout] {error}")
+    yield
+
 
 app = FastAPI(
     title="NexusCodex OCR & Embedding Service",
     description="GPU-accelerated layout-aware OCR and semantic embedding sidecar for Nexus Codex",
-    version="1.1.0"
+    version="1.1.0",
+    lifespan=lifespan,
 )
 
 app.add_middleware(
@@ -102,6 +119,51 @@ class EmbedHealth(BaseModel):
     dim: int
 
 
+class LayoutS3Request(BaseModel):
+    bucket: str = Field(..., description="S3/Garage bucket holding the PDF")
+    key: str = Field(..., description="S3 key of the PDF")
+    pageStart: int = Field(..., ge=1, description="First page, 1-based")
+    pageEnd: int = Field(..., ge=1, description="Last page, 1-based, inclusive")
+    renderPreviews: bool = Field(False, description="Upload a webp preview per page")
+    previewPrefix: Optional[str] = Field(None, description="S3 key prefix for previews, e.g. page-previews/<documentId>/")
+    lexicon: List[str] = Field(default_factory=list, description="Extra words (e.g. known entity names) for wordValidity")
+
+
+class LayoutBlock(BaseModel):
+    id: str
+    class_: str = Field(..., alias="class")
+    markerType: str
+    bbox: List[float]
+    markdown: Optional[str] = None
+
+    model_config = {"populate_by_name": True}
+
+
+class LayoutPage(BaseModel):
+    pageNumber: int
+    markdown: str
+    blocks: List[LayoutBlock]
+    widthPt: Optional[float] = None
+    heightPt: Optional[float] = None
+    previewKey: Optional[str] = None
+    quality: dict
+
+
+class LayoutS3Response(BaseModel):
+    engine: str
+    pages: List[LayoutPage]
+    duration_ms: float
+
+
+class LayoutHealth(BaseModel):
+    engine: str
+    version: str
+    installed: bool
+    modelsLoaded: bool
+    device: str
+    error: Optional[str] = None
+
+
 class HealthResponse(BaseModel):
     status: str
     service: str = "nexuscodex-ocr"
@@ -114,6 +176,7 @@ class HealthResponse(BaseModel):
     gpu_utilization_pct: Optional[float] = None
     onnx_providers: List[str]
     embed: EmbedHealth
+    layout: LayoutHealth
 
 
 def update_gpu_metrics():
@@ -153,6 +216,7 @@ async def health_check():
         gpu_utilization_pct=telemetry["gpu_utilization_pct"],
         onnx_providers=telemetry["onnx_providers"],
         embed=EmbedHealth(model=ocr_engine.embed_model_name, dim=EMBED_DIM),
+        layout=LayoutHealth(**layout_engine.health()),
     )
 
 
@@ -322,6 +386,76 @@ async def generate_embeddings(request: EmbedRequest):
     except Exception as e:
         METRIC_REQUESTS_TOTAL.labels(endpoint=endpoint, status="error").inc()
         raise HTTPException(status_code=500, detail=f"Embedding generation failed: {str(e)}")
+
+
+def _run_layout(request: LayoutS3Request) -> LayoutS3Response:
+    start_time = time.time()
+    pdf_bytes = ocr_engine.fetch_s3_bytes(request.bucket, request.key)
+    with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as handle:
+        handle.write(pdf_bytes)
+        pdf_path = handle.name
+    try:
+        pages, images = layout_engine.convert_range(pdf_path, request.pageStart, request.pageEnd, request.lexicon)
+    finally:
+        os.unlink(pdf_path)
+
+    if request.renderPreviews:
+        prefix = request.previewPrefix or f"page-previews/{request.key}/"
+        for page in pages:
+            image = images.get(page["pageNumber"])
+            if image is None:
+                continue
+            preview_key = f"{prefix}page-{page['pageNumber']}.webp"
+            ocr_engine.s3_client.put_object(
+                Bucket=request.bucket,
+                Key=preview_key,
+                Body=render_preview(image),
+                ContentType="image/webp",
+            )
+            page["previewKey"] = preview_key
+
+    return LayoutS3Response(
+        engine=f"marker@{layout_engine.health()['version']}",
+        pages=[LayoutPage(**page) for page in pages],
+        duration_ms=round((time.time() - start_time) * 1000, 2),
+    )
+
+
+@app.post("/layout/s3", response_model=LayoutS3Response, response_model_by_alias=True)
+async def layout_s3(request: LayoutS3Request):
+    """
+    Runs Marker on pages pageStart..pageEnd of a PDF in S3 and returns per-page
+    Markdown, layout blocks (normalized bboxes) and quality metrics. Used by the
+    doc-processor v2 layout stage, one call per checkpointed page batch.
+    """
+    endpoint = "layout_s3"
+    if request.pageEnd < request.pageStart:
+        raise HTTPException(status_code=400, detail="pageEnd must be >= pageStart")
+    start_time = time.time()
+    try:
+        # Marker is CPU/GPU bound; keep the event loop free for /health.
+        response = await asyncio.to_thread(_run_layout, request)
+    except LayoutUnavailable as error:
+        METRIC_REQUESTS_TOTAL.labels(endpoint=endpoint, status="unavailable").inc()
+        raise HTTPException(status_code=503, detail=str(error))
+    except HTTPException:
+        raise
+    except Exception as error:
+        METRIC_REQUESTS_TOTAL.labels(endpoint=endpoint, status="error").inc()
+        raise HTTPException(status_code=500, detail=f"Layout failed: {error}")
+    METRIC_REQUESTS_TOTAL.labels(endpoint=endpoint, status="success").inc()
+    METRIC_DURATION_SECONDS.labels(endpoint=endpoint).observe(time.time() - start_time)
+    return response
+
+
+@app.post("/layout/unload")
+async def layout_unload():
+    """
+    Releases the layout models' VRAM. doc-processor calls this before the VLM
+    extract stage (GPU handoff); /layout/s3 reloads them on demand.
+    """
+    unloaded = await asyncio.to_thread(layout_engine.unload)
+    return {"unloaded": unloaded, "layout": layout_engine.health()}
 
 
 if __name__ == "__main__":

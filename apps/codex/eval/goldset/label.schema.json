@@ -1,0 +1,82 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://nexus.local/codex/goldset/label.schema.json",
+  "title": "Codex gold-set page label",
+  "description": "Human-verified answer key for one rulebook page (apps/docs/codex/ingestion-pipeline-v2-plan.md#gold-set-benchmark-harness). Coordinates are normalized 0..1 like DocumentPage.blocks. Entity data uses the extraction schemas in apps/codex/services/doc-processor/src/extraction/schemas.ts.",
+  "type": "object",
+  "required": ["id", "goldsetVersion", "source", "category", "heldOut", "status", "review", "text", "regions", "entities"],
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9-]{2,63}$" },
+    "goldsetVersion": { "type": "integer", "minimum": 1 },
+    "source": {
+      "type": "object",
+      "required": ["sha256", "pageNumber"],
+      "additionalProperties": false,
+      "properties": {
+        "sha256": { "type": "string", "description": "Content hash of the source PDF (Document.contentHash). The PDF itself lives in the server's codex-eval bucket, never in git." },
+        "pageNumber": { "type": "integer", "minimum": 1 },
+        "title": { "type": "string" },
+        "synthetic": { "type": "boolean", "description": "True for hand-made examples that have no real source page." }
+      }
+    },
+    "category": {
+      "enum": [
+        "two_column_prose",
+        "two_column_sidebar",
+        "monster_stat_block",
+        "spells",
+        "magic_items",
+        "tables",
+        "scanned",
+        "heavy_art"
+      ]
+    },
+    "heldOut": { "type": "boolean", "description": "Held-out pages are never looked at while tuning; they are scored only with --split heldout." },
+    "status": { "enum": ["draft", "verified"] },
+    "review": {
+      "type": "object",
+      "required": ["numbersChecked"],
+      "additionalProperties": false,
+      "properties": {
+        "verifiedBy": { "type": ["string", "null"] },
+        "verifiedAt": { "type": ["string", "null"], "format": "date-time" },
+        "numbersChecked": { "type": "boolean", "description": "Second pass on AC, HP, ability scores, CR, spell level and rarity is done." },
+        "notes": { "type": "string" }
+      }
+    },
+    "text": { "type": "string", "description": "The page's correct text in reading order, excluding art and furniture. Paragraphs separated by a blank line." },
+    "regions": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["class", "bbox"],
+        "additionalProperties": false,
+        "properties": {
+          "class": { "enum": ["stat_block", "sidebar", "table", "art"] },
+          "bbox": {
+            "type": "array",
+            "items": { "type": "number", "minimum": 0, "maximum": 1 },
+            "minItems": 4,
+            "maxItems": 4
+          },
+          "note": { "type": "string" }
+        }
+      }
+    },
+    "entities": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["type", "data"],
+        "additionalProperties": false,
+        "properties": {
+          "type": { "enum": ["monster", "spell", "item"] },
+          "data": { "type": "object", "required": ["name"] },
+          "numbersChecked": { "type": "boolean" }
+        }
+      }
+    }
+  }
+}

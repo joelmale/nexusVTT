@@ -49,6 +49,20 @@ class S3Service {
   }
 
   /**
+   * Download a file, or null when the key does not exist (cache lookups).
+   */
+  async downloadFileIfExists(key: string): Promise<Buffer | null> {
+    try {
+      return await this.downloadFile(key);
+    } catch (error: any) {
+      if (error?.name === 'NoSuchKey' || error?.$metadata?.httpStatusCode === 404) {
+        return null;
+      }
+      throw error;
+    }
+  }
+
+  /**
    * Upload a file to S3
    */
   async uploadFile(key: string, body: Buffer, contentType: string): Promise<void> {
