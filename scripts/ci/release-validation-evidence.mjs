@@ -80,9 +80,13 @@ export async function fetchSuccessfulValidation(
     },
   );
   if (!response.ok) {
-    throw new Error(
+    const failure = new Error(
       `GitHub validation lookup failed with HTTP ${response.status}`,
     );
+    // Server errors and rate limiting are transient; the caller keeps polling
+    // until its deadline instead of failing the whole delivery on one blip.
+    failure.transient = response.status >= 500 || response.status === 429;
+    throw failure;
   }
 
   return selectSuccessfulValidation(
@@ -120,7 +124,13 @@ export async function waitForSuccessfulValidation(
       const isPendingEvidence =
         error instanceof Error &&
         error.message.startsWith('No successful completed');
-      if (!isPendingEvidence || Date.now() >= deadline) throw error;
+      // fetch rejects with a TypeError when the connection drops.
+      const isTransient =
+        error instanceof TypeError ||
+        (error instanceof Error && error.transient === true);
+      if (!(isPendingEvidence || isTransient) || Date.now() >= deadline) {
+        throw error;
+      }
       await sleepImplementation(pollMilliseconds);
     }
   }

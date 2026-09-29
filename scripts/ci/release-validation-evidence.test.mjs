@@ -184,6 +184,87 @@ describe('release validation evidence', () => {
     expect(sleepImplementation).toHaveBeenCalledWith(1);
   });
 
+  const successfulRunsResponse = () =>
+    response({
+      workflow_runs: [
+        {
+          conclusion: 'success',
+          event: 'push',
+          head_sha: sourceSha,
+          html_url: 'https://github.example/runs/21',
+          id: 21,
+          status: 'completed',
+        },
+      ],
+    });
+
+  test('keeps polling through a transient GitHub server error', async () => {
+    const fetchImplementation = vi
+      .fn()
+      .mockResolvedValueOnce(response({}, { ok: false, status: 500 }))
+      .mockResolvedValueOnce(response({}, { ok: false, status: 429 }))
+      .mockResolvedValueOnce(successfulRunsResponse());
+    const sleepImplementation = vi.fn().mockResolvedValue(undefined);
+
+    const run = await waitForSuccessfulValidation(
+      actionsEnv({ VALIDATION_POLL_MS: '1', VALIDATION_WAIT_MS: '1000' }),
+      fetchImplementation,
+      sleepImplementation,
+    );
+
+    expect(run.id).toBe(21);
+    expect(fetchImplementation).toHaveBeenCalledTimes(3);
+    expect(sleepImplementation).toHaveBeenCalledTimes(2);
+  });
+
+  test('keeps polling through a dropped connection', async () => {
+    const fetchImplementation = vi
+      .fn()
+      .mockRejectedValueOnce(new TypeError('fetch failed'))
+      .mockResolvedValueOnce(successfulRunsResponse());
+
+    const run = await waitForSuccessfulValidation(
+      actionsEnv({ VALIDATION_POLL_MS: '1', VALIDATION_WAIT_MS: '1000' }),
+      fetchImplementation,
+      vi.fn().mockResolvedValue(undefined),
+    );
+
+    expect(run.id).toBe(21);
+    expect(fetchImplementation).toHaveBeenCalledTimes(2);
+  });
+
+  test('fails immediately on a non-transient API error', async () => {
+    const fetchImplementation = vi
+      .fn()
+      .mockResolvedValue(response({}, { ok: false, status: 403 }));
+    const sleepImplementation = vi.fn().mockResolvedValue(undefined);
+
+    await expect(
+      waitForSuccessfulValidation(
+        actionsEnv({ VALIDATION_POLL_MS: '1', VALIDATION_WAIT_MS: '1000' }),
+        fetchImplementation,
+        sleepImplementation,
+      ),
+    ).rejects.toThrow('HTTP 403');
+    expect(fetchImplementation).toHaveBeenCalledTimes(1);
+    expect(sleepImplementation).not.toHaveBeenCalled();
+  });
+
+  test('stops retrying a transient error once the wait window is over', async () => {
+    const fetchImplementation = vi
+      .fn()
+      .mockResolvedValue(response({}, { ok: false, status: 502 }));
+
+    await expect(
+      waitForSuccessfulValidation(
+        actionsEnv({ VALIDATION_POLL_MS: '1', VALIDATION_WAIT_MS: '0' }),
+        fetchImplementation,
+        vi.fn().mockResolvedValue(undefined),
+      ),
+    ).rejects.toThrow('HTTP 502');
+    expect(fetchImplementation).toHaveBeenCalledTimes(1);
+  });
+
   test('records auditable outputs without exposing the token', async () => {
     const env = actionsEnv();
     vi.stubGlobal(
