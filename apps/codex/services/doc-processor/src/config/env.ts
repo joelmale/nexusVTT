@@ -43,6 +43,30 @@ const envSchema = z.object({
   OCR_SERVICE_URL: z.string().optional(),
   OCR_SERVICE_TIMEOUT_MS: z.string().default('15000').transform(Number),
 
+  // Ingestion pipeline v2 (apps/docs/codex/ingestion-pipeline-v2-plan.md).
+  // New documents take PIPELINE_VERSION; a document keeps the version it was
+  // first processed with (metadata.processing.pipelineVersion).
+  PIPELINE_VERSION: z.enum(['v1', 'v2']).default('v1'),
+  LAYOUT_BATCH_PAGES: z.string().default('5').transform(Number),
+  LAYOUT_SERVICE_TIMEOUT_MS: z.string().default('600000').transform(Number),
+
+  // v2 extraction via the Dockhand server's Ollama (internal network only).
+  // VLM_MODEL is provisional until the gold set picks one; confirm the tag
+  // with `ollama list` on the server.
+  OLLAMA_URL: z.string().default('http://ollama:11434'),
+  // One model for text and image extraction (decided in review). Experiments
+  // switch this value; they never run two models side by side. The model name
+  // is part of the extraction cache key.
+  VLM_MODEL: z.string().default('qwen2.5vl:7b'),
+  OLLAMA_KEEP_ALIVE: z.string().default('10m'),
+  LLM_TIMEOUT_MS: z.string().default('120000').transform(Number),
+  // Part of the extraction cache key; bump it when prompts or schemas change.
+  EXTRACT_PROMPT_VERSION: z.string().default('1'),
+  EXTRACT_CROP_DPI: z.string().default('200').transform(Number),
+  // The 6 GB RTX A2000 cannot hold Surya and the VLM together: unload the
+  // layout models before extract and the VLM after it.
+  GPU_HANDOFF: z.string().default('true').transform(val => val === 'true'),
+
   // Embeddings
   EMBEDDINGS_PROVIDER: z.enum(['none', 'hash', 'sidecar']).default('none'),
   EMBEDDINGS_DIM: z.string().default('64').transform(Number),

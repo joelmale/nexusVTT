@@ -20,7 +20,7 @@ GPU-accelerated, layout-aware OCR sidecar service for Nexus Codex, optimized for
 
 ## API Endpoints
 
-- `GET /health`: Health probe returning status, GPU availability, VRAM telemetry and `embed: { model, dim }`.
+- `GET /health`: Health probe returning status, GPU availability, VRAM telemetry, `embed: { model, dim }` and `layout: { engine, version, installed, modelsLoaded, device, error }`.
 - `GET /metrics`: Prometheus metric scrape endpoint.
 - `POST /ocr/image`: Process a single image file (`multipart/form-data`).
   - Query params: `page_number` (int), `reorder_columns` (bool, default `true`).
@@ -28,6 +28,27 @@ GPU-accelerated, layout-aware OCR sidecar service for Nexus Codex, optimized for
 - `POST /ocr/s3`: Process page image directly from S3/Garage by bucket and key.
 - `POST /ocr/batch`: Process up to `MAX_BATCH_SIZE` images concurrently.
 - `POST /embed`: Generate dense text embeddings using GPU acceleration (`{ "texts": ["..."] }`). The response's `model` names the model that produced the vectors; `fallback-hash-384` means fastembed failed and doc-processor will refuse the vectors. `tests/test_contract.py` pins this contract.
+
+- `POST /layout/s3` (ingestion v2): runs Marker on a page range of a PDF in S3.
+  - Body: `{ "bucket", "key", "pageStart", "pageEnd", "renderPreviews", "previewPrefix", "lexicon" }` (pages 1-based, inclusive).
+  - Returns `{ engine, pages: [{ pageNumber, markdown, blocks, widthPt, heightPt, previewKey, quality }], duration_ms }`. `blocks` are `{ id, class, markerType, bbox, markdown? }` with `bbox` normalized to 0..1. `quality` holds `wordValidity`, `symbolNoise`, `repetition`, `textSource` and `wordCount` (see `src/quality.py`).
+  - Answers 503 when Marker is not installed or its models failed to load.
+
+## Layout engine (ingestion v2)
+
+`src/layout_engine.py` is the only module that imports Marker. `marker-pdf` is pinned exactly in `requirements-layout.txt` (1.10.2) and was verified against that version's source. Re-verify before changing the pin; 2.x is a different API line. `TODO(verify-marker)` comments mark the details that still need a run on real pages.
+
+Build arguments:
+
+| Arg | Default | Purpose |
+|---|---|---|
+| `INSTALL_LAYOUT` | `true` | `false` builds the v1 OCR/embeddings image without torch or Marker |
+| `TORCH_INDEX_URL` | `https://download.pytorch.org/whl/cu126` | CUDA wheel index matching the host driver; `.../whl/cpu` for CPU-only |
+| `TORCH_VERSION` | `2.8.0` | Must satisfy Marker's `torch>=2.7,<3` |
+
+Model weights are cached under `HF_HOME=/models`; mount a named volume there. `LAYOUT_PRELOAD=true` (the default) loads the models at startup. The container runs as the non-root `app` user (uid 1001).
+
+The game lexicon (`src/data/game_lexicon.txt`) is generated from the repository's SRD data by `scripts/build_game_lexicon.py`. `tests/` mock Marker, so CI installs only `requirements.txt`.
 
 ## Docker Compose Configuration
 

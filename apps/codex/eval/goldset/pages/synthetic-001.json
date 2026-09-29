@@ -1,0 +1,60 @@
+{
+  "$schema": "../label.schema.json",
+  "id": "synthetic-001",
+  "goldsetVersion": 1,
+  "source": {
+    "sha256": "synthetic-0000000000000000000000000000000000000000000000000000000001",
+    "pageNumber": 1,
+    "title": "Synthetic example (not from any rulebook)",
+    "synthetic": true
+  },
+  "category": "monster_stat_block",
+  "heldOut": false,
+  "status": "verified",
+  "review": {
+    "verifiedBy": "harness-example",
+    "verifiedAt": "2026-09-28T00:00:00Z",
+    "numbersChecked": true,
+    "notes": "Hand-made page that exercises every metric. Replace nothing here; real pages go next to it."
+  },
+  "text": "Cinder Hounds\n\nCinder hounds prowl the ash fields, following the smell of smoke for miles.\n\nCinder Hound\n\nMedium elemental, unaligned\n\nArmor Class 14 (natural armor)\n\nHit Points 32 (5d8 + 10)\n\nSpeed 40 ft.\n\nSTR 15 (+2) DEX 14 (+2) CON 14 (+2) INT 3 (-4) WIS 12 (+1) CHA 6 (-2)\n\nChallenge 1 (200 XP)\n\nActions\n\nBite. Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (1d10 + 2) fire damage.\n\nAsh Lantern\n\nWondrous item, uncommon\n\nThis lantern sheds dim light in a 20-foot radius and never goes out.",
+  "regions": [
+    { "class": "stat_block", "bbox": [0.52, 0.08, 0.94, 0.62] },
+    { "class": "art", "bbox": [0.06, 0.55, 0.46, 0.93] },
+    { "class": "sidebar", "bbox": [0.52, 0.66, 0.94, 0.9] }
+  ],
+  "entities": [
+    {
+      "type": "monster",
+      "numbersChecked": true,
+      "data": {
+        "name": "Cinder Hound",
+        "size": "Medium",
+        "type": "elemental",
+        "alignment": "unaligned",
+        "armorClass": 14,
+        "armorType": "natural armor",
+        "hitPoints": 32,
+        "hitDice": "5d8 + 10",
+        "speed": "40 ft.",
+        "abilities": { "str": 15, "dex": 14, "con": 14, "int": 3, "wis": 12, "cha": 6 },
+        "challengeRating": "1 (200 XP)",
+        "traits": [],
+        "actions": [
+          { "name": "Bite", "description": "Melee Weapon Attack: +4 to hit, reach 5 ft., one target. Hit: 7 (1d10 + 2) fire damage." }
+        ]
+      }
+    },
+    {
+      "type": "item",
+      "numbersChecked": true,
+      "data": {
+        "name": "Ash Lantern",
+        "type": "Wondrous item",
+        "rarity": "uncommon",
+        "requiresAttunement": false,
+        "description": "This lantern sheds dim light in a 20-foot radius and never goes out."
+      }
+    }
+  ]
+}

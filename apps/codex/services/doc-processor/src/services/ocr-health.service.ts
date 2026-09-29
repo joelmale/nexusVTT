@@ -3,7 +3,7 @@ import { env } from '../config/env';
 export type OcrServiceHealth = {
   status: string;
   embed?: { model: string; dim: number };
-  layout?: { engine: string; version: string; modelsLoaded: boolean; device: string };
+  layout?: { engine: string; version: string; installed?: boolean; modelsLoaded: boolean; device: string; error?: string | null };
   [key: string]: unknown;
 };
 

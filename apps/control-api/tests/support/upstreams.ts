@@ -3,6 +3,7 @@ import { DOC_API_URL, OBJECT_STORAGE_ORIGIN, type UpstreamCall } from './harness
 export const DOC_ID = '0b6f1c1e-3b7a-4d7e-9a51-4a4a2d6f9c11';
 export const BATCH_ID = '7d0c5a8e-1f2b-4c3d-8e9f-0a1b2c3d4e5f';
 export const PRESIGNED_PUT = `${OBJECT_STORAGE_ORIGIN}/documents/documents/${DOC_ID}.pdf?X-Amz-Algorithm=AWS4-HMAC-SHA256&X-Amz-Signature=deadbeef`;
+export const PRESIGNED_PREVIEW = `${OBJECT_STORAGE_ORIGIN}/documents/page-previews/${DOC_ID}/page-1.webp?X-Amz-Signature=feedface`;
 export const PRESIGNED_PAGE = `${OBJECT_STORAGE_ORIGIN}/documents/pages/${DOC_ID}/page-1.webp?X-Amz-Signature=cafebabe`;
 export const WEBP_BYTES = Buffer.from('RIFF\x10\x00\x00\x00WEBPVP8 fake', 'latin1');
 
@@ -14,6 +15,7 @@ export interface CodexStubOptions {
   putStatus?: number;
   pageUrl?: string;
   pageContentType?: string;
+  previewUrl?: string;
 }
 
 /**
@@ -53,6 +55,12 @@ export function codexStub(options: CodexStubOptions = {}) {
           { key: `pages/${DOC_ID}/page-2.webp`, url: PRESIGNED_PAGE.replace('page-1', 'page-2'), pageNumber: 2 },
         ],
       });
+    }
+    if (call.url === `${DOC_API_URL}/api/admin/processing/${DOC_ID}/pages/1/preview-source`) {
+      return jsonResponse(200, { key: `page-previews/${DOC_ID}/page-1.webp`, url: options.previewUrl ?? PRESIGNED_PREVIEW });
+    }
+    if (call.url.startsWith(`${DOC_API_URL}/api/admin/processing/${DOC_ID}/pages/`) && call.url.endsWith('/preview-source')) {
+      return jsonResponse(404, { error: 'No preview for this page' });
     }
     if (url.origin === OBJECT_STORAGE_ORIGIN && call.method === 'GET') {
       return new Response(WEBP_BYTES, {

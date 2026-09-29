@@ -1,0 +1,15 @@
+{
+  "_comment": "Hand-written in Ollama's /api/chat (stream:false) response shape, not a live recording. Replace with recordings from the Dockhand server's Ollama in Phase 3.",
+  "model": "qwen2.5vl:7b",
+  "created_at": "2026-09-28T21:00:00.000Z",
+  "message": {
+    "role": "assistant",
+    "content": "{\"entities\": [{\"name\": \"Gorgon\", \"size\": \"Large\", \"type\": \"monstrosity\", \"alignment\": \"unaligned\", \"armorClass\": 19, \"armorType\": \"natural armor\", \"hitPoints\": 126, \"hitDice\": \"12d10 + 48\", \"speed\": \"40 ft.\", \"abilities\": {\"str\": 21, \"dex\": 11, \"con\": 18, \"int\": 2, \"wis\": 12, \"cha\": 7}, \"skills\": \"Perception +4\", \"conditionImmunities\": \"petrified\", \"senses\": \"darkvision 60 ft., passive Perception 14\", \"languages\": \"\\u2014\", \"challengeRating\": \"5 (1,800 XP)\", \"traits\": [{\"name\": \"Trample\", \"description\": \"If the gorgon moves at least 20 feet straight toward a creature and then hits it with a gore attack on the same turn, that target must succeed on a DC 16 Strength saving throw or be knocked prone.\"}], \"actions\": [{\"name\": \"Gore\", \"description\": \"Melee Weapon Attack: +8 to hit, reach 5 ft., one target. Hit: 18 (2d12 + 5) piercing damage.\"}, {\"name\": \"Hooves\", \"description\": \"Melee Weapon Attack: +8 to hit, reach 5 ft., one target. Hit: 16 (2d10 + 5) bludgeoning damage.\"}, {\"name\": \"Petrifying Breath (Recharge 5\\u20136)\", \"description\": \"The gorgon exhales petrifying gas in a 30-foot cone. Each creature in that area must succeed on a DC 13 Constitution saving throw.\"}]}]}"
+  },
+  "done_reason": "stop",
+  "done": true,
+  "total_duration": 2140000000,
+  "load_duration": 12000000,
+  "prompt_eval_count": 418,
+  "eval_count": 352
+}

@@ -9,7 +9,7 @@ const connection = new Redis(env.REDIS_URL, {
 
 export interface ProcessDocumentJob {
   documentId: string;
-  stage?: 'ingest' | 'render' | 'ocr' | 'extract' | 'index' | 'assets';
+  stage?: 'ingest' | 'render' | 'ocr' | 'layout' | 'extract' | 'index' | 'assets';
 }
 
 // Create queue instance
