@@ -119,6 +119,9 @@ export async function runLayoutStage(jobId: string, document: LayoutStageDocumen
     await loggingService.logInfo(jobId, `Markdown split into ${pageCount} section pages`, 'layout');
   } else {
     const health = await ocrHealthService.check('layout');
+    if (health.layout && health.layout.installed === false) {
+      throw new Error('ocr-service image has no layout engine (built with INSTALL_LAYOUT=false)');
+    }
     await loggingService.logInfo(
       jobId,
       `ocr-service layout engine: ${health.layout ? `${health.layout.engine}@${health.layout.version} on ${health.layout.device}` : 'not reported'}`,
