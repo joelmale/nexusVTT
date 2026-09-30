@@ -64,9 +64,8 @@ contracts, focused CI contract tests, and `actionlint`. It uses `ACTIONLINT_BIN`
 or a local `actionlint` executable when available, then falls back to the pinned
 `rhysd/actionlint:1.7.12` container image.
 
-Husky's `.husky/pre-push` hook blocks updates to `main` and runs the preflight.
-`ALLOW_PROTECTED_BRANCH_PUSH=1` is an emergency local bypass for the hook only;
-it does not bypass GitHub repository rules or branch protection.
+Husky's `.husky/pre-push` hook runs the preflight before every push. Protecting
+`main` is left to GitHub branch protection or repository rulesets.
 
 ## Pipeline lanes
 

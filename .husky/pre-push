@@ -2,5 +2,4 @@
 
 set -e
 
-node scripts/ci/protected-push.mjs
 npm run ci:preflight
