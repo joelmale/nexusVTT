@@ -218,15 +218,20 @@ export function CampaignOverview() {
 
   const selectNavigation = (label: string) => {
     setActiveNav(label);
-    if (label === 'Sessions') {
-      navigate('/demo/ashes-of-veyra/sessions/session-12/plan');
-      return;
+    const basePath = '/demo/ashes-of-veyra';
+    const sectionMap: Record<string, string> = {
+      'Sessions': `${basePath}/sessions/session-12/plan`,
+      'World': `${basePath}/world`,
+      'NPCs': `${basePath}/npcs`,
+      'Factions': `${basePath}/factions`,
+      'Quests': `${basePath}/quests`,
+      'Encounters': `${basePath}/encounters`,
+      'Maps': `${basePath}/maps/map-glass-harbor`,
+      'Lore': `${basePath}/lore`,
+    };
+    if (label !== 'Overview' && sectionMap[label]) {
+      navigate(sectionMap[label]);
     }
-    if (label === 'Maps') {
-      navigate('/demo/ashes-of-veyra/maps/map-glass-harbor');
-      return;
-    }
-    if (label !== 'Overview') notifyCapability('campaign.section.open');
   };
 
   return (
@@ -375,7 +380,17 @@ export function CampaignOverview() {
                     <button
                       className={styles.viewAll}
                       type="button"
-                      onClick={() => notifyCapability('campaign.section.open')}
+                      onClick={() => {
+                        const basePath = '/demo/ashes-of-veyra';
+                        const sectionNavMap: Record<string, string> = {
+                          'quests': `${basePath}/quests`,
+                          'encounters': `${basePath}/encounters`,
+                          'notes': `${basePath}/notes`,
+                        };
+                        if (sectionNavMap[section.id]) {
+                          navigate(sectionNavMap[section.id]);
+                        }
+                      }}
                     >
                       View All
                       <ArrowRight size={15} />
@@ -437,7 +452,7 @@ export function CampaignOverview() {
                 <h3>Backlinks</h3>
                 <button
                   type="button"
-                  onClick={() => notifyCapability('campaign.section.open')}
+                  onClick={() => navigate('/demo/ashes-of-veyra/npcs')}
                 >
                   See All
                   <ArrowRight size={14} />

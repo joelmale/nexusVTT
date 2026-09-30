@@ -39,7 +39,11 @@ describe('capability registry', () => {
       const capability = getCapability(id);
       expect(capability.id).toBe(id);
       expect(capability.label).not.toBe('');
-      if (id === 'session-plan.publish' || id === 'session-plan.activate') {
+      if (
+        id === 'session-plan.publish' ||
+        id === 'session-plan.activate' ||
+        id === 'campaign.section.open'
+      ) {
         expect(capability.status).toBe('implemented');
       } else {
         expect(capability.status).toBe('planned');

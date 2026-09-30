@@ -96,12 +96,21 @@ export function MapPreparation({
           {APP_NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = item.target === 'maps';
-            if (item.target === 'campaign') {
+            const sectionRouteMap: Record<string, string> = {
+              'campaign': `${basePath}/overview`,
+              'locations': `${basePath}/world`,
+              'npcs': `${basePath}/npcs`,
+              'encounters': `${basePath}/encounters`,
+              'notes': `${basePath}/notes`,
+            };
+            const targetRoute = sectionRouteMap[item.target];
+            if (targetRoute) {
               return (
                 <Link
                   className={styles.appRailItem}
                   key={item.target}
-                  to={`${basePath}/overview`}
+                  to={targetRoute}
+                  aria-current={active ? 'page' : undefined}
                 >
                   <Icon size={17} />
                   <span>{item.label}</span>

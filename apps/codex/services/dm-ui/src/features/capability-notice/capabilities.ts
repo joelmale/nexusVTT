@@ -63,7 +63,7 @@ export const CAPABILITY_REGISTRY: Record<CapabilityId, PrototypeCapability> = {
   'campaign.section.open': {
     id: 'campaign.section.open',
     label: 'Open campaign directory',
-    status: 'planned',
+    status: 'implemented',
     targetPhase: 'Campaign object directories',
     description:
       'Open a complete filtered directory for this campaign section.',
