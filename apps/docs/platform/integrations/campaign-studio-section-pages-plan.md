@@ -685,3 +685,25 @@ optimistic revision tracking; `seedFromFixture(slug) => campaignId`).
 - **T3–T8** section tasks: NPCs, Factions, Quests, World (locations), Lore
   (incl. handouts) get edit forms via `EditableSection`; Sessions, Encounters,
   Maps stay read-only apart from the existing run sheet.
+
+### 5.3 Addendum: Lore becomes Notes (supersedes §2.8 and the lore/handout parts of §5)
+
+- The rail item **Lore is renamed Notes**; route segment `notes` (legacy
+  `lore` redirects to `notes`). Placeholder file `NotesSectionRoute.tsx`.
+- Notes is a free-hand notes page for the DM: a list of notes, each a
+  formattable multi-line text body with a title, **anchored to a session, a
+  scene, or the whole campaign** (anchor picker in the detail pane; list is
+  grouped by session / scene / campaign-wide, filterable). Edit in place,
+  single "Add" row at the bottom of the list, same `EditableSection` scaffold.
+- Notes are DM-only by default. An optional "Share with" audience
+  (`none` default | `all` | selected player character ids) keeps the earlier
+  handout idea: a note the DM chooses to give to some or all players.
+- Server kind: `note` (already exists). `lore` is no longer an editable
+  first-cut kind; `EditableKind` becomes
+  `'npc' | 'faction' | 'quest' | 'location' | 'note'`.
+- Fixture clues/handouts/library are not shown on this page. For
+  start-from-example, fixture lore and handouts are seeded as campaign-wide
+  notes (handouts with audience `all`); clues are seeded into the note bodies
+  of the sessions they belong to when a session link exists, otherwise as
+  campaign-wide notes.
+- Example campaigns show their lore/handouts as read-only notes.
