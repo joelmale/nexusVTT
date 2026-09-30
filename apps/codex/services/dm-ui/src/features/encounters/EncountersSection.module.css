@@ -1,0 +1,144 @@
+.row {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.rowText {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rowTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rowKind {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+}
+
+.rowMeta,
+.badges {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.total {
+  background: var(--studio-neutral-soft);
+  border-radius: var(--studio-radius-control);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 700;
+  min-width: 24px;
+  padding: 2px 6px;
+  text-align: center;
+}
+
+.detail {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  padding: 20px;
+}
+
+.detail p {
+  margin: 0;
+}
+
+.detail section h3 {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.header h2 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.deploy {
+  background: var(--studio-surface-raised);
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  margin-left: auto;
+  min-height: var(--studio-control-height);
+  padding: 0 12px;
+}
+
+.deploy:hover {
+  background: var(--studio-surface-hover);
+}
+
+.deploy:focus-visible {
+  outline: 2px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.muted {
+  color: var(--studio-text-muted);
+  font-size: 14px;
+}
+
+.table {
+  border-collapse: collapse;
+  font-size: 14px;
+  width: 100%;
+}
+
+.table th,
+.table td {
+  border-bottom: 1px solid var(--studio-border);
+  padding: 6px 8px;
+  text-align: left;
+}
+
+.table thead th {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+}
+
+.table tfoot th,
+.table tfoot td {
+  border-bottom: 0;
+  font-weight: 700;
+}
+
+.srOnly {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  white-space: nowrap;
+  width: 1px;
+}

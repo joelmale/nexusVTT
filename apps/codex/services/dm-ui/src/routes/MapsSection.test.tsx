@@ -1,0 +1,123 @@
+import { screen } from '@testing-library/react';
+import { describe, expect, it } from 'vitest';
+
+import { getFixtureBundle } from '@/demo/fixture-registry';
+import { buildMapPreparationModel } from '@/features/map-preparation/buildMapPreparationModel';
+import { renderSection } from '@/features/section-shell/testUtils';
+
+const SLUGS = [
+  'ashes-of-veyra',
+  'crown-of-cinders',
+  'lanterns-of-mourningfen',
+  'stars-below-kharad',
+];
+
+describe('Maps section', () => {
+  it.each(SLUGS)('renders an index for %s', (slug) => {
+    renderSection(`/demo/${slug}/maps`);
+    expect(
+      screen.getByRole('heading', { name: 'Maps', level: 1 }),
+    ).toBeVisible();
+    const bundle = getFixtureBundle(slug)!;
+    if (bundle.maps.length === 0) {
+      expect(screen.getByText('No maps yet.')).toBeVisible();
+    } else {
+      const link = screen.getByRole('link', {
+        name: new RegExp(bundle.maps[0]!.title),
+      });
+      expect(link).toHaveAttribute(
+        'href',
+        `/demo/${slug}/maps/${bundle.maps[0]!.id}`,
+      );
+    }
+  });
+
+  it('links cards to the prep workspace and shows counts', () => {
+    renderSection('/demo/ashes-of-veyra/maps');
+    const link = screen.getByRole('link', { name: /Glass Harbor/ });
+    expect(link).toHaveAttribute(
+      'href',
+      '/demo/ashes-of-veyra/maps/map-glass-harbor',
+    );
+    expect(link).toHaveTextContent(/pinned locations? · \d+ layers?/);
+  });
+
+  it('renders a real-campaign empty index', () => {
+    renderSection('/campaigns/campaign-blank/maps');
+    expect(screen.getByText('No maps yet.')).toBeVisible();
+    expect(screen.getByRole('button', { name: 'Upload map' })).toBeVisible();
+  });
+
+  it('renders the prep workspace with a back link', () => {
+    renderSection('/demo/ashes-of-veyra/maps/map-glass-harbor');
+    expect(screen.getByRole('link', { name: /Back to Maps/ })).toHaveAttribute(
+      'href',
+      '/demo/ashes-of-veyra/maps',
+    );
+  });
+
+  it('shows not-found for an unknown map', () => {
+    renderSection('/demo/ashes-of-veyra/maps/nope');
+    expect(screen.getByText('Map not found')).toBeVisible();
+  });
+
+  it('?pin= selects the pin', () => {
+    const bundle = getFixtureBundle('ashes-of-veyra')!;
+    const pins = bundle.pins.filter((p) => p.mapId === 'map-glass-harbor');
+    const other = pins.find((p) => !p.selectedByDefault)!;
+    const model = buildMapPreparationModel(
+      bundle,
+      'map-glass-harbor',
+      other.id,
+    )!;
+    expect(model.selectedPinId).toBe(other.id);
+    renderSection(`/demo/ashes-of-veyra/maps/map-glass-harbor?pin=${other.id}`);
+    const location = bundle.locations.find((l) => l.id === other.locationId)!;
+    expect(screen.getByRole('heading', { name: location.name })).toBeVisible();
+  });
+
+  it('takes scene titles from sceneTemplates', () => {
+    const bundle = structuredClone(getFixtureBundle('ashes-of-veyra')!);
+    bundle.sceneTemplates = [{ id: 'scene-x', title: 'Custom Scene Title' }];
+    const pin = bundle.pins.find((p) => p.mapId === 'map-glass-harbor')!;
+    pin.linkedObjectIds = ['scene-x'];
+    const model = buildMapPreparationModel(bundle, 'map-glass-harbor', pin.id)!;
+    const titles = model.locations.flatMap((l) =>
+      l.linkedObjects.map((o) => o.title),
+    );
+    expect(titles).toContain('Custom Scene Title');
+  });
+
+  it('builds a no-image model and renders the placeholder', async () => {
+    const bundle = structuredClone(getFixtureBundle('ashes-of-veyra')!);
+    delete bundle.maps[0]!.imagePath;
+    const model = buildMapPreparationModel(bundle, bundle.maps[0]!.id)!;
+    expect(model.imagePath).toBe('');
+    const { render } = await import('@testing-library/react');
+    const { MemoryRouter } = await import('react-router-dom');
+    const { MapPreparation } =
+      await import('@/features/map-preparation/MapPreparation');
+    render(
+      <MemoryRouter>
+        <MapPreparation model={model} onCapability={() => undefined} />
+      </MemoryRouter>,
+    );
+    expect(screen.getByTestId('map-no-image')).toBeInTheDocument();
+  });
+
+  it('renders the card placeholder when a map has no image', async () => {
+    const bundle = structuredClone(getFixtureBundle('ashes-of-veyra')!);
+    delete bundle.maps[0]!.imagePath;
+    const { render } = await import('@testing-library/react');
+    const { MemoryRouter } = await import('react-router-dom');
+    const { MapsIndex } = await import('@/features/maps/MapsIndex');
+    render(
+      <MemoryRouter>
+        <MapsIndex basePath="/demo/x" bundle={bundle} />
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getAllByTestId('map-card-placeholder')[0],
+    ).toBeInTheDocument();
+  });
+});

@@ -1,13 +1,10 @@
-import { EmptyState } from '@/features/section-shell/EmptyState';
 import { SectionRoute } from '@/features/section-shell/SectionRoute';
+import { EncountersSection } from '@/features/encounters/EncountersSection';
 
 export function EncountersSectionRoute() {
   return (
     <SectionRoute title="Encounters">
-      <main>
-        <h1>Encounters</h1>
-        <EmptyState title="Coming soon" />
-      </main>
+      <EncountersSection />
     </SectionRoute>
   );
 }

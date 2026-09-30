@@ -1,0 +1,120 @@
+.monogram {
+  align-items: center;
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border);
+  border-radius: 50%;
+  color: var(--studio-text);
+  display: inline-flex;
+  flex: none;
+  font-size: 12px;
+  font-weight: 700;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.rowText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rowName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowRole {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.factionChip {
+  background: var(--studio-surface-muted);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text-muted);
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  max-width: 110px;
+  overflow: hidden;
+  padding: 2px 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emptyList {
+  color: var(--studio-text-muted);
+  margin: 0;
+  padding: 12px;
+}
+
+.subtitle {
+  color: var(--studio-text-muted);
+  margin: 0;
+}
+
+.fields {
+  display: grid;
+  gap: 12px;
+  margin: 0;
+  max-width: var(--studio-detail-max);
+}
+
+.fields dt {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.fields dd {
+  margin: 2px 0 0;
+}
+
+.tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.tags li {
+  background: var(--studio-surface-muted);
+  border-radius: var(--studio-radius-control);
+  font-size: 12px;
+  padding: 2px 8px;
+}
+
+.factions h3,
+.nextSession h3 {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  letter-spacing: 0.04em;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.factions ul,
+.nextSession ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.hint {
+  color: var(--studio-text-muted);
+  margin: 12px 0 0;
+}

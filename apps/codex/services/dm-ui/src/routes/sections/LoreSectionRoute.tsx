@@ -1,13 +1,10 @@
-import { EmptyState } from '@/features/section-shell/EmptyState';
+import { LoreSection } from '@/features/lore/LoreSection';
 import { SectionRoute } from '@/features/section-shell/SectionRoute';
 
 export function LoreSectionRoute() {
   return (
     <SectionRoute title="Lore">
-      <main>
-        <h1>Lore</h1>
-        <EmptyState title="Coming soon" />
-      </main>
+      <LoreSection />
     </SectionRoute>
   );
 }

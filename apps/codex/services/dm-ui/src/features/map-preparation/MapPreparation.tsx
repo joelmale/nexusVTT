@@ -34,6 +34,8 @@ import styles from './MapPreparation.module.css';
 
 interface MapPreparationProps {
   model: MapPreparationViewModel;
+  /** `/demo/<slug>` or `/campaigns/<id>`; links are built from it. */
+  basePath?: string;
   onCapability: (capabilityId: CapabilityId) => void;
 }
 
@@ -52,7 +54,11 @@ const APP_NAV_ITEMS = [
   { icon: NotebookPen, label: 'Journal', target: 'journal' },
 ] as const;
 
-export function MapPreparation({ model, onCapability }: MapPreparationProps) {
+export function MapPreparation({
+  model,
+  basePath = '',
+  onCapability,
+}: MapPreparationProps) {
   const [selectedPinId, setSelectedPinId] = useState(model.selectedPinId);
   const [visibleLayers, setVisibleLayers] = useState<Record<string, boolean>>(
     Object.fromEntries(model.layers.map((layer) => [layer.id, layer.visible])),
@@ -83,6 +89,10 @@ export function MapPreparation({ model, onCapability }: MapPreparationProps) {
     <div className={styles.layout}>
       <nav className={styles.appRail} aria-label="Campaign Studio tools">
         <div className={styles.appRailScroll}>
+          <Link className={styles.appRailItem} to={`${basePath}/maps`}>
+            <ChevronLeft size={17} />
+            <span>Back to Maps</span>
+          </Link>
           {APP_NAV_ITEMS.map((item) => {
             const Icon = item.icon;
             const active = item.target === 'maps';
@@ -91,7 +101,7 @@ export function MapPreparation({ model, onCapability }: MapPreparationProps) {
                 <Link
                   className={styles.appRailItem}
                   key={item.target}
-                  to="/demo/ashes-of-veyra/overview"
+                  to={`${basePath}/overview`}
                 >
                   <Icon size={17} />
                   <span>{item.label}</span>
@@ -202,11 +212,21 @@ export function MapPreparation({ model, onCapability }: MapPreparationProps) {
             className={styles.mapTransform}
             style={{ transform: `scale(${zoom})` }}
           >
-            <img
-              alt="Top-down illustrated map of Glass Harbor"
-              className={styles.mapImage}
-              src={model.imagePath}
-            />
+            {model.imagePath ? (
+              <img
+                alt={`Top-down illustrated map of ${model.title}`}
+                className={styles.mapImage}
+                src={model.imagePath}
+              />
+            ) : (
+              <div
+                className={styles.mapImage}
+                data-testid="map-no-image"
+                role="img"
+                aria-label={`${model.title} has no map image yet`}
+                style={{ background: 'var(--studio-surface-sunken, #2a2a2a)' }}
+              />
+            )}
             {visiblePins.map((pin, index) => (
               <button
                 aria-label={`Select ${pin.label}`}
@@ -258,7 +278,9 @@ export function MapPreparation({ model, onCapability }: MapPreparationProps) {
             100 ft
           </div>
           <div className={styles.minimap}>
-            <img alt="" aria-hidden="true" src={model.imagePath} />
+            {model.imagePath ? (
+              <img alt="" aria-hidden="true" src={model.imagePath} />
+            ) : null}
             <span style={{ height: `${44 / zoom}%`, width: `${62 / zoom}%` }} />
           </div>
 
@@ -353,10 +375,12 @@ function LocationInspector({
         {selectedTab === 'details' && (
           <>
             <div className={styles.locationImage}>
-              <img
-                alt={`${location.name} map detail`}
-                src={location.imagePath ?? fallbackImagePath}
-              />
+              {(location.imagePath ?? fallbackImagePath) ? (
+                <img
+                  alt={`${location.name} map detail`}
+                  src={location.imagePath ?? fallbackImagePath}
+                />
+              ) : null}
               <span>{location.typeLabel}</span>
             </div>
             <h2>{location.name}</h2>

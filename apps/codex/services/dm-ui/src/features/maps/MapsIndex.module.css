@@ -1,0 +1,64 @@
+.grid {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.card {
+  background: var(--studio-surface-raised);
+  border: 1px solid var(--studio-border);
+  border-radius: 8px;
+  color: inherit;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  text-decoration: none;
+}
+
+.card:hover,
+.card:focus-visible {
+  border-color: var(--studio-accent, currentColor);
+}
+
+.thumb {
+  aspect-ratio: 16 / 9;
+  background: var(--studio-surface-sunken, rgb(128 128 128 / 0.18));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.thumb img {
+  height: 100%;
+  object-fit: cover;
+  width: 100%;
+}
+
+.body {
+  display: grid;
+  gap: 6px;
+  padding: 12px 14px 14px;
+}
+
+.body h2 {
+  font-size: 1rem;
+  margin: 0;
+}
+
+.description {
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+}
+
+.meta {
+  font-size: 0.8rem;
+  opacity: 0.75;
+}

@@ -1,13 +1,10 @@
-import { EmptyState } from '@/features/section-shell/EmptyState';
 import { SectionRoute } from '@/features/section-shell/SectionRoute';
+import { WorldSection } from '@/features/world/WorldSection';
 
 export function WorldSectionRoute() {
   return (
     <SectionRoute title="World">
-      <main>
-        <h1>World</h1>
-        <EmptyState title="Coming soon" />
-      </main>
+      <WorldSection />
     </SectionRoute>
   );
 }

@@ -1,0 +1,58 @@
+.detail {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--studio-gap-md);
+}
+
+.public {
+  display: grid;
+  gap: var(--studio-gap-sm);
+}
+
+.heading {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--studio-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.value {
+  color: var(--studio-text-primary);
+}
+
+.relations {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--studio-gap-sm);
+  align-items: center;
+}
+
+.relationType {
+  display: flex;
+  align-items: center;
+  gap: var(--studio-gap-xs);
+}
+
+.relationLabel {
+  font-size: 0.875rem;
+  color: var(--studio-text-secondary);
+  min-width: 3rem;
+}
+
+.relationChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--studio-gap-xs);
+}
+
+.members {
+  display: grid;
+  gap: var(--studio-gap-sm);
+}
+
+.membersList {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--studio-gap-xs);
+}
