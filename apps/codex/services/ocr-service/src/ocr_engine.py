@@ -109,13 +109,14 @@ class OCREngine:
             "vram_used_mb": None,
             "vram_free_mb": None,
             "gpu_utilization_pct": None,
+            "gpu_temperature_c": None,
         }
 
         try:
             result = subprocess.run(
                 [
                     "nvidia-smi",
-                    "--query-gpu=name,memory.total,memory.used,memory.free,utilization.gpu",
+                    "--query-gpu=name,memory.total,memory.used,memory.free,utilization.gpu,temperature.gpu",
                     "--format=csv,noheader,nounits"
                 ],
                 capture_output=True,
@@ -130,6 +131,11 @@ class OCREngine:
                     telemetry["vram_used_mb"] = float(parts[2])
                     telemetry["vram_free_mb"] = float(parts[3])
                     telemetry["gpu_utilization_pct"] = float(parts[4])
+                if len(parts) >= 6:
+                    try:
+                        telemetry["gpu_temperature_c"] = float(parts[5])
+                    except ValueError:
+                        pass
         except Exception:
             pass
 

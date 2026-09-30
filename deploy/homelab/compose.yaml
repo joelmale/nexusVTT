@@ -164,6 +164,9 @@ services:
       PROMETHEUS_URL: ${CONTROL_PROMETHEUS_URL:-}
       GRAFANA_URL: ${CONTROL_GRAFANA_URL:-}
       RULES_ADMIN_SERVICE_TOKEN: ${RULES_ADMIN_SERVICE_TOKEN:?RULES_ADMIN_SERVICE_TOKEN is required, see deploy/homelab/.env.example}
+      # Wakes the Live Proof event stream when doc-processor publishes (pub/sub
+      # only; events are read from doc-api). Unset: the stream polls instead.
+      CODEX_REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required, see deploy/homelab/.env.example}@redis:6379/1
     # Private admin control plane (control-api-adr.md): the only browser-facing
     # API on the :8081 admin listener, and the only component that calls
     # doc-api on an administrator's behalf. nexus-internal-net reaches

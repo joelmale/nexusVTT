@@ -50,8 +50,10 @@ const db = vi.hoisted(() => {
       },
     },
     processingEvent: {
-      createMany: async ({ data }: any) => {
-        state.events.push(...data);
+      createManyAndReturn: async ({ data }: any) => {
+        const rows = data.map((row: any) => ({ ...row, id: BigInt(state.events.length + 1), createdAt: new Date() }));
+        state.events.push(...rows);
+        return rows;
       },
     },
   };

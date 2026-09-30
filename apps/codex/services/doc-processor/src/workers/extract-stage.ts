@@ -6,7 +6,7 @@ import { entityResolverService } from '../services/entity-resolver.service';
 import { entityLinkingService } from '../services/entity-linking.service';
 import { layoutClientService } from '../services/layout-client.service';
 import { llmExtractionService } from '../services/llm-extraction.service';
-import { monsterCropService } from '../services/monster-crop.service';
+import { monsterCropService, type CropResult } from '../services/monster-crop.service';
 import { env } from '../config/env';
 import { Candidate, CandidatePage, detectCandidates } from '../extraction/candidates';
 import { EntityType, ExtractedEntity, Item, Monster, Spell } from '../extraction/schemas';
@@ -24,6 +24,8 @@ export type CandidateResult = {
   candidate: Candidate;
   cached: boolean;
   parseFailed: boolean;
+  /** Model call time (0-ish when served from the extraction cache). */
+  durationMs?: number;
   entities: Array<{ name: string; entity: ExtractedEntity; review: Review }>;
 };
 
@@ -64,6 +66,8 @@ export type ExtractStageHooks = {
   onCandidates?: (candidates: Candidate[]) => Promise<void>;
   /** After each candidate is extracted and validated. */
   onCandidate?: (result: CandidateResult) => Promise<void>;
+  /** Just before a candidate goes to the model. */
+  onDispatch?: (candidate: Candidate, crops: Array<Omit<CropResult, 'buffer'>>) => Promise<void>;
 };
 
 export async function runExtractStage(
@@ -92,11 +96,11 @@ export async function runExtractStage(
   }
 
   const monsters = candidates.filter((c) => c.type === 'monster');
-  let crops = new Map<string, Buffer[]>();
+  let crops = new Map<string, CropResult[]>();
   if (document.format === 'pdf' && monsters.length > 0) {
     try {
       const pdf = await s3Service.downloadFile(document.storageKey);
-      crops = await monsterCropService.cropRegions(pdf, new Map(monsters.map((c) => [c.key, c.regions])));
+      crops = await monsterCropService.cropRegionsWithGeometry(pdf, new Map(monsters.map((c) => [c.key, c.regions])));
     } catch (error: any) {
       // Text still anchors the extraction; the missing crop is a review reason.
       await loggingService.logWarn(jobId, `Monster crops failed, extracting from text only: ${error.message}`, 'extract');
@@ -112,7 +116,12 @@ export async function runExtractStage(
 
   try {
     for (const candidate of candidates) {
-      const images = candidate.type === 'monster' ? crops.get(candidate.key) : undefined;
+      const candidateCrops = candidate.type === 'monster' ? crops.get(candidate.key) : undefined;
+      const images = candidateCrops?.map((crop) => crop.buffer);
+      if (hooks.onDispatch) {
+        await hooks.onDispatch(candidate, (candidateCrops ?? []).map(({ buffer: _buffer, ...geometry }) => geometry));
+      }
+      const callStart = Date.now();
       const outcome = await llmExtractionService.extractCandidate({
         documentId: document.id,
         contentHash: document.contentHash || 'unhashed',
@@ -136,7 +145,13 @@ export async function runExtractStage(
         cacheKey: outcome.cacheKey,
       };
 
-      const result: CandidateResult = { candidate, cached: outcome.cached, parseFailed: outcome.parseFailed, entities: [] };
+      const result: CandidateResult = {
+        candidate,
+        cached: outcome.cached,
+        parseFailed: outcome.parseFailed,
+        entities: [],
+        durationMs: Date.now() - callStart,
+      };
 
       for (const entity of outcome.entities) {
         const review = reviewEntity(candidate.type, entity, candidate.markdown);

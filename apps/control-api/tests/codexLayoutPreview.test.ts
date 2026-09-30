@@ -24,6 +24,7 @@ describe('ingestion v2 live processing routes', () => {
     const paths = CODEX_ALLOWLIST.filter((route) => route.path.startsWith('admin/processing/:id')).map((route) => route.path);
     expect(paths).toEqual([
       'admin/processing/:id/events',
+      'admin/processing/:id/stream',
       'admin/processing/:id/pages',
       'admin/processing/:id/pages/:page',
       'admin/processing/:id/pages/:page/preview',

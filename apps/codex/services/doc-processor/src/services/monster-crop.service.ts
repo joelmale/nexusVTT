@@ -12,8 +12,14 @@ const MARGIN = 0.015; // normalized margin added around each region
  */
 export class MonsterCropService {
   async cropRegions(pdfBuffer: Buffer, regionsByKey: Map<string, CandidateRegion[]>): Promise<Map<string, Buffer[]>> {
+    const crops = await this.cropRegionsWithGeometry(pdfBuffer, regionsByKey);
+    return new Map([...crops].map(([key, list]) => [key, list.map((crop) => crop.buffer)]));
+  }
+
+  /** Like cropRegions, with each crop's pixel box on the rendered page (for the console). */
+  async cropRegionsWithGeometry(pdfBuffer: Buffer, regionsByKey: Map<string, CandidateRegion[]>): Promise<Map<string, CropResult[]>> {
     const pages = [...new Set([...regionsByKey.values()].flat().map((r) => r.pageNumber))].sort((a, b) => a - b);
-    const crops = new Map<string, Buffer[]>();
+    const crops = new Map<string, CropResult[]>();
     if (pages.length === 0) return crops;
 
     const rendered = new Map<number, Buffer>();
@@ -26,10 +32,10 @@ export class MonsterCropService {
     });
 
     for (const [key, regions] of regionsByKey) {
-      const images: Buffer[] = [];
+      const images: CropResult[] = [];
       for (const region of regions) {
         const page = rendered.get(region.pageNumber);
-        if (page) images.push(await cropRegion(page, region.bbox));
+        if (page) images.push({ pageNumber: region.pageNumber, ...(await cropRegionWithGeometry(page, region.bbox)) });
       }
       crops.set(key, images);
     }
@@ -37,7 +43,15 @@ export class MonsterCropService {
   }
 }
 
-export const cropRegion = async (pagePng: Buffer, bbox: [number, number, number, number]): Promise<Buffer> => {
+export type CropResult = { pageNumber: number; buffer: Buffer; left: number; top: number; width: number; height: number };
+
+export const cropRegion = async (pagePng: Buffer, bbox: [number, number, number, number]): Promise<Buffer> =>
+  (await cropRegionWithGeometry(pagePng, bbox)).buffer;
+
+export const cropRegionWithGeometry = async (
+  pagePng: Buffer,
+  bbox: [number, number, number, number]
+): Promise<Omit<CropResult, 'pageNumber'>> => {
   const image = sharp(pagePng);
   const { width = 0, height = 0 } = await image.metadata();
   const x0 = Math.max(0, bbox[0] - MARGIN);
@@ -49,15 +63,8 @@ export const cropRegion = async (pagePng: Buffer, bbox: [number, number, number,
   const top = Math.floor(y0 * height);
   const right = Math.min(width, Math.round(x1 * width));
   const bottom = Math.min(height, Math.round(y1 * height));
-  return image
-    .extract({
-      left,
-      top,
-      width: Math.max(1, right - left),
-      height: Math.max(1, bottom - top),
-    })
-    .png()
-    .toBuffer();
+  const box = { left, top, width: Math.max(1, right - left), height: Math.max(1, bottom - top) };
+  return { ...box, buffer: await image.extract(box).png().toBuffer() };
 };
 
 export const monsterCropService = new MonsterCropService();

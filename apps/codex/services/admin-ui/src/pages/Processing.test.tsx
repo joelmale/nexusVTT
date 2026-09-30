@@ -104,7 +104,8 @@ describe('Processing Page', () => {
     expect((await screen.findAllByText('Failed')).length).toBeGreaterThan(0)
 
     // Pipeline Hero section
-    expect(await screen.findByText('Pipeline Architecture & Live Status')).toBeDefined()
+    expect(await screen.findByText('Live processing')).toBeDefined()
+    expect(screen.getByText('Pipeline graph, file facts and stage retry')).toBeDefined()
     expect(screen.getByText('Document Processing Graph')).toBeDefined()
 
     // Job table entries

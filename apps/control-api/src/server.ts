@@ -3,6 +3,7 @@ import { OpenIdProvider } from './auth/oidc.js';
 import { CookieCrypto } from './auth/tokens.js';
 import { ASSET_ALLOWLIST } from './assets/allowlist.js';
 import { CODEX_ALLOWLIST } from './codex/allowlist.js';
+import { createRedisPipelineEvents } from './codex/pipelineEvents.js';
 import { ConfigError, loadServerConfig } from './config.js';
 import { UPLOAD_BODY_DEADLINE_MS } from './http/bodyDeadline.js';
 import { createLogger, type LogLevel } from './logger.js';
@@ -27,6 +28,7 @@ function main(): void {
   }
 
   const store = PgControlStore.fromUrl(config.databaseUrl);
+  const pipelineEvents = config.codexRedisUrl ? createRedisPipelineEvents(config.codexRedisUrl, logger) : undefined;
   const app = createApp({
     config,
     store,
@@ -43,6 +45,7 @@ function main(): void {
     rulesRoutes: new RouteTable(RULES_ALLOWLIST),
     now: () => new Date(),
     fetch: globalThis.fetch,
+    pipelineEvents,
   });
 
   const server = app.listen(config.port, () => {
@@ -51,14 +54,15 @@ function main(): void {
   // Headers must arrive quickly (slowloris). requestTimeout is one value for
   // every route, so it only backstops the longest body allowance (the 320 MiB
   // Codex upload); bodyDeadline() enforces the shorter per-route deadlines
-  // and a no-progress idle timeout.
+  // and a no-progress idle timeout. It does not limit response time, so the
+  // processing event stream (a GET) ends itself instead.
   server.headersTimeout = 30_000;
   server.requestTimeout = UPLOAD_BODY_DEADLINE_MS + 60_000;
 
   const shutdown = (signal: string) => {
     logger.info('shutting down', { signal });
     server.close(() => {
-      store.close().finally(() => process.exit(0));
+      Promise.all([store.close(), pipelineEvents?.close()]).finally(() => process.exit(0));
     });
     setTimeout(() => process.exit(1), 10_000).unref();
   };

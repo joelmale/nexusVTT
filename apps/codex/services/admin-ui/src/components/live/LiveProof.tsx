@@ -7,18 +7,27 @@ import { GoldsetEditor } from './GoldsetEditor'
 import type { GoldLabel } from './goldset'
 import { EntityCard } from './EntityCard'
 import { OverlayLegend, PageOverlay } from './PageOverlay'
+import { PipelineStepper } from './PipelineStepper'
+import { eventInStep } from './pipeline'
 import { QualityBadge } from './QualityBadge'
 import { useLiveState, useProcessingEvents } from './useProcessingEvents'
 import { useReducedMotion } from './useReducedMotion'
 import type { BBox, ExtractedEntityPayload, LayoutBlock, PageDetail, PageSummary, ProcessingEvent } from './types'
 
-const V2_STAGES = ['ingest', 'layout', 'extract', 'index', 'assets']
-const V1_STAGES = ['ingest', 'render', 'ocr', 'extract', 'index', 'assets']
-const STAGE_NAMES: Record<string, string> = {
-  ingest: 'Ingest', render: 'Render', ocr: 'OCR', layout: 'Layout', extract: 'Extraction', index: 'Index', assets: 'Assets',
-}
 /** Batches arrive as bursts; the canvas steps through a burst this fast. */
 export const PAGE_REVEAL_MS = 600
+
+/** Ticks once a second while `enabled`, for live elapsed timers. */
+function useNow(enabled: boolean) {
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    if (!enabled) return
+    setNow(Date.now())
+    const timer = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(timer)
+  }, [enabled])
+  return now
+}
 
 /**
  * Follows the newest completed page, but walks through a burst of pages one
@@ -37,8 +46,8 @@ function useRevealedLatest(pages: number[], reducedMotion: boolean) {
   return shown
 }
 
-function PageMarkdown({ documentId, pageNumber }: { documentId: string; pageNumber: number }) {
-  const [open, setOpen] = useState(false)
+function PageMarkdown({ documentId, pageNumber, defaultOpen = false }: { documentId: string; pageNumber: number; defaultOpen?: boolean }) {
+  const [open, setOpen] = useState(defaultOpen)
   const { data } = useQuery<PageDetail>({
     queryKey: ['live-page', documentId, pageNumber],
     queryFn: async () => {
@@ -49,9 +58,13 @@ function PageMarkdown({ documentId, pageNumber }: { documentId: string; pageNumb
     enabled: open,
   })
   return (
-    <details className="rounded border border-gray-200 bg-gray-50" onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}>
-      <summary className="cursor-pointer px-2 py-1 text-xs font-medium text-gray-700">Page {pageNumber} Markdown</summary>
-      <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap px-2 pb-2 text-[11px] text-gray-800">{data ? data.markdown : 'Loading…'}</pre>
+    <details
+      open={open}
+      className="rounded border border-emerald-200 bg-emerald-50/40 dark:border-emerald-900 dark:bg-emerald-950/20"
+      onToggle={(e) => setOpen((e.target as HTMLDetailsElement).open)}
+    >
+      <summary className="cursor-pointer px-2 py-1 font-mono text-xs font-medium text-emerald-800 dark:text-emerald-300">Page {pageNumber} Markdown</summary>
+      <pre className="max-h-48 overflow-y-auto whitespace-pre-wrap px-2 pb-2 text-[11px] text-gray-800 dark:text-slate-200">{data ? data.markdown : 'Loading…'}</pre>
     </details>
   )
 }
@@ -59,7 +72,7 @@ function PageMarkdown({ documentId, pageNumber }: { documentId: string; pageNumb
 export interface LiveProofProps {
   documentId: string
   documentTitle?: string
-  /** A job for this document is running: poll every 1.5 s. */
+  /** A job for this document is running: follow it live. */
   active: boolean
   rawLogs?: ReactNode
   /** Document.contentHash: identifies the source PDF in gold-set labels. */
@@ -69,8 +82,11 @@ export interface LiveProofProps {
 export function LiveProof({ documentId, documentTitle, active, rawLogs, contentHash }: LiveProofProps) {
   const reducedMotion = useReducedMotion()
   const [replayRunId, setReplayRunId] = useState<string | null>(null)
-  const { events, runs, runId, error, replay } = useProcessingEvents(documentId, { active, replayRunId })
+  const { events, runs, runId, error, replay, transport } = useProcessingEvents(documentId, { active, replayRunId })
   const live = useLiveState(events)
+  const [selectedStep, setSelectedStep] = useState<string | null>(null)
+  const running = live.steps.some((step) => step.status === 'active')
+  const now = useNow(running && !replay.active)
 
   const [followLive, setFollowLive] = useState(true)
   const [manualPage, setManualPage] = useState<number | null>(null)
@@ -126,40 +142,68 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs, contentH
     setHighlight(entity.source.regions.filter((r) => r.pageNumber === (region?.pageNumber ?? entity.source.pageNumber)).map((r) => r.bbox))
   }
 
-  const stages = live.pipelineVersion === 'v1' ? V1_STAGES : V2_STAGES
-  const stageIndex = live.activeStage ? stages.indexOf(live.activeStage) : -1
   const newestEntityId = live.entities[live.entities.length - 1]?.eventId
+  const activeStep = live.steps.find((step) => step.status === 'active')
+  const failedStep = live.steps.find((step) => step.status === 'failed')
+  const finished = events.length > 0 && live.steps.every((step) => step.status === 'done' || step.status === 'skipped')
+  const stepLabel = selectedStep ? live.steps.find((step) => step.id === selectedStep)?.label : undefined
 
+  // Clicking a step narrows the artifact stream and the console to it.
+  const scoped = useMemo(
+    () => (selectedStep ? events.filter((event) => eventInStep(event, selectedStep, live.pipelineVersion)) : events),
+    [events, selectedStep, live.pipelineVersion]
+  )
   // Artifact stream: page Markdown and entity cards in the order they happened.
   const stream = useMemo(
-    () => events.filter((event): event is ProcessingEvent => event.kind === 'page_markdown' || event.kind === 'entity_extracted'),
-    [events]
+    () => scoped.filter((event): event is ProcessingEvent => event.kind === 'page_markdown' || event.kind === 'entity_extracted'),
+    [scoped]
   )
+  const newestMarkdownId = [...stream].reverse().find((event) => event.kind === 'page_markdown')?.id
 
   return (
-    <section className="rounded-xl border border-gray-200 bg-white shadow-sm" aria-labelledby="live-proof-title">
+    <section
+      className="rounded-xl border border-gray-200 bg-white text-gray-900 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-100"
+      aria-labelledby="live-proof-title"
+    >
       {/* Header strip */}
-      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50/80 px-4 py-3">
+      <div className="flex flex-wrap items-center justify-between gap-3 border-b border-gray-200 bg-gray-50/80 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/60">
         <div className="min-w-0">
-          <h2 id="live-proof-title" className="text-sm font-semibold text-gray-900">
-            Live Proof
-            {documentTitle && <span className="ml-2 font-normal text-gray-500">{documentTitle}</span>}
+          <h2 id="live-proof-title" className="font-mono text-sm font-semibold tracking-wide text-gray-900 dark:text-slate-100">
+            CODEX INGESTION ENGINE
+            {documentTitle && <span className="font-normal text-gray-500 dark:text-slate-400"> :: {documentTitle}</span>}
           </h2>
           <div className="mt-1 flex flex-wrap items-center gap-2 text-xs">
-            <QualityBadge value={live.quality.average} lowPages={live.quality.lowPages} onSelectPage={selectPage} />
-            <span className="rounded-md border border-indigo-200 bg-indigo-50 px-2 py-0.5 font-mono text-indigo-700" data-testid="stage-indicator">
-              {live.activeStage && stageIndex >= 0
-                ? `Stage: ${STAGE_NAMES[live.activeStage] ?? live.activeStage} (${stageIndex + 1} of ${stages.length})`
-                : active
-                  ? 'Stage: waiting'
-                  : 'Idle'}
+            <QualityBadge label="Lexicon Match" value={live.quality.average} lowPages={live.quality.lowPages} onSelectPage={selectPage} />
+            <span
+              className={`rounded-md border px-2 py-0.5 font-mono ${
+                failedStep
+                  ? 'border-red-300 bg-red-50 text-red-700 dark:border-red-800 dark:bg-red-950/50 dark:text-red-300'
+                  : 'border-indigo-200 bg-indigo-50 text-indigo-700 dark:border-indigo-800 dark:bg-indigo-950/50 dark:text-indigo-300'
+              }`}
+              data-testid="stage-indicator"
+            >
+              {failedStep
+                ? `FAILED: ${failedStep.label}`
+                : activeStep
+                  ? `ACTIVE: ${activeStep.label}`
+                  : finished
+                    ? 'COMPLETE'
+                    : active
+                      ? 'ACTIVE: waiting for worker'
+                      : 'IDLE'}
             </span>
             {live.model && (
-              <span className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 font-mono text-amber-800">
+              <span className="inline-flex items-center gap-1 rounded-md border border-amber-300 bg-amber-50 px-2 py-0.5 font-mono text-amber-800 dark:border-amber-800 dark:bg-amber-950/50 dark:text-amber-300">
                 {live.activeStage === 'extract' && (
                   <span className="h-2 w-2 rounded-full bg-amber-500 motion-safe:animate-pulse" aria-hidden="true" />
                 )}
                 VLM: {live.model}
+              </span>
+            )}
+            {transport !== 'idle' && (
+              <span className="inline-flex items-center gap-1 font-mono text-[11px] text-gray-500 dark:text-slate-400" data-testid="transport">
+                <span className={`h-1.5 w-1.5 rounded-full ${transport === 'stream' ? 'bg-emerald-500' : 'bg-amber-500'}`} aria-hidden="true" />
+                {transport === 'stream' ? 'live' : 'polling'}
               </span>
             )}
           </div>
@@ -174,17 +218,17 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs, contentH
               setFollowLive(false)
               setManualPage(pageNumber)
             }}
-            className={`inline-flex items-center gap-1 rounded border px-2 py-1 ${goldsetMode ? 'border-yellow-500 bg-yellow-50 text-yellow-900' : 'border-gray-300'}`}
+            className={`inline-flex items-center gap-1 rounded border px-2 py-1 ${goldsetMode ? 'border-yellow-500 bg-yellow-50 text-yellow-900' : 'border-gray-300 dark:border-slate-700'}`}
           >
             <ClipboardCheck className="h-3.5 w-3.5" aria-hidden="true" />
             Gold-set edit
           </button>
           <label className="flex items-center gap-1">
-            <span className="text-gray-500">Run</span>
+            <span className="text-gray-500 dark:text-slate-400">Run</span>
             <select
               value={replayRunId ?? ''}
               onChange={(e) => setReplayRunId(e.target.value || null)}
-              className="rounded border border-gray-300 px-1.5 py-1"
+              className="rounded border border-gray-300 bg-white px-1.5 py-1 dark:border-slate-700 dark:bg-slate-800"
               aria-label="Replay a run"
             >
               <option value="">Live{runId && !replayRunId ? ` (${runId.slice(0, 8)})` : ''}</option>
@@ -197,13 +241,13 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs, contentH
           </label>
           {replay.active && (
             <div className="flex items-center gap-1" aria-label="Replay controls">
-              <button type="button" onClick={replay.playing ? replay.pause : replay.play} className="rounded border border-gray-300 p-1" aria-label={replay.playing ? 'Pause replay' : 'Play replay'}>
+              <button type="button" onClick={replay.playing ? replay.pause : replay.play} className="rounded border border-gray-300 p-1 dark:border-slate-700" aria-label={replay.playing ? 'Pause replay' : 'Play replay'}>
                 {replay.playing ? <Pause className="h-3.5 w-3.5" /> : <Play className="h-3.5 w-3.5" />}
               </button>
-              <button type="button" onClick={replay.step} className="rounded border border-gray-300 p-1" aria-label="Next event">
+              <button type="button" onClick={replay.step} className="rounded border border-gray-300 p-1 dark:border-slate-700" aria-label="Next event">
                 <SkipForward className="h-3.5 w-3.5" />
               </button>
-              <button type="button" onClick={replay.restart} className="rounded border border-gray-300 p-1" aria-label="Restart replay">
+              <button type="button" onClick={replay.restart} className="rounded border border-gray-300 p-1 dark:border-slate-700" aria-label="Restart replay">
                 <RotateCcw className="h-3.5 w-3.5" />
               </button>
               <span className="font-mono text-gray-500">
@@ -214,19 +258,36 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs, contentH
         </div>
       </div>
 
-      {error && <p className="px-4 pt-2 text-xs text-red-600">{error}</p>}
+      {error && <p className="px-4 pt-2 text-xs text-red-600 dark:text-red-400">{error}</p>}
+
+      <div className="space-y-2 px-4 pt-4">
+        {live.pipelineVersion === 'v1' && (
+          <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-900 dark:border-amber-800 dark:bg-amber-950/40 dark:text-amber-200" role="note">
+            This run used pipeline v1 (page renders + RapidOCR, text-rule extraction). Layout boxes, Marker Markdown and VLM stat
+            cards come from pipeline v2: set <code className="font-mono">PIPELINE_VERSION=v2</code> on doc-processor and reprocess.
+          </p>
+        )}
+        {events.length === 0 && !error && (
+          <p className="rounded-md border border-dashed border-gray-300 px-3 py-2 text-xs text-gray-600 dark:border-slate-700 dark:text-slate-400" role="note">
+            {active
+              ? 'Waiting for the worker to report its first step…'
+              : 'No processing events for this document. Events are recorded for runs since the live-processing release; reprocess it to watch it here.'}
+          </p>
+        )}
+        <PipelineStepper steps={live.steps} now={now} selected={selectedStep} onSelect={setSelectedStep} />
+      </div>
 
       {/* Split view: page left, artifacts right; stacked below 1024px (lg). */}
       <div className="grid grid-cols-1 gap-4 p-4 lg:grid-cols-2" data-testid="live-proof-split">
         <div className="min-w-0 space-y-2">
           <div className="flex flex-wrap items-center gap-3 text-xs">
             <label className="flex items-center gap-1">
-              <span className="text-gray-500">Page</span>
+              <span className="text-gray-500 dark:text-slate-400">Page</span>
               <select
                 value={pageNumber ?? ''}
                 onChange={(e) => selectPage(Number(e.target.value))}
                 disabled={pages.length === 0}
-                className="rounded border border-gray-300 px-1.5 py-1"
+                className="rounded border border-gray-300 bg-white px-1.5 py-1 dark:border-slate-700 dark:bg-slate-800"
                 aria-label="Page"
               >
                 {pages.map((p) => (
@@ -275,7 +336,7 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs, contentH
               }
             />
           ) : (
-            <div className="flex aspect-[612/792] items-center justify-center rounded-md border border-dashed border-gray-300 text-xs text-gray-400">
+            <div className="flex aspect-[612/792] items-center justify-center rounded-md border border-dashed border-gray-300 text-xs text-gray-400 dark:border-slate-700 dark:text-slate-500">
               No layout pages yet
             </div>
           )}
@@ -284,7 +345,7 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs, contentH
 
         {goldsetMode && page ? (
           <div className="min-w-0 space-y-2">
-            <h3 className="text-sm font-semibold text-gray-900">Gold-set label · page {page.pageNumber}</h3>
+            <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">Gold-set label · page {page.pageNumber}</h3>
             <GoldsetEditor
               documentId={documentId}
               documentTitle={documentTitle}
@@ -297,8 +358,11 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs, contentH
             />
           </div>
         ) : (
-        <div className="min-w-0 space-y-2">
-          <h3 className="text-sm font-semibold text-gray-900">Artifact stream</h3>
+        <div className="flex min-w-0 flex-col gap-2">
+          <h3 className="text-sm font-semibold text-gray-900 dark:text-slate-100">
+            Artifact stream
+            {stepLabel && <span className="ml-2 font-mono text-xs font-normal text-indigo-600 dark:text-indigo-300">{stepLabel}</span>}
+          </h3>
           {selectedBlock && (
             <div className="rounded border border-emerald-300 bg-emerald-50 p-2 text-xs" data-testid="selected-block">
               <div className="mb-1 font-mono text-[10px] uppercase text-emerald-700">
@@ -308,10 +372,14 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs, contentH
             </div>
           )}
           <div className="max-h-[36rem] space-y-2 overflow-y-auto pr-1">
-            {stream.length === 0 && <p className="text-xs text-gray-400">Page Markdown and extracted entities appear here as they are produced.</p>}
+            {stream.length === 0 && (
+              <p className="text-xs text-gray-400 dark:text-slate-500">
+                {stepLabel ? `No artifacts from ${stepLabel}.` : 'Page Markdown and extracted entities appear here as they are produced.'}
+              </p>
+            )}
             {stream.map((event) =>
               event.kind === 'page_markdown' && event.pageNumber ? (
-                <PageMarkdown key={event.id} documentId={documentId} pageNumber={event.pageNumber} />
+                <PageMarkdown key={event.id} documentId={documentId} pageNumber={event.pageNumber} defaultOpen={event.id === newestMarkdownId} />
               ) : (
                 <EntityCard
                   key={event.id}
@@ -323,12 +391,37 @@ export function LiveProof({ documentId, documentTitle, active, rawLogs, contentH
               )
             )}
           </div>
+          <div className="flex flex-wrap gap-2 border-t border-gray-200 pt-2 font-mono text-[11px] dark:border-slate-800" data-testid="artifact-footer">
+            <span
+              className={`rounded border px-1.5 py-0.5 ${
+                live.schemaFailures > 0
+                  ? 'border-red-300 text-red-700 dark:border-red-800 dark:text-red-300'
+                  : 'border-emerald-300 text-emerald-700 dark:border-emerald-800 dark:text-emerald-300'
+              }`}
+            >
+              [JSON Schema: {live.schemaFailures > 0 ? `${live.schemaFailures} invalid` : 'Valid'}]
+            </span>
+            <span className="rounded border border-purple-300 px-1.5 py-0.5 text-purple-700 dark:border-purple-800 dark:text-purple-300">
+              [Parsed: {live.entities.length} {live.entities.length === 1 ? 'Entity' : 'Entities'}]
+            </span>
+            {live.rejected > 0 && (
+              <span className="rounded border border-gray-300 px-1.5 py-0.5 text-gray-600 dark:border-slate-700 dark:text-slate-400">
+                [No entity: {live.rejected}]
+              </span>
+            )}
+          </div>
         </div>
         )}
       </div>
 
       <div className="px-4 pb-4">
-        <ActionFeed events={events} rawLogs={rawLogs} />
+        <ActionFeed
+          events={scoped}
+          rawLogs={rawLogs}
+          filterLabel={stepLabel}
+          onClearFilter={() => setSelectedStep(null)}
+          statusLine={live.telemetry ? <span data-testid="gpu-telemetry">{live.telemetry.message}</span> : undefined}
+        />
       </div>
     </section>
   )

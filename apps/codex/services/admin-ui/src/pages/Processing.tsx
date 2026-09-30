@@ -402,18 +402,14 @@ export default function Processing() {
         </div>
       </div>
 
-      {/* ComfyUI Pipeline Graph Hero Section */}
+      {/* Live Proof hero: the selected document's run, step by step */}
       <div className="mb-8">
         <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-              <span>Pipeline Architecture & Live Status</span>
-              <span className="text-xs font-normal px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
-                Visual Graph
-              </span>
-            </h2>
+            <h2 className="text-lg font-semibold text-gray-900">Live processing</h2>
             <p className="text-xs text-gray-500">
-              Interactive node-flow diagram showing document ingestion, layout detection, GPU OCR sidecar, entity extraction, search indexing, and asset generation.
+              Follow a document through the pipeline: each step with its timing, the page with its detected layout, and the Markdown and
+              stat blocks as they are produced.
             </p>
           </div>
 
@@ -456,23 +452,8 @@ export default function Processing() {
           </div>
         )}
 
-        <PipelineGraph
-          documentTitle={reportData?.document?.title || currentInspectJob?.documentTitle || 'No Document Selected'}
-          documentId={targetDocId || currentInspectJob?.documentId}
-          format={reportData?.document?.format || 'PDF'}
-          fileSize={reportData?.document?.fileSize || 0}
-          pageCount={reportData?.document?.pageCount || 0}
-          searchIndex={reportData?.document?.searchIndex}
-          currentStage={currentInspectJob?.stage}
-          jobStatus={currentInspectJob?.status}
-          reportProcessing={reportData?.processing}
-          onRetryStage={canRetry && (targetDocId || currentInspectJob?.id) ? handleRetryStage : undefined}
-          isRetrying={reprocessMutation.isPending || retryMutation.isPending}
-          isLoading={reportLoading}
-        />
-
         {targetDocId && (
-          <div className="mt-6">
+          <div>
             <LiveProof
               documentId={targetDocId}
               documentTitle={reportData?.document?.title}
@@ -482,6 +463,28 @@ export default function Processing() {
             />
           </div>
         )}
+
+        <details className="mt-4 rounded-lg border border-gray-200 bg-white" open={!targetDocId}>
+          <summary className="cursor-pointer px-4 py-2 text-sm font-medium text-gray-700">
+            Pipeline graph, file facts and stage retry
+          </summary>
+          <div className="p-2">
+            <PipelineGraph
+              documentTitle={reportData?.document?.title || currentInspectJob?.documentTitle || 'No Document Selected'}
+              documentId={targetDocId || currentInspectJob?.documentId}
+              format={reportData?.document?.format || 'PDF'}
+              fileSize={reportData?.document?.fileSize || 0}
+              pageCount={reportData?.document?.pageCount || 0}
+              searchIndex={reportData?.document?.searchIndex}
+              currentStage={currentInspectJob?.stage}
+              jobStatus={currentInspectJob?.status}
+              reportProcessing={reportData?.processing}
+              onRetryStage={canRetry && (targetDocId || currentInspectJob?.id) ? handleRetryStage : undefined}
+              isRetrying={reprocessMutation.isPending || retryMutation.isPending}
+              isLoading={reportLoading}
+            />
+          </div>
+        </details>
       </div>
 
       {/* Controls */}

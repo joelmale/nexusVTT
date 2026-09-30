@@ -1,5 +1,5 @@
 import { useRef, useState, type PointerEvent } from 'react'
-import { BLOCK_STYLES, CANDIDATE_STATUS_LABEL, DEFAULT_PAGE_SIZE, scaleBBox } from './overlay'
+import { BLOCK_STYLES, candidateTag, DEFAULT_PAGE_SIZE, excerpt, scaleBBox } from './overlay'
 import type { BBox, CandidateState, LayoutBlock, LayoutBlockClass } from './types'
 
 /**
@@ -87,7 +87,7 @@ export function PageOverlay({
 
   return (
     <div
-      className="relative w-full overflow-hidden rounded-md border border-gray-300 bg-white"
+      className="relative w-full overflow-hidden rounded-md border border-gray-300 bg-white dark:border-slate-700 dark:bg-slate-900"
       style={{ aspectRatio: `${width} / ${height}` }}
       data-testid="page-overlay"
     >
@@ -144,8 +144,16 @@ export function PageOverlay({
               )}
               {style.hatched && box.width > width * 0.2 && box.height > labelSize * 1.6 && (
                 <text x={box.x + 3} y={box.y + labelSize} fontSize={labelSize * 0.85} fontFamily="monospace" fill="#475569">
-                  excluded from text
+                  {block.class === 'art' ? 'FILTERED: ART · excluded from text' : 'excluded from text'}
                 </text>
+              )}
+              {block.class === 'sidebar' && (
+                <g data-testid={`sidebar-tag-${block.id}`}>
+                  <rect x={box.x} y={box.y + box.height} width={Math.min(box.width, labelSize * 22)} height={labelSize * 1.4} fill={style.stroke} />
+                  <text x={box.x + 3} y={box.y + box.height + labelSize * 1.05} fontSize={labelSize * 0.9} fontFamily="monospace" fill="#ffffff">
+                    {`LORE CALLOUT${block.markdown ? `: "${excerpt(block.markdown)}"` : ''}`}
+                  </text>
+                </g>
               )}
             </g>
           )
@@ -169,10 +177,13 @@ export function PageOverlay({
                     strokeWidth={2}
                     strokeDasharray={style.dash}
                   />
-                  <rect x={box.x} y={box.y - labelSize * 1.4} width={Math.min(box.width, labelSize * 18)} height={labelSize * 1.4} fill={style.stroke} />
-                  <text x={box.x + 3} y={box.y - labelSize * 0.35} fontSize={labelSize} fontFamily="monospace" fill="#ffffff">
-                    {`${candidate.type.toUpperCase()} · ${CANDIDATE_STATUS_LABEL[candidate.status]}`}
+                  <rect x={box.x} y={Math.max(0, box.y - labelSize * 1.4)} width={Math.min(box.width, labelSize * 24)} height={labelSize * 1.4} fill={candidate.status === 'needs_review' ? '#dc2626' : style.stroke} />
+                  <text x={box.x + 3} y={Math.max(0, box.y - labelSize * 1.4) + labelSize * 1.05} fontSize={labelSize} fontFamily="monospace" fill="#ffffff">
+                    {candidateTag(candidate)}
                   </text>
+                  {candidate.status === 'extracting' && (
+                    <rect x={box.x} y={box.y} width={box.width} height={box.height} fill="none" stroke="#c084fc" strokeWidth={3} className="motion-safe:animate-pulse" />
+                  )}
                 </g>
               )
             })
@@ -235,7 +246,7 @@ const LEGEND_ORDER: LayoutBlockClass[] = ['body', 'table', 'stat_block', 'sideba
 
 export function OverlayLegend() {
   return (
-    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-600" aria-label="Overlay legend">
+    <ul className="flex flex-wrap gap-x-4 gap-y-1 text-[11px] text-gray-600 dark:text-slate-400" aria-label="Overlay legend">
       {LEGEND_ORDER.map((cls) => {
         const style = BLOCK_STYLES[cls]
         return (

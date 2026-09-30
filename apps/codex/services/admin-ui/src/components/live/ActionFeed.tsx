@@ -1,23 +1,9 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
+import { KIND_MARK, sourceTag } from './console'
 import type { ProcessingEvent } from './types'
 
 /** Screen readers get at most one batch of new lines per interval. */
 export const FEED_FLUSH_MS = 2000
-
-const SOURCE_TAGS: Record<string, { label: string; className: string }> = {
-  ingest: { label: 'INGEST', className: 'bg-slate-100 text-slate-700 border-slate-300' },
-  render: { label: 'RENDER', className: 'bg-blue-50 text-blue-700 border-blue-200' },
-  ocr: { label: 'OCR', className: 'bg-amber-50 text-amber-700 border-amber-200' },
-  layout: { label: 'LAYOUT', className: 'bg-sky-50 text-sky-700 border-sky-200' },
-  extract: { label: 'EXTRACT', className: 'bg-purple-50 text-purple-700 border-purple-200' },
-  index: { label: 'INDEX', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  assets: { label: 'ASSETS', className: 'bg-pink-50 text-pink-700 border-pink-200' },
-}
-
-const KIND_MARK: Partial<Record<ProcessingEvent['kind'], string>> = {
-  stage_failed: 'FAILED',
-  entity_rejected: 'REJECTED',
-}
 
 const time = (iso: string) => new Date(iso).toLocaleTimeString([], { hour12: false })
 
@@ -25,6 +11,11 @@ export interface ActionFeedProps {
   events: ProcessingEvent[]
   /** Today's raw job-log panel, shown by the "Raw logs" toggle. */
   rawLogs?: ReactNode
+  /** Pinned status line (GPU telemetry). */
+  statusLine?: ReactNode
+  /** Shown next to the title, e.g. the active step filter. */
+  filterLabel?: string
+  onClearFilter?: () => void
 }
 
 /**
@@ -32,7 +23,7 @@ export interface ActionFeedProps {
  * (polite); new lines are appended in batches at most every FEED_FLUSH_MS so a
  * five-page layout burst is one announcement, not ten.
  */
-export function ActionFeed({ events, rawLogs }: ActionFeedProps) {
+export function ActionFeed({ events, rawLogs, statusLine, filterLabel, onClearFilter }: ActionFeedProps) {
   const [shown, setShown] = useState<ProcessingEvent[]>(events)
   const [showRaw, setShowRaw] = useState(false)
   const lastFlush = useRef(0)
@@ -60,24 +51,37 @@ export function ActionFeed({ events, rawLogs }: ActionFeedProps) {
   }, [shown.length])
 
   return (
-    <section className="rounded-lg border border-gray-200 bg-white" aria-labelledby="action-feed-title">
-      <div className="flex items-center justify-between border-b border-gray-200 px-3 py-2">
-        <h3 id="action-feed-title" className="text-sm font-semibold text-gray-900">
-          Action feed
-        </h3>
+    <section className="overflow-hidden rounded-lg border border-slate-800 bg-slate-950 text-slate-200" aria-labelledby="action-feed-title">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 px-3 py-2">
+        <div className="flex items-center gap-2">
+          <h3 id="action-feed-title" className="font-mono text-xs font-semibold uppercase tracking-wider text-slate-300">
+            Action console
+          </h3>
+          {filterLabel && (
+            <button
+              type="button"
+              onClick={onClearFilter}
+              className="rounded border border-indigo-400/60 px-1.5 font-mono text-[10px] text-indigo-300 hover:bg-indigo-500/10"
+              aria-label={`Showing ${filterLabel} only; show all`}
+            >
+              {filterLabel} ✕
+            </button>
+          )}
+        </div>
         {rawLogs && (
           <button
             type="button"
             aria-pressed={showRaw}
             onClick={() => setShowRaw((value) => !value)}
-            className="rounded border border-gray-300 px-2 py-0.5 text-xs text-gray-700 hover:bg-gray-50"
+            className="rounded border border-slate-600 px-2 py-0.5 text-xs text-slate-300 hover:bg-slate-800"
           >
             Raw logs
           </button>
         )}
       </div>
+      {statusLine && <div className="border-b border-slate-800 px-3 py-1.5 font-mono text-[11px] text-lime-300">{statusLine}</div>}
       {showRaw && rawLogs ? (
-        <div className="max-h-72 overflow-y-auto p-3">{rawLogs}</div>
+        <div className="max-h-72 overflow-y-auto bg-white p-3 text-gray-900">{rawLogs}</div>
       ) : (
         <ol
           ref={listRef}
@@ -87,18 +91,20 @@ export function ActionFeed({ events, rawLogs }: ActionFeedProps) {
           aria-label="Processing events"
           className="max-h-72 space-y-1 overflow-y-auto p-3 font-mono text-xs"
         >
-          {shown.length === 0 && <li className="text-gray-400">No events yet.</li>}
+          {shown.length === 0 && <li className="text-slate-500">No events yet.</li>}
           {shown.map((event) => {
-            const tag = SOURCE_TAGS[event.stage] ?? { label: event.stage.toUpperCase(), className: 'bg-gray-100 text-gray-700 border-gray-300' }
+            const tag = sourceTag(event)
             const mark = KIND_MARK[event.kind]
             return (
               <li key={event.id} className="flex gap-2" data-kind={event.kind}>
-                <time className="shrink-0 text-gray-400" dateTime={event.createdAt}>
+                <time className="shrink-0 text-slate-500" dateTime={event.createdAt}>
                   {time(event.createdAt)}
                 </time>
-                <span className={`shrink-0 rounded border px-1 text-[10px] font-semibold ${tag.className}`}>{tag.label}</span>
-                {mark && <span className="shrink-0 rounded border border-red-300 bg-red-50 px-1 text-[10px] font-semibold text-red-700">{mark}</span>}
-                <span className={event.kind === 'stage_failed' ? 'text-red-700' : 'text-gray-800'}>{event.message}</span>
+                <span className={`shrink-0 whitespace-nowrap rounded border px-1 text-[10px] font-semibold ${tag.className}`}>{tag.label}:</span>
+                {mark && <span className="shrink-0 rounded border border-red-500 px-1 text-[10px] font-semibold text-red-300">{mark}</span>}
+                <span className={event.kind === 'stage_failed' ? 'text-red-300' : event.kind === 'telemetry' ? 'text-lime-200' : 'text-slate-100'}>
+                  {event.message}
+                </span>
               </li>
             )
           })}

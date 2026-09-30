@@ -46,3 +46,8 @@ def test_embed_reports_fallback_model(monkeypatch):
     assert res.status_code == 200
     assert res.json()["model"] == FALLBACK_EMBED_MODEL
     assert client.get("/health").json()["embed"]["model"] == FALLBACK_EMBED_MODEL
+
+
+def test_health_reports_gpu_temperature_field():
+    # Present (possibly null without a GPU) so the admin console can show it.
+    assert "gpu_temperature_c" in client.get("/health").json()

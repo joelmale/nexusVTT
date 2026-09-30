@@ -34,7 +34,9 @@ distinct from the backend's `ASSET_SERVICE_SECRET`, which control-api does not
 use), `RULES_ADMIN_SERVICE_TOKEN` (>= 32 chars, always sent as
 `X-Nexus-Service-Token`; doc-api must hold the same value).
 Optional: `PORT`, `LOG_LEVEL`, `ASSET_SERVICE_URL`, `BACKEND_URL`,
-`PROMETHEUS_URL`, `GRAFANA_URL`, `CODEX_OBJECT_STORAGE_URL`. Startup fails if any required variable is missing
+`PROMETHEUS_URL`, `GRAFANA_URL`, `CODEX_OBJECT_STORAGE_URL`, `CODEX_REDIS_URL` (Codex Redis, e.g.
+`redis://:<password>@redis:6379/1`: wakes the Live Proof event stream at once; without it the
+stream polls doc-api every second). Startup fails if any required variable is missing
 or invalid.
 
 ## Database

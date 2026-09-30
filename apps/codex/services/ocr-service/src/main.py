@@ -174,6 +174,7 @@ class HealthResponse(BaseModel):
     vram_used_mb: Optional[float] = None
     vram_free_mb: Optional[float] = None
     gpu_utilization_pct: Optional[float] = None
+    gpu_temperature_c: Optional[float] = None
     onnx_providers: List[str]
     embed: EmbedHealth
     layout: LayoutHealth
@@ -214,6 +215,7 @@ async def health_check():
         vram_used_mb=telemetry["vram_used_mb"],
         vram_free_mb=telemetry["vram_free_mb"],
         gpu_utilization_pct=telemetry["gpu_utilization_pct"],
+        gpu_temperature_c=telemetry.get("gpu_temperature_c"),
         onnx_providers=telemetry["onnx_providers"],
         embed=EmbedHealth(model=ocr_engine.embed_model_name, dim=EMBED_DIM),
         layout=LayoutHealth(**layout_engine.health()),

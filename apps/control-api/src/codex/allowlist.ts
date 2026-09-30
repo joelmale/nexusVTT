@@ -29,6 +29,9 @@ import type { Permission } from '../permissions.js';
  *   layout preview from the URL doc-api
  *   `admin/processing/:id/pages/:page/preview-source` returns
  *   (src/codex/layoutPreview.ts). `preview-source` itself is not listed.
+ * - `GET admin/processing/:id/stream` is a Server-Sent Events stream of
+ *   `admin/processing/:id/events`, woken by the pipeline's Redis publish
+ *   (src/codex/processingStream.ts).
  * The presigned URLs themselves never reach the browser.
  *
  * Bodies are capped at 1 MB (`CODEX_MAX_JSON_BYTES`) except the upload
@@ -133,6 +136,8 @@ export const CODEX_ALLOWLIST: readonly CodexRoute[] = [
   read('admin/processing/report/:id', 'document'),
   // Ingestion v2 live processing view (Live Proof canvas and Action Feed).
   read('admin/processing/:id/events', 'processing', { query: { after: EVENT_ID, limit: INT, runId: ID } }),
+  // Server-Sent Events over the same cursor (src/codex/processingStream.ts).
+  read('admin/processing/:id/stream', 'processing', { handler: 'processingStream', query: { after: EVENT_ID } }),
   read('admin/processing/:id/pages', 'document'),
   read('admin/processing/:id/pages/:page', 'document'),
   read('admin/processing/:id/pages/:page/preview', 'document', { handler: 'layoutPreview', response: 'image', timeoutMs: 60_000 }),
