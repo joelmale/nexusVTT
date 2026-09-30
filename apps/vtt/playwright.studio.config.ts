@@ -18,7 +18,8 @@ export default defineConfig({
   outputDir: 'test-results/studio',
   fullyParallel: true,
   forbidOnly: Boolean(process.env.CI),
-  retries: process.env.CI ? 1 : 0,
+  // A cold Vite dev server re-optimizes deps and reloads on first load; retry once.
+  retries: 1,
   timeout: 60_000,
   expect: {
     timeout: 15_000,
