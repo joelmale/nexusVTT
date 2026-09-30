@@ -36,6 +36,9 @@ Dependabot configuration and its auto-merge workflow are classified by the
 `dependabot-automation` rule with no targets, so those PRs skip the target
 suites. A `.github` file that no rule lists is treated as unknown and runs the
 full suite; add new workflow files to `ci-configuration` deliberately.
+`nightly.yml`, `security.yml` (release) and `multiplayer-soak.yml` do not run in
+the PR or Delivery lanes, so they are classified by the
+`scheduled-and-release-workflows` rule with no targets.
 
 Run `npm run check:service-catalog` after changing it. The validator checks the
 schema, dependency graph, repository paths, Dockerfiles, service manifests,
@@ -71,7 +74,7 @@ it does not bypass GitHub repository rules or branch protection.
 | ------------ | -------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Pull request | `.github/workflows/ci.yml`       | PRs to `main`, merge queue, manual        | Catalog and repository contracts plus affected-target lint, type-check, compilation, and unit-level tests                          |
 | Delivery     | `.github/workflows/delivery.yml` | Push to protected `main`, manual recovery | Affected immutable image builds, digest promotion, release manifest, and documentation deployment                                  |
-| Nightly      | `.github/workflows/nightly.yml`  | Daily schedule, manual                    | Database integration, managed E2E, multiplayer chaos soak, full security scans, OCR model downloads, and optional A2000 validation |
+| Nightly      | `.github/workflows/nightly.yml`  | Weekly schedule (Mon), manual                   | Database integration, managed E2E, multiplayer chaos soak, full security scans, OCR model downloads, and optional A2000 validation |
 
 The PR workflow preserves the aggregate status name `All required checks`.
 Branch protection only needs that stable check even though affected jobs are
