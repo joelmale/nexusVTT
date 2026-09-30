@@ -96,6 +96,13 @@ the exact pushed SHA. Each affected image is built once and pushed as
 digests, applies version and `latest` tags with `docker buildx imagetools`, and
 stores the complete digest set in `release/images.json`.
 
+Build caching: `codex-ocr` (CUDA torch, several GB) uses a GHCR registry cache
+(`<repository>:buildcache`) written by Delivery, so an unchanged rebuild reuses
+its layers. The GitHub Actions cache cannot hold it: exporting it took about
+14 minutes per build and the 10 GB repository cap evicts it. The security
+workflow reads the registry cache for advisory images and never writes a GHA
+cache for them. Every other image keeps its per-image GHA cache scope.
+
 If a manual delivery is superseded by a newer `main`, immutable images remain
 available but mutable tags are not changed. Unaffected images are not rebuilt;
 their current digests are carried into the manifest.
