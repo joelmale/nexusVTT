@@ -58,6 +58,7 @@
     "test:asset-service": "npm test --workspace asset-service",
     "test:e2e": "node scripts/run-e2e-smoke.js",
     "test:ui": "playwright test --project=ui",
+    "test:studio": "playwright test -c playwright.studio.config.ts",
     "test:e2e:headed": "node scripts/run-e2e-smoke.js --headed",
     "test:e2e:local": "playwright test",
     "test:e2e:install": "playwright install chromium",
