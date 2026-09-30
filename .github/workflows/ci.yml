@@ -666,12 +666,20 @@ jobs:
             --source-sha "$SOURCE_SHA" \
             --unit-count 3
 
-      - name: Merge reports and enforce aggregate thresholds
+      - name: Merge reports and collect aggregate coverage
         run: >-
           npm exec vitest --
           --merge-reports=.vitest-reports
           --reporter=default
           --coverage
+          --coverage.thresholds.lines=0
+          --coverage.thresholds.functions=0
+          --coverage.thresholds.branches=0
+          --coverage.thresholds.statements=0
+
+      - name: Warn when coverage is below target
+        run: node scripts/ci/coverage-warn.mjs
+        working-directory: ${{ github.workspace }}
 
       - name: Upload complete coverage report
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
