@@ -734,3 +734,30 @@ optimistic revision tracking; `seedFromFixture(slug) => campaignId`).
   `handouts` collection with `folderId`, `order`, `audience`. Clues/library
   remain out of the first cut (fixture clues are seeded into note bodies as
   in §5.3).
+
+### 5.5 Addendum: Notes tab is a Keep-style bulletin board (refines §5.4 Notes tab)
+
+- The Notes tab is a **board of sticky-note cards** (Google Keep / bulletin
+  board feel), not a master/detail list. Cards show title + a clipped body;
+  clicking a card opens it for in-place editing (title, formattable body,
+  anchor, color, size) in an inline expanded card or dialog, with Save/Cancel
+  and the shared SaveState banner. A single "Take a note…" card at the top of
+  the board is the only way to add (no separate New buttons).
+- **Colors:** a small fixed palette (yellow, pink, blue, green, purple, orange,
+  gray) chosen per note; text stays AA-contrast in light and dark themes
+  (tokens, not hardcoded hex in components).
+- **Sizes:** small / medium / large card footprints on a responsive masonry or
+  grid layout; the size control is on the card.
+- **Ordering:** drag and drop reorders notes on the board (persisted `order`);
+  must also be keyboard operable (focus a card, move with a keyboard
+  shortcut or "Move earlier/later" actions, with aria-live announcements).
+  Prefer a library already in the repo's dependencies (check for @dnd-kit)
+  over adding a new one; respect prefers-reduced-motion.
+- **Anchor:** each note still has an optional anchor (session, scene or
+  campaign-wide) shown as a small chip on the card; the board has a filter
+  bar (All | campaign-wide | by session | by scene) instead of grouped
+  headers. Reordering applies within the current filter view but `order` is
+  global and stable.
+- Data: `CampaignNote` gains `color`, `size`, `order` (additive); stored under
+  `content.value.nexusStudio.fields` on the `note` kind. Example-campaign
+  notes render on the same board, read-only (no drag, no editing).
