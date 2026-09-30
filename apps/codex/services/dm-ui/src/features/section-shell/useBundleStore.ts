@@ -117,7 +117,10 @@ export function useBundleStore(): BundleStoreState {
       if (!current) return { ok: false, error: READ_ONLY_ERROR };
       try {
         const result = await current.updateItem(kind, id, patch);
-        await applyResult(current, result);
+        // On a revision conflict, refetch so the store holds the authoritative
+        // object (and its revision) before the user reloads or retries.
+        if (result.conflict) await reload();
+        else await applyResult(current, result);
         return {
           ok: result.ok,
           conflict: result.conflict,
@@ -127,7 +130,7 @@ export function useBundleStore(): BundleStoreState {
         return { ok: false, error: errorMessage(error) };
       }
     },
-    [applyResult],
+    [applyResult, reload],
   );
 
   const addItem = useCallback(
@@ -139,7 +142,8 @@ export function useBundleStore(): BundleStoreState {
       if (!current) return { ok: false, error: READ_ONLY_ERROR };
       try {
         const result = await current.addItem(kind, draft);
-        await applyResult(current, result);
+        if (result.conflict) await reload();
+        else await applyResult(current, result);
         return {
           ok: result.ok,
           conflict: result.conflict,
@@ -150,7 +154,7 @@ export function useBundleStore(): BundleStoreState {
         return { ok: false, error: errorMessage(error) };
       }
     },
-    [applyResult],
+    [applyResult, reload],
   );
 
   const reorderNotes = useCallback(
@@ -181,7 +185,9 @@ export function useBundleStore(): BundleStoreState {
     return {
       bundle: snapshot?.bundle ?? baseBundle,
       status: snapshot?.status ?? 'loading',
-      editable: controller.canEdit !== false,
+      // Only editable once the authoritative bundle has loaded; a failed load
+      // (e.g. 403 for a non-DM) leaves the campaign read-only.
+      editable: controller.canEdit !== false && snapshot?.bundle !== undefined,
       reload,
       updateItem,
       addItem,

@@ -21,10 +21,12 @@ export function SaveBanner({
   state,
   error,
   onReload,
+  onKeepMine,
 }: {
   state: SaveState;
   error?: string;
   onReload?: () => void;
+  onKeepMine?: () => void;
 }) {
   if (state === 'idle') return null;
   if (state === 'conflict') {
@@ -34,6 +36,11 @@ export function SaveBanner({
         <button onClick={onReload} type="button">
           Reload latest
         </button>
+        {onKeepMine ? (
+          <button onClick={onKeepMine} type="button">
+            Keep my changes
+          </button>
+        ) : null}
       </div>
     );
   }
@@ -94,6 +101,7 @@ export function EditableSection({
   const [error, setError] = useState<string>();
   const headingId = useId();
   const requestId = useRef(0);
+  const lastPatch = useRef<Draft>({});
 
   useEffect(() => {
     requestId.current += 1;
@@ -116,13 +124,14 @@ export function EditableSection({
     setError(undefined);
   };
 
-  const save = async (event?: FormEvent) => {
+  const save = async (event?: FormEvent, retryPatch?: Draft) => {
     event?.preventDefault();
-    const patch = toPatch(draft, initialDraft);
+    const patch = retryPatch ?? toPatch(draft, initialDraft);
     if (Object.keys(patch).length === 0) {
       cancel();
       return;
     }
+    lastPatch.current = patch;
     const current = ++requestId.current;
     setState('saving');
     setError(undefined);
@@ -154,6 +163,10 @@ export function EditableSection({
     setState('idle');
     setError(undefined);
   }, [store]);
+
+  // The store already refetched the authoritative object on conflict, so
+  // re-sending the same patch now carries the fresh revision.
+  const keepMine = () => void save(undefined, lastPatch.current);
 
   return (
     <article aria-labelledby={headingId} className={styles.editable}>
@@ -187,7 +200,12 @@ export function EditableSection({
           </div>
         ) : null}
       </header>
-      <SaveBanner error={error} onReload={reloadLatest} state={state} />
+      <SaveBanner
+        error={error}
+        onKeepMine={keepMine}
+        onReload={reloadLatest}
+        state={state}
+      />
       {editing ? (
         <form
           aria-label="Edit form"

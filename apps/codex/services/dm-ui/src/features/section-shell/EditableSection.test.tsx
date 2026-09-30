@@ -110,6 +110,25 @@ describe('EditableSection', () => {
     expect(screen.getByText('read view')).toBeVisible();
   });
 
+  it('Keep my changes re-sends the same patch after a conflict', async () => {
+    const updateItem = vi
+      .fn()
+      .mockResolvedValueOnce({ ok: false, conflict: true })
+      .mockResolvedValueOnce({ ok: true });
+    const { user } = renderInSection(<Section />, {
+      store: editableStore(updateItem),
+    });
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+    await user.type(screen.getByLabelText('Name'), '!');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(
+      await screen.findByRole('button', { name: 'Keep my changes' }),
+    );
+    await waitFor(() => expect(updateItem).toHaveBeenCalledTimes(2));
+    expect(updateItem.mock.calls[1]).toEqual(updateItem.mock.calls[0]);
+    expect(await screen.findByText('Saved.')).toBeVisible();
+  });
+
   it('shows an error banner and never "saved" on failure', async () => {
     const updateItem = vi.fn().mockResolvedValue({ ok: false, error: 'boom' });
     const { user } = renderInSection(<Section />, {

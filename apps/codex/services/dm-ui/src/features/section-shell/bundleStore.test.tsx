@@ -116,4 +116,77 @@ describe('useBundleStore', () => {
     ).toBeInTheDocument();
     await waitFor(() => expect(controller.load).toHaveBeenCalledTimes(1));
   });
+
+  it('stays read-only when the server refuses to load (non-DM)', async () => {
+    const controller: ServerBundleStoreController = {
+      load: vi.fn().mockRejectedValue(new Error('403')),
+      updateItem: vi.fn(),
+      addItem: vi.fn(),
+    };
+    const backend: ServerBundleBackend = {
+      createServerBundleStore: vi.fn().mockReturnValue(controller),
+      seedFromFixture: vi.fn(),
+    };
+    renderProbe('/campaigns/campaign-blank/npcs', backend);
+    expect(
+      await screen.findByText(/^read-only .* server-empty .* error .*/),
+    ).toBeInTheDocument();
+  });
+
+  it('refetches the authoritative bundle when an update conflicts', async () => {
+    const serverBundle = {
+      ...getFixtureBundle('ashes-of-veyra')!,
+      source: 'server',
+    } as never;
+    const controller: ServerBundleStoreController = {
+      load: vi.fn().mockResolvedValue(serverBundle),
+      updateItem: vi.fn().mockResolvedValue({ ok: false, conflict: true }),
+      addItem: vi.fn(),
+    };
+    const backend: ServerBundleBackend = {
+      createServerBundleStore: vi.fn().mockReturnValue(controller),
+      seedFromFixture: vi.fn(),
+    };
+    let result: unknown;
+    function Updater() {
+      const state = useBundleStore();
+      if (state.status !== 'ready' || !state.store.editable) return null;
+      return (
+        <button
+          onClick={() => {
+            void state.store.updateItem('npc', 'x', {}).then((r) => {
+              result = r;
+            });
+          }}
+          type="button"
+        >
+          go
+        </button>
+      );
+    }
+    const context: CampaignContextValue = {
+      activeCampaign: TEST_CAMPAIGN,
+      campaigns: [],
+      createCampaign: vi.fn(),
+      isDemoCampaign: false,
+      reload: vi.fn(),
+      rememberCampaign: vi.fn(),
+      state: 'ready',
+    };
+    render(
+      <MemoryRouter initialEntries={['/campaigns/c/npcs']}>
+        <CampaignContext.Provider value={context}>
+          <ServerBackendContext.Provider value={backend}>
+            <Routes>
+              <Route path="/campaigns/:campaignId/*" element={<Updater />} />
+            </Routes>
+          </ServerBackendContext.Provider>
+        </CampaignContext.Provider>
+      </MemoryRouter>,
+    );
+    const button = await screen.findByRole('button', { name: 'go' });
+    button.click();
+    await waitFor(() => expect(controller.load).toHaveBeenCalledTimes(2));
+    await waitFor(() => expect(result).toMatchObject({ conflict: true }));
+  });
 });
