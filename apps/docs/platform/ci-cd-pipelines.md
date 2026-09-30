@@ -73,7 +73,7 @@ Husky's `.husky/pre-push` hook runs the preflight before every push. Protecting
 | ------------ | -------------------------------- | ----------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
 | Pull request | `.github/workflows/ci.yml`       | PRs to `main`, merge queue, manual        | Catalog and repository contracts plus affected-target lint, type-check, compilation, and unit-level tests                          |
 | Delivery     | `.github/workflows/delivery.yml` | Push to protected `main`, manual recovery | Affected immutable image builds, digest promotion, release manifest, and documentation deployment                                  |
-| Nightly      | `.github/workflows/nightly.yml`  | Weekly schedule (Mon), manual                   | Database integration, managed E2E, multiplayer chaos soak, full security scans, OCR model downloads, and optional A2000 validation |
+| Nightly      | `.github/workflows/nightly.yml`  | Weekly schedule (Mon), manual             | Database integration, managed E2E, multiplayer chaos soak, full security scans, OCR model downloads, and optional A2000 validation |
 
 The PR workflow preserves the aggregate status name `All required checks`.
 Branch protection only needs that stable check even though affected jobs are
@@ -86,9 +86,12 @@ uses the catalog to calculate dependency fanout. Unknown paths or failed change
 detection select every target conservatively. Root packages, lockfiles, CI
 configuration, deployment files, and shared scripts intentionally fan out.
 
-The lane never publishes images or deploys documentation. Database-backed
-integration tests, managed E2E, container vulnerability scans, and soak tests
-belong to nightly validation.
+The lane never publishes images or deploys documentation. Container
+vulnerability scans and soak tests belong to nightly validation. The PR lane
+also runs the database integration suite and the exact-image managed E2E smoke
+job (`vtt-e2e`), which builds the commit's images and is required through
+`All required checks`; nightly repeats both. See the
+[CI test catalog](./ci-test-catalog.md) for every test job.
 
 ## Delivery lane
 

@@ -304,9 +304,11 @@ jobs:
 
       - name: Install Chromium
         run: npx playwright install --with-deps chromium
+        working-directory: apps/vtt
 
       - name: Run production smoke tests against published images
         run: npm run test:e2e
+        working-directory: apps/vtt
         env:
           E2E_ASSET_IMAGE: ${{ steps.images.outputs.asset_service }}
           E2E_BACKEND_IMAGE: ${{ steps.images.outputs.backend }}

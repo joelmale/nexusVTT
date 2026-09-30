@@ -14,6 +14,7 @@ const sidebars: SidebarsConfig = {
         'observability-runbook',
         'object-models-and-data-flow',
         'ci-cd-pipelines',
+        'ci-test-catalog',
       ],
     },
     {
