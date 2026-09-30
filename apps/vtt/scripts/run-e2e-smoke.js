@@ -107,6 +107,22 @@ export function validatePrebuiltConfiguration(environment = process.env) {
   });
 }
 
+// Images carried over from the previous release (not rebuilt for this commit)
+// must still exist, but their revision label cannot equal the new source SHA.
+export function parseCarriedImages(environment = process.env) {
+  const allowed = new Set(['asset-service', 'backend', 'frontend']);
+  const names = (environment.E2E_CARRIED_IMAGES ?? '')
+    .split(',')
+    .map((name) => name.trim())
+    .filter(Boolean);
+  for (const name of names) {
+    if (!allowed.has(name)) {
+      throw new Error(`E2E_CARRIED_IMAGES contains unknown image ${name}.`);
+    }
+  }
+  return new Set(names);
+}
+
 async function inspectImageLabel(image, label) {
   try {
     const { stdout } = await execFileAsync('docker', [
@@ -124,11 +140,13 @@ async function inspectImageLabel(image, label) {
 
 async function verifyPrebuiltImages(environment = process.env) {
   const images = validatePrebuiltConfiguration(environment);
+  const carried = parseCarriedImages(environment);
   for (const { name, image } of images) {
     const revision = await inspectImageLabel(
       image,
       'org.opencontainers.image.revision',
     );
+    if (carried.has(name)) continue;
     if (revision !== environment.E2E_SOURCE_SHA) {
       throw new Error(
         `Prebuilt ${name} image revision ${revision || '<missing>'} does not match ${environment.E2E_SOURCE_SHA}.`,

@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import { validatePrebuiltConfiguration } from '../../../scripts/run-e2e-smoke.js';
+import {
+  parseCarriedImages,
+  validatePrebuiltConfiguration,
+} from '../../../scripts/run-e2e-smoke.js';
 
 const sourceSha = 'a'.repeat(40);
 
@@ -35,6 +38,19 @@ describe('managed smoke prebuilt configuration', () => {
     expect(() =>
       validatePrebuiltConfiguration(prebuiltEnvironment(override)),
     ).toThrow(message);
+  });
+
+  it('parses the carried-over image list', () => {
+    expect(parseCarriedImages({})).toEqual(new Set());
+    expect(
+      parseCarriedImages({ E2E_CARRIED_IMAGES: ' asset-service, backend ,' }),
+    ).toEqual(new Set(['asset-service', 'backend']));
+  });
+
+  it('rejects an unknown carried image name', () => {
+    expect(() => parseCarriedImages({ E2E_CARRIED_IMAGES: 'postgres' })).toThrow(
+      'E2E_CARRIED_IMAGES',
+    );
   });
 
   it('keeps local build-from-source mode unchanged', () => {
