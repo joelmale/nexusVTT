@@ -8,7 +8,7 @@ description: Fixture registry and read-only section pages (Sessions, World, NPCs
 Date: 2026-09-29  
 Status: proposed. Related: [visual prototype plan](./campaign-studio-visual-prototype-plan.md),
 [sidecar plan](./campaign-studio-sidecar-plan.md),
-[ADR 0006](../../vtt/adr/0006-campaign-studio-sidecar-boundary.md).
+[ADR 0006](/vtt/adr/campaign-studio-sidecar-boundary).
 
 Scope: `apps/codex/services/dm-ui`. Paths below are relative to
 `apps/codex/services/dm-ui/src` unless stated otherwise.
@@ -207,7 +207,7 @@ Every entity section uses the same `SectionLayout`:
   detail shows when an id is set, and the detail gets a "← All NPCs" back link.
 - DM-only content (`hiddenAgenda`, `visibility: 'dm-only'`, `tactics`) always
   shows a `DM only` badge. There is no player-view toggle yet.
-- Mutating affordances are visible but stubbed. "New <thing>" calls
+- Mutating affordances are visible but stubbed. "New …" calls
   `campaign.object.create`, and the overflow menu calls
   `campaign.object.actions`. There are no edit forms.
 
@@ -528,7 +528,7 @@ disjoint files.
   - `activeRoute` is derived from the path segment after `campaignBase`
     (`pathname.slice(campaignBase.length).split('/')[1] ?? 'overview'`),
     instead of `includes('/sessions/')`.
-  - `selectRoute` becomes `navigate(\`${campaignBase}/${route}\`)` for every
+  - `selectRoute` becomes ``navigate(`${campaignBase}/${route}`)`` for every
     item, including real campaigns.
   - Delete the Ashes-specific branches and the `#sessions` hack.
   - `campaign.section.open` stays in the registry (it's used by the Overview
