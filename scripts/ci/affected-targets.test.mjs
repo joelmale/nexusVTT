@@ -246,6 +246,20 @@ describe('representative Stage 3A change classes', () => {
     expectAffected(decision, []);
   });
 
+  test.each([
+    '.github/workflows/nightly.yml',
+    '.github/workflows/security.yml',
+    '.github/workflows/multiplayer-soak.yml',
+  ])(
+    'classifies scheduled or release-only workflow %s without affecting any target',
+    (path) => {
+      const decision = decide(path);
+      expect(decision.mode).toBe('targeted');
+      expect(decision.unknownPaths).toEqual([]);
+      expectAffected(decision, []);
+    },
+  );
+
   test('runs every target for an unclassified workflow file', () => {
     const decision = decide('.github/workflows/future-workflow.yml');
     expect(decision.mode).toBe('full');

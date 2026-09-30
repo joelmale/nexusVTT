@@ -345,12 +345,18 @@
         ".github/workflows/delivery.yml",
         ".github/workflows/docs-pages.yml",
         ".github/workflows/forge-ci.yml",
-        ".github/workflows/multiplayer-soak.yml",
-        ".github/workflows/nightly.yml",
-        ".github/workflows/security-reusable.yml",
-        ".github/workflows/security.yml"
+        ".github/workflows/security-reusable.yml"
       ],
       "targets": "all"
+    },
+    {
+      "name": "scheduled-and-release-workflows",
+      "paths": [
+        ".github/workflows/multiplayer-soak.yml",
+        ".github/workflows/nightly.yml",
+        ".github/workflows/security.yml"
+      ],
+      "targets": []
     },
     {
       "name": "dependabot-automation",
