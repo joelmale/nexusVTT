@@ -6,7 +6,12 @@
 # no build tools. node-canvas (the fallback backend in src/utils/canvas.ts) is
 # compiled in the deps stage; its shared libraries are installed at runtime.
 FROM node:26.10.0-alpine AS base
-RUN apk upgrade --no-cache
+# OpenSSL in every stage, not only the runtime: `prisma generate` picks the
+# query engine from the OpenSSL it finds at build time. Without it the builder
+# bundles the plain "linux-musl" engine and the runtime (OpenSSL 3) fails at
+# the first query with "could not locate the Query Engine for
+# linux-musl-openssl-3.0.x".
+RUN apk upgrade --no-cache && apk add --no-cache openssl
 
 # Install dependencies only when needed
 FROM base AS deps
