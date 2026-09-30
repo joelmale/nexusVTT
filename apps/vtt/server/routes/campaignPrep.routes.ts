@@ -94,6 +94,21 @@ function isUuid(value: unknown): value is string {
   );
 }
 
+function activationErrorStatus(error: SessionPlanActivationError): number {
+  switch (error.code) {
+    case 'not-found':
+      return 404;
+    case 'conflict':
+      return 409;
+    default:
+      return 422;
+  }
+}
+
+function isExpectedRevision(value: unknown): value is number {
+  return Number.isInteger(value) && (value as number) >= 1;
+}
+
 export function createCampaignPrepRouter({
   author,
   db,
@@ -362,8 +377,21 @@ export function createCampaignPrepRouter({
         requestId?: unknown;
       };
 
-      if (body.requestId !== undefined && !isUuid(body.requestId)) {
+      if (!isUuid(planId)) {
+        return res.status(400).json({ error: 'planId must be a valid UUID' });
+      }
+      if (!isUuid(body.requestId)) {
         return res.status(400).json({ error: 'requestId must be a UUID' });
+      }
+      if (
+        body.sessionId !== undefined &&
+        (typeof body.sessionId !== 'string' ||
+          body.sessionId.length < 1 ||
+          body.sessionId.length > 64)
+      ) {
+        return res
+          .status(400)
+          .json({ error: 'sessionId must be 1-64 characters' });
       }
       if (
         body.planRevision !== undefined &&
@@ -391,13 +419,13 @@ export function createCampaignPrepRouter({
           planRevision: body.planRevision as number | undefined,
           sessionId,
           activatedBy: sessionUserId(req),
+          requestId: body.requestId,
         });
 
         return res.json(result);
       } catch (error) {
         if (error instanceof SessionPlanActivationError) {
-          const status = error.code === 'not-found' ? 404 : 422;
-          return res.status(status).json({
+          return res.status(activationErrorStatus(error)).json({
             error: error.message,
             code: error.code,
           });
@@ -419,10 +447,20 @@ export function createCampaignPrepRouter({
           typeof req.query.sessionId === 'string'
             ? req.query.sessionId
             : undefined;
-        const result = await db.campaignPrep.getActiveSessionPlanActivation(
+        if (sessionId !== undefined && sessionId.length > 64) {
+          return res.status(400).json({ error: 'sessionId is too long' });
+        }
+        let result = await db.campaignPrep.getActiveSessionPlanActivation(
           campaignId,
           sessionId,
         );
+        // Room codes rotate each time the DM relaunches the VTT, so a run
+        // activated from Campaign Studio under an earlier code is still the
+        // campaign's live run sheet. Fall back to the newest active run.
+        if (!result && sessionId) {
+          result =
+            await db.campaignPrep.getActiveSessionPlanActivation(campaignId);
+        }
         if (!result) {
           return res
             .status(404)
@@ -445,9 +483,21 @@ export function createCampaignPrepRouter({
       const activationId = routeParameter(req.params.activationId);
       const body = req.body as {
         currentStepIndex?: unknown;
+        expectedRevision?: unknown;
         stepStates?: unknown;
         status?: unknown;
       };
+
+      if (!isUuid(activationId)) {
+        return res
+          .status(400)
+          .json({ error: 'activationId must be a valid UUID' });
+      }
+      if (!isExpectedRevision(body.expectedRevision)) {
+        return res
+          .status(400)
+          .json({ error: 'expectedRevision must be a positive integer' });
+      }
 
       if (
         body.currentStepIndex !== undefined &&
@@ -478,6 +528,7 @@ export function createCampaignPrepRouter({
           await db.campaignPrep.updateSessionPlanActivationProgress({
             campaignId,
             activationId,
+            expectedRevision: body.expectedRevision,
             currentStepIndex: body.currentStepIndex as number | undefined,
             stepStates:
               typeof body.stepStates === 'object' && body.stepStates !== null
@@ -489,8 +540,7 @@ export function createCampaignPrepRouter({
         return res.json({ activation });
       } catch (error) {
         if (error instanceof SessionPlanActivationError) {
-          const status = error.code === 'not-found' ? 404 : 422;
-          return res.status(status).json({
+          return res.status(activationErrorStatus(error)).json({
             error: error.message,
             code: error.code,
           });
@@ -511,7 +561,22 @@ export function createCampaignPrepRouter({
       const body = req.body as {
         stepId?: unknown;
         stepIndex?: unknown;
+        expectedRevision?: unknown;
       };
+
+      if (!isUuid(activationId)) {
+        return res
+          .status(400)
+          .json({ error: 'activationId must be a valid UUID' });
+      }
+      if (
+        body.expectedRevision !== undefined &&
+        !isExpectedRevision(body.expectedRevision)
+      ) {
+        return res
+          .status(400)
+          .json({ error: 'expectedRevision must be a positive integer' });
+      }
 
       if (
         typeof body.stepId !== 'string' ||
@@ -531,17 +596,12 @@ export function createCampaignPrepRouter({
           stepId: body.stepId,
           stepIndex: body.stepIndex as number,
           completedBy: sessionUserId(req) ?? undefined,
+          expectedRevision: body.expectedRevision as number | undefined,
         });
         return res.json({ activation });
       } catch (error) {
         if (error instanceof SessionPlanActivationError) {
-          const status =
-            error.code === 'not-found'
-              ? 404
-              : error.code === 'conflict'
-                ? 409
-                : 422;
-          return res.status(status).json({
+          return res.status(activationErrorStatus(error)).json({
             error: error.message,
             code: error.code,
           });

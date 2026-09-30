@@ -180,6 +180,27 @@ describe('campaign preparation contracts', () => {
     expect(
       activation.stepStates['11111111-1111-4111-8111-111111111111']?.completed,
     ).toBe(true);
+    // Records written before the revision counter existed default to 1.
+    expect(activation.revision).toBe(1);
+  });
+
+  it('accepts the activation CAS revision and command receipt fields', () => {
+    const activation = sessionPlanActivationSchema.parse({
+      id: '99999999-9999-4999-8999-999999999999',
+      campaignId: GLASS_HARBOR_IDS.campaign,
+      sessionPlanId: GLASS_HARBOR_IDS.sessionPlan,
+      planRevision: 2,
+      sessionId: 'ROOM',
+      requestId: '22222222-2222-4222-8222-222222222222',
+      revision: 5,
+      completedAt: null,
+      createdAt: '2026-09-25T12:00:00.000Z',
+      updatedAt: '2026-09-25T12:00:00.000Z',
+    });
+    expect(activation.revision).toBe(5);
+    expect(
+      sessionPlanActivationSchema.safeParse({ ...activation, revision: 0 })
+        .success,
+    ).toBe(false);
   });
 });
-

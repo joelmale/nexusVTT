@@ -216,6 +216,11 @@ export interface SessionPlanActivationRecord {
   status: SessionPlanActivationStatus;
   stepStates: Record<string, unknown>;
   activatedBy: string | null;
+  /** Activation command ID; replaying it returns this activation. */
+  requestId: string | null;
+  /** Compare-and-swap counter bumped by every progress write. */
+  revision: number;
+  completedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }

@@ -342,6 +342,7 @@ describe('campaign prep routes', () => {
     campaignPrep.activateSessionPlan.mockResolvedValueOnce({
       activation: mockActivation,
       plan: mockPlan,
+      replayed: false,
     });
 
     const activateResponse = await fetch(
@@ -361,6 +362,14 @@ describe('campaign prep routes', () => {
     const activateBody = await activateResponse.json();
     expect(activateBody.activation.id).toBe(mockActivation.id);
     expect(activateBody.plan.title).toBe(mockPlan.title);
+    expect(campaignPrep.activateSessionPlan).toHaveBeenCalledWith({
+      campaignId: CAMPAIGN_ID,
+      sessionPlanId: PLAN_ID,
+      planRevision: 2,
+      sessionId: 'session-12',
+      activatedBy: USER_ID,
+      requestId: REQUEST_ID,
+    });
 
     // Get active session plan
     campaignPrep.getActiveSessionPlanActivation.mockResolvedValueOnce({
@@ -386,12 +395,42 @@ describe('campaign prep routes', () => {
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentStepIndex: 1 }),
+        body: JSON.stringify({ currentStepIndex: 1, expectedRevision: 1 }),
       },
     );
     expect(progressResponse.status).toBe(200);
     const progressBody = await progressResponse.json();
     expect(progressBody.activation.currentStepIndex).toBe(1);
+  });
+
+  it('falls back to the campaign run sheet when the room code rotated', async () => {
+    const activation = { id: 'act-1', campaignId: CAMPAIGN_ID, revision: 2 };
+    campaignPrep.getActiveSessionPlanActivation
+      .mockResolvedValueOnce(null)
+      .mockResolvedValueOnce({ activation, plan: { id: PLAN_ID } });
+
+    const response = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans/active?sessionId=NEWC`,
+    );
+
+    expect(response.status).toBe(200);
+    expect(campaignPrep.getActiveSessionPlanActivation).toHaveBeenNthCalledWith(
+      1,
+      CAMPAIGN_ID,
+      'NEWC',
+    );
+    expect(campaignPrep.getActiveSessionPlanActivation).toHaveBeenNthCalledWith(
+      2,
+      CAMPAIGN_ID,
+    );
+  });
+
+  it('returns 404 when the campaign has no active run sheet', async () => {
+    campaignPrep.getActiveSessionPlanActivation.mockResolvedValue(null);
+    const response = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans/active`,
+    );
+    expect(response.status).toBe(404);
   });
 
   it('handles activation errors with appropriate HTTP status codes', async () => {
@@ -404,7 +443,10 @@ describe('campaign prep routes', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          sessionId: 'session-12',
+          requestId: REQUEST_ID,
+        }),
       },
     );
     expect(notReadyResponse.status).toBe(422);
@@ -418,7 +460,10 @@ describe('campaign prep routes', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({}),
+        body: JSON.stringify({
+          sessionId: 'session-12',
+          requestId: REQUEST_ID,
+        }),
       },
     );
     expect(notFoundResponse.status).toBe(404);
@@ -439,7 +484,7 @@ describe('campaign prep routes', () => {
       {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ status: 'completed' }),
+        body: JSON.stringify({ status: 'completed', expectedRevision: 3 }),
       },
     );
 
@@ -450,6 +495,7 @@ describe('campaign prep routes', () => {
       expect.objectContaining({
         activationId,
         campaignId: CAMPAIGN_ID,
+        expectedRevision: 3,
         currentStepIndex: undefined,
         status: 'completed',
       }),
@@ -470,7 +516,11 @@ describe('campaign prep routes', () => {
       {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stepId: 'step-1', stepIndex: 0 }),
+        body: JSON.stringify({
+          stepId: 'step-1',
+          stepIndex: 0,
+          expectedRevision: 4,
+        }),
       },
     );
 
@@ -481,7 +531,82 @@ describe('campaign prep routes', () => {
       completedBy: USER_ID,
       stepId: 'step-1',
       stepIndex: 0,
+      expectedRevision: 4,
     });
+  });
+
+  it('maps stale progress and advance revisions to 409', async () => {
+    const activationId = '99999999-9999-4999-8999-999999999999';
+    const stale = new SessionPlanActivationError('stale', 'conflict');
+    campaignPrep.updateSessionPlanActivationProgress.mockRejectedValueOnce(
+      stale,
+    );
+    campaignPrep.advanceSessionPlanActivation.mockRejectedValueOnce(stale);
+    const base = `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans/activations/${activationId}`;
+    const headers = { 'Content-Type': 'application/json' };
+
+    const progress = await fetch(`${base}/progress`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({ currentStepIndex: 1, expectedRevision: 1 }),
+    });
+    const advance = await fetch(`${base}/advance`, {
+      method: 'POST',
+      headers,
+      body: JSON.stringify({ stepId: 's', stepIndex: 0 }),
+    });
+    expect(progress.status).toBe(409);
+    expect(advance.status).toBe(409);
+  });
+
+  it('rejects malformed activation, progress and advance commands', async () => {
+    const activationId = '99999999-9999-4999-8999-999999999999';
+    const headers = { 'Content-Type': 'application/json' };
+    const planUrl = `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans`;
+    const post = (url: string, method: string, body: unknown) =>
+      fetch(url, { method, headers, body: JSON.stringify(body) });
+
+    // Activation needs a UUID request ID so a retry is idempotent.
+    expect(
+      (await post(`${planUrl}/${PLAN_ID}/activate`, 'POST', { sessionId: 'a' }))
+        .status,
+    ).toBe(400);
+    expect(
+      (
+        await post(`${planUrl}/not-a-uuid/activate`, 'POST', {
+          requestId: REQUEST_ID,
+        })
+      ).status,
+    ).toBe(400);
+    // Progress needs the activation revision the caller observed.
+    expect(
+      (
+        await post(`${planUrl}/activations/${activationId}/progress`, 'PATCH', {
+          currentStepIndex: 1,
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await post(`${planUrl}/activations/nope/progress`, 'PATCH', {
+          expectedRevision: 1,
+        })
+      ).status,
+    ).toBe(400);
+    expect(
+      (
+        await post(`${planUrl}/activations/${activationId}/advance`, 'POST', {
+          stepId: 's',
+          stepIndex: 0,
+          expectedRevision: 0,
+        })
+      ).status,
+    ).toBe(400);
+    expect(campaignPrep.activateSessionPlan).not.toHaveBeenCalled();
+    expect(
+      campaignPrep.updateSessionPlanActivationProgress,
+    ).not.toHaveBeenCalled();
+    expect(campaignPrep.advanceSessionPlanActivation).not.toHaveBeenCalled();
   });
 
   it('rejects an invalid activation status', async () => {

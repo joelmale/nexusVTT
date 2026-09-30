@@ -7,6 +7,7 @@ interface FakeSchema {
   campaignObjects: boolean;
   localAuth: boolean;
   sessionPlanActivations: boolean;
+  sessionPlanActivationRequestId: boolean;
 }
 
 function createPool(schema: FakeSchema) {
@@ -16,7 +17,18 @@ function createPool(schema: FakeSchema) {
       params?: unknown[],
     ): Promise<Partial<QueryResult<Record<string, unknown>>>> => {
       if (sql.includes('information_schema.columns')) {
-        return { rows: [{ exists: schema.localAuth }] };
+        const [tableName, columnName] = params ?? [];
+        return {
+          rows: [
+            {
+              exists:
+                tableName === 'session_plan_activations' &&
+                columnName === 'requestId'
+                  ? schema.sessionPlanActivationRequestId
+                  : schema.localAuth,
+            },
+          ],
+        };
       }
       if (sql.includes('to_regclass')) {
         const tableName = params?.[0];
@@ -49,6 +61,7 @@ describe('runStartupMigrations', () => {
       campaignObjects: false,
       localAuth: false,
       sessionPlanActivations: false,
+      sessionPlanActivationRequestId: false,
     });
     const sqlLoader = vi.fn((fileName: string) => `-- ${fileName}`);
 
@@ -58,6 +71,7 @@ describe('runStartupMigrations', () => {
       '2025-12-08-add-local-auth.sql',
       '2026-09-25-add-campaign-prep.sql',
       '2026-09-25-add-session-plan-activations.sql',
+      '2026-09-30-harden-session-plan-activations.sql',
     ]);
     expect(sqlLoader.mock.calls.map(([fileName]) => fileName)).toEqual(applied);
     expect(query.mock.calls.at(0)?.[0]).toBe('BEGIN');
@@ -70,6 +84,7 @@ describe('runStartupMigrations', () => {
       campaignObjects: true,
       localAuth: true,
       sessionPlanActivations: true,
+      sessionPlanActivationRequestId: true,
     });
     const sqlLoader = vi.fn();
 
@@ -79,11 +94,26 @@ describe('runStartupMigrations', () => {
     expect(query.mock.calls.at(-1)?.[0]).toBe('COMMIT');
   });
 
+  it('hardens an existing activations table that predates activation receipts', async () => {
+    const { pool } = createPool({
+      campaignObjects: true,
+      localAuth: true,
+      sessionPlanActivations: true,
+      sessionPlanActivationRequestId: false,
+    });
+    const sqlLoader = vi.fn((fileName: string) => `-- ${fileName}`);
+
+    await expect(runStartupMigrations(pool, sqlLoader)).resolves.toEqual([
+      '2026-09-30-harden-session-plan-activations.sql',
+    ]);
+  });
+
   it('rolls back and releases the client when a migration fails', async () => {
     const { pool, query, release } = createPool({
       campaignObjects: false,
       localAuth: false,
       sessionPlanActivations: false,
+      sessionPlanActivationRequestId: false,
     });
     const failure = new Error('migration failed');
     query.mockImplementationOnce(async () => ({ rows: [] }));
@@ -106,6 +136,7 @@ describe('runStartupMigrations', () => {
       campaignObjects: false,
       localAuth: false,
       sessionPlanActivations: false,
+      sessionPlanActivationRequestId: false,
     });
 
     await expect(

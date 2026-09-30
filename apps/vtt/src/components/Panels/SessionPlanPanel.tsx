@@ -25,7 +25,10 @@ import {
   panelRegistry,
   type PanelComponentProps,
 } from '@/services/panelRegistry';
-import { campaignPrepClient } from '@/services/campaignPrepClient';
+import {
+  campaignPrepClient,
+  CampaignPrepRequestError,
+} from '@/services/campaignPrepClient';
 import { useGameStore } from '@/stores/gameStore';
 import styles from './SessionPlanPanel.module.css';
 
@@ -220,6 +223,14 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
     return Math.round((completedStepsCount / mainSteps.length) * 100);
   }, [completedStepsCount, mainSteps]);
 
+  // A 409 means another tab or co-host moved the run first; reload the
+  // authoritative activation so the next click carries a fresh revision.
+  const reloadOnConflict = (err: unknown) => {
+    if (err instanceof CampaignPrepRequestError && err.status === 409) {
+      void fetchActivePlan();
+    }
+  };
+
   const handleAdvanceStep = async (stepId: string, stepIndex: number) => {
     if (!activation) return;
     setActionInProgress((current) => ({ ...current, [stepId]: true }));
@@ -230,6 +241,7 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
         activation.id,
         stepId,
         stepIndex,
+        activation.revision,
       );
       setActivation(updated);
       const nextStep = mainSteps[updated.currentStepIndex];
@@ -237,6 +249,7 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
         setExpandedStepId(nextStep.id);
       }
     } catch (err) {
+      reloadOnConflict(err);
       setProgressError(
         err instanceof Error ? err.message : 'Failed to complete the step.',
       );
@@ -253,12 +266,14 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
         activation.campaignId,
         activation.id,
         {
+          expectedRevision: activation.revision,
           currentStepIndex: targetIndex,
         },
       );
       setActivation(updated);
       setExpandedStepId(stepId);
     } catch (err) {
+      reloadOnConflict(err);
       setProgressError(
         err instanceof Error ? err.message : 'Failed to set the active step.',
       );
@@ -520,11 +535,13 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
         activation.campaignId,
         activation.id,
         {
+          expectedRevision: activation.revision,
           status: activation.status === 'completed' ? 'active' : 'completed',
         },
       );
       setActivation(updated);
     } catch (statusError) {
+      reloadOnConflict(statusError);
       setError(
         statusError instanceof Error
           ? statusError.message
@@ -1036,10 +1053,14 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
                                 await campaignPrepClient.updateActivationProgress(
                                   activation.campaignId,
                                   activation.id,
-                                  { stepStates: updatedStates },
+                                  {
+                                    expectedRevision: activation.revision,
+                                    stepStates: updatedStates,
+                                  },
                                 );
                               setActivation(updated);
                             } catch (err) {
+                              reloadOnConflict(err);
                               setProgressError(
                                 err instanceof Error
                                   ? err.message

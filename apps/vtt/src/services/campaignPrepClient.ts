@@ -15,7 +15,19 @@ export interface ActivePlanResponse {
   plan: SessionPlan;
 }
 
+export class CampaignPrepRequestError extends Error {
+  constructor(
+    message: string,
+    public readonly status: number,
+  ) {
+    super(message);
+    this.name = 'CampaignPrepRequestError';
+  }
+}
+
 export interface UpdateProgressPayload {
+  /** The activation revision the caller observed. */
+  expectedRevision: number;
   currentStepIndex?: number;
   status?: SessionPlanActivationStatus;
   stepStates?: Record<string, SessionPlanStepState>;
@@ -91,8 +103,9 @@ export class CampaignPrepClient {
 
     if (!res.ok) {
       const errorText = await res.text().catch(() => 'Request failed');
-      throw new Error(
+      throw new CampaignPrepRequestError(
         `Failed to update session plan progress (${res.status}): ${errorText}`,
+        res.status,
       );
     }
 
@@ -105,6 +118,7 @@ export class CampaignPrepClient {
     activationId: string,
     stepId: string,
     stepIndex: number,
+    expectedRevision?: number,
   ): Promise<SessionPlanActivation> {
     const res = await fetch(
       `${this.baseUrl}/api/campaigns/${encodeURIComponent(campaignId)}/session-plans/activations/${encodeURIComponent(activationId)}/advance`,
@@ -112,14 +126,15 @@ export class CampaignPrepClient {
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ stepId, stepIndex }),
+        body: JSON.stringify({ stepId, stepIndex, expectedRevision }),
       },
     );
 
     if (!res.ok) {
       const errorText = await res.text().catch(() => 'Request failed');
-      throw new Error(
+      throw new CampaignPrepRequestError(
         `Failed to advance session plan (${res.status}): ${errorText}`,
+        res.status,
       );
     }
 

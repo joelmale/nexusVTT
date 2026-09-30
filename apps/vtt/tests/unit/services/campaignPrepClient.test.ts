@@ -88,6 +88,7 @@ describe('CampaignPrepClient', () => {
       } as Response);
 
       const result = await client.updateActivationProgress('camp-1', 'act-1', {
+        expectedRevision: 5,
         currentStepIndex: 2,
         stepStates: { 'step-1': { completed: true } },
       });
@@ -98,6 +99,7 @@ describe('CampaignPrepClient', () => {
         expect.objectContaining({
           method: 'PATCH',
           body: JSON.stringify({
+            expectedRevision: 5,
             currentStepIndex: 2,
             stepStates: { 'step-1': { completed: true } },
           }),
@@ -114,6 +116,7 @@ describe('CampaignPrepClient', () => {
 
       await expect(
         client.updateActivationProgress('camp-1', 'act-1', {
+          expectedRevision: 1,
           currentStepIndex: 99,
         }),
       ).rejects.toThrow(
@@ -131,13 +134,14 @@ describe('CampaignPrepClient', () => {
       } as Response);
 
       await client.updateActivationProgress('camp-1', 'act-1', {
+        expectedRevision: 2,
         status: 'completed',
       });
 
       expect(global.fetch).toHaveBeenCalledWith(
         expect.stringContaining('/activations/act-1/progress'),
         expect.objectContaining({
-          body: JSON.stringify({ status: 'completed' }),
+          body: JSON.stringify({ expectedRevision: 2, status: 'completed' }),
         }),
       );
     });
@@ -157,13 +161,17 @@ describe('CampaignPrepClient', () => {
       } as Response);
 
       await expect(
-        client.advanceActivationStep('camp-1', 'act-1', 'step-1', 0),
+        client.advanceActivationStep('camp-1', 'act-1', 'step-1', 0, 3),
       ).resolves.toEqual(activation);
       expect(global.fetch).toHaveBeenCalledWith(
         'http://localhost:5001/api/campaigns/camp-1/session-plans/activations/act-1/advance',
         expect.objectContaining({
           method: 'POST',
-          body: JSON.stringify({ stepId: 'step-1', stepIndex: 0 }),
+          body: JSON.stringify({
+            stepId: 'step-1',
+            stepIndex: 0,
+            expectedRevision: 3,
+          }),
         }),
       );
     });
@@ -177,9 +185,11 @@ describe('CampaignPrepClient', () => {
 
       await expect(
         client.advanceActivationStep('camp-1', 'act-1', 'step-1', 0),
-      ).rejects.toThrow(
-        'Failed to advance session plan (409): Progress changed',
-      );
+      ).rejects.toMatchObject({
+        name: 'CampaignPrepRequestError',
+        status: 409,
+        message: 'Failed to advance session plan (409): Progress changed',
+      });
     });
   });
 

@@ -355,21 +355,48 @@ describeIntegration('Campaign Studio Publish Integration Smoke Test', () => {
     expect(republishResult.plan.status).toBe('ready');
 
     // Step 11: Activate and atomically complete the first main step.
+    const activationRequestId = randomUUID();
     const activated = await dbService.campaignPrep.activateSessionPlan({
       activatedBy: user.id,
       campaignId: campaign.id,
       planRevision: 3,
+      requestId: activationRequestId,
       sessionId: 'smoke-session',
       sessionPlanId: planId,
     });
+    expect(activated.replayed).toBe(false);
     const advanced = await dbService.campaignPrep.advanceSessionPlanActivation({
       activationId: activated.activation.id,
       campaignId: campaign.id,
       completedBy: user.id,
       stepId: proposedPlan.steps[0].id,
       stepIndex: 0,
+      expectedRevision: activated.activation.revision,
     });
     expect(advanced.currentStepIndex).toBe(1);
+    expect(advanced.revision).toBe(activated.activation.revision + 1);
+
+    // A stale progress writer is rejected; replaying the activation command
+    // returns the live run instead of restarting it.
+    await expect(
+      dbService.campaignPrep.updateSessionPlanActivationProgress({
+        activationId: activated.activation.id,
+        campaignId: campaign.id,
+        currentStepIndex: 0,
+        expectedRevision: activated.activation.revision,
+      }),
+    ).rejects.toMatchObject({ code: 'conflict' });
+    const replayed = await dbService.campaignPrep.activateSessionPlan({
+      activatedBy: user.id,
+      campaignId: campaign.id,
+      planRevision: 3,
+      requestId: activationRequestId,
+      sessionId: 'smoke-session',
+      sessionPlanId: planId,
+    });
+    expect(replayed.replayed).toBe(true);
+    expect(replayed.activation.id).toBe(activated.activation.id);
+    expect(replayed.activation.currentStepIndex).toBe(1);
     expect(advanced.stepStates[proposedPlan.steps[0].id]).toMatchObject({
       completed: true,
     });
@@ -379,6 +406,7 @@ describeIntegration('Campaign Studio Publish Integration Smoke Test', () => {
       activatedBy: user.id,
       campaignId: campaign.id,
       planRevision: 3,
+      requestId: randomUUID(),
       sessionId: 'smoke-session',
       sessionPlanId: planId,
     });

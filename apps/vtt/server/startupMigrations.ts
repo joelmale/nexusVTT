@@ -27,6 +27,11 @@ export const STARTUP_MIGRATIONS: StartupMigration[] = [
     fileName: '2026-09-25-add-session-plan-activations.sql',
     isApplied: (client) => hasTable(client, 'session_plan_activations'),
   },
+  {
+    fileName: '2026-09-30-harden-session-plan-activations.sql',
+    isApplied: (client) =>
+      hasColumn(client, 'session_plan_activations', 'requestId'),
+  },
 ];
 
 export interface NonStartupMigration {

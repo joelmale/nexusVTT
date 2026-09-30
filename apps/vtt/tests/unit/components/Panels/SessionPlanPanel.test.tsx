@@ -13,6 +13,14 @@ import {
 import { useGameStore } from '../../../../src/stores/gameStore';
 
 vi.mock('../../../../src/services/campaignPrepClient', () => ({
+  CampaignPrepRequestError: class CampaignPrepRequestError extends Error {
+    constructor(
+      message: string,
+      public readonly status: number,
+    ) {
+      super(message);
+    }
+  },
   campaignPrepClient: {
     advanceActivationStep: vi.fn(),
     getActiveSessionPlan: vi.fn(),
@@ -118,6 +126,7 @@ const mockActivation = {
   planRevision: 3,
   sessionId: 'room-abc',
   currentStepIndex: 0,
+  revision: 7,
   stepStates: {},
   status: 'active' as const,
   activatedAt: new Date().toISOString(),
@@ -497,6 +506,7 @@ describe('SessionPlanPanel', () => {
         'act-123',
         'step-1',
         0,
+        7,
       );
     });
   });
@@ -525,6 +535,29 @@ describe('SessionPlanPanel', () => {
         name: '',
       }),
     ).toHaveTextContent('Campaign DM access required');
+  });
+
+  it('reloads the active plan when a progress write loses a revision race', async () => {
+    const { CampaignPrepRequestError } =
+      await import('../../../../src/services/campaignPrepClient');
+    vi.mocked(campaignPrepClient.getActiveSessionPlan).mockResolvedValue({
+      activation: mockActivation,
+      plan: mockPlan,
+    });
+    vi.mocked(campaignPrepClient.advanceActivationStep).mockRejectedValueOnce(
+      new CampaignPrepRequestError('Failed to advance (409): stale', 409),
+    );
+
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+    );
+    fireEvent.click(
+      await screen.findByRole('button', { name: /complete & next beat/i }),
+    );
+
+    await waitFor(() => {
+      expect(campaignPrepClient.getActiveSessionPlan).toHaveBeenCalledTimes(2);
+    });
   });
 
   it('shares handout and opens entry', async () => {
@@ -689,7 +722,7 @@ describe('SessionPlanPanel', () => {
       expect(campaignPrepClient.updateActivationProgress).toHaveBeenCalledWith(
         'camp-123',
         'act-123',
-        { currentStepIndex: 4 },
+        { currentStepIndex: 4, expectedRevision: 7 },
       );
     });
 
@@ -855,6 +888,7 @@ describe('SessionPlanPanel', () => {
         'camp-123',
         'act-123',
         expect.objectContaining({
+          expectedRevision: 7,
           stepStates: expect.objectContaining({
             'step-parallel-1': expect.objectContaining({ completed: true }),
           }),
@@ -885,7 +919,7 @@ describe('SessionPlanPanel', () => {
       expect(campaignPrepClient.updateActivationProgress).toHaveBeenCalledWith(
         'camp-123',
         'act-123',
-        { status: 'completed' },
+        { status: 'completed', expectedRevision: 7 },
       );
     });
 
@@ -893,7 +927,10 @@ describe('SessionPlanPanel', () => {
     await waitFor(() => {
       expect(
         campaignPrepClient.updateActivationProgress,
-      ).toHaveBeenLastCalledWith('camp-123', 'act-123', { status: 'active' });
+      ).toHaveBeenLastCalledWith('camp-123', 'act-123', {
+        expectedRevision: 7,
+        status: 'active',
+      });
     });
   });
 });

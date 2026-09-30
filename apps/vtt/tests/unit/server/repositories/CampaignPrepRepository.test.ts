@@ -5,6 +5,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   CampaignPrepRepository,
   CampaignPrepRevisionConflictError,
+  SessionPlanActivationError,
 } from '../../../../server/repositories/CampaignPrepRepository.js';
 import type {
   CampaignPrepObjectRecord,
@@ -296,115 +297,14 @@ describe('CampaignPrepRepository', () => {
     expect(release).toHaveBeenCalledOnce();
   });
 
-  it('activates a ready session plan and completes prior activations', async () => {
-    const readyObject = { ...objectRecord, status: 'ready' };
-    const activationRecord = {
-      id: '99999999-9999-4999-8999-999999999999',
-      campaignId: IDS.campaign,
-      sessionPlanId: IDS.object,
-      planRevision: 1,
-      sessionId: 'session-123',
-      currentStepIndex: 0,
-      status: 'active',
-      stepStates: {},
-      activatedBy: IDS.user,
-      createdAt: new Date('2026-09-25T12:00:00.000Z'),
-      updatedAt: new Date('2026-09-25T12:00:00.000Z'),
-    };
+  const ACTIVATION_ID = '99999999-9999-4999-8999-999999999999';
+  const ACTIVATION_REQUEST = 'ffffffff-ffff-4fff-8fff-ffffffffffff';
+  const stepId = '10000000-0000-4000-8000-000000000001';
+  const nextStepId = '10000000-0000-4000-8000-000000000002';
 
-    clientQuery
-      .mockResolvedValueOnce({ rows: [] }) // BEGIN
-      .mockResolvedValueOnce({ rows: [readyObject] }) // getObject
-      .mockResolvedValueOnce({ rows: [revisionRecord] }) // getRevision
-      .mockResolvedValueOnce({ rows: [] }) // UPDATE prior activations
-      .mockResolvedValueOnce({ rows: [activationRecord] }) // INSERT activation
-      .mockResolvedValueOnce({ rows: [] }); // COMMIT
-
-    const result = await repository.activateSessionPlan({
-      campaignId: IDS.campaign,
-      sessionPlanId: IDS.object,
-      sessionId: 'session-123',
-      activatedBy: IDS.user,
-    });
-
-    expect(result.activation.id).toBe(activationRecord.id);
-    expect(result.plan).toEqual(revisionRecord.data);
-    expect(clientQuery).toHaveBeenCalledWith('COMMIT');
-  });
-
-  it('rejects activation of a draft session plan', async () => {
-    clientQuery
-      .mockResolvedValueOnce({ rows: [] }) // BEGIN
-      .mockResolvedValueOnce({ rows: [objectRecord] }) // getObject (status: 'draft')
-      .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
-
-    await expect(
-      repository.activateSessionPlan({
-        campaignId: IDS.campaign,
-        sessionPlanId: IDS.object,
-        sessionId: 'session-123',
-      }),
-    ).rejects.toThrow('only ready plans can be activated');
-  });
-
-  it('retrieves active session plan activation and updates progress', async () => {
-    const activationRecord = {
-      id: '99999999-9999-4999-8999-999999999999',
-      campaignId: IDS.campaign,
-      sessionPlanId: IDS.object,
-      planRevision: 1,
-      sessionId: 'session-123',
-      currentStepIndex: 0,
-      status: 'active',
-      stepStates: {},
-      activatedBy: IDS.user,
-      createdAt: new Date('2026-09-25T12:00:00.000Z'),
-      updatedAt: new Date('2026-09-25T12:00:00.000Z'),
-    };
-
-    poolQuery
-      .mockResolvedValueOnce({ rows: [activationRecord] }) // getActiveSessionPlanActivation
-      .mockResolvedValueOnce({ rows: [revisionRecord] }); // getRevision
-
-    const active = await repository.getActiveSessionPlanActivation(
-      IDS.campaign,
-      'session-123',
-    );
-    expect(active?.activation.id).toBe(activationRecord.id);
-    expect(active?.plan).toEqual(revisionRecord.data);
-
-    const updatedRecord = { ...activationRecord, currentStepIndex: 2 };
-    poolQuery.mockResolvedValueOnce({ rows: [updatedRecord] });
-
-    const progress = await repository.updateSessionPlanActivationProgress({
-      campaignId: IDS.campaign,
-      activationId: activationRecord.id,
-      currentStepIndex: 2,
-    });
-    expect(progress.currentStepIndex).toBe(2);
-
-    poolQuery.mockResolvedValueOnce({
-      rows: [{ ...updatedRecord, status: 'completed' }],
-    });
-    await repository.updateSessionPlanActivationProgress({
-      campaignId: IDS.campaign,
-      activationId: activationRecord.id,
-      status: 'completed',
-    });
-    expect(poolQuery).toHaveBeenLastCalledWith(
-      expect.stringContaining('COALESCE($3, "currentStepIndex")'),
-      [activationRecord.id, IDS.campaign, undefined, null, 'completed'],
-    );
-    expect(poolQuery.mock.calls.at(-1)?.[0]).toContain(
-      'WHEN $5 = \'completed\' THEN COALESCE("completedAt", NOW())',
-    );
-  });
-
-  it('completes the active step and advances in one transaction', async () => {
-    const stepId = '10000000-0000-4000-8000-000000000001';
-    const nextStepId = '10000000-0000-4000-8000-000000000002';
-    const activationRecord = {
-      id: '99999999-9999-4999-8999-999999999999',
+  function activationRecord(overrides: Record<string, unknown> = {}) {
+    return {
+      id: ACTIVATION_ID,
       campaignId: IDS.campaign,
       sessionPlanId: IDS.object,
       planRevision: 1,
@@ -413,45 +313,333 @@ describe('CampaignPrepRepository', () => {
       status: 'active' as const,
       stepStates: {},
       activatedBy: IDS.user,
-      createdAt: new Date(),
-      updatedAt: new Date(),
+      requestId: ACTIVATION_REQUEST,
+      revision: 1,
+      completedAt: null,
+      createdAt: new Date('2026-09-25T12:00:00.000Z'),
+      updatedAt: new Date('2026-09-25T12:00:00.000Z'),
+      ...overrides,
     };
-    const planRevision = {
-      ...revisionRecord,
-      data: {
-        steps: [
-          { id: stepId, track: 'main' },
-          { id: nextStepId, track: 'main' },
-        ],
-      },
-    };
-    const updatedActivation = {
-      ...activationRecord,
+  }
+
+  const twoStepRevision = {
+    ...revisionRecord,
+    data: {
+      steps: [
+        { id: stepId, track: 'main' },
+        { id: nextStepId, track: 'main' },
+        { id: '10000000-0000-4000-8000-000000000003', track: 'parallel' },
+      ],
+    },
+  };
+
+  const readyObject = { ...objectRecord, status: 'ready' };
+
+  it('activates a ready session plan and completes prior activations', async () => {
+    const record = activationRecord();
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [] }) // advisory lock
+      .mockResolvedValueOnce({ rows: [] }) // receipt lookup
+      .mockResolvedValueOnce({ rows: [readyObject] }) // getObject
+      .mockResolvedValueOnce({ rows: [revisionRecord] }) // getRevision
+      .mockResolvedValueOnce({ rows: [] }) // UPDATE prior activations
+      .mockResolvedValueOnce({ rows: [record] }) // INSERT activation
+      .mockResolvedValueOnce({ rows: [] }); // COMMIT
+
+    const result = await repository.activateSessionPlan({
+      campaignId: IDS.campaign,
+      sessionPlanId: IDS.object,
+      sessionId: 'session-123',
+      activatedBy: IDS.user,
+      requestId: ACTIVATION_REQUEST,
+    });
+
+    expect(result.activation.id).toBe(record.id);
+    expect(result.plan).toEqual(revisionRecord.data);
+    expect(result.replayed).toBe(false);
+    expect(clientQuery.mock.calls[1]?.[0]).toContain('pg_advisory_xact_lock');
+    expect(clientQuery.mock.calls[5]?.[0]).toContain(
+      "SET status = 'completed'",
+    );
+    expect(clientQuery.mock.calls[6]?.[1]).toContain(ACTIVATION_REQUEST);
+    expect(clientQuery).toHaveBeenCalledWith('COMMIT');
+  });
+
+  it('replays a committed activation request without restarting the run', async () => {
+    const record = activationRecord({ currentStepIndex: 1, revision: 4 });
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [] }) // advisory lock
+      .mockResolvedValueOnce({ rows: [record] }) // receipt lookup
+      .mockResolvedValueOnce({ rows: [revisionRecord] }) // pinned revision
+      .mockResolvedValueOnce({ rows: [] }); // COMMIT
+
+    const result = await repository.activateSessionPlan({
+      campaignId: IDS.campaign,
+      sessionPlanId: IDS.object,
+      sessionId: 'session-123',
+      requestId: ACTIVATION_REQUEST,
+    });
+
+    expect(result.replayed).toBe(true);
+    expect(result.activation.currentStepIndex).toBe(1);
+    const sql = clientQuery.mock.calls.map((call) => String(call[0]));
+    expect(sql.some((text) => text.includes('INSERT INTO session_plan'))).toBe(
+      false,
+    );
+  });
+
+  it('rejects reuse of an activation request for a different plan', async () => {
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [] }) // advisory lock
+      .mockResolvedValueOnce({
+        rows: [activationRecord({ sessionPlanId: IDS.scene })],
+      })
+      .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+
+    await expect(
+      repository.activateSessionPlan({
+        campaignId: IDS.campaign,
+        sessionPlanId: IDS.object,
+        sessionId: 'session-123',
+        requestId: ACTIVATION_REQUEST,
+      }),
+    ).rejects.toMatchObject({ code: 'conflict' });
+  });
+
+  it('rejects activation of a stale plan revision', async () => {
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [] }) // advisory lock
+      .mockResolvedValueOnce({ rows: [] }) // receipt lookup
+      .mockResolvedValueOnce({
+        rows: [{ ...readyObject, currentRevision: 3 }],
+      })
+      .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+
+    await expect(
+      repository.activateSessionPlan({
+        campaignId: IDS.campaign,
+        sessionPlanId: IDS.object,
+        planRevision: 2,
+        sessionId: 'session-123',
+        requestId: ACTIVATION_REQUEST,
+      }),
+    ).rejects.toMatchObject({ code: 'conflict' });
+  });
+
+  it('maps a concurrent unique-index violation to a conflict', async () => {
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [] }) // advisory lock
+      .mockResolvedValueOnce({ rows: [] }) // receipt lookup
+      .mockResolvedValueOnce({ rows: [readyObject] })
+      .mockResolvedValueOnce({ rows: [revisionRecord] })
+      .mockResolvedValueOnce({ rows: [] }) // UPDATE prior
+      .mockRejectedValueOnce(Object.assign(new Error('dup'), { code: '23505' }))
+      .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+
+    await expect(
+      repository.activateSessionPlan({
+        campaignId: IDS.campaign,
+        sessionPlanId: IDS.object,
+        sessionId: 'session-123',
+        requestId: ACTIVATION_REQUEST,
+      }),
+    ).rejects.toBeInstanceOf(SessionPlanActivationError);
+    expect(clientQuery).toHaveBeenLastCalledWith('ROLLBACK');
+  });
+
+  it('rejects activation of a draft session plan', async () => {
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [] }) // advisory lock
+      .mockResolvedValueOnce({ rows: [] }) // receipt lookup
+      .mockResolvedValueOnce({ rows: [objectRecord] }) // getObject (status: 'draft')
+      .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+
+    await expect(
+      repository.activateSessionPlan({
+        campaignId: IDS.campaign,
+        sessionPlanId: IDS.object,
+        sessionId: 'session-123',
+        requestId: ACTIVATION_REQUEST,
+      }),
+    ).rejects.toThrow('only ready plans can be activated');
+  });
+
+  it('retrieves the active activation for a campaign session', async () => {
+    const record = activationRecord();
+    poolQuery
+      .mockResolvedValueOnce({ rows: [record] })
+      .mockResolvedValueOnce({ rows: [revisionRecord] });
+
+    const active = await repository.getActiveSessionPlanActivation(
+      IDS.campaign,
+      'session-123',
+    );
+    expect(active?.activation.id).toBe(record.id);
+    expect(active?.plan).toEqual(revisionRecord.data);
+    expect(poolQuery.mock.calls[0]?.[1]).toEqual([IDS.campaign, 'session-123']);
+  });
+
+  it('updates progress under the observed activation revision', async () => {
+    const record = activationRecord();
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [record] }) // lock
+      .mockResolvedValueOnce({ rows: [twoStepRevision] }) // step bounds
+      .mockResolvedValueOnce({
+        rows: [{ ...record, currentStepIndex: 1, revision: 2 }],
+      })
+      .mockResolvedValueOnce({ rows: [] }); // COMMIT
+
+    const progress = await repository.updateSessionPlanActivationProgress({
+      campaignId: IDS.campaign,
+      activationId: ACTIVATION_ID,
+      expectedRevision: 1,
       currentStepIndex: 1,
+    });
+
+    expect(progress.currentStepIndex).toBe(1);
+    const update = clientQuery.mock.calls[3];
+    expect(update?.[0]).toContain('revision = revision + 1');
+    expect(update?.[0]).toContain('AND revision = $6');
+    expect(update?.[0]).toContain('"stepStates" || COALESCE');
+    expect(update?.[1]).toEqual([
+      ACTIVATION_ID,
+      IDS.campaign,
+      1,
+      null,
+      null,
+      1,
+    ]);
+  });
+
+  it('rejects progress from a stale revision or out-of-range step', async () => {
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [activationRecord({ revision: 5 })] })
+      .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+    await expect(
+      repository.updateSessionPlanActivationProgress({
+        campaignId: IDS.campaign,
+        activationId: ACTIVATION_ID,
+        expectedRevision: 1,
+        status: 'completed',
+      }),
+    ).rejects.toMatchObject({ code: 'conflict' });
+
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [activationRecord()] })
+      .mockResolvedValueOnce({ rows: [twoStepRevision] })
+      .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+    await expect(
+      repository.updateSessionPlanActivationProgress({
+        campaignId: IDS.campaign,
+        activationId: ACTIVATION_ID,
+        expectedRevision: 1,
+        currentStepIndex: 2,
+      }),
+    ).rejects.toMatchObject({ code: 'invalid-step' });
+  });
+
+  it('scopes progress to the campaign and reports a missing activation', async () => {
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({ rows: [] }) // lock finds nothing
+      .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+    await expect(
+      repository.updateSessionPlanActivationProgress({
+        campaignId: IDS.campaign,
+        activationId: ACTIVATION_ID,
+        expectedRevision: 1,
+        status: 'abandoned',
+      }),
+    ).rejects.toMatchObject({ code: 'not-found' });
+    expect(clientQuery.mock.calls[1]?.[1]).toEqual([
+      ACTIVATION_ID,
+      IDS.campaign,
+    ]);
+  });
+
+  it('refuses to reopen a run while another is active for the session', async () => {
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] }) // BEGIN
+      .mockResolvedValueOnce({
+        rows: [activationRecord({ status: 'completed' })],
+      })
+      .mockResolvedValueOnce({ rows: [{ id: 'other' }] }) // competing
+      .mockResolvedValueOnce({ rows: [] }); // ROLLBACK
+    await expect(
+      repository.updateSessionPlanActivationProgress({
+        campaignId: IDS.campaign,
+        activationId: ACTIVATION_ID,
+        expectedRevision: 1,
+        status: 'active',
+      }),
+    ).rejects.toMatchObject({ code: 'conflict' });
+  });
+
+  it('completes the active step and advances in one transaction', async () => {
+    const record = activationRecord({
+      stepStates: { [stepId]: { encounterRunId: 'run-1' } },
+    });
+    const updatedActivation = {
+      ...record,
+      currentStepIndex: 1,
+      revision: 2,
       stepStates: { [stepId]: { completed: true } },
     };
     clientQuery
       .mockResolvedValueOnce({ rows: [] })
-      .mockResolvedValueOnce({ rows: [activationRecord] })
-      .mockResolvedValueOnce({ rows: [planRevision] })
+      .mockResolvedValueOnce({ rows: [record] })
+      .mockResolvedValueOnce({ rows: [twoStepRevision] })
       .mockResolvedValueOnce({ rows: [updatedActivation] })
       .mockResolvedValueOnce({ rows: [] });
 
     const result = await repository.advanceSessionPlanActivation({
-      activationId: activationRecord.id,
+      activationId: ACTIVATION_ID,
       campaignId: IDS.campaign,
       completedBy: IDS.user,
       stepId,
       stepIndex: 0,
+      expectedRevision: 1,
     });
 
     expect(result.currentStepIndex).toBe(1);
     expect(clientQuery).toHaveBeenCalledWith('COMMIT');
-    expect(clientQuery.mock.calls[3]?.[1]).toMatchObject({
-      0: activationRecord.id,
+    const update = clientQuery.mock.calls[3];
+    expect(update?.[1]).toMatchObject({
+      0: ACTIVATION_ID,
       1: IDS.campaign,
       2: 1,
       4: 0,
+      5: 1,
     });
+    // Runtime facts already on the step survive completion.
+    expect(JSON.parse(update?.[1][3])[stepId]).toMatchObject({
+      encounterRunId: 'run-1',
+      completed: true,
+    });
+  });
+
+  it('rejects advance from a stale activation revision', async () => {
+    clientQuery
+      .mockResolvedValueOnce({ rows: [] })
+      .mockResolvedValueOnce({ rows: [activationRecord({ revision: 3 })] })
+      .mockResolvedValueOnce({ rows: [] });
+    await expect(
+      repository.advanceSessionPlanActivation({
+        activationId: ACTIVATION_ID,
+        campaignId: IDS.campaign,
+        stepId,
+        stepIndex: 0,
+        expectedRevision: 2,
+      }),
+    ).rejects.toMatchObject({ code: 'conflict' });
   });
 });

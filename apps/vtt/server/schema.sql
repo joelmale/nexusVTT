@@ -300,6 +300,9 @@ CREATE TABLE IF NOT EXISTS session_plan_activations (
     status VARCHAR(16) NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed', 'abandoned')),
     "stepStates" JSONB NOT NULL DEFAULT '{}'::jsonb,
     "activatedBy" UUID REFERENCES users(id) ON DELETE SET NULL,
+    "requestId" UUID,
+    revision INTEGER NOT NULL DEFAULT 1 CONSTRAINT session_plan_activations_revision_check CHECK (revision >= 1),
+    "completedAt" TIMESTAMPTZ,
     "createdAt" TIMESTAMPTZ NOT NULL DEFAULT NOW(),
     "updatedAt" TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
@@ -308,5 +311,8 @@ CREATE INDEX IF NOT EXISTS idx_session_plan_activations_campaign ON session_plan
 CREATE INDEX IF NOT EXISTS idx_session_plan_activations_session_plan ON session_plan_activations("sessionPlanId");
 CREATE INDEX IF NOT EXISTS idx_session_plan_activations_session ON session_plan_activations("sessionId");
 CREATE INDEX IF NOT EXISTS idx_session_plan_activations_status ON session_plan_activations("status");
+-- One active run sheet per campaign session; "requestId" is the idempotent activation command ID.
+CREATE UNIQUE INDEX IF NOT EXISTS uq_session_plan_activations_active_session ON session_plan_activations("campaignId", "sessionId") WHERE status = 'active';
+CREATE UNIQUE INDEX IF NOT EXISTS uq_session_plan_activations_request ON session_plan_activations("campaignId", "requestId") WHERE "requestId" IS NOT NULL;
 
 CREATE TRIGGER update_session_plan_activations_updated_at BEFORE UPDATE ON session_plan_activations FOR EACH ROW EXECUTE PROCEDURE update_updated_at_column();

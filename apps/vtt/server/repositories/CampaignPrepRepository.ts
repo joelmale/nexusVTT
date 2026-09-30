@@ -75,15 +75,28 @@ interface CampaignPrepObjectFilter {
 export interface ActivateSessionPlanInput {
   campaignId: string;
   sessionPlanId: string;
+  /** When given, must equal the plan's current (published) revision. */
   planRevision?: number;
   sessionId: string;
   activatedBy?: string | null;
+  /** Activation command ID. Replaying it returns the original activation. */
+  requestId: string;
+}
+
+export interface ActivateSessionPlanResult {
+  activation: SessionPlanActivationRecord;
+  plan: SessionPlan;
+  /** True when `requestId` had already been committed. */
+  replayed: boolean;
 }
 
 export interface UpdateSessionPlanActivationProgressInput {
   campaignId: string;
   activationId: string;
+  /** The activation revision the caller observed. */
+  expectedRevision: number;
   currentStepIndex?: number;
+  /** Each entry replaces that step's state; other steps are untouched. */
   stepStates?: Record<string, unknown>;
   status?: SessionPlanActivationStatus;
 }
@@ -94,6 +107,21 @@ export interface AdvanceSessionPlanActivationInput {
   stepId: string;
   stepIndex: number;
   completedBy?: string;
+  expectedRevision?: number;
+}
+
+const UNIQUE_VIOLATION = '23505';
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: unknown }).code === UNIQUE_VIOLATION
+  );
+}
+
+function mainTrackSteps(plan: SessionPlan): SessionPlan['steps'] {
+  return (plan.steps ?? []).filter((step) => step.track !== 'parallel');
 }
 
 export class CampaignPrepRepository extends BaseRepository {
@@ -287,14 +315,60 @@ export class CampaignPrepRepository extends BaseRepository {
     });
   }
 
+  /**
+   * Pins a published plan revision to a live session in one transaction.
+   *
+   * The activation row doubles as the command receipt: replaying the same
+   * `requestId` returns it unchanged instead of restarting the run. A new
+   * `requestId` for the same session is an explicit restart that completes
+   * the prior run. Activations of one campaign session are serialized so at
+   * most one stays active (also enforced by a partial unique index).
+   */
   async activateSessionPlan(
     input: ActivateSessionPlanInput,
     client?: PoolClient,
-  ): Promise<{
-    activation: SessionPlanActivationRecord;
-    plan: SessionPlan;
-  }> {
+  ): Promise<ActivateSessionPlanResult> {
     return this.withTransaction(client, async (executor) => {
+      await executor.query('SELECT pg_advisory_xact_lock(hashtext($1))', [
+        `session-plan-activation:${input.campaignId}:${input.sessionId}`,
+      ]);
+
+      const replay = await executor.query<SessionPlanActivationRecord>(
+        `SELECT * FROM session_plan_activations
+         WHERE "campaignId" = $1 AND "requestId" = $2`,
+        [input.campaignId, input.requestId],
+      );
+      const existing = replay.rows[0];
+      if (existing) {
+        if (
+          existing.sessionPlanId !== input.sessionPlanId ||
+          existing.sessionId !== input.sessionId ||
+          (input.planRevision !== undefined &&
+            existing.planRevision !== input.planRevision)
+        ) {
+          throw new SessionPlanActivationError(
+            `Activation request ${input.requestId} was already used for a different plan or session`,
+            'conflict',
+          );
+        }
+        const pinned = await this.getRevision(
+          existing.sessionPlanId,
+          existing.planRevision,
+          executor,
+        );
+        if (!pinned) {
+          throw new SessionPlanActivationError(
+            `Session plan revision ${existing.planRevision} does not exist`,
+            'invalid-revision',
+          );
+        }
+        return {
+          activation: existing,
+          plan: pinned.data as SessionPlan,
+          replayed: true,
+        };
+      }
+
       const object = await this.getObject(
         input.campaignId,
         input.sessionPlanId,
@@ -312,8 +386,19 @@ export class CampaignPrepRepository extends BaseRepository {
           'not-ready',
         );
       }
+      // Only the current revision of a ready plan passed publish validation;
+      // earlier revisions may be unvalidated drafts.
+      if (
+        input.planRevision !== undefined &&
+        input.planRevision !== object.currentRevision
+      ) {
+        throw new SessionPlanActivationError(
+          `Session plan ${input.sessionPlanId} is published at revision ${object.currentRevision}, not ${input.planRevision}`,
+          'conflict',
+        );
+      }
 
-      const revisionNumber = input.planRevision ?? object.currentRevision;
+      const revisionNumber = object.currentRevision;
       const revision = await this.getRevision(
         object.id,
         revisionNumber,
@@ -326,31 +411,47 @@ export class CampaignPrepRepository extends BaseRepository {
         );
       }
 
-      // Mark any prior active activation for this session as completed
+      // A new activation command for this session restarts the run.
       await executor.query(
         `UPDATE session_plan_activations
-         SET status = 'completed', "updatedAt" = NOW()
+         SET status = 'completed',
+             "completedAt" = COALESCE("completedAt", NOW()),
+             revision = revision + 1,
+             "updatedAt" = NOW()
          WHERE "campaignId" = $1 AND "sessionId" = $2 AND status = 'active'`,
         [input.campaignId, input.sessionId],
       );
 
-      const result = await executor.query<SessionPlanActivationRecord>(
-        `INSERT INTO session_plan_activations
-           ("campaignId", "sessionPlanId", "planRevision", "sessionId", "currentStepIndex", status, "stepStates", "activatedBy")
-         VALUES ($1, $2, $3, $4, 0, 'active', '{}'::jsonb, $5)
-         RETURNING *`,
-        [
-          input.campaignId,
-          input.sessionPlanId,
-          revisionNumber,
-          input.sessionId,
-          input.activatedBy ?? null,
-        ],
-      );
+      let inserted;
+      try {
+        inserted = await executor.query<SessionPlanActivationRecord>(
+          `INSERT INTO session_plan_activations
+             ("campaignId", "sessionPlanId", "planRevision", "sessionId", "currentStepIndex", status, "stepStates", "activatedBy", "requestId")
+           VALUES ($1, $2, $3, $4, 0, 'active', '{}'::jsonb, $5, $6)
+           RETURNING *`,
+          [
+            input.campaignId,
+            input.sessionPlanId,
+            revisionNumber,
+            input.sessionId,
+            input.activatedBy ?? null,
+            input.requestId,
+          ],
+        );
+      } catch (error) {
+        if (isUniqueViolation(error)) {
+          throw new SessionPlanActivationError(
+            'Another activation for this session or request committed concurrently',
+            'conflict',
+          );
+        }
+        throw error;
+      }
 
       return {
-        activation: result.rows[0],
+        activation: inserted.rows[0],
         plan: revision.data as SessionPlan,
+        replayed: false,
       };
     });
   }
@@ -425,36 +526,88 @@ export class CampaignPrepRepository extends BaseRepository {
     input: UpdateSessionPlanActivationProgressInput,
     client?: PoolClient,
   ): Promise<SessionPlanActivationRecord> {
-    const executor = this.getExecutor(client);
-    const result = await executor.query<SessionPlanActivationRecord>(
-      `UPDATE session_plan_activations
-       SET "currentStepIndex" = COALESCE($3, "currentStepIndex"),
-           "stepStates" = COALESCE($4::jsonb, "stepStates"),
-           status = COALESCE($5, status),
-           "completedAt" = CASE
-             WHEN $5 = 'completed' THEN COALESCE("completedAt", NOW())
-             WHEN $5 = 'active' THEN NULL
-             ELSE "completedAt"
-           END,
-           "updatedAt" = NOW()
-       WHERE id = $1 AND "campaignId" = $2
-       RETURNING *`,
-      [
-        input.activationId,
+    return this.withTransaction(client, async (executor) => {
+      const activation = await this.lockActivation(
         input.campaignId,
-        input.currentStepIndex,
-        input.stepStates ? JSON.stringify(input.stepStates) : null,
-        input.status ?? null,
-      ],
-    );
-    const updated = result.rows[0];
-    if (!updated) {
-      throw new SessionPlanActivationError(
-        `Session plan activation ${input.activationId} not found in campaign ${input.campaignId}`,
-        'not-found',
+        input.activationId,
+        executor,
       );
-    }
-    return updated;
+      if (activation.revision !== input.expectedRevision) {
+        throw new SessionPlanActivationError(
+          `Session plan activation ${input.activationId} is at revision ${activation.revision}, not ${input.expectedRevision}`,
+          'conflict',
+        );
+      }
+
+      if (input.currentStepIndex !== undefined) {
+        const revision = await this.getRevision(
+          activation.sessionPlanId,
+          activation.planRevision,
+          executor,
+        );
+        if (!revision) {
+          throw new SessionPlanActivationError(
+            `Session plan revision ${activation.planRevision} does not exist`,
+            'invalid-revision',
+          );
+        }
+        const stepCount = mainTrackSteps(revision.data as SessionPlan).length;
+        if (input.currentStepIndex >= Math.max(stepCount, 1)) {
+          throw new SessionPlanActivationError(
+            `Step index ${input.currentStepIndex} is outside the plan's ${stepCount} main steps`,
+            'invalid-step',
+          );
+        }
+      }
+
+      if (input.status === 'active' && activation.status !== 'active') {
+        const competing = await executor.query<{ id: string }>(
+          `SELECT id FROM session_plan_activations
+           WHERE "campaignId" = $1 AND "sessionId" = $2
+             AND status = 'active' AND id <> $3
+           LIMIT 1`,
+          [input.campaignId, activation.sessionId, activation.id],
+        );
+        if (competing.rows[0]) {
+          throw new SessionPlanActivationError(
+            'Another session plan is already active for this session',
+            'conflict',
+          );
+        }
+      }
+
+      const result = await executor.query<SessionPlanActivationRecord>(
+        `UPDATE session_plan_activations
+         SET "currentStepIndex" = COALESCE($3, "currentStepIndex"),
+             "stepStates" = "stepStates" || COALESCE($4::jsonb, '{}'::jsonb),
+             status = COALESCE($5, status),
+             "completedAt" = CASE
+               WHEN $5 = 'completed' THEN COALESCE("completedAt", NOW())
+               WHEN $5 = 'active' THEN NULL
+               ELSE "completedAt"
+             END,
+             revision = revision + 1,
+             "updatedAt" = NOW()
+         WHERE id = $1 AND "campaignId" = $2 AND revision = $6
+         RETURNING *`,
+        [
+          input.activationId,
+          input.campaignId,
+          input.currentStepIndex,
+          input.stepStates ? JSON.stringify(input.stepStates) : null,
+          input.status ?? null,
+          input.expectedRevision,
+        ],
+      );
+      const updated = result.rows[0];
+      if (!updated) {
+        throw new SessionPlanActivationError(
+          'Session plan progress changed while it was being updated',
+          'conflict',
+        );
+      }
+      return updated;
+    });
   }
 
   async advanceSessionPlanActivation(
@@ -462,18 +615,18 @@ export class CampaignPrepRepository extends BaseRepository {
     client?: PoolClient,
   ): Promise<SessionPlanActivationRecord> {
     return this.withTransaction(client, async (executor) => {
-      const activationResult =
-        await executor.query<SessionPlanActivationRecord>(
-          `SELECT * FROM session_plan_activations
-           WHERE id = $1 AND "campaignId" = $2
-           FOR UPDATE`,
-          [input.activationId, input.campaignId],
-        );
-      const activation = activationResult.rows[0];
-      if (!activation) {
+      const activation = await this.lockActivation(
+        input.campaignId,
+        input.activationId,
+        executor,
+      );
+      if (
+        input.expectedRevision !== undefined &&
+        activation.revision !== input.expectedRevision
+      ) {
         throw new SessionPlanActivationError(
-          `Session plan activation ${input.activationId} was not found`,
-          'not-found',
+          `Session plan activation ${input.activationId} is at revision ${activation.revision}, not ${input.expectedRevision}`,
+          'conflict',
         );
       }
       if (activation.status !== 'active') {
@@ -495,8 +648,7 @@ export class CampaignPrepRepository extends BaseRepository {
         );
       }
 
-      const plan = revision.data as SessionPlan;
-      const mainSteps = plan.steps.filter((step) => step.track !== 'parallel');
+      const mainSteps = mainTrackSteps(revision.data as SessionPlan);
       const step = mainSteps[input.stepIndex];
       if (
         !step ||
@@ -509,9 +661,14 @@ export class CampaignPrepRepository extends BaseRepository {
         );
       }
 
+      const priorState = activation.stepStates?.[input.stepId];
       const stepStates = {
         ...activation.stepStates,
         [input.stepId]: {
+          // Keep runtime facts such as a deployed encounterRunId.
+          ...(typeof priorState === 'object' && priorState !== null
+            ? priorState
+            : {}),
           completed: true,
           completedAt: new Date().toISOString(),
           completedBy: input.completedBy,
@@ -525,11 +682,13 @@ export class CampaignPrepRepository extends BaseRepository {
         `UPDATE session_plan_activations
            SET "currentStepIndex" = $3,
                "stepStates" = $4::jsonb,
+               revision = revision + 1,
                "updatedAt" = NOW()
            WHERE id = $1
              AND "campaignId" = $2
              AND status = 'active'
              AND "currentStepIndex" = $5
+             AND revision = $6
            RETURNING *`,
         [
           input.activationId,
@@ -537,6 +696,7 @@ export class CampaignPrepRepository extends BaseRepository {
           nextStepIndex,
           JSON.stringify(stepStates),
           input.stepIndex,
+          activation.revision,
         ],
       );
       const updated = updatedResult.rows[0];
@@ -548,6 +708,27 @@ export class CampaignPrepRepository extends BaseRepository {
       }
       return updated;
     });
+  }
+
+  private async lockActivation(
+    campaignId: string,
+    activationId: string,
+    executor: PoolClient,
+  ): Promise<SessionPlanActivationRecord> {
+    const result = await executor.query<SessionPlanActivationRecord>(
+      `SELECT * FROM session_plan_activations
+       WHERE id = $1 AND "campaignId" = $2
+       FOR UPDATE`,
+      [activationId, campaignId],
+    );
+    const activation = result.rows[0];
+    if (!activation) {
+      throw new SessionPlanActivationError(
+        `Session plan activation ${activationId} not found in campaign ${campaignId}`,
+        'not-found',
+      );
+    }
+    return activation;
   }
 
   private async insertRevision(

@@ -241,6 +241,10 @@ export const sessionPlanActivationSchema = z.object({
   status: sessionPlanActivationStatusSchema.default('active'),
   stepStates: z.record(z.string().uuid(), sessionPlanStepStateSchema).default({}),
   activatedBy: z.string().nullable().optional(),
+  requestId: z.string().uuid().nullable().optional(),
+  /** Compare-and-swap counter; progress writes must echo the value they saw. */
+  revision: z.number().int().positive().default(1),
+  completedAt: z.string().datetime().nullable().optional(),
   createdAt: z.string().datetime(),
   updatedAt: z.string().datetime(),
 });
