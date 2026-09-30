@@ -1,5 +1,5 @@
 import { render, screen } from '@testing-library/react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GameUI } from '@/components/GameUI';
 
 // Mock dependencies
@@ -93,6 +93,17 @@ vi.mock('@/components/PlayerClusterFloating', () => ({
 describe('GameUI Component', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    // The real (unmocked) children log warnings from async effects that can
+    // land after the test finishes. Vitest then fails the run with an
+    // EnvironmentTeardownError ("Closing rpc while onUserConsoleLog was
+    // pending"), so keep this suite's console quiet.
+    vi.spyOn(console, 'warn').mockImplementation(() => {});
+    vi.spyOn(console, 'error').mockImplementation(() => {});
+  });
+
+  afterEach(() => {
+    vi.mocked(console.warn).mockRestore();
+    vi.mocked(console.error).mockRestore();
   });
 
   it('renders DiceBox3D outside of the scene-content-relative div to prevent z-index occlusion', async () => {
