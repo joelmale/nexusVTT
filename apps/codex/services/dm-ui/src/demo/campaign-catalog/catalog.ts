@@ -786,12 +786,13 @@ export function getCampaignCatalogEntryBySlug(
   return campaignCatalog.find((entry) => entry.slug === slug);
 }
 
+// All example campaigns are visible in every build. `fixtureSource` only picks
+// which overview renders; it no longer gates visibility. The `mode` parameter
+// is kept so existing callers and the registry keep their signatures.
 export function getVisibleCampaignCatalog(
-  mode: string = import.meta.env.MODE,
+  _mode: string = import.meta.env.MODE,
 ): CampaignCatalogEntry[] {
-  return mode === 'development' || mode === 'test'
-    ? campaignCatalog
-    : campaignCatalog.filter((entry) => entry.fixtureSource === 'full-demo');
+  return campaignCatalog;
 }
 
 export function getCatalogSession(

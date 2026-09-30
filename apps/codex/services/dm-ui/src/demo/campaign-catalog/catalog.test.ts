@@ -61,12 +61,10 @@ describe('campaign catalog fixtures', () => {
     ).toBe('Lanterns of Mourningfen');
   });
 
-  it('exposes the extended catalog only in development and test modes', () => {
-    expect(getVisibleCampaignCatalog('test')).toHaveLength(4);
-    expect(getVisibleCampaignCatalog('development')).toHaveLength(4);
-    expect(
-      getVisibleCampaignCatalog('production').map((entry) => entry.slug),
-    ).toEqual(['ashes-of-veyra']);
+  it('exposes all four example campaigns in every mode', () => {
+    for (const mode of ['test', 'development', 'production']) {
+      expect(getVisibleCampaignCatalog(mode)).toHaveLength(4);
+    }
   });
 
   it('passes catalog integrity validation', () => {

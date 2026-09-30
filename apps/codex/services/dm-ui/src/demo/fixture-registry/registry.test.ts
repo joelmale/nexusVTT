@@ -77,12 +77,14 @@ describe('fixture registry', () => {
     expect(roots.map((l) => l.id)).toEqual(['location-glass-harbor']);
   });
 
-  it('honors the production visibility gate', () => {
+  it('exposes every example campaign in production builds', () => {
     expect(listFixtureBundles('production').map((b) => b.slug)).toEqual([
       'ashes-of-veyra',
+      'crown-of-cinders',
+      'lanterns-of-mourningfen',
+      'stars-below-kharad',
     ]);
-    expect(getFixtureBundle('ashes-of-veyra', 'production')).toBeDefined();
-    expect(getFixtureBundle('crown-of-cinders', 'production')).toBeUndefined();
+    expect(getFixtureBundle('crown-of-cinders', 'production')).toBeDefined();
     expect(getFixtureBundle('crown-of-cinders', 'development')).toBeDefined();
     expect(getFixtureBundle('unknown-slug', 'test')).toBeUndefined();
   });
