@@ -7,11 +7,8 @@ export const KHARAD_SESSION_1_ID = `${KHARAD_CAMPAIGN_ID}-session-1`;
 export const KHARAD_SESSION_2_ID = `${KHARAD_CAMPAIGN_ID}-session-2`;
 export const KHARAD_SESSION_3_ID = `${KHARAD_CAMPAIGN_ID}-session-3`;
 
-/**
- * A finished campaign. The shared `CampaignFixture` type only models an
- * `active` campaign, so the status is widened to `complete` here.
- */
-export type KharadCampaignFixture = Omit<CampaignFixture, 'status'> & {
+/** A finished campaign. */
+export type KharadCampaignFixture = CampaignFixture & {
   status: 'complete';
 };
 

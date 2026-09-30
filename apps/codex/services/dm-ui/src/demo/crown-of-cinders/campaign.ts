@@ -52,9 +52,7 @@ export const crownCampaign: CampaignFixture = {
     'The monarch dies without naming an heir, and the coronation crown awakens with accusations against all three claimants. During the investiture, elemental assassins force a band of unlikely witnesses to decide who can be trusted with the realm.',
   ruleset: 'D&D 5e',
   edition: '2024',
-  // CampaignFixture.status is typed as 'active' only; the catalog lifecycle
-  // for this campaign is 'draft' (see campaign-catalog/catalog.ts).
-  status: 'active',
+  status: 'draft',
   currentSessionId: crownSessionId(1),
   actIds: crownActs.map((act) => act.id),
   sessionIds: Array.from({ length: CROWN_SESSION_COUNT }, (_, index) =>

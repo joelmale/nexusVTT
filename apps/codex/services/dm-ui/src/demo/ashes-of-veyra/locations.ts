@@ -35,6 +35,7 @@ export const locations: CampaignLocation[] = [
     campaignId: 'campaign-ashes-of-veyra',
     name: 'North Docks',
     type: 'pier',
+    parentLocationId: 'location-glass-harbor',
     shortDescription:
       'A maze of working piers where the Dawn Petrel first entered the harbor.',
     description: [
@@ -57,6 +58,7 @@ export const locations: CampaignLocation[] = [
     campaignId: 'campaign-ashes-of-veyra',
     name: 'The Salty Mast Tavern',
     type: 'tavern',
+    parentLocationId: 'location-glass-harbor',
     shortDescription:
       'A dockside refuge where Mara trades a hot meal for a useful truth.',
     description: [
@@ -79,6 +81,7 @@ export const locations: CampaignLocation[] = [
     campaignId: 'campaign-ashes-of-veyra',
     name: "Fishmongers' Row",
     type: 'market',
+    parentLocationId: 'location-glass-harbor',
     shortDescription:
       'A narrow market lane still blackened from the attempted ledger fire.',
     description: [
@@ -101,6 +104,7 @@ export const locations: CampaignLocation[] = [
     campaignId: 'campaign-ashes-of-veyra',
     name: 'Old Customs House',
     type: 'government',
+    parentLocationId: 'location-glass-harbor',
     shortDescription:
       'A stone customs office whose lower foundation predates the modern harbor.',
     description: [
@@ -129,6 +133,7 @@ export const locations: CampaignLocation[] = [
     campaignId: 'campaign-ashes-of-veyra',
     name: 'Harbor Warehouse',
     type: 'landmark',
+    parentLocationId: 'location-glass-harbor',
     shortDescription:
       'A bonded warehouse where the Dawn Petrel cargo was relabeled before inspection.',
     description: [
@@ -152,6 +157,7 @@ export const locations: CampaignLocation[] = [
     campaignId: 'campaign-ashes-of-veyra',
     name: 'South Pier',
     type: 'pier',
+    parentLocationId: 'location-glass-harbor',
     shortDescription:
       'An eastern-facing pier with a rusted chain gate and a deep-water drop.',
     description: [

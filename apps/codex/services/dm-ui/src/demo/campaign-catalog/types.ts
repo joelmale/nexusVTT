@@ -1,7 +1,11 @@
-import type { CampaignSession, PlayerCharacter } from '../ashes-of-veyra/types';
+import type {
+  CampaignLifecycle,
+  CampaignSession,
+  PlayerCharacter,
+} from '../ashes-of-veyra/types';
 import type { CampaignSummary } from '../../services/campaign-api';
 
-export type CampaignLifecycle = 'draft' | 'active' | 'paused' | 'complete';
+export type { CampaignLifecycle };
 
 export type CampaignTier = 'tier-1' | 'tier-2' | 'tier-3' | 'tier-4';
 

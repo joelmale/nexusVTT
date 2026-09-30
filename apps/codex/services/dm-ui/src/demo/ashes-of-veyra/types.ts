@@ -1,4 +1,11 @@
+export type CampaignLifecycle = 'draft' | 'active' | 'paused' | 'complete';
+
 export type FixtureId = string;
+
+export interface SceneTemplateRef {
+  id: FixtureId;
+  title: string;
+}
 
 export interface CampaignAct {
   id: FixtureId;
@@ -18,7 +25,7 @@ export interface CampaignFixture {
   premise: string;
   ruleset: string;
   edition: string;
-  status: 'active';
+  status: CampaignLifecycle;
   currentSessionId: FixtureId;
   actIds: FixtureId[];
   sessionIds: FixtureId[];
@@ -170,6 +177,8 @@ export interface CampaignQuest {
   sessionIds: FixtureId[];
   locationIds: FixtureId[];
   objectiveIds: FixtureId[];
+  /** How the quest ended; shown only when present. */
+  resolution?: string;
 }
 
 export interface QuestObjective {
@@ -237,12 +246,14 @@ export interface CampaignLocation {
   id: FixtureId;
   campaignId: FixtureId;
   name: string;
-  type: 'district' | 'landmark' | 'tavern' | 'market' | 'government' | 'pier';
+  /** Free-form; the UI humanizes it. Known values (district, landmark, ...) keep icons. */
+  type: string;
   shortDescription: string;
   description: string[];
   tags: string[];
-  mapId: FixtureId;
-  pinId: FixtureId;
+  parentLocationId?: FixtureId;
+  mapId?: FixtureId;
+  pinId?: FixtureId;
   npcIds: FixtureId[];
   factionIds: FixtureId[];
   encounterIds: FixtureId[];
@@ -258,7 +269,7 @@ export interface CampaignMap {
   campaignId: FixtureId;
   title: string;
   description: string;
-  imagePath: string;
+  imagePath?: string;
   locationIds: FixtureId[];
   layers: MapLayer[];
 }

@@ -14,12 +14,8 @@ export const MOURNINGFEN_ACT_1_ID = `${MOURNINGFEN_CAMPAIGN_ID}-act-1`;
 export const MOURNINGFEN_ACT_2_ID = `${MOURNINGFEN_CAMPAIGN_ID}-act-2`;
 export const MOURNINGFEN_ACT_3_ID = `${MOURNINGFEN_CAMPAIGN_ID}-act-3`;
 
-/**
- * `CampaignFixture.status` is typed as `'active'` for Ashes of Veyra. This
- * campaign is paused, so the fixture narrows to its own literal instead of
- * misreporting lifecycle.
- */
-export type MourningfenCampaignFixture = Omit<CampaignFixture, 'status'> & {
+/** A paused campaign: the shared fixture plus why and since when. */
+export type MourningfenCampaignFixture = CampaignFixture & {
   status: 'paused';
   pausedSince: string;
   pauseReason: string;

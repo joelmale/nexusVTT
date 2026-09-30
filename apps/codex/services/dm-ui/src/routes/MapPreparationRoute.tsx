@@ -67,7 +67,7 @@ function buildMapModel(): MapPreparationViewModel {
 
   return {
     id: map.id,
-    imagePath: resolvePublicAsset(map.imagePath),
+    imagePath: map.imagePath ? resolvePublicAsset(map.imagePath) : '',
     layers: map.layers.map((layer) => ({
       id: layer.id,
       label: layer.label,
