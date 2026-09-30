@@ -619,3 +619,69 @@ fixture agents done ──► T9 (needs T1) ──► T10 (after everything)
 
 Each group-A/B task leaves the other placeholders in place, so main is
 shippable after every merge.
+
+## 5. Addendum: editing (supersedes "everything is read-only")
+
+Decisions (product owner):
+
+- Real campaigns (`/campaigns/:id`) are **editable**; example campaigns
+  (`/demo/:slug`) stay read-only and offer **"Start from this example"**, which
+  creates a new real campaign seeded from the fixture through the prep API.
+- **One page per section per campaign.** No per-item pages or "New" buttons on
+  detail panes. The only creation flows are: create campaign (blank), and
+  start-from-example. Adding an item is a single **"Add" row at the bottom of
+  the section list** (inline, creates the object and selects it); editing is
+  in place in the detail pane (Edit / Save / Cancel).
+- **First-cut edit scope:** NPCs, Factions, Quests (incl. objectives),
+  Locations, Lore and Handouts (a single formattable multi-line text field).
+  Sessions keep the existing run-sheet editor. **Encounters and Maps remain
+  read-only.** Do NOT add an encounter object kind or schema: encounters must
+  later tie into the VTT initiative panel and are designed separately.
+- Lore and handouts are simple formattable notes the DM builds to give to some
+  or all players: title, rich multi-line body (reuse the existing Lexical
+  editor / markdown setup already used in dm-ui if present; otherwise a
+  textarea with markdown), and an audience (`all` or a list of player
+  character ids). Server kind: `lore` (handouts = `lore` with
+  `subtype: 'handout'`), or `note` if the schema requires; inspect
+  apps/vtt/server/routes/campaignPrep.routes.ts and the repository validation
+  and choose the minimal mapping without changing server schemas unless
+  unavoidable (if unavoidable, keep the change additive and tested).
+- Save honesty: UI states `idle | saving | saved | conflict | error`; "saved"
+  only after the server response. Server revisions are compare-and-swap; a
+  409 shows a conflict banner with "Reload latest".
+
+### 5.1 Store seam (shared contract; defined in `features/section-shell/bundleStore.ts`)
+
+```ts
+export type SaveState = 'idle' | 'saving' | 'saved' | 'conflict' | 'error';
+export type EditableKind = 'npc' | 'faction' | 'quest' | 'location' | 'lore';
+export interface SaveResult { ok: boolean; conflict?: boolean; error?: string }
+export interface BundleStore {
+  bundle: CampaignFixtureBundle;
+  status: 'loading' | 'ready' | 'error';
+  editable: boolean;          // false for fixtures / catalog-only / no permission
+  reload(): Promise<void>;
+  // patch is the section's entity shape (Partial<CampaignNpc> etc.)
+  updateItem(kind: EditableKind, id: string, patch: Record<string, unknown>): Promise<SaveResult>;
+  addItem(kind: EditableKind, draft: Record<string, unknown>): Promise<SaveResult & { id?: string }>;
+}
+```
+
+`useBundleStore()` returns a read-only store for fixtures (`editable: false`,
+mutations resolve `{ ok:false, error:'read-only' }`) and a server-backed store
+for real campaigns, implemented in `services/campaign-bundle-api.ts` (load
+prep objects into a bundle with `source: 'server'`; map back on save;
+optimistic revision tracking; `seedFromFixture(slug) => campaignId`).
+
+### 5.2 Task changes
+
+- **T2** additionally defines `bundleStore.ts`, `useBundleStore`, the
+  read-only fixture store, an `EditableSection` scaffold (Edit/Save/Cancel,
+  SaveState banner, list-bottom "Add" row) and the "Start from this example"
+  action (calls `seedFromFixture` from T-S, behind a prop until it lands).
+- **T-S (parallel with T2, disjoint files):** `services/campaign-bundle-api.ts`
+  (+ tests): load, map, save, add, seed-from-fixture, conflict handling,
+  lore/handout mapping. Reuse `campaign-prep-api.ts` request helpers.
+- **T3–T8** section tasks: NPCs, Factions, Quests, World (locations), Lore
+  (incl. handouts) get edit forms via `EditableSection`; Sessions, Encounters,
+  Maps stay read-only apart from the existing run sheet.
