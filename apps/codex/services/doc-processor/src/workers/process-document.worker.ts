@@ -30,6 +30,7 @@ import {
 } from './stage-utils';
 import { runLayoutStage } from './layout-stage';
 import { runExtractStage } from './extract-stage';
+import { detectCandidates } from '../extraction/candidates';
 import {
   processingEvents,
   candidateEvents,
@@ -38,6 +39,7 @@ import {
   describeQuality,
   describeStageCompleted,
   describeStageFailed,
+  gpuTelemetry,
   stageLabel,
 } from '../services/processing-events.service';
 
@@ -220,6 +222,9 @@ const embedChunks = async (jobId: string, chunks: DocumentChunkInput[]) => {
   return { rows, model };
 };
 
+/** ocr-service GPU telemetry for the console; null when the service or GPU is unavailable. */
+const readGpu = async () => gpuTelemetry(await ocrHealthService.check('telemetry'));
+
 const queueNextStage = async (documentId: string, stage: Stage, skipOcr: boolean, version: PipelineVersion = 'v1') => {
   const next = getFollowingStage(stage, skipOcr, version);
   if (!next) return;
@@ -251,6 +256,11 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
     // Pinned at ingest; documents from before pipelineVersion existed stay on v1.
     const version = resolvePipelineVersion(processing, env.PIPELINE_VERSION);
     runId = processing.runId;
+    // Sub-step events inside a stage (index: chunking, indexing) for the stepper.
+    const emitStep = async (step: string, kind: 'step_started' | 'step_completed', message: string, payload: Record<string, unknown> = {}) => {
+      if (!runId) return;
+      await processingEvents.emit({ documentId, runId, stage, kind, message, payload: { step, ...payload } });
+    };
 
     if (stage !== 'ingest' && contentHash && isStageComplete(checkpoints, stage, contentHash)) {
       await loggingService.logInfo(jobId, `Stage ${stage} already completed, skipping`);
@@ -625,17 +635,29 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
       }
       case 'layout': {
         const start = Date.now();
-        const result = await runLayoutStage(jobId, document, async (pages) => {
+        const result = await runLayoutStage(jobId, document, async (pages, info) => {
           if (!runId) return;
-          const events = pages.flatMap((page) => [
+          // Stat blocks the moment a page is segmented. Extraction re-detects
+          // across the whole document (continuations over page breaks).
+          const detected = detectCandidates(pages);
+          const secondsPerPage = info.batchMs !== undefined ? info.batchMs / 1000 / Math.max(1, pages.length) : undefined;
+          const events = pages.flatMap((page) => {
+            const onPage = detected.filter((c) => c.pageNumber === page.pageNumber);
+            return [
             {
               documentId,
               runId: runId as string,
               stage: 'layout',
               kind: 'page_layout' as const,
               pageNumber: page.pageNumber,
-              message: describePageLayout(page),
-              payload: { blocks: page.blocks.length, previewKey: page.previewKey ?? null },
+              message: describePageLayout(page, onPage),
+              payload: {
+                blocks: page.blocks.length,
+                previewKey: page.previewKey ?? null,
+                totalPages: info.pageCount,
+                secondsPerPage,
+                candidates: onPage.map((c) => ({ key: c.key, type: c.type, title: c.title, pageNumber: c.pageNumber, regions: c.regions })),
+              },
             },
             {
               documentId,
@@ -644,10 +666,12 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
               kind: 'page_markdown' as const,
               pageNumber: page.pageNumber,
               message: describePageMarkdown(page),
-              payload: { quality: page.quality ?? {} },
+              payload: { quality: page.quality ?? {}, totalPages: info.pageCount },
             },
-          ]);
+            ];
+          });
           await processingEvents.emitMany(events);
+          await processingEvents.emitTelemetry(documentId, runId, 'layout', readGpu);
         });
         if (runId) {
           const quality = describeQuality(result.pageQuality);
@@ -719,11 +743,29 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
                 },
               });
             },
+            onDispatch: async (candidate, crops) => {
+              if (!runId) return;
+              const crop = crops[0];
+              await processingEvents.emit({
+                documentId,
+                runId,
+                stage: 'extract',
+                kind: 'crop_dispatched',
+                pageNumber: candidate.pageNumber,
+                message: crop
+                  ? `Cropped ${candidate.type === 'monster' ? 'stat block' : candidate.type} "${candidate.title}" ` +
+                    `[x: ${crop.left}, y: ${crop.top}, w: ${crop.width}, h: ${crop.height}]` +
+                    `${crops.length > 1 ? ` + ${crops.length - 1} more` : ''} -> dispatched to Ollama (${env.VLM_MODEL})`
+                  : `Dispatched ${candidate.type} "${candidate.title}" (p. ${candidate.pageNumber}) as text to Ollama (${env.VLM_MODEL})`,
+                payload: { candidateKey: candidate.key, type: candidate.type, model: env.VLM_MODEL, crops },
+              });
+            },
             onCandidate: async (candidateResult) => {
               if (!runId) return;
               const events = candidateEvents(candidateResult, env.VLM_MODEL)
                 .map((event) => ({ ...event, documentId, runId: runId as string }));
               await processingEvents.emitMany(events);
+              await processingEvents.emitTelemetry(documentId, runId, 'extract', readGpu);
             },
           });
           await loggingService.logInfo(
@@ -906,6 +948,8 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
             orderBy: { pageNumber: 'asc' },
             select: { pageNumber: true, markdown: true },
           });
+          const chunkStart = Date.now();
+          await emitStep('chunking', 'step_started', 'Semantic chunking started');
           const chunks = chunkingService.chunkPages({ pages, documentId, source: 'layout' });
           const embedded = await embedChunks(jobId, chunks);
           await prisma.documentChunk.deleteMany({ where: { documentId } });
@@ -915,6 +959,13 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
             await loggingService.logInfo(jobId, `Stored ${chunks.length} page-aware chunks (embeddingModel=${embedded.model})`);
           }
           chunkSummary = { count: chunks.length, source: 'layout', embeddingModel: embedded.model };
+          await emitStep(
+            'chunking',
+            'step_completed',
+            `${chunks.length} page-aware chunk${chunks.length === 1 ? '' : 's'} embedded (${embedded.model}) in ${((Date.now() - chunkStart) / 1000).toFixed(1)}s`,
+            { count: chunks.length, embeddingModel: embedded.model, durationMs: Date.now() - chunkStart }
+          );
+          await emitStep('indexing', 'step_started', 'Indexing in Elasticsearch');
         }
 
         console.log(`[Worker] Indexing document in ElasticSearch`);
@@ -933,6 +984,11 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
         });
         const indexDurationMs = Date.now() - indexStart;
         await loggingService.logInfo(jobId, `Document indexed with ID: ${searchIndex} in ${indexDurationMs}ms`);
+        if (version === 'v2') {
+          await emitStep('indexing', 'step_completed', `Indexed in Elasticsearch in ${(indexDurationMs / 1000).toFixed(1)}s`, {
+            durationMs: indexDurationMs,
+          });
+        }
 
         const ocrStatus = processing.ocr?.detected === false ? 'completed' : (processing.ocr?.status || 'completed');
 

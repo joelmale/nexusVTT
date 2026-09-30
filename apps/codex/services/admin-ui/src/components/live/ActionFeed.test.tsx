@@ -16,7 +16,9 @@ describe('ActionFeed', () => {
     expect(log.textContent).toContain('Page 12: two-column layout, 4 text blocks, 1 art region excluded')
     expect(log.textContent).toContain('qwen2.5vl:7b: extracted Gorgon (AC 19, HP 114, CR 5), all values grounded')
     const extracted = log.querySelector('[data-kind="entity_extracted"]')!
-    expect(extracted.textContent).toContain('EXTRACT')
+    expect(extracted.textContent).toContain('VLM:')
+    expect(log.querySelector('[data-kind="page_layout"]')!.textContent).toContain('Surya Layout:')
+    expect(log.querySelector('[data-kind="page_markdown"]')!.textContent).toContain('Marker:')
     expect(extracted.querySelector('time')!.getAttribute('datetime')).toBe('2026-09-28T14:02:11.000Z')
   })
 
@@ -67,5 +69,23 @@ describe('ActionFeed', () => {
     expect(toggle.getAttribute('aria-pressed')).toBe('true')
     expect(screen.getByText('raw redis log line')).toBeTruthy()
     expect(screen.queryByRole('log')).toBeNull()
+  })
+
+  it('prefixes worker, GPU and index lines with their source and pins a status line', () => {
+    render(
+      <ActionFeed
+        statusLine={<span>NVIDIA RTX A2000: VRAM 4.4 / 6.0 GB (73%)</span>}
+        events={[
+          event({ stage: 'extract', kind: 'crop_dispatched', message: 'Cropped stat block "Gorgon" [x: 48, y: 190, w: 520, h: 640] -> dispatched to Ollama (qwen2.5vl:7b)' }),
+          event({ stage: 'extract', kind: 'telemetry', message: 'NVIDIA RTX A2000: VRAM 4.4 / 6.0 GB (73%) | Compute 91% | Temp 62°C' }),
+          event({ stage: 'index', kind: 'step_completed', message: '12 page-aware chunks embedded', payload: { step: 'chunking' } }),
+        ]}
+      />
+    )
+    const log = screen.getByRole('log')
+    expect(log.querySelector('[data-kind="crop_dispatched"]')!.textContent).toContain('Worker:')
+    expect(log.querySelector('[data-kind="telemetry"]')!.textContent).toContain('GPU:')
+    expect(log.querySelector('[data-kind="step_completed"]')!.textContent).toContain('Chunker:')
+    expect(screen.getByText('NVIDIA RTX A2000: VRAM 4.4 / 6.0 GB (73%)')).toBeTruthy()
   })
 })

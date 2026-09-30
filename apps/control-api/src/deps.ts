@@ -1,5 +1,6 @@
 import type { IdentityProvider } from './auth/oidc.js';
 import type { CookieCrypto } from './auth/tokens.js';
+import type { PipelineEvents } from './codex/pipelineEvents.js';
 import type { Logger } from './logger.js';
 import type { RouteTable } from './proxy/routeTable.js';
 import type { ControlStore } from './store/types.js';
@@ -38,6 +39,9 @@ export interface AppConfig {
   bodyDeadlineMs?: number;
   uploadBodyDeadlineMs?: number;
   bodyIdleTimeoutMs?: number;
+  streamPollMs?: number;
+  streamHeartbeatMs?: number;
+  streamMaxMs?: number;
 }
 
 export interface AppDeps {
@@ -52,4 +56,6 @@ export interface AppDeps {
   /** Injectable for tests. */
   now: () => Date;
   fetch: typeof fetch;
+  /** Redis doorbell for the processing event stream; absent means the stream polls doc-api. */
+  pipelineEvents?: PipelineEvents;
 }

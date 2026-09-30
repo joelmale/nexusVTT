@@ -45,6 +45,10 @@ export type ProcessingEventKind =
   | 'quality'
   | 'stage_completed'
   | 'stage_failed'
+  | 'step_started'
+  | 'step_completed'
+  | 'crop_dispatched'
+  | 'telemetry'
 
 export interface ProcessingEvent {
   id: string
@@ -107,7 +111,11 @@ export interface ExtractedEntityPayload {
   cached?: boolean
 }
 
-export type CandidateStatus = 'extracting' | 'extracted' | 'needs_review' | 'rejected'
+/**
+ * detected: found when its page was segmented (layout); queued: extraction
+ * started; extracting: handed to the model; then the outcome.
+ */
+export type CandidateStatus = 'detected' | 'queued' | 'extracting' | 'extracted' | 'needs_review' | 'rejected'
 
 export interface CandidateState {
   key: string
@@ -116,4 +124,15 @@ export interface CandidateState {
   pageNumber: number
   regions: CandidateRegion[]
   status: CandidateStatus
+  /** Model confidence once extracted (0..1). */
+  confidence?: number
+}
+
+/** ocr-service GPU telemetry (telemetry event payload). */
+export interface GpuTelemetry {
+  device: string | null
+  vramUsedMb: number | null
+  vramTotalMb: number | null
+  utilizationPct: number | null
+  temperatureC: number | null
 }

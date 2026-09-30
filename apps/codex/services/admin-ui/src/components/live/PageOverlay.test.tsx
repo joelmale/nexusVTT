@@ -43,7 +43,8 @@ describe('PageOverlay', () => {
     const numbers = ['p12-b1', 'p12-b2', 'p12-b4', 'p12-b5'].map((id) => screen.getByTestId(`block-${id}`).querySelector('text')?.textContent)
     expect(numbers).toEqual(['1', '2', '3', '4'])
     expect(screen.getByTestId('block-p12-b3').querySelector('rect')!.getAttribute('fill')).toBe('url(#overlay-hatch)')
-    expect(screen.getAllByText('excluded from text').length).toBeGreaterThan(0)
+    expect(screen.getByText('FILTERED: ART · excluded from text')).toBeTruthy()
+    expect(screen.getByTestId('sidebar-tag-p12-b5').textContent).toBe('LORE CALLOUT: "Variant: Gorgon Herds"')
     // Pattern as well as colour: the sidebar is dotted, tables dashed, text solid.
     expect(rectOf('block-p12-b5').getAttribute('stroke-dasharray')).toBe('2 3')
     expect(rectOf('block-p12-b4').getAttribute('stroke-dasharray')).toBeNull()
@@ -66,7 +67,7 @@ describe('PageOverlay', () => {
     )
     const candidate = screen.getByTestId('candidate-monster:p12:p12-b4')
     expect(candidate.getAttribute('data-status')).toBe('needs_review')
-    expect(candidate.textContent).toBe('MONSTER · needs review')
+    expect(candidate.textContent).toBe('STAT BLOCK · Gorgon · needs review')
     expect(screen.queryByTestId('candidate-spell:p13:x')).toBeNull() // other page
     expect(screen.getByTestId('source-highlight')).toBeTruthy()
   })

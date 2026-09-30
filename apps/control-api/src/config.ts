@@ -18,6 +18,8 @@ export interface ServerConfig {
   grafanaUrl: string | null;
   rulesServiceToken: string;
   objectStorageOrigin: string;
+  /** Codex Redis; wakes processing event streams at once. Optional (streams poll without it). */
+  codexRedisUrl: string | null;
 }
 
 export class ConfigError extends Error {}
@@ -73,6 +75,7 @@ const OPTIONAL_SERVER_VARS = [
   'PROMETHEUS_URL',
   'GRAFANA_URL',
   'CODEX_OBJECT_STORAGE_URL',
+  'CODEX_REDIS_URL',
 ] as const;
 
 /** Compose renders an unset optional `${VAR:-}` as an empty string; treat it as unset. */
@@ -104,6 +107,7 @@ const serverSchema = z
     GRAFANA_URL: httpUrl.optional(),
     RULES_ADMIN_SERVICE_TOKEN: z.string().min(MIN_SERVICE_SECRET_LENGTH),
     CODEX_OBJECT_STORAGE_URL: httpUrl.optional(),
+    CODEX_REDIS_URL: z.string().regex(/^rediss?:\/\/\S+$/, 'must be a redis:// or rediss:// URL').optional(),
   })
   .superRefine((env, ctx) => {
     const origin = new URL(env.ADMIN_ORIGIN);
@@ -161,6 +165,7 @@ export function loadServerConfig(rawEnv: NodeJS.ProcessEnv): ServerConfig {
     grafanaUrl: value.GRAFANA_URL ?? null,
     rulesServiceToken: value.RULES_ADMIN_SERVICE_TOKEN,
     objectStorageOrigin: new URL(value.CODEX_OBJECT_STORAGE_URL ?? DEFAULT_OBJECT_STORAGE_URL).origin,
+    codexRedisUrl: value.CODEX_REDIS_URL ?? null,
   };
 }
 

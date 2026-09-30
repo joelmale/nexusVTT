@@ -53,8 +53,13 @@ vi.mock('../../services/layout-client.service', () => ({
 }));
 vi.mock('../../services/monster-crop.service', () => ({
   monsterCropService: {
-    cropRegions: vi.fn(async (_pdf: Buffer, regions: Map<string, unknown[]>) =>
-      new Map([...regions.keys()].map((key) => [key, [Buffer.from(`crop:${key}`)]]))
+    cropRegionsWithGeometry: vi.fn(async (_pdf: Buffer, regions: Map<string, unknown[]>) =>
+      new Map(
+        [...regions.keys()].map((key) => [
+          key,
+          [{ pageNumber: 12, buffer: Buffer.from(`crop:${key}`), left: 48, top: 190, width: 520, height: 640 }],
+        ])
+      )
     ),
   },
 }));
@@ -177,5 +182,25 @@ describe('runExtractStage (v2)', () => {
     await expect(runExtractStage('job-1', document)).rejects.toThrow('ECONNREFUSED');
     expect(generate).toHaveBeenCalledOnce();
     expect(db.deletes).toBe(0); // previous rows untouched
+  });
+
+  it('reports each dispatch with its crop geometry and times the model call', async () => {
+    mockOllama();
+    const dispatched: Array<{ key: string; crops: unknown[] }> = [];
+    const results: number[] = [];
+    await runExtractStage('job-1', document, {
+      onDispatch: async (candidate, crops) => {
+        dispatched.push({ key: candidate.key, crops });
+      },
+      onCandidate: async (result) => {
+        results.push(result.durationMs ?? -1);
+      },
+    });
+    expect(dispatched[0]).toEqual({
+      key: 'monster:p12:p12-b4',
+      crops: [{ pageNumber: 12, left: 48, top: 190, width: 520, height: 640 }],
+    });
+    expect(dispatched[1].crops).toEqual([]); // spells are text only
+    expect(results.every((ms) => ms >= 0)).toBe(true);
   });
 });

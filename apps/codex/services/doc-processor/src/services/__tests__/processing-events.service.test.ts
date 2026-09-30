@@ -7,6 +7,29 @@ const db = vi.hoisted(() => ({
   failCreate: false,
 }));
 
+const redis = vi.hoisted(() => ({ published: [] as Array<[string, string]>, instances: 0 }));
+
+vi.mock('ioredis', () => ({
+  default: class {
+    constructor() {
+      redis.instances += 1;
+    }
+    on() {
+      return this;
+    }
+    pipeline() {
+      const batch: Array<[string, string]> = [];
+      return {
+        publish: (channel: string, message: string) => batch.push([channel, message]),
+        exec: async () => {
+          redis.published.push(...batch);
+          return [];
+        },
+      };
+    }
+  },
+}));
+
 vi.mock('../database.service', () => ({
   prisma: {
     processingEvent: {
@@ -14,16 +37,26 @@ vi.mock('../database.service', () => ({
       deleteMany: vi.fn(async ({ where }: any) => {
         db.deleted.push(where.runId.in);
       }),
-      createMany: vi.fn(async ({ data }: any) => {
+      createManyAndReturn: vi.fn(async ({ data }: any) => {
         if (db.failCreate) throw new Error('db down');
-        db.created.push(...data);
+        const rows = data.map((row: any, index: number) => ({
+          ...row,
+          id: BigInt(db.created.length + index + 1),
+          createdAt: new Date('2026-09-30T04:00:00.000Z'),
+        }));
+        db.created.push(...rows);
+        return rows;
       }),
     },
   },
 }));
 
+import { env } from '../../config/env';
 import {
   candidateEvents,
+  describeTelemetry,
+  gpuTelemetry,
+  pipelineChannel,
   describePageLayout,
   describePageMarkdown,
   describeQuality,
@@ -45,7 +78,26 @@ const page: LayoutPage = {
   ],
 };
 
+describe('GPU telemetry', () => {
+  it('maps ocr-service /health fields', () => {
+    expect(gpuTelemetry({ device_name: 'NVIDIA RTX A2000', vram_used_mb: 1024, vram_total_mb: 6144, gpu_utilization_pct: 5, gpu_temperature_c: 40 })).toEqual({
+      device: 'NVIDIA RTX A2000',
+      vramUsedMb: 1024,
+      vramTotalMb: 6144,
+      utilizationPct: 5,
+      temperatureC: 40,
+    });
+    expect(describeTelemetry({ device: null, vramUsedMb: 3072, vramTotalMb: 6144, utilizationPct: null, temperatureC: null })).toBe('GPU: VRAM 3.0 / 6.0 GB (50%)');
+  });
+});
+
 describe('Action Feed sentences', () => {
+  it('names stat block candidates found on the page', () => {
+    expect(describePageLayout(page, [{ type: 'monster', title: 'Gorgon' }])).toBe(
+      'Page 12: two-column layout, 1 candidate (stat block "Gorgon"), 3 text blocks, 1 sidebar (heuristic), 1 art region excluded, 1 header/footer excluded'
+    );
+  });
+
   it('describes a page layout', () => {
     expect(estimateColumns(page)).toBe(2);
     expect(describePageLayout(page)).toBe(
@@ -117,6 +169,46 @@ describe('ProcessingEventsService', () => {
     db.deleted = [];
     db.created = [];
     db.failCreate = false;
+    redis.published = [];
+  });
+
+  it('stores events, then publishes each with its database id on the document channel', async () => {
+    await new ProcessingEventsService().emitMany([
+      { documentId: 'doc-1', runId: 'r', stage: 'layout', kind: 'page_layout', pageNumber: 3, message: 'Page 3', payload: { a: 1 } },
+      { documentId: 'doc-1', runId: 'r', stage: 'layout', kind: 'page_markdown', pageNumber: 3, message: 'Page 3 Markdown' },
+    ]);
+    expect(db.created).toHaveLength(2);
+    expect(redis.published.map(([channel]) => channel)).toEqual([pipelineChannel('doc-1'), pipelineChannel('doc-1')]);
+    expect(JSON.parse(redis.published[0][1])).toEqual({
+      id: '1',
+      documentId: 'doc-1',
+      runId: 'r',
+      stage: 'layout',
+      kind: 'page_layout',
+      message: 'Page 3',
+      pageNumber: 3,
+      payload: { a: 1 },
+      createdAt: '2026-09-30T04:00:00.000Z',
+    });
+    expect(pipelineChannel('doc-1')).toBe('codex:pipeline:events:doc-1');
+  });
+
+  it('does not publish without REDIS_URL', async () => {
+    const orig = env.REDIS_URL;
+    (env as any).REDIS_URL = '';
+    await new ProcessingEventsService().emit({ documentId: 'd', runId: 'r', stage: 'layout', kind: 'quality', message: 'x' });
+    expect(db.created).toHaveLength(1);
+    expect(redis.published).toEqual([]);
+    (env as any).REDIS_URL = orig;
+  });
+
+  it('throttles GPU telemetry per document', async () => {
+    const service = new ProcessingEventsService();
+    const read = vi.fn(async () => ({ device: 'NVIDIA RTX A2000', vramUsedMb: 4505.6, vramTotalMb: 6144, utilizationPct: 91, temperatureC: 62 }));
+    await service.emitTelemetry('doc-1', 'r', 'extract', read);
+    await service.emitTelemetry('doc-1', 'r', 'extract', read);
+    expect(read).toHaveBeenCalledTimes(1);
+    expect(db.created.map((e) => e.message)).toEqual(['NVIDIA RTX A2000: VRAM 4.4 / 6.0 GB (73%) | Compute 91% | Temp 62°C']);
   });
 
   it('startRun keeps the two newest earlier runs (three with the new one)', async () => {

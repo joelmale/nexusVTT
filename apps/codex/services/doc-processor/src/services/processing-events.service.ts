@@ -1,6 +1,8 @@
 import { randomUUID } from 'crypto';
+import Redis from 'ioredis';
 import { Prisma } from '@prisma/client';
 import { prisma } from './database.service';
+import { env } from '../config/env';
 import { LayoutPage } from '../types/layout';
 import type { Candidate } from '../extraction/candidates';
 import type { CandidateResult } from '../workers/extract-stage';
@@ -20,7 +22,14 @@ export type ProcessingEventKind =
   | 'entity_rejected'
   | 'quality'
   | 'stage_completed'
-  | 'stage_failed';
+  | 'stage_failed'
+  // Sub-steps inside a stage (index: chunking, indexing), for the stepper.
+  | 'step_started'
+  | 'step_completed'
+  // A candidate handed to the model (region, crop size, model).
+  | 'crop_dispatched'
+  // GPU telemetry from ocr-service /health, at most every TELEMETRY_INTERVAL_MS.
+  | 'telemetry';
 
 export type ProcessingEventInput = {
   documentId: string;
@@ -31,6 +40,9 @@ export type ProcessingEventInput = {
   pageNumber?: number;
   payload?: Record<string, unknown>;
 };
+
+/** Redis channel the admin UI's live stream listens on (via control-api). */
+export const pipelineChannel = (documentId: string) => `codex:pipeline:events:${documentId}`;
 
 /** Runs kept per document, including the one starting now. */
 export const KEEP_RUNS = 3;
@@ -49,6 +61,26 @@ const STAGE_LABELS: Record<string, string> = {
 };
 
 export const stageLabel = (stage: string) => STAGE_LABELS[stage] ?? stage;
+
+export const TELEMETRY_INTERVAL_MS = 10_000;
+
+/** ocr-service /health -> the console's GPU line. */
+export const gpuTelemetry = (health: Record<string, unknown>) => ({
+  device: (health.device_name as string | null) ?? null,
+  vramUsedMb: (health.vram_used_mb as number | null) ?? null,
+  vramTotalMb: (health.vram_total_mb as number | null) ?? null,
+  utilizationPct: (health.gpu_utilization_pct as number | null) ?? null,
+  temperatureC: (health.gpu_temperature_c as number | null) ?? null,
+});
+
+export const describeTelemetry = (gpu: Record<string, unknown>) => {
+  const used = Number(gpu.vramUsedMb) / 1024;
+  const total = Number(gpu.vramTotalMb) / 1024;
+  const parts = [`VRAM ${used.toFixed(1)} / ${total.toFixed(1)} GB (${Math.round((used / total) * 100)}%)`];
+  if (gpu.utilizationPct != null) parts.push(`Compute ${Math.round(Number(gpu.utilizationPct))}%`);
+  if (gpu.temperatureC != null) parts.push(`Temp ${Math.round(Number(gpu.temperatureC))}°C`);
+  return `${gpu.device ?? 'GPU'}: ${parts.join(' | ')}`;
+};
 
 const seconds = (ms?: number) => (ms === undefined ? '' : ` in ${(ms / 1000).toFixed(1)}s`);
 const percent = (value: number) => `${(value * 100).toFixed(1)}%`;
@@ -82,13 +114,15 @@ export const estimateColumns = (page: LayoutPage) => {
   return left && right ? 2 : 1;
 };
 
-export const describePageLayout = (page: LayoutPage) => {
+export const describePageLayout = (page: LayoutPage, candidates: Array<{ type: string; title: string }> = []) => {
   const count = (cls: string) => page.blocks.filter((b) => b.class === cls).length;
   const parts = [`${estimateColumns(page) === 2 ? 'two' : 'one'}-column layout`, plural(page.blocks.length - count('art') - count('furniture'), 'text block')];
   if (count('table')) parts.push(plural(count('table'), 'table'));
   if (count('sidebar')) parts.push(`${plural(count('sidebar'), 'sidebar')} (heuristic)`);
   if (count('art')) parts.push(`${plural(count('art'), 'art region')} excluded`);
   if (count('furniture')) parts.push(`${count('furniture')} header/footer excluded`);
+  const found = candidates.map((c) => `${c.type.replace('monster', 'stat block')} "${c.title}"`);
+  if (found.length) parts.splice(1, 0, `${plural(found.length, 'candidate')} (${found.join(', ')})`);
   return `Page ${page.pageNumber}: ${parts.join(', ')}`;
 };
 
@@ -156,7 +190,9 @@ export const candidateEvents = (result: CandidateResult, model: string): Array<O
     stage: 'extract',
     kind: 'entity_extracted' as const,
     pageNumber: candidate.pageNumber,
-    message: `${via}: extracted ${headline(candidate.type, entity)}, ${
+    message: `${via}: extracted ${headline(candidate.type, entity)}${
+      result.durationMs !== undefined && !result.cached ? ` in ${(result.durationMs / 1000).toFixed(2)}s` : ''
+    }, ${
       review.status === 'auto' ? 'all values grounded' : `needs review (${review.reasons.slice(0, 3).join('; ')})`
     }`,
     payload: {
@@ -178,7 +214,10 @@ export class ProcessingEventsService {
   async emitMany(events: ProcessingEventInput[]): Promise<void> {
     if (events.length === 0) return;
     try {
-      await prisma.processingEvent.createMany({
+      // The database is the record (replay, late joiners, cursor paging); Redis
+      // only tells live viewers that new rows exist, so they never miss or
+      // duplicate one even if a publish is lost.
+      const rows = await prisma.processingEvent.createManyAndReturn({
         data: events.map((event) => ({
           documentId: event.documentId,
           runId: event.runId,
@@ -189,8 +228,66 @@ export class ProcessingEventsService {
           payload: (event.payload ?? {}) as Prisma.InputJsonValue,
         })),
       });
+      await this.publish(rows);
     } catch (error: any) {
       console.warn(`[ProcessingEvents] Could not record ${events.length} event(s): ${error?.message}`);
+    }
+  }
+
+  private publisher: Redis | null = null;
+
+  private redis(): Redis | null {
+    if (!env.REDIS_URL) return null;
+    if (!this.publisher) {
+      // No offline queue: while Redis is down a publish fails at once instead of
+      // stalling the stage. Live viewers still catch up from the database.
+      this.publisher = new Redis(env.REDIS_URL, { maxRetriesPerRequest: 1, enableOfflineQueue: false });
+      this.publisher.on('error', (error) => console.warn(`[ProcessingEvents] Redis publisher: ${error.message}`));
+    }
+    return this.publisher;
+  }
+
+  /** Publishes each stored event (with its id) on the document's channel. Best effort. */
+  private async publish(rows: Array<{ id: bigint; documentId: string; runId: string; stage: string; kind: string; message: string; pageNumber: number | null; payload: unknown; createdAt: Date }>) {
+    const redis = this.redis();
+    if (!redis) return;
+    try {
+      const pipeline = redis.pipeline();
+      for (const row of rows) {
+        pipeline.publish(
+          pipelineChannel(row.documentId),
+          JSON.stringify({
+            id: row.id.toString(),
+            documentId: row.documentId,
+            runId: row.runId,
+            stage: row.stage,
+            kind: row.kind,
+            message: row.message,
+            pageNumber: row.pageNumber,
+            payload: row.payload,
+            createdAt: row.createdAt.toISOString(),
+          })
+        );
+      }
+      await pipeline.exec();
+    } catch (error: any) {
+      console.warn(`[ProcessingEvents] Could not publish ${rows.length} event(s): ${error?.message}`);
+    }
+  }
+
+  private lastTelemetry = new Map<string, number>();
+
+  /** GPU telemetry for the console, throttled per document. Never throws. */
+  async emitTelemetry(documentId: string, runId: string, stage: string, read: () => Promise<Record<string, unknown> | null>) {
+    const now = Date.now();
+    if (now - (this.lastTelemetry.get(documentId) ?? 0) < TELEMETRY_INTERVAL_MS) return;
+    this.lastTelemetry.set(documentId, now);
+    try {
+      const gpu = await read();
+      if (!gpu || gpu.vramTotalMb == null) return;
+      await this.emit({ documentId, runId, stage, kind: 'telemetry', message: describeTelemetry(gpu), payload: gpu });
+    } catch {
+      // Telemetry is decoration; ignore failures.
     }
   }
 

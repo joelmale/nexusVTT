@@ -1,15 +1,19 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { codexFetch } from '@/lib/api'
+import { codexFetch, codexUrl } from '@/lib/api'
+import { derivePipelineSteps } from './pipeline'
 import type {
   CandidateState,
   EventsResponse,
   ExtractedEntityPayload,
+  GpuTelemetry,
   ProcessingEvent,
   ProcessingRun,
 } from './types'
 
 export const LIVE_POLL_MS = 1500
 const PAGE_LIMIT = 200
+/** Stream messages arrive one by one; commit them to state in small batches. */
+export const STREAM_BATCH_MS = 100
 
 async function fetchEvents(documentId: string, params: { after?: string | null; runId?: string | null }): Promise<EventsResponse> {
   const query = new URLSearchParams({ limit: String(PAGE_LIMIT) })
@@ -23,8 +27,11 @@ async function fetchEvents(documentId: string, params: { after?: string | null; 
 /**
  * Event stream for one document.
  *
- * Live mode: polls `?after=<last id>` every 1.5 s while `active`, and stops
- * otherwise (the plan's polling model; no websocket needed).
+ * Live mode: loads the run once, then, while `active`, follows it over
+ * Server-Sent Events (control-api `.../stream`, woken by the pipeline's Redis
+ * publish). The stream resumes by event id, so a reconnect never skips or
+ * repeats an event. Without EventSource, or when the stream cannot be opened,
+ * it polls `?after=<last id>` every 1.5 s instead.
  * Replay mode: loads every event of `replayRunId`, then reveals them one at a
  * time on a timer that the caller controls (`replay.step`, `replay.play`).
  */
@@ -34,6 +41,7 @@ export function useProcessingEvents(documentId: string | null, options: { active
   const [runs, setRuns] = useState<ProcessingRun[]>([])
   const [runId, setRunId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [transport, setTransport] = useState<'idle' | 'stream' | 'poll'>('idle')
   const cursor = useRef<string | null>(null)
   const runRef = useRef<string | null>(null)
   const loading = useRef(false)
@@ -84,13 +92,74 @@ export function useProcessingEvents(documentId: string | null, options: { active
     }
   }, [documentId])
 
-  // Initial load, then live polling while a job is active.
+  // Initial load, then the live stream (or polling) while a job is active.
   useEffect(() => {
     if (!documentId || replayRunId) return
-    void poll()
-    if (!active) return
-    const timer = setInterval(() => void poll(), LIVE_POLL_MS)
-    return () => clearInterval(timer)
+    let cancelled = false
+    let timer: ReturnType<typeof setInterval> | undefined
+    let source: EventSource | undefined
+    let flushTimer: ReturnType<typeof setTimeout> | undefined
+    const pending: ProcessingEvent[] = []
+
+    const startPolling = () => {
+      if (cancelled || timer) return
+      setTransport('poll')
+      timer = setInterval(() => void poll(), LIVE_POLL_MS)
+    }
+    const flush = () => {
+      flushTimer = undefined
+      if (pending.length === 0) return
+      const batch = pending.splice(0)
+      setEvents((existing) => [...existing, ...batch])
+    }
+
+    const startStream = () => {
+      if (cancelled) return
+      if (typeof EventSource === 'undefined') return startPolling()
+      const query = cursor.current ? `?after=${cursor.current}` : ''
+      source = new EventSource(codexUrl(`/api/admin/processing/${documentId}/stream${query}`))
+      setTransport('stream')
+      source.addEventListener('meta', (message) => {
+        const meta = JSON.parse((message as MessageEvent<string>).data) as { runId: string; runs?: ProcessingRun[] }
+        if (meta.runs) setRuns(meta.runs)
+        if (runRef.current && meta.runId !== runRef.current) {
+          // A new run started (reprocess): start the stream over.
+          pending.length = 0
+          setEvents([])
+        }
+        runRef.current = meta.runId
+        setRunId(meta.runId)
+      })
+      source.addEventListener('processing', (message) => {
+        const event = JSON.parse((message as MessageEvent<string>).data) as ProcessingEvent
+        if (cursor.current && BigInt(event.id) <= BigInt(cursor.current)) return
+        cursor.current = event.id
+        pending.push(event)
+        flushTimer ??= setTimeout(flush, STREAM_BATCH_MS)
+      })
+      source.onopen = () => setError(null)
+      source.onerror = () => {
+        // EventSource retries by itself; CLOSED means it gave up (auth, 404).
+        if (source?.readyState === EventSource.CLOSED) {
+          source.close()
+          source = undefined
+          startPolling()
+        }
+      }
+    }
+
+    void (async () => {
+      await poll()
+      if (active) startStream()
+      else setTransport('idle')
+    })()
+    return () => {
+      cancelled = true
+      if (timer) clearInterval(timer)
+      source?.close()
+      if (flushTimer) clearTimeout(flushTimer)
+      flush()
+    }
   }, [documentId, active, replayRunId, poll])
 
   // Replay: load a whole run.
@@ -137,6 +206,7 @@ export function useProcessingEvents(documentId: string | null, options: { active
     runs,
     runId: replayRunId ?? runId,
     error,
+    transport: replayRunId ? ('idle' as const) : transport,
     refresh: poll,
     replay: {
       active: Boolean(replayRunId),
@@ -167,6 +237,9 @@ export function deriveLiveState(events: ProcessingEvent[]) {
   let model: string | undefined
   let activeStage: string | undefined
   let pipelineVersion: string | undefined
+  let telemetry: { message: string; gpu: GpuTelemetry; at: string } | undefined
+  let rejected = 0
+  let schemaFailures = 0
 
   for (const event of events) {
     const payload = event.payload || {}
@@ -177,25 +250,44 @@ export function deriveLiveState(events: ProcessingEvent[]) {
         if (event.stage === 'extract' && Array.isArray(payload.candidates)) {
           model = typeof payload.model === 'string' ? payload.model : model
           for (const candidate of payload.candidates as Array<Omit<CandidateState, 'status'>>) {
-            candidates.set(candidate.key, { ...candidate, status: 'extracting' })
+            candidates.set(candidate.key, { ...candidate, status: 'queued' })
           }
         }
         break
       }
-      case 'page_layout':
+      case 'page_layout': {
+        if (event.pageNumber) completedPages.add(event.pageNumber)
+        // Stat blocks spotted as the page is segmented, before extraction starts.
+        if (Array.isArray(payload.candidates)) {
+          for (const candidate of payload.candidates as Array<Omit<CandidateState, 'status'>>) {
+            if (!candidates.has(candidate.key)) candidates.set(candidate.key, { ...candidate, status: 'detected' })
+          }
+        }
+        break
+      }
       case 'page_markdown':
         if (event.pageNumber) completedPages.add(event.pageNumber)
         break
+      case 'crop_dispatched': {
+        const key = typeof payload.candidateKey === 'string' ? payload.candidateKey : undefined
+        const existing = key ? candidates.get(key) : undefined
+        if (existing) existing.status = 'extracting'
+        if (typeof payload.model === 'string') model = payload.model
+        break
+      }
       case 'entity_extracted': {
         const entity = payload as unknown as ExtractedEntityPayload
         entities.push({ ...entity, eventId: event.id })
         const existing = candidates.get(entity.source.candidateKey)
         if (existing && existing.status !== 'needs_review') {
           existing.status = entity.review.status === 'auto' ? 'extracted' : 'needs_review'
+          existing.confidence = entity.review.confidence
         }
         break
       }
       case 'entity_rejected': {
+        rejected += 1
+        if (payload.parseFailed === true) schemaFailures += 1
         const key = (payload.source as { candidateKey?: string } | undefined)?.candidateKey
         const existing = key ? candidates.get(key) : undefined
         if (existing) existing.status = 'rejected'
@@ -206,6 +298,9 @@ export function deriveLiveState(events: ProcessingEvent[]) {
           average: typeof payload.average === 'number' ? payload.average : undefined,
           lowPages: Array.isArray(payload.lowPages) ? (payload.lowPages as number[]) : [],
         }
+        break
+      case 'telemetry':
+        telemetry = { message: event.message, gpu: payload as unknown as GpuTelemetry, at: event.createdAt }
         break
       case 'stage_completed':
       case 'stage_failed':
@@ -222,5 +317,9 @@ export function deriveLiveState(events: ProcessingEvent[]) {
     model,
     activeStage,
     pipelineVersion,
+    telemetry,
+    rejected,
+    schemaFailures,
+    steps: derivePipelineSteps(events, pipelineVersion),
   }
 }

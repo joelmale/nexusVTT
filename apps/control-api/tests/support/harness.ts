@@ -38,6 +38,7 @@ export interface HarnessOptions {
   codexRoutes?: readonly CodexRoute[];
   assetRoutes?: readonly ProxyRoute[];
   config?: Partial<AppDeps['config']>;
+  pipelineEvents?: AppDeps['pipelineEvents'];
 }
 
 export class FakeIdentityProvider implements IdentityProvider {
@@ -141,6 +142,7 @@ export async function startHarness(options: HarnessOptions = {}): Promise<Harnes
     rulesRoutes: new RouteTable(RULES_ALLOWLIST),
     now: () => clock.now,
     fetch: fakeFetch,
+    pipelineEvents: options.pipelineEvents,
   };
   const app = createApp(deps);
   const server: Server = await new Promise((resolve) => {

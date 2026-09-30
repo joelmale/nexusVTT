@@ -109,7 +109,7 @@ export async function runLayoutStage(
   jobId: string,
   document: LayoutStageDocument,
   /** Called after each persisted batch (live processing view). */
-  onBatch?: (pages: LayoutPage[]) => Promise<void>
+  onBatch?: (pages: LayoutPage[], info: { pageCount: number; batchMs?: number }) => Promise<void>
 ): Promise<LayoutStageResult> {
   let engine: string;
   let pageCount: number;
@@ -122,7 +122,7 @@ export async function runLayoutStage(
     engine = MARKDOWN_ENGINE;
     pageCount = pages.length;
     if (pages.length > 0) await upsertPages(document.id, engine, pages);
-    if (onBatch && pages.length > 0) await onBatch(pages);
+    if (onBatch && pages.length > 0) await onBatch(pages, { pageCount });
     await loggingService.logInfo(jobId, `Markdown split into ${pageCount} section pages`, 'layout');
   } else {
     const health = await ocrHealthService.check('layout');
@@ -149,6 +149,7 @@ export async function runLayoutStage(
         continue;
       }
 
+      const batchStart = Date.now();
       const response = await layoutClientService.convertRange({
         bucket: env.S3_BUCKET,
         key: document.storageKey,
@@ -161,7 +162,7 @@ export async function runLayoutStage(
       await upsertPages(document.id, engine, response.pages);
       await recordBatch(document.id, batch.key, response.pages.length, document.contentHash);
       batchesRun += 1;
-      if (onBatch) await onBatch(response.pages);
+      if (onBatch) await onBatch(response.pages, { pageCount, batchMs: Date.now() - batchStart });
       await loggingService.logInfo(jobId, `Layout pages ${batch.key}/${pageCount} stored (${response.pages.length} pages)`, 'layout');
     }
   }

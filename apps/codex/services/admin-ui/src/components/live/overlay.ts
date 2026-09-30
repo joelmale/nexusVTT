@@ -17,10 +17,29 @@ export const BLOCK_STYLES: Record<LayoutBlockClass, Style> = {
 }
 
 export const CANDIDATE_STATUS_LABEL: Record<CandidateState['status'], string> = {
+  detected: 'detected',
+  queued: 'queued',
   extracting: 'extracting…',
   extracted: 'extracted',
   needs_review: 'needs review',
   rejected: 'no entity',
+}
+
+const TYPE_TAG: Record<CandidateState['type'], string> = { monster: 'STAT BLOCK', spell: 'SPELL', item: 'ITEM' }
+
+/** "STAT BLOCK · Gorgon · 95%" once extracted, else the status in words. */
+export function candidateTag(candidate: CandidateState): string {
+  const outcome =
+    candidate.confidence !== undefined && (candidate.status === 'extracted' || candidate.status === 'needs_review')
+      ? `${Math.round(candidate.confidence * 100)}%${candidate.status === 'needs_review' ? ' · review' : ''}`
+      : CANDIDATE_STATUS_LABEL[candidate.status]
+  return `${TYPE_TAG[candidate.type] ?? candidate.type.toUpperCase()} · ${candidate.title} · ${outcome}`
+}
+
+/** First words of a sidebar / lore callout for its tag. */
+export function excerpt(markdown: string | undefined, max = 28): string {
+  const text = (markdown ?? '').replace(/[#*_>`|]/g, '').replace(/\s+/g, ' ').trim()
+  return text.length > max ? `${text.slice(0, max - 1).trimEnd()}…` : text
 }
 
 export const scaleBBox = (bbox: BBox, widthPt: number, heightPt: number) => ({

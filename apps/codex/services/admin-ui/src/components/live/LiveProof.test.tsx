@@ -55,9 +55,14 @@ describe('LiveProof', () => {
     stubLiveApi()
     renderLive()
 
-    expect(await screen.findByText('Text cleanliness: 88.0% (noisy)')).toBeTruthy()
+    expect(await screen.findByText('Lexicon Match: 88.0% (noisy)')).toBeTruthy()
+    expect(document.getElementById('live-proof-title')!.textContent).toBe('CODEX INGESTION ENGINE :: Monster Manual')
     expect(screen.getByText('VLM: qwen2.5vl:7b')).toBeTruthy()
-    expect(screen.getByTestId('stage-indicator').textContent).toBe('Stage: Extraction (3 of 5)')
+    expect(screen.getByTestId('stage-indicator').textContent).toBe('ACTIVE: VLM Entity Parsing')
+    expect(screen.getByTestId('step-preflight').getAttribute('data-status')).toBe('done')
+    expect(screen.getByTestId('step-layout').getAttribute('data-status')).toBe('done')
+    expect(screen.getByTestId('step-vlm').textContent).toContain('1/1 candidates')
+    expect(screen.getByTestId('artifact-footer').textContent).toBe('[JSON Schema: Valid][Parsed: 1 Entity]')
 
     const img = (await screen.findByAltText('Page 12 preview')) as HTMLImageElement
     expect(img.getAttribute('src')).toBe(`${API}/pages/12/preview`) // streamed by control-api, never presigned
@@ -129,11 +134,57 @@ describe('LiveProof', () => {
   })
 })
 
+describe('LiveProof step filter and banners', () => {
+  it('filters the console and artifacts to a clicked step, and clears on a second click', async () => {
+    stubLiveApi()
+    renderLive()
+    await screen.findByRole('article', { name: 'monster Gorgon' })
+    fireEvent.click(screen.getByTestId('step-layout'))
+    expect(screen.getByTestId('step-layout').getAttribute('aria-pressed')).toBe('true')
+    expect(screen.queryByRole('article', { name: 'monster Gorgon' })).toBeNull()
+    expect(screen.getByText('Page 12 Markdown')).toBeTruthy()
+    await waitFor(() => expect(screen.getByRole('log').textContent).not.toContain('extracted Gorgon'))
+    fireEvent.click(screen.getByTestId('step-layout'))
+    expect(await screen.findByRole('article', { name: 'monster Gorgon' })).toBeTruthy()
+  })
+
+  it('says plainly when a run used pipeline v1', async () => {
+    stubLiveApi([
+      event({ stage: 'ingest', kind: 'stage_started', message: 'Ingest started (pipeline v1)', payload: { pipelineVersion: 'v1' } }),
+      event({ stage: 'ocr', kind: 'stage_started', message: 'OCR started', payload: { pipelineVersion: 'v1' } }),
+    ])
+    renderLive()
+    expect(await screen.findByText(/This run used pipeline v1/)).toBeTruthy()
+    expect(screen.getByTestId('step-ocr').getAttribute('data-status')).toBe('active')
+  })
+
+  it('explains an empty document instead of showing zeros', async () => {
+    stubFetch([
+      ['GET', `${API}/events`, () => json(200, { documentId: DOC, runId: null, events: [], nextAfter: null, hasMore: false, runs: [] })],
+      ['GET', `${API}/pages`, () => json(200, { documentId: DOC, pages: [] })],
+    ])
+    renderLive()
+    expect(await screen.findByText(/No processing events for this document/)).toBeTruthy()
+    expect(screen.getByTestId('stage-indicator').textContent).toBe('IDLE')
+  })
+})
+
 describe('deriveLiveState', () => {
-  it('tracks candidates from extracting to extracted / needs review / rejected', () => {
+  it('shows stat blocks from page layout before extraction starts', () => {
+    const layout = event({
+      kind: 'page_layout',
+      pageNumber: 12,
+      payload: { candidates: [{ key: 'monster:p12:p12-b4', type: 'monster', title: 'Gorgon', pageNumber: 12, regions: [] }] },
+    })
+    expect(deriveLiveState([layout]).candidates[0]).toMatchObject({ title: 'Gorgon', status: 'detected' })
+  })
+
+  it('tracks candidates from queued to extracted / needs review / rejected', () => {
     const events = liveRunEvents()
-    expect(deriveLiveState(events.slice(0, 8)).candidates[0].status).toBe('extracting')
-    expect(deriveLiveState(events).candidates[0].status).toBe('extracted')
+    expect(deriveLiveState(events.slice(0, 8)).candidates[0].status).toBe('queued')
+    const dispatched = event({ stage: 'extract', kind: 'crop_dispatched', payload: { candidateKey: 'monster:p12:p12-b4', model: 'qwen2.5vl:7b' } })
+    expect(deriveLiveState([...events.slice(0, 8), dispatched]).candidates[0].status).toBe('extracting')
+    expect(deriveLiveState(events).candidates[0]).toMatchObject({ status: 'extracted', confidence: 0.95 })
     const rejected = event({ stage: 'extract', kind: 'entity_rejected', payload: { source: { candidateKey: 'monster:p12:p12-b4' } } })
     expect(deriveLiveState([...events.slice(0, 8), rejected]).candidates[0].status).toBe('rejected')
     const state = deriveLiveState(events)
