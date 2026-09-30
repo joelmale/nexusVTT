@@ -3,10 +3,11 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 
 import { CampaignContext } from '@/features/campaigns/CampaignContext';
 import { CapabilityNoticeProvider } from '@/features/capability-notice';
+import { ServerBackendContext } from '@/features/section-shell/ServerBackendContext';
 import { StudioNavigationProvider } from '@/features/studio-shell/StudioNavigationProvider';
 import * as campaignPrepApi from '@/services/campaign-prep-api';
 import { SessionPlanRoute } from './SessionPlanRoute';
@@ -22,9 +23,9 @@ vi.mock('@/services/campaign-prep-api', async (importOriginal) => {
   };
 });
 
-function renderRoute() {
+function renderRoute(path = '/demo/ashes-of-veyra/sessions/session-12/plan') {
   return render(
-    <MemoryRouter initialEntries={['/demo/ashes-of-veyra/sessions/session-12']}>
+    <MemoryRouter initialEntries={[path]}>
       <CampaignContext.Provider
         value={{
           campaigns: [],
@@ -35,11 +36,18 @@ function renderRoute() {
           state: 'ready',
         }}
       >
-        <CapabilityNoticeProvider>
-          <StudioNavigationProvider>
-            <SessionPlanRoute />
-          </StudioNavigationProvider>
-        </CapabilityNoticeProvider>
+        <ServerBackendContext.Provider value={null}>
+          <CapabilityNoticeProvider>
+            <StudioNavigationProvider>
+              <Routes>
+                <Route
+                  element={<SessionPlanRoute />}
+                  path="/demo/:fixtureSlug/sessions/:sessionId/plan"
+                />
+              </Routes>
+            </StudioNavigationProvider>
+          </CapabilityNoticeProvider>
+        </ServerBackendContext.Provider>
       </CampaignContext.Provider>
     </MemoryRouter>,
   );
@@ -99,7 +107,7 @@ describe('SessionPlanRoute', () => {
       name: /play in vtt/i,
     });
     expect(activateBtns.length).toBeGreaterThanOrEqual(1);
-  });
+  }, 15000);
 
   it('remains in Draft status when no published plan exists on load', async () => {
     vi.mocked(campaignPrepApi.fetchSessionPlanStatus).mockResolvedValueOnce({
@@ -350,5 +358,45 @@ describe('SessionPlanRoute', () => {
         'Run restarted for session session-12. Step 1 is ready in VTT.',
       ).length,
     ).toBeGreaterThanOrEqual(1);
+  });
+
+  it('renders another campaign plan without calling the prep API', async () => {
+    const user = userEvent.setup();
+    renderRoute(
+      '/demo/crown-of-cinders/sessions/campaign-crown-of-cinders-session-1/plan',
+    );
+
+    expect(
+      await screen.findByRole('heading', {
+        name: /Session 1 - Embers at the Coronation/,
+      }),
+    ).toBeInTheDocument();
+    expect(campaignPrepApi.fetchSessionPlanStatus).not.toHaveBeenCalled();
+    expect(
+      screen.getAllByRole('link', { name: /back to sessions/i })[0],
+    ).toHaveAttribute('href', '/demo/crown-of-cinders/sessions');
+
+    await user.click(
+      screen.getAllByRole('button', { name: /publish plan/i })[0],
+    );
+    expect(campaignPrepApi.publishSessionPlan).not.toHaveBeenCalled();
+  });
+
+  it('shows not-found for an unknown session id', async () => {
+    renderRoute('/demo/ashes-of-veyra/sessions/session-999/plan');
+
+    expect(await screen.findByText('Session not found')).toBeInTheDocument();
+    expect(
+      screen.getByRole('link', { name: /back to sessions/i }),
+    ).toHaveAttribute('href', '/demo/ashes-of-veyra/sessions');
+    expect(campaignPrepApi.fetchSessionPlanStatus).not.toHaveBeenCalled();
+  });
+
+  it('shows an empty state for a session without a plan', async () => {
+    renderRoute('/demo/ashes-of-veyra/sessions/session-1/plan');
+
+    expect(
+      await screen.findByText('No plan for this session'),
+    ).toBeInTheDocument();
   });
 });

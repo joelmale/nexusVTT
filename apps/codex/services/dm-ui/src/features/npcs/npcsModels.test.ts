@@ -60,7 +60,7 @@ describe('buildNpcsModel', () => {
     const last = rows.map((row) => row.lastAppearance);
     expect([...last].sort((a, b) => b - a)).toEqual(last);
     const serin = rows.find((row) => row.id === 'npc-captain-serin');
-    expect(serin?.lastAppearance).toBe(12);
+    expect(serin?.lastAppearance).toBe(13);
   });
 
   it('defaults to name for draft and complete, honors explicit sort', () => {

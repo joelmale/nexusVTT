@@ -1,4 +1,5 @@
 import { screen, within } from '@testing-library/react';
+import { Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import { getFixtureBundle } from '@/demo/fixture-registry';
@@ -8,6 +9,13 @@ import {
 } from '@/features/section-shell/testUtils';
 
 import { QuestsSection } from './QuestsSection';
+
+/** `renderInSection` has no route table, so provide the `:questId` param. */
+const withQuestParam = (prefix: string) => (
+  <Routes>
+    <Route path={`${prefix}/quests/:questId`} element={<QuestsSection />} />
+  </Routes>
+);
 
 describe('QuestsSection', () => {
   it('lists quests with progress and is read-only on examples', () => {
@@ -45,7 +53,7 @@ describe('QuestsSection', () => {
         q.id === quest.id ? { ...q, resolution: 'The gate stayed shut.' } : q,
       ),
     };
-    renderInSection(<QuestsSection />, {
+    renderInSection(withQuestParam('/demo/stars-below-kharad'), {
       slug: 'stars-below-kharad',
       path: `/demo/stars-below-kharad/quests/${quest.id}`,
       store: { bundle: withRes },
@@ -81,7 +89,7 @@ describe('QuestsSection', () => {
 
   it('edits a quest with a new objective when the store is editable', async () => {
     const updateItem = vi.fn().mockResolvedValue({ ok: true });
-    const { user } = renderInSection(<QuestsSection />, {
+    const { user } = renderInSection(withQuestParam('/campaigns/campaign-blank'), {
       path: '/campaigns/campaign-blank/quests/quest-find-ember-key',
       store: { editable: true, updateItem },
       singlePane: false,

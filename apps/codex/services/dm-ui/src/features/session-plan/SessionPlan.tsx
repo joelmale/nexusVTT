@@ -19,6 +19,7 @@ import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 import Swords from 'lucide-react/dist/esm/icons/swords';
 import UserRound from 'lucide-react/dist/esm/icons/user-round';
 import { useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 import type { CapabilityId } from '@/features/capability-notice';
 
@@ -255,7 +256,17 @@ export function SessionPlan({
 
       <main className={styles.workspace}>
         <header className={styles.sessionHeader}>
-          <div className={styles.breadcrumb}>{model.breadcrumb}</div>
+          <div className={styles.breadcrumb}>
+            {model.backHref ? (
+              <>
+                <Link to={model.backHref}>Back to Sessions</Link>
+                {' · '}
+                {model.breadcrumb}
+              </>
+            ) : (
+              model.breadcrumb
+            )}
+          </div>
           <div className={styles.titleLine}>
             <div>
               <h1>{model.title}</h1>

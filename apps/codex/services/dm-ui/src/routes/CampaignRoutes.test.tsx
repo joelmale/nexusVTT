@@ -249,29 +249,51 @@ describe('campaign routes', () => {
     expect(screen.getByLabelText('location')).toHaveTextContent(to);
   });
 
+  const SECTIONS: ReadonlyArray<{
+    path: string;
+    heading: string;
+    empty?: string;
+  }> = [
+    { path: 'sessions', heading: 'Sessions', empty: 'No sessions yet.' },
+    { path: 'world', heading: 'World', empty: 'No locations yet.' },
+    { path: 'npcs', heading: 'NPCs', empty: 'No NPCs yet.' },
+    { path: 'factions', heading: 'Factions', empty: 'No factions yet.' },
+    { path: 'quests', heading: 'Quests', empty: 'No quests yet.' },
+    {
+      path: 'encounters',
+      heading: 'Encounters',
+      empty: 'No encounters prepared.',
+    },
+    { path: 'maps', heading: 'Maps' },
+    { path: 'lore', heading: 'Lore' },
+    { path: 'lore/handouts', heading: 'Lore', empty: 'No handouts' },
+  ];
+
   it('renders every section under the demo and campaign prefixes', () => {
-    for (const path of [
-      '/demo/ashes-of-veyra/sessions',
-      '/demo/ashes-of-veyra/world',
-      '/demo/ashes-of-veyra/npcs',
-      '/demo/ashes-of-veyra/factions',
-      '/demo/ashes-of-veyra/quests',
-      '/demo/ashes-of-veyra/encounters',
-      '/demo/ashes-of-veyra/maps',
-      '/demo/ashes-of-veyra/lore',
-      '/demo/ashes-of-veyra/lore/handouts',
-      '/campaigns/campaign-blank/lore',
-    ]) {
-      const { unmount } = renderSection(path);
-      expect(screen.getByText('Coming soon')).toBeInTheDocument();
-      unmount();
+    for (const prefix of ['/demo/ashes-of-veyra', '/campaigns/campaign-blank']) {
+      for (const section of SECTIONS) {
+        const { unmount } = renderSection(`${prefix}/${section.path}`);
+        expect(
+          screen.getByRole('heading', { level: 1, name: section.heading }),
+        ).toBeInTheDocument();
+        expect(screen.queryByText('Coming soon')).toBeNull();
+        unmount();
+      }
     }
   });
 
   it('renders the section empty state for a real campaign', () => {
-    renderSection('/campaigns/campaign-blank/npcs');
-    expect(screen.getByRole('heading', { name: 'NPCs' })).toBeInTheDocument();
-    expect(screen.getByText('Coming soon')).toBeInTheDocument();
+    for (const section of SECTIONS) {
+      if (!section.empty) continue;
+      const { unmount } = renderSection(
+        `/campaigns/campaign-blank/${section.path}`,
+      );
+      expect(
+        screen.getByRole('heading', { level: 1, name: section.heading }),
+      ).toBeInTheDocument();
+      expect(screen.getAllByText(section.empty).length).toBeGreaterThan(0);
+      unmount();
+    }
   });
 
   it('shows "Example campaign unavailable" for an unknown section slug', () => {

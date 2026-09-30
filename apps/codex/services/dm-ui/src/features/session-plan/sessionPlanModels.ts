@@ -51,6 +51,8 @@ export interface SessionPlanViewModel {
   campaignTitle: string;
   title: string;
   breadcrumb: string;
+  /** Sessions section URL; adds a back link to the breadcrumb. */
+  backHref?: string;
   dateLabel: string;
   durationLabel: string;
   partyLevel: number;

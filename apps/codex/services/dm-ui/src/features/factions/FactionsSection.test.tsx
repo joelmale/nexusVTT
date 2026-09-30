@@ -1,6 +1,5 @@
 import { describe, it, expect } from 'vitest';
 import { screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { renderSection } from '@/features/section-shell/testUtils';
 import { getFixtureBundle } from '@/demo/fixture-registry';
 
@@ -37,11 +36,9 @@ describe('FactionsSection', () => {
       renderSection('/demo/ashes-of-veyra/factions');
       expect(screen.getByText(testFaction.name)).toBeInTheDocument();
       // Status badge should be visible (check for the status text)
-      expect(
-        screen.getByText(
-          testFaction.status.charAt(0).toUpperCase() + testFaction.status.slice(1),
-        ),
-      ).toBeInTheDocument();
+      const badge =
+        testFaction.status.charAt(0).toUpperCase() + testFaction.status.slice(1);
+      expect(screen.getAllByText(badge).length).toBeGreaterThan(0);
     });
   });
 
@@ -106,7 +103,7 @@ describe('FactionsSection', () => {
         npc.factionIds.includes(testFaction.id),
       );
       for (const member of members) {
-        expect(screen.getByText(member.name)).toBeInTheDocument();
+        expect(screen.getAllByText(member.name).length).toBeGreaterThan(0);
       }
     });
 
@@ -114,7 +111,7 @@ describe('FactionsSection', () => {
       renderSection(`/demo/ashes-of-veyra/factions/${testFaction.id}`);
       // RelatedGroups should render related entities
       // (exact content depends on the fixture data)
-      expect(screen.getByText('Related')).toBeInTheDocument();
+      expect(screen.getByRole('region', { name: 'Related' })).toBeInTheDocument();
     });
   });
 

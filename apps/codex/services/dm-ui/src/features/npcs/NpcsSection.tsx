@@ -42,6 +42,7 @@ function toDraft(npc: CampaignNpc): Record<string, unknown> {
 }
 
 /** Turns the form draft back into a `Partial<CampaignNpc>` of changed fields. */
+// eslint-disable-next-line react-refresh/only-export-components -- pure helper exported for unit tests
 export function npcDraftToPatch(
   draft: Record<string, unknown>,
   initial: Record<string, unknown>,
