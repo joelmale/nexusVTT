@@ -106,6 +106,14 @@ its layers. The GitHub Actions cache cannot hold it: exporting it took about
 workflow reads the registry cache for advisory images and never writes a GHA
 cache for them. Every other image keeps its per-image GHA cache scope.
 
+Shadow E2E: after publishing, Delivery runs the managed E2E smoke suite against
+the published `backend` and `asset-service` images (`sha-<commit>` when
+published for this commit, otherwise the current `latest`) and a delta-enabled
+frontend rebuilt for the test stack, because the multiplayer test asserts
+delta-sync commits that the shipped frontend does not produce. The job is
+`continue-on-error` and not a need of promotion until it has proven stable;
+make it a need of `promote-release` then.
+
 If a manual delivery is superseded by a newer `main`, immutable images remain
 available but mutable tags are not changed. Unaffected images are not rebuilt;
 their current digests are carried into the manifest.
