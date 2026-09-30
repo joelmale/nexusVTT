@@ -761,3 +761,20 @@ optimistic revision tracking; `seedFromFixture(slug) => campaignId`).
 - Data: `CampaignNote` gains `color`, `size`, `order` (additive); stored under
   `content.value.nexusStudio.fields` on the `note` kind. Example-campaign
   notes render on the same board, read-only (no drag, no editing).
+
+### 5.6 Addendum: Notes simplified (supersedes §5.3–§5.5 UI)
+
+- The rail item is **Notes** (`notes/:noteId?`). Old `lore`, `lore/notes/:id`,
+  `lore/handouts/:id`, `lore/:id` and `handouts/:id` paths redirect to it.
+- One simple master/detail page, like NPCs and Quests: list rows show title,
+  one-line preview, anchor label and a "Shared" badge; search plus a "Show"
+  anchor filter; one "Add note" row. The detail pane has a title, one
+  multi-line text body (light markdown when viewing), an Anchor select
+  (campaign-wide, a session or a scene) and a single "Share with players"
+  control (Private | All players | Selected characters).
+- A shared note is a handout. There is no board, colors, sizes, drag and drop,
+  handouts tab, folders or handout ordering. Server kind is `note`; visibility
+  is `players` when shared, otherwise `dm-only`. Fixture lore and handouts show
+  as read-only notes (lore private, handouts shared).
+- Left as dead code for a later cleanup: `reorderNotes`, the `handout` and
+  `handout-folder` editable kinds, `SectionTabs`, note `color`/`size`.

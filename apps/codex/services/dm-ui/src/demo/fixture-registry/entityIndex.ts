@@ -84,11 +84,14 @@ function buildIndex(bundle: CampaignFixtureBundle): EntityIndex {
   for (const m of bundle.maps) {
     add({ id: m.id, kind: 'map', label: m.title, href: `/maps/${m.id}` });
   }
+  const noteIds = new Set(bundle.notes.map((note) => note.id));
+  const noteHref = (id: string) =>
+    noteIds.has(id) ? `/notes/${encodeURIComponent(id)}` : '/notes';
   for (const c of bundle.clues) {
-    add({ id: c.id, kind: 'clue', label: c.title, href: `/lore/${c.id}` });
+    add({ id: c.id, kind: 'clue', label: c.title, href: noteHref(c.id) });
   }
   for (const h of bundle.handouts) {
-    add({ id: h.id, kind: 'handout', label: h.title, href: `/lore/${h.id}` });
+    add({ id: h.id, kind: 'handout', label: h.title, href: noteHref(h.id) });
   }
   for (const t of bundle.sceneTemplates) {
     add({ id: t.id, kind: 'scene', label: t.title });

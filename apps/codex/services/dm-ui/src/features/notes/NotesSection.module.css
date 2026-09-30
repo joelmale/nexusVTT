@@ -1,0 +1,87 @@
+.rowText {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.rowTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.rowPreview {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.anchorChip {
+  background: var(--studio-surface-muted);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text-muted);
+  flex: none;
+  font-size: 11px;
+  font-weight: 600;
+  max-width: 110px;
+  overflow: hidden;
+  padding: 2px 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.emptyList {
+  color: var(--studio-text-muted);
+  margin: 0;
+  padding: 12px;
+}
+
+.meta {
+  color: var(--studio-text-muted);
+  margin: 0;
+}
+
+.sharedNote {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  margin: 0;
+  max-width: var(--studio-detail-max);
+  padding: 8px 12px;
+}
+
+.empty {
+  color: var(--studio-text-muted);
+  margin: 0;
+}
+
+.bodyInput {
+  font: inherit;
+  min-height: 12em;
+  resize: vertical;
+}
+
+.characters {
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 8px 12px;
+}
+
+.characters label {
+  align-items: center;
+  display: flex;
+  flex-direction: row;
+  gap: 8px;
+}
+
+.hint {
+  color: var(--studio-text-muted);
+  margin: 12px 0 0;
+}

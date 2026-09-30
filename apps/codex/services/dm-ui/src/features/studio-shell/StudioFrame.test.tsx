@@ -91,7 +91,7 @@ describe('StudioFrame navigation', () => {
     ['Quests', 'quests'],
     ['Encounters', 'encounters'],
     ['Maps', 'maps'],
-    ['Lore', 'lore'],
+    ['Notes', 'notes'],
   ])(
     'navigates %s to its section page and marks it current',
     async (label, route) => {

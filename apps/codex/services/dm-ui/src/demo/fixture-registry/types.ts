@@ -54,18 +54,23 @@ export type NoteColor =
 
 export type NoteSize = 'small' | 'medium' | 'large';
 
-/** A free-hand DM-only sticky note. `body` is formattable multi-line (markdown) text. */
+/** Who a note is shared with: nobody (DM-only), all players, or chosen character ids. */
+export type NoteAudience = 'none' | 'all' | FixtureId[];
+
+/** A free-hand DM note. `body` is formattable multi-line (markdown) text. */
 export interface CampaignNote {
   id: FixtureId;
   campaignId: FixtureId;
   title: string;
   body: string;
   anchor: NoteAnchor;
-  /** Card color; defaults to 'yellow'. */
+  /** Share state; a shared note is effectively a player handout. */
+  audience: NoteAudience;
+  /** Legacy board field; ignored by the UI. */
   color: NoteColor;
-  /** Card footprint; defaults to 'small'. */
+  /** Legacy board field; ignored by the UI. */
   size: NoteSize;
-  /** Stable global board order (ascending). */
+  /** Stable global order (ascending); new notes get max + 1. */
   order: number;
 }
 

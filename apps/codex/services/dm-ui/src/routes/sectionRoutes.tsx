@@ -1,13 +1,13 @@
 /* eslint-disable react-refresh/only-export-components -- route table, not a component module */
 import type { ReactElement } from 'react';
 
-import { LegacyTabRedirect } from './LegacyTabRedirect';
+import { LegacyLoreRedirect } from './LegacyLoreRedirect';
 import { MapPreparationRoute } from './MapPreparationRoute';
 import { SessionPlanRoute } from './SessionPlanRoute';
 import { EncountersSectionRoute } from './sections/EncountersSectionRoute';
 import { FactionsSectionRoute } from './sections/FactionsSectionRoute';
-import { LoreSectionRoute } from './sections/LoreSectionRoute';
 import { MapsSectionRoute } from './sections/MapsSectionRoute';
+import { NotesSectionRoute } from './sections/NotesSectionRoute';
 import { NpcsSectionRoute } from './sections/NpcsSectionRoute';
 import { QuestsSectionRoute } from './sections/QuestsSectionRoute';
 import { SessionsSectionRoute } from './sections/SessionsSectionRoute';
@@ -33,12 +33,9 @@ export const SECTION_ROUTES: SectionRouteDefinition[] = [
   { path: 'encounters/:encounterId?', element: <EncountersSectionRoute /> },
   { path: 'maps', element: <MapsSectionRoute /> },
   { path: 'maps/:mapId', element: <MapPreparationRoute /> },
-  { path: 'lore/:tab?/:itemId?', element: <LoreSectionRoute /> },
-  { path: 'notes/:noteId?', element: <LegacyTabRedirect tab="notes" /> },
-  {
-    path: 'handouts/:handoutId?',
-    element: <LegacyTabRedirect tab="handouts" />,
-  },
+  { path: 'notes/:noteId?', element: <NotesSectionRoute /> },
+  { path: 'lore/:tab?/:itemId?', element: <LegacyLoreRedirect /> },
+  { path: 'handouts/:handoutId?', element: <LegacyLoreRedirect /> },
 ];
 
 export const SECTION_ROUTE_PREFIXES = [

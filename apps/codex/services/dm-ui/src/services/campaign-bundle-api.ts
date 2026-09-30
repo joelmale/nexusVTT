@@ -23,10 +23,11 @@
  *   that maps the plain text onto the kind's main text field.
  * - Titles: npc/faction/location -> `name`; quest/note/handout/folder -> `title`.
  * - Notes use kind `note`: `fields` holds `body` (one formattable markdown
- *   string) and `anchor` (`{type:'campaign'} | {type:'session', id} |
- *   {type:'scene', id}`), `color` (default 'yellow'), `size` (default
- *   'small') and `order` (global board order; new notes get max + 1, load
- *   sorts by it). Notes are always 'dm-only'. Foreign `note` objects
+ *   string), `anchor` (`{type:'campaign'} | {type:'session', id} |
+ *   {type:'scene', id}`), `audience` ('none' | 'all' | playerCharacterIds[];
+ *   server visibility is 'players' unless 'none'), plus legacy `color`
+ *   (default 'yellow'), `size` (default 'small') and `order` (new notes get
+ *   max + 1, load sorts by it; the UI ignores color/size). Foreign `note` objects
  *   (e.g. from the session-plan publisher) load through the plain-text
  *   fallback as campaign-wide notes.
  * - Handouts and handout folders both use server kind `lore`, told apart by
@@ -36,7 +37,9 @@
  *   'players' when audience is not 'hidden', else 'dm-only'. Folder fields:
  *   order. Folders are single level; folder `objectIds`/`children` are
  *   derived on load from the handouts pointing at them.
- * - Everything except shared handouts is 'dm-only'.
+ * - Handout/handout-folder kinds still load and save but nothing creates them
+ *   any more (the Notes page replaced the Handouts tab).
+ * - Everything except shared notes/handouts is 'dm-only'.
  * - scene-template -> `bundle.sceneTemplates`, campaign-map -> minimal
  *   `bundle.maps` (title only), session-plan -> minimal `bundle.sessions`
  *   (title, draft/planned). The list endpoint returns no payload, so these
@@ -59,6 +62,7 @@ import type {
   CampaignFixtureBundle,
   CampaignHandout,
   CampaignNote,
+  NoteAudience,
   NoteColor,
   NoteSize,
   CampaignLifecycle,
@@ -391,6 +395,7 @@ function normalize(
           (anchor.type === 'session' || anchor.type === 'scene') && anchor.id
             ? { type: anchor.type, id: str(anchor.id) }
             : { type: 'campaign' },
+        audience: noteAudience(raw.audience),
         color: NOTE_COLORS.includes(raw.color as NoteColor)
           ? (raw.color as NoteColor)
           : 'yellow',
@@ -437,6 +442,13 @@ function normalize(
         order: typeof raw.order === 'number' ? raw.order : 0,
       } satisfies FolderRecord;
   }
+}
+
+/** 'all' | non-empty character id list | anything else (incl. legacy 'hidden') = 'none'. */
+function noteAudience(value: unknown): NoteAudience {
+  if (value === 'all') return 'all';
+  if (Array.isArray(value) && strings(value).length > 0) return strings(value);
+  return 'none';
 }
 
 function normalizeObjective(
@@ -534,7 +546,8 @@ function buildData(
     kind: serverKind(kind),
     title: str(entity[titleKey(kind)]).trim(),
     visibility:
-      kind === 'handout' && entity.audience !== 'hidden'
+      (kind === 'handout' && entity.audience !== 'hidden') ||
+      (kind === 'note' && entity.audience !== 'none')
         ? 'players'
         : 'dm-only',
     content: {
@@ -614,7 +627,10 @@ function entityFromData(
       raw.shortDescription = text[0] ?? '';
       raw.description = text.slice(1);
     }
-    if (kind === 'note') raw.body = text.join('\n\n');
+    if (kind === 'note') {
+      raw.body = text.join('\n\n');
+      raw.audience = record.visibility === 'players' ? 'all' : 'none';
+    }
     if (kind === 'handout') {
       raw.body = text.join('\n\n');
       raw.audience = record.visibility === 'players' ? 'all' : 'hidden';
@@ -1099,9 +1115,9 @@ function remap(
 
 /**
  * Creates a new real campaign named after the example fixture and copies its
- * npcs, factions, quests and locations into it, plus its handouts and their
- * folders as real handouts/folders, its lore as campaign-wide notes and its
- * clues as notes. Sequential and
+ * npcs, factions, quests and locations into it, plus its lore (DM-only) and
+ * handouts (shared with all players) as campaign-wide notes and its clues as
+ * notes. Sequential and
  * resilient: an item that fails is reported and the rest continue.
  */
 export async function seedFromFixture(slug: string): Promise<SeedResult> {
@@ -1143,47 +1159,14 @@ export async function seedFromFixture(slug: string): Promise<SeedResult> {
     ),
   );
 
-  // Handout folders first (only folders that hold fixture handouts), then the
-  // handouts, so folderId points at a real object. Audience is 'all' for
-  // handouts the fixture marks player-facing, else 'hidden'. Fixture lore
-  // entries (kind 'lore') become campaign-wide notes via seedNotes().
-  const realHandouts = fixture.handouts.filter((h) => h.kind === 'handout');
-  const folderIds = [
-    ...new Set(realHandouts.map((h) => h.folderId).filter(Boolean)),
-  ] as string[];
-  folderIds.forEach((folderId, index) => {
-    const folder = fixture.folders.find((f) => f.id === folderId);
-    if (!folder) return;
-    idMap.set(folder.id, newId());
-    plan.push({
-      kind: 'handout-folder',
-      source: { ...folder, order: index } as unknown as Record<string, unknown>,
-    });
-  });
-  realHandouts.forEach((handout) => {
-    idMap.set(handout.id, newId());
-    const folderId = handout.folderId ? idMap.get(handout.folderId) : undefined;
-    plan.push({
-      kind: 'handout',
-      source: {
-        ...handout,
-        folderId,
-        audience: handout.visibility === 'shared' ? 'all' : 'hidden',
-      } as unknown as Record<string, unknown>,
-    });
-  });
+  // Fixture lore (DM-only) and handouts (shared) both become campaign-wide
+  // notes via seedNotes(); no handout/folder objects are created.
 
   const result: SeedResult = { campaignId: created.id, created: 0, failed: [] };
 
   for (const { kind, source, objectives } of plan) {
     const newItemId = idMap.get(str(source.id))!;
-    const draft: Record<string, unknown> =
-      kind === 'handout' || kind === 'handout-folder'
-        ? { ...source }
-        : { ...remap(source, idMap) };
-    if (kind === 'handout') {
-      draft.body = str(source.body) || strings(source.content).join('\n\n');
-    }
+    const draft: Record<string, unknown> = { ...remap(source, idMap) };
     if (kind === 'quest') {
       draft.objectives = (objectives ?? [])
         .sort((a, b) => a.order - b.order)
@@ -1255,7 +1238,8 @@ async function postNew(
 }
 
 /**
- * Notes to seed from an example: its lore (campaign-wide) plus clues. Session anchors need server session ids and
+ * Notes to seed from an example: its lore and handouts (already merged into
+ * `fixture.notes`, with their audience) plus clues. Session anchors need server session ids and
  * sessions are not seeded, so a session's clues become one campaign-wide note
  * that names the session in its title; unlinked clues share one "Clues" note.
  */
@@ -1276,6 +1260,7 @@ function seedNotes(fixture: CampaignFixtureBundle): CampaignNote[] {
       title: `Clues - Session ${session.number}: ${session.title}`,
       body: clues.map(clueLine).join('\n'),
       anchor: { type: 'campaign' },
+      audience: 'none',
       color: 'yellow',
       size: 'small',
       order: 0,
@@ -1289,6 +1274,7 @@ function seedNotes(fixture: CampaignFixtureBundle): CampaignNote[] {
       title: 'Clues',
       body: rest.map(clueLine).join('\n'),
       anchor: { type: 'campaign' },
+      audience: 'none',
       color: 'yellow',
       size: 'small',
       order: 0,

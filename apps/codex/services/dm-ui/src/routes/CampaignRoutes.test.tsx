@@ -216,22 +216,26 @@ describe('campaign routes', () => {
   });
 
   it.each([
-    [
-      '/demo/ashes-of-veyra/notes/note-1',
-      '/demo/ashes-of-veyra/lore/notes/note-1',
-    ],
-    ['/demo/ashes-of-veyra/handouts', '/demo/ashes-of-veyra/lore/handouts'],
+    ['/demo/ashes-of-veyra/lore', '/demo/ashes-of-veyra/notes'],
+    ['/demo/ashes-of-veyra/lore/notes/note-1', '/demo/ashes-of-veyra/notes/note-1'],
+    ['/demo/ashes-of-veyra/lore/handouts', '/demo/ashes-of-veyra/notes'],
+    ['/demo/ashes-of-veyra/lore/lore-1', '/demo/ashes-of-veyra/notes/lore-1'],
+    ['/demo/ashes-of-veyra/handouts', '/demo/ashes-of-veyra/notes'],
     [
       '/campaigns/campaign-blank/handouts/h-1',
-      '/campaigns/campaign-blank/lore/handouts/h-1',
+      '/campaigns/campaign-blank/notes/h-1',
     ],
-  ])('redirects %s into the Lore tab %s', (from, to) => {
+    [
+      '/campaigns/campaign-blank/lore/handouts/h-1',
+      '/campaigns/campaign-blank/notes/h-1',
+    ],
+  ])('redirects legacy %s to Notes %s', (from, to) => {
     render(
       <MemoryRouter initialEntries={[from]}>
         <Routes>
           {SECTION_ROUTES.filter(
             (route) =>
-              route.path.startsWith('notes') ||
+              route.path.startsWith('lore') ||
               route.path.startsWith('handouts'),
           ).flatMap((route) =>
             SECTION_ROUTE_PREFIXES.map((prefix) => (
@@ -265,8 +269,7 @@ describe('campaign routes', () => {
       empty: 'No encounters prepared.',
     },
     { path: 'maps', heading: 'Maps' },
-    { path: 'lore', heading: 'Lore' },
-    { path: 'lore/handouts', heading: 'Lore', empty: 'No handouts' },
+    { path: 'notes', heading: 'Notes', empty: 'No notes yet.' },
   ];
 
   it('renders every section under the demo and campaign prefixes', () => {

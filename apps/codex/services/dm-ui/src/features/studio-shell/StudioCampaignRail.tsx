@@ -32,7 +32,7 @@ const NAVIGATION_ITEMS = [
   { icon: CheckSquare, label: 'Quests', route: 'quests' },
   { icon: Swords, label: 'Encounters', route: 'encounters' },
   { icon: MapPin, label: 'Maps', route: 'maps' },
-  { icon: BookOpen, label: 'Lore', route: 'lore' },
+  { icon: BookOpen, label: 'Notes', route: 'notes' },
 ] as const;
 
 export function StudioCampaignRail({ onCapability }: StudioCampaignRailProps) {

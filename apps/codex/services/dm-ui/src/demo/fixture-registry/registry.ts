@@ -42,20 +42,22 @@ function deriveSceneTemplates(
     .map((item) => ({ id: item.id, title: item.title }));
 }
 
-/** Read-only notes for examples: fixture lore, campaign-wide. */
+/**
+ * Read-only notes for examples: fixture lore (DM-only) and handouts (shared
+ * with all players), all campaign-wide.
+ */
 function deriveNotes(fixture: FixtureModule): CampaignNote[] {
-  return fixture.handouts
-    .filter((item) => item.kind === 'lore')
-    .map((item, index) => ({
-      id: item.id,
-      campaignId: item.campaignId,
-      title: item.title,
-      body: item.content.length > 0 ? item.content.join('\n\n') : item.summary,
-      anchor: { type: 'campaign' },
-      color: 'yellow',
-      size: 'small',
-      order: index,
-    }));
+  return fixture.handouts.map((item, index) => ({
+    id: item.id,
+    campaignId: item.campaignId,
+    title: item.title,
+    body: item.content.length > 0 ? item.content.join('\n\n') : item.summary,
+    anchor: { type: 'campaign' },
+    audience: item.kind === 'handout' ? 'all' : 'none',
+    color: 'yellow',
+    size: 'small',
+    order: index,
+  }));
 }
 
 /**

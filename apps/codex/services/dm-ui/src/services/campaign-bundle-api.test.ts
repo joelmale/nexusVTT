@@ -266,7 +266,28 @@ describe('load + mapping round-trip', () => {
       size: 'small',
       order: 0,
     });
-    expect(bundle.notes[0]).not.toHaveProperty('audience');
+    expect(bundle.notes[0].audience).toBe('none');
+  });
+
+  it('maps note audience to players visibility and back', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const added = await store.addItem('note', {
+      title: 'Letter',
+      body: 'Dear party',
+      audience: 'all',
+    });
+    expect(server.objects.get(added.id!)!.data.visibility).toBe('players');
+    expect(
+      (await store.updateItem('note', added.id!, { audience: ['pc-1'] })).ok,
+    ).toBe(true);
+    let bundle = await createServerBundleStore(CAMPAIGN).load();
+    expect(bundle.notes[0].audience).toEqual(['pc-1']);
+    expect(server.objects.get(added.id!)!.data.visibility).toBe('players');
+    await store.updateItem('note', added.id!, { audience: 'none' });
+    bundle = await createServerBundleStore(CAMPAIGN).load();
+    expect(bundle.notes[0].audience).toBe('none');
+    expect(server.objects.get(added.id!)!.data.visibility).toBe('dm-only');
   });
 
   it('maps scene templates, maps and session plans from the list only', async () => {
@@ -633,8 +654,6 @@ describe('seedFromFixture', () => {
     const result = await seedFromFixture('ashes-of-veyra');
     expect(result.failed).toEqual([]);
     expect(server.campaigns[0].name).toBe(fixture.campaign.title);
-    const realHandouts = fixture.handouts.filter((h) => h.kind === 'handout');
-    const loreCount = fixture.handouts.length - realHandouts.length;
     const expected =
       fixture.npcs.length +
       fixture.factions.length +
@@ -642,22 +661,11 @@ describe('seedFromFixture', () => {
       fixture.locations.length;
     const byKind = (kind: string) =>
       [...server.objects.values()].filter((object) => object.kind === kind);
-    const lore = byKind('lore');
-    const subtypeOf = (o: StoredObject) =>
-      (
-        o.data.content as {
-          value: { nexusStudio: { fields: { subtype: string } } };
-        }
-      ).value.nexusStudio.fields.subtype;
-    const folderCount = lore.filter(
-      (o) => subtypeOf(o) === 'handout-folder',
-    ).length;
-    expect(lore.length - folderCount).toBe(realHandouts.length);
-    expect(byKind('note').length).toBeGreaterThanOrEqual(loreCount);
+    // Lore and handouts are notes now: no lore/handout objects are created.
+    expect(byKind('lore')).toHaveLength(0);
+    expect(byKind('note').length).toBeGreaterThanOrEqual(fixture.notes.length);
     expect(result.created).toBe(server.objects.size);
-    expect(server.objects.size).toBe(
-      expected + lore.length + byKind('note').length,
-    );
+    expect(server.objects.size).toBe(expected + byKind('note').length);
     expect(
       [...server.objects.values()].some((object) =>
         ['encounter', 'session-plan', 'campaign-map'].includes(object.kind),
@@ -712,39 +720,38 @@ describe('seedFromFixture', () => {
     expect(server.objects.has(failing.id)).toBe(false);
   });
 
-  it('seeds handouts and folders as real objects and lore/clues as notes', async () => {
+  it('seeds lore and handouts as notes with audience, plus clue notes', async () => {
     const fixture = getFixtureBundle('ashes-of-veyra')!;
     const result = await seedFromFixture('ashes-of-veyra');
     const seeded = await createServerBundleStore({
       ...CAMPAIGN,
       id: result.campaignId,
     }).load();
-    const realHandouts = fixture.handouts.filter((h) => h.kind === 'handout');
-    expect(seeded.handouts).toHaveLength(realHandouts.length);
-    for (const source of realHandouts) {
-      const copy = seeded.handouts.find((h) => h.title === source.title)!;
-      expect(copy.audience).toBe(
-        source.visibility === 'shared' ? 'all' : 'hidden',
-      );
-      expect(copy.body).toBe(source.content.join('\n\n'));
-      if (source.folderId) {
-        const folder = fixture.folders.find((f) => f.id === source.folderId)!;
-        const seededFolder = seeded.folders.find(
-          (f) => f.id === copy.folderId,
-        )!;
-        expect(seededFolder.title).toBe(folder.title);
-        expect(seededFolder.objectIds).toContain(copy.id);
-      }
+    expect(seeded.handouts).toHaveLength(0);
+    expect(seeded.folders).toHaveLength(0);
+    for (const source of fixture.handouts) {
+      const copy = seeded.notes.find((note) => note.title === source.title)!;
+      expect(copy.audience).toBe(source.kind === 'handout' ? 'all' : 'none');
     }
+    expect(
+      [...server.objects.values()]
+        .filter((object) => object.kind === 'note')
+        .every(
+          (object) =>
+            object.data.visibility ===
+            (object.data.title &&
+            fixture.handouts.some(
+              (h) => h.kind === 'handout' && h.title === object.data.title,
+            )
+              ? 'players'
+              : 'dm-only'),
+        ),
+    ).toBe(true);
     expect(seeded.notes.every((note) => note.anchor.type === 'campaign')).toBe(
       true,
     );
     const orders = seeded.notes.map((n) => n.order);
     expect(orders).toEqual([...orders].sort((a, b) => a - b));
-    const lore = fixture.handouts.find((item) => item.kind === 'lore');
-    if (lore) {
-      expect(seeded.notes.some((note) => note.title === lore.title)).toBe(true);
-    }
     if (fixture.clues.length > 0) {
       const clueNotes = seeded.notes.filter((note) =>
         note.title.startsWith('Clues'),
@@ -756,17 +763,16 @@ describe('seedFromFixture', () => {
     }
   });
 
-  it('derives read-only fixture notes and handouts', () => {
+  it('derives read-only fixture notes: lore private, handouts shared', () => {
     const fixture = getFixtureBundle('ashes-of-veyra')!;
-    const loreCount = fixture.handouts.filter((h) => h.kind === 'lore').length;
-    expect(fixture.notes).toHaveLength(loreCount);
-    fixture.notes.forEach((note, index) =>
-      expect(note).toMatchObject({
-        color: 'yellow',
-        size: 'small',
-        order: index,
-      }),
-    );
+    expect(fixture.notes).toHaveLength(fixture.handouts.length);
+    fixture.notes.forEach((note, index) => {
+      expect(note).toMatchObject({ anchor: { type: 'campaign' }, order: index });
+      const source = fixture.handouts.find((item) => item.id === note.id)!;
+      expect(note.audience).toBe(source.kind === 'handout' ? 'all' : 'none');
+    });
+    expect(fixture.notes.some((note) => note.audience === 'all')).toBe(true);
+    expect(fixture.notes.some((note) => note.audience === 'none')).toBe(true);
     for (const handout of fixture.handouts) {
       expect(handout.audience).toBe(
         handout.visibility === 'shared' ? 'all' : 'hidden',
