@@ -268,7 +268,7 @@ services:
         aliases:
           - codex-minio
   doc-api:
-    image: ${DOC_API_IMAGE:-ghcr.io/joelmale/nexuscodex-doc-api:main}
+    image: ${DOC_API_IMAGE:-ghcr.io/joelmale/nexuscodex-doc-api:latest}
     pull_policy: always
     environment:
       NODE_ENV: production
@@ -319,7 +319,7 @@ services:
         condition: service_started
     restart: on-failure
   doc-processor:
-    image: ${DOC_PROCESSOR_IMAGE:-ghcr.io/joelmale/nexuscodex-doc-processor:main}
+    image: ${DOC_PROCESSOR_IMAGE:-ghcr.io/joelmale/nexuscodex-doc-processor:latest}
     pull_policy: always
     environment:
       NODE_ENV: production
@@ -358,7 +358,7 @@ services:
         condition: service_started
     restart: on-failure
   doc-websocket:
-    image: ${DOC_WEBSOCKET_IMAGE:-ghcr.io/joelmale/nexuscodex-doc-websocket:main}
+    image: ${DOC_WEBSOCKET_IMAGE:-ghcr.io/joelmale/nexuscodex-doc-websocket:latest}
     pull_policy: always
     environment:
       NODE_ENV: production
