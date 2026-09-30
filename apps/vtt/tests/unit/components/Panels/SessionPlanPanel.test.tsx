@@ -26,6 +26,7 @@ vi.mock('../../../../src/services/campaignPrepClient', () => ({
     getActiveSessionPlan: vi.fn(),
     updateActivationProgress: vi.fn(),
     activateSessionPlan: vi.fn(),
+    deployActivationEncounter: vi.fn(),
   },
 }));
 
@@ -410,20 +411,12 @@ describe('SessionPlanPanel', () => {
       plan: mockPlan,
     });
 
-    vi.mocked(commandClient.deployEncounter).mockResolvedValueOnce({
-      success: true,
-      receipt: {
-        campaignId: 'camp-123',
-        commandId: 'cmd-1',
-        principalId: 'dm-user-1',
-        payloadHash: 'hash',
-        committedAt: new Date().toISOString(),
-        result: {
-          success: true,
-          committedVersions: {},
-          data: { encounterRunId: 'run-ambush-99' },
-        },
-      },
+    vi.mocked(
+      campaignPrepClient.deployActivationEncounter,
+    ).mockResolvedValueOnce({
+      encounterRunId: 'run-ambush-99',
+      duplicate: false,
+      activation: { ...mockActivation, currentStepIndex: 2 },
     });
 
     vi.mocked(commandClient.startEncounter).mockResolvedValueOnce({
@@ -442,12 +435,11 @@ describe('SessionPlanPanel', () => {
     fireEvent.click(deployBtn);
 
     await waitFor(() => {
-      expect(commandClient.deployEncounter).toHaveBeenCalledWith(
-        'camp-123',
-        mockPlan.steps[2].encounterRef,
-        'scene-docks-1',
-        { x: 0, y: 0 },
-        false,
+      expect(campaignPrepClient.deployActivationEncounter).toHaveBeenCalledWith(
+        mockActivation.campaignId,
+        mockActivation.id,
+        mockPlan.steps[2].id,
+        { sceneId: 'scene-docks-1' },
       );
       expect(
         screen.getByText(/encounter deployed on active scene/i),
@@ -640,9 +632,9 @@ describe('SessionPlanPanel', () => {
       plan: mockPlan,
     });
 
-    vi.mocked(commandClient.deployEncounter).mockRejectedValueOnce(
-      new Error('Encounter template missing'),
-    );
+    vi.mocked(
+      campaignPrepClient.deployActivationEncounter,
+    ).mockRejectedValueOnce(new Error('Encounter template missing'));
 
     render(
       <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
@@ -662,9 +654,74 @@ describe('SessionPlanPanel', () => {
     });
   });
 
-  it('handles combat start error gracefully', async () => {
+  it('refuses to start combat before the encounter is deployed', async () => {
     vi.mocked(campaignPrepClient.getActiveSessionPlan).mockResolvedValueOnce({
       activation: { ...mockActivation, currentStepIndex: 2 },
+      plan: mockPlan,
+    });
+
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText('Smuggler Ambush')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /start combat/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.getByText(/deploy the encounter before/i),
+      ).toBeInTheDocument();
+    });
+    expect(commandClient.startEncounter).not.toHaveBeenCalled();
+  });
+
+  it('starts combat from the run id persisted on the activation', async () => {
+    vi.mocked(campaignPrepClient.getActiveSessionPlan).mockResolvedValueOnce({
+      activation: {
+        ...mockActivation,
+        currentStepIndex: 2,
+        stepStates: {
+          [mockPlan.steps[2].id]: {
+            completed: false,
+            encounterRunId: '77777777-7777-4777-8777-777777777777',
+          },
+        },
+      },
+      plan: mockPlan,
+    });
+    vi.mocked(commandClient.startEncounter).mockResolvedValueOnce({
+      success: true,
+    });
+
+    render(
+      <SessionPlanPanel isPopout={false} link={mockLink} onClose={vi.fn()} />,
+    );
+    await waitFor(() => {
+      expect(screen.getByText('Smuggler Ambush')).toBeInTheDocument();
+    });
+    fireEvent.click(screen.getByRole('button', { name: /start combat/i }));
+
+    await waitFor(() => {
+      expect(commandClient.startEncounter).toHaveBeenCalledWith(
+        'camp-123',
+        '77777777-7777-4777-8777-777777777777',
+      );
+    });
+  });
+
+  it('handles combat start error gracefully', async () => {
+    vi.mocked(campaignPrepClient.getActiveSessionPlan).mockResolvedValueOnce({
+      activation: {
+        ...mockActivation,
+        currentStepIndex: 2,
+        stepStates: {
+          [mockPlan.steps[2].id]: {
+            completed: false,
+            encounterRunId: '77777777-7777-4777-8777-777777777777',
+          },
+        },
+      },
       plan: mockPlan,
     });
 

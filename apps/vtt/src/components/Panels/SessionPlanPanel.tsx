@@ -429,28 +429,29 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
   };
 
   const handleDeployEncounter = async (step: SessionPlanStep) => {
-    if (step.type !== 'deploy-encounter') return;
+    if (step.type !== 'deploy-encounter' || !activation) return;
     setActionInProgress((prev) => ({ ...prev, [step.id]: true }));
     try {
-      const activeSceneId = sceneState?.activeSceneId || 'default-scene';
-      const result = await commandClient.deployEncounter(
-        campaignId,
-        step.encounterRef,
-        activeSceneId,
-        { x: 0, y: 0 },
-        false,
+      const activeSceneId = sceneState?.activeSceneId ?? '';
+      const result = await campaignPrepClient.deployActivationEncounter(
+        activation.campaignId,
+        activation.id,
+        step.id,
+        { sceneId: activeSceneId },
       );
-
-      const receiptData = result.receipt?.result?.data as
-        { encounterRunId?: string } | undefined;
-      const runId = receiptData?.encounterRunId || `run-${step.id}`;
-
-      setDeployedEncounters((prev) => ({ ...prev, [step.id]: runId }));
+      setActivation(result.activation);
+      setDeployedEncounters((prev) => ({
+        ...prev,
+        [step.id]: result.encounterRunId,
+      }));
       setActionFeedback((prev) => ({
         ...prev,
-        [step.id]: 'Encounter deployed on active scene!',
+        [step.id]: result.duplicate
+          ? 'Encounter already deployed.'
+          : 'Encounter deployed on active scene!',
       }));
     } catch (err) {
+      reloadOnConflict(err);
       setActionFeedback((prev) => ({
         ...prev,
         [step.id]: err instanceof Error ? err.message : 'Deployment failed',
@@ -461,7 +462,16 @@ export const SessionPlanPanel: React.FC<PanelComponentProps> = ({
   };
 
   const handleStartCombat = async (step: SessionPlanStep) => {
-    const runId = deployedEncounters[step.id] || `run-${step.id}`;
+    const runId =
+      deployedEncounters[step.id] ||
+      activation?.stepStates?.[step.id]?.encounterRunId;
+    if (!runId) {
+      setActionFeedback((prev) => ({
+        ...prev,
+        [step.id]: 'Deploy the encounter before starting combat.',
+      }));
+      return;
+    }
     setActionInProgress((prev) => ({ ...prev, [step.id]: true }));
     try {
       await commandClient.startEncounter(campaignId, runId);

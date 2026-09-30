@@ -33,6 +33,8 @@ describe('campaign prep routes', () => {
     advanceSessionPlanActivation: ReturnType<typeof vi.fn>;
     updateSessionPlanActivationProgress: ReturnType<typeof vi.fn>;
   };
+  let commandReceipts: { getReceipt: ReturnType<typeof vi.fn> };
+  let domainCommands: { execute: ReturnType<typeof vi.fn> };
   let publisher: { publish: ReturnType<typeof vi.fn> };
   let author: {
     create: ReturnType<typeof vi.fn>;
@@ -59,6 +61,8 @@ describe('campaign prep routes', () => {
       advanceSessionPlanActivation: vi.fn(),
       updateSessionPlanActivationProgress: vi.fn(),
     };
+    commandReceipts = { getReceipt: vi.fn().mockResolvedValue(null) };
+    domainCommands = { execute: vi.fn() };
     publisher = { publish: vi.fn() };
     author = { create: vi.fn(), revise: vi.fn() };
 
@@ -75,7 +79,12 @@ describe('campaign prep routes', () => {
       '/api',
       createCampaignPrepRouter({
         author,
-        db: { campaigns, campaignPrep } as never,
+        db: {
+          campaigns,
+          campaignPrep,
+          commandReceipts,
+          domainCommands,
+        } as never,
         publisher,
       }),
     );
@@ -659,4 +668,128 @@ describe('campaign prep routes', () => {
       },
     );
   }
+
+  describe('deploy-encounter step', () => {
+    const activationId = '99999999-9999-4999-8999-999999999999';
+    const stepId = '55555555-5555-4555-8555-555555555555';
+    const sceneId = '66666666-6666-4666-8666-666666666666';
+    const runId = '77777777-7777-4777-8777-777777777777';
+    const url = () =>
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/session-plans/activations/${activationId}/steps/${stepId}/deploy-encounter`;
+    const post = (body: unknown) =>
+      fetch(url(), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+    const activation = (stepStates: Record<string, unknown> = {}) => ({
+      id: activationId,
+      campaignId: CAMPAIGN_ID,
+      status: 'active',
+      revision: 3,
+      stepStates,
+    });
+    const plan = {
+      steps: [
+        {
+          id: stepId,
+          type: 'deploy-encounter',
+          encounterRef: { kind: 'encounter', id: PLAN_ID, revision: 1 },
+        },
+      ],
+    };
+
+    it('deploys once, records the run id, and sends a stable command id', async () => {
+      campaignPrep.getActivation.mockResolvedValue({
+        activation: activation(),
+        plan,
+      });
+      domainCommands.execute.mockResolvedValue({
+        duplicate: false,
+        receipt: { result: { success: true, data: { encounterRunId: runId } } },
+      });
+      campaignPrep.updateSessionPlanActivationProgress.mockResolvedValue(
+        activation({ [stepId]: { encounterRunId: runId } }),
+      );
+
+      const response = await post({ sceneId });
+      expect(response.status).toBe(200);
+      const body = await response.json();
+      expect(body.encounterRunId).toBe(runId);
+      expect(body.duplicate).toBe(false);
+      const command = domainCommands.execute.mock.calls[0][0];
+      expect(command.payload).toMatchObject({
+        type: 'DeployEncounter',
+        sceneId,
+        hiddenFromPlayers: false,
+      });
+      expect(domainCommands.execute.mock.calls[0][1]).toMatchObject({
+        isDm: true,
+        principalId: USER_ID,
+      });
+      expect(
+        campaignPrep.updateSessionPlanActivationProgress,
+      ).toHaveBeenCalledWith(
+        expect.objectContaining({
+          expectedRevision: 3,
+          stepStates: {
+            [stepId]: expect.objectContaining({ encounterRunId: runId }),
+          },
+        }),
+      );
+
+      await post({ sceneId });
+      expect(domainCommands.execute.mock.calls[1][0].commandId).toBe(
+        command.commandId,
+      );
+    });
+
+    it('does not deploy again when the run id is already recorded', async () => {
+      campaignPrep.getActivation.mockResolvedValue({
+        activation: activation({ [stepId]: { encounterRunId: runId } }),
+        plan,
+      });
+      const response = await post({ sceneId });
+      expect(response.status).toBe(200);
+      await expect(response.json()).resolves.toMatchObject({
+        encounterRunId: runId,
+        duplicate: true,
+      });
+      expect(domainCommands.execute).not.toHaveBeenCalled();
+    });
+
+    it('reuses an existing command receipt after a crash before recording', async () => {
+      campaignPrep.getActivation.mockResolvedValue({
+        activation: activation(),
+        plan,
+      });
+      commandReceipts.getReceipt.mockResolvedValue({
+        result: { result: { success: true, data: { encounterRunId: runId } } },
+      });
+      campaignPrep.updateSessionPlanActivationProgress.mockResolvedValue(
+        activation({ [stepId]: { encounterRunId: runId } }),
+      );
+      const response = await post({ sceneId });
+      expect(response.status).toBe(200);
+      expect(domainCommands.execute).not.toHaveBeenCalled();
+    });
+
+    it('rejects non-DM callers and invalid input', async () => {
+      userId = '33333333-3333-4333-8333-333333333333';
+      expect((await post({ sceneId })).status).toBe(403);
+      userId = USER_ID;
+      expect((await post({ sceneId: 'scene-1' })).status).toBe(400);
+      expect(domainCommands.execute).not.toHaveBeenCalled();
+    });
+
+    it('rejects steps that are not encounter deployments', async () => {
+      campaignPrep.getActivation.mockResolvedValue({
+        activation: activation(),
+        plan: { steps: [{ id: stepId, type: 'reminder', text: 'x' }] },
+      });
+      expect((await post({ sceneId })).status).toBe(422);
+      campaignPrep.getActivation.mockResolvedValue(null);
+      expect((await post({ sceneId })).status).toBe(404);
+    });
+  });
 });

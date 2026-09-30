@@ -228,6 +228,9 @@ export const sessionPlanStepStateSchema = z.object({
   completed: z.boolean().default(false),
   completedAt: z.string().datetime().optional(),
   completedBy: z.string().optional(),
+  /** Runtime fact recorded when a deploy-encounter step is deployed. */
+  encounterRunId: z.string().uuid().optional(),
+  deployedAt: z.string().datetime().optional(),
 });
 export type SessionPlanStepState = z.infer<typeof sessionPlanStepStateSchema>;
 

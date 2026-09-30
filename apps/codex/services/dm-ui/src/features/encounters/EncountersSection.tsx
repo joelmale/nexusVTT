@@ -10,10 +10,7 @@ import { RelatedGroups } from '@/features/section-shell/RelatedGroups';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
 import { SectionLayout } from '@/features/section-shell/SectionLayout';
 import { SectionSummary } from '@/features/section-shell/SectionSummary';
-import {
-  DmOnlyBadge,
-  StatusBadge,
-} from '@/features/section-shell/StatusBadge';
+import { DmOnlyBadge, StatusBadge } from '@/features/section-shell/StatusBadge';
 import { humanize } from '@/features/section-shell/statusTones';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 
@@ -150,7 +147,7 @@ export function EncountersSection() {
 }
 
 function EncounterDetail({ encounter }: { encounter: CampaignEncounter }) {
-  const { bundle } = useSectionBundle();
+  const { bundle, exampleSlug } = useSectionBundle();
   const { notifyCapability } = useCapabilityNotice();
   const total = participantTotal(encounter);
   const next = isInNextSession(bundle, encounter);
@@ -171,7 +168,11 @@ function EncounterDetail({ encounter }: { encounter: CampaignEncounter }) {
         {canDeploy(bundle) ? (
           <button
             className={styles.deploy}
-            onClick={() => notifyCapability('encounter.deploy')}
+            onClick={() =>
+              notifyCapability(
+                exampleSlug ? 'encounter.deploy.demo' : 'encounter.deploy',
+              )
+            }
             type="button"
           >
             Deploy to VTT

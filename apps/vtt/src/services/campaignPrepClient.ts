@@ -142,6 +142,51 @@ export class CampaignPrepClient {
     return data.activation;
   }
 
+  /**
+   * Deploy a deploy-encounter step. Idempotent per (activation, step): the
+   * server returns the recorded encounterRunId instead of spawning again.
+   */
+  async deployActivationEncounter(
+    campaignId: string,
+    activationId: string,
+    stepId: string,
+    options: {
+      sceneId: string;
+      anchorPosition?: { x: number; y: number };
+      hiddenFromPlayers?: boolean;
+    },
+  ): Promise<{
+    encounterRunId: string;
+    duplicate: boolean;
+    activation: SessionPlanActivation;
+  }> {
+    const res = await fetch(
+      `${this.baseUrl}/api/campaigns/${encodeURIComponent(campaignId)}/session-plans/activations/${encodeURIComponent(activationId)}/steps/${encodeURIComponent(stepId)}/deploy-encounter`,
+      {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          sceneId: options.sceneId,
+          anchorPosition: options.anchorPosition ?? { x: 0, y: 0 },
+          hiddenFromPlayers: options.hiddenFromPlayers ?? false,
+        }),
+      },
+    );
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => 'Request failed');
+      throw new CampaignPrepRequestError(
+        `Failed to deploy encounter (${res.status}): ${errorText}`,
+        res.status,
+      );
+    }
+    return (await res.json()) as {
+      encounterRunId: string;
+      duplicate: boolean;
+      activation: SessionPlanActivation;
+    };
+  }
+
   async getCampaignEntry(
     campaignId: string,
     entryId: string,

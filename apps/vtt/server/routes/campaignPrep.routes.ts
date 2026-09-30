@@ -14,12 +14,17 @@ import type {
   CampaignPrepObjectKind,
   CampaignPrepObjectStatus,
 } from '../repositories/base.js';
+import { SessionPlanEncounterDeployer } from '../campaign-prep/SessionPlanEncounterDeployer.js';
 import {
   SessionPlanPublishingError,
   type PublishSessionPlanResult,
 } from '../campaign-prep/SessionPlanPublishingService.js';
 
-type CampaignPrepDatabase = Pick<DatabaseService, 'campaigns' | 'campaignPrep'>;
+type CampaignPrepDatabase = Pick<
+  DatabaseService,
+  'campaigns' | 'campaignPrep'
+> &
+  Partial<Pick<DatabaseService, 'commandReceipts' | 'domainCommands'>>;
 
 interface SessionPlanPublisher {
   publish(request: {
@@ -610,6 +615,81 @@ export function createCampaignPrepRouter({
         return res.status(500).json({
           error: 'Failed to advance session plan',
         });
+      }
+    },
+  );
+
+  router.post(
+    '/campaigns/:campaignId/session-plans/activations/:activationId/steps/:stepId/deploy-encounter',
+    async (req: Request, res: Response) => {
+      const campaignId = routeParameter(req.params.campaignId);
+      const activationId = routeParameter(req.params.activationId);
+      const stepId = routeParameter(req.params.stepId);
+      const body = (req.body ?? {}) as {
+        sceneId?: unknown;
+        anchorPosition?: { x?: unknown; y?: unknown };
+        hiddenFromPlayers?: unknown;
+      };
+
+      if (!isUuid(activationId) || !isUuid(stepId)) {
+        return res
+          .status(400)
+          .json({ error: 'activationId and stepId must be valid UUIDs' });
+      }
+      if (!isUuid(body.sceneId)) {
+        return res.status(400).json({ error: 'sceneId must be a UUID' });
+      }
+      const x = body.anchorPosition?.x ?? 0;
+      const y = body.anchorPosition?.y ?? 0;
+      if (
+        typeof x !== 'number' ||
+        typeof y !== 'number' ||
+        !Number.isFinite(x) ||
+        !Number.isFinite(y)
+      ) {
+        return res
+          .status(400)
+          .json({ error: 'anchorPosition must contain finite numbers' });
+      }
+      if (
+        body.hiddenFromPlayers !== undefined &&
+        typeof body.hiddenFromPlayers !== 'boolean'
+      ) {
+        return res
+          .status(400)
+          .json({ error: 'hiddenFromPlayers must be a boolean' });
+      }
+      if (!db.commandReceipts || !db.domainCommands) {
+        return res.status(503).json({ error: 'Command service unavailable' });
+      }
+
+      try {
+        const deployer = new SessionPlanEncounterDeployer({
+          campaignPrep: db.campaignPrep,
+          commandReceipts: db.commandReceipts,
+          domainCommands: db.domainCommands,
+        });
+        const result = await deployer.deploy({
+          campaignId,
+          activationId,
+          stepId,
+          principalId: sessionUserId(req) ?? '',
+          sceneId: body.sceneId,
+          anchorPosition: { x, y },
+          hiddenFromPlayers: body.hiddenFromPlayers === true,
+        });
+        return res.json(result);
+      } catch (error) {
+        if (error instanceof SessionPlanActivationError) {
+          return res.status(activationErrorStatus(error)).json({
+            error: error.message,
+            code: error.code,
+          });
+        }
+        console.error('Failed to deploy session plan encounter:', error);
+        return res
+          .status(500)
+          .json({ error: 'Failed to deploy session plan encounter' });
       }
     },
   );

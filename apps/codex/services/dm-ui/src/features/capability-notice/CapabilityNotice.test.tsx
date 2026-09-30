@@ -42,9 +42,12 @@ describe('capability registry', () => {
       if (
         id === 'session-plan.publish' ||
         id === 'session-plan.activate' ||
-        id === 'campaign.section.open'
+        id === 'campaign.section.open' ||
+        id === 'encounter.deploy'
       ) {
         expect(capability.status).toBe('implemented');
+      } else if (id === 'encounter.deploy.demo') {
+        expect(capability.status).toBe('local-demo');
       } else {
         expect(capability.status).toBe('planned');
       }

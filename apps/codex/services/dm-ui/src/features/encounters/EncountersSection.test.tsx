@@ -23,6 +23,7 @@ describe('EncountersSection', () => {
     expect(screen.queryByRole('button', { name: /Add|Edit|New/ })).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Deploy to VTT' }));
     expect(await screen.findByText('Deploy encounter')).toBeInTheDocument();
+    expect(screen.getByText(/not connected to a VTT/)).toBeInTheDocument();
   });
 
   it('hides Deploy in complete campaigns', () => {

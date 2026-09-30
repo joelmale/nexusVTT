@@ -16,6 +16,7 @@ export const CAPABILITY_IDS = [
   'map.scene.create',
   'map.asset.replace',
   'encounter.deploy',
+  'encounter.deploy.demo',
   'map.options.open',
 ] as const;
 
@@ -150,10 +151,18 @@ export const CAPABILITY_REGISTRY: Record<CapabilityId, PrototypeCapability> = {
   'encounter.deploy': {
     id: 'encounter.deploy',
     label: 'Deploy encounter',
-    status: 'planned',
-    targetPhase: 'Existing VTT command path',
+    status: 'implemented',
+    targetPhase: 'VTT run sheet',
     description:
-      'Deploy this encounter to the VTT using its existing command path.',
+      'Launch the campaign run sheet in the VTT (Play in VTT on the session plan), then deploy the encounter from its step. Each step deploys once, even after a reconnect.',
+  },
+  'encounter.deploy.demo': {
+    id: 'encounter.deploy.demo',
+    label: 'Deploy encounter',
+    status: 'local-demo',
+    targetPhase: 'Example campaign',
+    description:
+      'Example campaigns are read-only and are not connected to a VTT. Open a server-backed campaign to deploy encounters.',
   },
   'map.options.open': {
     id: 'map.options.open',
