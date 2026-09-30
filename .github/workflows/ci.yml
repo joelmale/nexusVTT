@@ -13,10 +13,23 @@ on:
         required: false
         type: string
 
+# Concurrency policy: only the newest run of a burst is worth finishing.
+#  - pull_request: one group per PR; a new push cancels the older run.
+#  - push to main: one group per ref; a new push cancels the older run. The
+#    cancelled commit never gets a green CI run, so Delivery's "Require
+#    successful CI for the exact source" gate fails for that SHA and it is
+#    never published. That is intended: the newer commit supersedes it and
+#    carries its changes. Delivery itself is NOT cancelled (see delivery.yml);
+#    it queues, so a publish or promotion is never interrupted midway.
+#  - merge_group and workflow_dispatch are never cancelled. Merge-queue entries
+#    each have their own ref, and a manual run (including the full-validation
+#    run Delivery can require for a specific SHA) must run to completion.
+# To revert to run-everything-on-main, make cancel-in-progress true only for
+# pull_request again.
 concurrency:
   group: >-
     ${{ github.event_name == 'pull_request' && format('pr-ci-{0}', github.event.pull_request.number) || format('ci-{0}-{1}', github.event_name, github.ref) }}
-  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' || github.event_name == 'push' }}
 
 permissions:
   contents: read

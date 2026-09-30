@@ -93,6 +93,16 @@ job (`vtt-e2e`), which builds the commit's images and is required through
 `All required checks`; nightly repeats both. See the
 [CI test catalog](./ci-test-catalog.md) for every test job.
 
+### Concurrency and cancellation
+
+A newer push cancels the older in-progress CI run, both per pull request and
+for pushes to `main`. A cancelled run on `main` is never green, so Delivery's
+exact-source validation gate rejects that SHA and does not publish it; the newer
+commit carries its changes. Merge-queue and manual runs are never cancelled.
+Delivery itself is not cancelled, so image publishing and promotion are never
+interrupted midway. The policy and its rationale are commented on the
+`concurrency` block in `ci.yml`.
+
 ## Delivery lane
 
 Delivery accepts only commits reachable from `origin/main`. Automatic runs use
