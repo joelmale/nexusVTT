@@ -167,7 +167,7 @@ dialog.account-dialog {
   border: none;
   border-radius: 16px;
   background: transparent;
-  max-width: min(520px, 92vw);
+  max-width: min(260px, 92vw);
   max-height: 90vh;
   overflow-y: auto;
 }
@@ -177,7 +177,7 @@ dialog.account-dialog::backdrop {
 }
 
 .account-dropdown {
-  width: min(520px, 92vw);
+  width: min(260px, 92vw);
   padding: 1rem;
   background: rgba(20, 24, 40, 0.95);
   border: 1px solid rgba(255, 255, 255, 0.1);
