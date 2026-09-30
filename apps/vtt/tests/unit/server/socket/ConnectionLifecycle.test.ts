@@ -1,4 +1,4 @@
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
 
 import type { DatabaseService, SessionRecord } from '../../../../server/database.js';
@@ -84,6 +84,7 @@ function createHarness(): {
     | 'createGuestUser'
     | 'createSession'
     | 'createSessionWithJoinCode'
+    | 'deleteCampaign'
     | 'deleteSession'
     | 'getCampaignById'
     | 'getHostsBySession'
@@ -140,6 +141,7 @@ function createHarness(): {
       sessionId: 'session-id',
       joinCode: 'ROOM',
     }),
+    deleteCampaign: vi.fn().mockResolvedValue(undefined),
     deleteSession: vi.fn().mockResolvedValue(undefined),
     getCampaignById: vi.fn(),
     getHostsBySession: vi.fn().mockResolvedValue([{ userId: 'host-id', isPrimary: true }]),
@@ -364,6 +366,64 @@ describe('ConnectionLifecycle', () => {
       type: 'event',
       data: { name: 'session/created', roomCode: 'ROOM' },
     });
+  });
+
+  it('does not generate a room code itself on a default connection', async () => {
+    const { db, lifecycle, socketManager } = createHarness();
+    const socket = new MockSocket();
+    const connection = createConnection('host-id', socket);
+    vi.mocked(socketManager.addConnection).mockReturnValue(connection);
+
+    await lifecycle.handleConnection(socket as unknown as WebSocket, {
+      url: '/ws',
+      session: { passport: { user: 'host-id' } },
+    } as never);
+
+    // Uniqueness is decided by the database insert, never a process-local probe.
+    expect(db.getSessionByJoinCode).not.toHaveBeenCalled();
+    expect(db.createSessionWithJoinCode).not.toHaveBeenCalled();
+    expect(db.createSession).toHaveBeenCalledWith('campaign-id', 'host-id');
+    expect(parseMessages(socket)[0]).toMatchObject({
+      type: 'event',
+      data: { name: 'session/created', roomCode: 'ROOM' },
+    });
+  });
+
+  it('quick-starts with only a title and description as a normal owned campaign', async () => {
+    const { db, lifecycle, socketManager } = createHarness();
+    const socket = new MockSocket();
+    const connection = createConnection('host-id', socket);
+    vi.mocked(socketManager.addConnection).mockReturnValue(connection);
+
+    await lifecycle.handleConnection(socket as unknown as WebSocket, {
+      url: '/ws?campaignTitle=%20Goblin%20Ambush%20&campaignDescription=One-shot%20at%20level%203',
+      session: { passport: { user: 'host-id' } },
+    } as never);
+
+    expect(db.createCampaign).toHaveBeenCalledWith(
+      'host-id',
+      'Goblin Ambush',
+      'One-shot at level 3',
+    );
+    expect(db.createSession).toHaveBeenCalledWith('campaign-id', 'host-id');
+  });
+
+  it('falls back to a default campaign title when no draft is supplied', async () => {
+    const { db, lifecycle, socketManager } = createHarness();
+    const socket = new MockSocket();
+    const connection = createConnection('host-id', socket);
+    vi.mocked(socketManager.addConnection).mockReturnValue(connection);
+
+    await lifecycle.handleConnection(socket as unknown as WebSocket, {
+      url: '/ws',
+      session: { passport: { user: 'host-id' } },
+    } as never);
+
+    expect(db.createCampaign).toHaveBeenCalledWith(
+      'host-id',
+      expect.stringMatching(/\S/),
+      expect.stringMatching(/\S/),
+    );
   });
 
   it('recovers a persisted room when a player joins after an instance restart', async () => {
@@ -731,5 +791,68 @@ describe('ConnectionLifecycle', () => {
         data: { name: 'session/dm-status', dmConnected: false },
       }),
     );
+  });
+
+  describe('guest-hosted session discard', () => {
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
+    async function disconnectGuestHost(provider: string) {
+      const harness = createHarness();
+      const { db, lifecycle, socketManager } = harness;
+      const hostSocket = new MockSocket();
+      const hostConnection = createConnection('host-id', hostSocket, 'ROOM');
+      hostConnection.user = { name: 'Host', type: 'host' };
+      const room = createRoom({
+        connections: new Map([['host-id', hostSocket as unknown as WebSocket]]),
+      });
+      socketManager.rooms.set('ROOM', room);
+      socketManager.connections.set('host-id', hostConnection);
+      vi.mocked(db.getSessionByJoinCode).mockResolvedValue(createSession());
+      vi.mocked(db.getUserById).mockResolvedValue({
+        id: 'host-id',
+        name: 'Host',
+        provider,
+      } as never);
+      vi.mocked(db.getCampaignById).mockResolvedValue({
+        id: 'campaign-id',
+        dmId: 'host-id',
+      } as never);
+      await lifecycle.handleDisconnect('host-id', hostConnection.instanceId);
+      return { ...harness, room };
+    }
+
+    it('deletes the campaign and session after the grace period', async () => {
+      vi.useFakeTimers();
+      const { db, room, socketManager } = await disconnectGuestHost('guest');
+
+      expect(db.deleteCampaign).not.toHaveBeenCalled();
+      await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
+
+      expect(db.deleteCampaign).toHaveBeenCalledWith('campaign-id');
+      expect(socketManager.removeRoom).toHaveBeenCalledWith('ROOM');
+      expect(room.guestDiscardTimer).toBeUndefined();
+    });
+
+    it('keeps the session when the host returns within the grace period', async () => {
+      vi.useFakeTimers();
+      const { db, room } = await disconnectGuestHost('guest');
+
+      room.dmConnected = true; // host reconnected
+      await vi.advanceTimersByTimeAsync(2 * 60 * 1000);
+
+      expect(db.deleteCampaign).not.toHaveBeenCalled();
+      expect(db.deleteSession).not.toHaveBeenCalled();
+    });
+
+    it('never discards sessions hosted by signed-in users', async () => {
+      vi.useFakeTimers();
+      const { db, room } = await disconnectGuestHost('google');
+
+      expect(room.guestDiscardTimer).toBeUndefined();
+      await vi.advanceTimersByTimeAsync(10 * 60 * 1000);
+      expect(db.deleteCampaign).not.toHaveBeenCalled();
+    });
   });
 });

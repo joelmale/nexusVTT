@@ -9,7 +9,6 @@ import type { EventReplayWindow } from '../../shared/events/contracts.js';
 import type { JsonValue } from '../../shared/sync/contracts.js';
 import { createEmptySyncableGameState } from '../../shared/sync/contracts.js';
 import { hashSync } from '../../shared/sync/hashSync.js';
-import { generateSecureJoinCode } from '../utils/secureCode.js';
 import { resolveSocketIdentity } from './resolveSocketIdentity.js';
 import { authorizeCampaignHost } from './campaignAuthorization.js';
 import { buildSyncableFromLegacy } from './syncableState.js';
@@ -28,6 +27,27 @@ export interface CustomSession extends Session {
 
 export interface RequestWithSession extends IncomingMessage {
   session: CustomSession;
+}
+
+/** Optional title/description a DM supplies when quick-starting a session. */
+export interface CampaignDraft {
+  name?: string;
+  description?: string;
+}
+
+const MAX_CAMPAIGN_NAME_LENGTH = 255;
+const MAX_CAMPAIGN_DESCRIPTION_LENGTH = 2000;
+
+export function parseCampaignDraft(params: URLSearchParams): CampaignDraft {
+  const name = params
+    .get('campaignTitle')
+    ?.trim()
+    .slice(0, MAX_CAMPAIGN_NAME_LENGTH);
+  const description = params
+    .get('campaignDescription')
+    ?.trim()
+    .slice(0, MAX_CAMPAIGN_DESCRIPTION_LENGTH);
+  return { name: name || undefined, description: description || undefined };
 }
 
 export interface ConnectionLifecycleDependencies {
@@ -50,6 +70,12 @@ export class ConnectionLifecycle {
 
   // Session timeouts (72 hours = 259200000 ms)
   private readonly HIBERNATION_TIMEOUT = 72 * 60 * 60 * 1000; // 72 hours before abandoning inactive session
+  /**
+   * Guest-hosted sessions are throwaway: when the guest host leaves they are
+   * deleted after this grace period. The grace covers page refreshes and brief
+   * network drops; a host reconnect inside it keeps the session.
+   */
+  private readonly GUEST_DISCARD_GRACE = 2 * 60 * 1000;
   private readonly ABANDONMENT_TIMEOUT = 24 * 60 * 60 * 1000; // 24 hours after abandonment before database cleanup
 
   constructor({ socketManager, db }: ConnectionLifecycleDependencies) {
@@ -137,15 +163,27 @@ export class ConnectionLifecycle {
     const join = params.get('join')?.toUpperCase();
     const reconnect = params.get('reconnect')?.toUpperCase();
     const campaignId = params.get('campaignId');
+    const campaignDraft = parseCampaignDraft(params);
 
     if (host) {
-      await this.handleHostConnection(connection, userType, host, campaignId);
+      await this.handleHostConnection(
+        connection,
+        userType,
+        host,
+        campaignId,
+        campaignDraft,
+      );
     } else if (reconnect) {
       await this.handleHostReconnection(connection, userType, reconnect, campaignId);
     } else if (join) {
       await this.handleJoinConnection(connection, join);
     } else {
-      await this.handleDefaultConnection(connection, userType, campaignId);
+      await this.handleDefaultConnection(
+        connection,
+        userType,
+        campaignId,
+        campaignDraft,
+      );
     }
   }
 
@@ -164,6 +202,7 @@ export class ConnectionLifecycle {
     userType: 'Authenticated' | 'Guest' | 'Anonymous',
     hostRoomCode?: string,
     campaignId?: string | null,
+    campaignDraft: CampaignDraft = {},
   ): Promise<void> {
     try {
       const normalizedHostCode = hostRoomCode?.toUpperCase();
@@ -211,8 +250,8 @@ export class ConnectionLifecycle {
         console.log(`🗂️ Creating new campaign for guest DM`);
         const campaign = await this.db.createCampaign(
           connection.id,
-          `Campaign ${preferredRoomCode || 'Session'}`,
-          'Auto-created campaign for quick session',
+          campaignDraft.name || `Campaign ${preferredRoomCode || 'Session'}`,
+          campaignDraft.description || 'Auto-created campaign for quick session',
         );
         usedCampaignId = campaign.id;
       }
@@ -492,6 +531,10 @@ export class ConnectionLifecycle {
       if (room.hibernationTimer) {
         clearTimeout(room.hibernationTimer);
         room.hibernationTimer = undefined;
+      }
+      if (room.guestDiscardTimer) {
+        clearTimeout(room.guestDiscardTimer);
+        room.guestDiscardTimer = undefined;
       }
 
       // Load game state from database if not in memory
@@ -782,9 +825,18 @@ export class ConnectionLifecycle {
     connection: Connection,
     userType: 'Authenticated' | 'Guest' | 'Anonymous',
     campaignId?: string | null,
+    campaignDraft: CampaignDraft = {},
   ) {
-    const roomCode = this.generateRoomCode();
-    await this.handleHostConnection(connection, userType, roomCode, campaignId);
+    // No code is generated here: handleHostConnection reuses the campaign's
+    // lastRoomCode or asks createSession, whose UNIQUE-constraint insert is the
+    // only join-code uniqueness authority.
+    await this.handleHostConnection(
+      connection,
+      userType,
+      undefined,
+      campaignId,
+      campaignDraft,
+    );
   }
 
   /**
@@ -949,6 +1001,7 @@ export class ConnectionLifecycle {
       room.lastActivity = Date.now();
 
       this.hibernateRoom(connection.room);
+      await this.scheduleGuestDiscard(room, uuid);
 
       this.socketManager.broadcastToRoom(connection.room, {
         type: 'event',
@@ -989,6 +1042,76 @@ export class ConnectionLifecycle {
     }
 
     deleteConnectionIfCurrent();
+  }
+
+  /**
+   * Schedules deletion of a guest host's session and its auto-created campaign.
+   * Guests have no account to save to, so their sessions are discarded when they
+   * leave. Non-guest hosts are untouched.
+   * @private
+   */
+  private async scheduleGuestDiscard(
+    room: Room,
+    hostId: string,
+  ): Promise<void> {
+    try {
+      const host = await this.db.getUserById(hostId);
+      if (host?.provider !== 'guest') return;
+    } catch (error) {
+      console.error('Failed to resolve host for guest discard:', error);
+      return;
+    }
+
+    if (room.guestDiscardTimer) {
+      clearTimeout(room.guestDiscardTimer);
+    }
+    room.guestDiscardTimer = setTimeout(() => {
+      room.guestDiscardTimer = undefined;
+      void this.discardGuestSession(room.code, hostId);
+    }, this.GUEST_DISCARD_GRACE);
+  }
+
+  private async discardGuestSession(
+    roomCode: string,
+    hostId: string,
+  ): Promise<void> {
+    const room = this.socketManager.rooms.get(roomCode);
+    // The host came back (or the room was replaced) during the grace period.
+    if (!room || room.dmConnected || room.host !== hostId) return;
+
+    console.log(`🗑️ Discarding guest-hosted session: ${roomCode}`);
+    try {
+      const session = await this.db.getSessionByJoinCode(roomCode);
+      if (session) {
+        const campaign = await this.db.getCampaignById(session.campaignId);
+        // Deleting the campaign cascades to its sessions.
+        if (campaign && campaign.dmId === hostId) {
+          await this.db.deleteCampaign(campaign.id);
+        } else {
+          await this.db.deleteSession(session.id);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to discard guest session:', error);
+      return; // Leave the room for the normal hibernate/abandon lifecycle.
+    }
+
+    if (room.hibernationTimer) {
+      clearTimeout(room.hibernationTimer);
+    }
+    this.socketManager.broadcastToRoom(roomCode, {
+      type: 'event',
+      data: {
+        name: 'session/ended',
+        message: 'The host left and this guest session was discarded.',
+      },
+      timestamp: Date.now(),
+    });
+    room.connections.forEach((ws, connUuid) => {
+      ws.close();
+      this.socketManager.connections.delete(connUuid);
+    });
+    this.socketManager.removeRoom(roomCode);
   }
 
   /**
@@ -1192,16 +1315,5 @@ export class ConnectionLifecycle {
       console.error(`Failed to recover room ${roomCode} from session:`, error);
       return undefined;
     }
-  }
-
-  private generateRoomCode(): string {
-    // A room code is the only credential needed to join a room, so it is drawn
-    // from the OS CSPRNG rather than Math.random(), whose stream is
-    // reconstructable from a handful of observed outputs.
-    let result: string;
-    do {
-      result = generateSecureJoinCode(4);
-    } while (this.socketManager.rooms.has(result));
-    return result;
   }
 }

@@ -112,6 +112,7 @@ class WebSocketService extends EventTarget {
     connectionMode?: 'host' | 'reconnect',
     connectionInstanceId?: string,
     reconnectTrigger?: string,
+    campaignDraft?: { name?: string; description?: string },
   ): string {
     const envUrl = import.meta.env.VITE_WS_URL;
     const wsHost =
@@ -140,6 +141,12 @@ class WebSocketService extends EventTarget {
     }
     if (userName) {
       params.set('userName', userName);
+    }
+    if (!campaignId && campaignDraft?.name) {
+      params.set('campaignTitle', campaignDraft.name);
+    }
+    if (!campaignId && campaignDraft?.description) {
+      params.set('campaignDescription', campaignDraft.description);
     }
     if (connectionInstanceId) {
       params.set('connectionInstanceId', connectionInstanceId);
@@ -184,6 +191,7 @@ class WebSocketService extends EventTarget {
     userName?: string,
     connectionMode?: 'host' | 'reconnect',
     reconnectTrigger = 'connect',
+    campaignDraft?: { name?: string; description?: string },
   ): Promise<void> {
     if (this.ws?.readyState === WebSocket.OPEN) {
       console.info('[WebSocket] connect ignored; socket already open', {
@@ -267,6 +275,7 @@ class WebSocketService extends EventTarget {
           connectionMode,
           nextSocketInstanceId,
           reconnectTrigger,
+          campaignDraft,
         );
         console.info('[WebSocket] connecting', {
           socketInstanceId: nextSocketInstanceId,
