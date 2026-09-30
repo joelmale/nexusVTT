@@ -97,6 +97,8 @@ export interface GameConfig {
   maxPlayers: number;
   campaignId?: string; // Optional campaign ID for linking session to existing campaign
   preferredRoomCode?: string;
+  /** Quick-start title/description for the auto-created campaign (both optional). */
+  campaignDraft?: { name?: string; description?: string };
 }
 
 export interface ChatState {

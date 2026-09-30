@@ -407,6 +407,8 @@ export const useGameStore = create<GameStore>()(
             user.id,
             user.name,
             preferredRoomCode ? 'host' : undefined,
+            'connect',
+            config.campaignDraft,
           );
 
           // Wait for session/created event from server

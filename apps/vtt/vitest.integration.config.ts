@@ -26,6 +26,8 @@ const merged = mergeConfig(
 merged.test = {
   ...merged.test,
   include: ['tests/integration/**/*.{test,spec}.{ts,tsx}'],
+  // Files share one database and several TRUNCATE tables in beforeEach.
+  fileParallelism: false,
 };
 
 export default merged;

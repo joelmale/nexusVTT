@@ -87,6 +87,8 @@ export const LobbyPanel: React.FC = () => {
   const [isConnecting, setIsConnecting] = useState(false);
   const [error, setError] = useState('');
   const [playerRoomCode, setPlayerRoomCode] = useState('');
+  const [quickTitle, setQuickTitle] = useState('');
+  const [quickDescription, setQuickDescription] = useState('');
 
   const handleStartOnlineGame = async () => {
     setIsConnecting(true);
@@ -104,7 +106,16 @@ export const LobbyPanel: React.FC = () => {
           maxPlayers: 4,
         };
 
-        await createGameRoom(config, false); // false = don't clear data
+        await createGameRoom(
+          {
+            ...config,
+            campaignDraft: {
+              name: quickTitle.trim() || undefined,
+              description: quickDescription.trim() || undefined,
+            },
+          },
+          false,
+        ); // false = don't clear data
       } else {
         // Player: Connect to existing room using entered room code
         const codeToJoin = playerRoomCode.trim().toUpperCase();
@@ -254,6 +265,32 @@ export const LobbyPanel: React.FC = () => {
                 ? 'Start an online game to allow players to join remotely.'
                 : 'Enter a room code to connect to the online game.'}
             </p>
+
+            {/* DM quick start: optional title/description, editable later */}
+            {isHost && !gameConfig?.campaignId && (
+              <div className="lobby-panel__room-code-input-group">
+                <input
+                  type="text"
+                  value={quickTitle}
+                  onChange={(e) => setQuickTitle(e.target.value)}
+                  placeholder="Session title (optional)"
+                  maxLength={255}
+                  className="glass-input"
+                  disabled={isConnecting}
+                  aria-label="Session title"
+                />
+                <textarea
+                  value={quickDescription}
+                  onChange={(e) => setQuickDescription(e.target.value)}
+                  placeholder="Description (optional)"
+                  maxLength={2000}
+                  rows={2}
+                  className="glass-input"
+                  disabled={isConnecting}
+                  aria-label="Session description"
+                />
+              </div>
+            )}
 
             {/* Player: Room Code Input */}
             {!isHost && (

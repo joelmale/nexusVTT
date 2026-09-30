@@ -41,6 +41,8 @@ function normalizeSession(row: RawSessionRecord): SessionRecord {
   };
 }
 
+const MAX_JOIN_CODE_ATTEMPTS = 100;
+
 export class SessionRepository extends BaseRepository {
   async initialize(): Promise<void> {
     await this.pool.query(`
@@ -58,30 +60,54 @@ export class SessionRepository extends BaseRepository {
     `);
   }
 
-  private async generateUniqueJoinCode(): Promise<string> {
-    let attempts = 0;
-    const maxAttempts = 100;
+  /**
+   * Inserts the session, primary host and host-player rows. Returns null when
+   * `joinCode` is already taken. The sessions."joinCode" UNIQUE constraint is
+   * the only uniqueness authority: ON CONFLICT DO NOTHING is atomic across
+   * replicas and leaves the surrounding transaction usable.
+   */
+  private async insertSessionRows(
+    client: PoolClient,
+    campaignId: string,
+    hostId: string,
+    joinCode: string,
+  ): Promise<string | null> {
+    const sessionId = uuidv4();
+    const initialState = createEmptySyncableGameState();
+    const initialToken = hashSync(initialState as unknown as JsonValue);
 
-    while (attempts < maxAttempts) {
-      // A join code is the only credential needed to enter a session, so it is
-      // drawn from the OS CSPRNG rather than Math.random().
-      const code = generateSecureJoinCode(4);
-
-      const exists = await this.pool.query(
-        'SELECT 1 FROM sessions WHERE "joinCode" = $1',
-        [code],
-      );
-
-      if (exists.rows.length === 0) {
-        return code;
-      }
-
-      attempts++;
+    const inserted = await client.query<{ id: string }>(
+      `INSERT INTO sessions
+         (id, "joinCode", "campaignId", "primaryHostId", "gameState", "syncToken")
+       VALUES ($1, $2, $3, $4, $5, $6)
+       ON CONFLICT ("joinCode") DO NOTHING
+       RETURNING id`,
+      [
+        sessionId,
+        joinCode,
+        campaignId,
+        hostId,
+        JSON.stringify(initialState),
+        initialToken,
+      ],
+    );
+    if (inserted.rows.length === 0) {
+      return null;
     }
 
-    throw new Error(
-      'Failed to generate unique join code after ' + maxAttempts + ' attempts',
+    await client.query(
+      `INSERT INTO hosts (id, "userId", "sessionId", "isPrimary", permissions)
+       VALUES (uuid_generate_v4(), $1, $2, true, '{}'::jsonb)`,
+      [hostId, sessionId],
     );
+
+    await client.query(
+      `INSERT INTO players (id, "userId", "sessionId", "isConnected")
+       VALUES (uuid_generate_v4(), $1, $2, true)`,
+      [hostId, sessionId],
+    );
+
+    return sessionId;
   }
 
   async createSession(
@@ -93,44 +119,39 @@ export class SessionRepository extends BaseRepository {
     try {
       await client.query('BEGIN');
 
-      const sessionId = uuidv4();
-      const joinCode = await this.generateUniqueJoinCode();
-      const initialState = createEmptySyncableGameState();
-      const initialToken = hashSync(initialState as unknown as JsonValue);
-
-      await client.query(
-        `INSERT INTO sessions
-           (id, "joinCode", "campaignId", "primaryHostId", "gameState", "syncToken")
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          sessionId,
-          joinCode,
+      let created: { sessionId: string; joinCode: string } | null = null;
+      for (
+        let attempt = 0;
+        attempt < MAX_JOIN_CODE_ATTEMPTS && !created;
+        attempt++
+      ) {
+        // A join code is the only credential needed to enter a session, so it
+        // is drawn from the OS CSPRNG rather than Math.random().
+        const joinCode = generateSecureJoinCode(4);
+        const sessionId = await this.insertSessionRows(
+          client,
           campaignId,
           hostId,
-          JSON.stringify(initialState),
-          initialToken,
-        ],
-      );
+          joinCode,
+        );
+        if (sessionId) {
+          created = { sessionId, joinCode };
+        }
+      }
 
-      await client.query(
-        `INSERT INTO hosts (id, "userId", "sessionId", "isPrimary", permissions)
-         VALUES (uuid_generate_v4(), $1, $2, true, '{}'::jsonb)`,
-        [hostId, sessionId],
-      );
-
-      await client.query(
-        `INSERT INTO players (id, "userId", "sessionId", "isConnected")
-         VALUES (uuid_generate_v4(), $1, $2, true)`,
-        [hostId, sessionId],
-      );
+      if (!created) {
+        throw new Error(
+          `Failed to create a unique join code after ${MAX_JOIN_CODE_ATTEMPTS} attempts`,
+        );
+      }
 
       await client.query('COMMIT');
 
       console.log(
-        `🗄️ Session created: ${joinCode} (${sessionId}) by host ${hostId}`,
+        `🗄️ Session created: ${created.joinCode} (${created.sessionId}) by host ${hostId}`,
       );
 
-      return { sessionId, joinCode };
+      return created;
     } catch (error) {
       await client.query('ROLLBACK');
       console.error('Failed to create session:', error);
@@ -150,43 +171,15 @@ export class SessionRepository extends BaseRepository {
     try {
       await client.query('BEGIN');
 
-      const existing = await client.query(
-        'SELECT 1 FROM sessions WHERE "joinCode" = $1',
-        [joinCode],
+      const sessionId = await this.insertSessionRows(
+        client,
+        campaignId,
+        hostId,
+        joinCode,
       );
-      if (existing.rows.length > 0) {
+      if (!sessionId) {
         throw new Error(`Join code already exists: ${joinCode}`);
       }
-
-      const sessionId = uuidv4();
-      const initialState = createEmptySyncableGameState();
-      const initialToken = hashSync(initialState as unknown as JsonValue);
-
-      await client.query(
-        `INSERT INTO sessions
-           (id, "joinCode", "campaignId", "primaryHostId", "gameState", "syncToken")
-         VALUES ($1, $2, $3, $4, $5, $6)`,
-        [
-          sessionId,
-          joinCode,
-          campaignId,
-          hostId,
-          JSON.stringify(initialState),
-          initialToken,
-        ],
-      );
-
-      await client.query(
-        `INSERT INTO hosts (id, "userId", "sessionId", "isPrimary", permissions)
-         VALUES (uuid_generate_v4(), $1, $2, true, '{}'::jsonb)`,
-        [hostId, sessionId],
-      );
-
-      await client.query(
-        `INSERT INTO players (id, "userId", "sessionId", "isConnected")
-         VALUES (uuid_generate_v4(), $1, $2, true)`,
-        [hostId, sessionId],
-      );
 
       await client.query('COMMIT');
 

@@ -366,6 +366,64 @@ describe('ConnectionLifecycle', () => {
     });
   });
 
+  it('does not generate a room code itself on a default connection', async () => {
+    const { db, lifecycle, socketManager } = createHarness();
+    const socket = new MockSocket();
+    const connection = createConnection('host-id', socket);
+    vi.mocked(socketManager.addConnection).mockReturnValue(connection);
+
+    await lifecycle.handleConnection(socket as unknown as WebSocket, {
+      url: '/ws',
+      session: { passport: { user: 'host-id' } },
+    } as never);
+
+    // Uniqueness is decided by the database insert, never a process-local probe.
+    expect(db.getSessionByJoinCode).not.toHaveBeenCalled();
+    expect(db.createSessionWithJoinCode).not.toHaveBeenCalled();
+    expect(db.createSession).toHaveBeenCalledWith('campaign-id', 'host-id');
+    expect(parseMessages(socket)[0]).toMatchObject({
+      type: 'event',
+      data: { name: 'session/created', roomCode: 'ROOM' },
+    });
+  });
+
+  it('quick-starts with only a title and description as a normal owned campaign', async () => {
+    const { db, lifecycle, socketManager } = createHarness();
+    const socket = new MockSocket();
+    const connection = createConnection('host-id', socket);
+    vi.mocked(socketManager.addConnection).mockReturnValue(connection);
+
+    await lifecycle.handleConnection(socket as unknown as WebSocket, {
+      url: '/ws?campaignTitle=%20Goblin%20Ambush%20&campaignDescription=One-shot%20at%20level%203',
+      session: { passport: { user: 'host-id' } },
+    } as never);
+
+    expect(db.createCampaign).toHaveBeenCalledWith(
+      'host-id',
+      'Goblin Ambush',
+      'One-shot at level 3',
+    );
+    expect(db.createSession).toHaveBeenCalledWith('campaign-id', 'host-id');
+  });
+
+  it('falls back to a default campaign title when no draft is supplied', async () => {
+    const { db, lifecycle, socketManager } = createHarness();
+    const socket = new MockSocket();
+    const connection = createConnection('host-id', socket);
+    vi.mocked(socketManager.addConnection).mockReturnValue(connection);
+
+    await lifecycle.handleConnection(socket as unknown as WebSocket, {
+      url: '/ws',
+      session: { passport: { user: 'host-id' } },
+    } as never);
+
+    expect(db.createCampaign).toHaveBeenCalledWith(
+      'host-id',
+      expect.stringMatching(/\S/),
+      expect.stringMatching(/\S/),
+    );
+  });
+
   it('recovers a persisted room when a player joins after an instance restart', async () => {
     const { db, lifecycle, socketManager } = createHarness();
     const socket = new MockSocket();
