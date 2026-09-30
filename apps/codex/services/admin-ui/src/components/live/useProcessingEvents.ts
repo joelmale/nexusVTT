@@ -117,7 +117,7 @@ export function useProcessingEvents(documentId: string | null, options: { active
       if (cancelled) return
       if (typeof EventSource === 'undefined') return startPolling()
       const query = cursor.current ? `?after=${cursor.current}` : ''
-      source = new EventSource(codexUrl(`/api/admin/processing/${documentId}/stream${query}`))
+      source = new EventSource(`${codexUrl(`/api/admin/processing/${documentId}/stream`)}${query}`)
       setTransport('stream')
       source.addEventListener('meta', (message) => {
         const meta = JSON.parse((message as MessageEvent<string>).data) as { runId: string; runs?: ProcessingRun[] }

@@ -790,6 +790,7 @@ export function getCampaignCatalogEntryBySlug(
 // which overview renders; it no longer gates visibility. The `mode` parameter
 // is kept so existing callers and the registry keep their signatures.
 export function getVisibleCampaignCatalog(
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _mode: string = import.meta.env.MODE,
 ): CampaignCatalogEntry[] {
   return campaignCatalog;
