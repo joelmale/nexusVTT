@@ -1,6 +1,12 @@
 import '@testing-library/jest-dom/vitest';
 import { render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
+import {
+  MemoryRouter,
+  Navigate,
+  Route,
+  Routes,
+  useLocation,
+} from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
@@ -8,11 +14,17 @@ import {
   type CampaignContextValue,
 } from '@/features/campaigns/CampaignContext';
 import { CapabilityNoticeProvider } from '@/features/capability-notice';
+import { renderSection } from '@/features/section-shell/testUtils';
 import { StudioNavigationProvider } from '@/features/studio-shell/StudioNavigationProvider';
 
 import { CampaignOverviewRoute } from './CampaignOverviewRoute';
 import { CampaignRootRoute } from './CampaignRootRoute';
 import { DemoCampaignOverviewRoute } from './DemoCampaignOverviewRoute';
+import {
+  LEGACY_REDIRECTS,
+  SECTION_ROUTE_PREFIXES,
+  SECTION_ROUTES,
+} from './sectionRoutes';
 
 const campaign = {
   createdAt: '2026-09-27T12:00:00Z',
@@ -169,5 +181,103 @@ describe('campaign routes', () => {
     expect(await screen.findByLabelText('location')).toHaveTextContent(
       '/campaigns/campaign-blank/overview',
     );
+  });
+
+  it.each([
+    [
+      '/demo/ashes-of-veyra/maps/glass-harbor',
+      '/demo/ashes-of-veyra/maps/map-glass-harbor',
+    ],
+    [
+      '/campaigns/ashes-of-veyra/sessions/session-12',
+      '/demo/ashes-of-veyra/sessions/session-12/plan',
+    ],
+    [
+      '/campaigns/ashes-of-veyra/maps/glass-harbor',
+      '/demo/ashes-of-veyra/maps/map-glass-harbor',
+    ],
+    ['/campaigns/ashes-of-veyra/overview', '/demo/ashes-of-veyra/overview'],
+  ])('redirects legacy %s to %s', (from, to) => {
+    render(
+      <MemoryRouter initialEntries={[from]}>
+        <Routes>
+          {LEGACY_REDIRECTS.map((redirect) => (
+            <Route
+              key={redirect.from}
+              path={redirect.from}
+              element={<Navigate to={redirect.to} replace />}
+            />
+          ))}
+          <Route path="*" element={<LocationProbe />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByLabelText('location')).toHaveTextContent(to);
+  });
+
+  it.each([
+    [
+      '/demo/ashes-of-veyra/notes/note-1',
+      '/demo/ashes-of-veyra/lore/notes/note-1',
+    ],
+    ['/demo/ashes-of-veyra/handouts', '/demo/ashes-of-veyra/lore/handouts'],
+    [
+      '/campaigns/campaign-blank/handouts/h-1',
+      '/campaigns/campaign-blank/lore/handouts/h-1',
+    ],
+  ])('redirects %s into the Lore tab %s', (from, to) => {
+    render(
+      <MemoryRouter initialEntries={[from]}>
+        <Routes>
+          {SECTION_ROUTES.filter(
+            (route) =>
+              route.path.startsWith('notes') ||
+              route.path.startsWith('handouts'),
+          ).flatMap((route) =>
+            SECTION_ROUTE_PREFIXES.map((prefix) => (
+              <Route
+                key={`${prefix}/${route.path}`}
+                path={`${prefix}/${route.path}`}
+                element={route.element}
+              />
+            )),
+          )}
+          <Route path="*" element={<LocationProbe />} />
+        </Routes>
+      </MemoryRouter>,
+    );
+    expect(screen.getByLabelText('location')).toHaveTextContent(to);
+  });
+
+  it('renders every section under the demo and campaign prefixes', () => {
+    for (const path of [
+      '/demo/ashes-of-veyra/sessions',
+      '/demo/ashes-of-veyra/world',
+      '/demo/ashes-of-veyra/npcs',
+      '/demo/ashes-of-veyra/factions',
+      '/demo/ashes-of-veyra/quests',
+      '/demo/ashes-of-veyra/encounters',
+      '/demo/ashes-of-veyra/maps',
+      '/demo/ashes-of-veyra/lore',
+      '/demo/ashes-of-veyra/lore/handouts',
+      '/campaigns/campaign-blank/lore',
+    ]) {
+      const { unmount } = renderSection(path);
+      expect(screen.getByText('Coming soon')).toBeInTheDocument();
+      unmount();
+    }
+  });
+
+  it('renders the section empty state for a real campaign', () => {
+    renderSection('/campaigns/campaign-blank/npcs');
+    expect(screen.getByRole('heading', { name: 'NPCs' })).toBeInTheDocument();
+    expect(screen.getByText('Coming soon')).toBeInTheDocument();
+  });
+
+  it('shows "Example campaign unavailable" for an unknown section slug', () => {
+    renderSection('/demo/not-a-fixture/npcs');
+    expect(
+      screen.getByRole('heading', { name: 'Example campaign unavailable' }),
+    ).toBeInTheDocument();
   });
 });

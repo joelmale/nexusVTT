@@ -51,35 +51,13 @@ export function StudioCampaignRail({ onCapability }: StudioCampaignRailProps) {
       ? `/campaigns/${encodeURIComponent(activeCampaign.id)}`
       : undefined;
 
-  const activeRoute = location.pathname.includes('/sessions/')
-    ? 'sessions'
-    : location.pathname.includes('/maps/')
-      ? 'maps'
-      : 'overview';
+  const activeRoute = campaignBase
+    ? (location.pathname.slice(campaignBase.length).split('/')[1] ?? 'overview')
+    : 'overview';
 
   function selectRoute(route: (typeof NAVIGATION_ITEMS)[number]['route']) {
     if (!campaignBase) return;
-    if (route === 'overview') {
-      navigate(`${campaignBase}/overview`);
-      return;
-    }
-    if (isDemoCampaign && route === 'sessions' && activeExample) {
-      navigate(
-        activeExample.slug === 'ashes-of-veyra'
-          ? `${campaignBase}/sessions/session-12`
-          : `${campaignBase}/overview#sessions`,
-      );
-      return;
-    }
-    if (
-      isDemoCampaign &&
-      activeExample?.slug === 'ashes-of-veyra' &&
-      route === 'maps'
-    ) {
-      navigate(`${campaignBase}/maps/glass-harbor`);
-      return;
-    }
-    onCapability('campaign.section.open');
+    navigate(`${campaignBase}/${route}`);
   }
 
   return (

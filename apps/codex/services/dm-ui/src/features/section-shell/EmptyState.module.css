@@ -1,0 +1,24 @@
+.empty {
+  align-items: flex-start;
+  background: var(--studio-surface);
+  border: 1px dashed var(--studio-border-strong);
+  border-radius: var(--studio-radius-panel);
+  color: var(--studio-text);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin: var(--studio-gap) 0;
+  max-width: var(--studio-detail-max);
+  padding: 24px;
+}
+
+.empty h2 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.empty p {
+  color: var(--studio-text-muted);
+  font-size: 14px;
+  margin: 0;
+}

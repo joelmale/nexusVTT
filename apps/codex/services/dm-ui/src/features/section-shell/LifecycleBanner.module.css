@@ -1,0 +1,16 @@
+.banner {
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  font-size: 13px;
+  font-weight: 600;
+  margin: 0;
+  padding: 8px 12px;
+}
+
+.info {
+  background: var(--studio-info-soft);
+}
+
+.draft {
+  background: var(--studio-neutral-soft);
+}

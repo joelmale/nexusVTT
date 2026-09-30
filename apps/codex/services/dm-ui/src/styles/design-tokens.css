@@ -45,6 +45,10 @@
   --studio-radius-panel: 6px;
   --studio-gap: 16px;
   --studio-page-gutter: 28px;
+  --studio-row-height: 52px;
+  --studio-detail-max: 760px;
+  /* Documentation only: media queries cannot read variables; use 1020px literally. */
+  --studio-section-breakpoint: 1020px;
   --studio-z-base: 0;
   --studio-z-toolbar: 10;
   --studio-z-popover: 30;

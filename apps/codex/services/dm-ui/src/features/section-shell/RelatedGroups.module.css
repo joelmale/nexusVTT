@@ -1,0 +1,29 @@
+.related {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: var(--studio-gap);
+}
+
+.heading {
+  font-size: 13px;
+  margin: 0;
+}
+
+.group h3 {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 0 0 6px;
+  text-transform: uppercase;
+}
+
+.group ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}

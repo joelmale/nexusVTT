@@ -1,0 +1,58 @@
+.bar {
+  align-items: flex-end;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  gap: 4px;
+}
+
+.field label {
+  color: var(--studio-text-muted);
+  font-weight: 600;
+}
+
+.field input,
+.field select {
+  background: var(--studio-surface-raised);
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  font: inherit;
+  font-size: 14px;
+  height: var(--studio-control-height);
+  padding: 0 10px;
+}
+
+.search {
+  min-width: 220px;
+}
+
+.field input:focus-visible,
+.field select:focus-visible {
+  outline: 2px solid var(--studio-focus);
+  outline-offset: 1px;
+}
+
+.count {
+  color: var(--studio-text-muted);
+  font-size: 13px;
+  margin-left: auto;
+  padding-bottom: 10px;
+}
+
+.srOnly {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+}

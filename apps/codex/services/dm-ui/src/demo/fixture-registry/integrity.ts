@@ -11,7 +11,7 @@ export interface BundleIntegrityIssue {
  * catalog-only and server-empty bundles as "no value") are ignored.
  */
 export function inspectBundleIntegrity(
-  bundle: CampaignCollections,
+  bundle: Omit<CampaignCollections, 'notes'>,
 ): BundleIntegrityIssue[] {
   const {
     campaign,

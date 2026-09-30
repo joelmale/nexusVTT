@@ -12,12 +12,14 @@ import type {
   CampaignCollections,
   CampaignFixture,
   CampaignFixtureBundle,
+  CampaignHandout,
+  CampaignNote,
   LibraryObject,
   SceneTemplateRef,
 } from './types';
 
 /** What each fixture module exports; scene templates are optional. */
-type FixtureModule = Omit<CampaignCollections, 'sceneTemplates'> & {
+type FixtureModule = Omit<CampaignCollections, 'sceneTemplates' | 'notes'> & {
   sceneTemplates?: SceneTemplateRef[];
 };
 
@@ -40,6 +42,41 @@ function deriveSceneTemplates(
     .map((item) => ({ id: item.id, title: item.title }));
 }
 
+/** Read-only notes for examples: fixture lore, campaign-wide. */
+function deriveNotes(fixture: FixtureModule): CampaignNote[] {
+  return fixture.handouts
+    .filter((item) => item.kind === 'lore')
+    .map((item, index) => ({
+      id: item.id,
+      campaignId: item.campaignId,
+      title: item.title,
+      body: item.content.length > 0 ? item.content.join('\n\n') : item.summary,
+      anchor: { type: 'campaign' },
+      color: 'yellow',
+      size: 'small',
+      order: index,
+    }));
+}
+
+/**
+ * Read-only handout organization for examples: folder and order come from the
+ * fixture folder that lists the handout; shared handouts go to all players.
+ */
+function deriveHandouts(fixture: FixtureModule): CampaignHandout[] {
+  return fixture.handouts.map((item, index) => {
+    const folder = fixture.folders.find((entry) =>
+      entry.objectIds.includes(item.id),
+    );
+    return {
+      ...item,
+      ...(folder ? { folderId: folder.id } : {}),
+      order: folder ? folder.objectIds.indexOf(item.id) : index,
+      audience: item.visibility === 'shared' ? 'all' : 'hidden',
+      body: item.content.join('\n\n'),
+    };
+  });
+}
+
 function bundleFromFixture(
   entry: CampaignCatalogEntry,
   fixture: FixtureModule,
@@ -48,6 +85,8 @@ function bundleFromFixture(
     ...fixture,
     sceneTemplates:
       fixture.sceneTemplates ?? deriveSceneTemplates(fixture.libraryObjects),
+    handouts: deriveHandouts(fixture),
+    notes: deriveNotes(fixture),
     slug: entry.slug,
     campaignId: fixture.campaign.id,
     lifecycle: entry.lifecycle,
@@ -74,6 +113,7 @@ function emptyCollections(): Omit<CampaignCollections, 'campaign'> {
     libraryObjects: [],
     folders: [],
     sceneTemplates: [],
+    notes: [],
   };
 }
 

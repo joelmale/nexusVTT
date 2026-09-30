@@ -12,10 +12,7 @@ import {
 function PlannedTrigger() {
   const { notifyCapability } = useCapabilityNotice();
   return (
-    <button
-      onClick={() => notifyCapability('campaign.search')}
-      type="button"
-    >
+    <button onClick={() => notifyCapability('campaign.search')} type="button">
       Search
     </button>
   );

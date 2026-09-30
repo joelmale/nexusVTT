@@ -219,11 +219,11 @@ export function CampaignOverview() {
   const selectNavigation = (label: string) => {
     setActiveNav(label);
     if (label === 'Sessions') {
-      navigate('/demo/ashes-of-veyra/sessions/session-12');
+      navigate('/demo/ashes-of-veyra/sessions/session-12/plan');
       return;
     }
     if (label === 'Maps') {
-      navigate('/demo/ashes-of-veyra/maps/glass-harbor');
+      navigate('/demo/ashes-of-veyra/maps/map-glass-harbor');
       return;
     }
     if (label !== 'Overview') notifyCapability('campaign.section.open');
@@ -323,7 +323,7 @@ export function CampaignOverview() {
                   className={styles.primaryButton}
                   type="button"
                   onClick={() =>
-                    navigate('/demo/ashes-of-veyra/sessions/session-12')
+                    navigate('/demo/ashes-of-veyra/sessions/session-12/plan')
                   }
                 >
                   <CalendarDays size={18} />

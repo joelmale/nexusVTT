@@ -1,0 +1,34 @@
+.badge {
+  border-radius: var(--studio-radius-control);
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 7px;
+  white-space: nowrap;
+}
+
+.positive {
+  background: var(--studio-positive-soft);
+  color: var(--studio-positive-strong);
+}
+
+.warning {
+  background: var(--studio-warning-soft);
+  color: var(--studio-warning);
+}
+
+.danger {
+  background: var(--studio-danger-soft);
+  color: var(--studio-danger);
+}
+
+.neutral {
+  background: var(--studio-neutral-soft);
+  color: var(--studio-text-muted);
+}
+
+.info {
+  background: var(--studio-info-soft);
+  color: var(--studio-info);
+}

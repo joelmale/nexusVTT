@@ -4,6 +4,7 @@ export const CAPABILITY_IDS = [
   'campaign.object.history',
   'campaign.object.actions',
   'campaign.section.open',
+  'campaign.example.seed',
   'campaign.settings.open',
   'campaign.theme.change',
   'session-plan.publish',
@@ -20,10 +21,7 @@ export const CAPABILITY_IDS = [
 
 export type CapabilityId = (typeof CAPABILITY_IDS)[number];
 export type PrototypeCapabilityStatus =
-  | 'local-demo'
-  | 'planned'
-  | 'disabled'
-  | 'implemented';
+  'local-demo' | 'planned' | 'disabled' | 'implemented';
 
 export interface PrototypeCapability {
   id: CapabilityId;
@@ -69,6 +67,14 @@ export const CAPABILITY_REGISTRY: Record<CapabilityId, PrototypeCapability> = {
     targetPhase: 'Campaign object directories',
     description:
       'Open a complete filtered directory for this campaign section.',
+  },
+  'campaign.example.seed': {
+    id: 'campaign.example.seed',
+    label: 'Start from this example',
+    status: 'planned',
+    targetPhase: 'Campaign prep API',
+    description:
+      'Create a new editable campaign seeded from this example. Not available in this build yet.',
   },
   'campaign.settings.open': {
     id: 'campaign.settings.open',

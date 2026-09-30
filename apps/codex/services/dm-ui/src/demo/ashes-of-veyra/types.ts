@@ -240,7 +240,16 @@ export interface CampaignHandout {
   questIds: FixtureId[];
   locationIds: FixtureId[];
   factionIds: FixtureId[];
+  /** Handout organization; set for server handouts and derived for fixtures. */
+  folderId?: FixtureId;
+  order?: number;
+  audience?: HandoutAudience;
+  /** Formattable (markdown) body; `content` is its paragraph split. */
+  body?: string;
 }
+
+/** Share state of a handout: hidden, all players, or chosen character ids. */
+export type HandoutAudience = 'hidden' | 'all' | FixtureId[];
 
 export interface CampaignLocation {
   id: FixtureId;
@@ -309,6 +318,9 @@ export interface FolderRecord {
   actId: FixtureId;
   objectIds: FixtureId[];
   children: FolderChild[];
+  /** Set on server handout folders (single level); act folders leave it unset. */
+  kind?: 'handout-folder';
+  order?: number;
 }
 
 export interface FolderChild {

@@ -1,0 +1,37 @@
+.wrap {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.button {
+  background: var(--studio-positive);
+  border: 1px solid var(--studio-positive-strong);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-positive-contrast);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  min-height: var(--studio-control-height);
+  padding: 0 14px;
+}
+
+.button:hover:not(:disabled) {
+  background: var(--studio-positive-strong);
+}
+
+.button:focus-visible {
+  outline: 2px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.button:disabled {
+  cursor: progress;
+  opacity: 0.7;
+}
+
+.error {
+  color: var(--studio-danger);
+  font-size: 13px;
+}

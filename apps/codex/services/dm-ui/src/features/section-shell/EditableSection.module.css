@@ -1,0 +1,136 @@
+.editable {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-panel);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+}
+
+.header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.header h2 {
+  font-size: 18px;
+  margin: 0;
+}
+
+.actions {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+  margin-left: auto;
+}
+
+.editable button,
+.addRow button,
+.banner button {
+  background: var(--studio-surface-raised);
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  min-height: var(--studio-control-height);
+  padding: 0 12px;
+}
+
+.editable button:hover:not(:disabled),
+.addRow button:hover:not(:disabled),
+.banner button:hover:not(:disabled) {
+  background: var(--studio-surface-hover);
+}
+
+.editable button:focus-visible,
+.addRow button:focus-visible,
+.banner button:focus-visible,
+.form input:focus-visible,
+.form textarea:focus-visible,
+.form select:focus-visible,
+.addForm input:focus-visible {
+  outline: 2px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.banner {
+  align-items: center;
+  background: var(--studio-info-soft);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  display: flex;
+  font-size: 14px;
+  gap: 12px;
+  padding: 8px 12px;
+}
+
+.banner.saved {
+  background: var(--studio-positive-soft);
+}
+
+.banner.conflict {
+  background: var(--studio-warning-soft);
+}
+
+.banner.error {
+  background: var(--studio-danger-soft);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.form label {
+  color: var(--studio-text-muted);
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 4px;
+}
+
+.form input,
+.form textarea,
+.form select,
+.addForm input {
+  background: var(--studio-surface-raised);
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  font: inherit;
+  font-size: 14px;
+  min-height: var(--studio-control-height);
+  padding: 6px 10px;
+}
+
+.addRow {
+  border-top: 1px solid var(--studio-border);
+  margin-top: 8px;
+  padding: 8px 4px 0;
+}
+
+.addForm {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.addForm label {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.addError {
+  color: var(--studio-danger);
+  font-size: 13px;
+  margin: 0;
+}

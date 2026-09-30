@@ -1,0 +1,30 @@
+.summary {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-panel);
+  max-width: var(--studio-detail-max);
+  padding: 20px;
+}
+
+.summary h2 {
+  font-size: 18px;
+  margin: 0 0 12px;
+}
+
+.stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px 24px;
+  margin: 0;
+}
+
+.stats dt {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+}
+
+.stats dd {
+  font-size: 20px;
+  font-weight: 700;
+  margin: 0;
+}

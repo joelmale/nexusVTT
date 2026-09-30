@@ -1,0 +1,34 @@
+.chip {
+  align-items: center;
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  display: inline-flex;
+  font-size: 13px;
+  gap: 6px;
+  max-width: 100%;
+  padding: 4px 8px;
+  text-decoration: none;
+}
+
+.chip span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.link:hover {
+  background: var(--studio-surface-hover);
+}
+
+.link:focus-visible {
+  outline: 2px solid var(--studio-focus);
+  outline-offset: 2px;
+}
+
+.missing {
+  background: transparent;
+  border-style: dashed;
+  color: var(--studio-text-subtle);
+}

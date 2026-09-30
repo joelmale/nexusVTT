@@ -81,4 +81,97 @@ describe('StudioFrame navigation', () => {
       screen.getByRole('complementary', { name: 'Campaign navigation' }),
     ).toBeInTheDocument();
   });
+
+  it.each([
+    ['Overview', 'overview'],
+    ['Sessions', 'sessions'],
+    ['World', 'world'],
+    ['NPCs', 'npcs'],
+    ['Factions', 'factions'],
+    ['Quests', 'quests'],
+    ['Encounters', 'encounters'],
+    ['Maps', 'maps'],
+    ['Lore', 'lore'],
+  ])(
+    'navigates %s to its section page and marks it current',
+    async (label, route) => {
+      const onCapability = vi.fn();
+      const user = userEvent.setup();
+      render(
+        <MemoryRouter initialEntries={['/demo/ashes-of-veyra/overview']}>
+          <CampaignContext.Provider value={campaignContext}>
+            <StudioNavigationProvider>
+              <StudioFrame onCapability={onCapability}>
+                <LocationProbe />
+              </StudioFrame>
+            </StudioNavigationProvider>
+          </CampaignContext.Provider>
+        </MemoryRouter>,
+      );
+
+      await user.click(screen.getByRole('button', { name: label }));
+      expect(screen.getByLabelText('Current route')).toHaveTextContent(
+        `/demo/ashes-of-veyra/${route}`,
+      );
+      expect(
+        screen.getByRole('button', { name: label, current: 'page' }),
+      ).toBeInTheDocument();
+      expect(onCapability).not.toHaveBeenCalled();
+    },
+  );
+
+  it('keeps the section active on a nested item route', () => {
+    render(
+      <MemoryRouter
+        initialEntries={['/demo/ashes-of-veyra/npcs/npc-captain-serin']}
+      >
+        <CampaignContext.Provider value={campaignContext}>
+          <StudioNavigationProvider>
+            <StudioFrame onCapability={vi.fn()}>
+              <p>npc</p>
+            </StudioFrame>
+          </StudioNavigationProvider>
+        </CampaignContext.Provider>
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByRole('button', { name: 'NPCs', current: 'page' }),
+    ).toBeInTheDocument();
+  });
+
+  it('navigates real campaigns to /campaigns/:id/<section>', async () => {
+    const user = userEvent.setup();
+    const campaign = {
+      createdAt: '2026-09-27T12:00:00Z',
+      id: 'campaign-blank',
+      name: 'Blank Slate',
+      updatedAt: '2026-09-27T12:00:00Z',
+    };
+    render(
+      <MemoryRouter initialEntries={['/campaigns/campaign-blank/overview']}>
+        <CampaignContext.Provider
+          value={{
+            ...campaignContext,
+            activeCampaign: campaign,
+            activeCampaignId: campaign.id,
+            campaigns: [campaign],
+            isDemoCampaign: false,
+          }}
+        >
+          <StudioNavigationProvider>
+            <StudioFrame onCapability={vi.fn()}>
+              <LocationProbe />
+            </StudioFrame>
+          </StudioNavigationProvider>
+        </CampaignContext.Provider>
+      </MemoryRouter>,
+    );
+    await user.click(screen.getByRole('button', { name: 'NPCs' }));
+    expect(screen.getByLabelText('Current route')).toHaveTextContent(
+      '/campaigns/campaign-blank/npcs',
+    );
+    expect(
+      screen.getByRole('button', { name: 'NPCs', current: 'page' }),
+    ).toBeInTheDocument();
+  });
 });

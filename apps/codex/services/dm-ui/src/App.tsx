@@ -19,8 +19,11 @@ import { CampaignOverviewRoute } from './routes/CampaignOverviewRoute';
 import { CampaignLandingRoute } from './routes/CampaignLandingRoute';
 import { CampaignRootRoute } from './routes/CampaignRootRoute';
 import { DemoCampaignOverviewRoute } from './routes/DemoCampaignOverviewRoute';
-import { MapPreparationRoute } from './routes/MapPreparationRoute';
-import { SessionPlanRoute } from './routes/SessionPlanRoute';
+import {
+  LEGACY_REDIRECTS,
+  SECTION_ROUTES,
+  SECTION_ROUTE_PREFIXES,
+} from './routes/sectionRoutes';
 
 const basename = import.meta.env.BASE_URL || '/codex-dm/';
 
@@ -41,38 +44,22 @@ function App() {
                 path="demo/:fixtureSlug/overview"
                 element={<DemoCampaignOverviewRoute />}
               />
-              <Route
-                path="demo/ashes-of-veyra/sessions/session-12"
-                element={<SessionPlanRoute />}
-              />
-              <Route
-                path="demo/ashes-of-veyra/maps/glass-harbor"
-                element={<MapPreparationRoute />}
-              />
-              <Route
-                path="campaigns/ashes-of-veyra/overview"
-                element={
-                  <Navigate to="/demo/ashes-of-veyra/overview" replace />
-                }
-              />
-              <Route
-                path="campaigns/ashes-of-veyra/sessions/session-12"
-                element={
-                  <Navigate
-                    to="/demo/ashes-of-veyra/sessions/session-12"
-                    replace
+              {SECTION_ROUTE_PREFIXES.flatMap((prefix) =>
+                SECTION_ROUTES.map((route) => (
+                  <Route
+                    key={`${prefix}/${route.path}`}
+                    path={`${prefix}/${route.path}`}
+                    element={route.element}
                   />
-                }
-              />
-              <Route
-                path="campaigns/ashes-of-veyra/maps/glass-harbor"
-                element={
-                  <Navigate
-                    to="/demo/ashes-of-veyra/maps/glass-harbor"
-                    replace
-                  />
-                }
-              />
+                )),
+              )}
+              {LEGACY_REDIRECTS.map((redirect) => (
+                <Route
+                  key={redirect.from}
+                  path={redirect.from}
+                  element={<Navigate to={redirect.to} replace />}
+                />
+              ))}
 
               <Route path="legacy" element={<AppLayout />}>
                 <Route index element={<HomePage />} />
