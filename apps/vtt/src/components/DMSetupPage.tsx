@@ -38,7 +38,14 @@ export const DMSetupPage: React.FC = () => {
     setError('');
 
     try {
-      const roomCode = await createGameRoom(gameConfig);
+      // The title/description also name the auto-created quick-start campaign.
+      const roomCode = await createGameRoom({
+        ...gameConfig,
+        campaignDraft: {
+          name: gameConfig.name.trim(),
+          description: gameConfig.description.trim() || undefined,
+        },
+      });
       navigate(`/lobby/game/${roomCode}`);
     } catch (err) {
       setError('Failed to create game room');
@@ -122,21 +129,6 @@ export const DMSetupPage: React.FC = () => {
                 </div>
 
                 <div className="input-group">
-                  <label htmlFor="estimatedTime">Estimated Duration</label>
-                  <input
-                    id="estimatedTime"
-                    type="text"
-                    value={gameConfig.estimatedTime}
-                    onChange={(e) =>
-                      handleConfigChange({ estimatedTime: e.target.value })
-                    }
-                    placeholder="3-4 hours"
-                    className="glass-input"
-                    disabled={loading}
-                  />
-                </div>
-
-                <div className="input-group">
                   <label htmlFor="maxPlayers">Max Players</label>
                   <input
                     id="maxPlayers"
@@ -154,23 +146,6 @@ export const DMSetupPage: React.FC = () => {
                   />
                 </div>
 
-                <div className="input-group">
-                  <label htmlFor="campaignType">Game Type</label>
-                  <select
-                    id="campaignType"
-                    value={gameConfig.campaignType}
-                    onChange={(e) =>
-                      handleConfigChange({
-                        campaignType: e.target.value as 'campaign' | 'oneshot',
-                      })
-                    }
-                    className="glass-select"
-                    disabled={loading}
-                  >
-                    <option value="oneshot">One-Shot</option>
-                    <option value="campaign">Campaign</option>
-                  </select>
-                </div>
               </div>
 
               <div className="input-group">
@@ -202,22 +177,6 @@ export const DMSetupPage: React.FC = () => {
                   </p>
                 )}
                 <div className="summary-details">
-                  <div className="detail-item">
-                    <span className="detail-label">Type:</span>
-                    <span className="detail-value">
-                      {gameConfig.campaignType === 'campaign'
-                        ? '📚 Campaign'
-                        : '⚡ One-Shot'}
-                    </span>
-                  </div>
-                  {gameConfig.estimatedTime && (
-                    <div className="detail-item">
-                      <span className="detail-label">Duration:</span>
-                      <span className="detail-value">
-                        ⏱️ {gameConfig.estimatedTime}
-                      </span>
-                    </div>
-                  )}
                   <div className="detail-item">
                     <span className="detail-label">Players:</span>
                     <span className="detail-value">

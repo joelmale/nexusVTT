@@ -31,6 +31,8 @@ export interface Room {
   status: 'active' | 'hibernating' | 'abandoned';
   dmConnected: boolean;
   hibernationTimer?: NodeJS.Timeout;
+  /** Pending discard of a guest-hosted session after the host leaves. */
+  guestDiscardTimer?: NodeJS.Timeout;
   gameState?: GameState;
   previousGameState?: GameState; // For delta generation
   stateVersion: number; // State version counter for patches
