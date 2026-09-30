@@ -707,3 +707,30 @@ optimistic revision tracking; `seedFromFixture(slug) => campaignId`).
   of the sessions they belong to when a session link exists, otherwise as
   campaign-wide notes.
 - Example campaigns show their lore/handouts as read-only notes.
+
+### 5.4 Addendum: Lore holds both Notes and Handouts (supersedes §5.3's rename)
+
+- The rail item is **Lore** again (route `lore`; keep `notes`/`handouts` as
+  redirects into the matching tab). One page per campaign, **two tabs: Notes
+  and Handouts** (tab in the URL: `lore/notes/:id`, `lore/handouts/:id`).
+  Placeholder file is `LoreSectionRoute.tsx`.
+- **Notes tab:** unchanged from §5.3 minus sharing: DM-only free-hand notes,
+  formattable multi-line body, anchored to a session, scene or the campaign,
+  grouped/filterable by anchor. Server kind `note`. No audience on notes.
+- **Handouts tab:** create, organize and manage player-facing handouts:
+  title, formattable multi-line body, **folder** (single level, from a
+  campaign folder list; reuse fixture `FolderRecord`s), manual order within
+  a folder, and a **share state**: `hidden` (default) | `all players` |
+  `selected player characters`. List grouped by folder; edit in place; single
+  "Add" row at the bottom; folders are created/renamed inline from the
+  folder header row (no separate page). Fixture handouts show read-only.
+- Server mapping: handouts use kind `lore` with `subtype: 'handout'`, folder,
+  order and audience stored under `content.value.nexusStudio.fields`;
+  visibility `players` when shared, otherwise `dm-only`. Folders are stored
+  as a `lore` object with `subtype: 'handout-folder'` (title, order).
+- `EditableKind` becomes
+  `'npc' | 'faction' | 'quest' | 'location' | 'note' | 'handout' | 'handout-folder'`.
+- Bundle: `notes: CampaignNote[]` (no audience), plus handouts in the existing
+  `handouts` collection with `folderId`, `order`, `audience`. Clues/library
+  remain out of the first cut (fixture clues are seeded into note bodies as
+  in §5.3).
