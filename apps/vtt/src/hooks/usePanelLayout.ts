@@ -78,14 +78,9 @@ export const PANEL_DEFAULT_DIMENSIONS: Record<
     // 720px-tall viewport, or useDraggablePanel's vertical clamp snaps the
     // panel to the very top of the screen, burying the PanelDock underneath
     // it -- see the "a guest host rolls 3D dice..." E2E smoke regression.
-    original: { width: 380, height: 600 },
-    compact: { width: 340, height: 560 },
-    widescreen: { width: 640, height: 660 },
-  },
-  'dice-hud': {
-    original: { width: 600, height: 600 },
-    compact: { width: 600, height: 600 },
-    widescreen: { width: 600, height: 600 },
+    original: { width: 640, height: 600 },
+    compact: { width: 640, height: 600 },
+    widescreen: { width: 640, height: 600 },
   },
   chat: {
     original: { width: 420, height: 680 },

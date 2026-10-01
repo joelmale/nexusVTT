@@ -57,7 +57,7 @@ function chatMessage(page: Page, content: string) {
 }
 
 function diceRoll(page: Page, expression: string) {
-  return page.locator('.dice-roller__roll').filter({ hasText: expression });
+  return page.getByTestId('dice-log-entry').filter({ hasText: expression });
 }
 
 function activeScene(page: Page) {
@@ -271,9 +271,9 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     await openPanel(hostPage, 'Dice');
     await openPanel(playerPage, 'Dice');
     await hostPage
-      .getByPlaceholder('Click dice below to build your roll...')
+      .getByPlaceholder('2d8 + 1d6 + 3')
       .fill(diceExpression);
-    await hostPage.getByRole('button', { name: 'Roll', exact: true }).click();
+    await hostPage.getByRole('button', { name: 'Roll Pool' }).click();
     await expect(diceRoll(hostPage, diceExpression)).toHaveCount(1);
     await expect(diceRoll(playerPage, diceExpression)).toHaveCount(1);
 
@@ -396,9 +396,9 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     await expect(chatMessage(hostPage, replayChatText)).toHaveCount(1);
     await openPanel(hostPage, 'Dice');
     await hostPage
-      .getByPlaceholder('Click dice below to build your roll...')
+      .getByPlaceholder('2d8 + 1d6 + 3')
       .fill(replayDiceExpression);
-    await hostPage.getByRole('button', { name: 'Roll', exact: true }).click();
+    await hostPage.getByRole('button', { name: 'Roll Pool' }).click();
     await expect(diceRoll(hostPage, replayDiceExpression)).toHaveCount(1);
     await closePanel(hostPage, 'Dice');
 
@@ -519,9 +519,9 @@ test('two participants converge through gameplay, reconnects, restart, and a sta
     await openPanel(hostPage, 'Dice');
     await openPanel(playerPage, 'Dice');
     await hostPage
-      .getByPlaceholder('Click dice below to build your roll...')
+      .getByPlaceholder('2d8 + 1d6 + 3')
       .fill(recoveryDiceExpression);
-    await hostPage.getByRole('button', { name: 'Roll', exact: true }).click();
+    await hostPage.getByRole('button', { name: 'Roll Pool' }).click();
     await expect(diceRoll(hostPage, recoveryDiceExpression)).toHaveCount(1);
     await expect(diceRoll(playerPage, recoveryDiceExpression)).toHaveCount(1);
     await closePanel(hostPage, 'Dice');

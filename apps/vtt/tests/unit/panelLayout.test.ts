@@ -84,8 +84,8 @@ describe('panel layout', () => {
       expect(settingsSize.height).toBe(650);
 
       const diceCompact = getPanelDefaultSize('dice', 'compact');
-      expect(diceCompact.width).toBe(340);
-      expect(diceCompact.height).toBe(560);
+      expect(diceCompact.width).toBe(640);
+      expect(diceCompact.height).toBe(600);
 
       const chatWidescreen = getPanelDefaultSize('chat', 'widescreen');
       expect(chatWidescreen.width).toBe(540);

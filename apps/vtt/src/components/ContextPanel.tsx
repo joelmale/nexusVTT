@@ -1,6 +1,5 @@
 import React, { useRef, useEffect } from 'react';
 import { DiceRoller } from './DiceRoller';
-import { ContextualDiceHUD } from './DiceHUD/ContextualDiceHUD';
 import { InitiativeTracker } from './InitiativeTracker';
 import { LobbyPanel } from './LobbyPanel';
 import { ScenePanel } from './Scene/ScenePanel';
@@ -22,7 +21,6 @@ interface ContextPanelProps {
     | 'generator'
     | 'initiative'
     | 'dice'
-    | 'dice-hud'
     | 'lobby'
     | 'settings'
     | 'chat'
@@ -37,7 +35,6 @@ interface ContextPanelProps {
       | 'generator'
       | 'initiative'
       | 'dice'
-      | 'dice-hud'
       | 'lobby'
       | 'settings'
       | 'chat'
@@ -78,7 +75,6 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
     { id: 'characters' as const, icon: '👥', label: 'Characters' },
     { id: 'initiative' as const, icon: '⏱', label: 'Initiative' },
     { id: 'dice' as const, icon: '🎲', label: 'Dice' },
-    { id: 'dice-hud' as const, icon: '🎯', label: 'Dice HUD' },
     { id: 'documents' as const, icon: '📚', label: 'Documents' },
     { id: 'sounds' as const, icon: '🔊', label: 'Sounds' },
     { id: 'chat' as const, icon: '💬', label: 'Chat' },
@@ -101,8 +97,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       characters: 380, // Character panel with cards
       generator: 500, // Wide panel for dungeon generator
       initiative: 450, // Increased for complex combat interface
-      dice: 300, // Optimized for dice controls
-      'dice-hud': 600, // Modern tactical dice HUD
+      dice: 640, // Dice Roller HUD minimum width
       documents: 380, // Document library and search
       sounds: 320,
       chat: 800,
@@ -146,7 +141,6 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
               )}
               {activePanel === 'initiative' && <InitiativeTracker />}
               {activePanel === 'dice' && <DiceRoller />}
-              {activePanel === 'dice-hud' && <ContextualDiceHUD />}
               {activePanel === 'documents' && <DocumentsPanel />}
               {activePanel === 'sounds' && (
                 <Placeholder title="Sound Effects" />

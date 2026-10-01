@@ -12,7 +12,6 @@ export type PanelId =
   | 'generator'
   | 'initiative'
   | 'dice'
-  | 'dice-hud'
   | 'lobby'
   | 'settings'
   | 'chat'
@@ -120,6 +119,10 @@ export function stackZIndex(stack: PanelId[], id: PanelId): number {
 }
 
 // Helper to load stack from localStorage
+/** The retired 'dice-hud' panel was merged into the unified 'dice' panel. */
+export const migratePanelId = (id: string): string =>
+  id === 'dice-hud' ? 'dice' : id;
+
 const loadStack = (): PanelId[] => {
   try {
     const saved = localStorage.getItem(STACK_KEY) ?? localStorage.getItem(LEGACY_STACK_KEY);
@@ -127,7 +130,11 @@ const loadStack = (): PanelId[] => {
       const parsed = JSON.parse(saved);
       if (Array.isArray(parsed) && parsed.length > 0) {
         const unique = Array.from(
-          new Set(parsed.filter((item): item is string => typeof item === 'string')),
+          new Set(
+            parsed
+              .filter((item): item is string => typeof item === 'string')
+              .map(migratePanelId),
+          ),
         );
         if (unique.length > 0) return unique;
       }
@@ -143,7 +150,15 @@ const loadActivePanels = (): PanelId[] => {
     const saved = localStorage.getItem(ACTIVE_PANELS_KEY);
     if (saved) {
       const parsed = JSON.parse(saved);
-      if (Array.isArray(parsed)) return parsed;
+      if (Array.isArray(parsed)) {
+        return Array.from(
+          new Set(
+            parsed
+              .filter((item): item is string => typeof item === 'string')
+              .map(migratePanelId),
+          ),
+        );
+      }
     }
   } catch {
     // Ignore parse errors
@@ -168,7 +183,16 @@ const loadDockedPanels = (): Record<string, DockZone> => {
     if (saved) {
       const parsed = JSON.parse(saved);
       if (parsed && typeof parsed === 'object' && !Array.isArray(parsed)) {
-        return parsed as Record<string, DockZone>;
+        const migrated: Record<string, DockZone> = {};
+        for (const [key, zone] of Object.entries(
+          parsed as Record<string, DockZone>,
+        )) {
+          const id = migratePanelId(key);
+          // An explicit 'dice' entry wins over a migrated 'dice-hud' one.
+          if (id !== key && id in migrated) continue;
+          migrated[id] = zone;
+        }
+        return migrated;
       }
     }
   } catch {

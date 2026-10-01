@@ -69,10 +69,10 @@ test('a guest host rolls 3D dice and reconnects after backend downtime', async (
   ).toBe('bronze');
 
   await page
-    .getByPlaceholder('Click dice below to build your roll...')
+    .getByPlaceholder('2d8 + 1d6 + 3')
     .fill('1d20+2');
-  await page.getByRole('button', { name: 'Roll', exact: true }).click();
-  await expect(page.locator('.dice-roller__roll--new')).toContainText('1d20+2');
+  await page.getByRole('button', { name: 'Roll Pool' }).click();
+  await expect(page.getByTestId('dice-log-entry').first()).toContainText('1d20+2');
   expect(diceAssetFailures).toEqual([]);
 
   await page.reload();
@@ -120,10 +120,10 @@ test('a guest host rolls 3D dice and reconnects after backend downtime', async (
 
   await openPanel(page, 'Dice');
   await page
-    .getByPlaceholder('Click dice below to build your roll...')
+    .getByPlaceholder('2d8 + 1d6 + 3')
     .fill('1d6');
-  await page.getByRole('button', { name: 'Roll', exact: true }).click();
-  await expect(page.locator('.dice-roller__roll--new')).toContainText('1d6');
+  await page.getByRole('button', { name: 'Roll Pool' }).click();
+  await expect(page.getByTestId('dice-log-entry').first()).toContainText('1d6');
   expect(diagnostics.pageErrors).toEqual([]);
 });
 

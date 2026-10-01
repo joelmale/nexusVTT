@@ -233,4 +233,26 @@ describe('uiStackStore', () => {
       expect(fresh.useUIStackStore.getState().poppedOutPanels).toEqual([]);
     });
   });
+  describe('retired dice-hud panel migration', () => {
+    it('maps dice-hud to dice (deduped) in stack, active panels and dock zones', async () => {
+      localStorage.setItem(
+        'nexus-ui-stack',
+        JSON.stringify(['chat', 'dice-hud', 'dice']),
+      );
+      localStorage.setItem(
+        'nexus-active-panels',
+        JSON.stringify(['dice-hud', 'chat']),
+      );
+      localStorage.setItem(
+        'nexus-ui-docked-panels',
+        JSON.stringify({ 'dice-hud': 'left', chat: 'right' }),
+      );
+      vi.resetModules();
+      const fresh = await import('./uiStackStore');
+      const state = fresh.useUIStackStore.getState();
+      expect(state.panelStack).toEqual(['chat', 'dice']);
+      expect(state.activePanels).toEqual(['dice', 'chat']);
+      expect(state.dockedPanels).toEqual({ dice: 'left', chat: 'right' });
+    });
+  });
 });

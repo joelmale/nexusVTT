@@ -36,30 +36,6 @@
 }
 
 /* -----------------------------------------------------------------------------
-   DICE — the die tray is a wrapped row of small buttons and the roll history a
-   stacked list below it. Side by side, the history stops being pushed off the
-   bottom of the panel.
-   -------------------------------------------------------------------------- */
-@container panel (min-width: 620px) {
-  :root[data-panel-layout='widescreen'] .dice-roller {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    align-items: start;
-    gap: var(--panel-gap-lg);
-  }
-
-  /* The builder spans both columns: its expression input wants full width. */
-  :root[data-panel-layout='widescreen'] .dice-roller__dice-builder {
-    grid-column: 1 / -1;
-  }
-
-  /* No longer competing for vertical space, so it can show far more rolls. */
-  :root[data-panel-layout='widescreen'] .dice-roller__history {
-    max-height: none;
-  }
-}
-
-/* -----------------------------------------------------------------------------
    CHAT — messages get a comfortable measure rather than stretching across the
    whole panel, which is hard to read much past 75 characters.
    -------------------------------------------------------------------------- */

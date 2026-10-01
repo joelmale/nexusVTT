@@ -101,7 +101,7 @@ export const DiceBox3D: React.FC = () => {
   const settings = useSettings();
 
   // Get dice theme (a dice-box-threejs colorset id) from localStorage,
-  // synced with DiceRoller component.
+  // synced with the Dice Roller panel.
   const getDiceTheme = useCallback(() => {
     return getStoredDiceTheme();
   }, []);
@@ -276,7 +276,7 @@ export const DiceBox3D: React.FC = () => {
     }
   }, [getDiceTheme, isInitialized]);
 
-  // DiceRoller's theme-cycle button writes the new theme to localStorage and
+  // The Dice Roller panel's theme picker writes the new theme to localStorage and
   // dispatches this event, since a same-tab localStorage write fires neither
   // a re-render here nor a native 'storage' event -- without it there is no
   // way for this component to learn the theme changed after its one-time
