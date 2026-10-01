@@ -637,7 +637,7 @@ function normalizeObjective(
     status: (['complete', 'active', 'blocked', 'pending'].includes(status)
       ? status
       : 'pending') as QuestObjective['status'],
-    clueIds: [],
+    clueIds: strings(o.clueIds),
     locationIds: strings(o.locationIds),
   };
 }
@@ -1389,7 +1389,7 @@ function mergeEntity(
 
 // -------------------------------------------------------------- seeding
 
-function remap(
+export function remap(
   entity: Record<string, unknown>,
   idMap: Map<string, string>,
 ): Record<string, unknown> {
@@ -1403,9 +1403,13 @@ function remap(
   }
   for (const key of LIST_REF_KEYS) {
     if (Array.isArray(out[key])) {
-      out[key] = strings(out[key])
-        .map((id) => idMap.get(id))
-        .filter((id): id is string => Boolean(id));
+      out[key] = [
+        ...new Set(
+          strings(out[key])
+            .map((id) => idMap.get(id))
+            .filter((id): id is string => Boolean(id)),
+        ),
+      ];
     }
   }
   return out;
@@ -1486,8 +1490,12 @@ export async function seedFromFixture(slug: string): Promise<SeedResult> {
     register('party-member', item),
   );
   // Fixture lore and handouts both become campaign-wide notes (seedNotes).
-  const notes = seedNotes(fixture);
+  const { notes, clueNoteIds } = seedNotes(fixture);
   notes.forEach((note) => idMap.set(note.id, newId()));
+  for (const [clueId, noteId] of clueNoteIds) {
+    const mapped = idMap.get(noteId);
+    if (mapped) idMap.set(clueId, mapped);
+  }
 
   const result: SeedResult = {
     campaignId: created.id,
@@ -1538,11 +1546,21 @@ export async function seedFromFixture(slug: string): Promise<SeedResult> {
           title: objective.title,
           status: objective.status,
           order: objective.order,
+          clueIds: remap({ clueIds: objective.clueIds }, idMap).clueIds ?? [],
           locationIds: remap({ locationIds: objective.locationIds }, idMap)
             .locationIds,
         }));
     }
     if (kind === 'session') {
+      const sessionClueNoteId = idMap.get(`clues-${source.id}`);
+      if (sessionClueNoteId) {
+        draft.clueIds = [
+          ...new Set([
+            sessionClueNoteId,
+            ...((draft.clueIds as string[]) ?? []),
+          ]),
+        ];
+      }
       // Session ids are rebuilt below; the plan object is created separately.
       delete draft.plan;
       const sourcePlan = (source as unknown as CampaignSession).plan;
@@ -1718,8 +1736,12 @@ async function postNew(
  * sessions are not seeded, so a session's clues become one campaign-wide note
  * that names the session in its title; unlinked clues share one "Clues" note.
  */
-function seedNotes(fixture: CampaignFixtureBundle): CampaignNote[] {
+function seedNotes(fixture: CampaignFixtureBundle): {
+  notes: CampaignNote[];
+  clueNoteIds: Map<string, string>;
+} {
   const notes = [...fixture.notes];
+  const clueNoteIds = new Map<string, string>();
   const clueLine = (clue: CampaignFixtureBundle['clues'][number]) =>
     `- **${clue.title}** (${clue.status}): ${clue.meaning}`;
   const linked = new Set<string>();
@@ -1728,7 +1750,12 @@ function seedNotes(fixture: CampaignFixtureBundle): CampaignNote[] {
       clue.sessionIds.includes(session.id),
     );
     if (clues.length === 0) continue;
-    clues.forEach((clue) => linked.add(clue.id));
+    clues.forEach((clue) => {
+      linked.add(clue.id);
+      if (!clueNoteIds.has(clue.id)) {
+        clueNoteIds.set(clue.id, `clues-${session.id}`);
+      }
+    });
     notes.push({
       id: `clues-${session.id}`,
       campaignId: fixture.campaignId,
@@ -1743,6 +1770,9 @@ function seedNotes(fixture: CampaignFixtureBundle): CampaignNote[] {
   }
   const rest = fixture.clues.filter((clue) => !linked.has(clue.id));
   if (rest.length > 0) {
+    rest.forEach((clue) => {
+      clueNoteIds.set(clue.id, 'clues-campaign');
+    });
     notes.push({
       id: 'clues-campaign',
       campaignId: fixture.campaignId,
@@ -1755,5 +1785,5 @@ function seedNotes(fixture: CampaignFixtureBundle): CampaignNote[] {
       order: 0,
     });
   }
-  return notes;
+  return { notes, clueNoteIds };
 }

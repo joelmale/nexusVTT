@@ -5,6 +5,7 @@ import type { CampaignSummary } from './campaign-api';
 import {
   createServerBundleStore,
   describeSeedResult,
+  remap,
   seedFromFixture,
 } from './campaign-bundle-api';
 
@@ -1042,6 +1043,29 @@ describe('seedFromFixture', () => {
         }
       });
     });
+
+    it('preserves session clue links to cloned note objects', async () => {
+      const fixture = getFixtureBundle(slug)!;
+      const result = await seedFromFixture(slug);
+      const seeded = await createServerBundleStore({
+        ...CAMPAIGN,
+        id: result.campaignId,
+      }).load();
+
+      const createdNoteIds = new Set(seeded.notes.map((n) => n.id));
+      for (const sourceSession of fixture.sessions) {
+        if (sourceSession.clueIds.length > 0) {
+          const clonedSession = seeded.sessions.find(
+            (s) => s.number === sourceSession.number,
+          );
+          expect(clonedSession).toBeDefined();
+          expect(clonedSession!.clueIds.length).toBeGreaterThan(0);
+          for (const clueId of clonedSession!.clueIds) {
+            expect(createdNoteIds.has(clueId)).toBe(true);
+          }
+        }
+      }
+    });
   });
 
   it('keeps going after a failed item and reports what failed', async () => {
@@ -1145,5 +1169,20 @@ describe('seedFromFixture', () => {
 
   it('rejects unknown examples', async () => {
     await expect(seedFromFixture('nope')).rejects.toThrow(/Unknown example/);
+  });
+
+  describe('remap', () => {
+    it('deduplicates list references when multiple sources map to the same target', () => {
+      const idMap = new Map([
+        ['clue-1', 'note-alpha'],
+        ['clue-2', 'note-alpha'],
+        ['clue-3', 'note-beta'],
+      ]);
+      const remapped = remap(
+        { clueIds: ['clue-1', 'clue-2', 'clue-3', 'clue-missing'] },
+        idMap,
+      );
+      expect(remapped.clueIds).toEqual(['note-alpha', 'note-beta']);
+    });
   });
 });
