@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { getBacklinks, resolveEntity } from './entityIndex';
+import { getBacklinks, listEntities, resolveEntity } from './entityIndex';
 import { getFixtureBundle, listFixtureBundles } from './registry';
 
 const ashes = getFixtureBundle('ashes-of-veyra', 'test')!;
@@ -70,5 +70,37 @@ describe('entity index', () => {
         expect(resolveEntity(bundle, npc.id)?.kind).toBe('npc');
       }
     }
+  });
+
+  it('indexes notes and lists every entity of one campaign only', () => {
+    const note = ashes.notes[0]!;
+    expect(resolveEntity(ashes, note.id)).toMatchObject({
+      kind: 'note',
+      label: note.title,
+      href: `/notes/${encodeURIComponent(note.id)}`,
+    });
+    const ids = new Set(listEntities(ashes).map((entity) => entity.id));
+    expect(ids.has('npc-captain-serin')).toBe(true);
+    const other = getFixtureBundle('crown-of-cinders', 'test')!;
+    for (const entity of listEntities(other)) {
+      expect(ids.has(entity.id)).toBe(false);
+    }
+  });
+
+  it('turns @ mentions in free text into backlinks', () => {
+    const target = ashes.npcs[0]!;
+    const note = ashes.notes[0]!;
+    const bundle = {
+      ...ashes,
+      notes: [
+        { ...note, body: `Remember @[${target.name}](ref:${target.id}) and @[Gone](ref:missing-id).` },
+        ...ashes.notes.slice(1),
+      ],
+    };
+    expect(getBacklinks(bundle, target.id).map((ref) => ref.id)).toContain(note.id);
+    // A mention of something that no longer exists links nowhere.
+    expect(getBacklinks(bundle, 'missing-id').map((ref) => ref.id)).toEqual([note.id]);
+    // The original bundle is untouched.
+    expect(getBacklinks(ashes, 'missing-id')).toEqual([]);
   });
 });

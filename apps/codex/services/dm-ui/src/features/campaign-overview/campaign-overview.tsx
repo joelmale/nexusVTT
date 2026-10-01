@@ -285,7 +285,7 @@ export function CampaignOverview() {
             <div className={styles.toolDivider} />
             <IconButton
               label="Search campaign"
-              onClick={() => notifyCapability('campaign.search')}
+              onClick={() => notifyCapability('campaign.search.overview')}
             >
               <Search size={20} />
             </IconButton>

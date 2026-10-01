@@ -1,0 +1,5 @@
+.missing {
+  color: var(--studio-text-muted);
+  font-style: italic;
+  text-decoration: line-through;
+}

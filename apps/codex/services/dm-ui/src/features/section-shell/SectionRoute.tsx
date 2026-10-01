@@ -1,6 +1,7 @@
-import { useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { useCapabilityNotice } from '@/features/capability-notice';
+import { CampaignSearchDialog } from '@/features/search/CampaignSearchDialog';
 import { StudioFrame } from '@/features/studio-shell/StudioFrame';
 
 import { SectionContext } from './SectionContext';
@@ -20,6 +21,19 @@ interface SectionRouteProps {
 export function SectionRoute({ title, children }: SectionRouteProps) {
   const { notifyCapability } = useCapabilityNotice();
   const state = useBundleStore();
+  const [searchOpen, setSearchOpen] = useState(false);
+
+  // Ctrl/Cmd+K opens search from anywhere in a campaign.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+        event.preventDefault();
+        setSearchOpen(true);
+      }
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
   const context = useMemo(
     () =>
       state.status === 'ready'
@@ -67,12 +81,16 @@ export function SectionRoute({ title, children }: SectionRouteProps) {
     <StudioFrame
       contextLabel={title ? `${campaignName} · ${title}` : campaignName}
       onCapability={notifyCapability}
-      onSearch={() => notifyCapability('campaign.search')}
+      onSearch={() => setSearchOpen(true)}
       onSettings={() => notifyCapability('campaign.settings.open')}
       onTheme={() => notifyCapability('campaign.theme.change')}
     >
       <SectionContext.Provider value={context}>
         {children}
+        <CampaignSearchDialog
+          onClose={() => setSearchOpen(false)}
+          open={searchOpen}
+        />
       </SectionContext.Provider>
     </StudioFrame>
   );

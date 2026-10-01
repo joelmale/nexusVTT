@@ -12,7 +12,7 @@ import {
 function PlannedTrigger() {
   const { notifyCapability } = useCapabilityNotice();
   return (
-    <button onClick={() => notifyCapability('campaign.search')} type="button">
+    <button onClick={() => notifyCapability('campaign.search.overview')} type="button">
       Search
     </button>
   );
@@ -43,6 +43,7 @@ describe('capability registry', () => {
         id === 'session-plan.publish' ||
         id === 'session-plan.activate' ||
         id === 'campaign.section.open' ||
+        id === 'campaign.search' ||
         id === 'encounter.deploy'
       ) {
         expect(capability.status).toBe('implemented');
@@ -69,7 +70,7 @@ describe('CapabilityNoticeProvider', () => {
 
     expect(screen.getByRole('status')).toHaveTextContent('Campaign search');
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Planned: Unified prep search',
+      'Planned: Overview search',
     );
     expect(screen.getByRole('status')).toHaveTextContent('No data changed.');
   });

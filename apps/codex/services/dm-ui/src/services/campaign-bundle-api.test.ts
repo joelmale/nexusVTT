@@ -421,6 +421,58 @@ describe('load + mapping round-trip', () => {
     expect(conflict).toMatchObject({ ok: false, conflict: true });
   });
 
+  it('stores @ mentions as campaign-object links with the target revision', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const npc = await store.addItem('npc', { name: 'Mira' });
+    await store.updateItem('npc', String(npc.id), { role: 'Innkeeper' });
+    const note = await store.addItem('note', {
+      title: 'Prep',
+      body: `Ask @[Mira](ref:${npc.id}) twice: @[Mira](ref:${npc.id}), and @[Gone](ref:missing-id).`,
+    });
+    const links = (server.objects.get(String(note.id))!.data as { links: unknown[] }).links;
+    // One link per distinct mention; the unknown target is skipped but stays in the text.
+    expect(links).toEqual([
+      {
+        target: 'campaign-object',
+        campaignId: CAMPAIGN.id,
+        id: npc.id,
+        revision: 2,
+      },
+    ]);
+    expect(store.getBundle().notes[0].body).toContain('ref:missing-id');
+  });
+
+  it('never links an object to itself and keeps links empty without mentions', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const note = await store.addItem('note', { title: 'Solo', body: 'No mentions.' });
+    expect(
+      (server.objects.get(String(note.id))!.data as { links: unknown[] }).links,
+    ).toEqual([]);
+    await store.updateItem('note', String(note.id), {
+      body: `Self @[Solo](ref:${note.id})`,
+    });
+    expect(
+      (server.objects.get(String(note.id))!.data as { links: unknown[] }).links,
+    ).toEqual([]);
+  });
+
+  it('keeps mention links in quest and npc text fields too', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const loc = await store.addItem('location', { name: 'Docks' });
+    const quest = await store.addItem('quest', {
+      title: 'Find the key',
+      summary: `Start at @[Docks](ref:${loc.id}).`,
+    });
+    expect(
+      (server.objects.get(String(quest.id))!.data as { links: { id: string }[] }).links.map(
+        (link) => link.id,
+      ),
+    ).toEqual([loc.id]);
+  });
+
   it('falls back to plain text for objects created elsewhere and skips retired', async () => {
     server.put('npc', {
       id: 'n-1',

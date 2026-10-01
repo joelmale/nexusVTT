@@ -816,3 +816,25 @@ factions, quests and notes.
   the rest continue. `StartFromExample` shows what was skipped or failed before
   opening the new campaign.
 - Maps are not copied. They arrive with the map build-out phase.
+
+### 5.8 Addendum: mentions and search
+
+- **Mentions.** Typing `@` in a note, NPC motivation or relationship, or quest
+  summary offers the campaign's objects (arrows, Enter or Tab to pick, Escape
+  to dismiss). A mention is stored as `@[Title](ref:<id>)`. The id is the link
+  and the title is only what it was when typed, so renaming an object updates
+  every mention when it is read. A mention whose target is gone shows
+  "Missing: <old title>" and links nowhere. Helpers live in `src/lib/mentions.ts`.
+- **Links and backlinks.** Saving an object turns its mentions into
+  `campaign-object` links pinned to the target's current revision, so the server
+  records them as dependencies. The in-app entity index also treats mentions as
+  links, so a mentioned object lists the notes and objects that mention it.
+  Notes are now in the entity index.
+- **Search.** `campaign.search` is implemented: the top-bar button or Ctrl/Cmd+K
+  on any section page opens a dialog that searches titles first and then text,
+  with excerpts, over the open campaign only. It runs over the bundle already
+  loaded for that campaign (the DM's prep view), so it cannot return another
+  campaign's titles or text. Overview pages have no loaded bundle and say so.
+- **Not in this phase.** Object history (`campaign.object.history`) stays
+  planned. Mentions use a textarea token rather than Lexical nodes because
+  notes are plain markdown text.

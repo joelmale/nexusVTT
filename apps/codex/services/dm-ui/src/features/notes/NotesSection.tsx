@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 
 import type { CampaignNote } from '@/demo/fixture-registry';
+import { MentionChip } from '@/features/mentions/MentionText';
+import { MentionTextarea } from '@/features/mentions/MentionTextarea';
 import { EmptyState } from '@/features/section-shell/EmptyState';
 import {
   AddRow,
@@ -85,10 +87,10 @@ function NoteDetail({ note }: { note: CampaignNote }) {
             </label>
             <label>
               Note
-              <textarea
+              <MentionTextarea
                 className={styles.bodyInput}
-                onChange={(event) => update({ body: event.target.value })}
-                placeholder="Write your note (supports **bold**, *italic*, - lists)"
+                onChange={(body) => update({ body })}
+                placeholder="Write your note (supports **bold**, *italic*, - lists, and @ to mention anything in the campaign)"
                 rows={10}
                 value={value.body}
               />
@@ -165,7 +167,10 @@ function NoteDetail({ note }: { note: CampaignNote }) {
         </p>
       ) : null}
       {note.body.trim() ? (
-        <MarkdownBody source={note.body} />
+        <MarkdownBody
+          renderMention={(id, label) => <MentionChip id={id} label={label} />}
+          source={note.body}
+        />
       ) : (
         <p className={styles.empty}>Nothing written yet.</p>
       )}

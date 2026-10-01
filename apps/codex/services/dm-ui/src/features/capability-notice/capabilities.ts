@@ -1,5 +1,6 @@
 export const CAPABILITY_IDS = [
   'campaign.search',
+  'campaign.search.overview',
   'campaign.object.create',
   'campaign.object.history',
   'campaign.object.actions',
@@ -36,9 +37,18 @@ export const CAPABILITY_REGISTRY: Record<CapabilityId, PrototypeCapability> = {
   'campaign.search': {
     id: 'campaign.search',
     label: 'Campaign search',
-    status: 'planned',
+    status: 'implemented',
     targetPhase: 'Unified prep search',
-    description: 'Search campaign objects and preparation materials.',
+    description:
+      'Search the open campaign by title and text. Press Ctrl+K or Cmd+K on any section page.',
+  },
+  'campaign.search.overview': {
+    id: 'campaign.search.overview',
+    label: 'Campaign search',
+    status: 'planned',
+    targetPhase: 'Overview search',
+    description:
+      'Search runs inside the campaign sections. Open NPCs, Quests, World or Notes, then use the search button or press Ctrl+K.',
   },
   'campaign.object.create': {
     id: 'campaign.object.create',

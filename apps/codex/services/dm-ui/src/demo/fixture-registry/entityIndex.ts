@@ -1,3 +1,5 @@
+import { mentionIds } from '../../lib/mentions';
+
 import type { CampaignFixtureBundle, FixtureId } from './types';
 
 export type EntityKind =
@@ -11,6 +13,7 @@ export type EntityKind =
   | 'map'
   | 'clue'
   | 'handout'
+  | 'note'
   | 'scene';
 
 export interface EntityRef {
@@ -87,6 +90,14 @@ function buildIndex(bundle: CampaignFixtureBundle): EntityIndex {
   const noteIds = new Set(bundle.notes.map((note) => note.id));
   const noteHref = (id: string) =>
     noteIds.has(id) ? `/notes/${encodeURIComponent(id)}` : '/notes';
+  for (const note of bundle.notes) {
+    add({
+      id: note.id,
+      kind: 'note',
+      label: note.title,
+      href: noteHref(note.id),
+    });
+  }
   for (const c of bundle.clues) {
     add({ id: c.id, kind: 'clue', label: c.title, href: noteHref(c.id) });
   }
@@ -184,7 +195,44 @@ function buildIndex(bundle: CampaignFixtureBundle): EntityIndex {
     link(m.id, m.locationIds);
   }
 
+  // `@` mentions in free text count as links from the object that holds them.
+  for (const [sourceId, texts] of mentionSources(bundle)) {
+    link(sourceId, texts.flatMap(mentionIds));
+  }
+
   return { byId, backlinks };
+}
+
+/** The free-text fields that can hold `@` mentions, by owning object id. */
+export function mentionSources(
+  bundle: CampaignFixtureBundle,
+): [string, string[]][] {
+  const text = (...values: (string | undefined)[]): string[] =>
+    values.filter((value): value is string => Boolean(value));
+  return [
+    ...bundle.notes.map((n): [string, string[]] => [n.id, text(n.body)]),
+    ...bundle.npcs.map((n): [string, string[]] => [
+      n.id,
+      text(n.motivation, n.relationship),
+    ]),
+    ...bundle.quests.map((q): [string, string[]] => [
+      q.id,
+      text(q.summary, q.resolution),
+    ]),
+    ...bundle.locations.map((l): [string, string[]] => [
+      l.id,
+      text(l.shortDescription, ...l.description, l.notes),
+    ]),
+    ...bundle.factions.map((f): [string, string[]] => [
+      f.id,
+      text(f.publicFace, f.hiddenAgenda),
+    ]),
+    ...bundle.sessions.map((s): [string, string[]] => [s.id, text(s.summary)]),
+    ...bundle.encounters.map((e): [string, string[]] => [
+      e.id,
+      text(e.trigger, e.intendedUse, e.tactics),
+    ]),
+  ];
 }
 
 function getIndex(bundle: CampaignFixtureBundle): EntityIndex {
@@ -194,6 +242,11 @@ function getIndex(bundle: CampaignFixtureBundle): EntityIndex {
     indexes.set(bundle, index);
   }
   return index;
+}
+
+/** Every entity in the campaign, for pickers and search. */
+export function listEntities(bundle: CampaignFixtureBundle): EntityRef[] {
+  return [...getIndex(bundle).byId.values()];
 }
 
 export function resolveEntity(

@@ -5,6 +5,7 @@ import ImageIcon from 'lucide-react/dist/esm/icons/image';
 import MapIcon from 'lucide-react/dist/esm/icons/map';
 import MapPin from 'lucide-react/dist/esm/icons/map-pin';
 import Search from 'lucide-react/dist/esm/icons/search';
+import StickyNote from 'lucide-react/dist/esm/icons/sticky-note';
 import Shield from 'lucide-react/dist/esm/icons/shield';
 import Swords from 'lucide-react/dist/esm/icons/swords';
 import Target from 'lucide-react/dist/esm/icons/target';
@@ -24,6 +25,7 @@ export const ENTITY_ICONS: Record<EntityKind, LucideIcon> = {
   map: MapIcon,
   clue: Search,
   handout: FileText,
+  note: StickyNote,
   scene: ImageIcon,
 };
 
@@ -38,5 +40,6 @@ export const ENTITY_KIND_LABELS: Record<EntityKind, string> = {
   map: 'Maps',
   clue: 'Clues',
   handout: 'Handouts',
+  note: 'Notes',
   scene: 'Scenes',
 };

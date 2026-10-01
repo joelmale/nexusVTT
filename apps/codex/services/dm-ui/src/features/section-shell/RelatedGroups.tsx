@@ -18,6 +18,7 @@ const DEFAULT_ORDER: EntityKind[] = [
   'encounter',
   'clue',
   'handout',
+  'note',
   'session',
   'map',
   'objective',

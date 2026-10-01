@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
 
 import type { CampaignNpc } from '@/demo/ashes-of-veyra/types';
+import { MentionTextarea } from '@/features/mentions/MentionTextarea';
+import { MentionText } from '@/features/mentions/MentionText';
 import { EmptyState } from '@/features/section-shell/EmptyState';
 import {
   AddRow,
@@ -164,19 +166,17 @@ function NpcDetail({ npc }: { npc: CampaignNpc }) {
           </label>
           <label>
             Motivation
-            <textarea
-              onChange={(event) =>
-                setDraft({ ...current, motivation: event.target.value })
-              }
+            <MentionTextarea
+              onChange={(motivation) => setDraft({ ...current, motivation })}
               rows={3}
               value={String(current.motivation ?? '')}
             />
           </label>
           <label>
             Relationship to party
-            <textarea
-              onChange={(event) =>
-                setDraft({ ...current, relationship: event.target.value })
+            <MentionTextarea
+              onChange={(relationship) =>
+                setDraft({ ...current, relationship })
               }
               rows={3}
               value={String(current.relationship ?? '')}
@@ -202,11 +202,23 @@ function NpcDetail({ npc }: { npc: CampaignNpc }) {
       <dl className={styles.fields}>
         <div>
           <dt>Motivation</dt>
-          <dd>{npc.motivation || 'Not written yet.'}</dd>
+          <dd>
+            {npc.motivation ? (
+              <MentionText text={npc.motivation} />
+            ) : (
+              'Not written yet.'
+            )}
+          </dd>
         </div>
         <div>
           <dt>Relationship to party</dt>
-          <dd>{npc.relationship || 'Not written yet.'}</dd>
+          <dd>
+            {npc.relationship ? (
+              <MentionText text={npc.relationship} />
+            ) : (
+              'Not written yet.'
+            )}
+          </dd>
         </div>
       </dl>
       {npc.tags.length > 0 ? (

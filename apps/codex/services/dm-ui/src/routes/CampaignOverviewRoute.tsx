@@ -32,7 +32,7 @@ export function CampaignOverviewRoute() {
     <StudioFrame
       contextLabel={activeCampaign.name}
       onCapability={notifyCapability}
-      onSearch={() => notifyCapability('campaign.search')}
+      onSearch={() => notifyCapability('campaign.search.overview')}
       onSettings={() => notifyCapability('campaign.settings.open')}
       onTheme={() => notifyCapability('campaign.theme.change')}
     >

@@ -65,6 +65,7 @@ import {
   buildMonsterCatalog,
   matchMonsterByName,
 } from '../features/encounters/monsterCatalog';
+import { mentionIds } from '../lib/mentions';
 import {
   createEmptyBundle,
   getFixtureBundle,
@@ -714,6 +715,36 @@ function persistedFields(
   return fields;
 }
 
+/** Every string in an entity's fields: where `@` mentions can appear. */
+function textOf(entity: Entity): string[] {
+  return Object.entries(entity).flatMap(([key, value]) =>
+    key === 'id' || key === 'campaignId'
+      ? []
+      : typeof value === 'string'
+        ? [value]
+        : strings(value),
+  );
+}
+
+/**
+ * Campaign-object refs for the objects an entity mentions, so the server can
+ * answer "what links here" and track them as dependencies. Mentions of things
+ * this store does not hold (deleted, other kinds) are skipped; the text still
+ * carries them and readers show them as missing.
+ */
+function mentionLinks(
+  campaignId: string,
+  entity: Entity,
+  revisionOf: (id: string) => number | undefined,
+): Record<string, unknown>[] {
+  return mentionIds(textOf(entity).join('\n')).flatMap((id) => {
+    const revision = id === entity.id ? undefined : revisionOf(id);
+    return revision
+      ? [{ target: 'campaign-object', campaignId, id, revision }]
+      : [];
+  });
+}
+
 function buildData(
   campaignId: string,
   kind: EditableKind,
@@ -721,6 +752,7 @@ function buildData(
   revision: number,
   createdAt: string,
   now: string,
+  revisionOf: (id: string) => number | undefined = () => undefined,
 ): Record<string, unknown> {
   const tags = strings(entity.tags);
   return {
@@ -751,7 +783,7 @@ function buildData(
         nexusStudio: { v: 1, fields: persistedFields(kind, entity) },
       },
     },
-    links: [],
+    links: mentionLinks(campaignId, entity, revisionOf),
     tags,
     createdAt,
     updatedAt: now,
@@ -1129,6 +1161,9 @@ export function createServerBundleStore(
     return publish();
   }
 
+  const trackedRevision = (id: string): number | undefined =>
+    items.get(id)?.revision;
+
   async function write(
     kind: EditableKind,
     entity: Entity,
@@ -1149,6 +1184,7 @@ export function createServerBundleStore(
               tracked.revision + 1,
               tracked.createdAt,
               now,
+              trackedRevision,
             ),
             expectedRevision: tracked.revision,
             requestId,
@@ -1158,7 +1194,15 @@ export function createServerBundleStore(
           method: 'POST',
           body: JSON.stringify({
             kind: serverKind(kind),
-            data: buildData(campaign.id, kind, entity, 1, now, now),
+            data: buildData(
+              campaign.id,
+              kind,
+              entity,
+              1,
+              now,
+              now,
+              trackedRevision,
+            ),
             requestId,
           }),
         });

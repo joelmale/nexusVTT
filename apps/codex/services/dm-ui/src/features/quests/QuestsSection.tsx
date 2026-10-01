@@ -2,6 +2,8 @@ import { useEffect, useMemo } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 
 import type { CampaignQuest } from '@/demo/fixture-registry';
+import { MentionTextarea } from '@/features/mentions/MentionTextarea';
+import { MentionText } from '@/features/mentions/MentionText';
 import { AddRow, EditableSection } from '@/features/section-shell/EditableSection';
 import { EmptyState } from '@/features/section-shell/EmptyState';
 import { EntityLink } from '@/features/section-shell/EntityLink';
@@ -246,7 +248,11 @@ function QuestDetail({ quest }: { quest: CampaignQuest }) {
       toPatch={buildQuestPatch}
     >
       <div className={styles.body}>
-        {quest.summary ? <p>{quest.summary}</p> : null}
+        {quest.summary ? (
+          <p>
+            <MentionText text={quest.summary} />
+          </p>
+        ) : null}
         {quest.giverNpcId ? (
           <p className={styles.giver}>
             <span className={styles.label}>Quest giver</span>
@@ -375,8 +381,8 @@ function QuestForm({
       </label>
       <label>
         Summary
-        <textarea
-          onChange={(event) => update({ summary: event.target.value })}
+        <MentionTextarea
+          onChange={(summary) => update({ summary })}
           rows={4}
           value={draft.summary}
         />

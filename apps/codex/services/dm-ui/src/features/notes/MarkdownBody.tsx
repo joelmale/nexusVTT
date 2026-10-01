@@ -1,9 +1,35 @@
 import type { ReactNode } from 'react';
 
+import { splitMentions } from '@/lib/mentions';
+
 import styles from './MarkdownBody.module.css';
 
-/** Inline `**bold**`, `*italic*` and `` `code` ``; everything else is text. */
-function renderInline(text: string, keyPrefix: string): ReactNode[] {
+type RenderMention = (id: string, label: string) => ReactNode;
+
+/**
+ * Inline `**bold**`, `*italic*` and `` `code` ``; everything else is text.
+ * `@[Label](ref:id)` mentions go through `renderMention` when provided.
+ */
+function renderInline(
+  text: string,
+  keyPrefix: string,
+  renderMention?: RenderMention,
+): ReactNode[] {
+  if (renderMention) {
+    return splitMentions(text).flatMap<ReactNode>((segment, at) =>
+      segment.type === 'text'
+        ? renderFormatting(segment.text, `${keyPrefix}-t${at}`)
+        : [
+            <span key={`${keyPrefix}-m${at}`}>
+              {renderMention(segment.id, segment.label)}
+            </span>,
+          ],
+    );
+  }
+  return renderFormatting(text, keyPrefix);
+}
+
+function renderFormatting(text: string, keyPrefix: string): ReactNode[] {
   const nodes: ReactNode[] = [];
   const pattern = /(\*\*[^*]+\*\*|\*[^*\s][^*]*\*|`[^`]+`)/g;
   let last = 0;
@@ -26,7 +52,10 @@ function renderInline(text: string, keyPrefix: string): ReactNode[] {
   return nodes;
 }
 
-function renderBlocks(source: string): ReactNode[] {
+function renderBlocks(
+  source: string,
+  renderMention?: RenderMention,
+): ReactNode[] {
   const blocks = source.replace(/\r\n/g, '\n').split(/\n{2,}/);
   const out: ReactNode[] = [];
   blocks.forEach((block, blockIndex) => {
@@ -41,6 +70,7 @@ function renderBlocks(source: string): ReactNode[] {
           {renderInline(
             line.replace(bullets ? /^\s*[-*]\s+/ : /^\s*\d+[.)]\s+/, ''),
             `${key}-${i}`,
+            renderMention,
           )}
         </li>
       ));
@@ -51,7 +81,7 @@ function renderBlocks(source: string): ReactNode[] {
     if (heading) {
       out.push(
         <p className={styles.heading} key={`${key}-h`}>
-          {renderInline(heading[1], `${key}-h`)}
+          {renderInline(heading[1], `${key}-h`, renderMention)}
         </p>,
       );
       lines.shift();
@@ -62,7 +92,7 @@ function renderBlocks(source: string): ReactNode[] {
         {lines.map((line, i) => (
           <span key={i}>
             {i > 0 ? <br /> : null}
-            {renderInline(line, `${key}-${i}`)}
+            {renderInline(line, `${key}-${i}`, renderMention)}
           </span>
         ))}
       </p>,
@@ -74,6 +104,8 @@ function renderBlocks(source: string): ReactNode[] {
 interface MarkdownBodyProps {
   source: string;
   className?: string;
+  /** Renders a `@[Label](ref:id)` mention; without it they stay as text. */
+  renderMention?: RenderMention;
 }
 
 /**
@@ -81,10 +113,14 @@ interface MarkdownBodyProps {
  * numbered lists, bold, italic, code). Output is React text nodes only, so
  * user text can never inject markup.
  */
-export function MarkdownBody({ source, className }: MarkdownBodyProps) {
+export function MarkdownBody({
+  source,
+  className,
+  renderMention,
+}: MarkdownBodyProps) {
   return (
     <div className={`${styles.body} ${className ?? ''}`}>
-      {renderBlocks(source)}
+      {renderBlocks(source, renderMention)}
     </div>
   );
 }
