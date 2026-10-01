@@ -57,17 +57,20 @@ const envSchema = z.object({
   // One model for text and image extraction (decided in review). Experiments
   // switch this value; they never run two models side by side. The model name
   // is part of the extraction cache key.
-  // qwen3-vl:4b (~3.3 GB) runs fully on the 6 GB A2000; qwen2.5vl:7b split
-  // 12 of 29 layers onto the CPU and pinned every core.
-  VLM_MODEL: z.string().default('qwen3-vl:4b'),
+  // qwen3-vl:4b-instruct (~3.3 GB) runs fully on the 6 GB A2000; qwen2.5vl:7b
+  // split 12 of 29 layers onto the CPU and pinned every core. Use the -instruct
+  // tag: plain qwen3-vl:<size> is the thinking variant, which reasons at length
+  // before every answer.
+  VLM_MODEL: z.string().default('qwen3-vl:4b-instruct'),
   OLLAMA_KEEP_ALIVE: z.string().default('10m'),
   // Fixed per request so the host's OLLAMA_CONTEXT_LENGTH cannot inflate the
   // KV cache past what the GPU holds. Extraction prompts are under ~1k tokens.
   OLLAMA_NUM_CTX: z.string().default('4096').transform(Number),
   // Optional second Ollama (e.g. a workstation GPU on the LAN). Used for an
   // extract stage when it answers within OLLAMA_REMOTE_PROBE_MS and has the
-  // model; otherwise the stage falls back to OLLAMA_URL. Keep the same model
-  // on both so the extraction cache (keyed by model) stays shared.
+  // model; otherwise the stage falls back to OLLAMA_URL. OLLAMA_REMOTE_MODEL
+  // defaults to VLM_MODEL; a different (larger) model there is fine, but the
+  // extraction cache is keyed by model, so a fallback run does not reuse it.
   OLLAMA_REMOTE_URL: z.string().default(''),
   OLLAMA_REMOTE_MODEL: z.string().default(''),
   OLLAMA_REMOTE_PROBE_MS: z.string().default('3000').transform(Number),
