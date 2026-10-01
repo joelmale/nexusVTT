@@ -43,6 +43,24 @@ BLOCK_CLASS = {
 }
 TEXT_EXCLUDED = {"art", "furniture"}
 
+# Marker's CUDA batch defaults (layout 12, detection 10, recognition 48, ...)
+# assume a larger card. With the Surya weights resident, the 6 GB RTX A2000
+# leaves ~1 GB for activations, and the defaults OOM in text detection.
+# Each key is a Marker builder/processor config attribute; override with
+# MARKER_<KEY> (e.g. MARKER_DETECTION_BATCH_SIZE=4) on a bigger GPU.
+BATCH_SIZE_DEFAULTS = {
+    "layout_batch_size": 4,
+    "detection_batch_size": 2,
+    "ocr_error_batch_size": 4,
+    "recognition_batch_size": 16,
+    "table_rec_batch_size": 4,
+    "equation_batch_size": 8,
+}
+
+
+def batch_sizes() -> Dict[str, int]:
+    return {key: int(os.getenv(f"MARKER_{key.upper()}", default)) for key, default in BATCH_SIZE_DEFAULTS.items()}
+
 
 class LayoutUnavailable(RuntimeError):
     """Marker is not installed or its models failed to load."""
@@ -266,6 +284,7 @@ class LayoutEngine:
             "page_range": f"{page_start - 1}-{page_end - 1}",  # Marker is 0-based
             "paginate_output": True,
             "disable_image_extraction": True,
+            **batch_sizes(),
         })
         config = parser.generate_config_dict()
         converter = PdfConverter(

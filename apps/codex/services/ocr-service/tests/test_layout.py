@@ -135,7 +135,12 @@ def test_convert_range_drives_marker_with_zero_based_page_range(monkeypatch):
 
     pages, images = layout_engine.convert_range("/tmp/book.pdf", 12, 13)
 
-    assert calls["cli_options"] == {"page_range": "11-12", "paginate_output": True, "disable_image_extraction": True}
+    assert calls["cli_options"] == {
+        "page_range": "11-12",
+        "paginate_output": True,
+        "disable_image_extraction": True,
+        **engine_module.BATCH_SIZE_DEFAULTS,
+    }
     assert calls["converter"]["artifact_dict"] == {"layout_model": "fake"}
     assert calls["converter"]["processor_list"] is None
     assert calls["build_document"] == "/tmp/book.pdf"

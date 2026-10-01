@@ -69,7 +69,8 @@ ENV PATH="/opt/venv/bin:$PATH" \
     XDG_CACHE_HOME=/models/cache \
     FASTEMBED_CACHE_PATH=/models/fastembed \
     FONT_DIR=/models/fonts \
-    FONT_PATH=/models/fonts/GoNotoCurrent-Regular.ttf
+    FONT_PATH=/models/fonts/GoNotoCurrent-Regular.ttf \
+    PYTORCH_CUDA_ALLOC_CONF=expandable_segments:True
 
 ARG VERSION=dev
 ARG COMMIT_SHA=unknown
