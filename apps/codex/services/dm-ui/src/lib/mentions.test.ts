@@ -6,6 +6,7 @@ import {
   findMentions,
   formatMention,
   mentionIds,
+  mentionsToPlainText,
   splitMentions,
 } from './mentions';
 
@@ -85,3 +86,22 @@ describe('applyMention', () => {
     });
   });
 });
+
+describe('mentionsToPlainText', () => {
+  it('strips mention tokens and retains display labels', () => {
+    const text = 'Speak with @[Mira](ref:npc-1) at @[The Sunken Spire](ref:loc-42).';
+    expect(mentionsToPlainText(text)).toBe('Speak with Mira at The Sunken Spire.');
+  });
+
+  it('leaves plain text without mentions untouched', () => {
+    expect(mentionsToPlainText('Hello world')).toBe('Hello world');
+    expect(mentionsToPlainText('')).toBe('');
+  });
+
+  it('handles multiple mentions and empty label', () => {
+    expect(mentionsToPlainText('@[A](ref:1) and @[](ref:2) and @[B](ref:3)')).toBe(
+      'A and  and B',
+    );
+  });
+});
+

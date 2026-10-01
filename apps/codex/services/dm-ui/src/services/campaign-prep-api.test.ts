@@ -481,6 +481,138 @@ describe('fetchSessionPlanStatus', () => {
       isActivated: true,
     });
   });
+
+  it('strips raw mention tokens from player-facing published notes, handouts, and reminders', async () => {
+    let capturedNoteData: Record<string, unknown> | undefined;
+    let capturedHandoutBlobText: string | undefined;
+    let publishedPlan: Record<string, unknown> | undefined;
+
+    const mentionInput: PublishSessionPlanInput = {
+      ...input,
+      steps: [
+        {
+          command: 'Open note',
+          durationMinutes: 5,
+          id: 'note-step',
+          title: 'Letter from Mira',
+          body: 'Meet @[Mira](ref:npc-1) at @[The Docks](ref:loc-1) before midnight.',
+          track: 'main',
+          visibility: 'shared',
+        },
+        {
+          command: 'Share handout',
+          durationMinutes: 0,
+          id: 'handout-step',
+          title: 'Handout Map',
+          body: 'Follow the trail to @[Sunken Spire](ref:loc-2).',
+          track: 'main',
+          visibility: 'shared',
+        },
+        {
+          command: 'Reminder',
+          durationMinutes: 2,
+          id: 'reminder-step',
+          title: 'Check on @[Veyra](ref:npc-2)',
+          body: 'Remember that @[Veyra](ref:npc-2) is watching.',
+          track: 'parallel',
+          visibility: 'shared',
+        },
+      ],
+    };
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async (request, requestInit) => {
+        const path = String(request);
+        if (path === '/api/users/profile') return json({ id: 'dm-1' });
+        if (path === '/api/campaigns') {
+          return json([{ id: CAMPAIGN_ID, name: input.campaignTitle }]);
+        }
+        if (path === '/api/user/dm-1/assets') return json({ assets: [] });
+        if (path.endsWith('/prep/objects') && !requestInit?.method) {
+          return json({ objects: [] });
+        }
+        if (path === `/api/campaigns/${CAMPAIGN_ID}/prep/objects`) {
+          const body = JSON.parse(String(requestInit?.body)) as {
+            data: Record<string, unknown>;
+            kind: string;
+          };
+          if (body.kind === 'note') {
+            capturedNoteData = body.data;
+            return json({
+              object: {
+                id: 'note-uuid',
+                kind: 'note',
+                title: 'Letter from Mira',
+                currentRevision: 1,
+                status: 'draft',
+              },
+            });
+          }
+          publishedPlan = body.data;
+          return json({
+            object: {
+              id: 'plan-uuid',
+              kind: 'session-plan',
+              title: input.planTitle,
+              currentRevision: 1,
+              status: 'draft',
+            },
+          });
+        }
+        if (path === '/api/user/dm-1/upload') {
+          const form = requestInit?.body as FormData;
+          const file = form.get('file') as Blob;
+          capturedHandoutBlobText = await new Promise<string>((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onload = () => resolve(reader.result as string);
+            reader.onerror = reject;
+            reader.readAsText(file);
+          });
+          return json({
+            asset: { id: 'handout-asset', name: 'Handout Map' },
+          });
+        }
+        if (path.endsWith('/publish')) {
+          const body = JSON.parse(String(requestInit?.body)) as {
+            data?: Record<string, unknown>;
+          };
+          if (body.data) publishedPlan = body.data;
+          return json({
+            published: true,
+            plan: { id: 'plan-uuid', revision: 1, status: 'ready' },
+          });
+        }
+        throw new Error(`Unexpected request: ${path}`);
+      },
+    );
+
+    await publishSessionPlan(mentionInput);
+
+    expect(capturedNoteData).toMatchObject({
+      content: {
+        value: {
+          root: {
+            children: [
+              {
+                children: [
+                  {
+                    type: 'text',
+                    text: 'Meet Mira at The Docks before midnight.',
+                  },
+                ],
+              },
+            ],
+          },
+        },
+      },
+    });
+
+    expect(capturedHandoutBlobText).toBe('Follow the trail to Sunken Spire.');
+
+    const steps = publishedPlan?.steps as Array<{ type: string; text?: string }>;
+    const reminderStep = steps.find((s) => s.type === 'reminder');
+    expect(reminderStep?.text).toBe('Remember that Veyra is watching.');
+  });
 });
 
 describe('activateSessionPlan', () => {

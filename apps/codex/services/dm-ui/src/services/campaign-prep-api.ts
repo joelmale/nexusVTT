@@ -11,6 +11,7 @@ import type {
   EncounterMonsterStats,
   SessionStepViewModel,
 } from '@/features/session-plan/sessionPlanModels';
+import { mentionsToPlainText } from '@/lib/mentions';
 
 interface UserProfile {
   id: string;
@@ -174,10 +175,11 @@ async function ensureTextAsset(
 ): Promise<UserAsset> {
   const existing = assets.find((asset) => asset.name === name);
   if (existing) return existing;
+  const cleanText = mentionsToPlainText(text);
   const asset = await uploadAsset(
     userId,
     name,
-    new Blob([text || name], { type: 'text/plain' }),
+    new Blob([cleanText || name], { type: 'text/plain' }),
     `${name.toLowerCase().replace(/[^a-z0-9]+/g, '-')}.txt`,
     'documents',
   );
@@ -292,7 +294,7 @@ async function ensureEntry(
     kind: 'note',
     title: step.title,
     visibility: step.visibility === 'shared' ? 'players' : 'dm-only',
-    content: lexicalContent(step.body || step.title),
+    content: lexicalContent(mentionsToPlainText(step.body || step.title)),
     links: [],
     tags: step.track === 'parallel' ? ['parallel-thread'] : [],
     createdAt: now,
@@ -435,7 +437,7 @@ async function buildContractSteps(
         userId,
         assets,
         step.title,
-        step.body || step.title,
+        mentionsToPlainText(step.body || step.title),
       );
       result.push({
         ...base,
@@ -448,7 +450,7 @@ async function buildContractSteps(
     result.push({
       ...base,
       type: 'reminder',
-      text: step.body || step.title,
+      text: mentionsToPlainText(step.body || step.title),
     });
   }
 

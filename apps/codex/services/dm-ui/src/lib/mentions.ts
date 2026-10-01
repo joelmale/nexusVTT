@@ -90,3 +90,12 @@ export function applyMention(
     caret: active.start + token.length,
   };
 }
+
+/**
+ * Strips mention syntax `@[Label](ref:<id>)` leaving only the display label.
+ * Used for player-facing text (e.g. published notes, handouts) to avoid leaking
+ * internal entity IDs or syntax.
+ */
+export function mentionsToPlainText(text: string): string {
+  return text.replace(/@\[([^\]\n]*)\]\(ref:[\w-]+\)/g, '$1');
+}
