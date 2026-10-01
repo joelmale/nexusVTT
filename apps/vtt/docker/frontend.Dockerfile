@@ -109,18 +109,21 @@ COPY package.json package-lock.json ./
 COPY apps/codex/services/dm-ui/package.json ./apps/codex/services/dm-ui/package.json
 COPY packages/character-contracts/package.json ./packages/character-contracts/package.json
 COPY packages/game-contracts/package.json ./packages/game-contracts/package.json
+COPY packages/rules-5e/package.json ./packages/rules-5e/package.json
 COPY scripts/build-workspace-dependencies.mjs ./scripts/build-workspace-dependencies.mjs
 
 RUN npm ci \
     --workspace=@nexuscodex/dm-ui \
     --workspace=@nexus/character-contracts \
     --workspace=@nexus/game-contracts \
+    --workspace=@nexus/rules-5e \
     --include-workspace-root \
     --legacy-peer-deps
 
 COPY apps/codex/services/dm-ui ./apps/codex/services/dm-ui
 COPY packages/character-contracts ./packages/character-contracts
 COPY packages/game-contracts ./packages/game-contracts
+COPY packages/rules-5e ./packages/rules-5e
 
 RUN node scripts/build-workspace-dependencies.mjs --workspace @nexuscodex/dm-ui && \
     npm run build --workspace=@nexuscodex/dm-ui
