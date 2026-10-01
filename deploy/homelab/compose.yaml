@@ -393,6 +393,10 @@ services:
       HF_HOME: /models
       # Marker/Surya resolve ~/.cache (= /app/.cache, root-owned) via platformdirs.
       XDG_CACHE_HOME: /models/cache
+      # Marker downloads its render font to <site-packages>/static/fonts by
+      # default, which the non-root app user cannot write (EACCES on layout).
+      FONT_DIR: /models/fonts
+      FONT_PATH: /models/fonts/GoNotoCurrent-Regular.ttf
       LAYOUT_PRELOAD: ${CODEX_OCR_LAYOUT_PRELOAD:-true}
     volumes:
       - codex-ocr-models:/models

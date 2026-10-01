@@ -57,12 +57,19 @@ COPY --chown=app:app apps/codex/services/ocr-service/src/ ./src/
 # Model weights (Surya, fastembed) live in a named volume mounted at /models so
 # restarts don't download them again; the directory is created app-owned above
 # so a fresh volume inherits that ownership.
+#
+# Marker defaults FONT_DIR to <site-packages>/static/fonts and downloads its
+# render font there on first use, which the non-root app user cannot write
+# (EACCES on /opt/venv/.../static). FONT_PATH must be set too: Marker derives
+# its default from the default FONT_DIR at class definition, not at runtime.
 ENV PATH="/opt/venv/bin:$PATH" \
     PORT=8000 \
     PYTHONUNBUFFERED=1 \
     HF_HOME=/models \
     XDG_CACHE_HOME=/models/cache \
-    FASTEMBED_CACHE_PATH=/models/fastembed
+    FASTEMBED_CACHE_PATH=/models/fastembed \
+    FONT_DIR=/models/fonts \
+    FONT_PATH=/models/fonts/GoNotoCurrent-Regular.ttf
 
 ARG VERSION=dev
 ARG COMMIT_SHA=unknown
