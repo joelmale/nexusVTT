@@ -20,15 +20,15 @@ describe('Stars Below Kharad fixtures', () => {
 
   it('has campaign breadth comparable to the Ashes of Veyra fixture', () => {
     const f = starsBelowKharad;
-    expect(f.npcs.length).toBeGreaterThanOrEqual(6);
-    expect(f.factions.length).toBeGreaterThanOrEqual(5);
-    expect(f.quests.length).toBeGreaterThanOrEqual(6);
-    expect(f.objectives.length).toBeGreaterThanOrEqual(15);
-    expect(f.encounters.length).toBeGreaterThanOrEqual(6);
-    expect(f.clues.length).toBeGreaterThanOrEqual(6);
-    expect(f.handouts.length).toBeGreaterThanOrEqual(6);
-    expect(f.locations.length).toBeGreaterThanOrEqual(6);
-    expect(f.pins.length).toBeGreaterThanOrEqual(6);
+    expect(f.npcs.length).toBeGreaterThanOrEqual(14);
+    expect(f.factions.length).toBeGreaterThanOrEqual(8);
+    expect(f.quests.length).toBeGreaterThanOrEqual(10);
+    expect(f.objectives.length).toBeGreaterThanOrEqual(30);
+    expect(f.encounters.length).toBeGreaterThanOrEqual(11);
+    expect(f.clues.length).toBeGreaterThanOrEqual(12);
+    expect(f.handouts.length).toBeGreaterThanOrEqual(14);
+    expect(f.locations.length).toBeGreaterThanOrEqual(13);
+    expect(f.pins.length).toBeGreaterThanOrEqual(13);
   });
 
   it('reports object counts that match the fixture records', () => {
@@ -61,5 +61,29 @@ describe('Stars Below Kharad fixtures', () => {
       f.quests.every((q) => q.status === 'complete' || q.status === 'on-hold'),
     ).toBe(true);
     expect(f.objectives.some((o) => o.status === 'active')).toBe(false);
+  });
+
+  it('keeps completed quests resolved and leaves lingering epilogue threads', () => {
+    const f = starsBelowKharad;
+    expect(
+      f.quests
+        .filter((q) => q.status === 'complete')
+        .every((q) => (q.resolution ?? '').length > 0),
+    ).toBe(true);
+    const onHold = f.quests.filter((q) => q.status === 'on-hold');
+    expect(onHold.length).toBeGreaterThanOrEqual(2);
+    expect(onHold.length).toBeLessThanOrEqual(3);
+    const open = f.clues.filter((c) => c.status !== 'resolved');
+    expect(open.length).toBeGreaterThanOrEqual(2);
+    expect(open.length).toBeLessThanOrEqual(4);
+    expect(f.clues.filter((c) => c.status === 'resolved').length).toBeGreaterThan(
+      open.length * 2,
+    );
+  });
+
+  it('has a populated activity feed that resolves to real objects', () => {
+    const { backlinks, recentEdits } = starsBelowKharad.campaign.activity;
+    expect(backlinks.length).toBeGreaterThanOrEqual(6);
+    expect(recentEdits.length).toBeGreaterThanOrEqual(6);
   });
 });

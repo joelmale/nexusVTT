@@ -195,4 +195,243 @@ export const encounters: CampaignEncounter[] = [
     rulesetNotes:
       'Social difficulty is a display fixture, not a rules calculation.',
   },
+  {
+    id: 'encounter-sixth-chair-supper',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    title: 'Supper at the Sixth Chair',
+    kind: 'social',
+    difficulty: 'low',
+    composition: [
+      {
+        name: 'Commoner',
+        count: 6,
+        ruleset: '2014-srd',
+        role: 'Regulars at the long table, each unaware that they are passing the bread to an empty chair.',
+      },
+      {
+        name: 'Specter',
+        count: 1,
+        ruleset: '2014-srd',
+        role: 'Stand-in for the unseen diner. It does nothing unless someone sits in its chair.',
+      },
+    ],
+    trigger:
+      'A character sits in the sixth chair at the long table, or asks the room who it is for.',
+    intendedUse:
+      'Session 1 flavour scene, played at the Reedcutters’ Rest. Establishes that the village remembers a seat but not a face.',
+    sessionIds: [s(1)],
+    locationIds: ['location-reedcutters-rest'],
+    factionIds: ['faction-fenfolk-drovers'],
+    tactics:
+      'The Specter never attacks. It cools the room by a degree each round and the regulars grow quiet and stare at their hands.',
+    rulesetNotes:
+      'Social display fixture. The Specter is the SRD stand-in for a silent, seated presence; do not roll initiative.',
+  },
+  {
+    id: 'encounter-oil-cellar-sneak',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    title: 'The Oil Cellar After Dark',
+    kind: 'combat-exploration',
+    difficulty: 'moderate',
+    composition: [
+      {
+        name: 'Guard',
+        count: 2,
+        ruleset: '2014-srd',
+        role: 'Wardens on cellar watch, armed with oil lamps and short truncheons.',
+      },
+      {
+        name: 'Swarm of Rats',
+        count: 2,
+        ruleset: '2014-srd',
+        role: 'Disturbed from the flask racks when anything is knocked over.',
+      },
+      {
+        name: 'Oil spill (hazard)',
+        count: 1,
+        ruleset: 'custom',
+        role: 'A blue-stained floor that ignites in a flash if a lantern falls. 2d6 fire to anyone within 10 feet.',
+        nonCreature: true,
+      },
+    ],
+    trigger:
+      'The party enters the cellar by the barge channel or follows Tamsin down the stairs after hours.',
+    intendedUse:
+      'Session 3 stealth-and-hazard beat. Reward quiet play and a plan for the lamps; punish carelessness.',
+    sessionIds: [s(3)],
+    locationIds: ['location-lantern-oil-cellar', 'location-wardens-lamp-house'],
+    factionIds: ['faction-lantern-wardens'],
+    tactics:
+      'The guards call for Halloran Wick rather than press the fight. The rats scatter and re-form if anyone breaks a flask.',
+    rulesetNotes:
+      'Hazard row is a custom fire effect, not an SRD creature. Difficulty is a display fixture.',
+  },
+  {
+    id: 'encounter-unnamed-dead',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    title: 'The Unnamed Row',
+    kind: 'combat',
+    difficulty: 'high',
+    composition: [
+      {
+        name: 'Zombie',
+        count: 5,
+        ruleset: '2014-srd',
+        role: 'The slow, upright dead of the blank slates, rising from clay that was filled in a hurry.',
+      },
+      {
+        name: 'Ghoul',
+        count: 1,
+        ruleset: '2014-srd',
+        role: 'A hungry thing that learned to wear a gravedigger’s patience.',
+      },
+    ],
+    trigger:
+      'The party disturbs the blank slates on the night of the tithe or tries to read the unmarked row.',
+    intendedUse:
+      'Session 3 optional set piece. The dead rise only if someone says the wrong name over them; a correct, kind word lays them back down.',
+    sessionIds: [s(3)],
+    locationIds: ['location-tidewake-burying-ground'],
+    factionIds: ['faction-burial-society'],
+    tactics:
+      'The zombies move in a ring and do not pursue past the consecrated ground. The ghoul lingers behind them, hunting the character who spoke the name.',
+    rulesetNotes:
+      'Zombies and ghoul are SRD stand-ins for the unburied. Consecrated ground confers no extra rule; treat it as a retreat line.',
+  },
+  {
+    id: 'encounter-reedwalk-sinkholes',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    title: 'Quicksilt on the Reedwalk',
+    kind: 'combat-hazard',
+    difficulty: 'moderate',
+    composition: [
+      {
+        name: 'Quicksilt pool (hazard)',
+        count: 3,
+        ruleset: 'custom',
+        role: 'A shallow, pewter-bright sink that pulls a creature down 1 foot per round. DC 13 Strength to climb free.',
+        nonCreature: true,
+      },
+      {
+        name: 'Crocodile',
+        count: 1,
+        ruleset: '2014-srd',
+        role: 'Lurks near the second landmark and drags anyone who stops moving.',
+      },
+      {
+        name: 'Giant Frog',
+        count: 2,
+        ruleset: '2014-srd',
+        role: 'Lunge from the reeds and swallow small creatures.',
+      },
+    ],
+    trigger:
+      'The party leaves the lantern’s path on the Reedwalk or splits up to find the third landmark.',
+    intendedUse:
+      'Wilderness hazard for any return trip through the fen. Keeps travel tense after the first memory toll has been paid.',
+    sessionIds: [s(1), s(3)],
+    locationIds: ['location-reedwalk'],
+    factionIds: ['faction-reedbound'],
+    tactics:
+      'The crocodile does not give chase beyond the reed line. The frogs scatter if the crocodile is slain.',
+    rulesetNotes:
+      'The pools are a custom hazard. Run them as terrain, not initiative rows.',
+  },
+  {
+    id: 'encounter-assize-bailiffs',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    title: 'The Assize Retinue',
+    kind: 'social',
+    difficulty: 'moderate',
+    composition: [
+      {
+        name: 'Noble',
+        count: 1,
+        ruleset: '2014-srd',
+        role: 'Stand-in for Sabine Vale, whose authority is paper rather than steel.',
+      },
+      {
+        name: 'Guard',
+        count: 4,
+        ruleset: '2014-srd',
+        role: 'Bailiffs in grey coats who escort the clerk and carry the writ.',
+      },
+    ],
+    trigger:
+      'The Assize arrives in the village and the party, or the Wardens, meet it at the boardwalk gate.',
+    intendedUse:
+      'Session 3 or 4 social flashpoint. The party decides which side of the paper they stand on.',
+    sessionIds: [s(3), s(4)],
+    locationIds: ['location-mourningfen-village', 'location-tidewake-archive'],
+    factionIds: ['faction-greywater-assize', 'faction-lantern-wardens'],
+    tactics:
+      'The bailiffs will not draw first. If the Wardens do, they retreat to the ferry and send for a proper garrison.',
+    rulesetNotes:
+      'Social display fixture. Use the Noble as a bargaining stat line, not a combat threat.',
+  },
+  {
+    id: 'encounter-grandam-kitchen',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    title: 'Tea With the Grandam',
+    kind: 'combat-hazard',
+    difficulty: 'moderate',
+    composition: [
+      {
+        name: 'Ghost',
+        count: 1,
+        ruleset: '2014-srd',
+        role: 'Ottoline Verrow, who is not hostile unless addressed wrongly or denied a kind word.',
+      },
+      {
+        name: 'Scalding kettle (hazard)',
+        count: 1,
+        ruleset: 'custom',
+        role: 'A black kettle that never boils until the grandam is angry, then spits 2d6 fire at the nearest character.',
+        nonCreature: true,
+      },
+    ],
+    trigger:
+      'The party enters the kitchen and speaks to the woman at the table, or refuses what she offers.',
+    intendedUse:
+      'Session 2 roleplay-first scene. A guest who takes tea and says her name correctly learns who signed the bargain.',
+    sessionIds: [s(2)],
+    locationIds: ['location-verrow-kitchen', 'location-verrow-hall'],
+    factionIds: ['faction-reedbound'],
+    tactics:
+      'If angered she possesses nothing; she simply stands, turns, and the kitchen empties of warmth. Give the party a chance to apologise before rolling.',
+    rulesetNotes:
+      'The Ghost is a stand-in. Treat Horrifying Visage as the grandam turning around. The kettle is a custom hazard.',
+  },
+  {
+    id: 'encounter-pear-wife',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    title: 'The Pear-Wife’s Bargain',
+    kind: 'social',
+    difficulty: 'moderate',
+    composition: [
+      {
+        name: 'Green Hag',
+        count: 1,
+        ruleset: '2014-srd',
+        role: 'Sits on the orchard wall and trades salt pears for small memories.',
+      },
+      {
+        name: 'Swarm of Ravens',
+        count: 2,
+        ruleset: '2014-srd',
+        role: 'Her watchers. They strike only if a bargain is broken.',
+      },
+    ],
+    trigger:
+      'The party enters the orchard at dusk or eats a pear without paying.',
+    intendedUse:
+      'Optional Session 2 detour. A morally grey trade: she offers something true in return for something small, and always takes slightly more.',
+    sessionIds: [s(2)],
+    locationIds: ['location-salt-pear-orchard'],
+    factionIds: ['faction-mere-below'],
+    tactics:
+      'She bargains first, retreats into the trees when pressed, and returns with a better offer the next dusk.',
+    rulesetNotes:
+      'Green Hag is the SRD stand-in. She is no ally of the Eighth Voice; do not link her to the well fight.',
+  },
 ];

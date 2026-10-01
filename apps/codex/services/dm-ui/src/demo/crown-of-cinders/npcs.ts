@@ -151,4 +151,116 @@ export const crownNpcs: CampaignNpc[] = [
     portraitFallback: 'WA',
     tags: ['Messenger', 'Session 1 closer', 'Witness'],
   },
+  {
+    id: 'npc-maren-vell',
+    campaignId: CROWN_CAMPAIGN_ID,
+    name: 'Queen Maren Vell (deceased)',
+    role: 'Late monarch, subject of the inquest',
+    ancestry: 'Human',
+    factionIds: ['faction-house-vell'],
+    motivation:
+      'Even in death: keep her children from learning what she confessed to the crown on her last night.',
+    relationship:
+      'Never met. Appears through testimony and the crown’s memories, and every heir remembers a different queen.',
+    locationIds: ['location-queens-chambers', 'location-hall-of-nine-banners'],
+    sessionIds: [crownSessionId(3), crownSessionId(4), crownSessionId(6)],
+    portraitFallback: 'MV',
+    tags: ['Deceased', 'Memory', 'Matriarch', 'Hidden confession'],
+  },
+  {
+    id: 'npc-quillon-thrum',
+    campaignId: CROWN_CAMPAIGN_ID,
+    name: 'Brother Quillon Thrum',
+    role: 'Archivist of the Ember Cloister',
+    ancestry: 'Gnome',
+    factionIds: ['faction-ember-wardens'],
+    motivation:
+      'Preserve the Cloister’s records and quietly atone for the pages he was ordered to seal.',
+    relationship:
+      'Nervous, generous with trivia and a terrible liar; Tamsin’s confidant and the party’s best source of lore if they are kind to him.',
+    locationIds: ['location-ember-cloister', 'location-crown-vault'],
+    sessionIds: [crownSessionId(4), crownSessionId(5)],
+    portraitFallback: 'QT',
+    tags: ['Archivist', 'Guilty conscience', 'Lore source'],
+  },
+  {
+    id: 'npc-dagna-rook',
+    campaignId: CROWN_CAMPAIGN_ID,
+    name: 'Marchwarden Dagna Rook',
+    role: 'Spokesperson of the Marcher Lords',
+    ancestry: 'Half-orc',
+    factionIds: ['faction-border-lords'],
+    motivation:
+      'Collect the war debt Corvin owes the frontier in grain, steel and a council seat, or march on Ashgate to collect it in person.',
+    relationship:
+      'Plainspoken and patient. Treats the party as honest brokers precisely because they are not courtiers.',
+    locationIds: ['location-marchwarden-house', 'location-hall-of-nine-banners'],
+    sessionIds: [crownSessionId(3), crownSessionId(6)],
+    portraitFallback: 'DR',
+    tags: ['Creditor', 'Border lord', 'Honest brute', 'Corvin’s debt'],
+  },
+  {
+    id: 'npc-ferrant-inkwell',
+    campaignId: CROWN_CAMPAIGN_ID,
+    name: 'Ferrant Inkwell',
+    role: 'Master scrivener and forger',
+    ancestry: 'Gnome',
+    factionIds: ['faction-soot-hands', 'faction-gilded-ledger'],
+    motivation:
+      'Stay paid and stay off the gallows. He aged the genealogy’s ink on commission but swears he did not write the lines.',
+    relationship:
+      'Hides behind pedantry and professional ethics, but sells his customers’ names the moment the Watch is not listening.',
+    locationIds: ['location-inkwell-court'],
+    sessionIds: [crownSessionId(3)],
+    portraitFallback: 'FI',
+    tags: ['Forger', 'Pedant', 'Knows who paid'],
+  },
+  {
+    id: 'npc-vessa-thornscale',
+    campaignId: CROWN_CAMPAIGN_ID,
+    name: 'Captain Vessa Thornscale',
+    role: 'Captain of the Ashgate Watch',
+    ancestry: 'Dragonborn',
+    factionIds: ['faction-ashgate-watch'],
+    motivation:
+      'Keep the capital from rioting while the throne is contested. She arrests whoever the crowd blames first.',
+    relationship:
+      'Fair, exhausted and under pressure from all three heirs to detain the others’ people; a reluctant ally who will not be bribed but can be out-argued.',
+    locationIds: ['location-palace-hill', 'location-lamplighters-row'],
+    sessionIds: [crownSessionId(2), crownSessionId(3), crownSessionId(6)],
+    portraitFallback: 'VT',
+    tags: ['Law', 'Under pressure', 'Reluctant ally'],
+  },
+  {
+    id: 'npc-sera-lampwright',
+    campaignId: CROWN_CAMPAIGN_ID,
+    name: 'Sera Lampwright',
+    role: 'Soot Hands runner and lamplighter',
+    ancestry: 'Tiefling',
+    factionIds: ['faction-soot-hands'],
+    motivation:
+      'Prove the guild did not do this. She saw who was tapping out the old flame code on the Row three nights before the coronation.',
+    relationship:
+      'Sharp-tongued teenager who trusts Ivo’s reputation more than his promises.',
+    locationIds: ['location-lamplighters-row', 'location-guttered-candle'],
+    sessionIds: [crownSessionId(2)],
+    portraitFallback: 'SL',
+    tags: ['Runner', 'Witness', 'Young', 'Wants a clean name'],
+  },
+  {
+    id: 'npc-aurel-claimant',
+    campaignId: CROWN_CAMPAIGN_ID,
+    name: 'The Man Who Calls Himself Aurel',
+    role: 'Unverified fourth claimant',
+    ancestry: 'Human',
+    factionIds: [],
+    motivation:
+      'To be believed. He may be the true firstborn, a decoy, or a foundling raised in the Cloister, and even he is not certain which.',
+    relationship:
+      'Unmet. Letters and rumors precede him; he surfaces only after the mausoleum reveals the empty coffin.',
+    locationIds: ['location-royal-mausoleum', 'location-ashwater-quay'],
+    sessionIds: [crownSessionId(4), crownSessionId(6)],
+    portraitFallback: 'AC',
+    tags: ['Fourth claimant', 'Unverified', 'Late reveal'],
+  },
 ];

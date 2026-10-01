@@ -10,14 +10,26 @@ export const crownFactions: CampaignFaction[] = [
     hiddenAgenda:
       'Each heir has privately promised offices and land to their own backers.',
     leaderNpcId: 'npc-corvin-vell',
-    alliedFactionIds: ['faction-ember-wardens'],
+    alliedFactionIds: [
+      'faction-ember-wardens',
+      'faction-ashgate-watch',
+      'faction-border-lords',
+    ],
     rivalFactionIds: ['faction-unquenched'],
     locationIds: [
       'location-hall-of-nine-banners',
       'location-ashgate',
       'location-crown-vault',
+      'location-palace-hill',
+      'location-queens-chambers',
+      'location-royal-mausoleum',
     ],
-    questIds: ['quest-who-wears-the-crown', 'quest-dead-princes-genealogy'],
+    questIds: [
+      'quest-who-wears-the-crown',
+      'quest-dead-princes-genealogy',
+      'quest-queens-last-night',
+      'quest-border-lords-ultimatum',
+    ],
     status: 'unknown',
   },
   {
@@ -31,7 +43,11 @@ export const crownFactions: CampaignFaction[] = [
     alliedFactionIds: ['faction-house-vell'],
     rivalFactionIds: ['faction-unquenched', 'faction-soot-hands'],
     locationIds: ['location-ember-cloister', 'location-crown-vault'],
-    questIds: ['quest-trace-the-cinder-assassins', 'quest-crown-remembers'],
+    questIds: [
+      'quest-trace-the-cinder-assassins',
+      'quest-crown-remembers',
+      'quest-queens-last-night',
+    ],
     status: 'ally',
   },
   {
@@ -43,9 +59,18 @@ export const crownFactions: CampaignFaction[] = [
       'Keeps a blackmail ledger on every court family and needs the realm indebted, not settled.',
     leaderNpcId: 'npc-oswin-pell',
     alliedFactionIds: [],
-    rivalFactionIds: ['faction-soot-hands'],
-    locationIds: ['location-gilded-exchange', 'location-ashgate'],
-    questIds: ['quest-who-wears-the-crown', 'quest-dead-princes-genealogy'],
+    rivalFactionIds: ['faction-soot-hands', 'faction-border-lords'],
+    locationIds: [
+      'location-gilded-exchange',
+      'location-ashgate',
+      'location-inkwell-court',
+    ],
+    questIds: [
+      'quest-who-wears-the-crown',
+      'quest-dead-princes-genealogy',
+      'quest-ink-without-blood',
+      'quest-border-lords-ultimatum',
+    ],
     status: 'neutral',
   },
   {
@@ -57,9 +82,22 @@ export const crownFactions: CampaignFaction[] = [
       'A thieves’ guild that signals with lamp flame; its code was stolen and used for the attack.',
     leaderNpcId: 'npc-nell-soot',
     alliedFactionIds: [],
-    rivalFactionIds: ['faction-gilded-ledger', 'faction-ember-wardens'],
-    locationIds: ['location-guttered-candle', 'location-ashwater-quay'],
-    questIds: ['quest-trace-the-cinder-assassins'],
+    rivalFactionIds: [
+      'faction-gilded-ledger',
+      'faction-ember-wardens',
+      'faction-ashgate-watch',
+    ],
+    locationIds: [
+      'location-guttered-candle',
+      'location-ashwater-quay',
+      'location-lamplighters-row',
+      'location-inkwell-court',
+    ],
+    questIds: [
+      'quest-trace-the-cinder-assassins',
+      'quest-ink-without-blood',
+      'quest-keep-ashgate-from-burning',
+    ],
     status: 'unknown',
   },
   {
@@ -75,5 +113,35 @@ export const crownFactions: CampaignFaction[] = [
     locationIds: ['location-ashen-catacombs', 'location-ember-cloister'],
     questIds: ['quest-trace-the-cinder-assassins', 'quest-crown-remembers'],
     status: 'opposition',
+  },
+  {
+    id: 'faction-border-lords',
+    campaignId: CROWN_CAMPAIGN_ID,
+    name: 'The Marcher Lords',
+    publicFace:
+      'Frontier landholders who guard the realm’s borders and answer the Lord Marshal’s call to arms.',
+    hiddenAgenda:
+      'They have financed Corvin’s campaigns for a decade and will seat a protector of their own choosing if the debt is not honored by the end of the coronation season.',
+    leaderNpcId: 'npc-dagna-rook',
+    alliedFactionIds: ['faction-house-vell'],
+    rivalFactionIds: ['faction-gilded-ledger'],
+    locationIds: ['location-marchwarden-house', 'location-hall-of-nine-banners'],
+    questIds: ['quest-border-lords-ultimatum', 'quest-who-wears-the-crown'],
+    status: 'neutral',
+  },
+  {
+    id: 'faction-ashgate-watch',
+    campaignId: CROWN_CAMPAIGN_ID,
+    name: 'The Ashgate Watch',
+    publicFace:
+      'The city watch and palace guard, keeping the capital orderly in a week when nobody agrees who rules it.',
+    hiddenAgenda:
+      'Its sergeants take coin from all three heirs and from the Soot Hands. Captain Thornscale does not know how deep the rot goes, and will not like finding out.',
+    leaderNpcId: 'npc-vessa-thornscale',
+    alliedFactionIds: ['faction-house-vell'],
+    rivalFactionIds: ['faction-soot-hands'],
+    locationIds: ['location-palace-hill', 'location-lamplighters-row'],
+    questIds: ['quest-keep-ashgate-from-burning'],
+    status: 'neutral',
   },
 ];

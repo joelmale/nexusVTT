@@ -17,14 +17,14 @@ describe('Crown of Cinders fixtures', () => {
     expect(crownOfCinders.acts).toHaveLength(3);
     expect(crownOfCinders.sessions).toHaveLength(6);
     expect(crownOfCinders.pins).toHaveLength(7);
-    expect(crownOfCinders.npcs).toHaveLength(9);
-    expect(crownOfCinders.factions).toHaveLength(5);
-    expect(crownOfCinders.quests).toHaveLength(4);
-    expect(crownOfCinders.objectives).toHaveLength(10);
-    expect(crownOfCinders.encounters).toHaveLength(5);
-    expect(crownOfCinders.clues).toHaveLength(5);
-    expect(crownOfCinders.handouts).toHaveLength(8);
-    expect(crownOfCinders.locations).toHaveLength(8);
+    expect(crownOfCinders.npcs).toHaveLength(16);
+    expect(crownOfCinders.factions).toHaveLength(7);
+    expect(crownOfCinders.quests).toHaveLength(8);
+    expect(crownOfCinders.objectives).toHaveLength(22);
+    expect(crownOfCinders.encounters).toHaveLength(11);
+    expect(crownOfCinders.clues).toHaveLength(11);
+    expect(crownOfCinders.handouts).toHaveLength(21);
+    expect(crownOfCinders.locations).toHaveLength(14);
     expect(getCrownMapPins(crownOfCinders.maps[0].id)).toHaveLength(7);
   });
 

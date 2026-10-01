@@ -754,6 +754,45 @@ describe('handouts and folders', () => {
   });
 });
 
+describe('overview activity', () => {
+  afterEach(() => vi.useRealTimers());
+
+  it('lists the most recently written objects first and survives a reload', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    vi.setSystemTime(new Date('2026-09-01T10:00:00.000Z'));
+    const npc = await store.addItem('npc', { name: 'Mira' });
+    vi.setSystemTime(new Date('2026-09-02T10:00:00.000Z'));
+    const quest = await store.addItem('quest', { title: 'Find the bell' });
+    vi.setSystemTime(new Date('2026-09-03T10:00:00.000Z'));
+    await store.updateItem('npc', npc.id!, { role: 'Innkeeper' });
+
+    const expected = [
+      {
+        targetId: npc.id,
+        objectType: 'npc',
+        label: 'Mira',
+        detail: 'Revision 2',
+        updatedAt: '2026-09-03T10:00:00.000Z',
+      },
+      {
+        targetId: quest.id,
+        objectType: 'quest',
+        label: 'Find the bell',
+        detail: 'Created',
+        updatedAt: '2026-09-02T10:00:00.000Z',
+      },
+    ];
+    expect(store.getBundle().campaign.activity.recentEdits).toMatchObject(
+      expected,
+    );
+
+    const reloaded = await createServerBundleStore(CAMPAIGN).load();
+    expect(reloaded.campaign.activity.recentEdits).toMatchObject(expected);
+  });
+});
+
 describe('updateItem', () => {
   it('sends expectedRevision + 1 payload and tracks the new revision', async () => {
     const store = createServerBundleStore(CAMPAIGN);
@@ -838,9 +877,8 @@ describe('seedFromFixture', () => {
       expect(byKind('act')).toHaveLength(fixture.acts.length);
       expect(byKind('session')).toHaveLength(fixture.sessions.length);
       expect(byKind('encounter')).toHaveLength(fixture.encounters.length);
-      expect(byKind('party-member')).toHaveLength(
-        fixture.campaign.playerCharacters.length,
-      );
+      // The example party is not real; players join the new campaign.
+      expect(byKind('party-member')).toHaveLength(0);
       expect(byKind('session-plan')).toHaveLength(
         fixture.sessions.filter((session) => session.plan).length,
       );
@@ -867,9 +905,7 @@ describe('seedFromFixture', () => {
       expect(seeded.acts).toHaveLength(fixture.acts.length);
       expect(seeded.sessions).toHaveLength(fixture.sessions.length);
       expect(seeded.encounters).toHaveLength(fixture.encounters.length);
-      expect(seeded.campaign.playerCharacters).toHaveLength(
-        fixture.campaign.playerCharacters.length,
-      );
+      expect(seeded.campaign.playerCharacters).toEqual([]);
       expect(seeded.campaign.objectCounts.encounters).toBe(
         fixture.encounters.length,
       );
@@ -941,6 +977,33 @@ describe('seedFromFixture', () => {
       }
     });
 
+    it('resets play-state: no party, dates, progress or player sharing', async () => {
+      const result = await seedFromFixture(slug);
+      const seeded = await createServerBundleStore({
+        ...CAMPAIGN,
+        id: result.campaignId,
+      }).load();
+
+      expect(seeded.campaign.playerCharacters).toEqual([]);
+      for (const session of seeded.sessions) {
+        expect(session.status).toBe('draft');
+        expect(session.plannedDate).toBeFalsy();
+        expect(session.durationHours).toBeFalsy();
+      }
+      for (const act of seeded.acts) expect(act.status).toBe('planned');
+      for (const quest of seeded.quests) {
+        expect(quest.status).toBe('not-started');
+        expect(quest.resolution).toBeFalsy();
+      }
+      for (const objective of seeded.objectives) {
+        expect(objective.status).toBe('pending');
+      }
+      for (const note of seeded.notes) expect(note.audience).toBe('none');
+      // Clue notes list each clue's status; all are unresolved again.
+      const noteText = seeded.notes.map((note) => note.body).join(' ');
+      expect(noteText).not.toMatch(/\((resolved|partially-understood)\)/);
+    });
+
     it('clones session plans as valid draft plans that link to cloned entries', async () => {
       const fixture = getFixtureBundle(slug)!;
       const result = await seedFromFixture(slug);
@@ -949,7 +1012,17 @@ describe('seedFromFixture', () => {
       expect(plans).toHaveLength(planned.length);
 
       const objectIds = new Set([...server.objects.keys()]);
-      const fixtureNotes = new Set(fixture.notes.map((n) => n.id));
+      // Note/handout steps open any cloned entry written before sessions:
+      // notes (lore, handouts, clues) and npcs, locations, factions, quests.
+      const openable = new Set(
+        [
+          ...fixture.notes,
+          ...fixture.npcs,
+          ...fixture.locations,
+          ...fixture.factions,
+          ...fixture.quests,
+        ].map((item) => item.id),
+      );
       const expectedLinked = planned.reduce(
         (sum, s) =>
           sum +
@@ -957,7 +1030,7 @@ describe('seedFromFixture', () => {
             (step) =>
               (step.kind === 'note' || step.kind === 'handout') &&
               step.objectId &&
-              fixtureNotes.has(step.objectId),
+              openable.has(step.objectId),
           ).length ?? 0),
         0,
       );
@@ -1085,7 +1158,7 @@ describe('seedFromFixture', () => {
     expect(server.objects.has(failing.id)).toBe(false);
   });
 
-  it('seeds lore and handouts as notes with audience, plus clue notes', async () => {
+  it('seeds lore and handouts as unshared notes, plus clue notes', async () => {
     const fixture = getFixtureBundle('ashes-of-veyra')!;
     const result = await seedFromFixture('ashes-of-veyra');
     const seeded = await createServerBundleStore({
@@ -1094,23 +1167,15 @@ describe('seedFromFixture', () => {
     }).load();
     expect(seeded.handouts).toHaveLength(0);
     expect(seeded.folders).toHaveLength(0);
+    // A new campaign has shown players nothing yet.
     for (const source of fixture.handouts) {
       const copy = seeded.notes.find((note) => note.title === source.title)!;
-      expect(copy.audience).toBe(source.kind === 'handout' ? 'all' : 'none');
+      expect(copy.audience).toBe('none');
     }
     expect(
       [...server.objects.values()]
         .filter((object) => object.kind === 'note')
-        .every(
-          (object) =>
-            object.data.visibility ===
-            (object.data.title &&
-            fixture.handouts.some(
-              (h) => h.kind === 'handout' && h.title === object.data.title,
-            )
-              ? 'players'
-              : 'dm-only'),
-        ),
+        .every((object) => object.data.visibility === 'dm-only'),
     ).toBe(true);
     expect(seeded.notes.every((note) => note.anchor.type === 'campaign')).toBe(
       true,

@@ -134,4 +134,155 @@ export const kharadNpcs: CampaignNpc[] = [
     portraitFallback: 'TA',
     tags: ['Guardian', 'Mythic', 'Surrendered'],
   },
+  {
+    id: 'npc-brondi-greywall',
+    campaignId: C,
+    name: 'Warden-Delegate Brondi Greywall',
+    role: 'Delegate of Hold Greywarden',
+    ancestry: 'Dwarf',
+    factionIds: ['faction-hold-greywarden', 'faction-seven-hold-concord'],
+    motivation:
+      'Keep the engine behind a door that only seven keys can open, because Greywarden has buried too many sons to border wars to trust any single hand.',
+    relationship:
+      'Blunt, scrupulously honest skeptic who votes against opening the gate, then stands the first watch beside it once the party proves the custodian oath binds everyone.',
+    locationIds: ['location-broken-gate-hall', 'location-kharad-commons'],
+    sessionIds: [S2, S3],
+    portraitFallback: 'BG',
+    tags: ['Delegate', 'Hardliner', 'Honest broker'],
+  },
+  {
+    id: 'npc-sunniva-thrum',
+    campaignId: C,
+    name: 'Railwright Sunniva Thrum',
+    role: 'Delegate of Hold Thrumhall and keeper of the transit line',
+    ancestry: 'Dwarf',
+    factionIds: ['faction-hold-thrumhall', 'faction-seven-hold-concord'],
+    motivation:
+      'Thrumhall cast the rails and owns every switch on them; she wants the line to run again, safely, and wants it written down that her hold built it.',
+    relationship:
+      'Delighted by the chase and furious about the damage; coaches the party through the switchyard and later oversees sealing the line.',
+    locationIds: [
+      'location-thrumhall-switchyard',
+      'location-transit-line',
+      'location-broken-gate-hall',
+    ],
+    sessionIds: [S2, S3],
+    portraitFallback: 'ST',
+    tags: ['Delegate', 'Engineer', 'Line keeper'],
+  },
+  {
+    id: 'npc-orla-silvervein',
+    campaignId: C,
+    name: 'Banker-Delegate Orla Silvervein',
+    role: 'Delegate of Hold Highvein',
+    ancestry: 'Dwarf',
+    factionIds: ['faction-hold-highvein', 'faction-seven-hold-concord'],
+    motivation:
+      'Convert every road, lamp and loaf under the deep sun into a toll, and quietly sabotage Thrumhall so Highvein can underwrite the rails.',
+    relationship:
+      'Gracious, patient and never in a hurry; her private sabotage request was declined, but her letters keep arriving with a smile.',
+    locationIds: [
+      'location-broken-gate-hall',
+      'location-highvein-counting-house',
+    ],
+    sessionIds: [S2, S3],
+    portraitFallback: 'OS',
+    tags: ['Delegate', 'Banker', 'Open threat'],
+  },
+  {
+    id: 'npc-bodil-marrowsong',
+    campaignId: C,
+    name: 'Ancestor-Keeper Bodil Marrowsong',
+    role: 'Delegate of Hold Marrowstone and ossuary-keeper',
+    ancestry: 'Dwarf',
+    factionIds: ['faction-hold-marrowstone', 'faction-seven-hold-concord'],
+    motivation:
+      'Learn whether the sleepers in the engine were ancestors, strangers or something Marrowstone swore to bury and forgot.',
+    relationship:
+      'Gentle and unsettling; reads the vault shards as burial rites and refuses to vote until she has counted the berths herself.',
+    locationIds: ['location-berth-galleries', 'location-zero-gravity-vault'],
+    sessionIds: [S2, S3],
+    portraitFallback: 'BM',
+    tags: ['Delegate', 'Ossuary', 'Open question'],
+  },
+  {
+    id: 'npc-kjeld-bellows',
+    campaignId: C,
+    name: 'Brewmaster Kjeld Bellows',
+    role: 'Delegate of Hold Bellowmere',
+    ancestry: 'Dwarf',
+    factionIds: ['faction-hold-bellowmere', 'faction-seven-hold-concord'],
+    motivation:
+      'Feed everyone: a hold of steam-brewers and mushroom farmers, Bellowmere believes no treaty survives an empty table.',
+    relationship:
+      'Jovial swing vote who trades his ballot for a promise of shared kitchens, and later stocks the Commons taproom for the dedication.',
+    locationIds: ['location-kharad-commons', 'location-broken-gate-hall'],
+    sessionIds: [S2, S3],
+    portraitFallback: 'KB',
+    tags: ['Delegate', 'Brewer', 'Swing vote'],
+  },
+  {
+    id: 'npc-ysolde-ghostlamp',
+    campaignId: C,
+    name: 'Lampwright Ysolde Ghostlamp',
+    role: 'Delegate of Hold Ghostlamp',
+    ancestry: 'Dwarf',
+    factionIds: ['faction-hold-ghostlamp', 'faction-seven-hold-concord'],
+    motivation:
+      'Her hold’s lamps have burned violet for a week and she wants to know whether that is a blessing, a warning or a bill coming due.',
+    relationship:
+      'Quiet, watchful ally of the Collegium; supplies the violet lamps for the rescue and keeps a private log of every flicker.',
+    locationIds: ['location-kharad-mine', 'location-broken-gate-hall'],
+    sessionIds: [S1, S2, S3],
+    portraitFallback: 'YG',
+    tags: ['Delegate', 'Lampwright', 'Omen-reader'],
+  },
+  {
+    id: 'npc-ketta-rawl',
+    campaignId: C,
+    name: 'Courier Ketta Rawl',
+    role: 'Ardent Deep Company courier turned defector',
+    ancestry: 'Duergar',
+    factionIds: ['faction-ardent-deep-company'],
+    motivation:
+      'Survive the marshal’s war and see the light she was told never to look at.',
+    relationship:
+      'Carried Ordrun’s sealed orders to Meridian Station, left them for the party on purpose, and now tends the Commons’ lamp stalls under a Concord pardon.',
+    locationIds: ['location-meridian-station', 'location-kharad-commons'],
+    sessionIds: [S2, S3],
+    portraitFallback: 'KR',
+    tags: ['Defector', 'Courier', 'Pardoned'],
+  },
+  {
+    id: 'npc-fennick-ashglass',
+    campaignId: C,
+    name: 'Tinker Fennick Ashglass',
+    role: 'Keyholder’s kin and clockwork tinker',
+    ancestry: 'Deep gnome',
+    factionIds: ['faction-chalkline-collegium'],
+    motivation:
+      'Make sure the second half of his family’s warning is not lost: the Ashglass keys were cut as a pair.',
+    relationship:
+      'Nima’s great-uncle, arrives at the Commons dedication with a cracked brass case and an unfinished sentence about a second lock.',
+    locationIds: ['location-kharad-commons'],
+    sessionIds: [S3],
+    portraitFallback: 'FA',
+    tags: ['Kin', 'Tinker', 'Sequel hook'],
+  },
+  {
+    id: 'npc-gruvna-brightcut',
+    campaignId: C,
+    name: 'Echo-Prior Gruvna Brightcut',
+    role: 'Prior of the Kindled Congregation',
+    ancestry: 'Orc',
+    factionIds: ['faction-kindled-congregation'],
+    motivation:
+      'Give the miners’ grief and awe somewhere to live, and prove to Hale that the constellation was a map and not a trap.',
+    relationship:
+      'Hale’s elder in faith; lights the first evening bell, argues theology over stew, and treats the Astronomer as a kind of saint.',
+    locationIds: ['location-evening-bell-shrine', 'location-kharad-commons'],
+    sessionIds: [S3],
+    portraitFallback: 'GB',
+    tags: ['Cleric', 'Congregation', 'Shrine-keeper'],
+  },
 ];

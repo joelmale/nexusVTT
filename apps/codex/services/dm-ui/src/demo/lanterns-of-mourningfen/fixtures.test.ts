@@ -18,13 +18,13 @@ describe('Lanterns of Mourningfen fixtures', () => {
     expect(f.sessions).toHaveLength(4);
     expect(f.maps).toHaveLength(2);
     expect(f.pins).toHaveLength(9);
-    expect(f.npcs.length).toBeGreaterThanOrEqual(8);
-    expect(f.factions).toHaveLength(5);
-    expect(f.quests).toHaveLength(5);
-    expect(f.encounters.length).toBeGreaterThanOrEqual(6);
-    expect(f.clues.length).toBeGreaterThanOrEqual(7);
-    expect(f.handouts.length).toBeGreaterThanOrEqual(9);
-    expect(f.locations).toHaveLength(9);
+    expect(f.npcs.length).toBeGreaterThanOrEqual(15);
+    expect(f.factions).toHaveLength(7);
+    expect(f.quests).toHaveLength(10);
+    expect(f.encounters.length).toBeGreaterThanOrEqual(13);
+    expect(f.clues.length).toBeGreaterThanOrEqual(14);
+    expect(f.handouts.length).toBeGreaterThanOrEqual(18);
+    expect(f.locations).toHaveLength(17);
     expect(f.campaign.status).toBe('paused');
   });
 

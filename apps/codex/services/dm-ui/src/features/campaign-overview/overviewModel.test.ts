@@ -6,7 +6,7 @@ import {
   resolveEntity,
 } from '@/demo/fixture-registry';
 
-import { buildOverviewModel } from './overviewModel';
+import { buildOverviewModel, pickUpcomingSession } from './overviewModel';
 
 const bundles = listFixtureBundles('test');
 
@@ -55,6 +55,87 @@ describe('buildOverviewModel', () => {
     expect(text).not.toContain('Glass Harbor');
     expect(text).not.toContain('Harbor Master');
     expect(text).not.toContain('2 hours ago');
+  });
+
+  it('derives the next session and backlinks when none are curated', () => {
+    const ashes = bundles.find((bundle) => bundle.slug === 'ashes-of-veyra')!;
+    // A server campaign carries no curated nextSession or activity.
+    const uncurated = {
+      ...ashes,
+      campaign: {
+        ...ashes.campaign,
+        nextSession: {
+          ...ashes.campaign.nextSession,
+          sessionId: '',
+          encounterId: '',
+          npcId: '',
+          locationId: '',
+          questId: '',
+        },
+        activity: { backlinks: [], recentEdits: [] },
+      },
+    };
+    const model = buildOverviewModel(uncurated);
+    const expected = pickUpcomingSession(ashes.sessions, Date.now());
+    expect(expected?.status).not.toBe('complete');
+    expect(model.nextSession?.sessionId).toBe(expected?.id);
+    expect(model.nextSession?.facts.length).toBeGreaterThan(0);
+    expect(model.backlinks.length).toBeGreaterThan(0);
+    for (const record of model.backlinks) {
+      expect(record.href).toBeTruthy();
+      expect(record.meta).toMatch(/^Linked from \d+ objects?$/);
+    }
+  });
+
+  it('prefers the earliest upcoming dated session, else the lowest open number', () => {
+    const now = Date.parse('2026-10-01T12:00:00Z');
+    const base = bundles[0].sessions[0];
+    const session = (
+      id: string,
+      number: number,
+      status: 'complete' | 'draft' | 'planned',
+      plannedDate?: string,
+    ) => ({ ...base, id, number, status, plannedDate });
+    expect(
+      pickUpcomingSession(
+        [
+          session('done', 1, 'complete', '2026-10-05'),
+          session('later', 2, 'planned', '2026-10-20'),
+          session('sooner', 3, 'planned', '2026-10-08'),
+          session('stale', 4, 'planned', '2026-01-01'),
+        ],
+        now,
+      )?.id,
+    ).toBe('sooner');
+    expect(
+      pickUpcomingSession(
+        [session('b', 5, 'draft'), session('a', 4, 'draft')],
+        now,
+      )?.id,
+    ).toBe('a');
+    expect(
+      pickUpcomingSession([session('done', 1, 'complete')], now),
+    ).toBeUndefined();
+  });
+
+  it('shows server edit times as relative time', () => {
+    const ashes = bundles.find((bundle) => bundle.slug === 'ashes-of-veyra')!;
+    const [edit] = ashes.campaign.activity.recentEdits;
+    const now = Date.parse('2026-10-01T12:00:00Z');
+    const model = buildOverviewModel(
+      {
+        ...ashes,
+        campaign: {
+          ...ashes.campaign,
+          activity: {
+            backlinks: [],
+            recentEdits: [{ ...edit, updatedAt: '2026-10-01T09:00:00Z' }],
+          },
+        },
+      },
+      now,
+    );
+    expect(model.recentEdits[0].meta).toBe('Edited 3 hours ago');
   });
 
   it('builds an honest empty model for a blank server campaign', () => {

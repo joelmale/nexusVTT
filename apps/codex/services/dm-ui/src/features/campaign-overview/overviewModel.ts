@@ -1,6 +1,8 @@
 import {
+  getBacklinks,
   resolveEntity,
   type CampaignFixtureBundle,
+  type CampaignSession,
   type EntityKind,
 } from '@/demo/fixture-registry';
 
@@ -119,6 +121,7 @@ function compact(values: (string | undefined)[]): string[] {
  */
 export function buildOverviewModel(
   bundle: CampaignFixtureBundle,
+  now: number = Date.now(),
 ): OverviewModel {
   const { campaign } = bundle;
   const npcById = new Map(bundle.npcs.map((npc) => [npc.id, npc]));
@@ -303,7 +306,7 @@ export function buildOverviewModel(
         : undefined,
       humanize(bundle.lifecycle),
     ]),
-    nextSession: buildNextSession(bundle, (id) => hrefFor(bundle, id), {
+    nextSession: buildNextSession(bundle, now, (id) => hrefFor(bundle, id), {
       creatureCount,
       locationName,
     }),
@@ -344,19 +347,140 @@ export function buildOverviewModel(
         records: party,
       },
     ],
-    backlinks: activity(
-      campaign.activity.backlinks,
-      (item) => `${humanize(item.objectType)} link`,
-    ),
-    recentEdits: activity(
-      campaign.activity.recentEdits,
-      (item) => item.detail,
-    ).map((record) => ({ ...record, subtitle: humanize(record.kind) })),
+    backlinks:
+      campaign.activity.backlinks.length > 0
+        ? activity(
+            campaign.activity.backlinks,
+            (item) => `${humanize(item.objectType)} link`,
+          )
+        : deriveBacklinks(bundle),
+    recentEdits: activity(campaign.activity.recentEdits, (item) => {
+      const at = item.updatedAt ? Date.parse(item.updatedAt) : NaN;
+      return Number.isNaN(at)
+        ? item.detail
+        : `Edited ${timeAgo(at, now)}`;
+    }).map((record) => ({ ...record, subtitle: humanize(record.kind) })),
   };
+}
+
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Kinds the overview treats as "linkable campaign objects". */
+const LINKABLE_KINDS = [
+  'npc',
+  'location',
+  'encounter',
+  'quest',
+  'faction',
+  'map',
+] as const;
+
+/**
+ * Most-referenced campaign objects, for campaigns without curated backlinks
+ * (real server campaigns). Ties keep bundle order.
+ */
+function deriveBacklinks(bundle: CampaignFixtureBundle): OverviewRecord[] {
+  const candidates = [
+    ...bundle.npcs.map((n) => ({ id: n.id, kind: 'npc' as const, label: n.name })),
+    ...bundle.locations.map((l) => ({
+      id: l.id,
+      kind: 'location' as const,
+      label: l.name,
+    })),
+    ...bundle.quests.map((q) => ({ id: q.id, kind: 'quest' as const, label: q.title })),
+    ...bundle.factions.map((f) => ({
+      id: f.id,
+      kind: 'faction' as const,
+      label: f.name,
+    })),
+    ...bundle.encounters.map((e) => ({
+      id: e.id,
+      kind: 'encounter' as const,
+      label: e.title,
+    })),
+    ...bundle.maps.map((m) => ({ id: m.id, kind: 'map' as const, label: m.title })),
+  ].filter((item) => LINKABLE_KINDS.includes(item.kind));
+
+  return candidates
+    .map((item) => ({ ...item, count: getBacklinks(bundle, item.id).length }))
+    .filter((item) => item.count > 0)
+    .sort((a, b) => b.count - a.count)
+    .slice(0, 5)
+    .map(
+      (item): OverviewRecord => ({
+        id: `backlink-${item.id}`,
+        kind: item.kind,
+        title: item.label,
+        subtitle: humanize(item.kind),
+        meta: `Linked from ${plural(item.count, 'object')}`,
+        href: hrefFor(bundle, item.id),
+        details: [],
+      }),
+    );
+}
+
+/** "3 hours ago" relative to `now` (never in the future). */
+function timeAgo(at: number, now: number): string {
+  const minutes = Math.floor(Math.max(0, now - at) / 60000);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+  if (days > 0) return `${plural(days, 'day')} ago`;
+  if (hours > 0) return `${plural(hours, 'hour')} ago`;
+  if (minutes > 0) return `${plural(minutes, 'minute')} ago`;
+  return 'just now';
+}
+
+/** A date-only or full ISO string as epoch ms, else NaN. */
+function parseDate(value: string | undefined): number {
+  return value ? Date.parse(value) : NaN;
+}
+
+/**
+ * The session to prepare next when no curated `nextSession` resolves: the
+ * earliest upcoming dated session that is not complete, else the
+ * lowest-numbered session that is not complete.
+ */
+export function pickUpcomingSession(
+  sessions: readonly CampaignSession[],
+  now: number,
+): CampaignSession | undefined {
+  const open = sessions.filter((session) => session.status !== 'complete');
+  const upcoming = open
+    .map((session) => ({ session, at: parseDate(session.plannedDate) }))
+    .filter(({ at }) => !Number.isNaN(at) && at >= now - DAY_MS)
+    .sort((a, b) => a.at - b.at);
+  if (upcoming.length > 0) return upcoming[0].session;
+  return [...open].sort((a, b) => a.number - b.number)[0];
+}
+
+function scheduleFor(plannedDate: string | undefined, now: number): string[] {
+  const at = parseDate(plannedDate);
+  if (Number.isNaN(at)) return compact([plannedDate]);
+  const date = new Date(at).toLocaleDateString(undefined, {
+    weekday: 'short',
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+    // Date-only strings parse as UTC midnight; keep that calendar day.
+    ...(plannedDate && /^\d{4}-\d{2}-\d{2}$/.test(plannedDate)
+      ? { timeZone: 'UTC' }
+      : {}),
+  });
+  const days = Math.round((at - now) / DAY_MS);
+  const relative =
+    days === 0
+      ? 'today'
+      : days === 1
+        ? 'tomorrow'
+        : days > 1
+          ? `in ${days} days`
+          : undefined;
+  return compact([date, relative]);
 }
 
 function buildNextSession(
   bundle: CampaignFixtureBundle,
+  now: number,
   href: (id: string) => string | undefined,
   helpers: {
     creatureCount: (
@@ -366,11 +490,21 @@ function buildNextSession(
   },
 ): NextSessionModel | null {
   const next = bundle.campaign.nextSession;
-  const session = bundle.sessions.find(({ id }) => id === next.sessionId);
+  const curated = bundle.sessions.find(({ id }) => id === next.sessionId);
+  const session = curated ?? pickUpcomingSession(bundle.sessions, now);
   if (!session) return null;
+  // Curated fact ids win; otherwise use the session's first linked objects.
+  const factId = (curatedId: string, fallback: readonly string[]) =>
+    curated && curatedId ? curatedId : fallback[0];
+  const ids = {
+    encounter: factId(next.encounterId, session.encounterIds),
+    npc: factId(next.npcId, session.npcIds),
+    location: factId(next.locationId, session.locationIds),
+    quest: factId(next.questId, session.questIds),
+  };
 
   const facts: NextSessionFact[] = [];
-  const encounter = bundle.encounters.find(({ id }) => id === next.encounterId);
+  const encounter = bundle.encounters.find(({ id }) => id === ids.encounter);
   if (encounter) {
     const count = helpers.creatureCount(encounter.composition);
     facts.push({
@@ -389,7 +523,7 @@ function buildNextSession(
       },
     });
   }
-  const npc = bundle.npcs.find(({ id }) => id === next.npcId);
+  const npc = bundle.npcs.find(({ id }) => id === ids.npc);
   if (npc) {
     facts.push({
       label: 'Key NPC',
@@ -404,7 +538,7 @@ function buildNextSession(
       },
     });
   }
-  const location = bundle.locations.find(({ id }) => id === next.locationId);
+  const location = bundle.locations.find(({ id }) => id === ids.location);
   if (location) {
     facts.push({
       label: 'Primary Location',
@@ -421,7 +555,7 @@ function buildNextSession(
       },
     });
   }
-  const quest = bundle.quests.find(({ id }) => id === next.questId);
+  const quest = bundle.quests.find(({ id }) => id === ids.quest);
   if (quest) {
     facts.push({
       label: 'Relevant Quest',
@@ -441,11 +575,13 @@ function buildNextSession(
   return {
     sessionId: session.id,
     heading: `Session ${session.number} — ${session.title}`,
-    schedule: compact([
-      next.plannedDate || session.plannedDate,
-      next.time,
-      next.relativeDate,
-    ]),
+    schedule: curated
+      ? compact([
+          next.plannedDate || session.plannedDate,
+          next.time,
+          next.relativeDate,
+        ])
+      : scheduleFor(session.plannedDate, now),
     planHref: `/sessions/${session.id}/plan`,
     facts,
   };

@@ -146,4 +146,122 @@ export const npcs: CampaignNpc[] = [
     portraitFallback: 'EV',
     tags: ['Unknown entity', 'Set piece', 'Session 4 antagonist'],
   },
+  {
+    id: 'npc-marl-quillon',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    name: 'Marl Quillon',
+    role: 'Hedge-herbalist and midwife',
+    ancestry: 'Forest gnome',
+    factionIds: ['faction-marrowbone-circle'],
+    motivation:
+      'Keep her patients alive and their days intact. She has been quietly treating drovers for lost years with a bitter reed tea and a lot of patience, and she is the only one who has written down what is missing.',
+    relationship:
+      'Not yet met. She sells remedies at the edge of the eel market, and Dunmore Fenn has already offered to introduce the party if they stop asking the Wardens for answers.',
+    locationIds: ['location-eel-market', 'location-verrow-kitchen'],
+    sessionIds: [s(3)],
+    portraitFallback: 'MQ',
+    tags: ['Herbalist', 'Remedies', 'Keeper of the other ledger'],
+  },
+  {
+    id: 'npc-fenwick-oar',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    name: 'Fenwick Oar',
+    role: 'Gravedigger and slate-cutter',
+    ancestry: 'Tiefling',
+    factionIds: ['faction-burial-society'],
+    motivation:
+      'Lay the unnamed row to rest properly. He hears digging beneath it at dusk and has carved seven blank slates because he cannot bring himself to cut a name he does not know.',
+    relationship:
+      'Courteous, nervous, and unusually honest. He is the one Society member who would open the archive if Bettin asked him to, and she has not.',
+    locationIds: [
+      'location-tidewake-burying-ground',
+      'location-tidewake-burial-hall',
+    ],
+    sessionIds: [s(3)],
+    portraitFallback: 'FO',
+    tags: ['Gravedigger', 'Honest', 'Hears digging'],
+  },
+  {
+    id: 'npc-sabine-vale',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    name: 'Circuit Clerk Sabine Vale',
+    role: 'Clerk of the Greywater Assize',
+    ancestry: 'Human',
+    factionIds: ['faction-greywater-assize'],
+    motivation:
+      'Audit a village whose tax rolls show too few dead and too many births. She does not believe in ghosts, and is prepared to find a human fraud instead.',
+    relationship:
+      'Expected but not yet arrived. A letter in her hand has already reached the reeve, and the reeve has already burned it.',
+    locationIds: ['location-mourningfen-village'],
+    sessionIds: [s(3), s(4)],
+    portraitFallback: 'SV',
+    tags: ['Outsider', 'Auditor', 'Writ-bearer'],
+  },
+  {
+    id: 'npc-ottoline-verrow',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    name: 'Granny Ottoline Verrow',
+    role: 'Grandam of the erased family; the house’s warmth',
+    ancestry: 'Human',
+    factionIds: ['faction-reedbound'],
+    motivation:
+      'Feed whoever walks in out of the cold, and keep every child in the house in sight. She counts the seven at the table and cannot understand why the eighth chair is always full.',
+    relationship:
+      'Neither hostile nor friendly until addressed by name. If given tea and her true name, she will say what the village signed, and who held the pen.',
+    locationIds: ['location-verrow-kitchen', 'location-verrow-hall'],
+    sessionIds: [s(2)],
+    portraitFallback: 'OV',
+    tags: ['Ghost', 'Grandam', 'Knows the signatories'],
+  },
+  {
+    id: 'npc-halloran-wick',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    name: 'Halloran Wick',
+    role: 'Senior lamp-trimmer and the reeve’s enforcer',
+    ancestry: 'Dwarf',
+    factionIds: ['faction-lantern-wardens'],
+    motivation:
+      'Do what the reeve cannot say aloud. He believes in the bargain without fully knowing what it is, and he fears what the village would do if it learned.',
+    relationship:
+      'Watched the party leave the lamp house in session 1 and has been walking the boardwalk behind them since. Polite, and prepared to be otherwise.',
+    locationIds: ['location-wardens-lamp-house', 'location-lantern-oil-cellar'],
+    sessionIds: [s(1), s(3)],
+    portraitFallback: 'HW',
+    tags: ['Enforcer', 'Believer', 'Tail'],
+  },
+  {
+    id: 'npc-maudlin-tarn',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    name: 'Maudlin Tarn',
+    role: 'Odo Tarn’s widow; lamp-trimmer at the ferry',
+    ancestry: 'Human',
+    factionIds: ['faction-lantern-wardens'],
+    motivation:
+      'Learn who her husband was carrying the night he drowned, and why the Wardens fined her for the lost fare.',
+    relationship:
+      'Distant and exact. She lights a candle at Odo’s grave each dusk and will speak if someone brings the lantern tag home with respect.',
+    locationIds: [
+      'location-tidewake-burying-ground',
+      'location-crossing-ferry-landing',
+    ],
+    sessionIds: [s(1), s(3)],
+    portraitFallback: 'MT',
+    tags: ['Widow', 'Witness', 'Ferry ledger keeper'],
+  },
+  {
+    id: 'npc-jun-fenn',
+    campaignId: MOURNINGFEN_CAMPAIGN_ID,
+    name: 'Jun Fenn',
+    role: 'Dunmore’s niece, boat-runner',
+    ancestry: 'Half-orc',
+    factionIds: ['faction-fenfolk-drovers'],
+    motivation:
+      'Prove that the thing she hears in the reeds at night is real. She has known the counting rhyme since she was five and has never been able to say where she learned it.',
+    relationship:
+      'Quick, curious, and unafraid. She offered to guide Corren Moss through the channels and then vanished into the market before an answer was given.',
+    locationIds: ['location-eel-market', 'location-reedwalk'],
+    sessionIds: [s(1), s(3)],
+    portraitFallback: 'JF',
+    tags: ['Child', 'Guide', 'Knows the rhyme'],
+  },
 ];

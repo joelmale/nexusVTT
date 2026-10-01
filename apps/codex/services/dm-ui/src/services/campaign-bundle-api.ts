@@ -66,6 +66,7 @@ import {
   matchMonsterByName,
 } from '../features/encounters/monsterCatalog';
 import { mentionIds } from '../lib/mentions';
+import { prepareFixtureForClone } from './fixtureClone';
 import {
   createEmptyBundle,
   getFixtureBundle,
@@ -91,6 +92,7 @@ import type {
   HandoutAudience,
   QuestObjective,
 } from '../demo/fixture-registry/types';
+import type { ActivityLink } from '../demo/ashes-of-veyra/types';
 
 export type EditableKind =
   | 'npc'
@@ -179,6 +181,8 @@ interface Tracked {
   entity: Entity;
   revision: number;
   createdAt: string;
+  /** Last write time (ISO); drives the overview's Recent Edits. */
+  updatedAt: string;
   status: string;
 }
 
@@ -999,6 +1003,8 @@ function buildBundle(
       sessionIds: sessions.map((session) => session.id),
       actIds: acts.map((act) => act.id),
       playerCharacters,
+      // `nextSession` stays unset; the overview picks the upcoming session.
+      activity: { backlinks: [], recentEdits: recentEditsOf(items) },
       objectCounts: {
         all:
           items.size -
@@ -1045,6 +1051,39 @@ function buildBundle(
     homebrewMonsters,
     source: 'server',
   });
+}
+
+/** Server kinds the overview can link to as activity, by bundle object type. */
+const ACTIVITY_TYPES: Partial<
+  Record<EditableKind, ActivityLink['objectType']>
+> = {
+  npc: 'npc',
+  faction: 'faction',
+  quest: 'quest',
+  location: 'location',
+  encounter: 'encounter',
+};
+
+const RECENT_EDIT_LIMIT = 6;
+
+/** The most recently written campaign objects, newest first. */
+function recentEditsOf(items: Map<string, Tracked>): ActivityLink[] {
+  return [...items.values()]
+    .flatMap((item) => {
+      const objectType = ACTIVITY_TYPES[item.kind];
+      const label = str(item.entity[titleKey(item.kind)]).trim();
+      return objectType && label ? [{ item, objectType, label }] : [];
+    })
+    .sort((a, b) => b.item.updatedAt.localeCompare(a.item.updatedAt))
+    .slice(0, RECENT_EDIT_LIMIT)
+    .map(({ item, objectType, label }) => ({
+      id: `edit-${item.entity.id}`,
+      label,
+      objectType,
+      targetId: item.entity.id,
+      detail: item.revision > 1 ? `Revision ${item.revision}` : 'Created',
+      updatedAt: item.updatedAt,
+    }));
 }
 
 function folderCount(items: Map<string, Tracked>): number {
@@ -1151,11 +1190,13 @@ export function createServerBundleStore(
         item.title,
       );
       const data = isRecord(revision.data) ? revision.data : {};
+      const createdAt = str(data.createdAt) || new Date().toISOString();
       items.set(item.id, {
         kind,
         entity,
         revision: revisionOf(detail.body) ?? item.currentRevision,
-        createdAt: str(data.createdAt) || new Date().toISOString(),
+        createdAt,
+        updatedAt: str(data.updatedAt) || createdAt,
         status: item.status,
       });
     }
@@ -1169,7 +1210,7 @@ export function createServerBundleStore(
     kind: EditableKind,
     entity: Entity,
     tracked: Tracked | undefined,
-  ): Promise<SaveResult & { revision?: number }> {
+  ): Promise<SaveResult & { revision?: number; updatedAt?: string }> {
     const title = str(entity[titleKey(kind)]).trim();
     if (!title) return { ok: false, error: 'A title is required.' };
     const now = new Date().toISOString();
@@ -1220,6 +1261,7 @@ export function createServerBundleStore(
     return {
       ok: true,
       revision: revisionOf(result.body) ?? (tracked ? tracked.revision + 1 : 1),
+      updatedAt: now,
     };
   }
 
@@ -1241,7 +1283,12 @@ export function createServerBundleStore(
         error: result.error,
       };
     }
-    items.set(id, { ...tracked, entity: merged, revision: result.revision! });
+    items.set(id, {
+      ...tracked,
+      entity: merged,
+      revision: result.revision!,
+      updatedAt: result.updatedAt ?? new Date().toISOString(),
+    });
     publish();
     return { ok: true };
   }
@@ -1298,7 +1345,8 @@ export function createServerBundleStore(
       kind,
       entity,
       revision: result.revision!,
-      createdAt: new Date().toISOString(),
+      createdAt: result.updatedAt ?? new Date().toISOString(),
+      updatedAt: result.updatedAt ?? new Date().toISOString(),
       status: 'draft',
     });
     publish();
@@ -1418,8 +1466,9 @@ export function remap(
 /**
  * Creates a new real campaign named after the example fixture and clones the
  * example into it: acts, sessions (with their links and a draft session plan),
- * encounters, the party, locations, NPCs, factions, quests (with objectives),
- * lore and handouts (as notes) and clues (as notes). Maps are not copied yet.
+ * encounters, locations, NPCs, factions, quests (with objectives), lore and
+ * handouts (as notes) and clues (as notes). Maps are not copied yet. Play-state
+ * (party, dates, progress, sharing) is reset first; see `prepareFixtureForClone`.
  *
  * Two passes: every fixture id gets a fresh id first, then objects are written
  * in dependency order with their references remapped, so links never point at
@@ -1427,8 +1476,10 @@ export function remap(
  * the rest continue.
  */
 export async function seedFromFixture(slug: string): Promise<SeedResult> {
-  const fixture = getFixtureBundle(slug);
-  if (!fixture) throw new Error(`Unknown example campaign: ${slug}`);
+  const example = getFixtureBundle(slug);
+  if (!example) throw new Error(`Unknown example campaign: ${slug}`);
+  // Keep the authored world; drop the example's party, dates and progress.
+  const fixture = prepareFixtureForClone(example);
 
   const created = await createCampaign({
     name: fixture.campaign.title,

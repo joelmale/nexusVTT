@@ -58,7 +58,7 @@ export const campaign: CampaignFixture = {
       ancestry: 'Human',
       className: 'Fighter',
       level: 5,
-      hook: 'Former Harbor Watch officer seeking who framed him.',
+      hook: 'Former Harbor Watch officer dismissed under a forged order dated a day before the incident. He carries his old badge in his boot, still answers to Sergeant Corr in his dreams, and cannot decide whether he wants Warden Rook arrested or merely to hear him admit it.',
     },
     {
       id: 'pc-mira-vale',
@@ -66,7 +66,7 @@ export const campaign: CampaignFixture = {
       ancestry: 'Half-elf',
       className: 'Rogue',
       level: 5,
-      hook: 'Her family owes the Crimson Wake a dangerous favor.',
+      hook: 'Her father took three nights of silent passage from the Crimson Wake and left Mira holding the receipt: a red glass token and a note that the favor owed is a person. She has not told the party whose name she suspects is written on the blank second line.',
     },
     {
       id: 'pc-torin-stonewake',
@@ -74,7 +74,7 @@ export const campaign: CampaignFixture = {
       ancestry: 'Dwarf',
       className: 'Cleric',
       level: 5,
-      hook: 'Receives visions from bells beneath the bay.',
+      hook: 'Wakes each low tide with salt in his mouth and a bell-count in his head. The Tidewife has found him in dreams twice, and Prelate Voss keeps sending candles to the party with notes addressed only to Torin. He has begun to suspect they are tuned to the same sound.',
     },
     {
       id: 'pc-lira-fen',
@@ -82,7 +82,7 @@ export const campaign: CampaignFixture = {
       ancestry: 'Elf',
       className: 'Wizard',
       level: 5,
-      hook: 'Studies the pre-Veyran wards surrounding the Ember Key.',
+      hook: 'A Lantern Guild-trained scholar of pre-Veyran wards who has traced the blue-green ward lines from the Fractured Spire to the Customs House floor. She is certain the Azure Compact was built as a lock, and equally certain nobody will thank her for saying so.',
     },
   ],
   objectCounts: {
@@ -133,6 +133,20 @@ export const campaign: CampaignFixture = {
         targetId: 'quest-find-ember-key',
         detail: 'High priority',
       },
+      {
+        id: 'backlink-kael-name',
+        label: "Clear Kael's Name",
+        objectType: 'quest',
+        targetId: 'quest-clear-kaels-name',
+        detail: 'Forged order, Rook suspected',
+      },
+      {
+        id: 'backlink-flooded-undercroft',
+        label: 'The Flooded Undercroft',
+        objectType: 'encounter',
+        targetId: 'encounter-flooded-undercroft',
+        detail: 'Session 13 centerpiece',
+      },
     ],
     recentEdits: [
       {
@@ -169,6 +183,13 @@ export const campaign: CampaignFixture = {
         objectType: 'map',
         targetId: 'map-glass-harbor',
         detail: 'Map · Yesterday',
+      },
+      {
+        id: 'edit-flooded-undercroft',
+        label: 'The Flooded Undercroft',
+        objectType: 'location',
+        targetId: 'location-flooded-undercroft',
+        detail: 'Location · Yesterday',
       },
     ],
   },

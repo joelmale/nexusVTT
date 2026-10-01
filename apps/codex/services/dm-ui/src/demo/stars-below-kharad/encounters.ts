@@ -258,4 +258,226 @@ export const kharadEncounters: CampaignEncounter[] = [
       'Launch, burial, and ignition each honor one promise and break another; let the players feel the cost.',
     rulesetNotes: NOTE,
   },
+  {
+    id: 'encounter-quartz-spur-bridge',
+    campaignId: C,
+    title: 'The Quartz Spur Bridge',
+    kind: 'combat-exploration',
+    difficulty: 'moderate',
+    composition: [
+      {
+        name: 'Singing quartz spurs (hazard)',
+        count: 1,
+        ruleset: 'custom',
+        nonCreature: true,
+        role: 'Each spur hums a note; stepping on the wrong pitch cracks the span one round early.',
+      },
+      {
+        name: 'Earth Elemental',
+        count: 1,
+        ruleset: '2014-srd',
+        role: 'Drawn to the rescuers’ chorus; rises through the bridge footing.',
+      },
+      {
+        name: 'Cloaker',
+        count: 1,
+        ruleset: '2014-srd',
+        role: 'Hangs among the dark spurs and snatches the last rescuer in line.',
+      },
+    ],
+    trigger:
+      'The party crosses the crystalline span to reach the farthest trapped crew, guided by Yarrow’s humming.',
+    intendedUse:
+      'Session 1 optional beat between the fault and the observatory. Outcome: Yarrow’s pitch-reading let the party cross with one rescuer injured and the earth elemental lured away with a thrown lamp.',
+    sessionIds: [S1],
+    locationIds: ['location-singing-fault', 'location-kharad-mine'],
+    factionIds: ['faction-kharad-delvers-union', 'faction-hold-ghostlamp'],
+    tactics:
+      'The earth elemental targets whoever sings loudest. A successful note-match check lets a character quiet one spur for a round.',
+    rulesetNotes: NOTE,
+  },
+  {
+    id: 'encounter-banquet-of-seven-knives',
+    campaignId: C,
+    title: 'The Banquet of Seven Knives',
+    kind: 'social',
+    difficulty: 'high',
+    composition: [
+      {
+        name: 'Noble',
+        count: 5,
+        ruleset: '2014-srd',
+        role: 'Delegates working the room with toasts that double as threats and offers.',
+      },
+      {
+        name: 'Spy',
+        count: 2,
+        ruleset: '2014-srd',
+        role: 'Servants who carry sealed notes between delegations.',
+      },
+      {
+        name: 'Assassin',
+        count: 1,
+        ruleset: '2014-srd',
+        role: 'A hired cup-bearer whose employer is never named.',
+      },
+    ],
+    trigger:
+      'The night before the Concord vote, Bellowmere hosts a banquet for the seven delegations in the Hall of the Broken Gate.',
+    intendedUse:
+      'Session 2 interlude. Outcome: the assassin’s poisoned cup was swapped by Kjeld’s cooks; the party declined to name a suspect and kept the vote intact.',
+    sessionIds: [S2],
+    locationIds: ['location-broken-gate-hall'],
+    factionIds: [
+      'faction-hold-bellowmere',
+      'faction-hold-highvein',
+      'faction-duskforge-hold',
+      'faction-seven-hold-concord',
+    ],
+    tactics:
+      'The assassin strikes only if the table’s mood sours; a rapt, flattered room never gives her an opening. Treat accepted offers as finale complications.',
+    rulesetNotes: NOTE,
+  },
+  {
+    id: 'encounter-thrumhall-switchyard',
+    campaignId: C,
+    title: 'The Thrumhall Switchyard',
+    kind: 'combat-hazard',
+    difficulty: 'high',
+    composition: [
+      {
+        name: 'Rotating switch plates (hazard)',
+        count: 3,
+        ruleset: 'custom',
+        nonCreature: true,
+        role: 'Turntables that rotate whole platforms on a shouted timetable.',
+      },
+      {
+        name: 'Animated Armor',
+        count: 4,
+        ruleset: '2014-srd',
+        role: 'Thrumhall ward-suits bound to the yard’s timetable, hostile until a train number is given.',
+      },
+    ],
+    trigger:
+      'The gate opens onto the switchyard, and the line’s wardens wake in the middle of a re-routing.',
+    intendedUse:
+      'Session 2 mid-chase. Outcome: Sunniva shouted the correct timetable from the gantry and the wardens stood down.',
+    sessionIds: [S2],
+    locationIds: [
+      'location-thrumhall-switchyard',
+      'location-transit-line',
+    ],
+    factionIds: ['faction-hold-thrumhall', 'faction-ardent-deep-company'],
+    tactics:
+      'The ward-suits are a puzzle first: a character who names a valid train number from the Thrumhall timetable ends their attacks for a round.',
+    rulesetNotes: NOTE,
+  },
+  {
+    id: 'encounter-ketta-pursuit',
+    campaignId: C,
+    title: 'Knife-Squads at the Meridian Siding',
+    kind: 'combat',
+    difficulty: 'moderate',
+    composition: [
+      {
+        name: 'Duergar',
+        count: 4,
+        ruleset: '2014-srd',
+        role: 'Company enforcers who want the deserter before the party reaches the gate.',
+      },
+      {
+        name: 'Cloaker',
+        count: 1,
+        ruleset: '2014-srd',
+        role: 'Tethered to the squad’s sergeant and used to flush Ketta from cover.',
+      },
+    ],
+    trigger:
+      'Ketta Rawl is spotted leaving the platform with the party, and the Company’s squads close the siding.',
+    intendedUse:
+      'Session 2 closing beat. Outcome: the party covered Ketta’s escape; the sergeant was left on the siding with the cloaker unconscious.',
+    sessionIds: [S2],
+    locationIds: ['location-meridian-station'],
+    factionIds: ['faction-ardent-deep-company'],
+    tactics:
+      'Enforcers go for Ketta first, not the strongest hero. The cloaker retreats at half health.',
+    rulesetNotes: NOTE,
+  },
+  {
+    id: 'encounter-deep-sun-flare',
+    campaignId: C,
+    title: 'The Deep Sun Flare',
+    kind: 'combat-hazard',
+    difficulty: 'moderate',
+    composition: [
+      {
+        name: 'Casing flare (hazard)',
+        count: 1,
+        ruleset: 'custom',
+        nonCreature: true,
+        role: 'The newly kindled casing vents radiant heat in sweeping arcs.',
+      },
+      {
+        name: 'Fire Elemental',
+        count: 2,
+        ruleset: '2014-srd',
+        role: 'Sparks the sun throws off in the first minute of its kindling.',
+      },
+      {
+        name: 'Salamander',
+        count: 2,
+        ruleset: '2014-srd',
+        role: 'Smaller fire-spirits that coil around the rings and guard the casing seams.',
+      },
+    ],
+    trigger:
+      'The vessel is kindled; for one minute the casing’s seams spit sparks that take shapes of their own.',
+    intendedUse:
+      'Session 3 coda before the epilogues. Outcome: the Astronomer vented the flare through the rings and the sparks wandered off into the deep sun’s glow.',
+    sessionIds: [S3],
+    locationIds: ['location-engine-heart'],
+    factionIds: ['faction-astronomers-watch', 'faction-kindled-congregation'],
+    tactics:
+      'The elementals are drawn to the brightest light source; extinguishing lanterns draws them off the party. The Astronomer can vent the flare once per round at no cost.',
+    rulesetNotes: NOTE,
+  },
+  {
+    id: 'encounter-eighth-shaft-descent',
+    campaignId: C,
+    title: 'Descent into the Eighth Shaft',
+    kind: 'combat-exploration',
+    difficulty: 'high',
+    composition: [
+      {
+        name: 'Pressure drift (hazard)',
+        count: 1,
+        ruleset: 'custom',
+        nonCreature: true,
+        role: 'Every hundred feet inverts the shaft’s gravity; the first inversion drops any unsecured character thirty feet.',
+      },
+      {
+        name: 'Earth Elemental',
+        count: 2,
+        ruleset: '2014-srd',
+        role: 'Drawn by the engine’s hum; surge in from the side walls.',
+      },
+      {
+        name: 'Chuul',
+        count: 2,
+        ruleset: '2014-srd',
+        role: 'Lurk in a flooded landing where the shaft bottoms out.',
+      },
+    ],
+    trigger:
+      'Unused sequel encounter: the party opens the sealed shaft beneath the engine.',
+    intendedUse:
+      'Reserved for a sequel; not run. Outcome: none yet. Use only if the Eighth Light quest reactivates.',
+    sessionIds: [],
+    locationIds: ['location-eighth-shaft', 'location-engine-heart'],
+    factionIds: ['faction-astronomers-watch', 'faction-hold-marrowstone'],
+    tactics:
+      'The elementals attack in the first inversion; chuul wait at the landing and drag characters under.',
+    rulesetNotes: NOTE,
+  },
 ];

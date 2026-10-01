@@ -86,12 +86,12 @@ export const crownCampaign: CampaignFixture = {
   ],
   // Prep totals for the campaign so far (planned material counts as prepped).
   objectCounts: {
-    all: 41,
+    all: 83,
     scenes: 6,
-    encounters: 5,
-    npcs: 9,
-    lore: 3,
-    handouts: 5,
+    encounters: 11,
+    npcs: 16,
+    lore: 7,
+    handouts: 14,
   },
   nextSession: {
     sessionId: crownSessionId(1),
@@ -133,6 +133,27 @@ export const crownCampaign: CampaignFixture = {
         targetId: 'quest-who-wears-the-crown',
         detail: 'High priority',
       },
+      {
+        id: 'backlink-royal-mausoleum',
+        label: 'The Vellgrave Mausoleum',
+        objectType: 'location',
+        targetId: 'location-royal-mausoleum',
+        detail: 'Session 4 setting, empty-coffin reveal',
+      },
+      {
+        id: 'backlink-aurel-claimant',
+        label: 'The Man Who Calls Himself Aurel',
+        objectType: 'npc',
+        targetId: 'npc-aurel-claimant',
+        detail: 'Referenced by 3 handouts and 2 clues',
+      },
+      {
+        id: 'backlink-queens-last-night',
+        label: 'The Queen’s Last Night',
+        objectType: 'quest',
+        targetId: 'quest-queens-last-night',
+        detail: 'High priority, linked to 4 clues',
+      },
     ],
     recentEdits: [
       {
@@ -169,6 +190,27 @@ export const crownCampaign: CampaignFixture = {
         objectType: 'map',
         targetId: 'map-ashgate-royal-quarter',
         detail: 'Map · Yesterday',
+      },
+      {
+        id: 'edit-marcher-lords',
+        label: 'The Marcher Lords',
+        objectType: 'faction',
+        targetId: 'faction-border-lords',
+        detail: 'Faction · Added today',
+      },
+      {
+        id: 'edit-witness-clause',
+        label: 'The Witness Clause',
+        objectType: 'encounter',
+        targetId: 'encounter-witness-clause',
+        detail: 'Encounter · Statted for session 6',
+      },
+      {
+        id: 'edit-inkwell-court',
+        label: 'Inkwell Court',
+        objectType: 'location',
+        targetId: 'location-inkwell-court',
+        detail: 'Location · Mapped for session 3',
       },
     ],
   },

@@ -75,6 +75,8 @@ export interface ActivityLink {
   objectType: 'npc' | 'location' | 'encounter' | 'quest' | 'faction' | 'map';
   targetId: FixtureId;
   detail: string;
+  /** ISO time of the edit; set for server campaigns, shown as relative time. */
+  updatedAt?: string;
 }
 
 export interface CampaignSession {
