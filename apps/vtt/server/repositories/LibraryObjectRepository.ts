@@ -48,7 +48,7 @@ export class LibraryObjectRepository extends BaseRepository {
     client?: PoolClient,
   ): Promise<{ object: LibraryObjectRecord; revision: LibraryObjectRevisionRecord }> {
     const executor = this.getExecutor(client);
-    const idClause = customId ? '$1, ' : '';
+    const idClause = customId ? 'id, ' : '';
     const valuesClause = customId
       ? '$1, $2, $3, $4, $5, $6, $7'
       : '$1, $2, $3, $4, $5, $6';
