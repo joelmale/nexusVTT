@@ -35,6 +35,12 @@ describe('campaign prep routes', () => {
   };
   let commandReceipts: { getReceipt: ReturnType<typeof vi.fn> };
   let domainCommands: { execute: ReturnType<typeof vi.fn> };
+  let libraryObjects: {
+    getObjectById: ReturnType<typeof vi.fn>;
+    getRevision: ReturnType<typeof vi.fn>;
+    createObject: ReturnType<typeof vi.fn>;
+    addRevision: ReturnType<typeof vi.fn>;
+  };
   let publisher: { publish: ReturnType<typeof vi.fn> };
   let author: {
     create: ReturnType<typeof vi.fn>;
@@ -63,6 +69,17 @@ describe('campaign prep routes', () => {
     };
     commandReceipts = { getReceipt: vi.fn().mockResolvedValue(null) };
     domainCommands = { execute: vi.fn() };
+    libraryObjects = {
+      getObjectById: vi.fn().mockResolvedValue(null),
+      getRevision: vi.fn().mockResolvedValue(null),
+      createObject: vi
+        .fn()
+        .mockImplementation(async (_object, _initial, id: string) => ({
+          object: { id },
+          revision: { objectId: id, revision: 1 },
+        })),
+      addRevision: vi.fn(),
+    };
     publisher = { publish: vi.fn() };
     author = { create: vi.fn(), revise: vi.fn() };
 
@@ -84,6 +101,7 @@ describe('campaign prep routes', () => {
           campaignPrep,
           commandReceipts,
           domainCommands,
+          libraryObjects,
         } as never,
         publisher,
       }),
@@ -790,6 +808,106 @@ describe('campaign prep routes', () => {
       expect((await post({ sceneId })).status).toBe(422);
       campaignPrep.getActivation.mockResolvedValue(null);
       expect((await post({ sceneId })).status).toBe(404);
+    });
+  });
+
+  describe('encounter materialization', () => {
+    const ENCOUNTER_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+    const url = `/api/campaigns/${CAMPAIGN_ID}/prep/encounters/${ENCOUNTER_ID}/materialize`;
+    const goblin = {
+      key: 'srd:goblin',
+      name: 'Goblin',
+      cr: '1/4',
+      ac: 15,
+      hp: 7,
+      speed: 30,
+      abilities: [8, 14, 10, 10, 8, 8],
+    };
+    const post = (body: unknown, path = url) =>
+      fetch(`${baseUrl}${path}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+    beforeEach(() => {
+      campaignPrep.getObject.mockResolvedValue({
+        id: ENCOUNTER_ID,
+        campaignId: CAMPAIGN_ID,
+        kind: 'encounter',
+        title: 'Dock ambush',
+        currentRevision: 2,
+      });
+      campaignPrep.getRevision.mockResolvedValue({
+        data: {
+          content: {
+            value: {
+              nexusStudio: {
+                fields: {
+                  composition: [
+                    {
+                      name: 'Goblin',
+                      count: 2,
+                      monsterKey: 'srd:goblin',
+                      cr: '1/4',
+                    },
+                  ],
+                },
+              },
+            },
+          },
+        },
+      });
+    });
+
+    it('materializes an authored encounter and returns its pinned ref', async () => {
+      const response = await post({ monsters: [goblin] });
+      expect(response.status).toBe(200);
+      expect(await response.json()).toMatchObject({
+        encounterRef: { kind: 'encounter', id: ENCOUNTER_ID, revision: 1 },
+        monsterCount: 1,
+        created: true,
+      });
+      expect(libraryObjects.createObject).toHaveBeenCalledWith(
+        expect.objectContaining({
+          kind: 'encounter',
+          campaignId: CAMPAIGN_ID,
+          ownerId: USER_ID,
+        }),
+        expect.anything(),
+        ENCOUNTER_ID,
+      );
+    });
+
+    it('is restricted to the campaign DM and validates input', async () => {
+      userId = '33333333-3333-4333-8333-333333333333';
+      expect((await post({ monsters: [goblin] })).status).toBe(403);
+      userId = USER_ID;
+      expect(
+        (
+          await post(
+            { monsters: [goblin] },
+            `/api/campaigns/${CAMPAIGN_ID}/prep/encounters/not-a-uuid/materialize`,
+          )
+        ).status,
+      ).toBe(400);
+      expect((await post({ monsters: [{ ...goblin, hp: 0 }] })).status).toBe(
+        422,
+      );
+      expect(libraryObjects.createObject).not.toHaveBeenCalled();
+    });
+
+    it('returns 404 for a missing encounter and 422 for other kinds', async () => {
+      campaignPrep.getObject.mockResolvedValue(null);
+      expect((await post({ monsters: [goblin] })).status).toBe(404);
+      campaignPrep.getObject.mockResolvedValue({
+        id: ENCOUNTER_ID,
+        campaignId: CAMPAIGN_ID,
+        kind: 'npc',
+        title: 'Mira',
+        currentRevision: 1,
+      });
+      expect((await post({ monsters: [goblin] })).status).toBe(422);
     });
   });
 });

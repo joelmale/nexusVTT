@@ -3,6 +3,11 @@ import { useParams } from 'react-router-dom';
 
 import type { CampaignEncounter } from '@/demo/fixture-registry';
 import { useCapabilityNotice } from '@/features/capability-notice';
+import {
+  AddRow,
+  EditableSection,
+} from '@/features/section-shell/EditableSection';
+import { diffDraft } from '@/features/section-shell/draftUtils';
 import { EmptyState } from '@/features/section-shell/EmptyState';
 import { EntityList } from '@/features/section-shell/EntityList';
 import { FilterBar } from '@/features/section-shell/FilterBar';
@@ -14,7 +19,16 @@ import { DmOnlyBadge, StatusBadge } from '@/features/section-shell/StatusBadge';
 import { humanize } from '@/features/section-shell/statusTones';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 
+import { compositionOf, useDraftRating } from './encounterDraft';
+import { DifficultyHint, EncounterEditor } from './EncounterEditor';
 import styles from './EncountersSection.module.css';
+import {
+  buildMonsterCatalog,
+  editionOfBundle,
+  partyLevelsOf,
+  rateComposition,
+  storedDifficulty,
+} from './monsterCatalog';
 import {
   ENCOUNTER_KIND_LABELS,
   RULESET_LABELS,
@@ -29,7 +43,7 @@ import {
 const DIFFICULTIES = ['low', 'moderate', 'high'];
 
 export function EncountersSection() {
-  const { bundle, basePath } = useSectionBundle();
+  const { bundle, basePath, store } = useSectionBundle();
   const { encounterId } = useParams();
   const { get } = useSectionQuery();
 
@@ -42,16 +56,40 @@ export function EncountersSection() {
     [bundle, q, kind, difficulty, sort],
   );
 
+  const addRow = (
+    <AddRow
+      defaults={{
+        composition: [],
+        difficulty: 'moderate',
+        intendedUse: '',
+        kind: 'combat',
+        tactics: '',
+        trigger: '',
+      }}
+      kind="encounter"
+      label="Add encounter"
+      nameField="title"
+      sectionPath="encounters"
+    />
+  );
+
   if (bundle.encounters.length === 0) {
     return (
       <SectionLayout
         empty={
-          <EmptyState
-            description="Prepared fights and social scenes will appear here."
-            title="No encounters prepared."
-          />
+          store.editable ? undefined : (
+            <EmptyState
+              description="Prepared fights and social scenes will appear here."
+              title="No encounters prepared."
+            />
+          )
         }
-        list={null}
+        list={
+          store.editable ? (
+            <p className={styles.muted}>No encounters yet.</p>
+          ) : null
+        }
+        listFooter={addRow}
         sectionPath="encounters"
         title="Encounters"
       />
@@ -132,6 +170,7 @@ export function EncountersSection() {
           selectedId={encounterId}
         />
       }
+      listFooter={addRow}
       notFound={Boolean(encounterId) && !selected}
       sectionPath="encounters"
       selectedId={encounterId}
@@ -151,11 +190,23 @@ function EncounterDetail({ encounter }: { encounter: CampaignEncounter }) {
   const { notifyCapability } = useCapabilityNotice();
   const total = participantTotal(encounter);
   const next = isInNextSession(bundle, encounter);
+  const draft = useMemo(
+    () => ({
+      title: encounter.title,
+      kind: encounter.kind,
+      trigger: encounter.trigger,
+      intendedUse: encounter.intendedUse,
+      tactics: encounter.tactics,
+      rulesetNotes: encounter.rulesetNotes,
+      composition: encounter.composition,
+    }),
+    [encounter],
+  );
+  const { catalog, rating, party, edition } = useDraftRating(bundle, draft);
 
   return (
-    <article aria-labelledby="encounter-heading" className={styles.detail}>
-      <header className={styles.header}>
-        <h2 id="encounter-heading">{encounter.title}</h2>
+    <EditableSection
+      headerExtras={
         <span className={styles.badges}>
           <StatusBadge tone="neutral">
             {ENCOUNTER_KIND_LABELS[encounter.kind]}
@@ -164,97 +215,143 @@ function EncounterDetail({ encounter }: { encounter: CampaignEncounter }) {
             {humanize(encounter.difficulty)} difficulty
           </StatusBadge>
           {next ? <StatusBadge tone="info">Next session</StatusBadge> : null}
+          {canDeploy(bundle) ? (
+            <button
+              className={styles.deploy}
+              onClick={() =>
+                notifyCapability(
+                  exampleSlug ? 'encounter.deploy.demo' : 'encounter.deploy',
+                )
+              }
+              type="button"
+            >
+              Deploy to VTT
+            </button>
+          ) : null}
         </span>
-        {canDeploy(bundle) ? (
-          <button
-            className={styles.deploy}
-            onClick={() =>
-              notifyCapability(
-                exampleSlug ? 'encounter.deploy.demo' : 'encounter.deploy',
-              )
-            }
-            type="button"
-          >
-            Deploy to VTT
-          </button>
+      }
+      heading={encounter.title}
+      id={encounter.id}
+      initialDraft={draft}
+      kind="encounter"
+      renderForm={(current, setDraft) => (
+        <EncounterEditor draft={current} setDraft={setDraft} />
+      )}
+      toPatch={(current, initial) => {
+        const patch = diffDraft(current, initial);
+        if ('composition' in patch) {
+          patch.composition = compositionOf(current).map((part) => ({
+            ...part,
+            count: Math.max(1, part.count),
+          }));
+          const rated = rateCompositionFor(bundle, current);
+          if (rated) patch.difficulty = storedDifficulty(rated);
+        }
+        return patch;
+      }}
+    >
+      <div className={styles.body}>
+        {encounter.trigger ? (
+          <section>
+            <h3>Trigger</h3>
+            <p>{encounter.trigger}</p>
+          </section>
         ) : null}
-      </header>
+        {encounter.intendedUse ? (
+          <section>
+            <h3>Intended use</h3>
+            <p>{encounter.intendedUse}</p>
+          </section>
+        ) : null}
 
-      {encounter.trigger ? (
         <section>
-          <h3>Trigger</h3>
-          <p>{encounter.trigger}</p>
-        </section>
-      ) : null}
-      {encounter.intendedUse ? (
-        <section>
-          <h3>Intended use</h3>
-          <p>{encounter.intendedUse}</p>
-        </section>
-      ) : null}
-
-      <section>
-        <h3>Composition</h3>
-        {encounter.composition.length === 0 ? (
-          <p className={styles.muted}>No participants listed.</p>
-        ) : (
-          <table className={styles.table}>
-            <caption className={styles.srOnly}>
-              Composition of {encounter.title}
-            </caption>
-            <thead>
-              <tr>
-                <th scope="col">Name</th>
-                <th scope="col">Count</th>
-                <th scope="col">Role</th>
-                <th scope="col">Ruleset</th>
-              </tr>
-            </thead>
-            <tbody>
-              {encounter.composition.map((part, index) => (
-                <tr key={`${part.name}-${index}`}>
-                  <th scope="row">{part.name}</th>
-                  <td>{part.count}</td>
-                  <td>{part.role}</td>
-                  <td>{RULESET_LABELS[part.ruleset] ?? part.ruleset}</td>
+          <h3>Composition</h3>
+          {encounter.composition.length === 0 ? (
+            <p className={styles.muted}>No participants listed.</p>
+          ) : (
+            <table className={styles.table}>
+              <caption className={styles.srOnly}>
+                Composition of {encounter.title}
+              </caption>
+              <thead>
+                <tr>
+                  <th scope="col">Name</th>
+                  <th scope="col">Count</th>
+                  <th scope="col">Role</th>
+                  <th scope="col">Ruleset</th>
                 </tr>
-              ))}
-            </tbody>
-            <tfoot>
-              <tr>
-                <th scope="row">Total participants</th>
-                <td>{total}</td>
-                <td colSpan={2} />
-              </tr>
-            </tfoot>
-          </table>
-        )}
-      </section>
-
-      {encounter.tactics ? (
-        <section>
-          <h3>
-            Tactics <DmOnlyBadge />
-          </h3>
-          <p>{encounter.tactics}</p>
+              </thead>
+              <tbody>
+                {encounter.composition.map((part, index) => (
+                  <tr key={`${part.name}-${index}`}>
+                    <th scope="row">{part.name}</th>
+                    <td>{part.count}</td>
+                    <td>{part.role}</td>
+                    <td>
+                      {part.monsterKey?.startsWith('homebrew:')
+                        ? 'Homebrew'
+                        : (RULESET_LABELS[part.ruleset] ?? part.ruleset)}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+              <tfoot>
+                <tr>
+                  <th scope="row">Total participants</th>
+                  <td>{total}</td>
+                  <td colSpan={2} />
+                </tr>
+              </tfoot>
+            </table>
+          )}
+          {catalog.length > 0 && compositionOf(draft).length > 0 ? (
+            <DifficultyHint
+              edition={edition}
+              party={party.length}
+              rating={rating}
+            />
+          ) : null}
         </section>
-      ) : null}
-      {encounter.rulesetNotes ? (
-        <section>
-          <h3>Ruleset notes</h3>
-          <p>{encounter.rulesetNotes}</p>
-        </section>
-      ) : null}
 
-      <RelatedGroups
-        entityId={encounter.id}
-        forwardIds={[
-          ...encounter.locationIds,
-          ...encounter.factionIds,
-          ...encounter.sessionIds,
-        ]}
-        kinds={['location', 'faction', 'session']}
-      />
-    </article>
+        {encounter.tactics ? (
+          <section>
+            <h3>
+              Tactics <DmOnlyBadge />
+            </h3>
+            <p>{encounter.tactics}</p>
+          </section>
+        ) : null}
+        {encounter.rulesetNotes ? (
+          <section>
+            <h3>Ruleset notes</h3>
+            <p>{encounter.rulesetNotes}</p>
+          </section>
+        ) : null}
+
+        <RelatedGroups
+          entityId={encounter.id}
+          forwardIds={[
+            ...encounter.locationIds,
+            ...encounter.factionIds,
+            ...encounter.sessionIds,
+          ]}
+          kinds={['location', 'faction', 'session']}
+        />
+      </div>
+    </EditableSection>
   );
+}
+
+/** Rating for a draft, or undefined when it cannot be rated. */
+function rateCompositionFor(
+  bundle: ReturnType<typeof useSectionBundle>['bundle'],
+  draft: Record<string, unknown>,
+) {
+  const catalog = buildMonsterCatalog(bundle.homebrewMonsters);
+  return rateComposition(
+    compositionOf(draft),
+    catalog,
+    partyLevelsOf(bundle),
+    editionOfBundle(bundle),
+  ).result?.rating;
 }

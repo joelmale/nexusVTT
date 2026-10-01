@@ -7,7 +7,10 @@ import {
   type SessionPlanStep,
 } from '@nexus/game-contracts';
 
-import type { SessionStepViewModel } from '@/features/session-plan/sessionPlanModels';
+import type {
+  EncounterMonsterStats,
+  SessionStepViewModel,
+} from '@/features/session-plan/sessionPlanModels';
 
 interface UserProfile {
   id: string;
@@ -343,6 +346,27 @@ async function ensureScene(
   return saved;
 }
 
+export interface MaterializedEncounterRef {
+  encounterRef: { kind: 'encounter'; id: string; revision: number };
+  monsterCount: number;
+  created: boolean;
+}
+
+/**
+ * Publishes an authored encounter as the library definitions the VTT deploys
+ * from, and returns the pinned ref for a deploy-encounter step. Idempotent.
+ */
+export async function materializeEncounter(
+  campaignId: string,
+  encounterId: string,
+  monsters: EncounterMonsterStats[],
+): Promise<MaterializedEncounterRef> {
+  return request<MaterializedEncounterRef>(
+    `/api/campaigns/${encodeURIComponent(campaignId)}/prep/encounters/${encodeURIComponent(encounterId)}/materialize`,
+    { method: 'POST', body: JSON.stringify({ monsters }) },
+  );
+}
+
 async function buildContractSteps(
   input: PublishSessionPlanInput,
   campaignId: string,
@@ -393,6 +417,16 @@ async function buildContractSteps(
         type: 'activate-scene',
         sceneTemplateRef: campaignObjectRef(campaignId, scene),
       });
+      continue;
+    }
+
+    if (step.command === 'Deploy encounter' && step.encounterId) {
+      const { encounterRef } = await materializeEncounter(
+        campaignId,
+        step.encounterId,
+        step.encounterMonsters ?? [],
+      );
+      result.push({ ...base, type: 'deploy-encounter', encounterRef });
       continue;
     }
 

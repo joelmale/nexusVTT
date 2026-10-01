@@ -72,6 +72,7 @@ import type {
   CampaignHandout,
   CampaignNote,
   CampaignSession,
+  HomebrewMonster,
   PlayerCharacter,
   NoteAudience,
   NoteColor,
@@ -97,7 +98,8 @@ export type EditableKind =
   | 'session'
   | 'act'
   | 'encounter'
-  | 'party-member';
+  | 'party-member'
+  | 'homebrew-monster';
 
 /** Handouts and folders are both stored as server kind `lore`. */
 function serverKind(kind: EditableKind): string {
@@ -196,6 +198,7 @@ const EDITABLE_KINDS: string[] = [
   'act',
   'encounter',
   'party-member',
+  'homebrew-monster',
 ];
 
 /** Fields that never round-trip because the server has no kind for them. */
@@ -296,7 +299,8 @@ function titleKey(kind: EditableKind): 'name' | 'title' {
   return kind === 'npc' ||
     kind === 'faction' ||
     kind === 'location' ||
-    kind === 'party-member'
+    kind === 'party-member' ||
+    kind === 'homebrew-monster'
     ? 'name'
     : 'title';
 }
@@ -543,6 +547,10 @@ function normalize(
                 'custom',
               ),
               role: str(component.role),
+              ...(component.monsterKey
+                ? { monsterKey: str(component.monsterKey) }
+                : {}),
+              ...(component.cr ? { cr: str(component.cr) } : {}),
             }))
           : [],
         trigger: str(raw.trigger),
@@ -562,6 +570,24 @@ function normalize(
         level: num(raw.level, 1),
         hook: str(raw.hook),
       } satisfies PlayerCharacter;
+    case 'homebrew-monster': {
+      const scores = Array.isArray(raw.abilities) ? raw.abilities : [];
+      return {
+        ...base,
+        name: str(raw.name),
+        size: str(raw.size, 'Medium'),
+        type: str(raw.type, 'humanoid'),
+        cr: str(raw.cr, '1'),
+        ac: num(raw.ac, 10),
+        hp: num(raw.hp, 10),
+        speed: num(raw.speed, 30),
+        abilities: [0, 1, 2, 3, 4, 5].map((index) =>
+          num(scores[index], 10),
+        ) as HomebrewMonster['abilities'],
+        edition: raw.edition === '2014' ? '2014' : '2024',
+        notes: str(raw.notes),
+      } satisfies HomebrewMonster;
+    }
   }
 }
 
@@ -624,6 +650,8 @@ function plainLines(kind: EditableKind, entity: Entity): string[] {
       return [str(entity.intendedUse), str(entity.trigger)];
     case 'party-member':
       return [str(entity.hook)];
+    case 'homebrew-monster':
+      return [str(entity.notes)];
   }
 }
 
@@ -772,6 +800,7 @@ function entityFromData(
     }
     if (kind === 'session' || kind === 'act') raw.summary = text.join('\n');
     if (kind === 'party-member') raw.hook = text.join('\n');
+    if (kind === 'homebrew-monster') raw.notes = text.join('\n');
     if (kind === 'npc' || kind === 'location') raw.tags = record.tags;
   }
   raw.id = id;
@@ -856,6 +885,9 @@ function buildBundle(
   ).sort((a, b) => a.number - b.number);
   const encounters = list<CampaignEncounter>('encounter');
   const playerCharacters = list<PlayerCharacter>('party-member');
+  const homebrewMonsters = list<HomebrewMonster>('homebrew-monster').sort(
+    (a, b) => a.name.localeCompare(b.name),
+  );
   const linkedPlanIds = new Set(
     authoredSessions.flatMap((session) =>
       session.planId ? [session.planId] : [],
@@ -917,7 +949,8 @@ function buildBundle(
           items.size -
           folderCount(items) -
           acts.length -
-          playerCharacters.length +
+          playerCharacters.length -
+          homebrewMonsters.length +
           extras.sceneTemplates.length,
         scenes: extras.sceneTemplates.length,
         encounters: encounters.length,
@@ -954,6 +987,7 @@ function buildBundle(
     maps,
     sessions,
     sceneTemplates: extras.sceneTemplates,
+    homebrewMonsters,
     source: 'server',
   });
 }

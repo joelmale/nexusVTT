@@ -14,6 +14,10 @@ import type {
   CampaignPrepObjectKind,
   CampaignPrepObjectStatus,
 } from '../repositories/base.js';
+import {
+  EncounterMaterializationError,
+  EncounterMaterializer,
+} from '../campaign-prep/EncounterMaterializer.js';
 import { SessionPlanEncounterDeployer } from '../campaign-prep/SessionPlanEncounterDeployer.js';
 import {
   SessionPlanPublishingError,
@@ -24,7 +28,12 @@ type CampaignPrepDatabase = Pick<
   DatabaseService,
   'campaigns' | 'campaignPrep'
 > &
-  Partial<Pick<DatabaseService, 'commandReceipts' | 'domainCommands'>>;
+  Partial<
+    Pick<
+      DatabaseService,
+      'commandReceipts' | 'domainCommands' | 'libraryObjects'
+    >
+  >;
 
 interface SessionPlanPublisher {
   publish(request: {
@@ -73,6 +82,7 @@ const OBJECT_KINDS = new Set<CampaignPrepObjectKind>([
   'act',
   'encounter',
   'party-member',
+  'homebrew-monster',
   'scene-template',
   'campaign-map',
   'session-plan',
@@ -226,6 +236,50 @@ export function createCampaignPrepRouter({
       return handleAuthoringError(error, res);
     }
   });
+
+  // Publishes an authored encounter as the library definitions DeployEncounter
+  // reads, and returns the pinned definition ref for a deploy-encounter step.
+  router.post(
+    '/campaigns/:campaignId/prep/encounters/:objectId/materialize',
+    async (req, res) => {
+      const objectId = routeParameter(req.params.objectId);
+      if (!isUuid(objectId)) {
+        return res.status(400).json({ error: 'objectId must be a UUID' });
+      }
+      if (!db.libraryObjects) {
+        return res
+          .status(501)
+          .json({ error: 'Encounter materialization is not configured' });
+      }
+      try {
+        const materializer = new EncounterMaterializer({
+          campaignPrep: db.campaignPrep,
+          libraryObjects: db.libraryObjects,
+        });
+        const result = await materializer.materialize({
+          campaignId: routeParameter(req.params.campaignId),
+          objectId,
+          principalId: sessionUserId(req) ?? '',
+          monsters: (req.body as { monsters?: unknown } | undefined)?.monsters,
+        });
+        return res.json(result);
+      } catch (error) {
+        if (error instanceof EncounterMaterializationError) {
+          const status =
+            error.code === 'not-found'
+              ? 404
+              : error.code === 'forbidden'
+                ? 403
+                : 422;
+          return res.status(status).json({ error: error.message });
+        }
+        console.error('Failed to materialize encounter:', error);
+        return res
+          .status(500)
+          .json({ error: 'Failed to materialize encounter' });
+      }
+    },
+  );
 
   router.get(
     '/campaigns/:campaignId/prep/objects/:objectId',

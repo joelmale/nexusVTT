@@ -212,6 +212,14 @@ export interface EncounterComponent {
   count: number;
   ruleset: '2024' | '2014-srd' | 'custom';
   role: string;
+  /**
+   * Catalog link, set by the encounter editor: `srd:<index>` for a canonical
+   * SRD monster or `homebrew:<object id>` for a campaign homebrew monster.
+   * Example fixtures list monsters by name only and leave this unset.
+   */
+  monsterKey?: string;
+  /** Challenge rating label copied from the linked monster ('1/4', '5'). */
+  cr?: string;
 }
 
 export interface CampaignClue {

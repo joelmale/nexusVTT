@@ -210,6 +210,106 @@ describe('publishSessionPlan', () => {
     });
   });
 
+  it('publishes an authored encounter step as a pinned deploy-encounter step', async () => {
+    const ENCOUNTER_ID = 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee';
+    let createdPlan: Record<string, unknown> | undefined;
+    let materializeBody: Record<string, unknown> | undefined;
+    const goblin = {
+      key: 'srd:goblin',
+      name: 'Goblin',
+      cr: '1/4',
+      ac: 15,
+      hp: 7,
+      speed: 30,
+      abilities: [8, 14, 10, 10, 8, 8],
+    };
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async (request, requestInit) => {
+        const path = String(request);
+        if (path === '/api/users/profile') return json({ id: 'dm-1' });
+        if (path === '/api/user/dm-1/assets') return json({ assets: [] });
+        if (path.endsWith('/materialize')) {
+          expect(path).toBe(
+            `/api/campaigns/${CAMPAIGN_ID}/prep/encounters/${ENCOUNTER_ID}/materialize`,
+          );
+          materializeBody = JSON.parse(String(requestInit?.body));
+          return json({
+            encounterRef: { kind: 'encounter', id: ENCOUNTER_ID, revision: 4 },
+            monsterCount: 1,
+            created: true,
+          });
+        }
+        if (path.endsWith('/prep/objects') && !requestInit?.method) {
+          return json({ objects: [] });
+        }
+        if (path === `/api/campaigns/${CAMPAIGN_ID}/prep/objects`) {
+          createdPlan = (
+            JSON.parse(String(requestInit?.body)) as {
+              data: Record<string, unknown>;
+            }
+          ).data;
+          return json({
+            object: {
+              id: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
+              kind: 'session-plan',
+              title: input.planTitle,
+              currentRevision: 1,
+              status: 'draft',
+            },
+          });
+        }
+        if (path.endsWith('/publish')) {
+          return json({
+            published: true,
+            plan: { id: 'plan-1', revision: 1, status: 'ready' },
+          });
+        }
+        throw new Error(`Unexpected request: ${path}`);
+      },
+    );
+
+    await publishSessionPlan({
+      ...input,
+      steps: [
+        {
+          command: 'Deploy encounter',
+          durationMinutes: 30,
+          encounterId: ENCOUNTER_ID,
+          encounterMonsters: [goblin],
+          id: 'enc-step',
+          title: 'Dock ambush',
+          track: 'main',
+          visibility: 'dm-only',
+        },
+        {
+          command: 'Deploy encounter',
+          durationMinutes: 5,
+          id: 'legacy-step',
+          title: 'Unlinked fight',
+          track: 'main',
+          visibility: 'dm-only',
+        },
+      ],
+    });
+
+    expect(materializeBody).toEqual({ monsters: [goblin] });
+    const steps = (createdPlan as { steps: Record<string, unknown>[] }).steps;
+    expect(steps[0]).toMatchObject({
+      type: 'deploy-encounter',
+      encounterRef: { kind: 'encounter', id: ENCOUNTER_ID, revision: 4 },
+    });
+    // Without an authored encounter the step still publishes as a reminder.
+    expect(steps[1]).toMatchObject({ type: 'reminder' });
+    expect(createdPlan).toMatchObject({
+      dependencies: [
+        {
+          target: 'definition',
+          ref: { kind: 'encounter', id: ENCOUNTER_ID, revision: 4 },
+        },
+      ],
+    });
+  });
+
   it('surfaces the first publish validation issue', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation(async () =>
       json(

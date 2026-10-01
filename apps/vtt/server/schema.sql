@@ -239,7 +239,7 @@ CREATE TABLE IF NOT EXISTS campaign_objects (
     "campaignId" UUID NOT NULL REFERENCES campaigns(id) ON DELETE CASCADE,
     kind VARCHAR(32) NOT NULL CHECK (kind IN (
         'note', 'npc', 'location', 'faction', 'quest', 'lore', 'clue',
-        'session', 'act', 'encounter', 'party-member',
+        'session', 'act', 'encounter', 'party-member', 'homebrew-monster',
         'scene-template', 'campaign-map', 'session-plan'
     )),
     title VARCHAR(255) NOT NULL,

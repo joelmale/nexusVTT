@@ -169,6 +169,7 @@ export type CampaignPrepObjectKind =
   | 'act'
   | 'encounter'
   | 'party-member'
+  | 'homebrew-monster'
   | 'scene-template'
   | 'campaign-map'
   | 'session-plan';

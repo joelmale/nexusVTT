@@ -78,6 +78,7 @@ describe('runStartupMigrations', () => {
       '2026-09-25-add-session-plan-activations.sql',
       '2026-09-30-harden-session-plan-activations.sql',
       '2026-10-01-add-campaign-prep-kinds.sql',
+      '2026-10-02-add-homebrew-monster-kind.sql',
     ]);
     expect(sqlLoader.mock.calls.map(([fileName]) => fileName)).toEqual(applied);
     expect(query.mock.calls.at(0)?.[0]).toBe('BEGIN');

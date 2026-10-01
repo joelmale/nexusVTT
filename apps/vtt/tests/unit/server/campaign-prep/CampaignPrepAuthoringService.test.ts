@@ -115,7 +115,13 @@ describe('CampaignPrepAuthoringService', () => {
     );
   });
 
-  it.each(['session', 'act', 'encounter', 'party-member'] as const)(
+  it.each([
+    'session',
+    'act',
+    'encounter',
+    'party-member',
+    'homebrew-monster',
+  ] as const)(
     'creates a %s as a validated campaign entry',
     async (kind) => {
       const repo = repository();

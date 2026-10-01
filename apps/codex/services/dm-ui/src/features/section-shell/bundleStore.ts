@@ -9,7 +9,12 @@ export type EditableKind =
   | 'location'
   | 'note'
   | 'handout'
-  | 'handout-folder';
+  | 'handout-folder'
+  | 'session'
+  | 'act'
+  | 'encounter'
+  | 'party-member'
+  | 'homebrew-monster';
 
 export interface SaveResult {
   ok: boolean;
