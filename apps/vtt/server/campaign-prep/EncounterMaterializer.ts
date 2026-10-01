@@ -79,6 +79,16 @@ function finite(value: unknown, min: number, max: number): number | undefined {
     : undefined;
 }
 
+const UNIQUE_VIOLATION = '23505';
+
+function isUniqueViolation(error: unknown): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    (error as { code?: unknown }).code === UNIQUE_VIOLATION
+  );
+}
+
 export function parseMonsterStats(input: unknown): MonsterStatInput[] {
   if (input === undefined) return [];
   if (!Array.isArray(input) || input.length > MAX_MONSTERS) {
@@ -272,10 +282,12 @@ export class EncounterMaterializer {
         `monster:${request.campaignId}:${row.monsterKey}`,
       );
       const data = statBlock(stats, row);
-      const existing = await this.db.libraryObjects.getObjectById(monsterId);
-      let monsterRevision: number;
-      if (!existing) {
-        const created = await this.db.libraryObjects.createObject(
+      const {
+        object: monsterObj,
+        revision: initialMonsterRev,
+        created: monsterCreated,
+      } = await this.createOrLoad(monsterId, () =>
+        this.db.libraryObjects.createObject(
           {
             ownerId: request.principalId,
             campaignId: request.campaignId,
@@ -285,19 +297,20 @@ export class EncounterMaterializer {
           },
           { ruleset: RULESET, data },
           monsterId,
-        );
-        monsterRevision = created.revision.revision;
-      } else {
-        this.assertOwned(existing, request);
+        ),
+      );
+
+      let monsterRevision = initialMonsterRev;
+      if (!monsterCreated) {
+        this.assertOwned(monsterObj, request);
         const current = await this.db.libraryObjects.getRevision(
-          existing.id,
-          existing.currentRevision,
+          monsterObj.id,
+          monsterRevision,
         );
-        monsterRevision = existing.currentRevision;
         if (!current || !sameJson(current.data, data)) {
           monsterRevision = (
             await this.db.libraryObjects.addRevision(
-              existing.id,
+              monsterObj.id,
               RULESET,
               data,
             )
@@ -313,11 +326,12 @@ export class EncounterMaterializer {
     }
 
     const encounterData = { name: object.title, ruleset: RULESET, groups };
-    const existingEncounter = await this.db.libraryObjects.getObjectById(
-      object.id,
-    );
-    if (!existingEncounter) {
-      const created = await this.db.libraryObjects.createObject(
+    const {
+      object: encounterObj,
+      revision: initialEncounterRev,
+      created: encounterCreated,
+    } = await this.createOrLoad(object.id, () =>
+      this.db.libraryObjects.createObject(
         {
           ownerId: request.principalId,
           campaignId: request.campaignId,
@@ -326,31 +340,25 @@ export class EncounterMaterializer {
         },
         { ruleset: RULESET, data: encounterData },
         object.id,
-      );
-      return {
-        encounterRef: {
-          kind: 'encounter',
-          id: object.id,
-          revision: created.revision.revision,
-        },
-        monsterCount: groups.length,
-        created: true,
-      };
-    }
-    this.assertOwned(existingEncounter, request);
-    const current = await this.db.libraryObjects.getRevision(
-      existingEncounter.id,
-      existingEncounter.currentRevision,
+      ),
     );
-    let encounterRevision = existingEncounter.currentRevision;
-    if (!current || !sameJson(current.data, encounterData)) {
-      encounterRevision = (
-        await this.db.libraryObjects.addRevision(
-          existingEncounter.id,
-          RULESET,
-          encounterData,
-        )
-      ).revision;
+
+    let encounterRevision = initialEncounterRev;
+    if (!encounterCreated) {
+      this.assertOwned(encounterObj, request);
+      const current = await this.db.libraryObjects.getRevision(
+        encounterObj.id,
+        encounterRevision,
+      );
+      if (!current || !sameJson(current.data, encounterData)) {
+        encounterRevision = (
+          await this.db.libraryObjects.addRevision(
+            encounterObj.id,
+            RULESET,
+            encounterData,
+          )
+        ).revision;
+      }
     }
     return {
       encounterRef: {
@@ -359,8 +367,46 @@ export class EncounterMaterializer {
         revision: encounterRevision,
       },
       monsterCount: groups.length,
-      created: false,
+      created: encounterCreated,
     };
+  }
+
+  private async createOrLoad<
+    T extends NonNullable<
+      Awaited<ReturnType<Repositories['libraryObjects']['getObjectById']>>
+    >,
+  >(
+    id: string,
+    create: () => Promise<{ object: T; revision: { revision: number } }>,
+  ): Promise<{ object: T; revision: number; created: boolean }> {
+    const existing = await this.db.libraryObjects.getObjectById(id);
+    if (existing) {
+      return {
+        object: existing as T,
+        revision: (existing as { currentRevision?: number }).currentRevision ?? 1,
+        created: false,
+      };
+    }
+    try {
+      const created = await create();
+      return {
+        object: created.object as T,
+        revision: created.revision.revision,
+        created: true,
+      };
+    } catch (error) {
+      if (isUniqueViolation(error)) {
+        const loaded = await this.db.libraryObjects.getObjectById(id);
+        if (loaded) {
+          return {
+            object: loaded as T,
+            revision: (loaded as { currentRevision?: number }).currentRevision ?? 1,
+            created: false,
+          };
+        }
+      }
+      throw error;
+    }
   }
 
   private assertOwned(

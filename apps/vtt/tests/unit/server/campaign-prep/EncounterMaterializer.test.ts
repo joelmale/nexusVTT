@@ -281,6 +281,70 @@ describe('EncounterMaterializer', () => {
     expect(revisions.get(goblinId)![1].data.hitPoints.average).toBe(25);
   });
 
+  it('handles concurrent materialization race (code 23505) gracefully', async () => {
+    const { run, libraryObjects, library, revisions } = setup();
+
+    const originalCreate = libraryObjects.createObject.getMockImplementation();
+    libraryObjects.createObject.mockImplementation(async (object, initial, id) => {
+      if (id === ENCOUNTER) {
+        const record = {
+          ...object,
+          id,
+          currentRevision: 1,
+          isArchived: false,
+        };
+        library.set(id, record);
+        revisions.set(id, [{ objectId: id, revision: 1, data: initial.data }]);
+        throw Object.assign(new Error('duplicate key value violates unique constraint'), {
+          code: '23505',
+        });
+      }
+      return originalCreate!(object, initial, id);
+    });
+
+    const result = await run();
+    expect(result).toMatchObject({
+      encounterRef: { kind: 'encounter', id: ENCOUNTER, revision: 1 },
+      created: false,
+    });
+  });
+
+  it('handles concurrent monster creation race (code 23505) gracefully', async () => {
+    const { run, libraryObjects, library, revisions } = setup();
+
+    const originalCreate = libraryObjects.createObject.getMockImplementation();
+    let collidedOnce = false;
+    libraryObjects.createObject.mockImplementation(async (object, initial, id) => {
+      if (object.kind === 'monster' && !collidedOnce) {
+        collidedOnce = true;
+        const record = {
+          ...object,
+          id,
+          currentRevision: 1,
+          isArchived: false,
+        };
+        library.set(id, record);
+        revisions.set(id, [{ objectId: id, revision: 1, data: initial.data }]);
+        throw Object.assign(new Error('duplicate key value violates unique constraint'), {
+          code: '23505',
+        });
+      }
+      return originalCreate!(object, initial, id);
+    });
+
+    const result = await run();
+    expect(result).toMatchObject({
+      encounterRef: { kind: 'encounter', id: ENCOUNTER, revision: 1 },
+      created: true,
+    });
+  });
+
+  it('re-throws non-collision errors from createObject', async () => {
+    const { run, libraryObjects } = setup();
+    libraryObjects.createObject.mockRejectedValueOnce(new Error('database failure'));
+    await expect(run()).rejects.toThrow('database failure');
+  });
+
   it('rejects other kinds, empty encounters, and objects owned elsewhere', async () => {
     await expect(setup({ kind: 'npc' }).run()).rejects.toMatchObject({
       code: 'not-an-encounter',
