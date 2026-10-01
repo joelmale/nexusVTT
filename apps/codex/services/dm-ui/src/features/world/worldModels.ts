@@ -249,20 +249,56 @@ export function mapChipFor(
   bundle: CampaignFixtureBundle,
   location: CampaignLocation,
 ): MapChipModel | undefined {
-  if (!location.mapId) return undefined;
-  const map = bundle.maps.find((candidate) => candidate.id === location.mapId);
-  const pin = location.pinId
-    ? bundle.pins.find((candidate) => candidate.id === location.pinId)
-    : undefined;
-  const query = location.pinId
-    ? `?pin=${encodeURIComponent(location.pinId)}`
-    : '';
-  return {
-    mapId: location.mapId,
-    title: map?.title ?? 'Unknown map',
-    pinLabel: pin?.label,
-    href: `/maps/${encodeURIComponent(location.mapId)}${query}`,
-  };
+  return mapChipsFor(bundle, location)[0];
+}
+
+/** All map chips for a location, searching legacy location.mapId and dynamic map pins. */
+export function mapChipsFor(
+  bundle: CampaignFixtureBundle,
+  location: CampaignLocation,
+): MapChipModel[] {
+  const chips: MapChipModel[] = [];
+  const seenMapIds = new Set<string>();
+
+  if (location.mapId) {
+    seenMapIds.add(location.mapId);
+    const map = bundle.maps.find((candidate) => candidate.id === location.mapId);
+    const pin = location.pinId
+      ? bundle.pins.find((candidate) => candidate.id === location.pinId)
+      : undefined;
+    const query = location.pinId
+      ? `?pin=${encodeURIComponent(location.pinId)}`
+      : '';
+    chips.push({
+      mapId: location.mapId,
+      title: map?.title ?? 'Unknown map',
+      pinLabel: pin?.label,
+      href: `/maps/${encodeURIComponent(location.mapId)}${query}`,
+    });
+  }
+
+  for (const map of bundle.maps) {
+    if (seenMapIds.has(map.id)) continue;
+    for (const pin of map.pins ?? []) {
+      const isLinked =
+        pin.locationId === location.id ||
+        pin.linkedObjectRefs?.some(
+          (ref) => 'id' in ref && ref.id === location.id,
+        );
+      if (isLinked) {
+        seenMapIds.add(map.id);
+        chips.push({
+          mapId: map.id,
+          title: map.title,
+          pinLabel: pin.label,
+          href: `/maps/${encodeURIComponent(map.id)}?pin=${encodeURIComponent(pin.id)}`,
+        });
+        break;
+      }
+    }
+  }
+
+  return chips;
 }
 
 /** Form values for `EditableSection`; list fields become text. */

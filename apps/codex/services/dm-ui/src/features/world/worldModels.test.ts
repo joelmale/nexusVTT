@@ -16,6 +16,7 @@ import {
   locationDraft,
   locationPatch,
   mapChipFor,
+  mapChipsFor,
   nextSessionLocationIds,
   resolveOpenIds,
 } from './worldModels';
@@ -139,6 +140,38 @@ describe('worldModels', () => {
       '/maps/map-glass-harbor?pin=pin-north-docks',
     );
     expect(mapChipFor(ashes, { ...harbor, mapId: undefined })).toBeUndefined();
+
+    // Verify mapChipsFor resolves dynamic map pins
+    const dynamicMap = {
+      id: 'map-overworld',
+      campaignId: ashes.campaignId,
+      title: 'Sword Coast Overworld',
+      description: 'Regional Map',
+      locationIds: [],
+      layers: [],
+      pins: [
+        {
+          id: 'pin-harbor',
+          mapId: 'map-overworld',
+          locationId: 'location-glass-harbor',
+          label: 'Harbor Gate',
+          order: 1,
+          x: 0.5,
+          y: 0.5,
+          layerIds: [],
+        },
+      ],
+    };
+    const bundleWithDynamicMap = {
+      ...ashes,
+      maps: [...ashes.maps, dynamicMap],
+    };
+    const chips = mapChipsFor(bundleWithDynamicMap, harbor);
+    expect(chips).toHaveLength(2);
+    expect(chips[0].title).toBe('Glass Harbor District');
+    expect(chips[1].title).toBe('Sword Coast Overworld');
+    expect(chips[1].href).toBe('/maps/map-overworld?pin=pin-harbor');
+
     for (const bundle of listFixtureBundles('test')) {
       if (bundle.lifecycle !== 'active') {
         expect(nextSessionLocationIds(bundle).size).toBe(0);

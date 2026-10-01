@@ -349,6 +349,53 @@ async function ensureScene(
   return saved;
 }
 
+export interface CreateSceneTemplateInput {
+  campaignId: string;
+  mapTitle: string;
+  assetId?: string;
+  pinLabel?: string;
+}
+
+/**
+ * Creates a new scene template from an authored campaign map.
+ */
+export async function createSceneTemplateFromMap(
+  input: CreateSceneTemplateInput,
+): Promise<PrepObjectRecord> {
+  await ensureSession();
+  const now = new Date().toISOString();
+  const sceneTitle = input.pinLabel
+    ? `${input.mapTitle} - ${input.pinLabel}`
+    : input.mapTitle;
+  const assetId = input.assetId ?? 'demo-map-scene';
+  const data: SceneTemplate = {
+    id: crypto.randomUUID(),
+    campaignId: input.campaignId,
+    schemaVersion: 1,
+    revision: 1,
+    name: sceneTitle,
+    backgroundAssetRef: { target: 'asset', assetId },
+    grid: {
+      enabled: true,
+      type: 'square',
+      size: 100,
+      offsetX: 0,
+      offsetY: 0,
+      snapToGrid: true,
+    },
+    lighting: {
+      enabled: true,
+      globalIllumination: false,
+      ambientLight: 0.35,
+      darkness: 0.65,
+    },
+    fogPreset: { mode: 'concealed', revealedShapes: [] },
+    createdAt: now,
+    updatedAt: now,
+  };
+  return createPrepObject(input.campaignId, 'scene-template', data);
+}
+
 export interface MaterializedEncounterRef {
   encounterRef: { kind: 'encounter'; id: string; revision: number };
   monsterCount: number;

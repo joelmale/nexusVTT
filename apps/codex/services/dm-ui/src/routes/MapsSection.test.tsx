@@ -1,5 +1,5 @@
 import { screen } from '@testing-library/react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { getFixtureBundle } from '@/demo/fixture-registry';
 import { buildMapPreparationModel } from '@/features/map-preparation/buildMapPreparationModel';
@@ -119,5 +119,62 @@ describe('Maps section', () => {
     expect(
       screen.getAllByTestId('map-card-placeholder')[0],
     ).toBeInTheDocument();
+  });
+
+  it('opens add map modal and creates a new map', async () => {
+    const userEvent = (await import('@testing-library/user-event')).default.setup();
+    const addItem = vi.fn().mockResolvedValue({ ok: true, id: 'map-new-123' });
+    const { render } = await import('@testing-library/react');
+    const { MemoryRouter } = await import('react-router-dom');
+    const { CapabilityNoticeProvider } = await import(
+      '@/features/capability-notice'
+    );
+    const { SectionContext } = await import(
+      '@/features/section-shell/SectionContext'
+    );
+    const { MapsContent } = await import(
+      '@/routes/sections/MapsSectionRoute'
+    );
+    const bundle = structuredClone(getFixtureBundle('ashes-of-veyra')!);
+
+    render(
+      <MemoryRouter>
+        <CapabilityNoticeProvider>
+          <SectionContext.Provider
+            value={{
+              bundle,
+              basePath: '/campaigns/test',
+              store: {
+                bundle,
+                status: 'ready',
+                editable: true,
+                reload: vi.fn(),
+                updateItem: vi.fn(),
+                addItem,
+                reorderNotes: vi.fn(),
+              },
+            }}
+          >
+            <MapsContent />
+          </SectionContext.Provider>
+        </CapabilityNoticeProvider>
+      </MemoryRouter>,
+    );
+
+    await userEvent.click(screen.getByRole('button', { name: /add map/i }));
+    expect(screen.getByText('Add Campaign Map')).toBeInTheDocument();
+
+    const titleInput = screen.getByLabelText('Map Title');
+    await userEvent.type(titleInput, 'Dungeon of the Dead Three');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Create Map' }));
+
+    expect(addItem).toHaveBeenCalledWith(
+      'campaign-map',
+      expect.objectContaining({
+        title: 'Dungeon of the Dead Three',
+        dimensions: { width: 1920, height: 1080 },
+      }),
+    );
   });
 });

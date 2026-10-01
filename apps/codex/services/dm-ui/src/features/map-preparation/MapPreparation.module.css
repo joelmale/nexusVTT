@@ -805,3 +805,72 @@
 .unlinkButton:hover {
   color: var(--studio-danger);
 }
+
+.sceneNotice {
+  background: var(--studio-positive-soft, rgba(34, 197, 94, 0.2));
+  border-radius: var(--studio-radius-control, 4px);
+  color: var(--studio-positive, #22c55e);
+  font-size: 11px;
+  font-weight: 600;
+  margin-left: 8px;
+  padding: 2px 6px;
+}
+
+.objectModalCreateRow {
+  border-bottom: 1px solid var(--studio-border);
+  padding: 8px 16px;
+}
+
+.createLocationButton {
+  align-items: center;
+  background: transparent;
+  border: 1px dashed var(--studio-border);
+  border-radius: var(--studio-radius-control, 4px);
+  color: var(--studio-accent, #3b82f6);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  justify-content: center;
+  padding: 6px 12px;
+  width: 100%;
+}
+
+.createLocationButton:hover {
+  background: var(--studio-surface-sunken, rgba(255, 255, 255, 0.05));
+}
+
+.inlineCreateForm {
+  align-items: center;
+  display: flex;
+  gap: 6px;
+}
+
+.primaryButton {
+  background: var(--studio-accent, #3b82f6);
+  border: 0;
+  border-radius: var(--studio-radius-control, 4px);
+  color: #fff;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 6px 10px;
+  white-space: nowrap;
+}
+
+.primaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.cancelButton {
+  background: transparent;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control, 4px);
+  color: inherit;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 6px 10px;
+}
+

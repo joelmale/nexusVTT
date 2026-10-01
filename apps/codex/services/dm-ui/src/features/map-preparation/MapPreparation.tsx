@@ -47,6 +47,9 @@ interface MapPreparationProps {
     map: MapPreparationViewModel,
     selectedPin?: MapPinViewModel,
   ) => Promise<void> | void;
+  onCreateLocation?: (
+    name: string,
+  ) => Promise<{ id: string; title: string }> | { id: string; title: string };
   editable?: boolean;
 }
 
@@ -81,6 +84,7 @@ export function MapPreparation({
   onCapability,
   onSave,
   onCreateScene,
+  onCreateLocation,
   editable = true,
 }: MapPreparationProps) {
   const [pins, setPins] = useState<MapPinViewModel[]>(model.pins);
@@ -95,6 +99,11 @@ export function MapPreparation({
   const [isSaving, setIsSaving] = useState(false);
   const [isObjectModalOpen, setIsObjectModalOpen] = useState(false);
   const [objectSearch, setObjectSearch] = useState('');
+  const [sceneCreatedMessage, setSceneCreatedMessage] = useState<string | null>(null);
+  const [isCreatingScene, setIsCreatingScene] = useState(false);
+  const [isCreatingLocation, setIsCreatingLocation] = useState(false);
+  const [newLocationName, setNewLocationName] = useState('');
+  const [isSubmittingLocation, setIsSubmittingLocation] = useState(false);
 
   const mapTransformRef = useRef<HTMLDivElement>(null);
 
@@ -292,11 +301,44 @@ export function MapPreparation({
     }
   }
 
-  function handleCreateScene() {
+  async function handleCreateScene() {
     if (onCreateScene) {
-      void onCreateScene(model, selectedPin);
+      setIsCreatingScene(true);
+      try {
+        await onCreateScene(model, selectedPin);
+        setSceneCreatedMessage(`Scene created from "${model.title}"!`);
+        setTimeout(() => setSceneCreatedMessage(null), 4000);
+      } catch (err) {
+        console.error('Failed to create scene', err);
+      } finally {
+        setIsCreatingScene(false);
+      }
     } else {
       onCapability('map.scene.create');
+    }
+  }
+
+  async function handleInlineCreateLocation(e: React.FormEvent) {
+    e.preventDefault();
+    const trimmed = newLocationName.trim();
+    if (!trimmed || !onCreateLocation) return;
+    setIsSubmittingLocation(true);
+    try {
+      const created = await onCreateLocation(trimmed);
+      const newLinkedItem: LinkedObjectViewModel = {
+        id: created.id,
+        kind: 'Location',
+        title: created.title,
+        subtitle: 'landmark',
+      };
+      handleAddLinkedObject(newLinkedItem);
+      setNewLocationName('');
+      setIsCreatingLocation(false);
+      setIsObjectModalOpen(false);
+    } catch (err) {
+      console.error('Failed to create location', err);
+    } finally {
+      setIsSubmittingLocation(false);
     }
   }
 
@@ -380,6 +422,9 @@ export function MapPreparation({
             <span className={styles.eyebrow}>
               Map preparation
               {isDirty && <span className={styles.dirtyDot} title="Unsaved changes" />}
+              {sceneCreatedMessage && (
+                <span className={styles.sceneNotice}>{sceneCreatedMessage}</span>
+              )}
             </span>
             <h1>{model.title}</h1>
           </div>
@@ -589,10 +634,11 @@ export function MapPreparation({
               <Eye size={15} /> <span>Visibility</span>
             </button>
             <button
+              disabled={isCreatingScene}
               onClick={handleCreateScene}
               type="button"
             >
-              <Sparkles size={15} /> <span>Create Scene</span>
+              <Sparkles size={15} /> <span>{isCreatingScene ? 'Creating Scene...' : 'Create Scene'}</span>
             </button>
           </div>
         </div>
@@ -642,6 +688,43 @@ export function MapPreparation({
                 value={objectSearch}
               />
             </div>
+            {onCreateLocation && (
+              <div className={styles.objectModalCreateRow}>
+                {isCreatingLocation ? (
+                  <form onSubmit={handleInlineCreateLocation} className={styles.inlineCreateForm}>
+                    <input
+                      autoFocus
+                      className={styles.formInput}
+                      placeholder="New location name..."
+                      value={newLocationName}
+                      onChange={(e) => setNewLocationName(e.target.value)}
+                    />
+                    <button
+                      type="submit"
+                      disabled={!newLocationName.trim() || isSubmittingLocation}
+                      className={styles.primaryButton}
+                    >
+                      {isSubmittingLocation ? 'Creating...' : 'Create & Link'}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setIsCreatingLocation(false)}
+                      className={styles.cancelButton}
+                    >
+                      Cancel
+                    </button>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    className={styles.createLocationButton}
+                    onClick={() => setIsCreatingLocation(true)}
+                  >
+                    <Plus size={14} /> <span>Create New Location</span>
+                  </button>
+                )}
+              </div>
+            )}
             <div className={styles.objectModalList}>
               {filteredAvailableObjects.length === 0 ? (
                 <p style={{ padding: '12px', fontSize: '11px', color: 'var(--studio-text-muted)' }}>

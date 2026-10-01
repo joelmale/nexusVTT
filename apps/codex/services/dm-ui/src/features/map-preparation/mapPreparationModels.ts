@@ -45,8 +45,10 @@ export interface MapPreparationViewModel {
   description?: string;
   imagePath: string;
   imageAssetRef?: {
+    target?: 'asset';
+    assetId?: string;
     kind?: 'campaign-asset' | 'game-asset' | 'user-asset';
-    path: string;
+    path?: string;
     label?: string;
   };
   dimensions?: { width: number; height: number };

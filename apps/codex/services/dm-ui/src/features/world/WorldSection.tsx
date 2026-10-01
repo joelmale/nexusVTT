@@ -34,7 +34,7 @@ import {
   locationPatch,
   locationTags,
   locationTypes,
-  mapChipFor,
+  mapChipsFor,
   nextSessionLocationIds,
   resolveOpenIds,
   type LocationRow,
@@ -66,7 +66,7 @@ function LocationDetail({
 }) {
   const { bundle } = useSectionBundle();
   const { notifyCapability } = useCapabilityNotice();
-  const map = mapChipFor(bundle, location);
+  const maps = mapChipsFor(bundle, location);
   const template = location.sceneTemplateId
     ? bundle.sceneTemplates.find((item) => item.id === location.sceneTemplateId)
     : undefined;
@@ -184,20 +184,24 @@ function LocationDetail({
             ))}
           </ul>
         ) : null}
-        {map ? (
-          <TextBlock title="On map">
-            <div className={styles.row}>
-              <EntityChip
-                entity={{
-                  id: map.mapId,
-                  kind: 'map',
-                  label: map.title,
-                  href: map.href,
-                }}
-              />
-              {map.pinLabel ? (
-                <span className={styles.mapPin}>Pin: {map.pinLabel}</span>
-              ) : null}
+        {maps.length > 0 ? (
+          <TextBlock title={maps.length > 1 ? 'Pinned on maps' : 'On map'}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+              {maps.map((map) => (
+                <div key={`${map.mapId}:${map.pinLabel ?? ''}`} className={styles.row}>
+                  <EntityChip
+                    entity={{
+                      id: map.mapId,
+                      kind: 'map',
+                      label: map.title,
+                      href: map.href,
+                    }}
+                  />
+                  {map.pinLabel ? (
+                    <span className={styles.mapPin}>Pin: {map.pinLabel}</span>
+                  ) : null}
+                </div>
+              ))}
             </div>
           </TextBlock>
         ) : null}

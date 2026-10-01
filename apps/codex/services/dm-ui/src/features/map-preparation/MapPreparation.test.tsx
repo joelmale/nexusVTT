@@ -229,4 +229,32 @@ describe('MapPreparation', () => {
       expect.objectContaining({ id: 'pin-1' }),
     );
   });
+
+  it('allows creating and linking a new location inline from the object modal', async () => {
+    const user = userEvent.setup();
+    const onCreateLocation = vi
+      .fn()
+      .mockResolvedValue({ id: 'loc-new-1', title: 'Rusty Anchor Tavern' });
+
+    render(
+      <MemoryRouter>
+        <MapPreparation
+          model={model}
+          onCapability={vi.fn()}
+          onCreateLocation={onCreateLocation}
+        />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /link existing object/i }));
+    expect(screen.getByText('Link Object to Pin')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /create new location/i }));
+    const nameInput = screen.getByPlaceholderText('New location name...');
+    await user.type(nameInput, 'Rusty Anchor Tavern');
+    await user.click(screen.getByRole('button', { name: /create & link/i }));
+
+    expect(onCreateLocation).toHaveBeenCalledWith('Rusty Anchor Tavern');
+    expect(screen.getByText('Rusty Anchor Tavern')).toBeInTheDocument();
+  });
 });
