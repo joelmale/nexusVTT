@@ -9,9 +9,10 @@ import type { CampaignPrepRepository } from '../repositories/CampaignPrepReposit
  * object) whose groups point at library `monster` stat blocks. Idempotent: a
  * revision is only added when the generated definition changed.
  *
- * Stat blocks arrive from the client because canonical SRD monsters are not
- * stored on the server; homebrew monsters travel the same way so a deployed
- * encounter always matches what the DM saw when they published.
+ * Every monster row in the encounter must be linked to a monsterKey and carry
+ * complete stats from the client. SRD canonical monsters and homebrew monsters
+ * both arrive from the client so deployed encounters always match what the DM
+ * saw when publishing.
  */
 
 export type EncounterMaterializationErrorCode =
@@ -156,14 +157,14 @@ function modifier(score: number): number {
   return Math.floor((score - 10) / 2);
 }
 
-function statBlock(stats: MonsterStatInput | undefined, row: CompositionRow) {
-  const scores = stats?.abilities ?? [10, 10, 10, 10, 10, 10];
+function statBlock(stats: MonsterStatInput, row: CompositionRow) {
+  const scores = stats.abilities;
   return {
-    name: stats?.name ?? row.name,
-    challengeRating: stats?.cr ?? row.cr ?? '0',
-    hitPoints: { average: stats?.hp ?? 10 },
-    armorClass: [{ value: stats?.ac ?? 10 }],
-    speed: { walk: stats?.speed ?? 30 },
+    name: stats.name,
+    challengeRating: stats.cr,
+    hitPoints: { average: stats.hp },
+    armorClass: [{ value: stats.ac }],
+    speed: { walk: stats.speed },
     abilities: Object.fromEntries(
       ABILITY_KEYS.map((key, at) => [
         key,
@@ -231,6 +232,32 @@ export class EncounterMaterializer {
     }
 
     const byKey = new Map(monsters.map((monster) => [monster.key, monster]));
+
+    const unlinked: string[] = [];
+    const missingStats: string[] = [];
+    for (const row of rows) {
+      if (!row.monsterKey) {
+        unlinked.push(row.name);
+      } else if (!byKey.has(row.monsterKey)) {
+        missingStats.push(row.name);
+      }
+    }
+    if (unlinked.length > 0 || missingStats.length > 0) {
+      const messages: string[] = [];
+      if (unlinked.length > 0) {
+        messages.push(
+          `Link these monsters to the catalog or a homebrew monster before publishing: ${unlinked.join(', ')}`,
+        );
+      }
+      if (missingStats.length > 0) {
+        messages.push(`Stat blocks missing for: ${missingStats.join(', ')}`);
+      }
+      throw new EncounterMaterializationError(
+        'invalid-payload',
+        messages.join('; '),
+      );
+    }
+
     const groups: {
       id: string;
       monsterRef: { kind: 'monster'; id: string; revision: number };
@@ -240,9 +267,9 @@ export class EncounterMaterializer {
     }[] = [];
 
     for (const [index, row] of rows.entries()) {
-      const stats = row.monsterKey ? byKey.get(row.monsterKey) : undefined;
+      const stats = byKey.get(row.monsterKey!)!;
       const monsterId = stableUuid(
-        `monster:${request.campaignId}:${row.monsterKey ?? `name:${row.name.toLowerCase()}`}`,
+        `monster:${request.campaignId}:${row.monsterKey}`,
       );
       const data = statBlock(stats, row);
       const existing = await this.db.libraryObjects.getObjectById(monsterId);

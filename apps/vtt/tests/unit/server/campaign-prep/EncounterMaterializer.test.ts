@@ -20,6 +20,16 @@ const GOBLIN = {
   abilities: [8, 14, 10, 10, 8, 8],
 };
 
+const ASH_HOUND = {
+  key: 'srd:ash-hound',
+  name: 'Ash Hound',
+  cr: '1/2',
+  ac: 13,
+  hp: 18,
+  speed: 40,
+  abilities: [13, 15, 12, 6, 12, 7],
+};
+
 function encounterData(composition: unknown[]) {
   return {
     content: { value: { nexusStudio: { fields: { composition } } } },
@@ -96,7 +106,7 @@ function setup(options: { composition?: unknown[]; kind?: string } = {}) {
       data: encounterData(
         options.composition ?? [
           { name: 'Goblin', count: 3, monsterKey: 'srd:goblin', cr: '1/4' },
-          { name: 'Mystery Beast', count: 1 },
+          { name: 'Ash Hound', count: 1, monsterKey: 'srd:ash-hound', cr: '1/2' },
         ],
       ),
     })),
@@ -105,7 +115,7 @@ function setup(options: { composition?: unknown[]; kind?: string } = {}) {
     campaignPrep: campaignPrep as never,
     libraryObjects: libraryObjects as never,
   });
-  const run = (monsters: unknown = [GOBLIN]) =>
+  const run = (monsters: unknown = [GOBLIN, ASH_HOUND]) =>
     materializer.materialize({
       campaignId: CAMPAIGN,
       objectId: ENCOUNTER,
@@ -147,11 +157,18 @@ describe('EncounterMaterializer', () => {
       },
       source: 'srd',
     });
-    // An unlinked row still deploys, as a basic creature.
-    const fallback = revisions.get(encounter.groups[1].monsterRef.id)![0].data;
-    expect(fallback).toMatchObject({
-      name: 'Mystery Beast',
-      hitPoints: { average: 10 },
+    const ashHoundId = encounter.groups[1].monsterRef.id;
+    expect(library.get(ashHoundId)).toMatchObject({
+      kind: 'monster',
+      campaignId: CAMPAIGN,
+      ownerId: USER,
+      name: 'Ash Hound',
+    });
+    expect(revisions.get(ashHoundId)![0].data).toMatchObject({
+      name: 'Ash Hound',
+      hitPoints: { average: 18 },
+      armorClass: [{ value: 13 }],
+      speed: { walk: 40 },
     });
   });
 
@@ -162,7 +179,7 @@ describe('EncounterMaterializer', () => {
         { name: 'Grasping Tide', count: 1, nonCreature: true },
       ],
     });
-    const result = await run();
+    const result = await run([GOBLIN]);
     expect(result.monsterCount).toBe(1);
     expect(revisions.get(ENCOUNTER)![0].data.groups).toHaveLength(1);
   });
@@ -180,7 +197,7 @@ describe('EncounterMaterializer', () => {
   it('adds a revision when a stat block changes and pins the new revision', async () => {
     const { run, libraryObjects } = setup();
     await run();
-    const result = await run([{ ...GOBLIN, hp: 12 }]);
+    const result = await run([{ ...GOBLIN, hp: 12 }, ASH_HOUND]);
     // goblin, then the encounter that points at the new goblin revision
     expect(libraryObjects.addRevision).toHaveBeenCalledTimes(2);
     expect(result.encounterRef.revision).toBe(2);
@@ -199,6 +216,71 @@ describe('EncounterMaterializer', () => {
     expect(revisions.get(group.monsterRef.id)![0].data.source).toBe('homebrew');
   });
 
+  it('rejects an encounter with an unlinked creature', async () => {
+    const { run } = setup({
+      composition: [
+        { name: 'Goblin', count: 3, monsterKey: 'srd:goblin', cr: '1/4' },
+        { name: 'Unlinked Beast', count: 1 },
+      ],
+    });
+    await expect(run()).rejects.toThrowError(
+      /Link these monsters to the catalog or a homebrew monster before publishing: Unlinked Beast/,
+    );
+  });
+
+  it('rejects an encounter when monster stats are missing from client payload', async () => {
+    const { run } = setup();
+    await expect(run([GOBLIN])).rejects.toThrowError(
+      /Stat blocks missing for: Ash Hound/,
+    );
+  });
+
+  it('handles multiple encounters in the same campaign with different monster stats', async () => {
+    const ENCOUNTER_2 = '22222222-2222-4222-8222-222222222222';
+    const { run, libraryObjects, revisions } = setup();
+    const firstResult = await run();
+    expect(firstResult.encounterRef.revision).toBe(1);
+
+    const firstEncounterData = revisions.get(ENCOUNTER)![0].data;
+    const goblinId = firstEncounterData.groups[0].monsterRef.id;
+    expect(firstEncounterData.groups[0].monsterRef.revision).toBe(1);
+
+    const campaignPrep2 = {
+      getObject: vi.fn(async () => ({
+        id: ENCOUNTER_2,
+        campaignId: CAMPAIGN,
+        kind: 'encounter',
+        title: 'Boss lair',
+        currentRevision: 1,
+      })),
+      getRevision: vi.fn(async () => ({
+        data: encounterData([
+          { name: 'Buffed Goblin', count: 1, monsterKey: 'srd:goblin', cr: '1' },
+        ]),
+      })),
+    };
+    const mat2 = new EncounterMaterializer({
+      campaignPrep: campaignPrep2 as never,
+      libraryObjects: libraryObjects as never,
+    });
+    const secondResult = await mat2.materialize({
+      campaignId: CAMPAIGN,
+      objectId: ENCOUNTER_2,
+      principalId: USER,
+      monsters: [{ ...GOBLIN, hp: 25, cr: '1' }],
+    });
+
+    expect(secondResult.encounterRef.revision).toBe(1);
+    const secondEncounterData = revisions.get(ENCOUNTER_2)![0].data;
+    expect(secondEncounterData.groups[0].monsterRef.id).toBe(goblinId);
+    expect(secondEncounterData.groups[0].monsterRef.revision).toBe(2);
+
+    // Verify first encounter still has its pinned reference to revision 1
+    expect(revisions.get(ENCOUNTER)![0].data.groups[0].monsterRef.revision).toBe(1);
+    expect(revisions.get(goblinId)![0].data.hitPoints.average).toBe(7);
+    expect(revisions.get(goblinId)![1].data.hitPoints.average).toBe(25);
+  });
+
   it('rejects other kinds, empty encounters, and objects owned elsewhere', async () => {
     await expect(setup({ kind: 'npc' }).run()).rejects.toMatchObject({
       code: 'not-an-encounter',
@@ -208,7 +290,7 @@ describe('EncounterMaterializer', () => {
     });
     const { run, library } = setup();
     await run();
-    library.get(ENCOUNTER).ownerId = '99999999-9999-4999-8999-999999999999';
+    library.get(ENCOUNTER)!.ownerId = '99999999-9999-4999-8999-999999999999';
     await expect(run()).rejects.toMatchObject({ code: 'forbidden' });
   });
 });

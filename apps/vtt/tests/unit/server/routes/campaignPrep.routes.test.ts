@@ -909,5 +909,30 @@ describe('campaign prep routes', () => {
       });
       expect((await post({ monsters: [goblin] })).status).toBe(422);
     });
+
+    it('returns 422 when monsters are missing stats or unlinked', async () => {
+      const resMissingStats = await post({ monsters: [] });
+      expect(resMissingStats.status).toBe(422);
+      const jsonMissing = await resMissingStats.json();
+      expect(jsonMissing.error).toMatch(/Stat blocks missing for: Goblin/);
+
+      campaignPrep.getRevision.mockResolvedValueOnce({
+        data: {
+          content: {
+            value: {
+              nexusStudio: {
+                fields: {
+                  composition: [{ name: 'Mystery Creature', count: 1 }],
+                },
+              },
+            },
+          },
+        },
+      });
+      const resUnlinked = await post({ monsters: [goblin] });
+      expect(resUnlinked.status).toBe(422);
+      const jsonUnlinked = await resUnlinked.json();
+      expect(jsonUnlinked.error).toMatch(/Link these monsters to the catalog/);
+    });
   });
 });

@@ -622,11 +622,6 @@ describe('DomainCommandService', () => {
         },
       });
 
-      mockDb.libraryObjects.getObjectById.mockResolvedValueOnce({
-        id: 'm-goblin',
-        currentRevision: 1,
-      });
-
       mockDb.libraryObjects.getRevision.mockResolvedValueOnce({
         data: {
           name: 'Goblin',
@@ -677,6 +672,75 @@ describe('DomainCommandService', () => {
           currentRound: 1,
           currentTurnIndex: 0,
         }),
+        mockClient,
+      );
+    });
+
+    it('uses pinned monster revision when newer revisions exist on the monster', async () => {
+      mockDb.libraryObjects.getRevision.mockImplementation(
+        async (id: string, revision: number) => {
+          if (id === 'enc-template-1' && revision === 1) {
+            return {
+              data: {
+                groups: [
+                  {
+                    id: 'grp-1',
+                    monsterRef: { kind: 'monster', id: 'm-goblin', revision: 1 },
+                    count: 1,
+                    faction: 'hostile',
+                    customName: 'Goblin',
+                  },
+                ],
+              },
+            };
+          }
+          if (id === 'm-goblin' && revision === 1) {
+            return {
+              data: {
+                name: 'Goblin v1',
+                hitPoints: { average: 7 },
+                armorClass: [{ value: 15 }],
+                speed: { walk: 30 },
+              },
+            };
+          }
+          if (id === 'm-goblin' && revision === 2) {
+            return {
+              data: {
+                name: 'Goblin v2 (Buffed)',
+                hitPoints: { average: 25 },
+                armorClass: [{ value: 17 }],
+                speed: { walk: 35 },
+              },
+            };
+          }
+          return null;
+        },
+      );
+
+      mockDb.libraryObjects.getObjectById.mockResolvedValue({
+        id: 'm-goblin',
+        currentRevision: 2,
+      });
+
+      const response = await service.execute(deployCommand, {
+        principalId: 'dm-1',
+        isDm: true,
+      });
+
+      expect(response.receipt.result.success).toBe(true);
+      expect(mockDb.libraryObjects.getRevision).toHaveBeenCalledWith(
+        'm-goblin',
+        1,
+        mockClient,
+      );
+      expect(mockDb.campaignActors.createActor).toHaveBeenCalledWith(
+        expect.objectContaining({
+          name: 'Goblin',
+          currentHp: 7,
+          maxHp: 7,
+        }),
+        expect.any(String),
         mockClient,
       );
     });

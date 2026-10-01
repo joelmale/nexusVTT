@@ -654,17 +654,27 @@ export class DomainCommandService {
       let monsterStatBlock: MonsterStatBlock | null = null;
 
       if (group.monsterRef?.id) {
-        const mObj = await this.db.libraryObjects.getObjectById(
-          group.monsterRef.id,
-          client,
-        );
-        if (mObj) {
+        if (typeof group.monsterRef.revision === 'number') {
           const mRev = await this.db.libraryObjects.getRevision(
-            mObj.id,
-            mObj.currentRevision,
+            group.monsterRef.id,
+            group.monsterRef.revision,
             client,
           );
           if (mRev) monsterStatBlock = mRev.data as MonsterStatBlock;
+        }
+        if (!monsterStatBlock) {
+          const mObj = await this.db.libraryObjects.getObjectById(
+            group.monsterRef.id,
+            client,
+          );
+          if (mObj) {
+            const mRev = await this.db.libraryObjects.getRevision(
+              mObj.id,
+              mObj.currentRevision,
+              client,
+            );
+            if (mRev) monsterStatBlock = mRev.data as MonsterStatBlock;
+          }
         }
       }
 
