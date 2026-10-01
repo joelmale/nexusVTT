@@ -716,9 +716,6 @@ describe('activateSessionPlan', () => {
           });
         }
         if (path === `/api/campaigns/${CAMPAIGN_ID}/prep/objects`) {
-          const body = JSON.parse(String(requestInit?.body)) as {
-            data: Record<string, unknown>;
-          };
           return json({
             object: {
               id: 'plan-1',
