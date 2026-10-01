@@ -73,9 +73,9 @@ export const CAPABILITY_REGISTRY: Record<CapabilityId, PrototypeCapability> = {
     id: 'campaign.example.seed',
     label: 'Start from this example',
     status: 'planned',
-    targetPhase: 'Campaign prep API',
+    targetPhase: 'Full example clone',
     description:
-      'Create a new editable campaign seeded from this example. Not available in this build yet.',
+      'Create a new editable campaign seeded from this example. Needs a server-backed build; this one is not connected to a campaign server.',
   },
   'campaign.settings.open': {
     id: 'campaign.settings.open',

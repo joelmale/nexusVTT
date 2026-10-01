@@ -6,7 +6,7 @@ description: Fixture registry and read-only section pages (Sessions, World, NPCs
 # Campaign Studio section pages plan
 
 Date: 2026-09-29  
-Status: proposed. Related: [visual prototype plan](./campaign-studio-visual-prototype-plan.md),
+Status: implemented through §5.6; §5.7 onward (full example clone, encounter and map authoring) in progress. Related: [visual prototype plan](./campaign-studio-visual-prototype-plan.md),
 [sidecar plan](./campaign-studio-sidecar-plan.md),
 [ADR 0006](/vtt/adr/campaign-studio-sidecar-boundary).
 
@@ -635,8 +635,8 @@ Decisions (product owner):
 - **First-cut edit scope:** NPCs, Factions, Quests (incl. objectives),
   Locations, Lore and Handouts (a single formattable multi-line text field).
   Sessions keep the existing run-sheet editor. **Encounters and Maps remain
-  read-only.** Do NOT add an encounter object kind or schema: encounters must
-  later tie into the VTT initiative panel and are designed separately.
+  read-only in this first cut.** (Superseded by §5.7: encounters become an
+  `EncounterTemplate`-backed object kind, and maps become editable.)
 - Lore and handouts are simple formattable notes the DM builds to give to some
   or all players: title, rich multi-line body (reuse the existing Lexical
   editor / markdown setup already used in dm-ui if present; otherwise a
@@ -778,3 +778,20 @@ optimistic revision tracking; `seedFromFixture(slug) => campaignId`).
   as read-only notes (lore private, handouts shared).
 - Left as dead code for a later cleanup: `reorderNotes`, the `handout` and
   `handout-folder` editable kinds, `SectionTabs`, note `color`/`size`.
+
+### 5.7 Addendum: Start from example is a full clone (supersedes §5 seeding scope)
+
+Product decision: "Start from this example" must produce an editable copy of
+the example, not a mostly empty campaign. Today it copies only locations, NPCs,
+factions, quests and notes.
+
+- **Order of work:** (1) finish the server object kinds `session`, `act`,
+  `encounter` (template) and `party-member`; (2) encounter authoring with a
+  catalog picker plus homebrew monsters kept separate from canonical entries;
+  (3) rewrite the clone to cover every kind with two-pass ID remapping;
+  (4) typed references and scoped search; (5) map build-out.
+- **Maps** (editable campaign maps with an uploaded or asset-library image, pins,
+  layers, linked objects, scene templates) are a standalone phase. Until they
+  land the clone skips maps and turns scene steps into reminders marked
+  "map pending"; afterwards the clone copies maps, pins and scene templates.
+- Example campaigns stay read-only.

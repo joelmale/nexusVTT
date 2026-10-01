@@ -6,7 +6,7 @@ description: Project-specific architecture for campaign preparation objects that
 # Nexus Campaign Studio sidecar plan
 
 Date: 2026-09-25  
-Status: Proposed  
+Status: In progress. Phase A and the session-plan publish/activate/encounter-deploy slice are built; remaining work is tracked in the section pages plan §5.7.  
 Scope: DM campaign preparation, authored campaign objects, and activation into
 Nexus VTT
 
