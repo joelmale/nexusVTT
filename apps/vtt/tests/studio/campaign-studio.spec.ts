@@ -88,8 +88,6 @@ test.describe('Campaign Studio demo routes', () => {
   });
 
   test('rail navigation moves between sections', async ({ page }) => {
-    // The Ashes overview renders its own bespoke rail; section routes share
-    // the StudioFrame rail, so start from one of those.
     await page.goto(`${BASE}/sessions`);
     for (const section of SECTIONS) {
       await rail(page).getByRole('button', { name: section.label }).click();

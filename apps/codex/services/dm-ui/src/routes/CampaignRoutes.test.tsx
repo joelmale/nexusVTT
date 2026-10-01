@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import {
   MemoryRouter,
   Navigate,
@@ -14,6 +14,7 @@ import {
   type CampaignContextValue,
 } from '@/features/campaigns/CampaignContext';
 import { CapabilityNoticeProvider } from '@/features/capability-notice';
+import { ServerBackendContext } from '@/features/section-shell/ServerBackendContext';
 import { renderSection } from '@/features/section-shell/testUtils';
 import { StudioNavigationProvider } from '@/features/studio-shell/StudioNavigationProvider';
 
@@ -56,7 +57,7 @@ function LocationProbe() {
 }
 
 describe('campaign routes', () => {
-  it('renders a distinct development fixture with its session plan', () => {
+  it('renders every example fixture with the full campaign dashboard', () => {
     render(
       <MemoryRouter initialEntries={['/demo/crown-of-cinders/overview']}>
         <CampaignContext.Provider
@@ -83,9 +84,25 @@ describe('campaign routes', () => {
     expect(
       screen.getByRole('heading', { name: 'Crown of Cinders' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('Embers at the Coronation')).toBeInTheDocument();
     expect(
-      screen.getByText('Choose which heir receives the crown'),
+      screen.getByRole('heading', { name: /^Session 1 — / }),
+    ).toBeInTheDocument();
+    for (const panel of [
+      'Quests',
+      'Prepared Encounters',
+      'Clues',
+      'Campaign Objects',
+    ]) {
+      const region = screen.getByRole('region', {
+        name: new RegExp(`^${panel}`),
+      });
+      expect(within(region).getAllByRole('button')[0]).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      );
+    }
+    expect(
+      screen.getByRole('complementary', { name: 'Activity and links' }),
     ).toBeInTheDocument();
   });
 
@@ -122,25 +139,27 @@ describe('campaign routes', () => {
     render(
       <MemoryRouter initialEntries={['/campaigns/campaign-blank/overview']}>
         <CampaignContext.Provider value={contextValue()}>
-          <CapabilityNoticeProvider>
-            <StudioNavigationProvider>
-              <CampaignOverviewRoute />
-            </StudioNavigationProvider>
-          </CapabilityNoticeProvider>
+          <ServerBackendContext.Provider value={null}>
+            <CapabilityNoticeProvider>
+              <StudioNavigationProvider>
+                <CampaignOverviewRoute />
+              </StudioNavigationProvider>
+            </CapabilityNoticeProvider>
+          </ServerBackendContext.Provider>
         </CampaignContext.Provider>
       </MemoryRouter>,
     );
 
     expect(
-      screen.getByRole('heading', { name: 'Blank Slate' }),
+      screen.getByRole('heading', { level: 1, name: 'Blank Slate' }),
     ).toBeInTheDocument();
-    expect(screen.getByText('This campaign is empty')).toBeInTheDocument();
-    expect(screen.getAllByText('0')).toHaveLength(6);
+    expect(
+      screen.getByRole('heading', { name: 'No session scheduled' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('No quests yet.')).toBeInTheDocument();
+    expect(screen.getByText('No activity yet.')).toBeInTheDocument();
     expect(screen.queryByText('The Glass Harbor')).toBeNull();
     expect(screen.queryByText('Captain Serin')).toBeNull();
-    expect(
-      screen.getByRole('button', { name: 'Add campaign object' }),
-    ).toBeDisabled();
   });
 
   it('shows an unavailable state for an inaccessible route campaign ID', () => {

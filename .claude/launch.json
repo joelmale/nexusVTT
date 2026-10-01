@@ -15,6 +15,12 @@
       "port": 5001
     },
     {
+      "name": "dm-ui",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--workspace", "@nexuscodex/dm-ui"],
+      "port": 3003
+    },
+    {
       "name": "forge",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--workspace", "nexus-forge"],

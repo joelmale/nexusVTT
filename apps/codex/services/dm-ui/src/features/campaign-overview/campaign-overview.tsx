@@ -1,520 +1,342 @@
-import { useState } from 'react';
-import type { ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
-import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import CalendarDays from 'lucide-react/dist/esm/icons/calendar-days';
 import CheckSquare from 'lucide-react/dist/esm/icons/check-square';
 import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
-import Compass from 'lucide-react/dist/esm/icons/compass';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
-import Link from 'lucide-react/dist/esm/icons/link';
-import Map from 'lucide-react/dist/esm/icons/map';
-import MapPin from 'lucide-react/dist/esm/icons/map-pin';
-import MoreHorizontal from 'lucide-react/dist/esm/icons/more-horizontal';
+import LinkIcon from 'lucide-react/dist/esm/icons/link';
 import Search from 'lucide-react/dist/esm/icons/search';
-import Settings from 'lucide-react/dist/esm/icons/settings';
-import Shield from 'lucide-react/dist/esm/icons/shield';
 import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
-import Sun from 'lucide-react/dist/esm/icons/sun';
 import Swords from 'lucide-react/dist/esm/icons/swords';
-import UserRound from 'lucide-react/dist/esm/icons/user-round';
-import styles from './campaign-overview.module.css';
-import { campaign } from '@/demo/ashes-of-veyra/campaign';
-import { clues } from '@/demo/ashes-of-veyra/clues';
-import { encounters } from '@/demo/ashes-of-veyra/encounters';
-import { factions } from '@/demo/ashes-of-veyra/factions';
-import { npcs } from '@/demo/ashes-of-veyra/npcs';
-import { quests } from '@/demo/ashes-of-veyra/quests';
-import { CampaignSwitcher } from '@/features/campaigns/CampaignSwitcher';
+import Users from 'lucide-react/dist/esm/icons/users';
+import type { LucideIcon } from 'lucide-react';
+
 import { useCapabilityNotice } from '@/features/capability-notice';
+import { ENTITY_ICONS } from '@/features/section-shell/entityMeta';
+import { useSectionBundle } from '@/features/section-shell/SectionContext';
 
-type Icon = typeof Compass;
-type Tone = 'positive' | 'warning' | 'danger' | 'neutral';
+import { OverviewPanel } from './OverviewPanel';
+import {
+  buildOverviewModel,
+  type OverviewPanelId,
+  type OverviewRecord,
+} from './overviewModel';
+import styles from './campaign-overview.module.css';
 
-interface OverviewRecord {
-  id: string;
-  title: string;
-  subtitle: string;
-  meta: string;
-  tone?: Tone;
-  icon?: Icon;
-}
-
-interface OverviewSection {
-  id: string;
-  title: string;
-  icon: Icon;
-  records: OverviewRecord[];
-}
-
-const navigation: { label: string; icon: Icon }[] = [
-  { label: 'Overview', icon: Compass },
-  { label: 'Sessions', icon: CalendarDays },
-  { label: 'World', icon: Map },
-  { label: 'NPCs', icon: UserRound },
-  { label: 'Factions', icon: Shield },
-  { label: 'Quests', icon: CheckSquare },
-  { label: 'Encounters', icon: Swords },
-  { label: 'Maps', icon: MapPin },
-  { label: 'Lore', icon: BookOpen },
-];
-
-const sections: OverviewSection[] = [
-  {
-    id: 'quests',
-    title: 'Active Quests',
-    icon: CheckSquare,
-    records: quests.slice(0, 4).map((quest) => ({
-      id: quest.id,
-      title: quest.title,
-      subtitle: quest.summary,
-      meta: quest.status === 'active' ? 'In Progress' : quest.status,
-      tone: quest.status === 'active' ? 'positive' : 'warning',
-    })),
-  },
-  {
-    id: 'encounters',
-    title: 'Prepared Encounters',
-    icon: Swords,
-    records: encounters.slice(0, 4).map((encounter) => ({
-      id: encounter.id,
-      title: encounter.title,
-      subtitle: encounter.locationIds[0]?.replace(/-/g, ' ') ?? encounter.kind,
-      meta: encounter.difficulty,
-      tone:
-        encounter.difficulty === 'high'
-          ? 'danger'
-          : encounter.difficulty === 'moderate'
-            ? 'warning'
-            : 'neutral',
-    })),
-  },
-  {
-    id: 'clues',
-    title: 'Unresolved Clues',
-    icon: Search,
-    records: clues.slice(0, 4).map((clue) => ({
-      id: clue.id,
-      title: clue.title,
-      subtitle: clue.meaning,
-      meta: clue.priority,
-      tone:
-        clue.priority === 'high'
-          ? 'danger'
-          : clue.priority === 'medium'
-            ? 'warning'
-            : 'neutral',
-    })),
-  },
-  {
-    id: 'objects',
-    title: 'Recent Campaign Objects',
-    icon: FileText,
-    records: [
-      ...npcs.slice(0, 2).map((npc) => ({
-        id: npc.id,
-        title: npc.name,
-        subtitle: 'NPC · ' + npc.role,
-        meta: '2 hours ago',
-        icon: UserRound,
-      })),
-      ...factions.slice(0, 2).map((faction) => ({
-        id: faction.id,
-        title: faction.name,
-        subtitle: 'Faction · ' + faction.publicFace,
-        meta: '1 day ago',
-        icon: Shield,
-      })),
-    ],
-  },
-];
-
-const activityIcons: Record<string, Icon> = {
-  npc: UserRound,
-  location: MapPin,
-  encounter: Swords,
-  quest: CheckSquare,
-  faction: Shield,
-  map: Map,
+const PANEL_ICONS: Record<OverviewPanelId, LucideIcon> = {
+  quests: CheckSquare,
+  encounters: Swords,
+  clues: Search,
+  objects: FileText,
+  party: Users,
 };
-const backlinks: OverviewRecord[] = campaign.activity.backlinks.map((item) => ({
-  id: item.id,
-  title: item.label,
-  subtitle: item.detail,
-  meta: `${item.objectType} link`,
-  icon: activityIcons[item.objectType],
-}));
-const recentEdits: OverviewRecord[] = campaign.activity.recentEdits.map(
-  (item) => ({
-    id: item.id,
-    title: item.label,
-    subtitle: item.objectType,
-    meta: item.detail,
-    icon: activityIcons[item.objectType],
-  }),
-);
-const nextSessionFacts = [
-  {
-    label: 'Primary Encounter',
-    title:
-      encounters.find(({ id }) => id === campaign.nextSession.encounterId)
-        ?.title ?? '',
-    detail: 'CR 4 · 6–8 creatures',
-    icon: Swords,
-  },
-  {
-    label: 'Key NPC',
-    title: npcs.find(({ id }) => id === campaign.nextSession.npcId)?.name ?? '',
-    detail: 'Harbor Master',
-    icon: UserRound,
-  },
-  {
-    label: 'Primary Location',
-    title: 'Glass Harbor',
-    detail: 'Veyra Coast',
-    icon: MapPin,
-  },
-  {
-    label: 'Relevant Quest',
-    title:
-      quests.find(({ id }) => id === campaign.nextSession.questId)?.title ?? '',
-    detail: 'In Progress',
-    icon: CheckSquare,
-  },
-];
 
-function IconButton({
-  label,
-  children,
-  onClick,
-}: {
-  label: string;
-  children: ReactNode;
-  onClick?: () => void;
-}) {
+/** Panels with mixed kinds show a kind icon instead of a status dot. */
+const KIND_ICON_PANELS: ReadonlySet<OverviewPanelId> = new Set([
+  'objects',
+  'party',
+]);
+
+const DEFAULT_COLLAPSED: Partial<Record<OverviewPanelId, boolean>> = {
+  party: true,
+};
+
+type CollapsedState = Partial<Record<OverviewPanelId, boolean>>;
+
+function storageKey(campaignId: string) {
+  return `nexus-overview-panels:${campaignId}`;
+}
+
+function readCollapsed(campaignId: string): CollapsedState {
+  try {
+    const raw = window.localStorage.getItem(storageKey(campaignId));
+    if (!raw) return DEFAULT_COLLAPSED;
+    const parsed: unknown = JSON.parse(raw);
+    return parsed && typeof parsed === 'object'
+      ? (parsed as CollapsedState)
+      : DEFAULT_COLLAPSED;
+  } catch {
+    return DEFAULT_COLLAPSED;
+  }
+}
+
+function writeCollapsed(campaignId: string, state: CollapsedState) {
+  try {
+    window.localStorage.setItem(storageKey(campaignId), JSON.stringify(state));
+  } catch {
+    // Storage is a convenience; the overview works without it.
+  }
+}
+
+/**
+ * Campaign dashboard for any campaign bundle: example fixtures and real
+ * server campaigns alike. Renders inside `SectionRoute`.
+ */
+export function CampaignOverview() {
+  const { bundle, basePath } = useSectionBundle();
+  const { notifyCapability } = useCapabilityNotice();
+  const model = useMemo(() => buildOverviewModel(bundle), [bundle]);
+
+  const [collapsedState, setCollapsedState] = useState<{
+    campaignId: string;
+    value: CollapsedState;
+  }>(() => ({
+    campaignId: bundle.campaignId,
+    value: readCollapsed(bundle.campaignId),
+  }));
+  // Re-read when the campaign changes without remounting.
+  const collapsed =
+    collapsedState.campaignId === bundle.campaignId
+      ? collapsedState.value
+      : readCollapsed(bundle.campaignId);
+
+  const [focused, setFocused] = useState<OverviewPanelId | null>(null);
+  const [selected, setSelected] = useState<OverviewRecord | undefined>();
+  const selectedRecord = selected ?? model.backlinks[0];
+
+  const toggleCollapsed = useCallback(
+    (id: OverviewPanelId) => {
+      if (focused === id) setFocused(null);
+      const next = { ...collapsed, [id]: !collapsed[id] };
+      setCollapsedState({ campaignId: bundle.campaignId, value: next });
+      writeCollapsed(bundle.campaignId, next);
+    },
+    [bundle.campaignId, collapsed, focused],
+  );
+
+  useEffect(() => {
+    if (!focused) return undefined;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setFocused(null);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [focused]);
+
+  const { nextSession } = model;
+
   return (
-    <button
-      className={styles.iconButton}
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-    >
-      {children}
-    </button>
+    <main className={styles.workspace}>
+      <header className={styles.header}>
+        <div className={styles.titleBlock}>
+          <h1>{model.title}</h1>
+          {model.subtitle && <p>{model.subtitle}</p>}
+        </div>
+        <div className={styles.headerTools}>
+          {model.chips.map((chip) => (
+            <span key={chip}>{chip}</span>
+          ))}
+        </div>
+      </header>
+
+      <div className={styles.contentGrid}>
+        <div className={styles.primaryContent}>
+          <section
+            className={styles.nextSession}
+            aria-labelledby="next-session-heading"
+          >
+            <div className={styles.nextTop}>
+              <div>
+                <div className={styles.eyebrow}>Next Session</div>
+                <h2 id="next-session-heading">
+                  {nextSession?.heading ?? 'No session scheduled'}
+                </h2>
+                {nextSession && nextSession.schedule.length > 0 && (
+                  <div className={styles.sessionMeta}>
+                    <CalendarDays aria-hidden="true" size={18} />
+                    {nextSession.schedule.map((part) => (
+                      <span key={part}>{part}</span>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <Link
+                className={styles.primaryButton}
+                to={`${basePath}${nextSession?.planHref ?? '/sessions'}`}
+              >
+                <CalendarDays aria-hidden="true" size={18} />
+                <span>{nextSession ? 'Plan Session' : 'Open Sessions'}</span>
+                <ArrowRight aria-hidden="true" size={17} />
+              </Link>
+            </div>
+            {nextSession && nextSession.facts.length > 0 && (
+              <div className={styles.sessionFacts}>
+                {nextSession.facts.map(({ label, record }) => {
+                  const FactIcon = ENTITY_ICONS[record.kind];
+                  const body = (
+                    <>
+                      <FactIcon aria-hidden="true" size={22} />
+                      <span>
+                        <small>{label}</small>
+                        <strong>{record.title}</strong>
+                        <em>{record.subtitle}</em>
+                      </span>
+                    </>
+                  );
+                  return record.href ? (
+                    <Link
+                      className={styles.fact}
+                      key={label}
+                      to={`${basePath}${record.href}`}
+                    >
+                      {body}
+                    </Link>
+                  ) : (
+                    <div className={styles.fact} key={label}>
+                      {body}
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </section>
+
+          <div
+            className={`${styles.sectionGrid} ${focused ? styles.sectionGridFocused : ''}`}
+          >
+            {model.panels.map((panel) => (
+              <OverviewPanel
+                basePath={basePath}
+                collapsed={
+                  focused ? focused !== panel.id : Boolean(collapsed[panel.id])
+                }
+                focused={focused === panel.id}
+                icon={PANEL_ICONS[panel.id]}
+                key={panel.id}
+                onMore={() => notifyCapability('campaign.object.actions')}
+                onSelect={setSelected}
+                onToggleCollapsed={() => toggleCollapsed(panel.id)}
+                onToggleFocus={() =>
+                  setFocused((current) =>
+                    current === panel.id ? null : panel.id,
+                  )
+                }
+                panel={panel}
+                selectedId={selectedRecord?.id}
+                showKindIcons={KIND_ICON_PANELS.has(panel.id)}
+              />
+            ))}
+          </div>
+        </div>
+
+        <aside className={styles.inspector} aria-label="Activity and links">
+          <h2>
+            <LinkIcon aria-hidden="true" size={20} />
+            Activity &amp; Links
+          </h2>
+          {model.backlinks.length === 0 && model.recentEdits.length === 0 ? (
+            <p className={styles.emptyPanel}>No activity yet.</p>
+          ) : (
+            <>
+              <ActivityList
+                basePath={basePath}
+                records={model.backlinks}
+                selectedId={selectedRecord?.id}
+                title="Backlinks"
+                variant="link"
+                onSelect={setSelected}
+              />
+              <ActivityList
+                basePath={basePath}
+                records={model.recentEdits}
+                selectedId={selectedRecord?.id}
+                title="Recent Edits"
+                variant="edit"
+                onSelect={setSelected}
+              />
+            </>
+          )}
+          {selectedRecord && (
+            <div className={styles.selectionSummary}>
+              <div>
+                <Sparkles aria-hidden="true" size={15} />
+                Selected object
+              </div>
+              <strong>{selectedRecord.title}</strong>
+              <span>{selectedRecord.subtitle}</span>
+              {selectedRecord.href && (
+                <Link
+                  className={styles.viewAll}
+                  to={`${basePath}${selectedRecord.href}`}
+                >
+                  Open to edit
+                  <ArrowRight aria-hidden="true" size={14} />
+                </Link>
+              )}
+            </div>
+          )}
+        </aside>
+      </div>
+    </main>
   );
 }
 
-export function CampaignOverview() {
-  const navigate = useNavigate();
-  const { notifyCapability } = useCapabilityNotice();
-  const [selected, setSelected] = useState<OverviewRecord>(backlinks[0]);
-  const [activeNav, setActiveNav] = useState('Overview');
-
-  const selectRecord = (record: OverviewRecord) => {
-    setSelected(record);
-  };
-
-  const selectNavigation = (label: string) => {
-    setActiveNav(label);
-    const basePath = '/demo/ashes-of-veyra';
-    const sectionMap: Record<string, string> = {
-      'Sessions': `${basePath}/sessions/session-12/plan`,
-      'World': `${basePath}/world`,
-      'NPCs': `${basePath}/npcs`,
-      'Factions': `${basePath}/factions`,
-      'Quests': `${basePath}/quests`,
-      'Encounters': `${basePath}/encounters`,
-      'Maps': `${basePath}/maps/map-glass-harbor`,
-      'Lore': `${basePath}/lore`,
-    };
-    if (label !== 'Overview' && sectionMap[label]) {
-      navigate(sectionMap[label]);
-    }
-  };
-
+function ActivityList({
+  basePath,
+  records,
+  selectedId,
+  title,
+  variant,
+  onSelect,
+}: {
+  basePath: string;
+  records: OverviewRecord[];
+  selectedId?: string;
+  title: string;
+  variant: 'link' | 'edit';
+  onSelect: (record: OverviewRecord) => void;
+}) {
+  if (records.length === 0) return null;
   return (
-    <div className={styles.layout}>
-      <aside className={styles.rail} aria-label="Campaign navigation">
-        <div className={styles.brand}>
-          <div className={styles.brandMark}>
-            <Compass size={25} />
-          </div>
-          <div>
-            <strong>Nexus VTT</strong>
-            <span>CAMPAIGN STUDIO</span>
-          </div>
-        </div>
-        <div className={styles.campaignLabel}>Campaigns</div>
-        <CampaignSwitcher />
-        <nav className={styles.navigation}>
-          {navigation.map(({ label, icon: NavIcon }) => (
-            <button
-              className={`${styles.navItem} ${activeNav === label ? styles.navActive : ''}`}
-              key={label}
-              type="button"
-              onClick={() => selectNavigation(label)}
-            >
-              <NavIcon size={19} />
-              <span>{label}</span>
-            </button>
-          ))}
-        </nav>
-        <button
-          className={`${styles.navItem} ${styles.settings}`}
-          onClick={() => notifyCapability('campaign.settings.open')}
-          type="button"
-          title="Settings"
-        >
-          <Settings size={19} />
-          <span>Settings</span>
-        </button>
-      </aside>
-
-      <main className={styles.workspace}>
-        <header className={styles.header}>
-          <div className={styles.titleBlock}>
-            <h1>{campaign.title}</h1>
-            <p>{campaign.subtitle}</p>
-          </div>
-          <div className={styles.headerTools}>
-            <span>{campaign.ruleset}</span>
-            <span>{campaign.sessionIds.length} Sessions</span>
-            <span>Last edited 2 hours ago</span>
-            <div className={styles.toolDivider} />
-            <IconButton
-              label="Search campaign"
-              onClick={() => notifyCapability('campaign.search.overview')}
-            >
-              <Search size={20} />
-            </IconButton>
-            <IconButton
-              label="Change theme"
-              onClick={() => notifyCapability('campaign.theme.change')}
-            >
-              <Sun size={20} />
-            </IconButton>
-            <button
-              className={styles.avatar}
-              type="button"
-              aria-label="Account"
-            >
-              AC
-            </button>
-          </div>
-        </header>
-
-        <div className={styles.contentGrid}>
-          <div className={styles.primaryContent}>
-            <section
-              className={styles.nextSession}
-              aria-labelledby="next-session-heading"
-            >
-              <div className={styles.nextTop}>
-                <div>
-                  <div className={styles.eyebrow}>Next Session</div>
-                  <h2 id="next-session-heading">
-                    Session 12 - The Glass Harbor
-                  </h2>
-                  <div className={styles.sessionMeta}>
-                    <CalendarDays size={18} />
-                    <span>Sat, Apr 26, 2025</span>
-                    <span>{campaign.nextSession.time}</span>
-                    <span>{campaign.nextSession.relativeDate}</span>
-                  </div>
-                </div>
-                <button
-                  className={styles.primaryButton}
-                  type="button"
-                  onClick={() =>
-                    navigate('/demo/ashes-of-veyra/sessions/session-12/plan')
-                  }
-                >
-                  <CalendarDays size={18} />
-                  <span>Plan Session</span>
-                  <ArrowRight size={17} />
-                </button>
-              </div>
-              <div className={styles.sessionFacts}>
-                {nextSessionFacts.map(
-                  ({ label, title, detail, icon: FactIcon }) => (
-                    <button
-                      className={styles.fact}
-                      type="button"
-                      key={label}
-                      onClick={() =>
-                        selectRecord({
-                          id: label,
-                          title,
-                          subtitle: detail,
-                          meta: label,
-                          icon: FactIcon,
-                        })
-                      }
-                    >
-                      <FactIcon size={22} />
-                      <span>
-                        <small>{label}</small>
-                        <strong>{title}</strong>
-                        <em>{detail}</em>
-                      </span>
-                    </button>
-                  ),
+    <div className={styles.inspectorSection}>
+      <div className={styles.inspectorHeading}>
+        <h3>{title}</h3>
+      </div>
+      {records.map((record) => {
+        const KindIcon = ENTITY_ICONS[record.kind];
+        const className = `${variant === 'link' ? styles.linkRow : styles.editRow} ${selectedId === record.id ? styles.inspectorSelected : ''}`;
+        const body = (
+          <>
+            <KindIcon aria-hidden="true" size={19} />
+            <span>
+              <strong>{record.title}</strong>
+              <small>
+                {variant === 'link' ? (
+                  record.meta
+                ) : (
+                  <>
+                    {record.subtitle}
+                    <br />
+                    {record.meta}
+                  </>
                 )}
-              </div>
-            </section>
-
-            <div className={styles.sectionGrid}>
-              {sections.map((section) => (
-                <section
-                  className={styles.dataSection}
-                  key={section.id}
-                  aria-labelledby={`${section.id}-heading`}
-                >
-                  <div className={styles.sectionHeader}>
-                    <h2 id={`${section.id}-heading`}>
-                      <section.icon size={21} />
-                      {section.title}
-                    </h2>
-                    <button
-                      className={styles.viewAll}
-                      type="button"
-                      onClick={() => {
-                        const basePath = '/demo/ashes-of-veyra';
-                        const sectionNavMap: Record<string, string> = {
-                          'quests': `${basePath}/quests`,
-                          'encounters': `${basePath}/encounters`,
-                          'notes': `${basePath}/notes`,
-                        };
-                        if (sectionNavMap[section.id]) {
-                          navigate(sectionNavMap[section.id]);
-                        }
-                      }}
-                    >
-                      View All
-                      <ArrowRight size={15} />
-                    </button>
-                  </div>
-                  <div className={styles.recordList}>
-                    {section.records.map((record) => (
-                      <div
-                        className={`${styles.recordRow} ${selected.id === record.id ? styles.selectedRow : ''}`}
-                        key={record.id}
-                      >
-                        <button
-                          className={styles.recordMain}
-                          type="button"
-                          onClick={() => selectRecord(record)}
-                        >
-                          <span
-                            className={`${styles.statusDot} ${record.tone ? styles[record.tone] : ''}`}
-                          />
-                          {record.icon && (
-                            <record.icon
-                              className={styles.recordIcon}
-                              size={19}
-                            />
-                          )}
-                          <span className={styles.recordCopy}>
-                            <strong>{record.title}</strong>
-                            <small>{record.subtitle}</small>
-                          </span>
-                        </button>
-                        <span
-                          className={`${styles.recordMeta} ${record.tone ? styles[`meta${record.tone[0].toUpperCase()}${record.tone.slice(1)}`] : ''}`}
-                        >
-                          {record.meta}
-                        </span>
-                        <IconButton
-                          label={`More actions for ${record.title}`}
-                          onClick={() =>
-                            notifyCapability('campaign.object.actions')
-                          }
-                        >
-                          <MoreHorizontal size={19} />
-                        </IconButton>
-                      </div>
-                    ))}
-                  </div>
-                </section>
-              ))}
-            </div>
-          </div>
-
-          <aside className={styles.inspector} aria-label="Activity and links">
-            <h2>
-              <Link size={20} />
-              Activity &amp; Links
-            </h2>
-            <div className={styles.inspectorSection}>
-              <div className={styles.inspectorHeading}>
-                <h3>Backlinks</h3>
-                <button
-                  type="button"
-                  onClick={() => navigate('/demo/ashes-of-veyra/npcs')}
-                >
-                  See All
-                  <ArrowRight size={14} />
-                </button>
-              </div>
-              {backlinks.map((record) => (
-                <button
-                  className={`${styles.linkRow} ${selected.id === record.id ? styles.inspectorSelected : ''}`}
-                  key={record.id}
-                  type="button"
-                  onClick={() => selectRecord(record)}
-                >
-                  {record.icon && <record.icon size={19} />}
-                  <span>
-                    <strong>{record.title}</strong>
-                    <small>{record.meta}</small>
-                  </span>
-                  <ChevronRight size={16} />
-                </button>
-              ))}
-            </div>
-            <div className={styles.inspectorSection}>
-              <div className={styles.inspectorHeading}>
-                <h3>Recent Edits</h3>
-                <button
-                  type="button"
-                  onClick={() => notifyCapability('campaign.object.history')}
-                >
-                  See All
-                  <ArrowRight size={14} />
-                </button>
-              </div>
-              {recentEdits.map((record) => (
-                <button
-                  className={`${styles.editRow} ${selected.id === record.id ? styles.inspectorSelected : ''}`}
-                  key={record.id}
-                  type="button"
-                  onClick={() => selectRecord(record)}
-                >
-                  {record.icon && <record.icon size={19} />}
-                  <span>
-                    <strong>{record.title}</strong>
-                    <small>
-                      {record.subtitle}
-                      <br />
-                      {record.meta}
-                    </small>
-                  </span>
-                </button>
-              ))}
-            </div>
-            <div className={styles.selectionSummary}>
-              <div>
-                <Sparkles size={15} />
-                Selected object
-              </div>
-              <strong>{selected.title}</strong>
-              <span>{selected.subtitle}</span>
-            </div>
-          </aside>
-        </div>
-      </main>
+              </small>
+            </span>
+            {variant === 'link' && <ChevronRight aria-hidden="true" size={16} />}
+          </>
+        );
+        return record.href ? (
+          <Link
+            className={className}
+            key={record.id}
+            onFocus={() => onSelect(record)}
+            onMouseEnter={() => onSelect(record)}
+            to={`${basePath}${record.href}`}
+          >
+            {body}
+          </Link>
+        ) : (
+          <button
+            className={className}
+            key={record.id}
+            onClick={() => onSelect(record)}
+            type="button"
+          >
+            {body}
+          </button>
+        );
+      })}
     </div>
   );
 }
