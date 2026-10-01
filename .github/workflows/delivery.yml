@@ -9,6 +9,13 @@ on:
         description: Optional full SHA for the current main commit
         required: false
         type: string
+      promote:
+        description: >-
+          Promote this run to sha-/latest tags. Off (default) publishes
+          candidate-only images. The source must still be current main.
+        required: false
+        type: boolean
+        default: false
 
 concurrency:
   group: delivery-${{ github.ref }}
@@ -145,7 +152,7 @@ jobs:
       # needs to scan the published images.
       repository_scan: false
       container_images: ${{ needs.resolve.outputs.security_images }}
-      prebuilt_tag_prefix: ${{ github.event_name == 'workflow_dispatch' && 'candidate' || 'sha' }}
+      prebuilt_tag_prefix: ${{ (github.event_name == 'workflow_dispatch' && !inputs.promote) && 'candidate' || 'sha' }}
 
   publish-images:
     name: 'Publish immutable image: ${{ matrix.name }}'
@@ -185,11 +192,12 @@ jobs:
         shell: bash
         env:
           EVENT_NAME: ${{ github.event_name }}
+          PROMOTE: ${{ inputs.promote }}
           REPOSITORY: ${{ matrix.repository }}
           SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}
         run: |
           prefix=sha
-          if [[ "$EVENT_NAME" == 'workflow_dispatch' ]]; then
+          if [[ "$EVENT_NAME" == 'workflow_dispatch' && "$PROMOTE" != 'true' ]]; then
             prefix=candidate
           fi
           echo "tag=$REPOSITORY:$prefix-$SOURCE_SHA" >> "$GITHUB_OUTPUT"
@@ -356,6 +364,7 @@ jobs:
         env:
           EVENT_NAME: ${{ github.event_name }}
           EVENT_REF: ${{ github.ref }}
+          PROMOTE: ${{ inputs.promote }}
           SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}
         run: node scripts/ci/release-promotion.mjs
 

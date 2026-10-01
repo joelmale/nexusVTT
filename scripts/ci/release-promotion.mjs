@@ -6,7 +6,7 @@ import { pathToFileURL } from 'node:url';
 const SHA_PATTERN = /^[0-9a-f]{40}$/;
 
 export function decidePromotion(env, readMainRef) {
-  const { EVENT_NAME, EVENT_REF, SOURCE_SHA } = env;
+  const { EVENT_NAME, EVENT_REF, PROMOTE, SOURCE_SHA } = env;
   if (!SHA_PATTERN.test(SOURCE_SHA ?? '')) {
     throw new Error('SOURCE_SHA must be a full lowercase Git SHA');
   }
@@ -17,11 +17,13 @@ export function decidePromotion(env, readMainRef) {
     throw new Error('EVENT_REF must be a full Git ref');
   }
 
-  if (EVENT_NAME === 'workflow_dispatch') {
+  // A manual run is candidate-only unless it opts in with `promote`. An
+  // opted-in run is held to the same rule as a push: main ref, current main.
+  if (EVENT_NAME === 'workflow_dispatch' && PROMOTE !== 'true') {
     return { disposition: 'candidate', sourceSha: SOURCE_SHA };
   }
   if (EVENT_REF !== 'refs/heads/main') {
-    throw new Error('Push promotion is restricted to refs/heads/main');
+    throw new Error('Promotion is restricted to refs/heads/main');
   }
 
   const remote = readMainRef().trim();

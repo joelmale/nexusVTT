@@ -72,13 +72,56 @@ describe('release promotion eligibility', () => {
     expect(readMain).not.toHaveBeenCalled();
   });
 
+  test('promotes an opted-in manual dispatch of the current main', () => {
+    const dispatchEnv = {
+      ...mainEnv,
+      EVENT_NAME: 'workflow_dispatch',
+      PROMOTE: 'true',
+    };
+    expect(
+      decidePromotion(dispatchEnv, () => `${sourceSha}	refs/heads/main
+`)
+        .disposition,
+    ).toBe('eligible');
+    expect(
+      decidePromotion(dispatchEnv, () => `${newerSha}	refs/heads/main
+`)
+        .disposition,
+    ).toBe('superseded');
+  });
+
+  test('keeps a manual dispatch candidate-only unless promote is exactly true', () => {
+    for (const PROMOTE of [undefined, '', 'false', 'TRUE']) {
+      expect(
+        decidePromotion(
+          { ...mainEnv, EVENT_NAME: 'workflow_dispatch', PROMOTE },
+          vi.fn(),
+        ).disposition,
+      ).toBe('candidate');
+    }
+  });
+
+  test('rejects an opted-in manual dispatch outside main', () => {
+    expect(() =>
+      decidePromotion(
+        {
+          ...mainEnv,
+          EVENT_NAME: 'workflow_dispatch',
+          EVENT_REF: 'refs/heads/feature',
+          PROMOTE: 'true',
+        },
+        vi.fn(),
+      ),
+    ).toThrow('restricted to refs/heads/main');
+  });
+
   test('rejects push promotion outside main', () => {
     expect(() =>
       decidePromotion(
         { ...mainEnv, EVENT_REF: 'refs/tags/v1.2.3' },
         vi.fn(),
       ),
-    ).toThrow('restricted to refs/heads/main');
+    ).toThrow('Promotion is restricted to refs/heads/main');
   });
 
   test.each([
