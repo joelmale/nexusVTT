@@ -48,9 +48,12 @@ export function nextSessionId(
     : undefined;
 }
 
-/** Sum of `composition[].count`. */
+/** Sum of `composition[].count`, leaving out hazards and lair actions. */
 export function participantTotal(encounter: CampaignEncounter): number {
-  return encounter.composition.reduce((sum, part) => sum + part.count, 0);
+  return encounter.composition.reduce(
+    (sum, part) => (part.nonCreature ? sum : sum + part.count),
+    0,
+  );
 }
 
 export function isInNextSession(

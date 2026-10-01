@@ -2,7 +2,7 @@ import type { CampaignEncounter } from '../ashes-of-veyra/types';
 import { MOURNINGFEN_CAMPAIGN_ID, mourningfenSessionId as s } from './campaign';
 
 const DIFFICULTY_NOTE =
-  'Display difficulty is a fixture. Creatures use compatible 2014 SRD definitions in this 2014/2024-compatible campaign; marsh spirits are custom.';
+  'Display difficulty is a fixture. Creatures use compatible 2014 SRD definitions in this 2014/2024-compatible campaign; marsh spirits use the closest SRD spirit stat blocks as stand-ins.';
 
 export const encounters: CampaignEncounter[] = [
   {
@@ -44,15 +44,15 @@ export const encounters: CampaignEncounter[] = [
     difficulty: 'moderate',
     composition: [
       {
-        name: 'Ysolde Verrow (Ghost)',
+        name: 'Ghost',
         count: 1,
         ruleset: '2014-srd',
         role: 'Leads the procession and decides whether to speak.',
       },
       {
-        name: 'Reedbound Mourner',
+        name: 'Shadow',
         count: 6,
-        ruleset: 'custom',
+        ruleset: '2014-srd',
         role: 'Lantern-bearing spirits that circle rather than strike unless a name is used against them.',
       },
     ],
@@ -66,7 +66,7 @@ export const encounters: CampaignEncounter[] = [
     tactics:
       'If attacked, the Mourners Frighten and withdraw. They resume the walk the next dusk.',
     rulesetNotes:
-      'Social difficulty is a display fixture, not a rules calculation.',
+      'Social difficulty is a display fixture, not a rules calculation. Reedbound mourners use the SRD Shadow as a stand-in.',
   },
   {
     id: 'encounter-shifting-rooms',
@@ -76,15 +76,15 @@ export const encounters: CampaignEncounter[] = [
     difficulty: 'moderate',
     composition: [
       {
-        name: 'Poltergeist (adjusted)',
+        name: 'Specter',
         count: 1,
-        ruleset: 'custom',
+        ruleset: '2014-srd',
         role: 'Slams doors and drops the floor plan into the wrong loop. Stat line not yet adjusted for level 4.',
       },
       {
-        name: 'Reflection Wisp',
+        name: 'Will-o\'-Wisp',
         count: 3,
-        ruleset: 'custom',
+        ruleset: '2014-srd',
         role: 'Copies a character’s surrendered memory as an attack.',
       },
     ],
@@ -98,7 +98,7 @@ export const encounters: CampaignEncounter[] = [
     tactics:
       'The rooms reset to the last portrait restored. Hazard resolves when the loop is solved.',
     rulesetNotes:
-      'Campaign-specific creatures and hazard; difficulty is a display fixture.',
+      'The poltergeist uses the SRD Specter and the reflection wisps use the SRD wisp stat block as stand-ins. Difficulty is a display fixture.',
   },
   {
     id: 'encounter-well-whisperer',
@@ -108,9 +108,9 @@ export const encounters: CampaignEncounter[] = [
     difficulty: 'high',
     composition: [
       {
-        name: 'Eighth Voice (Whisperer)',
+        name: 'Wraith',
         count: 1,
-        ruleset: 'custom',
+        ruleset: '2014-srd',
         role: 'Takes memories instead of hit points on a failed save. Named or sealed, it reacts.',
       },
       {
@@ -130,7 +130,7 @@ export const encounters: CampaignEncounter[] = [
     tactics:
       'It bargains first and attacks only once refused. Sealing removes its reach but leaves the tithe unpaid.',
     rulesetNotes:
-      'Custom creature; treat as a high-difficulty display fixture until stats are written.',
+      'The Eighth Voice uses the SRD Wraith as a stand-in. Difficulty is a display fixture.',
   },
   {
     id: 'encounter-warden-lamp-patrol',
@@ -171,7 +171,7 @@ export const encounters: CampaignEncounter[] = [
     difficulty: 'moderate',
     composition: [
       {
-        name: 'Dunmore Fenn (Veteran)',
+        name: 'Veteran',
         count: 1,
         ruleset: '2014-srd',
         role: 'Demands proof the tithe is real before he commits his crews.',

@@ -574,6 +574,7 @@ function normalize(
                 ? { monsterKey: str(component.monsterKey) }
                 : {}),
               ...(component.cr ? { cr: str(component.cr) } : {}),
+              ...(component.nonCreature ? { nonCreature: true } : {}),
             }))
           : [],
         trigger: str(raw.trigger),
@@ -1470,6 +1471,7 @@ export async function seedFromFixture(slug: string): Promise<SeedResult> {
     const linked: CampaignEncounter = {
       ...item,
       composition: item.composition.map((component) => {
+        if (component.nonCreature) return component;
         const match = matchMonsterByName(monsterCatalog, component.name);
         if (!match) unlinkedMonsters.add(component.name);
         return match

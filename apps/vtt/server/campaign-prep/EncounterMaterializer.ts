@@ -137,7 +137,8 @@ function readComposition(data: unknown): CompositionRow[] {
   return fields.composition.filter(isRecord).flatMap((row) => {
     const count = finite(row.count, 1, 1000);
     const name = typeof row.name === 'string' ? row.name.trim() : '';
-    if (!count || !name) return [];
+    // Hazards and lair actions are not creatures and are never spawned.
+    if (!count || !name || row.nonCreature === true) return [];
     return [
       {
         name,

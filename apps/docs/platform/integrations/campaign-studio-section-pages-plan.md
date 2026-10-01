@@ -808,10 +808,15 @@ factions, quests and notes.
   become `open-entry`; scene, encounter and handout-asset steps become
   reminders (scenes are marked "map pending") because they need maps, assets or
   a published encounter definition.
-- Example monsters are matched by name to the SRD catalog and linked. Unmatched
-  names are copied as unlinked rows with no stats rather than as invented
-  homebrew monsters, so a placeholder challenge rating cannot distort the
-  calculated difficulty. They are listed in the result message.
+- Every creature row in the example encounters names a real SRD monster, so
+  the clone links each one to the catalog and the calculated difficulty works.
+  Where the original idea had no SRD equivalent, the nearest creature stands in
+  and the encounter's ruleset notes say so (a Cinder Wight is an SRD Shadow, the
+  Astronomer a Stone Golem). Hazards and lair actions are flagged
+  `nonCreature`: they have no stat block, are not rated, and are never spawned
+  when the encounter deploys. A test keeps future examples honest. Names that
+  still do not match (for example in a hand-built campaign) copy as unlinked
+  rows and are listed in the result message.
 - The clone is client-orchestrated and resilient: a failed item is reported and
   the rest continue. `StartFromExample` shows what was skipped or failed before
   opening the new campaign.

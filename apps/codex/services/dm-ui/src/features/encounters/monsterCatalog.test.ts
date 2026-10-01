@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 
-import type { HomebrewMonster } from '@/demo/fixture-registry';
+import {
+  listFixtureBundles,
+  type HomebrewMonster,
+} from '@/demo/fixture-registry';
 
 import {
   buildMonsterCatalog,
@@ -82,6 +85,58 @@ describe('monster catalog', () => {
     expect(crValue('10')).toBe(10);
     expect(crValue('')).toBeUndefined();
     expect(crValue('big')).toBeUndefined();
+  });
+});
+
+describe('example campaign encounters', () => {
+  const catalog = buildMonsterCatalog();
+
+  it('name a real SRD monster in every creature row, and mark hazards as such', () => {
+    for (const bundle of listFixtureBundles('test')) {
+      for (const encounter of bundle.encounters) {
+        for (const part of encounter.composition) {
+          if (part.nonCreature) continue;
+          expect(
+            matchMonsterByName(catalog, part.name),
+            `${bundle.slug} / ${encounter.title} / ${part.name}`,
+          ).toBeDefined();
+        }
+      }
+    }
+  });
+
+  it('rates every example encounter that has creatures', () => {
+    for (const bundle of listFixtureBundles('test')) {
+      for (const encounter of bundle.encounters) {
+        const { unrated } = rateComposition(
+          encounter.composition,
+          catalog,
+          [3, 3, 3, 3],
+          '2014',
+        );
+        expect(unrated, `${bundle.slug} / ${encounter.title}`).toEqual([]);
+      }
+    }
+  });
+
+  it('leaves hazards out of the rating and the participant count', () => {
+    const { result, unrated } = rateComposition(
+      [
+        { name: 'Goblin', count: 2, ruleset: '2014-srd', role: '' },
+        {
+          name: 'Grasping Tide',
+          count: 1,
+          ruleset: 'custom',
+          role: '',
+          nonCreature: true,
+        },
+      ],
+      catalog,
+      [3, 3, 3, 3],
+      '2014',
+    );
+    expect(unrated).toEqual([]);
+    expect(result?.rawXp).toBe(100);
   });
 });
 

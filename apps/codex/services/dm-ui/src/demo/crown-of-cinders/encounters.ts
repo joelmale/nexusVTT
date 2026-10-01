@@ -10,13 +10,13 @@ export const crownEncounters: CampaignEncounter[] = [
     difficulty: 'moderate',
     composition: [
       {
-        name: 'Cinder Wight',
+        name: 'Shadow',
         count: 2,
-        ruleset: 'custom',
+        ruleset: '2014-srd',
         role: 'Ignite the banners and drive guests away from the dais.',
       },
       {
-        name: 'Smoke Mephit',
+        name: 'Dust Mephit',
         count: 1,
         ruleset: '2014-srd',
         role: 'Blinds defenders with smoke while the wights advance.',
@@ -32,7 +32,7 @@ export const crownEncounters: CampaignEncounter[] = [
     tactics:
       'Wights spread fire between banners to split the room. They retreat into the smoke once two banners are down; the mephit hunts anyone carrying the crown.',
     rulesetNotes:
-      'Cinder Wight is a custom level-1 stat block (roughly CR 1/2): fire-immune, vulnerable to water. Smoke Mephit uses the compatible 2014 SRD entry.',
+      'Cinder wights use the SRD Shadow stat block (CR 1/2) as a stand-in; add fire immunity and water vulnerability as a DM note. The Dust Mephit stands in for a smoke creature.',
   },
   {
     id: 'encounter-heirs-audience',
@@ -42,7 +42,7 @@ export const crownEncounters: CampaignEncounter[] = [
     difficulty: 'low',
     composition: [
       {
-        name: 'Noble (Corvin, Ysolde or Tamsin)',
+        name: 'Noble',
         count: 3,
         ruleset: '2014-srd',
         role: 'Each heir makes a different case for the crown and offers the party a private favor.',

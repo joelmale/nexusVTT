@@ -184,6 +184,8 @@ export function rateComposition(
   const groups: { challengeRating: string; count: number }[] = [];
   const unrated: string[] = [];
   for (const component of composition) {
+    // Hazards and lair actions have no challenge rating and are not rated.
+    if (component.nonCreature) continue;
     const cr = componentCr(component, catalog);
     if (cr !== undefined && crValue(cr) !== undefined) {
       groups.push({ challengeRating: cr, count: component.count });

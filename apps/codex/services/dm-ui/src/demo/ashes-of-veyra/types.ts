@@ -220,6 +220,11 @@ export interface EncounterComponent {
   monsterKey?: string;
   /** Challenge rating label copied from the linked monster ('1/4', '5'). */
   cr?: string;
+  /**
+   * A hazard, lair action or other row that is not a creature. It has no stat
+   * block, no challenge rating and is never spawned when the encounter deploys.
+   */
+  nonCreature?: boolean;
 }
 
 export interface CampaignClue {

@@ -6,7 +6,7 @@ const S2 = `${C}-session-2`;
 const S3 = `${C}-session-3`;
 
 const NOTE =
-  'Difficulty is a fixture label for a party of four level 9-10 characters; creatures marked custom are homebrew stat blocks.';
+  'Difficulty is a fixture label for a party of four level 9-10 characters; creature rows use the closest SRD stat blocks (the Astronomer is a Stone Golem stand-in); hazards and lair actions have no stat block.';
 
 export const kharadEncounters: CampaignEncounter[] = [
   {
@@ -20,6 +20,7 @@ export const kharadEncounters: CampaignEncounter[] = [
         name: 'Resonant Fault (hazard)',
         count: 1,
         ruleset: 'custom',
+        nonCreature: true,
         role: 'Echoes replay the party’s actions one round early and crack the ceiling.',
       },
       {
@@ -57,6 +58,7 @@ export const kharadEncounters: CampaignEncounter[] = [
         name: 'Gravitic Pulse (lair action)',
         count: 1,
         ruleset: 'custom',
+        nonCreature: true,
         role: 'At initiative 20 every creature is pulled toward a different wall.',
       },
     ],
@@ -78,9 +80,9 @@ export const kharadEncounters: CampaignEncounter[] = [
     difficulty: 'moderate',
     composition: [
       {
-        name: 'Hold delegates',
+        name: 'Noble',
         count: 7,
-        ruleset: 'custom',
+        ruleset: '2014-srd',
         role: 'Each offers aid with a visible price; two ask for sabotage in private.',
       },
     ],
@@ -105,6 +107,7 @@ export const kharadEncounters: CampaignEncounter[] = [
         name: 'Unstable rail segments (hazard)',
         count: 3,
         ruleset: 'custom',
+        nonCreature: true,
         role: 'Each stage rearranges the route and gravity.',
       },
       {
@@ -132,7 +135,7 @@ export const kharadEncounters: CampaignEncounter[] = [
     difficulty: 'high',
     composition: [
       {
-        name: 'Veteran (Marshal Ordrun)',
+        name: 'Veteran',
         count: 1,
         ruleset: '2014-srd',
         role: 'Commands the trap and withdraws when outmatched.',
@@ -144,9 +147,9 @@ export const kharadEncounters: CampaignEncounter[] = [
         role: 'Hold the platform and enlarge for the push.',
       },
       {
-        name: 'Steel Predator',
+        name: 'Animated Armor',
         count: 1,
-        ruleset: 'custom',
+        ruleset: '2014-srd',
         role: 'A tamed war-construct that hunts the gate keyholder.',
       },
     ],
@@ -177,6 +180,7 @@ export const kharadEncounters: CampaignEncounter[] = [
         name: 'Drifting history shards (hazard)',
         count: 1,
         ruleset: 'custom',
+        nonCreature: true,
         role: 'Jump points whose landing spots replay hold histories.',
       },
     ],
@@ -198,21 +202,21 @@ export const kharadEncounters: CampaignEncounter[] = [
     difficulty: 'high',
     composition: [
       {
-        name: 'The Astronomer',
+        name: 'Stone Golem',
         count: 1,
-        ruleset: 'custom',
+        ruleset: '2014-srd',
         role: 'Mythic guardian; shifts gravity, terrain, and its goal per ring.',
       },
       {
-        name: 'Stone Golem (Ring Sentinel)',
+        name: 'Stone Golem',
         count: 2,
         ruleset: '2014-srd',
         role: 'Anchor the rings and shove creatures into the void.',
       },
       {
-        name: 'Void Motes',
+        name: 'Shadow',
         count: 6,
-        ruleset: 'custom',
+        ruleset: '2014-srd',
         role: 'Blink between rings and drain light.',
       },
     ],
@@ -234,9 +238,9 @@ export const kharadEncounters: CampaignEncounter[] = [
     difficulty: 'high',
     composition: [
       {
-        name: 'Concord delegates and rivals',
+        name: 'Noble',
         count: 6,
-        ruleset: 'custom',
+        ruleset: '2014-srd',
         role: 'Each argues for launch, burial, or a weapon.',
       },
     ],

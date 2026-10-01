@@ -288,9 +288,11 @@ function EncounterDetail({ encounter }: { encounter: CampaignEncounter }) {
                     <td>{part.count}</td>
                     <td>{part.role}</td>
                     <td>
-                      {part.monsterKey?.startsWith('homebrew:')
-                        ? 'Homebrew'
-                        : (RULESET_LABELS[part.ruleset] ?? part.ruleset)}
+                      {part.nonCreature
+                        ? 'Hazard'
+                        : part.monsterKey?.startsWith('homebrew:')
+                          ? 'Homebrew'
+                          : (RULESET_LABELS[part.ruleset] ?? part.ruleset)}
                     </td>
                   </tr>
                 ))}

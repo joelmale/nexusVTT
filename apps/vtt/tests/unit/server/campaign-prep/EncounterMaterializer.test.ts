@@ -155,6 +155,18 @@ describe('EncounterMaterializer', () => {
     });
   });
 
+  it('never spawns hazards or lair actions', async () => {
+    const { run, revisions } = setup({
+      composition: [
+        { name: 'Goblin', count: 1, monsterKey: 'srd:goblin', cr: '1/4' },
+        { name: 'Grasping Tide', count: 1, nonCreature: true },
+      ],
+    });
+    const result = await run();
+    expect(result.monsterCount).toBe(1);
+    expect(revisions.get(ENCOUNTER)![0].data.groups).toHaveLength(1);
+  });
+
   it('is idempotent: re-running adds no revisions', async () => {
     const { run, libraryObjects } = setup();
     const first = await run();

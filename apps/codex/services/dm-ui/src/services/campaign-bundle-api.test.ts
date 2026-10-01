@@ -1000,14 +1000,28 @@ describe('seedFromFixture', () => {
         encounter.composition.map((part) => part.name),
       );
       expect(parts.map((part) => part.name)).toEqual(sourceNames);
-      for (const part of parts) {
-        if (part.monsterKey) {
+      // Every creature row in the examples is a real SRD monster.
+      expect(result.unlinkedMonsters).toEqual([]);
+      expect(
+        parts.filter((part) => !part.monsterKey && !part.nonCreature),
+      ).toEqual([]);
+      const sourceParts = fixture.encounters.flatMap(
+        (encounter) => encounter.composition,
+      );
+      parts.forEach((part, index) => {
+        // Hazards stay hazards: no stat block, never reported as unlinked.
+        expect(Boolean(part.nonCreature)).toBe(
+          Boolean(sourceParts[index].nonCreature),
+        );
+        if (part.nonCreature) {
+          expect(part.monsterKey).toBeUndefined();
+        } else if (part.monsterKey) {
           expect(part.monsterKey.startsWith('srd:')).toBe(true);
           expect(part.cr).toBeTruthy();
         } else {
           expect(result.unlinkedMonsters).toContain(part.name);
         }
-      }
+      });
     });
   });
 

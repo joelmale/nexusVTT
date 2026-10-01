@@ -117,9 +117,11 @@ export function EncounterEditor({
                   {row.name}
                   <span className={styles.compMeta}>
                     {row.cr ? `CR ${row.cr} · ` : ''}
-                    {row.monsterKey?.startsWith('homebrew:')
-                      ? 'Homebrew'
-                      : (RULESET_LABELS[row.ruleset] ?? row.ruleset)}
+                    {row.nonCreature
+                      ? 'Hazard, not a creature'
+                      : row.monsterKey?.startsWith('homebrew:')
+                        ? 'Homebrew'
+                        : (RULESET_LABELS[row.ruleset] ?? row.ruleset)}
                   </span>
                 </span>
                 <label className={styles.inline}>

@@ -53,9 +53,9 @@ export const encounters: CampaignEncounter[] = [
         role: 'Circle the party from cover and retreat toward deep water.',
       },
       {
-        name: 'Sahuagin Scout',
+        name: 'Sahuagin',
         count: 1,
-        ruleset: 'custom',
+        ruleset: '2014-srd',
         role: 'Signals the patrol and avoids the route beneath Customs House.',
       },
     ],
@@ -78,9 +78,9 @@ export const encounters: CampaignEncounter[] = [
     difficulty: 'low',
     composition: [
       {
-        name: 'Watch Sergeant',
+        name: 'Veteran',
         count: 1,
-        ruleset: 'custom',
+        ruleset: '2014-srd',
         role: 'Reads the party and decides whether to escalate.',
       },
       {
@@ -90,9 +90,9 @@ export const encounters: CampaignEncounter[] = [
         role: 'Secure the lane and inspect cargo.',
       },
       {
-        name: 'Customs Clerk',
+        name: 'Commoner',
         count: 1,
-        ruleset: 'custom',
+        ruleset: '2014-srd',
         role: 'Recognizes inconsistencies in the false manifest.',
       },
     ],
@@ -115,15 +115,16 @@ export const encounters: CampaignEncounter[] = [
     difficulty: 'high',
     composition: [
       {
-        name: 'Drowned Dead',
+        name: 'Zombie',
         count: 2,
-        ruleset: 'custom',
+        ruleset: '2014-srd',
         role: 'Rise from brackish water to pin intruders in the cellar.',
       },
       {
         name: 'Grasping Tide',
         count: 1,
         ruleset: 'custom',
+        nonCreature: true,
         role: 'Environmental hazard that pulls creatures toward a submerged grate.',
       },
     ],
@@ -136,6 +137,6 @@ export const encounters: CampaignEncounter[] = [
     tactics:
       'The drowned dead grapple whoever approaches the grate while the tide hazard rises each round.',
     rulesetNotes:
-      'Campaign-specific creatures and hazard; difficulty is a display fixture.',
+      'Creatures use compatible 2014 SRD definitions (Veteran, Commoner, Zombie). The tide is a hazard with no stat block. Difficulty is a display fixture.',
   },
 ];
