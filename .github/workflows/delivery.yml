@@ -88,15 +88,29 @@ jobs:
       - name: Validate service catalog
         run: node scripts/ci/service-catalog.mjs
 
+      # Diff against the last *promoted* release, not the previous push: a push
+      # whose promotion was skipped as superseded would otherwise never reach
+      # `latest` unless a later push touched the same image again.
+      - name: Find last promoted release
+        id: promoted
+        if: github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci/last-promoted-release.mjs
+
       - name: Resolve affected delivery targets
         id: affected
         shell: bash
         env:
-          BASE_SHA: ${{ github.event.before || 'HEAD^' }}
+          BASE_SHA: ${{ steps.promoted.outputs.sha || github.event.before || 'HEAD^' }}
+          FULL: ${{ steps.promoted.outputs.full }}
           EVENT_NAME: ${{ github.event_name }}
           EVENT_REF: ${{ github.ref }}
         run: |
+          full_args=()
+          if [[ "$FULL" == 'true' ]]; then full_args=(--full); fi
           node scripts/ci/affected-targets.mjs \
+            "${full_args[@]}" \
             --base "${BASE_SHA:-HEAD^}" \
             --head HEAD \
             --event "$EVENT_NAME" \

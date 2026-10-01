@@ -4,12 +4,14 @@ export default defineConfig({
   test: {
     environment: 'node',
     include: [
+      'scripts/ci/last-promoted-release.test.mjs',
       'scripts/ci/release-promotion.test.mjs',
       'scripts/ci/release-validation-evidence.test.mjs',
     ],
     coverage: {
       provider: 'v8',
       include: [
+        'scripts/ci/last-promoted-release.mjs',
         'scripts/ci/release-promotion.mjs',
         'scripts/ci/release-validation-evidence.mjs',
       ],
