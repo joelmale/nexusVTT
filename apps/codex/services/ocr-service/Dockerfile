@@ -48,7 +48,7 @@ RUN apt-get update && \
 
 RUN groupadd --system --gid 1001 app && \
     useradd --system --uid 1001 --gid app --home-dir /app --shell /usr/sbin/nologin app && \
-    mkdir -p /models && chown app:app /models
+    mkdir -p /app /models/cache && chown -R app:app /models /app
 
 WORKDIR /app
 COPY --from=builder /opt/venv /opt/venv
@@ -61,6 +61,7 @@ ENV PATH="/opt/venv/bin:$PATH" \
     PORT=8000 \
     PYTHONUNBUFFERED=1 \
     HF_HOME=/models \
+    XDG_CACHE_HOME=/models/cache \
     FASTEMBED_CACHE_PATH=/models/fastembed
 
 ARG VERSION=dev

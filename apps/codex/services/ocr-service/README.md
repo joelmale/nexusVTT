@@ -46,7 +46,7 @@ Build arguments:
 | `TORCH_INDEX_URL` | `https://download.pytorch.org/whl/cu126` | CUDA wheel index matching the host driver; `.../whl/cpu` for CPU-only |
 | `TORCH_VERSION` | `2.8.0` | Must satisfy Marker's `torch>=2.7,<3` |
 
-Model weights are cached under `HF_HOME=/models`; mount a named volume there. `LAYOUT_PRELOAD=true` (the default) loads the models at startup. The container runs as the non-root `app` user (uid 1001).
+Model weights are cached under `HF_HOME=/models` and Marker's platformdirs cache under `XDG_CACHE_HOME=/models/cache`; mount a named volume at `/models` (it must be writable by uid 1001). `LAYOUT_PRELOAD=true` (the default) loads the models at startup. The container runs as the non-root `app` user (uid 1001).
 
 The game lexicon (`src/data/game_lexicon.txt`) is generated from the repository's SRD data by `scripts/build_game_lexicon.py`. `tests/` mock Marker, so CI installs only `requirements.txt`.
 

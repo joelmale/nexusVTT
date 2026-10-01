@@ -391,6 +391,8 @@ services:
       CUDA_VISIBLE_DEVICES: ${CODEX_OCR_CUDA_VISIBLE_DEVICES:-0}
       # Ingestion v2 layout engine (Marker). Weights persist in codex-ocr-models.
       HF_HOME: /models
+      # Marker/Surya resolve ~/.cache (= /app/.cache, root-owned) via platformdirs.
+      XDG_CACHE_HOME: /models/cache
       LAYOUT_PRELOAD: ${CODEX_OCR_LAYOUT_PRELOAD:-true}
     volumes:
       - codex-ocr-models:/models
