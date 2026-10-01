@@ -829,7 +829,7 @@ factions, quests and notes.
   to dismiss). A mention is stored as `@[Title](ref:<id>)`. The id is the link
   and the title is only what it was when typed, so renaming an object updates
   every mention when it is read. A mention whose target is gone shows
-  "Missing: <old title>" and links nowhere. Helpers live in `src/lib/mentions.ts`.
+  `Missing: <old title>` and links nowhere. Helpers live in `src/lib/mentions.ts`.
 - **Links and backlinks.** Saving an object turns its mentions into
   `campaign-object` links pinned to the target's current revision, so the server
   records them as dependencies. The in-app entity index also treats mentions as
