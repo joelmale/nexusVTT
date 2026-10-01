@@ -795,3 +795,24 @@ factions, quests and notes.
   land the clone skips maps and turns scene steps into reminders marked
   "map pending"; afterwards the clone copies maps, pins and scene templates.
 - Example campaigns stay read-only.
+
+**Implemented clone behaviour** (`seedFromFixture` in `services/campaign-bundle-api.ts`):
+
+- Copies acts, locations, NPCs, factions, quests with objectives, encounters,
+  sessions, the party, and lore, handouts and clues as notes. Two passes: fresh
+  ids for everything first, then writes in dependency order with every
+  reference remapped, so no object keeps an example id.
+- Sessions keep their act, quest, NPC, faction, location, encounter and
+  handout links. An example session plan becomes a draft `session-plan` object
+  and the session records it as `planId`. Steps that point at a cloned entry
+  become `open-entry`; scene, encounter and handout-asset steps become
+  reminders (scenes are marked "map pending") because they need maps, assets or
+  a published encounter definition.
+- Example monsters are matched by name to the SRD catalog and linked. Unmatched
+  names are copied as unlinked rows with no stats rather than as invented
+  homebrew monsters, so a placeholder challenge rating cannot distort the
+  calculated difficulty. They are listed in the result message.
+- The clone is client-orchestrated and resilient: a failed item is reported and
+  the rest continue. `StartFromExample` shows what was skipped or failed before
+  opening the new campaign.
+- Maps are not copied. They arrive with the map build-out phase.

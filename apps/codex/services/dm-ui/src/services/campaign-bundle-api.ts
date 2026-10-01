@@ -62,6 +62,10 @@
 import type { CampaignSummary } from './campaign-api';
 import { createCampaign } from './campaign-api';
 import {
+  buildMonsterCatalog,
+  matchMonsterByName,
+} from '../features/encounters/monsterCatalog';
+import {
   createEmptyBundle,
   getFixtureBundle,
 } from '../demo/fixture-registry/registry';
@@ -130,6 +134,16 @@ export interface SeedResult {
   campaignId: string;
   created: number;
   failed: SeedFailure[];
+  /** Objects created per kind (session plans count under `session-plan`). */
+  byKind: Record<string, number>;
+  /**
+   * Example monsters with no SRD match. They are copied as unlinked rows, so
+   * they have no challenge rating until the DM picks a catalog entry or
+   * creates a homebrew monster.
+   */
+  unlinkedMonsters: string[];
+  /** What the clone deliberately leaves out, for the result message. */
+  skipped: string[];
 }
 
 export interface ServerBundleStore {
@@ -210,7 +224,12 @@ const UNSUPPORTED_KEYS = [
   'pinId',
   'sceneTemplateId',
 ];
-const SINGLE_REF_KEYS = ['leaderNpcId', 'giverNpcId', 'parentLocationId'];
+const SINGLE_REF_KEYS = [
+  'leaderNpcId',
+  'giverNpcId',
+  'parentLocationId',
+  'actId',
+];
 const LIST_REF_KEYS = [
   'factionIds',
   'locationIds',
@@ -218,6 +237,9 @@ const LIST_REF_KEYS = [
   'questIds',
   'alliedFactionIds',
   'rivalFactionIds',
+  'encounterIds',
+  'clueIds',
+  'handoutIds',
 ];
 
 // ---------------------------------------------------------------- helpers
@@ -1345,11 +1367,15 @@ function remap(
 }
 
 /**
- * Creates a new real campaign named after the example fixture and copies its
- * npcs, factions, quests and locations into it, plus its lore (DM-only) and
- * handouts (shared with all players) as campaign-wide notes and its clues as
- * notes. Sequential and
- * resilient: an item that fails is reported and the rest continue.
+ * Creates a new real campaign named after the example fixture and clones the
+ * example into it: acts, sessions (with their links and a draft session plan),
+ * encounters, the party, locations, NPCs, factions, quests (with objectives),
+ * lore and handouts (as notes) and clues (as notes). Maps are not copied yet.
+ *
+ * Two passes: every fixture id gets a fresh id first, then objects are written
+ * in dependency order with their references remapped, so links never point at
+ * example ids. Sequential and resilient: an item that fails is reported and
+ * the rest continue.
  */
 export async function seedFromFixture(slug: string): Promise<SeedResult> {
   const fixture = getFixtureBundle(slug);
@@ -1379,6 +1405,12 @@ export async function seedFromFixture(slug: string): Promise<SeedResult> {
       objectives,
     });
   };
+  const monsterCatalog = buildMonsterCatalog();
+  const unlinkedMonsters = new Set<string>();
+
+  // Pass 1: ids for everything that can be linked to. Order here is the write
+  // order: containers before the objects that point at them.
+  fixture.acts.forEach((item) => register('act', item));
   fixture.locations.forEach((item) => register('location', item));
   fixture.npcs.forEach((item) => register('npc', item));
   fixture.factions.forEach((item) => register('faction', item));
@@ -1389,12 +1421,50 @@ export async function seedFromFixture(slug: string): Promise<SeedResult> {
       fixture.objectives.filter((objective) => objective.questId === item.id),
     ),
   );
+  fixture.encounters.forEach((item) => {
+    // Link example monsters to the SRD catalog where the name matches.
+    const linked: CampaignEncounter = {
+      ...item,
+      composition: item.composition.map((component) => {
+        const match = matchMonsterByName(monsterCatalog, component.name);
+        if (!match) unlinkedMonsters.add(component.name);
+        return match
+          ? { ...component, monsterKey: match.key, cr: match.cr }
+          : component;
+      }),
+    };
+    register('encounter', linked);
+  });
+  fixture.sessions.forEach((item) => register('session', item));
+  fixture.campaign.playerCharacters.forEach((item) =>
+    register('party-member', item),
+  );
+  // Fixture lore and handouts both become campaign-wide notes (seedNotes).
+  const notes = seedNotes(fixture);
+  notes.forEach((note) => idMap.set(note.id, newId()));
 
-  // Fixture lore (DM-only) and handouts (shared) both become campaign-wide
-  // notes via seedNotes(); no handout/folder objects are created.
+  const result: SeedResult = {
+    campaignId: created.id,
+    created: 0,
+    failed: [],
+    byKind: {},
+    unlinkedMonsters: [...unlinkedMonsters],
+    skipped: fixture.maps.length > 0 ? ['maps'] : [],
+  };
+  const count = (kind: string) => {
+    result.created += 1;
+    result.byKind[kind] = (result.byKind[kind] ?? 0) + 1;
+  };
+  // Entries a session-plan step can open, by their new id.
+  const createdEntryIds = new Set<string>();
+  const failedEntry = (
+    kind: string,
+    id: string,
+    title: string,
+    error: string,
+  ) => result.failed.push({ kind: kind as EditableKind, id, title, error });
 
-  const result: SeedResult = { campaignId: created.id, created: 0, failed: [] };
-
+  // Pass 2: write.
   for (const { kind, source, objectives } of plan) {
     const newItemId = idMap.get(str(source.id))!;
     const draft: Record<string, unknown> = { ...remap(source, idMap) };
@@ -1410,44 +1480,171 @@ export async function seedFromFixture(slug: string): Promise<SeedResult> {
             .locationIds,
         }));
     }
+    if (kind === 'session') {
+      // Session ids are rebuilt below; the plan object is created separately.
+      delete draft.plan;
+      const sourcePlan = (source as unknown as CampaignSession).plan;
+      if (sourcePlan) {
+        const planResult = await postSessionPlan(
+          created.id,
+          str(source.title),
+          sourcePlan,
+          idMap,
+          createdEntryIds,
+        );
+        if (planResult.ok) {
+          draft.planId = planResult.id;
+          count('session-plan');
+        } else {
+          failedEntry(
+            'session-plan',
+            str(source.id),
+            str(source.title),
+            planResult.error,
+          );
+        }
+      }
+    }
     const entity = mergeEntity(
       kind,
       normalize(kind, { id: newItemId }, created.id),
       draft,
       newItemId,
     );
+    if (kind === 'session' && typeof draft.planId === 'string') {
+      entity.planId = draft.planId;
+    }
     const failure = await postNew(created.id, kind, entity);
     if (!failure) {
-      result.created += 1;
+      count(kind);
+      if (['npc', 'location', 'faction', 'quest'].includes(kind)) {
+        createdEntryIds.add(newItemId);
+      }
     } else {
-      result.failed.push({
-        kind,
-        id: str(source.id),
-        title: str(source[titleKey(kind)]),
-        error: failure,
-      });
+      failedEntry(kind, str(source.id), str(source[titleKey(kind)]), failure);
     }
   }
 
-  for (const [noteIndex, note] of seedNotes(fixture).entries()) {
+  for (const [noteIndex, note] of notes.entries()) {
+    const newNoteId = idMap.get(note.id)!;
     const entity = normalize(
       'note',
-      { ...note, id: newId(), anchor: { type: 'campaign' }, order: noteIndex },
+      { ...note, id: newNoteId, anchor: { type: 'campaign' }, order: noteIndex },
       created.id,
     );
     const failure = await postNew(created.id, 'note', entity);
     if (!failure) {
-      result.created += 1;
+      count('note');
+      createdEntryIds.add(newNoteId);
     } else {
-      result.failed.push({
-        kind: 'note',
-        id: note.id,
-        title: note.title,
-        error: failure,
-      });
+      failedEntry('note', note.id, note.title, failure);
     }
   }
   return result;
+}
+
+/** Plain-language lines for what a clone skipped or could not copy. */
+export function describeSeedResult(result: SeedResult): string[] {
+  const notes: string[] = [];
+  if (result.failed.length > 0) {
+    const shown = result.failed
+      .slice(0, 5)
+      .map((failure) => `${failure.title || failure.kind} (${failure.error})`);
+    notes.push(
+      `${result.failed.length} item${result.failed.length === 1 ? '' : 's'} could not be copied: ${shown.join('; ')}${result.failed.length > 5 ? '; and more' : ''}.`,
+    );
+  }
+  if (result.skipped.includes('maps')) {
+    notes.push('Maps are not copied yet. Scene steps became reminders.');
+  }
+  if (result.unlinkedMonsters.length > 0) {
+    notes.push(
+      `No SRD match for: ${result.unlinkedMonsters.join(', ')}. They were copied without stats; pick a catalog monster or create a homebrew one.`,
+    );
+  }
+  return notes;
+}
+
+type StepSource = NonNullable<CampaignSession['plan']>['steps'][number];
+
+/**
+ * Creates a draft session-plan object from an example session plan. Steps that
+ * point at something already cloned open it; everything else becomes a
+ * reminder that keeps the step's title, timing, track and visibility. Scenes
+ * (maps) and encounter or handout deployment need assets or published
+ * definitions, so they stay reminders until the DM wires them up.
+ */
+async function postSessionPlan(
+  campaignId: string,
+  title: string,
+  source: NonNullable<CampaignSession['plan']>,
+  idMap: Map<string, string>,
+  createdEntryIds: Set<string>,
+): Promise<{ ok: true; id: string } | { ok: false; error: string }> {
+  const now = new Date().toISOString();
+  const steps = [...source.steps]
+    .sort((a, b) => a.order - b.order)
+    .map((step: StepSource) => {
+      const base = {
+        id: newId(),
+        title: step.title,
+        estimatedMinutes: Math.max(0, Math.round(step.durationMinutes)),
+        visibility: step.visibility === 'shared' ? 'players' : 'dm-only',
+        track: step.track,
+      };
+      const target = step.objectId ? idMap.get(step.objectId) : undefined;
+      if (
+        (step.kind === 'note' || step.kind === 'handout') &&
+        target &&
+        createdEntryIds.has(target)
+      ) {
+        return {
+          ...base,
+          type: 'open-entry',
+          entryRef: {
+            target: 'campaign-object',
+            campaignId,
+            id: target,
+            revision: 1,
+          },
+        };
+      }
+      // Scenes and encounters keep their kind in the text; the body follows.
+      const label =
+        step.kind === 'scene'
+          ? `Scene (map pending): ${step.title}`
+          : step.kind === 'encounter'
+            ? `Encounter: ${step.title}`
+            : undefined;
+      const text = label
+        ? [label, step.body].filter(Boolean).join('\n\n')
+        : step.body || step.title;
+      return { ...base, type: 'reminder', text: text.trim() || step.title };
+    });
+  if (steps.length === 0) return { ok: false, error: 'The plan has no steps.' };
+  const id = newId();
+  const response = await http(objectsPath(campaignId), {
+    method: 'POST',
+    body: JSON.stringify({
+      kind: 'session-plan',
+      requestId: newId(),
+      data: {
+        id,
+        campaignId,
+        schemaVersion: SCHEMA_VERSION,
+        revision: 1,
+        title: title || 'Session plan',
+        status: 'draft',
+        steps,
+        dependencies: [],
+        createdAt: now,
+        updatedAt: now,
+      },
+    }),
+  });
+  return response.ok
+    ? { ok: true, id }
+    : { ok: false, error: response.error ?? 'Failed to create the plan.' };
 }
 
 /** POSTs a new object; returns an error message on failure. */

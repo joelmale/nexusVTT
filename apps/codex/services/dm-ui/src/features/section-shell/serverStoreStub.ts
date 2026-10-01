@@ -29,7 +29,14 @@ export async function loadServerBundleBackend(): Promise<ServerBundleBackend> {
     },
     async seedFromFixture(slug) {
       const result = await api.seedFromFixture(slug);
-      return result.campaignId;
+      const notes = api.describeSeedResult(result);
+      return notes.length === 0
+        ? result.campaignId
+        : {
+            campaignId: result.campaignId,
+            notes,
+            failedCount: result.failed.length,
+          };
     },
   };
 }

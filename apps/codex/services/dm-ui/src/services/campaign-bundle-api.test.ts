@@ -4,6 +4,7 @@ import { getFixtureBundle } from '../demo/fixture-registry/registry';
 import type { CampaignSummary } from './campaign-api';
 import {
   createServerBundleStore,
+  describeSeedResult,
   seedFromFixture,
 } from './campaign-bundle-api';
 
@@ -762,58 +763,200 @@ describe('updateItem', () => {
 });
 
 describe('seedFromFixture', () => {
-  it('creates a campaign named after the example and copies content', async () => {
-    const fixture = getFixtureBundle('ashes-of-veyra')!;
-    const result = await seedFromFixture('ashes-of-veyra');
-    expect(result.failed).toEqual([]);
-    expect(server.campaigns[0].name).toBe(fixture.campaign.title);
-    const expected =
-      fixture.npcs.length +
-      fixture.factions.length +
-      fixture.quests.length +
-      fixture.locations.length;
+  describe.each([
+    'ashes-of-veyra',
+    'crown-of-cinders',
+    'lanterns-of-mourningfen',
+    'stars-below-kharad',
+  ])('full clone of %s', (slug) => {
     const byKind = (kind: string) =>
       [...server.objects.values()].filter((object) => object.kind === kind);
-    // Lore and handouts are notes now: no lore/handout objects are created.
-    expect(byKind('lore')).toHaveLength(0);
-    expect(byKind('note').length).toBeGreaterThanOrEqual(fixture.notes.length);
-    expect(result.created).toBe(server.objects.size);
-    expect(server.objects.size).toBe(expected + byKind('note').length);
-    expect(
-      [...server.objects.values()].some((object) =>
-        ['encounter', 'session-plan', 'campaign-map'].includes(object.kind),
-      ),
-    ).toBe(false);
 
-    const seeded = await createServerBundleStore({
-      ...CAMPAIGN,
-      id: result.campaignId,
-    }).load();
-    expect(seeded.npcs).toHaveLength(fixture.npcs.length);
-    expect(seeded.quests).toHaveLength(fixture.quests.length);
-    expect(seeded.objectives.length).toBe(fixture.objectives.length);
+    it('copies every component except maps, with the same counts', async () => {
+      const fixture = getFixtureBundle(slug)!;
+      const result = await seedFromFixture(slug);
+      expect(result.failed).toEqual([]);
+      expect(server.campaigns[0].name).toBe(fixture.campaign.title);
 
-    const ids = new Set(
-      [
-        ...seeded.npcs,
-        ...seeded.factions,
-        ...seeded.locations,
-        ...seeded.quests,
-      ].map((item) => item.id),
-    );
-    // References are remapped onto the new ids, never fixture ids.
-    for (const faction of seeded.factions) {
-      for (const ref of [
-        ...faction.alliedFactionIds,
-        ...faction.rivalFactionIds,
-        ...faction.locationIds,
-      ]) {
-        expect(ids.has(ref)).toBe(true);
+      expect(byKind('npc')).toHaveLength(fixture.npcs.length);
+      expect(byKind('faction')).toHaveLength(fixture.factions.length);
+      expect(byKind('quest')).toHaveLength(fixture.quests.length);
+      expect(byKind('location')).toHaveLength(fixture.locations.length);
+      expect(byKind('act')).toHaveLength(fixture.acts.length);
+      expect(byKind('session')).toHaveLength(fixture.sessions.length);
+      expect(byKind('encounter')).toHaveLength(fixture.encounters.length);
+      expect(byKind('party-member')).toHaveLength(
+        fixture.campaign.playerCharacters.length,
+      );
+      expect(byKind('session-plan')).toHaveLength(
+        fixture.sessions.filter((session) => session.plan).length,
+      );
+      expect(byKind('note').length).toBeGreaterThanOrEqual(fixture.notes.length);
+      // Lore and handouts are notes; maps are not copied yet.
+      expect(byKind('lore')).toHaveLength(0);
+      expect(byKind('campaign-map')).toHaveLength(0);
+      expect(result.created).toBe(server.objects.size);
+      expect(result.byKind.session).toBe(fixture.sessions.length);
+      expect(result.skipped).toEqual(fixture.maps.length > 0 ? ['maps'] : []);
+    });
+
+    it('loads back as a populated campaign with remapped links', async () => {
+      const fixture = getFixtureBundle(slug)!;
+      const result = await seedFromFixture(slug);
+      const seeded = await createServerBundleStore({
+        ...CAMPAIGN,
+        id: result.campaignId,
+      }).load();
+
+      expect(seeded.npcs).toHaveLength(fixture.npcs.length);
+      expect(seeded.quests).toHaveLength(fixture.quests.length);
+      expect(seeded.objectives.length).toBe(fixture.objectives.length);
+      expect(seeded.acts).toHaveLength(fixture.acts.length);
+      expect(seeded.sessions).toHaveLength(fixture.sessions.length);
+      expect(seeded.encounters).toHaveLength(fixture.encounters.length);
+      expect(seeded.campaign.playerCharacters).toHaveLength(
+        fixture.campaign.playerCharacters.length,
+      );
+      expect(seeded.campaign.objectCounts.encounters).toBe(
+        fixture.encounters.length,
+      );
+
+      const ids = new Set(
+        [
+          ...seeded.npcs,
+          ...seeded.factions,
+          ...seeded.locations,
+          ...seeded.quests,
+          ...seeded.acts,
+          ...seeded.encounters,
+          ...seeded.sessions,
+          ...seeded.notes,
+        ].map((item) => item.id),
+      );
+      const fixtureIds = new Set(
+        [
+          ...fixture.npcs,
+          ...fixture.factions,
+          ...fixture.locations,
+          ...fixture.quests,
+          ...fixture.acts,
+          ...fixture.encounters,
+          ...fixture.sessions,
+        ].map((item) => item.id),
+      );
+      // Nothing keeps an example id.
+      for (const id of ids) expect(fixtureIds.has(id)).toBe(false);
+
+      for (const session of seeded.sessions) {
+        if (session.actId) expect(ids.has(session.actId)).toBe(true);
+        for (const ref of [
+          ...session.npcIds,
+          ...session.questIds,
+          ...session.factionIds,
+          ...session.locationIds,
+          ...session.encounterIds,
+        ]) {
+          expect(ids.has(ref)).toBe(true);
+        }
       }
-    }
-    for (const quest of seeded.quests) {
-      if (quest.giverNpcId) expect(ids.has(quest.giverNpcId)).toBe(true);
-    }
+      for (const faction of seeded.factions) {
+        for (const ref of [
+          ...faction.alliedFactionIds,
+          ...faction.rivalFactionIds,
+          ...faction.locationIds,
+        ]) {
+          expect(ids.has(ref)).toBe(true);
+        }
+      }
+      for (const quest of seeded.quests) {
+        if (quest.giverNpcId) expect(ids.has(quest.giverNpcId)).toBe(true);
+      }
+      for (const encounter of seeded.encounters) {
+        for (const ref of [...encounter.locationIds, ...encounter.factionIds]) {
+          expect(ids.has(ref)).toBe(true);
+        }
+      }
+
+      // Reverse links are rebuilt from the cloned sessions.
+      const planned = fixture.sessions.find((session) => session.npcIds.length);
+      if (planned) {
+        const clone = seeded.sessions.find(
+          (session) => session.title === planned.title,
+        )!;
+        const npc = seeded.npcs.find((item) => clone.npcIds.includes(item.id));
+        expect(npc?.sessionIds).toContain(clone.id);
+      }
+    });
+
+    it('clones session plans as valid draft plans that link to cloned entries', async () => {
+      const fixture = getFixtureBundle(slug)!;
+      const result = await seedFromFixture(slug);
+      const plans = byKind('session-plan');
+      const planned = fixture.sessions.filter((session) => session.plan);
+      expect(plans).toHaveLength(planned.length);
+
+      const objectIds = new Set([...server.objects.keys()]);
+      for (const plan of plans) {
+        const data = plan.data as {
+          status: string;
+          steps: { type: string; title: string; text?: string; entryRef?: { id: string; campaignId: string } }[];
+        };
+        expect(data.status).toBe('draft');
+        expect(data.steps.length).toBeGreaterThan(0);
+        for (const step of data.steps) {
+          expect(['open-entry', 'reminder']).toContain(step.type);
+          if (step.type === 'open-entry') {
+            expect(step.entryRef!.campaignId).toBe(result.campaignId);
+            expect(objectIds.has(step.entryRef!.id)).toBe(true);
+          } else {
+            expect(step.text).toBeTruthy();
+          }
+        }
+      }
+      // Every cloned session points at its own plan.
+      const sessions = byKind('session');
+      for (const session of sessions) {
+        const fields = (
+          session.data as {
+            content: { value: { nexusStudio: { fields: { planId?: string } } } };
+          }
+        ).content.value.nexusStudio.fields;
+        if (fields.planId) {
+          expect(server.objects.get(fields.planId)?.kind).toBe('session-plan');
+        }
+      }
+      if (fixture.sessions.some((session) => session.plan?.steps.some((step) => step.kind === 'scene'))) {
+        expect(
+          plans.some((plan) =>
+            (plan.data as { steps: { text?: string }[] }).steps.some((step) =>
+              step.text?.startsWith('Scene (map pending):'),
+            ),
+          ),
+        ).toBe(true);
+      }
+    });
+
+    it('links example monsters to the SRD catalog and reports the rest', async () => {
+      const fixture = getFixtureBundle(slug)!;
+      const result = await seedFromFixture(slug);
+      const seeded = await createServerBundleStore({
+        ...CAMPAIGN,
+        id: result.campaignId,
+      }).load();
+      const parts = seeded.encounters.flatMap((encounter) => encounter.composition);
+      const sourceNames = fixture.encounters.flatMap((encounter) =>
+        encounter.composition.map((part) => part.name),
+      );
+      expect(parts.map((part) => part.name)).toEqual(sourceNames);
+      for (const part of parts) {
+        if (part.monsterKey) {
+          expect(part.monsterKey.startsWith('srd:')).toBe(true);
+          expect(part.cr).toBeTruthy();
+        } else {
+          expect(result.unlinkedMonsters).toContain(part.name);
+        }
+      }
+    });
   });
 
   it('keeps going after a failed item and reports what failed', async () => {
@@ -891,6 +1034,28 @@ describe('seedFromFixture', () => {
         handout.visibility === 'shared' ? 'all' : 'hidden',
       );
     }
+  });
+
+  it('describes what a clone skipped or failed to copy', () => {
+    const base = {
+      campaignId: 'c',
+      created: 3,
+      failed: [],
+      byKind: {},
+      unlinkedMonsters: [],
+      skipped: [],
+    };
+    expect(describeSeedResult(base)).toEqual([]);
+    const notes = describeSeedResult({
+      ...base,
+      failed: [{ kind: 'npc', id: 'n1', title: 'Mira', error: 'boom' }],
+      skipped: ['maps'],
+      unlinkedMonsters: ['Gloomwing', 'Ash Hound'],
+    });
+    expect(notes).toHaveLength(3);
+    expect(notes[0]).toContain('1 item could not be copied: Mira (boom)');
+    expect(notes[1]).toContain('Maps are not copied yet');
+    expect(notes[2]).toContain('Gloomwing, Ash Hound');
   });
 
   it('rejects unknown examples', async () => {

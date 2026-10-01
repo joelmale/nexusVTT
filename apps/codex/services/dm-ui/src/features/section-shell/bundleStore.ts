@@ -87,10 +87,21 @@ export interface ServerBundleStoreController {
   canEdit?: boolean;
 }
 
+/** What a clone left out or could not copy, shown before opening it. */
+export interface SeedOutcome {
+  campaignId: string;
+  /** Plain-language lines, e.g. "Maps were not copied." */
+  notes: string[];
+  failedCount: number;
+}
+
 export interface ServerBundleBackend {
   createServerBundleStore(
     campaign: CampaignSummary,
   ): ServerBundleStoreController;
-  /** Create a new real campaign seeded from a fixture; resolves its id. */
-  seedFromFixture(slug: string): Promise<string>;
+  /**
+   * Clone a fixture into a new real campaign. Resolves its id, or an outcome
+   * when something was skipped or failed so the DM can see it.
+   */
+  seedFromFixture(slug: string): Promise<string | SeedOutcome>;
 }

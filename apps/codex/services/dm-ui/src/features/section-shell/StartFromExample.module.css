@@ -35,3 +35,25 @@
   color: var(--studio-danger);
   font-size: 13px;
 }
+
+.outcome {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-panel);
+  display: flex;
+  flex-direction: column;
+  font-size: 14px;
+  gap: 8px;
+  max-width: 440px;
+  padding: 12px 14px;
+}
+
+.outcome ul {
+  color: var(--studio-text-muted);
+  margin: 0;
+  padding-left: 18px;
+}
+
+.outcome .button {
+  align-self: flex-start;
+}

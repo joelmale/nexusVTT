@@ -55,6 +55,59 @@ describe('Start from this example', () => {
     expect(campaignContext.reload).toHaveBeenCalled();
   });
 
+  it('shows what the clone skipped and opens the campaign on request', async () => {
+    const seedFromFixture = vi.fn().mockResolvedValue({
+      campaignId: 'campaign-new',
+      failedCount: 1,
+      notes: [
+        '1 item could not be copied: Mira (boom).',
+        'Maps are not copied yet. Scene steps became reminders.',
+      ],
+    });
+    const backend: ServerBundleBackend = {
+      createServerBundleStore: vi.fn(),
+      seedFromFixture,
+    };
+    const { user } = renderInSection(layout, { backend });
+    await user.click(
+      screen.getByRole('button', { name: 'Start from this example' }),
+    );
+
+    expect(
+      await screen.findByText('Your copy was created, with some gaps.'),
+    ).toBeVisible();
+    expect(screen.getByText(/Mira \(boom\)/)).toBeVisible();
+    expect(screen.getByText(/Maps are not copied yet/)).toBeVisible();
+    // Stays on the example until the DM chooses to open the copy.
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/demo/ashes-of-veyra/npcs',
+    );
+    await user.click(screen.getByRole('button', { name: 'Open campaign' }));
+    expect(screen.getByTestId('location')).toHaveTextContent(
+      '/campaigns/campaign-new/npcs',
+    );
+  });
+
+  it('opens straight away when the backend reports nothing to flag', async () => {
+    const backend: ServerBundleBackend = {
+      createServerBundleStore: vi.fn(),
+      seedFromFixture: vi.fn().mockResolvedValue({
+        campaignId: 'campaign-clean',
+        failedCount: 0,
+        notes: [],
+      }),
+    };
+    const { user } = renderInSection(layout, { backend });
+    await user.click(
+      screen.getByRole('button', { name: 'Start from this example' }),
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId('location')).toHaveTextContent(
+        '/campaigns/campaign-clean/npcs',
+      ),
+    );
+  });
+
   it('shows an error and stays put when seeding fails', async () => {
     const backend: ServerBundleBackend = {
       createServerBundleStore: vi.fn(),
