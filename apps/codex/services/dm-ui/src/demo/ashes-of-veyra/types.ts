@@ -294,14 +294,18 @@ export interface CampaignMap {
   title: string;
   description: string;
   imagePath?: string;
+  imageAssetRef?: { target: 'asset'; assetId: string };
+  dimensions?: { width: number; height: number };
   locationIds: FixtureId[];
   layers: MapLayer[];
+  pins?: MapPin[];
 }
 
 export interface MapLayer {
   id: FixtureId;
   label: string;
   visibleByDefault: boolean;
+  order?: number;
   locationIds: FixtureId[];
 }
 
@@ -315,6 +319,10 @@ export interface MapPin {
   y: number;
   layerIds: FixtureId[];
   linkedObjectIds: FixtureId[];
+  linkedObjectRefs?: Array<{ target: string; [k: string]: unknown }>;
+  icon?: string;
+  color?: string;
+  visibility?: 'dm-only' | 'players';
   selectedByDefault: boolean;
 }
 

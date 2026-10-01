@@ -92,7 +92,11 @@ import type {
   HandoutAudience,
   QuestObjective,
 } from '../demo/fixture-registry/types';
-import type { ActivityLink } from '../demo/ashes-of-veyra/types';
+import type {
+  ActivityLink,
+  CampaignMap,
+  MapPin,
+} from '../demo/ashes-of-veyra/types';
 
 export type EditableKind =
   | 'npc'
@@ -106,7 +110,8 @@ export type EditableKind =
   | 'act'
   | 'encounter'
   | 'party-member'
-  | 'homebrew-monster';
+  | 'homebrew-monster'
+  | 'campaign-map';
 
 /** Handouts and folders are both stored as server kind `lore`. */
 function serverKind(kind: EditableKind): string {
@@ -218,6 +223,7 @@ const EDITABLE_KINDS: string[] = [
   'encounter',
   'party-member',
   'homebrew-monster',
+  'campaign-map',
 ];
 
 /** Fields that never round-trip because the server has no kind for them. */
@@ -616,6 +622,37 @@ function normalize(
         notes: str(raw.notes),
       } satisfies HomebrewMonster;
     }
+    case 'campaign-map': {
+      const pins = Array.isArray(raw.pins) ? (raw.pins as unknown as MapPin[]) : [];
+      const locationIds = [
+        ...new Set(
+          pins
+            .map((pin) => pin.locationId)
+            .filter((lid): lid is string => Boolean(lid)),
+        ),
+      ];
+      const imageAssetRef =
+        isRecord(raw.imageAssetRef) && typeof raw.imageAssetRef.assetId === 'string'
+          ? { target: 'asset' as const, assetId: raw.imageAssetRef.assetId }
+          : undefined;
+      const dimensions =
+        isRecord(raw.dimensions) &&
+        typeof raw.dimensions.width === 'number' &&
+        typeof raw.dimensions.height === 'number'
+          ? { width: raw.dimensions.width, height: raw.dimensions.height }
+          : { width: 1920, height: 1080 };
+      return {
+        ...base,
+        title: str(raw.title),
+        description: str(raw.description ?? ''),
+        imagePath: raw.imagePath ? str(raw.imagePath) : undefined,
+        imageAssetRef,
+        dimensions,
+        layers: Array.isArray(raw.layers) ? (raw.layers as unknown as CampaignMap['layers']) : [],
+        pins,
+        locationIds,
+      } satisfies CampaignMap;
+    }
   }
 }
 
@@ -680,6 +717,8 @@ function plainLines(kind: EditableKind, entity: Entity): string[] {
       return [str(entity.hook)];
     case 'homebrew-monster':
       return [str(entity.notes)];
+    case 'campaign-map':
+      return [str(entity.description)];
   }
 }
 
@@ -759,6 +798,33 @@ function buildData(
   now: string,
   revisionOf: (id: string) => number | undefined = () => undefined,
 ): Record<string, unknown> {
+  if (kind === 'campaign-map') {
+    const rawImage =
+      isRecord(entity.imageAssetRef) && typeof entity.imageAssetRef.assetId === 'string'
+        ? entity.imageAssetRef
+        : {
+            target: 'asset',
+            assetId: str(
+              entity.imagePath || entity.assetId || 'demo-ashes-of-veyra-map',
+            ),
+          };
+    return {
+      id: entity.id,
+      campaignId,
+      schemaVersion: SCHEMA_VERSION,
+      revision,
+      title: str(entity[titleKey(kind)]).trim(),
+      description: str(entity.description ?? ''),
+      imageAssetRef: rawImage,
+      dimensions: isRecord(entity.dimensions)
+        ? entity.dimensions
+        : { width: 1920, height: 1080 },
+      layers: Array.isArray(entity.layers) ? entity.layers : [],
+      pins: Array.isArray(entity.pins) ? entity.pins : [],
+      createdAt,
+      updatedAt: now,
+    };
+  }
   const tags = strings(entity.tags);
   return {
     id: entity.id,
@@ -838,6 +904,9 @@ function entityFromData(
   title: string,
 ): Entity {
   const record = isRecord(data) ? data : {};
+  if (kind === 'campaign-map') {
+    return normalize(kind, { ...record, id, title }, campaignId);
+  }
   const fields = readFields(data);
   const raw: Record<string, unknown> = { ...(fields ?? {}) };
   if (!fields) {
@@ -986,14 +1055,29 @@ function buildBundle(
   const sessionsByQuest = sessionIdsFor('questIds');
   const sessionsByNpc = sessionIdsFor('npcIds');
   const sessionsByEncounter = sessionIdsFor('encounterIds');
-  const maps = extras.maps.map((map) => ({
-    id: map.id,
-    campaignId: summary.id,
-    title: map.title,
-    description: '',
-    locationIds: [],
-    layers: [],
-  }));
+  const loadedMaps = list<CampaignMap>('campaign-map');
+  const maps: CampaignMap[] =
+    loadedMaps.length > 0
+      ? loadedMaps
+      : extras.maps.map((map) => ({
+          id: map.id,
+          campaignId: summary.id,
+          title: map.title,
+          description: '',
+          locationIds: [],
+          layers: [],
+          pins: [],
+        }));
+  const pins: MapPin[] = maps.flatMap((map) =>
+    Array.isArray(map.pins)
+      ? map.pins.map((pin, index) => ({
+          ...pin,
+          mapId: map.id,
+          order: pin.order ?? index + 1,
+          selectedByDefault: false,
+        }))
+      : [],
+  );
 
   return Object.freeze({
     ...base,
@@ -1046,6 +1130,7 @@ function buildBundle(
     handouts,
     folders,
     maps,
+    pins,
     sessions,
     sceneTemplates: extras.sceneTemplates,
     homebrewMonsters,
@@ -1540,6 +1625,11 @@ export async function seedFromFixture(slug: string): Promise<SeedResult> {
   fixture.campaign.playerCharacters.forEach((item) =>
     register('party-member', item),
   );
+  fixture.maps.forEach((item) => {
+    register('campaign-map', item);
+    const mapPins = fixture.pins.filter((pin) => pin.mapId === item.id);
+    mapPins.forEach((pin) => idMap.set(pin.id, newId()));
+  });
   // Fixture lore and handouts both become campaign-wide notes (seedNotes).
   const { notes, clueNoteIds } = seedNotes(fixture);
   notes.forEach((note) => idMap.set(note.id, newId()));
@@ -1554,7 +1644,7 @@ export async function seedFromFixture(slug: string): Promise<SeedResult> {
     failed: [],
     byKind: {},
     unlinkedMonsters: [...unlinkedMonsters],
-    skipped: fixture.maps.length > 0 ? ['maps'] : [],
+    skipped: [],
   };
   const count = (kind: string) => {
     result.created += 1;
@@ -1588,6 +1678,65 @@ export async function seedFromFixture(slug: string): Promise<SeedResult> {
 
   for (const { kind, source, objectives } of plan) {
     const newItemId = idMap.get(str(source.id))!;
+    if (kind === 'campaign-map') {
+      const sourceMap = source as unknown as CampaignMap;
+      const mapPins = fixture.pins.filter((pin) => pin.mapId === sourceMap.id);
+      const remappedPins = mapPins.map((pin) => {
+        const remappedLocationId = pin.locationId ? idMap.get(pin.locationId) ?? '' : '';
+        const linkedRefs: Array<{ target: 'campaign-object'; campaignId: string; id: string; revision: number }> = [];
+        for (const targetId of pin.linkedObjectIds ?? []) {
+          const mappedTargetId = idMap.get(targetId);
+          if (mappedTargetId) {
+            linkedRefs.push({
+              target: 'campaign-object',
+              campaignId: created.id,
+              id: mappedTargetId,
+              revision: 1,
+            });
+          }
+        }
+        return {
+          id: idMap.get(pin.id) ?? newId(),
+          label: pin.label,
+          x: pin.x,
+          y: pin.y,
+          icon: pin.icon ?? 'map-pin',
+          color: pin.color,
+          visibility: pin.visibility ?? 'players',
+          layerIds: pin.layerIds ?? [],
+          locationId: remappedLocationId,
+          linkedObjectRefs: linkedRefs,
+        };
+      });
+      const remappedLayers = (sourceMap.layers ?? []).map((layer, index) => ({
+        id: layer.id,
+        label: layer.label,
+        visibleByDefault: layer.visibleByDefault ?? true,
+        order: layer.order ?? index,
+        locationIds: [],
+      }));
+      const entity = {
+        id: newItemId,
+        campaignId: created.id,
+        title: str(sourceMap.title),
+        description: str(sourceMap.description ?? ''),
+        imageAssetRef: sourceMap.imageAssetRef ?? {
+          target: 'asset',
+          assetId: 'demo-ashes-of-veyra-map',
+        },
+        dimensions: sourceMap.dimensions ?? { width: 1920, height: 1080 },
+        layers: remappedLayers,
+        pins: remappedPins,
+      };
+      const failure = await postNew(created.id, 'campaign-map', entity);
+      if (!failure) {
+        count('campaign-map');
+        createdEntryIds.add(newItemId);
+      } else {
+        failedEntry('campaign-map', str(source.id), str(source.title), failure);
+      }
+      continue;
+    }
     const draft: Record<string, unknown> = { ...remap(source, idMap) };
     if (kind === 'quest') {
       draft.objectives = (objectives ?? [])

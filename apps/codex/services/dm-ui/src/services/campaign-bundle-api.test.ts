@@ -292,13 +292,11 @@ describe('load + mapping round-trip', () => {
     expect(server.objects.get(added.id!)!.data.visibility).toBe('dm-only');
   });
 
-  it('maps scene templates, maps and session plans from the list only', async () => {
+  it('maps scene templates and session plans from the list only', async () => {
     server.put('scene-template', { id: 'st-1', title: 'Docks' });
-    server.put('campaign-map', { id: 'map-1', title: 'Region' });
     server.put('session-plan', { id: 'sp-1', title: 'Session 1' }, 'ready');
     const bundle = await createServerBundleStore(CAMPAIGN).load();
     expect(bundle.sceneTemplates).toEqual([{ id: 'st-1', title: 'Docks' }]);
-    expect(bundle.maps[0]).toMatchObject({ id: 'map-1', title: 'Region' });
     expect(bundle.sessions[0]).toMatchObject({
       id: 'sp-1',
       title: 'Session 1',
@@ -307,6 +305,76 @@ describe('load + mapping round-trip', () => {
     expect(server.calls.some((call) => call.path.endsWith('/st-1'))).toBe(
       false,
     );
+  });
+
+  it('round-trips a campaign-map with layers and pins', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const added = await store.addItem('campaign-map', {
+      title: 'Sword Coast',
+      description: 'The regional frontier',
+      imageAssetRef: { target: 'asset', assetId: 'library:sword-coast' },
+      dimensions: { width: 2000, height: 1200 },
+      layers: [{ id: 'l1', label: 'Landmarks', visibleByDefault: true, order: 0, locationIds: [] }],
+      pins: [
+        {
+          id: 'p1',
+          label: 'Neverwinter',
+          x: 0.3,
+          y: 0.4,
+          icon: 'castle',
+          layerIds: ['l1'],
+          locationId: 'loc-1',
+          visibility: 'players',
+          linkedObjectRefs: [],
+        },
+      ],
+    });
+    expect(added.ok).toBe(true);
+    const bundle = await createServerBundleStore(CAMPAIGN).load();
+    expect(bundle.maps).toHaveLength(1);
+    expect(bundle.maps[0]).toMatchObject({
+      id: added.id,
+      title: 'Sword Coast',
+      description: 'The regional frontier',
+      dimensions: { width: 2000, height: 1200 },
+    });
+    expect(bundle.pins).toHaveLength(1);
+    expect(bundle.pins[0]).toMatchObject({
+      id: 'p1',
+      label: 'Neverwinter',
+      x: 0.3,
+      y: 0.4,
+      mapId: added.id,
+    });
+
+    const updatedMap = {
+      ...bundle.maps[0],
+      pins: [
+        ...(bundle.maps[0].pins ?? []),
+        {
+          id: 'p2',
+          mapId: added.id,
+          label: 'Waterdeep',
+          order: 2,
+          x: 0.35,
+          y: 0.75,
+          icon: 'anchor',
+          layerIds: ['l1'],
+          locationId: '',
+          linkedObjectIds: [],
+          visibility: 'players' as const,
+          selectedByDefault: false,
+          linkedObjectRefs: [],
+        },
+      ],
+    };
+    const saved = await store.updateItem('campaign-map', added.id!, {
+      pins: updatedMap.pins,
+    });
+    expect(saved.ok).toBe(true);
+    const reloaded = await createServerBundleStore(CAMPAIGN).load();
+    expect(reloaded.pins).toHaveLength(2);
   });
 
   it('round-trips acts, sessions, encounters and party members', async () => {
@@ -864,7 +932,7 @@ describe('seedFromFixture', () => {
     const byKind = (kind: string) =>
       [...server.objects.values()].filter((object) => object.kind === kind);
 
-    it('copies every component except maps, with the same counts', async () => {
+    it('copies every component including maps, with the same counts', async () => {
       const fixture = getFixtureBundle(slug)!;
       const result = await seedFromFixture(slug);
       expect(result.failed).toEqual([]);
@@ -883,12 +951,13 @@ describe('seedFromFixture', () => {
         fixture.sessions.filter((session) => session.plan).length,
       );
       expect(byKind('note').length).toBeGreaterThanOrEqual(fixture.notes.length);
-      // Lore and handouts are notes; maps are not copied yet.
+      // Lore and handouts are notes; maps are copied as real campaign-map objects.
       expect(byKind('lore')).toHaveLength(0);
-      expect(byKind('campaign-map')).toHaveLength(0);
+      expect(byKind('campaign-map')).toHaveLength(fixture.maps.length);
       expect(result.created).toBe(server.objects.size);
       expect(result.byKind.session).toBe(fixture.sessions.length);
-      expect(result.skipped).toEqual(fixture.maps.length > 0 ? ['maps'] : []);
+      expect(result.byKind['campaign-map']).toBe(fixture.maps.length);
+      expect(result.skipped).toEqual([]);
     });
 
     it('loads back as a populated campaign with remapped links', async () => {
