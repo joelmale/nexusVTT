@@ -323,6 +323,7 @@ export interface MapPin {
   icon?: string;
   color?: string;
   visibility?: 'dm-only' | 'players';
+  notes?: string;
   selectedByDefault: boolean;
 }
 

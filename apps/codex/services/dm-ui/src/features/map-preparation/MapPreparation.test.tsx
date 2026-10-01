@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
@@ -10,6 +10,20 @@ const model: MapPreparationViewModel = {
   id: 'map-1',
   imagePath: '/map.png',
   layers: [{ id: 'locations', label: 'Locations', visible: true }],
+  availableObjects: [
+    {
+      id: 'npc-2',
+      kind: 'NPC',
+      subtitle: 'Watch Captain',
+      title: 'Theron Vane',
+    },
+    {
+      id: 'enc-1',
+      kind: 'Encounter',
+      subtitle: 'Hard',
+      title: 'Harbor Ambush',
+    },
+  ],
   locations: [
     {
       description: ['Old stone offices watch the quay.'],
@@ -47,6 +61,16 @@ const model: MapPreparationViewModel = {
       locationId: 'customs',
       x: 0.4,
       y: 0.4,
+      visibility: 'players',
+      color: '#22c55e',
+      linkedObjects: [
+        {
+          id: 'npc-1',
+          kind: 'NPC',
+          subtitle: 'Harbor Master',
+          title: 'Captain Serin',
+        },
+      ],
     },
     {
       id: 'pin-2',
@@ -55,6 +79,8 @@ const model: MapPreparationViewModel = {
       locationId: 'pier',
       x: 0.7,
       y: 0.7,
+      visibility: 'players',
+      color: '#3b82f6',
     },
   ],
   selectedPinId: 'pin-1',
@@ -98,5 +124,109 @@ describe('MapPreparation', () => {
     ).toBeNull();
     await user.click(screen.getByRole('button', { name: /add pin/i }));
     expect(onCapability).toHaveBeenCalledWith('map.pin.create');
+  });
+
+  it('edits pin label and saves changes via onSave callback', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <MemoryRouter>
+        <MapPreparation model={model} onCapability={vi.fn()} onSave={onSave} />
+      </MemoryRouter>,
+    );
+
+    const input = screen.getByLabelText('Pin Label');
+    await user.clear(input);
+    await user.type(input, 'Renamed Customs House');
+
+    const saveButton = screen.getByRole('button', { name: /save/i });
+    expect(saveButton).toBeInTheDocument();
+    await user.click(saveButton);
+
+    expect(onSave).toHaveBeenCalledTimes(1);
+    const savedPayload = onSave.mock.calls[0][0];
+    expect(savedPayload.pins[0].label).toBe('Renamed Customs House');
+  });
+
+  it('nudges pin position with keyboard arrow keys', async () => {
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    render(
+      <MemoryRouter>
+        <MapPreparation model={model} onCapability={vi.fn()} onSave={onSave} />
+      </MemoryRouter>,
+    );
+
+    const pinButton = screen.getByRole('button', {
+      name: 'Select Old Customs House',
+    });
+    pinButton.focus();
+
+    // ArrowRight nudges X by +0.01 (from 0.400 to 0.410)
+    fireEvent.keyDown(pinButton, { key: 'ArrowRight' });
+
+    const saveButton = screen.getByRole('button', { name: /save/i });
+    await userEvent.click(saveButton);
+
+    expect(onSave).toHaveBeenCalled();
+    const savedPin = onSave.mock.calls[0][0].pins[0];
+    expect(savedPin.x).toBe(0.41);
+  });
+
+  it('deletes selected pin when delete button is clicked', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <MapPreparation model={model} onCapability={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByRole('button', { name: 'Select Old Customs House' })).toBeInTheDocument();
+    const deleteButton = screen.getByRole('button', { name: /delete pin/i });
+    await user.click(deleteButton);
+
+    expect(screen.queryByRole('button', { name: 'Select Old Customs House' })).toBeNull();
+  });
+
+  it('opens object modal and links a campaign object to the selected pin', async () => {
+    const user = userEvent.setup();
+    render(
+      <MemoryRouter>
+        <MapPreparation model={model} onCapability={vi.fn()} />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /link existing object/i }));
+    expect(screen.getByText('Link Object to Pin')).toBeInTheDocument();
+
+    const option = screen.getByText('Theron Vane');
+    await user.click(option);
+
+    expect(screen.queryByText('Link Object to Pin')).toBeNull();
+    expect(screen.getByText('Theron Vane')).toBeInTheDocument();
+
+    // Unlink the newly added object
+    const unlinkButton = screen.getByRole('button', { name: 'Unlink Theron Vane' });
+    await user.click(unlinkButton);
+    expect(screen.queryByText('Theron Vane')).toBeNull();
+  });
+
+  it('invokes onCreateScene when Create Scene is clicked', async () => {
+    const user = userEvent.setup();
+    const onCreateScene = vi.fn();
+    render(
+      <MemoryRouter>
+        <MapPreparation
+          model={model}
+          onCapability={vi.fn()}
+          onCreateScene={onCreateScene}
+        />
+      </MemoryRouter>,
+    );
+
+    await user.click(screen.getByRole('button', { name: /create scene/i }));
+    expect(onCreateScene).toHaveBeenCalledWith(
+      expect.objectContaining({ id: 'map-1' }),
+      expect.objectContaining({ id: 'pin-1' }),
+    );
   });
 });

@@ -14,7 +14,8 @@ export type EditableKind =
   | 'act'
   | 'encounter'
   | 'party-member'
-  | 'homebrew-monster';
+  | 'homebrew-monster'
+  | 'campaign-map';
 
 export interface SaveResult {
   ok: boolean;

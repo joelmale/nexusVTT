@@ -2,6 +2,14 @@ export interface MapLayerViewModel {
   id: string;
   label: string;
   visible: boolean;
+  order?: number;
+}
+
+export interface LinkedObjectViewModel {
+  id: string;
+  kind: string;
+  title: string;
+  subtitle: string;
 }
 
 export interface MapPinViewModel {
@@ -10,14 +18,13 @@ export interface MapPinViewModel {
   x: number;
   y: number;
   layerIds: string[];
-  locationId: string;
-}
-
-export interface LinkedObjectViewModel {
-  id: string;
-  kind: string;
-  title: string;
-  subtitle: string;
+  locationId?: string;
+  icon?: string;
+  color?: string;
+  visibility?: 'dm-only' | 'players';
+  notes?: string;
+  linkedObjectRefs?: Array<{ target: string; [k: string]: unknown }>;
+  linkedObjects?: LinkedObjectViewModel[];
 }
 
 export interface LocationViewModel {
@@ -35,9 +42,17 @@ export interface LocationViewModel {
 export interface MapPreparationViewModel {
   id: string;
   title: string;
+  description?: string;
   imagePath: string;
+  imageAssetRef?: {
+    kind?: 'campaign-asset' | 'game-asset' | 'user-asset';
+    path: string;
+    label?: string;
+  };
+  dimensions?: { width: number; height: number };
   layers: MapLayerViewModel[];
   pins: MapPinViewModel[];
   locations: LocationViewModel[];
+  availableObjects?: LinkedObjectViewModel[];
   selectedPinId: string;
 }

@@ -17,17 +17,22 @@ import NotebookPen from 'lucide-react/dist/esm/icons/notebook-pen';
 import Package from 'lucide-react/dist/esm/icons/package';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import RotateCcw from 'lucide-react/dist/esm/icons/rotate-ccw';
+import Save from 'lucide-react/dist/esm/icons/save';
 import Settings from 'lucide-react/dist/esm/icons/settings';
 import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 import Swords from 'lucide-react/dist/esm/icons/swords';
+import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
 import UserRound from 'lucide-react/dist/esm/icons/user-round';
-import { useMemo, useState } from 'react';
+import X from 'lucide-react/dist/esm/icons/x';
+import { useMemo, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 import type { CapabilityId } from '@/features/capability-notice';
 
 import type {
+  LinkedObjectViewModel,
   LocationViewModel,
+  MapPinViewModel,
   MapPreparationViewModel,
 } from './mapPreparationModels';
 import styles from './MapPreparation.module.css';
@@ -37,9 +42,25 @@ interface MapPreparationProps {
   /** `/demo/<slug>` or `/campaigns/<id>`; links are built from it. */
   basePath?: string;
   onCapability: (capabilityId: CapabilityId) => void;
+  onSave?: (updatedMap: Record<string, unknown>) => Promise<void> | void;
+  onCreateScene?: (
+    map: MapPreparationViewModel,
+    selectedPin?: MapPinViewModel,
+  ) => Promise<void> | void;
+  editable?: boolean;
 }
 
 type InspectorTab = 'details' | 'objects' | 'notes';
+
+const PRESET_COLORS = [
+  '#22c55e',
+  '#3b82f6',
+  '#ef4444',
+  '#eab308',
+  '#a855f7',
+  '#ec4899',
+  '#f97316',
+];
 
 const APP_NAV_ITEMS = [
   { icon: BookOpen, label: 'Campaign', target: 'campaign' },
@@ -58,32 +79,238 @@ export function MapPreparation({
   model,
   basePath = '',
   onCapability,
+  onSave,
+  onCreateScene,
+  editable = true,
 }: MapPreparationProps) {
+  const [pins, setPins] = useState<MapPinViewModel[]>(model.pins);
   const [selectedPinId, setSelectedPinId] = useState(model.selectedPinId);
   const [visibleLayers, setVisibleLayers] = useState<Record<string, boolean>>(
     Object.fromEntries(model.layers.map((layer) => [layer.id, layer.visible])),
   );
   const [zoom, setZoom] = useState(1);
-  const [mode, setMode] = useState<'select' | 'visibility'>('select');
+  const [mode, setMode] = useState<'select' | 'visibility' | 'add-pin'>('select');
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('details');
+  const [isDirty, setIsDirty] = useState(false);
+  const [isSaving, setIsSaving] = useState(false);
+  const [isObjectModalOpen, setIsObjectModalOpen] = useState(false);
+  const [objectSearch, setObjectSearch] = useState('');
+
+  const mapTransformRef = useRef<HTMLDivElement>(null);
 
   const selectedPin =
-    model.pins.find((pin) => pin.id === selectedPinId) ?? model.pins[0];
+    pins.find((pin) => pin.id === selectedPinId) ?? pins[0];
   const selectedLocation =
     model.locations.find(
       (location) => location.id === selectedPin?.locationId,
     ) ?? model.locations[0];
+
   const visiblePins = useMemo(
     () =>
-      model.pins.filter((pin) =>
+      pins.filter((pin) =>
         pin.layerIds.some((layerId) => visibleLayers[layerId]),
       ),
-    [model.pins, visibleLayers],
+    [pins, visibleLayers],
   );
 
   function changeZoom(delta: number) {
     setZoom((current) => Math.min(1.8, Math.max(0.8, current + delta)));
   }
+
+  function handleMapClick(e: React.MouseEvent<HTMLDivElement>) {
+    if (mode !== 'add-pin' || !editable) return;
+    const mapEl = mapTransformRef.current;
+    if (!mapEl) return;
+
+    const rect = mapEl.getBoundingClientRect();
+    const rawX = (e.clientX - rect.left) / rect.width;
+    const rawY = (e.clientY - rect.top) / rect.height;
+    const x = Math.max(0, Math.min(1, Math.round(rawX * 1000) / 1000));
+    const y = Math.max(0, Math.min(1, Math.round(rawY * 1000) / 1000));
+
+    const newPinId = `pin-${Date.now()}`;
+    const newPin: MapPinViewModel = {
+      id: newPinId,
+      label: `Pin ${pins.length + 1}`,
+      x,
+      y,
+      layerIds: [model.layers[0]?.id ?? 'locations'],
+      color: '#22c55e',
+      visibility: 'players',
+      linkedObjects: [],
+    };
+
+    setPins((prev) => [...prev, newPin]);
+    setSelectedPinId(newPinId);
+    setMode('select');
+    setIsDirty(true);
+  }
+
+  function handlePinPointerDown(e: React.PointerEvent, pinId: string) {
+    e.stopPropagation();
+    setSelectedPinId(pinId);
+    if (!editable) return;
+
+    const mapEl = mapTransformRef.current;
+    if (!mapEl) return;
+
+    const onPointerMove = (moveEvent: PointerEvent) => {
+      const rect = mapEl.getBoundingClientRect();
+      const rawX = (moveEvent.clientX - rect.left) / rect.width;
+      const rawY = (moveEvent.clientY - rect.top) / rect.height;
+      const x = Math.max(0, Math.min(1, Math.round(rawX * 1000) / 1000));
+      const y = Math.max(0, Math.min(1, Math.round(rawY * 1000) / 1000));
+      setPins((current) =>
+        current.map((p) => (p.id === pinId ? { ...p, x, y } : p)),
+      );
+      setIsDirty(true);
+    };
+
+    const onPointerUp = () => {
+      window.removeEventListener('pointermove', onPointerMove);
+      window.removeEventListener('pointerup', onPointerUp);
+    };
+
+    window.addEventListener('pointermove', onPointerMove);
+    window.addEventListener('pointerup', onPointerUp);
+  }
+
+  function handlePinKeyDown(e: React.KeyboardEvent, pinId: string) {
+    if (!editable) return;
+    const step = e.shiftKey ? 0.05 : 0.01;
+    let dx = 0;
+    let dy = 0;
+
+    if (e.key === 'ArrowLeft') dx = -step;
+    else if (e.key === 'ArrowRight') dx = step;
+    else if (e.key === 'ArrowUp') dy = -step;
+    else if (e.key === 'ArrowDown') dy = step;
+    else if (e.key === 'Delete' || e.key === 'Backspace') {
+      handleDeletePin(pinId);
+      e.preventDefault();
+      return;
+    } else {
+      return;
+    }
+
+    e.preventDefault();
+    setPins((current) =>
+      current.map((p) => {
+        if (p.id !== pinId) return p;
+        const x = Math.max(0, Math.min(1, Math.round((p.x + dx) * 1000) / 1000));
+        const y = Math.max(0, Math.min(1, Math.round((p.y + dy) * 1000) / 1000));
+        return { ...p, x, y };
+      }),
+    );
+    setIsDirty(true);
+  }
+
+  function handleDeletePin(pinId: string) {
+    if (!editable) return;
+    setPins((current) => current.filter((p) => p.id !== pinId));
+    if (selectedPinId === pinId) {
+      const remaining = pins.filter((p) => p.id !== pinId);
+      setSelectedPinId(remaining[0]?.id ?? '');
+    }
+    setIsDirty(true);
+  }
+
+  function updateSelectedPin(patch: Partial<MapPinViewModel>) {
+    if (!selectedPin || !editable) return;
+    setPins((current) =>
+      current.map((p) => (p.id === selectedPin.id ? { ...p, ...patch } : p)),
+    );
+    setIsDirty(true);
+  }
+
+  function handleAddLinkedObject(obj: LinkedObjectViewModel) {
+    if (!selectedPin || !editable) return;
+    const existing = selectedPin.linkedObjects ?? [];
+    if (existing.some((item) => item.id === obj.id)) return;
+
+    const updated = [...existing, obj];
+    const updatedRefs = [
+      ...(selectedPin.linkedObjectRefs ?? []),
+      { target: 'campaign-object', id: obj.id, kind: obj.kind.toLowerCase() },
+    ];
+    updateSelectedPin({
+      linkedObjects: updated,
+      linkedObjectRefs: updatedRefs,
+    });
+    setIsObjectModalOpen(false);
+  }
+
+  function handleRemoveLinkedObject(objectId: string) {
+    if (!selectedPin || !editable) return;
+    const updated = (selectedPin.linkedObjects ?? []).filter(
+      (item) => item.id !== objectId,
+    );
+    const updatedRefs = (selectedPin.linkedObjectRefs ?? []).filter(
+      (ref) => ref.id !== objectId,
+    );
+    updateSelectedPin({
+      linkedObjects: updated,
+      linkedObjectRefs: updatedRefs,
+    });
+  }
+
+  async function handleSave() {
+    if (!onSave || !isDirty || isSaving) return;
+    setIsSaving(true);
+    try {
+      const updatedMap: Record<string, unknown> = {
+        title: model.title,
+        description: model.description,
+        imageAssetRef: model.imageAssetRef,
+        dimensions: model.dimensions,
+        layers: model.layers.map((l) => ({
+          id: l.id,
+          label: l.label,
+          visibleByDefault: visibleLayers[l.id] ?? true,
+          order: l.order,
+        })),
+        pins: pins.map((p, index) => ({
+          id: p.id,
+          label: p.label,
+          x: p.x,
+          y: p.y,
+          order: index + 1,
+          layerIds: p.layerIds,
+          locationId: p.locationId,
+          icon: p.icon,
+          color: p.color,
+          visibility: p.visibility ?? 'players',
+          notes: p.notes,
+          linkedObjectRefs: p.linkedObjectRefs,
+          linkedObjectIds: p.linkedObjects?.map((o) => o.id) ?? [],
+        })),
+      };
+      await onSave(updatedMap);
+      setIsDirty(false);
+    } finally {
+      setIsSaving(false);
+    }
+  }
+
+  function handleCreateScene() {
+    if (onCreateScene) {
+      void onCreateScene(model, selectedPin);
+    } else {
+      onCapability('map.scene.create');
+    }
+  }
+
+  const filteredAvailableObjects = useMemo(() => {
+    const list = model.availableObjects ?? [];
+    if (!objectSearch.trim()) return list;
+    const q = objectSearch.toLowerCase();
+    return list.filter(
+      (o) =>
+        o.title.toLowerCase().includes(q) ||
+        o.kind.toLowerCase().includes(q) ||
+        o.subtitle.toLowerCase().includes(q),
+    );
+  }, [model.availableObjects, objectSearch]);
 
   return (
     <div className={styles.layout}>
@@ -150,18 +377,34 @@ export function MapPreparation({
       <aside className={styles.layersPanel}>
         <div className={styles.panelHeader}>
           <div>
-            <span className={styles.eyebrow}>Map preparation</span>
+            <span className={styles.eyebrow}>
+              Map preparation
+              {isDirty && <span className={styles.dirtyDot} title="Unsaved changes" />}
+            </span>
             <h1>{model.title}</h1>
           </div>
-          <button
-            aria-label="Map options"
-            className={styles.iconButton}
-            onClick={() => onCapability('map.options.open')}
-            title="Map options"
-            type="button"
-          >
-            <MoreHorizontal size={17} />
-          </button>
+          <div className={styles.headerActions}>
+            {onSave && isDirty && (
+              <button
+                className={styles.saveButton}
+                disabled={isSaving}
+                onClick={handleSave}
+                type="button"
+              >
+                <Save size={13} />
+                <span>{isSaving ? 'Saving...' : 'Save'}</span>
+              </button>
+            )}
+            <button
+              aria-label="Map options"
+              className={styles.iconButton}
+              onClick={() => onCapability('map.options.open')}
+              title="Map options"
+              type="button"
+            >
+              <MoreHorizontal size={17} />
+            </button>
+          </div>
         </div>
 
         <section className={styles.layersSection}>
@@ -194,10 +437,10 @@ export function MapPreparation({
 
         <section className={styles.locationsSection}>
           <div className={styles.sectionHeading}>
-            <span>Locations</span>
-            <span>{model.pins.length}</span>
+            <span>Locations / Pins</span>
+            <span>{pins.length}</span>
           </div>
-          {model.pins.map((pin, index) => (
+          {pins.map((pin, index) => (
             <button
               aria-label={`Open ${pin.label} details`}
               className={`${styles.locationRow} ${pin.id === selectedPinId ? styles.selectedLocation : ''}`}
@@ -218,7 +461,9 @@ export function MapPreparation({
       <main className={styles.mapWorkspace} aria-label={`${model.title} map`}>
         <div className={styles.mapViewport}>
           <div
-            className={styles.mapTransform}
+            className={`${styles.mapTransform} ${mode === 'add-pin' ? styles.crosshairCursor : ''}`}
+            onClick={handleMapClick}
+            ref={mapTransformRef}
             style={{ transform: `scale(${zoom})` }}
           >
             {model.imagePath ? (
@@ -229,26 +474,38 @@ export function MapPreparation({
               />
             ) : (
               <div
+                aria-label={`${model.title} has no map image yet`}
                 className={styles.mapImage}
                 data-testid="map-no-image"
                 role="img"
-                aria-label={`${model.title} has no map image yet`}
                 style={{ background: 'var(--studio-surface-sunken, #2a2a2a)' }}
               />
             )}
-            {visiblePins.map((pin, index) => (
-              <button
-                aria-label={`Select ${pin.label}`}
-                className={`${styles.mapPin} ${pin.id === selectedPinId ? styles.selectedPin : ''}`}
-                key={pin.id}
-                onClick={() => setSelectedPinId(pin.id)}
-                style={{ left: `${pin.x * 100}%`, top: `${pin.y * 100}%` }}
-                title={pin.label}
-                type="button"
-              >
-                <span>{String(index + 1).padStart(2, '0')}</span>
-              </button>
-            ))}
+            {visiblePins.map((pin, index) => {
+              const isSelected = pin.id === selectedPinId;
+              const isGmOnly = pin.visibility === 'dm-only';
+              return (
+                <button
+                  aria-label={`Select ${pin.label}`}
+                  className={`${styles.mapPin} ${isSelected ? styles.selectedPin : ''} ${isGmOnly ? styles.pinGmOnly : ''}`}
+                  key={pin.id}
+                  onClick={() => setSelectedPinId(pin.id)}
+                  onKeyDown={(e) => handlePinKeyDown(e, pin.id)}
+                  onPointerDown={(e) => handlePinPointerDown(e, pin.id)}
+                  style={
+                    {
+                      left: `${pin.x * 100}%`,
+                      top: `${pin.y * 100}%`,
+                      '--pin-color': pin.color ?? (isSelected ? '#ef4444' : '#22c55e'),
+                    } as React.CSSProperties
+                  }
+                  title={`${pin.label} (${Math.round(pin.x * 100)}%, ${Math.round(pin.y * 100)}%)${isGmOnly ? ' - GM Only' : ''}`}
+                  type="button"
+                >
+                  <span>{String(index + 1).padStart(2, '0')}</span>
+                </button>
+              );
+            })}
           </div>
 
           <div className={styles.compass} aria-label="Map compass">
@@ -302,13 +559,24 @@ export function MapPreparation({
               <MousePointer2 size={15} /> <span>Select</span>
             </button>
             <button
-              onClick={() => onCapability('map.pin.create')}
+              className={mode === 'add-pin' ? styles.activeTool : ''}
+              onClick={() => {
+                onCapability('map.pin.create');
+                if (editable) {
+                  setMode((m) => (m === 'add-pin' ? 'select' : 'add-pin'));
+                }
+              }}
               type="button"
             >
-              <MapPin size={15} /> <span>Add Pin</span>
+              <MapPin size={15} /> <span>{mode === 'add-pin' ? 'Click Map...' : 'Add Pin'}</span>
             </button>
             <button
-              onClick={() => onCapability('map.object.link')}
+              onClick={() => {
+                onCapability('map.object.link');
+                if (editable && selectedPin) {
+                  setIsObjectModalOpen(true);
+                }
+              }}
               type="button"
             >
               <Link2 size={15} /> <span>Link Object</span>
@@ -321,7 +589,7 @@ export function MapPreparation({
               <Eye size={15} /> <span>Visibility</span>
             </button>
             <button
-              onClick={() => onCapability('map.scene.create')}
+              onClick={handleCreateScene}
               type="button"
             >
               <Sparkles size={15} /> <span>Create Scene</span>
@@ -331,12 +599,76 @@ export function MapPreparation({
       </main>
 
       <LocationInspector
+        editable={editable}
         fallbackImagePath={model.imagePath}
         location={selectedLocation}
         onCapability={onCapability}
+        onDeletePin={() => selectedPin && handleDeletePin(selectedPin.id)}
+        onOpenLinkModal={() => setIsObjectModalOpen(true)}
+        onRemoveLinkedObject={handleRemoveLinkedObject}
         onTabChange={setInspectorTab}
+        onUpdatePin={updateSelectedPin}
+        pin={selectedPin}
         selectedTab={inspectorTab}
       />
+
+      {isObjectModalOpen && (
+        <div
+          aria-modal="true"
+          className={styles.objectModalOverlay}
+          onClick={() => setIsObjectModalOpen(false)}
+          role="dialog"
+        >
+          <div
+            className={styles.objectModal}
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className={styles.objectModalHeader}>
+              <h2>Link Object to Pin</h2>
+              <button
+                className={styles.iconButton}
+                onClick={() => setIsObjectModalOpen(false)}
+                type="button"
+              >
+                <X size={16} />
+              </button>
+            </div>
+            <div className={styles.objectModalSearch}>
+              <input
+                className={styles.formInput}
+                onChange={(e) => setObjectSearch(e.target.value)}
+                placeholder="Search campaign objects..."
+                type="text"
+                value={objectSearch}
+              />
+            </div>
+            <div className={styles.objectModalList}>
+              {filteredAvailableObjects.length === 0 ? (
+                <p style={{ padding: '12px', fontSize: '11px', color: 'var(--studio-text-muted)' }}>
+                  No objects found.
+                </p>
+              ) : (
+                filteredAvailableObjects.map((item) => (
+                  <button
+                    className={styles.linkedObject}
+                    key={item.id}
+                    onClick={() => handleAddLinkedObject(item)}
+                    type="button"
+                  >
+                    <span className={styles.linkedIcon}>
+                      <Boxes size={14} />
+                    </span>
+                    <span>
+                      <strong>{item.title}</strong>
+                      <small>{item.kind} · {item.subtitle}</small>
+                    </span>
+                  </button>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -344,26 +676,41 @@ export function MapPreparation({
 interface LocationInspectorProps {
   fallbackImagePath: string;
   location?: LocationViewModel;
+  pin?: MapPinViewModel;
+  editable?: boolean;
   onCapability: (capabilityId: CapabilityId) => void;
   onTabChange: (tab: InspectorTab) => void;
+  onUpdatePin: (patch: Partial<MapPinViewModel>) => void;
+  onDeletePin: () => void;
+  onOpenLinkModal: () => void;
+  onRemoveLinkedObject: (objectId: string) => void;
   selectedTab: InspectorTab;
 }
 
 function LocationInspector({
   fallbackImagePath,
   location,
+  pin,
+  editable,
   onCapability,
   onTabChange,
+  onUpdatePin,
+  onDeletePin,
+  onOpenLinkModal,
+  onRemoveLinkedObject,
   selectedTab,
 }: LocationInspectorProps) {
-  if (!location) return <aside className={styles.inspector} />;
+  if (!location && !pin) return <aside className={styles.inspector} />;
+
+  const linkedObjects = pin?.linkedObjects ?? location?.linkedObjects ?? [];
+
   return (
     <aside className={styles.inspector} aria-label="Selected location details">
       <div className={styles.inspectorTabs}>
         {(
           [
             ['details', 'Details'],
-            ['objects', `Linked Objects (${location.linkedObjects.length})`],
+            ['objects', `Linked Objects (${linkedObjects.length})`],
             ['notes', 'Map Notes'],
           ] as Array<[InspectorTab, string]>
         ).map(([tab, label]) => (
@@ -384,30 +731,99 @@ function LocationInspector({
         {selectedTab === 'details' && (
           <>
             <div className={styles.locationImage}>
-              {(location.imagePath ?? fallbackImagePath) ? (
+              {(location?.imagePath ?? fallbackImagePath) ? (
                 <img
-                  alt={`${location.name} map detail`}
-                  src={location.imagePath ?? fallbackImagePath}
+                  alt={`${location?.name ?? pin?.label} map detail`}
+                  src={location?.imagePath ?? fallbackImagePath}
                 />
               ) : null}
-              <span>{location.typeLabel}</span>
+              <span>{location?.typeLabel ?? 'Marker'}</span>
             </div>
-            <h2>{location.name}</h2>
-            <p className={styles.locationLead}>{location.shortDescription}</p>
-            {location.description.map((paragraph) => (
+
+            <h2>{location?.name ?? pin?.label}</h2>
+            {location?.shortDescription && (
+              <p className={styles.locationLead}>{location.shortDescription}</p>
+            )}
+            {location?.description?.map((paragraph) => (
               <p key={paragraph}>{paragraph}</p>
             ))}
-            <section className={styles.notesCard}>
-              <span className={styles.eyebrow}>{location.name} notes</span>
-              <p>{location.notes}</p>
-            </section>
+
+            {pin && editable && (
+              <div style={{ marginTop: '14px' }}>
+                <div className={styles.formGroup}>
+                  <label htmlFor="pin-label-input">Pin Label</label>
+                  <input
+                    className={styles.formInput}
+                    id="pin-label-input"
+                    onChange={(e) => onUpdatePin({ label: e.target.value })}
+                    type="text"
+                    value={pin.label}
+                  />
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Visibility</label>
+                  <select
+                    className={styles.formSelect}
+                    onChange={(e) =>
+                      onUpdatePin({
+                        visibility: e.target.value as 'players' | 'dm-only',
+                      })
+                    }
+                    value={pin.visibility ?? 'players'}
+                  >
+                    <option value="players">Players (Visible)</option>
+                    <option value="dm-only">GM Only (Hidden)</option>
+                  </select>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Marker Color</label>
+                  <div className={styles.colorSwatches}>
+                    {PRESET_COLORS.map((color) => (
+                      <button
+                        className={`${styles.colorSwatch} ${pin.color === color ? styles.colorSwatchActive : ''}`}
+                        key={color}
+                        onClick={() => onUpdatePin({ color })}
+                        style={{ background: color }}
+                        title={color}
+                        type="button"
+                      />
+                    ))}
+                  </div>
+                </div>
+
+                <div className={styles.formGroup}>
+                  <label>Coordinates</label>
+                  <p style={{ margin: 0, fontSize: '11px', color: 'var(--studio-text-muted)' }}>
+                    X: {(pin.x * 100).toFixed(1)}% · Y: {(pin.y * 100).toFixed(1)}%
+                  </p>
+                </div>
+
+                <button
+                  className={styles.deleteButton}
+                  onClick={onDeletePin}
+                  type="button"
+                >
+                  <Trash2 size={13} />
+                  <span>Delete Pin</span>
+                </button>
+              </div>
+            )}
+
+            {location?.notes && (
+              <section className={styles.notesCard}>
+                <span className={styles.eyebrow}>{location.name} notes</span>
+                <p>{location.notes}</p>
+              </section>
+            )}
+
             <section className={styles.linkedSection}>
               <h3>Linked objects</h3>
-              {location.linkedObjects.slice(0, 3).map((object) => (
-                <button
+              {linkedObjects.slice(0, 3).map((object) => (
+                <div
                   className={styles.linkedObject}
                   key={object.id}
-                  type="button"
                 >
                   <span className={styles.linkedIcon}>
                     <CircleDot size={14} />
@@ -416,32 +832,47 @@ function LocationInspector({
                     <strong>{object.title}</strong>
                     <small>{object.subtitle}</small>
                   </span>
-                </button>
+                  {editable && (
+                    <button
+                      aria-label={`Unlink ${object.title}`}
+                      className={styles.unlinkButton}
+                      onClick={() => onRemoveLinkedObject(object.id)}
+                      type="button"
+                    >
+                      <X size={14} />
+                    </button>
+                  )}
+                </div>
               ))}
               <button
                 className={styles.linkCommand}
-                onClick={() => onCapability('map.object.link')}
+                onClick={() => {
+                  if (editable) onOpenLinkModal();
+                  else onCapability('map.object.link');
+                }}
                 type="button"
               >
                 <Link2 size={14} /> Link Existing Object
               </button>
             </section>
-            <div className={styles.tags}>
-              {location.tags.map((tag) => (
-                <span key={tag}>{tag}</span>
-              ))}
-            </div>
+
+            {location?.tags && location.tags.length > 0 && (
+              <div className={styles.tags}>
+                {location.tags.map((tag) => (
+                  <span key={tag}>{tag}</span>
+                ))}
+              </div>
+            )}
           </>
         )}
 
         {selectedTab === 'objects' && (
           <section className={styles.linkedSection}>
             <h2>Linked objects</h2>
-            {location.linkedObjects.map((object) => (
-              <button
+            {linkedObjects.map((object) => (
+              <div
                 className={styles.linkedObject}
                 key={object.id}
-                type="button"
               >
                 <span className={styles.linkedIcon}>
                   <Boxes size={14} />
@@ -452,11 +883,24 @@ function LocationInspector({
                     {object.kind} · {object.subtitle}
                   </small>
                 </span>
-              </button>
+                {editable && (
+                  <button
+                    aria-label={`Unlink ${object.title}`}
+                    className={styles.unlinkButton}
+                    onClick={() => onRemoveLinkedObject(object.id)}
+                    type="button"
+                  >
+                    <X size={14} />
+                  </button>
+                )}
+              </div>
             ))}
             <button
               className={styles.linkCommand}
-              onClick={() => onCapability('map.object.link')}
+              onClick={() => {
+                if (editable) onOpenLinkModal();
+                else onCapability('map.object.link');
+              }}
               type="button"
             >
               <Link2 size={14} /> Link Existing Object
@@ -469,8 +913,10 @@ function LocationInspector({
             <h2>Map Notes</h2>
             <textarea
               aria-label="Map notes"
-              defaultValue={location.notes}
+              disabled={!editable}
+              onChange={(e) => onUpdatePin({ notes: e.target.value })}
               rows={10}
+              value={pin?.notes ?? location?.notes ?? ''}
             />
           </section>
         )}

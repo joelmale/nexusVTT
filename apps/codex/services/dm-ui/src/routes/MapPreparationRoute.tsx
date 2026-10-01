@@ -10,7 +10,7 @@ import { SectionRoute } from '@/features/section-shell/SectionRoute';
 
 function MapPreparationContent() {
   const { notifyCapability } = useCapabilityNotice();
-  const { bundle, basePath } = useSectionBundle();
+  const { bundle, basePath, store } = useSectionBundle();
   const { mapId = '' } = useParams();
   const [searchParams] = useSearchParams();
   const pinId = searchParams.get('pin');
@@ -31,13 +31,20 @@ function MapPreparationContent() {
     );
   }
 
+  const handleSave = async (updatedMap: Record<string, unknown>) => {
+    if (!store.editable) return;
+    await store.updateItem('campaign-map', model.id, updatedMap);
+  };
+
   return (
     <MapPreparation
       // Remount when the map or requested pin changes so initial state resets.
       key={`${model.id}:${model.selectedPinId}`}
       basePath={basePath}
+      editable={store.editable}
       model={model}
       onCapability={notifyCapability}
+      onSave={store.editable ? handleSave : undefined}
     />
   );
 }
