@@ -8,6 +8,7 @@ services:
       POSTGRES_USER: ${POSTGRES_USER:-nexus}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required, see deploy/homelab/.env.example}
       PGDATA: /var/lib/postgresql/data/pgdata
+      POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
     volumes:
     # PostgreSQL major versions cannot share a data directory.
     - ${NEXUS_STORAGE_ROOT:-/mnt/docker-nas-vol1/nexusvtt}/postgres18:/var/lib/postgresql/data
@@ -16,14 +17,16 @@ services:
     healthcheck:
       test:
       - CMD-SHELL
-      - pg_isready -U ${POSTGRES_USER:-nexus}
+      - pg_isready -U ${POSTGRES_USER:-nexus} -d ${POSTGRES_DB:-nexus}
       interval: 10s
       timeout: 5s
       retries: 5
     restart: unless-stopped
   redis:
     image: ${REDIS_IMAGE:-redis:7-alpine}
-    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required, see deploy/homelab/.env.example}
+    pull_policy: if_not_present
+    # Live deployment adds an RDB snapshot every 60s alongside the AOF.
+    command: redis-server --appendonly yes --save 60 1 --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required, see deploy/homelab/.env.example}
     volumes:
     - ${NEXUS_STORAGE_ROOT:-/mnt/docker-nas-vol1/nexusvtt}/redis:/data
     networks:
@@ -73,7 +76,7 @@ services:
       retries: 3
     restart: unless-stopped
   nexus-forge:
-    image: ${NEXUS_FORGE_IMAGE:-ghcr.io/joelmale/nexus-forge:master}
+    image: ${NEXUS_FORGE_IMAGE:-ghcr.io/joelmale/nexus-forge:latest}
     pull_policy: always
     container_name: nexus-vtt2-forge
     hostname: nexus-vtt2-forge
@@ -194,6 +197,7 @@ services:
     restart: unless-stopped
   codex-elasticsearch:
     image: ${CODEX_ELASTICSEARCH_IMAGE:-docker.elastic.co/elasticsearch/elasticsearch:9.5.3}
+    pull_policy: if_not_present
     environment:
       discovery.type: single-node
       xpack.security.enabled: 'false'
@@ -342,14 +346,22 @@ services:
       PAGE_IMAGE_MAX_PAGES: ${CODEX_PAGE_IMAGE_MAX_PAGES:-350}
       OCR_MAX_PAGES: ${CODEX_OCR_MAX_PAGES:-350}
       OCR_SERVICE_URL: ${CODEX_OCR_SERVICE_URL:-http://codex-ocr:8000}
+      # Ingestion v2: Surya layout + Marker Markdown + VLM extraction via Ollama.
+      # The service default is v1, so this must stay explicit.
+      PIPELINE_VERSION: ${CODEX_PIPELINE_VERSION:-v2}
+      OLLAMA_URL: ${CODEX_OLLAMA_URL:-http://ollama:11434}
       JWT_SECRET: null
       AUTH_DISABLED: null
       EMBEDDINGS_PROVIDER: null
       METRICS_PORT: 9464
       METRICS_AUTH_TOKEN: ${CODEX_METRICS_AUTH_TOKEN:?CODEX_METRICS_AUTH_TOKEN is required, see deploy/homelab/.env.example}
+    # homelab-net only to reach the shared `ollama` container by name. Unlike
+    # doc-api (kept off homelab-net, private-admin-control-plane.md), this
+    # service has no listener besides the token-gated metrics port.
     networks:
     - nexus-internal-net
     - nexus-codex-egress-net
+    - homelab-net
     depends_on:
       postgres:
         condition: service_healthy
@@ -358,6 +370,8 @@ services:
       codex-elasticsearch:
         condition: service_started
       codex-garage:
+        condition: service_started
+      codex-ocr:
         condition: service_started
     restart: on-failure
   doc-websocket:
@@ -382,13 +396,22 @@ services:
     restart: on-failure
   codex-ocr:
     image: ${DOC_OCR_IMAGE:-ghcr.io/joelmale/nexuscodex-ocr:latest}
-    pull_policy: if_not_present
+    # Rolling :latest like the other first-party images; if_not_present kept
+    # fixed images from ever reaching the host.
+    pull_policy: always
     container_name: nexus-vtt2-codex-ocr
+    hostname: codex-ocr
     restart: on-failure
     environment:
       PORT: 8000
       MAX_BATCH_SIZE: 4
       CUDA_VISIBLE_DEVICES: ${CODEX_OCR_CUDA_VISIBLE_DEVICES:-0}
+      # /layout/s3 reads the PDF straight from Garage.
+      S3_ENDPOINT: ${CODEX_S3_ENDPOINT:-http://codex-garage:9000}
+      S3_ACCESS_KEY: ${CODEX_S3_ACCESS_KEY:-${CODEX_MINIO_ROOT_USER:-minioadmin}}
+      S3_SECRET_KEY: ${CODEX_S3_SECRET_KEY:-${CODEX_MINIO_ROOT_PASSWORD:-minioadmin}}
+      S3_BUCKET: documents
+      S3_REGION: us-east-1
       # Ingestion v2 layout engine (Marker). Weights persist in codex-ocr-models.
       HF_HOME: /models
       # Marker/Surya resolve ~/.cache (= /app/.cache, root-owned) via platformdirs.
@@ -397,7 +420,9 @@ services:
       # default, which the non-root app user cannot write (EACCES on layout).
       FONT_DIR: /models/fonts
       FONT_PATH: /models/fonts/GoNotoCurrent-Regular.ttf
-      LAYOUT_PRELOAD: ${CODEX_OCR_LAYOUT_PRELOAD:-true}
+      # Off: Surya models load on the first /layout/s3 call so the 6 GB GPU is
+      # free for the VLM until layout is actually needed.
+      LAYOUT_PRELOAD: ${CODEX_OCR_LAYOUT_PRELOAD:-false}
     volumes:
       - codex-ocr-models:/models
     deploy:
