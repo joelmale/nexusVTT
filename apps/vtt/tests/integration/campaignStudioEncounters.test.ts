@@ -26,6 +26,16 @@ const GOBLIN = {
   abilities: [8, 14, 10, 10, 8, 8],
 };
 
+const ASH_HOUND = {
+  key: 'srd:ash-hound',
+  name: 'Ash Hound',
+  cr: '1/2',
+  ac: 13,
+  hp: 18,
+  speed: 40,
+  abilities: [13, 15, 12, 6, 12, 7],
+};
+
 describeIntegration('Campaign Studio kinds, mentions and encounters (Postgres)', () => {
   let pool: Pool;
   let db: DatabaseService;
@@ -155,14 +165,14 @@ describeIntegration('Campaign Studio kinds, mentions and encounters (Postgres)',
         {
           composition: [
             { name: 'Goblin', count: 3, monsterKey: 'srd:goblin', cr: '1/4' },
-            { name: 'Mystery Beast', count: 1 },
+            { name: 'Ash Hound', count: 1, monsterKey: 'srd:ash-hound', cr: '1/2' },
           ],
         },
         [],
         encounterId,
       ),
     );
-    const run = (monsters: unknown[] = [GOBLIN]) =>
+    const run = (monsters: unknown[] = [GOBLIN, ASH_HOUND]) =>
       materializer.materialize({
         campaignId,
         objectId: encounterId,
@@ -208,10 +218,33 @@ describeIntegration('Campaign Studio kinds, mentions and encounters (Postgres)',
     ).toBe(1);
 
     // A changed stat block produces a new pinned revision.
-    const changed = await run([{ ...GOBLIN, hp: 12 }]);
+    const changed = await run([{ ...GOBLIN, hp: 12 }, ASH_HOUND]);
     expect(changed.encounterRef.revision).toBe(2);
     const goblin = await db.libraryObjects.getObjectById(groups[0].monsterRef.id);
     expect(goblin!.currentRevision).toBe(2);
+
+    // Unlinked monster fails with descriptive error
+    const unlinkedId = randomUUID();
+    await create(
+      'encounter',
+      entry(
+        'encounter',
+        'Unlinked encounter',
+        {
+          composition: [{ name: 'Mystery Beast', count: 1 }],
+        },
+        [],
+        unlinkedId,
+      ),
+    );
+    await expect(
+      materializer.materialize({
+        campaignId,
+        objectId: unlinkedId,
+        principalId: userId,
+        monsters: [GOBLIN, ASH_HOUND],
+      }),
+    ).rejects.toThrow(/Link these monsters to the catalog/);
   });
 
   it('refuses to materialize something that is not an encounter', async () => {
