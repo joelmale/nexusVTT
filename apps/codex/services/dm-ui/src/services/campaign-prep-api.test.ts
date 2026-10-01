@@ -670,4 +670,164 @@ describe('activateSessionPlan', () => {
     const calls = fetchSpy.mock.calls.map(([url]) => String(url));
     expect(calls.some((url) => url.endsWith('/publish'))).toBe(false);
   });
+
+  it('reuses an existing scene-template when step command is Activate scene', async () => {
+    let publishedPlan: Record<string, unknown> | undefined;
+    const sceneInput: PublishSessionPlanInput = {
+      ...input,
+      steps: [
+        {
+          command: 'Activate scene',
+          durationMinutes: 10,
+          id: 'scene-step',
+          title: 'Glass Harbor Port',
+          track: 'main',
+          visibility: 'shared',
+        },
+      ],
+    };
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async (request, requestInit) => {
+        const path = String(request);
+        if (path === '/api/users/profile') return json({ id: 'dm-1' });
+        if (path === '/api/campaigns') {
+          return json([{ id: CAMPAIGN_ID, name: input.campaignTitle }]);
+        }
+        if (path === '/api/user/dm-1/assets') return json({ assets: [] });
+        if (path.endsWith('/prep/objects') && !requestInit?.method) {
+          return json({
+            objects: [
+              {
+                id: 'scene-123',
+                kind: 'scene-template',
+                title: 'Glass Harbor Port',
+                currentRevision: 1,
+                status: 'draft',
+              },
+              {
+                id: 'plan-1',
+                kind: 'session-plan',
+                title: input.planTitle,
+                currentRevision: 1,
+                status: 'draft',
+              },
+            ],
+          });
+        }
+        if (path === `/api/campaigns/${CAMPAIGN_ID}/prep/objects`) {
+          const body = JSON.parse(String(requestInit?.body)) as {
+            data: Record<string, unknown>;
+          };
+          return json({
+            object: {
+              id: 'plan-1',
+              kind: 'session-plan',
+              title: input.planTitle,
+              currentRevision: 1,
+              status: 'draft',
+            },
+          });
+        }
+        if (path.endsWith('/publish')) {
+          const body = JSON.parse(String(requestInit?.body)) as {
+            data?: Record<string, unknown>;
+          };
+          publishedPlan = body.data;
+          return json({
+            published: true,
+            plan: { id: 'plan-1', revision: 1, status: 'ready' },
+          });
+        }
+        throw new Error(`Unexpected request: ${path}`);
+      },
+    );
+
+    await publishSessionPlan(sceneInput);
+
+    expect(publishedPlan).toBeDefined();
+    const steps = publishedPlan?.steps as Array<{
+      type: string;
+      sceneTemplateRef?: { id: string };
+    }>;
+    expect(steps[0]).toMatchObject({
+      type: 'activate-scene',
+      sceneTemplateRef: expect.objectContaining({ id: 'scene-123' }),
+    });
+  });
+
+  it('creates a scene template from mapAssetId when step command is Activate scene', async () => {
+    let createdScene: Record<string, unknown> | undefined;
+    const sceneInput: PublishSessionPlanInput = {
+      ...input,
+      mapAssetId: 'custom-map-asset-456',
+      steps: [
+        {
+          command: 'Activate scene',
+          durationMinutes: 15,
+          id: 'scene-step-2',
+          title: 'Deep Caverns',
+          track: 'main',
+          visibility: 'shared',
+        },
+      ],
+    };
+
+    vi.spyOn(globalThis, 'fetch').mockImplementation(
+      async (request, requestInit) => {
+        const path = String(request);
+        if (path === '/api/users/profile') return json({ id: 'dm-1' });
+        if (path === '/api/campaigns') {
+          return json([{ id: CAMPAIGN_ID, name: input.campaignTitle }]);
+        }
+        if (path === '/api/user/dm-1/assets') return json({ assets: [] });
+        if (path.endsWith('/prep/objects') && !requestInit?.method) {
+          return json({ objects: [] });
+        }
+        if (path === `/api/campaigns/${CAMPAIGN_ID}/prep/objects`) {
+          const body = JSON.parse(String(requestInit?.body)) as {
+            kind: string;
+            data: Record<string, unknown>;
+          };
+          if (body.kind === 'scene-template') {
+            createdScene = body.data;
+            return json({
+              object: {
+                id: 'scene-456',
+                kind: 'scene-template',
+                title: 'Deep Caverns',
+                currentRevision: 1,
+                status: 'draft',
+              },
+            });
+          }
+          return json({
+            object: {
+              id: 'plan-1',
+              kind: 'session-plan',
+              title: input.planTitle,
+              currentRevision: 1,
+              status: 'draft',
+            },
+          });
+        }
+        if (path.endsWith('/publish')) {
+          return json({
+            published: true,
+            plan: { id: 'plan-1', revision: 1, status: 'ready' },
+          });
+        }
+        throw new Error(`Unexpected request: ${path}`);
+      },
+    );
+
+    await publishSessionPlan(sceneInput);
+
+    expect(createdScene).toBeDefined();
+    expect(createdScene?.backgroundAssetRef).toEqual({
+      target: 'asset',
+      assetId: 'custom-map-asset-456',
+    });
+  });
 });
+

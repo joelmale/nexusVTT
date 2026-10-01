@@ -46,6 +46,7 @@ export interface PublishSessionPlanInput {
   planTitle: string;
   revision: number;
   sceneMapPath?: string;
+  mapAssetId?: string;
   steps: SessionStepViewModel[];
 }
 
@@ -405,21 +406,41 @@ async function buildContractSteps(
       continue;
     }
 
-    if (step.command === 'Activate scene' && input.sceneMapPath) {
-      const mapAsset = await ensureMapAsset(userId, assets, input.sceneMapPath);
-      const scene = await ensureScene(
-        campaignId,
-        existingObjects,
-        mapAsset,
-        step.title,
-        now,
+    if (step.command === 'Activate scene') {
+      const existingScene = existingObjects.find(
+        (object) =>
+          object.kind === 'scene-template' && object.title === step.title,
       );
-      result.push({
-        ...base,
-        type: 'activate-scene',
-        sceneTemplateRef: campaignObjectRef(campaignId, scene),
-      });
-      continue;
+      if (existingScene) {
+        result.push({
+          ...base,
+          type: 'activate-scene',
+          sceneTemplateRef: campaignObjectRef(campaignId, existingScene),
+        });
+        continue;
+      }
+
+      const mapAsset = input.mapAssetId
+        ? { id: input.mapAssetId, name: step.title }
+        : input.sceneMapPath
+          ? await ensureMapAsset(userId, assets, input.sceneMapPath)
+          : undefined;
+
+      if (mapAsset) {
+        const scene = await ensureScene(
+          campaignId,
+          existingObjects,
+          mapAsset,
+          step.title,
+          now,
+        );
+        result.push({
+          ...base,
+          type: 'activate-scene',
+          sceneTemplateRef: campaignObjectRef(campaignId, scene),
+        });
+        continue;
+      }
     }
 
     if (step.command === 'Deploy encounter' && step.encounterId) {
