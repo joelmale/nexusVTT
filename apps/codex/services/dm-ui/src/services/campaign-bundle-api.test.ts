@@ -948,6 +948,20 @@ describe('seedFromFixture', () => {
       expect(plans).toHaveLength(planned.length);
 
       const objectIds = new Set([...server.objects.keys()]);
+      const fixtureNotes = new Set(fixture.notes.map((n) => n.id));
+      const expectedLinked = planned.reduce(
+        (sum, s) =>
+          sum +
+          (s.plan?.steps.filter(
+            (step) =>
+              (step.kind === 'note' || step.kind === 'handout') &&
+              step.objectId &&
+              fixtureNotes.has(step.objectId),
+          ).length ?? 0),
+        0,
+      );
+
+      let actualOpenEntryCount = 0;
       for (const plan of plans) {
         const data = plan.data as {
           status: string;
@@ -958,12 +972,17 @@ describe('seedFromFixture', () => {
         for (const step of data.steps) {
           expect(['open-entry', 'reminder']).toContain(step.type);
           if (step.type === 'open-entry') {
+            actualOpenEntryCount++;
             expect(step.entryRef!.campaignId).toBe(result.campaignId);
             expect(objectIds.has(step.entryRef!.id)).toBe(true);
           } else {
             expect(step.text).toBeTruthy();
           }
         }
+      }
+      if (expectedLinked > 0) {
+        expect(actualOpenEntryCount).toBeGreaterThanOrEqual(1);
+        expect(actualOpenEntryCount).toBe(expectedLinked);
       }
       // Every cloned session points at its own plan.
       const sessions = byKind('session');

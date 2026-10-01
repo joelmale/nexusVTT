@@ -1511,6 +1511,22 @@ export async function seedFromFixture(slug: string): Promise<SeedResult> {
   ) => result.failed.push({ kind: kind as EditableKind, id, title, error });
 
   // Pass 2: write.
+  for (const [noteIndex, note] of notes.entries()) {
+    const newNoteId = idMap.get(note.id)!;
+    const entity = normalize(
+      'note',
+      { ...note, id: newNoteId, anchor: { type: 'campaign' }, order: noteIndex },
+      created.id,
+    );
+    const failure = await postNew(created.id, 'note', entity);
+    if (!failure) {
+      count('note');
+      createdEntryIds.add(newNoteId);
+    } else {
+      failedEntry('note', note.id, note.title, failure);
+    }
+  }
+
   for (const { kind, source, objectives } of plan) {
     const newItemId = idMap.get(str(source.id))!;
     const draft: Record<string, unknown> = { ...remap(source, idMap) };
@@ -1571,21 +1587,6 @@ export async function seedFromFixture(slug: string): Promise<SeedResult> {
     }
   }
 
-  for (const [noteIndex, note] of notes.entries()) {
-    const newNoteId = idMap.get(note.id)!;
-    const entity = normalize(
-      'note',
-      { ...note, id: newNoteId, anchor: { type: 'campaign' }, order: noteIndex },
-      created.id,
-    );
-    const failure = await postNew(created.id, 'note', entity);
-    if (!failure) {
-      count('note');
-      createdEntryIds.add(newNoteId);
-    } else {
-      failedEntry('note', note.id, note.title, failure);
-    }
-  }
   return result;
 }
 
