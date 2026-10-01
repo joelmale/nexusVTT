@@ -147,6 +147,49 @@ export const sceneTemplateSchema = z.object({
 });
 export type SceneTemplate = z.infer<typeof sceneTemplateSchema>;
 
+export const mapLayerSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().trim().min(1),
+  visibleByDefault: z.boolean().default(true),
+  order: z.number().int().default(0),
+});
+export type MapLayer = z.infer<typeof mapLayerSchema>;
+
+export const mapPinSchema = z.object({
+  id: z.string().min(1),
+  label: z.string().trim().min(1),
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  icon: z.string().trim().min(1).default('map-pin'),
+  color: z.string().trim().optional(),
+  visibility: campaignVisibilitySchema.default('players'),
+  layerIds: z.array(z.string().min(1)).default([]),
+  linkedObjectRefs: z.array(campaignObjectRefSchema).default([]),
+});
+export type MapPin = z.infer<typeof mapPinSchema>;
+
+export const campaignMapDimensionsSchema = z.object({
+  width: z.number().positive(),
+  height: z.number().positive(),
+});
+export type CampaignMapDimensions = z.infer<typeof campaignMapDimensionsSchema>;
+
+export const campaignMapSchema = z.object({
+  id: z.string().uuid(),
+  campaignId: z.string().uuid(),
+  schemaVersion: z.number().int().positive(),
+  revision: z.number().int().positive(),
+  title: z.string().trim().min(1),
+  description: z.string().default(''),
+  imageAssetRef: assetObjectRefSchema,
+  dimensions: campaignMapDimensionsSchema,
+  layers: z.array(mapLayerSchema).default([]),
+  pins: z.array(mapPinSchema).default([]),
+  createdAt: z.string().datetime(),
+  updatedAt: z.string().datetime(),
+});
+export type CampaignMap = z.infer<typeof campaignMapSchema>;
+
 export const sessionPlanStepTrackSchema = z.enum(['main', 'parallel']);
 export type SessionPlanStepTrack = z.infer<typeof sessionPlanStepTrackSchema>;
 

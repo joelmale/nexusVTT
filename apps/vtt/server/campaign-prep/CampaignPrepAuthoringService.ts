@@ -1,9 +1,11 @@
 import {
   campaignEntrySchema,
+  campaignMapSchema,
   campaignObjectRefKey,
   sceneTemplateSchema,
   sessionPlanSchema,
   type CampaignEntry,
+  type CampaignMap,
   type CampaignObjectRef,
   type SceneTemplate,
   type SessionPlan,
@@ -19,7 +21,11 @@ import type {
   CampaignPrepObjectRevisionRecord,
 } from '../repositories/base.js';
 
-type AuthoredPrepObject = CampaignEntry | SceneTemplate | SessionPlan;
+type AuthoredPrepObject =
+  | CampaignEntry
+  | SceneTemplate
+  | SessionPlan
+  | CampaignMap;
 
 type AuthoringRepository = Pick<
   CampaignPrepRepository,
@@ -76,19 +82,14 @@ function parsePayload(
   kind: CampaignPrepObjectKind,
   input: unknown,
 ): AuthoredPrepObject {
-  if (kind === 'campaign-map') {
-    throw new CampaignPrepAuthoringError(
-      'unsupported-kind',
-      'Campaign map authoring is not available in this API revision',
-    );
-  }
-
   const parsed =
     kind === 'scene-template'
       ? sceneTemplateSchema.safeParse(input)
       : kind === 'session-plan'
         ? sessionPlanSchema.safeParse(input)
-        : campaignEntrySchema.safeParse(input);
+        : kind === 'campaign-map'
+          ? campaignMapSchema.safeParse(input)
+          : campaignEntrySchema.safeParse(input);
   if (!parsed.success) {
     throw new CampaignPrepAuthoringError(
       'invalid-payload',
@@ -136,13 +137,20 @@ function sessionStepReferences(plan: SessionPlan): CampaignObjectRef[] {
   });
 }
 
+function mapDependencies(map: CampaignMap): CampaignObjectRef[] {
+  const pinRefs = map.pins.flatMap((pin) => pin.linkedObjectRefs);
+  return [map.imageAssetRef, ...pinRefs];
+}
+
 function objectDependencies(data: AuthoredPrepObject): CampaignObjectRef[] {
   const references =
     'links' in data
       ? data.links
       : 'backgroundAssetRef' in data
         ? [data.backgroundAssetRef]
-        : [...data.dependencies, ...sessionStepReferences(data)];
+        : 'imageAssetRef' in data
+          ? mapDependencies(data)
+          : [...data.dependencies, ...sessionStepReferences(data)];
   const seen = new Set<string>();
   return references.filter((reference) => {
     const key = campaignObjectRefKey(reference);

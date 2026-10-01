@@ -65,6 +65,30 @@ describe('CampaignPrepDependencyResolver', () => {
     );
   });
 
+  it('resolves a campaign-map object revision', async () => {
+    dependencies.campaignPrep.getObject.mockResolvedValue({
+      kind: 'campaign-map',
+      status: 'draft',
+    });
+    dependencies.campaignPrep.getRevision.mockResolvedValue({ revision: 2 });
+
+    await expect(resolver.resolve(campaignObjectRef, context)).resolves.toEqual({
+      status: 'available',
+      objectType: 'campaign-map',
+    });
+  });
+
+  it('resolves library: prefixed assets directly', async () => {
+    const reference: CampaignObjectRef = {
+      target: 'asset',
+      assetId: 'library:dungeon-crossroads',
+    };
+    await expect(resolver.resolve(reference, context)).resolves.toEqual({
+      status: 'available',
+      objectType: 'asset',
+    });
+  });
+
   it('rejects archived or missing campaign object revisions', async () => {
     dependencies.campaignPrep.getObject.mockResolvedValue({
       kind: 'note',

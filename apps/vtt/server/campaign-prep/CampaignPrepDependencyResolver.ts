@@ -143,7 +143,7 @@ export class CampaignPrepDependencyResolver
     assetId: string,
     principalId: string,
   ): Promise<PrepDependencyResolution> {
-    if (assetId.startsWith('demo-')) {
+    if (assetId.startsWith('demo-') || assetId.startsWith('library:')) {
       return { status: 'available', objectType: 'asset' };
     }
 

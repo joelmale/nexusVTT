@@ -8,6 +8,7 @@ import { CampaignPrepRevisionConflictError } from '../../../../server/repositori
 
 const IDS = {
   campaign: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
+  map: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
   note: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
   plan: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
   scene: 'cccccccc-cccc-4ccc-8ccc-cccccccccccc',
@@ -75,6 +76,46 @@ function sessionPlan(status: 'draft' | 'ready' = 'draft') {
   };
 }
 
+function campaignMap(revision = 1) {
+  return {
+    id: IDS.map,
+    campaignId: IDS.campaign,
+    schemaVersion: 1,
+    revision,
+    title: 'Sword Coast Map',
+    description: 'Regional overview',
+    imageAssetRef: {
+      target: 'asset' as const,
+      assetId: 'library:sword-coast-regional',
+    },
+    dimensions: { width: 1920, height: 1080 },
+    layers: [
+      { id: 'layer-1', label: 'Landmarks', visibleByDefault: true, order: 0 },
+    ],
+    pins: [
+      {
+        id: 'pin-1',
+        label: 'Harbor Docks',
+        x: 0.25,
+        y: 0.5,
+        icon: 'anchor',
+        visibility: 'players' as const,
+        layerIds: ['layer-1'],
+        linkedObjectRefs: [
+          {
+            target: 'campaign-object' as const,
+            campaignId: IDS.campaign,
+            id: IDS.scene,
+            revision: 1,
+          },
+        ],
+      },
+    ],
+    createdAt: timestamp,
+    updatedAt: timestamp,
+  };
+}
+
 function repository() {
   return {
     addRevision: vi.fn(),
@@ -100,7 +141,7 @@ describe('CampaignPrepAuthoringService', () => {
       requestId: REQUEST_ID,
     });
 
-    expect(result.data.title).toBe("Harbormaster's Warning");
+    expect('title' in result.data && result.data.title).toBe("Harbormaster's Warning");
     expect(repo.createObject).toHaveBeenCalledWith(
       expect.objectContaining({
         id: IDS.note,
@@ -214,11 +255,51 @@ describe('CampaignPrepAuthoringService', () => {
       service.create({
         campaignId: IDS.campaign,
         kind: 'campaign-map',
-        data: {},
+        data: { ...campaignMap(), pins: [{ ...campaignMap().pins[0], x: 1.5 }] },
         principalId: PRINCIPAL_ID,
         requestId: REQUEST_ID,
       }),
-    ).rejects.toMatchObject({ code: 'unsupported-kind' });
+    ).rejects.toMatchObject({ code: 'invalid-payload' });
+  });
+
+  it('creates a validated campaign-map and extracts image and pin dependencies', async () => {
+    const repo = repository();
+    repo.createObject.mockResolvedValue({
+      object: { id: IDS.map },
+      revision: { objectId: IDS.map, revision: 1 },
+    });
+    const service = new CampaignPrepAuthoringService(repo);
+
+    const result = await service.create({
+      campaignId: IDS.campaign,
+      kind: 'campaign-map',
+      data: campaignMap(),
+      principalId: PRINCIPAL_ID,
+      requestId: REQUEST_ID,
+    });
+
+    expect('title' in result.data && result.data.title).toBe('Sword Coast Map');
+    expect(repo.createObject).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: IDS.map,
+        campaignId: IDS.campaign,
+        kind: 'campaign-map',
+        status: 'draft',
+      }),
+      expect.objectContaining({
+        revision: 1,
+        dependencies: [
+          expect.objectContaining({
+            target: 'asset',
+            assetId: 'library:sword-coast-regional',
+          }),
+          expect.objectContaining({
+            target: 'campaign-object',
+            id: IDS.scene,
+          }),
+        ],
+      }),
+    );
   });
 
   it('rejects create identity drift from the route campaign', async () => {
