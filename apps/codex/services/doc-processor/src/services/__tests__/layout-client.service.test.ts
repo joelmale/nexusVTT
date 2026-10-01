@@ -1,3 +1,4 @@
+import { UnrecoverableError } from 'bullmq';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { env } from '../../config/env';
 import { LayoutClientService } from '../layout-client.service';
@@ -36,9 +37,18 @@ describe('LayoutClientService', () => {
     expect(JSON.parse(init.body)).toEqual(params);
   });
 
-  it('throws on HTTP errors so the stage fails and retries', async () => {
+  it('throws a retryable error on 5xx so the stage retries', async () => {
     globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 503, text: vi.fn().mockResolvedValue('busy') }) as any;
-    await expect(new LayoutClientService().convertRange(params)).rejects.toThrow('HTTP 503 busy');
+    const error = await new LayoutClientService().convertRange(params).catch((e) => e);
+    expect(error.message).toContain('HTTP 503 busy');
+    expect(error).not.toBeInstanceOf(UnrecoverableError);
+  });
+
+  it('throws an UnrecoverableError on 4xx so BullMQ stops retrying', async () => {
+    globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 400, text: vi.fn().mockResolvedValue('bad range') }) as any;
+    const error = await new LayoutClientService().convertRange(params).catch((e) => e);
+    expect(error).toBeInstanceOf(UnrecoverableError);
+    expect(error.message).toContain('HTTP 400 bad range');
   });
 
   it('rejects pages outside the requested range', async () => {

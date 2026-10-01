@@ -1,4 +1,6 @@
+import { UnrecoverableError } from 'bullmq';
 import { env } from '../config/env';
+import { isPermanentHttpStatus } from './stage-retry';
 import { LayoutBatchResponse } from '../types/layout';
 
 /**
@@ -29,7 +31,9 @@ export class LayoutClientService {
 
     if (!response.ok) {
       const detail = await response.text().catch(() => '');
-      throw new Error(`ocr-service /layout/s3 pages ${params.pageStart}-${params.pageEnd} failed: HTTP ${response.status} ${detail}`.trim());
+      const message = `ocr-service /layout/s3 pages ${params.pageStart}-${params.pageEnd} failed: HTTP ${response.status} ${detail}`.trim();
+      // A 4xx means the request is wrong (bad range, missing key): fail the job now instead of retrying.
+      throw isPermanentHttpStatus(response.status) ? new UnrecoverableError(message) : new Error(message);
     }
 
     const data = (await response.json()) as LayoutBatchResponse;

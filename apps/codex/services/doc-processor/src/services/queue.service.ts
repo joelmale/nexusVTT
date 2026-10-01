@@ -1,6 +1,7 @@
 import { Queue, Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import { env } from '../config/env';
+import { stageJobOptions } from './stage-retry';
 
 // Create Redis connection
 const connection = new Redis(env.REDIS_URL, {
@@ -72,7 +73,7 @@ export function createAssetWorker(
 }
 
 export async function enqueueStage(documentId: string, stage: ProcessDocumentJob['stage']): Promise<string> {
-  const job = await documentQueue.add(`process-${stage || 'ingest'}`, { documentId, stage });
+  const job = await documentQueue.add(`process-${stage || 'ingest'}`, { documentId, stage }, stageJobOptions(stage));
   return job.id || '';
 }
 
