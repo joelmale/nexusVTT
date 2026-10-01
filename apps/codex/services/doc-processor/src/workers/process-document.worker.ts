@@ -70,6 +70,8 @@ type ProcessingMetadata = {
     needsReview?: number;
     cachedCalls?: number;
     model?: string;
+    /** Which Ollama served the stage: the server's own or OLLAMA_REMOTE_URL. */
+    ollama?: 'local' | 'remote';
     promptVersion?: string;
   };
   chunks?: {
@@ -719,8 +721,11 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
       case 'extract': {
         const start = Date.now();
         if (version === 'v2') {
+          // The stage picks local or remote Ollama; report the model it chose.
+          let model = env.VLM_MODEL;
           const result = await runExtractStage(jobId, document, {
-            onCandidates: async (candidates) => {
+            onCandidates: async (candidates, endpoint) => {
+              model = endpoint.model;
               if (!runId) return;
               const byType = ['monster', 'spell', 'item']
                 .map((type) => `${candidates.filter((c) => c.type === type).length} ${type}`)
@@ -730,9 +735,9 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
                 runId,
                 stage: 'extract',
                 kind: 'stage_started',
-                message: `Extraction started: ${candidates.length} candidate${candidates.length === 1 ? '' : 's'} (${byType}) via ${env.VLM_MODEL}`,
+                message: `Extraction started: ${candidates.length} candidate${candidates.length === 1 ? '' : 's'} (${byType}) via ${model}`,
                 payload: {
-                  model: env.VLM_MODEL,
+                  model,
                   candidates: candidates.map((c) => ({
                     key: c.key,
                     type: c.type,
@@ -755,14 +760,14 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
                 message: crop
                   ? `Cropped ${candidate.type === 'monster' ? 'stat block' : candidate.type} "${candidate.title}" ` +
                     `[x: ${crop.left}, y: ${crop.top}, w: ${crop.width}, h: ${crop.height}]` +
-                    `${crops.length > 1 ? ` + ${crops.length - 1} more` : ''} -> dispatched to Ollama (${env.VLM_MODEL})`
-                  : `Dispatched ${candidate.type} "${candidate.title}" (p. ${candidate.pageNumber}) as text to Ollama (${env.VLM_MODEL})`,
-                payload: { candidateKey: candidate.key, type: candidate.type, model: env.VLM_MODEL, crops },
+                    `${crops.length > 1 ? ` + ${crops.length - 1} more` : ''} -> dispatched to Ollama (${model})`
+                  : `Dispatched ${candidate.type} "${candidate.title}" (p. ${candidate.pageNumber}) as text to Ollama (${model})`,
+                payload: { candidateKey: candidate.key, type: candidate.type, model, crops },
               });
             },
             onCandidate: async (candidateResult) => {
               if (!runId) return;
-              const events = candidateEvents(candidateResult, env.VLM_MODEL)
+              const events = candidateEvents(candidateResult, model)
                 .map((event) => ({ ...event, documentId, runId: runId as string }));
               await processingEvents.emitMany(events);
               await processingEvents.emitTelemetry(documentId, runId, 'extract', readGpu);
@@ -785,7 +790,8 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
               candidates: result.candidates,
               needsReview: result.needsReview,
               cachedCalls: result.cachedCalls,
-              model: env.VLM_MODEL,
+              model: result.endpoint.model,
+              ollama: result.endpoint.where,
               promptVersion: env.EXTRACT_PROMPT_VERSION,
             },
           });

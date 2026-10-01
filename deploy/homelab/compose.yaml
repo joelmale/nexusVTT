@@ -350,6 +350,11 @@ services:
       # The service default is v1, so this must stay explicit.
       PIPELINE_VERSION: ${CODEX_PIPELINE_VERSION:-v2}
       OLLAMA_URL: ${CODEX_OLLAMA_URL:-http://ollama:11434}
+      VLM_MODEL: ${CODEX_VLM_MODEL:-qwen3-vl:4b}
+      # Optional workstation Ollama on the LAN; used per extract stage when it
+      # is reachable and has the model, otherwise OLLAMA_URL is used.
+      OLLAMA_REMOTE_URL: ${CODEX_OLLAMA_REMOTE_URL:-}
+      OLLAMA_REMOTE_MODEL: ${CODEX_OLLAMA_REMOTE_MODEL:-}
       JWT_SECRET: null
       AUTH_DISABLED: null
       EMBEDDINGS_PROVIDER: null

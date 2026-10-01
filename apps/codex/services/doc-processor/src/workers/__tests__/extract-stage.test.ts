@@ -137,6 +137,25 @@ describe('runExtractStage (v2)', () => {
     expect(calls[calls.length - 1]).toMatchObject({ url: expect.stringContaining('/api/generate'), body: { keep_alive: 0 } });
   });
 
+  it('sends calls to a reachable remote Ollama and skips the GPU handoff', async () => {
+    const savedRemote = env.OLLAMA_REMOTE_URL;
+    (env as any).OLLAMA_REMOTE_URL = 'http://laptop:11434';
+    const calls = mockOllama();
+    const chat = globalThis.fetch as any;
+    globalThis.fetch = vi.fn(async (url: string, init?: any) =>
+      url.endsWith('/api/tags') ? { ok: true, json: async () => ({ models: [{ name: env.VLM_MODEL }] }) } : chat(url, init)
+    ) as any;
+    try {
+      const result = await runExtractStage('job-1', document);
+      expect(result.endpoint).toMatchObject({ where: 'remote', url: 'http://laptop:11434' });
+      expect(handoff.layoutUnloads).toBe(0);
+      expect(calls.every((c) => c.url.startsWith('http://laptop:11434/api/chat'))).toBe(true);
+      expect(calls[0].body.options).toEqual({ temperature: 0, num_ctx: env.OLLAMA_NUM_CTX });
+    } finally {
+      (env as any).OLLAMA_REMOTE_URL = savedRemote;
+    }
+  });
+
   it('flags invented numbers for review instead of trusting them', async () => {
     mockOllama('monster-gorgon-invented.json');
     const result = await runExtractStage('job-1', document);

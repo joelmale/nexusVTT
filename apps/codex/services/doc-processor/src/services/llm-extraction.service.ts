@@ -3,10 +3,11 @@ import { z } from 'zod/v4'; // zod 3.25 ships the v4 API with toJSONSchema
 import { env } from '../config/env';
 import { s3Service } from './s3.service';
 import { ENTITY_LISTS, ENTITY_SCHEMAS, EntityType, ExtractedEntity } from '../extraction/schemas';
+import { localEndpoint, OllamaEndpoint } from './ollama-endpoint';
 
 type ExtractInput = { text: string; images?: Buffer[] };
 
-const ollamaUrl = (path: string) => `${env.OLLAMA_URL.replace(/\/$/, '')}${path}`;
+const ollamaUrl = (endpoint: OllamaEndpoint, path: string) => `${endpoint.url.replace(/\/$/, '')}${path}`;
 
 /**
  * One Ollama structured-output call (plan: "Ollama client"). A failure to
@@ -17,17 +18,18 @@ export async function extractWithSchema<T extends z.ZodType>(
   schema: T,
   systemPrompt: string,
   input: ExtractInput,
+  endpoint: OllamaEndpoint = localEndpoint(),
 ): Promise<{ parsed: z.infer<T> | null; raw: string }> {
-  const response = await fetch(ollamaUrl('/api/chat'), {
+  const response = await fetch(ollamaUrl(endpoint, '/api/chat'), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     signal: AbortSignal.timeout(env.LLM_TIMEOUT_MS),
     body: JSON.stringify({
-      model: env.VLM_MODEL, // one model for text and images
+      model: endpoint.model, // one model for text and images
       stream: false,
       keep_alive: env.OLLAMA_KEEP_ALIVE,
       format: z.toJSONSchema(schema), // Ollama structured outputs
-      options: { temperature: 0 },
+      options: { temperature: 0, num_ctx: env.OLLAMA_NUM_CTX },
       messages: [
         { role: 'system', content: systemPrompt },
         {
@@ -114,8 +116,10 @@ export class LlmExtractionService {
     type: EntityType;
     text: string;
     images?: Buffer[];
+    endpoint?: OllamaEndpoint;
   }): Promise<ExtractionOutcome> {
-    const model = env.VLM_MODEL;
+    const endpoint = params.endpoint ?? localEndpoint();
+    const model = endpoint.model;
     const promptVersion = env.EXTRACT_PROMPT_VERSION;
     const cacheKey = extractionCacheKey(params.contentHash, params.blockHash, model, promptVersion);
     const s3Key = `extract-cache/${params.documentId}/${cacheKey}.json`;
@@ -128,7 +132,7 @@ export class LlmExtractionService {
       raw = (JSON.parse(hit.toString('utf-8')) as CachedExtraction).raw;
       cached = true;
     } else {
-      raw = (await extractWithSchema(list, SYSTEM_PROMPTS[params.type], { text: params.text, images: params.images })).raw;
+      raw = (await extractWithSchema(list, SYSTEM_PROMPTS[params.type], { text: params.text, images: params.images }, endpoint)).raw;
       const entry: CachedExtraction = {
         raw,
         model,
@@ -162,12 +166,12 @@ export class LlmExtractionService {
    * Frees the VLM's VRAM now instead of after OLLAMA_KEEP_ALIVE (6 GB GPU
    * handoff back to the layout engine). Best effort.
    */
-  async unloadModel(): Promise<void> {
+  async unloadModel(endpoint: OllamaEndpoint = localEndpoint()): Promise<void> {
     try {
-      await fetch(ollamaUrl('/api/generate'), {
+      await fetch(ollamaUrl(endpoint, '/api/generate'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model: env.VLM_MODEL, keep_alive: 0 }),
+        body: JSON.stringify({ model: endpoint.model, keep_alive: 0 }),
         signal: AbortSignal.timeout(30000),
       });
     } catch {

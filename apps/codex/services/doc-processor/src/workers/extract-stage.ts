@@ -6,6 +6,7 @@ import { entityResolverService } from '../services/entity-resolver.service';
 import { entityLinkingService } from '../services/entity-linking.service';
 import { layoutClientService } from '../services/layout-client.service';
 import { llmExtractionService } from '../services/llm-extraction.service';
+import { localEndpoint, OllamaEndpoint, resolveOllamaEndpoint } from '../services/ollama-endpoint';
 import { monsterCropService, type CropResult } from '../services/monster-crop.service';
 import { env } from '../config/env';
 import { Candidate, CandidatePage, detectCandidates } from '../extraction/candidates';
@@ -35,6 +36,8 @@ export type ExtractStageResult = {
   candidates: number;
   cachedCalls: number;
   results: CandidateResult[];
+  /** The Ollama endpoint and model this stage used. */
+  endpoint: OllamaEndpoint;
 };
 
 const searchTextFor = (type: EntityType, entity: ExtractedEntity) => {
@@ -57,13 +60,14 @@ const searchTextFor = (type: EntityType, entity: ExtractedEntity) => {
  *
  * Spells and items are text-only; monsters send ~200 DPI crops with the text.
  * With GPU_HANDOFF the layout models are unloaded first and the VLM after,
- * because the 6 GB GPU cannot hold both. Writes are delete-then-createMany per
+ * because the 6 GB GPU cannot hold both. A remote Ollama (OLLAMA_REMOTE_URL)
+ * shares no GPU with ocr-service, so the handoff is skipped when one is used. Writes are delete-then-createMany per
  * document, as in v1, so a retry is idempotent; the extraction cache makes it
  * cheap.
  */
 export type ExtractStageHooks = {
-  /** After detection, before any model call. */
-  onCandidates?: (candidates: Candidate[]) => Promise<void>;
+  /** After detection and endpoint selection, before any model call. */
+  onCandidates?: (candidates: Candidate[], endpoint: OllamaEndpoint) => Promise<void>;
   /** After each candidate is extracted and validated. */
   onCandidate?: (result: CandidateResult) => Promise<void>;
   /** Just before a candidate goes to the model. */
@@ -88,9 +92,23 @@ export async function runExtractStage(
     }))
   );
   await loggingService.logInfo(jobId, `Detected ${candidates.length} extraction candidates`, 'extract');
-  if (hooks.onCandidates) await hooks.onCandidates(candidates);
 
-  if (env.GPU_HANDOFF && candidates.length > 0) {
+  // Pick the endpoint once per stage; a retry re-probes, so a laptop that
+  // drops out mid-stage is replaced by the local Ollama on the next attempt.
+  let endpoint = localEndpoint();
+  if (candidates.length > 0) {
+    const resolved = await resolveOllamaEndpoint();
+    endpoint = resolved.endpoint;
+    await loggingService.logInfo(
+      jobId,
+      `Extraction via ${endpoint.where} Ollama ${endpoint.url} (${endpoint.model}): ${resolved.reason}`,
+      'extract'
+    );
+  }
+  const handoff = env.GPU_HANDOFF && endpoint.sharesGpu && candidates.length > 0;
+  if (hooks.onCandidates) await hooks.onCandidates(candidates, endpoint);
+
+  if (handoff) {
     const unloaded = await layoutClientService.unloadModels();
     await loggingService.logInfo(jobId, `GPU handoff: layout models ${unloaded ? 'unloaded' : 'not unloaded'}`, 'extract');
   }
@@ -130,6 +148,7 @@ export async function runExtractStage(
         type: candidate.type,
         text: candidate.markdown,
         images,
+        endpoint,
       });
       if (outcome.cached) cachedCalls += 1;
 
@@ -210,8 +229,8 @@ export async function runExtractStage(
       if (hooks.onCandidate) await hooks.onCandidate(result);
     }
   } finally {
-    if (env.GPU_HANDOFF && candidates.length > 0) {
-      await llmExtractionService.unloadModel();
+    if (handoff) {
+      await llmExtractionService.unloadModel(endpoint);
     }
   }
 
@@ -223,5 +242,5 @@ export async function runExtractStage(
     await entityLinkingService.linkSpellMentions({ documentId: document.id, monsters: mentions });
   }
 
-  return { counts, needsReview, candidates: candidates.length, cachedCalls, results };
+  return { counts, needsReview, candidates: candidates.length, cachedCalls, results, endpoint };
 }
