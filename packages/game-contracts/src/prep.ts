@@ -10,6 +10,10 @@ export const campaignEntryKindSchema = z.enum([
   'quest',
   'lore',
   'clue',
+  'session',
+  'act',
+  'encounter',
+  'party-member',
 ]);
 export type CampaignEntryKind = z.infer<typeof campaignEntryKindSchema>;
 

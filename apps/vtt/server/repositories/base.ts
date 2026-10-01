@@ -165,6 +165,10 @@ export type CampaignPrepObjectKind =
   | 'quest'
   | 'lore'
   | 'clue'
+  | 'session'
+  | 'act'
+  | 'encounter'
+  | 'party-member'
   | 'scene-template'
   | 'campaign-map'
   | 'session-plan';

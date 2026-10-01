@@ -8,6 +8,7 @@ interface FakeSchema {
   localAuth: boolean;
   sessionPlanActivations: boolean;
   sessionPlanActivationRequestId: boolean;
+  campaignPrepKinds: boolean;
 }
 
 function createPool(schema: FakeSchema) {
@@ -29,6 +30,9 @@ function createPool(schema: FakeSchema) {
             },
           ],
         };
+      }
+      if (sql.includes('pg_get_constraintdef')) {
+        return { rows: [{ exists: schema.campaignPrepKinds }] };
       }
       if (sql.includes('to_regclass')) {
         const tableName = params?.[0];
@@ -62,6 +66,7 @@ describe('runStartupMigrations', () => {
       localAuth: false,
       sessionPlanActivations: false,
       sessionPlanActivationRequestId: false,
+      campaignPrepKinds: false,
     });
     const sqlLoader = vi.fn((fileName: string) => `-- ${fileName}`);
 
@@ -72,6 +77,7 @@ describe('runStartupMigrations', () => {
       '2026-09-25-add-campaign-prep.sql',
       '2026-09-25-add-session-plan-activations.sql',
       '2026-09-30-harden-session-plan-activations.sql',
+      '2026-10-01-add-campaign-prep-kinds.sql',
     ]);
     expect(sqlLoader.mock.calls.map(([fileName]) => fileName)).toEqual(applied);
     expect(query.mock.calls.at(0)?.[0]).toBe('BEGIN');
@@ -85,6 +91,7 @@ describe('runStartupMigrations', () => {
       localAuth: true,
       sessionPlanActivations: true,
       sessionPlanActivationRequestId: true,
+      campaignPrepKinds: true,
     });
     const sqlLoader = vi.fn();
 
@@ -100,6 +107,7 @@ describe('runStartupMigrations', () => {
       localAuth: true,
       sessionPlanActivations: true,
       sessionPlanActivationRequestId: false,
+      campaignPrepKinds: true,
     });
     const sqlLoader = vi.fn((fileName: string) => `-- ${fileName}`);
 
@@ -114,6 +122,7 @@ describe('runStartupMigrations', () => {
       localAuth: false,
       sessionPlanActivations: false,
       sessionPlanActivationRequestId: false,
+      campaignPrepKinds: false,
     });
     const failure = new Error('migration failed');
     query.mockImplementationOnce(async () => ({ rows: [] }));
@@ -137,6 +146,7 @@ describe('runStartupMigrations', () => {
       localAuth: false,
       sessionPlanActivations: false,
       sessionPlanActivationRequestId: false,
+      campaignPrepKinds: false,
     });
 
     await expect(

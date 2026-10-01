@@ -307,6 +307,119 @@ describe('load + mapping round-trip', () => {
     );
   });
 
+  it('round-trips acts, sessions, encounters and party members', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const act = await store.addItem('act', {
+      title: 'Act I',
+      summary: 'The harbor',
+    });
+    const npc = await store.addItem('npc', { name: 'Mira' });
+    const quest = await store.addItem('quest', { title: 'Find the key' });
+    const encounter = await store.addItem('encounter', {
+      title: 'Dock ambush',
+      kind: 'combat',
+      difficulty: 'high',
+      composition: [
+        { name: 'Thug', count: 3, ruleset: '2024', role: 'brute' },
+      ],
+      trigger: 'Players enter the pier',
+    });
+    const session = await store.addItem('session', {
+      title: 'Session One',
+      actId: act.id,
+      npcIds: [npc.id],
+      questIds: [quest.id],
+      encounterIds: [encounter.id],
+      status: 'planned',
+      summary: 'Arrival',
+    });
+    const member = await store.addItem('party-member', {
+      name: 'Tamsin',
+      className: 'Rogue',
+      level: 3,
+      hook: 'Owes a debt',
+    });
+    for (const result of [act, encounter, session, member]) {
+      expect(result.ok).toBe(true);
+    }
+    expect(
+      [...server.objects.values()].map((object) => object.kind).sort(),
+    ).toEqual(['act', 'encounter', 'npc', 'party-member', 'quest', 'session']);
+
+    const bundle = await createServerBundleStore(CAMPAIGN).load();
+    expect(bundle.acts).toHaveLength(1);
+    expect(bundle.acts[0]).toMatchObject({ title: 'Act I', summary: 'The harbor' });
+    expect(bundle.sessions).toHaveLength(1);
+    expect(bundle.sessions[0]).toMatchObject({
+      id: session.id,
+      number: 1,
+      actId: act.id,
+      status: 'planned',
+      npcIds: [npc.id],
+      questIds: [quest.id],
+      encounterIds: [encounter.id],
+    });
+    expect(bundle.encounters[0]).toMatchObject({
+      title: 'Dock ambush',
+      difficulty: 'high',
+      composition: [{ name: 'Thug', count: 3, ruleset: '2024', role: 'brute' }],
+      sessionIds: [session.id],
+    });
+    // Reverse links are derived from the session, never persisted.
+    expect(bundle.npcs[0].sessionIds).toEqual([session.id]);
+    expect(bundle.quests[0].sessionIds).toEqual([session.id]);
+    expect(bundle.campaign.playerCharacters).toEqual([
+      expect.objectContaining({ name: 'Tamsin', className: 'Rogue', level: 3 }),
+    ]);
+    expect(bundle.campaign.actIds).toEqual([act.id]);
+    expect(bundle.campaign.objectCounts.encounters).toBe(1);
+    const npcData = server.objects.get(String(npc.id))!.data;
+    expect(JSON.stringify(npcData)).not.toContain('sessionIds');
+  });
+
+  it('numbers new sessions and orders new acts sequentially', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    await store.addItem('session', { title: 'One' });
+    await store.addItem('session', { title: 'Two' });
+    await store.addItem('act', { title: 'A1' });
+    await store.addItem('act', { title: 'A2' });
+    const bundle = store.getBundle();
+    expect(bundle.sessions.map((session) => session.number)).toEqual([1, 2]);
+    expect(bundle.acts.map((act) => act.order)).toEqual([0, 1]);
+  });
+
+  it('attaches a session-plan to its session and lists unattached plans after', async () => {
+    server.put('session-plan', { id: 'sp-1', title: 'Plan A' }, 'ready');
+    server.put('session-plan', { id: 'sp-2', title: 'Plan B' }, 'draft');
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    await store.addItem('session', { title: 'Opening night', planId: 'sp-1' });
+    const bundle = await createServerBundleStore(CAMPAIGN).load();
+    expect(bundle.sessions.map((session) => session.title)).toEqual([
+      'Opening night',
+      'Plan B',
+    ]);
+    expect(bundle.sessions[1].number).toBe(2);
+  });
+
+  it('revises a session with a revision check and reports conflicts', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const added = await store.addItem('session', { title: 'One' });
+    const saved = await store.updateItem('session', String(added.id), {
+      summary: 'Updated',
+    });
+    expect(saved.ok).toBe(true);
+    expect(server.objects.get(String(added.id))!.currentRevision).toBe(2);
+    server.bump409 = true;
+    const conflict = await store.updateItem('session', String(added.id), {
+      summary: 'Again',
+    });
+    expect(conflict).toMatchObject({ ok: false, conflict: true });
+  });
+
   it('falls back to plain text for objects created elsewhere and skips retired', async () => {
     server.put('npc', {
       id: 'n-1',

@@ -43,6 +43,10 @@ const CAMPAIGN_ENTRY_KINDS = new Set([
   'quest',
   'lore',
   'clue',
+  'session',
+  'act',
+  'encounter',
+  'party-member',
 ]);
 
 function campaignObjectType(kind: string): PrepDependencyObjectType {

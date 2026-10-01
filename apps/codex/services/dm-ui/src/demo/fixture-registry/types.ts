@@ -38,6 +38,7 @@ export type {
   HandoutAudience,
   LibraryObject,
   MapPin,
+  PlayerCharacter,
   QuestObjective,
   SceneTemplateRef,
 } from '../ashes-of-veyra/types';

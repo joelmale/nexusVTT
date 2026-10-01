@@ -44,8 +44,15 @@
  *   `bundle.maps` (title only), session-plan -> minimal `bundle.sessions`
  *   (title, draft/planned). The list endpoint returns no payload, so these
  *   three are not fetched individually.
- * - Never persisted (no server kind): sessionIds, encounterIds, clueIds,
- *   mapId, pinId, sceneTemplateId. Encounters are not created (by design).
+ * - session / act / encounter / party-member are entry-shaped kinds too (same
+ *   nexusStudio.fields envelope). Titles: act/session/encounter -> title,
+ *   party-member -> name. A session owns its encounter/clue/quest/npc/
+ *   faction/location/handout links (+ optional planId of its session-plan
+ *   object); the reverse links (npc/quest/encounter sessionIds, location
+ *   encounterIds) are derived on load. Session-plan objects not attached to
+ *   a session still list as sessions. Encounters are fixture-shaped for now
+ *   and become EncounterTemplate-backed in the encounter authoring phase.
+ * - Never persisted: derived links elsewhere, mapId, pinId, sceneTemplateId.
  * - Bundle ids are the server object ids, so tracking is id -> revision.
  * - Seeding pre-generates UUIDs for every copied fixture item and rewrites
  *   cross references (faction/npc/location/quest ids) before creating,
@@ -60,8 +67,12 @@ import {
 } from '../demo/fixture-registry/registry';
 import type {
   CampaignFixtureBundle,
+  CampaignAct,
+  CampaignEncounter,
   CampaignHandout,
   CampaignNote,
+  CampaignSession,
+  PlayerCharacter,
   NoteAudience,
   NoteColor,
   NoteSize,
@@ -82,7 +93,11 @@ export type EditableKind =
   | 'location'
   | 'note'
   | 'handout'
-  | 'handout-folder';
+  | 'handout-folder'
+  | 'session'
+  | 'act'
+  | 'encounter'
+  | 'party-member';
 
 /** Handouts and folders are both stored as server kind `lore`. */
 function serverKind(kind: EditableKind): string {
@@ -177,6 +192,10 @@ const EDITABLE_KINDS: string[] = [
   'location',
   'note',
   'lore',
+  'session',
+  'act',
+  'encounter',
+  'party-member',
 ];
 
 /** Fields that never round-trip because the server has no kind for them. */
@@ -274,9 +293,26 @@ function objectsPath(campaignId: string): string {
 }
 
 function titleKey(kind: EditableKind): 'name' | 'title' {
-  return kind === 'npc' || kind === 'faction' || kind === 'location'
+  return kind === 'npc' ||
+    kind === 'faction' ||
+    kind === 'location' ||
+    kind === 'party-member'
     ? 'name'
     : 'title';
+}
+
+function oneOf<T extends string>(
+  value: unknown,
+  allowed: readonly T[],
+  fallback: T,
+): T {
+  return allowed.includes(value as T) ? (value as T) : fallback;
+}
+
+function num(value: unknown, fallback: number): number {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? value
+    : fallback;
 }
 
 // ------------------------------------------------------- entity normalizing
@@ -441,6 +477,91 @@ function normalize(
         kind: 'handout-folder',
         order: typeof raw.order === 'number' ? raw.order : 0,
       } satisfies FolderRecord;
+    case 'session':
+      return {
+        ...base,
+        actId: str(raw.actId),
+        number: num(raw.number, 1),
+        title: str(raw.title),
+        status: oneOf(
+          raw.status,
+          ['complete', 'draft', 'planned'] as const,
+          'draft',
+        ),
+        summary: str(raw.summary),
+        ...(raw.plannedDate ? { plannedDate: str(raw.plannedDate) } : {}),
+        ...(typeof raw.durationHours === 'number'
+          ? { durationHours: raw.durationHours }
+          : {}),
+        partyLevel: num(raw.partyLevel, 1),
+        tags: strings(raw.tags),
+        questIds: strings(raw.questIds),
+        npcIds: strings(raw.npcIds),
+        factionIds: strings(raw.factionIds),
+        locationIds: strings(raw.locationIds),
+        encounterIds: strings(raw.encounterIds),
+        clueIds: strings(raw.clueIds),
+        handoutIds: strings(raw.handoutIds),
+        // The session's prep plan is a separate server session-plan object.
+        ...(raw.planId ? { planId: str(raw.planId) } : {}),
+      } satisfies CampaignSession & { planId?: string };
+    case 'act':
+      return {
+        ...base,
+        title: str(raw.title),
+        order: num(raw.order, 0),
+        status: oneOf(
+          raw.status,
+          ['complete', 'active', 'planned'] as const,
+          'planned',
+        ),
+        firstSessionNumber: num(raw.firstSessionNumber, 1),
+        lastSessionNumber: num(raw.lastSessionNumber, 1),
+        summary: str(raw.summary),
+      } satisfies CampaignAct;
+    case 'encounter':
+      return {
+        ...base,
+        title: str(raw.title),
+        kind: oneOf(
+          raw.kind,
+          ['combat', 'social', 'combat-hazard', 'combat-exploration'] as const,
+          'combat',
+        ),
+        difficulty: oneOf(
+          raw.difficulty,
+          ['low', 'moderate', 'high'] as const,
+          'moderate',
+        ),
+        composition: Array.isArray(raw.composition)
+          ? raw.composition.filter(isRecord).map((component) => ({
+              name: str(component.name),
+              count: num(component.count, 1),
+              ruleset: oneOf(
+                component.ruleset,
+                ['2024', '2014-srd', 'custom'] as const,
+                'custom',
+              ),
+              role: str(component.role),
+            }))
+          : [],
+        trigger: str(raw.trigger),
+        intendedUse: str(raw.intendedUse),
+        sessionIds: [],
+        locationIds: strings(raw.locationIds),
+        factionIds: strings(raw.factionIds),
+        tactics: str(raw.tactics),
+        rulesetNotes: str(raw.rulesetNotes),
+      } satisfies CampaignEncounter;
+    case 'party-member':
+      return {
+        id,
+        name: str(raw.name),
+        ancestry: str(raw.ancestry),
+        className: str(raw.className),
+        level: num(raw.level, 1),
+        hook: str(raw.hook),
+      } satisfies PlayerCharacter;
   }
 }
 
@@ -496,6 +617,13 @@ function plainLines(kind: EditableKind, entity: Entity): string[] {
       return splitParagraphs(str(entity.body));
     case 'handout-folder':
       return [];
+    case 'session':
+    case 'act':
+      return [str(entity.summary)];
+    case 'encounter':
+      return [str(entity.intendedUse), str(entity.trigger)];
+    case 'party-member':
+      return [str(entity.hook)];
   }
 }
 
@@ -504,12 +632,19 @@ function persistedFields(
   kind: EditableKind,
   entity: Entity,
 ): Record<string, unknown> {
+  // A session owns its encounter and clue links; elsewhere they are derived.
+  const unsupported =
+    kind === 'session'
+      ? UNSUPPORTED_KEYS.filter(
+          (key) => key !== 'encounterIds' && key !== 'clueIds',
+        )
+      : UNSUPPORTED_KEYS;
   const skip = new Set([
     'id',
     'campaignId',
     titleKey(kind),
     'objectiveIds',
-    ...UNSUPPORTED_KEYS,
+    ...unsupported,
   ]);
   const fields: Record<string, unknown> = {};
   if (kind === 'handout' || kind === 'handout-folder') {
@@ -635,6 +770,8 @@ function entityFromData(
       raw.body = text.join('\n\n');
       raw.audience = record.visibility === 'players' ? 'all' : 'hidden';
     }
+    if (kind === 'session' || kind === 'act') raw.summary = text.join('\n');
+    if (kind === 'party-member') raw.hook = text.join('\n');
     if (kind === 'npc' || kind === 'location') raw.tags = record.tags;
   }
   raw.id = id;
@@ -713,11 +850,25 @@ function buildBundle(
         objectiveIds: own.map((objective) => objective.id),
       };
     });
-  const sessions = extras.plans.map((plan, index) => ({
+  const acts = list<CampaignAct>('act').sort((a, b) => a.order - b.order);
+  const authoredSessions = list<CampaignSession & { planId?: string }>(
+    'session',
+  ).sort((a, b) => a.number - b.number);
+  const encounters = list<CampaignEncounter>('encounter');
+  const playerCharacters = list<PlayerCharacter>('party-member');
+  const linkedPlanIds = new Set(
+    authoredSessions.flatMap((session) =>
+      session.planId ? [session.planId] : [],
+    ),
+  );
+  // Plans not attached to an authored session still list as sessions.
+  const planSessions = extras.plans
+    .filter((plan) => !linkedPlanIds.has(plan.id))
+    .map((plan, index) => ({
     id: plan.id,
     campaignId: summary.id,
     actId: '',
-    number: index + 1,
+    number: authoredSessions.length + index + 1,
     title: plan.title,
     status: plan.status === 'ready' ? ('planned' as const) : ('draft' as const),
     summary: '',
@@ -731,6 +882,19 @@ function buildBundle(
     clueIds: [],
     handoutIds: [],
   }));
+  const sessions: CampaignSession[] = [...authoredSessions, ...planSessions];
+  const sessionIdsFor = (field: 'questIds' | 'npcIds' | 'encounterIds') => {
+    const index = new Map<string, string[]>();
+    for (const session of sessions) {
+      for (const id of session[field]) {
+        index.set(id, [...(index.get(id) ?? []), session.id]);
+      }
+    }
+    return index;
+  };
+  const sessionsByQuest = sessionIdsFor('questIds');
+  const sessionsByNpc = sessionIdsFor('npcIds');
+  const sessionsByEncounter = sessionIdsFor('encounterIds');
   const maps = extras.maps.map((map) => ({
     id: map.id,
     campaignId: summary.id,
@@ -746,21 +910,44 @@ function buildBundle(
       ...base.campaign,
       status: lifecycle,
       sessionIds: sessions.map((session) => session.id),
+      actIds: acts.map((act) => act.id),
+      playerCharacters,
       objectCounts: {
-        all: items.size - folderCount(items) + extras.sceneTemplates.length,
+        all:
+          items.size -
+          folderCount(items) -
+          acts.length -
+          playerCharacters.length +
+          extras.sceneTemplates.length,
         scenes: extras.sceneTemplates.length,
-        encounters: 0,
+        encounters: encounters.length,
         npcs: npcs.length,
         lore: notes.length,
         handouts: handouts.length,
       },
     },
     lifecycle,
-    npcs,
+    npcs: npcs.map((npc) => ({
+      ...npc,
+      sessionIds: sessionsByNpc.get(npc.id) ?? [],
+    })),
     factions,
-    quests,
+    quests: quests.map((quest) => ({
+      ...quest,
+      sessionIds: sessionsByQuest.get(quest.id) ?? [],
+    })),
     objectives,
-    locations,
+    locations: locations.map((location) => ({
+      ...location,
+      encounterIds: encounters
+        .filter((encounter) => encounter.locationIds.includes(location.id))
+        .map((encounter) => encounter.id),
+    })),
+    acts,
+    encounters: encounters.map((encounter) => ({
+      ...encounter,
+      sessionIds: sessionsByEncounter.get(encounter.id) ?? [],
+    })),
     notes,
     handouts,
     folders,
@@ -965,6 +1152,7 @@ export function createServerBundleStore(
           item.kind === kind &&
           (kind === 'handout-folder' ||
             kind === 'note' ||
+            kind === 'act' ||
             item.entity.folderId === entity.folderId),
       )
       .map((item) => Number(item.entity.order) || 0);
@@ -987,6 +1175,15 @@ export function createServerBundleStore(
       typeof draft.order !== 'number'
     ) {
       entity.order = nextOrder(kind, entity);
+    }
+    if (kind === 'act' && typeof draft.order !== 'number') {
+      entity.order = nextOrder(kind, entity);
+    }
+    if (kind === 'session' && typeof draft.number !== 'number') {
+      const numbers = [...items.values()]
+        .filter((item) => item.kind === 'session')
+        .map((item) => Number(item.entity.number) || 0);
+      entity.number = numbers.length > 0 ? Math.max(...numbers) + 1 : 1;
     }
     const result = await write(kind, entity, undefined);
     if (!result.ok) {

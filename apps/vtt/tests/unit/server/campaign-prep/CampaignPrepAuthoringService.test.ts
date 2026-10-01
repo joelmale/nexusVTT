@@ -115,6 +115,41 @@ describe('CampaignPrepAuthoringService', () => {
     );
   });
 
+  it.each(['session', 'act', 'encounter', 'party-member'] as const)(
+    'creates a %s as a validated campaign entry',
+    async (kind) => {
+      const repo = repository();
+      repo.createObject.mockResolvedValue({ object: {}, revision: {} });
+      const service = new CampaignPrepAuthoringService(repo);
+
+      await service.create({
+        campaignId: IDS.campaign,
+        kind,
+        data: { ...note(), kind, title: `A ${kind}` },
+        principalId: PRINCIPAL_ID,
+        requestId: REQUEST_ID,
+      });
+
+      expect(repo.createObject).toHaveBeenCalledWith(
+        expect.objectContaining({ kind, title: `A ${kind}` }),
+        expect.objectContaining({ revision: 1 }),
+      );
+    },
+  );
+
+  it('rejects a new-kind payload whose entry kind does not match', async () => {
+    const service = new CampaignPrepAuthoringService(repository());
+    await expect(
+      service.create({
+        campaignId: IDS.campaign,
+        kind: 'session',
+        data: { ...note(), kind: 'act' },
+        principalId: PRINCIPAL_ID,
+        requestId: REQUEST_ID,
+      }),
+    ).rejects.toMatchObject({ code: 'identity-mismatch' });
+  });
+
   it('records step references before the draft manifest is complete', async () => {
     const repo = repository();
     repo.createObject.mockResolvedValue({ object: {}, revision: {} });

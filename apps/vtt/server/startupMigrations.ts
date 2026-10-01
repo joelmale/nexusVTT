@@ -32,6 +32,15 @@ export const STARTUP_MIGRATIONS: StartupMigration[] = [
     isApplied: (client) =>
       hasColumn(client, 'session_plan_activations', 'requestId'),
   },
+  {
+    fileName: '2026-10-01-add-campaign-prep-kinds.sql',
+    isApplied: (client) =>
+      constraintMentions(
+        client,
+        'campaign_objects_kind_check',
+        'party-member',
+      ),
+  },
 ];
 
 export interface NonStartupMigration {
@@ -88,6 +97,24 @@ async function hasColumn(
          AND column_name = $2
      ) AS exists`,
     [tableName, columnName],
+  );
+  return result.rows[0]?.exists === true;
+}
+
+async function constraintMentions(
+  client: PoolClient,
+  constraintName: string,
+  text: string,
+): Promise<boolean> {
+  const result = await client.query(
+    `SELECT COALESCE(
+       (SELECT pg_get_constraintdef(oid) LIKE '%' || $2 || '%'
+        FROM pg_constraint
+        WHERE conname = $1
+        LIMIT 1),
+       FALSE
+     ) AS exists`,
+    [constraintName, text],
   );
   return result.rows[0]?.exists === true;
 }
