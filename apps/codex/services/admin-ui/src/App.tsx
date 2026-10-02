@@ -9,6 +9,7 @@ import DataQuality from './pages/DataQuality'
 import BulkUpload from './pages/BulkUpload'
 import ElasticSearch from './pages/ElasticSearch'
 import Operations from './pages/Operations'
+import DatabaseExplorer from './pages/DatabaseExplorer'
 import Reader from './pages/Reader'
 import Logs from './pages/Logs'
 import Audit from './pages/Audit'
@@ -68,6 +69,7 @@ function App() {
               <Route path="/assets/:id" element={<RequirePermission action="viewAssets"><AssetDetail /></RequirePermission>} />
               {/* Operations, audit, administrators */}
               <Route path="/operations" element={<RequirePermission action="viewOperations"><Operations /></RequirePermission>} />
+              <Route path="/database" element={<RequirePermission action="viewOperations"><DatabaseExplorer /></RequirePermission>} />
               <Route path="/health" element={<Navigate to="/operations" replace />} />
               <Route path="/audit" element={<RequirePermission action="viewAudit"><Audit /></RequirePermission>} />
               <Route path="/administrators" element={<RequirePermission action="manageAdmins"><Administrators /></RequirePermission>} />

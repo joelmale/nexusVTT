@@ -9,11 +9,15 @@ import type {
   AuditEventRecord,
   CompleteLoginInput,
   ControlStore,
+  DatabaseRowsResult,
+  DatabaseTableSchema,
+  DatabaseTableSummary,
   GrantResult,
   RevokeResult,
   SessionContext,
   SessionRecord,
 } from '../../src/store/types.js';
+import { redactRowData } from '../../src/store/pgStore.js';
 
 interface RoleRow {
   userId: string;
@@ -197,6 +201,127 @@ export class MemoryControlStore implements ControlStore {
 
   private pushAudit(event: AuditEventInput): void {
     this.audit.push({ ...finalizeAudit(event), id: String(this.nextAuditId++), occurredAt: new Date() });
+  }
+
+  async listDatabaseTables(): Promise<DatabaseTableSummary[]> {
+    return [
+      {
+        tableName: 'users',
+        schemaName: 'public',
+        domain: 'vtt',
+        estimatedRows: this.users.size,
+        totalBytes: 16384,
+        totalSize: '16 kB',
+      },
+      {
+        tableName: 'sessions',
+        schemaName: 'public',
+        domain: 'vtt',
+        estimatedRows: this.sessions.size,
+        totalBytes: 8192,
+        totalSize: '8 kB',
+      },
+      {
+        tableName: 'admin_audit_events',
+        schemaName: 'public',
+        domain: 'control',
+        estimatedRows: this.audit.length,
+        totalBytes: 8192,
+        totalSize: '8 kB',
+      },
+    ];
+  }
+
+  async getTableSchema(tableName: string): Promise<DatabaseTableSchema | null> {
+    if (tableName === 'users') {
+      return {
+        tableName: 'users',
+        columns: [
+          { columnName: 'id', ordinalPosition: 1, isNullable: false, dataType: 'uuid', udtName: 'uuid', columnDefault: 'gen_random_uuid()', characterMaximumLength: null, keyType: 'PRIMARY KEY', foreignKeyTarget: null },
+          { columnName: 'email', ordinalPosition: 2, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
+          { columnName: 'name', ordinalPosition: 3, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
+          { columnName: 'displayName', ordinalPosition: 4, isNullable: true, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
+          { columnName: 'passwordHash', ordinalPosition: 5, isNullable: true, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
+          { columnName: 'provider', ordinalPosition: 6, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
+          { columnName: 'isActive', ordinalPosition: 7, isNullable: true, dataType: 'boolean', udtName: 'bool', columnDefault: 'true', characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
+        ],
+      };
+    }
+    if (tableName === 'sessions') {
+      return {
+        tableName: 'sessions',
+        columns: [
+          { columnName: 'idHash', ordinalPosition: 1, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: 'PRIMARY KEY', foreignKeyTarget: null },
+          { columnName: 'userId', ordinalPosition: 2, isNullable: false, dataType: 'uuid', udtName: 'uuid', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: 'users(id)' },
+          { columnName: 'csrfToken', ordinalPosition: 3, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
+          { columnName: 'createdAt', ordinalPosition: 4, isNullable: false, dataType: 'timestamp with time zone', udtName: 'timestamptz', columnDefault: 'now()', characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
+        ],
+      };
+    }
+    if (tableName === 'admin_audit_events') {
+      return {
+        tableName: 'admin_audit_events',
+        columns: [
+          { columnName: 'id', ordinalPosition: 1, isNullable: false, dataType: 'bigint', udtName: 'int8', columnDefault: null, characterMaximumLength: null, keyType: 'PRIMARY KEY', foreignKeyTarget: null },
+          { columnName: 'occurred_at', ordinalPosition: 2, isNullable: false, dataType: 'timestamp with time zone', udtName: 'timestamptz', columnDefault: 'now()', characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
+          { columnName: 'action', ordinalPosition: 3, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
+          { columnName: 'summary', ordinalPosition: 4, isNullable: false, dataType: 'jsonb', udtName: 'jsonb', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
+        ],
+      };
+    }
+    return null;
+  }
+
+  async getTableRows(
+    tableName: string,
+    options: {
+      limit: number;
+      offset: number;
+      sortColumn?: string;
+      sortDirection?: 'asc' | 'desc';
+    },
+  ): Promise<DatabaseRowsResult | null> {
+    const schema = await this.getTableSchema(tableName);
+    if (!schema) return null;
+
+    let rawRows: Record<string, unknown>[] = [];
+    if (tableName === 'users') {
+      rawRows = [...this.users.values()].map((u) => ({
+        ...u,
+        passwordHash: 'secret_hash_value',
+      }));
+    } else if (tableName === 'sessions') {
+      rawRows = [...this.sessions.values()].map((s) => ({ ...s }));
+    } else if (tableName === 'admin_audit_events') {
+      rawRows = this.audit.map((a) => ({ ...a }));
+    }
+
+    const sortCol = options.sortColumn && schema.columns.some((c) => c.columnName === options.sortColumn)
+      ? options.sortColumn
+      : schema.columns[0]!.columnName;
+    const desc = options.sortDirection === 'desc';
+
+    rawRows.sort((a, b) => {
+      const valA = a[sortCol];
+      const valB = b[sortCol];
+      if (valA === valB) return 0;
+      if (valA === undefined || valA === null) return 1;
+      if (valB === undefined || valB === null) return -1;
+      const cmp = String(valA).localeCompare(String(valB));
+      return desc ? -cmp : cmp;
+    });
+
+    const limit = Math.min(Math.max(Number(options.limit) || 25, 1), 100);
+    const offset = Math.max(Number(options.offset) || 0, 0);
+    const paged = rawRows.slice(offset, offset + limit).map((r) => redactRowData(r));
+
+    return {
+      tableName,
+      rows: paged,
+      totalCount: rawRows.length,
+      limit,
+      offset,
+    };
   }
 
   async close(): Promise<void> {}

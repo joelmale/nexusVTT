@@ -52,7 +52,10 @@ export const NAV_GROUPS: NavGroup[] = [
     id: 'operations',
     label: 'Operations',
     action: 'viewOperations',
-    items: [{ path: '/operations', label: 'Operations' }],
+    items: [
+      { path: '/operations', label: 'Operations' },
+      { path: '/database', label: 'Database' },
+    ],
   },
   {
     id: 'audit',

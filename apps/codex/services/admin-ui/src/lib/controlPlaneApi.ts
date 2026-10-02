@@ -75,3 +75,68 @@ export function grantRole(email: string, role: AdminRole): Promise<{ userId: str
 export function revokeRole(userId: string, role: AdminRole): Promise<{ userId: string; role: AdminRole }> {
   return controlJson(`${CONTROL_API_BASE}/administrators/revocations`, jsonRequest('POST', { userId, role }))
 }
+
+export type DatabaseDomain = 'vtt' | 'codex' | 'control' | 'other'
+
+export interface DatabaseTableSummary {
+  tableName: string
+  schemaName: string
+  domain: DatabaseDomain
+  estimatedRows: number
+  totalBytes: number
+  totalSize: string
+}
+
+export interface DatabaseColumnSummary {
+  columnName: string
+  ordinalPosition: number
+  isNullable: boolean
+  dataType: string
+  udtName: string
+  columnDefault: string | null
+  characterMaximumLength: number | null
+  keyType: 'PRIMARY KEY' | 'UNIQUE' | null
+  foreignKeyTarget: string | null
+}
+
+export interface DatabaseTableSchema {
+  tableName: string
+  columns: DatabaseColumnSummary[]
+}
+
+export interface DatabaseRowsResult {
+  tableName: string
+  rows: Record<string, unknown>[]
+  totalCount: number
+  limit: number
+  offset: number
+}
+
+export async function listDatabaseTables(): Promise<DatabaseTableSummary[]> {
+  const result = await controlJson<{ tables: DatabaseTableSummary[] }>(`${CONTROL_API_BASE}/database/tables`)
+  return result.tables
+}
+
+export function getDatabaseTableSchema(tableName: string): Promise<DatabaseTableSchema> {
+  return controlJson(`${CONTROL_API_BASE}/database/tables/${encodeURIComponent(tableName)}/schema`)
+}
+
+export function getDatabaseTableRows(
+  tableName: string,
+  options: {
+    limit?: number
+    offset?: number
+    sortColumn?: string
+    sortDirection?: 'asc' | 'desc'
+  } = {},
+): Promise<DatabaseRowsResult> {
+  return controlJson(
+    `${CONTROL_API_BASE}/database/tables/${encodeURIComponent(tableName)}/rows${queryString({
+      limit: options.limit,
+      offset: options.offset,
+      sortColumn: options.sortColumn,
+      sortDirection: options.sortDirection,
+    })}`,
+  )
+}
+

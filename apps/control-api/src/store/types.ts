@@ -109,5 +109,53 @@ export interface ControlStore {
   listAdministrators(): Promise<AdministratorRecord[]>;
   listAuditEvents(options: { limit: number; beforeId?: string }): Promise<AuditEventRecord[]>;
   appendAudit(event: AuditEventInput): Promise<void>;
+  listDatabaseTables(): Promise<DatabaseTableSummary[]>;
+  getTableSchema(tableName: string): Promise<DatabaseTableSchema | null>;
+  getTableRows(
+    tableName: string,
+    options: {
+      limit: number;
+      offset: number;
+      sortColumn?: string;
+      sortDirection?: 'asc' | 'desc';
+    },
+  ): Promise<DatabaseRowsResult | null>;
   close(): Promise<void>;
 }
+
+export type DatabaseDomain = 'vtt' | 'codex' | 'control' | 'other';
+
+export interface DatabaseTableSummary {
+  tableName: string;
+  schemaName: string;
+  domain: DatabaseDomain;
+  estimatedRows: number;
+  totalBytes: number;
+  totalSize: string;
+}
+
+export interface DatabaseColumnSummary {
+  columnName: string;
+  ordinalPosition: number;
+  isNullable: boolean;
+  dataType: string;
+  udtName: string;
+  columnDefault: string | null;
+  characterMaximumLength: number | null;
+  keyType: 'PRIMARY KEY' | 'UNIQUE' | null;
+  foreignKeyTarget: string | null;
+}
+
+export interface DatabaseTableSchema {
+  tableName: string;
+  columns: DatabaseColumnSummary[];
+}
+
+export interface DatabaseRowsResult {
+  tableName: string;
+  rows: Record<string, unknown>[];
+  totalCount: number;
+  limit: number;
+  offset: number;
+}
+

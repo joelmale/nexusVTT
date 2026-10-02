@@ -9,6 +9,10 @@ import type {
   AuditEventRecord,
   CompleteLoginInput,
   ControlStore,
+  DatabaseDomain,
+  DatabaseRowsResult,
+  DatabaseTableSchema,
+  DatabaseTableSummary,
   GrantResult,
   RevokeResult,
   SessionContext,
@@ -16,6 +20,68 @@ import type {
 } from './types.js';
 
 type Queryable = Pick<pg.PoolClient, 'query'>;
+
+const VTT_TABLES = new Set([
+  'users',
+  'campaigns',
+  'characters',
+  'sessions',
+  'room_events',
+  'room_entity_versions',
+  'players',
+  'hosts',
+  'chat_messages',
+]);
+
+const CODEX_TABLES = new Set([
+  'document',
+  'documentpage',
+  'documentchunk',
+  'documententity',
+  'structureddata',
+  'entitylink',
+  'processingjob',
+  'documentcollection',
+  'syncstatus',
+]);
+
+const CONTROL_TABLES = new Set([
+  'admin_identities',
+  'user_roles',
+  'admin_sessions',
+  'admin_audit_events',
+]);
+
+export function classifyTableDomain(tableName: string): DatabaseDomain {
+  const lower = tableName.toLowerCase();
+  if (VTT_TABLES.has(lower)) return 'vtt';
+  if (CODEX_TABLES.has(lower)) return 'codex';
+  if (CONTROL_TABLES.has(lower)) return 'control';
+  return 'other';
+}
+
+const REDACTED_COLUMNS = new Set([
+  'passwordhash',
+  'password_hash',
+  'passwordsalt',
+  'password_salt',
+  'idhash',
+  'id_hash',
+  'csrftoken',
+  'csrf_token',
+]);
+
+export function redactRowData(row: Record<string, unknown>): Record<string, unknown> {
+  const result: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(row)) {
+    if (REDACTED_COLUMNS.has(key.toLowerCase())) {
+      result[key] = '[REDACTED]';
+    } else {
+      result[key] = value;
+    }
+  }
+  return result;
+}
 
 /** Serializes role changes so the last-platform_admin check cannot race. */
 const ROLE_CHANGE_LOCK = "hashtext('nexus_control.user_roles')";
@@ -371,6 +437,171 @@ export class PgControlStore implements ControlStore {
 
   async appendAudit(event: AuditEventInput): Promise<void> {
     await insertAudit(this.pool, event);
+  }
+
+  async listDatabaseTables(): Promise<DatabaseTableSummary[]> {
+    const { rows } = await this.pool.query<{
+      table_name: string;
+      table_schema: string;
+      estimated_rows: string;
+      total_bytes: string;
+      total_size: string;
+    }>(
+      `SELECT
+         t.table_name,
+         t.table_schema,
+         COALESCE(c.reltuples, 0)::bigint AS estimated_rows,
+         COALESCE(pg_total_relation_size(quote_ident(t.table_schema) || '.' || quote_ident(t.table_name)), 0)::bigint AS total_bytes,
+         pg_size_pretty(COALESCE(pg_total_relation_size(quote_ident(t.table_schema) || '.' || quote_ident(t.table_name)), 0)) AS total_size
+       FROM information_schema.tables t
+       LEFT JOIN pg_class c
+         ON c.relname = t.table_name
+        AND c.relnamespace = (SELECT oid FROM pg_namespace WHERE nspname = t.table_schema)
+       WHERE t.table_schema = 'public'
+         AND t.table_type = 'BASE TABLE'
+       ORDER BY t.table_name ASC`,
+    );
+
+    return rows.map((r) => ({
+      tableName: r.table_name,
+      schemaName: r.table_schema,
+      domain: classifyTableDomain(r.table_name),
+      estimatedRows: Math.max(0, Math.floor(Number(r.estimated_rows))),
+      totalBytes: Number(r.total_bytes),
+      totalSize: r.total_size,
+    }));
+  }
+
+  async getTableSchema(tableName: string): Promise<DatabaseTableSchema | null> {
+    if (!/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(tableName)) {
+      return null;
+    }
+
+    const tableCheck = await this.pool.query(
+      `SELECT 1 FROM information_schema.tables
+       WHERE table_schema = 'public' AND table_type = 'BASE TABLE' AND table_name = $1`,
+      [tableName],
+    );
+    if (tableCheck.rowCount === 0) {
+      return null;
+    }
+
+    const { rows } = await this.pool.query<{
+      column_name: string;
+      ordinal_position: number;
+      is_nullable: string;
+      data_type: string;
+      udt_name: string;
+      column_default: string | null;
+      character_maximum_length: number | null;
+      key_type: 'PRIMARY KEY' | 'UNIQUE' | null;
+      foreign_key_target: string | null;
+    }>(
+      `SELECT
+         c.column_name,
+         c.ordinal_position,
+         c.is_nullable,
+         c.data_type,
+         c.udt_name,
+         c.column_default,
+         c.character_maximum_length,
+         pk_info.constraint_type AS key_type,
+         fk_info.foreign_key_target
+       FROM information_schema.columns c
+       LEFT JOIN (
+         SELECT kcu.column_name, tc.constraint_type
+         FROM information_schema.table_constraints tc
+         JOIN information_schema.key_column_usage kcu
+           ON tc.constraint_name = kcu.constraint_name
+          AND tc.table_schema = kcu.table_schema
+          AND tc.table_name = kcu.table_name
+         WHERE tc.table_schema = 'public'
+           AND tc.table_name = $1
+           AND tc.constraint_type IN ('PRIMARY KEY', 'UNIQUE')
+       ) pk_info ON c.column_name = pk_info.column_name
+       LEFT JOIN (
+         SELECT
+           kcu.column_name,
+           ccu.table_name || '(' || ccu.column_name || ')' AS foreign_key_target
+         FROM information_schema.table_constraints tc
+         JOIN information_schema.key_column_usage kcu
+           ON tc.constraint_name = kcu.constraint_name
+          AND tc.table_schema = kcu.table_schema
+         JOIN information_schema.constraint_column_usage ccu
+           ON ccu.constraint_name = tc.constraint_name
+          AND ccu.table_schema = tc.table_schema
+         WHERE tc.table_schema = 'public'
+           AND tc.table_name = $1
+           AND tc.constraint_type = 'FOREIGN KEY'
+       ) fk_info ON c.column_name = fk_info.column_name
+       WHERE c.table_schema = 'public' AND c.table_name = $1
+       ORDER BY c.ordinal_position ASC`,
+      [tableName],
+    );
+
+    return {
+      tableName,
+      columns: rows.map((r) => ({
+        columnName: r.column_name,
+        ordinalPosition: Number(r.ordinal_position),
+        isNullable: r.is_nullable === 'YES',
+        dataType: r.data_type,
+        udtName: r.udt_name,
+        columnDefault: r.column_default,
+        characterMaximumLength: r.character_maximum_length ? Number(r.character_maximum_length) : null,
+        keyType: r.key_type,
+        foreignKeyTarget: r.foreign_key_target,
+      })),
+    };
+  }
+
+  async getTableRows(
+    tableName: string,
+    options: {
+      limit: number;
+      offset: number;
+      sortColumn?: string;
+      sortDirection?: 'asc' | 'desc';
+    },
+  ): Promise<DatabaseRowsResult | null> {
+    const schema = await this.getTableSchema(tableName);
+    if (!schema) {
+      return null;
+    }
+
+    const limit = Math.min(Math.max(Number(options.limit) || 25, 1), 100);
+    const offset = Math.max(Number(options.offset) || 0, 0);
+
+    let sortCol = schema.columns[0]?.columnName ?? 'ctid';
+    if (options.sortColumn && schema.columns.some((c) => c.columnName === options.sortColumn)) {
+      sortCol = options.sortColumn;
+    } else {
+      const pk = schema.columns.find((c) => c.keyType === 'PRIMARY KEY');
+      if (pk) sortCol = pk.columnName;
+    }
+
+    const sortDir = options.sortDirection === 'desc' ? 'DESC' : 'ASC';
+
+    const safeTable = `"${tableName.replace(/"/g, '""')}"`;
+    const safeSortCol = `"${sortCol.replace(/"/g, '""')}"`;
+
+    const countRes = await this.pool.query<{ count: string }>(
+      `SELECT count(*)::bigint AS count FROM public.${safeTable}`,
+    );
+    const totalCount = Number(countRes.rows[0]?.count ?? 0);
+
+    const rowsRes = await this.pool.query<Record<string, unknown>>(
+      `SELECT * FROM public.${safeTable} ORDER BY ${safeSortCol} ${sortDir} LIMIT $1 OFFSET $2`,
+      [limit, offset],
+    );
+
+    return {
+      tableName,
+      rows: rowsRes.rows.map((row) => redactRowData(row)),
+      totalCount,
+      limit,
+      offset,
+    };
   }
 
   async close(): Promise<void> {

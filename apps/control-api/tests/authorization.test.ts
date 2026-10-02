@@ -58,8 +58,11 @@ const ROUTES: RouteCase[] = [
   { name: 'codex server-side upload', allowed: ['platform_admin', 'content_editor'], mutation: true, successStatus: 201, send: (h, s) => h.request('/control-api/v1/codex/documents/upload', { method: 'POST', session: s, body: uploadForm({ title: 'Doc' }) }) },
   { name: 'codex page image', allowed: ROLES, mutation: false, successStatus: 200, send: (h, s) => h.request(`/control-api/v1/codex/documents/${DOC}/pages/1/image`, { session: s }) },
 
-  // Operations
+  // Operations & Database
   { name: 'GET /operations/summary', allowed: ['platform_admin', 'operator', 'auditor'], mutation: false, successStatus: 200, send: (h, s) => h.request('/control-api/v1/operations/summary', { session: s }) },
+  { name: 'GET /database/tables', allowed: ['platform_admin', 'operator', 'auditor'], mutation: false, successStatus: 200, send: (h, s) => h.request('/control-api/v1/database/tables', { session: s }) },
+  { name: 'GET /database/tables/:table/schema', allowed: ['platform_admin', 'operator', 'auditor'], mutation: false, successStatus: 200, send: (h, s) => h.request('/control-api/v1/database/tables/users/schema', { session: s }) },
+  { name: 'GET /database/tables/:table/rows', allowed: ['platform_admin', 'operator', 'auditor'], mutation: false, successStatus: 200, send: (h, s) => h.request('/control-api/v1/database/tables/users/rows', { session: s }) },
 
   // Assets
   { name: 'assets list', allowed: ROLES, mutation: false, successStatus: 200, send: (h, s) => h.request('/control-api/v1/assets/assets?limit=10', { session: s }) },

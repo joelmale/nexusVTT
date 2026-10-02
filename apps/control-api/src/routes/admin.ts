@@ -26,6 +26,15 @@ const auditQuery = z
   })
   .strict();
 
+const tableRowsQuery = z
+  .object({
+    limit: z.string().regex(/^\d{1,3}$/).optional(),
+    offset: z.string().regex(/^\d{1,9}$/).optional(),
+    sortColumn: z.string().regex(/^[a-zA-Z_][a-zA-Z0-9_]*$/).optional(),
+    sortDirection: z.enum(['asc', 'desc']).optional(),
+  })
+  .strict();
+
 const jsonBody = express.json({ limit: '4kb', strict: true, type: 'application/json' });
 
 /** Parses a small JSON body after authorization, so denials never touch it. */
@@ -148,6 +157,42 @@ export function adminRouter(deps: AppDeps): Router {
       res.status(200).json({ userId: body.data.userId, role: body.data.role });
     },
   );
+
+  router.get('/database/tables', guard(deps, { permission: ['ops:read'], action: 'database.read', resourceType: 'database' }), async (_req, res) => {
+    const tables = await deps.store.listDatabaseTables();
+    res.json({ tables });
+  });
+
+  router.get('/database/tables/:table/schema', guard(deps, { permission: ['ops:read'], action: 'database.read', resourceType: 'database' }), async (req, res) => {
+    const table = req.params.table;
+    if (typeof table !== 'string' || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(table)) {
+      return sendError(res, 400, 'invalid_table_name');
+    }
+    const schema = await deps.store.getTableSchema(table);
+    if (!schema) return sendError(res, 404, 'table_not_found');
+    res.json(schema);
+  });
+
+  router.get('/database/tables/:table/rows', guard(deps, { permission: ['ops:read'], action: 'database.read', resourceType: 'database' }), async (req, res) => {
+    const table = req.params.table;
+    if (typeof table !== 'string' || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(table)) {
+      return sendError(res, 400, 'invalid_table_name');
+    }
+    const query = tableRowsQuery.safeParse(req.query);
+    if (!query.success) return sendError(res, 400, 'invalid_query');
+
+    const limit = Math.min(Math.max(Number(query.data.limit ?? 25), 1), 100);
+    const offset = Math.max(Number(query.data.offset ?? 0), 0);
+
+    const result = await deps.store.getTableRows(table, {
+      limit,
+      offset,
+      sortColumn: query.data.sortColumn,
+      sortDirection: query.data.sortDirection,
+    });
+    if (!result) return sendError(res, 404, 'table_not_found');
+    res.json(result);
+  });
 
   return router;
 }
