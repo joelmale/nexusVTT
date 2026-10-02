@@ -184,12 +184,14 @@ images without rebuilding, and promotion depends on successful publication and
 security. Promotion rechecks eligibility against current main before updating
 mutable tags. When no images are affected, publication and promotion skip.
 
-Build caching: `codex-ocr` (CUDA torch, several GB) uses a GHCR registry cache
-(`<repository>:buildcache`) written by Delivery, so an unchanged rebuild reuses
-its layers. The GitHub Actions cache cannot hold it: exporting it took about
-14 minutes per build and the 10 GB repository cap evicts it. The security
-workflow reads the registry cache for advisory images and never writes a GHA
-cache for them. Every other image keeps its per-image GHA cache scope.
+Build caching: every image uses a GHCR registry cache at
+`<repository>:buildcache` (`mode=max`). Delivery's publish job is the only
+writer. The security workflow reads the same cache and never exports one. The
+packages are public, so a failed read only means a cold build. Docker layers are
+kept out of the GitHub Actions cache on purpose: per-image `smoke-*`,
+`security-*` and `release-*` scopes overflowed the 10 GB repository cap, so
+caches were evicted before the next run, and builds still paid several minutes
+to export them. The Actions cache is left for npm, Trivy and Python caches.
 
 If delivery is superseded by a newer `main`, immutable images remain
 available but mutable tags are not changed. Unaffected images are not rebuilt;

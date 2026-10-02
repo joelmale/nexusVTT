@@ -199,11 +199,12 @@ jobs:
           push: false
           load: true
           tags: nexus-vtt/${{ matrix.name }}:scan-${{ inputs.source_sha }}
-          # Advisory images (codex-ocr) read the GHCR build cache that Delivery
-          # writes and never export a GitHub Actions cache: exporting multi-GB
-          # layers cost more than the build. This job only has packages: read.
-          cache-from: ${{ matrix.securityAdvisory == true && format('type=registry,ref={0}:buildcache', matrix.repository) || format('type=gha,scope=security-{0}', matrix.name) }}
-          cache-to: ${{ matrix.securityAdvisory != true && format('type=gha,mode=max,scope=security-{0}', matrix.name) || '' }}
+          # Read the GHCR build cache that Delivery writes and never export one:
+          # exporting cost minutes per image and per-image GitHub Actions cache
+          # scopes overflowed the 10 GB repository cap. This job only has
+          # packages: read; the packages are public, so a failed cache read just
+          # means a cold build.
+          cache-from: type=registry,ref=${{ matrix.repository }}:buildcache
           build-args: |
             VERSION=security-${{ inputs.source_sha }}
             COMMIT_SHA=${{ inputs.source_sha }}

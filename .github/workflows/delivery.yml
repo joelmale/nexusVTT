@@ -225,11 +225,12 @@ jobs:
           platforms: ${{ matrix.platforms }}
           push: true
           tags: ${{ steps.image-tag.outputs.tag }}
-          # codex-ocr (multi-GB CUDA/torch layers) caches in GHCR. Exporting it to
-          # the GitHub Actions cache took ~14 minutes per build and the 10 GB
-          # repository cap evicts it before the next run. Other images are unchanged.
-          cache-from: ${{ matrix.name == 'codex-ocr' && format('type=registry,ref={0}:buildcache', matrix.repository) || format('type=gha,scope=release-{0}', matrix.name) }}
-          cache-to: ${{ matrix.name == 'codex-ocr' && format('type=registry,ref={0}:buildcache,mode=max,image-manifest=true,oci-mediatypes=true', matrix.repository) || format('type=gha,mode=max,scope=release-{0}', matrix.name) }}
+          # Every image caches in GHCR at <repository>:buildcache. Delivery is the
+          # only writer; CI security scans read it. Per-image GitHub Actions cache
+          # scopes overflowed the 10 GB repository cap and were evicted before
+          # the next run, so builds were cold and still paid minutes of export.
+          cache-from: type=registry,ref=${{ matrix.repository }}:buildcache
+          cache-to: type=registry,ref=${{ matrix.repository }}:buildcache,mode=max,image-manifest=true,oci-mediatypes=true
           build-args: |
             VERSION=sha-${{ needs.resolve.outputs.source_sha }}
             COMMIT_SHA=${{ needs.resolve.outputs.source_sha }}
