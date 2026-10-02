@@ -99,6 +99,7 @@ export const GameUI: React.FC = () => {
   }, [settings.enableGlassmorphism]);
 
   const panels = [
+    { id: 'atlas' as const, icon: '📚', label: 'Atlas Studio' },
     { id: 'tokens' as const, icon: '👤', label: 'Tokens' },
     ...(isHost ? [{ id: 'scene' as const, icon: '🖼', label: 'Scene' }] : []),
     { id: 'props' as const, icon: '📦', label: 'Props' },

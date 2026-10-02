@@ -11,6 +11,7 @@ import { PropPanel } from './Props/PropPanel';
 import { ChatPanel } from './ChatPanel';
 import { DocumentsPanel } from './DocumentsPanel';
 import { CharacterPanel } from './CharacterPanel';
+import { AtlasPanel } from './Atlas/AtlasPanel';
 import { ErrorBoundary } from './ErrorBoundary';
 
 interface ContextPanelProps {
@@ -26,7 +27,8 @@ interface ContextPanelProps {
     | 'chat'
     | 'sounds'
     | 'documents'
-    | 'characters';
+    | 'characters'
+    | 'atlas';
   onPanelChange: (
     panel:
       | 'tokens'
@@ -40,7 +42,8 @@ interface ContextPanelProps {
       | 'chat'
       | 'sounds'
       | 'documents'
-      | 'characters',
+      | 'characters'
+      | 'atlas',
   ) => void;
   expanded: boolean;
   onToggleExpanded: () => void;
@@ -69,6 +72,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
   );
 
   const panels = [
+    { id: 'atlas' as const, icon: '📚', label: 'Atlas Studio' },
     { id: 'tokens' as const, icon: '👤', label: 'Tokens' },
     { id: 'scene' as const, icon: '🖼', label: 'Scene' },
     { id: 'props' as const, icon: '📦', label: 'Props' },
@@ -90,7 +94,8 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
     if (!expanded) return;
 
     // Define optimal widths for each panel type
-    const panelWidths = {
+    const panelWidths: Record<ContextPanelProps['activePanel'], number> = {
+      atlas: 440, // Atlas Studio
       tokens: 320,
       scene: 400,
       props: 350,
@@ -130,6 +135,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
             style={{ overflowY: 'auto' }}
           >
             <ErrorBoundary key={activePanel} name="Context Panel">
+              {activePanel === 'atlas' && <AtlasPanel />}
               {activePanel === 'tokens' && <TokenPanel />}
               {activePanel === 'scene' && <ScenePanel scene={currentScene} />}
               {activePanel === 'props' && <PropPanel />}
