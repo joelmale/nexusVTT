@@ -4,7 +4,6 @@ import { describe, expect, it, vi } from 'vitest';
 import * as fixtureRegistry from '@/demo/fixture-registry';
 import { renderSection } from '@/features/section-shell/testUtils';
 
-import { EncountersSection } from './EncountersSection';
 import { participantTotal } from './encountersModels';
 
 describe('EncountersSection', () => {
