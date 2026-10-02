@@ -17,6 +17,7 @@
     "node": ">=22.0.0"
   },
   "dependencies": {
+    "@nexus/character-creator": "*",
     "@nexus/game-contracts": "*",
     "@nexus/rules-5e": "*",
     "react": "^19.1.1",

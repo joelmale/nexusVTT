@@ -33,6 +33,19 @@ export interface UpdateProgressPayload {
   stepStates?: Record<string, SessionPlanStepState>;
 }
 
+export interface CampaignPrepObjectListItem {
+  id: string;
+  kind: string;
+  title: string;
+  status: string;
+  currentRevision: number;
+  updatedAt: string;
+}
+
+export interface ListCampaignObjectsResponse {
+  objects: CampaignPrepObjectListItem[];
+}
+
 export interface CampaignEntryResponse {
   object: {
     id: string;
@@ -207,6 +220,44 @@ export class CampaignPrepClient {
     }
 
     return (await res.json()) as CampaignEntryResponse;
+  }
+
+  /**
+   * List campaign prep objects (optionally filtered by kind e.g. 'npc', or status)
+   */
+  async listCampaignObjects(
+    campaignId: string,
+    options?: { kind?: string; status?: string },
+  ): Promise<CampaignPrepObjectListItem[]> {
+    const params = new URLSearchParams();
+    if (options?.kind) params.set('kind', options.kind);
+    if (options?.status) params.set('status', options.status);
+    const query = params.toString() ? `?${params.toString()}` : '';
+
+    const res = await fetch(
+      `${this.baseUrl}/api/campaigns/${encodeURIComponent(campaignId)}/prep/objects${query}`,
+      {
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+      },
+    );
+
+    if (!res.ok) {
+      const errorText = await res.text().catch(() => 'Request failed');
+      throw new Error(
+        `Failed to list campaign prep objects (${res.status}): ${errorText}`,
+      );
+    }
+
+    const data = (await res.json()) as ListCampaignObjectsResponse;
+    return data.objects;
+  }
+
+  /**
+   * List all NPCs for a campaign
+   */
+  async listCampaignNpcs(campaignId: string): Promise<CampaignPrepObjectListItem[]> {
+    return this.listCampaignObjects(campaignId, { kind: 'npc' });
   }
 
   /**

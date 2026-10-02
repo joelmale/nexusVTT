@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { X, Check, Sparkles, BookOpen } from 'lucide-react';
 import { SpellSelectionData } from '../../types/dnd';
-import { AppSpell, getCantripsByClass, getLeveledSpellsByClass } from '../../services/dataService';
+import { getCantripsByClass, getLeveledSpellsByClass } from '../../services/dataService';
 import { getSpellcastingType } from '../../utils/spellUtils';
 import { SPELL_LEARNING_RULES } from '../../data/spellLearning';
 import cantripsData from '../../data/cantrips.json';
@@ -129,18 +129,6 @@ const SpellEditModal: React.FC<SpellEditModalProps> = ({
     };
     onSave(newSelection);
     onClose();
-  };
-
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const getSpellInfo = (spell: AppSpell) => {
-    return {
-      name: spell.name,
-      slug: spell.slug,
-      level: spell.level,
-      school: spell.school || 'Unknown',
-      castingTime: spell.castingTime || 'Unknown',
-      range: spell.range || 'Unknown',
-    };
   };
 
   if (!isOpen || !spellcastingType) return null;

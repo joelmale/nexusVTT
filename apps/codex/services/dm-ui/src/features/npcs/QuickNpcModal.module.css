@@ -1,0 +1,210 @@
+.dialog {
+  background: var(--studio-surface, #ffffff);
+  border: 1px solid var(--studio-border, #e5e7eb);
+  border-radius: var(--studio-radius-panel, 12px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  color: var(--studio-text, #111827);
+  max-height: 90vh;
+  max-width: 640px;
+  padding: 0;
+  width: 95vw;
+}
+
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.45);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+}
+
+.header {
+  align-items: center;
+  border-bottom: 1px solid var(--studio-border, #e5e7eb);
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 20px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.subtitle {
+  color: var(--studio-text-muted, #6b7280);
+  font-size: 13px;
+  margin: 4px 0 0 0;
+}
+
+.headerActions {
+  display: flex;
+  gap: 8px;
+}
+
+.rerollButton {
+  align-items: center;
+  background: var(--studio-surface-muted, #f3f4f6);
+  border: 1px solid var(--studio-border, #d1d5db);
+  border-radius: var(--studio-radius-control, 6px);
+  color: var(--studio-text, #111827);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  padding: 6px 12px;
+  transition: all 0.15s ease;
+}
+
+.rerollButton:hover {
+  background: var(--studio-surface-accent, #e5e7eb);
+}
+
+.content {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  overflow-y: auto;
+  padding: 20px;
+}
+
+.row {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.labelRow {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.label {
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: uppercase;
+  color: var(--studio-text-muted, #4b5563);
+  letter-spacing: 0.04em;
+}
+
+.lockButton {
+  background: none;
+  border: none;
+  color: var(--studio-text-muted, #9ca3af);
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+}
+
+.lockButton.locked {
+  color: #3b82f6;
+  font-weight: 600;
+}
+
+.input,
+.select,
+.textarea {
+  background: var(--studio-surface, #ffffff);
+  border: 1px solid var(--studio-border, #d1d5db);
+  border-radius: var(--studio-radius-control, 6px);
+  color: var(--studio-text, #111827);
+  font-family: inherit;
+  font-size: 14px;
+  padding: 8px 10px;
+}
+
+.textarea {
+  min-height: 64px;
+  resize: vertical;
+}
+
+.input:focus,
+.select:focus,
+.textarea:focus {
+  border-color: #3b82f6;
+  outline: 2px solid rgba(59, 130, 246, 0.2);
+}
+
+.combatBox {
+  background: var(--studio-surface-muted, #f9fafb);
+  border: 1px solid var(--studio-border, #e5e7eb);
+  border-radius: var(--studio-radius-control, 8px);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px;
+}
+
+.combatBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.badge {
+  background: var(--studio-surface, #ffffff);
+  border: 1px solid var(--studio-border, #d1d5db);
+  border-radius: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 2px 8px;
+}
+
+.footer {
+  align-items: center;
+  border-top: 1px solid var(--studio-border, #e5e7eb);
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 14px 20px;
+}
+
+.cancelButton {
+  background: transparent;
+  border: 1px solid var(--studio-border, #d1d5db);
+  border-radius: var(--studio-radius-control, 6px);
+  color: var(--studio-text, #374151);
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  padding: 8px 16px;
+}
+
+.submitButton {
+  background: #2563eb;
+  border: 1px solid #1d4ed8;
+  border-radius: var(--studio-radius-control, 6px);
+  color: #ffffff;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 600;
+  padding: 8px 18px;
+}
+
+.submitButton:hover:not(:disabled) {
+  background: #1d4ed8;
+}
+
+.submitButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.errorNotice {
+  color: #ef4444;
+  font-size: 13px;
+  margin: 0;
+}

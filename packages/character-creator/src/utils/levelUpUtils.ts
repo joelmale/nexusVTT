@@ -267,7 +267,7 @@ export function getLevelUpSteps(levelUpData: LevelUpData): string[] {
 
   // Check for spell choices - create separate steps for each spell choice
   const spellChoices = levelUpData.choices.filter(c => c.type === 'spells');
-  spellChoices.forEach((choice, index) => {
+  spellChoices.forEach((_choice, index) => {
     steps.push(`spells-${index}`);
   });
 

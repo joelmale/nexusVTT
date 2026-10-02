@@ -118,3 +118,50 @@
   color: var(--studio-text-muted);
   margin: 12px 0 0;
 }
+
+.footerActions {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 8px 12px;
+}
+
+.quickRollButton {
+  align-items: center;
+  background: var(--studio-surface-muted, #f3f4f6);
+  border: 1px dashed var(--studio-border, #d1d5db);
+  border-radius: var(--studio-radius-control, 6px);
+  color: var(--studio-text, #111827);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  justify-content: center;
+  padding: 8px 12px;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.quickRollButton:hover {
+  background: var(--studio-surface-accent, #e5e7eb);
+  border-color: #3b82f6;
+  color: #2563eb;
+}
+
+.combatBadges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0;
+}
+
+.combatBadge {
+  background: var(--studio-surface-muted, #f3f4f6);
+  border: 1px solid var(--studio-border, #d1d5db);
+  border-radius: var(--studio-radius-control, 4px);
+  color: var(--studio-text, #111827);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+}

@@ -93,4 +93,28 @@ describe('npcDraftToPatch', () => {
       }),
     ).toEqual({ factionIds: ['f3'] });
   });
+
+  it('converts combatSummary and statBlockRef in patches', () => {
+    expect(
+      npcDraftToPatch(
+        { ...initial, hp: '25', ac: '15', cr: '1', statBlockSlug: 'guard' },
+        initial,
+        { factionIds: [] },
+      ),
+    ).toEqual({
+      combatSummary: { hp: 25, maxHp: 25, ac: 15, cr: '1' },
+      statBlockRef: { slug: 'guard', ruleset: '2014' },
+    });
+
+    expect(
+      npcDraftToPatch(
+        { ...initial, hp: '', ac: '', cr: '', statBlockSlug: '' },
+        { ...initial, hp: '25', ac: '15', cr: '1', statBlockSlug: 'guard' },
+        { factionIds: [] },
+      ),
+    ).toEqual({
+      combatSummary: undefined,
+      statBlockRef: undefined,
+    });
+  });
 });

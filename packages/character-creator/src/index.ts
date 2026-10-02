@@ -56,3 +56,16 @@ export {
   UNMAPPED_CREATOR_FIELDS,
   type ToNexusCharacterOptions,
 } from './adapters/nexusCharacter';
+
+// Procedural NPC generator for Campaign Studio, VTT, and Forge
+export {
+  generateRandomNpc,
+  STAT_BLOCK_PRESETS,
+  COMMON_OCCUPATIONS,
+  DEFAULT_MOTIVATIONS,
+  DEFAULT_RELATIONSHIPS,
+  type GeneratedNpc,
+  type NpcGeneratorOptions,
+  type NpcCombatSummary,
+  type NpcStatBlockRef,
+} from './generators/npcGenerator';

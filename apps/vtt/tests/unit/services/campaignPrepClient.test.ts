@@ -215,6 +215,47 @@ describe('CampaignPrepClient', () => {
     });
   });
 
+  describe('listCampaignObjects & listCampaignNpcs', () => {
+    it('lists campaign objects with filter queries', async () => {
+      const mockList = {
+        objects: [
+          {
+            id: 'npc-1',
+            kind: 'npc',
+            title: 'Captain Serin',
+            status: 'draft',
+            currentRevision: 1,
+            updatedAt: '2026-10-02T10:00:00Z',
+          },
+        ],
+      };
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        json: async () => mockList,
+      } as Response);
+
+      const result = await client.listCampaignNpcs('camp-1');
+      expect(result).toEqual(mockList.objects);
+      expect(global.fetch).toHaveBeenCalledWith(
+        'http://localhost:5001/api/campaigns/camp-1/prep/objects?kind=npc',
+        expect.objectContaining({ credentials: 'include' }),
+      );
+    });
+
+    it('throws error when listing campaign objects fails', async () => {
+      vi.mocked(global.fetch).mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        text: async () => 'Database error',
+      } as Response);
+
+      await expect(client.listCampaignNpcs('camp-1')).rejects.toThrow(
+        'Failed to list campaign prep objects (500)',
+      );
+    });
+  });
+
   describe('activateSessionPlan', () => {
     it('activates plan via POST', async () => {
       const mockResult = {

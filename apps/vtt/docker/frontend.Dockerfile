@@ -108,6 +108,7 @@ WORKDIR /workspace
 COPY package.json package-lock.json ./
 COPY apps/codex/services/dm-ui/package.json ./apps/codex/services/dm-ui/package.json
 COPY packages/character-contracts/package.json ./packages/character-contracts/package.json
+COPY packages/character-creator/package.json ./packages/character-creator/package.json
 COPY packages/game-contracts/package.json ./packages/game-contracts/package.json
 COPY packages/rules-5e/package.json ./packages/rules-5e/package.json
 COPY scripts/build-workspace-dependencies.mjs ./scripts/build-workspace-dependencies.mjs
@@ -115,6 +116,7 @@ COPY scripts/build-workspace-dependencies.mjs ./scripts/build-workspace-dependen
 RUN npm ci \
     --workspace=@nexuscodex/dm-ui \
     --workspace=@nexus/character-contracts \
+    --workspace=@nexus/character-creator \
     --workspace=@nexus/game-contracts \
     --workspace=@nexus/rules-5e \
     --include-workspace-root \
@@ -122,6 +124,7 @@ RUN npm ci \
 
 COPY apps/codex/services/dm-ui ./apps/codex/services/dm-ui
 COPY packages/character-contracts ./packages/character-contracts
+COPY packages/character-creator ./packages/character-creator
 COPY packages/game-contracts ./packages/game-contracts
 COPY packages/rules-5e ./packages/rules-5e
 

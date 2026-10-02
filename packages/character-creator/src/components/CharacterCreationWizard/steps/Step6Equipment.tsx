@@ -1,10 +1,9 @@
 import React from 'react';
 import { ArrowLeft, ArrowRight, Shuffle, ChevronDown } from 'lucide-react';
 import { StepProps } from '../types/wizard.types';
-import { EquipmentPackage, TrinketData, EquipmentChoice } from '../../../types/dnd';
+import { EquipmentPackage, TrinketData } from '../../../types/dnd';
 import { loadClasses, BACKGROUNDS, EQUIPMENT_PACKAGES } from '../../../services/dataService';
 import { validateEquipmentChoices, getMissingEquipmentChoices } from '../../../utils/equipmentSelectionUtils';
-import trinketTable from '../../../data/trinketTable.json';
 import { QuickStartEquipment } from '../components/QuickStartEquipment';
 import { generateQuickStartEquipment, rollStartingWealth } from '../../../services/equipmentService';
 import { EquipmentShop } from '../components/EquipmentShop';
@@ -147,15 +146,8 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
   // Missing choices modal state
   const [showMissingChoicesModal, setShowMissingChoicesModal] = React.useState(false);
 
-   // Equipment choices state
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [selectedEquipment, setSelectedEquipment] = React.useState<EquipmentChoice[]>(data.equipmentChoices || []);
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const [showEquipmentShop, setShowEquipmentShop] = React.useState(false);
   const [missingChoices, setMissingChoices] = React.useState<number[]>([]);
 
-  // Stub implementations for incomplete features
-  const _useExtendedTrinkets = false;
   const handleEquipmentChoice = (_choiceId: string, _optionIdx: number) => {
     // TODO: Implement equipment choice handling
   };
@@ -200,18 +192,6 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
     ? validateEquipmentChoices(data.equipmentChoices || [])
     : equipmentMode === 'quickstart' || (equipmentMode === 'buy' && goldRolled);
 
-  // Trinket rolling function
-  // eslint-disable-next-line @typescript-eslint/no-unused-vars
-  const _rollForTrinket = () => {
-    const maxRoll = _useExtendedTrinkets ? 200 : 100;
-    const roll = Math.floor(Math.random() * maxRoll) + 1;
-    const trinket = (trinketTable as TrinketData[]).find(t => t.roll === roll);
-
-    if (trinket) {
-      updateData({ selectedTrinket: trinket });
-      setRolledTrinket(trinket);
-    }
-  };
 
   /**
    * Fills in every outstanding equipment decision at random.

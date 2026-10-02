@@ -138,6 +138,18 @@ export interface SessionPlanStep {
   body?: string;
 }
 
+export interface NpcCombatSummary {
+  hp: number;
+  maxHp: number;
+  ac: number;
+  cr?: string;
+}
+
+export interface NpcStatBlockRef {
+  slug: string;
+  ruleset: '2014' | '2024';
+}
+
 export interface CampaignNpc {
   id: FixtureId;
   campaignId: FixtureId;
@@ -151,6 +163,8 @@ export interface CampaignNpc {
   sessionIds: FixtureId[];
   portraitFallback: string;
   tags: string[];
+  statBlockRef?: NpcStatBlockRef;
+  combatSummary?: NpcCombatSummary;
 }
 
 export interface CampaignFaction {

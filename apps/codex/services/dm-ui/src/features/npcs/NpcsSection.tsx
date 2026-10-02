@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import Dices from 'lucide-react/dist/esm/icons/dices';
 
 import type { CampaignNpc } from '@/demo/ashes-of-veyra/types';
 import { MentionTextarea } from '@/features/mentions/MentionTextarea';
@@ -19,6 +20,7 @@ import { SectionSummary } from '@/features/section-shell/SectionSummary';
 import { StatusBadge } from '@/features/section-shell/StatusBadge';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 import { resolveEntity } from '@/demo/fixture-registry';
+import { QuickNpcModal } from './QuickNpcModal';
 
 import styles from './NpcsSection.module.css';
 import {
@@ -40,6 +42,10 @@ function toDraft(npc: CampaignNpc): Record<string, unknown> {
     relationship: npc.relationship,
     tags: npc.tags.join(', '),
     factionId: npc.factionIds[0] ?? NO_FACTION,
+    hp: npc.combatSummary?.hp ?? '',
+    ac: npc.combatSummary?.ac ?? '',
+    cr: npc.combatSummary?.cr ?? '',
+    statBlockSlug: npc.statBlockRef?.slug ?? '',
   };
 }
 
@@ -48,7 +54,7 @@ function toDraft(npc: CampaignNpc): Record<string, unknown> {
 export function npcDraftToPatch(
   draft: Record<string, unknown>,
   initial: Record<string, unknown>,
-  npc: Pick<CampaignNpc, 'factionIds'>,
+  npc: Pick<CampaignNpc, 'factionIds' | 'combatSummary' | 'statBlockRef'>,
 ): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
   for (const key of [
@@ -70,6 +76,25 @@ export function npcDraftToPatch(
     const next = String(draft.factionId ?? '');
     const rest = npc.factionIds.slice(1).filter((id) => id !== next);
     patch.factionIds = next ? [next, ...rest] : rest;
+  }
+  if (draft.hp !== initial.hp || draft.ac !== initial.ac || draft.cr !== initial.cr) {
+    const hp = Number(draft.hp);
+    const ac = Number(draft.ac);
+    const cr = String(draft.cr ?? '').trim();
+    if (hp > 0 || ac > 0 || cr) {
+      patch.combatSummary = {
+        hp: hp || 10,
+        maxHp: hp || 10,
+        ac: ac || 10,
+        ...(cr ? { cr } : {}),
+      };
+    } else {
+      patch.combatSummary = undefined;
+    }
+  }
+  if (draft.statBlockSlug !== initial.statBlockSlug) {
+    const slug = String(draft.statBlockSlug ?? '').trim();
+    patch.statBlockRef = slug ? { slug, ruleset: '2014' as const } : undefined;
   }
   return patch;
 }
@@ -191,6 +216,36 @@ function NpcDetail({ npc }: { npc: CampaignNpc }) {
               value={String(current.tags ?? '')}
             />
           </label>
+          <label>
+            HP
+            <input
+              onChange={(event) =>
+                setDraft({ ...current, hp: event.target.value })
+              }
+              type="number"
+              value={String(current.hp ?? '')}
+            />
+          </label>
+          <label>
+            AC
+            <input
+              onChange={(event) =>
+                setDraft({ ...current, ac: event.target.value })
+              }
+              type="number"
+              value={String(current.ac ?? '')}
+            />
+          </label>
+          <label>
+            Statblock Ref (Monster Slug)
+            <input
+              onChange={(event) =>
+                setDraft({ ...current, statBlockSlug: event.target.value })
+              }
+              placeholder="e.g. commoner, guard"
+              value={String(current.statBlockSlug ?? '')}
+            />
+          </label>
         </>
       )}
       toPatch={(current, initial) => npcDraftToPatch(current, initial, npc)}
@@ -199,6 +254,22 @@ function NpcDetail({ npc }: { npc: CampaignNpc }) {
         {[npc.role, npc.ancestry].filter(Boolean).join(' · ') ||
           'No role or ancestry yet'}
       </p>
+      {npc.combatSummary || npc.statBlockRef ? (
+        <div aria-label="Combat summary" className={styles.combatBadges}>
+          {npc.combatSummary ? (
+            <>
+              <span className={styles.combatBadge}>HP {npc.combatSummary.hp}</span>
+              <span className={styles.combatBadge}>AC {npc.combatSummary.ac}</span>
+              {npc.combatSummary.cr ? (
+                <span className={styles.combatBadge}>CR {npc.combatSummary.cr}</span>
+              ) : null}
+            </>
+          ) : null}
+          {npc.statBlockRef ? (
+            <span className={styles.combatBadge}>Ref: {npc.statBlockRef.slug}</span>
+          ) : null}
+        </div>
+      ) : null}
       <dl className={styles.fields}>
         <div>
           <dt>Motivation</dt>
@@ -287,6 +358,8 @@ function NextSessionNpcs() {
 export function NpcsSection() {
   const { bundle, basePath, store } = useSectionBundle();
   const { npcId } = useParams<{ npcId?: string }>();
+  const navigate = useNavigate();
+  const [showQuickModal, setShowQuickModal] = useState(false);
   const { get } = useSectionQuery();
 
   const model = useMemo(
@@ -365,22 +438,42 @@ export function NpcsSection() {
       }
       list={list}
       listFooter={
-        <AddRow
-          defaults={{
-            ancestry: '',
-            factionIds: [],
-            locationIds: [],
-            motivation: '',
-            relationship: '',
-            role: '',
-            sessionIds: [],
-            tags: [],
-          }}
-          kind="npc"
-          label="Add NPC"
-          nameField="name"
-          sectionPath="npcs"
-        />
+        <div className={styles.footerActions}>
+          <AddRow
+            defaults={{
+              ancestry: '',
+              factionIds: [],
+              locationIds: [],
+              motivation: '',
+              relationship: '',
+              role: '',
+              sessionIds: [],
+              tags: [],
+            }}
+            kind="npc"
+            label="Add NPC"
+            nameField="name"
+            sectionPath="npcs"
+          />
+          {store.editable ? (
+            <button
+              className={styles.quickRollButton}
+              onClick={() => setShowQuickModal(true)}
+              title="Procedurally roll a new NPC"
+              type="button"
+            >
+              <Dices size={15} />
+              Quick Roll NPC
+            </button>
+          ) : null}
+          <QuickNpcModal
+            onClose={() => setShowQuickModal(false)}
+            onCreated={(id) => {
+              navigate(`${basePath}/npcs/${encodeURIComponent(id)}`);
+            }}
+            open={showQuickModal}
+          />
+        </div>
       }
       notFound={Boolean(npcId) && !selected}
       sectionPath="npcs"
