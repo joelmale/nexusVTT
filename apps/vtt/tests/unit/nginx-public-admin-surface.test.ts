@@ -136,4 +136,15 @@ describe('public gateway admin-surface containment', () => {
       ).toBe(false);
     }
   });
+
+  it.each([
+    '/assets/matrix.png',
+    '/users/2d6b3974-7b15-4207-9a32-39dd3b0ed789/generated/test.png',
+    '/thumbnails/maps/test.webp',
+  ])('routes asset and user uploads %s to @asset_server fallback instead of SPA shell', (uri) => {
+    const location = selectLocation(locations, uri);
+    expect(describeLocation(location)).not.toBe('location /');
+    const tryFiles = location.body.find((d) => d.name === 'try_files');
+    expect(tryFiles?.args).toContain('@asset_server');
+  });
 });

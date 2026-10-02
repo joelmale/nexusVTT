@@ -268,6 +268,14 @@ export default defineConfig(({ command, mode }) => {
           target: process.env.VITE_WS_PROXY_URL || 'ws://localhost:5001',
           ws: true,
         },
+        '/users': {
+          target: process.env.VITE_API_PROXY_URL || 'http://localhost:5001',
+          changeOrigin: true,
+        },
+        '/thumbnails': {
+          target: process.env.VITE_API_PROXY_URL || 'http://localhost:5001',
+          changeOrigin: true,
+        },
       },
     },
     optimizeDeps: {

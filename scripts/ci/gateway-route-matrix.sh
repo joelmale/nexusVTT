@@ -307,6 +307,8 @@ probe 80 GET /api/campaigns --status 200 --upstream backend
 probe 80 GET /auth/session-check --status 401 --upstream backend
 probe 80 GET /ws --status 200 --upstream backend
 probe 80 GET /assets/matrix.png --status 200 --upstream asset-server
+probe 80 GET /users/sample.png --status 200 --upstream asset-server
+probe 80 GET /thumbnails/sample.png --status 200 --upstream asset-server
 probe 80 GET /codex-ws --status 200 --upstream doc-websocket
 probe 80 GET /control-api/v1/me --status '200|404' --not-upstream control-api --lacks "$ADMIN_UI_MARKER"
 
