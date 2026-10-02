@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react';
 
+import type { TrapComplexity, TrapDetails } from '@/demo/fixture-registry';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
 import { humanize } from '@/features/section-shell/statusTones';
 
@@ -62,6 +63,26 @@ export function EncounterEditor({
       composition.map((row, at) => (at === index ? { ...row, ...patch } : row)),
     );
 
+  const isTrap = draft.kind === 'trap';
+  const trapDetails = draft.trapDetails as TrapDetails | undefined;
+
+  const updateTrapField = <K extends keyof TrapDetails>(
+    field: K,
+    value: TrapDetails[K] | undefined,
+  ) => {
+    const currentTrap = (draft.trapDetails as TrapDetails | undefined) ?? {
+      complexity: 'simple' as const,
+    };
+    const nextTrap: TrapDetails = {
+      ...currentTrap,
+      [field]: value,
+    };
+    if (value === undefined || value === '') {
+      delete nextTrap[field];
+    }
+    setDraft({ ...draft, trapDetails: nextTrap });
+  };
+
   return (
     <>
       <label>
@@ -74,7 +95,16 @@ export function EncounterEditor({
       <label>
         Kind
         <select
-          onChange={(event) => setDraft({ ...draft, kind: event.target.value })}
+          onChange={(event) => {
+            const nextKind = event.target.value;
+            setDraft({
+              ...draft,
+              kind: nextKind,
+              ...(nextKind === 'trap' && !draft.trapDetails
+                ? { trapDetails: { complexity: 'simple' } }
+                : {}),
+            });
+          }}
           value={String(draft.kind ?? 'combat')}
         >
           {KINDS.map((kind) => (
@@ -104,6 +134,136 @@ export function EncounterEditor({
           value={String(draft.intendedUse ?? '')}
         />
       </label>
+
+      {isTrap || draft.trapDetails ? (
+        <fieldset className={styles.trapFieldset}>
+          <legend>Trap & Puzzle Specification</legend>
+          <div className={styles.gridTwo}>
+            <label>
+              Complexity & Type
+              <select
+                aria-label="Trap Complexity"
+                onChange={(event) =>
+                  updateTrapField(
+                    'complexity',
+                    event.target.value as TrapComplexity,
+                  )
+                }
+                value={String(trapDetails?.complexity ?? 'simple')}
+              >
+                <option value="simple">Simple Trap (One-Shot Trigger)</option>
+                <option value="complex">
+                  Complex Trap (Dynamic Initiative / Multi-Round)
+                </option>
+                <option value="puzzle">
+                  Puzzle Trap (Riddle / Mechanical Mechanism)
+                </option>
+              </select>
+            </label>
+            <label>
+              Trigger Condition
+              <input
+                aria-label="Trap Trigger"
+                onChange={(event) => updateTrapField('trigger', event.target.value)}
+                placeholder="e.g. Stepping on center stone, opening door"
+                value={String(trapDetails?.trigger ?? '')}
+              />
+            </label>
+          </div>
+
+          <div className={styles.gridTwo}>
+            <label>
+              Detection DC (Perception / Investigation)
+              <input
+                aria-label="Detection DC"
+                onChange={(event) =>
+                  updateTrapField(
+                    'detectionDc',
+                    event.target.value ? Number(event.target.value) : undefined,
+                  )
+                }
+                placeholder="e.g. 15"
+                type="number"
+                value={trapDetails?.detectionDc ?? ''}
+              />
+            </label>
+            <label>
+              Disarm / Disable DC (Thieves' Tools / Arcana)
+              <input
+                aria-label="Disarm DC"
+                onChange={(event) =>
+                  updateTrapField(
+                    'disarmDc',
+                    event.target.value ? Number(event.target.value) : undefined,
+                  )
+                }
+                placeholder="e.g. 15"
+                type="number"
+                value={trapDetails?.disarmDc ?? ''}
+              />
+            </label>
+          </div>
+
+          <div className={styles.gridTwo}>
+            <label>
+              Attack / Saving Throw
+              <input
+                aria-label="Trap Attack or Save"
+                onChange={(event) =>
+                  updateTrapField('saveOrAttack', event.target.value)
+                }
+                placeholder="e.g. DC 15 Dex save or +8 spell attack"
+                value={String(trapDetails?.saveOrAttack ?? '')}
+              />
+            </label>
+            <label>
+              Initiative / Round Timer
+              <input
+                aria-label="Trap Initiative or Timer"
+                onChange={(event) =>
+                  updateTrapField('initiativeOrTimer', event.target.value)
+                }
+                placeholder="e.g. Initiative 20 & 10; 4 rounds until crush"
+                value={String(trapDetails?.initiativeOrTimer ?? '')}
+              />
+            </label>
+          </div>
+
+          <label>
+            Damage & Harm Effect
+            <textarea
+              aria-label="Trap Effect"
+              onChange={(event) => updateTrapField('effect', event.target.value)}
+              placeholder="e.g. 4d10 piercing damage and pinned; room lowers 3ft/round"
+              rows={2}
+              value={String(trapDetails?.effect ?? '')}
+            />
+          </label>
+
+          <label>
+            Countermeasures, Disarm Steps & Puzzle Solution
+            <textarea
+              aria-label="Trap Countermeasures"
+              onChange={(event) =>
+                updateTrapField('countermeasures', event.target.value)
+              }
+              placeholder="e.g. Jam lowering gears with DC 15 Athletics using iron spikes. To unlock the exit, press runes in order: Sun, Moon, Star."
+              rows={3}
+              value={String(trapDetails?.countermeasures ?? '')}
+            />
+          </label>
+
+          <label>
+            Reset Mechanism
+            <input
+              aria-label="Trap Reset"
+              onChange={(event) => updateTrapField('reset', event.target.value)}
+              placeholder="e.g. Automatic after 10 minutes, Manual winch in control room, None"
+              value={String(trapDetails?.reset ?? '')}
+            />
+          </label>
+        </fieldset>
+      ) : null}
 
       <fieldset className={styles.fieldset}>
         <legend>Composition</legend>

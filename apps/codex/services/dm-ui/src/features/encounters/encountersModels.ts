@@ -1,6 +1,7 @@
 import type {
   CampaignEncounter,
   CampaignFixtureBundle,
+  TrapComplexity,
 } from '@/demo/fixture-registry';
 
 export const ENCOUNTER_KIND_LABELS: Record<CampaignEncounter['kind'], string> =
@@ -9,7 +10,14 @@ export const ENCOUNTER_KIND_LABELS: Record<CampaignEncounter['kind'], string> =
     social: 'Social',
     'combat-hazard': 'Combat + hazard',
     'combat-exploration': 'Combat + exploration',
+    trap: 'Trap / Puzzle',
   };
+
+export const TRAP_COMPLEXITY_LABELS: Record<TrapComplexity, string> = {
+  simple: 'Simple Trap',
+  complex: 'Complex Trap',
+  puzzle: 'Puzzle Trap',
+};
 
 export const RULESET_LABELS: Record<CampaignEncounter['composition'][number]['ruleset'], string> = {
   '2024': '2024 rules',
@@ -119,6 +127,7 @@ export function canDeploy(bundle: CampaignFixtureBundle): boolean {
 export function encounterSummaryStats(
   bundle: CampaignFixtureBundle,
 ): Array<{ label: string; value: number }> {
+  const traps = bundle.encounters.filter((item) => item.kind === 'trap').length;
   return [
     { label: 'Encounters', value: bundle.encounters.length },
     {
@@ -126,6 +135,7 @@ export function encounterSummaryStats(
       value: bundle.encounters.filter((item) => item.kind.startsWith('combat'))
         .length,
     },
+    ...(traps > 0 ? [{ label: 'Traps', value: traps }] : []),
     {
       label: 'Social',
       value: bundle.encounters.filter((item) => item.kind === 'social').length,

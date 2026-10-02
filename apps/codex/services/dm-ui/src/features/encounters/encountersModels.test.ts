@@ -5,6 +5,7 @@ import { getFixtureBundle } from '@/demo/fixture-registry';
 import {
   buildEncountersModel,
   canDeploy,
+  encounterSummaryStats,
   isInNextSession,
   participantTotal,
 } from './encountersModels';
@@ -42,5 +43,36 @@ describe('encountersModels', () => {
     expect(canDeploy(ashes)).toBe(true);
     expect(canDeploy(getFixtureBundle('stars-below-kharad')!)).toBe(false);
     expect(canDeploy(getFixtureBundle('crown-of-cinders')!)).toBe(true);
+  });
+
+  it('supports trap kind, labels, and includes traps in summary stats when present', () => {
+    const trapEncounter = {
+      ...ashes.encounters[0],
+      id: 'enc-spiked-ceiling',
+      title: 'Lowering Spiked Ceiling',
+      kind: 'trap' as const,
+      composition: [],
+      trapDetails: {
+        complexity: 'complex' as const,
+        detectionDc: 16,
+        disarmDc: 18,
+        initiativeOrTimer: 'Initiative 20 & 10 (4 rounds)',
+        countermeasures: 'Jam gears with iron spikes; solve zodiac runes',
+      },
+    };
+    const bundleWithTrap = {
+      ...ashes,
+      encounters: [...ashes.encounters, trapEncounter],
+    };
+
+    const traps = buildEncountersModel(bundleWithTrap, { kind: 'trap' });
+    expect(traps).toHaveLength(1);
+    expect(traps[0].encounter.title).toBe('Lowering Spiked Ceiling');
+    expect(traps[0].total).toBe(0);
+
+    const stats = encounterSummaryStats(bundleWithTrap);
+    const trapStat = stats.find((s) => s.label === 'Traps');
+    expect(trapStat).toBeDefined();
+    expect(trapStat?.value).toBe(1);
   });
 });

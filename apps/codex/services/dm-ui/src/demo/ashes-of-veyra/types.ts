@@ -207,11 +207,41 @@ export interface QuestObjective {
   locationIds: FixtureId[];
 }
 
+export type EncounterKind =
+  | 'combat'
+  | 'social'
+  | 'combat-hazard'
+  | 'combat-exploration'
+  | 'trap';
+
+export type TrapComplexity = 'simple' | 'complex' | 'puzzle';
+
+export interface TrapDetails {
+  /** Archetype: 'simple' (one-shot trigger), 'complex' (acts on initiative/turns), or 'puzzle' (riddle/mechanism challenge) */
+  complexity: TrapComplexity;
+  /** Perception or Investigation DC to detect the trap / mechanism */
+  detectionDc?: number;
+  /** Thieves' tools, Sleight of Hand, or Arcana DC to disarm or disable */
+  disarmDc?: number;
+  /** Specific trigger mechanism (e.g. pressure plate, tripwire, touching treasure) */
+  trigger?: string;
+  /** Dynamic initiative count or countdown timer (e.g. "Initiative 20 & 10", "4 rounds before ceiling reaches floor") */
+  initiativeOrTimer?: string;
+  /** Attack bonus or saving throw (e.g. "DC 15 Dexterity save", "+8 spell attack") */
+  saveOrAttack?: string;
+  /** Damage, severity, or conditions (e.g. "4d10 piercing damage and pinned (restrained)") */
+  effect?: string;
+  /** Countermeasures, steps to disable, or puzzle clues / solution (e.g. "Jam gears with iron spikes; press runes in order") */
+  countermeasures?: string;
+  /** Reset behavior (e.g. "Automatic after 1 minute", "Manual winch in guardroom", "None (one-shot)") */
+  reset?: string;
+}
+
 export interface CampaignEncounter {
   id: FixtureId;
   campaignId: FixtureId;
   title: string;
-  kind: 'combat' | 'social' | 'combat-hazard' | 'combat-exploration';
+  kind: EncounterKind;
   difficulty: 'low' | 'moderate' | 'high';
   composition: EncounterComponent[];
   trigger: string;
@@ -221,6 +251,7 @@ export interface CampaignEncounter {
   factionIds: FixtureId[];
   tactics: string;
   rulesetNotes: string;
+  trapDetails?: TrapDetails;
 }
 
 export interface EncounterComponent {

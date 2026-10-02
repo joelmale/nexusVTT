@@ -153,3 +153,44 @@
 .body p {
   margin: 0;
 }
+
+.trapCard {
+  background: var(--studio-surface-raised, rgba(255, 255, 255, 0.03));
+  border: 1px solid var(--studio-border-strong, var(--studio-border));
+  border-radius: var(--studio-radius-control);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 14px;
+}
+
+.trapPills {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.statPill {
+  background: var(--studio-neutral-soft);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+}
+
+.trapField {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  font-size: 14px;
+}
+
+.trapField strong {
+  color: var(--studio-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}

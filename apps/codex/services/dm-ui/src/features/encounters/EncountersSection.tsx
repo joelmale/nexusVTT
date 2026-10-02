@@ -32,6 +32,7 @@ import {
 import {
   ENCOUNTER_KIND_LABELS,
   RULESET_LABELS,
+  TRAP_COMPLEXITY_LABELS,
   buildEncountersModel,
   canDeploy,
   encounterSummaryStats,
@@ -199,6 +200,7 @@ function EncounterDetail({ encounter }: { encounter: CampaignEncounter }) {
       tactics: encounter.tactics,
       rulesetNotes: encounter.rulesetNotes,
       composition: encounter.composition,
+      trapDetails: encounter.trapDetails,
     }),
     [encounter],
   );
@@ -251,6 +253,61 @@ function EncounterDetail({ encounter }: { encounter: CampaignEncounter }) {
       }}
     >
       <div className={styles.body}>
+        {encounter.kind === 'trap' || encounter.trapDetails ? (
+          <section aria-label="Trap specification" className={styles.trapCard}>
+            <h3>Trap & Puzzle Specification</h3>
+            <div className={styles.trapPills}>
+              <StatusBadge tone="neutral">
+                {TRAP_COMPLEXITY_LABELS[encounter.trapDetails?.complexity ?? 'simple']}
+              </StatusBadge>
+              {encounter.trapDetails?.detectionDc ? (
+                <span className={styles.statPill}>
+                  Detection: DC {encounter.trapDetails.detectionDc}
+                </span>
+              ) : null}
+              {encounter.trapDetails?.disarmDc ? (
+                <span className={styles.statPill}>
+                  Disarm: DC {encounter.trapDetails.disarmDc}
+                </span>
+              ) : null}
+              {encounter.trapDetails?.initiativeOrTimer ? (
+                <span className={styles.statPill}>
+                  Timer/Initiative: {encounter.trapDetails.initiativeOrTimer}
+                </span>
+              ) : null}
+              {encounter.trapDetails?.saveOrAttack ? (
+                <span className={styles.statPill}>
+                  Attack/Save: {encounter.trapDetails.saveOrAttack}
+                </span>
+              ) : null}
+            </div>
+            {encounter.trapDetails?.trigger ? (
+              <div className={styles.trapField}>
+                <strong>Trigger:</strong>
+                <p>{encounter.trapDetails.trigger}</p>
+              </div>
+            ) : null}
+            {encounter.trapDetails?.effect ? (
+              <div className={styles.trapField}>
+                <strong>Harm / Effect:</strong>
+                <p>{encounter.trapDetails.effect}</p>
+              </div>
+            ) : null}
+            {encounter.trapDetails?.countermeasures ? (
+              <div className={styles.trapField}>
+                <strong>Countermeasures & Puzzle Solution:</strong>
+                <p>{encounter.trapDetails.countermeasures}</p>
+              </div>
+            ) : null}
+            {encounter.trapDetails?.reset ? (
+              <div className={styles.trapField}>
+                <strong>Reset:</strong>
+                <p>{encounter.trapDetails.reset}</p>
+              </div>
+            ) : null}
+          </section>
+        ) : null}
+
         {encounter.trigger ? (
           <section>
             <h3>Trigger</h3>
@@ -267,7 +324,11 @@ function EncounterDetail({ encounter }: { encounter: CampaignEncounter }) {
         <section>
           <h3>Composition</h3>
           {encounter.composition.length === 0 ? (
-            <p className={styles.muted}>No participants listed.</p>
+            <p className={styles.muted}>
+              {encounter.kind === 'trap'
+                ? 'Mechanical / environmental hazard with no hostile creatures.'
+                : 'No participants listed.'}
+            </p>
           ) : (
             <table className={styles.table}>
               <caption className={styles.srOnly}>

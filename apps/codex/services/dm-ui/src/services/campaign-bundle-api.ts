@@ -562,7 +562,7 @@ function normalize(
         title: str(raw.title),
         kind: oneOf(
           raw.kind,
-          ['combat', 'social', 'combat-hazard', 'combat-exploration'] as const,
+          ['combat', 'social', 'combat-hazard', 'combat-exploration', 'trap'] as const,
           'combat',
         ),
         difficulty: oneOf(
@@ -594,6 +594,27 @@ function normalize(
         factionIds: strings(raw.factionIds),
         tactics: str(raw.tactics),
         rulesetNotes: str(raw.rulesetNotes),
+        trapDetails: isRecord(raw.trapDetails)
+          ? {
+              complexity: oneOf(
+                raw.trapDetails.complexity,
+                ['simple', 'complex', 'puzzle'] as const,
+                'simple',
+              ),
+              ...(raw.trapDetails.detectionDc != null && raw.trapDetails.detectionDc !== ''
+                ? { detectionDc: num(raw.trapDetails.detectionDc, 10) }
+                : {}),
+              ...(raw.trapDetails.disarmDc != null && raw.trapDetails.disarmDc !== ''
+                ? { disarmDc: num(raw.trapDetails.disarmDc, 10) }
+                : {}),
+              ...(raw.trapDetails.trigger ? { trigger: str(raw.trapDetails.trigger) } : {}),
+              ...(raw.trapDetails.initiativeOrTimer ? { initiativeOrTimer: str(raw.trapDetails.initiativeOrTimer) } : {}),
+              ...(raw.trapDetails.saveOrAttack ? { saveOrAttack: str(raw.trapDetails.saveOrAttack) } : {}),
+              ...(raw.trapDetails.effect ? { effect: str(raw.trapDetails.effect) } : {}),
+              ...(raw.trapDetails.countermeasures ? { countermeasures: str(raw.trapDetails.countermeasures) } : {}),
+              ...(raw.trapDetails.reset ? { reset: str(raw.trapDetails.reset) } : {}),
+            }
+          : undefined,
       } satisfies CampaignEncounter;
     case 'party-member':
       return {

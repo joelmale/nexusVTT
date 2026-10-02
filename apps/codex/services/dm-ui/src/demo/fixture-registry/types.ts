@@ -39,6 +39,9 @@ export type {
   LibraryObject,
   MapPin,
   PlayerCharacter,
+  EncounterKind,
+  TrapComplexity,
+  TrapDetails,
   QuestObjective,
   SceneTemplateRef,
 } from '../ashes-of-veyra/types';

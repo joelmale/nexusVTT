@@ -163,4 +163,49 @@ describe('EncounterEditor', () => {
     expect(await within(form).findByRole('alert')).toHaveTextContent('nope');
     expect(screen.getByText('No monsters yet. Add one below.')).toBeVisible();
   });
+
+  it('configures and saves a complex puzzle trap with custom DCs and timer', async () => {
+    const store = editable();
+    const { user } = renderInSection(<Harness />, { store });
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
+
+    // Switch Kind to Trap
+    await user.selectOptions(screen.getByLabelText('Kind'), 'trap');
+
+    // The Trap specification fieldset should be visible
+    expect(screen.getByText('Trap & Puzzle Specification')).toBeVisible();
+
+    // Select Complex Trap
+    await user.selectOptions(screen.getByLabelText('Complexity & Type'), 'complex');
+
+    // Fill in trap fields
+    await user.type(screen.getByLabelText('Detection DC (Perception / Investigation)'), '16');
+    await user.type(screen.getByLabelText("Disarm / Disable DC (Thieves' Tools / Arcana)"), '18');
+    await user.type(screen.getByLabelText('Initiative / Round Timer'), 'Initiative 20 & 10 (4 rounds)');
+    await user.type(screen.getByLabelText('Damage & Harm Effect'), '4d10 piercing and pinned');
+    await user.type(
+      screen.getByLabelText('Countermeasures, Disarm Steps & Puzzle Solution'),
+      'Jam gears with iron spikes; solve zodiac runes',
+    );
+
+    // Save
+    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await waitFor(() => expect(store.updateItem).toHaveBeenCalled());
+
+    expect(store.updateItem).toHaveBeenCalledWith(
+      'encounter',
+      'enc-1',
+      expect.objectContaining({
+        kind: 'trap',
+        trapDetails: expect.objectContaining({
+          complexity: 'complex',
+          detectionDc: 16,
+          disarmDc: 18,
+          initiativeOrTimer: 'Initiative 20 & 10 (4 rounds)',
+          effect: '4d10 piercing and pinned',
+          countermeasures: 'Jam gears with iron spikes; solve zodiac runes',
+        }),
+      }),
+    );
+  });
 });
