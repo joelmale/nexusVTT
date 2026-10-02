@@ -1,5 +1,5 @@
 import React from 'react';
-import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import { ScenePanel } from './ScenePanel';
 import { useIsHost } from '@/stores/gameStore';
@@ -94,6 +94,8 @@ describe('ScenePanel (Deliberate DM/Co-DM Map Selection & Scene Calibration)', (
 
     // BaseMapBrowser opens in Portal and renders header & search input
     expect(screen.getByText(/Default Base Maps/i)).toBeInTheDocument();
-    expect(screen.getByPlaceholderText(/Search maps\.\.\./i)).toBeInTheDocument();
+    expect(
+      screen.getByPlaceholderText(/Search maps\.\.\./i),
+    ).toBeInTheDocument();
   });
 });

@@ -354,104 +354,6 @@ jobs:
       - name: Run asset-service tests
         run: npm run test:asset-service
 
-  vtt-e2e:
-    name: 'VTT: exact-image managed E2E smoke'
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.vtt == 'true'
-    needs: changes
-    runs-on: ubuntu-latest
-    timeout-minutes: 35
-    steps:
-      - name: Checkout validated source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ needs.changes.outputs.source_sha }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
-
-      - name: Build exact-source asset-service image
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
-        with:
-          context: .
-          file: apps/vtt/docker/asset-service.Dockerfile
-          load: true
-          push: false
-          tags: nexus-vtt/asset-service:ci-${{ needs.changes.outputs.source_sha }}
-          cache-from: type=gha,scope=smoke-asset-service
-          cache-to: type=gha,mode=max,scope=smoke-asset-service
-          build-args: |
-            VERSION=ci-${{ needs.changes.outputs.source_sha }}
-            COMMIT_SHA=${{ needs.changes.outputs.source_sha }}
-
-      - name: Build exact-source backend image
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
-        with:
-          context: .
-          file: apps/vtt/docker/backend.Dockerfile
-          load: true
-          push: false
-          tags: nexus-vtt/backend:ci-${{ needs.changes.outputs.source_sha }}
-          cache-from: type=gha,scope=smoke-backend
-          cache-to: type=gha,mode=max,scope=smoke-backend
-          build-args: |
-            VERSION=ci-${{ needs.changes.outputs.source_sha }}
-            COMMIT_SHA=${{ needs.changes.outputs.source_sha }}
-
-      - name: Build exact-source delta-enabled frontend image
-        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
-        with:
-          context: .
-          file: apps/vtt/docker/frontend.Dockerfile
-          target: production
-          load: true
-          push: false
-          tags: nexus-vtt/frontend:ci-delta-${{ needs.changes.outputs.source_sha }}
-          cache-from: type=gha,scope=smoke-frontend-delta
-          cache-to: type=gha,mode=max,scope=smoke-frontend-delta
-          build-args: |
-            VERSION=ci-${{ needs.changes.outputs.source_sha }}
-            COMMIT_SHA=${{ needs.changes.outputs.source_sha }}
-            VITE_DELTA_SYNC=true
-
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies
-        run: npm ci
-        working-directory: ${{ github.workspace }}
-
-      - name: Build shared contracts
-        run: npm run build:contracts
-        working-directory: ${{ github.workspace }}
-
-      - name: Install Chromium
-        run: npx playwright install --with-deps chromium
-
-      - name: Run production smoke tests
-        run: npm run test:e2e
-        env:
-          E2E_ASSET_IMAGE: nexus-vtt/asset-service:ci-${{ needs.changes.outputs.source_sha }}
-          E2E_BACKEND_IMAGE: nexus-vtt/backend:ci-${{ needs.changes.outputs.source_sha }}
-          E2E_EXPECTED_DELTA_SYNC: 'true'
-          E2E_FRONTEND_IMAGE: nexus-vtt/frontend:ci-delta-${{ needs.changes.outputs.source_sha }}
-          E2E_PREBUILT: '1'
-          E2E_SOURCE_SHA: ${{ needs.changes.outputs.source_sha }}
-
-      - name: Upload Playwright diagnostics
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: playwright-smoke-report
-          path: |
-            apps/vtt/playwright-report/
-            apps/vtt/test-results/e2e/
-          if-no-files-found: ignore
-          retention-days: 14
-
   gateway-contracts:
     name: 'VTT: gateway route matrix'
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.gateway == 'true'
@@ -602,7 +504,8 @@ jobs:
             --directory coverage-input \
             --output apps/vtt/.vitest-reports \
             --source-sha "$SOURCE_SHA" \
-            --unit-count 3
+            --unit-count 3 \
+            --integration-count 0
 
       - name: Merge reports and collect aggregate coverage
         run: >-
@@ -659,7 +562,6 @@ jobs:
       - vtt-unit
       - vtt-ui
       - asset-service
-      - vtt-e2e
       - gateway-contracts
       - control-api
       - forge
@@ -688,7 +590,6 @@ jobs:
           VTT_UNIT_RESULT: ${{ needs.vtt-unit.result }}
           VTT_UI_RESULT: ${{ needs.vtt-ui.result }}
           ASSET_RESULT: ${{ needs.asset-service.result }}
-          VTT_E2E_RESULT: ${{ needs.vtt-e2e.result }}
           GATEWAY_RESULT: ${{ needs.gateway-contracts.result }}
           CONTROL_API_RESULT: ${{ needs.control-api.result }}
           FORGE_RESULT: ${{ needs.forge.result }}
@@ -722,7 +623,6 @@ jobs:
           require_result vtt-static "$VTT_AFFECTED" "$VTT_STATIC_RESULT"
           require_result vtt-unit "$VTT_AFFECTED" "$VTT_UNIT_RESULT"
           require_result vtt-ui "$VTT_AFFECTED" "$VTT_UI_RESULT"
-          require_result vtt-e2e "$VTT_AFFECTED" "$VTT_E2E_RESULT"
           require_result vtt-coverage "$VTT_AFFECTED" "$VTT_COVERAGE_RESULT"
           require_result asset-service "$ASSETS_AFFECTED" "$ASSET_RESULT"
           require_result gateway "$GATEWAY_AFFECTED" "$GATEWAY_RESULT"

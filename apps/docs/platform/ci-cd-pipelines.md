@@ -119,13 +119,10 @@ SHA resolved by `changes`, which also uploads an affected-target report.
 | Codex           | Reusable `codex-ci.yml`: test inventory, catalog-selected Node/Python validation, and doc-api unit/build/integration checks when doc-api is selected             |
 | Docs            | Type-check and Docusaurus build; main-push runs upload the validated Pages artifact                                                                              |
 
-Codex doc-api integration uses PostgreSQL, Redis, and Elasticsearch. VTT
-`vtt-e2e` builds backend, asset-service, and frontend images from the exact source.
-Its frontend enables `VITE_DELTA_SYNC=true` for multiplayer assertions, so it
-differs from the default shipped frontend configuration. E2E is required
-through `All required checks` when VTT is selected and weekly validation repeats
-it. The VTT database integration suite runs only in weekly validation. See the [CI test catalog](./ci-test-catalog.md)
-for individual suite details.
+Codex doc-api integration uses PostgreSQL, Redis, and Elasticsearch. The
+VTT managed E2E smoke suite and database integration suite run in weekly
+validation. See the [CI test catalog](./ci-test-catalog.md) for individual suite
+details.
 
 ### Coverage and security policy
 

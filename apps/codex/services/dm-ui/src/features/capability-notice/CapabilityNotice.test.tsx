@@ -12,7 +12,10 @@ import {
 function PlannedTrigger() {
   const { notifyCapability } = useCapabilityNotice();
   return (
-    <button onClick={() => notifyCapability('campaign.search.overview')} type="button">
+    <button
+      onClick={() => notifyCapability('campaign.search.overview')}
+      type="button"
+    >
       Search
     </button>
   );
@@ -44,7 +47,10 @@ describe('capability registry', () => {
         id === 'session-plan.activate' ||
         id === 'campaign.section.open' ||
         id === 'campaign.search' ||
-        id === 'encounter.deploy'
+        id === 'encounter.deploy' ||
+        id === 'map.pin.create' ||
+        id === 'map.object.link' ||
+        id === 'map.scene.create'
       ) {
         expect(capability.status).toBe('implemented');
       } else if (id === 'encounter.deploy.demo') {

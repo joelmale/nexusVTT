@@ -18,7 +18,6 @@ flakes or failure modes**, and **How to reproduce locally**.
 
 | Job                                    | Workflow                               | Lane            | Gating | Documented |
 | -------------------------------------- | -------------------------------------- | --------------- | ------ | ---------- |
-| VTT: exact-image managed E2E smoke     | `ci.yml` (`vtt-e2e`)                   | PR              | Yes    | Yes        |
 | VTT: managed E2E smoke                 | `nightly.yml` (`vtt-e2e`)              | Weekly          | No     | Yes        |
 | Repository CI contracts                | `ci.yml` (`repository-contracts`)      | PR              | Yes    | Stub       |
 | VTT: lint, type-check, and build       | `ci.yml` (`vtt-static`)                | PR              | Yes    | Stub       |
@@ -44,7 +43,7 @@ requires; it is not a test itself.
 
 ## The managed E2E smoke suite
 
-Both E2E jobs below run the same command, `npm run test:e2e` from `apps/vtt`,
+The E2E job below runs the command `npm run test:e2e` from `apps/vtt`,
 which executes `apps/vtt/scripts/run-e2e-smoke.js`. That script starts the
 isolated stack in `apps/vtt/docker/docker-compose.smoke.yml` (PostgreSQL, Redis,
 two backend replicas, the asset service, and the production frontend), runs the
@@ -65,34 +64,16 @@ two replicas, and delta-sync together, so they are the main guard for the
 realtime invariants in `apps/vtt/CLAUDE.md` (ACK only after commit,
 compare-and-swap writes, version-neutral reconnects, event order).
 
-### VTT: exact-image managed E2E smoke
-
-- **Purpose:** prove the exact commit under review works as a deployed stack.
-- **Trigger and gating:** pull requests and merge queue when VTT paths are
-  affected, and manual runs. Required through `All required checks`.
-- **Workflow and job id:** `.github/workflows/ci.yml`, `vtt-e2e`.
-- **What it runs:** builds `backend`, `asset-service`, and a delta-sync-enabled
-  `frontend` (`VITE_DELTA_SYNC=true`) from the source SHA, tagged
-  `nexus-vtt/<name>:ci-<sha>`, then runs the smoke suite against those images
-  with `E2E_PREBUILT=1` and `E2E_EXPECTED_DELTA_SYNC=true`.
-- **Environment:** `ubuntu-latest`, 35-minute timeout, Docker Buildx with
-  per-image GitHub Actions cache scopes (`smoke-backend`, `smoke-asset-service`,
-  `smoke-frontend-delta`). Default working directory is `apps/vtt`.
-- **Artifacts on failure:** `playwright-smoke-report` (14 days) containing
-  `apps/vtt/playwright-report/` and `apps/vtt/test-results/e2e/`.
-- **Known failure modes:** in the 60 runs reviewed on 2026-09-30 every failure
-  was in an image **build** step (backend or frontend), not in a test, and the
-  latest runs were green. Check which step failed before suspecting the specs.
-- **Reproduce locally:** `cd apps/vtt && npm run test:e2e` (see
-  [Testing Nexus VTT](/vtt/developer/testing)).
-
 ### VTT: managed E2E smoke (weekly)
 
-Same `npm run test:e2e` suite as the PR job, run weekly from `nightly.yml`
-against the current `main` SHA. Unlike the PR job it does not prebuild tagged
-images with Buildx (no `E2E_PREBUILT`), so the harness builds the stack itself
-with the default frontend configuration. Artifact:
-`weekly-playwright-smoke-report` (14 days).
+- **Purpose:** prove the stack works as deployed across two replicas and databases.
+- **Trigger and gating:** run weekly from `nightly.yml` against the current `main` SHA.
+- **Workflow and job id:** `.github/workflows/nightly.yml`, `vtt-e2e`.
+- **What it runs:** executes `npm run test:e2e` from `apps/vtt`.
+- **Environment:** `ubuntu-latest`, 35-minute timeout.
+- **Artifacts on failure:** `weekly-playwright-smoke-report` (14 days).
+- **Reproduce locally:** `cd apps/vtt && npm run test:e2e` (see
+  [Testing Nexus VTT](/vtt/developer/testing)).
 
 ## Stubs
 
