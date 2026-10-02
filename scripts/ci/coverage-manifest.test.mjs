@@ -23,12 +23,18 @@ function createReport(root, kind, index, count, contents = `${kind}-${index}`) {
   fs.writeFileSync(blobPath, contents);
   const result = run([
     'create',
-    '--kind', kind,
-    '--index', String(index),
-    '--count', String(count),
-    '--source-sha', sourceSha,
-    '--blob', blobPath,
-    '--output', path.join(reportDirectory, 'coverage-manifest.json'),
+    '--kind',
+    kind,
+    '--index',
+    String(index),
+    '--count',
+    String(count),
+    '--source-sha',
+    sourceSha,
+    '--blob',
+    blobPath,
+    '--output',
+    path.join(reportDirectory, 'coverage-manifest.json'),
   ]);
   assert.equal(result.status, 0, result.stderr);
   return reportDirectory;
@@ -37,15 +43,20 @@ function createReport(root, kind, index, count, contents = `${kind}-${index}`) {
 test('validates and stages the complete expected report set', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'coverage-manifest-'));
   try {
-    for (let index = 1; index <= 3; index += 1) createReport(root, 'unit', index, 3);
+    for (let index = 1; index <= 3; index += 1)
+      createReport(root, 'unit', index, 3);
     createReport(root, 'integration', 1, 1);
     const staged = path.join(root, 'staged');
     const result = run([
       'validate',
-      '--directory', root,
-      '--output', staged,
-      '--source-sha', sourceSha,
-      '--unit-count', '3',
+      '--directory',
+      root,
+      '--output',
+      staged,
+      '--source-sha',
+      sourceSha,
+      '--unit-count',
+      '3',
     ]);
     assert.equal(result.status, 0, result.stderr);
     assert.deepEqual(fs.readdirSync(staged).sort(), [
@@ -59,6 +70,53 @@ test('validates and stages the complete expected report set', () => {
   }
 });
 
+test('accepts a unit-only report set when integration-count is 0', () => {
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), 'coverage-manifest-'));
+  try {
+    for (let index = 1; index <= 3; index += 1)
+      createReport(root, 'unit', index, 3);
+    const staged = path.join(root, 'staged');
+    let result = run([
+      'validate',
+      '--directory',
+      root,
+      '--output',
+      staged,
+      '--source-sha',
+      sourceSha,
+      '--unit-count',
+      '3',
+      '--integration-count',
+      '0',
+    ]);
+    assert.equal(result.status, 0, result.stderr);
+    assert.deepEqual(fs.readdirSync(staged).sort(), [
+      'unit-1-of-3.json',
+      'unit-2-of-3.json',
+      'unit-3-of-3.json',
+    ]);
+
+    createReport(root, 'integration', 1, 1);
+    result = run([
+      'validate',
+      '--directory',
+      root,
+      '--output',
+      staged,
+      '--source-sha',
+      sourceSha,
+      '--unit-count',
+      '3',
+      '--integration-count',
+      '0',
+    ]);
+    assert.equal(result.status, 1);
+    assert.match(result.stderr, /unexpected=\[integration:1:1\]/);
+  } finally {
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
+
 test('fails closed when an expected shard is missing', () => {
   const root = fs.mkdtempSync(path.join(os.tmpdir(), 'coverage-manifest-'));
   try {
@@ -66,8 +124,15 @@ test('fails closed when an expected shard is missing', () => {
     createReport(root, 'unit', 2, 3);
     createReport(root, 'integration', 1, 1);
     const result = run([
-      'validate', '--directory', root, '--output', path.join(root, 'staged'),
-      '--source-sha', sourceSha, '--unit-count', '3',
+      'validate',
+      '--directory',
+      root,
+      '--output',
+      path.join(root, 'staged'),
+      '--source-sha',
+      sourceSha,
+      '--unit-count',
+      '3',
     ]);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /missing=\[unit:3:3\]/);
@@ -81,16 +146,30 @@ test('rejects source mismatches and tampered blobs', () => {
   try {
     const reportDirectory = createReport(root, 'unit', 1, 1);
     let result = run([
-      'validate', '--directory', root, '--output', path.join(root, 'staged'),
-      '--source-sha', 'b'.repeat(40), '--unit-count', '1',
+      'validate',
+      '--directory',
+      root,
+      '--output',
+      path.join(root, 'staged'),
+      '--source-sha',
+      'b'.repeat(40),
+      '--unit-count',
+      '1',
     ]);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /source SHA mismatch/);
 
     fs.appendFileSync(path.join(reportDirectory, 'report.json'), 'tampered');
     result = run([
-      'validate', '--directory', root, '--output', path.join(root, 'staged'),
-      '--source-sha', sourceSha, '--unit-count', '1',
+      'validate',
+      '--directory',
+      root,
+      '--output',
+      path.join(root, 'staged'),
+      '--source-sha',
+      sourceSha,
+      '--unit-count',
+      '1',
     ]);
     assert.equal(result.status, 1);
     assert.match(result.stderr, /integrity check failed/);

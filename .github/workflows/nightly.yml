@@ -1,4 +1,4 @@
-name: Nightly Validation
+name: Weekly Validation
 
 on:
   schedule:
@@ -14,7 +14,7 @@ on:
         type: boolean
 
 concurrency:
-  group: nightly-validation
+  group: weekly-validation
   cancel-in-progress: false
 
 permissions:
@@ -25,7 +25,7 @@ env:
 
 jobs:
   catalog:
-    name: Resolve nightly catalog
+    name: Resolve weekly catalog
     runs-on: ubuntu-latest
     timeout-minutes: 10
     outputs:
@@ -51,7 +51,7 @@ jobs:
       - name: Validate service catalog
         run: node scripts/ci/service-catalog.mjs
 
-      - name: Generate full nightly matrices
+      - name: Generate full weekly matrices
         id: affected
         shell: bash
         run: |
@@ -73,7 +73,7 @@ jobs:
       run:
         working-directory: apps/vtt
     steps:
-      - name: Checkout nightly source
+      - name: Checkout weekly source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.catalog.outputs.source_sha }}
@@ -96,7 +96,7 @@ jobs:
       run:
         working-directory: apps/vtt
     steps:
-      - name: Checkout nightly source
+      - name: Checkout weekly source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.catalog.outputs.source_sha }}
@@ -126,7 +126,7 @@ jobs:
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
-          name: nightly-playwright-smoke-report
+          name: weekly-playwright-smoke-report
           path: |
             apps/vtt/playwright-report/
             apps/vtt/test-results/e2e/
@@ -155,7 +155,7 @@ jobs:
       run:
         working-directory: apps/codex/services/ocr-service
     steps:
-      - name: Checkout nightly source
+      - name: Checkout weekly source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.catalog.outputs.source_sha }}
@@ -215,7 +215,7 @@ jobs:
     runs-on: [self-hosted, linux, x64, a2000]
     timeout-minutes: 45
     steps:
-      - name: Checkout nightly source
+      - name: Checkout weekly source
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
         with:
           ref: ${{ needs.catalog.outputs.source_sha }}

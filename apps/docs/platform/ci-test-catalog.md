@@ -16,30 +16,28 @@ flakes or failure modes**, and **How to reproduce locally**.
 
 ## Index
 
-| Job                                    | Workflow                               | Lane             | Gating                   | Documented |
-| -------------------------------------- | -------------------------------------- | ---------------- | ------------------------ | ---------- |
-| VTT: exact-image managed E2E smoke     | `ci.yml` (`vtt-e2e`)                   | PR               | Yes                      | Yes        |
-| VTT: E2E on published images (shadow)  | `delivery.yml` (`vtt-e2e-published`)   | Delivery         | No (`continue-on-error`) | Yes        |
-| VTT: managed E2E smoke                 | `nightly.yml` (`vtt-e2e`)              | Nightly          | No                       | Stub       |
-| Repository CI contracts                | `ci.yml` (`repository-contracts`)      | PR               | Yes                      | Stub       |
-| VTT: lint, type-check, and build       | `ci.yml` (`vtt-static`)                | PR               | Yes                      | Stub       |
-| VTT: unit tests (shards 1-3)           | `ci.yml` (`vtt-unit`)                  | PR               | Yes                      | Stub       |
-| VTT: UI layout tests                   | `ci.yml` (`vtt-ui`)                    | PR               | Yes                      | Stub       |
-| VTT: asset-service tests               | `ci.yml` (`asset-service`)             | PR               | Yes                      | Stub       |
-| VTT: database integration suite        | `ci.yml` (`vtt-integration`)           | PR               | Yes                      | Stub       |
-| VTT: database integration suite        | `nightly.yml` (`vtt-integration`)      | Nightly          | No                       | Stub       |
-| VTT: gateway route matrix              | `ci.yml` (`gateway-contracts`)         | PR               | Yes                      | Stub       |
-| VTT: aggregate coverage                | `ci.yml` (`vtt-coverage`)              | PR               | Yes                      | Stub       |
-| Control API: validation                | `ci.yml` (`control-api`)               | PR               | Yes                      | Stub       |
-| Forge                                  | `ci.yml` (`forge`)                     | PR               | Yes                      | Stub       |
-| Codex                                  | `ci.yml` (`codex`)                     | PR               | Yes                      | Stub       |
-| Documentation checks                   | `ci.yml` (`docs`)                      | PR               | Yes                      | Stub       |
-| Security validation                    | `ci.yml` (`security`)                  | PR               | Yes                      | Stub       |
-| Multiplayer soak and chaos             | `nightly.yml` / `multiplayer-soak.yml` | Nightly          | No                       | Stub       |
-| Codex full validation                  | `nightly.yml` (`codex-integration`)    | Nightly          | No                       | Stub       |
-| Codex OCR: download and execute models | `nightly.yml` (`ocr-model-warmup`)     | Nightly          | No                       | Stub       |
-| Codex OCR: RTX A2000 CUDA validation   | `nightly.yml` (`a2000-gpu`)            | Nightly (opt-in) | No                       | Stub       |
-| Full security validation               | `nightly.yml` (`security`)             | Nightly          | No                       | Stub       |
+| Job                                    | Workflow                               | Lane            | Gating | Documented |
+| -------------------------------------- | -------------------------------------- | --------------- | ------ | ---------- |
+| VTT: exact-image managed E2E smoke     | `ci.yml` (`vtt-e2e`)                   | PR              | Yes    | Yes        |
+| VTT: managed E2E smoke                 | `nightly.yml` (`vtt-e2e`)              | Weekly          | No     | Yes        |
+| Repository CI contracts                | `ci.yml` (`repository-contracts`)      | PR              | Yes    | Stub       |
+| VTT: lint, type-check, and build       | `ci.yml` (`vtt-static`)                | PR              | Yes    | Stub       |
+| VTT: unit tests (shards 1-3)           | `ci.yml` (`vtt-unit`)                  | PR              | Yes    | Stub       |
+| VTT: UI layout tests                   | `ci.yml` (`vtt-ui`)                    | PR              | Yes    | Stub       |
+| VTT: asset-service tests               | `ci.yml` (`asset-service`)             | PR              | Yes    | Stub       |
+| VTT: database integration suite        | `nightly.yml` (`vtt-integration`)      | Weekly          | No     | Stub       |
+| VTT: gateway route matrix              | `ci.yml` (`gateway-contracts`)         | PR              | Yes    | Stub       |
+| VTT: aggregate coverage                | `ci.yml` (`vtt-coverage`)              | PR              | Yes    | Stub       |
+| Control API: validation                | `ci.yml` (`control-api`)               | PR              | Yes    | Stub       |
+| Forge                                  | `ci.yml` (`forge`)                     | PR              | Yes    | Stub       |
+| Codex                                  | `ci.yml` (`codex`)                     | PR              | Yes    | Stub       |
+| Documentation checks                   | `ci.yml` (`docs`)                      | PR              | Yes    | Stub       |
+| Security validation                    | `ci.yml` (`security`)                  | PR              | Yes    | Stub       |
+| Multiplayer soak and chaos             | `nightly.yml` / `multiplayer-soak.yml` | Weekly          | No     | Stub       |
+| Codex full validation                  | `nightly.yml` (`codex-integration`)    | Weekly          | No     | Stub       |
+| Codex OCR: download and execute models | `nightly.yml` (`ocr-model-warmup`)     | Weekly          | No     | Stub       |
+| Codex OCR: RTX A2000 CUDA validation   | `nightly.yml` (`a2000-gpu`)            | Weekly (opt-in) | No     | Stub       |
+| Full security validation               | `nightly.yml` (`security`)             | Weekly          | No     | Stub       |
 
 The aggregate `All required checks` job in `ci.yml` is what branch protection
 requires; it is not a test itself.
@@ -88,35 +86,13 @@ compare-and-swap writes, version-neutral reconnects, event order).
 - **Reproduce locally:** `cd apps/vtt && npm run test:e2e` (see
   [Testing Nexus VTT](/vtt/developer/testing)).
 
-### VTT: E2E on published images (shadow)
+### VTT: managed E2E smoke (weekly)
 
-- **Purpose:** verify the images Delivery actually published, not just images
-  built in the PR lane, before promotion is trusted to carry them.
-- **Trigger and gating:** push to `main` after `publish-images` succeeds and the
-  release includes `backend`. Shadow mode: `continue-on-error: true`, and
-  `promote-release` does not depend on it. Make it a need of `promote-release`
-  once it has been green for several runs.
-- **Workflow and job id:** `.github/workflows/delivery.yml`, `vtt-e2e-published`.
-- **What it runs:** pulls `backend` and `asset-service` from GHCR
-  (`sha-<commit>` when published for this commit, otherwise `latest`, reported
-  through `E2E_CARRIED_IMAGES`), rebuilds only the delta-enabled frontend
-  locally because the shipped frontend has delta-sync off, then runs the same
-  smoke suite.
-- **Environment:** `ubuntu-latest`, 30-minute timeout, `packages: read`.
-  `delivery.yml` has no default working directory, so steps that run from
-  `apps/vtt` must set `working-directory: apps/vtt` explicitly.
-- **Artifacts on failure:** `delivery-playwright-smoke-report-<sha>` (14 days).
-- **Known failure modes:** until 2026-09-30 this job failed on every run with
-  `npm error Missing script: "test:e2e"` because Install Chromium and the test
-  step ran at the repository root. Fixed by setting `working-directory`. Any
-  failure after that point is a real signal from the suite.
-- **Reproduce locally:** as above, with `E2E_BACKEND_IMAGE` and
-  `E2E_ASSET_IMAGE` pointing at the published GHCR tags.
-
-### VTT: managed E2E smoke (nightly)
-
-Stub. Runs the same suite from `nightly.yml`. Document how it differs from the
-PR job (images, schedule, retry policy).
+Same `npm run test:e2e` suite as the PR job, run weekly from `nightly.yml`
+against the current `main` SHA. Unlike the PR job it does not prebuild tagged
+images with Buildx (no `E2E_PREBUILT`), so the harness builds the stack itself
+with the default frontend configuration. Artifact:
+`weekly-playwright-smoke-report` (14 days).
 
 ## Stubs
 

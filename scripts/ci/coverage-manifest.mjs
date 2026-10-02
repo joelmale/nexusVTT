@@ -39,7 +39,12 @@ function vitestVersion() {
     });
     return JSON.parse(fs.readFileSync(manifestPath, 'utf8')).version;
   } catch {
-    const lockPath = path.resolve(import.meta.dirname, '..', '..', 'package-lock.json');
+    const lockPath = path.resolve(
+      import.meta.dirname,
+      '..',
+      '..',
+      'package-lock.json',
+    );
     if (fs.existsSync(lockPath)) {
       const lock = JSON.parse(fs.readFileSync(lockPath, 'utf8'));
       const version =
@@ -47,7 +52,9 @@ function vitestVersion() {
         lock.packages?.['apps/vtt/node_modules/vitest']?.version;
       if (version) return version;
     }
-    fail('Unable to resolve vitest version from node_modules or package-lock.json');
+    fail(
+      'Unable to resolve vitest version from node_modules or package-lock.json',
+    );
   }
 }
 
@@ -73,7 +80,12 @@ function writeManifest(options) {
 
   const index = Number.parseInt(options.index ?? '1', 10);
   const count = Number.parseInt(options.count ?? '1', 10);
-  if (!Number.isInteger(index) || !Number.isInteger(count) || index < 1 || index > count) {
+  if (
+    !Number.isInteger(index) ||
+    !Number.isInteger(count) ||
+    index < 1 ||
+    index > count
+  ) {
     fail('index and count must describe a valid one-based shard');
   }
 
@@ -108,7 +120,8 @@ function findManifests(directory) {
     for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
       const entryPath = path.join(current, entry.name);
       if (entry.isDirectory()) visit(entryPath);
-      else if (entry.name === 'coverage-manifest.json') manifests.push(entryPath);
+      else if (entry.name === 'coverage-manifest.json')
+        manifests.push(entryPath);
     }
   };
   visit(directory);
@@ -116,22 +129,33 @@ function findManifests(directory) {
 }
 
 function validateManifestShape(manifest, manifestPath, sourceSha, version) {
-  if (manifest.schemaVersion !== SCHEMA_VERSION) fail(`unsupported manifest schema: ${manifestPath}`);
-  if (manifest.sourceSha !== sourceSha) fail(`source SHA mismatch: ${manifestPath}`);
+  if (manifest.schemaVersion !== SCHEMA_VERSION)
+    fail(`unsupported manifest schema: ${manifestPath}`);
+  if (manifest.sourceSha !== sourceSha)
+    fail(`source SHA mismatch: ${manifestPath}`);
   if (manifest.tool?.name !== 'vitest' || manifest.tool?.version !== version) {
     fail(`Vitest version mismatch: ${manifestPath}`);
   }
   if (!['unit', 'integration'].includes(manifest.report?.kind)) {
     fail(`invalid report kind: ${manifestPath}`);
   }
-  if (!Number.isInteger(manifest.report.index) || !Number.isInteger(manifest.report.count)) {
+  if (
+    !Number.isInteger(manifest.report.index) ||
+    !Number.isInteger(manifest.report.count)
+  ) {
     fail(`invalid shard metadata: ${manifestPath}`);
   }
 
-  const blobPath = path.join(path.dirname(manifestPath), manifest.report.file ?? '');
+  const blobPath = path.join(
+    path.dirname(manifestPath),
+    manifest.report.file ?? '',
+  );
   const stat = fs.statSync(blobPath, { throwIfNoEntry: false });
   if (!stat?.isFile()) fail(`missing coverage blob for ${manifestPath}`);
-  if (stat.size !== manifest.report.bytes || sha256(blobPath) !== manifest.report.sha256) {
+  if (
+    stat.size !== manifest.report.bytes ||
+    sha256(blobPath) !== manifest.report.sha256
+  ) {
     fail(`coverage blob integrity check failed: ${blobPath}`);
   }
   return { manifest, blobPath };
@@ -146,6 +170,10 @@ function validateAndStage(options) {
 
   const sourceSha = requireSourceSha(options['source-sha']);
   const expectedUnitCount = Number.parseInt(options['unit-count'] ?? '3', 10);
+  const expectedIntegrationCount = Number.parseInt(
+    options['integration-count'] ?? '1',
+    10,
+  );
   const version = vitestVersion();
   const entries = findManifests(directory).map((manifestPath) => {
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
@@ -153,8 +181,14 @@ function validateAndStage(options) {
   });
 
   const expected = new Set([
-    ...Array.from({ length: expectedUnitCount }, (_, index) => `unit:${index + 1}:${expectedUnitCount}`),
-    'integration:1:1',
+    ...Array.from(
+      { length: expectedUnitCount },
+      (_, index) => `unit:${index + 1}:${expectedUnitCount}`,
+    ),
+    ...Array.from(
+      { length: expectedIntegrationCount },
+      (_, index) => `integration:${index + 1}:${expectedIntegrationCount}`,
+    ),
   ]);
   const observed = new Set();
   for (const { manifest } of entries) {
@@ -166,7 +200,9 @@ function validateAndStage(options) {
   const missing = [...expected].filter((key) => !observed.has(key));
   const unexpected = [...observed].filter((key) => !expected.has(key));
   if (missing.length || unexpected.length) {
-    fail(`coverage report set mismatch; missing=[${missing}] unexpected=[${unexpected}]`);
+    fail(
+      `coverage report set mismatch; missing=[${missing}] unexpected=[${unexpected}]`,
+    );
   }
 
   fs.rmSync(outputDirectory, { recursive: true, force: true });

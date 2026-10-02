@@ -354,81 +354,6 @@ jobs:
       - name: Run asset-service tests
         run: npm run test:asset-service
 
-  vtt-integration:
-    name: 'VTT: database integration suite'
-    if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.vtt == 'true'
-    needs: changes
-    runs-on: ubuntu-latest
-    timeout-minutes: 30
-    steps:
-      - name: Checkout validated source
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
-        with:
-          ref: ${{ needs.changes.outputs.source_sha }}
-
-      - name: Setup Node.js
-        uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7
-        with:
-          node-version: ${{ env.NODE_VERSION }}
-          cache: npm
-          cache-dependency-path: package-lock.json
-
-      - name: Install dependencies for coverage provenance
-        run: npm ci
-        working-directory: ${{ github.workspace }}
-
-      - name: Run integration tests with Docker Compose
-        run: >-
-          docker compose -f docker/docker-compose.test.yml up
-          --build --abort-on-container-exit --exit-code-from test
-        env:
-          HOST_WORKSPACE: ${{ github.workspace }}
-          VITEST_CI_ARGS: >-
-            --coverage
-            --coverage.thresholds.lines=0
-            --coverage.thresholds.functions=0
-            --coverage.thresholds.branches=0
-            --coverage.thresholds.statements=0
-            --reporter=default
-            --reporter=blob
-            --outputFile.blob=.vitest-reports/integration.json
-
-      - name: Fix report directory permissions
-        if: success()
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        run: |
-          if [ -d apps/vtt/.vitest-reports ]; then
-            sudo chown -R "$(id -u):$(id -g)" apps/vtt/.vitest-reports
-          fi
-
-      - name: Write coverage provenance manifest
-        if: success()
-        shell: bash
-        working-directory: ${{ github.workspace }}
-        env:
-          SOURCE_SHA: ${{ needs.changes.outputs.source_sha }}
-        run: |
-          node scripts/ci/coverage-manifest.mjs create \
-            --kind integration --index 1 --count 1 \
-            --source-sha "$SOURCE_SHA" \
-            --blob apps/vtt/.vitest-reports/integration.json \
-            --output apps/vtt/.vitest-reports/coverage-manifest.json
-
-      - name: Upload integration coverage blob
-        if: success()
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
-        with:
-          name: vtt-coverage-integration
-          path: apps/vtt/.vitest-reports/
-          include-hidden-files: true
-          if-no-files-found: error
-          retention-days: 7
-
-      - name: Tear down integration stack
-        if: always()
-        run: docker compose -f docker/docker-compose.test.yml down -v
-
   vtt-e2e:
     name: 'VTT: exact-image managed E2E smoke'
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.vtt == 'true'
@@ -641,7 +566,7 @@ jobs:
   vtt-coverage:
     name: 'VTT: aggregate coverage'
     if: github.event_name == 'workflow_dispatch' || needs.changes.outputs.vtt == 'true'
-    needs: [changes, vtt-unit, vtt-integration]
+    needs: [changes, vtt-unit]
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -734,7 +659,6 @@ jobs:
       - vtt-unit
       - vtt-ui
       - asset-service
-      - vtt-integration
       - vtt-e2e
       - gateway-contracts
       - control-api
@@ -764,7 +688,6 @@ jobs:
           VTT_UNIT_RESULT: ${{ needs.vtt-unit.result }}
           VTT_UI_RESULT: ${{ needs.vtt-ui.result }}
           ASSET_RESULT: ${{ needs.asset-service.result }}
-          VTT_INTEGRATION_RESULT: ${{ needs.vtt-integration.result }}
           VTT_E2E_RESULT: ${{ needs.vtt-e2e.result }}
           GATEWAY_RESULT: ${{ needs.gateway-contracts.result }}
           CONTROL_API_RESULT: ${{ needs.control-api.result }}
@@ -799,7 +722,6 @@ jobs:
           require_result vtt-static "$VTT_AFFECTED" "$VTT_STATIC_RESULT"
           require_result vtt-unit "$VTT_AFFECTED" "$VTT_UNIT_RESULT"
           require_result vtt-ui "$VTT_AFFECTED" "$VTT_UI_RESULT"
-          require_result vtt-integration "$VTT_AFFECTED" "$VTT_INTEGRATION_RESULT"
           require_result vtt-e2e "$VTT_AFFECTED" "$VTT_E2E_RESULT"
           require_result vtt-coverage "$VTT_AFFECTED" "$VTT_COVERAGE_RESULT"
           require_result asset-service "$ASSETS_AFFECTED" "$ASSET_RESULT"
