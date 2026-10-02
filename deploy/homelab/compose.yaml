@@ -10,14 +10,14 @@ services:
       PGDATA: /var/lib/postgresql/data/pgdata
       POSTGRES_INITDB_ARGS: --auth-host=scram-sha-256
     volumes:
-    # PostgreSQL major versions cannot share a data directory.
-    - ${NEXUS_STORAGE_ROOT:-/mnt/docker-nas-vol1/nexusvtt}/postgres18:/var/lib/postgresql/data
+      # PostgreSQL major versions cannot share a data directory.
+      - ${NEXUS_STORAGE_ROOT:-/mnt/docker-nas-vol1/nexusvtt}/postgres18:/var/lib/postgresql/data
     networks:
-    - nexus-internal-net
+      - nexus-internal-net
     healthcheck:
       test:
-      - CMD-SHELL
-      - pg_isready -U ${POSTGRES_USER:-nexus} -d ${POSTGRES_DB:-nexus}
+        - CMD-SHELL
+        - pg_isready -U ${POSTGRES_USER:-nexus} -d ${POSTGRES_DB:-nexus}
       interval: 10s
       timeout: 5s
       retries: 5
@@ -28,17 +28,17 @@ services:
     # Live deployment adds an RDB snapshot every 60s alongside the AOF.
     command: redis-server --appendonly yes --save 60 1 --requirepass ${REDIS_PASSWORD:?REDIS_PASSWORD is required, see deploy/homelab/.env.example}
     volumes:
-    - ${NEXUS_STORAGE_ROOT:-/mnt/docker-nas-vol1/nexusvtt}/redis:/data
+      - ${NEXUS_STORAGE_ROOT:-/mnt/docker-nas-vol1/nexusvtt}/redis:/data
     networks:
-    - nexus-internal-net
+      - nexus-internal-net
     healthcheck:
       test:
-      - CMD
-      - redis-cli
-      - --no-auth-warning
-      - -a
-      - ${REDIS_PASSWORD:?REDIS_PASSWORD is required, see deploy/homelab/.env.example}
-      - ping
+        - CMD
+        - redis-cli
+        - --no-auth-warning
+        - -a
+        - ${REDIS_PASSWORD:?REDIS_PASSWORD is required, see deploy/homelab/.env.example}
+        - ping
       interval: 10s
       timeout: 3s
       retries: 5
@@ -58,19 +58,19 @@ services:
       LIBRARY_DATA_PATH: /app/assets-data
       LIBRARY_MANIFEST_PATH: /app/assets-data/manifests/manifest-v2.json
     volumes:
-    - ${NEXUS_STORAGE_ROOT:-/mnt/docker-nas-vol1/nexusvtt}/assets:/app/static-assets/assets
-    - ${NEXUS_STORAGE_ROOT:-/mnt/docker-nas-vol1/nexusvtt}/user-assets:/app/static-assets/users
-    - ${NEXUS_STORAGE_ROOT:-/mnt/docker-nas-vol1/nexusvtt}/library-assets:/app/assets-data
-    - ${NEXUS_STORAGE_ROOT:-/mnt/docker-nas-vol1/nexusvtt}/tmt-seed:/seed/tmt:ro
+      - ${NEXUS_STORAGE_ROOT:-/mnt/docker-nas-vol1/nexusvtt}/assets:/app/static-assets/assets
+      - ${NEXUS_STORAGE_ROOT:-/mnt/docker-nas-vol1/nexusvtt}/user-assets:/app/static-assets/users
+      - ${NEXUS_STORAGE_ROOT:-/mnt/docker-nas-vol1/nexusvtt}/library-assets:/app/assets-data
+      - ${NEXUS_STORAGE_ROOT:-/mnt/docker-nas-vol1/nexusvtt}/tmt-seed:/seed/tmt:ro
     networks:
-    - homelab-net
-    - nexus-internal-net
+      - homelab-net
+      - nexus-internal-net
     healthcheck:
       test:
-      - CMD-SHELL
-      - 'node -e "const port = process.env.PORT || 5003; require(''http'').get(''http://127.0.0.1:''
-        + port + ''/health'', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on(''error'',
-        () => process.exit(1))"'
+        - CMD-SHELL
+        - 'node -e "const port = process.env.PORT || 5003; require(''http'').get(''http://127.0.0.1:''
+          + port + ''/health'', (res) => process.exit(res.statusCode === 200 ? 0 : 1)).on(''error'',
+          () => process.exit(1))"'
       interval: 30s
       timeout: 5s
       retries: 3
@@ -81,7 +81,7 @@ services:
     container_name: nexus-vtt2-forge
     hostname: nexus-vtt2-forge
     networks:
-    - homelab-net
+      - homelab-net
     restart: unless-stopped
   frontend:
     image: ${FRONTEND_IMAGE:-ghcr.io/joelmale/nexusvtt/frontend:latest}
@@ -95,8 +95,8 @@ services:
     # homelab-net stays so the edge proxy (npm) can reach this container and
     # it can reach backend/asset-server/doc-websocket.
     networks:
-    - homelab-net
-    - nexus-internal-net
+      - homelab-net
+      - nexus-internal-net
     restart: unless-stopped
   backend:
     image: ${BACKEND_IMAGE:-ghcr.io/joelmale/nexusvtt/backend:latest}
@@ -144,8 +144,8 @@ services:
       asset-server:
         condition: service_healthy
     networks:
-    - homelab-net
-    - nexus-internal-net
+      - homelab-net
+      - nexus-internal-net
     restart: unless-stopped
   control-api:
     image: ${CONTROL_API_IMAGE:-ghcr.io/joelmale/nexusvtt/control-api:latest}
@@ -179,13 +179,13 @@ services:
     # nexus-control-egress-net, and this service must never join homelab-net
     # or publish a host port (port 4000 is container-only).
     networks:
-    - nexus-internal-net
-    - nexus-control-egress-net
+      - nexus-internal-net
+      - nexus-control-egress-net
     healthcheck:
       test:
-      - CMD-SHELL
-      - 'node -e "require(''http'').get(''http://127.0.0.1:4000/healthz'', (res) => process.exit(res.statusCode
-        === 200 ? 0 : 1)).on(''error'', () => process.exit(1))"'
+        - CMD-SHELL
+        - 'node -e "require(''http'').get(''http://127.0.0.1:4000/healthz'', (res) => process.exit(res.statusCode
+          === 200 ? 0 : 1)).on(''error'', () => process.exit(1))"'
       interval: 30s
       timeout: 5s
       retries: 3
@@ -203,9 +203,9 @@ services:
       xpack.security.enabled: 'false'
       ES_JAVA_OPTS: -Xms512m -Xmx512m
     volumes:
-    - codex-elasticsearch-data:/usr/share/elasticsearch/data
+      - codex-elasticsearch-data:/usr/share/elasticsearch/data
     networks:
-    - nexus-internal-net
+      - nexus-internal-net
     deploy:
       resources:
         limits:
@@ -214,7 +214,7 @@ services:
   garage-init-config:
     image: alpine:latest
     container_name: nexus-vtt2-garage-init-config
-    restart: "no"
+    restart: 'no'
     command:
       - /bin/sh
       - -c
@@ -313,8 +313,8 @@ services:
     # Prisma engine at startup and crash-loops on an internal-only network);
     # nothing else may join it.
     networks:
-    - nexus-internal-net
-    - nexus-codex-egress-net
+      - nexus-internal-net
+      - nexus-codex-egress-net
     depends_on:
       postgres:
         condition: service_healthy
@@ -351,6 +351,7 @@ services:
       PIPELINE_VERSION: ${CODEX_PIPELINE_VERSION:-v2}
       OLLAMA_URL: ${CODEX_OLLAMA_URL:-http://ollama:11434}
       VLM_MODEL: ${CODEX_VLM_MODEL:-qwen3-vl:4b-instruct}
+      OLLAMA_NUM_CTX: ${CODEX_OLLAMA_NUM_CTX:-8192}
       # Optional workstation Ollama on the LAN; used per extract stage when it
       # is reachable and has the model, otherwise OLLAMA_URL is used.
       OLLAMA_REMOTE_URL: ${CODEX_OLLAMA_REMOTE_URL:-}
@@ -364,9 +365,9 @@ services:
     # doc-api (kept off homelab-net, private-admin-control-plane.md), this
     # service has no listener besides the token-gated metrics port.
     networks:
-    - nexus-internal-net
-    - nexus-codex-egress-net
-    - homelab-net
+      - nexus-internal-net
+      - nexus-codex-egress-net
+      - homelab-net
     depends_on:
       postgres:
         condition: service_healthy
@@ -391,8 +392,8 @@ services:
       JWT_SECRET: ${CODEX_JWT_SECRET:?CODEX_JWT_SECRET is required, see deploy/homelab/.env.example}
       ELASTICSEARCH_URL: http://codex-elasticsearch:9200
     networks:
-    - homelab-net
-    - nexus-internal-net
+      - homelab-net
+      - nexus-internal-net
     depends_on:
       postgres:
         condition: service_healthy

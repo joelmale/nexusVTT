@@ -4,7 +4,9 @@ import dotenv from 'dotenv';
 dotenv.config();
 
 const envSchema = z.object({
-  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  NODE_ENV: z
+    .enum(['development', 'production', 'test'])
+    .default('development'),
 
   // Database
   DATABASE_URL: z.string(),
@@ -22,7 +24,10 @@ const envSchema = z.object({
   S3_SECRET_KEY: z.string(),
   S3_BUCKET: z.string().default('documents'),
   S3_REGION: z.string().default('us-east-1'),
-  S3_FORCE_PATH_STYLE: z.string().default('true').transform(val => val === 'true'),
+  S3_FORCE_PATH_STYLE: z
+    .string()
+    .default('true')
+    .transform((val) => val === 'true'),
 
   // Processing Configuration
   QUEUE_NAME: z.string().default('document-processing'),
@@ -64,8 +69,10 @@ const envSchema = z.object({
   VLM_MODEL: z.string().default('qwen3-vl:4b-instruct'),
   OLLAMA_KEEP_ALIVE: z.string().default('10m'),
   // Fixed per request so the host's OLLAMA_CONTEXT_LENGTH cannot inflate the
-  // KV cache past what the GPU holds. Extraction prompts are under ~1k tokens.
-  OLLAMA_NUM_CTX: z.string().default('4096').transform(Number),
+  // KV cache past what the GPU holds. Monster image crops + schemas + text
+  // typically consume ~2-4k tokens, so 8192 accommodates dense stat blocks
+  // while comfortably fitting the 6 GB A2000's VRAM headroom.
+  OLLAMA_NUM_CTX: z.string().default('8192').transform(Number),
   // Optional second Ollama (e.g. a workstation GPU on the LAN). Used for an
   // extract stage when it answers within OLLAMA_REMOTE_PROBE_MS and has the
   // model; otherwise the stage falls back to OLLAMA_URL. OLLAMA_REMOTE_MODEL
@@ -80,7 +87,10 @@ const envSchema = z.object({
   EXTRACT_CROP_DPI: z.string().default('200').transform(Number),
   // The 6 GB RTX A2000 cannot hold Surya and the VLM together: unload the
   // layout models before extract and the VLM after it.
-  GPU_HANDOFF: z.string().default('true').transform(val => val === 'true'),
+  GPU_HANDOFF: z
+    .string()
+    .default('true')
+    .transform((val) => val === 'true'),
 
   // Embeddings
   EMBEDDINGS_PROVIDER: z.enum(['none', 'hash', 'sidecar']).default('none'),
@@ -88,7 +98,10 @@ const envSchema = z.object({
   EMBEDDINGS_BATCH_SIZE: z.string().default('20').transform(Number),
 
   // Logging
-  LOGGING_ENABLED: z.string().default('true').transform(val => val === 'true'),
+  LOGGING_ENABLED: z
+    .string()
+    .default('true')
+    .transform((val) => val === 'true'),
   LOGGING_INDEX: z.string().default('nexus-logs'),
   LOGGING_SERVICE_NAME: z.string().default('doc-processor'),
 
@@ -96,7 +109,10 @@ const envSchema = z.object({
   // doc-processor has no HTTP surface otherwise; setting METRICS_PORT starts
   // a minimal GET /metrics server. Unset (the default) disables it entirely
   // -- there is no reason to open a port in local dev.
-  METRICS_PORT: z.string().optional().transform(val => (val ? Number(val) : undefined)),
+  METRICS_PORT: z
+    .string()
+    .optional()
+    .transform((val) => (val ? Number(val) : undefined)),
   // Bearer token required on GET /metrics when set, same fail-closed-only-
   // when-configured behavior as apps/vtt/server/routes/metrics.routes.ts.
   METRICS_AUTH_TOKEN: z.string().optional(),
