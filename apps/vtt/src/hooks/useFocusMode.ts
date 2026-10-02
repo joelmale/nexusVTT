@@ -42,7 +42,7 @@ function ensureLiveRegion(): HTMLElement {
  *
  * The flag is mirrored onto `<html>` rather than onto `.game-layout` because
  * `#portal-root` is a *sibling* of `#root` in index.html - FloatingPanel and
- * the AtlasDock pill render there, so a rule scoped to the layout container
+ * portal-mounted chrome render there, so a rule scoped to the layout container
  * could never reach them. `<html>` is an ancestor of both.
  */
 export function useFocusModeController(): void {
@@ -101,8 +101,8 @@ export function useFocusModeController(): void {
   }, [focusMode]);
 
   // Capture phase + stopImmediatePropagation so the Escape exit does not also
-  // trigger the five other window-level Escape listeners (FloatingPanel,
-  // AtlasDock, GeneratorOverlay, DocumentViewer, CharacterSheetPopup), which
+  // trigger the other window-level Escape listeners (FloatingPanel,
+  // GeneratorOverlay, DocumentViewer, CharacterSheetPopup), which
   // would close every open panel on the way out.
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {

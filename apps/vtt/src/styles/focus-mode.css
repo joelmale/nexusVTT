@@ -5,7 +5,7 @@
  * Every chrome root carries a plain `data-chrome` DOM attribute rather than a
  * class, so a single rule reaches both global-class chrome (the toolbar, the
  * player cluster) and CSS-module chrome (FloatingPanel, PanelDock, ScenePill,
- * AtlasDock) whose class names are hashed at build time.
+ * AtlasPanel) whose class names are hashed at build time.
  *
  * The flag lives on <html> because `#portal-root` is a sibling of `#root`:
  * portal-mounted chrome is NOT inside `.game-layout`, so only a document-level

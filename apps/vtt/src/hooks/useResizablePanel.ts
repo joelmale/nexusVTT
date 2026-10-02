@@ -98,7 +98,7 @@ export function useResizablePanel({
   const sizeRef = useRef(size);
   // Sync via effect, not during render — the strict react-hooks/refs rule
   // forbids render-time ref writes (same effect-sync convention as
-  // AtlasDock's loadMoreRef). Pointer handlers only read this post-render.
+  // AtlasPanel's loadMoreRef). Pointer handlers only read this post-render.
   useEffect(() => {
     sizeRef.current = size;
   }, [size]);

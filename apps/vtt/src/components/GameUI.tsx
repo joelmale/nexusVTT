@@ -19,7 +19,6 @@ import { ErrorBoundary } from './ErrorBoundary';
 import { PanelDock } from './PanelDock';
 import { PlayerClusterFloating } from './PlayerClusterFloating';
 import { FloatingPanel } from './FloatingPanel';
-import { AtlasDock } from './Atlas/AtlasDock';
 import ConnectionStatus from './ConnectionStatus';
 import { applyColorScheme } from '@/utils/colorSchemes';
 import { useUIStackStore, DOCK_ZONES } from '@/stores/uiStackStore';
@@ -318,9 +317,6 @@ export const GameUI: React.FC = () => {
       >
         <DiceBox3D />
       </Suspense>
-
-      {/* C4: Atlas Dock Component */}
-      <AtlasDock />
     </div>
   );
 };
