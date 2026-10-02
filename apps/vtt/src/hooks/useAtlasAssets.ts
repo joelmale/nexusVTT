@@ -6,7 +6,6 @@ import {
   type AtlasSourceAdapter,
   type PaginatedResult,
 } from './atlasSources/types';
-import { CodexSourceAdapter } from './atlasSources/codex';
 import { TokensSourceAdapter } from './atlasSources/tokens';
 import { PropsSourceAdapter } from './atlasSources/props';
 import { LibrarySourceAdapter, LibraryFacets } from './atlasSources/library';
@@ -14,14 +13,13 @@ import { LibrarySourceAdapter, LibraryFacets } from './atlasSources/library';
 const librarySourceAdapter = new LibrarySourceAdapter();
 
 const adapters: AtlasSourceAdapter[] = [
-  new CodexSourceAdapter(),
   new TokensSourceAdapter(),
   new PropsSourceAdapter(),
   librarySourceAdapter,
 ];
 
-// Per-source pagination cursor. Numeric-offset sources (maps/tokens/props/
-// codex) track "next skip" as a number; opaque-cursor sources (library)
+// Per-source pagination cursor. Numeric-offset sources (tokens/props)
+// track "next skip" as a number; opaque-cursor sources (library)
 // track the string the server handed back. `null` means "no next page".
 interface SourceState {
   cursor: AtlasCursor;

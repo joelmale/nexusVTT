@@ -590,6 +590,33 @@ export class TokenAssetManager {
   }
 
   /**
+   * Delete an existing token by ID
+   */
+  deleteToken(tokenId: string): boolean {
+    for (const library of this.tokenLibraries) {
+      const tokenIndex = library.tokens.findIndex((t) => t.id === tokenId);
+      if (tokenIndex >= 0) {
+        library.tokens.splice(tokenIndex, 1);
+        library.updatedAt = Date.now();
+
+        // Persist customizations to localStorage
+        this.saveCustomizations();
+
+        console.log(`Deleted token: ${tokenId}`);
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(
+            new CustomEvent('token-assets-updated', {
+              detail: { tokenId, deleted: true },
+            }),
+          );
+        }
+        return true;
+      }
+    }
+    return false;
+  }
+
+  /**
    * Add custom token to a library
    */
   addCustomToken(
@@ -824,6 +851,7 @@ export const useTokenAssets = () => {
     getLibraries: () => tokenAssetManager.getLibraries(),
     updateToken: (tokenId: string, updates: Partial<Token>) =>
       tokenAssetManager.updateToken(tokenId, updates),
+    deleteToken: (tokenId: string) => tokenAssetManager.deleteToken(tokenId),
     uploadToken: (file: File, userId: string) => tokenAssetManager.uploadTokenToServer(file, userId),
     importFromLocalStorage: (userId: string) => tokenAssetManager.importFromLocalStorage(userId),
   };

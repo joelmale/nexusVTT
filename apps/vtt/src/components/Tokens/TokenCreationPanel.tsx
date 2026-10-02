@@ -169,6 +169,13 @@ export const TokenCreationPanel: React.FC<TokenCreationPanelProps> = ({
       isCustom: true,
     };
 
+    if (initialData?.id) {
+      const updatedToken = tokenAssetManager.updateToken(initialData.id, token);
+      onTokenCreated(updatedToken);
+      onClose();
+      return;
+    }
+
     // Add to default library
     const libraries = tokenAssetManager.getLibraries();
     let targetLibrary = libraries.find((lib) => lib.name === 'Custom Tokens');

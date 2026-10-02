@@ -8,6 +8,10 @@ export interface AtlasAsset {
   height?: number;
   tags?: string[];
   category?: string;
+  rawId?: string;
+  isCustom?: boolean;
+  canEdit?: boolean;
+  canDelete?: boolean;
 }
 
 export interface AtlasSourceError extends Error {

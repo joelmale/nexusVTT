@@ -5,11 +5,20 @@ import Pin from 'lucide-react/dist/esm/icons/pin';
 import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
 import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 import Layers from 'lucide-react/dist/esm/icons/layers';
+import Plus from 'lucide-react/dist/esm/icons/plus';
+import Pencil from 'lucide-react/dist/esm/icons/pencil';
+import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import styles from './AtlasPanel.module.css';
 import { useAtlasAssets } from '@/hooks/useAtlasAssets';
 import { useDockToCanvasDrag, type DragPayload } from '@/hooks/useDockToCanvasDrag';
 import { Portal } from '@/components/Portal';
 import type { AtlasAsset } from '@/hooks/atlasSources/types';
+import { tokenAssetManager } from '@/services/tokenAssets';
+import { propAssetManager } from '@/services/propAssets';
+import { TokenCreationPanel } from '@/components/Tokens/TokenCreationPanel';
+import { PropCreationPanel } from '@/components/Props/PropCreationPanel';
+import type { Token, TokenCategory } from '@/types/token';
+import type { Prop, PropCategory } from '@/types/prop';
 
 const TMT_ATTRIBUTION_URL = 'https://github.com/IsThisMyRealName/too-many-tokens-dnd';
 const STAGED_ASSETS_KEY = 'nexus-atlas-staged-assets';
@@ -25,6 +34,86 @@ interface StagedAsset {
   tags?: string[];
 }
 
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+  return `${parts[0][0]}${parts[1][0]}`.toUpperCase();
+}
+
+function getConsistentColor(name: string): string {
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = (hash << 5) - hash + name.charCodeAt(i);
+    hash |= 0;
+  }
+  const hue = Math.abs(hash) % 360;
+  return `hsl(${hue}, 60%, 42%)`;
+}
+
+interface AssetThumbnailProps {
+  name: string;
+  src: string;
+  className?: string;
+}
+
+const AssetThumbnail: React.FC<AssetThumbnailProps> = ({ name, src, className }) => {
+  const [hasError, setHasError] = useState(false);
+
+  if (hasError || !src) {
+    return (
+      <div
+        className={styles.placeholderToken}
+        style={{ backgroundColor: getConsistentColor(name) }}
+        title={name}
+        aria-hidden="true"
+      >
+        <span>{getInitials(name)}</span>
+      </div>
+    );
+  }
+
+  return (
+    <img
+      src={src}
+      alt={name}
+      className={className}
+      draggable="false"
+      loading="lazy"
+      onError={() => setHasError(true)}
+    />
+  );
+};
+
+function createDefaultEditableToken(rawId: string, asset: AtlasAsset): Token {
+  const now = Date.now();
+  return {
+    id: rawId,
+    name: asset.name,
+    image: asset.thumbnailUrl,
+    category: (asset.category as TokenCategory) || 'monster',
+    size: 'medium',
+    tags: asset.tags,
+    isCustom: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
+function createDefaultEditableProp(rawId: string, asset: AtlasAsset): Prop {
+  const now = Date.now();
+  return {
+    id: rawId,
+    name: asset.name,
+    image: asset.thumbnailUrl,
+    category: (asset.category as PropCategory) || 'other',
+    size: 'small',
+    tags: asset.tags,
+    isCustom: true,
+    createdAt: now,
+    updatedAt: now,
+  };
+}
+
 export const AtlasPanel: React.FC = () => {
   const {
     query,
@@ -37,6 +126,7 @@ export const AtlasPanel: React.FC = () => {
     loadMore,
     hasMore,
     libraryFacets,
+    refresh,
   } = useAtlasAssets();
 
   // Density state
@@ -58,6 +148,25 @@ export const AtlasPanel: React.FC = () => {
       // Ignore storage errors
     }
   };
+
+  // Add Asset Menu & Creation / Editing modals state
+  const [showAddMenu, setShowAddMenu] = useState(false);
+  const [isCreatingToken, setIsCreatingToken] = useState(false);
+  const [isCreatingProp, setIsCreatingProp] = useState(false);
+  const [tokenToEdit, setTokenToEdit] = useState<Token | null>(null);
+  const [propToEdit, setPropToEdit] = useState<Prop | null>(null);
+  const addMenuRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    if (!showAddMenu) return;
+    const handleClickOutside = (e: MouseEvent) => {
+      if (addMenuRef.current && !addMenuRef.current.contains(e.target as Node)) {
+        setShowAddMenu(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [showAddMenu]);
 
   // GM Stage Tray state
   const [stagedAssets, setStagedAssets] = useState<StagedAsset[]>(() => {
@@ -97,6 +206,35 @@ export const AtlasPanel: React.FC = () => {
 
   const clearStaged = () => {
     persistStaged([]);
+  };
+
+  // Delete an asset
+  const handleDeleteAsset = async (e: React.MouseEvent, asset: AtlasAsset) => {
+    e.stopPropagation();
+    if (!window.confirm(`Delete "${asset.name}"? This cannot be undone.`)) {
+      return;
+    }
+    const rawId = asset.rawId || asset.id.replace(/^(tokens|props):/, '');
+    if (asset.source === 'tokens') {
+      tokenAssetManager.deleteToken(rawId);
+    } else if (asset.source === 'props') {
+      await propAssetManager.deleteProp(rawId);
+    }
+    persistStaged(stagedAssets.filter((s) => s.id !== asset.id));
+    refresh();
+  };
+
+  // Edit an asset
+  const handleEditAsset = (e: React.MouseEvent, asset: AtlasAsset) => {
+    e.stopPropagation();
+    const rawId = asset.rawId || asset.id.replace(/^(tokens|props):/, '');
+    if (asset.source === 'tokens') {
+      const foundToken = tokenAssetManager.getTokenById(rawId);
+      setTokenToEdit(foundToken || createDefaultEditableToken(rawId, asset));
+    } else if (asset.source === 'props') {
+      const foundProp = propAssetManager.getPropById(rawId);
+      setPropToEdit(foundProp || createDefaultEditableProp(rawId, asset));
+    }
   };
 
   // Sentinel for pagination (ADR-0008)
@@ -156,6 +294,12 @@ export const AtlasPanel: React.FC = () => {
         ? styles.gridLarge
         : styles.gridMedium;
 
+  const isCoreCategory =
+    category === 'all' ||
+    category === 'pc' ||
+    category === 'monster' ||
+    category === 'props';
+
   return (
     <div className={styles.container} data-testid="atlas-panel">
       {/* Header & Search */}
@@ -214,9 +358,46 @@ export const AtlasPanel: React.FC = () => {
               L
             </button>
           </div>
+
+          {/* Add Asset Dropdown Menu */}
+          <div className={styles.addMenuWrapper} ref={addMenuRef}>
+            <button
+              type="button"
+              className={styles.addAssetBtn}
+              onClick={() => setShowAddMenu(!showAddMenu)}
+              title="Create or upload asset"
+              aria-label="Create or upload asset"
+            >
+              <Plus size={13} aria-hidden="true" /> Add <ChevronDown size={11} aria-hidden="true" />
+            </button>
+            {showAddMenu && (
+              <div className={styles.addDropdown}>
+                <button
+                  type="button"
+                  className={styles.addDropdownItem}
+                  onClick={() => {
+                    setShowAddMenu(false);
+                    setIsCreatingToken(true);
+                  }}
+                >
+                  👤 Custom Token
+                </button>
+                <button
+                  type="button"
+                  className={styles.addDropdownItem}
+                  onClick={() => {
+                    setShowAddMenu(false);
+                    setIsCreatingProp(true);
+                  }}
+                >
+                  📦 Custom Prop
+                </button>
+              </div>
+            )}
+          </div>
         </div>
 
-        {/* Category Pills */}
+        {/* Category Pills & Subcategory Dropdown */}
         <div className={styles.categoryPills} role="tablist" aria-label="Asset categories">
           <button
             type="button"
@@ -246,16 +427,49 @@ export const AtlasPanel: React.FC = () => {
           >
             📦 Props
           </button>
-          {libraryFacets.categories.map((facet) => (
+
+          {!isCoreCategory && (
             <button
-              key={`facet-${facet.name}`}
               type="button"
-              className={`${styles.categoryPill} ${category === facet.name ? styles.categoryPillActive : ''}`}
-              onClick={() => setCategory(facet.name)}
+              className={`${styles.categoryPill} ${styles.categoryPillActive}`}
+              onClick={() => setCategory('all')}
+              title="Clear subcategory filter"
+              aria-label={`Clear ${category} filter`}
             >
-              <Sparkles size={11} aria-hidden="true" /> {facet.name} ({facet.count})
+              <Sparkles size={11} aria-hidden="true" /> {category} ✕
             </button>
-          ))}
+          )}
+
+          <select
+            className={styles.categorySelect}
+            value={!isCoreCategory ? category : ''}
+            onChange={(e) => {
+              if (e.target.value) {
+                setCategory(e.target.value);
+              }
+            }}
+            aria-label="Asset subcategory"
+          >
+            <option value="">⚡ Subcategories...</option>
+            {libraryFacets.categories.length > 0 && (
+              <optgroup label="Library Categories">
+                {libraryFacets.categories.map((facet) => (
+                  <option key={`facet-${facet.name}`} value={facet.name}>
+                    {facet.name} ({facet.count})
+                  </option>
+                ))}
+              </optgroup>
+            )}
+            {libraryFacets.tags.length > 0 && (
+              <optgroup label="Popular Tags">
+                {libraryFacets.tags.slice(0, 25).map((tag) => (
+                  <option key={`tag-${tag.name}`} value={tag.name}>
+                    #{tag.name} ({tag.count})
+                  </option>
+                ))}
+              </optgroup>
+            )}
+          </select>
         </div>
       </div>
 
@@ -361,13 +575,35 @@ export const AtlasPanel: React.FC = () => {
                     onPointerCancel={handlePointerUp}
                   >
                     <div className={styles.imageWrapper}>
-                      <img
+                      <AssetThumbnail
                         src={asset.thumbnailUrl}
-                        alt={asset.name}
+                        name={asset.name}
                         className={styles.cardImage}
-                        draggable="false"
-                        loading="lazy"
                       />
+                      <div className={styles.cardActions}>
+                        {asset.canEdit && (
+                          <button
+                            type="button"
+                            className={styles.cardActionBtn}
+                            onClick={(e) => handleEditAsset(e, asset)}
+                            title={`Edit ${asset.name}`}
+                            aria-label={`Edit ${asset.name}`}
+                          >
+                            <Pencil size={11} />
+                          </button>
+                        )}
+                        {asset.canDelete && (
+                          <button
+                            type="button"
+                            className={`${styles.cardActionBtn} ${styles.cardActionBtnDanger}`}
+                            onClick={(e) => handleDeleteAsset(e, asset)}
+                            title={`Delete ${asset.name}`}
+                            aria-label={`Delete ${asset.name}`}
+                          >
+                            <Trash2 size={11} />
+                          </button>
+                        )}
+                      </div>
                       <button
                         type="button"
                         className={`${styles.pinBadge} ${isStaged ? styles.pinBadgeActive : ''}`}
@@ -441,6 +677,39 @@ export const AtlasPanel: React.FC = () => {
             }}
           />
         </Portal>
+      )}
+
+      {/* Modals for Creating & Editing Tokens and Props */}
+      {(isCreatingToken || tokenToEdit) && (
+        <TokenCreationPanel
+          isOpen={true}
+          initialData={tokenToEdit || undefined}
+          onClose={() => {
+            setIsCreatingToken(false);
+            setTokenToEdit(null);
+          }}
+          onTokenCreated={() => {
+            setIsCreatingToken(false);
+            setTokenToEdit(null);
+            refresh();
+          }}
+        />
+      )}
+
+      {(isCreatingProp || propToEdit) && (
+        <PropCreationPanel
+          isOpen={true}
+          initialData={propToEdit || undefined}
+          onClose={() => {
+            setIsCreatingProp(false);
+            setPropToEdit(null);
+          }}
+          onPropSaved={() => {
+            setIsCreatingProp(false);
+            setPropToEdit(null);
+            refresh();
+          }}
+        />
       )}
     </div>
   );

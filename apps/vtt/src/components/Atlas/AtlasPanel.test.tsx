@@ -238,7 +238,7 @@ describe('AtlasPanel (Unified Tactical Asset Studio)', () => {
     expect(callArgs[1].id).toBe(assets[0].id);
   });
 
-  it('renders library facets and allows selecting facet categories', () => {
+  it('renders library facets dropdown and allows selecting facet categories', () => {
     const setCategory = vi.fn();
     vi.spyOn(useAtlasAssetsModule, 'useAtlasAssets').mockReturnValue({
       ...baseHookReturn,
@@ -251,10 +251,63 @@ describe('AtlasPanel (Unified Tactical Asset Studio)', () => {
 
     render(<AtlasPanel />);
 
-    const facetBtn = screen.getByRole('button', { name: /Undead \(18\)/i });
-    expect(facetBtn).toBeInTheDocument();
-    fireEvent.click(facetBtn);
+    const select = screen.getByRole('combobox', { name: /Asset subcategory/i });
+    expect(select).toBeInTheDocument();
+    fireEvent.change(select, { target: { value: 'Undead' } });
     expect(setCategory).toHaveBeenCalledWith('Undead');
+  });
+
+  it('allows opening the Add Asset menu and initiating token creation', () => {
+    vi.spyOn(useAtlasAssetsModule, 'useAtlasAssets').mockReturnValue(baseHookReturn);
+
+    render(<AtlasPanel />);
+
+    const addBtn = screen.getByRole('button', { name: /Create or upload asset/i });
+    expect(addBtn).toBeInTheDocument();
+    fireEvent.click(addBtn);
+
+    const customTokenOption = screen.getByText(/Custom Token/i);
+    expect(customTokenOption).toBeInTheDocument();
+    fireEvent.click(customTokenOption);
+
+    // Token creation modal should appear
+    expect(screen.getByText(/Create Custom Token/i)).toBeInTheDocument();
+  });
+
+  it('renders edit and delete buttons for custom assets and handles deletion', async () => {
+    const refresh = vi.fn();
+    const customAsset: AtlasAsset = {
+      id: 'tokens:custom-123',
+      rawId: 'custom-123',
+      source: 'tokens',
+      name: 'Custom Orc',
+      thumbnailUrl: 'http://example.com/orc.png',
+      resolveFullAsset: async () => 'http://example.com/orc-full.png',
+      isCustom: true,
+      canEdit: true,
+      canDelete: true,
+    };
+
+    vi.spyOn(useAtlasAssetsModule, 'useAtlasAssets').mockReturnValue({
+      ...baseHookReturn,
+      assets: [customAsset],
+      refresh,
+    });
+
+    const confirmSpy = vi.spyOn(window, 'confirm').mockReturnValue(true);
+
+    render(<AtlasPanel />);
+
+    const editBtn = screen.getByRole('button', { name: `Edit ${customAsset.name}` });
+    const deleteBtn = screen.getByRole('button', { name: `Delete ${customAsset.name}` });
+
+    expect(editBtn).toBeInTheDocument();
+    expect(deleteBtn).toBeInTheDocument();
+
+    // Trigger delete
+    fireEvent.click(deleteBtn);
+    expect(confirmSpy).toHaveBeenCalled();
+    expect(refresh).toHaveBeenCalled();
   });
 
   it('allows dragging an item from the GM Stage Tray onto the canvas', () => {
@@ -308,3 +361,4 @@ describe('AtlasPanel (Unified Tactical Asset Studio)', () => {
     expect(ghost.getAttribute('src')).toBe('http://example.com/ghost.png');
   });
 });
+

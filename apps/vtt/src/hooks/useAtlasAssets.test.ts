@@ -1,7 +1,6 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useAtlasAssets } from './useAtlasAssets';
-import { CodexSourceAdapter } from './atlasSources/codex';
 import { TokensSourceAdapter } from './atlasSources/tokens';
 import { PropsSourceAdapter } from './atlasSources/props';
 import { LibrarySourceAdapter } from './atlasSources/library';
@@ -14,7 +13,6 @@ describe('useAtlasAssets lazy fetch (ADR-0009)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     listSpies = [
-      vi.spyOn(CodexSourceAdapter.prototype, 'list').mockResolvedValue(emptyResult),
       vi.spyOn(TokensSourceAdapter.prototype, 'list').mockResolvedValue(emptyResult),
       vi.spyOn(PropsSourceAdapter.prototype, 'list').mockResolvedValue(emptyResult),
       vi.spyOn(LibrarySourceAdapter.prototype, 'list').mockResolvedValue(emptyResult),
@@ -85,8 +83,8 @@ describe('useAtlasAssets lazy fetch (ADR-0009)', () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
 
-    // Library is listSpies[3] (codex, tokens, props, library)
-    const librarySpy = listSpies[3];
+    // Library is listSpies[2] (tokens, props, library)
+    const librarySpy = listSpies[2];
     expect(librarySpy).toHaveBeenCalled();
   });
 });
@@ -109,7 +107,6 @@ describe('useAtlasAssets loadMore (C6b)', () => {
 
   beforeEach(() => {
     vi.useFakeTimers();
-    vi.spyOn(CodexSourceAdapter.prototype, 'list').mockResolvedValue(emptyResult);
     vi.spyOn(PropsSourceAdapter.prototype, 'list').mockResolvedValue(emptyResult);
     vi.spyOn(LibrarySourceAdapter.prototype, 'list').mockResolvedValue(emptyResult);
     vi.spyOn(LibrarySourceAdapter.prototype, 'fetchFacets').mockResolvedValue({

@@ -35,12 +35,16 @@ export class PropsSourceAdapter implements AtlasSourceAdapter {
 
     const assets: AtlasAsset[] = page.map((p) => ({
       id: `props:${p.id}`,
+      rawId: p.id,
       source: this.source,
       name: p.name,
       thumbnailUrl: p.image,
       resolveFullAsset: async () => p.image,
       tags: p.tags,
       category: p.category,
+      isCustom: p.isCustom ?? false,
+      canEdit: true,
+      canDelete: p.isCustom ?? false,
     }));
 
     return {
@@ -69,12 +73,16 @@ export class PropsSourceAdapter implements AtlasSourceAdapter {
 
     const assets: AtlasAsset[] = page.map((p) => ({
       id: `props:${p.id}`,
+      rawId: p.id,
       source: this.source,
       name: p.name,
       thumbnailUrl: p.image,
       resolveFullAsset: async () => p.image,
       tags: p.tags,
       category: p.category,
+      isCustom: p.isCustom ?? false,
+      canEdit: true,
+      canDelete: p.isCustom ?? false,
     }));
 
     return {

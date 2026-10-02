@@ -109,7 +109,66 @@
   color: #ffffff;
 }
 
-/* Category Chips */
+.addMenuWrapper {
+  position: relative;
+}
+
+.addAssetBtn {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 5px 10px;
+  border-radius: 8px;
+  background: var(--color-primary, #6366f1);
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.addAssetBtn:hover {
+  background: var(--color-primary-hover, #4f46e5);
+}
+
+.addDropdown {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  background: var(--glass-surface-strong, #1e293b);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.15));
+  border-radius: 8px;
+  padding: 4px;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.5);
+  z-index: 50;
+  min-width: 170px;
+}
+
+.addDropdownItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 7px 10px;
+  border-radius: 6px;
+  background: none;
+  border: none;
+  color: var(--glass-text, #f9fafb);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+  transition: background 0.12s ease;
+}
+
+.addDropdownItem:hover {
+  background: var(--surface-hover, rgba(255, 255, 255, 0.1));
+}
+
+/* Category Chips & Subcategory Dropdown */
 .categoryPills {
   display: flex;
   align-items: center;
@@ -118,6 +177,31 @@
   padding-bottom: 2px;
   -ms-overflow-style: none;
   scrollbar-width: none;
+}
+
+.categorySelect {
+  padding: 4px 8px;
+  border-radius: 14px;
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.15));
+  background: var(--surface-subtle, rgba(0, 0, 0, 0.3));
+  color: var(--glass-text-secondary, #d1d5db);
+  font-size: 11px;
+  font-weight: 500;
+  outline: none;
+  cursor: pointer;
+  transition: border-color 0.15s ease;
+  max-width: 160px;
+}
+
+.categorySelect:focus {
+  border-color: var(--color-primary, #6366f1);
+  color: #ffffff;
+}
+
+.categorySelect option,
+.categorySelect optgroup {
+  background: #1e293b;
+  color: #f9fafb;
 }
 
 .categoryPills::-webkit-scrollbar {
@@ -374,6 +458,64 @@
 .pinBadge:hover {
   color: #ffffff;
   background: var(--color-primary, #6366f1);
+}
+
+.cardActions {
+  position: absolute;
+  top: 6px;
+  left: 6px;
+  display: flex;
+  gap: 4px;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+  z-index: 2;
+}
+
+.card:hover .cardActions {
+  opacity: 1;
+}
+
+.cardActionBtn {
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  background: var(--glass-surface-strong, rgba(15, 23, 42, 0.85));
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.2));
+  color: var(--glass-text-muted, #9ca3af);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.15s, background 0.15s, transform 0.1s;
+}
+
+.cardActionBtn:hover {
+  color: #ffffff;
+  background: var(--color-primary, #6366f1);
+  transform: scale(1.05);
+}
+
+.cardActionBtnDanger:hover {
+  background: var(--color-danger, #ef4444);
+  border-color: var(--color-danger, #ef4444);
+}
+
+.placeholderToken {
+  width: 68%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  border: 3px solid rgba(255, 255, 255, 0.35);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4), inset 0 0 10px rgba(0, 0, 0, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #ffffff;
+  font-weight: 700;
+  font-size: 16px;
+  letter-spacing: 0.5px;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+  -webkit-user-select: none;
+  user-select: none;
 }
 
 .cardMeta {

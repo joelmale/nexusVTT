@@ -222,6 +222,27 @@ describe('TokenAssetManager core methods & library management', () => {
     );
   });
 
+  it('deletes an existing token and dispatches update event', () => {
+    const listener = vi.fn();
+    window.addEventListener('token-assets-updated', listener);
+
+    try {
+      const deleted = manager.deleteToken('manifest-wizard');
+      expect(deleted).toBe(true);
+      expect(manager.getTokenById('manifest-wizard')).toBeNull();
+      expect(listener).toHaveBeenCalledWith(
+        expect.objectContaining({
+          detail: { tokenId: 'manifest-wizard', deleted: true },
+        }),
+      );
+
+      // Deleting non-existent token returns false
+      expect(manager.deleteToken('non-existent')).toBe(false);
+    } finally {
+      window.removeEventListener('token-assets-updated', listener);
+    }
+  });
+
   it('selects default token for character matching class or generic fallback', async () => {
     const wizardMatch = await manager.getDefaultTokenForCharacter({
       name: 'Elminster',

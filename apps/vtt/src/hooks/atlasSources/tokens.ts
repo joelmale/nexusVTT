@@ -36,12 +36,20 @@ export class TokensSourceAdapter implements AtlasSourceAdapter {
 
     const assets: AtlasAsset[] = page.map((t) => ({
       id: `tokens:${t.id}`,
+      rawId: t.id,
       source: this.source,
       name: t.name,
-      thumbnailUrl: t.image,
-      resolveFullAsset: async () => t.image,
+      thumbnailUrl:
+        t.thumbnailImage ||
+        t.image ||
+        tokenAssetManager.createPlaceholderTokenImage(t.name),
+      resolveFullAsset: async () =>
+        t.image || tokenAssetManager.createPlaceholderTokenImage(t.name),
       tags: t.tags,
       category: t.category,
+      isCustom: t.isCustom ?? false,
+      canEdit: true,
+      canDelete: t.isCustom ?? false,
     }));
 
     return {
@@ -70,12 +78,20 @@ export class TokensSourceAdapter implements AtlasSourceAdapter {
 
     const assets: AtlasAsset[] = page.map((t) => ({
       id: `tokens:${t.id}`,
+      rawId: t.id,
       source: this.source,
       name: t.name,
-      thumbnailUrl: t.image,
-      resolveFullAsset: async () => t.image,
+      thumbnailUrl:
+        t.thumbnailImage ||
+        t.image ||
+        tokenAssetManager.createPlaceholderTokenImage(t.name),
+      resolveFullAsset: async () =>
+        t.image || tokenAssetManager.createPlaceholderTokenImage(t.name),
       tags: t.tags,
       category: t.category,
+      isCustom: t.isCustom ?? false,
+      canEdit: true,
+      canDelete: t.isCustom ?? false,
     }));
 
     return {
