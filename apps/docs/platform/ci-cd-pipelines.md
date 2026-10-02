@@ -102,8 +102,11 @@ currently warn without failing this aggregate check.
 uses the catalog to calculate dependency fanout. PRs use their base SHA;
 main-push CI uses the previous push SHA. Merge-queue, manual, schedule, and release
 events select the full suite. Unknown paths or failed change
-detection select every target conservatively. Root packages, lockfiles, CI
-configuration, deployment files, and shared scripts intentionally fan out.
+detection select every target conservatively. Root manifests, lockfiles, CI
+configuration, and shared scripts intentionally fan out. Each `packages/<name>`
+rule lists only the images that consume that package. Deployment and monitoring
+files, repository docs, and editor or agent configuration select no target. An
+uncatalogued new package is an unknown path, so add a rule for it.
 
 The lane never publishes images or deploys documentation. Node workflows
 currently use Node.js `26.5.1` and the root npm lockfile. Jobs check out the source

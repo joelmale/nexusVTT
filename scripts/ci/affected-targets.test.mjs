@@ -198,11 +198,66 @@ describe('representative Stage 3A change classes', () => {
     'package.json',
     'package-lock.json',
     '.npmrc',
-    'packages/character-contracts/src/index.ts',
-  ])('fans root/shared dependency input %s out to every target', (path) => {
+    '.prettierrc',
+    '.grype.yaml',
+  ])('fans root dependency or tooling input %s out to every target', (path) => {
     const decision = decide(path);
     expect(decision.mode).toBe('targeted');
     expectAffected(decision, allTargets);
+  });
+
+  test.each([
+    [
+      'packages/character-contracts/src/index.ts',
+      ['vtt', 'forge', 'codex-dm-ui', 'gateway'],
+    ],
+    ['packages/character-creator/src/index.ts', ['vtt', 'forge', 'gateway']],
+    [
+      'packages/game-contracts/src/prep.ts',
+      ['vtt', 'forge', 'codex-dm-ui', 'gateway'],
+    ],
+    [
+      'packages/rules-5e/src/index.ts',
+      ['vtt', 'forge', 'codex-dm-ui', 'gateway'],
+    ],
+    [
+      'packages/document-contracts/src/index.ts',
+      ['vtt', 'forge', 'codex-doc-api', 'gateway'],
+    ],
+    [
+      'packages/rules-contracts/src/index.ts',
+      [
+        'vtt',
+        'forge',
+        'codex-admin-ui',
+        'codex-doc-api',
+        'control-api',
+        'gateway',
+      ],
+    ],
+  ])('limits shared package %s to its image consumers', (path, expected) => {
+    expectAffected(decide(path), expected);
+  });
+
+  test('falls back to every target for an uncatalogued shared package', () => {
+    const decision = decide('packages/new-package/src/index.ts');
+    expect(decision.reason).toBe('unknown-paths');
+    expectAffected(decision, allTargets);
+  });
+
+  test.each([
+    'deploy/homelab/compose.yaml',
+    'monitoring/prometheus.yml',
+    '.claude/launch.json',
+    '.agents/skills/example/SKILL.md',
+    'CLAUDE.md',
+    'apps/codex/README.md',
+    'dev-docs/workflows.md',
+  ])('classifies %s without affecting any target', (path) => {
+    const decision = decide(path);
+    expect(decision.mode).toBe('targeted');
+    expect(decision.unknownPaths).toEqual([]);
+    expectAffected(decision, []);
   });
 
   test('propagates VTT migrations through Postgres and gateway consumers', () => {
@@ -227,8 +282,6 @@ describe('representative Stage 3A change classes', () => {
   });
 
   test.each([
-    'deploy/homelab/compose.yaml',
-    'monitoring/prometheus.yml',
     '.github/workflows/ci.yml',
     '.github/ci/affected-targets.json',
     '.dockerignore',
@@ -239,12 +292,15 @@ describe('representative Stage 3A change classes', () => {
   test.each([
     '.github/dependabot.yml',
     '.github/workflows/dependabot-auto-merge.yml',
-  ])('classifies Dependabot automation %s without affecting any target', (path) => {
-    const decision = decide(path);
-    expect(decision.mode).toBe('targeted');
-    expect(decision.unknownPaths).toEqual([]);
-    expectAffected(decision, []);
-  });
+  ])(
+    'classifies Dependabot automation %s without affecting any target',
+    (path) => {
+      const decision = decide(path);
+      expect(decision.mode).toBe('targeted');
+      expect(decision.unknownPaths).toEqual([]);
+      expectAffected(decision, []);
+    },
+  );
 
   test.each([
     '.github/workflows/nightly.yml',

@@ -329,10 +329,83 @@
         ".dockerignore",
         "Makefile",
         ".husky/**",
-        "packages/**",
-        "scripts/**"
+        "scripts/**",
+        ".gitattributes",
+        ".prettierrc",
+        ".prettierignore",
+        ".grype.yaml"
       ],
       "targets": "all"
+    },
+    {
+      "name": "shared-package-character-contracts",
+      "paths": ["packages/character-contracts/**"],
+      "targets": ["vtt", "forge", "codex-dm-ui"]
+    },
+    {
+      "name": "shared-package-character-creator",
+      "paths": ["packages/character-creator/**"],
+      "targets": ["vtt", "forge"]
+    },
+    {
+      "name": "shared-package-game-contracts",
+      "paths": ["packages/game-contracts/**"],
+      "targets": ["vtt", "forge", "codex-dm-ui"]
+    },
+    {
+      "name": "shared-package-rules-5e",
+      "paths": ["packages/rules-5e/**"],
+      "targets": ["vtt", "forge", "codex-dm-ui"]
+    },
+    {
+      "name": "shared-package-document-contracts",
+      "paths": ["packages/document-contracts/**"],
+      "targets": ["vtt", "forge", "codex-doc-api"]
+    },
+    {
+      "name": "shared-package-rules-contracts",
+      "paths": ["packages/rules-contracts/**"],
+      "targets": [
+        "vtt",
+        "forge",
+        "codex-admin-ui",
+        "codex-doc-api",
+        "control-api"
+      ]
+    },
+    {
+      "name": "vtt-dependency-patches",
+      "paths": ["apps/vtt/patches/**", "apps/vtt/docker/health-check.js"],
+      "targets": ["assets", "vtt"]
+    },
+    {
+      "name": "codex-extraction-goldset",
+      "paths": ["apps/codex/eval/**"],
+      "targets": ["codex-doc-processor"]
+    },
+    {
+      "name": "repository-docs-and-editor-config",
+      "paths": [
+        ".agents/**",
+        ".claude/**",
+        ".vscode/**",
+        ".idea/**",
+        ".editorconfig",
+        ".gitignore",
+        ".hintrc",
+        "*.md",
+        "LICENSE",
+        "dev-docs/**",
+        "apps/*/*.md",
+        "apps/*/LICENSE",
+        "apps/*/.gitignore",
+        "apps/*/.claude/**",
+        "apps/codex/.github/**",
+        "apps/codex/.env.production.example",
+        "apps/codex/codex_backlog.json",
+        "apps/vtt/docker/*.md"
+      ],
+      "targets": []
     },
     {
       "name": "ci-configuration",
@@ -369,7 +442,7 @@
     {
       "name": "deployment-and-monitoring",
       "paths": ["deploy/**", "monitoring/**"],
-      "targets": "all"
+      "targets": []
     },
     {
       "name": "codex-shared-configuration",
