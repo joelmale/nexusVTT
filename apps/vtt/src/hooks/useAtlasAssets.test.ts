@@ -2,7 +2,6 @@ import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
 import { useAtlasAssets } from './useAtlasAssets';
 import { CodexSourceAdapter } from './atlasSources/codex';
-import { MapsSourceAdapter } from './atlasSources/maps';
 import { TokensSourceAdapter } from './atlasSources/tokens';
 import { PropsSourceAdapter } from './atlasSources/props';
 import { LibrarySourceAdapter } from './atlasSources/library';
@@ -16,7 +15,6 @@ describe('useAtlasAssets lazy fetch (ADR-0009)', () => {
     vi.useFakeTimers();
     listSpies = [
       vi.spyOn(CodexSourceAdapter.prototype, 'list').mockResolvedValue(emptyResult),
-      vi.spyOn(MapsSourceAdapter.prototype, 'list').mockResolvedValue(emptyResult),
       vi.spyOn(TokensSourceAdapter.prototype, 'list').mockResolvedValue(emptyResult),
       vi.spyOn(PropsSourceAdapter.prototype, 'list').mockResolvedValue(emptyResult),
       vi.spyOn(LibrarySourceAdapter.prototype, 'list').mockResolvedValue(emptyResult),
@@ -87,22 +85,23 @@ describe('useAtlasAssets lazy fetch (ADR-0009)', () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
 
-    const librarySpy = listSpies[4];
+    // Library is listSpies[3] (codex, tokens, props, library)
+    const librarySpy = listSpies[3];
     expect(librarySpy).toHaveBeenCalled();
   });
 });
 
 describe('useAtlasAssets loadMore (C6b)', () => {
   const page1Asset = {
-    id: 'maps:page1',
-    source: 'maps' as const,
+    id: 'tokens:page1',
+    source: 'tokens' as const,
     name: 'Page 1 Asset',
     thumbnailUrl: 'http://example.com/1.png',
     resolveFullAsset: async () => 'http://example.com/1-full.png',
   };
   const page2Asset = {
-    id: 'maps:page2',
-    source: 'maps' as const,
+    id: 'tokens:page2',
+    source: 'tokens' as const,
     name: 'Page 2 Asset',
     thumbnailUrl: 'http://example.com/2.png',
     resolveFullAsset: async () => 'http://example.com/2-full.png',
@@ -111,7 +110,6 @@ describe('useAtlasAssets loadMore (C6b)', () => {
   beforeEach(() => {
     vi.useFakeTimers();
     vi.spyOn(CodexSourceAdapter.prototype, 'list').mockResolvedValue(emptyResult);
-    vi.spyOn(TokensSourceAdapter.prototype, 'list').mockResolvedValue(emptyResult);
     vi.spyOn(PropsSourceAdapter.prototype, 'list').mockResolvedValue(emptyResult);
     vi.spyOn(LibrarySourceAdapter.prototype, 'list').mockResolvedValue(emptyResult);
     vi.spyOn(LibrarySourceAdapter.prototype, 'fetchFacets').mockResolvedValue({
@@ -119,7 +117,7 @@ describe('useAtlasAssets loadMore (C6b)', () => {
       tags: [],
     });
 
-    vi.spyOn(MapsSourceAdapter.prototype, 'list')
+    vi.spyOn(TokensSourceAdapter.prototype, 'list')
       .mockResolvedValueOnce({ assets: [page1Asset], hasMore: true, total: 2 })
       .mockResolvedValueOnce({ assets: [page2Asset], hasMore: false, total: 2 });
   });
@@ -136,14 +134,14 @@ describe('useAtlasAssets loadMore (C6b)', () => {
       await vi.advanceTimersByTimeAsync(1000);
     });
 
-    expect(result.current.assets.map(a => a.id)).toEqual(['maps:page1']);
+    expect(result.current.assets.map(a => a.id)).toEqual(['tokens:page1']);
     expect(result.current.hasMore).toBe(true);
 
     await act(async () => {
       await result.current.loadMore();
     });
 
-    expect(result.current.assets.map(a => a.id)).toEqual(['maps:page1', 'maps:page2']);
+    expect(result.current.assets.map(a => a.id)).toEqual(['tokens:page1', 'tokens:page2']);
     expect(result.current.hasMore).toBe(false);
   });
 });

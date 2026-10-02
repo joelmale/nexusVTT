@@ -200,7 +200,6 @@ export const AtlasDock: React.FC = () => {
               onChange={e => setCategory(e.target.value)}
             >
               <option value="all">All Categories</option>
-              <option value="maps">Maps</option>
               <option value="pc">PC Tokens</option>
               <option value="monster">Monster Tokens</option>
               <option value="props">Props</option>

@@ -7,7 +7,6 @@ import {
   type PaginatedResult,
 } from './atlasSources/types';
 import { CodexSourceAdapter } from './atlasSources/codex';
-import { MapsSourceAdapter } from './atlasSources/maps';
 import { TokensSourceAdapter } from './atlasSources/tokens';
 import { PropsSourceAdapter } from './atlasSources/props';
 import { LibrarySourceAdapter, LibraryFacets } from './atlasSources/library';
@@ -16,7 +15,6 @@ const librarySourceAdapter = new LibrarySourceAdapter();
 
 const adapters: AtlasSourceAdapter[] = [
   new CodexSourceAdapter(),
-  new MapsSourceAdapter(),
   new TokensSourceAdapter(),
   new PropsSourceAdapter(),
   librarySourceAdapter,
