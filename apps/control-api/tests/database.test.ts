@@ -75,6 +75,14 @@ describe('Database Explorer routes and store logic', () => {
       expect(usersTable).toBeDefined();
       expect(usersTable?.domain).toBe('vtt');
       expect(usersTable?.estimatedRows).toBe(3);
+
+      const docsTable = body.tables.find((t) => t.tableName === 'documents');
+      expect(docsTable).toBeDefined();
+      expect(docsTable?.domain).toBe('codex');
+
+      const structuredDataTable = body.tables.find((t) => t.tableName === 'structured_data');
+      expect(structuredDataTable).toBeDefined();
+      expect(structuredDataTable?.domain).toBe('codex');
     });
   });
 
@@ -96,6 +104,24 @@ describe('Database Explorer routes and store logic', () => {
 
       const emailCol = body.columns.find((c) => c.columnName === 'email');
       expect(emailCol).toBeDefined();
+    });
+
+    it('returns schema for codex tables (documents, structured_data)', async () => {
+      const session = await h.sessionFor(['operator']);
+      const resDocs = await h.request('/control-api/v1/database/tables/documents/schema', { session });
+      expect(resDocs.status).toBe(200);
+      const docsSchema = (await resDocs.json()) as { tableName: string; columns: Array<{ columnName: string; canSelect?: boolean }> };
+      expect(docsSchema.tableName).toBe('documents');
+      expect(docsSchema.columns.some((c) => c.columnName === 'title')).toBe(true);
+      expect(docsSchema.columns.some((c) => c.columnName === 'fileSize')).toBe(true);
+      expect(docsSchema.columns.every((c) => c.canSelect === true)).toBe(true);
+
+      const resSd = await h.request('/control-api/v1/database/tables/structured_data/schema', { session });
+      expect(resSd.status).toBe(200);
+      const sdSchema = (await resSd.json()) as { tableName: string; columns: Array<{ columnName: string }> };
+      expect(sdSchema.tableName).toBe('structured_data');
+      expect(sdSchema.columns.some((c) => c.columnName === 'name')).toBe(true);
+      expect(sdSchema.columns.some((c) => c.columnName === 'data')).toBe(true);
     });
 
     it('returns 404 for unknown table', async () => {
@@ -175,6 +201,62 @@ describe('Database Explorer routes and store logic', () => {
       expect(resDesc.status).toBe(200);
       const dataDesc = (await resDesc.json()) as { rows: Array<{ email: string }> };
       expect(dataDesc.rows[0]?.email).toBe('zeta@example.com');
+    });
+
+    it('returns rows for codex documents via doc-api', async () => {
+      const session = await h.sessionFor(['operator']);
+      h.upstream.respond = (call) => {
+        if (call.url.includes('/api/admin/documents')) {
+          return new Response(JSON.stringify({
+            documents: [
+              {
+                id: 'doc-1',
+                title: "Player's Handbook",
+                type: 'rulebook',
+                format: 'pdf',
+                fileSize: 1048576,
+                pageCount: 316,
+                uploadedBy: 'u-1',
+                ocrStatus: 'completed',
+              },
+            ],
+            pagination: { total: 1, page: 1, limit: 25, totalPages: 1 },
+          }), { status: 200, headers: { 'content-type': 'application/json' } });
+        }
+        return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'content-type': 'application/json' } });
+      };
+
+      const res = await h.request('/control-api/v1/database/tables/documents/rows', { session });
+      expect(res.status).toBe(200);
+      const data = (await res.json()) as { tableName: string; rows: Array<{ id: string; title: string }>; totalCount: number };
+      expect(data.tableName).toBe('documents');
+      expect(data.totalCount).toBe(1);
+      expect(data.rows[0]?.title).toBe("Player's Handbook");
+    });
+
+    it('returns rows for codex structured_data via doc-api', async () => {
+      const session = await h.sessionFor(['operator']);
+      h.upstream.respond = (call) => {
+        if (call.url.includes('/api/structured-data')) {
+          return new Response(JSON.stringify([
+            {
+              id: 'sd-1',
+              documentId: 'doc-1',
+              type: 'spell',
+              name: 'Fireball',
+              data: { level: 3, school: 'evocation' },
+              searchText: 'Fireball evocation',
+            },
+          ]), { status: 200, headers: { 'content-type': 'application/json' } });
+        }
+        return new Response(JSON.stringify({ ok: true }), { status: 200, headers: { 'content-type': 'application/json' } });
+      };
+
+      const res = await h.request('/control-api/v1/database/tables/structured_data/rows', { session });
+      expect(res.status).toBe(200);
+      const data = (await res.json()) as { tableName: string; rows: Array<{ id: string; name: string }>; totalCount: number };
+      expect(data.tableName).toBe('structured_data');
+      expect(data.rows[0]?.name).toBe('Fireball');
     });
 
     it('returns permissionDenied: true when user lacks SELECT permission on all columns', async () => {

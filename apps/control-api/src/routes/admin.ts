@@ -1,5 +1,6 @@
 import express, { Router, type Request, type Response } from 'express';
 import { z } from 'zod';
+import { getCodexTableRows, getCodexTableSchema, isCodexTable, listCodexTables } from '../codex/databaseProvider.js';
 import { RECENT_AUTH_MS, type AppDeps } from '../deps.js';
 import { auditEvent, ctx, sendError } from '../http/context.js';
 import { authorization, guard } from '../http/guard.js';
@@ -159,14 +160,19 @@ export function adminRouter(deps: AppDeps): Router {
   );
 
   router.get('/database/tables', guard(deps, { permission: ['ops:read'], action: 'database.read', resourceType: 'database' }), async (_req, res) => {
-    const tables = await deps.store.listDatabaseTables();
-    res.json({ tables });
+    const pgTables = await deps.store.listDatabaseTables();
+    const codexTables = await listCodexTables(deps);
+    res.json({ tables: [...pgTables, ...codexTables] });
   });
 
   router.get('/database/tables/:table/schema', guard(deps, { permission: ['ops:read'], action: 'database.read', resourceType: 'database' }), async (req, res) => {
     const table = req.params.table;
     if (typeof table !== 'string' || !/^[a-zA-Z_][a-zA-Z0-9_]*$/.test(table)) {
       return sendError(res, 400, 'invalid_table_name');
+    }
+    const codexSchema = getCodexTableSchema(table);
+    if (codexSchema) {
+      return res.json(codexSchema);
     }
     const schema = await deps.store.getTableSchema(table);
     if (!schema) return sendError(res, 404, 'table_not_found');
@@ -183,6 +189,16 @@ export function adminRouter(deps: AppDeps): Router {
 
     const limit = Math.min(Math.max(Number(query.data.limit ?? 25), 1), 100);
     const offset = Math.max(Number(query.data.offset ?? 0), 0);
+
+    if (isCodexTable(table)) {
+      const codexResult = await getCodexTableRows(deps, table, {
+        limit,
+        offset,
+        sortColumn: query.data.sortColumn,
+        sortDirection: query.data.sortDirection,
+      });
+      if (codexResult) return res.json(codexResult);
+    }
 
     const result = await deps.store.getTableRows(table, {
       limit,
