@@ -1,5 +1,3 @@
-#!/usr/bin/env node
-
 import { execFile, spawn } from 'node:child_process';
 import fs from 'node:fs';
 import { createRequire } from 'node:module';

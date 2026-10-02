@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import X from 'lucide-react/dist/esm/icons/x';
 import { useNavigate } from 'react-router-dom';
@@ -34,6 +34,14 @@ const SAMPLE_MAP_OPTIONS = [
   },
 ];
 
+interface LibraryMapOption {
+  id: string;
+  name: string;
+  category?: string;
+  path: string;
+  thumbnail?: string;
+}
+
 export function MapsContent() {
   const { bundle, basePath, store } = useSectionBundle();
   const { notifyCapability } = useCapabilityNotice();
@@ -45,12 +53,55 @@ export function MapsContent() {
   const [selectedSample, setSelectedSample] = useState(SAMPLE_MAP_OPTIONS[0].path);
   const [customPath, setCustomPath] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [libraryMaps, setLibraryMaps] = useState<LibraryMapOption[]>([]);
+  const [mapSearch, setMapSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+
+  useEffect(() => {
+    let isMounted = true;
+    fetch('/assets/defaults/manifest.json')
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (isMounted && data?.maps?.items && Array.isArray(data.maps.items)) {
+          setLibraryMaps(data.maps.items);
+        }
+      })
+      .catch(() => {
+        // Fall back gracefully if manifest is not accessible
+      });
+    return () => {
+      isMounted = false;
+    };
+  }, []);
+
+  const categories = useMemo(() => {
+    const set = new Set<string>();
+    libraryMaps.forEach((m) => {
+      if (m.category) set.add(m.category);
+    });
+    return Array.from(set).sort();
+  }, [libraryMaps]);
+
+  const filteredLibraryMaps = useMemo(() => {
+    const q = mapSearch.trim().toLowerCase();
+    return libraryMaps.filter((m) => {
+      const matchesCategory =
+        selectedCategory === 'all' || m.category === selectedCategory;
+      const matchesQuery =
+        !q ||
+        m.name.toLowerCase().includes(q) ||
+        (m.category && m.category.toLowerCase().includes(q));
+      return matchesCategory && matchesQuery;
+    });
+  }, [libraryMaps, mapSearch, selectedCategory]);
 
   const handleOpenModal = () => {
     setTitle('');
     setDescription('');
     setSelectedSample(SAMPLE_MAP_OPTIONS[0].path);
     setCustomPath('');
+    setMapSearch('');
+    setSelectedCategory('all');
     setIsModalOpen(true);
   };
 
@@ -63,7 +114,8 @@ export function MapsContent() {
     try {
       const finalPath = selectedSample || customPath.trim() || '/demo-assets/ashes-of-veyra/maps/glass-harbor.png';
       const sampleOption = SAMPLE_MAP_OPTIONS.find((s) => s.path === selectedSample);
-      const assetId = sampleOption?.assetId || `custom-map-${Date.now()}`;
+      const libraryMap = libraryMaps.find((m) => m.path === selectedSample);
+      const assetId = libraryMap?.id || sampleOption?.assetId || `custom-map-${Date.now()}`;
 
       const newMapDraft = {
         title: trimmedTitle,
@@ -182,17 +234,60 @@ export function MapsContent() {
 
               <div className={styles.formGroup}>
                 <label htmlFor="map-sample-select">Map Image Source</label>
+                {libraryMaps.length > 0 && (
+                  <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+                    <input
+                      aria-label="Filter library maps"
+                      className={styles.input}
+                      onChange={(e) => setMapSearch(e.target.value)}
+                      placeholder="Filter library maps..."
+                      style={{ flex: 1 }}
+                      type="text"
+                      value={mapSearch}
+                    />
+                    <select
+                      aria-label="Category filter"
+                      className={styles.select}
+                      onChange={(e) => setSelectedCategory(e.target.value)}
+                      style={{ width: 'auto' }}
+                      value={selectedCategory}
+                    >
+                      <option value="all">All Categories ({libraryMaps.length})</option>
+                      {categories.map((c) => (
+                        <option key={c} value={c}>{c}</option>
+                      ))}
+                    </select>
+                  </div>
+                )}
                 <select
                   className={styles.select}
                   id="map-sample-select"
-                  onChange={(e) => setSelectedSample(e.target.value)}
+                  onChange={(e) => {
+                    const val = e.target.value;
+                    setSelectedSample(val);
+                    if (!title.trim() && val) {
+                      const found = libraryMaps.find((m) => m.path === val);
+                      if (found) setTitle(found.name);
+                    }
+                  }}
                   value={selectedSample}
                 >
-                  {SAMPLE_MAP_OPTIONS.map((opt) => (
-                    <option key={opt.label} value={opt.path}>
-                      {opt.label}
-                    </option>
-                  ))}
+                  <optgroup label="Sample & Demo Maps">
+                    {SAMPLE_MAP_OPTIONS.map((opt) => (
+                      <option key={opt.label} value={opt.path}>
+                        {opt.label}
+                      </option>
+                    ))}
+                  </optgroup>
+                  {filteredLibraryMaps.length > 0 && (
+                    <optgroup label={`Library Battle Maps (${filteredLibraryMaps.length})`}>
+                      {filteredLibraryMaps.map((map) => (
+                        <option key={map.id} value={map.path}>
+                          {map.category ? `[${map.category}] ` : ''}{map.name}
+                        </option>
+                      ))}
+                    </optgroup>
+                  )}
                 </select>
               </div>
 
