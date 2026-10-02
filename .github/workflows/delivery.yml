@@ -247,6 +247,8 @@ jobs:
       group: nexus-release-promotion
       cancel-in-progress: false
     permissions:
+      # actions: read lists release-images artifacts to find the last release.
+      actions: read
       contents: read
       packages: write
     steps:
@@ -256,6 +258,15 @@ jobs:
           ref: ${{ needs.resolve.outputs.source_sha }}
           fetch-depth: 0
 
+      # Looked up inside the promotion concurrency group, so it reflects any
+      # release promoted while this run was building. Empty when unknown,
+      # which keeps the tip-of-main-only rule.
+      - name: Find last promoted release
+        id: promoted
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: node scripts/ci/last-promoted-release.mjs
+
       - name: Check release promotion eligibility
         id: eligibility
         env:
@@ -263,6 +274,7 @@ jobs:
           EVENT_REF: ${{ github.ref }}
           PROMOTE: ${{ inputs.promote }}
           SOURCE_SHA: ${{ needs.resolve.outputs.source_sha }}
+          LAST_PROMOTED_SHA: ${{ steps.promoted.outputs.sha }}
         run: node scripts/ci/release-promotion.mjs
 
       - name: Set up Docker Buildx

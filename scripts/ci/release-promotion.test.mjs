@@ -5,7 +5,11 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { afterEach, describe, expect, test, vi } from 'vitest';
 
-import { decidePromotion, runPromotionCheck } from './release-promotion.mjs';
+import {
+  decidePromotion,
+  gitIsAncestor,
+  runPromotionCheck,
+} from './release-promotion.mjs';
 
 vi.mock('node:child_process', async (importOriginal) => {
   const original = await importOriginal();
@@ -54,6 +58,78 @@ describe('release promotion eligibility', () => {
       disposition: 'superseded',
       sourceSha,
       currentMain: newerSha,
+    });
+  });
+
+  describe('when main has moved past the source', () => {
+    const lastSha = 'c'.repeat(40);
+    const mainAt = () => `${newerSha}\trefs/heads/main\n`;
+    // History: lastSha -> sourceSha -> newerSha (main).
+    const linear = (ancestor, descendant) =>
+      ancestor === descendant ||
+      (ancestor === lastSha && [sourceSha, newerSha].includes(descendant)) ||
+      (ancestor === sourceSha && descendant === newerSha);
+
+    test('promotes a source newer than the last promoted release', () => {
+      expect(
+        decidePromotion({ ...mainEnv, LAST_PROMOTED_SHA: lastSha }, mainAt, linear),
+      ).toEqual({
+        disposition: 'eligible',
+        sourceSha,
+        currentMain: newerSha,
+        lastPromoted: lastSha,
+      });
+    });
+
+    test('supersedes a source older than the last promoted release', () => {
+      // A newer release (main itself) was promoted first.
+      expect(
+        decidePromotion({ ...mainEnv, LAST_PROMOTED_SHA: newerSha }, mainAt, linear)
+          .disposition,
+      ).toBe('superseded');
+    });
+
+    test('supersedes a source that is not on main', () => {
+      const offMain = (ancestor, descendant) =>
+        ancestor === lastSha || ancestor === descendant;
+      expect(
+        decidePromotion({ ...mainEnv, LAST_PROMOTED_SHA: lastSha }, mainAt, offMain)
+          .disposition,
+      ).toBe('superseded');
+    });
+
+    test('keeps the tip-only rule when the last release is unknown', () => {
+      const isAncestor = vi.fn(() => true);
+      for (const LAST_PROMOTED_SHA of [undefined, '', 'abc']) {
+        expect(
+          decidePromotion({ ...mainEnv, LAST_PROMOTED_SHA }, mainAt, isAncestor)
+            .disposition,
+        ).toBe('superseded');
+      }
+      expect(isAncestor).not.toHaveBeenCalled();
+    });
+
+    test('summarises why a behind-main release was promoted', () => {
+      const env = outputEnv({ LAST_PROMOTED_SHA: lastSha });
+      runPromotionCheck(env, mainAt, linear);
+      expect(readFileSync(env.GITHUB_OUTPUT, 'utf8')).toBe('disposition=eligible\n');
+      expect(readFileSync(env.GITHUB_STEP_SUMMARY, 'utf8')).toContain(
+        `newer than the last promoted ${lastSha}`,
+      );
+    });
+
+    test('checks ancestry with git merge-base', () => {
+      vi.mocked(execFileSync).mockReturnValueOnce('');
+      expect(gitIsAncestor(lastSha, sourceSha)).toBe(true);
+      expect(execFileSync).toHaveBeenLastCalledWith(
+        'git',
+        ['merge-base', '--is-ancestor', lastSha, sourceSha],
+        { stdio: 'ignore' },
+      );
+      vi.mocked(execFileSync).mockImplementationOnce(() => {
+        throw new Error('exit 1');
+      });
+      expect(gitIsAncestor(sourceSha, lastSha)).toBe(false);
     });
   });
 
