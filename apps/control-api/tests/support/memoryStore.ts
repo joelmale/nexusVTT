@@ -229,6 +229,14 @@ export class MemoryControlStore implements ControlStore {
         totalBytes: 8192,
         totalSize: '8 kB',
       },
+      {
+        tableName: 'restricted_table',
+        schemaName: 'public',
+        domain: 'other',
+        estimatedRows: 0,
+        totalBytes: 8192,
+        totalSize: '8 kB',
+      },
     ];
   }
 
@@ -237,13 +245,13 @@ export class MemoryControlStore implements ControlStore {
       return {
         tableName: 'users',
         columns: [
-          { columnName: 'id', ordinalPosition: 1, isNullable: false, dataType: 'uuid', udtName: 'uuid', columnDefault: 'gen_random_uuid()', characterMaximumLength: null, keyType: 'PRIMARY KEY', foreignKeyTarget: null },
-          { columnName: 'email', ordinalPosition: 2, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
-          { columnName: 'name', ordinalPosition: 3, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
-          { columnName: 'displayName', ordinalPosition: 4, isNullable: true, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
-          { columnName: 'passwordHash', ordinalPosition: 5, isNullable: true, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
-          { columnName: 'provider', ordinalPosition: 6, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
-          { columnName: 'isActive', ordinalPosition: 7, isNullable: true, dataType: 'boolean', udtName: 'bool', columnDefault: 'true', characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
+          { columnName: 'id', ordinalPosition: 1, isNullable: false, dataType: 'uuid', udtName: 'uuid', columnDefault: 'gen_random_uuid()', characterMaximumLength: null, keyType: 'PRIMARY KEY', foreignKeyTarget: null, canSelect: true },
+          { columnName: 'email', ordinalPosition: 2, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null, canSelect: true },
+          { columnName: 'name', ordinalPosition: 3, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null, canSelect: true },
+          { columnName: 'displayName', ordinalPosition: 4, isNullable: true, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null, canSelect: true },
+          { columnName: 'passwordHash', ordinalPosition: 5, isNullable: true, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null, canSelect: false },
+          { columnName: 'provider', ordinalPosition: 6, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null, canSelect: true },
+          { columnName: 'isActive', ordinalPosition: 7, isNullable: true, dataType: 'boolean', udtName: 'bool', columnDefault: 'true', characterMaximumLength: null, keyType: null, foreignKeyTarget: null, canSelect: true },
         ],
       };
     }
@@ -251,10 +259,10 @@ export class MemoryControlStore implements ControlStore {
       return {
         tableName: 'sessions',
         columns: [
-          { columnName: 'idHash', ordinalPosition: 1, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: 'PRIMARY KEY', foreignKeyTarget: null },
-          { columnName: 'userId', ordinalPosition: 2, isNullable: false, dataType: 'uuid', udtName: 'uuid', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: 'users(id)' },
-          { columnName: 'csrfToken', ordinalPosition: 3, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
-          { columnName: 'createdAt', ordinalPosition: 4, isNullable: false, dataType: 'timestamp with time zone', udtName: 'timestamptz', columnDefault: 'now()', characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
+          { columnName: 'idHash', ordinalPosition: 1, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: 'PRIMARY KEY', foreignKeyTarget: null, canSelect: true },
+          { columnName: 'userId', ordinalPosition: 2, isNullable: false, dataType: 'uuid', udtName: 'uuid', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: 'users(id)', canSelect: true },
+          { columnName: 'csrfToken', ordinalPosition: 3, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null, canSelect: true },
+          { columnName: 'createdAt', ordinalPosition: 4, isNullable: false, dataType: 'timestamp with time zone', udtName: 'timestamptz', columnDefault: 'now()', characterMaximumLength: null, keyType: null, foreignKeyTarget: null, canSelect: true },
         ],
       };
     }
@@ -262,10 +270,19 @@ export class MemoryControlStore implements ControlStore {
       return {
         tableName: 'admin_audit_events',
         columns: [
-          { columnName: 'id', ordinalPosition: 1, isNullable: false, dataType: 'bigint', udtName: 'int8', columnDefault: null, characterMaximumLength: null, keyType: 'PRIMARY KEY', foreignKeyTarget: null },
-          { columnName: 'occurred_at', ordinalPosition: 2, isNullable: false, dataType: 'timestamp with time zone', udtName: 'timestamptz', columnDefault: 'now()', characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
-          { columnName: 'action', ordinalPosition: 3, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
-          { columnName: 'summary', ordinalPosition: 4, isNullable: false, dataType: 'jsonb', udtName: 'jsonb', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null },
+          { columnName: 'id', ordinalPosition: 1, isNullable: false, dataType: 'bigint', udtName: 'int8', columnDefault: null, characterMaximumLength: null, keyType: 'PRIMARY KEY', foreignKeyTarget: null, canSelect: true },
+          { columnName: 'occurred_at', ordinalPosition: 2, isNullable: false, dataType: 'timestamp with time zone', udtName: 'timestamptz', columnDefault: 'now()', characterMaximumLength: null, keyType: null, foreignKeyTarget: null, canSelect: true },
+          { columnName: 'action', ordinalPosition: 3, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null, canSelect: true },
+          { columnName: 'summary', ordinalPosition: 4, isNullable: false, dataType: 'jsonb', udtName: 'jsonb', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null, canSelect: true },
+        ],
+      };
+    }
+    if (tableName === 'restricted_table') {
+      return {
+        tableName: 'restricted_table',
+        columns: [
+          { columnName: 'id', ordinalPosition: 1, isNullable: false, dataType: 'uuid', udtName: 'uuid', columnDefault: null, characterMaximumLength: null, keyType: 'PRIMARY KEY', foreignKeyTarget: null, canSelect: false },
+          { columnName: 'secret', ordinalPosition: 2, isNullable: false, dataType: 'text', udtName: 'text', columnDefault: null, characterMaximumLength: null, keyType: null, foreignKeyTarget: null, canSelect: false },
         ],
       };
     }
@@ -284,11 +301,30 @@ export class MemoryControlStore implements ControlStore {
     const schema = await this.getTableSchema(tableName);
     if (!schema) return null;
 
+    const limit = Math.min(Math.max(Number(options.limit) || 25, 1), 100);
+    const offset = Math.max(Number(options.offset) || 0, 0);
+
+    const readableCols = schema.columns.filter((c) => c.canSelect !== false);
+    if (readableCols.length === 0) {
+      return {
+        tableName,
+        rows: [],
+        totalCount: 0,
+        limit,
+        offset,
+        permissionDenied: true,
+      };
+    }
+
     let rawRows: Record<string, unknown>[] = [];
     if (tableName === 'users') {
       rawRows = [...this.users.values()].map((u) => ({
-        ...u,
-        passwordHash: 'secret_hash_value',
+        id: u.id,
+        email: u.email,
+        name: u.name,
+        displayName: u.displayName,
+        provider: u.provider,
+        isActive: u.isActive,
       }));
     } else if (tableName === 'sessions') {
       rawRows = [...this.sessions.values()].map((s) => ({ ...s }));
@@ -296,9 +332,13 @@ export class MemoryControlStore implements ControlStore {
       rawRows = this.audit.map((a) => ({ ...a }));
     }
 
-    const sortCol = options.sortColumn && schema.columns.some((c) => c.columnName === options.sortColumn)
-      ? options.sortColumn
-      : schema.columns[0]!.columnName;
+    let sortCol = readableCols[0]!.columnName;
+    if (options.sortColumn && readableCols.some((c) => c.columnName === options.sortColumn)) {
+      sortCol = options.sortColumn;
+    } else {
+      const pk = readableCols.find((c) => c.keyType === 'PRIMARY KEY');
+      if (pk) sortCol = pk.columnName;
+    }
     const desc = options.sortDirection === 'desc';
 
     rawRows.sort((a, b) => {
@@ -311,9 +351,14 @@ export class MemoryControlStore implements ControlStore {
       return desc ? -cmp : cmp;
     });
 
-    const limit = Math.min(Math.max(Number(options.limit) || 25, 1), 100);
-    const offset = Math.max(Number(options.offset) || 0, 0);
-    const paged = rawRows.slice(offset, offset + limit).map((r) => redactRowData(r));
+    const unreadableCols = schema.columns.filter((c) => c.canSelect === false);
+    const paged = rawRows.slice(offset, offset + limit).map((r) => {
+      const redacted = redactRowData(r);
+      for (const col of unreadableCols) {
+        redacted[col.columnName] = '[NO ACCESS]';
+      }
+      return redacted;
+    });
 
     return {
       tableName,
@@ -321,6 +366,7 @@ export class MemoryControlStore implements ControlStore {
       totalCount: rawRows.length,
       limit,
       offset,
+      permissionDenied: false,
     };
   }
 

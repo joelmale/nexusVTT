@@ -131,14 +131,33 @@ describe('Database Explorer routes and store logic', () => {
         totalCount: number;
         limit: number;
         offset: number;
+        permissionDenied?: boolean;
       };
       expect(dataAsc.tableName).toBe('users');
       expect(dataAsc.totalCount).toBe(4);
       expect(dataAsc.rows).toHaveLength(2);
       expect(dataAsc.rows[0]?.email).toBe('alpha@example.com');
       expect(dataAsc.rows[1]?.email).toBe('beta@example.com');
-      // Credential redaction verification
-      expect(dataAsc.rows[0]?.passwordHash).toBe('[REDACTED]');
+      // Column without SELECT permission gets flagged [NO ACCESS]
+      expect(dataAsc.rows[0]?.passwordHash).toBe('[NO ACCESS]');
+      expect(dataAsc.permissionDenied).toBe(false);
+
+      // Verify readable but sensitive fields get [REDACTED] in sessions
+      h.store.sessions.set('test_session', {
+        idHash: 'secret_hash',
+        userId: '123',
+        csrfToken: 'secret_token',
+        createdAt: new Date(),
+        lastSeenAt: new Date(),
+        expiresAt: new Date(Date.now() + 3600_000),
+        recentAuthAt: new Date(),
+        sourceIp: '127.0.0.1',
+      });
+      const resSessions = await h.request('/control-api/v1/database/tables/sessions/rows', { session });
+      expect(resSessions.status).toBe(200);
+      const dataSessions = (await resSessions.json()) as { rows: Array<{ idHash: string; csrfToken: string }> };
+      expect(dataSessions.rows[0]?.idHash).toBe('[REDACTED]');
+      expect(dataSessions.rows[0]?.csrfToken).toBe('[REDACTED]');
 
       // Request page 2 (offset 2, limit 2)
       const resPage2 = await h.request('/control-api/v1/database/tables/users/rows?sortColumn=email&sortDirection=asc&limit=2&offset=2', {
@@ -156,6 +175,22 @@ describe('Database Explorer routes and store logic', () => {
       expect(resDesc.status).toBe(200);
       const dataDesc = (await resDesc.json()) as { rows: Array<{ email: string }> };
       expect(dataDesc.rows[0]?.email).toBe('zeta@example.com');
+    });
+
+    it('returns permissionDenied: true when user lacks SELECT permission on all columns', async () => {
+      const session = await h.sessionFor(['platform_admin']);
+      const res = await h.request('/control-api/v1/database/tables/restricted_table/rows', { session });
+      expect(res.status).toBe(200);
+      const data = (await res.json()) as {
+        tableName: string;
+        rows: unknown[];
+        totalCount: number;
+        permissionDenied: boolean;
+      };
+      expect(data.tableName).toBe('restricted_table');
+      expect(data.rows).toEqual([]);
+      expect(data.totalCount).toBe(0);
+      expect(data.permissionDenied).toBe(true);
     });
 
     it('returns 404 for unknown table', async () => {

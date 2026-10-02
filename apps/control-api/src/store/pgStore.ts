@@ -496,6 +496,7 @@ export class PgControlStore implements ControlStore {
       character_maximum_length: number | null;
       key_type: 'PRIMARY KEY' | 'UNIQUE' | null;
       foreign_key_target: string | null;
+      can_select: boolean;
     }>(
       `SELECT
          c.column_name,
@@ -506,7 +507,8 @@ export class PgControlStore implements ControlStore {
          c.column_default,
          c.character_maximum_length,
          pk_info.constraint_type AS key_type,
-         fk_info.foreign_key_target
+         fk_info.foreign_key_target,
+         has_column_privilege(format('%I.%I', c.table_schema, c.table_name), c.column_name, 'SELECT') AS can_select
        FROM information_schema.columns c
        LEFT JOIN (
          SELECT kcu.column_name, tc.constraint_type
@@ -527,9 +529,9 @@ export class PgControlStore implements ControlStore {
          JOIN information_schema.key_column_usage kcu
            ON tc.constraint_name = kcu.constraint_name
           AND tc.table_schema = kcu.table_schema
-         JOIN information_schema.constraint_column_usage ccu
-           ON ccu.constraint_name = tc.constraint_name
-          AND ccu.table_schema = tc.table_schema
+          JOIN information_schema.constraint_column_usage ccu
+            ON ccu.constraint_name = tc.constraint_name
+           AND ccu.table_schema = tc.table_schema
          WHERE tc.table_schema = 'public'
            AND tc.table_name = $1
            AND tc.constraint_type = 'FOREIGN KEY'
@@ -551,6 +553,7 @@ export class PgControlStore implements ControlStore {
         characterMaximumLength: r.character_maximum_length ? Number(r.character_maximum_length) : null,
         keyType: r.key_type,
         foreignKeyTarget: r.foreign_key_target,
+        canSelect: r.can_select,
       })),
     };
   }
@@ -572,36 +575,74 @@ export class PgControlStore implements ControlStore {
     const limit = Math.min(Math.max(Number(options.limit) || 25, 1), 100);
     const offset = Math.max(Number(options.offset) || 0, 0);
 
-    let sortCol = schema.columns[0]?.columnName ?? 'ctid';
-    if (options.sortColumn && schema.columns.some((c) => c.columnName === options.sortColumn)) {
+    const readableCols = schema.columns.filter((c) => c.canSelect !== false);
+    if (readableCols.length === 0) {
+      return {
+        tableName,
+        rows: [],
+        totalCount: 0,
+        limit,
+        offset,
+        permissionDenied: true,
+      };
+    }
+
+    let sortCol: string;
+    if (options.sortColumn && readableCols.some((c) => c.columnName === options.sortColumn)) {
       sortCol = options.sortColumn;
     } else {
-      const pk = schema.columns.find((c) => c.keyType === 'PRIMARY KEY');
-      if (pk) sortCol = pk.columnName;
+      const pk = readableCols.find((c) => c.keyType === 'PRIMARY KEY');
+      sortCol = pk ? pk.columnName : readableCols[0]!.columnName;
     }
 
     const sortDir = options.sortDirection === 'desc' ? 'DESC' : 'ASC';
 
     const safeTable = `"${tableName.replace(/"/g, '""')}"`;
     const safeSortCol = `"${sortCol.replace(/"/g, '""')}"`;
+    const safeSelectCols = readableCols.map((c) => `"${c.columnName.replace(/"/g, '""')}"`).join(', ');
+    const countCol = `"${readableCols[0]!.columnName.replace(/"/g, '""')}"`;
 
-    const countRes = await this.pool.query<{ count: string }>(
-      `SELECT count(*)::bigint AS count FROM public.${safeTable}`,
-    );
-    const totalCount = Number(countRes.rows[0]?.count ?? 0);
+    try {
+      const countRes = await this.pool.query<{ count: string }>(
+        `SELECT count(${countCol})::bigint AS count FROM public.${safeTable}`,
+      );
+      const totalCount = Number(countRes.rows[0]?.count ?? 0);
 
-    const rowsRes = await this.pool.query<Record<string, unknown>>(
-      `SELECT * FROM public.${safeTable} ORDER BY ${safeSortCol} ${sortDir} LIMIT $1 OFFSET $2`,
-      [limit, offset],
-    );
+      const rowsRes = await this.pool.query<Record<string, unknown>>(
+        `SELECT ${safeSelectCols} FROM public.${safeTable} ORDER BY ${safeSortCol} ${sortDir} LIMIT $1 OFFSET $2`,
+        [limit, offset],
+      );
 
-    return {
-      tableName,
-      rows: rowsRes.rows.map((row) => redactRowData(row)),
-      totalCount,
-      limit,
-      offset,
-    };
+      const unreadableCols = schema.columns.filter((c) => c.canSelect === false);
+
+      return {
+        tableName,
+        rows: rowsRes.rows.map((row) => {
+          const redacted = redactRowData(row);
+          for (const col of unreadableCols) {
+            redacted[col.columnName] = '[NO ACCESS]';
+          }
+          return redacted;
+        }),
+        totalCount,
+        limit,
+        offset,
+        permissionDenied: false,
+      };
+    } catch (err: unknown) {
+      const pgErr = err as { code?: string; message?: string };
+      if (pgErr.code === '42501' || /permission denied/i.test(pgErr.message ?? '')) {
+        return {
+          tableName,
+          rows: [],
+          totalCount: 0,
+          limit,
+          offset,
+          permissionDenied: true,
+        };
+      }
+      throw err;
+    }
   }
 
   async close(): Promise<void> {

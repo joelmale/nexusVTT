@@ -69,6 +69,19 @@ const mockUsersSchema = {
       characterMaximumLength: null,
       keyType: null,
       foreignKeyTarget: null,
+      canSelect: true,
+    },
+    {
+      columnName: 'passwordHash',
+      ordinalPosition: 4,
+      isNullable: true,
+      dataType: 'text',
+      udtName: 'text',
+      columnDefault: null,
+      characterMaximumLength: null,
+      keyType: null,
+      foreignKeyTarget: null,
+      canSelect: false,
     },
   ],
 }
@@ -78,16 +91,19 @@ const mockUsersRows = {
   totalCount: 2,
   limit: 25,
   offset: 0,
+  permissionDenied: false,
   rows: [
     {
       id: 'u-1',
       email: 'admin@example.com',
       meta: { theme: 'dark', tags: ['vip', 'staff'] },
+      passwordHash: '[NO ACCESS]',
     },
     {
       id: 'u-2',
       email: 'player@example.com',
       meta: null,
+      passwordHash: '[NO ACCESS]',
     },
   ],
 }
@@ -102,6 +118,31 @@ function stubDatabaseApi() {
     ['GET', TABLES_PATH, () => json(200, { tables: mockTables })],
     ['GET', USERS_SCHEMA_PATH, () => json(200, mockUsersSchema)],
     ['GET', USERS_ROWS_PATH, () => json(200, mockUsersRows)],
+    ['GET', '/control-api/v1/database/tables/admin_audit_events/schema', () => json(200, {
+      tableName: 'admin_audit_events',
+      columns: [
+        {
+          columnName: 'id',
+          ordinalPosition: 1,
+          isNullable: false,
+          dataType: 'bigint',
+          udtName: 'int8',
+          columnDefault: null,
+          characterMaximumLength: null,
+          keyType: 'PRIMARY KEY',
+          foreignKeyTarget: null,
+          canSelect: false,
+        },
+      ],
+    })],
+    ['GET', '/control-api/v1/database/tables/admin_audit_events/rows', () => json(200, {
+      tableName: 'admin_audit_events',
+      rows: [],
+      totalCount: 0,
+      limit: 25,
+      offset: 0,
+      permissionDenied: true,
+    })],
   ])
 }
 
@@ -158,6 +199,8 @@ describe('DatabaseExplorer', () => {
     expect(await screen.findByText('Columns & Schema')).toBeTruthy()
     expect(await screen.findByText('PRIMARY KEY')).toBeTruthy()
     expect(screen.getByText('gen_random_uuid()')).toBeTruthy()
+    expect(screen.getByText('Restricted')).toBeTruthy()
+    expect(screen.getAllByText('Readable').length).toBeGreaterThanOrEqual(1)
   })
 
   it('switches to Entries tab, displays rows, and opens the JSON Inspector Drawer', async () => {
@@ -173,6 +216,7 @@ describe('DatabaseExplorer', () => {
 
     expect(await screen.findByText('admin@example.com')).toBeTruthy()
     expect(screen.getByText('player@example.com')).toBeTruthy()
+    expect(screen.getAllByText('[NO ACCESS]').length).toBeGreaterThanOrEqual(1)
 
     // Find the JSON Inspect button for meta
     const inspectBtn = screen.getByRole('button', { name: /Object\(2\)/i })
@@ -187,5 +231,19 @@ describe('DatabaseExplorer', () => {
     // Close JSON Drawer
     const closeBtn = screen.getByRole('button', { name: '' }) // close X button
     fireEvent.click(closeBtn)
+  })
+
+  it('displays Table Access Restricted banner when table permission is denied', async () => {
+    stubDatabaseApi()
+    renderPage(<DatabaseExplorer />, { me: meWith('operator') })
+
+    const auditBtn = await screen.findByText('admin_audit_events')
+    fireEvent.click(auditBtn)
+
+    const entriesTab = await screen.findByRole('button', { name: /Entries/i })
+    fireEvent.click(entriesTab)
+
+    expect(await screen.findByText('Table Access Restricted')).toBeTruthy()
+    expect(screen.getByText(/nexus_control/)).toBeTruthy()
   })
 })

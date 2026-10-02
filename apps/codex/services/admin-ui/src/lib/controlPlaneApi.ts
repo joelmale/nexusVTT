@@ -97,6 +97,7 @@ export interface DatabaseColumnSummary {
   characterMaximumLength: number | null
   keyType: 'PRIMARY KEY' | 'UNIQUE' | null
   foreignKeyTarget: string | null
+  canSelect?: boolean
 }
 
 export interface DatabaseTableSchema {
@@ -110,6 +111,7 @@ export interface DatabaseRowsResult {
   totalCount: number
   limit: number
   offset: number
+  permissionDenied?: boolean
 }
 
 export async function listDatabaseTables(): Promise<DatabaseTableSummary[]> {

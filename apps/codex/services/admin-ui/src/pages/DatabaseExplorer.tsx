@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { keepPreviousData, useQuery } from '@tanstack/react-query'
 import {
+  AlertTriangle,
   ArrowDown,
   ArrowUp,
   ArrowUpDown,
@@ -9,6 +10,7 @@ import {
   Copy,
   Database,
   Key,
+  Lock,
   RefreshCw,
   Search,
   Table,
@@ -312,6 +314,7 @@ export default function DatabaseExplorer() {
                             <th className="px-3 py-2">Postgres Type</th>
                             <th className="px-3 py-2">UDT</th>
                             <th className="px-3 py-2">Keys & References</th>
+                            <th className="px-3 py-2">Access</th>
                             <th className="px-3 py-2">Nullable</th>
                             <th className="px-3 py-2">Default</th>
                           </tr>
@@ -343,6 +346,18 @@ export default function DatabaseExplorer() {
                                   )}
                                 </div>
                               </td>
+                              <td className="px-3 py-2 font-sans">
+                                {col.canSelect === false ? (
+                                  <span className="inline-flex items-center gap-1 rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-700">
+                                    <Lock className="h-3 w-3" />
+                                    <span>Restricted</span>
+                                  </span>
+                                ) : (
+                                  <span className="inline-flex items-center gap-1 rounded border border-emerald-200 bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700">
+                                    <span>Readable</span>
+                                  </span>
+                                )}
+                              </td>
                               <td className="px-3 py-2">
                                 {col.isNullable ? (
                                   <span className="text-gray-400">NULL</span>
@@ -365,6 +380,20 @@ export default function DatabaseExplorer() {
               {/* TAB 2: ENTRIES DATA BROWSER */}
               {activeTab === 'entries' && (
                 <div className="space-y-4">
+                  {rowsQuery.data?.permissionDenied && (
+                    <div className="rounded-md border border-amber-300 bg-amber-50 p-4 text-xs text-amber-900">
+                      <div className="flex items-start gap-2">
+                        <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0 text-amber-600" />
+                        <div>
+                          <p className="font-semibold">Table Access Restricted</p>
+                          <p className="mt-0.5 text-amber-700">
+                            The database user for control-api (<code>nexus_control</code>) has not been granted SELECT permission on this table. Under least-privilege security controls, table and column reads require explicit grants.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Controls Bar */}
                   <div className="flex flex-wrap items-center justify-between gap-3 text-xs">
                     <div className="flex items-center gap-2">
@@ -584,6 +613,17 @@ function renderCellValue(
     return (
       <span className="rounded border border-amber-200 bg-amber-50 px-1.5 py-0.5 text-[10px] font-bold text-amber-700">
         [REDACTED]
+      </span>
+    )
+  }
+
+  if (typeof val === 'string' && val === '[NO ACCESS]') {
+    return (
+      <span
+        className="rounded border border-red-200 bg-red-50 px-1.5 py-0.5 text-[10px] font-bold text-red-700"
+        title="Least-privilege role does not have SELECT grant for this column"
+      >
+        [NO ACCESS]
       </span>
     )
   }
