@@ -52,14 +52,22 @@ export function FactionGeneratorModal({
   const [count, setCount] = useState<number>(3);
   const [theme, setTheme] = useState<FactionGeneratorOptions['theme']>('all');
   const [scope, setScope] = useState<'city' | 'regional' | 'world'>('city');
-  const [includeRelationships, setIncludeRelationships] = useState<boolean>(true);
-  const [keyFiguresMode, setKeyFiguresMode] = useState<'none' | 'leaders' | 'full'>('leaders');
+  const [includeRelationships, setIncludeRelationships] =
+    useState<boolean>(true);
+  const [keyFiguresMode, setKeyFiguresMode] = useState<
+    'none' | 'leaders' | 'full'
+  >('leaders');
   const [createNpcs, setCreateNpcs] = useState<boolean>(true);
 
   // View state
   const [activeTab, setActiveTab] = useState<'cards' | 'map'>('cards');
   const [web, setWeb] = useState<FactionWebResult>(() =>
-    generateFactionWeb({ count: 3, theme: 'all', scope: 'city', includeRelationships: true }),
+    generateFactionWeb({
+      count: 3,
+      theme: 'all',
+      scope: 'city',
+      includeRelationships: true,
+    }),
   );
   const [lockedTempIds, setLockedTempIds] = useState<Set<string>>(new Set());
   const [selectedFactionId, setSelectedFactionId] = useState<string>();
@@ -88,6 +96,7 @@ export function FactionGeneratorModal({
     } else if (!open && dialog.open) {
       dialog.close();
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open]);
 
   const handleCountChange = (newCount: number) => {
@@ -180,7 +189,9 @@ export function FactionGeneratorModal({
     }
 
     // Preserve locked factions and reroll unlocked ones
-    const preservedFactions = web.factions.filter((f) => lockedTempIds.has(f.tempId));
+    const preservedFactions = web.factions.filter((f) =>
+      lockedTempIds.has(f.tempId),
+    );
     const needed = Math.max(0, count - preservedFactions.length);
 
     let nextCounter = 100 + Date.now();
@@ -195,7 +206,10 @@ export function FactionGeneratorModal({
       f.tempId = `faction-temp-${++nextCounter}`;
     });
 
-    const combined = [...preservedFactions, ...freshWeb.factions].slice(0, count);
+    const combined = [...preservedFactions, ...freshWeb.factions].slice(
+      0,
+      count,
+    );
 
     // Re-link relationships across all combined factions if enabled
     if (includeRelationships && combined.length > 1) {
@@ -214,7 +228,8 @@ export function FactionGeneratorModal({
             const targetIdx = reconnected.factions.findIndex(
               (f) => f.tempId === rel.targetTempId,
             );
-            const actualTarget = targetIdx >= 0 ? combined[targetIdx] : undefined;
+            const actualTarget =
+              targetIdx >= 0 ? combined[targetIdx] : undefined;
             return {
               ...rel,
               targetTempId: actualTarget?.tempId || rel.targetTempId,
@@ -239,7 +254,9 @@ export function FactionGeneratorModal({
       tempId,
     );
     setWeb((prev) => {
-      const nextFactions = prev.factions.map((f) => (f.tempId === tempId ? single : f));
+      const nextFactions = prev.factions.map((f) =>
+        f.tempId === tempId ? single : f,
+      );
       // Re-establish relationships if enabled
       if (includeRelationships && nextFactions.length > 1) {
         for (const other of nextFactions) {
@@ -402,7 +419,8 @@ export function FactionGeneratorModal({
               Procedural Faction Generator
             </h3>
             <p className={styles.subtitle}>
-              Generate individual organizations or multi-faction political ecosystems with narrative tension.
+              Generate individual organizations or multi-faction political
+              ecosystems with narrative tension.
             </p>
           </div>
           <div className={styles.headerActions}>
@@ -441,7 +459,9 @@ export function FactionGeneratorModal({
               className={styles.configSelect}
               value={theme}
               onChange={(e) =>
-                handleThemeChange(e.target.value as FactionGeneratorOptions['theme'])
+                handleThemeChange(
+                  e.target.value as FactionGeneratorOptions['theme'],
+                )
               }
             >
               <option value="all">All Archetypes</option>
@@ -460,7 +480,9 @@ export function FactionGeneratorModal({
               className={styles.configSelect}
               value={scope}
               onChange={(e) =>
-                handleScopeChange(e.target.value as 'city' | 'regional' | 'world')
+                handleScopeChange(
+                  e.target.value as 'city' | 'regional' | 'world',
+                )
               }
             >
               <option value="city">City / Municipal</option>
@@ -475,7 +497,9 @@ export function FactionGeneratorModal({
               className={styles.configSelect}
               value={keyFiguresMode}
               onChange={(e) =>
-                handleKeyFiguresModeChange(e.target.value as 'none' | 'leaders' | 'full')
+                handleKeyFiguresModeChange(
+                  e.target.value as 'none' | 'leaders' | 'full',
+                )
               }
             >
               <option value="none">None</option>
@@ -543,7 +567,9 @@ export function FactionGeneratorModal({
                   Contested: {web.flashpoint.contestedResource}
                 </span>
               </div>
-              <p className={styles.flashpointSummary}>{web.flashpoint.summary}</p>
+              <p className={styles.flashpointSummary}>
+                {web.flashpoint.summary}
+              </p>
               <p className={styles.flashpointStakes}>
                 <strong>Stakes:</strong> {web.flashpoint.stakes}
               </p>
@@ -573,7 +599,11 @@ export function FactionGeneratorModal({
                           className={styles.factionNameInput}
                           value={faction.name}
                           onChange={(e) =>
-                            updateFactionField(faction.tempId, 'name', e.target.value)
+                            updateFactionField(
+                              faction.tempId,
+                              'name',
+                              e.target.value,
+                            )
                           }
                           placeholder="Faction Name"
                         />
@@ -587,7 +617,11 @@ export function FactionGeneratorModal({
                           className={styles.statusSelect}
                           value={faction.status}
                           onChange={(e) =>
-                            updateFactionField(faction.tempId, 'status', e.target.value)
+                            updateFactionField(
+                              faction.tempId,
+                              'status',
+                              e.target.value,
+                            )
                           }
                         >
                           <option value="ally">Party Ally</option>
@@ -600,7 +634,11 @@ export function FactionGeneratorModal({
                           type="button"
                           className={`${styles.lockButton} ${isLocked ? styles.locked : ''}`}
                           onClick={() => toggleLock(faction.tempId)}
-                          title={isLocked ? 'Unlock faction' : 'Lock faction from rerolls'}
+                          title={
+                            isLocked
+                              ? 'Unlock faction'
+                              : 'Lock faction from rerolls'
+                          }
                         >
                           {isLocked ? <Lock size={16} /> : <Unlock size={16} />}
                         </button>
@@ -635,7 +673,9 @@ export function FactionGeneratorModal({
                         />
                       </div>
                       <div className={styles.field}>
-                        <span className={styles.fieldLabel}>Hidden Agenda (DM Only)</span>
+                        <span className={styles.fieldLabel}>
+                          Hidden Agenda (DM Only)
+                        </span>
                         <textarea
                           className={styles.fieldTextarea}
                           value={faction.hiddenAgenda}
@@ -658,12 +698,18 @@ export function FactionGeneratorModal({
                           className={styles.fieldInput}
                           value={faction.motto}
                           onChange={(e) =>
-                            updateFactionField(faction.tempId, 'motto', e.target.value)
+                            updateFactionField(
+                              faction.tempId,
+                              'motto',
+                              e.target.value,
+                            )
                           }
                         />
                       </div>
                       <div className={styles.field}>
-                        <span className={styles.fieldLabel}>Primary Asset / Vulnerability</span>
+                        <span className={styles.fieldLabel}>
+                          Primary Asset / Vulnerability
+                        </span>
                         <input
                           className={styles.fieldInput}
                           value={`${faction.primaryAsset} / Vuln: ${faction.vulnerability}`}
@@ -705,12 +751,18 @@ export function FactionGeneratorModal({
                     {/* Relationships */}
                     {faction.relationships.length > 0 && (
                       <div className={styles.relationsBox}>
-                        <h5 className={styles.relationsTitle}>Inter-Faction Dynamics</h5>
+                        <h5 className={styles.relationsTitle}>
+                          Inter-Faction Dynamics
+                        </h5>
                         {faction.relationships.map((rel) => {
                           const styleInfo =
-                            RELATION_COLOR_MAP[rel.type] || RELATION_COLOR_MAP.ambivalent;
+                            RELATION_COLOR_MAP[rel.type] ||
+                            RELATION_COLOR_MAP.ambivalent;
                           return (
-                            <div key={rel.targetTempId} className={styles.relationItem}>
+                            <div
+                              key={rel.targetTempId}
+                              className={styles.relationItem}
+                            >
                               <span
                                 className={styles.relationBadge}
                                 style={{
@@ -722,7 +774,8 @@ export function FactionGeneratorModal({
                                 {rel.type.replace('-', ' ')}
                               </span>
                               <span>
-                                <strong>{rel.targetFactionName}:</strong> {rel.summary}
+                                <strong>{rel.targetFactionName}:</strong>{' '}
+                                {rel.summary}
                               </span>
                             </div>
                           );

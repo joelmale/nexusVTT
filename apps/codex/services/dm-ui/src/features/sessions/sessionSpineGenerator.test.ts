@@ -1,9 +1,7 @@
 import { describe, expect, it } from 'vitest';
 
 import type {
-  CampaignClue,
   CampaignEncounter,
-  CampaignFaction,
   CampaignHandout,
   CampaignLocation,
   CampaignNpc,
@@ -26,7 +24,9 @@ describe('sessionSpineGenerator', () => {
 
     expect(spine.suggestedTitle).toBe('Session 3 Journey');
     expect(spine.suggestedSummary).toContain('Session #3');
-    expect(spine.playerFacingSummary).toContain('Session #3 of Crown of Cinders');
+    expect(spine.playerFacingSummary).toContain(
+      'Session #3 of Crown of Cinders',
+    );
 
     const { plan } = spine;
     expect(plan.revision).toBe(1);
@@ -47,7 +47,8 @@ describe('sessionSpineGenerator', () => {
       number: 2,
       title: 'The Sunken Scriptorium',
       status: 'complete',
-      summary: 'The heroes deciphered the ancient warding glyphs and triggered an alarm.',
+      summary:
+        'The heroes deciphered the ancient warding glyphs and triggered an alarm.',
       partyLevel: 3,
       tags: [],
       questIds: [],
@@ -132,7 +133,15 @@ describe('sessionSpineGenerator', () => {
       title: 'Gargoyle Ambush',
       kind: 'combat',
       difficulty: 'moderate',
-      composition: [{ name: 'Gargoyle', count: 3, ruleset: '2024', role: 'Ambusher', cr: '2' }],
+      composition: [
+        {
+          name: 'Gargoyle',
+          count: 3,
+          ruleset: '2024',
+          role: 'Ambusher',
+          cr: '2',
+        },
+      ],
       trigger: 'Stepping on the stone dais',
       intendedUse: 'Mid-session combat challenge',
       sessionIds: [],
@@ -189,13 +198,17 @@ describe('sessionSpineGenerator', () => {
       targetDurationMinutes: 240,
     });
 
-    expect(spine.suggestedTitle).toBe('The Sunken Scriptorium: Sunken Temple of Veyra');
+    expect(spine.suggestedTitle).toBe(
+      'The Sunken Scriptorium: Sunken Temple of Veyra',
+    );
     expect(spine.suggestedSummary).toContain('Sunken Temple of Veyra');
 
     const steps = spine.plan.steps;
 
     // Check Scene beat
-    const scene = steps.find((s) => s.kind === 'scene' && s.objectId === location.id);
+    const scene = steps.find(
+      (s) => s.kind === 'scene' && s.objectId === location.id,
+    );
     expect(scene).toBeDefined();
     expect(scene?.title).toContain('Sunken Temple of Veyra');
 
@@ -206,18 +219,24 @@ describe('sessionSpineGenerator', () => {
     expect(social?.body).toContain('Disarm the abyssal ward');
 
     // Check Primary Encounter
-    const combat = steps.find((s) => s.kind === 'encounter' && s.objectId === encounter1.id);
+    const combat = steps.find(
+      (s) => s.kind === 'encounter' && s.objectId === encounter1.id,
+    );
     expect(combat).toBeDefined();
     expect(combat?.title).toContain('Gargoyle Ambush');
     expect(combat?.body).toContain('Dive from rafters');
 
     // Check Secondary Parallel Encounter
-    const trap = steps.find((s) => s.track === 'parallel' && s.objectId === encounter2.id);
+    const trap = steps.find(
+      (s) => s.track === 'parallel' && s.objectId === encounter2.id,
+    );
     expect(trap).toBeDefined();
     expect(trap?.title).toContain('Crushing Pendulum Hall');
 
     // Check Handout beat and attachment
-    const docBeat = steps.find((s) => s.kind === 'handout' && s.objectId === handout.id);
+    const docBeat = steps.find(
+      (s) => s.kind === 'handout' && s.objectId === handout.id,
+    );
     expect(docBeat).toBeDefined();
     expect(spine.plan.attachments).toContain(handout.id);
 
@@ -230,8 +249,12 @@ describe('sessionSpineGenerator', () => {
     expect(depIds).toContain(handout.id);
 
     // Check readiness items
-    expect(spine.plan.readiness.some((r) => r.label.includes('Gargoyle Ambush'))).toBe(true);
-    expect(spine.plan.readiness.some((r) => r.label.includes('Archivist Lyra'))).toBe(true);
+    expect(
+      spine.plan.readiness.some((r) => r.label.includes('Gargoyle Ambush')),
+    ).toBe(true);
+    expect(
+      spine.plan.readiness.some((r) => r.label.includes('Archivist Lyra')),
+    ).toBe(true);
   });
 
   it('scales step durations proportionally based on target duration', () => {
@@ -244,7 +267,9 @@ describe('sessionSpineGenerator', () => {
       targetDurationMinutes: 300,
     });
 
-    expect(spineShort.plan.estimatedMinutes).toBeLessThan(spineLong.plan.estimatedMinutes);
+    expect(spineShort.plan.estimatedMinutes).toBeLessThan(
+      spineLong.plan.estimatedMinutes,
+    );
   });
 
   it('correctly handles suggested title fallbacks', () => {
