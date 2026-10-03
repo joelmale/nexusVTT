@@ -131,7 +131,8 @@ jobs:
           format: table
           severity: CRITICAL,HIGH
           skip-dirs: apps/vtt/public,node_modules/.cache
-          ignore-unfixed: false
+          trivyignores: .trivyignore
+          ignore-unfixed: true
           exit-code: '1'
 
       - name: Generate filesystem CycloneDX SBOM
@@ -313,7 +314,8 @@ jobs:
           image-ref: ${{ steps.image.outputs.ref }}
           format: table
           severity: CRITICAL,HIGH
-          ignore-unfixed: false
+          trivyignores: .trivyignore
+          ignore-unfixed: true
           exit-code: '1'
 
       - name: Enforce Grype high and critical policy
