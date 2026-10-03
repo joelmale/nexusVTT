@@ -110,7 +110,7 @@ CODEX_OCR_MAX_PAGES=350
 ```
 
 These values are coverage limits, not concurrency settings. The worker keeps
-`WORKER_CONCURRENCY=2`, `ASSET_WORKER_CONCURRENCY=1`, and
+`WORKER_CONCURRENCY=1`, `ASSET_WORKER_CONCURRENCY=1`, and
 `OCR_WORKER_POOL_SIZE=2` by default. A large image-only PDF can therefore take
 substantially longer to process and can temporarily use the original file
 size plus rendered PNG data, while permanent storage gains one WebP image per

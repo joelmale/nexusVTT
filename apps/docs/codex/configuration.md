@@ -140,7 +140,7 @@ OCR_TIMEOUT=30000
 
 ```bash
 # Worker concurrency
-WORKER_CONCURRENCY=2
+WORKER_CONCURRENCY=1
 
 # Full-manual coverage limits
 PAGE_IMAGE_MAX_PAGES=350

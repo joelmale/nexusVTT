@@ -349,6 +349,8 @@ services:
       # Ingestion v2: Surya layout + Marker Markdown + VLM extraction via Ollama.
       # The service default is v1, so this must stay explicit.
       PIPELINE_VERSION: ${CODEX_PIPELINE_VERSION:-v2}
+      # Single-worker sequential processing to prevent concurrent GPU/VLM overload.
+      WORKER_CONCURRENCY: ${CODEX_WORKER_CONCURRENCY:-1}
       OLLAMA_URL: ${CODEX_OLLAMA_URL:-http://ollama:11434}
       VLM_MODEL: ${CODEX_VLM_MODEL:-qwen3-vl:4b-instruct}
       OLLAMA_NUM_CTX: ${CODEX_OLLAMA_NUM_CTX:-8192}

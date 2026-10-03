@@ -57,6 +57,7 @@ services:
       S3_BUCKET: documents
       S3_REGION: us-east-1
       S3_FORCE_PATH_STYLE: 'true'
+      WORKER_CONCURRENCY: ${CODEX_WORKER_CONCURRENCY:-1}
       JWT_SECRET: null
       AUTH_DISABLED: null
       EMBEDDINGS_PROVIDER: null

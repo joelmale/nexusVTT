@@ -32,7 +32,7 @@ const envSchema = z.object({
   // Processing Configuration
   QUEUE_NAME: z.string().default('document-processing'),
   ASSET_QUEUE_NAME: z.string().default('document-assets'),
-  WORKER_CONCURRENCY: z.string().default('2').transform(Number),
+  WORKER_CONCURRENCY: z.string().default('1').transform(Number),
   ASSET_WORKER_CONCURRENCY: z.string().default('1').transform(Number),
   THUMBNAIL_WIDTH: z.string().default('300').transform(Number),
   THUMBNAIL_QUALITY: z.string().default('80').transform(Number),
