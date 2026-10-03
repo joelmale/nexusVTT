@@ -6,6 +6,7 @@ import RotateCcw from 'lucide-react/dist/esm/icons/rotate-ccw';
 import Copy from 'lucide-react/dist/esm/icons/copy';
 import Check from 'lucide-react/dist/esm/icons/check';
 import Search from 'lucide-react/dist/esm/icons/search';
+import Crop from 'lucide-react/dist/esm/icons/crop';
 
 import { Icon } from '@/components/Common/Icon';
 import {
@@ -14,7 +15,10 @@ import {
   type IconDefinition,
 } from '@/services/iconCatalog';
 import { useIconStore } from '@/stores/iconStore';
-import { optimizeIconImage } from '@/utils/imageOptimizer';
+import {
+  optimizeIconImage,
+  optimizeIconDataUrl,
+} from '@/utils/imageOptimizer';
 import styles from './IconStudioPanel.module.css';
 
 interface IconCardItemProps {
@@ -22,6 +26,7 @@ interface IconCardItemProps {
   isOverridden: boolean;
   onUploadFile: (iconId: string, file: File) => Promise<void>;
   onResetIcon: (iconId: string) => void;
+  onTightCrop: (iconId: string) => Promise<void>;
   onCopyPrompt: (prompt: string, iconId: string) => void;
   isCopied: boolean;
 }
@@ -31,6 +36,7 @@ function IconCardItem({
   isOverridden,
   onUploadFile,
   onResetIcon,
+  onTightCrop,
   onCopyPrompt,
   isCopied,
 }: IconCardItemProps) {
@@ -133,15 +139,28 @@ function IconCardItem({
 
       <div className={styles.cardFooter}>
         {isOverridden && (
-          <button
-            type="button"
-            className={styles.resetBtn}
-            onClick={() => onResetIcon(icon.id)}
-            title="Revert to active global pack icon"
-          >
-            <RotateCcw size={12} />
-            Reset
-          </button>
+          <div className={styles.overrideActions}>
+            <button
+              type="button"
+              className={styles.fitBtn}
+              onClick={() => onTightCrop(icon.id)}
+              title="Crop tightly to remove transparent margins and fit frame"
+              data-testid={`fit-btn-${icon.id}`}
+            >
+              <Crop size={11} />
+              Fit
+            </button>
+            <button
+              type="button"
+              className={styles.resetBtn}
+              onClick={() => onResetIcon(icon.id)}
+              title="Revert to active global pack icon"
+              data-testid={`reset-btn-${icon.id}`}
+            >
+              <RotateCcw size={11} />
+              Reset
+            </button>
+          </div>
         )}
       </div>
     </div>
@@ -163,6 +182,8 @@ export function IconStudioPanel() {
   const [searchQuery, setSearchQuery] = useState('');
   const [statusMessage, setStatusMessage] = useState<string | null>(null);
   const [copiedIconId, setCopiedIconId] = useState<string | null>(null);
+  const [tightCropEnabled, setTightCropEnabled] = useState(true);
+  const [removeBgEnabled, setRemoveBgEnabled] = useState(false);
   const [, startTransition] = useTransition();
 
   const importFileInputRef = useRef<HTMLInputElement>(null);
@@ -188,7 +209,10 @@ export function IconStudioPanel() {
   const handleUploadFile = useCallback(
     async (iconId: string, file: File) => {
       try {
-        const dataUrl = await optimizeIconImage(file);
+        const dataUrl = await optimizeIconImage(file, {
+          autoCrop: tightCropEnabled,
+          removeBackground: removeBgEnabled,
+        });
         setLocalUserIcon(iconId, dataUrl);
         setStatusMessage(`Updated ${iconId} with custom override.`);
       } catch (err) {
@@ -197,8 +221,53 @@ export function IconStudioPanel() {
         );
       }
     },
-    [setLocalUserIcon],
+    [tightCropEnabled, removeBgEnabled, setLocalUserIcon],
   );
+
+  const handleTightCropOverride = useCallback(
+    async (iconId: string) => {
+      const current = localUserOverrides[iconId];
+      if (!current) return;
+      try {
+        const updated = await optimizeIconDataUrl(current, {
+          autoCrop: true,
+          removeBackground: removeBgEnabled,
+        });
+        setLocalUserIcon(iconId, updated);
+        setStatusMessage(`Cropped ${iconId} tightly to fit frame.`);
+      } catch (err) {
+        setStatusMessage(
+          err instanceof Error ? err.message : 'Failed to crop icon image.',
+        );
+      }
+    },
+    [localUserOverrides, removeBgEnabled, setLocalUserIcon],
+  );
+
+  const handleFitAllOverrides = useCallback(async () => {
+    const currentOverrides = useIconStore.getState().localUserOverrides;
+    const ids = Object.keys(currentOverrides);
+    if (ids.length === 0) return;
+    try {
+      let count = 0;
+      for (const id of ids) {
+        const current = currentOverrides[id];
+        if (current) {
+          const updated = await optimizeIconDataUrl(current, {
+            autoCrop: true,
+            removeBackground: removeBgEnabled,
+          });
+          setLocalUserIcon(id, updated);
+          count++;
+        }
+      }
+      setStatusMessage(`Tight-cropped ${count} icon(s) to fit their frames.`);
+    } catch (err) {
+      setStatusMessage(
+        err instanceof Error ? err.message : 'Failed to crop icons.',
+      );
+    }
+  }, [removeBgEnabled, setLocalUserIcon]);
 
   const handleResetIcon = useCallback(
     (iconId: string) => {
@@ -309,18 +378,30 @@ export function IconStudioPanel() {
               data-testid="import-pack-input"
             />
             {overrideCount > 0 && (
-              <button
-                type="button"
-                className={`${styles.actionBtn} ${styles.dangerBtn}`}
-                onClick={() => {
-                  clearAllLocalOverrides();
-                  setStatusMessage('Cleared all local icon overrides.');
-                }}
-                title="Reset all local overrides to default"
-              >
-                <RotateCcw size={13} />
-                Reset All ({overrideCount})
-              </button>
+              <>
+                <button
+                  type="button"
+                  className={styles.actionBtn}
+                  onClick={handleFitAllOverrides}
+                  title="Crop all active overrides tightly to fill their frames"
+                  data-testid="fit-all-btn"
+                >
+                  <Crop size={13} />
+                  Fit All ({overrideCount})
+                </button>
+                <button
+                  type="button"
+                  className={`${styles.actionBtn} ${styles.dangerBtn}`}
+                  onClick={() => {
+                    clearAllLocalOverrides();
+                    setStatusMessage('Cleared all local icon overrides.');
+                  }}
+                  title="Reset all local overrides to default"
+                >
+                  <RotateCcw size={13} />
+                  Reset All ({overrideCount})
+                </button>
+              </>
             )}
           </div>
         </div>
@@ -330,7 +411,7 @@ export function IconStudioPanel() {
         </p>
       </div>
 
-      {/* Global Campaign Pack Controller */}
+      {/* Global Campaign Pack Controller & Upload Options */}
       <div className={styles.controlBar}>
         <div className={styles.packSelectorGroup}>
           <span className={styles.packLabel}>Campaign Theme Pack:</span>
@@ -351,6 +432,35 @@ export function IconStudioPanel() {
               </option>
             ))}
           </select>
+        </div>
+
+        <div className={styles.optionsGroup}>
+          <label
+            className={styles.checkboxLabel}
+            title="Automatically crop transparent borders tightly so replaced icons fill the frame"
+          >
+            <input
+              type="checkbox"
+              checked={tightCropEnabled}
+              onChange={(e) => setTightCropEnabled(e.target.checked)}
+              className={styles.checkbox}
+              data-testid="tight-crop-toggle"
+            />
+            <span>Tight Crop</span>
+          </label>
+          <label
+            className={styles.checkboxLabel}
+            title="Automatically remove solid corner background when uploading or dropping icons"
+          >
+            <input
+              type="checkbox"
+              checked={removeBgEnabled}
+              onChange={(e) => setRemoveBgEnabled(e.target.checked)}
+              className={styles.checkbox}
+              data-testid="remove-bg-toggle"
+            />
+            <span>Remove Solid BG</span>
+          </label>
         </div>
       </div>
 
@@ -399,6 +509,7 @@ export function IconStudioPanel() {
             isOverridden={Boolean(localUserOverrides[icon.id])}
             onUploadFile={handleUploadFile}
             onResetIcon={handleResetIcon}
+            onTightCrop={handleTightCropOverride}
             onCopyPrompt={handleCopyPrompt}
             isCopied={copiedIconId === icon.id}
           />

@@ -56,3 +56,33 @@
   flex-wrap: wrap;
   gap: var(--studio-gap-xs);
 }
+
+.footerActions {
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-sm, 8px);
+}
+
+.generatorButton {
+  align-items: center;
+  background: var(--studio-surface-muted, #f3f4f6);
+  border: 1px dashed var(--studio-border, #d1d5db);
+  border-radius: var(--studio-radius-control, 6px);
+  color: var(--studio-text, #111827);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  justify-content: center;
+  padding: 8px 12px;
+  transition: all 0.15s ease;
+  width: 100%;
+}
+
+.generatorButton:hover {
+  background: var(--studio-surface-hover, #e5e7eb);
+  border-color: #2563eb;
+  color: #2563eb;
+}
+

@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import Dices from 'lucide-react/dist/esm/icons/dices';
 
 import { EmptyState } from '@/features/section-shell/EmptyState';
 import { EntityList } from '@/features/section-shell/EntityList';
@@ -18,6 +19,7 @@ import {
   factionForwardIds,
   factionMembers,
 } from './factionsModels';
+import { FactionGeneratorModal } from './FactionGeneratorModal';
 import styles from './FactionsSection.module.css';
 
 const statusToneMap: Record<string, 'positive' | 'warning' | 'danger' | 'neutral'> = {
@@ -28,9 +30,11 @@ const statusToneMap: Record<string, 'positive' | 'warning' | 'danger' | 'neutral
 };
 
 export function FactionsSection() {
-  const { bundle, basePath } = useSectionBundle();
+  const navigate = useNavigate();
+  const { bundle, basePath, store } = useSectionBundle();
   const { factionId } = useParams<{ factionId: string }>();
   const { get } = useSectionQuery();
+  const [showGeneratorModal, setShowGeneratorModal] = useState(false);
 
   const status = get('status');
   const sort = get('sort');
@@ -49,6 +53,42 @@ export function FactionsSection() {
     ...g,
     items: g.factions,
   }));
+
+  const addRow = (
+    <AddRow
+      defaults={{ status: 'unknown' }}
+      kind="faction"
+      label="Add faction"
+      nameField="name"
+      sectionPath="factions"
+    />
+  );
+
+  const footerActions = (
+    <div className={styles.footerActions}>
+      {addRow}
+      {store.editable ? (
+        <button
+          className={styles.generatorButton}
+          onClick={() => setShowGeneratorModal(true)}
+          title="Procedurally generate individual factions or political webs"
+          type="button"
+        >
+          <Dices size={15} />
+          Generate Factions
+        </button>
+      ) : null}
+      {showGeneratorModal && (
+        <FactionGeneratorModal
+          open={showGeneratorModal}
+          onClose={() => setShowGeneratorModal(false)}
+          onCreated={(id) => {
+            navigate(`${basePath}/factions/${encodeURIComponent(id)}`);
+          }}
+        />
+      )}
+    </div>
+  );
 
   const list =
     bundle.factions.length === 0 ? null : (
@@ -81,6 +121,8 @@ export function FactionsSection() {
       heading={selectedFaction.name}
       initialDraft={{
         name: selectedFaction.name,
+        status: selectedFaction.status,
+        leaderNpcId: selectedFaction.leaderNpcId ?? '',
         publicFace: selectedFaction.publicFace,
         hiddenAgenda: selectedFaction.hiddenAgenda,
       }}
@@ -94,6 +136,32 @@ export function FactionsSection() {
                 value={String(draft.name ?? '')}
                 onChange={(e) => setDraft({ ...draft, name: e.target.value })}
               />
+            </label>
+            <label>
+              <span className={styles.heading}>Status</span>
+              <select
+                value={String(draft.status ?? 'unknown')}
+                onChange={(e) => setDraft({ ...draft, status: e.target.value })}
+              >
+                <option value="opposition">Opposition</option>
+                <option value="unknown">Unknown</option>
+                <option value="neutral">Neutral</option>
+                <option value="ally">Ally</option>
+              </select>
+            </label>
+            <label>
+              <span className={styles.heading}>Leader</span>
+              <select
+                value={String(draft.leaderNpcId ?? '')}
+                onChange={(e) => setDraft({ ...draft, leaderNpcId: e.target.value })}
+              >
+                <option value="">No leader</option>
+                {bundle.npcs.map((npc) => (
+                  <option key={npc.id} value={npc.id}>
+                    {npc.name}
+                  </option>
+                ))}
+              </select>
             </label>
             <label>
               <span className={styles.heading}>Public Face</span>
@@ -114,6 +182,17 @@ export function FactionsSection() {
           </div>
         </>
       )}
+      toPatch={(draft, initial) => {
+        const patch: Record<string, unknown> = {};
+        if (draft.name !== initial.name) patch.name = String(draft.name ?? '').trim();
+        if (draft.status !== initial.status) patch.status = draft.status;
+        if (draft.leaderNpcId !== initial.leaderNpcId) {
+          patch.leaderNpcId = draft.leaderNpcId ? String(draft.leaderNpcId) : '';
+        }
+        if (draft.publicFace !== initial.publicFace) patch.publicFace = String(draft.publicFace ?? '').trim();
+        if (draft.hiddenAgenda !== initial.hiddenAgenda) patch.hiddenAgenda = String(draft.hiddenAgenda ?? '').trim();
+        return patch;
+      }}
     >
       <div className={styles.detail}>
         {selectedFaction.publicFace && (
@@ -199,7 +278,12 @@ export function FactionsSection() {
       empty={
         bundle.factions.length === 0 ? (
           <EmptyState
-            description='Factions you add will appear here, grouped by status.'
+            action={footerActions}
+            description={
+              store.editable
+                ? 'Add the first faction or procedurally generate an interconnected faction web to start tracking campaign allegiances and rivals.'
+                : 'Factions you add will appear here, grouped by status.'
+            }
             title="No factions yet."
           />
         ) : undefined
@@ -224,15 +308,7 @@ export function FactionsSection() {
       list={list}
       notFound={Boolean(factionId) && !selectedFaction}
       selectedId={factionId}
-      listFooter={
-        <AddRow
-          defaults={{ status: 'unknown' }}
-          kind="faction"
-          label="Add faction"
-          nameField="name"
-          sectionPath="factions"
-        />
-      }
+      listFooter={footerActions}
       sectionPath="factions"
       title="Factions"
     />

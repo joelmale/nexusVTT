@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { render, screen, fireEvent, waitFor } from '@testing-library/react';
+import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
+import { render, screen, fireEvent, waitFor, cleanup } from '@testing-library/react';
 import { IconStudioPanel } from '@/components/Panels/IconStudio/IconStudioPanel';
 import { useIconStore } from '@/stores/iconStore';
 import * as imageOptimizer from '@/utils/imageOptimizer';
@@ -11,6 +11,10 @@ describe('IconStudioPanel', () => {
       localUserOverrides: {},
     });
     vi.restoreAllMocks();
+  });
+
+  afterEach(() => {
+    cleanup();
   });
 
   it('renders header, pack controller, category tabs, and icon cards', () => {
@@ -340,5 +344,83 @@ describe('IconStudioPanel', () => {
     // Search by prompt keyword
     fireEvent.change(searchInput, { target: { value: 'quill' } });
     expect(screen.getByText('Freehand Draw')).toBeInTheDocument();
+  });
+
+  it('toggles tight-crop and background removal options in control bar', () => {
+    render(<IconStudioPanel />);
+
+    const tightCropToggle = screen.getByTestId('tight-crop-toggle') as HTMLInputElement;
+    const removeBgToggle = screen.getByTestId('remove-bg-toggle') as HTMLInputElement;
+
+    expect(tightCropToggle.checked).toBe(true);
+    expect(removeBgToggle.checked).toBe(false);
+
+    fireEvent.click(tightCropToggle);
+    expect(tightCropToggle.checked).toBe(false);
+
+    fireEvent.click(removeBgToggle);
+    expect(removeBgToggle.checked).toBe(true);
+  });
+
+  it('crops an overridden icon card tightly when clicking Fit button', async () => {
+    useIconStore.setState({
+      localUserOverrides: {
+        'condition:poisoned': 'data:image/png;base64,initialPoisonOverride',
+      },
+    });
+
+    vi.spyOn(imageOptimizer, 'optimizeIconDataUrl').mockResolvedValue(
+      'data:image/png;base64,fittedPoisonOverride',
+    );
+
+    render(<IconStudioPanel />);
+
+    const fitBtn = screen.getByTestId('fit-btn-condition:poisoned');
+    expect(fitBtn).toBeInTheDocument();
+
+    fireEvent.click(fitBtn);
+
+    await waitFor(() => {
+      expect(
+        useIconStore.getState().localUserOverrides['condition:poisoned'],
+      ).toBe('data:image/png;base64,fittedPoisonOverride');
+    });
+
+    expect(
+      screen.getByText(/Cropped condition:poisoned tightly to fit frame/i),
+    ).toBeInTheDocument();
+  });
+
+  it('crops all overridden icons tightly when clicking Fit All button', async () => {
+    useIconStore.setState({
+      localUserOverrides: {
+        'condition:poisoned': 'data:image/png;base64,poisonData',
+        'condition:blinded': 'data:image/png;base64,blindedData',
+      },
+    });
+
+    vi.spyOn(imageOptimizer, 'optimizeIconDataUrl').mockResolvedValue(
+      'data:image/png;base64,allCropped',
+    );
+
+    render(<IconStudioPanel />);
+
+    const fitAllBtn = screen.getByTestId('fit-all-btn');
+    expect(fitAllBtn).toBeInTheDocument();
+    expect(fitAllBtn).toHaveTextContent('Fit All (2)');
+
+    fireEvent.click(fitAllBtn);
+
+    await waitFor(() => {
+      expect(
+        useIconStore.getState().localUserOverrides['condition:poisoned'],
+      ).toBe('data:image/png;base64,allCropped');
+      expect(
+        useIconStore.getState().localUserOverrides['condition:blinded'],
+      ).toBe('data:image/png;base64,allCropped');
+      expect(
+        screen.getByText(/Tight-cropped 2 icon\(s\) to fit their frames/i),
+      ).toBeInTheDocument();
+    });
   });
 });

@@ -798,22 +798,6 @@ export const Settings: React.FC = () => {
           description="Try out new features that are still in development"
         >
           <SettingItem
-            label="Floating Toolbar"
-            description="Make the toolbar draggable and floating. When disabled (default), toolbar is docked at the bottom."
-          >
-            <label className="setting-toggle">
-              <input
-                type="checkbox"
-                checked={settings.floatingToolbar ?? false}
-                onChange={(e) =>
-                  handleSettingChange('floatingToolbar', e.target.checked)
-                }
-              />
-              <span className="toggle-slider"></span>
-            </label>
-          </SettingItem>
-
-          <SettingItem
             label="Restore Default Layout"
             description="Reset all floating panels and toolbar positions"
           >

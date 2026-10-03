@@ -1,7 +1,9 @@
-import { describe, it, expect } from 'vitest';
-import { screen } from '@testing-library/react';
-import { renderSection } from '@/features/section-shell/testUtils';
+import { describe, it, expect, vi } from 'vitest';
+import { screen, within } from '@testing-library/react';
+import { Route, Routes } from 'react-router-dom';
+import { renderInSection, renderSection } from '@/features/section-shell/testUtils';
 import { getFixtureBundle } from '@/demo/fixture-registry';
+import { FactionsSection } from './FactionsSection';
 
 describe('FactionsSection', () => {
   const bundle = getFixtureBundle('ashes-of-veyra')!;
@@ -169,4 +171,82 @@ describe('FactionsSection', () => {
       }
     });
   });
+
+  describe('editable store', () => {
+    const withFactionParam = (prefix: string) => (
+      <Routes>
+        <Route path={`${prefix}/factions/:factionId`} element={<FactionsSection />} />
+        <Route path={`${prefix}/factions`} element={<FactionsSection />} />
+      </Routes>
+    );
+
+    it('renders Add faction button in empty state when store is editable', () => {
+      renderInSection(withFactionParam('/campaigns/campaign-blank'), {
+        path: '/campaigns/campaign-blank/factions',
+        store: {
+          editable: true,
+          bundle: {
+            ...bundle,
+            factions: [],
+          },
+        },
+        singlePane: false,
+      });
+
+      expect(screen.getByText('No factions yet.')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: '+ Add faction' })).toBeInTheDocument();
+    });
+
+    it('edits faction details including status and leader when store is editable', async () => {
+      const updateItem = vi.fn().mockResolvedValue({ ok: true });
+      const { user } = renderInSection(withFactionParam('/campaigns/campaign-blank'), {
+        path: `/campaigns/campaign-blank/factions/${testFaction.id}`,
+        store: {
+          editable: true,
+          updateItem,
+          bundle,
+        },
+        singlePane: false,
+      });
+
+      await user.click(screen.getByRole('button', { name: 'Edit' }));
+      const form = screen.getByRole('form', { name: 'Edit form' });
+      expect(within(form).getByLabelText('Status')).toBeInTheDocument();
+      expect(within(form).getByLabelText('Leader')).toBeInTheDocument();
+
+      await user.selectOptions(within(form).getByLabelText('Status'), 'ally');
+      await user.click(screen.getByRole('button', { name: 'Save' }));
+
+      expect(updateItem).toHaveBeenCalledWith(
+        'faction',
+        testFaction.id,
+        expect.objectContaining({ status: 'ally' }),
+      );
+    });
+
+    it('renders Generate Factions button and opens modal when clicked', async () => {
+      HTMLDialogElement.prototype.showModal = function showModal() {
+        this.setAttribute('open', '');
+      };
+      HTMLDialogElement.prototype.close = function close() {
+        this.removeAttribute('open');
+      };
+
+      const { user } = renderInSection(withFactionParam('/campaigns/campaign-blank'), {
+        path: `/campaigns/campaign-blank/factions/${testFaction.id}`,
+        store: {
+          editable: true,
+          bundle,
+        },
+        singlePane: false,
+      });
+
+      const generateBtn = screen.getByRole('button', { name: /Generate Factions/ });
+      expect(generateBtn).toBeInTheDocument();
+
+      await user.click(generateBtn);
+      expect(screen.getByRole('heading', { name: /Procedural Faction Generator/ })).toBeVisible();
+    });
+  });
 });
+

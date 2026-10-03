@@ -71,3 +71,18 @@ export {
   type NpcCombatSummary,
   type NpcStatBlockRef,
 } from './generators/npcGenerator';
+
+// Procedural Faction and Relationship Web generator for Campaign Studio, VTT, and Forge
+export {
+  generateSingleFaction,
+  generateFactionWeb,
+  generateKeyFigure,
+  type FactionRelationshipType,
+  type FactionRelationship,
+  type GeneratedKeyFigure,
+  type GeneratedFaction,
+  type CentralFlashpoint,
+  type FactionWebResult,
+  type FactionGeneratorOptions,
+} from './generators/factionGenerator';
+

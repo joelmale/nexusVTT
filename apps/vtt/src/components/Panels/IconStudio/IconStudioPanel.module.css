@@ -346,6 +346,32 @@
   margin-top: auto;
 }
 
+.overrideActions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1);
+}
+
+.fitBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  padding: 3px 6px;
+  font-size: 0.7rem;
+  color: var(--indigo-300, #a5b4fc);
+  background: var(--surface-primary);
+  border: 1px solid var(--border-primary);
+  border-radius: var(--border-radius-sm);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.fitBtn:hover {
+  color: #fff;
+  border-color: var(--indigo-400, #818cf8);
+  background: var(--indigo-950, #1e1b4b);
+}
+
 .resetBtn {
   display: inline-flex;
   align-items: center;
@@ -363,6 +389,33 @@
 .resetBtn:hover {
   color: var(--danger-color, #ef4444);
   border-color: var(--danger-color, #ef4444);
+}
+
+.optionsGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-3);
+  flex-wrap: wrap;
+}
+
+.checkboxLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-1);
+  font-size: 0.775rem;
+  color: var(--text-secondary);
+  cursor: pointer;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.checkboxLabel:hover {
+  color: var(--text-primary);
+}
+
+.checkbox {
+  accent-color: var(--color-primary, #6366f1);
+  cursor: pointer;
 }
 
 .hiddenInput {

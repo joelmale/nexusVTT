@@ -179,7 +179,21 @@ async function removeBackground(png, threshold) {
     px[o + 3] = Math.round(alpha * 255);
   }
 
-  return sharp(Buffer.from(px.buffer), { raw: { width: w, height: h, channels: 4 } })
+  // Trim transparent padding tightly into content bounding box and pad with 4% safe margin
+  const trimmed = await sharp(Buffer.from(px.buffer), { raw: { width: w, height: h, channels: 4 } })
+    .trim({ threshold: 10 })
+    .toBuffer({ resolveWithObject: true });
+
+  const margin = Math.round(w * 0.04);
+  return sharp(trimmed.data, { raw: { width: trimmed.info.width, height: trimmed.info.height, channels: 4 } })
+    .resize(w - margin * 2, h - margin * 2, { fit: 'inside' })
+    .extend({
+      top: margin,
+      bottom: margin,
+      left: margin,
+      right: margin,
+      background: { r: 0, g: 0, b: 0, alpha: 0 },
+    })
     .png({ compressionLevel: 9 })
     .toBuffer();
 }
