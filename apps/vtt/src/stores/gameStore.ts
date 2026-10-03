@@ -935,7 +935,27 @@ export const useGameStore = create<GameStore>()(
               );
             });
           }
+
+          // Clear selection if this drawing was selected
+          state.sceneState.selectedObjectIds =
+            state.sceneState.selectedObjectIds.filter((id) => id !== drawingId);
         });
+
+        // Broadcast deletion via WebSocket
+        (async () => {
+          try {
+            const { webSocketService } = await import('@/services/websocket');
+            webSocketService.sendEvent({
+              type: 'drawing/delete',
+              data: {
+                sceneId,
+                drawingId,
+              },
+            });
+          } catch (err) {
+            console.error('Failed to broadcast drawing/delete event:', err);
+          }
+        })();
 
         scheduleServerSync(get);
       },
@@ -1169,24 +1189,43 @@ export const useGameStore = create<GameStore>()(
               );
             state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
           }
-        });
 
-        // Clear selection if this token was selected
-        const state = get();
-        if (state.sceneState.selectedObjectIds.includes(tokenId)) {
-          get().clearSelection();
-        }
+          // Clear selection if this token was selected
+          state.sceneState.selectedObjectIds =
+            state.sceneState.selectedObjectIds.filter((id) => id !== tokenId);
+        });
 
         // Broadcast deletion via WebSocket
         (async () => {
-          const { webSocketService } = await import('@/services/websocket');
-          webSocketService.sendEvent({
-            type: 'token/delete',
-            data: {
-              sceneId,
-              tokenId,
-            },
-          });
+          try {
+            const { webSocketService } = await import('@/services/websocket');
+            webSocketService.sendEvent({
+              type: 'token/delete',
+              data: {
+                sceneId,
+                tokenId,
+              },
+            });
+          } catch (err) {
+            console.error('Failed to broadcast token/delete event:', err);
+          }
+        })();
+
+        // Clean up linked initiative entry if one exists
+        (async () => {
+          try {
+            const { useInitiativeStore } = await import(
+              '@/stores/initiativeStore'
+            );
+            const entry = useInitiativeStore
+              .getState()
+              .entries.find((e) => e.tokenId === tokenId);
+            if (entry) {
+              useInitiativeStore.getState().removeEntry(entry.id);
+            }
+          } catch {
+            // ignore if initiativeStore is not loaded
+          }
         })();
 
         scheduleCampaignPersistence(sceneId, get);
@@ -1608,7 +1647,27 @@ export const useGameStore = create<GameStore>()(
               );
             state.sceneState.scenes[sceneIndex].updatedAt = Date.now();
           }
+
+          // Clear selection if this prop was selected
+          state.sceneState.selectedObjectIds =
+            state.sceneState.selectedObjectIds.filter((id) => id !== propId);
         });
+
+        // Broadcast deletion via WebSocket
+        (async () => {
+          try {
+            const { webSocketService } = await import('@/services/websocket');
+            webSocketService.sendEvent({
+              type: 'prop/delete',
+              data: {
+                sceneId,
+                propId,
+              },
+            });
+          } catch (err) {
+            console.error('Failed to broadcast prop/delete event:', err);
+          }
+        })();
 
         scheduleCampaignPersistence(sceneId, get);
       },

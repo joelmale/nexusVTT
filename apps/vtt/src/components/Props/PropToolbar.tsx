@@ -2,7 +2,8 @@ import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { useGameStore, useActiveScene } from '@/stores/gameStore';
 import { useStackZIndex, useUIStackStore } from '@/stores/uiStackStore';
 import { propAssetManager } from '@/services/propAssets';
-import type { PlacedProp } from '@/types/prop';
+import { webSocketService } from '@/services/websocket';
+import { createPlacedProp, type PlacedProp } from '@/types/prop';
 import { PopoverMenu } from '../PopoverMenu';
 import { Portal } from '../Portal';
 import './PropToolbar.css';
@@ -22,6 +23,9 @@ export const PropToolbar: React.FC<PropToolbarProps> = ({
   const updateProp = useGameStore((state) => state.updateProp);
   const deleteProp = useGameStore((state) => state.deleteProp);
   const clearSelection = useGameStore((state) => state.clearSelection);
+  const placeProp = useGameStore((state) => state.placeProp);
+  const setSelection = useGameStore((state) => state.setSelection);
+  const user = useGameStore((state) => state.user);
   const interactWithProp = useGameStore((state) => state.interactWithProp);
 
   const toolbarRef = useRef<HTMLDivElement>(null);
@@ -66,9 +70,49 @@ export const PropToolbar: React.FC<PropToolbarProps> = ({
   }
 
   const handleRemoveProp = () => {
-    if (window.confirm('Are you sure you want to remove this prop?')) {
-      deleteProp(activeScene.id, placedProp.id);
+    deleteProp(activeScene.id, placedProp.id);
+    clearSelection();
+  };
+
+  const handleDuplicateProp = () => {
+    const duplicated = createPlacedProp(
+      placedProp.propId,
+      activeScene.id,
+      { x: placedProp.x + 20, y: placedProp.y + 20 },
+      user.id,
+    );
+    duplicated.rotation = placedProp.rotation;
+    duplicated.scale = placedProp.scale;
+    duplicated.layer = placedProp.layer;
+    duplicated.visibleToPlayers = placedProp.visibleToPlayers;
+    duplicated.dmNotesOnly = placedProp.dmNotesOnly;
+    duplicated.currentStats = placedProp.currentStats
+      ? { ...placedProp.currentStats }
+      : undefined;
+
+    placeProp(activeScene.id, duplicated);
+    setSelection([duplicated.id]);
+    try {
+      webSocketService.sendEvent({
+        type: 'prop/place',
+        data: {
+          sceneId: activeScene.id,
+          prop: duplicated,
+        },
+      });
+    } catch {
+      // Ignore if offline/unconfigured
     }
+  };
+
+  const isLocked = !!placedProp.currentStats?.locked;
+  const handleToggleLock = () => {
+    updateProp(activeScene.id, placedProp.id, {
+      currentStats: {
+        ...(placedProp.currentStats || {}),
+        locked: !isLocked,
+      },
+    });
   };
 
   const handleRotate = (delta: number) => {
@@ -315,6 +359,22 @@ export const PropToolbar: React.FC<PropToolbarProps> = ({
               <span className="prop-toolbar-icon">
                 {placedProp.dmNotesOnly ? 'DM' : '📝'}
               </span>
+            </button>
+
+            <button
+              className={`prop-toolbar-btn ${isLocked ? 'active' : ''}`}
+              onClick={handleToggleLock}
+              title={isLocked ? 'Unlock Position' : 'Lock Position'}
+            >
+              <span className="prop-toolbar-icon">{isLocked ? '🔒' : '🔓'}</span>
+            </button>
+
+            <button
+              className="prop-toolbar-btn"
+              onClick={handleDuplicateProp}
+              title="Duplicate Prop (or press D)"
+            >
+              <span className="prop-toolbar-icon">📋</span>
             </button>
 
             <button

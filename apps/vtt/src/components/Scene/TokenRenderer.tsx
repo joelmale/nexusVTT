@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Token } from '@/types/token';
 import { getTokenPixelSize } from '@/types/token';
-import { useActiveTool } from '@/stores/gameStore';
+import { useActiveTool, useGameStore } from '@/stores/gameStore';
 import { useTransientDrag } from '@/hooks/useTransientDrag';
 import { useTokenRenderData } from '@/stores/scene';
 import { tokenAssetManager } from '@/services/tokenAssets';
@@ -18,6 +18,7 @@ interface TokenRendererProps {
   /** Host sees hidden tokens and can edit all; used with currentUserId for canEdit. */
   isHost: boolean;
   currentUserId: string;
+  sceneId?: string;
 }
 
 /**
@@ -41,8 +42,10 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
     onMoveEnd,
     isHost,
     currentUserId,
+    sceneId,
   }) => {
     const activeTool = useActiveTool();
+    const setActiveTool = useGameStore((state) => state.setActiveTool);
     const placedToken = useTokenRenderData(placedTokenId);
     const [, setAssetRevision] = useState(0);
 
@@ -141,14 +144,28 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
       });
       onSelect(placedTokenId, isMultiSelect);
 
-      // Start dragging if already selected or just selected
-      if (isSelected || !isMultiSelect) {
+      // Start dragging if already selected or just selected (and not locked)
+      const isTokenLocked = !!(
+        placedToken?.locked || placedToken?.currentStats?.locked
+      );
+      if (!isTokenLocked && (isSelected || !isMultiSelect)) {
         console.log('🚀 Starting drag for token:', placedTokenId);
         setIsDragging(true);
         if (imageRef.current) {
           imageRef.current.style.opacity = '0.7';
         }
         onDragPointerDown(e);
+      }
+    };
+
+    const handleContextMenu = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (canInteract) {
+        if (activeTool !== 'select') {
+          setActiveTool('select');
+        }
+        onSelect(placedTokenId, false);
       }
     };
 
@@ -174,16 +191,30 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
       typeof rawHp === 'number'
         ? {
             current: rawHp,
-            max: typeof rawMaxHp === 'number' && rawMaxHp > 0 ? rawMaxHp : Math.max(1, rawHp),
+            max:
+              typeof rawMaxHp === 'number' && rawMaxHp > 0
+                ? rawMaxHp
+                : Math.max(1, rawHp),
           }
         : null;
 
     const barWidth = Math.max(24, tokenSize * 0.8);
     const barHeight = 4;
-    const hpPercent = hpStats ? Math.max(0, Math.min(1, hpStats.current / hpStats.max)) : 0;
+    const hpPercent = hpStats
+      ? Math.max(0, Math.min(1, hpStats.current / hpStats.max))
+      : 0;
     const fillWidth = barWidth * hpPercent;
     const hpColor =
       hpPercent > 0.5 ? '#10b981' : hpPercent > 0.25 ? '#f59e0b' : '#ef4444';
+
+    const isTokenLocked = !!(
+      placedToken.locked || placedToken.currentStats?.locked
+    );
+
+    const isGhost =
+      isHost &&
+      (!placedToken.visibleToPlayers ||
+        placedToken.conditions.some((c) => c.id === 'invisible'));
 
     return (
       <>
@@ -192,13 +223,20 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
           data-token-id={placedTokenId}
           data-token-name={effectiveName}
           transform={`translate(${placedToken.x}, ${placedToken.y}) rotate(${placedToken.rotation})`}
-        onPointerDown={handlePointerDown}
-        style={{
-          cursor: canInteract ? (isDragging ? 'grabbing' : 'grab') : 'default',
-          pointerEvents: canInteract ? 'auto' : 'none',
-          touchAction: canInteract ? 'none' : undefined,
-        }}
-      >
+          onPointerDown={handlePointerDown}
+          onContextMenu={handleContextMenu}
+          style={{
+            cursor: canInteract
+              ? isDragging
+                ? 'grabbing'
+                : isTokenLocked
+                  ? 'not-allowed'
+                  : 'grab'
+              : 'default',
+            pointerEvents: canInteract ? 'auto' : 'none',
+            touchAction: canInteract ? 'none' : undefined,
+          }}
+        >
         {/* Token Image */}
         <image
           ref={imageRef}
@@ -208,10 +246,47 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
           width={tokenSize}
           height={tokenSize}
           style={{
-            opacity: 1,
+            opacity: isGhost ? 0.5 : 1,
             filter: placedToken.isDead ? 'grayscale(100%)' : 'none',
           }}
         />
+
+        {/* DM Ghost / Stealth View indicator */}
+        {isGhost && (
+          <g data-testid="token-ghost-indicator">
+            <circle
+              cx={0}
+              cy={0}
+              r={tokenSize / 2 + 3}
+              fill="none"
+              stroke="#38bdf8"
+              strokeWidth={2}
+              strokeDasharray="4,4"
+              opacity={0.9}
+            />
+            {/* DM Eye Badge in upper-left corner */}
+            <g transform={`translate(${-tokenSize / 2 + 4}, ${-tokenSize / 2 + 4})`}>
+              <circle
+                cx={0}
+                cy={0}
+                r={9}
+                fill="rgba(15, 23, 42, 0.85)"
+                stroke="#38bdf8"
+                strokeWidth={1}
+              />
+              <text
+                x={0}
+                y={3}
+                textAnchor="middle"
+                fontSize="11"
+                dominantBaseline="central"
+                style={{ userSelect: 'none', pointerEvents: 'none' }}
+              >
+                👁️
+              </text>
+            </g>
+          </g>
+        )}
 
         {/* Dead indicator - Black X */}
         {placedToken.isDead && (
@@ -332,33 +407,91 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
           </g>
         )}
 
+        {/* Token dead marker (Red X overlay) */}
+        {placedToken.isDead && (
+          <g data-testid="token-dead-marker">
+            <line
+              x1={-tokenSize * 0.35}
+              y1={-tokenSize * 0.35}
+              x2={tokenSize * 0.35}
+              y2={tokenSize * 0.35}
+              stroke="#ef4444"
+              strokeWidth={Math.max(3, tokenSize * 0.08)}
+              strokeLinecap="round"
+            />
+            <line
+              x1={tokenSize * 0.35}
+              y1={-tokenSize * 0.35}
+              x2={-tokenSize * 0.35}
+              y2={tokenSize * 0.35}
+              stroke="#ef4444"
+              strokeWidth={Math.max(3, tokenSize * 0.08)}
+              strokeLinecap="round"
+            />
+          </g>
+        )}
+
+        {/* Token elevation badge (for flying/swimming) */}
+        {typeof placedToken.elevation === 'number' &&
+          placedToken.elevation !== 0 && (
+            <g transform={`translate(${-tokenSize / 2}, ${-tokenSize / 2})`}>
+              <rect
+                x={-6}
+                y={-14}
+                width={42}
+                height={14}
+                rx={3}
+                fill="rgba(15, 23, 42, 0.9)"
+                stroke="#38bdf8"
+                strokeWidth={1}
+              />
+              <text
+                x={15}
+                y={-4}
+                fill="#38bdf8"
+                fontSize={9}
+                fontWeight="bold"
+                textAnchor="middle"
+              >
+                {placedToken.elevation > 0
+                  ? `+${placedToken.elevation}ft`
+                  : `${placedToken.elevation}ft`}
+              </text>
+            </g>
+          )}
+
         {/* Token label */}
         {effectiveName ? (
-            <text
-              x={0}
-              y={tokenSize / 2 + (hpStats ? 20 : 15)}
-              textAnchor="middle"
-              fill="#fff"
-              stroke="#000"
-              strokeWidth={2}
-              paintOrder="stroke"
-              fontSize={12}
-              fontWeight="bold"
-            >
-              {effectiveName}
-            </text>
-          ) : null}
-        </g>
-        {isSelected && !isDragging && (
-          <TokenContextMenu
-            tokenId={placedTokenId}
-            worldX={placedToken.x}
-            worldY={placedToken.y}
-            isDragging={isDragging}
-            onEdit={() => window.dispatchEvent(new CustomEvent('open-panel', { detail: 'tokens' }))}
-          />
-        )}
-      </>
-    );
+          <text
+            x={0}
+            y={tokenSize / 2 + (hpStats ? 20 : 15)}
+            textAnchor="middle"
+            fill="#fff"
+            stroke="#000"
+            strokeWidth={2}
+            paintOrder="stroke"
+            fontSize={12}
+            fontWeight="bold"
+          >
+            {effectiveName}
+          </text>
+        ) : null}
+      </g>
+      {isSelected && !isDragging && (
+        <TokenContextMenu
+          tokenId={placedTokenId}
+          sceneId={sceneId}
+          worldX={placedToken.x}
+          worldY={placedToken.y}
+          isDragging={isDragging}
+          onEdit={() =>
+            window.dispatchEvent(
+              new CustomEvent('open-panel', { detail: 'tokens' }),
+            )
+          }
+        />
+      )}
+    </>
+  );
   },
 );

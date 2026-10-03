@@ -127,6 +127,8 @@ export interface TokenRenderData {
   conditions: PlacedToken['conditions'];
   nameOverride?: string;
   currentStats?: PlacedToken['currentStats'];
+  elevation?: number;
+  locked?: boolean;
 }
 
 export const useTokenRenderData = (
@@ -150,6 +152,8 @@ export const useTokenRenderData = (
         conditions: token.conditions,
         nameOverride: token.nameOverride,
         currentStats: token.currentStats,
+        elevation: token.elevation,
+        locked: token.locked,
       };
     }),
   );

@@ -1,7 +1,9 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useGameStore, useCamera } from '@/stores/gameStore';
 import { useInitiativeStore } from '@/stores/initiativeStore';
-import { STANDARD_CONDITIONS } from '@/types/initiative';
+import { STANDARD_CONDITIONS, createInitiativeEntry } from '@/types/initiative';
+import { createPlacedToken } from '@/types/token';
+import { webSocketService } from '@/services/websocket';
 import { sceneUtils } from '@/utils/sceneUtils';
 import { Portal } from '@/components/Portal';
 import styles from './TokenContextMenu.module.css';
@@ -12,13 +14,14 @@ interface TokenContextMenuProps {
   worldY: number;
   isDragging: boolean;
   onEdit: () => void;
+  sceneId?: string;
 }
 
 /** Gap between the token and the menu, and the viewport edge padding. */
 const TOKEN_GAP = 40;
 const EDGE_PADDING = 8;
 
-type OpenSubmenu = 'none' | 'damage' | 'conditions';
+type OpenSubmenu = 'none' | 'damage' | 'conditions' | 'elevation';
 
 export const TokenContextMenu: React.FC<TokenContextMenuProps> = ({
   tokenId,
@@ -26,10 +29,12 @@ export const TokenContextMenu: React.FC<TokenContextMenuProps> = ({
   worldY,
   isDragging,
   onEdit,
+  sceneId,
 }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [submenu, setSubmenu] = useState<OpenSubmenu>('none');
   const [damageInput, setDamageInput] = useState('');
+  const [elevationInput, setElevationInput] = useState('');
 
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [flipBelow, setFlipBelow] = useState(false);
@@ -37,16 +42,35 @@ export const TokenContextMenu: React.FC<TokenContextMenuProps> = ({
 
   const camera = useCamera();
   const deleteToken = useGameStore((s) => s.deleteToken);
-  const activeSceneId = useGameStore((s) => s.sceneState.activeSceneId);
+  const clearSelection = useGameStore((s) => s.clearSelection);
+  const placeToken = useGameStore((s) => s.placeToken);
+  const setSelection = useGameStore((s) => s.setSelection);
+  const user = useGameStore((s) => s.user);
+  const activeSceneIdStore = useGameStore((s) => s.sceneState.activeSceneId);
+  const effectiveSceneId = sceneId || activeSceneIdStore;
   const updateToken = useGameStore((s) => s.updateToken);
   const token = useGameStore((s) =>
-    activeSceneId
+    effectiveSceneId
       ? s.sceneState.scenes
-          .find((sc) => sc.id === activeSceneId)
+          .find((sc) => sc.id === effectiveSceneId)
           ?.placedTokens.find((t) => t.id === tokenId)
       : undefined,
   );
   const isHost = useGameStore((s) => s.user.type === 'host');
+  const selectedObjectIds = useGameStore((s) => s.sceneState.selectedObjectIds);
+  const currentScene = useGameStore((s) =>
+    effectiveSceneId
+      ? s.sceneState.scenes.find((sc) => sc.id === effectiveSceneId)
+      : undefined,
+  );
+  const selectedTokens = useMemo(
+    () =>
+      currentScene
+        ? currentScene.placedTokens.filter((t) => selectedObjectIds.includes(t.id))
+        : [],
+    [currentScene, selectedObjectIds],
+  );
+  const isMultiTokenSelected = selectedTokens.length > 1;
 
   // Damage/conditions delegate to the initiative entry, which is the only
   // model in the app with real 5e HP maths (max/current/temp, death saves,
@@ -55,6 +79,8 @@ export const TokenContextMenu: React.FC<TokenContextMenuProps> = ({
   const entry = useInitiativeStore((s) =>
     s.entries.find((e) => e.tokenId === tokenId),
   );
+  const addEntry = useInitiativeStore((s) => s.addEntry);
+  const removeEntry = useInitiativeStore((s) => s.removeEntry);
   const applyDamage = useInitiativeStore((s) => s.applyDamage);
   const applyHealing = useInitiativeStore((s) => s.applyHealing);
   const addCondition = useInitiativeStore((s) => s.addCondition);
@@ -98,29 +124,206 @@ export const TokenContextMenu: React.FC<TokenContextMenuProps> = ({
   }, [submenu]);
 
   const handleDelete = useCallback(() => {
-    if (activeSceneId) deleteToken(activeSceneId, tokenId);
-  }, [activeSceneId, deleteToken, tokenId]);
+    if (effectiveSceneId) {
+      deleteToken(effectiveSceneId, tokenId);
+      clearSelection();
+    }
+  }, [effectiveSceneId, deleteToken, tokenId, clearSelection]);
 
   const handleToggleVisibility = useCallback(() => {
-    if (!isHost || !activeSceneId || !token) return;
-    updateToken(activeSceneId, tokenId, {
+    if (!isHost || !effectiveSceneId || !token) return;
+    updateToken(effectiveSceneId, tokenId, {
       visibleToPlayers: !token.visibleToPlayers,
     });
-  }, [isHost, activeSceneId, token, updateToken, tokenId]);
+  }, [isHost, effectiveSceneId, token, updateToken, tokenId]);
+
+  const handleToggleLock = useCallback(() => {
+    if (!effectiveSceneId || !token) return;
+    updateToken(effectiveSceneId, tokenId, {
+      locked: !token.locked,
+    });
+  }, [effectiveSceneId, token, updateToken, tokenId]);
+
+  const handleToggleDead = useCallback(() => {
+    if (!effectiveSceneId || !token) return;
+    updateToken(effectiveSceneId, tokenId, {
+      isDead: !token.isDead,
+    });
+  }, [effectiveSceneId, token, updateToken, tokenId]);
 
   const handleToggleInitiative = useCallback(() => {
-    if (!activeSceneId || !token) return;
-    updateToken(activeSceneId, tokenId, {
-      isInInitiative: !token.isInInitiative,
+    if (!effectiveSceneId || !token) return;
+    const nextState = !token.isInInitiative;
+    updateToken(effectiveSceneId, tokenId, {
+      isInInitiative: nextState,
     });
-  }, [activeSceneId, token, updateToken, tokenId]);
+
+    if (nextState) {
+      const existing = useInitiativeStore
+        .getState()
+        .entries.find((e) => e.tokenId === tokenId);
+      if (!existing) {
+        const fullEntry = createInitiativeEntry(
+          token.nameOverride || 'Creature',
+          'monster',
+          0,
+          {
+            tokenId: token.id,
+            characterId: token.characterId,
+            maxHP:
+              (token.currentStats?.maxHp as number) ||
+              (token.currentStats?.hp as number) ||
+              10,
+            currentHP: (token.currentStats?.hp as number) || 10,
+            armorClass: (token.currentStats?.ac as number) || 10,
+          },
+        );
+        const entryPayload = { ...fullEntry };
+        delete (entryPayload as { id?: string }).id;
+        addEntry(entryPayload);
+      }
+    } else {
+      const existing = useInitiativeStore
+        .getState()
+        .entries.find((e) => e.tokenId === tokenId);
+      if (existing) {
+        removeEntry(existing.id);
+      }
+    }
+  }, [effectiveSceneId, token, updateToken, tokenId, addEntry, removeEntry]);
+
+  const handleRollInitiative = useCallback(() => {
+    if (!effectiveSceneId) return;
+    const targets = isMultiTokenSelected ? selectedTokens : token ? [token] : [];
+    if (targets.length === 0) return;
+
+    targets.forEach((targetToken) => {
+      if (!targetToken.isInInitiative) {
+        updateToken(effectiveSceneId, targetToken.id, {
+          isInInitiative: true,
+        });
+      }
+
+      const stats = targetToken.currentStats;
+      const dexMod =
+        typeof stats?.dexMod === 'number'
+          ? (stats.dexMod as number)
+          : typeof stats?.dexterityModifier === 'number'
+          ? (stats.dexterityModifier as number)
+          : typeof stats?.dex === 'number'
+          ? Math.floor(((stats.dex as number) - 10) / 2)
+          : 0;
+
+      const existing = useInitiativeStore
+        .getState()
+        .entries.find((e) => e.tokenId === targetToken.id);
+
+      if (!existing) {
+        const fullEntry = createInitiativeEntry(
+          targetToken.nameOverride || 'Creature',
+          'monster',
+          0,
+          {
+            tokenId: targetToken.id,
+            characterId: targetToken.characterId,
+            initiativeModifier: dexMod,
+            dexterityModifier: dexMod,
+            maxHP:
+              (targetToken.currentStats?.maxHp as number) ||
+              (targetToken.currentStats?.hp as number) ||
+              10,
+            currentHP: (targetToken.currentStats?.hp as number) || 10,
+            armorClass: (targetToken.currentStats?.ac as number) || 10,
+          },
+        );
+        const entryPayload = { ...fullEntry };
+        delete (entryPayload as { id?: string }).id;
+        const newId = addEntry(entryPayload);
+        useInitiativeStore.getState().rollInitiativeForEntry(newId);
+      } else {
+        if (existing.initiativeModifier !== dexMod) {
+          useInitiativeStore
+            .getState()
+            .updateEntry(existing.id, { initiativeModifier: dexMod });
+        }
+        useInitiativeStore.getState().rollInitiativeForEntry(existing.id);
+      }
+    });
+  }, [
+    effectiveSceneId,
+    isMultiTokenSelected,
+    selectedTokens,
+    token,
+    updateToken,
+    addEntry,
+  ]);
+
+  const handleDuplicate = useCallback(() => {
+    if (!effectiveSceneId || !token) return;
+    const currentName = token.nameOverride || 'Creature';
+    const match = currentName.match(/^(.*?)(?: (\d+))?$/);
+    const baseName = match ? match[1] : currentName;
+    const currentNum = match && match[2] ? parseInt(match[2], 10) : 1;
+    const newName = `${baseName} ${currentNum + 1}`;
+
+    const duplicated = createPlacedToken(
+      {
+        id: token.tokenId,
+        name: newName,
+        image: '',
+        size: token.sizeOverride || 'medium',
+        category: 'monster',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+      },
+      { x: token.x + 24, y: token.y + 24 },
+      effectiveSceneId,
+      token.roomCode,
+      user.id,
+      {
+        nameOverride: newName,
+        sizeOverride: token.sizeOverride,
+        visibleToPlayers: token.visibleToPlayers,
+        dmNotesOnly: token.dmNotesOnly,
+        rotation: token.rotation,
+        scale: token.scale,
+        layer: token.layer,
+        currentStats: token.currentStats ? { ...token.currentStats } : undefined,
+        conditions: [...token.conditions],
+      },
+    );
+
+    placeToken(effectiveSceneId, duplicated);
+    setSelection([duplicated.id]);
+
+    try {
+      webSocketService.sendEvent({
+        type: 'token/place',
+        data: {
+          sceneId: effectiveSceneId,
+          token: duplicated,
+        },
+      });
+    } catch {
+      // Ignore if offline/unconfigured
+    }
+  }, [effectiveSceneId, token, user.id, placeToken, setSelection]);
+
+  const handleSetElevation = useCallback(
+    (elevation: number) => {
+      if (!effectiveSceneId || !token) return;
+      updateToken(effectiveSceneId, tokenId, { elevation });
+      setSubmenu('none');
+    },
+    [effectiveSceneId, token, updateToken, tokenId],
+  );
 
   const handleRotate = useCallback(() => {
-    if (!activeSceneId || !token) return;
-    updateToken(activeSceneId, tokenId, {
+    if (!effectiveSceneId || !token) return;
+    updateToken(effectiveSceneId, tokenId, {
       rotation: (token.rotation + 45) % 360,
     });
-  }, [activeSceneId, token, updateToken, tokenId]);
+  }, [effectiveSceneId, token, updateToken, tokenId]);
 
   const submitHP = useCallback(
     (mode: 'damage' | 'heal') => {
@@ -153,7 +356,7 @@ export const TokenContextMenu: React.FC<TokenContextMenuProps> = ({
     if (rect.width !== measuredWidth) setMeasuredWidth(rect.width);
   }, [submenu, flipBelow, measuredWidth, isVisible]);
 
-  if (!isVisible || isDragging || !token || !activeSceneId || !camera) {
+  if (!isVisible || isDragging || !token || !effectiveSceneId || !camera) {
     return null;
   }
 
@@ -209,6 +412,14 @@ export const TokenContextMenu: React.FC<TokenContextMenuProps> = ({
           )}
 
           <button
+            className={`${styles.actionBtn} ${token.locked ? styles.active : ''}`}
+            onClick={handleToggleLock}
+            title={token.locked ? 'Unlock position' : 'Lock position'}
+          >
+            {token.locked ? '🔒' : '🔓'}
+          </button>
+
+          <button
             className={`${styles.actionBtn} ${token.isInInitiative ? styles.active : ''}`}
             onClick={handleToggleInitiative}
             title={
@@ -218,6 +429,47 @@ export const TokenContextMenu: React.FC<TokenContextMenuProps> = ({
             }
           >
             ⚔️
+          </button>
+
+          <button
+            className={styles.actionBtn}
+            onClick={handleRollInitiative}
+            title={
+              isMultiTokenSelected
+                ? `Roll initiative for all ${selectedTokens.length} selected creatures (1d20 + Dex)`
+                : 'Roll initiative (1d20 + Dex)'
+            }
+          >
+            {isMultiTokenSelected ? `🎲×${selectedTokens.length}` : '🎲'}
+          </button>
+
+          <button
+            className={`${styles.actionBtn} ${token.isDead ? styles.active : ''}`}
+            onClick={handleToggleDead}
+            title={
+              token.isDead ? 'Revive token (mark alive)' : 'Mark dead / defeated'
+            }
+          >
+            💀
+          </button>
+
+          <button
+            className={styles.actionBtn}
+            onClick={handleDuplicate}
+            title="Duplicate token"
+          >
+            📋
+          </button>
+
+          <button
+            className={`${styles.actionBtn} ${submenu === 'elevation' ? styles.active : ''}`}
+            onClick={() =>
+              setSubmenu((s) => (s === 'elevation' ? 'none' : 'elevation'))
+            }
+            aria-expanded={submenu === 'elevation'}
+            title={`Elevation (${token.elevation || 0} ft)`}
+          >
+            🕊️
           </button>
 
           <button
@@ -284,6 +536,67 @@ export const TokenContextMenu: React.FC<TokenContextMenuProps> = ({
             🗑️
           </button>
         </div>
+
+        {submenu === 'elevation' && (
+          <div className={styles.submenu}>
+            <div className={styles.hpReadout}>
+              Current:{' '}
+              {token.elevation
+                ? `${token.elevation > 0 ? `+${token.elevation}` : token.elevation} ft`
+                : 'Ground (0 ft)'}
+            </div>
+            <div className={styles.submenuRow}>
+              <button
+                className={styles.submenuBtn}
+                onClick={() => handleSetElevation(0)}
+              >
+                0 ft
+              </button>
+              <button
+                className={styles.submenuBtn}
+                onClick={() => handleSetElevation(10)}
+              >
+                +10 ft
+              </button>
+              <button
+                className={styles.submenuBtn}
+                onClick={() => handleSetElevation(30)}
+              >
+                +30 ft
+              </button>
+              <button
+                className={styles.submenuBtn}
+                onClick={() => handleSetElevation(60)}
+              >
+                +60 ft
+              </button>
+            </div>
+            <div className={styles.submenuRow}>
+              <input
+                className={styles.amountInput}
+                type="number"
+                placeholder="ft"
+                value={elevationInput}
+                onChange={(e) => setElevationInput(e.target.value)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter') {
+                    const val = parseInt(elevationInput, 10);
+                    if (Number.isFinite(val)) handleSetElevation(val);
+                  }
+                }}
+              />
+              <button
+                className={styles.submenuBtn}
+                onClick={() => {
+                  const val = parseInt(elevationInput, 10);
+                  if (Number.isFinite(val)) handleSetElevation(val);
+                }}
+              >
+                Set
+              </button>
+            </div>
+          </div>
+        )}
 
         {submenu === 'damage' && entry && (
           <div className={styles.submenu}>

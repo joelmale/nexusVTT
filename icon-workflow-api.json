@@ -1,0 +1,55 @@
+{
+  "3": {
+    "class_type": "KSampler",
+    "inputs": {
+      "seed": 42,
+      "steps": 6,
+      "cfg": 1.5,
+      "sampler_name": "dpmpp_sde",
+      "scheduler": "karras",
+      "denoise": 1,
+      "model": ["4", 0],
+      "positive": ["10", 0],
+      "negative": ["7", 0],
+      "latent_image": ["5", 0]
+    }
+  },
+  "4": {
+    "class_type": "CheckpointLoaderSimple",
+    "inputs": { "ckpt_name": "realvisxlV50_v50LightningBakedvae.safetensors" }
+  },
+  "5": {
+    "class_type": "EmptyLatentImage",
+    "inputs": { "width": 1024, "height": 1024, "batch_size": 1 }
+  },
+  "6": {
+    "class_type": "CLIPTextEncode",
+    "inputs": { "text": "a rocket ship", "clip": ["4", 1] }
+  },
+  "7": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "photo, photorealistic, 3d render, realistic lighting, text, letters, watermark, signature, noisy background, cluttered, multiple objects, blurry, gradient mesh, frame, border",
+      "clip": ["4", 1]
+    }
+  },
+  "8": {
+    "class_type": "VAEDecode",
+    "inputs": { "samples": ["3", 0], "vae": ["4", 2] }
+  },
+  "9": {
+    "class_type": "SaveImage",
+    "inputs": { "filename_prefix": "icons/icon", "images": ["8", 0] }
+  },
+  "10": {
+    "class_type": "ConditioningCombine",
+    "inputs": { "conditioning_1": ["6", 0], "conditioning_2": ["11", 0] }
+  },
+  "11": {
+    "class_type": "CLIPTextEncode",
+    "inputs": {
+      "text": "flat vector app icon, minimalist, simple geometric shapes, bold clean lines, centered single symbol, solid plain white background, limited color palette, ui icon design, dribbble style, crisp edges",
+      "clip": ["4", 1]
+    }
+  }
+}

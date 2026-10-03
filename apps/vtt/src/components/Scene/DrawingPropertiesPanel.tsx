@@ -1,5 +1,9 @@
 import React, { useState } from 'react';
-import { useActiveScene, useDrawingActions } from '@/stores/gameStore';
+import {
+  useActiveScene,
+  useDrawingActions,
+  useGameStore,
+} from '@/stores/gameStore';
 import { webSocketService } from '@/services/websocket';
 import type { DrawingStyle } from '@/types/drawing';
 import { AnchoredPropertiesPanel } from './AnchoredPropertiesPanel';
@@ -19,7 +23,9 @@ export const DrawingPropertiesPanel: React.FC<DrawingPropertiesPanelProps> = ({
   anchor,
 }) => {
   const activeScene = useActiveScene();
-  const { updateDrawing, deleteDrawing } = useDrawingActions();
+  const { createDrawing, updateDrawing, deleteDrawing } = useDrawingActions();
+  const clearSelection = useGameStore((state) => state.clearSelection);
+  const setSelection = useGameStore((state) => state.setSelection);
 
   // Get the selected drawings
   const selectedDrawings =
@@ -63,31 +69,115 @@ export const DrawingPropertiesPanel: React.FC<DrawingPropertiesPanelProps> = ({
       updateDrawing(sceneId, drawingId, updates);
 
       // Sync to other players
-      webSocketService.sendEvent({
-        type: 'drawing/update',
-        data: {
-          sceneId,
-          drawingId,
-          updates,
-        },
-      });
+      try {
+        webSocketService.sendEvent({
+          type: 'drawing/update',
+          data: {
+            sceneId,
+            drawingId,
+            updates,
+          },
+        });
+      } catch {
+        // Ignore if offline/unconfigured
+      }
     });
   };
 
   const handleDelete = () => {
     selectedDrawingIds.forEach((drawingId) => {
       deleteDrawing(sceneId, drawingId);
-
-      // Sync to other players
-      webSocketService.sendEvent({
-        type: 'drawing/delete',
-        data: {
-          sceneId,
-          drawingId,
-        },
-      });
     });
+    clearSelection();
     onClose();
+  };
+
+  const handleDuplicate = () => {
+    const newIds: string[] = [];
+    selectedDrawings.forEach((drawing) => {
+      const offset = 20;
+      const newId = `${drawing.type}-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`;
+      let duplicated: typeof drawing;
+      switch (drawing.type) {
+        case 'line':
+          duplicated = {
+            ...drawing,
+            id: newId,
+            createdAt: Date.now(),
+            start: { x: drawing.start.x + offset, y: drawing.start.y + offset },
+            end: { x: drawing.end.x + offset, y: drawing.end.y + offset },
+          };
+          break;
+        case 'rectangle':
+          duplicated = {
+            ...drawing,
+            id: newId,
+            createdAt: Date.now(),
+            x: drawing.x + offset,
+            y: drawing.y + offset,
+          };
+          break;
+        case 'circle':
+        case 'aoe-sphere':
+          duplicated = {
+            ...drawing,
+            id: newId,
+            createdAt: Date.now(),
+            center: {
+              x: drawing.center.x + offset,
+              y: drawing.center.y + offset,
+            },
+          };
+          break;
+        case 'cone':
+        case 'aoe-cube':
+          duplicated = {
+            ...drawing,
+            id: newId,
+            createdAt: Date.now(),
+            origin: {
+              x: drawing.origin.x + offset,
+              y: drawing.origin.y + offset,
+            },
+          };
+          break;
+        case 'pencil':
+        case 'polygon':
+          duplicated = {
+            ...drawing,
+            id: newId,
+            createdAt: Date.now(),
+            points: drawing.points.map((p) => ({ x: p.x + offset, y: p.y + offset })),
+          };
+          break;
+        case 'text':
+          duplicated = {
+            ...drawing,
+            id: newId,
+            createdAt: Date.now(),
+            position: { x: drawing.position.x + offset, y: drawing.position.y + offset },
+          };
+          break;
+        default:
+          duplicated = {
+            ...drawing,
+            id: newId,
+            createdAt: Date.now(),
+          };
+          break;
+      }
+      createDrawing(sceneId, duplicated);
+      try {
+        webSocketService.sendEvent({
+          type: 'drawing/create',
+          data: { sceneId, drawing: duplicated },
+        });
+      } catch {
+        // Ignore if offline/unconfigured
+      }
+      newIds.push(newId);
+    });
+    setSelection(newIds);
   };
 
   const handleFillColorChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -270,8 +360,49 @@ export const DrawingPropertiesPanel: React.FC<DrawingPropertiesPanelProps> = ({
             </div>
           )}
 
-          {/* Delete Button */}
-          <div className="property-group">
+          {/* Action Buttons: Duplicate & Delete */}
+          <div className="property-group flex flex-col gap-2">
+            <button
+              type="button"
+              style={{
+                padding: '10px 16px',
+                background: 'rgba(59, 130, 246, 0.2)',
+                backdropFilter: 'blur(4px)',
+                border: '1px solid rgba(59, 130, 246, 0.4)',
+                borderRadius: '6px',
+                color: '#93c5fd',
+                fontSize: '14px',
+                fontWeight: '500',
+                cursor: 'pointer',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: '8px',
+                boxShadow:
+                  '0 2px 8px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.05)',
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.35)';
+                e.currentTarget.style.borderColor = 'rgba(96, 165, 250, 0.6)';
+                e.currentTarget.style.color = '#bfdbfe';
+                e.currentTarget.style.transform = 'translateY(-1px)';
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.background = 'rgba(59, 130, 246, 0.2)';
+                e.currentTarget.style.borderColor = 'rgba(59, 130, 246, 0.4)';
+                e.currentTarget.style.color = '#93c5fd';
+                e.currentTarget.style.transform = 'translateY(0)';
+              }}
+              onClick={handleDuplicate}
+              aria-label={`Duplicate ${selectedDrawings.length} drawing(s)`}
+            >
+              📋 Duplicate{' '}
+              {selectedDrawings.length > 1
+                ? `(${selectedDrawings.length})`
+                : ''}
+            </button>
+
             <button
               type="button"
               style={{

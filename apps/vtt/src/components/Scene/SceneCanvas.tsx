@@ -89,9 +89,11 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     updateCamera,
     placeToken,
     moveTokenOptimistic,
+    deleteToken,
     placeProp,
     movePropOptimistic,
     deleteProp,
+    deleteDrawing,
     setSelection,
     addToSelection,
     clearSelection,
@@ -100,9 +102,11 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
       updateCamera: state.updateCamera,
       placeToken: state.placeToken,
       moveTokenOptimistic: state.moveTokenOptimistic,
+      deleteToken: state.deleteToken,
       placeProp: state.placeProp,
       movePropOptimistic: state.movePropOptimistic,
       deleteProp: state.deleteProp,
+      deleteDrawing: state.deleteDrawing,
       setSelection: state.setSelection,
       addToSelection: state.addToSelection,
       clearSelection: state.clearSelection,
@@ -314,31 +318,57 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
       // on user keystrokes, not during render, so holding a subscription to
       // the full props array here (and re-rendering SceneCanvas on every
       // prop write) is unnecessary.
-      const sceneProps =
-        useGameStore.getState().sceneState.scenes.find((s) => s.id === scene.id)
-          ?.placedProps || [];
+      const sceneRecord = useGameStore
+        .getState()
+        .sceneState.scenes.find((s) => s.id === scene.id);
+      const sceneProps = sceneRecord?.placedProps || [];
+      const sceneTokens = sceneRecord?.placedTokens || [];
+      const sceneDrawings = sceneRecord?.drawings || [];
 
-      // Delete key - delete selected props
-      if ((e.key === 'Delete' || e.key === 'Backspace') && !e.repeat) {
+      // Delete key - delete selected items (props, tokens, drawings)
+      if (
+        (e.key === 'Delete' || e.key === 'Backspace') &&
+        !e.repeat &&
+        isHost
+      ) {
         const selectedPropIds = selectedObjectIds.filter((id) =>
           sceneProps.some((p) => p.id === id),
         );
+        const selectedTokenIds = selectedObjectIds.filter((id) =>
+          sceneTokens.some((t) => t.id === id),
+        );
+        const selectedDrawingIdsToDelete = selectedObjectIds.filter((id) =>
+          sceneDrawings.some((d) => d.id === id),
+        );
 
-        if (selectedPropIds.length > 0 && isHost) {
+        const totalSelected =
+          selectedPropIds.length +
+          selectedTokenIds.length +
+          selectedDrawingIdsToDelete.length;
+
+        if (totalSelected > 0) {
           e.preventDefault();
           selectedPropIds.forEach((propId) => {
             deleteProp(scene.id, propId);
           });
-          console.log(
-            `🎭 Props: Deleted ${selectedPropIds.length} prop(s) via keyboard`,
-          );
+          selectedTokenIds.forEach((tokenId) => {
+            deleteToken(scene.id, tokenId);
+          });
+          selectedDrawingIdsToDelete.forEach((drawingId) => {
+            deleteDrawing(scene.id, drawingId);
+          });
+          clearSelection();
+          console.log(`Canvas: Deleted ${totalSelected} item(s) via keyboard`);
         }
       }
 
-      // D key - duplicate selected prop
+      // D key - duplicate selected prop or token
       if ((e.key === 'd' || e.key === 'D') && !e.repeat && isHost) {
         const selectedPropIds = selectedObjectIds.filter((id) =>
           sceneProps.some((p) => p.id === id),
+        );
+        const selectedTokenIds = selectedObjectIds.filter((id) =>
+          sceneTokens.some((t) => t.id === id),
         );
 
         if (selectedPropIds.length === 1) {
@@ -366,8 +396,74 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
 
               placeProp(scene.id, duplicated);
               setSelection([duplicated.id]);
+              import('@/services/websocket').then(({ webSocketService }) => {
+                webSocketService.sendEvent({
+                  type: 'prop/place',
+                  data: {
+                    sceneId: scene.id,
+                    prop: duplicated,
+                  },
+                });
+              });
               console.log('🎭 Props: Duplicated prop via keyboard');
             }
+          }
+        } else if (selectedTokenIds.length === 1) {
+          e.preventDefault();
+          const tokenToDuplicate = sceneTokens.find(
+            (t) => t.id === selectedTokenIds[0],
+          );
+          if (tokenToDuplicate) {
+            import('@/types/token').then(({ createPlacedToken }) => {
+              const currentName = tokenToDuplicate.nameOverride || 'Creature';
+              const match = currentName.match(/^(.*?)(?: (\d+))?$/);
+              const baseName = match ? match[1] : currentName;
+              const currentNum = match && match[2] ? parseInt(match[2], 10) : 1;
+              const newName = `${baseName} ${currentNum + 1}`;
+
+              const duplicatedToken = createPlacedToken(
+                {
+                  id: tokenToDuplicate.tokenId,
+                  name: newName,
+                  image: '',
+                  size: tokenToDuplicate.sizeOverride || 'medium',
+                  category: 'monster',
+                  createdAt: Date.now(),
+                  updatedAt: Date.now(),
+                },
+                { x: tokenToDuplicate.x + 24, y: tokenToDuplicate.y + 24 },
+                scene.id,
+                tokenToDuplicate.roomCode,
+                user.id,
+                {
+                  nameOverride: newName,
+                  sizeOverride: tokenToDuplicate.sizeOverride,
+                  visibleToPlayers: tokenToDuplicate.visibleToPlayers,
+                  dmNotesOnly: tokenToDuplicate.dmNotesOnly,
+                  rotation: tokenToDuplicate.rotation,
+                  scale: tokenToDuplicate.scale,
+                  layer: tokenToDuplicate.layer,
+                  currentStats: tokenToDuplicate.currentStats
+                    ? { ...tokenToDuplicate.currentStats }
+                    : undefined,
+                  conditions: [...tokenToDuplicate.conditions],
+                },
+              );
+
+              placeToken(scene.id, duplicatedToken);
+              setSelection([duplicatedToken.id]);
+
+              import('@/services/websocket').then(({ webSocketService }) => {
+                webSocketService.sendEvent({
+                  type: 'token/place',
+                  data: {
+                    sceneId: scene.id,
+                    token: duplicatedToken,
+                  },
+                });
+              });
+              console.log('🎲 Tokens: Duplicated token via keyboard');
+            });
           }
         }
       }
@@ -380,7 +476,11 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     selectedObjectIds,
     isHost,
     deleteProp,
+    deleteToken,
+    deleteDrawing,
+    clearSelection,
     placeProp,
+    placeToken,
     setSelection,
     user.id,
   ]);
@@ -1298,6 +1398,7 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                         onMoveEnd={handleTokenMoveEnd}
                         isHost={isHost}
                         currentUserId={user.id}
+                        sceneId={scene.id}
                       />
                     ))}
                 </g>

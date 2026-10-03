@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import type { Prop } from '@/types/prop';
+import type { FogShape } from '@/types/fog';
 import { useActiveTool, useIsHost, useGameStore } from '@/stores/gameStore';
 import { usePropRenderData } from '@/stores/scene';
 import { propAssetManager } from '@/services/propAssets';
@@ -63,14 +64,14 @@ export const PropRenderer: React.FC<PropRendererProps> = React.memo(
     useEffect(() => {
       if (isSelected) {
         console.log(`🎭 Props: Prop ${placedPropId} selected:`, {
-          propName: prop.name,
+          propName: prop?.name,
           canEdit,
           activeTool,
           canInteract,
           isSelected,
         });
       }
-    }, [isSelected, canEdit, activeTool, canInteract, placedPropId, prop.name]);
+    }, [isSelected, canEdit, activeTool, canInteract, placedPropId, prop?.name]);
 
     // Global mouse handlers for dragging
     useEffect(() => {
@@ -141,21 +142,68 @@ export const PropRenderer: React.FC<PropRendererProps> = React.memo(
       });
       onSelect(placedPropId, isMultiSelect);
 
-      // Start dragging if already selected or just selected
-      if (isSelected || !isMultiSelect) {
+      const isPositionLocked = !!placedProp?.currentStats?.locked;
+      // Start dragging if already selected or just selected (and position not locked)
+      if (!isPositionLocked && (isSelected || !isMultiSelect)) {
         console.log('🚀 Props: Starting drag for prop:', placedPropId);
         setIsDragging(true);
         dragStartRef.current = { x: e.clientX, y: e.clientY };
       }
     };
 
-  // Handle double-click for containers
-  const handleDoubleClick = (e: React.MouseEvent) => {
-    if (!prop.interactive || prop.category !== 'container') return;
-
+  // Handle right-click context menu
+  const handleContextMenu = (e: React.MouseEvent) => {
+    e.preventDefault();
     e.stopPropagation();
-    console.log('🎭 Props: Opening container modal:', placedPropId);
-    setShowContainerModal(true);
+    if (canInteract) {
+      if (activeTool !== 'select') {
+        setActiveTool('select');
+      }
+      onSelect(placedPropId, false);
+    }
+  };
+
+  // Handle double-click for doors, chests, and containers
+  const handleDoubleClick = (e: React.MouseEvent) => {
+    if (!canInteract || !placedProp) return;
+
+    if (prop.category === 'door') {
+      e.stopPropagation();
+      const currentState = placedProp.currentStats?.state || 'closed';
+      const nextState = currentState === 'open' ? 'closed' : 'open';
+      const updateProp = useGameStore.getState().updateProp;
+      updateProp(sceneId, placedPropId, {
+        currentStats: {
+          ...placedProp.currentStats,
+          state: nextState,
+        },
+      });
+
+      // If opened, reveal doorway fog shape for players
+      if (nextState === 'open') {
+        const halfW = Math.max(gridSize, propWidth) / 2 + 10;
+        const halfH = Math.max(gridSize, propHeight) / 2 + 10;
+        const revealShape: FogShape = {
+          id: `fog-door-${placedPropId}-${Date.now()}`,
+          kind: 'reveal',
+          shape: 'rect',
+          points: [
+            { x: placedProp.x - halfW, y: placedProp.y - halfH },
+            { x: placedProp.x + halfW, y: placedProp.y + halfH },
+          ],
+          createdAt: Date.now(),
+        };
+        void useGameStore.getState().addFogShape(sceneId, revealShape);
+      }
+      return;
+    }
+
+    if (prop.category === 'container' || prop.category === 'treasure') {
+      e.stopPropagation();
+      console.log('🎭 Props: Opening container modal:', placedPropId);
+      setShowContainerModal(true);
+      return;
+    }
   };
 
     // Prop was removed from the store (deleted) between the id list and
@@ -179,9 +227,10 @@ export const PropRenderer: React.FC<PropRendererProps> = React.memo(
         <g
           transform={`translate(${placedProp.x}, ${placedProp.y}) rotate(${placedProp.rotation})`}
           onMouseDown={handleMouseDown}
+          onContextMenu={handleContextMenu}
           onDoubleClick={handleDoubleClick}
           style={{
-            cursor: canInteract ? (isDragging ? 'grabbing' : 'grab') : 'default',
+            cursor: canInteract ? (isDragging ? 'grabbing' : placedProp.currentStats?.locked ? 'not-allowed' : 'grab') : 'default',
             pointerEvents: canInteract ? 'auto' : 'none',
           }}
         >

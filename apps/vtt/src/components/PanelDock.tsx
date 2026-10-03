@@ -4,6 +4,7 @@ import PinOff from 'lucide-react/dist/esm/icons/pin-off';
 import { Tooltip } from './Tooltip';
 import styles from './PanelDock.module.css';
 import { WorkspaceMenu } from './WorkspaceMenu';
+import { Icon } from './Common/Icon';
 
 import { useDraggablePanel } from '@/hooks/useDraggablePanel';
 import {
@@ -215,7 +216,11 @@ export function PanelDock<T extends string = string>({
                 onKeyDown={(e) => handleKeyDown(e, index)}
               >
                 <span className={styles.icon} aria-hidden="true">
-                  {panel.icon}
+                  <Icon
+                    id={panel.id.startsWith('panel:') ? panel.id : `panel:${panel.id}`}
+                    fallback={panel.icon}
+                    size={18}
+                  />
                 </span>
               </button>
             </Tooltip>

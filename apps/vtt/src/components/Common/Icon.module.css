@@ -1,0 +1,39 @@
+.vttIconWrapper {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+  line-height: 1;
+  flex-shrink: 0;
+  vertical-align: middle;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.vttIconImage {
+  display: block;
+  object-fit: contain;
+  pointer-events: none;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.3));
+  transition: transform 0.15s ease, filter 0.15s ease;
+}
+
+.vttIconFallback {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-style: normal;
+  line-height: 1;
+}
+
+.hasCustomOverride::after {
+  content: '';
+  position: absolute;
+  bottom: -1px;
+  right: -1px;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--color-primary, #60a5fa);
+  box-shadow: 0 0 4px var(--color-primary, #60a5fa);
+}

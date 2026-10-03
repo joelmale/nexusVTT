@@ -84,6 +84,8 @@ export interface PlacedToken {
   currentStats?: Partial<TokenStats>; // Override base token stats
   isDead?: boolean; // Token is dead/defeated
   isInInitiative?: boolean; // Token is in initiative tracker
+  elevation?: number; // Elevation in feet (e.g. flying, swimming)
+  locked?: boolean; // Position locked against dragging
 
   // Metadata
   placedBy: string; // User ID who placed the token

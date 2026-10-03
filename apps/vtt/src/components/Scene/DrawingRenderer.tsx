@@ -125,6 +125,14 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
       }
     };
 
+    const handleContextMenu = (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (onDrawingClick) {
+        onDrawingClick(drawing.id, e);
+      }
+    };
+
     const commonProps = {
       fill: style.fillColor,
       fillOpacity: style.fillOpacity,
@@ -135,6 +143,7 @@ const DrawingRendererComponent: React.FC<DrawingRendererProps> = ({
       'data-drawing-id': drawing.id,
       'data-created-by': drawing.createdBy,
       onClick: isInteractive ? handleClick : undefined,
+      onContextMenu: isInteractive ? handleContextMenu : undefined,
       style: {
         pointerEvents: isInteractive ? ('auto' as const) : ('none' as const),
         cursor: isInteractive ? 'pointer' : 'default',

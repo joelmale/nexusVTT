@@ -201,4 +201,181 @@ describe('TokenContextMenu', () => {
       screen.getByRole('button', { name: /Blinded/i }).getAttribute('aria-pressed'),
     ).toBe('true');
   });
+
+  it('synchronizes with initiativeStore when toggling initiative ON', () => {
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      ...state,
+      sceneState: {
+        ...state.sceneState,
+        scenes: state.sceneState.scenes.map((s) => ({
+          ...s,
+          placedTokens: s.placedTokens.map((t) =>
+            t.id === TOKEN_ID ? { ...t, isInInitiative: false } : t,
+          ),
+        })),
+      },
+    } as never);
+
+    renderMenu();
+
+    expect(screen.getByTitle(/Add this token to initiative to track HP/i)).toBeDisabled();
+
+    fireEvent.click(screen.getByTitle('Add to initiative'));
+
+    const entries = useInitiativeStore.getState().entries;
+    expect(entries.length).toBe(1);
+    expect(entries[0].tokenId).toBe(TOKEN_ID);
+  });
+
+  it('toggles token dead status', () => {
+    renderMenu();
+
+    fireEvent.click(screen.getByTitle('Mark dead / defeated'));
+
+    const token = useGameStore
+      .getState()
+      .sceneState.scenes[0].placedTokens.find((t) => t.id === TOKEN_ID);
+    expect(token?.isDead).toBe(true);
+
+    fireEvent.click(screen.getByTitle('Revive token (mark alive)'));
+    const tokenAlive = useGameStore
+      .getState()
+      .sceneState.scenes[0].placedTokens.find((t) => t.id === TOKEN_ID);
+    expect(tokenAlive?.isDead).toBe(false);
+  });
+
+  it('toggles token position lock', () => {
+    renderMenu();
+
+    fireEvent.click(screen.getByTitle('Lock position'));
+
+    const token = useGameStore
+      .getState()
+      .sceneState.scenes[0].placedTokens.find((t) => t.id === TOKEN_ID);
+    expect(token?.locked).toBe(true);
+
+    fireEvent.click(screen.getByTitle('Unlock position'));
+    const tokenUnlocked = useGameStore
+      .getState()
+      .sceneState.scenes[0].placedTokens.find((t) => t.id === TOKEN_ID);
+    expect(tokenUnlocked?.locked).toBe(false);
+  });
+
+  it('duplicates token when duplicate button is clicked', async () => {
+    renderMenu();
+
+    await act(async () => {
+      fireEvent.click(screen.getByTitle('Duplicate token'));
+    });
+
+    const tokens = useGameStore.getState().sceneState.scenes[0].placedTokens;
+    expect(tokens.length).toBe(2);
+  });
+
+  it('sets elevation when preset is clicked', () => {
+    renderMenu();
+
+    fireEvent.click(screen.getByTitle(/Elevation/i));
+    fireEvent.click(screen.getByRole('button', { name: '+30 ft' }));
+
+    const token = useGameStore
+      .getState()
+      .sceneState.scenes[0].placedTokens.find((t) => t.id === TOKEN_ID);
+    expect(token?.elevation).toBe(30);
+  });
+
+  it('deletes token and clears selection', () => {
+    useGameStore.setState({
+      ...useGameStore.getState(),
+      sceneState: {
+        ...useGameStore.getState().sceneState,
+        selectedObjectIds: [TOKEN_ID],
+      },
+    } as never);
+
+    renderMenu();
+
+    fireEvent.click(screen.getByTitle('Delete'));
+
+    const tokens = useGameStore.getState().sceneState.scenes[0].placedTokens;
+    expect(tokens.find((t) => t.id === TOKEN_ID)).toBeUndefined();
+    expect(useGameStore.getState().sceneState.selectedObjectIds).toEqual([]);
+  });
+
+  it('rolls initiative for single token using 1d20 + Dex modifier', () => {
+    // Give token dexterity of 14 (+2 mod)
+    const state = useGameStore.getState();
+    const token = state.sceneState.scenes[0].placedTokens.find((t) => t.id === TOKEN_ID);
+    if (token) {
+      token.currentStats = { hp: 20, dex: 14 };
+    }
+
+    renderMenu();
+
+    const rollBtn = screen.getByTitle('Roll initiative (1d20 + Dex)');
+    expect(rollBtn).toBeInTheDocument();
+
+    fireEvent.click(rollBtn);
+
+    const entries = useInitiativeStore.getState().entries;
+    const entry = entries.find((e) => e.tokenId === TOKEN_ID);
+    expect(entry).toBeDefined();
+    expect(entry?.initiativeModifier).toBe(2);
+    expect(entry?.initiative).toBeGreaterThanOrEqual(3); // 1 + 2
+    expect(entry?.initiative).toBeLessThanOrEqual(22); // 20 + 2
+  });
+
+  it('rolls initiative for all selected monsters at once', () => {
+    // Add a second token to the scene
+    const TOKEN_2 = 'token-2';
+    const state = useGameStore.getState();
+    const scene = state.sceneState.scenes[0];
+    scene.placedTokens.push({
+      id: TOKEN_2,
+      x: 50,
+      y: 50,
+      rotation: 0,
+      scale: 1,
+      layer: 'tokens',
+      visibleToPlayers: true,
+      dmNotesOnly: false,
+      placedBy: 'user-1',
+      createdAt: Date.now(),
+      updatedAt: Date.now(),
+      tokenId: 'goblin-2',
+      sceneId: SCENE_ID,
+      roomCode: 'TEST',
+      conditions: [],
+      currentStats: { hp: 15, dex: 16 }, // +3 mod
+    });
+
+    useGameStore.setState({
+      ...state,
+      sceneState: {
+        ...state.sceneState,
+        selectedObjectIds: [TOKEN_ID, TOKEN_2],
+      },
+    } as never);
+
+    renderMenu();
+
+    const multiRollBtn = screen.getByTitle(
+      'Roll initiative for all 2 selected creatures (1d20 + Dex)',
+    );
+    expect(multiRollBtn).toBeInTheDocument();
+    expect(multiRollBtn.textContent).toBe('🎲×2');
+
+    fireEvent.click(multiRollBtn);
+
+    const entries = useInitiativeStore.getState().entries;
+    const entry1 = entries.find((e) => e.tokenId === TOKEN_ID);
+    const entry2 = entries.find((e) => e.tokenId === TOKEN_2);
+
+    expect(entry1).toBeDefined();
+    expect(entry2).toBeDefined();
+    expect(entry2?.initiativeModifier).toBe(3);
+    expect(entry2?.initiative).toBeGreaterThanOrEqual(4); // 1 + 3
+    expect(entry2?.initiative).toBeLessThanOrEqual(23); // 20 + 3
+  });
 });
