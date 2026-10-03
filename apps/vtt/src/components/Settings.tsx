@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 // import { useNavigate } from 'react-router-dom'; // Not used yet
 import { useGameStore, useSettings, useColorScheme } from '@/stores/gameStore';
+import { useIconStore } from '@/stores/iconStore';
 import { switchTheme } from '@/services/themeManager';
 import {
   defaultColorSchemes,
@@ -242,6 +243,13 @@ export const Settings: React.FC = () => {
   const resetSettings = useGameStore((state) => state.resetSettings);
   const settings = useSettings();
   const currentColorScheme = useColorScheme();
+  const globalCampaignPackId = useIconStore(
+    (state) => state.globalCampaignPackId,
+  );
+  const availablePacks = useIconStore((state) => state.availablePacks);
+  const setGlobalCampaignPack = useIconStore(
+    (state) => state.setGlobalCampaignPack,
+  );
   // Local state to track if there are unsaved changes, prompting the user to save.
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
 
@@ -351,6 +359,23 @@ export const Settings: React.FC = () => {
               <option value="auto">Auto (System)</option>
               <option value="dark">Dark</option>
               <option value="light">Light</option>
+            </select>
+          </SettingItem>
+
+          <SettingItem
+            label="Icon Theme Pack"
+            description="Choose the active theme pack for UI panels, canvas tools, and conditions"
+          >
+            <select
+              value={globalCampaignPackId}
+              onChange={(e) => setGlobalCampaignPack(e.target.value)}
+              className="setting-select"
+            >
+              {availablePacks.map((pack) => (
+                <option key={pack.id} value={pack.id}>
+                  {pack.name}
+                </option>
+              ))}
             </select>
           </SettingItem>
 

@@ -138,6 +138,14 @@ export const ICON_CATALOG: Record<string, IconDefinition> = {
     defaultAsset: '/assets/icons/panels/settings.png',
     subjectPrompt: 'a gear cog',
   },
+  'panel:iconStudio': {
+    id: 'panel:iconStudio',
+    name: 'Icon Studio',
+    category: 'panels',
+    defaultFallback: '🎨',
+    defaultAsset: '/assets/icons/panels/icon-studio.png',
+    subjectPrompt: 'an artist palette with paintbrushes and glowing paint drops',
+  },
 
   // ── D&D 5e Status Conditions ──────────────────────────────────────────────
   'condition:blinded': {

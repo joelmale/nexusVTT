@@ -12,6 +12,7 @@ import { ChatPanel } from './ChatPanel';
 import { DocumentsPanel } from './DocumentsPanel';
 import { CharacterPanel } from './CharacterPanel';
 import { AtlasPanel } from './Atlas/AtlasPanel';
+import { IconStudioPanel } from './Panels/IconStudio/IconStudioPanel';
 import { ErrorBoundary } from './ErrorBoundary';
 
 interface ContextPanelProps {
@@ -28,7 +29,8 @@ interface ContextPanelProps {
     | 'sounds'
     | 'documents'
     | 'characters'
-    | 'atlas';
+    | 'atlas'
+    | 'iconStudio';
   onPanelChange: (
     panel:
       | 'tokens'
@@ -43,7 +45,8 @@ interface ContextPanelProps {
       | 'sounds'
       | 'documents'
       | 'characters'
-      | 'atlas',
+      | 'atlas'
+      | 'iconStudio',
   ) => void;
   expanded: boolean;
   onToggleExpanded: () => void;
@@ -84,6 +87,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
     { id: 'chat' as const, icon: '💬', label: 'Chat' },
     { id: 'lobby' as const, icon: '🏠', label: 'Lobby' },
     { id: 'settings' as const, icon: '⚙️', label: 'Settings' },
+    { id: 'iconStudio' as const, icon: '🎨', label: 'Icon Studio' },
   ];
 
   // Track the last reported width to prevent infinite loops
@@ -108,6 +112,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
       chat: 800,
       lobby: 320, // Player management panel
       settings: 400,
+      iconStudio: 520,
     };
 
     const targetWidth = panelWidths[activePanel] || 320;
@@ -154,6 +159,7 @@ export const ContextPanel: React.FC<ContextPanelProps> = ({
               {activePanel === 'chat' && <ChatPanel />}
               {activePanel === 'lobby' && <LobbyPanel />}
               {activePanel === 'settings' && <Settings />}
+              {activePanel === 'iconStudio' && <IconStudioPanel />}
             </ErrorBoundary>
           </div>
         </div>

@@ -7,9 +7,9 @@ import {
 } from './iconCatalog';
 
 describe('iconCatalog', () => {
-  it('contains all 14 core GameUI panels with valid definitions', () => {
+  it('contains all 15 core GameUI panels with valid definitions', () => {
     const panels = getIconsByCategory('panels');
-    expect(panels.length).toBe(14);
+    expect(panels.length).toBe(15);
 
     const requiredPanels = [
       'panel:atlas',
@@ -26,6 +26,7 @@ describe('iconCatalog', () => {
       'panel:sounds',
       'panel:lobby',
       'panel:settings',
+      'panel:iconStudio',
     ];
 
     for (const panelId of requiredPanels) {

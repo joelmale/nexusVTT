@@ -120,6 +120,7 @@ export const GameUI: React.FC = () => {
     ...(isHost ? [{ id: 'sounds' as const, icon: '🔊', label: 'Sounds' }] : []),
     { id: 'lobby' as const, icon: '🏠', label: 'Lobby' },
     { id: 'settings' as const, icon: '⚙️', label: 'Settings' },
+    { id: 'iconStudio' as const, icon: '🎨', label: 'Icon Studio' },
   ];
 
   // Show waiting screen only for players when no scene exists
