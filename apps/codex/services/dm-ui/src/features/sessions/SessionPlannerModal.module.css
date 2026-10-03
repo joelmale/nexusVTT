@@ -1,0 +1,482 @@
+.dialog {
+  background: var(--studio-surface, #ffffff);
+  border: 1px solid var(--studio-border, #e5e7eb);
+  border-radius: var(--studio-radius-panel, 12px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  color: var(--studio-text, #111827);
+  max-height: 94vh;
+  max-width: 980px;
+  padding: 0;
+  width: 96vw;
+}
+
+.dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+  -webkit-backdrop-filter: blur(2px);
+  backdrop-filter: blur(2px);
+}
+
+.form {
+  display: flex;
+  flex-direction: column;
+  max-height: 94vh;
+}
+
+.header {
+  align-items: center;
+  border-bottom: 1px solid var(--studio-border, #e5e7eb);
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 20px;
+}
+
+.title {
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.subtitle {
+  color: var(--studio-text-muted, #6b7280);
+  font-size: 13px;
+  margin: 4px 0 0 0;
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  color: var(--studio-text-muted, #6b7280);
+  cursor: pointer;
+  padding: 4px;
+  border-radius: var(--studio-radius-control, 4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeButton:hover {
+  background: var(--studio-surface-hover, #f3f4f6);
+  color: var(--studio-text, #111827);
+}
+
+.tabsBar {
+  display: flex;
+  gap: 4px;
+  padding: 8px 20px;
+  background: var(--studio-surface-muted, #f8f9fa);
+  border-bottom: 1px solid var(--studio-border, #e5e7eb);
+}
+
+.tabButton {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  font-size: 13px;
+  font-weight: 600;
+  border-radius: var(--studio-radius-control, 6px);
+  border: 1px solid transparent;
+  background: transparent;
+  color: var(--studio-text-muted, #6b7280);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.tabButton:hover {
+  color: var(--studio-text, #111827);
+  background: rgba(0, 0, 0, 0.04);
+}
+
+.activeTab {
+  color: var(--studio-primary, #4f46e5);
+  background: var(--studio-surface, #ffffff);
+  border-color: var(--studio-border, #e5e7eb);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.badge {
+  background: var(--studio-surface-muted, #e5e7eb);
+  color: var(--studio-text, #374151);
+  padding: 1px 6px;
+  border-radius: 999px;
+  font-size: 11px;
+}
+
+.body {
+  flex: 1;
+  overflow-y: auto;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+/* Basics Form */
+.basicsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.fieldGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fieldLabel {
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--studio-text-muted, #4b5563);
+}
+
+.fieldInput,
+.fieldSelect,
+.fieldTextarea {
+  background: var(--studio-surface, #ffffff);
+  border: 1px solid var(--studio-border, #d1d5db);
+  border-radius: var(--studio-radius-control, 6px);
+  color: var(--studio-text, #111827);
+  font-size: 13px;
+  padding: 8px 10px;
+  width: 100%;
+}
+
+.fieldInput:focus,
+.fieldSelect:focus,
+.fieldTextarea:focus {
+  border-color: var(--studio-primary, #4f46e5);
+  outline: none;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.15);
+}
+
+.fieldTextarea {
+  min-height: 80px;
+  resize: vertical;
+}
+
+/* Campaign Hub Sections */
+.hubCategory {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.categoryTitle {
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--studio-text, #111827);
+}
+
+.chipGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.selectionCard {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--studio-radius-control, 6px);
+  border: 1px solid var(--studio-border, #d1d5db);
+  background: var(--studio-surface, #ffffff);
+  cursor: pointer;
+  font-size: 13px;
+  transition: all 0.15s ease;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.selectionCard:hover {
+  background: var(--studio-surface-muted, #f9fafb);
+  border-color: var(--studio-border-hover, #9ca3af);
+}
+
+.selectionCardActive {
+  background: rgba(79, 70, 229, 0.08);
+  border-color: var(--studio-primary, #4f46e5);
+  color: var(--studio-primary, #4f46e5);
+  font-weight: 600;
+}
+
+.metaPill {
+  font-size: 10px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 4px;
+  background: var(--studio-surface-muted, #f3f4f6);
+  color: var(--studio-text-muted, #6b7280);
+}
+
+.objectiveList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding-left: 20px;
+  margin-top: 6px;
+}
+
+.objectiveItem {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--studio-text-muted, #4b5563);
+}
+
+/* Spine Controls */
+.spineHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  padding-bottom: 12px;
+  border-bottom: 1px solid var(--studio-border, #e5e7eb);
+}
+
+.timeBudget {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.generateBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  background: var(--studio-primary, #4f46e5);
+  color: #ffffff;
+  border: none;
+  border-radius: var(--studio-radius-control, 6px);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.generateBtn:hover {
+  background: #4338ca;
+}
+
+.stepList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.stepCard {
+  background: var(--studio-surface, #ffffff);
+  border: 1px solid var(--studio-border, #e5e7eb);
+  border-radius: var(--studio-radius-control, 8px);
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.stepHeader {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  justify-content: space-between;
+}
+
+.stepOrderBadge {
+  background: var(--studio-surface-muted, #f3f4f6);
+  border: 1px solid var(--studio-border, #d1d5db);
+  border-radius: 4px;
+  padding: 2px 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.stepTitleInput {
+  flex: 1;
+  font-size: 13px;
+  font-weight: 600;
+  border: 1px solid var(--studio-border, #d1d5db);
+  border-radius: 4px;
+  padding: 4px 8px;
+}
+
+.stepMetaRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.stepActions {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.iconBtn {
+  background: transparent;
+  border: 1px solid var(--studio-border, #e5e7eb);
+  border-radius: 4px;
+  padding: 4px;
+  cursor: pointer;
+  color: var(--studio-text-muted, #6b7280);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.iconBtn:hover {
+  color: var(--studio-text, #111827);
+  background: var(--studio-surface-muted, #f3f4f6);
+}
+
+.deleteBtn:hover {
+  color: #ef4444;
+  border-color: #fca5a5;
+  background: #fef2f2;
+}
+
+.stepBodyTextarea {
+  font-size: 12px;
+  color: var(--studio-text-muted, #4b5563);
+  border: 1px solid var(--studio-border, #e5e7eb);
+  border-radius: 4px;
+  padding: 6px;
+  resize: vertical;
+  min-height: 48px;
+}
+
+.addStepRow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 8px;
+  border: 1px dashed var(--studio-border, #d1d5db);
+  border-radius: var(--studio-radius-control, 6px);
+  background: var(--studio-surface-muted, #f9fafb);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--studio-text-muted, #6b7280);
+  gap: 6px;
+}
+
+.addStepRow:hover {
+  color: var(--studio-primary, #4f46e5);
+  border-color: var(--studio-primary, #4f46e5);
+}
+
+/* Checklist in Prep Tab */
+.checklistGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.checklistItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border: 1px solid var(--studio-border, #e5e7eb);
+  border-radius: 4px;
+  background: var(--studio-surface, #ffffff);
+}
+
+.checkText {
+  flex: 1;
+  font-size: 13px;
+}
+
+.checkDone {
+  text-decoration: line-through;
+  color: var(--studio-text-muted, #9ca3af);
+}
+
+/* Footer */
+.footer {
+  align-items: center;
+  border-top: 1px solid var(--studio-border, #e5e7eb);
+  display: flex;
+  justify-content: space-between;
+  padding: 16px 20px;
+  background: var(--studio-surface-muted, #f8f9fa);
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.footerActions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.errorBanner {
+  color: #dc2626;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.cancelButton {
+  background: transparent;
+  border: 1px solid var(--studio-border, #d1d5db);
+  border-radius: var(--studio-radius-control, 6px);
+  color: var(--studio-text, #374151);
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  padding: 8px 14px;
+}
+
+.cancelButton:hover {
+  background: var(--studio-surface-hover, #f3f4f6);
+}
+
+.saveButton {
+  align-items: center;
+  background: var(--studio-surface, #ffffff);
+  border: 1px solid var(--studio-border, #d1d5db);
+  border-radius: var(--studio-radius-control, 6px);
+  color: var(--studio-text, #111827);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  padding: 8px 14px;
+  transition: all 0.15s ease;
+}
+
+.saveButton:hover {
+  background: var(--studio-surface-hover, #f3f4f6);
+}
+
+.primaryButton {
+  align-items: center;
+  background: var(--studio-primary, #4f46e5);
+  border: none;
+  border-radius: var(--studio-radius-control, 6px);
+  color: #ffffff;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  padding: 8px 16px;
+  transition: all 0.15s ease;
+}
+
+.primaryButton:hover {
+  background: #4338ca;
+}

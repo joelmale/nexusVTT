@@ -95,4 +95,32 @@ describe('SessionsSection', () => {
     expect(screen.getByText('No sessions yet.')).toBeTruthy();
     expect(screen.getByRole('button', { name: 'Plan a session' })).toBeTruthy();
   });
+
+  it('opens SessionPlannerModal when clicking Plan a session header button', async () => {
+    if (!HTMLDialogElement.prototype.showModal) {
+      HTMLDialogElement.prototype.showModal = function () {
+        this.open = true;
+      };
+    }
+    const { user } = renderSection('/demo/ashes-of-veyra/sessions');
+    const planBtn = screen.getByTestId('plan-session-header-btn');
+    await user.click(planBtn);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(/Plan a Session/)).toBeInTheDocument();
+  });
+
+  it('opens SessionPlannerModal pre-filled when clicking Edit plan', async () => {
+    if (!HTMLDialogElement.prototype.showModal) {
+      HTMLDialogElement.prototype.showModal = function () {
+        this.open = true;
+      };
+    }
+    const bundle = bundleOf('ashes-of-veyra');
+    const sessionWithPlan = bundle.sessions.find((s) => s.plan);
+    const { user } = renderSection(`/demo/ashes-of-veyra/sessions/${sessionWithPlan?.id}`);
+    const editBtn = screen.getByTestId(`edit-plan-btn-${sessionWithPlan?.id}`);
+    await user.click(editBtn);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(screen.getByText(new RegExp(`Plan Session #${sessionWithPlan?.number}`))).toBeInTheDocument();
+  });
 });

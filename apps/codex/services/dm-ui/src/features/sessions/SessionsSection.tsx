@@ -1,7 +1,7 @@
 import ClipboardList from 'lucide-react/dist/esm/icons/clipboard-list';
+import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
-import { useCapabilityNotice } from '@/features/capability-notice';
 import { EmptyState } from '@/features/section-shell/EmptyState';
 import { EntityList } from '@/features/section-shell/EntityList';
 import {
@@ -14,6 +14,7 @@ import { SectionLayout } from '@/features/section-shell/SectionLayout';
 import { StatusBadge } from '@/features/section-shell/StatusBadge';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 
+import { SessionPlannerModal } from './SessionPlannerModal';
 import {
   buildSessionsModel,
   readinessOf,
@@ -67,12 +68,13 @@ function SessionRow({ session }: { session: SessionItem }) {
 function SessionDetail({
   session,
   canPlan,
+  onPlanSession,
 }: {
   session: SessionItem;
   canPlan: boolean;
+  onPlanSession: (session: SessionItem) => void;
 }) {
   const { bundle, basePath } = useSectionBundle();
-  const { notifyCapability } = useCapabilityNotice();
   const act = bundle.acts.find((entry) => entry.id === session.actId);
   const readiness = readinessOf(session);
   const facts: Array<[string, string]> = [];
@@ -122,20 +124,33 @@ function SessionDetail({
                 Plan readiness: {readiness.complete} of {readiness.total} ready
               </p>
             ) : null}
-            <Link
-              className={styles.primary}
-              to={`${basePath}/sessions/${session.id}/plan`}
-            >
-              Open run sheet
-            </Link>
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+              <Link
+                className={styles.primary}
+                to={`${basePath}/sessions/${session.id}/plan`}
+              >
+                Open run sheet
+              </Link>
+              {canPlan ? (
+                <button
+                  className={styles.secondary}
+                  onClick={() => onPlanSession(session)}
+                  type="button"
+                  data-testid={`edit-plan-btn-${session.id}`}
+                >
+                  Edit plan
+                </button>
+              ) : null}
+            </div>
           </>
         ) : canPlan && session.status !== 'complete' ? (
           <>
             <p className={styles.readiness}>No run sheet yet.</p>
             <button
               className={styles.secondary}
-              onClick={() => notifyCapability('campaign.object.create')}
+              onClick={() => onPlanSession(session)}
               type="button"
+              data-testid={`plan-this-session-btn-${session.id}`}
             >
               Plan this session
             </button>
@@ -154,18 +169,31 @@ function SessionDetail({
 }
 
 export function SessionsSection() {
-  const { bundle, basePath } = useSectionBundle();
-  const { notifyCapability } = useCapabilityNotice();
+  const { bundle, basePath, store } = useSectionBundle();
   const { sessionId } = useParams();
   const { get } = useSectionQuery();
   const query = { q: get('q'), status: get('status'), act: get('act') };
   const model = buildSessionsModel(bundle, query);
 
+  const [isPlannerOpen, setIsPlannerOpen] = useState(false);
+  const [planningSession, setPlanningSession] = useState<SessionItem | undefined>(undefined);
+
+  const handleOpenPlanner = (session?: SessionItem) => {
+    setPlanningSession(session);
+    setIsPlannerOpen(true);
+  };
+
+  const handleClosePlanner = () => {
+    setIsPlannerOpen(false);
+    setPlanningSession(undefined);
+  };
+
   const planAction = model.canPlan ? (
     <button
       className={styles.secondary}
-      onClick={() => notifyCapability('campaign.object.create')}
+      onClick={() => handleOpenPlanner()}
       type="button"
+      data-testid="plan-session-header-btn"
     >
       Plan a session
     </button>
@@ -173,19 +201,31 @@ export function SessionsSection() {
 
   if (model.totalCount === 0) {
     return (
-      <SectionLayout
-        count={0}
-        empty={
-          <EmptyState
-            action={planAction}
-            description="Sessions you plan will appear here as a timeline."
-            title="No sessions yet."
+      <>
+        <SectionLayout
+          count={0}
+          empty={
+            <EmptyState
+              action={planAction}
+              description="Sessions you plan will appear here as a timeline."
+              title="No sessions yet."
+            />
+          }
+          list={null}
+          sectionPath="sessions"
+          title="Sessions"
+        />
+        {isPlannerOpen && (
+          <SessionPlannerModal
+            isOpen={isPlannerOpen}
+            onClose={handleClosePlanner}
+            bundle={bundle}
+            store={store}
+            basePath={basePath}
+            initialSession={planningSession}
           />
-        }
-        list={null}
-        sectionPath="sessions"
-        title="Sessions"
-      />
+        )}
+      </>
     );
   }
 
@@ -202,50 +242,70 @@ export function SessionsSection() {
   }
 
   return (
-    <SectionLayout
-      actions={planAction}
-      count={model.totalCount}
-      detail={
-        selected ? (
-          <SessionDetail canPlan={model.canPlan} session={selected} />
-        ) : null
-      }
-      filters={
-        <FilterBar
-          facets={facets}
-          plural="sessions"
-          resultCount={model.visibleCount}
-          searchLabel="Search sessions"
-          singular="session"
-        />
-      }
-      list={
-        model.visibleCount === 0 ? (
-          <p className={styles.noMatch}>No sessions match these filters.</p>
-        ) : (
-          <EntityList
-            ariaLabel={`Session ${model.timelineLabel.toLowerCase()}`}
-            getHref={(session) => `${basePath}/sessions/${session.id}`}
-            getId={(session) => session.id}
-            groups={model.groups.map((group) => ({
-              id: group.id,
-              label: group.label,
-              items: group.sessions,
-            }))}
-            renderRow={(session) => <SessionRow session={session} />}
-            selectedId={sessionId ?? model.defaultSessionId}
+    <>
+      <SectionLayout
+        actions={planAction}
+        count={model.totalCount}
+        detail={
+          selected ? (
+            <SessionDetail
+              canPlan={model.canPlan}
+              onPlanSession={handleOpenPlanner}
+              session={selected}
+            />
+          ) : null
+        }
+        filters={
+          <FilterBar
+            facets={facets}
+            plural="sessions"
+            resultCount={model.visibleCount}
+            searchLabel="Search sessions"
+            singular="session"
           />
-        )
-      }
-      notFound={Boolean(sessionId) && !selected}
-      sectionPath="sessions"
-      selectedId={sessionId}
-      summary={
-        fallback ? (
-          <SessionDetail canPlan={model.canPlan} session={fallback} />
-        ) : null
-      }
-      title="Sessions"
-    />
+        }
+        list={
+          model.visibleCount === 0 ? (
+            <p className={styles.noMatch}>No sessions match these filters.</p>
+          ) : (
+            <EntityList
+              ariaLabel={`Session ${model.timelineLabel.toLowerCase()}`}
+              getHref={(session) => `${basePath}/sessions/${session.id}`}
+              getId={(session) => session.id}
+              groups={model.groups.map((group) => ({
+                id: group.id,
+                label: group.label,
+                items: group.sessions,
+              }))}
+              renderRow={(session) => <SessionRow session={session} />}
+              selectedId={sessionId ?? model.defaultSessionId}
+            />
+          )
+        }
+        notFound={Boolean(sessionId) && !selected}
+        sectionPath="sessions"
+        selectedId={sessionId}
+        summary={
+          fallback ? (
+            <SessionDetail
+              canPlan={model.canPlan}
+              onPlanSession={handleOpenPlanner}
+              session={fallback}
+            />
+          ) : null
+        }
+        title="Sessions"
+      />
+      {isPlannerOpen && (
+        <SessionPlannerModal
+          isOpen={isPlannerOpen}
+          onClose={handleClosePlanner}
+          bundle={bundle}
+          store={store}
+          basePath={basePath}
+          initialSession={planningSession}
+        />
+      )}
+    </>
   );
 }
