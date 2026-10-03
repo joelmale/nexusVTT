@@ -5,6 +5,7 @@ import { TokenContextMenu } from './TokenContextMenu';
 import { useGameStore } from '@/stores/gameStore';
 import { useInitiativeStore } from '@/stores/initiativeStore';
 import type { InitiativeEntry } from '@/types/initiative';
+import type { SpellCircleDrawing, SpellConeDrawing } from '@/types/drawing';
 
 /**
  * Item 6 contract: damage and conditions delegate to the initiative entry
@@ -111,15 +112,15 @@ function renderMenu() {
 }
 
 describe('TokenContextMenu', () => {
-  it('disables damage and conditions when the token has no initiative entry', () => {
+  it('disables damage when the token has no initiative entry while keeping conditions available', () => {
     renderMenu();
 
     expect(
       screen.getByTitle(/Add this token to initiative to track HP/i),
     ).toHaveProperty('disabled', true);
     expect(
-      screen.getByTitle(/Add this token to initiative to track conditions/i),
-    ).toHaveProperty('disabled', true);
+      screen.getByTitle('Conditions'),
+    ).toHaveProperty('disabled', false);
   });
 
   it('applies damage through initiativeStore, draining tempHP first', () => {
@@ -377,5 +378,91 @@ describe('TokenContextMenu', () => {
     expect(entry2?.initiativeModifier).toBe(3);
     expect(entry2?.initiative).toBeGreaterThanOrEqual(4); // 1 + 3
     expect(entry2?.initiative).toBeLessThanOrEqual(23); // 20 + 3
+  });
+
+  it('drops a Fireball sphere AoE template onto the scene canvas', () => {
+    renderMenu();
+
+    const spellBtn = screen.getByTitle('Drop Spell AoE...');
+    expect(spellBtn).toBeInTheDocument();
+
+    fireEvent.click(spellBtn);
+
+    const fireballBtn = screen.getByRole('button', { name: /Fireball/i });
+    expect(fireballBtn).toBeInTheDocument();
+
+    fireEvent.click(fireballBtn);
+
+    const scene = useGameStore.getState().sceneState.scenes[0];
+    const spellDrawing = scene.drawings.find((d) => d.type === 'spell-circle');
+
+    expect(spellDrawing).toBeDefined();
+    expect(spellDrawing?.layer).toBe('effects');
+    expect((spellDrawing as SpellCircleDrawing).radius).toBe(200); // 20ft radius = 4 squares * 50px
+    expect(spellDrawing?.style?.elementType).toBe('fire');
+    expect(spellDrawing?.style?.spellName).toBe('Fireball (20ft)');
+  });
+
+  it('drops a cone spell template facing token rotation angle', () => {
+    const state = useGameStore.getState();
+    const token = state.sceneState.scenes[0].placedTokens[0];
+    token.rotation = 90;
+
+    renderMenu();
+
+    fireEvent.click(screen.getByTitle('Drop Spell AoE...'));
+    fireEvent.click(screen.getByRole('button', { name: /Burning Hands/i }));
+
+    const scene = useGameStore.getState().sceneState.scenes[0];
+    const coneDrawing = scene.drawings.find((d) => d.type === 'spell-cone');
+
+    expect(coneDrawing).toBeDefined();
+    expect((coneDrawing as SpellConeDrawing).direction).toBe(90);
+    expect((coneDrawing as SpellConeDrawing).length).toBe(150); // 15ft cone = 3 squares * 50px
+    expect(coneDrawing?.style?.elementType).toBe('fire');
+  });
+
+  it('allows toggling conditions on tokens that are NOT in initiative', () => {
+    // Ensure token is not in initiative and has no initiative entry
+    const state = useGameStore.getState();
+    useGameStore.setState({
+      ...state,
+      sceneState: {
+        ...state.sceneState,
+        scenes: state.sceneState.scenes.map((s) => ({
+          ...s,
+          placedTokens: s.placedTokens.map((t) =>
+            t.id === TOKEN_ID ? { ...t, isInInitiative: false, conditions: [] } : t,
+          ),
+        })),
+      },
+    } as never);
+    useInitiativeStore.setState({ entries: [] });
+
+    renderMenu();
+
+    const conditionMenuBtn = screen.getByTitle('Conditions');
+    expect(conditionMenuBtn).toBeEnabled();
+
+    fireEvent.click(conditionMenuBtn);
+
+    const poisonedBtn = screen.getByRole('button', { name: /Poisoned/i });
+    expect(poisonedBtn).toBeInTheDocument();
+    expect(poisonedBtn.getAttribute('aria-pressed')).toBe('false');
+
+    // Toggle Poisoned ON
+    fireEvent.click(poisonedBtn);
+
+    const token = useGameStore
+      .getState()
+      .sceneState.scenes[0].placedTokens.find((t) => t.id === TOKEN_ID);
+    expect(token?.conditions.some((c) => c.id === 'poisoned')).toBe(true);
+
+    // Toggle Poisoned OFF
+    fireEvent.click(poisonedBtn);
+    const tokenAfter = useGameStore
+      .getState()
+      .sceneState.scenes[0].placedTokens.find((t) => t.id === TOKEN_ID);
+    expect(tokenAfter?.conditions.some((c) => c.id === 'poisoned')).toBe(false);
   });
 });

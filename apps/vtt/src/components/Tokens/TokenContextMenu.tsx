@@ -3,6 +3,8 @@ import { useGameStore, useCamera } from '@/stores/gameStore';
 import { useInitiativeStore } from '@/stores/initiativeStore';
 import { STANDARD_CONDITIONS, createInitiativeEntry } from '@/types/initiative';
 import { createPlacedToken } from '@/types/token';
+import type { Drawing, SpellOverlayStyle, ElementType } from '@/types/drawing';
+import { ELEMENT_THEMES, defaultDrawingStyle } from '@/types/drawing';
 import { webSocketService } from '@/services/websocket';
 import { sceneUtils } from '@/utils/sceneUtils';
 import { Portal } from '@/components/Portal';
@@ -21,7 +23,92 @@ interface TokenContextMenuProps {
 const TOKEN_GAP = 40;
 const EDGE_PADDING = 8;
 
-type OpenSubmenu = 'none' | 'damage' | 'conditions' | 'elevation';
+type OpenSubmenu = 'none' | 'damage' | 'conditions' | 'elevation' | 'spells';
+
+interface SpellAoETemplate {
+  id: string;
+  name: string;
+  shape: 'circle' | 'cone' | 'line' | 'square';
+  elementType: ElementType;
+  sizeFeet: number;
+  icon: string;
+  description: string;
+}
+
+const SPELL_TEMPLATES: readonly SpellAoETemplate[] = [
+  {
+    id: 'fireball',
+    name: 'Fireball',
+    shape: 'circle',
+    elementType: 'fire',
+    sizeFeet: 20,
+    icon: '🔥',
+    description: '20ft radius sphere of roaring flame',
+  },
+  {
+    id: 'burning-hands',
+    name: 'Burning Hands',
+    shape: 'cone',
+    elementType: 'fire',
+    sizeFeet: 15,
+    icon: '👐',
+    description: '15ft cone of searing flame',
+  },
+  {
+    id: 'cone-of-cold',
+    name: 'Cone of Cold',
+    shape: 'cone',
+    elementType: 'cold',
+    sizeFeet: 60,
+    icon: '❄️',
+    description: '60ft cone of freezing cold',
+  },
+  {
+    id: 'lightning-bolt',
+    name: 'Lightning Bolt',
+    shape: 'line',
+    elementType: 'lightning',
+    sizeFeet: 100,
+    icon: '⚡',
+    description: '100ft long stroke of lightning',
+  },
+  {
+    id: 'thunderwave',
+    name: 'Thunderwave',
+    shape: 'square',
+    elementType: 'thunder',
+    sizeFeet: 15,
+    icon: '🌊',
+    description: '15ft cube of thunderous force',
+  },
+  {
+    id: 'faerie-fire',
+    name: 'Faerie Fire',
+    shape: 'square',
+    elementType: 'radiant',
+    sizeFeet: 20,
+    icon: '✨',
+    description: '20ft cube of glowing mystical light',
+  },
+  {
+    id: 'darkness',
+    name: 'Darkness',
+    shape: 'circle',
+    elementType: 'necrotic',
+    sizeFeet: 15,
+    icon: '🌑',
+    description: '15ft radius sphere of magical darkness',
+  },
+  {
+    id: 'poison-cloud',
+    name: 'Poison Cloud',
+    shape: 'circle',
+    elementType: 'poison',
+    sizeFeet: 20,
+    icon: '☠️',
+    description: '20ft radius cloud of toxic gas',
+  },
+];
 
 export const TokenContextMenu: React.FC<TokenContextMenuProps> = ({
   tokenId,
@@ -340,6 +427,156 @@ export const TokenContextMenu: React.FC<TokenContextMenuProps> = ({
     [entry, damageInput, applyDamage, applyHealing],
   );
 
+  const createDrawing = useGameStore((s) => s.createDrawing);
+
+  const handleDropSpell = useCallback(
+    (template: SpellAoETemplate) => {
+      if (!effectiveSceneId || !token) return;
+      const gridSize = currentScene?.gridSettings?.size || 50;
+      const theme = ELEMENT_THEMES[template.elementType];
+      const drawingId = `spell-${template.id}-${Date.now()}`;
+      const spellStyle: SpellOverlayStyle = {
+        ...defaultDrawingStyle,
+        fillColor: theme.baseColor,
+        fillOpacity: theme.opacity,
+        strokeColor: theme.edgeGlow,
+        strokeWidth: 2,
+        visibleToPlayers: true,
+        dmNotesOnly: false,
+        elementType: template.elementType,
+        edgeGlow: theme.edgeGlow,
+        blendMode: theme.blendMode,
+        animationSpeed: theme.animationSpeed,
+        pulseIntensity: theme.pulseIntensity,
+        gridSnap: true,
+        spellName: `${template.name} (${template.sizeFeet}ft)`,
+        animationsEnabled: true,
+      };
+
+      const baseDrawing = {
+        id: drawingId,
+        layer: 'effects' as const,
+        roomCode: token.roomCode || '',
+        createdAt: Date.now(),
+        updatedAt: Date.now(),
+        createdBy: user.id,
+        style: spellStyle,
+      };
+
+      let newDrawing: Drawing;
+
+      if (template.shape === 'circle') {
+        const radiusPx = (template.sizeFeet / 5) * gridSize;
+        newDrawing = {
+          ...baseDrawing,
+          type: 'spell-circle',
+          center: { x: token.x, y: token.y },
+          radius: radiusPx,
+        };
+      } else if (template.shape === 'cone') {
+        const lengthPx = (template.sizeFeet / 5) * gridSize;
+        newDrawing = {
+          ...baseDrawing,
+          type: 'spell-cone',
+          origin: { x: token.x, y: token.y },
+          direction: token.rotation || 0,
+          length: lengthPx,
+          angle: 53.13,
+        };
+      } else if (template.shape === 'line') {
+        const lengthPx = (template.sizeFeet / 5) * gridSize;
+        const rad = ((token.rotation || 0) * Math.PI) / 180;
+        newDrawing = {
+          ...baseDrawing,
+          type: 'spell-line',
+          start: { x: token.x, y: token.y },
+          end: {
+            x: token.x + Math.cos(rad) * lengthPx,
+            y: token.y + Math.sin(rad) * lengthPx,
+          },
+          width: gridSize,
+        };
+      } else {
+        // square / cube
+        const sizePx = (template.sizeFeet / 5) * gridSize;
+        newDrawing = {
+          ...baseDrawing,
+          type: 'spell-square',
+          origin: { x: token.x, y: token.y },
+          size: sizePx,
+          rotation: token.rotation || 0,
+        };
+      }
+
+      createDrawing(effectiveSceneId, newDrawing);
+      setSubmenu('none');
+    },
+    [effectiveSceneId, token, currentScene, user.id, createDrawing],
+  );
+
+  const tokenConditions = token?.conditions;
+  const appliedConditions = useMemo(() => {
+    if (entry && entry.conditions && entry.conditions.length > 0) {
+      return entry.conditions;
+    }
+    return tokenConditions ?? [];
+  }, [entry, tokenConditions]);
+
+  const appliedByName = useMemo(
+    () => new Map(appliedConditions.map((c) => [c.name, c] as const)),
+    [appliedConditions],
+  );
+
+  const handleToggleCondition = useCallback(
+    (condition: (typeof STANDARD_CONDITIONS)[number]) => {
+      if (!effectiveSceneId || !token) return;
+      const applied = appliedByName.get(condition.name);
+
+      if (entry) {
+        if (applied) {
+          removeCondition(entry.id, applied.id);
+        } else {
+          addCondition(entry.id, condition);
+        }
+      }
+
+      const existingConditions = token.conditions || [];
+      const isAlreadyOnToken = existingConditions.some(
+        (c) =>
+          c.name.toLowerCase() === condition.name.toLowerCase() ||
+          c.id === condition.id,
+      );
+
+      const nextConditions = isAlreadyOnToken
+        ? existingConditions.filter(
+            (c) =>
+              c.name.toLowerCase() !== condition.name.toLowerCase() &&
+              c.id !== condition.id,
+          )
+        : [
+            ...existingConditions,
+            {
+              id: condition.id,
+              name: condition.name,
+              description: condition.description,
+              icon: condition.icon,
+              color: condition.color,
+            },
+          ];
+
+      updateToken(effectiveSceneId, token.id, { conditions: nextConditions });
+    },
+    [
+      effectiveSceneId,
+      token,
+      entry,
+      appliedByName,
+      removeCondition,
+      addCondition,
+      updateToken,
+    ],
+  );
+
   // Flip below the token when the menu would clip the top of the viewport.
   // The old hard-coded `-40` offset assumed a single row and had no collision
   // handling at all, so a submenu near the top of the screen was unreachable.
@@ -379,14 +616,6 @@ export const TokenContextMenu: React.FC<TokenContextMenuProps> = ({
   const menuLeft = Math.min(
     Math.max(rect.left + screenPos.x, halfWidth + EDGE_PADDING),
     window.innerWidth - halfWidth - EDGE_PADDING,
-  );
-
-  // Match applied conditions by NAME, not id: initiativeStore.addCondition
-  // replaces the condition's id with a fresh crypto.randomUUID() when it
-  // stores it, so the STANDARD_CONDITIONS id never appears on the entry.
-  // Removal likewise has to pass the *stored* instance id.
-  const appliedByName = new Map(
-    (entry?.conditions ?? []).map((c) => [c.name, c] as const),
   );
 
   return (
@@ -505,15 +734,21 @@ export const TokenContextMenu: React.FC<TokenContextMenuProps> = ({
             onClick={() =>
               setSubmenu((s) => (s === 'conditions' ? 'none' : 'conditions'))
             }
-            disabled={!entry}
             aria-expanded={submenu === 'conditions'}
-            title={
-              entry
-                ? 'Conditions'
-                : 'Add this token to initiative to track conditions'
-            }
+            title="Conditions"
           >
             🌀
+          </button>
+
+          <button
+            className={`${styles.actionBtn} ${submenu === 'spells' ? styles.active : ''}`}
+            onClick={() =>
+              setSubmenu((s) => (s === 'spells' ? 'none' : 'spells'))
+            }
+            aria-expanded={submenu === 'spells'}
+            title="Drop Spell AoE..."
+          >
+            ✨
           </button>
 
           <div className={styles.divider} />
@@ -640,7 +875,7 @@ export const TokenContextMenu: React.FC<TokenContextMenuProps> = ({
           </div>
         )}
 
-        {submenu === 'conditions' && entry && (
+        {submenu === 'conditions' && (
           <div className={styles.submenu}>
             <div className={styles.conditionGrid}>
               {STANDARD_CONDITIONS.map((condition) => {
@@ -652,11 +887,7 @@ export const TokenContextMenu: React.FC<TokenContextMenuProps> = ({
                     className={`${styles.conditionBtn} ${isOn ? styles.active : ''}`}
                     aria-pressed={isOn}
                     title={`${condition.name}${condition.description ? ` — ${condition.description}` : ''}`}
-                    onClick={() =>
-                      applied
-                        ? removeCondition(entry.id, applied.id)
-                        : addCondition(entry.id, condition)
-                    }
+                    onClick={() => handleToggleCondition(condition)}
                   >
                     <span aria-hidden="true">{condition.icon}</span>
                     <span className={styles.conditionLabel}>
@@ -665,6 +896,26 @@ export const TokenContextMenu: React.FC<TokenContextMenuProps> = ({
                   </button>
                 );
               })}
+            </div>
+          </div>
+        )}
+
+        {submenu === 'spells' && (
+          <div className={styles.submenu}>
+            <div className={styles.spellGrid}>
+              {SPELL_TEMPLATES.map((tmpl) => (
+                <button
+                  key={tmpl.id}
+                  className={styles.spellBtn}
+                  onClick={() => handleDropSpell(tmpl)}
+                  title={tmpl.description}
+                >
+                  <span className={styles.spellIcon} aria-hidden="true">
+                    {tmpl.icon}
+                  </span>
+                  <span>{tmpl.name}</span>
+                </button>
+              ))}
             </div>
           </div>
         )}

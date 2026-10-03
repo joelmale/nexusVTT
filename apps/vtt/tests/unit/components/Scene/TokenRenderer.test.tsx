@@ -250,8 +250,13 @@ describe('TokenRenderer Stealth Ghost View', () => {
       </svg>,
     );
 
-    expect(container.textContent).toContain('Poisoned');
-    expect(container.textContent).toContain('Stunned');
+    const aura = screen.getByTestId('token-condition-aura');
+    expect(aura).toBeInTheDocument();
+    expect(aura).toHaveAttribute('stroke', '#10b981');
+
+    expect(screen.getByTestId('condition-badge-poisoned')).toBeInTheDocument();
+    expect(screen.getByTestId('condition-badge-stunned')).toBeInTheDocument();
+    expect(container.textContent).toContain('Disadvantage on attack rolls and ability checks');
   });
 
   it('renders selection ring when token isSelected is true', () => {

@@ -5,7 +5,7 @@ import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { PropRenderer } from '../../../../src/components/Scene/PropRenderer';
 import { useGameStore } from '../../../../src/stores/gameStore';
 import { propAssetManager } from '../../../../src/services/propAssets';
-import type { PlacedProp } from '../../../../src/types/game';
+import type { PlacedProp, Scene } from '../../../../src/types/game';
 
 const PROP_ID = 'placed-door-1';
 const ASSET_ID = 'asset-door-1';
@@ -197,11 +197,11 @@ describe('PropRenderer Door and Container Interactions', () => {
       user: { ...state.user, id: 'player-1', type: 'player' },
       sceneState: {
         ...state.sceneState,
-        scenes: state.sceneState.scenes.map((s) =>
+        scenes: state.sceneState.scenes.map((s: Scene) =>
           s.id === SCENE_ID
             ? {
                 ...s,
-                placedProps: s.placedProps.map((p) =>
+                placedProps: s.placedProps.map((p: PlacedProp) =>
                   p.id === PROP_ID ? { ...p, visibleToPlayers: false } : p,
                 ),
               }

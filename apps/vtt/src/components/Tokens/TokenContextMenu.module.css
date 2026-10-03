@@ -6,8 +6,8 @@
   pointer-events: auto;
   /* Glassmorphism */
   background: var(--glass-bg, rgba(30, 30, 30, 0.7));
-  backdrop-filter: blur(12px);
   -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
   border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
@@ -188,4 +188,39 @@
 .actionBtn:disabled {
   opacity: 0.4;
   cursor: not-allowed;
+}
+
+.spellGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 4px;
+  max-height: 220px;
+  overflow-y: auto;
+  min-width: 260px;
+}
+
+.spellBtn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 8px;
+  font-size: 0.75rem;
+  text-align: left;
+  cursor: pointer;
+  color: var(--text-primary, #fff);
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--glass-border, rgba(255, 255, 255, 0.1));
+  border-radius: 6px;
+  transition: all 0.15s ease;
+}
+
+.spellBtn:hover {
+  background: rgba(255, 255, 255, 0.15);
+  border-color: var(--color-primary, #6366f1);
+  transform: translateY(-1px);
+}
+
+.spellIcon {
+  font-size: 14px;
+  flex-shrink: 0;
 }

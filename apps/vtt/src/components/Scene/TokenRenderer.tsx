@@ -6,6 +6,8 @@ import { useTransientDrag } from '@/hooks/useTransientDrag';
 import { useTokenRenderData } from '@/stores/scene';
 import { tokenAssetManager } from '@/services/tokenAssets';
 import { TokenContextMenu } from '../Tokens/TokenContextMenu';
+import { Icon } from '@/components/Common/Icon';
+import { getConditionById } from '@/types/initiative';
 
 interface TokenRendererProps {
   placedTokenId: string;
@@ -358,22 +360,85 @@ export const TokenRenderer: React.FC<TokenRendererProps> = React.memo(
           opacity={0.8}
         />
 
-        {/* Conditions/status indicators */}
+        {/* Dual Condition Aura Ring - Pulsing perimeter circle colored by primary condition */}
+        {placedToken.conditions.length > 0 && (() => {
+          const primaryCond = placedToken.conditions[0];
+          const standardRule = getConditionById(primaryCond.id);
+          const auraColor = primaryCond.color || standardRule?.color || '#a855f7';
+          return (
+            <circle
+              data-testid="token-condition-aura"
+              cx={0}
+              cy={0}
+              r={tokenSize / 2 + 5}
+              fill="none"
+              stroke={auraColor}
+              strokeWidth={3}
+              opacity={0.8}
+              strokeDasharray="4,2"
+              style={{
+                filter: `drop-shadow(0 0 6px ${auraColor})`,
+              }}
+            />
+          );
+        })()}
+
+        {/* Status Badges with custom Icon & 5e rule definitions */}
         {placedToken.conditions.length > 0 && (
-          <g transform={`translate(${tokenSize / 2}, ${-tokenSize / 2})`}>
-            {placedToken.conditions.slice(0, 3).map((condition, index) => (
-              <g key={condition.id}>
-                <circle
-                  cx={-10 * index}
-                  cy={0}
-                  r={8}
-                  fill={condition.color || '#ffc107'}
-                  stroke="#000"
-                  strokeWidth={1}
-                />
-                <title>{condition.name}</title>
-              </g>
-            ))}
+          <g
+            data-testid="token-conditions-badges"
+            transform={`translate(${tokenSize / 2 - 2}, ${-tokenSize / 2 + 2})`}
+          >
+            {placedToken.conditions.slice(0, 4).map((condition, index) => {
+              const rule = getConditionById(condition.id);
+              const badgeSize = Math.max(18, Math.min(26, tokenSize * 0.35));
+              const offset = index * (badgeSize + 4);
+              const badgeColor = condition.color || rule?.color || '#6366f1';
+              const description =
+                rule?.description || condition.description || 'Active status condition';
+
+              return (
+                <g
+                  key={condition.id || index}
+                  transform={`translate(${-offset}, 0)`}
+                  data-testid={`condition-badge-${condition.id}`}
+                >
+                  <circle
+                    cx={0}
+                    cy={0}
+                    r={badgeSize / 2}
+                    fill="rgba(15, 23, 42, 0.9)"
+                    stroke={badgeColor}
+                    strokeWidth={1.5}
+                  />
+                  <foreignObject
+                    x={-badgeSize / 2 + 1}
+                    y={-badgeSize / 2 + 1}
+                    width={badgeSize - 2}
+                    height={badgeSize - 2}
+                    style={{ pointerEvents: 'none' }}
+                  >
+                    <div
+                      style={{
+                        width: '100%',
+                        height: '100%',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: `${badgeSize * 0.55}px`,
+                      }}
+                    >
+                      <Icon
+                        id={`condition:${condition.id.toLowerCase()}`}
+                        fallback={condition.icon || rule?.icon || '🌀'}
+                        size={Math.round(badgeSize - 4)}
+                      />
+                    </div>
+                  </foreignObject>
+                  <title>{`${condition.name}: ${description}`}</title>
+                </g>
+              );
+            })}
           </g>
         )}
 
