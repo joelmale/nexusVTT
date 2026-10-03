@@ -116,9 +116,17 @@ describe('QuickNpcModal', () => {
     expect(screen.getByText('Ref: guard')).toBeVisible();
   });
 
-  it('submits procedural NPC and calls onCreated and onClose', async () => {
+  it('allows changing race and role via select dropdowns', async () => {
     const user = userEvent.setup();
-    const { addItemMock, onCreated, onClose } = renderModal();
+    const { addItemMock } = renderModal();
+
+    const raceSelect = screen.getByRole('combobox', { name: 'Race' });
+    await user.selectOptions(raceSelect, 'Tiefling');
+    expect(raceSelect).toHaveValue('Tiefling');
+
+    const roleSelect = screen.getByRole('combobox', { name: 'Role / Profession' });
+    await user.selectOptions(roleSelect, 'Blacksmith');
+    expect(roleSelect).toHaveValue('Blacksmith');
 
     const saveButton = screen.getByRole('button', { name: 'Add to Campaign' });
     await user.click(saveButton);
@@ -127,9 +135,84 @@ describe('QuickNpcModal', () => {
       expect(addItemMock).toHaveBeenCalledWith(
         'npc',
         expect.objectContaining({
+          ancestry: 'Tiefling',
+          role: 'Blacksmith',
+        }),
+      );
+    });
+  });
+
+  it('allows entering custom race and custom role', async () => {
+    const user = userEvent.setup();
+    const { addItemMock } = renderModal();
+
+    const raceSelect = screen.getByRole('combobox', { name: 'Race' });
+    await user.selectOptions(raceSelect, '__custom__');
+
+    const customRaceInput = screen.getByLabelText('Custom Race');
+    await user.clear(customRaceInput);
+    await user.type(customRaceInput, 'Githyanki');
+
+    const roleSelect = screen.getByRole('combobox', { name: 'Role / Profession' });
+    await user.selectOptions(roleSelect, '__custom__');
+
+    const customRoleInput = screen.getByLabelText('Custom Role / Profession');
+    await user.clear(customRoleInput);
+    await user.type(customRoleInput, 'Astral Navigator');
+
+    const saveButton = screen.getByRole('button', { name: 'Add to Campaign' });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(addItemMock).toHaveBeenCalledWith(
+        'npc',
+        expect.objectContaining({
+          ancestry: 'Githyanki',
+          role: 'Astral Navigator',
+        }),
+      );
+    });
+  });
+
+  it('preserves locked race during reroll', async () => {
+    const user = userEvent.setup();
+    renderModal();
+
+    const raceSelect = screen.getByRole('combobox', { name: 'Race' });
+    await user.selectOptions(raceSelect, 'Dwarf');
+
+    const lockRaceButton = screen.getByTitle('Lock Race');
+    await user.click(lockRaceButton);
+    expect(screen.getByTitle('Unlock Race')).toBeVisible();
+
+    const rollAgainButton = screen.getByRole('button', { name: /Roll Again/ });
+    await user.click(rollAgainButton);
+
+    expect(screen.getByRole('combobox', { name: 'Race' })).toHaveValue('Dwarf');
+  });
+
+  it('submits procedural NPC with selected combat preset and carries through hp, ac, and statBlockRef', async () => {
+    const user = userEvent.setup();
+    const { addItemMock, onCreated, onClose } = renderModal();
+
+    const presetSelect = screen.getByRole('combobox', {
+      name: 'Combat & Defense Baseline',
+    });
+    await user.selectOptions(presetSelect, 'veteran');
+
+    const saveButton = screen.getByRole('button', { name: 'Add to Campaign' });
+    await user.click(saveButton);
+
+    await waitFor(() => {
+      expect(addItemMock).toHaveBeenCalledWith(
+        'npc',
+        expect.objectContaining({
+          statBlockRef: { slug: 'veteran', ruleset: '2014' },
           combatSummary: expect.objectContaining({
-            hp: expect.any(Number),
-            ac: expect.any(Number),
+            hp: 58,
+            maxHp: 58,
+            ac: 17,
+            cr: '3',
           }),
         }),
       );

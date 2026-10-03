@@ -3,6 +3,7 @@ import {
   generateRandomNpc,
   STAT_BLOCK_PRESETS,
   COMMON_OCCUPATIONS,
+  COMMON_RACES,
   DEFAULT_MOTIVATIONS,
   DEFAULT_RELATIONSHIPS,
 } from './npcGenerator';
@@ -13,6 +14,7 @@ describe('npcGenerator', () => {
 
     expect(npc.name).toBeTruthy();
     expect(npc.ancestry).toBeTruthy();
+    expect(COMMON_RACES).toContain(npc.ancestry);
     expect(npc.role).toBeTruthy();
     expect(COMMON_OCCUPATIONS).toContain(npc.role);
     expect(DEFAULT_MOTIVATIONS).toContain(npc.motivation);

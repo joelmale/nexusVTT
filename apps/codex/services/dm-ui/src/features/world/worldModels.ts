@@ -307,6 +307,7 @@ export function locationDraft(location: CampaignLocation) {
     name: location.name,
     type: location.type,
     shortDescription: location.shortDescription,
+    overview: location.overview ?? '',
     descriptionText: location.description.join('\n\n'),
     tagsText: location.tags.join(', '),
     notes: location.notes,
@@ -322,7 +323,7 @@ export function locationPatch(
   initial: Record<string, unknown>,
 ): Record<string, unknown> {
   const patch: Record<string, unknown> = {};
-  for (const key of ['name', 'type', 'shortDescription', 'notes'] as const) {
+  for (const key of ['name', 'type', 'shortDescription', 'overview', 'notes'] as const) {
     if (text(draft[key]) !== text(initial[key])) {
       patch[key] = text(draft[key]).trim();
     }

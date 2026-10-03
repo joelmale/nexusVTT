@@ -34,6 +34,7 @@ export function WorldForm({ world, parentWorldId, campaignId, onSubmit, onCancel
       ? {
           name: world.name,
           description: world.description || '',
+          overview: world.overview || '',
           type: world.type,
           parentWorldId: world.parentWorldId,
           geography: world.geography || '',
@@ -48,6 +49,7 @@ export function WorldForm({ world, parentWorldId, campaignId, onSubmit, onCancel
       : {
           name: '',
           description: '',
+          overview: '',
           type: 'location',
           parentWorldId: parentWorldId,
           geography: '',
@@ -115,6 +117,16 @@ export function WorldForm({ world, parentWorldId, campaignId, onSubmit, onCancel
             {...register('description')}
             placeholder="Brief description of this location"
             rows={3}
+          />
+        </div>
+
+        <div>
+          <Label htmlFor="overview">World Overview / Background</Label>
+          <Textarea
+            id="overview"
+            {...register('overview')}
+            placeholder="Paint the history, lore, and background of this world/location..."
+            rows={5}
           />
         </div>
       </div>

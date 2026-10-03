@@ -42,6 +42,8 @@ export type {
   EncounterKind,
   TrapComplexity,
   TrapDetails,
+  NpcCombatSummary,
+  NpcStatBlockRef,
   QuestObjective,
   SceneTemplateRef,
 } from '../ashes-of-veyra/types';

@@ -136,6 +136,15 @@ function LocationDetail({
               />
             </label>
             <label>
+              World Overview / Background
+              <textarea
+                onChange={(event) => set('overview', event.target.value)}
+                placeholder="Paint history, lore, and background for this world or location..."
+                rows={4}
+                value={String(draft.overview ?? '')}
+              />
+            </label>
+            <label>
               Description (blank line between paragraphs)
               <textarea
                 onChange={(event) => set('descriptionText', event.target.value)}
@@ -169,6 +178,11 @@ function LocationDetail({
         ) : null}
         {location.shortDescription ? (
           <p className={styles.lead}>{location.shortDescription}</p>
+        ) : null}
+        {location.overview ? (
+          <TextBlock title="World Overview / Background">
+            <p style={{ whiteSpace: 'pre-wrap' }}>{location.overview}</p>
+          </TextBlock>
         ) : null}
         {location.description.length > 0 ? (
           <div className={styles.fieldBlock}>

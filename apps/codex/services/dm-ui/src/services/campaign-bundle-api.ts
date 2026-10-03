@@ -90,6 +90,8 @@ import type {
   CampaignQuest,
   FolderRecord,
   HandoutAudience,
+  NpcCombatSummary,
+  NpcStatBlockRef,
   QuestObjective,
 } from '../demo/fixture-registry/types';
 import type {
@@ -383,6 +385,33 @@ function normalize(
   switch (kind) {
     case 'npc': {
       const name = str(raw.name);
+      let combatSummary: NpcCombatSummary | undefined;
+      if (isRecord(raw.combatSummary)) {
+        const hp = num(raw.combatSummary.hp, 10);
+        const maxHp = num(raw.combatSummary.maxHp, hp);
+        const ac = num(raw.combatSummary.ac, 10);
+        const cr =
+          raw.combatSummary.cr != null && String(raw.combatSummary.cr).trim()
+            ? str(raw.combatSummary.cr).trim()
+            : undefined;
+        combatSummary = {
+          hp,
+          maxHp,
+          ac,
+          ...(cr ? { cr } : {}),
+        };
+      }
+      let statBlockRef: NpcStatBlockRef | undefined;
+      if (
+        isRecord(raw.statBlockRef) &&
+        typeof raw.statBlockRef.slug === 'string' &&
+        raw.statBlockRef.slug.trim()
+      ) {
+        statBlockRef = {
+          slug: str(raw.statBlockRef.slug).trim(),
+          ruleset: raw.statBlockRef.ruleset === '2024' ? '2024' : '2014',
+        };
+      }
       return {
         ...base,
         name,
@@ -396,6 +425,8 @@ function normalize(
         portraitFallback:
           str(raw.portraitFallback).replace(/^\?$/, '') || initials(name),
         tags: strings(raw.tags),
+        ...(combatSummary ? { combatSummary } : {}),
+        ...(statBlockRef ? { statBlockRef } : {}),
       } satisfies CampaignNpc;
     }
     case 'faction': {
@@ -444,6 +475,7 @@ function normalize(
         name: str(raw.name),
         type: str(raw.type),
         shortDescription: str(raw.shortDescription),
+        ...(raw.overview ? { overview: str(raw.overview) } : {}),
         description: strings(raw.description),
         tags: strings(raw.tags),
         ...(raw.parentLocationId
@@ -723,7 +755,11 @@ function plainLines(kind: EditableKind, entity: Entity): string[] {
     case 'quest':
       return [str(entity.summary)];
     case 'location':
-      return [str(entity.shortDescription), ...strings(entity.description)];
+      return [
+        str(entity.shortDescription),
+        str(entity.overview),
+        ...strings(entity.description),
+      ].filter(Boolean);
     case 'note':
     case 'handout':
       return splitParagraphs(str(entity.body));
@@ -1515,8 +1551,12 @@ function mergeEntity(
 ): Entity {
   const merged: Record<string, unknown> = { ...current };
   for (const [key, value] of Object.entries(patch)) {
-    if (key === 'id' || key === 'campaignId' || value === undefined) continue;
-    merged[key] = value;
+    if (key === 'id' || key === 'campaignId') continue;
+    if (value === undefined || value === null) {
+      delete merged[key];
+    } else {
+      merged[key] = value;
+    }
   }
   if (forcedId) merged.id = forcedId;
   if (

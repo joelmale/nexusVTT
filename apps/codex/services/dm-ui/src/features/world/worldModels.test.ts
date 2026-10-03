@@ -109,13 +109,19 @@ describe('worldModels', () => {
   });
 
   it('builds patches only for changed fields', () => {
-    const l = loc('a', 'p', { description: ['one', 'two'], tags: ['x'] });
+    const l = loc('a', 'p', {
+      description: ['one', 'two'],
+      tags: ['x'],
+      overview: 'Ancient kingdom',
+    });
     const initial = locationDraft(l);
+    expect(initial.overview).toBe('Ancient kingdom');
     expect(locationPatch({ ...initial }, initial)).toEqual({});
     expect(
       locationPatch(
         {
           ...initial,
+          overview: 'New kingdom overview',
           descriptionText: 'a\n\nb',
           tagsText: 'x, y',
           parentLocationId: '',
@@ -123,6 +129,7 @@ describe('worldModels', () => {
         initial,
       ),
     ).toEqual({
+      overview: 'New kingdom overview',
       description: ['a', 'b'],
       tags: ['x', 'y'],
       parentLocationId: '',

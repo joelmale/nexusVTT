@@ -202,7 +202,12 @@ export function CampaignPage() {
         </div>
 
         {campaign.description && (
-          <p className="mt-4 text-muted-foreground">{campaign.description}</p>
+          <div className="mt-4 rounded-lg border bg-card p-4">
+            <h2 className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+              Campaign Description
+            </h2>
+            <p className="mt-1 text-sm text-foreground whitespace-pre-wrap">{campaign.description}</p>
+          </div>
         )}
 
         <div className="mt-4 flex items-center gap-4 text-sm text-muted-foreground">

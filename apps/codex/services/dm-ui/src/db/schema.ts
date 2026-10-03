@@ -22,6 +22,7 @@ export interface World {
   campaignId: string;
   name: string;
   description?: string;
+  overview?: string; // World overview / background
   type: 'continent' | 'region' | 'city' | 'dungeon' | 'plane' | 'location' | 'kingdom' | 'town' | 'village' | 'other';
   parentWorldId?: string;
   mapUrl?: string; // Base64 or blob URL

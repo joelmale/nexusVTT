@@ -294,7 +294,7 @@ export function buildOverviewModel(
 
   return {
     title: campaign.title,
-    subtitle: campaign.subtitle,
+    subtitle: campaign.subtitle || campaign.premise || '',
     chips: compact([
       // The catalog edition is a short label; `campaign.edition` may be prose.
       campaign.ruleset &&

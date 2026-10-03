@@ -3,6 +3,7 @@ import {
   generateRandomNpc,
   STAT_BLOCK_PRESETS,
   COMMON_OCCUPATIONS,
+  COMMON_RACES,
   type GeneratedNpc,
 } from '@nexus/character-creator';
 import Dices from 'lucide-react/dist/esm/icons/dices';
@@ -20,23 +21,13 @@ interface QuickNpcModalProps {
 
 type LockableField = 'name' | 'ancestry' | 'role' | 'motivation' | 'relationship' | 'alignment';
 
-const COMMON_ANCESTRIES = [
-  'Human',
-  'Elf',
-  'Dwarf',
-  'Halfling',
-  'Tiefling',
-  'Dragonborn',
-  'Gnome',
-  'Half-Orc',
-  'Half-Elf',
-];
-
 export function QuickNpcModal({ open, onClose, onCreated }: QuickNpcModalProps) {
   const { store } = useSectionBundle();
   const dialogRef = useRef<HTMLDialogElement>(null);
   const [draft, setDraft] = useState<GeneratedNpc>(() => generateRandomNpc());
   const [lockedFields, setLockedFields] = useState<Set<LockableField>>(new Set());
+  const [customRace, setCustomRace] = useState(false);
+  const [customRole, setCustomRole] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
@@ -44,8 +35,11 @@ export function QuickNpcModal({ open, onClose, onCreated }: QuickNpcModalProps) 
     const dialog = dialogRef.current;
     if (!dialog) return;
     if (open && !dialog.open) {
-      setDraft(generateRandomNpc());
+      const initial = generateRandomNpc();
+      setDraft(initial);
       setLockedFields(new Set());
+      setCustomRace(!COMMON_RACES.includes(initial.ancestry));
+      setCustomRole(!COMMON_OCCUPATIONS.includes(initial.role));
       setError(undefined);
       dialog.showModal();
     } else if (!open && dialog.open) {
@@ -72,10 +66,20 @@ export function QuickNpcModal({ open, onClose, onCreated }: QuickNpcModalProps) 
       alignment: lockedFields.has('alignment') ? draft.alignment : undefined,
     });
 
+    const nextAncestry = lockedFields.has('ancestry') ? draft.ancestry : fresh.ancestry;
+    const nextRole = lockedFields.has('role') ? draft.role : fresh.role;
+
+    if (!lockedFields.has('ancestry')) {
+      setCustomRace(!COMMON_RACES.includes(nextAncestry));
+    }
+    if (!lockedFields.has('role')) {
+      setCustomRole(!COMMON_OCCUPATIONS.includes(nextRole));
+    }
+
     setDraft({
       name: lockedFields.has('name') ? draft.name : fresh.name,
-      ancestry: lockedFields.has('ancestry') ? draft.ancestry : fresh.ancestry,
-      role: lockedFields.has('role') ? draft.role : fresh.role,
+      ancestry: nextAncestry,
+      role: nextRole,
       motivation: lockedFields.has('motivation') ? draft.motivation : fresh.motivation,
       relationship: lockedFields.has('relationship') ? draft.relationship : fresh.relationship,
       alignment: lockedFields.has('alignment') ? draft.alignment : fresh.alignment,
@@ -186,30 +190,51 @@ export function QuickNpcModal({ open, onClose, onCreated }: QuickNpcModalProps) 
 
             <div className={styles.field}>
               <div className={styles.labelRow}>
-                <label className={styles.label} htmlFor="npc-ancestry">
-                  Ancestry
+                <label className={styles.label} htmlFor="npc-race">
+                  Race
                 </label>
                 <button
                   className={`${styles.lockButton} ${lockedFields.has('ancestry') ? styles.locked : ''}`}
                   onClick={() => toggleLock('ancestry')}
-                  title={lockedFields.has('ancestry') ? 'Unlock Ancestry' : 'Lock Ancestry'}
+                  title={lockedFields.has('ancestry') ? 'Unlock Race' : 'Lock Race'}
                   type="button"
                 >
                   {lockedFields.has('ancestry') ? <Lock size={13} /> : <Unlock size={13} />}
                 </button>
               </div>
-              <input
-                className={styles.input}
-                id="npc-ancestry"
-                list="common-ancestries"
-                onChange={(e) => setDraft({ ...draft, ancestry: e.target.value })}
-                value={draft.ancestry}
-              />
-              <datalist id="common-ancestries">
-                {COMMON_ANCESTRIES.map((anc) => (
-                  <option key={anc} value={anc} />
+              <select
+                aria-label="Race"
+                className={styles.select}
+                id="npc-race"
+                onChange={(e) => {
+                  if (e.target.value === '__custom__') {
+                    setCustomRace(true);
+                  } else {
+                    setCustomRace(false);
+                    setDraft({ ...draft, ancestry: e.target.value });
+                  }
+                }}
+                value={customRace ? '__custom__' : draft.ancestry}
+              >
+                {COMMON_RACES.map((race) => (
+                  <option key={race} value={race}>
+                    {race}
+                  </option>
                 ))}
-              </datalist>
+                {!COMMON_RACES.includes(draft.ancestry) && draft.ancestry && (
+                  <option value={draft.ancestry}>{draft.ancestry}</option>
+                )}
+                <option value="__custom__">Custom / Other…</option>
+              </select>
+              {customRace && (
+                <input
+                  aria-label="Custom Race"
+                  className={styles.input}
+                  onChange={(e) => setDraft({ ...draft, ancestry: e.target.value })}
+                  placeholder="Enter custom race"
+                  value={draft.ancestry}
+                />
+              )}
             </div>
           </div>
 
@@ -228,18 +253,39 @@ export function QuickNpcModal({ open, onClose, onCreated }: QuickNpcModalProps) 
                   {lockedFields.has('role') ? <Lock size={13} /> : <Unlock size={13} />}
                 </button>
               </div>
-              <input
-                className={styles.input}
+              <select
+                aria-label="Role / Profession"
+                className={styles.select}
                 id="npc-role"
-                list="common-occupations"
-                onChange={(e) => setDraft({ ...draft, role: e.target.value })}
-                value={draft.role}
-              />
-              <datalist id="common-occupations">
+                onChange={(e) => {
+                  if (e.target.value === '__custom__') {
+                    setCustomRole(true);
+                  } else {
+                    setCustomRole(false);
+                    setDraft({ ...draft, role: e.target.value });
+                  }
+                }}
+                value={customRole ? '__custom__' : draft.role}
+              >
                 {COMMON_OCCUPATIONS.map((occ: string) => (
-                  <option key={occ} value={occ} />
+                  <option key={occ} value={occ}>
+                    {occ}
+                  </option>
                 ))}
-              </datalist>
+                {!COMMON_OCCUPATIONS.includes(draft.role) && draft.role && (
+                  <option value={draft.role}>{draft.role}</option>
+                )}
+                <option value="__custom__">Custom / Other…</option>
+              </select>
+              {customRole && (
+                <input
+                  aria-label="Custom Role / Profession"
+                  className={styles.input}
+                  onChange={(e) => setDraft({ ...draft, role: e.target.value })}
+                  placeholder="Enter custom role"
+                  value={draft.role}
+                />
+              )}
             </div>
 
             <div className={styles.field}>

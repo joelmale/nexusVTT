@@ -318,6 +318,7 @@ export interface CampaignLocation {
   /** Free-form; the UI humanizes it. Known values (district, landmark, ...) keep icons. */
   type: string;
   shortDescription: string;
+  overview?: string;
   description: string[];
   tags: string[];
   parentLocationId?: FixtureId;

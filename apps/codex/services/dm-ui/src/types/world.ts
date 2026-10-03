@@ -3,6 +3,7 @@ import { z } from 'zod';
 export const worldSchema = z.object({
   name: z.string().min(1, 'World name is required').max(200, 'Name too long'),
   description: z.string().optional(),
+  overview: z.string().optional(),
   type: z.enum([
     'continent',
     'region',

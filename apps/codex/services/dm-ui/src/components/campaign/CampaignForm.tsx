@@ -123,15 +123,18 @@ export function CampaignForm({ campaign, onSuccess, onCancel }: CampaignFormProp
         )}
       </div>
 
-      {/* Description */}
+      {/* Campaign Description */}
       <div className="space-y-2">
-        <Label htmlFor="description">Description</Label>
+        <Label htmlFor="description">Campaign Description</Label>
         <Textarea
           id="description"
-          placeholder="Brief description of your campaign..."
+          placeholder="A short overview of what this campaign is about..."
           rows={4}
           {...register('description')}
         />
+        <p className="text-xs text-muted-foreground">
+          A short overview of the campaign used to quickly reference what it is about.
+        </p>
         {errors.description && (
           <p className="text-sm text-destructive">{errors.description.message}</p>
         )}

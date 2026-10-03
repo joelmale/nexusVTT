@@ -182,7 +182,7 @@ export function createEmptyBundle(
   const entry: CampaignCatalogEntry = {
     slug: summary.id,
     campaign: summary,
-    subtitle: '',
+    subtitle: summary.description ?? '',
     premise: summary.description ?? '',
     ruleset: 'D&D 5e',
     edition: '2024',

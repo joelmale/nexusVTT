@@ -1,6 +1,6 @@
 import characterTraits from '../data/characterTraits.json';
 import alignments from '../data/alignments.json';
-import { generateName, getAvailableRaces } from '../utils/nameGenerator';
+import { generateName } from '../utils/nameGenerator';
 
 export interface NpcCombatSummary {
   hp: number;
@@ -153,12 +153,24 @@ function normalizeAncestrySlug(ancestry: string): string {
   return 'human';
 }
 
+export const COMMON_RACES = [
+  'Human',
+  'Elf',
+  'Dwarf',
+  'Halfling',
+  'Tiefling',
+  'Dragonborn',
+  'Gnome',
+  'Half-Orc',
+  'Half-Elf',
+];
+export const COMMON_ANCESTRIES = COMMON_RACES;
+
 /**
  * Procedurally generates a lightweight, narrative-focused NPC object.
  */
 export function generateRandomNpc(options: NpcGeneratorOptions = {}): GeneratedNpc {
-  const availableRaces = getAvailableRaces();
-  const ancestry = options.ancestry || (availableRaces.length > 0 ? getRandomElement(availableRaces) : 'Human');
+  const ancestry = options.ancestry || getRandomElement(COMMON_RACES);
   const ancestrySlug = normalizeAncestrySlug(ancestry);
 
   // Generate name

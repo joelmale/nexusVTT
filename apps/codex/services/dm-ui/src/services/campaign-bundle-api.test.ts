@@ -182,6 +182,29 @@ describe('load + mapping round-trip', () => {
     expect(bundle.campaign.objectCounts.npcs).toBe(1);
   });
 
+  it('round-trips an npc with combat summary and statblock ref', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const added = await store.addItem('npc', {
+      name: 'Captain Vance',
+      role: 'Town Guard',
+      ancestry: 'Human',
+      combatSummary: { hp: 16, maxHp: 16, ac: 16, cr: '1/8' },
+      statBlockRef: { slug: 'guard', ruleset: '2014' },
+    });
+    expect(added.ok).toBe(true);
+
+    const fresh = createServerBundleStore(CAMPAIGN);
+    const bundle = await fresh.load();
+    expect(bundle.npcs).toHaveLength(1);
+    expect(bundle.npcs[0]).toMatchObject({
+      id: added.id,
+      name: 'Captain Vance',
+      combatSummary: { hp: 16, maxHp: 16, ac: 16, cr: '1/8' },
+      statBlockRef: { slug: 'guard', ruleset: '2014' },
+    });
+  });
+
   it('round-trips a faction', async () => {
     const store = createServerBundleStore(CAMPAIGN);
     await store.load();
