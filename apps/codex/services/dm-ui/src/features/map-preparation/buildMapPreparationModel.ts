@@ -6,6 +6,14 @@ import type {
 } from './mapPreparationModels';
 
 export function resolvePublicAsset(path: string): string {
+  if (
+    path.startsWith('data:') ||
+    path.startsWith('blob:') ||
+    path.startsWith('http://') ||
+    path.startsWith('https://')
+  ) {
+    return path;
+  }
   return `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`;
 }
 

@@ -1,7 +1,7 @@
 {
   "version": "1.0.0",
-  "generatedAt": "2026-10-02T21:23:44.588Z",
-  "totalAssets": 241,
+  "generatedAt": "2026-10-04T16:13:06.696Z",
+  "totalAssets": 300,
   "tokens": {
     "count": 11,
     "items": [
@@ -175,7 +175,7 @@
     ]
   },
   "maps": {
-    "count": 230,
+    "count": 289,
     "items": [
       {
         "id": "default-map-1",
@@ -630,6 +630,70 @@
       {
         "id": "default-map-27",
         "type": "map",
+        "name": "Adored Abode - Floor 0",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "adored",
+          "abode",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Adored Abode - Floor 0.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Adored Abode - Floor 0.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-28",
+        "type": "map",
+        "name": "Adored Abode - Floor 1",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "adored",
+          "abode",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Adored Abode - Floor 1.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Adored Abode - Floor 1.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-29",
+        "type": "map",
+        "name": "Adored Abode - Floor 2",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "adored",
+          "abode",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Adored Abode - Floor 2.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Adored Abode - Floor 2.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-30",
+        "type": "map",
+        "name": "Adored Abode - Floor 3",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "adored",
+          "abode",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Adored Abode - Floor 3.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Adored Abode - Floor 3.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-31",
+        "type": "map",
         "name": "Alchemist - Floor 0",
         "category": "outdoor",
         "gridSize": null,
@@ -643,7 +707,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-28",
+        "id": "default-map-32",
         "type": "map",
         "name": "Alchemist - Floor 1",
         "category": "outdoor",
@@ -658,7 +722,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-29",
+        "id": "default-map-33",
         "type": "map",
         "name": "Alchemist - Floor 2",
         "category": "outdoor",
@@ -673,7 +737,22 @@
         "isDefault": true
       },
       {
-        "id": "default-map-30",
+        "id": "default-map-34",
+        "type": "map",
+        "name": "Alchemist - Floor 3",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "alchemist",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Alchemist - Floor 3.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Alchemist - Floor 3.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-35",
         "type": "map",
         "name": "Australian Billabong, Base Map, Day (23x16)",
         "category": "outdoor",
@@ -693,7 +772,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-31",
+        "id": "default-map-36",
         "type": "map",
         "name": "Autumn Stream",
         "category": "outdoor",
@@ -708,7 +787,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-32",
+        "id": "default-map-37",
         "type": "map",
         "name": "Beach Dunes",
         "category": "outdoor",
@@ -723,7 +802,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-33",
+        "id": "default-map-38",
         "type": "map",
         "name": "Blacksmith - Floor 1",
         "category": "outdoor",
@@ -738,7 +817,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-34",
+        "id": "default-map-39",
         "type": "map",
         "name": "Blacksmith - Floor 1B",
         "category": "outdoor",
@@ -754,7 +833,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-35",
+        "id": "default-map-40",
         "type": "map",
         "name": "Blacksmith - Floor 2",
         "category": "outdoor",
@@ -769,7 +848,23 @@
         "isDefault": true
       },
       {
-        "id": "default-map-36",
+        "id": "default-map-41",
+        "type": "map",
+        "name": "Blacksmith - Floor 2B",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "blacksmith",
+          "floor",
+          "2b"
+        ],
+        "path": "/assets/defaults/base_maps/Blacksmith - Floor 2B.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Blacksmith - Floor 2B.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-42",
         "type": "map",
         "name": "Blacksmith - Floor 3",
         "category": "outdoor",
@@ -784,7 +879,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-37",
+        "id": "default-map-43",
         "type": "map",
         "name": "Carnival [43x51] - WM",
         "category": "urban",
@@ -802,7 +897,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-38",
+        "id": "default-map-44",
         "type": "map",
         "name": "castle courtyard",
         "category": "urban",
@@ -817,7 +912,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-39",
+        "id": "default-map-45",
         "type": "map",
         "name": "Castle Highreach - 1",
         "category": "urban",
@@ -832,7 +927,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-40",
+        "id": "default-map-46",
         "type": "map",
         "name": "Castle Highreach - 2",
         "category": "urban",
@@ -847,7 +942,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-41",
+        "id": "default-map-47",
         "type": "map",
         "name": "Castle Highreach - 3",
         "category": "urban",
@@ -862,7 +957,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-42",
+        "id": "default-map-48",
         "type": "map",
         "name": "Castle Highreach - 4",
         "category": "urban",
@@ -877,7 +972,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-43",
+        "id": "default-map-49",
         "type": "map",
         "name": "Cave - Dungeon adaptor (4x5)",
         "category": "dungeon",
@@ -897,7 +992,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-44",
+        "id": "default-map-50",
         "type": "map",
         "name": "Cave Hideout",
         "category": "dungeon",
@@ -912,7 +1007,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-45",
+        "id": "default-map-51",
         "type": "map",
         "name": "Cave Room Builder Demo(22x16)",
         "category": "dungeon",
@@ -932,7 +1027,71 @@
         "isDefault": true
       },
       {
-        "id": "default-map-46",
+        "id": "default-map-52",
+        "type": "map",
+        "name": "Cave Tunnels - Bend",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "cave",
+          "tunnels",
+          "bend"
+        ],
+        "path": "/assets/defaults/base_maps/Cave Tunnels - Bend.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Cave Tunnels - Bend.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-53",
+        "type": "map",
+        "name": "Cave Tunnels - Crossroad",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "cave",
+          "tunnels",
+          "crossroad"
+        ],
+        "path": "/assets/defaults/base_maps/Cave Tunnels - Crossroad.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Cave Tunnels - Crossroad.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-54",
+        "type": "map",
+        "name": "Cave Tunnels - Junction",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "cave",
+          "tunnels",
+          "junction"
+        ],
+        "path": "/assets/defaults/base_maps/Cave Tunnels - Junction.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Cave Tunnels - Junction.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-55",
+        "type": "map",
+        "name": "Cave Tunnels - Straight",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "cave",
+          "tunnels",
+          "straight"
+        ],
+        "path": "/assets/defaults/base_maps/Cave Tunnels - Straight.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Cave Tunnels - Straight.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-56",
         "type": "map",
         "name": "Cavern Alchemy Lab",
         "category": "dungeon",
@@ -948,7 +1107,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-47",
+        "id": "default-map-57",
         "type": "map",
         "name": "Cavern Corral",
         "category": "dungeon",
@@ -963,7 +1122,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-48",
+        "id": "default-map-58",
         "type": "map",
         "name": "Cavern Crossroad",
         "category": "dungeon",
@@ -978,7 +1137,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-49",
+        "id": "default-map-59",
         "type": "map",
         "name": "Cavern Fungiwood",
         "category": "dungeon",
@@ -993,7 +1152,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-50",
+        "id": "default-map-60",
         "type": "map",
         "name": "Cavern Mouth",
         "category": "dungeon",
@@ -1008,7 +1167,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-51",
+        "id": "default-map-61",
         "type": "map",
         "name": "Cavern River",
         "category": "dungeon",
@@ -1023,7 +1182,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-52",
+        "id": "default-map-62",
         "type": "map",
         "name": "Cavern Torture Chamber",
         "category": "dungeon",
@@ -1039,7 +1198,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-53",
+        "id": "default-map-63",
         "type": "map",
         "name": "Cavern Waterfall",
         "category": "dungeon",
@@ -1054,7 +1213,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-54",
+        "id": "default-map-64",
         "type": "map",
         "name": "Cemetary",
         "category": "outdoor",
@@ -1068,7 +1227,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-55",
+        "id": "default-map-65",
         "type": "map",
         "name": "Checkpoint",
         "category": "outdoor",
@@ -1082,7 +1241,23 @@
         "isDefault": true
       },
       {
-        "id": "default-map-56",
+        "id": "default-map-66",
+        "type": "map",
+        "name": "Churning Sea - No Lines",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "churning",
+          "sea",
+          "lines"
+        ],
+        "path": "/assets/defaults/base_maps/Churning Sea - No Lines.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Churning Sea - No Lines.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-67",
         "type": "map",
         "name": "Churning Sea",
         "category": "outdoor",
@@ -1097,7 +1272,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-57",
+        "id": "default-map-68",
         "type": "map",
         "name": "city battlements",
         "category": "urban",
@@ -1112,7 +1287,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-58",
+        "id": "default-map-69",
         "type": "map",
         "name": "City Park",
         "category": "urban",
@@ -1127,7 +1302,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-59",
+        "id": "default-map-70",
         "type": "map",
         "name": "City Street - Grass",
         "category": "urban",
@@ -1143,7 +1318,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-60",
+        "id": "default-map-71",
         "type": "map",
         "name": "City Street - Paved",
         "category": "urban",
@@ -1159,7 +1334,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-61",
+        "id": "default-map-72",
         "type": "map",
         "name": "Cliffside Observatory [50x65] -WM",
         "category": "outdoor",
@@ -1178,7 +1353,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-62",
+        "id": "default-map-73",
         "type": "map",
         "name": "Coastal Town",
         "category": "urban",
@@ -1193,7 +1368,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-63",
+        "id": "default-map-74",
         "type": "map",
         "name": "Cobblestone Highway",
         "category": "outdoor",
@@ -1208,7 +1383,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-64",
+        "id": "default-map-75",
         "type": "map",
         "name": "Colossal Turtle, Sea Turtle, Day (44x32)",
         "category": "outdoor",
@@ -1228,7 +1403,71 @@
         "isDefault": true
       },
       {
-        "id": "default-map-65",
+        "id": "default-map-76",
+        "type": "map",
+        "name": "Cosy Cottage - Floor 1",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "cosy",
+          "cottage",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Cosy Cottage - Floor 1.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Cosy Cottage - Floor 1.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-77",
+        "type": "map",
+        "name": "Cosy Cottage - Floor 2",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "cosy",
+          "cottage",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Cosy Cottage - Floor 2.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Cosy Cottage - Floor 2.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-78",
+        "type": "map",
+        "name": "Cosy Cottage - Floor 3",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "cosy",
+          "cottage",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Cosy Cottage - Floor 3.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Cosy Cottage - Floor 3.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-79",
+        "type": "map",
+        "name": "Cosy Cottage - Floor 4",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "cosy",
+          "cottage",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Cosy Cottage - Floor 4.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Cosy Cottage - Floor 4.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-80",
         "type": "map",
         "name": "Crab Rock - Seaside - Clear - 44x32",
         "category": "outdoor",
@@ -1247,7 +1486,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-66",
+        "id": "default-map-81",
         "type": "map",
         "name": "Cramp City Street and Alleys [25x45] - WM",
         "category": "urban",
@@ -1268,7 +1507,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-67",
+        "id": "default-map-82",
         "type": "map",
         "name": "Crystal Cave",
         "category": "dungeon",
@@ -1283,7 +1522,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-68",
+        "id": "default-map-83",
         "type": "map",
         "name": "Crystal Hill",
         "category": "outdoor",
@@ -1298,7 +1537,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-69",
+        "id": "default-map-84",
         "type": "map",
         "name": "Cursed Oak",
         "category": "outdoor",
@@ -1313,7 +1552,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-70",
+        "id": "default-map-85",
         "type": "map",
         "name": "Cyclops Cave",
         "category": "dungeon",
@@ -1328,7 +1567,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-71",
+        "id": "default-map-86",
         "type": "map",
         "name": "Damp Mine Exterior",
         "category": "dungeon",
@@ -1344,7 +1583,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-72",
+        "id": "default-map-87",
         "type": "map",
         "name": "Damp Mine",
         "category": "dungeon",
@@ -1359,7 +1598,71 @@
         "isDefault": true
       },
       {
-        "id": "default-map-73",
+        "id": "default-map-88",
+        "type": "map",
+        "name": "Delightful Dwelling - Floor 0",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "delightful",
+          "dwelling",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Delightful Dwelling - Floor 0.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Delightful Dwelling - Floor 0.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-89",
+        "type": "map",
+        "name": "Delightful Dwelling - Floor 1",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "delightful",
+          "dwelling",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Delightful Dwelling - Floor 1.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Delightful Dwelling - Floor 1.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-90",
+        "type": "map",
+        "name": "Delightful Dwelling - Floor 2",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "delightful",
+          "dwelling",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Delightful Dwelling - Floor 2.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Delightful Dwelling - Floor 2.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-91",
+        "type": "map",
+        "name": "Delightful Dwelling - Floor 3",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "delightful",
+          "dwelling",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Delightful Dwelling - Floor 3.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Delightful Dwelling - Floor 3.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-92",
         "type": "map",
         "name": "Desert Oasis",
         "category": "outdoor",
@@ -1374,7 +1677,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-74",
+        "id": "default-map-93",
         "type": "map",
         "name": "Desert Ruins - Flooded - 23x16",
         "category": "outdoor",
@@ -1393,7 +1696,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-75",
+        "id": "default-map-94",
         "type": "map",
         "name": "Desert Ruins",
         "category": "outdoor",
@@ -1408,7 +1711,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-76",
+        "id": "default-map-95",
         "type": "map",
         "name": "Docks of the Dead  - Base map - Day - Top - 23x16",
         "category": "urban",
@@ -1426,7 +1729,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-77",
+        "id": "default-map-96",
         "type": "map",
         "name": "Docks of the Dead - Base map - Night - Bottom - 23x16",
         "category": "urban",
@@ -1444,7 +1747,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-78",
+        "id": "default-map-97",
         "type": "map",
         "name": "Dragon's Lair Bridge - River - 23x16",
         "category": "dungeon",
@@ -1464,7 +1767,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-79",
+        "id": "default-map-98",
         "type": "map",
         "name": "Dragon's Lair Bridge",
         "category": "dungeon",
@@ -1480,7 +1783,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-80",
+        "id": "default-map-99",
         "type": "map",
         "name": "Dragons Lair Burrow",
         "category": "dungeon",
@@ -1496,7 +1799,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-81",
+        "id": "default-map-100",
         "type": "map",
         "name": "Dragons Lair Entrance",
         "category": "dungeon",
@@ -1512,7 +1815,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-82",
+        "id": "default-map-101",
         "type": "map",
         "name": "Druids Burrow - Floor 0",
         "category": "outdoor",
@@ -1528,7 +1831,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-83",
+        "id": "default-map-102",
         "type": "map",
         "name": "Druids Burrow - Floor 1",
         "category": "outdoor",
@@ -1544,7 +1847,23 @@
         "isDefault": true
       },
       {
-        "id": "default-map-84",
+        "id": "default-map-103",
+        "type": "map",
+        "name": "Druids Burrow - Floor 2",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "druids",
+          "burrow",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Druids Burrow - Floor 2.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Druids Burrow - Floor 2.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-104",
         "type": "map",
         "name": "Dungeon Catacomb",
         "category": "dungeon",
@@ -1559,7 +1878,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-85",
+        "id": "default-map-105",
         "type": "map",
         "name": "Dungeon Chasm - Water",
         "category": "dungeon",
@@ -1575,7 +1894,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-86",
+        "id": "default-map-106",
         "type": "map",
         "name": "Dungeon Fighting Pit",
         "category": "dungeon",
@@ -1591,7 +1910,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-87",
+        "id": "default-map-107",
         "type": "map",
         "name": "Dungeon Icy Tomb",
         "category": "dungeon",
@@ -1607,7 +1926,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-88",
+        "id": "default-map-108",
         "type": "map",
         "name": "Dungeon Prison",
         "category": "dungeon",
@@ -1622,7 +1941,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-89",
+        "id": "default-map-109",
         "type": "map",
         "name": "Dungeon Room Builder Demo",
         "category": "dungeon",
@@ -1639,7 +1958,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-90",
+        "id": "default-map-110",
         "type": "map",
         "name": "Dungeon Vault - Top",
         "category": "dungeon",
@@ -1654,7 +1973,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-91",
+        "id": "default-map-111",
         "type": "map",
         "name": "Dungeon Well - Level",
         "category": "dungeon",
@@ -1670,7 +1989,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-92",
+        "id": "default-map-112",
         "type": "map",
         "name": "Dungeon Well - Water",
         "category": "dungeon",
@@ -1686,7 +2005,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-93",
+        "id": "default-map-113",
         "type": "map",
         "name": "Dwarven Hermitage",
         "category": "outdoor",
@@ -1701,7 +2020,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-94",
+        "id": "default-map-114",
         "type": "map",
         "name": "Dwarven Outpost - Floor 1",
         "category": "outdoor",
@@ -1717,7 +2036,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-95",
+        "id": "default-map-115",
         "type": "map",
         "name": "East Bridge",
         "category": "outdoor",
@@ -1732,7 +2051,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-96",
+        "id": "default-map-116",
         "type": "map",
         "name": "Floor, large (24x24)",
         "category": "outdoor",
@@ -1751,7 +2070,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-97",
+        "id": "default-map-117",
         "type": "map",
         "name": "Forest Glade",
         "category": "outdoor",
@@ -1766,7 +2085,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-98",
+        "id": "default-map-118",
         "type": "map",
         "name": "Forest Guardian",
         "category": "outdoor",
@@ -1781,7 +2100,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-99",
+        "id": "default-map-119",
         "type": "map",
         "name": "Forest Road",
         "category": "outdoor",
@@ -1796,7 +2115,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-100",
+        "id": "default-map-120",
         "type": "map",
         "name": "Forgotten Chamber of Heros",
         "category": "dungeon",
@@ -1812,7 +2131,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-101",
+        "id": "default-map-121",
         "type": "map",
         "name": "Forgotten Crypt",
         "category": "dungeon",
@@ -1827,7 +2146,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-102",
+        "id": "default-map-122",
         "type": "map",
         "name": "Forgotten Tomb",
         "category": "dungeon",
@@ -1842,7 +2161,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-103",
+        "id": "default-map-123",
         "type": "map",
         "name": "Forgotten Well",
         "category": "outdoor",
@@ -1857,7 +2176,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-104",
+        "id": "default-map-124",
         "type": "map",
         "name": "FREE Cliffside Dragon Remains [25x25](1)",
         "category": "outdoor",
@@ -1877,7 +2196,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-105",
+        "id": "default-map-125",
         "type": "map",
         "name": "Frozen Pond",
         "category": "outdoor",
@@ -1892,7 +2211,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-106",
+        "id": "default-map-126",
         "type": "map",
         "name": "Gareth's Rescue",
         "category": "outdoor",
@@ -1907,7 +2226,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-107",
+        "id": "default-map-127",
         "type": "map",
         "name": "General Goods Store - Floor 1",
         "category": "indoor",
@@ -1924,7 +2243,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-108",
+        "id": "default-map-128",
         "type": "map",
         "name": "General Goods Store - Floor 2",
         "category": "indoor",
@@ -1941,7 +2260,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-109",
+        "id": "default-map-129",
         "type": "map",
         "name": "General Goods Store - Floor 3",
         "category": "indoor",
@@ -1958,7 +2277,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-110",
+        "id": "default-map-130",
         "type": "map",
         "name": "Glowing Cavern",
         "category": "dungeon",
@@ -1973,7 +2292,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-111",
+        "id": "default-map-131",
         "type": "map",
         "name": "Glowing Grotto",
         "category": "dungeon",
@@ -1988,7 +2307,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-112",
+        "id": "default-map-132",
         "type": "map",
         "name": "Goblin Bigrock",
         "category": "outdoor",
@@ -2003,7 +2322,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-113",
+        "id": "default-map-133",
         "type": "map",
         "name": "Golem Forge - Floor 1",
         "category": "outdoor",
@@ -2019,7 +2338,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-114",
+        "id": "default-map-134",
         "type": "map",
         "name": "Golem Forge - Floor 2",
         "category": "outdoor",
@@ -2035,7 +2354,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-115",
+        "id": "default-map-135",
         "type": "map",
         "name": "Grassy Path",
         "category": "outdoor",
@@ -2050,7 +2369,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-116",
+        "id": "default-map-136",
         "type": "map",
         "name": "Greybanner - Night - 22x16",
         "category": "outdoor",
@@ -2067,7 +2386,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-117",
+        "id": "default-map-137",
         "type": "map",
         "name": "Greybanner Arena - Set Piece",
         "category": "urban",
@@ -2084,7 +2403,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-118",
+        "id": "default-map-138",
         "type": "map",
         "name": "Greybanner Arena",
         "category": "urban",
@@ -2099,7 +2418,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-119",
+        "id": "default-map-139",
         "type": "map",
         "name": "Greybanner",
         "category": "outdoor",
@@ -2113,7 +2432,22 @@
         "isDefault": true
       },
       {
-        "id": "default-map-120",
+        "id": "default-map-140",
+        "type": "map",
+        "name": "Hag Hovel",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "hag",
+          "hovel"
+        ],
+        "path": "/assets/defaults/base_maps/Hag Hovel.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Hag Hovel.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-141",
         "type": "map",
         "name": "Halfway Camp - Night",
         "category": "outdoor",
@@ -2128,7 +2462,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-121",
+        "id": "default-map-142",
         "type": "map",
         "name": "Halfway Camp",
         "category": "outdoor",
@@ -2143,7 +2477,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-122",
+        "id": "default-map-143",
         "type": "map",
         "name": "Hallowed Hall - Floor 1",
         "category": "indoor",
@@ -2159,7 +2493,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-123",
+        "id": "default-map-144",
         "type": "map",
         "name": "Hallowed Hall - Floor 2",
         "category": "indoor",
@@ -2175,7 +2509,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-124",
+        "id": "default-map-145",
         "type": "map",
         "name": "Hallowed Hall - Floor 3",
         "category": "indoor",
@@ -2191,7 +2525,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-125",
+        "id": "default-map-146",
         "type": "map",
         "name": "Hallowed Hall - Floor 4",
         "category": "indoor",
@@ -2207,7 +2541,39 @@
         "isDefault": true
       },
       {
-        "id": "default-map-126",
+        "id": "default-map-147",
+        "type": "map",
+        "name": "Hallowed Hall - Floor 5",
+        "category": "indoor",
+        "gridSize": null,
+        "tags": [
+          "hallowed",
+          "hall",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Hallowed Hall - Floor 5.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Hallowed Hall - Floor 5.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-148",
+        "type": "map",
+        "name": "Hallowed Hall - Floor 6",
+        "category": "indoor",
+        "gridSize": null,
+        "tags": [
+          "hallowed",
+          "hall",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Hallowed Hall - Floor 6.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Hallowed Hall - Floor 6.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-149",
         "type": "map",
         "name": "Haunted Cellar",
         "category": "outdoor",
@@ -2222,7 +2588,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-127",
+        "id": "default-map-150",
         "type": "map",
         "name": "Haunted Garden",
         "category": "dungeon",
@@ -2237,7 +2603,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-128",
+        "id": "default-map-151",
         "type": "map",
         "name": "Haunted Mansion - 1 (20x16)",
         "category": "outdoor",
@@ -2256,7 +2622,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-129",
+        "id": "default-map-152",
         "type": "map",
         "name": "Haunted Mansion - 2 (22x16)",
         "category": "outdoor",
@@ -2275,7 +2641,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-130",
+        "id": "default-map-153",
         "type": "map",
         "name": "Haunted Mansion - Furnished - 1 (20x16)",
         "category": "outdoor",
@@ -2295,7 +2661,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-131",
+        "id": "default-map-154",
         "type": "map",
         "name": "Haunted Mansion - Furnished - 2 (22x16)",
         "category": "outdoor",
@@ -2315,7 +2681,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-132",
+        "id": "default-map-155",
         "type": "map",
         "name": "Haunted Marsh",
         "category": "outdoor",
@@ -2330,7 +2696,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-133",
+        "id": "default-map-156",
         "type": "map",
         "name": "Hillside Altar",
         "category": "outdoor",
@@ -2345,7 +2711,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-134",
+        "id": "default-map-157",
         "type": "map",
         "name": "Hillside Cave",
         "category": "dungeon",
@@ -2360,7 +2726,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-135",
+        "id": "default-map-158",
         "type": "map",
         "name": "Hound - class Transport Ship (15x11)",
         "category": "urban",
@@ -2381,7 +2747,71 @@
         "isDefault": true
       },
       {
-        "id": "default-map-136",
+        "id": "default-map-159",
+        "type": "map",
+        "name": "Humble Home - Floor 1",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "humble",
+          "home",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Humble Home - Floor 1.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Humble Home - Floor 1.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-160",
+        "type": "map",
+        "name": "Humble Home - Floor 2",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "humble",
+          "home",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Humble Home - Floor 2.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Humble Home - Floor 2.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-161",
+        "type": "map",
+        "name": "Humble Home - Floor 3",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "humble",
+          "home",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Humble Home - Floor 3.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Humble Home - Floor 3.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-162",
+        "type": "map",
+        "name": "Humble Home - Floor 4",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "humble",
+          "home",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Humble Home - Floor 4.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Humble Home - Floor 4.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-163",
         "type": "map",
         "name": "Icy Battle Site",
         "category": "outdoor",
@@ -2397,7 +2827,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-137",
+        "id": "default-map-164",
         "type": "map",
         "name": "Images - Castle Town",
         "category": "urban",
@@ -2413,7 +2843,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-138",
+        "id": "default-map-165",
         "type": "map",
         "name": "Island Crossing - Floating - 23x16",
         "category": "outdoor",
@@ -2432,7 +2862,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-139",
+        "id": "default-map-166",
         "type": "map",
         "name": "Island Crossing",
         "category": "outdoor",
@@ -2447,7 +2877,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-140",
+        "id": "default-map-167",
         "type": "map",
         "name": "Island Plateau - 23x16 - 300 DPI",
         "category": "outdoor",
@@ -2465,7 +2895,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-141",
+        "id": "default-map-168",
         "type": "map",
         "name": "Island Plateau - 23x16 - 72 DPI",
         "category": "outdoor",
@@ -2483,7 +2913,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-142",
+        "id": "default-map-169",
         "type": "map",
         "name": "Island Plateau - Floating - 23x16 - 300 DPI",
         "category": "outdoor",
@@ -2502,7 +2932,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-143",
+        "id": "default-map-170",
         "type": "map",
         "name": "Island Plateau - Floating - 23x16 - 72 DPI",
         "category": "outdoor",
@@ -2521,7 +2951,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-144",
+        "id": "default-map-171",
         "type": "map",
         "name": "Island Plateau - Floating - Japanese Shrine - 23x16 - 72 DPI",
         "category": "indoor",
@@ -2542,7 +2972,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-145",
+        "id": "default-map-172",
         "type": "map",
         "name": "Island Plateau - Japanese Shrine - 23x16 - 300 DPI",
         "category": "indoor",
@@ -2562,7 +2992,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-146",
+        "id": "default-map-173",
         "type": "map",
         "name": "Island Plateau - Shrine Roof",
         "category": "indoor",
@@ -2579,7 +3009,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-147",
+        "id": "default-map-174",
         "type": "map",
         "name": "Isometric Bridge",
         "category": "outdoor",
@@ -2594,7 +3024,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-148",
+        "id": "default-map-175",
         "type": "map",
         "name": "Jail House",
         "category": "indoor",
@@ -2609,7 +3039,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-149",
+        "id": "default-map-176",
         "type": "map",
         "name": "Japanese Village - Lines",
         "category": "urban",
@@ -2625,7 +3055,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-150",
+        "id": "default-map-177",
         "type": "map",
         "name": "Japanese Village",
         "category": "urban",
@@ -2640,7 +3070,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-151",
+        "id": "default-map-178",
         "type": "map",
         "name": "Japanese Warship - Floor 1",
         "category": "outdoor",
@@ -2656,7 +3086,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-152",
+        "id": "default-map-179",
         "type": "map",
         "name": "Japanese Warship - Floor 2",
         "category": "outdoor",
@@ -2672,7 +3102,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-153",
+        "id": "default-map-180",
         "type": "map",
         "name": "Jungle Stream - Snow - 23x16",
         "category": "outdoor",
@@ -2691,7 +3121,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-154",
+        "id": "default-map-181",
         "type": "map",
         "name": "Jungle Stream",
         "category": "outdoor",
@@ -2706,7 +3136,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-155",
+        "id": "default-map-182",
         "type": "map",
         "name": "King of the Giants",
         "category": "outdoor",
@@ -2721,7 +3151,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-156",
+        "id": "default-map-183",
         "type": "map",
         "name": "Lakebed Monolith",
         "category": "outdoor",
@@ -2736,7 +3166,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-157",
+        "id": "default-map-184",
         "type": "map",
         "name": "Lakeside Camp - Spring - Day - 44x32",
         "category": "outdoor",
@@ -2754,7 +3184,151 @@
         "isDefault": true
       },
       {
-        "id": "default-map-158",
+        "id": "default-map-185",
+        "type": "map",
+        "name": "Little Library - Floor 0",
+        "category": "indoor",
+        "gridSize": null,
+        "tags": [
+          "little",
+          "library",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Little Library - Floor 0.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Little Library - Floor 0.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-186",
+        "type": "map",
+        "name": "Little Library - Floor 1",
+        "category": "indoor",
+        "gridSize": null,
+        "tags": [
+          "little",
+          "library",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Little Library - Floor 1.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Little Library - Floor 1.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-187",
+        "type": "map",
+        "name": "Little Library - Floor 2",
+        "category": "indoor",
+        "gridSize": null,
+        "tags": [
+          "little",
+          "library",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Little Library - Floor 2.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Little Library - Floor 2.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-188",
+        "type": "map",
+        "name": "Little Library - Floor 3",
+        "category": "indoor",
+        "gridSize": null,
+        "tags": [
+          "little",
+          "library",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Little Library - Floor 3.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Little Library - Floor 3.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-189",
+        "type": "map",
+        "name": "Lonely Tower - Floor 1",
+        "category": "urban",
+        "gridSize": null,
+        "tags": [
+          "lonely",
+          "tower",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Lonely Tower - Floor 1.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Lonely Tower - Floor 1.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-190",
+        "type": "map",
+        "name": "Lonely Tower - Floor 2",
+        "category": "urban",
+        "gridSize": null,
+        "tags": [
+          "lonely",
+          "tower",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Lonely Tower - Floor 2.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Lonely Tower - Floor 2.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-191",
+        "type": "map",
+        "name": "Lonely Tower - Floor 3",
+        "category": "urban",
+        "gridSize": null,
+        "tags": [
+          "lonely",
+          "tower",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Lonely Tower - Floor 3.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Lonely Tower - Floor 3.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-192",
+        "type": "map",
+        "name": "Lonely Tower - Floor 4",
+        "category": "urban",
+        "gridSize": null,
+        "tags": [
+          "lonely",
+          "tower",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Lonely Tower - Floor 4.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Lonely Tower - Floor 4.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-193",
+        "type": "map",
+        "name": "Lonely Tower - Floor 5",
+        "category": "urban",
+        "gridSize": null,
+        "tags": [
+          "lonely",
+          "tower",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Lonely Tower - Floor 5.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Lonely Tower - Floor 5.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-194",
         "type": "map",
         "name": "Luminescent Cave",
         "category": "dungeon",
@@ -2769,7 +3343,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-159",
+        "id": "default-map-195",
         "type": "map",
         "name": "Market Festival",
         "category": "urban",
@@ -2784,7 +3358,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-160",
+        "id": "default-map-196",
         "type": "map",
         "name": "Meadow Falls",
         "category": "outdoor",
@@ -2799,7 +3373,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-161",
+        "id": "default-map-197",
         "type": "map",
         "name": "Mermaid Inn - Floor 1",
         "category": "indoor",
@@ -2815,7 +3389,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-162",
+        "id": "default-map-198",
         "type": "map",
         "name": "Mermaid Inn - Floor 2",
         "category": "indoor",
@@ -2831,7 +3405,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-163",
+        "id": "default-map-199",
         "type": "map",
         "name": "Mermaid Inn - Floor 3",
         "category": "indoor",
@@ -2847,7 +3421,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-164",
+        "id": "default-map-200",
         "type": "map",
         "name": "Monster Lair",
         "category": "dungeon",
@@ -2862,7 +3436,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-165",
+        "id": "default-map-201",
         "type": "map",
         "name": "Mountain Pass",
         "category": "outdoor",
@@ -2877,7 +3451,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-166",
+        "id": "default-map-202",
         "type": "map",
         "name": "Mountain Ravine",
         "category": "outdoor",
@@ -2892,7 +3466,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-167",
+        "id": "default-map-203",
         "type": "map",
         "name": "Oakenspire Treetops(24x34)",
         "category": "outdoor",
@@ -2910,7 +3484,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-168",
+        "id": "default-map-204",
         "type": "map",
         "name": "Obsidian Bridge",
         "category": "outdoor",
@@ -2925,7 +3499,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-169",
+        "id": "default-map-205",
         "type": "map",
         "name": "Outside bend (5x5)",
         "category": "outdoor",
@@ -2944,7 +3518,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-170",
+        "id": "default-map-206",
         "type": "map",
         "name": "Overgrown Guardhouse",
         "category": "indoor",
@@ -2959,7 +3533,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-171",
+        "id": "default-map-207",
         "type": "map",
         "name": "Overgrown Viking Throne [25x25] - WM",
         "category": "outdoor",
@@ -2979,7 +3553,39 @@
         "isDefault": true
       },
       {
-        "id": "default-map-172",
+        "id": "default-map-208",
+        "type": "map",
+        "name": "Papercraft House - Floor",
+        "category": "indoor",
+        "gridSize": null,
+        "tags": [
+          "papercraft",
+          "house",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Papercraft House - Floor.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Papercraft House - Floor.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-209",
+        "type": "map",
+        "name": "Papercraft House - Roof",
+        "category": "indoor",
+        "gridSize": null,
+        "tags": [
+          "papercraft",
+          "house",
+          "roof"
+        ],
+        "path": "/assets/defaults/base_maps/Papercraft House - Roof.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Papercraft House - Roof.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-210",
         "type": "map",
         "name": "Poachers Crest - Snow",
         "category": "outdoor",
@@ -2995,7 +3601,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-173",
+        "id": "default-map-211",
         "type": "map",
         "name": "Provinces of Wei - Wei - Autumn",
         "category": "outdoor",
@@ -3011,7 +3617,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-174",
+        "id": "default-map-212",
         "type": "map",
         "name": "Provinces of Wei - Wei - Spring",
         "category": "outdoor",
@@ -3026,7 +3632,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-175",
+        "id": "default-map-213",
         "type": "map",
         "name": "Provinces of Wei - Wei - Summer",
         "category": "outdoor",
@@ -3041,7 +3647,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-176",
+        "id": "default-map-214",
         "type": "map",
         "name": "Provinces of Wei - Wei - Winter",
         "category": "outdoor",
@@ -3056,7 +3662,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-177",
+        "id": "default-map-215",
         "type": "map",
         "name": "Rice Paddy",
         "category": "outdoor",
@@ -3071,7 +3677,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-178",
+        "id": "default-map-216",
         "type": "map",
         "name": "River Jetty",
         "category": "outdoor",
@@ -3086,7 +3692,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-179",
+        "id": "default-map-217",
         "type": "map",
         "name": "Riverside Road",
         "category": "outdoor",
@@ -3101,7 +3707,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-180",
+        "id": "default-map-218",
         "type": "map",
         "name": "Roadside Camp",
         "category": "outdoor",
@@ -3116,7 +3722,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-181",
+        "id": "default-map-219",
         "type": "map",
         "name": "Roadside Rise",
         "category": "outdoor",
@@ -3131,7 +3737,23 @@
         "isDefault": true
       },
       {
-        "id": "default-map-182",
+        "id": "default-map-220",
+        "type": "map",
+        "name": "Roadside Tiling Grass",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "roadside",
+          "tiling",
+          "grass"
+        ],
+        "path": "/assets/defaults/base_maps/Roadside Tiling Grass.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Roadside Tiling Grass.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-221",
         "type": "map",
         "name": "Roadside Tiling Road",
         "category": "outdoor",
@@ -3147,7 +3769,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-183",
+        "id": "default-map-222",
         "type": "map",
         "name": "Roadside Wilderness",
         "category": "outdoor",
@@ -3162,7 +3784,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-184",
+        "id": "default-map-223",
         "type": "map",
         "name": "Roaring Falls",
         "category": "outdoor",
@@ -3177,7 +3799,43 @@
         "isDefault": true
       },
       {
-        "id": "default-map-185",
+        "id": "default-map-224",
+        "type": "map",
+        "name": "Rock Garden Tea House - Tea House - Interior",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "rock",
+          "garden",
+          "tea",
+          "house",
+          "interior"
+        ],
+        "path": "/assets/defaults/base_maps/Rock Garden Tea House - Tea House - Interior.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Rock Garden Tea House - Tea House - Interior.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-225",
+        "type": "map",
+        "name": "Rock Garden Tea House - Tea House - Roof",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "rock",
+          "garden",
+          "tea",
+          "house",
+          "roof"
+        ],
+        "path": "/assets/defaults/base_maps/Rock Garden Tea House - Tea House - Roof.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Rock Garden Tea House - Tea House - Roof.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-226",
         "type": "map",
         "name": "Rock Garden",
         "category": "dungeon",
@@ -3192,7 +3850,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-186",
+        "id": "default-map-227",
         "type": "map",
         "name": "Rocky Coast",
         "category": "outdoor",
@@ -3207,7 +3865,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-187",
+        "id": "default-map-228",
         "type": "map",
         "name": "Rocky Descent",
         "category": "outdoor",
@@ -3222,7 +3880,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-188",
+        "id": "default-map-229",
         "type": "map",
         "name": "Rocky Highlands",
         "category": "outdoor",
@@ -3237,7 +3895,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-189",
+        "id": "default-map-230",
         "type": "map",
         "name": "Rope Bridge [18x28] - WM",
         "category": "outdoor",
@@ -3256,7 +3914,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-190",
+        "id": "default-map-231",
         "type": "map",
         "name": "Rope Bridge",
         "category": "outdoor",
@@ -3271,7 +3929,24 @@
         "isDefault": true
       },
       {
-        "id": "default-map-191",
+        "id": "default-map-232",
+        "type": "map",
+        "name": "Rotation Station Cross Section",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "rotation",
+          "station",
+          "cross",
+          "section"
+        ],
+        "path": "/assets/defaults/base_maps/Rotation Station Cross Section.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Rotation Station Cross Section.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-233",
         "type": "map",
         "name": "Rotation Station District1",
         "category": "outdoor",
@@ -3287,7 +3962,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-192",
+        "id": "default-map-234",
         "type": "map",
         "name": "Rotation Station District3",
         "category": "outdoor",
@@ -3303,7 +3978,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-193",
+        "id": "default-map-235",
         "type": "map",
         "name": "Rotation Station District4",
         "category": "outdoor",
@@ -3319,7 +3994,86 @@
         "isDefault": true
       },
       {
-        "id": "default-map-194",
+        "id": "default-map-236",
+        "type": "map",
+        "name": "Rustic Residence - Floor 0",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "rustic",
+          "residence",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Rustic Residence - Floor 0.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Rustic Residence - Floor 0.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-237",
+        "type": "map",
+        "name": "Rustic Residence - Floor 1",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "rustic",
+          "residence",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Rustic Residence - Floor 1.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Rustic Residence - Floor 1.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-238",
+        "type": "map",
+        "name": "Rustic Residence - Floor 2",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "rustic",
+          "residence",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Rustic Residence - Floor 2.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Rustic Residence - Floor 2.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-239",
+        "type": "map",
+        "name": "Rustic Residence - Floor 3",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "rustic",
+          "residence",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Rustic Residence - Floor 3.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Rustic Residence - Floor 3.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-240",
+        "type": "map",
+        "name": "Schooner - Floor 1",
+        "category": "outdoor",
+        "gridSize": null,
+        "tags": [
+          "schooner",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Schooner - Floor 1.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Schooner - Floor 1.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-241",
         "type": "map",
         "name": "Shattered Sky - Astral Sea - Blue Star - 22x16 - 72 DPI vtt",
         "category": "outdoor",
@@ -3339,7 +4093,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-195",
+        "id": "default-map-242",
         "type": "map",
         "name": "Sheer Plateau",
         "category": "outdoor",
@@ -3354,7 +4108,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-196",
+        "id": "default-map-243",
         "type": "map",
         "name": "Shifting Swamp - Jungle - 23x16",
         "category": "outdoor",
@@ -3373,7 +4127,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-197",
+        "id": "default-map-244",
         "type": "map",
         "name": "Shifting Swamp",
         "category": "outdoor",
@@ -3388,7 +4142,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-198",
+        "id": "default-map-245",
         "type": "map",
         "name": "Shingle Shore",
         "category": "outdoor",
@@ -3403,7 +4157,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-199",
+        "id": "default-map-246",
         "type": "map",
         "name": "Shipwreck",
         "category": "outdoor",
@@ -3417,7 +4171,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-200",
+        "id": "default-map-247",
         "type": "map",
         "name": "ShoreLine - Pirates Cove",
         "category": "outdoor",
@@ -3433,7 +4187,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-201",
+        "id": "default-map-248",
         "type": "map",
         "name": "Sinister Woodland - Swamp - Day - Open - 44x32 vtt",
         "category": "outdoor",
@@ -3452,7 +4206,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-202",
+        "id": "default-map-249",
         "type": "map",
         "name": "Slane the Winter Dragon",
         "category": "outdoor",
@@ -3467,7 +4221,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-203",
+        "id": "default-map-250",
         "type": "map",
         "name": "Snowy Plaza",
         "category": "urban",
@@ -3482,7 +4236,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-204",
+        "id": "default-map-251",
         "type": "map",
         "name": "Snowy Road",
         "category": "outdoor",
@@ -3497,7 +4251,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-205",
+        "id": "default-map-252",
         "type": "map",
         "name": "Snowy Sanctum",
         "category": "outdoor",
@@ -3512,7 +4266,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-206",
+        "id": "default-map-253",
         "type": "map",
         "name": "Snowy Summit",
         "category": "outdoor",
@@ -3527,7 +4281,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-207",
+        "id": "default-map-254",
         "type": "map",
         "name": "Tear of the Goddess",
         "category": "outdoor",
@@ -3542,7 +4296,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-208",
+        "id": "default-map-255",
         "type": "map",
         "name": "Trade Port",
         "category": "urban",
@@ -3557,7 +4311,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-209",
+        "id": "default-map-256",
         "type": "map",
         "name": "Tranquil Temple - Floor 1",
         "category": "indoor",
@@ -3573,7 +4327,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-210",
+        "id": "default-map-257",
         "type": "map",
         "name": "Tranquil Temple - Floor 2",
         "category": "indoor",
@@ -3589,7 +4343,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-211",
+        "id": "default-map-258",
         "type": "map",
         "name": "Tranquil Temple - Floor 3",
         "category": "indoor",
@@ -3605,7 +4359,39 @@
         "isDefault": true
       },
       {
-        "id": "default-map-212",
+        "id": "default-map-259",
+        "type": "map",
+        "name": "Tranquil Temple - Floor 4",
+        "category": "indoor",
+        "gridSize": null,
+        "tags": [
+          "tranquil",
+          "temple",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Tranquil Temple - Floor 4.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Tranquil Temple - Floor 4.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-260",
+        "type": "map",
+        "name": "Tranquil Temple - Floor 5",
+        "category": "indoor",
+        "gridSize": null,
+        "tags": [
+          "tranquil",
+          "temple",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Tranquil Temple - Floor 5.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Tranquil Temple - Floor 5.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-261",
         "type": "map",
         "name": "Tranquil Waterfall",
         "category": "outdoor",
@@ -3620,7 +4406,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-213",
+        "id": "default-map-262",
         "type": "map",
         "name": "Tropical Island",
         "category": "outdoor",
@@ -3635,7 +4421,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-214",
+        "id": "default-map-263",
         "type": "map",
         "name": "Trusty Tavern - Floor 1",
         "category": "indoor",
@@ -3651,7 +4437,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-215",
+        "id": "default-map-264",
         "type": "map",
         "name": "Trusty Tavern - Floor 2",
         "category": "indoor",
@@ -3667,7 +4453,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-216",
+        "id": "default-map-265",
         "type": "map",
         "name": "Trusty Tavern - Floor 3",
         "category": "indoor",
@@ -3683,7 +4469,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-217",
+        "id": "default-map-266",
         "type": "map",
         "name": "Twisting Trail",
         "category": "outdoor",
@@ -3698,7 +4484,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-218",
+        "id": "default-map-267",
         "type": "map",
         "name": "Typical Tavern, - Floor 1 (16x11)",
         "category": "indoor",
@@ -3718,7 +4504,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-219",
+        "id": "default-map-268",
         "type": "map",
         "name": "Typical Tavern, - Floor 2 (16x11)",
         "category": "indoor",
@@ -3738,7 +4524,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-220",
+        "id": "default-map-269",
         "type": "map",
         "name": "Undervault Market [30x40] - WM",
         "category": "dungeon",
@@ -3757,7 +4543,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-221",
+        "id": "default-map-270",
         "type": "map",
         "name": "Volatile Portal - Inactive",
         "category": "urban",
@@ -3773,7 +4559,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-222",
+        "id": "default-map-271",
         "type": "map",
         "name": "Volatile Portal",
         "category": "urban",
@@ -3788,7 +4574,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-223",
+        "id": "default-map-272",
         "type": "map",
         "name": "Volcanic Descent",
         "category": "outdoor",
@@ -3803,7 +4589,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-224",
+        "id": "default-map-273",
         "type": "map",
         "name": "Volcanic Forge",
         "category": "outdoor",
@@ -3818,7 +4604,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-225",
+        "id": "default-map-274",
         "type": "map",
         "name": "Wall, short (2x6)",
         "category": "outdoor",
@@ -3837,7 +4623,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-226",
+        "id": "default-map-275",
         "type": "map",
         "name": "Wicked Woods",
         "category": "outdoor",
@@ -3852,7 +4638,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-227",
+        "id": "default-map-276",
         "type": "map",
         "name": "WildRoad - Wild Road",
         "category": "outdoor",
@@ -3868,7 +4654,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-228",
+        "id": "default-map-277",
         "type": "map",
         "name": "Winery [50x46] - WM",
         "category": "indoor",
@@ -3886,7 +4672,167 @@
         "isDefault": true
       },
       {
-        "id": "default-map-229",
+        "id": "default-map-278",
+        "type": "map",
+        "name": "Wizards Tower - Floor 1",
+        "category": "urban",
+        "gridSize": null,
+        "tags": [
+          "wizards",
+          "tower",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Wizards Tower - Floor 1.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Wizards Tower - Floor 1.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-279",
+        "type": "map",
+        "name": "Wizards Tower - Floor 3",
+        "category": "urban",
+        "gridSize": null,
+        "tags": [
+          "wizards",
+          "tower",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Wizards Tower - Floor 3.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Wizards Tower - Floor 3.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-280",
+        "type": "map",
+        "name": "Wizards Tower - Roof",
+        "category": "urban",
+        "gridSize": null,
+        "tags": [
+          "wizards",
+          "tower",
+          "roof"
+        ],
+        "path": "/assets/defaults/base_maps/Wizards Tower - Roof.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Wizards Tower - Roof.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-281",
+        "type": "map",
+        "name": "Wooden Watchtower - Floor 2",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "wooden",
+          "watchtower",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Wooden Watchtower - Floor 2.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Wooden Watchtower - Floor 2.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-282",
+        "type": "map",
+        "name": "Wooden Watchtower - Floor 4",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "wooden",
+          "watchtower",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Wooden Watchtower - Floor 4.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Wooden Watchtower - Floor 4.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-283",
+        "type": "map",
+        "name": "Wooden Watchtower - Floor 5",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "wooden",
+          "watchtower",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Wooden Watchtower - Floor 5.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Wooden Watchtower - Floor 5.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-284",
+        "type": "map",
+        "name": "Wooden Watchtower - Floor 7",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "wooden",
+          "watchtower",
+          "floor"
+        ],
+        "path": "/assets/defaults/base_maps/Wooden Watchtower - Floor 7.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Wooden Watchtower - Floor 7.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-285",
+        "type": "map",
+        "name": "Wooden Watchtower Roof2",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "wooden",
+          "watchtower",
+          "roof2"
+        ],
+        "path": "/assets/defaults/base_maps/Wooden Watchtower Roof2.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Wooden Watchtower Roof2.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-286",
+        "type": "map",
+        "name": "Wooden Watchtower Roof7",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "wooden",
+          "watchtower",
+          "roof7"
+        ],
+        "path": "/assets/defaults/base_maps/Wooden Watchtower Roof7.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Wooden Watchtower Roof7.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-287",
+        "type": "map",
+        "name": "Wooden Watchtower Roof8",
+        "category": "dungeon",
+        "gridSize": null,
+        "tags": [
+          "wooden",
+          "watchtower",
+          "roof8"
+        ],
+        "path": "/assets/defaults/base_maps/Wooden Watchtower Roof8.webp",
+        "thumbnail": "/assets/defaults/base_maps/thumbnails/Wooden Watchtower Roof8.thumb.jpg",
+        "format": "webp",
+        "isDefault": true
+      },
+      {
+        "id": "default-map-288",
         "type": "map",
         "name": "Woodside",
         "category": "outdoor",
@@ -3900,7 +4846,7 @@
         "isDefault": true
       },
       {
-        "id": "default-map-230",
+        "id": "default-map-289",
         "type": "map",
         "name": "World Of Sanspants",
         "category": "outdoor",

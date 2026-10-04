@@ -4,7 +4,8 @@ import path from 'path';
 const SOURCE_DIR = process.argv[2] || 'G:\\My Drive\\06_Gaming & Creative\\D&D & Tabletop\\Assets';
 const DEST_DIR = path.resolve('public/assets/defaults/base_maps');
 
-const EXCLUDE_DIR_REGEX = /Tokens|Furniture|Symbols|Wonderdraft|Assets - 300|Assets - 70|Assets - 72|Assets - 150|Map Assets|Roll20|Carts Carriages|Highres/i;
+const EXCLUDE_DIR_REGEX = /Tokens|Furniture|Symbols|Wonderdraft|Assets - 300|Assets - 70|Assets - 72|Assets - 150|Map Assets|Roll20|Carts Carriages|Highres|Builder/i;
+const EXCLUDE_FILE_REGEX = /Ballista|Harness|Shell|Token|Mushroom|turret|RowBoat/i;
 
 function cleanMapName(filePath) {
   const dirName = path.basename(path.dirname(filePath));
@@ -23,7 +24,9 @@ function cleanMapName(filePath) {
 
   // Normalize dashes and spaces
   baseName = baseName
+    .replace(/Paperfcraft/g, 'Papercraft')
     .replace(/[_\s]+/g, ' ')
+    .replace(/\s*-\s*-\s*/g, ' - ')
     .replace(/\s*-\s*/g, ' - ')
     .trim();
 
@@ -55,9 +58,10 @@ function findBattleMaps(dir) {
       }
     } else if (entry.isFile()) {
       if (path.extname(entry.name).toLowerCase() === '.webp') {
+        if (EXCLUDE_FILE_REGEX.test(entry.name)) continue;
         const stat = fs.statSync(fullPath);
-        // Battle maps are generally > 120KB in WebP
-        if (stat.size > 120 * 1024) {
+        // Battle maps and dwellings are generally > 25KB in WebP
+        if (stat.size > 25 * 1024) {
           results.push({ fullPath, size: stat.size });
         }
       }
