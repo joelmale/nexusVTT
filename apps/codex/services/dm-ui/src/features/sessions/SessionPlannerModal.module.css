@@ -2,12 +2,18 @@
   background: var(--studio-surface, #ffffff);
   border: 1px solid var(--studio-border, #e5e7eb);
   border-radius: var(--studio-radius-panel, 12px);
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.1),
+    0 10px 10px -5px rgba(0, 0, 0, 0.04);
   color: var(--studio-text, #111827);
+  height: 94vh;
   max-height: 94vh;
   max-width: 980px;
   padding: 0;
   width: 96vw;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
 }
 
 .dialog::backdrop {
@@ -19,7 +25,10 @@
 .form {
   display: flex;
   flex-direction: column;
-  max-height: 94vh;
+  height: 100%;
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .header {
@@ -28,6 +37,7 @@
   display: flex;
   justify-content: space-between;
   padding: 16px 20px;
+  flex-shrink: 0;
 }
 
 .title {
@@ -68,6 +78,7 @@
   padding: 8px 20px;
   background: var(--studio-surface-muted, #f8f9fa);
   border-bottom: 1px solid var(--studio-border, #e5e7eb);
+  flex-shrink: 0;
 }
 
 .tabButton {
@@ -414,6 +425,7 @@
   background: var(--studio-surface-muted, #f8f9fa);
   flex-wrap: wrap;
   gap: 12px;
+  flex-shrink: 0;
 }
 
 .footerActions {

@@ -18,7 +18,9 @@ import { useNavigate } from 'react-router-dom';
 
 import type { CampaignFixtureBundle } from '@/demo/fixture-registry';
 import type {
+  CampaignQuest,
   CampaignSession,
+  QuestObjective,
   ReadinessItem,
   SessionPlan,
   SessionPlanStep,
@@ -75,9 +77,7 @@ export function SessionPlannerModal({
   const [plannedDate, setPlannedDate] = useState(
     initialSession?.plannedDate ?? new Date().toISOString().slice(0, 10),
   );
-  const [partyLevel, setPartyLevel] = useState(
-    initialSession?.partyLevel ?? 3,
-  );
+  const [partyLevel, setPartyLevel] = useState(initialSession?.partyLevel ?? 3);
   const [targetDurationHours, setTargetDurationHours] = useState(
     initialSession?.durationHours ?? 4,
   );
@@ -93,7 +93,16 @@ export function SessionPlannerModal({
     new Set(initialSession?.questIds ?? []),
   );
   const [selectedObjectiveIds, setSelectedObjectiveIds] = useState<Set<string>>(
-    new Set(),
+    () => {
+      const fromDependencies = (initialSession?.plan?.dependencies ?? [])
+        .map((d) => d.objectId)
+        .filter(
+          (id) =>
+            bundle.objectives?.some((o) => o.id === id) ||
+            bundle.quests.some((q) => q.objectiveIds?.includes(id)),
+        );
+      return new Set(fromDependencies);
+    },
   );
   const [primaryLocationId, setPrimaryLocationId] = useState<string>(
     initialSession?.locationIds[0] ?? bundle.locations[0]?.id ?? '',
@@ -113,6 +122,114 @@ export function SessionPlannerModal({
   const [selectedClueIds, setSelectedClueIds] = useState<Set<string>>(
     new Set(initialSession?.clueIds ?? []),
   );
+
+  const getObjectiveTitle = (
+    objId: string,
+    quest?: CampaignQuest,
+    index?: number,
+  ): string => {
+    // 1. Direct match in bundle.objectives
+    const fromBundle = bundle.objectives?.find((o) => o.id === objId);
+    if (fromBundle?.title?.trim()) return fromBundle.title.trim();
+    if ((fromBundle as unknown as { name?: string })?.name?.trim()) {
+      return (fromBundle as unknown as { name: string }).name.trim();
+    }
+
+    // 2. Direct match in quest.objectives (if inline)
+    if (quest && 'objectives' in quest) {
+      const inlineList = (
+        quest as unknown as {
+          objectives?: Array<{ id?: string; title?: string; name?: string }>;
+        }
+      ).objectives;
+      if (Array.isArray(inlineList)) {
+        const fromInline = inlineList.find((o) => o.id === objId);
+        if (fromInline?.title?.trim()) return fromInline.title.trim();
+        if (fromInline?.name?.trim()) return fromInline.name.trim();
+        if (typeof index === 'number' && inlineList[index]?.title?.trim()) {
+          return inlineList[index].title!.trim();
+        }
+      }
+    }
+
+    // 3. Search all quests in bundle for inline objectives
+    const fromAnyQuest = bundle.quests
+      .flatMap((item) =>
+        'objectives' in item &&
+        Array.isArray(
+          (
+            item as unknown as {
+              objectives?: Array<{
+                id?: string;
+                title?: string;
+                name?: string;
+              }>;
+            }
+          ).objectives,
+        )
+          ? (
+              item as unknown as {
+                objectives: Array<{
+                  id?: string;
+                  title?: string;
+                  name?: string;
+                }>;
+              }
+            ).objectives
+          : [],
+      )
+      .find((o) => o.id === objId);
+    if (fromAnyQuest?.title?.trim()) return fromAnyQuest.title.trim();
+    if (fromAnyQuest?.name?.trim()) return fromAnyQuest.name.trim();
+
+    // 4. Fallback: If objId looks like a UUID (hex-hyphen or hex-space pattern), never show raw UUID
+    const isUuid =
+      /^[0-9a-f]{8}[-\s][0-9a-f]{4}[-\s][0-9a-f]{4}/i.test(objId) ||
+      /^[0-9a-f]{20,}$/i.test(objId);
+    if (isUuid) {
+      return typeof index === 'number'
+        ? `Objective ${index + 1}`
+        : 'Active Objective';
+    }
+
+    return objId.replace(/-/g, ' ');
+  };
+
+  const resolveObjectives = (objectiveIds: Set<string>): QuestObjective[] => {
+    const list: QuestObjective[] = [];
+    for (const id of objectiveIds) {
+      const fromBundle = bundle.objectives?.find((o) => o.id === id);
+      if (fromBundle) {
+        list.push(fromBundle);
+        continue;
+      }
+      const parentQuest = bundle.quests.find((q) =>
+        q.objectiveIds?.includes(id),
+      );
+      const inlineObj = (
+        parentQuest as unknown as { objectives?: QuestObjective[] }
+      )?.objectives?.find((o) => o.id === id);
+      if (inlineObj) {
+        list.push(inlineObj);
+        continue;
+      }
+      const title = getObjectiveTitle(
+        id,
+        parentQuest,
+        parentQuest ? parentQuest.objectiveIds.indexOf(id) : undefined,
+      );
+      list.push({
+        id,
+        questId: parentQuest?.id ?? '',
+        order: 1,
+        title,
+        status: 'active',
+        clueIds: [],
+        locationIds: [],
+      });
+    }
+    return list;
+  };
 
   // Tab 3: Run-sheet beats spine
   const [steps, setSteps] = useState<SessionPlanStep[]>(
@@ -141,9 +258,14 @@ export function SessionPlannerModal({
         campaignTitle: bundle.campaign.title,
         targetDurationMinutes: targetDurationHours * 60,
         previousSession: prevSession,
-        primaryLocation: bundle.locations.find((l) => l.id === primaryLocationId),
+        primaryLocation: bundle.locations.find(
+          (l) => l.id === primaryLocationId,
+        ),
         quests: bundle.quests.filter((q) => selectedQuestIds.has(q.id)),
-        encounters: bundle.encounters.filter((e) => selectedEncounterIds.has(e.id)),
+        objectives: resolveObjectives(selectedObjectiveIds),
+        encounters: bundle.encounters.filter((e) =>
+          selectedEncounterIds.has(e.id),
+        ),
         npcs: bundle.npcs.filter((n) => selectedNpcIds.has(n.id)),
         factions: bundle.factions.filter((f) => selectedFactionIds.has(f.id)),
         handouts: bundle.handouts.filter((h) => selectedHandoutIds.has(h.id)),
@@ -182,18 +304,7 @@ export function SessionPlannerModal({
     const selectedQuests = bundle.quests.filter((q) =>
       selectedQuestIds.has(q.id),
     );
-    const selectedObjectives = bundle.quests
-      .flatMap((q) => q.objectiveIds)
-      .filter((id) => selectedObjectiveIds.has(id))
-      .map((id) => ({
-        id,
-        questId: '',
-        order: 1,
-        title: id.replace(/-/g, ' '),
-        status: 'active' as const,
-        clueIds: [],
-        locationIds: [],
-      }));
+    const selectedObjectives = resolveObjectives(selectedObjectiveIds);
 
     const generated = generateSessionSpine({
       sessionNumber,
@@ -203,7 +314,9 @@ export function SessionPlannerModal({
       primaryLocation: bundle.locations.find((l) => l.id === primaryLocationId),
       quests: selectedQuests,
       objectives: selectedObjectives,
-      encounters: bundle.encounters.filter((e) => selectedEncounterIds.has(e.id)),
+      encounters: bundle.encounters.filter((e) =>
+        selectedEncounterIds.has(e.id),
+      ),
       npcs: bundle.npcs.filter((n) => selectedNpcIds.has(n.id)),
       factions: bundle.factions.filter((f) => selectedFactionIds.has(f.id)),
       handouts: bundle.handouts.filter((h) => selectedHandoutIds.has(h.id)),
@@ -261,10 +374,7 @@ export function SessionPlannerModal({
     setSteps(nextSteps);
   };
 
-  const handleUpdateStep = (
-    index: number,
-    patch: Partial<SessionPlanStep>,
-  ) => {
+  const handleUpdateStep = (index: number, patch: Partial<SessionPlanStep>) => {
     const nextSteps = [...steps];
     nextSteps[index] = { ...nextSteps[index], ...patch };
     setSteps(nextSteps);
@@ -274,6 +384,12 @@ export function SessionPlannerModal({
     const next = new Set(selectedQuestIds);
     if (next.has(questId)) {
       next.delete(questId);
+      const quest = bundle.quests.find((q) => q.id === questId);
+      if (quest?.objectiveIds) {
+        const nextObjs = new Set(selectedObjectiveIds);
+        quest.objectiveIds.forEach((objId) => nextObjs.delete(objId));
+        setSelectedObjectiveIds(nextObjs);
+      }
     } else {
       next.add(questId);
     }
@@ -368,10 +484,25 @@ export function SessionPlannerModal({
       estimatedMinutes: totalStepMinutes,
       readiness,
       dependencies: [
-        ...(primaryLocationId ? [{ objectId: primaryLocationId, status: 'ready' as const }] : []),
-        ...[...selectedEncounterIds].map((id) => ({ objectId: id, status: 'ready' as const })),
-        ...[...selectedNpcIds].map((id) => ({ objectId: id, status: 'ready' as const })),
-        ...[...selectedHandoutIds].map((id) => ({ objectId: id, status: 'ready' as const })),
+        ...(primaryLocationId
+          ? [{ objectId: primaryLocationId, status: 'ready' as const }]
+          : []),
+        ...[...selectedEncounterIds].map((id) => ({
+          objectId: id,
+          status: 'ready' as const,
+        })),
+        ...[...selectedNpcIds].map((id) => ({
+          objectId: id,
+          status: 'ready' as const,
+        })),
+        ...[...selectedHandoutIds].map((id) => ({
+          objectId: id,
+          status: 'ready' as const,
+        })),
+        ...[...selectedObjectiveIds].map((id) => ({
+          objectId: id,
+          status: 'ready' as const,
+        })),
       ],
       steps,
       notes: dmNotes.split('\n').filter(Boolean),
@@ -429,7 +560,9 @@ export function SessionPlannerModal({
       }
     } catch (err) {
       setErrorMessage(
-        err instanceof Error ? err.message : 'An error occurred while saving the session.',
+        err instanceof Error
+          ? err.message
+          : 'An error occurred while saving the session.',
       );
     } finally {
       setIsSubmitting(false);
@@ -456,7 +589,8 @@ export function SessionPlannerModal({
                 : `Plan a Session (#${sessionNumber})`}
             </h3>
             <p className={styles.subtitle}>
-              Assemble quests, encounters, locations, and run-sheet narrative beats for your campaign.
+              Assemble quests, encounters, locations, and run-sheet narrative
+              beats for your campaign.
             </p>
           </div>
           <button
@@ -531,7 +665,9 @@ export function SessionPlannerModal({
                   min="1"
                   className={styles.fieldInput}
                   value={sessionNumber}
-                  onChange={(e) => setSessionNumber(parseInt(e.target.value, 10) || 1)}
+                  onChange={(e) =>
+                    setSessionNumber(parseInt(e.target.value, 10) || 1)
+                  }
                   data-testid="input-session-number"
                 />
               </div>
@@ -594,7 +730,9 @@ export function SessionPlannerModal({
                   max="20"
                   className={styles.fieldInput}
                   value={partyLevel}
-                  onChange={(e) => setPartyLevel(parseInt(e.target.value, 10) || 1)}
+                  onChange={(e) =>
+                    setPartyLevel(parseInt(e.target.value, 10) || 1)
+                  }
                 />
               </div>
 
@@ -606,7 +744,9 @@ export function SessionPlannerModal({
                   id="session-duration"
                   className={styles.fieldSelect}
                   value={targetDurationHours}
-                  onChange={(e) => setTargetDurationHours(parseFloat(e.target.value) || 4)}
+                  onChange={(e) =>
+                    setTargetDurationHours(parseFloat(e.target.value) || 4)
+                  }
                 >
                   <option value="2">2 Hours (~120 min)</option>
                   <option value="3">3 Hours (~180 min)</option>
@@ -623,14 +763,19 @@ export function SessionPlannerModal({
                   id="session-status"
                   className={styles.fieldSelect}
                   value={status}
-                  onChange={(e) => setStatus(e.target.value as 'planned' | 'draft')}
+                  onChange={(e) =>
+                    setStatus(e.target.value as 'planned' | 'draft')
+                  }
                 >
                   <option value="planned">Planned (Ready for Game Day)</option>
                   <option value="draft">Draft (In Preparation)</option>
                 </select>
               </div>
 
-              <div className={styles.fieldGroup} style={{ gridColumn: '1 / -1' }}>
+              <div
+                className={styles.fieldGroup}
+                style={{ gridColumn: '1 / -1' }}
+              >
                 <label className={styles.fieldLabel} htmlFor="session-summary">
                   Campaign Overview / Synopsis
                 </label>
@@ -680,7 +825,14 @@ export function SessionPlannerModal({
                   {bundle.quests.map((q) => {
                     const active = selectedQuestIds.has(q.id);
                     return (
-                      <div key={q.id} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                      <div
+                        key={q.id}
+                        style={{
+                          display: 'flex',
+                          flexDirection: 'column',
+                          gap: '4px',
+                        }}
+                      >
                         <div
                           className={`${styles.selectionCard} ${active ? styles.selectionCardActive : ''}`}
                           onClick={() => handleToggleQuest(q.id)}
@@ -692,17 +844,24 @@ export function SessionPlannerModal({
                         </div>
                         {active && q.objectiveIds.length > 0 && (
                           <div className={styles.objectiveList}>
-                            {q.objectiveIds.map((objId) => {
+                            {q.objectiveIds.map((objId, idx) => {
                               const isChecked = selectedObjectiveIds.has(objId);
                               return (
-                                <label key={objId} className={styles.objectiveItem}>
+                                <label
+                                  key={objId}
+                                  className={styles.objectiveItem}
+                                >
                                   <input
                                     type="checkbox"
                                     checked={isChecked}
-                                    onChange={() => handleToggleObjective(objId)}
+                                    onChange={() =>
+                                      handleToggleObjective(objId)
+                                    }
                                     data-testid={`checkbox-obj-${objId}`}
                                   />
-                                  <span>{objId.replace(/-/g, ' ')}</span>
+                                  <span>
+                                    {getObjectiveTitle(objId, q, idx)}
+                                  </span>
                                 </label>
                               );
                             })}
@@ -811,7 +970,9 @@ export function SessionPlannerModal({
                         >
                           <FileText size={14} />
                           <span>{h.title}</span>
-                          <span className={styles.metaPill}>{h.visibility}</span>
+                          <span className={styles.metaPill}>
+                            {h.visibility}
+                          </span>
                         </div>
                       );
                     })}
@@ -855,8 +1016,8 @@ export function SessionPlannerModal({
                 <div className={styles.timeBudget}>
                   <Clock size={16} color="var(--studio-primary, #4f46e5)" />
                   <span>
-                    Run-Sheet Duration: <strong>{totalStepMinutes} min</strong> / ~
-                    {targetDurationHours * 60} min target
+                    Run-Sheet Duration: <strong>{totalStepMinutes} min</strong>{' '}
+                    / ~{targetDurationHours * 60} min target
                   </span>
                 </div>
                 <button
@@ -873,14 +1034,20 @@ export function SessionPlannerModal({
 
               <div className={styles.stepList}>
                 {steps.map((step, idx) => (
-                  <div key={step.id} className={styles.stepCard} data-testid={`step-card-${idx}`}>
+                  <div
+                    key={step.id}
+                    className={styles.stepCard}
+                    data-testid={`step-card-${idx}`}
+                  >
                     <div className={styles.stepHeader}>
                       <span className={styles.stepOrderBadge}>#{idx + 1}</span>
                       <input
                         type="text"
                         className={styles.stepTitleInput}
                         value={step.title}
-                        onChange={(e) => handleUpdateStep(idx, { title: e.target.value })}
+                        onChange={(e) =>
+                          handleUpdateStep(idx, { title: e.target.value })
+                        }
                         aria-label={`Step ${idx + 1} Title`}
                       />
                       <div className={styles.stepActions}>
@@ -919,7 +1086,11 @@ export function SessionPlannerModal({
                     <div className={styles.stepMetaRow}>
                       <select
                         className={styles.fieldSelect}
-                        style={{ width: 'auto', padding: '4px 8px', fontSize: '12px' }}
+                        style={{
+                          width: 'auto',
+                          padding: '4px 8px',
+                          fontSize: '12px',
+                        }}
                         value={step.kind}
                         onChange={(e) =>
                           handleUpdateStep(idx, {
@@ -929,34 +1100,58 @@ export function SessionPlannerModal({
                       >
                         <option value="recap">Opening Recap</option>
                         <option value="scene">Atmospheric Scene</option>
-                        <option value="encounter">Combat / Trap Encounter</option>
+                        <option value="encounter">
+                          Combat / Trap Encounter
+                        </option>
                         <option value="choice">Decision Point</option>
                         <option value="handout">Share Handout</option>
                         <option value="note">Secret DM Note</option>
                         <option value="closing">Closing Cliffhanger</option>
                       </select>
 
-                      <div style={{ display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <div
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: '4px',
+                        }}
+                      >
                         <input
                           type="number"
                           min="5"
                           step="5"
                           className={styles.fieldInput}
-                          style={{ width: '60px', padding: '4px 6px', fontSize: '12px' }}
+                          style={{
+                            width: '60px',
+                            padding: '4px 6px',
+                            fontSize: '12px',
+                          }}
                           value={step.durationMinutes}
                           onChange={(e) =>
                             handleUpdateStep(idx, {
-                              durationMinutes: parseInt(e.target.value, 10) || 15,
+                              durationMinutes:
+                                parseInt(e.target.value, 10) || 15,
                             })
                           }
                           aria-label={`Step ${idx + 1} duration in minutes`}
                         />
-                        <span style={{ fontSize: '11px', color: 'var(--studio-text-muted)' }}>min</span>
+                        <span
+                          style={{
+                            fontSize: '11px',
+                            color: 'var(--studio-text-muted)',
+                          }}
+                        >
+                          min
+                        </span>
                       </div>
 
                       <select
                         className={styles.fieldSelect}
-                        style={{ width: 'auto', padding: '4px 8px', fontSize: '12px' }}
+                        style={{
+                          width: 'auto',
+                          padding: '4px 8px',
+                          fontSize: '12px',
+                        }}
                         value={step.track}
                         onChange={(e) =>
                           handleUpdateStep(idx, {
@@ -970,7 +1165,11 @@ export function SessionPlannerModal({
 
                       <select
                         className={styles.fieldSelect}
-                        style={{ width: 'auto', padding: '4px 8px', fontSize: '12px' }}
+                        style={{
+                          width: 'auto',
+                          padding: '4px 8px',
+                          fontSize: '12px',
+                        }}
                         value={step.visibility}
                         onChange={(e) =>
                           handleUpdateStep(idx, {
@@ -987,7 +1186,9 @@ export function SessionPlannerModal({
                       className={styles.stepBodyTextarea}
                       value={step.body ?? ''}
                       placeholder="DM cues, NPC roleplay notes, sensory descriptions..."
-                      onChange={(e) => handleUpdateStep(idx, { body: e.target.value })}
+                      onChange={(e) =>
+                        handleUpdateStep(idx, { body: e.target.value })
+                      }
                     />
                   </div>
                 ))}
@@ -1021,7 +1222,9 @@ export function SessionPlannerModal({
                         checked={item.complete}
                         onChange={() => handleToggleReadiness(idx)}
                       />
-                      <span className={`${styles.checkText} ${item.complete ? styles.checkDone : ''}`}>
+                      <span
+                        className={`${styles.checkText} ${item.complete ? styles.checkDone : ''}`}
+                      >
                         {item.label}
                       </span>
                     </label>
@@ -1062,7 +1265,9 @@ export function SessionPlannerModal({
 
         {/* Footer */}
         <div className={styles.footer}>
-          {errorMessage && <div className={styles.errorBanner}>{errorMessage}</div>}
+          {errorMessage && (
+            <div className={styles.errorBanner}>{errorMessage}</div>
+          )}
           <button
             type="button"
             className={styles.cancelButton}

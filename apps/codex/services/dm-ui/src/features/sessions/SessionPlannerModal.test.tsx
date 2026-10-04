@@ -63,7 +63,9 @@ describe('SessionPlannerModal', () => {
     expect(screen.getByTestId('tab-spine')).toBeInTheDocument();
     expect(screen.getByTestId('tab-prep')).toBeInTheDocument();
 
-    const sessionNumInput = screen.getByTestId('input-session-number') as HTMLInputElement;
+    const sessionNumInput = screen.getByTestId(
+      'input-session-number',
+    ) as HTMLInputElement;
     expect(Number(sessionNumInput.value)).toBeGreaterThan(0);
   });
 
@@ -93,7 +95,9 @@ describe('SessionPlannerModal', () => {
 
     // Toggle an encounter chip
     if (bundle.encounters.length > 0) {
-      const encChip = screen.getByTestId(`chip-encounter-${bundle.encounters[0].id}`);
+      const encChip = screen.getByTestId(
+        `chip-encounter-${bundle.encounters[0].id}`,
+      );
       await user.click(encChip);
       expect(encChip.className).toContain('selectionCardActive');
     }
@@ -175,7 +179,9 @@ describe('SessionPlannerModal', () => {
     );
 
     const titleInput = screen.getByTestId('input-session-title');
-    fireEvent.change(titleInput, { target: { value: 'Incursion into the Caldera' } });
+    fireEvent.change(titleInput, {
+      target: { value: 'Incursion into the Caldera' },
+    });
 
     await user.click(screen.getByTestId('save-draft-btn'));
 
@@ -217,5 +223,64 @@ describe('SessionPlannerModal', () => {
         expect.stringMatching(/\/campaigns\/test\/sessions\/session-.*\/plan/),
       );
     });
+  });
+
+  it('correctly resolves and displays quest objective titles instead of UUID strings', async () => {
+    const user = userEvent.setup();
+    const customBundle: CampaignFixtureBundle = {
+      ...bundle,
+      quests: [
+        {
+          id: 'quest-uuid-test',
+          campaignId: bundle.campaign.id,
+          title: 'The Stolen Relic',
+          status: 'active',
+          priority: 'high',
+          summary: 'Investigate the missing holy seal.',
+          factionIds: [],
+          sessionIds: [],
+          locationIds: [],
+          objectiveIds: [
+            '2625061e-e442-4c58-a39a-51cfaa31ed45',
+            'b41cdbc7-22ba-40c4-8f58-a03ed081bfc',
+          ],
+        },
+      ],
+      objectives: [
+        {
+          id: '2625061e-e442-4c58-a39a-51cfaa31ed45',
+          questId: 'quest-uuid-test',
+          order: 1,
+          title: 'Interrogate the temple guard',
+          status: 'active',
+          clueIds: [],
+          locationIds: [],
+        },
+      ],
+    };
+
+    render(
+      <SessionPlannerModal
+        isOpen={true}
+        onClose={vi.fn()}
+        bundle={customBundle}
+        store={mockStore}
+        basePath="/campaigns/test"
+      />,
+    );
+
+    await user.click(screen.getByTestId('tab-hub'));
+    const questChip = screen.getByTestId('chip-quest-quest-uuid-test');
+    await user.click(questChip);
+
+    // The first objective must display its real title, NOT "2625061e e442 4c58 a39a 51cfaa31ed45"
+    expect(
+      screen.getByText('Interrogate the temple guard'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/2625061e e442/)).not.toBeInTheDocument();
+
+    // The second objective without a title should fallback to "Objective 2", NOT the raw UUID with spaces
+    expect(screen.getByText('Objective 2')).toBeInTheDocument();
+    expect(screen.queryByText(/b41cdbc7 22ba/)).not.toBeInTheDocument();
   });
 });
