@@ -2,7 +2,7 @@ import { useState } from 'react';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import { useNavigate } from 'react-router-dom';
 
-import { useCapabilityNotice } from '@/features/capability-notice';
+import type { CampaignMap } from '@/demo/fixture-registry';
 import { MapsIndex } from '@/features/maps/MapsIndex';
 import {
   MapPickerModal,
@@ -16,7 +16,6 @@ import styles from './MapsSectionRoute.module.css';
 
 export function MapsContent() {
   const { bundle, basePath, store } = useSectionBundle();
-  const { notifyCapability } = useCapabilityNotice();
   const navigate = useNavigate();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -35,16 +34,38 @@ export function MapsContent() {
         imagePath: mapData.imagePath,
         imageAssetRef: mapData.imageAssetRef,
         dimensions: mapData.dimensions,
+        locationIds: [],
         layers: [
           {
             id: crypto.randomUUID(),
             label: 'Landmarks',
             visibleByDefault: true,
             order: 0,
+            locationIds: [],
           },
         ],
         pins: [],
       };
+
+      if (!store.editable) {
+        const id = `map-${crypto.randomUUID().slice(0, 8)}`;
+        const localMap: CampaignMap = {
+          id,
+          campaignId: bundle.campaign.id,
+          title: newMapDraft.title,
+          description: newMapDraft.description,
+          imagePath: newMapDraft.imagePath,
+          imageAssetRef: newMapDraft.imageAssetRef,
+          dimensions: newMapDraft.dimensions,
+          locationIds: [],
+          layers: newMapDraft.layers,
+          pins: [],
+        };
+        bundle.maps.push(localMap);
+        setIsModalOpen(false);
+        navigate(`${basePath}/maps/${encodeURIComponent(id)}`);
+        return;
+      }
 
       const result = await store.addItem('campaign-map', newMapDraft);
       if (result.ok && result.id) {
@@ -60,16 +81,15 @@ export function MapsContent() {
     <main className={styles.container}>
       <div className={styles.header}>
         <h1>Maps</h1>
-        {store.editable && (
-          <button
-            className={styles.addButton}
-            onClick={handleOpenModal}
-            type="button"
-          >
-            <Plus size={16} />
-            <span>Add Map</span>
-          </button>
-        )}
+        <button
+          className={styles.addButton}
+          onClick={handleOpenModal}
+          type="button"
+          data-testid="add-map-button"
+        >
+          <Plus size={16} />
+          <span>Add Map</span>
+        </button>
       </div>
 
       {bundle.maps.length === 0 ? (
@@ -77,13 +97,7 @@ export function MapsContent() {
           action={
             <button
               className={styles.addButton}
-              onClick={() => {
-                if (store.editable) {
-                  handleOpenModal();
-                } else {
-                  notifyCapability('map.asset.replace');
-                }
-              }}
+              onClick={handleOpenModal}
               type="button"
             >
               <Plus size={16} />

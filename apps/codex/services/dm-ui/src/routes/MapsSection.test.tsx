@@ -177,4 +177,22 @@ describe('Maps section', () => {
       }),
     );
   });
+
+  it('renders Add Map button on demo fixture route and opens modal', async () => {
+    const userEvent = (await import('@testing-library/user-event')).default;
+    renderSection('/demo/ashes-of-veyra/maps');
+    const addButton = screen.getByRole('button', { name: /add map/i });
+    expect(addButton).toBeVisible();
+    await userEvent.click(addButton);
+    expect(screen.getByText('Add Campaign Map')).toBeInTheDocument();
+  });
+
+  it('opens map picker modal from empty state upload button', async () => {
+    const userEvent = (await import('@testing-library/user-event')).default;
+    renderSection('/campaigns/campaign-blank/maps');
+    const uploadButton = screen.getByRole('button', { name: /upload map/i });
+    expect(uploadButton).toBeVisible();
+    await userEvent.click(uploadButton);
+    expect(screen.getByText('Add Campaign Map')).toBeInTheDocument();
+  });
 });
