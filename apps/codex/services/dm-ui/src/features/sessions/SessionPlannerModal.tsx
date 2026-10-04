@@ -81,10 +81,8 @@ export function SessionPlannerModal({
   const [targetDurationHours, setTargetDurationHours] = useState(
     initialSession?.durationHours ?? 4,
   );
-  const [status, setStatus] = useState<'planned' | 'draft'>(
-    initialSession?.status === 'complete'
-      ? 'planned'
-      : (initialSession?.status ?? 'planned'),
+  const [status, setStatus] = useState<'planned' | 'draft' | 'complete'>(
+    initialSession?.status ?? 'planned',
   );
   const [summary, setSummary] = useState(initialSession?.summary ?? '');
 
@@ -769,6 +767,7 @@ export function SessionPlannerModal({
                 >
                   <option value="planned">Planned (Ready for Game Day)</option>
                   <option value="draft">Draft (In Preparation)</option>
+                  <option value="complete">Complete (Concluded)</option>
                 </select>
               </div>
 

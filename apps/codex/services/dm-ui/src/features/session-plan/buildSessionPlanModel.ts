@@ -1,4 +1,5 @@
 import type { CampaignFixtureBundle } from '@/demo/fixture-registry';
+import { generateSessionSpine } from '@/features/sessions/sessionSpineGenerator';
 
 import type {
   LibraryObject,
@@ -79,18 +80,19 @@ function formatPlannedDate(plannedDate: string | undefined): string {
   });
 }
 
-/** The session with a plan, or undefined for an unknown id / planless session. */
+/** The session for the given ID, or undefined if not found in the bundle. */
 export function findPlannedSession(
   bundle: CampaignFixtureBundle,
   sessionId: string,
 ) {
-  const session = bundle.sessions.find((item) => item.id === sessionId);
-  return session?.plan ? session : undefined;
+  return bundle.sessions.find((item) => item.id === sessionId);
 }
 
 /**
  * Builds the run-sheet view model for one session of a campaign bundle.
- * Returns undefined when the session does not exist or has no plan.
+ * If the session does not have a pre-authored plan, dynamically generates
+ * a baseline narrative spine and readiness checklist from connected entities.
+ * Returns undefined only when the session does not exist in the bundle.
  */
 export function buildSessionPlanModel(
   bundle: CampaignFixtureBundle,
@@ -98,8 +100,41 @@ export function buildSessionPlanModel(
   basePath?: string,
 ): SessionPlanViewModel | undefined {
   const session = findPlannedSession(bundle, sessionId);
-  const plan = session?.plan;
-  if (!session || !plan) return undefined;
+  if (!session) return undefined;
+
+  const plan =
+    session.plan ??
+    generateSessionSpine({
+      campaignTitle: bundle.campaign.title,
+      sessionNumber: session.number,
+      targetDurationMinutes: (session.durationHours ?? 4) * 60,
+      previousSession: bundle.sessions.find(
+        (s) => s.number === session.number - 1,
+      ),
+      primaryLocation: bundle.locations.find((l) =>
+        session.locationIds?.includes(l.id),
+      ),
+      quests: bundle.quests.filter((q) => session.questIds?.includes(q.id)),
+      objectives:
+        bundle.objectives?.filter((o) =>
+          bundle.quests.some(
+            (q) =>
+              session.questIds?.includes(q.id) &&
+              q.objectiveIds?.includes(o.id),
+          ),
+        ) ?? [],
+      encounters: bundle.encounters.filter((e) =>
+        session.encounterIds?.includes(e.id),
+      ),
+      npcs: bundle.npcs.filter((n) => session.npcIds?.includes(n.id)),
+      factions: bundle.factions.filter((f) =>
+        session.factionIds?.includes(f.id),
+      ),
+      handouts: bundle.handouts.filter((h) =>
+        session.handoutIds?.includes(h.id),
+      ),
+      clues: bundle.clues.filter((c) => session.clueIds?.includes(c.id)),
+    }).plan;
 
   const { campaign, handouts, libraryObjects } = bundle;
 

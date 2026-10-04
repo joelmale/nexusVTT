@@ -8,6 +8,11 @@ import type {
   SessionPlanViewModel,
   SessionStepViewModel,
 } from '@/features/session-plan/sessionPlanModels';
+import type {
+  SessionPlan as CampaignSessionPlan,
+  SessionPlanStep,
+} from '@/demo/ashes-of-veyra/types';
+import type { BundleStore } from '@/features/section-shell/bundleStore';
 import { EmptyState } from '@/features/section-shell/EmptyState';
 import { SectionRoute } from '@/features/section-shell/SectionRoute';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
@@ -20,15 +25,68 @@ import {
 
 interface SessionPlanContentProps {
   campaignId: string;
+  sessionId: string;
   model: SessionPlanViewModel;
   /** Only bundles with publishing enabled call the prep API. */
   canPublish: boolean;
+  store?: BundleStore;
+}
+
+function buildPlanPatchFromSteps(
+  steps: SessionStepViewModel[],
+  existingPlan?: CampaignSessionPlan,
+): CampaignSessionPlan {
+  const stepKinds: Record<string, SessionPlanStep['kind']> = {
+    'Opening recap': 'recap',
+    'Activate scene': 'scene',
+    'Open note': 'note',
+    'Deploy encounter': 'encounter',
+    'Share handout': 'handout',
+    'Decision point': 'choice',
+    'Closing beat': 'closing',
+    'Reminder': 'note',
+  };
+
+  const planSteps: SessionPlanStep[] = steps.map((s, idx) => ({
+    id: s.id,
+    order: idx + 1,
+    kind: stepKinds[s.command] ?? 'note',
+    track: s.track,
+    title: s.title,
+    durationMinutes: s.durationMinutes,
+    visibility: s.visibility,
+    body: s.body,
+    objectId: s.encounterId,
+  }));
+
+  const estimatedMinutes = planSteps.reduce(
+    (acc, s) => acc + s.durationMinutes,
+    0,
+  );
+
+  return {
+    revision: (existingPlan?.revision ?? 0) + 1,
+    lastEdited: new Date().toLocaleDateString('en-US', {
+      month: 'short',
+      day: 'numeric',
+      year: 'numeric',
+    }),
+    estimatedMinutes,
+    readiness: existingPlan?.readiness ?? [],
+    dependencies: existingPlan?.dependencies ?? [],
+    steps: planSteps,
+    notes: existingPlan?.notes ?? [],
+    playerFacingSummary: existingPlan?.playerFacingSummary ?? '',
+    attachments: existingPlan?.attachments ?? [],
+  };
 }
 
 function SessionPlanContent({
   campaignId,
+  sessionId,
   model,
   canPublish,
+  store,
 }: SessionPlanContentProps) {
   const { notifyCapability } = useCapabilityNotice();
   const [persistedRevision, setPersistedRevision] = useState<number>();
@@ -107,6 +165,12 @@ function SessionPlanContent({
       setPublishMessage(
         `Published revision ${result.plan.revision} to Nexus VTT.`,
       );
+      if (store?.editable && sessionId) {
+        const session = store.bundle.sessions.find((s) => s.id === sessionId);
+        const updatedPlan = buildPlanPatchFromSteps(steps, session?.plan);
+        updatedPlan.revision = result.plan.revision;
+        await store.updateItem('session', sessionId, { plan: updatedPlan });
+      }
     } catch (error) {
       setPublishState('error');
       setPublishMessage(
@@ -136,6 +200,12 @@ function SessionPlanContent({
           ? `Run restarted for session ${result.activation.sessionId}. Step 1 is ready in VTT.`
           : `Plan activated for session ${result.activation.sessionId}! Step 1 is ready in VTT.`,
       );
+      if (store?.editable && sessionId && result.plan?.revision) {
+        const session = store.bundle.sessions.find((s) => s.id === sessionId);
+        const updatedPlan = buildPlanPatchFromSteps(steps, session?.plan);
+        updatedPlan.revision = result.plan.revision;
+        await store.updateItem('session', sessionId, { plan: updatedPlan });
+      }
     } catch (error) {
       setActivateState('error');
       setPublishMessage(
@@ -160,6 +230,15 @@ function SessionPlanContent({
     setPublishMessage('You have unpublished changes.');
   }
 
+  async function handleStepsChange(newSteps: SessionStepViewModel[]) {
+    markDirty();
+    if (store?.editable && sessionId) {
+      const session = store.bundle.sessions.find((s) => s.id === sessionId);
+      const updatedPlan = buildPlanPatchFromSteps(newSteps, session?.plan);
+      await store.updateItem('session', sessionId, { plan: updatedPlan });
+    }
+  }
+
   return (
     <SessionPlan
       activateState={activateState}
@@ -170,6 +249,7 @@ function SessionPlanContent({
       onCapability={notifyCapability}
       onDirty={markDirty}
       onPublish={canPublish ? publishPlan : undefined}
+      onStepsChange={handleStepsChange}
       persistedRevision={persistedRevision}
       publishMessage={publishMessage}
       publishState={publishState}
@@ -178,7 +258,7 @@ function SessionPlanContent({
 }
 
 function SessionPlanPage() {
-  const { bundle, basePath } = useSectionBundle();
+  const { bundle, basePath, store } = useSectionBundle();
   const { sessionId = '' } = useParams();
   const model = useMemo(
     () => buildSessionPlanModel(bundle, sessionId, basePath),
@@ -186,17 +266,12 @@ function SessionPlanPage() {
   );
 
   if (!model) {
-    const session = bundle.sessions.find((item) => item.id === sessionId);
     return (
       <main>
         <EmptyState
           action={<Link to={`${basePath}/sessions`}>Back to Sessions</Link>}
-          description={
-            session
-              ? `Session ${session.number} has no run sheet yet.`
-              : 'This session does not exist in this campaign.'
-          }
-          title={session ? 'No plan for this session' : 'Session not found'}
+          description="This session does not exist in this campaign."
+          title="Session not found"
         />
       </main>
     );
@@ -208,6 +283,8 @@ function SessionPlanPage() {
       canPublish={bundle.features.publishSessionPlans}
       key={`${bundle.slug}/${sessionId}`}
       model={model}
+      sessionId={sessionId}
+      store={store}
     />
   );
 }

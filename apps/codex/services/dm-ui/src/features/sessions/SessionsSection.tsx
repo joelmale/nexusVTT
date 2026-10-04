@@ -74,7 +74,7 @@ function SessionDetail({
   canPlan: boolean;
   onPlanSession: (session: SessionItem) => void;
 }) {
-  const { bundle, basePath } = useSectionBundle();
+  const { bundle, basePath, store } = useSectionBundle();
   const act = bundle.acts.find((entry) => entry.id === session.actId);
   const readiness = readinessOf(session);
   const facts: Array<[string, string]> = [];
@@ -85,12 +85,39 @@ function SessionDetail({
   }
   if (session.partyLevel) facts.push(['Party level', `${session.partyLevel}`]);
 
+  const handleStatusChange = async (
+    nextStatus: 'draft' | 'planned' | 'complete',
+  ) => {
+    if (store?.editable) {
+      await store.updateItem('session', session.id, { status: nextStatus });
+    }
+  };
+
   return (
     <article className={styles.detail}>
       <header className={styles.detailHeader}>
         <p className={styles.eyebrow}>Session {session.number}</p>
         <h2>{session.title}</h2>
-        <StatusBadge value={session.status} />
+        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+          <StatusBadge value={session.status} />
+          {store?.editable ? (
+            <select
+              aria-label="Change session status"
+              className={styles.statusSelect}
+              data-testid={`status-select-${session.id}`}
+              onChange={(e) =>
+                handleStatusChange(
+                  e.target.value as 'draft' | 'planned' | 'complete',
+                )
+              }
+              value={session.status}
+            >
+              <option value="draft">Draft</option>
+              <option value="planned">Planned</option>
+              <option value="complete">Complete</option>
+            </select>
+          ) : null}
+        </div>
       </header>
 
       {facts.length > 0 ? (
@@ -143,11 +170,11 @@ function SessionDetail({
               ) : null}
             </div>
           </>
-        ) : canPlan && session.status !== 'complete' ? (
+        ) : canPlan ? (
           <>
             <p className={styles.readiness}>No run sheet yet.</p>
             <button
-              className={styles.secondary}
+              className={styles.primary}
               onClick={() => onPlanSession(session)}
               type="button"
               data-testid={`plan-this-session-btn-${session.id}`}

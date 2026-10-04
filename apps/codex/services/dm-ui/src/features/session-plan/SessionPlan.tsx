@@ -38,6 +38,7 @@ interface SessionPlanProps {
   onActivate?: (steps: SessionStepViewModel[]) => void;
   onBeginDraft?: () => void;
   onDirty?: () => void;
+  onStepsChange?: (steps: SessionStepViewModel[]) => void;
   publishMessage?: string;
   persistedRevision?: number;
   isDirty?: boolean;
@@ -63,6 +64,7 @@ export function SessionPlan({
   onActivate,
   onBeginDraft,
   onDirty,
+  onStepsChange,
   publishMessage,
   persistedRevision,
   isDirty = false,
@@ -129,12 +131,11 @@ export function SessionPlan({
     if (fromIndex < 0 || toIndex < 0 || toIndex >= steps.length) {
       return;
     }
-    setSteps((current) => {
-      const next = [...current];
-      const [moved] = next.splice(fromIndex, 1);
-      next.splice(toIndex, 0, moved);
-      return next;
-    });
+    const next = [...steps];
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    setSteps(next);
+    onStepsChange?.(next);
     onDirty?.();
   }
 
@@ -147,15 +148,19 @@ export function SessionPlan({
       track: 'main',
       visibility: 'dm-only',
     };
-    setSteps((current) => [...current, reminder]);
+    const next = [...steps, reminder];
+    setSteps(next);
     setSelectedStepId(reminder.id);
+    onStepsChange?.(next);
     onDirty?.();
   }
 
   function setStepTrack(stepId: string, track: SessionStepViewModel['track']) {
-    setSteps((current) =>
-      current.map((step) => (step.id === stepId ? { ...step, track } : step)),
+    const next = steps.map((step) =>
+      step.id === stepId ? { ...step, track } : step,
     );
+    setSteps(next);
+    onStepsChange?.(next);
     onDirty?.();
   }
 

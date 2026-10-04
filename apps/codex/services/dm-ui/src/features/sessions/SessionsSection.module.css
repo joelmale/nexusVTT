@@ -168,3 +168,13 @@
   outline: 2px solid var(--studio-focus);
   outline-offset: 2px;
 }
+
+.statusSelect {
+  background: var(--studio-surface-raised);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-sm, 4px);
+  color: var(--studio-text);
+  font: inherit;
+  font-size: 12px;
+  padding: 3px 8px;
+}
