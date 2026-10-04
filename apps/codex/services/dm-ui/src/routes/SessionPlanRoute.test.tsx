@@ -392,11 +392,16 @@ describe('SessionPlanRoute', () => {
     expect(campaignPrepApi.fetchSessionPlanStatus).not.toHaveBeenCalled();
   });
 
-  it('shows an empty state for a session without a plan', async () => {
+  it('synthesizes a baseline fallback run sheet for a session without a pre-authored plan', async () => {
     renderRoute('/demo/ashes-of-veyra/sessions/session-1/plan');
 
     expect(
-      await screen.findByText('No plan for this session'),
+      await screen.findByRole('heading', {
+        name: /Session 1 - Wreck on the Black Shoals/i,
+      }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getAllByRole('button', { name: /publish plan/i })[0],
     ).toBeInTheDocument();
   });
 });
