@@ -6,6 +6,11 @@ import type {
 } from './mapPreparationModels';
 
 export function resolvePublicAsset(path: string): string {
+  // The gateway serves the VTT asset library at the origin root, while
+  // Studio's own public files live beneath its configured base path.
+  if (path.startsWith('/assets/') || path.startsWith('/library-assets/')) {
+    return path;
+  }
   if (
     path.startsWith('data:') ||
     path.startsWith('blob:') ||

@@ -1,33 +1,78 @@
 import '@testing-library/jest-dom/vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { MapPickerModal } from './MapPickerModal';
 
 describe('MapPickerModal', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
+    vi.stubEnv('BASE_URL', '/codex-dm/');
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+  });
+  afterEach(() => vi.unstubAllEnvs());
+
+  it('uses Studio public paths for its demo and root paths for shared thumbnails', () => {
+    render(<MapPickerModal isOpen onClose={vi.fn()} onSubmit={vi.fn()} />);
+    expect(
+      screen.getByRole('img', { name: 'Glass Harbor (Ashes of Veyra)' }),
+    ).toHaveAttribute(
+      'src',
+      '/codex-dm/demo/ashes-of-veyra/glass-harbor-map.png',
+    );
+    const thumbnail = screen.getByRole('img', { name: 'Australian Billabong' });
+    expect(thumbnail).toHaveAttribute(
+      'src',
+      '/assets/defaults/base_maps/thumbnails/Australian Billabong, Base Map, Day (23x16).thumb.jpg',
+    );
+    fireEvent.error(thumbnail);
+    expect(thumbnail).toHaveAttribute(
+      'src',
+      '/assets/defaults/base_maps/Australian Billabong, Base Map, Day (23x16).webp',
+    );
+    fireEvent.error(thumbnail);
+    expect(thumbnail).toHaveAttribute(
+      'src',
+      '/assets/defaults/base_maps/Australian Billabong, Base Map, Day (23x16).webp',
+    );
+  });
+
+  it('loads manifest thumbnails without adding the Studio base path', async () => {
+    vi.mocked(fetch).mockResolvedValue({
+      ok: true,
+      json: async () => ({
+        maps: {
+          items: [
+            {
+              id: 'real-map',
+              name: 'Canals',
+              path: '/assets/defaults/base_maps/Canals.webp',
+              thumbnail:
+                '/assets/defaults/base_maps/thumbnails/Canals.thumb.jpg',
+            },
+          ],
+        },
+      }),
+    } as Response);
+    render(<MapPickerModal isOpen onClose={vi.fn()} onSubmit={vi.fn()} />);
+    expect(await screen.findByRole('img', { name: 'Canals' })).toHaveAttribute(
+      'src',
+      '/assets/defaults/base_maps/thumbnails/Canals.thumb.jpg',
+    );
+    expect(fetch).toHaveBeenCalledWith('/assets/defaults/manifest.json');
   });
 
   it('does not render when isOpen is false', () => {
     render(
-      <MapPickerModal
-        isOpen={false}
-        onClose={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
+      <MapPickerModal isOpen={false} onClose={vi.fn()} onSubmit={vi.fn()} />,
     );
     expect(screen.queryByText('Add Campaign Map')).not.toBeInTheDocument();
   });
 
   it('renders modal with Asset Library tab and default sample maps', async () => {
     render(
-      <MapPickerModal
-        isOpen={true}
-        onClose={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
+      <MapPickerModal isOpen={true} onClose={vi.fn()} onSubmit={vi.fn()} />,
     );
 
     expect(screen.getByText('Add Campaign Map')).toBeInTheDocument();
@@ -39,24 +84,22 @@ describe('MapPickerModal', () => {
     ).toBeInTheDocument();
 
     // Default sample maps are visible
-    expect(screen.getByText('Glass Harbor (Ashes of Veyra)')).toBeInTheDocument();
-    expect(screen.getByText('Sword Coast Regional Map')).toBeInTheDocument();
+    expect(
+      screen.getByText('Glass Harbor (Ashes of Veyra)'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Australian Billabong')).toBeInTheDocument();
   });
 
   it('filters library maps by search query', async () => {
     const user = userEvent.setup();
     render(
-      <MapPickerModal
-        isOpen={true}
-        onClose={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
+      <MapPickerModal isOpen={true} onClose={vi.fn()} onSubmit={vi.fn()} />,
     );
 
     const searchInput = screen.getByLabelText(/filter library maps/i);
-    await user.type(searchInput, 'Sword Coast');
+    await user.type(searchInput, 'Billabong');
 
-    expect(screen.getByText('Sword Coast Regional Map')).toBeInTheDocument();
+    expect(screen.getByText('Australian Billabong')).toBeInTheDocument();
     expect(
       screen.queryByText('Glass Harbor (Ashes of Veyra)'),
     ).not.toBeInTheDocument();
@@ -65,18 +108,14 @@ describe('MapPickerModal', () => {
   it('filters library maps by category pill', async () => {
     const user = userEvent.setup();
     render(
-      <MapPickerModal
-        isOpen={true}
-        onClose={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
+      <MapPickerModal isOpen={true} onClose={vi.fn()} onSubmit={vi.fn()} />,
     );
 
     // Click outdoor category pill
     const outdoorPill = screen.getByRole('button', { name: /^outdoor/i });
     await user.click(outdoorPill);
 
-    expect(screen.getByText('Sword Coast Regional Map')).toBeInTheDocument();
+    expect(screen.getByText('Australian Billabong')).toBeInTheDocument();
     expect(
       screen.queryByText('Glass Harbor (Ashes of Veyra)'),
     ).not.toBeInTheDocument();
@@ -85,29 +124,21 @@ describe('MapPickerModal', () => {
   it('selects a library map and auto-fills title if empty', async () => {
     const user = userEvent.setup();
     render(
-      <MapPickerModal
-        isOpen={true}
-        onClose={vi.fn()}
-        onSubmit={vi.fn()}
-      />,
+      <MapPickerModal isOpen={true} onClose={vi.fn()} onSubmit={vi.fn()} />,
     );
 
-    const dungeonCard = screen.getByText('Dungeon Crossroads');
+    const dungeonCard = screen.getByText('Blood Rose Cave');
     await user.click(dungeonCard);
 
     const titleInput = screen.getByLabelText('Map Title') as HTMLInputElement;
-    expect(titleInput.value).toBe('Dungeon Crossroads');
+    expect(titleInput.value).toBe('Blood Rose Cave');
   });
 
   it('submits selected library map data', async () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     render(
-      <MapPickerModal
-        isOpen={true}
-        onClose={vi.fn()}
-        onSubmit={onSubmit}
-      />,
+      <MapPickerModal isOpen={true} onClose={vi.fn()} onSubmit={onSubmit} />,
     );
 
     const titleInput = screen.getByLabelText('Map Title');
@@ -121,7 +152,7 @@ describe('MapPickerModal', () => {
     expect(onSubmit).toHaveBeenCalledWith({
       title: 'Underground Crossroads',
       description: 'A treacherous intersection of tunnels',
-      imagePath: '/demo-assets/ashes-of-veyra/maps/glass-harbor.png',
+      imagePath: '/demo/ashes-of-veyra/glass-harbor-map.png',
       imageAssetRef: {
         target: 'asset',
         assetId: 'library:glass-harbor',
@@ -134,11 +165,7 @@ describe('MapPickerModal', () => {
     const user = userEvent.setup();
     const onSubmit = vi.fn().mockResolvedValue(undefined);
     const { container } = render(
-      <MapPickerModal
-        isOpen={true}
-        onClose={vi.fn()}
-        onSubmit={onSubmit}
-      />,
+      <MapPickerModal isOpen={true} onClose={vi.fn()} onSubmit={onSubmit} />,
     );
 
     // Switch to upload tab
@@ -152,7 +179,9 @@ describe('MapPickerModal', () => {
       type: 'image/png',
     });
 
-    const fileInput = container.querySelector('input[type="file"]') as HTMLInputElement;
+    const fileInput = container.querySelector(
+      'input[type="file"]',
+    ) as HTMLInputElement;
     expect(fileInput).toBeInTheDocument();
 
     // Mock FileReader
@@ -162,7 +191,9 @@ describe('MapPickerModal', () => {
         readAsDataURL: vi.fn(function (this: FileReader) {
           setTimeout(() => {
             Object.defineProperty(this, 'result', { value: mockDataUrl });
-            this.onload?.({ target: { result: mockDataUrl } } as unknown as ProgressEvent<FileReader>);
+            this.onload?.({
+              target: { result: mockDataUrl },
+            } as unknown as ProgressEvent<FileReader>);
           }, 0);
         }),
       } as unknown as FileReader;
@@ -192,11 +223,7 @@ describe('MapPickerModal', () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
     render(
-      <MapPickerModal
-        isOpen={true}
-        onClose={onClose}
-        onSubmit={vi.fn()}
-      />,
+      <MapPickerModal isOpen={true} onClose={onClose} onSubmit={vi.fn()} />,
     );
 
     await user.click(screen.getByLabelText('Close'));

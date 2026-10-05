@@ -38,19 +38,23 @@ const DEFAULT_SAMPLE_MAPS: LibraryMapItem[] = [
     id: 'library:glass-harbor',
     name: 'Glass Harbor (Ashes of Veyra)',
     category: 'urban',
-    path: '/demo-assets/ashes-of-veyra/maps/glass-harbor.png',
+    path: '/demo/ashes-of-veyra/glass-harbor-map.png',
   },
   {
-    id: 'library:sword-coast-regional',
-    name: 'Sword Coast Regional Map',
+    id: 'default-map-billabong',
+    name: 'Australian Billabong',
     category: 'outdoor',
-    path: '/demo-assets/ashes-of-veyra/maps/sword-coast.png',
+    path: '/assets/defaults/base_maps/Australian Billabong, Base Map, Day (23x16).webp',
+    thumbnail:
+      '/assets/defaults/base_maps/thumbnails/Australian Billabong, Base Map, Day (23x16).thumb.jpg',
   },
   {
-    id: 'library:dungeon-crossroads',
-    name: 'Dungeon Crossroads',
+    id: 'default-map-blood-rose',
+    name: 'Blood Rose Cave',
     category: 'dungeon',
-    path: '/demo-assets/ashes-of-veyra/maps/dungeon-crossroads.png',
+    path: '/assets/defaults/base_maps/12. DoS2 - Blood Rose Cave.webp',
+    thumbnail:
+      '/assets/defaults/base_maps/thumbnails/12. DoS2 - Blood Rose Cave.thumb.jpg',
   },
 ];
 
@@ -236,9 +240,7 @@ export function MapPickerModal({
   if (!isOpen) return null;
 
   const isSubmitDisabled =
-    !title.trim() ||
-    isSubmitting ||
-    (tab === 'upload' && !uploadedDataUrl);
+    !title.trim() || isSubmitting || (tab === 'upload' && !uploadedDataUrl);
 
   return (
     <div
@@ -356,6 +358,15 @@ export function MapPickerModal({
                               alt={map.name}
                               loading="lazy"
                               src={thumbUrl}
+                              onError={(event) => {
+                                const fullImage = resolvePublicAsset(map.path);
+                                if (
+                                  event.currentTarget.getAttribute('src') !==
+                                  fullImage
+                                ) {
+                                  event.currentTarget.src = fullImage;
+                                }
+                              }}
                             />
                           ) : (
                             <span className={styles.cardPlaceholder}>

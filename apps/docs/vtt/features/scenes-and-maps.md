@@ -29,6 +29,14 @@ a general server mutation guard. Preserve those gaps in security and UX reviews.
 
 ## Background maps
 
+Scene Settings groups controls into Map, Grid, Lighting, and General tabs and
+remembers the last selected tab. The Map tab offers upload, the base-map library,
+or an on-demand URL form, with a preview, dimensions, format, and scale controls.
+Grid and lighting sliders have numeric inputs; grid size also has 50, 70, and
+100px presets. General contains scene details, compact visibility controls,
+player editing, and a Danger Zone. Destructive actions require a second
+confirmation; Delete All Objects removes drawings, tokens, and props.
+
 `backgroundImage` stores a URL, natural width and height, world offset, and
 scale. New maps are normally centred around world origin by using negative
 half-width and half-height offsets. `SceneBackground` renders the image as SVG.
