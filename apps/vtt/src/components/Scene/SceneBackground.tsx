@@ -30,16 +30,18 @@ export const SceneBackground: React.FC<SceneBackgroundProps> = React.memo(
       url,
       width,
       height,
-      offsetX = 0,
-      offsetY = 0,
+      offsetX,
+      offsetY,
       scale = 1,
     } = backgroundImage;
 
     // Set reasonable defaults for background sizing
     const bgWidth = width || 1920;
     const bgHeight = height || 1080;
-    const bgOffsetX = offsetX || -(bgWidth * scale) / 2;
-    const bgOffsetY = offsetY || -(bgHeight * scale) / 2;
+    const bgOffsetX =
+      typeof offsetX === 'number' ? offsetX : -(bgWidth * scale) / 2;
+    const bgOffsetY =
+      typeof offsetY === 'number' ? offsetY : -(bgHeight * scale) / 2;
 
     const handleImageError = (
       e: React.SyntheticEvent<SVGImageElement, Event>,
@@ -82,7 +84,7 @@ export const SceneBackground: React.FC<SceneBackgroundProps> = React.memo(
           y={bgOffsetY}
           width={bgWidth * scale}
           height={bgHeight * scale}
-          preserveAspectRatio="xMidYMid slice"
+          preserveAspectRatio="xMidYMid meet"
           opacity={0.9}
           onError={handleImageError}
           onLoad={handleImageLoad}

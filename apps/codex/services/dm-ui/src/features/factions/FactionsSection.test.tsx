@@ -36,11 +36,12 @@ describe('FactionsSection', () => {
 
     it('shows name, status badge, and leader name in each row', async () => {
       renderSection('/demo/ashes-of-veyra/factions');
-      expect(screen.getByText(testFaction.name)).toBeInTheDocument();
+      const listNav = screen.getByRole('navigation', { name: 'Factions list' });
+      expect(within(listNav).getByText(testFaction.name)).toBeInTheDocument();
       // Status badge should be visible (check for the status text)
       const badge =
         testFaction.status.charAt(0).toUpperCase() + testFaction.status.slice(1);
-      expect(screen.getAllByText(badge).length).toBeGreaterThan(0);
+      expect(within(listNav).getAllByText(badge).length).toBeGreaterThan(0);
     });
   });
 
@@ -132,9 +133,10 @@ describe('FactionsSection', () => {
     });
 
     it('filters by search query', async () => {
-      renderSection('/demo/ashes-of-veyra/factions?q=allies');
-      // At least the faction with 'allies' in name or description should appear
-      expect(screen.getByText(/allies/i)).toBeInTheDocument();
+      const query = testFaction.name.slice(0, 4).toLowerCase();
+      renderSection(`/demo/ashes-of-veyra/factions?q=${query}`);
+      const listNav = screen.getByRole('navigation', { name: 'Factions list' });
+      expect(within(listNav).getByText(testFaction.name)).toBeInTheDocument();
     });
   });
 
@@ -163,7 +165,8 @@ describe('FactionsSection', () => {
 
     it('navigates to faction detail when clicking a row', async () => {
       const { user } = renderSection('/demo/ashes-of-veyra/factions');
-      const link = screen.getByText(testFaction.name).closest('a');
+      const listNav = screen.getByRole('navigation', { name: 'Factions list' });
+      const link = within(listNav).getByText(testFaction.name).closest('a');
       if (link) {
         await user.click(link);
         const heading = screen.getByRole('heading', { level: 2 });
@@ -246,6 +249,53 @@ describe('FactionsSection', () => {
 
       await user.click(generateBtn);
       expect(screen.getByRole('heading', { name: /Procedural Faction Generator/ })).toBeVisible();
+    });
+  });
+
+  describe('relationship map and overview web', () => {
+    it('renders SectionSummary and FactionRelationshipMap in overview pane', () => {
+      renderSection('/demo/ashes-of-veyra/factions');
+
+      expect(screen.getByRole('heading', { name: 'Faction Overview' })).toBeInTheDocument();
+      expect(screen.getByText('Total')).toBeInTheDocument();
+      expect(screen.getByText('Faction Relationships')).toBeInTheDocument();
+
+      // Check that faction nodes are rendered in the relationship web
+      for (const faction of bundle.factions) {
+        expect(screen.getByTestId(`faction-node-${faction.id}`)).toBeInTheDocument();
+      }
+    });
+
+    it('renders Relationship Web button in footer actions when multiple factions exist', () => {
+      renderSection('/demo/ashes-of-veyra/factions');
+      const webButtons = screen.getAllByRole('button', { name: /Relationship Web/i });
+      expect(webButtons.length).toBeGreaterThan(0);
+    });
+
+    it('navigates to faction detail when clicking a node in the overview relationship map', async () => {
+      const { user } = renderSection('/demo/ashes-of-veyra/factions');
+      const node = screen.getByTestId(`faction-node-${testFaction.id}`);
+      await user.click(node);
+
+      const heading = screen.getByRole('heading', { level: 2 });
+      expect(heading).toHaveTextContent(testFaction.name);
+    });
+
+    it('renders relationship map in detail pane highlighting the selected faction', () => {
+      renderSection(`/demo/ashes-of-veyra/factions/${testFaction.id}`);
+
+      // The detail relations section should contain the map titled "[Faction Name] Relations"
+      expect(screen.getByText(`${testFaction.name} Relations`)).toBeInTheDocument();
+      expect(screen.getByTestId(`faction-node-${testFaction.id}`)).toBeInTheDocument();
+    });
+
+    it('provides a Relationship Web header button in detail view to return to overview', async () => {
+      const { user } = renderSection(`/demo/ashes-of-veyra/factions/${testFaction.id}`);
+      const headerWebBtn = screen.getByTitle('View all faction relationships');
+      expect(headerWebBtn).toBeInTheDocument();
+
+      await user.click(headerWebBtn);
+      expect(screen.getByRole('heading', { name: 'Faction Overview' })).toBeInTheDocument();
     });
   });
 });

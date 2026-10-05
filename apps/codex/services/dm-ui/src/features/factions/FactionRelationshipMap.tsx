@@ -8,6 +8,7 @@ export interface FactionRelationshipMapProps {
   selectedFactionId?: string;
   onSelectFaction?: (factionId: string) => void;
   title?: string;
+  className?: string;
 }
 
 interface NodePosition {
@@ -86,6 +87,7 @@ export function FactionRelationshipMap({
   selectedFactionId,
   onSelectFaction,
   title = 'Faction Ecosystem Relationship Web',
+  className,
 }: FactionRelationshipMapProps) {
   const [activeEdgeId, setActiveEdgeId] = useState<string | null>(null);
   const [hoveredNodeId, setHoveredNodeId] = useState<string | null>(null);
@@ -164,7 +166,7 @@ export function FactionRelationshipMap({
   }, [activeFocusId, factions]);
 
   return (
-    <div className={styles.container}>
+    <div className={`${styles.container} ${className ?? ''}`.trim()}>
       <div className={styles.mapHeader}>
         <h4 className={styles.mapTitle}>
           <Network size={16} />
@@ -282,12 +284,12 @@ export function FactionRelationshipMap({
 
                   {/* Faction Archetype */}
                   <text className={styles.nodeSubtext} y={54}>
-                    {pos.faction.archetype.length > 22
-                      ? pos.faction.archetype.slice(0, 20) + '…'
-                      : pos.faction.archetype}
+                    {(pos.faction.archetype || 'Faction').length > 22
+                      ? (pos.faction.archetype || 'Faction').slice(0, 20) + '…'
+                      : pos.faction.archetype || 'Faction'}
                   </text>
 
-                  <title>{`${pos.faction.name} (${pos.faction.archetype}) - Status: ${pos.faction.status}`}</title>
+                  <title>{`${pos.faction.name} (${pos.faction.archetype || 'Faction'}) - Status: ${pos.faction.status}`}</title>
                 </g>
               );
             })}

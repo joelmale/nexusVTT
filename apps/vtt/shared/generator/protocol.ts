@@ -7,6 +7,8 @@ export type GeneratorExportPayload =
       kind: 'svg-master';
       blob: Blob;
       mimeType: 'image/svg+xml';
+      width?: number;
+      height?: number;
     }
   | {
       kind: 'raster';

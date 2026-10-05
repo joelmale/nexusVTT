@@ -1,4 +1,5 @@
 import type { CampaignFixtureBundle } from '@/demo/fixture-registry';
+import type { GeneratedFaction, FactionRelationship } from '@nexus/character-creator';
 
 type Bundle = CampaignFixtureBundle;
 export type FactionItem = Bundle['factions'][number];
@@ -156,3 +157,65 @@ export function factionMembers(
 ): Bundle['npcs'] {
   return bundle.npcs.filter((npc) => npc.factionIds.includes(factionId));
 }
+
+/** Map CampaignFaction items to GeneratedFaction objects for FactionRelationshipMap rendering */
+export function campaignFactionsToGeneratedFactions(
+  factions: FactionItem[],
+): GeneratedFaction[] {
+  return factions.map((faction) => {
+    const relationships: FactionRelationship[] = [];
+
+    for (const other of factions) {
+      if (other.id === faction.id) continue;
+
+      const isDirectAlly = faction.alliedFactionIds?.includes(other.id);
+      const isDirectRival = faction.rivalFactionIds?.includes(other.id);
+      const isInverseAlly = other.alliedFactionIds?.includes(faction.id);
+      const isInverseRival = other.rivalFactionIds?.includes(faction.id);
+
+      if (isDirectAlly || isInverseAlly) {
+        relationships.push({
+          targetTempId: other.id,
+          targetFactionName: other.name,
+          type: 'ally',
+          summary: `${faction.name} maintains an alliance with ${other.name}.`,
+        });
+      } else if (isDirectRival || isInverseRival) {
+        relationships.push({
+          targetTempId: other.id,
+          targetFactionName: other.name,
+          type: 'rival',
+          summary: `${faction.name} and ${other.name} are rivals competing for power and influence.`,
+        });
+      } else {
+        relationships.push({
+          targetTempId: other.id,
+          targetFactionName: other.name,
+          type: 'ambivalent',
+          summary: `No formal pacts or active conflict between ${faction.name} and ${other.name}.`,
+        });
+      }
+    }
+
+    return {
+      tempId: faction.id,
+      name: faction.name,
+      archetype: faction.publicFace
+        ? faction.publicFace.length > 25
+          ? faction.publicFace.slice(0, 22) + '…'
+          : faction.publicFace
+        : 'Faction',
+      theme: 'political',
+      scope: 'regional',
+      status: faction.status,
+      publicFace: faction.publicFace,
+      hiddenAgenda: faction.hiddenAgenda,
+      motto: '',
+      primaryAsset: '',
+      vulnerability: '',
+      keyFigures: [],
+      relationships,
+    };
+  });
+}
+

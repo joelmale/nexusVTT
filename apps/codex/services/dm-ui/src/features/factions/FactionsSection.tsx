@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Dices from 'lucide-react/dist/esm/icons/dices';
+import Network from 'lucide-react/dist/esm/icons/network';
 
 import { EmptyState } from '@/features/section-shell/EmptyState';
 import { EntityList } from '@/features/section-shell/EntityList';
@@ -11,15 +12,18 @@ import { RelatedGroups } from '@/features/section-shell/RelatedGroups';
 import { AddRow, EditableSection } from '@/features/section-shell/EditableSection';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
 import { SectionLayout } from '@/features/section-shell/SectionLayout';
+import { SectionSummary } from '@/features/section-shell/SectionSummary';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 import { resolveEntity } from '@/demo/fixture-registry';
 
 import {
   buildFactionsModel,
+  campaignFactionsToGeneratedFactions,
   factionForwardIds,
   factionMembers,
 } from './factionsModels';
 import { FactionGeneratorModal } from './FactionGeneratorModal';
+import { FactionRelationshipMap } from './FactionRelationshipMap';
 import styles from './FactionsSection.module.css';
 
 const statusToneMap: Record<string, 'positive' | 'warning' | 'danger' | 'neutral'> = {
@@ -45,6 +49,11 @@ export function FactionsSection() {
     [bundle, status, sort, q],
   );
 
+  const generatedFactions = useMemo(
+    () => campaignFactionsToGeneratedFactions(bundle.factions),
+    [bundle.factions],
+  );
+
   const selectedFaction = factionId
     ? bundle.factions.find((f) => f.id === factionId)
     : undefined;
@@ -67,6 +76,17 @@ export function FactionsSection() {
   const footerActions = (
     <div className={styles.footerActions}>
       {addRow}
+      {bundle.factions.length > 1 && (
+        <button
+          className={styles.webButton}
+          onClick={() => navigate(`${basePath}/factions`)}
+          title="View relationship web"
+          type="button"
+        >
+          <Network size={15} />
+          Relationship Web
+        </button>
+      )}
       {store.editable ? (
         <button
           className={styles.generatorButton}
@@ -89,6 +109,20 @@ export function FactionsSection() {
       )}
     </div>
   );
+
+  const actions = selectedFaction ? (
+    <div className={styles.headerActions}>
+      <button
+        type="button"
+        className={styles.headerButton}
+        onClick={() => navigate(`${basePath}/factions`)}
+        title="View all faction relationships"
+      >
+        <Network size={14} />
+        Relationship Web
+      </button>
+    </div>
+  ) : undefined;
 
   const list =
     bundle.factions.length === 0 ? null : (
@@ -213,7 +247,8 @@ export function FactionsSection() {
         )}
 
         {(selectedFaction.alliedFactionIds.length > 0 ||
-          selectedFaction.rivalFactionIds.length > 0) && (
+          selectedFaction.rivalFactionIds.length > 0 ||
+          bundle.factions.length > 1) && (
           <section>
             <h3 className={styles.heading}>Relations</h3>
             <div className={styles.relations}>
@@ -240,6 +275,18 @@ export function FactionsSection() {
                 </div>
               )}
             </div>
+            {bundle.factions.length > 1 && (
+              <div className={styles.detailMapCard}>
+                <FactionRelationshipMap
+                  factions={generatedFactions}
+                  selectedFactionId={selectedFaction.id}
+                  title={`${selectedFaction.name} Relations`}
+                  onSelectFaction={(id) => {
+                    navigate(`${basePath}/factions/${encodeURIComponent(id)}`);
+                  }}
+                />
+              </div>
+            )}
           </section>
         )}
 
@@ -271,8 +318,47 @@ export function FactionsSection() {
     </EditableSection>
   ) : undefined;
 
+  const summary = (
+    <div className={styles.summaryContainer}>
+      <SectionSummary
+        title="Faction Overview"
+        stats={[
+          { label: 'Total', value: model.totalCount },
+          {
+            label: 'Allies',
+            value: bundle.factions.filter((f) => f.status === 'ally').length,
+          },
+          {
+            label: 'Rivals',
+            value: bundle.factions.filter((f) => f.status === 'opposition').length,
+          },
+          {
+            label: 'Neutral',
+            value: bundle.factions.filter((f) => f.status === 'neutral').length,
+          },
+        ]}
+      >
+        <p className={styles.summaryHint}>
+          Select a faction to inspect its leadership, hidden agenda, and allies, or click any node in the relationship web below to jump to its dossier.
+        </p>
+      </SectionSummary>
+      {bundle.factions.length > 0 && (
+        <div className={styles.mapCard}>
+          <FactionRelationshipMap
+            factions={generatedFactions}
+            title="Faction Relationships"
+            onSelectFaction={(id) => {
+              navigate(`${basePath}/factions/${encodeURIComponent(id)}`);
+            }}
+          />
+        </div>
+      )}
+    </div>
+  );
+
   return (
     <SectionLayout
+      actions={actions}
       count={model.totalCount}
       detail={detail}
       empty={
@@ -310,6 +396,7 @@ export function FactionsSection() {
       selectedId={factionId}
       listFooter={footerActions}
       sectionPath="factions"
+      summary={summary}
       title="Factions"
     />
   );

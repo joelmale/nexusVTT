@@ -4,10 +4,55 @@
 (function () {
   'use strict';
 
+  // Ensure WebGL drawing buffer is preserved for canvas captures
+  const originalGetContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (type, attributes) {
+    if (type === 'webgl' || type === 'experimental-webgl' || type === 'webgl2') {
+      attributes = Object.assign({}, attributes, { preserveDrawingBuffer: true });
+    }
+    return originalGetContext.call(this, type, attributes);
+  };
+
   let lastExportTime = 0;
   let exportPending = false;
 
-  function captureCanvasFallback() {
+  function dispatchKeyEvent(keyCode, code, key, shiftKey = false) {
+    const targetCanvas =
+      document.querySelector('#openfl-content canvas') ||
+      document.querySelector('canvas');
+
+    for (const type of ['keydown', 'keyup']) {
+      const evt = new KeyboardEvent(type, {
+        key: key || '',
+        code: code || '',
+        keyCode: keyCode,
+        which: keyCode,
+        shiftKey: !!shiftKey,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+      });
+
+      try {
+        Object.defineProperty(evt, 'keyCode', { get: () => keyCode });
+        Object.defineProperty(evt, 'which', { get: () => keyCode });
+      } catch (_) {}
+
+      if (targetCanvas) {
+        try {
+          targetCanvas.dispatchEvent(evt);
+        } catch (_) {}
+      }
+      try {
+        document.dispatchEvent(evt);
+      } catch (_) {}
+      try {
+        window.dispatchEvent(evt);
+      } catch (_) {}
+    }
+  }
+
+  function captureCanvas() {
     try {
       const canvas =
         document.querySelector('#openfl-content canvas') ||
@@ -15,7 +60,7 @@
       if (canvas && canvas.width > 0 && canvas.height > 0) {
         canvas.toBlob(function (blob) {
           if (blob && blob.size > 0 && window.parent !== window) {
-            console.log('Cave Bridge: Canvas fallback export captured');
+            console.log('Cave Bridge: Canvas export captured', canvas.width, canvas.height);
             lastExportTime = Date.now();
             exportPending = false;
             window.parent.postMessage(
@@ -33,7 +78,7 @@
         }, 'image/png');
       }
     } catch (e) {
-      console.warn('Cave Bridge: Canvas fallback capture failed:', e);
+      console.warn('Cave Bridge: Canvas capture failed:', e);
       exportPending = false;
     }
   }
@@ -41,32 +86,8 @@
   function triggerExport() {
     if (exportPending) return;
     exportPending = true;
-
-    const beforeTime = lastExportTime;
-
-    // Dispatch key event for 'E' (OpenFL / Watabou savePNG)
-    try {
-      const evt = new KeyboardEvent('keydown', {
-        keyCode: 69,
-        which: 69,
-        code: 'KeyE',
-        key: 'e',
-        bubbles: true,
-        cancelable: true,
-      });
-      window.dispatchEvent(evt);
-    } catch (err) {
-      console.warn('Cave Bridge: dispatchEvent failed:', err);
-    }
-
-    // Safety fallback: if saveAs wasn't triggered within 600ms, use canvas fallback
-    setTimeout(() => {
-      if (lastExportTime === beforeTime) {
-        captureCanvasFallback();
-      } else {
-        exportPending = false;
-      }
-    }, 600);
+    // Capture after frame composite
+    setTimeout(captureCanvas, 50);
   }
 
   function initializeBridge() {
@@ -110,18 +131,9 @@
       } else if (data.type === 'EXECUTE_ACTION' && data.keyCode) {
         console.log('Cave Bridge: Executing action keyCode:', data.keyCode);
         try {
-          const keyEvt = new KeyboardEvent('keydown', {
-            keyCode: data.keyCode,
-            which: data.keyCode,
-            code: data.code || '',
-            key: data.key || '',
-            shiftKey: !!data.shiftKey,
-            bubbles: true,
-            cancelable: true,
-          });
-          window.dispatchEvent(keyEvt);
+          dispatchKeyEvent(data.keyCode, data.code, data.key, data.shiftKey);
 
-          if ([13, 32, 83, 71].includes(data.keyCode)) {
+          if ([13, 32, 83, 71, 70, 77, 78, 82, 84, 87].includes(data.keyCode)) {
             setTimeout(triggerExport, 800);
           }
         } catch (e) {

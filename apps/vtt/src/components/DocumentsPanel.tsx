@@ -171,6 +171,7 @@ export const DocumentsPanel: React.FC = () => {
           value={selectedType}
           onChange={handleTypeChange}
           className="type-filter-select"
+          aria-label="Filter documents by type"
         >
           <option value="">All Types</option>
           <option value="rulebook">📕 Rulebooks</option>

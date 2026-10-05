@@ -2,6 +2,7 @@ import { describe, it, expect } from 'vitest';
 import { getFixtureBundle } from '@/demo/fixture-registry';
 import {
   buildFactionsModel,
+  campaignFactionsToGeneratedFactions,
   sortedFactions,
   factionMembers,
   factionForwardIds,
@@ -179,6 +180,107 @@ describe('factionsModels', () => {
           ...faction.questIds,
         ]),
       );
+    });
+  });
+
+  describe('campaignFactionsToGeneratedFactions', () => {
+    it('returns empty array when given no factions', () => {
+      expect(campaignFactionsToGeneratedFactions([])).toEqual([]);
+    });
+
+    it('converts campaign factions into GeneratedFaction format', () => {
+      const result = campaignFactionsToGeneratedFactions(bundle.factions);
+      expect(result).toHaveLength(bundle.factions.length);
+
+      for (let i = 0; i < bundle.factions.length; i++) {
+        const original = bundle.factions[i]!;
+        const converted = result[i]!;
+
+        expect(converted.tempId).toBe(original.id);
+        expect(converted.name).toBe(original.name);
+        expect(converted.status).toBe(original.status);
+        expect(converted.publicFace).toBe(original.publicFace);
+        expect(converted.hiddenAgenda).toBe(original.hiddenAgenda);
+        // Each faction should have relationships to all other factions
+        expect(converted.relationships).toHaveLength(bundle.factions.length - 1);
+      }
+    });
+
+    it('correctly maps alliances and rivalries with reciprocity', () => {
+      const factions = [
+        {
+          id: 'f1',
+          name: 'Faction 1',
+          status: 'ally' as const,
+          publicFace: 'Allied group with long description that gets truncated nicely',
+          hiddenAgenda: 'Secret',
+          leaderNpcId: null,
+          alliedFactionIds: ['f2'],
+          rivalFactionIds: ['f3'],
+          locationIds: [],
+          questIds: [],
+          encounterIds: [],
+        },
+        {
+          id: 'f2',
+          name: 'Faction 2',
+          status: 'ally' as const,
+          publicFace: '',
+          hiddenAgenda: '',
+          leaderNpcId: null,
+          alliedFactionIds: [], // reciprocal from f1
+          rivalFactionIds: [],
+          locationIds: [],
+          questIds: [],
+          encounterIds: [],
+        },
+        {
+          id: 'f3',
+          name: 'Faction 3',
+          status: 'opposition' as const,
+          publicFace: undefined,
+          hiddenAgenda: undefined,
+          leaderNpcId: null,
+          alliedFactionIds: [],
+          rivalFactionIds: [], // reciprocal rival from f1
+          locationIds: [],
+          questIds: [],
+          encounterIds: [],
+        },
+        {
+          id: 'f4',
+          name: 'Faction 4',
+          status: 'neutral' as const,
+          publicFace: '',
+          hiddenAgenda: '',
+          leaderNpcId: null,
+          alliedFactionIds: [],
+          rivalFactionIds: [],
+          locationIds: [],
+          questIds: [],
+          encounterIds: [],
+        },
+      ];
+
+      const converted = campaignFactionsToGeneratedFactions(factions);
+
+      // f1 relationships
+      const f1 = converted.find((f) => f.tempId === 'f1')!;
+      expect(f1.archetype).toBe('Allied group with long…');
+      expect(f1.relationships.find((r) => r.targetTempId === 'f2')?.type).toBe('ally');
+      expect(f1.relationships.find((r) => r.targetTempId === 'f3')?.type).toBe('rival');
+      expect(f1.relationships.find((r) => r.targetTempId === 'f4')?.type).toBe('ambivalent');
+
+      // f2 relationships (reciprocal ally to f1)
+      const f2 = converted.find((f) => f.tempId === 'f2')!;
+      expect(f2.archetype).toBe('Faction');
+      expect(f2.relationships.find((r) => r.targetTempId === 'f1')?.type).toBe('ally');
+      expect(f2.relationships.find((r) => r.targetTempId === 'f3')?.type).toBe('ambivalent');
+
+      // f3 relationships (reciprocal rival to f1)
+      const f3 = converted.find((f) => f.tempId === 'f3')!;
+      expect(f3.archetype).toBe('Faction');
+      expect(f3.relationships.find((r) => r.targetTempId === 'f1')?.type).toBe('rival');
     });
   });
 });

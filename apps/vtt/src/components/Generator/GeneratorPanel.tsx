@@ -11,21 +11,92 @@ import type { GeneratorHostMessage } from '../../../shared/generator/protocol';
 import { openNexusDB } from '@/services/nexusDb';
 import { toast } from '@/utils/notifications';
 
-const blobToDataUrl = (blob: Blob): Promise<string> =>
-  new Promise((resolve, reject) => {
+const blobToDataUrl = async (blob: Blob): Promise<string> => {
+  if (typeof blob.arrayBuffer === 'function') {
+    try {
+      const buffer = await blob.arrayBuffer();
+      let binary = '';
+      const bytes = new Uint8Array(buffer);
+      const len = bytes.byteLength;
+      for (let i = 0; i < len; i++) {
+        binary += String.fromCharCode(bytes[i]);
+      }
+      const base64 = btoa(binary);
+      return `data:${blob.type || 'image/webp'};base64,${base64}`;
+    } catch {
+      // Fallback to FileReader below
+    }
+  }
+
+  return new Promise((resolve, reject) => {
     const reader = new FileReader();
     reader.onloadend = () => resolve(reader.result as string);
-    reader.onerror = () => reject(reader.error ?? new Error('Failed to read blob'));
+    reader.onerror = () =>
+      reject(reader.error ?? new Error('Failed to read blob'));
     reader.readAsDataURL(blob);
   });
+};
 
 const GENERATOR_MAP_STORAGE_KEY = 'nexus-generator-current-map';
+
+const measureImageDimensions = async (
+  source: Blob | string,
+): Promise<{ width: number; height: number }> => {
+  if (typeof source !== 'string' && typeof createImageBitmap === 'function') {
+    try {
+      const bitmap = await createImageBitmap(source);
+      const dims = { width: bitmap.width, height: bitmap.height };
+      bitmap.close();
+      if (dims.width > 0 && dims.height > 0) return dims;
+    } catch {
+      // Fall back to Image
+    }
+  }
+
+  return new Promise((resolve) => {
+    let settled = false;
+    const img = new Image();
+    const url =
+      typeof source === 'string' ? source : URL.createObjectURL(source);
+
+    const finish = (dims: { width: number; height: number }) => {
+      if (settled) return;
+      settled = true;
+      clearTimeout(timer);
+      if (typeof source !== 'string') {
+        try {
+          URL.revokeObjectURL(url);
+        } catch {
+          // Ignore
+        }
+      }
+      resolve(dims);
+    };
+
+    const timer = setTimeout(() => {
+      finish({ width: 2000, height: 2000 });
+    }, 500);
+
+    img.onload = () => {
+      finish({
+        width: img.naturalWidth || img.width || 2000,
+        height: img.naturalHeight || img.height || 2000,
+      });
+    };
+    img.onerror = () => {
+      finish({ width: 2000, height: 2000 });
+    };
+    img.src = url;
+  });
+};
 
 // IndexedDB helper for temporary generator map storage
 interface GeneratorMapData {
   imageData: string;
   format: 'webp' | 'png';
   originalSize?: number;
+  width?: number;
+  height?: number;
   timestamp: number;
   generator: string;
 }
@@ -111,6 +182,12 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
   const [generatedBlob, setGeneratedBlob] = useState<{
     blob: Blob;
     filename: string;
+    width?: number;
+    height?: number;
+  } | null>(null);
+  const [generatedDimensions, setGeneratedDimensions] = useState<{
+    width: number;
+    height: number;
   } | null>(null);
   const [activeGenerator, setActiveGenerator] =
     useState<GeneratorType>('dungeon');
@@ -139,6 +216,8 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       imageDataOrData: GeneratedMapPayload,
       format: 'webp' | 'png' = 'webp',
       originalSize?: number,
+      width?: number,
+      height?: number,
     ) => {
       const generatorType = activeGenerator;
       console.log('🗺️ Map generated from:', generatorType);
@@ -155,11 +234,16 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       }
 
       setGeneratedMap(imageData);
+      if (width && height && width > 0 && height > 0) {
+        setGeneratedDimensions({ width, height });
+      }
 
       await saveGeneratorMapToIndexedDB({
         imageData,
         format,
         originalSize,
+        width,
+        height,
         timestamp: Date.now(),
         generator: generatorType,
       });
@@ -183,13 +267,25 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
           'generated_map_' +
           artifact.exportId +
           (format === 'webp' ? '.webp' : '.png');
+        const width = 'width' in innerPayload ? innerPayload.width : undefined;
+        const height =
+          'height' in innerPayload ? innerPayload.height : undefined;
 
         // Save blob for server upload
-        setGeneratedBlob({ blob: innerPayload.blob, filename });
+        setGeneratedBlob({ blob: innerPayload.blob, filename, width, height });
+        if (width && height) {
+          setGeneratedDimensions({ width, height });
+        }
 
         const reader = new FileReader();
         reader.onloadend = () => {
-          handleMapGenerated(reader.result as string, format);
+          handleMapGenerated(
+            reader.result as string,
+            format,
+            innerPayload.blob.size,
+            width,
+            height,
+          );
         };
         reader.readAsDataURL(innerPayload.blob);
       }
@@ -214,6 +310,12 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         const stored = await loadGeneratorMapFromIndexedDB();
         if (stored) {
           setGeneratedMap(stored.imageData);
+          if (stored.width && stored.height) {
+            setGeneratedDimensions({
+              width: stored.width,
+              height: stored.height,
+            });
+          }
         }
       } catch (err) {
         console.error('Failed to restore generator state:', err);
@@ -251,40 +353,50 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         console.log(
           '[GeneratorPanel] No map cached yet, requesting immediate export from generator...',
         );
-        const exportPromise = new Promise<{ blob: Blob; filename: string }>(
-          (resolve, reject) => {
-            const timeout = setTimeout(() => {
+        const exportPromise = new Promise<{
+          blob: Blob;
+          filename: string;
+          width?: number;
+          height?: number;
+        }>((resolve, reject) => {
+          const timeout = setTimeout(() => {
+            window.removeEventListener('message', onExport);
+            reject(new Error('Timed out waiting for generator to export map'));
+          }, 3500);
+
+          const onExport = (event: MessageEvent) => {
+            if (event.data?.type === 'generator/export-ready') {
+              clearTimeout(timeout);
               window.removeEventListener('message', onExport);
-              reject(new Error('Timed out waiting for generator to export map'));
-            }, 3500);
+              const artifact = event.data.payload;
+              const inner = artifact.payload;
+              const format = inner.mimeType === 'image/webp' ? 'webp' : 'png';
+              const filename =
+                'generated_map_' +
+                artifact.exportId +
+                (format === 'webp' ? '.webp' : '.png');
+              const width =
+                'width' in inner ? inner.width : undefined;
+              const height =
+                'height' in inner ? inner.height : undefined;
+              resolve({ blob: inner.blob, filename, width, height });
+            }
+          };
 
-            const onExport = (event: MessageEvent) => {
-              if (event.data?.type === 'generator/export-ready') {
-                clearTimeout(timeout);
-                window.removeEventListener('message', onExport);
-                const artifact = event.data.payload;
-                const inner = artifact.payload;
-                const format = inner.mimeType === 'image/webp' ? 'webp' : 'png';
-                const filename =
-                  'generated_map_' +
-                  artifact.exportId +
-                  (format === 'webp' ? '.webp' : '.png');
-                resolve({ blob: inner.blob, filename });
-              }
-            };
+          window.addEventListener('message', onExport);
 
-            window.addEventListener('message', onExport);
-
-            iframeRef.current?.contentWindow?.postMessage(
-              { type: 'generator/export-request' },
-              '*',
-            );
-          },
-        );
+          iframeRef.current?.contentWindow?.postMessage(
+            { type: 'generator/export-request' },
+            '*',
+          );
+        });
 
         try {
           const res = await exportPromise;
           currentBlob = res;
+          if (res.width && res.height) {
+            setGeneratedDimensions({ width: res.width, height: res.height });
+          }
         } catch (exportErr) {
           console.warn(
             '[GeneratorPanel] Export request failed or timed out:',
@@ -295,17 +407,44 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
 
       let finalUrl = currentMap;
 
+      let mapWidth = currentBlob?.width ?? generatedDimensions?.width;
+      let mapHeight = currentBlob?.height ?? generatedDimensions?.height;
+
+      // If dimensions are missing or not positive, measure the image directly
+      if (!mapWidth || !mapHeight || mapWidth <= 0 || mapHeight <= 0) {
+        const sourceToMeasure = currentBlob?.blob || finalUrl;
+        if (sourceToMeasure) {
+          try {
+            const dims = await measureImageDimensions(sourceToMeasure);
+            mapWidth = dims.width;
+            mapHeight = dims.height;
+          } catch (measureErr) {
+            console.warn(
+              '[GeneratorPanel] Failed to measure image dimensions:',
+              measureErr,
+            );
+          }
+        }
+      }
+
       if (currentBlob) {
         try {
           // Upload the blob through our importer
           const result = await BaseMapImporter.importGeneratedMap({
             blob: currentBlob.blob,
             filename: currentBlob.filename,
+            width: mapWidth,
+            height: mapHeight,
           });
 
           finalUrl = result.sceneUrl;
         } catch (uploadErr) {
-          if (!(uploadErr instanceof UploadAuthRequiredError)) throw uploadErr;
+          if (
+            !(uploadErr instanceof UploadAuthRequiredError) &&
+            (uploadErr as Error)?.name !== 'UploadAuthRequiredError'
+          ) {
+            throw uploadErr;
+          }
 
           // Guests / unauthenticated sessions can't persist to the asset
           // service (server/middleware/assetWriteGuard.ts). Fall back to
@@ -320,14 +459,17 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         }
       }
 
+      const finalWidth = mapWidth && mapWidth > 0 ? mapWidth : 2000;
+      const finalHeight = mapHeight && mapHeight > 0 ? mapHeight : 2000;
+
       if (finalUrl) {
         await updateScene(activeScene.id, {
           backgroundImage: {
             url: finalUrl,
-            width: 2000,
-            height: 2000,
-            offsetX: 0,
-            offsetY: 0,
+            width: finalWidth,
+            height: finalHeight,
+            offsetX: -finalWidth / 2,
+            offsetY: -finalHeight / 2,
             scale: 1,
           },
         });
@@ -356,6 +498,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     if (generator !== activeGenerator) {
       setGeneratedMap(null);
       setGeneratedBlob(null);
+      setGeneratedDimensions(null);
       setActiveGenerator(generator);
     }
   };

@@ -5,27 +5,69 @@
 (function () {
   'use strict';
 
+  // Ensure WebGL drawing buffer is preserved for canvas captures
+  const originalGetContext = HTMLCanvasElement.prototype.getContext;
+  HTMLCanvasElement.prototype.getContext = function (type, attributes) {
+    if (type === 'webgl' || type === 'experimental-webgl' || type === 'webgl2') {
+      attributes = Object.assign({}, attributes, { preserveDrawingBuffer: true });
+    }
+    return originalGetContext.call(this, type, attributes);
+  };
+
   const ORIGIN = window.location.origin;
   const GENERATOR_ID = 'world';
 
   // Store original methods
   const originalToBlob = HTMLCanvasElement.prototype.toBlob;
   const originalToDataURL = HTMLCanvasElement.prototype.toDataURL;
+  let isInternalExporting = false;
+
+  function dispatchKeyEvent(keyCode, code, key, shiftKey = false) {
+    const targetCanvas =
+      document.querySelector('#openfl-content canvas') ||
+      document.querySelector('canvas');
+
+    for (const type of ['keydown', 'keyup']) {
+      const evt = new KeyboardEvent(type, {
+        key: key || '',
+        code: code || '',
+        keyCode: keyCode,
+        which: keyCode,
+        shiftKey: !!shiftKey,
+        bubbles: true,
+        cancelable: true,
+        composed: true,
+      });
+
+      try {
+        Object.defineProperty(evt, 'keyCode', { get: () => keyCode });
+        Object.defineProperty(evt, 'which', { get: () => keyCode });
+      } catch (_) {}
+
+      if (targetCanvas) {
+        try {
+          targetCanvas.dispatchEvent(evt);
+        } catch (_) {}
+      }
+      try {
+        document.dispatchEvent(evt);
+      } catch (_) {}
+      try {
+        window.dispatchEvent(evt);
+      } catch (_) {}
+    }
+  }
 
   // Detect if canvas is the OpenFL world generator canvas
   function isWorldGeneratorCanvas(canvas) {
-    // Primary heuristic: OpenFL canvas in #openfl-content
     if (canvas.parentElement?.id === 'openfl-content') {
       return true;
     }
-
-    // Fallback: Large canvas (world maps are typically big)
     return canvas.width >= 800 && canvas.height >= 600;
   }
 
   // Export canvas with full + thumbnail
   function exportMap(canvas) {
-    // Detect optimal format (WebP with PNG fallback)
     const supportsWebP = (() => {
       try {
         const testCanvas = document.createElement('canvas');
@@ -41,10 +83,11 @@
     const fullFormat = supportsWebP ? 'image/webp' : 'image/png';
     const fullQuality = supportsWebP ? 0.85 : undefined;
 
+    isInternalExporting = true;
     return Promise.all([
-      // Full resolution export
+      // Full resolution export using original toBlob to avoid recursive intercept
       new Promise((resolve) => {
-        canvas.toBlob(resolve, fullFormat, fullQuality);
+        originalToBlob.call(canvas, resolve, fullFormat, fullQuality);
       }),
       // Thumbnail (max 512px on longest side)
       new Promise((resolve) => {
@@ -63,11 +106,17 @@
 
         const thumbFormat = supportsWebP ? 'image/webp' : 'image/png';
         const thumbQuality = supportsWebP ? 0.7 : undefined;
-        thumbCanvas.toBlob(resolve, thumbFormat, thumbQuality);
+        originalToBlob.call(thumbCanvas, resolve, thumbFormat, thumbQuality);
       }),
-    ]).then(([fullBlob, thumbBlob]) => {
-      return Promise.all([blobToDataURL(fullBlob), blobToDataURL(thumbBlob)]);
-    });
+    ])
+      .then(([fullBlob, thumbBlob]) => {
+        isInternalExporting = false;
+        return Promise.all([blobToDataURL(fullBlob), blobToDataURL(thumbBlob)]);
+      })
+      .catch((err) => {
+        isInternalExporting = false;
+        throw err;
+      });
   }
 
   // Convert blob to data URL
@@ -83,7 +132,7 @@
   HTMLCanvasElement.prototype.toBlob = function (callback, mimeType, quality) {
     const canvas = this;
 
-    if (isWorldGeneratorCanvas(canvas) && mimeType?.includes('image/')) {
+    if (!isInternalExporting && isWorldGeneratorCanvas(canvas) && mimeType?.includes('image/')) {
       console.log('World Generator Bridge: Intercepted canvas export', {
         width: canvas.width,
         height: canvas.height,
@@ -105,7 +154,7 @@
             thumb: {
               dataUrl: thumbDataURL,
               mime: mimeType || 'image/webp',
-              quality: Math.min(quality || 0.85, 0.7), // Lower quality for thumbs
+              quality: Math.min(quality || 0.85, 0.7),
             },
             meta: {
               width: canvas.width,
@@ -115,7 +164,7 @@
             },
           };
 
-          window.parent.postMessage(message, ORIGIN);
+          window.parent.postMessage(message, '*');
           console.log('World Generator Bridge: Sent map to VTT', message.meta);
         })
         .catch((error) => {
@@ -127,7 +176,7 @@
               message: `Export failed: ${error.message}`,
               timestamp: Date.now(),
             },
-            ORIGIN,
+            '*',
           );
         });
     }
@@ -140,14 +189,12 @@
   HTMLCanvasElement.prototype.toDataURL = function (mimeType, quality) {
     const canvas = this;
 
-    if (isWorldGeneratorCanvas(canvas) && mimeType?.includes('image/')) {
+    if (!isInternalExporting && isWorldGeneratorCanvas(canvas) && mimeType?.includes('image/')) {
       console.log('World Generator Bridge: Intercepted toDataURL export');
 
-      // For toDataURL, we can export synchronously
       try {
         const fullDataURL = originalToDataURL.call(this, mimeType, quality);
 
-        // Create thumbnail synchronously
         const max = 512;
         const scale = Math.min(1, max / Math.max(canvas.width, canvas.height));
         const thumbCanvas = document.createElement('canvas');
@@ -187,7 +234,7 @@
           },
         };
 
-        window.parent.postMessage(message, ORIGIN);
+        window.parent.postMessage(message, '*');
         console.log(
           'World Generator Bridge: Sent map to VTT (toDataURL)',
           message.meta,
@@ -228,7 +275,7 @@
               generator: 'world-map-generator',
             },
           };
-          window.parent.postMessage(message, ORIGIN);
+          window.parent.postMessage(message, '*');
           console.log('World Generator Bridge: Auto-exported map to VTT', message.meta);
         })
         .catch((error) => {
@@ -248,18 +295,9 @@
     } else if (data.type === 'EXECUTE_ACTION' && data.keyCode) {
       console.log('World Generator Bridge: Executing action keyCode:', data.keyCode);
       try {
-        const keyEvt = new KeyboardEvent('keydown', {
-          keyCode: data.keyCode,
-          which: data.keyCode,
-          code: data.code || '',
-          key: data.key || '',
-          shiftKey: !!data.shiftKey,
-          bubbles: true,
-          cancelable: true,
-        });
-        window.dispatchEvent(keyEvt);
+        dispatchKeyEvent(data.keyCode, data.code, data.key, data.shiftKey);
 
-        if ([13, 83, 71].includes(data.keyCode)) {
+        if ([13, 83, 71, 49, 50, 51, 52, 53, 65, 67, 70, 76, 77, 78, 82].includes(data.keyCode)) {
           setTimeout(triggerWorldExport, 1000);
         }
       } catch (e) {
@@ -285,13 +323,13 @@
     'World Generator Bridge loaded - canvas exports will be intercepted for VTT',
   );
 
-  // Optional: Notify parent that bridge is ready
+  // Notify parent that bridge is ready
   window.parent.postMessage(
     {
       type: 'VTT_GEN_READY',
       generatorId: GENERATOR_ID,
       timestamp: Date.now(),
     },
-    ORIGIN,
+    '*',
   );
 })();

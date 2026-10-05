@@ -18,10 +18,46 @@ vi.mock('@/components/Generator/WorldGenerator', () => ({
   WorldGenerator: () => <div data-testid="world-generator" />
 }));
 
+const mockUpdateScene = vi.fn();
+const mockSetActiveTab = vi.fn();
+
 // Mock Zustand store and hooks
 vi.mock('@/stores/gameStore', () => ({
-  useGameStore: vi.fn(),
-  useActiveScene: vi.fn(() => ({ id: 'scene-1' }))
+  useGameStore: vi.fn((selector?: (state: unknown) => unknown) => {
+    const state = {
+      updateScene: mockUpdateScene,
+      setActiveTab: mockSetActiveTab,
+    };
+    return typeof selector === 'function' ? selector(state) : state;
+  }),
+  useActiveScene: vi.fn(() => ({ id: 'scene-1' })),
+}));
+
+// Mock BaseMapImporter
+vi.mock('@/services/baseMapImporter', () => {
+  class UploadAuthRequiredError extends Error {
+    constructor(msg = 'Sign in required') {
+      super(msg);
+      this.name = 'UploadAuthRequiredError';
+    }
+  }
+
+  return {
+    BaseMapImporter: {
+      importGeneratedMap: vi.fn(),
+    },
+    UploadAuthRequiredError,
+  };
+});
+
+// Mock notifications
+vi.mock('@/utils/notifications', () => ({
+  toast: {
+    info: vi.fn(),
+    success: vi.fn(),
+    error: vi.fn(),
+    warning: vi.fn(),
+  },
 }));
 
 // Mock procedural generation hook
@@ -31,44 +67,83 @@ vi.mock('@/hooks/useProceduralGeneration', () => ({
     isGenerating: false,
     generatedData: mockGeneratedData,
     error: null,
-    triggerGeneration: vi.fn()
-  })
+    triggerGeneration: vi.fn(),
+  }),
 }));
 
-let storedMapData: { imageData: string } | null = null;
+let storedMapData: {
+  imageData: string;
+  width?: number;
+  height?: number;
+} | null = null;
 
 describe('GeneratorPanel Containment (S0.3)', () => {
   beforeEach(() => {
     vi.clearAllMocks();
     mockGeneratedData = null;
     storedMapData = null;
-    
+
     // Mock indexedDB for the component
     const mockIDBRequest = {
       onsuccess: null,
       onerror: null,
       result: null,
     };
-    
+
     global.indexedDB = {
       open: vi.fn(() => {
         const mockedDb = {
           objectStoreNames: { contains: () => true },
           transaction: () => ({
             objectStore: () => ({
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              put: () => { const req = { onsuccess: null, onerror: null }; setTimeout(() => (req.onsuccess as any)?.(), 0); return req; },
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              get: () => { const req = { onsuccess: null, onerror: null, result: storedMapData }; setTimeout(() => (req.onsuccess as any)?.({ target: { result: storedMapData } }), 0); return req; },
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              delete: () => { const req = { onsuccess: null, onerror: null }; setTimeout(() => (req.onsuccess as any)?.(), 0); return req; },
+              put: () => {
+                const req: {
+                  onsuccess: (() => void) | null;
+                  onerror: (() => void) | null;
+                } = { onsuccess: null, onerror: null };
+                setTimeout(() => req.onsuccess?.(), 0);
+                return req;
+              },
+              get: () => {
+                const req: {
+                  onsuccess:
+                    | ((ev?: {
+                        target: { result: typeof storedMapData };
+                      }) => void)
+                    | null;
+                  onerror: (() => void) | null;
+                  result: typeof storedMapData;
+                } = {
+                  onsuccess: null,
+                  onerror: null,
+                  result: storedMapData,
+                };
+                setTimeout(
+                  () =>
+                    req.onsuccess?.({
+                      target: { result: storedMapData },
+                    }),
+                  0,
+                );
+                return req;
+              },
+              delete: () => {
+                const req: {
+                  onsuccess: (() => void) | null;
+                  onerror: (() => void) | null;
+                } = { onsuccess: null, onerror: null };
+                setTimeout(() => req.onsuccess?.(), 0);
+                return req;
+              },
             }),
           }),
         };
         const req: unknown = { ...mockIDBRequest, result: mockedDb };
         setTimeout(() => {
           if ((req as { onsuccess: ((e: unknown) => void) | null }).onsuccess) {
-            (req as { onsuccess: (e: unknown) => void }).onsuccess({ target: { result: mockedDb } });
+            (req as { onsuccess: (e: unknown) => void }).onsuccess({
+              target: { result: mockedDb },
+            });
           }
         }, 0);
         return req as IDBOpenDBRequest;
@@ -78,7 +153,7 @@ describe('GeneratorPanel Containment (S0.3)', () => {
 
   it('prevents Add to Scene when no valid image artifact exists', async () => {
     render(<GeneratorPanel />);
-    
+
     const addButton = screen.getByText('🗺️ Add to Scene').closest('button');
     expect(addButton).toBeDisabled();
   });
@@ -86,7 +161,7 @@ describe('GeneratorPanel Containment (S0.3)', () => {
   it('prevents procedural JSON from enabling Add to Scene', async () => {
     storedMapData = { imageData: '{"grid":true,"rooms":[]}' };
     render(<GeneratorPanel />);
-    
+
     const addButton = await screen.findByText('🗺️ Add to Scene');
     const button = addButton.closest('button');
     expect(button).toBeDisabled();
@@ -95,7 +170,7 @@ describe('GeneratorPanel Containment (S0.3)', () => {
   it('enables Add to Scene when a valid image is generated/loaded', async () => {
     storedMapData = { imageData: 'data:image/webp;base64,validImageData' };
     render(<GeneratorPanel />);
-    
+
     const addButton = screen.getByText('🗺️ Add to Scene').closest('button');
     await waitFor(() => {
       expect(addButton).not.toBeDisabled();
@@ -105,19 +180,238 @@ describe('GeneratorPanel Containment (S0.3)', () => {
   it('clears the current generated artifact when switching generator types', async () => {
     storedMapData = { imageData: 'data:image/webp;base64,validImageData' };
     render(<GeneratorPanel />);
-    
+
     const addButton = screen.getByText('🗺️ Add to Scene').closest('button');
     await waitFor(() => {
       expect(addButton).not.toBeDisabled();
     });
-    
+
     // Switch to another generator
     const caveTab = screen.getByText(/Cave/);
     fireEvent.click(caveTab);
-    
+
     // Artifact should be cleared and button disabled
     await waitFor(() => {
       expect(addButton).toBeDisabled();
     });
   });
+
+  it('applies widescreen dimensions and centered offsets when inserting generated map into scene', async () => {
+    const { BaseMapImporter } = await import('@/services/baseMapImporter');
+    vi.mocked(BaseMapImporter.importGeneratedMap).mockResolvedValue({
+      assetId: 'asset-widescreen',
+      sceneUrl: 'https://cdn.nexusvtt.com/maps/widescreen.webp',
+    });
+
+    const onSwitch = vi.fn();
+    render(<GeneratorPanel onSwitchToScenes={onSwitch} />);
+
+    const configuredHubUrl =
+      import.meta.env.VITE_GENERATOR_HUB_URL ||
+      (import.meta.env.DEV ? 'http://localhost:5174' : '/generator-hub/');
+    const hubOrigin = new URL(configuredHubUrl, window.location.href).origin;
+
+    // Simulate generator sending an export-ready message with widescreen dimensions (1920x1080)
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: hubOrigin,
+        data: {
+          type: 'generator/export-ready',
+          payload: {
+            protocolVersion: '1.0',
+            exportId: 'export-wide-1',
+            importId: 'import-wide-1',
+            source: 'dungeon',
+            generatorVersion: '1.0',
+            byteLength: 4096,
+            grid: { bakedIntoImage: true },
+            payload: {
+              kind: 'raster',
+              blob: new Blob(['fake-wide-content'], { type: 'image/webp' }),
+              mimeType: 'image/webp',
+              width: 1920,
+              height: 1080,
+            },
+          },
+        },
+      }),
+    );
+
+    const addButton = await screen.findByText('🗺️ Add to Scene');
+    await waitFor(() => {
+      expect(addButton.closest('button')).not.toBeDisabled();
+    });
+
+    fireEvent.click(addButton.closest('button')!);
+
+    await waitFor(() => {
+      expect(BaseMapImporter.importGeneratedMap).toHaveBeenCalledWith(
+        expect.objectContaining({
+          width: 1920,
+          height: 1080,
+        }),
+      );
+      expect(mockUpdateScene).toHaveBeenCalledWith('scene-1', {
+        backgroundImage: {
+          url: 'https://cdn.nexusvtt.com/maps/widescreen.webp',
+          width: 1920,
+          height: 1080,
+          offsetX: -960,
+          offsetY: -540,
+          scale: 1,
+        },
+      });
+      expect(onSwitch).toHaveBeenCalled();
+    });
+  });
+
+  it('maintains widescreen dimensions and centered offsets when falling back to local data URL', async () => {
+    const { BaseMapImporter, UploadAuthRequiredError } = await import(
+      '@/services/baseMapImporter'
+    );
+    vi.mocked(BaseMapImporter.importGeneratedMap).mockRejectedValue(
+      new UploadAuthRequiredError('Sign in required'),
+    );
+
+    render(<GeneratorPanel />);
+
+    const configuredHubUrl =
+      import.meta.env.VITE_GENERATOR_HUB_URL ||
+      (import.meta.env.DEV ? 'http://localhost:5174' : '/generator-hub/');
+    const hubOrigin = new URL(configuredHubUrl, window.location.href).origin;
+
+    // Post an export with 2560x1440 widescreen dimensions
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: hubOrigin,
+        data: {
+          type: 'generator/export-ready',
+          payload: {
+            protocolVersion: '1.0',
+            exportId: 'export-wide-2',
+            importId: 'import-wide-2',
+            source: 'world',
+            generatorVersion: '1.0',
+            byteLength: 8192,
+            grid: { bakedIntoImage: true },
+            payload: {
+              kind: 'raster',
+              blob: new Blob(['fake-qhd-content'], { type: 'image/webp' }),
+              mimeType: 'image/webp',
+              width: 2560,
+              height: 1440,
+            },
+          },
+        },
+      }),
+    );
+
+    const addButton = await screen.findByText('🗺️ Add to Scene');
+    await waitFor(() => {
+      expect(addButton.closest('button')).not.toBeDisabled();
+    });
+
+    fireEvent.click(addButton.closest('button')!);
+
+    await waitFor(() => {
+      expect(BaseMapImporter.importGeneratedMap).toHaveBeenCalled();
+    });
+
+    await waitFor(() => {
+      expect(mockUpdateScene).toHaveBeenCalledWith('scene-1', {
+        backgroundImage: {
+          url: expect.stringMatching(/^data:/),
+          width: 2560,
+          height: 1440,
+          offsetX: -1280,
+          offsetY: -720,
+          scale: 1,
+        },
+      });
+    });
+  });
+
+  it('forwards reroll action to the generator hub iframe', async () => {
+    render(<GeneratorPanel />);
+
+    const iframe = screen.getByTitle('Generator Hub') as HTMLIFrameElement;
+    const postMessageSpy = vi.fn();
+    Object.defineProperty(iframe, 'contentWindow', {
+      value: { postMessage: postMessageSpy },
+      writable: true,
+    });
+
+    const rerollButton = screen.getByTitle('Reroll new map (Enter)');
+    fireEvent.click(rerollButton);
+
+    expect(postMessageSpy).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: 'generator/action',
+        keyCode: 13,
+      }),
+      '*',
+    );
+  });
+
+  it('handles cave, city, and dwelling exports and enables adding to scene', async () => {
+    const { BaseMapImporter } = await import('@/services/baseMapImporter');
+    vi.mocked(BaseMapImporter.importGeneratedMap).mockResolvedValue({
+      assetId: 'asset-cave-1',
+      sceneUrl: 'https://cdn.nexusvtt.com/maps/cave.png',
+    });
+
+    render(<GeneratorPanel />);
+
+    const configuredHubUrl =
+      import.meta.env.VITE_GENERATOR_HUB_URL ||
+      (import.meta.env.DEV ? 'http://localhost:5174' : '/generator-hub/');
+    const hubOrigin = new URL(configuredHubUrl, window.location.href).origin;
+
+    // Simulate cave export
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: hubOrigin,
+        data: {
+          type: 'generator/export-ready',
+          payload: {
+            protocolVersion: '1.0',
+            exportId: 'cave-export-1',
+            importId: 'cave-import-1',
+            source: 'cave',
+            generatorVersion: '1.0',
+            byteLength: 4096,
+            grid: { bakedIntoImage: true },
+            payload: {
+              kind: 'raster',
+              blob: new Blob(['fake-cave-content'], { type: 'image/png' }),
+              mimeType: 'image/png',
+              width: 1600,
+              height: 1200,
+            },
+          },
+        },
+      }),
+    );
+
+    const addButton = await screen.findByText('🗺️ Add to Scene');
+    await waitFor(() => {
+      expect(addButton.closest('button')).not.toBeDisabled();
+    });
+
+    fireEvent.click(addButton.closest('button')!);
+
+    await waitFor(() => {
+      expect(mockUpdateScene).toHaveBeenCalledWith('scene-1', {
+        backgroundImage: {
+          url: 'https://cdn.nexusvtt.com/maps/cave.png',
+          width: 1600,
+          height: 1200,
+          offsetX: -800,
+          offsetY: -600,
+          scale: 1,
+        },
+      });
+    });
+  });
 });
+

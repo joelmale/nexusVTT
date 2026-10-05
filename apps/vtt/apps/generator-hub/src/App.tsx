@@ -12,28 +12,105 @@ function isGeneratorSource(value: string | null): value is GeneratorSource {
   );
 }
 
-async function rasterizeSvgToWebp(svgText: string): Promise<Blob> {
+function getSvgDimensions(
+  svgText: string,
+): { width: number; height: number } | null {
+  try {
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(svgText, 'image/svg+xml');
+    const svg = doc.querySelector('svg');
+    if (svg) {
+      const widthAttr = parseFloat(svg.getAttribute('width') || '');
+      const heightAttr = parseFloat(svg.getAttribute('height') || '');
+      if (widthAttr > 0 && heightAttr > 0) {
+        return { width: Math.round(widthAttr), height: Math.round(heightAttr) };
+      }
+      const viewBox = svg.getAttribute('viewBox');
+      if (viewBox) {
+        const parts = viewBox.trim().split(/[\s,]+/).map(Number);
+        if (parts.length === 4 && parts[2] > 0 && parts[3] > 0) {
+          return { width: Math.round(parts[2]), height: Math.round(parts[3]) };
+        }
+      }
+    }
+  } catch {
+    // Fallback if parsing fails
+  }
+  return null;
+}
+
+async function getImageDimensions(
+  blob: Blob,
+): Promise<{ width: number; height: number }> {
+  if (typeof createImageBitmap === 'function') {
+    try {
+      const bitmap = await createImageBitmap(blob);
+      const dims = { width: bitmap.width, height: bitmap.height };
+      bitmap.close();
+      if (dims.width > 0 && dims.height > 0) return dims;
+    } catch {
+      // Fallback
+    }
+  }
+
+  return new Promise((resolve) => {
+    const img = new Image();
+    const url = URL.createObjectURL(blob);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      resolve({
+        width: img.naturalWidth || img.width || 2000,
+        height: img.naturalHeight || img.height || 2000,
+      });
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      resolve({ width: 2000, height: 2000 });
+    };
+    img.src = url;
+  });
+}
+
+async function rasterizeSvgToWebp(
+  svgText: string,
+  hintWidth?: number,
+  hintHeight?: number,
+): Promise<{ blob: Blob; width: number; height: number }> {
   return new Promise((resolve, reject) => {
     const img = new Image();
     const blob = new Blob([svgText], { type: 'image/svg+xml' });
     const url = URL.createObjectURL(blob);
 
     img.onload = () => {
+      const naturalWidth = img.naturalWidth || img.width || hintWidth || 2000;
+      const naturalHeight =
+        img.naturalHeight || img.height || hintHeight || 2000;
+
       const canvas = document.createElement('canvas');
-      canvas.width = img.width;
-      canvas.height = img.height;
+      canvas.width = naturalWidth;
+      canvas.height = naturalHeight;
       const ctx = canvas.getContext('2d');
-      if (!ctx) return reject(new Error('Failed to get canvas context'));
+      if (!ctx) {
+        URL.revokeObjectURL(url);
+        return reject(new Error('Failed to get canvas context'));
+      }
 
       ctx.fillStyle = 'white'; // default background
       ctx.fillRect(0, 0, canvas.width, canvas.height);
-      ctx.drawImage(img, 0, 0);
+      ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
       canvas.toBlob(
         (webpBlob) => {
           URL.revokeObjectURL(url);
-          if (webpBlob) resolve(webpBlob);
-          else reject(new Error('Failed to create WebP blob'));
+          if (webpBlob) {
+            resolve({
+              blob: webpBlob,
+              width: canvas.width,
+              height: canvas.height,
+            });
+          } else {
+            reject(new Error('Failed to create WebP blob'));
+          }
         },
         'image/webp',
         0.9,
@@ -117,6 +194,7 @@ function App() {
 
         const res = await fetch(dataUrl);
         const blob = await res.blob();
+        const dims = await getImageDimensions(blob);
 
         const msg: GeneratorHostMessage = {
           type: 'generator/export-ready',
@@ -134,8 +212,8 @@ function App() {
               kind: 'raster',
               blob,
               mimeType: blob.type as 'image/webp' | 'image/png',
-              width: payload.meta?.width || 2000,
-              height: payload.meta?.height || 2000,
+              width: dims.width,
+              height: dims.height,
             },
           },
         };
@@ -149,15 +227,22 @@ function App() {
         event.data.type === 'CITY_EXPORT_READY' ||
         event.data.type === 'DWELLINGS_EXPORT_READY'
       ) {
-        const { blob, mimeType } = event.data.payload;
+        const { blob, mimeType, width: hintedWidth, height: hintedHeight } =
+          event.data.payload || {};
 
         let finalBlob = blob;
         let finalMimeType = mimeType;
         let format: 'svg' | 'webp' | 'png' = 'svg';
+        let outputWidth = hintedWidth;
+        let outputHeight = hintedHeight;
 
         // Font decision gate & rasterization
         if (mimeType === 'image/svg+xml') {
           const text = await blob.text();
+          const svgDims = getSvgDimensions(text);
+          outputWidth = svgDims?.width || outputWidth;
+          outputHeight = svgDims?.height || outputHeight;
+
           // Extremely basic check - if it references fonts not standard, we rasterize
           const requiresRasterization =
             text.includes('font-family') &&
@@ -167,14 +252,22 @@ function App() {
             console.log(
               'Rasterizing SVG to WebP due to font constraints or user preference',
             );
-            finalBlob = await rasterizeSvgToWebp(text);
+            const rasterResult = await rasterizeSvgToWebp(
+              text,
+              outputWidth,
+              outputHeight,
+            );
+            finalBlob = rasterResult.blob;
+            outputWidth = rasterResult.width;
+            outputHeight = rasterResult.height;
             finalMimeType = 'image/webp';
             format = 'webp';
           }
-        } else if (mimeType === 'image/png') {
-          format = 'png';
-        } else if (mimeType === 'image/webp') {
-          format = 'webp';
+        } else {
+          format = mimeType === 'image/png' ? 'png' : 'webp';
+          const dims = await getImageDimensions(finalBlob);
+          outputWidth = dims.width;
+          outputHeight = dims.height;
         }
 
         const msg: GeneratorHostMessage = {
@@ -195,13 +288,15 @@ function App() {
                     kind: 'svg-master',
                     blob: finalBlob,
                     mimeType: 'image/svg+xml',
+                    width: outputWidth || 2000,
+                    height: outputHeight || 2000,
                   }
                 : {
                     kind: 'raster',
                     blob: finalBlob,
                     mimeType: finalMimeType as 'image/webp' | 'image/png',
-                    width: 2000,
-                    height: 2000,
+                    width: outputWidth || 2000,
+                    height: outputHeight || 2000,
                   },
           },
         };
