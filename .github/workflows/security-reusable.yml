@@ -104,7 +104,7 @@ jobs:
           }
 
       - name: Produce complete filesystem SARIF
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: 'v0.74.0'
           scan-type: fs
@@ -123,7 +123,7 @@ jobs:
           category: trivy-fs-scan
 
       - name: Block high and critical filesystem vulnerabilities
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: 'v0.74.0'
           scan-type: fs
@@ -137,7 +137,7 @@ jobs:
 
       - name: Generate filesystem CycloneDX SBOM
         if: github.event_name != 'pull_request'
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: 'v0.74.0'
           scan-type: fs
@@ -290,7 +290,7 @@ jobs:
           echo "digest=$digest" >> "$GITHUB_OUTPUT"
 
       - name: Produce container SARIF
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: 'v0.74.0'
           image-ref: ${{ steps.image.outputs.ref }}
@@ -308,7 +308,7 @@ jobs:
 
       - name: Enforce Trivy high and critical policy
         continue-on-error: ${{ matrix.securityAdvisory == true }}
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: 'v0.74.0'
           image-ref: ${{ steps.image.outputs.ref }}
@@ -336,7 +336,7 @@ jobs:
 
       - name: Generate container CycloneDX SBOM from the scanned image
         if: github.event_name != 'pull_request'
-        uses: aquasecurity/trivy-action@a9c7b0f06e461e9d4b4d1711f154ee024b8d7ab8 # v0.36.0
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
         with:
           version: 'v0.74.0'
           scan-type: image
