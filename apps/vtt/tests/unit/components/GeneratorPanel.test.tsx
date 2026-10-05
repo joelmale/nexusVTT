@@ -413,5 +413,75 @@ describe('GeneratorPanel Containment (S0.3)', () => {
       });
     });
   });
+
+  it('scales down oversized dungeon generator maps (>2000px) to fit scene appropriately', async () => {
+    const { BaseMapImporter } = await import('@/services/baseMapImporter');
+    vi.mocked(BaseMapImporter.importGeneratedMap).mockResolvedValue({
+      assetId: 'asset-dungeon-large',
+      sceneUrl: 'https://cdn.nexusvtt.com/maps/dungeon-large.webp',
+    });
+
+    render(<GeneratorPanel />);
+
+    const configuredHubUrl =
+      import.meta.env.VITE_GENERATOR_HUB_URL ||
+      (import.meta.env.DEV ? 'http://localhost:5174' : '/generator-hub/');
+    const hubOrigin = new URL(configuredHubUrl, window.location.href).origin;
+
+    // Simulate an oversized print/poster export from dungeon generator (e.g. 4000x3000)
+    window.dispatchEvent(
+      new MessageEvent('message', {
+        origin: hubOrigin,
+        data: {
+          type: 'generator/export-ready',
+          payload: {
+            protocolVersion: '1.0',
+            exportId: 'export-oversized-dungeon',
+            importId: 'import-oversized-dungeon',
+            source: 'dungeon',
+            generatorVersion: '1.0',
+            byteLength: 16384,
+            grid: { bakedIntoImage: true },
+            payload: {
+              kind: 'raster',
+              blob: new Blob(['fake-large-dungeon'], { type: 'image/webp' }),
+              mimeType: 'image/webp',
+              width: 4000,
+              height: 3000,
+            },
+          },
+        },
+      }),
+    );
+
+    const addButton = await screen.findByText('🗺️ Add to Scene');
+    await waitFor(() => {
+      expect(addButton.closest('button')).not.toBeDisabled();
+    });
+
+    fireEvent.click(addButton.closest('button')!);
+
+    // Scale factor: min(1600 / 4000, 1600 / 3000) = 0.4
+    // Expected scaled width = 4000 * 0.4 = 1600, height = 3000 * 0.4 = 1200
+    await waitFor(() => {
+      expect(BaseMapImporter.importGeneratedMap).toHaveBeenCalledWith(
+        expect.objectContaining({
+          width: 1600,
+          height: 1200,
+        }),
+      );
+      expect(mockUpdateScene).toHaveBeenCalledWith('scene-1', {
+        backgroundImage: {
+          url: 'https://cdn.nexusvtt.com/maps/dungeon-large.webp',
+          width: 1600,
+          height: 1200,
+          offsetX: -800,
+          offsetY: -600,
+          scale: 1,
+        },
+      });
+    });
+  });
 });
+
 

@@ -52,7 +52,7 @@
     }
   }
 
-  function captureCanvasFallback() {
+  function captureCanvas() {
     try {
       const canvas =
         document.querySelector('#openfl-content canvas') ||
@@ -60,7 +60,7 @@
       if (canvas && canvas.width > 0 && canvas.height > 0) {
         canvas.toBlob(function (blob) {
           if (blob && blob.size > 0 && window.parent !== window) {
-            console.log('Dungeon Bridge: Canvas fallback export captured', canvas.width, canvas.height);
+            console.log('Dungeon Bridge: Canvas export captured', canvas.width, canvas.height);
             lastExportTime = Date.now();
             exportPending = false;
             window.parent.postMessage(
@@ -74,36 +74,26 @@
               },
               '*',
             );
+          } else {
+            exportPending = false;
           }
         }, 'image/png');
+      } else {
+        exportPending = false;
       }
     } catch (e) {
-      console.warn('Dungeon Bridge: Canvas fallback capture failed:', e);
+      console.warn('Dungeon Bridge: Canvas capture failed:', e);
       exportPending = false;
     }
   }
 
+  let lastExportAttempt = 0;
+
   function triggerExport() {
-    if (exportPending) return;
+    if (exportPending && Date.now() - lastExportAttempt < 2000) return;
     exportPending = true;
-
-    const beforeTime = lastExportTime;
-
-    // Dispatch key event for 'E' (OpenFL / Watabou savePNG)
-    try {
-      dispatchKeyEvent(69, 'KeyE', 'e', false);
-    } catch (err) {
-      console.warn('Dungeon Bridge: dispatchEvent failed:', err);
-    }
-
-    // Safety fallback: if saveAs wasn't triggered within 900ms, use canvas fallback
-    setTimeout(() => {
-      if (lastExportTime === beforeTime) {
-        captureCanvasFallback();
-      } else {
-        exportPending = false;
-      }
-    }, 900);
+    lastExportAttempt = Date.now();
+    setTimeout(captureCanvas, 50);
   }
 
   function initializeBridge() {

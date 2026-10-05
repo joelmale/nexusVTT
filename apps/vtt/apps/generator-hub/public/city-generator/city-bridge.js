@@ -52,17 +52,19 @@
     }
   }
 
-  function captureCanvas() {
+  let lastExportAttempt = 0;
+
+  function captureCanvas(retryCount = 0) {
     try {
       const canvas =
         document.querySelector('#openfl-content canvas') ||
         document.querySelector('canvas');
       if (canvas && canvas.width > 0 && canvas.height > 0) {
         canvas.toBlob(function (blob) {
+          exportPending = false;
           if (blob && blob.size > 0 && window.parent !== window) {
             console.log('City Bridge: Canvas export captured', canvas.width, canvas.height);
             lastExportTime = Date.now();
-            exportPending = false;
             window.parent.postMessage(
               {
                 type: 'CITY_EXPORT_READY',
@@ -74,8 +76,15 @@
               },
               '*',
             );
+          } else if (retryCount < 10) {
+            setTimeout(() => triggerExport(retryCount + 1), 600);
           }
         }, 'image/png');
+      } else {
+        exportPending = false;
+        if (retryCount < 10) {
+          setTimeout(() => triggerExport(retryCount + 1), 600);
+        }
       }
     } catch (e) {
       console.warn('City Bridge: Canvas capture failed:', e);
@@ -83,10 +92,11 @@
     }
   }
 
-  function triggerExport() {
-    if (exportPending) return;
+  function triggerExport(retryCount = 0) {
+    if (exportPending && retryCount === 0 && Date.now() - lastExportAttempt < 2000) return;
     exportPending = true;
-    setTimeout(captureCanvas, 50);
+    lastExportAttempt = Date.now();
+    setTimeout(() => captureCanvas(retryCount), 50);
   }
 
   function initializeBridge() {
@@ -152,8 +162,8 @@
       false,
     );
 
-    // Initial auto-export after render
-    setTimeout(triggerExport, 1200);
+    // Initial auto-export after render with retry support
+    setTimeout(() => triggerExport(0), 1500);
   }
 
   // Set up bridge immediately

@@ -184,6 +184,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     filename: string;
     width?: number;
     height?: number;
+    source?: GeneratorType;
   } | null>(null);
   const [generatedDimensions, setGeneratedDimensions] = useState<{
     width: number;
@@ -272,7 +273,13 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
           'height' in innerPayload ? innerPayload.height : undefined;
 
         // Save blob for server upload
-        setGeneratedBlob({ blob: innerPayload.blob, filename, width, height });
+        setGeneratedBlob({
+          blob: innerPayload.blob,
+          filename,
+          width,
+          height,
+          source: (artifact.source as GeneratorType) || activeGenerator,
+        });
         if (width && height) {
           setGeneratedDimensions({ width, height });
         }
@@ -358,6 +365,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
           filename: string;
           width?: number;
           height?: number;
+          source?: GeneratorType;
         }>((resolve, reject) => {
           const timeout = setTimeout(() => {
             window.removeEventListener('message', onExport);
@@ -379,7 +387,13 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
                 'width' in inner ? inner.width : undefined;
               const height =
                 'height' in inner ? inner.height : undefined;
-              resolve({ blob: inner.blob, filename, width, height });
+              resolve({
+                blob: inner.blob,
+                filename,
+                width,
+                height,
+                source: (artifact.source as GeneratorType) || activeGenerator,
+              });
             }
           };
 
@@ -427,14 +441,31 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         }
       }
 
+      let finalWidth = mapWidth && mapWidth > 0 ? mapWidth : 2000;
+      let finalHeight = mapHeight && mapHeight > 0 ? mapHeight : 2000;
+
+      // If dungeon generator produced an oversized image (e.g. > 2000px on either dimension),
+      // scale it down to a sensible scene dimension (max 1600px) while maintaining aspect ratio,
+      // matching the sizing behavior of the cave generator.
+      const mapSource = currentBlob?.source || activeGenerator;
+      if (mapSource === 'dungeon' && (finalWidth > 2000 || finalHeight > 2000)) {
+        const maxDimension = 1600;
+        const scaleFactor = Math.min(
+          maxDimension / finalWidth,
+          maxDimension / finalHeight,
+        );
+        finalWidth = Math.round(finalWidth * scaleFactor);
+        finalHeight = Math.round(finalHeight * scaleFactor);
+      }
+
       if (currentBlob) {
         try {
           // Upload the blob through our importer
           const result = await BaseMapImporter.importGeneratedMap({
             blob: currentBlob.blob,
             filename: currentBlob.filename,
-            width: mapWidth,
-            height: mapHeight,
+            width: finalWidth,
+            height: finalHeight,
           });
 
           finalUrl = result.sceneUrl;
@@ -458,9 +489,6 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
           );
         }
       }
-
-      const finalWidth = mapWidth && mapWidth > 0 ? mapWidth : 2000;
-      const finalHeight = mapHeight && mapHeight > 0 ? mapHeight : 2000;
 
       if (finalUrl) {
         await updateScene(activeScene.id, {
