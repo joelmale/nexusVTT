@@ -64,18 +64,20 @@
     "lodash-es": "^4.18.1",
     "qs": "6.16.0",
     "serialize-javascript": "7.1.2",
+    "shell-quote": "^1.11.0",
     "sockjs": {
       "uuid": "11.1.1"
-    }
+    },
+    "tinypool": "^2.1.2"
   },
   "devDependencies": {
     "ajv": "^8.20.0"
   },
   "optionalDependencies": {
-    "@img/sharp-libvips-linux-x64": "1.3.3",
-    "@img/sharp-libvips-linuxmusl-x64": "1.3.3",
-    "@img/sharp-linux-x64": "0.35.4",
-    "@img/sharp-linuxmusl-x64": "0.35.4",
+    "@img/sharp-libvips-linux-x64": "1.3.4",
+    "@img/sharp-libvips-linuxmusl-x64": "1.3.4",
+    "@img/sharp-linux-x64": "0.35.5",
+    "@img/sharp-linuxmusl-x64": "0.35.5",
     "@rolldown/binding-linux-x64-gnu": "1.2.11",
     "@rolldown/binding-linux-x64-musl": "1.2.11",
     "@rollup/rollup-linux-x64-gnu": "4.63.5",
