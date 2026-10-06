@@ -3,13 +3,45 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
+import {
+  AuthenticationRequiredError,
+  uploadMapImage,
+} from '@/services/campaign-prep-api';
+
 import { MapPickerModal } from './MapPickerModal';
+
+vi.mock('@/services/campaign-prep-api', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/services/campaign-prep-api')>();
+  return { ...actual, uploadMapImage: vi.fn() };
+});
+
+/** Makes FileReader hand back a fixed data URL, as the preview needs. */
+function mockFileReader(dataUrl = 'data:image/png;base64,preview') {
+  vi.spyOn(window, 'FileReader').mockImplementation(function () {
+    return {
+      readAsDataURL: vi.fn(function (this: FileReader) {
+        setTimeout(() => {
+          Object.defineProperty(this, 'result', { value: dataUrl });
+          this.onload?.({
+            target: { result: dataUrl },
+          } as unknown as ProgressEvent<FileReader>);
+        }, 0);
+      }),
+    } as unknown as FileReader;
+  });
+}
 
 describe('MapPickerModal', () => {
   beforeEach(() => {
     vi.restoreAllMocks();
     vi.stubEnv('BASE_URL', '/codex-dm/');
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue({ ok: false }));
+    vi.mocked(uploadMapImage).mockReset();
+    vi.mocked(uploadMapImage).mockResolvedValue({
+      assetId: 'asset-77',
+      url: '/users/u1/haunted-graveyard.png',
+    });
   });
   afterEach(() => vi.unstubAllEnvs());
 
@@ -223,12 +255,81 @@ describe('MapPickerModal', () => {
 
     await user.click(screen.getByRole('button', { name: 'Create Map' }));
 
+    // The file is uploaded as a real asset; the preview data URL is never saved.
+    expect(uploadMapImage).toHaveBeenCalledWith(file, 'haunted graveyard');
+    await waitFor(() => expect(onSubmit).toHaveBeenCalled());
     expect(onSubmit).toHaveBeenCalledWith(
       expect.objectContaining({
         title: 'haunted graveyard',
-        imagePath: mockDataUrl,
+        imagePath: '/users/u1/haunted-graveyard.png',
+        imageAssetRef: { target: 'asset', assetId: 'asset-77' },
       }),
     );
+    expect(JSON.stringify(onSubmit.mock.calls[0][0])).not.toContain('data:image');
+  });
+
+  describe('upload validation and failures', () => {
+    async function chooseFile(file: File) {
+      const user = userEvent.setup();
+      const onSubmit = vi.fn().mockResolvedValue(undefined);
+      const { container } = render(
+        <MapPickerModal initialTab="upload" isOpen onClose={vi.fn()} onSubmit={onSubmit} />,
+      );
+      mockFileReader();
+      fireEvent.change(
+        container.querySelector('input[type="file"]') as HTMLInputElement,
+        { target: { files: [file] } },
+      );
+      return { user, onSubmit };
+    }
+
+    it('rejects a file type the server would refuse', async () => {
+      const { onSubmit } = await chooseFile(
+        new File(['x'], 'map.gif', { type: 'image/gif' }),
+      );
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Use a PNG, JPEG or WebP image.',
+      );
+      expect(screen.queryByAltText('Map preview')).toBeNull();
+      expect(screen.getByRole('button', { name: 'Create Map' })).toBeDisabled();
+      expect(uploadMapImage).not.toHaveBeenCalled();
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
+
+    it('rejects an image over 5 MB before uploading it', async () => {
+      await chooseFile(
+        new File([new ArrayBuffer(6 * 1024 * 1024)], 'huge.png', { type: 'image/png' }),
+      );
+      expect(await screen.findByRole('alert')).toHaveTextContent('over 5 MB');
+      expect(uploadMapImage).not.toHaveBeenCalled();
+    });
+
+    it('asks a signed-out user to sign in and creates nothing', async () => {
+      vi.mocked(uploadMapImage).mockRejectedValue(new AuthenticationRequiredError());
+      const { user, onSubmit } = await chooseFile(
+        new File(['x'], 'cellar.png', { type: 'image/png' }),
+      );
+      await screen.findByAltText('Map preview');
+      await user.click(screen.getByRole('button', { name: 'Create Map' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent(
+        'Sign in to Nexus VTT to upload maps.',
+      );
+      expect(onSubmit).not.toHaveBeenCalled();
+      // Still on the preview, so the DM can sign in and retry.
+      expect(screen.getByAltText('Map preview')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Create Map' })).toBeEnabled();
+    });
+
+    it('shows the server message when the upload fails', async () => {
+      vi.mocked(uploadMapImage).mockRejectedValue(new Error('Quota exceeded (50MB max)'));
+      const { user, onSubmit } = await chooseFile(
+        new File(['x'], 'cellar.png', { type: 'image/png' }),
+      );
+      await screen.findByAltText('Map preview');
+      await user.click(screen.getByRole('button', { name: 'Create Map' }));
+      expect(await screen.findByRole('alert')).toHaveTextContent('Quota exceeded');
+      expect(onSubmit).not.toHaveBeenCalled();
+    });
   });
 
   it('calls onClose when close or cancel button is clicked', async () => {

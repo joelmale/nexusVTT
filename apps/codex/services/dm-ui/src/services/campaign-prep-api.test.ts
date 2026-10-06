@@ -5,7 +5,10 @@ import {
   AuthenticationRequiredError,
   ensureSession,
   fetchSessionPlanStatus,
+  MAP_IMAGE_MAX_BYTES,
+  mapImageProblem,
   publishSessionPlan,
+  uploadMapImage,
   type PublishSessionPlanInput,
 } from './campaign-prep-api';
 
@@ -828,3 +831,73 @@ describe('activateSessionPlan', () => {
   });
 });
 
+describe('map image upload', () => {
+  afterEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it('allows what the asset service allows and says why otherwise', () => {
+    expect(mapImageProblem({ type: 'image/png', size: 1000 })).toBeUndefined();
+    expect(mapImageProblem({ type: 'image/jpeg', size: 1000 })).toBeUndefined();
+    expect(mapImageProblem({ type: 'image/webp', size: MAP_IMAGE_MAX_BYTES })).toBeUndefined();
+    expect(mapImageProblem({ type: 'image/gif', size: 10 })).toMatch(/PNG, JPEG or WebP/);
+    expect(mapImageProblem({ type: 'image/svg+xml', size: 10 })).toMatch(/PNG, JPEG or WebP/);
+    expect(mapImageProblem({ type: 'image/png', size: MAP_IMAGE_MAX_BYTES + 1 })).toMatch(/5 MB/);
+  });
+
+  it('uploads to the signed-in user as a maps asset and returns its real id and path', async () => {
+    let uploadBody: FormData | undefined;
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (request, init) => {
+      const path = String(request);
+      if (path === '/api/users/profile') return json({ id: 'dm-1' });
+      if (path === '/api/user/dm-1/upload') {
+        uploadBody = init?.body as FormData;
+        return json({
+          asset: {
+            id: 'asset-5',
+            name: 'Cellar',
+            fullImage: 'users/dm-1/asset-5.png',
+          },
+        });
+      }
+      throw new Error(`Unexpected request: ${path}`);
+    });
+
+    const file = new File(['x'], 'cellar.png', { type: 'image/png' });
+    await expect(uploadMapImage(file, 'Cellar')).resolves.toEqual({
+      assetId: 'asset-5',
+      url: '/users/dm-1/asset-5.png',
+    });
+    expect(uploadBody?.get('category')).toBe('maps');
+    expect(uploadBody?.get('name')).toBe('Cellar');
+    expect((uploadBody?.get('file') as File).name).toBe('cellar.png');
+  });
+
+  it('refuses a bad file before any request is made', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch');
+    await expect(
+      uploadMapImage(new File(['x'], 'm.gif', { type: 'image/gif' }), 'M'),
+    ).rejects.toThrow('PNG, JPEG or WebP');
+    expect(fetchMock).not.toHaveBeenCalled();
+  });
+
+  it('reports a response that does not say where the image was saved', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (request) => {
+      if (String(request) === '/api/users/profile') return json({ id: 'dm-1' });
+      return json({ asset: { id: 'asset-5', name: 'x' } });
+    });
+    await expect(
+      uploadMapImage(new File(['x'], 'm.png', { type: 'image/png' }), 'M'),
+    ).rejects.toThrow('where the image was saved');
+  });
+
+  it('passes the server message through when the upload is refused', async () => {
+    vi.spyOn(globalThis, 'fetch').mockImplementation(async (request) => {
+      if (String(request) === '/api/users/profile') return json({ id: 'dm-1' });
+      return json({ error: 'Quota exceeded (50MB max)' }, 413);
+    });
+    await expect(
+      uploadMapImage(new File(['x'], 'm.png', { type: 'image/png' }), 'M'),
+    ).rejects.toThrow('Quota exceeded');
+  });
+});

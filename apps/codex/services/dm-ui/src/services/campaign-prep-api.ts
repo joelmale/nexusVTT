@@ -28,6 +28,8 @@ interface PrepObjectRecord {
 interface UserAsset {
   id: string;
   name: string;
+  /** Path under the asset root, for example users/<id>/<file>. */
+  fullImage?: string;
 }
 
 interface AuthoredObjectResponse {
@@ -166,6 +168,49 @@ async function uploadAsset(
     { method: 'POST', body: form },
   );
   return uploaded.asset;
+}
+
+/** What the asset service accepts for a map image (see its upload route). */
+export const MAP_IMAGE_TYPES: readonly string[] = [
+  'image/png',
+  'image/jpeg',
+  'image/webp',
+];
+export const MAP_IMAGE_MAX_BYTES = 5 * 1024 * 1024;
+
+/** Why a file cannot be uploaded as a map image, or undefined when it can. */
+export function mapImageProblem(file: { type: string; size: number }): string | undefined {
+  if (!MAP_IMAGE_TYPES.includes(file.type)) {
+    return 'Use a PNG, JPEG or WebP image.';
+  }
+  if (file.size > MAP_IMAGE_MAX_BYTES) {
+    return 'That image is over 5 MB. Choose a smaller image or export it as WebP.';
+  }
+  return undefined;
+}
+
+export interface UploadedMapImage {
+  assetId: string;
+  /** Path the image is served from. */
+  url: string;
+}
+
+/**
+ * Uploads a map image to the signed-in user's assets (category maps) and
+ * returns the real asset id and the path it is served from.
+ */
+export async function uploadMapImage(
+  file: File,
+  name: string,
+): Promise<UploadedMapImage> {
+  const problem = mapImageProblem(file);
+  if (problem) throw new Error(problem);
+  const profile = await ensureSession();
+  const asset = await uploadAsset(profile.id, name, file, file.name, 'maps');
+  if (!asset.fullImage) {
+    throw new Error('The server did not return where the image was saved.');
+  }
+  return { assetId: asset.id, url: `/${asset.fullImage.replace(/^\/+/, '')}` };
 }
 
 async function ensureTextAsset(

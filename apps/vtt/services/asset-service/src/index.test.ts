@@ -191,6 +191,126 @@ describe('asset-service user asset routes', () => {
     });
   });
 
+  describe('POST /user/:userId/generated-map', () => {
+    const post = () =>
+      request(app)
+        .post(`/user/${userId}/generated-map`)
+        .set('x-nexus-auth', SECRET);
+
+    it('rejects an unauthenticated upload', async () => {
+      const res = await request(app)
+        .post(`/user/${userId}/generated-map`)
+        .field('importId', 'imp-1')
+        .attach('file', pngBuffer(), 'map.png');
+      expect(res.status).toBe(401);
+    });
+
+    it('stores the map and lists it in the user manifest so its id resolves', async () => {
+      const res = await post()
+        .field('importId', 'imp-1')
+        .field('width', '2000')
+        .field('height', '1500')
+        .field('name', 'Mourningfen Cave')
+        .field('generator', 'cave')
+        .attach('file', pngBuffer(), 'cave.png');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        importId: 'imp-1',
+        width: 2000,
+        height: 1500,
+      });
+      expect(res.body.sceneUrl).toBe(
+        `/users/${userId}/generated/${res.body.assetId}.png`,
+      );
+      const file = path.join(
+        tmpAssetsPath,
+        'users',
+        userId,
+        'generated',
+        `${res.body.assetId}.png`,
+      );
+      expect(fs.existsSync(file)).toBe(true);
+
+      // The listing the dependency resolver reads must include the new id.
+      const listed = await request(app).get(`/user/${userId}/assets`);
+      expect(listed.body.assets).toEqual([
+        expect.objectContaining({
+          id: res.body.assetId,
+          name: 'Mourningfen Cave',
+          category: 'maps',
+          tags: ['generated', 'cave'],
+          fullImage: `users/${userId}/generated/${res.body.assetId}.png`,
+          source: 'user',
+        }),
+      ]);
+    });
+
+    it('names the asset after the generator when no name is given and ignores unknown generators', async () => {
+      const res = await post()
+        .field('importId', 'imp-2')
+        .field('generator', 'not-a-generator')
+        .attach('file', pngBuffer(), 'm.png');
+      expect(res.status).toBe(200);
+      const [asset] = (await request(app).get(`/user/${userId}/assets`)).body.assets;
+      expect(asset.name).toBe('Generated map');
+      expect(asset.tags).toEqual(['generated']);
+
+      const named = await post()
+        .field('importId', 'imp-3')
+        .field('generator', 'city')
+        .attach('file', pngBuffer(), 'm.png');
+      expect(named.status).toBe(200);
+      const assets = (await request(app).get(`/user/${userId}/assets`)).body.assets;
+      expect(assets.find((a: { id: string }) => a.id === named.body.assetId).name).toBe(
+        'Generated city',
+      );
+    });
+
+    it('rejects a missing file, a missing importId and a bad file type, registering nothing', async () => {
+      expect((await post().field('importId', 'x')).status).toBe(400);
+      expect((await post().attach('file', pngBuffer(), 'm.png')).status).toBe(400);
+      expect(
+        (await post().field('importId', 'x').attach('file', pngBuffer(), 'm.gif')).status,
+      ).toBe(400);
+      const listed = await request(app).get(`/user/${userId}/assets`);
+      expect(listed.body.assets).toEqual([]);
+    });
+
+    it('refuses an SVG with scripts or external references', async () => {
+      const res = await post()
+        .field('importId', 'x')
+        .attach(
+          'file',
+          Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'),
+          { filename: 'm.svg', contentType: 'image/svg+xml' },
+        );
+      expect(res.status).toBe(400);
+      expect((await request(app).get(`/user/${userId}/assets`)).body.assets).toEqual([]);
+    });
+
+    it('deletes a generated map from the generated folder and the manifest', async () => {
+      const created = await post()
+        .field('importId', 'imp-del')
+        .attach('file', pngBuffer(), 'm.png');
+      const file = path.join(
+        tmpAssetsPath,
+        'users',
+        userId,
+        'generated',
+        `${created.body.assetId}.png`,
+      );
+      expect(fs.existsSync(file)).toBe(true);
+
+      const res = await request(app)
+        .delete(`/user/${userId}/asset/${created.body.assetId}`)
+        .set('x-nexus-auth', SECRET);
+      expect(res.status).toBe(200);
+      expect(fs.existsSync(file)).toBe(false);
+      expect((await request(app).get(`/user/${userId}/assets`)).body.assets).toEqual([]);
+    });
+  });
+
   describe('GET /search query parameter safety', () => {
     beforeAll(async () => {
       const assetsDir = path.join(tmpAssetsPath, 'assets');

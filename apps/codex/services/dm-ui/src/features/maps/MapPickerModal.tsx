@@ -3,11 +3,30 @@ import Check from 'lucide-react/dist/esm/icons/check';
 import Image from 'lucide-react/dist/esm/icons/image';
 import MapPin from 'lucide-react/dist/esm/icons/map-pin';
 import Search from 'lucide-react/dist/esm/icons/search';
+import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 import Upload from 'lucide-react/dist/esm/icons/upload';
 import X from 'lucide-react/dist/esm/icons/x';
 
 import { DEFAULT_MAPS } from '@/data/defaultMaps';
 import { resolvePublicAsset } from '@/features/map-preparation/buildMapPreparationModel';
+import {
+  AuthenticationRequiredError,
+  mapImageProblem,
+  uploadMapImage,
+} from '@/services/campaign-prep-api';
+import {
+  GENERATORS,
+  GeneratorAuthRequiredError,
+  GeneratorExportError,
+  generatorLabel,
+  getGeneratorUrl,
+  getHubOrigin,
+  isBlankImage,
+  measureImage,
+  requestGeneratorExport,
+  uploadGeneratedMap,
+  type GeneratorKind,
+} from '@/services/generatorHub';
 
 import styles from './MapPickerModal.module.css';
 
@@ -27,7 +46,7 @@ export interface MapSubmitPayload {
   dimensions: { width: number; height: number };
 }
 
-export type MapPickerTab = 'library' | 'upload';
+export type MapPickerTab = 'library' | 'upload' | 'generate';
 
 export interface MapPickerModalProps {
   isOpen: boolean;
@@ -100,7 +119,12 @@ export function MapPickerModal({
 
   // Upload state
   const [isDragging, setIsDragging] = useState(false);
+  // The data URL is only a local preview. The file itself is uploaded on submit
+  // and the saved map keeps the real asset id and URL, never the data.
   const [uploadedDataUrl, setUploadedDataUrl] = useState<string | null>(null);
+  const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string>();
+  const [isUploading, setUploadingState] = useState(false);
   const [uploadedFileInfo, setUploadedFileInfo] = useState<{
     name: string;
     size: number;
@@ -109,9 +133,59 @@ export function MapPickerModal({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Generate state: the generator hub runs in an iframe and exports on request.
+  const [generator, setGenerator] = useState<GeneratorKind>('dungeon');
+  const [hubReady, setHubReady] = useState(false);
+  const [generateError, setGenerateError] = useState<string>();
+  const [isSavingGenerated, setIsSavingGenerated] = useState(false);
+  const frameRef = useRef<HTMLIFrameElement>(null);
+  const hubOrigin = useMemo(() => getHubOrigin(), []);
+
   useEffect(() => {
-    if (isOpen) setTab(initialTab);
+    if (!isOpen) return;
+    setTab(initialTab);
+    setGenerateError(undefined);
+    // Opening straight onto Generate still starts with a usable title.
+    if (initialTab === 'generate') {
+      setTitle((current) =>
+        current.trim() ? current : `Generated ${generatorLabel('dungeon').toLowerCase()}`,
+      );
+    }
   }, [isOpen, initialTab]);
+
+  // The hub says it is ready once the generator has loaded.
+  useEffect(() => {
+    if (!isOpen || tab !== 'generate') return;
+    const onMessage = (event: MessageEvent) => {
+      if (event.origin !== hubOrigin) return;
+      if (event.source !== frameRef.current?.contentWindow) return;
+      if ((event.data as { type?: string } | null)?.type === 'generator/ready') {
+        setHubReady(true);
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [isOpen, tab, hubOrigin, generator]);
+
+  const chooseGenerator = (next: GeneratorKind) => {
+    setGenerator(next);
+    setHubReady(false);
+    setGenerateError(undefined);
+    if (!titleManuallyEdited || !title.trim()) {
+      setTitle(`Generated ${generatorLabel(next).toLowerCase()}`);
+    }
+  };
+
+  const chooseTab = (next: MapPickerTab) => {
+    setTab(next);
+    setGenerateError(undefined);
+    if (next === 'generate') {
+      setHubReady(false);
+      if (!titleManuallyEdited || !title.trim()) {
+        setTitle(`Generated ${generatorLabel(generator).toLowerCase()}`);
+      }
+    }
+  };
 
   // Compute categories
   const categories = useMemo(() => {
@@ -152,7 +226,13 @@ export function MapPickerModal({
   };
 
   const handleFileChange = (file: File) => {
-    if (!file.type.startsWith('image/')) return;
+    const problem = mapImageProblem(file);
+    if (problem) {
+      setUploadError(problem);
+      return;
+    }
+    setUploadError(undefined);
+    setUploadedFile(file);
 
     const reader = new FileReader();
     reader.onload = (e) => {
@@ -209,25 +289,87 @@ export function MapPickerModal({
         },
         dimensions: { width: 1920, height: 1080 },
       });
+    } else if (tab === 'generate') {
+      const frame = frameRef.current?.contentWindow;
+      if (!frame) {
+        setGenerateError('The generator has not loaded yet.');
+        return;
+      }
+      setGenerateError(undefined);
+      setIsSavingGenerated(true);
+      try {
+        const exported = await requestGeneratorExport(frame, hubOrigin);
+        // A generator asked before it has drawn exports one flat color. Do not
+        // save that as a map.
+        if (await isBlankImage(exported.blob)) {
+          throw new GeneratorExportError(
+            'The generator has not drawn a map yet. Wait for it to finish, or reroll, then try again.',
+          );
+        }
+        const size =
+          exported.width && exported.height
+            ? { width: exported.width, height: exported.height }
+            : ((await measureImage(exported.blob)) ?? { width: 2000, height: 2000 });
+        const stored = await uploadGeneratedMap({
+          blob: exported.blob,
+          mimeType: exported.mimeType,
+          name: trimmedTitle,
+          generator,
+          width: size.width,
+          height: size.height,
+        });
+        await onSubmit({
+          title: trimmedTitle,
+          description: description.trim(),
+          imagePath: stored.sceneUrl,
+          imageAssetRef: { target: 'asset', assetId: stored.assetId },
+          dimensions: { width: stored.width, height: stored.height },
+        });
+      } catch (error) {
+        setGenerateError(
+          error instanceof GeneratorAuthRequiredError
+            ? error.message
+            : error instanceof Error
+              ? error.message
+              : 'Could not create the generated map.',
+        );
+      } finally {
+        setIsSavingGenerated(false);
+      }
     } else {
-      if (!uploadedDataUrl || !uploadedFileInfo) return;
-      await onSubmit({
-        title: trimmedTitle,
-        description: description.trim(),
-        imagePath: uploadedDataUrl,
-        imageAssetRef: {
-          target: 'asset',
-          assetId: `custom-map-${Date.now()}`,
-        },
-        dimensions: uploadedFileInfo.dimensions,
-      });
+      if (!uploadedFile || !uploadedFileInfo) return;
+      setUploadError(undefined);
+      setUploadingState(true);
+      try {
+        const stored = await uploadMapImage(uploadedFile, trimmedTitle);
+        await onSubmit({
+          title: trimmedTitle,
+          description: description.trim(),
+          imagePath: stored.url,
+          imageAssetRef: { target: 'asset', assetId: stored.assetId },
+          dimensions: uploadedFileInfo.dimensions,
+        });
+      } catch (error) {
+        setUploadError(
+          error instanceof AuthenticationRequiredError
+            ? 'Sign in to Nexus VTT to upload maps.'
+            : error instanceof Error
+              ? error.message
+              : 'Could not upload the image.',
+        );
+      } finally {
+        setUploadingState(false);
+      }
     }
   };
 
   if (!isOpen) return null;
 
   const isSubmitDisabled =
-    !title.trim() || isSubmitting || (tab === 'upload' && !uploadedDataUrl);
+    !title.trim() ||
+    isSubmitting ||
+    (tab === 'upload' && (!uploadedFile || isUploading)) ||
+    (tab === 'generate' && (!hubReady || isSavingGenerated));
 
   return (
     <div
@@ -252,7 +394,7 @@ export function MapPickerModal({
         <nav aria-label="Map source tabs" className={styles.tabs}>
           <button
             className={`${styles.tab} ${tab === 'library' ? styles.activeTab : ''}`}
-            onClick={() => setTab('library')}
+            onClick={() => chooseTab('library')}
             type="button"
           >
             <Image size={15} />
@@ -260,11 +402,19 @@ export function MapPickerModal({
           </button>
           <button
             className={`${styles.tab} ${tab === 'upload' ? styles.activeTab : ''}`}
-            onClick={() => setTab('upload')}
+            onClick={() => chooseTab('upload')}
             type="button"
           >
             <Upload size={15} />
             <span>Upload Map</span>
+          </button>
+          <button
+            className={`${styles.tab} ${tab === 'generate' ? styles.activeTab : ''}`}
+            onClick={() => chooseTab('generate')}
+            type="button"
+          >
+            <Sparkles size={15} />
+            <span>Generate</span>
           </button>
         </nav>
 
@@ -393,7 +543,7 @@ export function MapPickerModal({
           {tab === 'upload' && (
             <div className={styles.uploadContainer}>
               <input
-                accept="image/png,image/jpeg,image/webp,image/svg+xml"
+                accept="image/png,image/jpeg,image/webp"
                 className={styles.fileInputHidden}
                 onChange={(e) => {
                   const file = e.target.files?.[0];
@@ -424,7 +574,7 @@ export function MapPickerModal({
                       Click to browse or drag and drop a map image
                     </span>
                     <p className={styles.dropzoneSubtext}>
-                      Supports PNG, JPEG, WebP, or SVG battle maps
+                      PNG, JPEG or WebP, up to 5 MB
                     </p>
                   </div>
                 </div>
@@ -452,6 +602,52 @@ export function MapPickerModal({
                   </div>
                 </div>
               )}
+              {uploadError ? (
+                <p className={styles.generateError} role="alert">
+                  {uploadError}
+                </p>
+              ) : null}
+            </div>
+          )}
+
+          {tab === 'generate' && (
+            <div className={styles.generateContainer}>
+              <div
+                aria-label="Generator type"
+                className={styles.generatorChoices}
+                role="group"
+              >
+                {GENERATORS.map((option) => (
+                  <button
+                    aria-pressed={option.id === generator}
+                    className={`${styles.generatorChoice} ${option.id === generator ? styles.generatorChoiceActive : ''}`}
+                    key={option.id}
+                    onClick={() => chooseGenerator(option.id)}
+                    type="button"
+                  >
+                    <span className={styles.generatorName}>{option.label}</span>
+                    <span className={styles.generatorBlurb}>{option.blurb}</span>
+                  </button>
+                ))}
+              </div>
+              <iframe
+                className={styles.generatorFrame}
+                key={generator}
+                ref={frameRef}
+                sandbox="allow-scripts allow-same-origin allow-forms allow-downloads"
+                src={getGeneratorUrl(generator)}
+                title={`${generatorLabel(generator)} generator`}
+              />
+              <p className={styles.generatorHint}>
+                {hubReady
+                  ? "Use the generator's own controls to reroll until you like the map, then choose Use this map."
+                  : 'Loading the generator…'}
+              </p>
+              {generateError ? (
+                <p className={styles.generateError} role="alert">
+                  {generateError}
+                </p>
+              ) : null}
             </div>
           )}
 
@@ -499,7 +695,13 @@ export function MapPickerModal({
               disabled={isSubmitDisabled}
               type="submit"
             >
-              {isSubmitting ? 'Creating...' : 'Create Map'}
+              {isSubmitting || isSavingGenerated || isUploading
+                ? tab === 'generate' || isUploading
+                  ? 'Saving map...'
+                  : 'Creating...'
+                : tab === 'generate'
+                  ? 'Use this map'
+                  : 'Create Map'}
             </button>
           </div>
         </form>

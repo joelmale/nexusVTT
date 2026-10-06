@@ -459,7 +459,16 @@ function requireNexusAuth(
   next();
 }
 
-setupGeneratedMapRoute(app, requireNexusAuth, ASSETS_PATH);
+setupGeneratedMapRoute(
+  app,
+  requireNexusAuth,
+  ASSETS_PATH,
+  async (userId, entry) => {
+    const manifest = await getUserManifest(userId);
+    manifest.assets.push(entry);
+    await saveUserManifest(userId, manifest);
+  },
+);
 
 // TMT library endpoints (B3) — public reads per ADR-0012; /library/reload is
 // write-ish (forces a re-read from disk) so it's gated the same way uploads are.
@@ -550,8 +559,14 @@ app.delete(
     }
 
     const asset = manifest.assets[assetIndex];
-    const filename = path.basename(asset.fullImage);
-    const filePath = path.join(ASSETS_PATH, 'users', userId, filename);
+    // Uploads live in the user's folder; generated maps in its generated/
+    // subfolder. The manifest records the path, so use it when it stays inside
+    // this user's folder.
+    const userRoot = path.join(ASSETS_PATH, 'users', userId);
+    const recorded = path.resolve(ASSETS_PATH, asset.fullImage);
+    const filePath = recorded.startsWith(userRoot + path.sep)
+      ? recorded
+      : path.join(userRoot, path.basename(asset.fullImage));
 
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);

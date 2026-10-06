@@ -28,10 +28,36 @@ function getDirSize(dirPath: string): number {
 
 const USER_QUOTA_BYTES = 100 * 1024 * 1024; // 100MB for generated maps (larger)
 
+/** What a generated map adds to the user's asset manifest. */
+export interface GeneratedMapManifestEntry {
+  id: string;
+  name: string;
+  category: string;
+  tags: string[];
+  fullImage: string;
+  thumbnail: string;
+  size: number;
+  source: 'user';
+}
+
+const GENERATORS = new Set(['dungeon', 'world', 'cave', 'city', 'dwelling']);
+
+function bodyString(value: unknown, max = 120): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  return trimmed ? trimmed.slice(0, max) : undefined;
+}
+
 export function setupGeneratedMapRoute(
   app: import('express').Application,
   requireNexusAuth: import('express').RequestHandler,
-  assetsPath: string
+  assetsPath: string,
+  /**
+   * Adds the stored map to the user's asset manifest, so it is listed with the
+   * user's other assets and its id resolves when a plan that uses it is
+   * published. Without this the file exists but no asset id points at it.
+   */
+  registerAsset?: (userId: string, entry: GeneratedMapManifestEntry) => Promise<void>,
 ) {
   app.post(
     '/user/:userId/generated-map',
@@ -90,6 +116,33 @@ export function setupGeneratedMapRoute(
       }
 
       fs.writeFileSync(filePath, req.file.buffer);
+
+      const generator = bodyString(req.body.generator);
+      const relativePath = `users/${userId}/generated/${filename}`;
+      if (registerAsset) {
+        try {
+          await registerAsset(userId, {
+            id: assetId,
+            name:
+              bodyString(req.body.name, 255) ??
+              `Generated ${generator && GENERATORS.has(generator) ? generator : 'map'}`,
+            category: 'maps',
+            tags: [
+              'generated',
+              ...(generator && GENERATORS.has(generator) ? [generator] : []),
+            ],
+            fullImage: relativePath,
+            thumbnail: relativePath, // no thumbnail generation yet
+            size: req.file.size,
+            source: 'user',
+          });
+        } catch (error) {
+          // Do not leave a file that no asset id points at.
+          fs.rmSync(filePath, { force: true });
+          console.error('Failed to register generated map:', error);
+          return res.status(500).json({ error: 'Failed to register generated map' });
+        }
+      }
 
       const mapResponse = {
         importId,
