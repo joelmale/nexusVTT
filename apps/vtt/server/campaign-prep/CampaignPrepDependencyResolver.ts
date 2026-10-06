@@ -35,6 +35,8 @@ export interface CampaignPrepDependencyResolverOptions {
   userAssetCatalog: Pick<UserAssetCatalogClient, 'resolveAsset'> | null;
 }
 
+const BUNDLED_MAP_ID = /^default-map-\d+$/;
+
 const CAMPAIGN_ENTRY_KINDS = new Set([
   'note',
   'npc',
@@ -143,7 +145,14 @@ export class CampaignPrepDependencyResolver
     assetId: string,
     principalId: string,
   ): Promise<PrepDependencyResolution> {
-    if (assetId.startsWith('demo-') || assetId.startsWith('library:')) {
+    // Demo fixtures, the TMT library, and the VTT's bundled battle maps
+    // ("default-map-N", served from the gateway's asset root) are not user
+    // assets and are not listed in the asset-service manifest.
+    if (
+      assetId.startsWith('demo-') ||
+      assetId.startsWith('library:') ||
+      BUNDLED_MAP_ID.test(assetId)
+    ) {
       return { status: 'available', objectType: 'asset' };
     }
 

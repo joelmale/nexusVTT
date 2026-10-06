@@ -6,6 +6,7 @@ import Search from 'lucide-react/dist/esm/icons/search';
 import Upload from 'lucide-react/dist/esm/icons/upload';
 import X from 'lucide-react/dist/esm/icons/x';
 
+import { DEFAULT_MAPS } from '@/data/defaultMaps';
 import { resolvePublicAsset } from '@/features/map-preparation/buildMapPreparationModel';
 
 import styles from './MapPickerModal.module.css';
@@ -26,37 +27,39 @@ export interface MapSubmitPayload {
   dimensions: { width: number; height: number };
 }
 
+export type MapPickerTab = 'library' | 'upload';
+
 export interface MapPickerModalProps {
   isOpen: boolean;
+  /** Which source tab to show when the modal opens. Defaults to the library. */
+  initialTab?: MapPickerTab;
   onClose: () => void;
   onSubmit: (data: MapSubmitPayload) => Promise<void>;
   isSubmitting?: boolean;
 }
 
-const DEFAULT_SAMPLE_MAPS: LibraryMapItem[] = [
+const PAGE_SIZE = 48;
+
+/** A demo map with no thumbnail: shown as a placeholder, never as a 3.9 MB card. */
+const DEMO_MAPS: LibraryMapItem[] = [
   {
     id: 'library:glass-harbor',
     name: 'Glass Harbor (Ashes of Veyra)',
     category: 'urban',
     path: '/demo/ashes-of-veyra/glass-harbor-map.png',
   },
-  {
-    id: 'default-map-billabong',
-    name: 'Australian Billabong',
-    category: 'outdoor',
-    path: '/assets/defaults/base_maps/Australian Billabong, Base Map, Day (23x16).webp',
-    thumbnail:
-      '/assets/defaults/base_maps/thumbnails/Australian Billabong, Base Map, Day (23x16).thumb.jpg',
-  },
-  {
-    id: 'default-map-blood-rose',
-    name: 'Blood Rose Cave',
-    category: 'dungeon',
-    path: '/assets/defaults/base_maps/12. DoS2 - Blood Rose Cave.webp',
-    thumbnail:
-      '/assets/defaults/base_maps/thumbnails/12. DoS2 - Blood Rose Cave.thumb.jpg',
-  },
 ];
+
+/** The VTT's bundled battle maps, from the generated index (no network fetch). */
+const BUNDLED_MAPS: LibraryMapItem[] = DEFAULT_MAPS.map((map) => ({
+  id: map.id,
+  name: map.name,
+  category: map.category,
+  path: map.path,
+  thumbnail: map.thumbnail,
+}));
+
+const LIBRARY_MAPS: LibraryMapItem[] = [...DEMO_MAPS, ...BUNDLED_MAPS];
 
 function cleanFileName(filename: string): string {
   const withoutExt = filename.replace(/\.[^/.]+$/, '');
@@ -74,16 +77,20 @@ function formatBytes(bytes: number): string {
 
 export function MapPickerModal({
   isOpen,
+  initialTab = 'library',
   onClose,
   onSubmit,
   isSubmitting = false,
 }: MapPickerModalProps) {
-  const [tab, setTab] = useState<'library' | 'upload'>('library');
-  const [libraryMaps, setLibraryMaps] =
-    useState<LibraryMapItem[]>(DEFAULT_SAMPLE_MAPS);
+  const [tab, setTab] = useState<MapPickerTab>(initialTab);
+  const libraryMaps = LIBRARY_MAPS;
   const [selectedMap, setSelectedMap] = useState<LibraryMapItem>(
-    DEFAULT_SAMPLE_MAPS[0],
+    LIBRARY_MAPS[0],
   );
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  // Thumbnails that failed to load show a placeholder. They are never swapped
+  // for the full-size image, which is far larger.
+  const [failedThumbs, setFailedThumbs] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
 
@@ -102,34 +109,9 @@ export function MapPickerModal({
 
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  // Fetch default asset manifest for base maps
   useEffect(() => {
-    let isMounted = true;
-    fetch('/assets/defaults/manifest.json')
-      .then((res) => (res.ok ? res.json() : null))
-      .then((data) => {
-        if (!isMounted) return;
-        if (data?.maps?.items && Array.isArray(data.maps.items)) {
-          const manifestItems: LibraryMapItem[] = data.maps.items.map(
-            (item: Record<string, unknown>) => ({
-              id: String(item.id || item.name),
-              name: String(item.name),
-              category: item.category ? String(item.category) : 'outdoor',
-              path: String(item.path),
-              thumbnail: item.thumbnail ? String(item.thumbnail) : undefined,
-            }),
-          );
-          setLibraryMaps([...DEFAULT_SAMPLE_MAPS, ...manifestItems]);
-        }
-      })
-      .catch(() => {
-        // Fall back gracefully to DEFAULT_SAMPLE_MAPS
-      });
-
-    return () => {
-      isMounted = false;
-    };
-  }, []);
+    if (isOpen) setTab(initialTab);
+  }, [isOpen, initialTab]);
 
   // Compute categories
   const categories = useMemo(() => {
@@ -156,6 +138,11 @@ export function MapPickerModal({
       return matchesCategory && matchesQuery;
     });
   }, [libraryMaps, searchQuery, selectedCategory]);
+
+  // A new search or category starts again from the first page.
+  useEffect(() => {
+    setVisibleCount(PAGE_SIZE);
+  }, [searchQuery, selectedCategory]);
 
   const handleSelectLibraryMap = (map: LibraryMapItem) => {
     setSelectedMap(map);
@@ -332,11 +319,12 @@ export function MapPickerModal({
                 </div>
               ) : (
                 <div className={styles.grid}>
-                  {filteredMaps.map((map) => {
+                  {filteredMaps.slice(0, visibleCount).map((map) => {
                     const isSelected = selectedMap.id === map.id;
-                    const thumbUrl = resolvePublicAsset(
-                      map.thumbnail || map.path,
-                    );
+                    const thumbUrl =
+                      map.thumbnail && !failedThumbs.has(map.id)
+                        ? resolvePublicAsset(map.thumbnail)
+                        : '';
                     return (
                       <div
                         aria-pressed={isSelected}
@@ -358,15 +346,11 @@ export function MapPickerModal({
                               alt={map.name}
                               loading="lazy"
                               src={thumbUrl}
-                              onError={(event) => {
-                                const fullImage = resolvePublicAsset(map.path);
-                                if (
-                                  event.currentTarget.getAttribute('src') !==
-                                  fullImage
-                                ) {
-                                  event.currentTarget.src = fullImage;
-                                }
-                              }}
+                              onError={() =>
+                                setFailedThumbs((current) =>
+                                  new Set(current).add(map.id),
+                                )
+                              }
                             />
                           ) : (
                             <span className={styles.cardPlaceholder}>
@@ -394,6 +378,15 @@ export function MapPickerModal({
                   })}
                 </div>
               )}
+              {filteredMaps.length > visibleCount ? (
+                <button
+                  className={styles.showMore}
+                  onClick={() => setVisibleCount((count) => count + PAGE_SIZE)}
+                  type="button"
+                >
+                  Show more ({filteredMaps.length - visibleCount} left)
+                </button>
+              ) : null}
             </div>
           )}
 

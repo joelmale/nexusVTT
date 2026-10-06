@@ -471,6 +471,63 @@ describe('load + mapping round-trip', () => {
     expect(JSON.stringify(npcData)).not.toContain('sessionIds');
   });
 
+  it('saves a map with its display URL so the image survives a reload', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const added = await store.addItem('campaign-map', {
+      title: 'Fort Joy',
+      imagePath: '/assets/defaults/base_maps/10. DoS2 - Fort Joy Docks.webp',
+      imageAssetRef: { target: 'asset', assetId: 'default-map-1' },
+      dimensions: { width: 1920, height: 1080 },
+      layers: [],
+      pins: [],
+    });
+    expect(added.ok).toBe(true);
+    const stored = server.objects.get(String(added.id))!.data as Record<string, unknown>;
+    expect(stored.imageUrl).toBe(
+      '/assets/defaults/base_maps/10. DoS2 - Fort Joy Docks.webp',
+    );
+    expect(stored.imageAssetRef).toEqual({ target: 'asset', assetId: 'default-map-1' });
+
+    const reloaded = await createServerBundleStore(CAMPAIGN).load();
+    expect(reloaded.maps[0].imagePath).toBe(
+      '/assets/defaults/base_maps/10. DoS2 - Fort Joy Docks.webp',
+    );
+  });
+
+  it('never writes inline image data into a saved map', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const added = await store.addItem('campaign-map', {
+      title: 'Pasted',
+      imagePath: 'data:image/png;base64,AAAA',
+      imageAssetRef: { target: 'asset', assetId: 'asset-1' },
+      dimensions: { width: 10, height: 10 },
+    });
+    const stored = server.objects.get(String(added.id))!.data as Record<string, unknown>;
+    expect(stored).not.toHaveProperty('imageUrl');
+    expect(JSON.stringify(stored)).not.toContain('data:image');
+  });
+
+  it('keeps the display URL when a map is edited and saved again', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const added = await store.addItem('campaign-map', {
+      title: 'Fort Joy',
+      imagePath: '/assets/defaults/base_maps/x.webp',
+      imageAssetRef: { target: 'asset', assetId: 'default-map-1' },
+      dimensions: { width: 100, height: 100 },
+    });
+    // The map editor saves only the fields it owns (no image fields).
+    const saved = await store.updateItem('campaign-map', String(added.id), {
+      pins: [{ id: 'p1', label: 'Docks', x: 0.2, y: 0.4, layerIds: [] }],
+    });
+    expect(saved.ok).toBe(true);
+    const stored = server.objects.get(String(added.id))!.data as Record<string, unknown>;
+    expect(stored.imageUrl).toBe('/assets/defaults/base_maps/x.webp');
+    expect((stored.pins as unknown[]).length).toBe(1);
+  });
+
   it('numbers new sessions and orders new acts sequentially', async () => {
     const store = createServerBundleStore(CAMPAIGN);
     await store.load();

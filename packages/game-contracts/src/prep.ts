@@ -182,6 +182,20 @@ export const campaignMapSchema = z.object({
   title: z.string().trim().min(1),
   description: z.string().default(''),
   imageAssetRef: assetObjectRefSchema,
+  /**
+   * Where to load the image from (a path or http(s) URL). The asset ref is the
+   * identity used for dependencies and publishing; this is only for display, so
+   * a saved map always shows an image. Never image bytes.
+   */
+  imageUrl: z
+    .string()
+    .trim()
+    .min(1)
+    .max(2048)
+    .refine((value) => !/^(data|blob|javascript):/i.test(value), {
+      message: 'imageUrl must be a path or URL, not inline image data',
+    })
+    .optional(),
   dimensions: campaignMapDimensionsSchema,
   layers: z.array(mapLayerSchema).default([]),
   pins: z.array(mapPinSchema).default([]),

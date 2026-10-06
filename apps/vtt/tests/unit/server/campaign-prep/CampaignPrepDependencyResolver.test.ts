@@ -89,6 +89,30 @@ describe('CampaignPrepDependencyResolver', () => {
     });
   });
 
+  it('resolves the VTT bundled battle maps without a manifest lookup', async () => {
+    for (const assetId of ['default-map-1', 'default-map-289']) {
+      await expect(
+        resolver.resolve({ target: 'asset', assetId }, context),
+      ).resolves.toEqual({ status: 'available', objectType: 'asset' });
+    }
+  });
+
+  it('does not treat look-alike ids as bundled maps', async () => {
+    for (const assetId of [
+      'default-map-',
+      'default-map-x',
+      'default-map-1-extra',
+      'my-default-map-1',
+      'custom-map-1696000000000',
+    ]) {
+      const result = await resolver.resolve(
+        { target: 'asset', assetId },
+        context,
+      );
+      expect(result.status).not.toBe('available');
+    }
+  });
+
   it('rejects archived or missing campaign object revisions', async () => {
     dependencies.campaignPrep.getObject.mockResolvedValue({
       kind: 'note',

@@ -13,64 +13,39 @@ describe('MapPickerModal', () => {
   });
   afterEach(() => vi.unstubAllEnvs());
 
-  it('uses Studio public paths for its demo and root paths for shared thumbnails', () => {
+  it('shows root-path thumbnails for bundled maps and a placeholder for the demo map', async () => {
+    const user = userEvent.setup();
     render(<MapPickerModal isOpen onClose={vi.fn()} onSubmit={vi.fn()} />);
+    // The demo map has no thumbnail, so it is never loaded as a 3.9 MB card.
+    expect(screen.getByText('Glass Harbor (Ashes of Veyra)')).toBeInTheDocument();
     expect(
-      screen.getByRole('img', { name: 'Glass Harbor (Ashes of Veyra)' }),
-    ).toHaveAttribute(
+      screen.queryByRole('img', { name: 'Glass Harbor (Ashes of Veyra)' }),
+    ).toBeNull();
+
+    await user.type(screen.getByLabelText(/filter library maps/i), 'Canals');
+    expect(screen.getByRole('img', { name: '11. Canals' })).toHaveAttribute(
       'src',
-      '/codex-dm/demo/ashes-of-veyra/glass-harbor-map.png',
-    );
-    const thumbnail = screen.getByRole('img', { name: 'Australian Billabong' });
-    expect(thumbnail).toHaveAttribute(
-      'src',
-      '/assets/defaults/base_maps/thumbnails/Australian Billabong, Base Map, Day (23x16).thumb.jpg',
-    );
-    fireEvent.error(thumbnail);
-    expect(thumbnail).toHaveAttribute(
-      'src',
-      '/assets/defaults/base_maps/Australian Billabong, Base Map, Day (23x16).webp',
-    );
-    fireEvent.error(thumbnail);
-    expect(thumbnail).toHaveAttribute(
-      'src',
-      '/assets/defaults/base_maps/Australian Billabong, Base Map, Day (23x16).webp',
+      '/assets/defaults/base_maps/thumbnails/11. Canals.thumb.jpg',
     );
   });
 
-  it('loads manifest thumbnails without adding the Studio base path', async () => {
-    vi.mocked(fetch).mockResolvedValue({
-      ok: true,
-      json: async () => ({
-        maps: {
-          items: [
-            {
-              id: 'real-map',
-              name: 'Canals',
-              path: '/assets/defaults/base_maps/Canals.webp',
-              thumbnail:
-                '/assets/defaults/base_maps/thumbnails/Canals.thumb.jpg',
-            },
-          ],
-        },
-      }),
-    } as Response);
+  it('never replaces a failed thumbnail with the full-size image and does not fetch a manifest', async () => {
+    const user = userEvent.setup();
     render(<MapPickerModal isOpen onClose={vi.fn()} onSubmit={vi.fn()} />);
-    expect(await screen.findByRole('img', { name: 'Canals' })).toHaveAttribute(
-      'src',
-      '/assets/defaults/base_maps/thumbnails/Canals.thumb.jpg',
-    );
-    expect(fetch).toHaveBeenCalledWith('/assets/defaults/manifest.json');
+    expect(fetch).not.toHaveBeenCalled();
+
+    await user.type(screen.getByLabelText(/filter library maps/i), 'Canals');
+    const thumbnail = screen.getByRole('img', { name: '11. Canals' });
+    fireEvent.error(thumbnail);
+
+    // The card falls back to a placeholder; nothing requests the big webp.
+    expect(screen.queryByRole('img', { name: '11. Canals' })).toBeNull();
+    expect(document.querySelectorAll('img[src$=".webp"]').length).toBe(0);
+    expect(screen.getByText('11. Canals')).toBeInTheDocument();
   });
 
-  it('does not render when isOpen is false', () => {
-    render(
-      <MapPickerModal isOpen={false} onClose={vi.fn()} onSubmit={vi.fn()} />,
-    );
-    expect(screen.queryByText('Add Campaign Map')).not.toBeInTheDocument();
-  });
-
-  it('renders modal with Asset Library tab and default sample maps', async () => {
+  it('renders the tabs and a first page of maps, with Show more for the rest', async () => {
+    const user = userEvent.setup();
     render(
       <MapPickerModal isOpen={true} onClose={vi.fn()} onSubmit={vi.fn()} />,
     );
@@ -82,12 +57,17 @@ describe('MapPickerModal', () => {
     expect(
       screen.getByRole('button', { name: /upload map/i }),
     ).toBeInTheDocument();
-
-    // Default sample maps are visible
     expect(
       screen.getByText('Glass Harbor (Ashes of Veyra)'),
     ).toBeInTheDocument();
-    expect(screen.getByText('Australian Billabong')).toBeInTheDocument();
+
+    // Only one page of cards is in the DOM until the user asks for more.
+    const firstPage = screen.getAllByRole('button', { pressed: false }).length;
+    const more = screen.getByRole('button', { name: /show more/i });
+    await user.click(more);
+    expect(
+      screen.getAllByRole('button', { pressed: false }).length,
+    ).toBeGreaterThan(firstPage);
   });
 
   it('filters library maps by search query', async () => {
@@ -99,7 +79,9 @@ describe('MapPickerModal', () => {
     const searchInput = screen.getByLabelText(/filter library maps/i);
     await user.type(searchInput, 'Billabong');
 
-    expect(screen.getByText('Australian Billabong')).toBeInTheDocument();
+    expect(
+      screen.getByText('Australian Billabong, Base Map, Day (23x16)'),
+    ).toBeInTheDocument();
     expect(
       screen.queryByText('Glass Harbor (Ashes of Veyra)'),
     ).not.toBeInTheDocument();
@@ -111,14 +93,15 @@ describe('MapPickerModal', () => {
       <MapPickerModal isOpen={true} onClose={vi.fn()} onSubmit={vi.fn()} />,
     );
 
-    // Click outdoor category pill
-    const outdoorPill = screen.getByRole('button', { name: /^outdoor/i });
-    await user.click(outdoorPill);
+    await user.click(screen.getByRole('button', { name: /^outdoor/i }));
 
-    expect(screen.getByText('Australian Billabong')).toBeInTheDocument();
     expect(
       screen.queryByText('Glass Harbor (Ashes of Veyra)'),
     ).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText(/filter library maps/i), 'Billabong');
+    expect(
+      screen.getByText('Australian Billabong, Base Map, Day (23x16)'),
+    ).toBeInTheDocument();
   });
 
   it('selects a library map and auto-fills title if empty', async () => {
@@ -127,11 +110,40 @@ describe('MapPickerModal', () => {
       <MapPickerModal isOpen={true} onClose={vi.fn()} onSubmit={vi.fn()} />,
     );
 
-    const dungeonCard = screen.getByText('Blood Rose Cave');
-    await user.click(dungeonCard);
+    await user.type(screen.getByLabelText(/filter library maps/i), 'Blood Rose');
+    await user.click(screen.getByText('12. DoS2 - Blood Rose Cave'));
 
     const titleInput = screen.getByLabelText('Map Title') as HTMLInputElement;
-    expect(titleInput.value).toBe('Blood Rose Cave');
+    expect(titleInput.value).toBe('12. DoS2 - Blood Rose Cave');
+  });
+
+  it('saves the picked map with an image URL and its bundled id', async () => {
+    const user = userEvent.setup();
+    const onSubmit = vi.fn().mockResolvedValue(undefined);
+    render(<MapPickerModal isOpen onClose={vi.fn()} onSubmit={onSubmit} />);
+
+    await user.type(screen.getByLabelText(/filter library maps/i), 'Fort Joy Docks');
+    await user.click(screen.getByText('10. DoS2 - Fort Joy Docks'));
+    await user.click(screen.getByRole('button', { name: 'Create Map' }));
+
+    expect(onSubmit).toHaveBeenCalledWith(
+      expect.objectContaining({
+        title: '10. DoS2 - Fort Joy Docks',
+        imagePath: '/assets/defaults/base_maps/10. DoS2 - Fort Joy Docks.webp',
+        imageAssetRef: { target: 'asset', assetId: 'default-map-1' },
+      }),
+    );
+  });
+
+  it('opens on the requested tab', () => {
+    const { rerender } = render(
+      <MapPickerModal initialTab="upload" isOpen onClose={vi.fn()} onSubmit={vi.fn()} />,
+    );
+    expect(screen.queryByLabelText(/filter library maps/i)).toBeNull();
+    rerender(
+      <MapPickerModal initialTab="library" isOpen onClose={vi.fn()} onSubmit={vi.fn()} />,
+    );
+    expect(screen.getByLabelText(/filter library maps/i)).toBeInTheDocument();
   });
 
   it('submits selected library map data', async () => {

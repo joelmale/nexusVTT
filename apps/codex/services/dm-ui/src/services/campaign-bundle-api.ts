@@ -698,7 +698,12 @@ function normalize(
         ...base,
         title: str(raw.title),
         description: str(raw.description ?? ''),
-        imagePath: raw.imagePath ? str(raw.imagePath) : undefined,
+        // The saved display URL wins; `imagePath` is what fixtures use.
+        imagePath: raw.imageUrl
+          ? str(raw.imageUrl)
+          : raw.imagePath
+            ? str(raw.imagePath)
+            : undefined,
         imageAssetRef,
         dimensions,
         layers: Array.isArray(raw.layers) ? (raw.layers as unknown as CampaignMap['layers']) : [],
@@ -846,6 +851,19 @@ function mentionLinks(
   });
 }
 
+/**
+ * The display URL to persist for a map image: a path or http(s) URL only.
+ * Inline data (a pasted or uploaded image still held as a data: URL) is never
+ * written into campaign JSON.
+ */
+function storableImageUrl(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const url = value.trim();
+  if (!url || url.length > 2048) return undefined;
+  if (/^(data|blob|javascript):/i.test(url)) return undefined;
+  return url;
+}
+
 function buildData(
   campaignId: string,
   kind: EditableKind,
@@ -873,6 +891,9 @@ function buildData(
       title: str(entity[titleKey(kind)]).trim(),
       description: str(entity.description ?? ''),
       imageAssetRef: rawImage,
+      ...(storableImageUrl(entity.imagePath)
+        ? { imageUrl: storableImageUrl(entity.imagePath) }
+        : {}),
       dimensions: isRecord(entity.dimensions)
         ? entity.dimensions
         : { width: 1920, height: 1080 },
