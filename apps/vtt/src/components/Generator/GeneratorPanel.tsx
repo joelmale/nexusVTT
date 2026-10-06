@@ -308,7 +308,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       window.removeEventListener('message', handleHostMessage);
       client.disconnect();
     };
-  }, [hubOrigin, hubUrl, handleMapGenerated]);
+  }, [hubOrigin, hubUrl, handleMapGenerated, activeGenerator]);
 
   // Load map from IndexedDB on mount
   useEffect(() => {

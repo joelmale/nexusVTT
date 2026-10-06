@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components -- route table, not a component module */
 import type { ReactElement } from 'react';
 
 import { LegacyLoreRedirect } from './LegacyLoreRedirect';
