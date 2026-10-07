@@ -1,9 +1,7 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { BaseMapImporter, UploadAuthRequiredError } from '@/services/baseMapImporter';
-import {
-  GeneratorFloatingControls,
-  type GeneratorActionPayload,
-} from './GeneratorFloatingControls';
+import { GeneratorSidebar } from './GeneratorSidebar';
+import type { GeneratorAction } from './generatorActions';
 import { useGameStore, useActiveScene } from '@/stores/gameStore';
 import './GeneratorPanel.css';
 import { GeneratorHostClient } from '@/services/generatorHostClient';
@@ -194,6 +192,25 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     useState<GeneratorType>('dungeon');
   const [forceRasterize, setForceRasterize] = useState(true);
   const [isImporting, setIsImporting] = useState(false);
+  const [applyError, setApplyError] = useState<string | null>(null);
+  // Registry action ids the generator has not acknowledged yet.
+  const [pendingActionIds, setPendingActionIds] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
+  const pendingRequestsRef = useRef(
+    new Map<string, { actionId: string; timer: number }>(),
+  );
+  const requestCounterRef = useRef(0);
+  // Set when an action is acknowledged; cleared when the re-export it causes
+  // arrives. The bridge acks BEFORE the hub finishes rasterizing the new map.
+  const awaitingExportSinceRef = useRef<number | null>(null);
+  // Mirrors of state that async code reads after awaiting.
+  const generatedBlobRef = useRef(generatedBlob);
+  const generatedMapRef = useRef(generatedMap);
+  useEffect(() => {
+    generatedBlobRef.current = generatedBlob;
+    generatedMapRef.current = generatedMap;
+  }, [generatedBlob, generatedMap]);
 
   const configuredHubUrl =
     import.meta.env.VITE_GENERATOR_HUB_URL ||
@@ -252,6 +269,31 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     [activeGenerator],
   );
 
+  const syncPending = useCallback(() => {
+    setPendingActionIds(
+      new Set(
+        Array.from(pendingRequestsRef.current.values(), (r) => r.actionId),
+      ),
+    );
+  }, []);
+
+  const clearPending = useCallback(
+    (requestId?: string) => {
+      const requests = pendingRequestsRef.current;
+      const ids = requestId ? [requestId] : Array.from(requests.keys());
+      for (const id of ids) {
+        const entry = requests.get(id);
+        if (entry) window.clearTimeout(entry.timer);
+        requests.delete(id);
+      }
+      syncPending();
+    },
+    [syncPending],
+  );
+
+  // Clear timers if the panel unmounts mid-action.
+  useEffect(() => () => clearPending(), [clearPending]);
+
   // Setup Host Client & Message Handling
   useEffect(() => {
     const client = new GeneratorHostClient(hubOrigin);
@@ -260,7 +302,22 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       if (event.origin !== hubOrigin) return;
       const msg = event.data as GeneratorHostMessage;
 
+      if (msg.type === 'generator/action-result') {
+        const { requestId, status, error } = msg.payload;
+        clearPending(requestId);
+        if (status === 'done') awaitingExportSinceRef.current = Date.now();
+        if (status === 'error') {
+          toast.error(
+            error
+              ? 'The generator could not apply that action: ' + error
+              : 'The generator could not apply that action.',
+          );
+        }
+        return;
+      }
+
       if (msg.type === 'generator/export-ready') {
+        awaitingExportSinceRef.current = null;
         const artifact = msg.payload;
         const innerPayload = artifact.payload;
         const format = innerPayload.mimeType === 'image/webp' ? 'webp' : 'png';
@@ -272,14 +329,17 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         const height =
           'height' in innerPayload ? innerPayload.height : undefined;
 
-        // Save blob for server upload
-        setGeneratedBlob({
+        // Save blob for server upload. The ref is written now (not just by the
+        // render effect) so a pending "Add to Scene" sees this export at once.
+        const nextBlob = {
           blob: innerPayload.blob,
           filename,
           width,
           height,
           source: (artifact.source as GeneratorType) || activeGenerator,
-        });
+        };
+        generatedBlobRef.current = nextBlob;
+        setGeneratedBlob(nextBlob);
         if (width && height) {
           setGeneratedDimensions({ width, height });
         }
@@ -308,7 +368,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       window.removeEventListener('message', handleHostMessage);
       client.disconnect();
     };
-  }, [hubOrigin, hubUrl, handleMapGenerated, activeGenerator]);
+  }, [hubOrigin, hubUrl, handleMapGenerated, activeGenerator, clearPending]);
 
   // Load map from IndexedDB on mount
   useEffect(() => {
@@ -331,19 +391,54 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     loadMap();
   }, []);
 
-  const handleGeneratorAction = (action: GeneratorActionPayload) => {
-    if (iframeRef.current?.contentWindow) {
-      iframeRef.current.contentWindow.postMessage(
-        {
-          type: 'generator/action',
-          keyCode: action.keyCode,
-          code: action.code,
-          key: action.key,
-          shiftKey: action.shiftKey,
-        },
-        '*',
+  const ACTION_TIMEOUT_MS = 4000;
+
+  const handleGeneratorAction = (action: GeneratorAction) => {
+    const target = iframeRef.current?.contentWindow;
+    if (!target) return;
+
+    requestCounterRef.current += 1;
+    const requestId =
+      action.id + '-' + Date.now() + '-' + requestCounterRef.current;
+    const timer = window.setTimeout(() => {
+      clearPending(requestId);
+      toast.warning(
+        'No response from the generator for "' +
+          action.label +
+          '". It may still have applied.',
       );
+    }, ACTION_TIMEOUT_MS);
+    pendingRequestsRef.current.set(requestId, { actionId: action.id, timer });
+    syncPending();
+
+    target.postMessage(
+      {
+        type: 'generator/action',
+        requestId,
+        actionId: action.id,
+        keyCode: action.keyCode,
+        code: action.code,
+        key: action.key,
+        shiftKey: action.shiftKey,
+      },
+      '*',
+    );
+  };
+
+  /**
+   * Resolves once no action is pending and the export it triggered has
+   * landed (or after maxMs, so a missing export can never block the user).
+   */
+  const waitForIdle = async (maxMs: number) => {
+    const start = Date.now();
+    while (
+      (pendingRequestsRef.current.size > 0 ||
+        awaitingExportSinceRef.current !== null) &&
+      Date.now() - start < maxMs
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 100));
     }
+    awaitingExportSinceRef.current = null;
   };
 
   const handleApplyToScene = async () => {
@@ -351,9 +446,14 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
 
     try {
       setIsImporting(true);
+      setApplyError(null);
 
-      let currentBlob = generatedBlob;
-      const currentMap = generatedMap;
+      // A style/layer action may still be re-exporting; capture after it lands
+      // so the scene gets the map the user is looking at, not a stale export.
+      await waitForIdle(4000);
+
+      let currentBlob = generatedBlobRef.current;
+      const currentMap = generatedMapRef.current;
 
       // If we don't have an export yet, request one on demand from the hub
       if (!currentBlob && !currentMap) {
@@ -510,13 +610,15 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
 
         await deleteGeneratorMapFromIndexedDB();
       } else {
-        alert(
-          'Could not capture the generated map. Please try clicking Reroll Map first.',
+        setApplyError(
+          'Could not capture the generated map. Try rerolling the map first.',
         );
       }
     } catch (err) {
       console.error('Failed to apply map to scene:', err);
-      alert('Failed to import map: ' + (err as Error).message);
+      const message = 'Failed to import map: ' + (err as Error).message;
+      setApplyError(message);
+      toast.error(message);
     } finally {
       setIsImporting(false);
     }
@@ -527,21 +629,27 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       setGeneratedMap(null);
       setGeneratedBlob(null);
       setGeneratedDimensions(null);
+      setApplyError(null);
+      clearPending();
+      awaitingExportSinceRef.current = null;
       setActiveGenerator(generator);
     }
   };
 
   return (
-    <div className="generator-panel h-full flex flex-col relative overflow-hidden bg-vtt-iron-900 border-l border-vtt-iron-700 shadow-2xl">
-      <GeneratorFloatingControls
+    <div className="generator-panel studio-layout h-full relative overflow-hidden bg-vtt-iron-900 border-l border-vtt-iron-700 shadow-2xl">
+      <GeneratorSidebar
         activeGenerator={activeGenerator}
         onGeneratorChange={handleGeneratorChange}
         onAddToScene={handleApplyToScene}
         onAction={handleGeneratorAction}
+        pendingActionIds={pendingActionIds}
         hasActiveScene={!!activeScene}
         hasValidArtifact={(!!generatedMap && !generatedMap.startsWith('{')) || !!generatedBlob}
         activeSceneName={activeScene?.name}
         isImporting={isImporting}
+        previewUrl={generatedMap && !generatedMap.startsWith('{') ? generatedMap : null}
+        errorMessage={applyError}
         forceRasterize={forceRasterize}
         onForceRasterizeChange={setForceRasterize}
       />

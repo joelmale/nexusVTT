@@ -15,6 +15,14 @@
 
 export type GeneratorId = 'dungeon' | 'cave' | 'world' | 'city' | 'dwelling';
 
+export const GENERATORS: { id: GeneratorId; icon: string; label: string }[] = [
+  { id: 'dungeon', icon: '🏰', label: 'Dungeon' },
+  { id: 'cave', icon: '🗻', label: 'Cave' },
+  { id: 'world', icon: '🌍', label: 'World' },
+  { id: 'city', icon: '🏛️', label: 'City' },
+  { id: 'dwelling', icon: '🏠', label: 'Dwelling' },
+];
+
 /**
  * - reroll:  generates a new map
  * - toggle:  flips a layer / option on the map
@@ -290,4 +298,33 @@ export function getShortcutGroups(
 export function actionTitle(action: GeneratorAction): string {
   if (action.title) return action.title;
   return `${action.description} (${action.keyLabel})`;
+}
+
+/** Actions for one sidebar tab. The reroll lives above the tabs, not in them. */
+export function getTabActions(
+  id: GeneratorId,
+  group: GeneratorActionGroup,
+): GeneratorAction[] {
+  return GENERATOR_ACTIONS[id].filter(
+    (a) => a.group === group && a.id !== 'reroll',
+  );
+}
+
+export function getRerollAction(id: GeneratorId): GeneratorAction {
+  const reroll = GENERATOR_ACTIONS[id].find((a) => a.id === 'reroll');
+  if (!reroll) throw new Error(`Generator ${id} has no reroll action`);
+  return reroll;
+}
+
+/** Case-insensitive match on label, description or key. */
+export function searchActions(id: GeneratorId, query: string): GeneratorAction[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return [];
+  return GENERATOR_ACTIONS[id].filter(
+    (a) =>
+      a.id !== 'reroll' &&
+      (a.label.toLowerCase().includes(q) ||
+        a.description.toLowerCase().includes(q) ||
+        a.keyLabel.toLowerCase() === q),
+  );
 }

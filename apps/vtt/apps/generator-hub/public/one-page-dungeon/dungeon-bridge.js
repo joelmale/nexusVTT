@@ -16,6 +16,18 @@
   let lastExportTime = 0;
   let exportPending = false;
 
+  // Tell the hub an EXECUTE_ACTION finished, once the post-action re-export
+  // has had time to settle, so the parent can clear its pending state.
+  function reportActionResult(requestId, status, error) {
+    if (!requestId || window.parent === window) return;
+    setTimeout(function () {
+      window.parent.postMessage(
+        { type: 'ACTION_RESULT', requestId: requestId, status: status, error: error },
+        '*',
+      );
+    }, status === 'done' ? 1200 : 0);
+  }
+
   function dispatchKeyEvent(keyCode, code, key, shiftKey = false) {
     const targetCanvas =
       document.querySelector('#openfl-content canvas') ||
@@ -142,8 +154,10 @@
           // Re-export after every action: any toggle/preset can change the map, and
           // the parent caches the last export for "Add to Scene".
           setTimeout(triggerExport, 800);
+          reportActionResult(data.requestId, 'done');
         } catch (e) {
           console.warn('Dungeon Bridge: Action dispatch error:', e);
+          reportActionResult(data.requestId, 'error', String(e && e.message || e));
         }
       }
     });

@@ -172,6 +172,7 @@ function App() {
               code: event.data.code,
               key: event.data.key,
               shiftKey: event.data.shiftKey,
+              requestId: event.data.requestId,
             },
             '*',
           );
@@ -181,6 +182,21 @@ function App() {
 
       // 2. Trust the generator iframe we created
       if (event.source !== iframeRef.current?.contentWindow) {
+        return;
+      }
+
+      // A bridge reporting that an EXECUTE_ACTION finished: relay it upward.
+      if (event.data.type === 'ACTION_RESULT') {
+        const msg: GeneratorHostMessage = {
+          type: 'generator/action-result',
+          payload: {
+            requestId: String(event.data.requestId ?? ''),
+            status: event.data.status === 'error' ? 'error' : 'done',
+            error:
+              typeof event.data.error === 'string' ? event.data.error : undefined,
+          },
+        };
+        window.parent.postMessage(msg, '*');
         return;
       }
 
