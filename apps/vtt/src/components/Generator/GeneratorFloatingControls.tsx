@@ -7,12 +7,42 @@ import Dices from 'lucide-react/dist/esm/icons/dices';
 import Palette from 'lucide-react/dist/esm/icons/palette';
 import Grid from 'lucide-react/dist/esm/icons/grid';
 import Eye from 'lucide-react/dist/esm/icons/eye';
+import Tag from 'lucide-react/dist/esm/icons/tag';
+import Layers from 'lucide-react/dist/esm/icons/layers';
+import Compass from 'lucide-react/dist/esm/icons/compass';
+import Sun from 'lucide-react/dist/esm/icons/sun';
+import Mountain from 'lucide-react/dist/esm/icons/mountain';
+import DoorOpen from 'lucide-react/dist/esm/icons/door-open';
+import Type from 'lucide-react/dist/esm/icons/type';
 import Keyboard from 'lucide-react/dist/esm/icons/keyboard';
 import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import ChevronUp from 'lucide-react/dist/esm/icons/chevron-up';
 import Minimize2 from 'lucide-react/dist/esm/icons/minimize-2';
 import Upload from 'lucide-react/dist/esm/icons/upload';
 import Loader2 from 'lucide-react/dist/esm/icons/loader-2';
+import {
+  actionTitle,
+  getQuickActions,
+  getShortcutGroups,
+  type GeneratorIconKey,
+} from './generatorActions';
+
+const QUICK_ICONS: Record<
+  GeneratorIconKey,
+  { Icon: React.ComponentType<{ size?: number; color?: string }>; color: string }
+> = {
+  dice: { Icon: Dices, color: 'var(--indigo-400, #818cf8)' },
+  palette: { Icon: Palette, color: 'var(--purple-400, #c084fc)' },
+  grid: { Icon: Grid, color: 'var(--cyan-400, #22d3ee)' },
+  eye: { Icon: Eye, color: 'var(--emerald-400, #34d399)' },
+  tag: { Icon: Tag, color: 'var(--emerald-400, #34d399)' },
+  layers: { Icon: Layers, color: 'var(--amber-400, #fbbf24)' },
+  compass: { Icon: Compass, color: 'var(--cyan-400, #22d3ee)' },
+  sun: { Icon: Sun, color: 'var(--amber-400, #fbbf24)' },
+  mountain: { Icon: Mountain, color: 'var(--emerald-400, #34d399)' },
+  door: { Icon: DoorOpen, color: 'var(--purple-400, #c084fc)' },
+  type: { Icon: Type, color: 'var(--cyan-400, #22d3ee)' },
+};
 
 export interface GeneratorActionPayload {
   keyCode: number;
@@ -35,11 +65,6 @@ interface GeneratorFloatingControlsProps {
   isImporting?: boolean;
   forceRasterize?: boolean;
   onForceRasterizeChange?: (value: boolean) => void;
-}
-
-interface ShortcutCategory {
-  category: string;
-  items: { key: string; desc: string }[];
 }
 
 export const GeneratorFloatingControls: React.FC<
@@ -86,121 +111,10 @@ export const GeneratorFloatingControls: React.FC<
     { id: 'dwelling' as const, icon: '🏠', label: 'Dwelling' },
   ];
 
-  // Grouped and categorized shortcuts for better cognitive load & scannability
-  const categorizedShortcuts: Record<string, ShortcutCategory[]> = {
-    dungeon: [
-      {
-        category: 'Generation & Layout',
-        items: [
-          { key: 'Enter', desc: 'Reroll new dungeon' },
-          { key: 'Space', desc: 'Rearrange notes' },
-          { key: 'Shift+Space', desc: 'Reroll notes' },
-          { key: 'R', desc: 'Rotate dungeon' },
-          { key: 'Tab', desc: 'Open tags dialog' },
-        ],
-      },
-      {
-        category: 'Visuals & Grid',
-        items: [
-          { key: 'S', desc: 'Cycle color style' },
-          { key: 'G', desc: 'Toggle grid' },
-          { key: 'Shift+G', desc: 'Toggle grid mode' },
-          { key: 'M', desc: 'Monochrome toggle' },
-          { key: '1 / 2', desc: 'Normal / small cells' },
-          { key: 'C', desc: 'Round corners' },
-        ],
-      },
-      {
-        category: 'Features & Content',
-        items: [
-          { key: 'N', desc: 'Toggle room notes' },
-          { key: 'L', desc: 'Toggle legend' },
-          { key: 'H', desc: 'Toggle secret rooms' },
-          { key: 'P', desc: 'Toggle room props' },
-          { key: 'W', desc: 'Toggle water' },
-          { key: 'Shift+W', desc: 'Adjust water height' },
-        ],
-      },
-      {
-        category: 'Data & Export',
-        items: [
-          { key: 'E', desc: 'Export high-res PNG' },
-          { key: 'J', desc: 'Export dungeon JSON' },
-        ],
-      },
-    ],
-    cave: [
-      {
-        category: 'Generation & Layout',
-        items: [
-          { key: 'Enter', desc: 'Generate new cave' },
-          { key: 'Tab', desc: 'Cave tags' },
-        ],
-      },
-      {
-        category: 'Visuals & Grid',
-        items: [
-          { key: 'S', desc: 'Cycle visual style' },
-          { key: 'G', desc: 'Toggle grid' },
-          { key: 'N', desc: 'Toggle notes' },
-        ],
-      },
-      {
-        category: 'Export',
-        items: [{ key: 'E', desc: 'Save PNG' }],
-      },
-    ],
-    world: [
-      {
-        category: 'Generation & Layout',
-        items: [
-          { key: 'Enter', desc: 'Generate new world' },
-          { key: 'Tab', desc: 'World tags' },
-        ],
-      },
-      {
-        category: 'Visuals & Grid',
-        items: [
-          { key: 'S', desc: 'Cycle map palette' },
-          { key: 'G', desc: 'Toggle grid' },
-          { key: 'N', desc: 'Toggle location names' },
-        ],
-      },
-      {
-        category: 'Export',
-        items: [{ key: 'E', desc: 'Save PNG' }],
-      },
-    ],
-    city: [
-      {
-        category: 'Generation & Districts',
-        items: [
-          { key: 'Enter', desc: 'Generate new city' },
-          { key: 'C', desc: 'Toggle citadel' },
-          { key: 'T', desc: 'Toggle temple' },
-          { key: 'P', desc: 'Toggle plaza' },
-        ],
-      },
-      {
-        category: 'Visuals & Export',
-        items: [
-          { key: 'S', desc: 'Cycle color style' },
-          { key: 'E', desc: 'Save PNG' },
-        ],
-      },
-    ],
-    dwelling: [
-      {
-        category: 'Generation',
-        items: [
-          { key: 'Enter', desc: 'Generate new dwelling' },
-          { key: 'E', desc: 'Save PNG' },
-        ],
-      },
-    ],
-  };
-
-  const currentShortcuts = categorizedShortcuts[activeGenerator] || [];
+  // Buttons and the shortcut list both come from the per-generator registry,
+  // so each button sends the key that generator actually binds.
+  const quickActions = getQuickActions(activeGenerator);
+  const shortcutGroups = getShortcutGroups(activeGenerator);
 
   return (
     <div
@@ -489,131 +403,52 @@ export const GeneratorFloatingControls: React.FC<
                 gap: '0.375rem',
               }}
             >
-              <button
-                onClick={() => onAction?.({ keyCode: 13, key: 'Enter', code: 'Enter' })}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '6px',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  padding: '0.4rem 0.5rem',
-                  fontSize: '0.75rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                }}
-                title="Reroll new map (Enter)"
-              >
-                <Dices size={14} color="var(--indigo-400, #818cf8)" />
-                <span>Reroll Map</span>
-              </button>
-
-              <button
-                onClick={() => onAction?.({ keyCode: 83, key: 's', code: 'KeyS' })}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '6px',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  padding: '0.4rem 0.5rem',
-                  fontSize: '0.75rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                }}
-                title="Cycle visual style / palette (S)"
-              >
-                <Palette size={14} color="var(--purple-400, #c084fc)" />
-                <span>Cycle Style</span>
-              </button>
-
-              <button
-                onClick={() => onAction?.({ keyCode: 71, key: 'g', code: 'KeyG' })}
-                style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '6px',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  padding: '0.4rem 0.5rem',
-                  fontSize: '0.75rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                }}
-                title="Toggle grid overlay (G)"
-              >
-                <Grid size={14} color="var(--cyan-400, #22d3ee)" />
-                <span>Toggle Grid</span>
-              </button>
-
-              <button
-                onClick={() =>
-                  onAction?.(
-                    activeGenerator === 'dungeon'
-                      ? { keyCode: 72, key: 'h', code: 'KeyH' }
-                      : { keyCode: 78, key: 'n', code: 'KeyN' },
-                  )
-                }
-                style={{
-                  background: 'rgba(255, 255, 255, 0.05)',
-                  border: '1px solid rgba(255, 255, 255, 0.1)',
-                  borderRadius: '6px',
-                  color: '#fff',
-                  cursor: 'pointer',
-                  padding: '0.4rem 0.5rem',
-                  fontSize: '0.75rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '0.375rem',
-                  transition: 'all 0.15s ease',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
-                  e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
-                }}
-                title={
-                  activeGenerator === 'dungeon'
-                    ? 'Toggle secret rooms (H)'
-                    : 'Toggle labels/notes (N)'
-                }
-              >
-                <Eye size={14} color="var(--emerald-400, #34d399)" />
-                <span>{activeGenerator === 'dungeon' ? 'Secrets' : 'Labels'}</span>
-              </button>
+              {quickActions.map((action) => {
+                const { Icon, color } = QUICK_ICONS[action.quick!.icon];
+                return (
+                  <button
+                    key={action.id}
+                    onClick={() =>
+                      onAction?.({
+                        keyCode: action.keyCode,
+                        key: action.key,
+                        code: action.code,
+                        shiftKey: action.shiftKey,
+                      })
+                    }
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.05)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      borderRadius: '6px',
+                      color: '#fff',
+                      cursor: 'pointer',
+                      padding: '0.4rem 0.5rem',
+                      fontSize: '0.75rem',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '0.375rem',
+                      transition: 'all 0.15s ease',
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.1)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.2)';
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.background = 'rgba(255, 255, 255, 0.05)';
+                      e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.1)';
+                    }}
+                    title={actionTitle(action)}
+                  >
+                    <Icon size={14} color={color} />
+                    <span>{action.quick?.label ?? action.label}</span>
+                    {action.kind === 'dialog' && (
+                      <span aria-hidden="true" style={{ marginLeft: 'auto', opacity: 0.5 }}>
+                        …
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
             </div>
           </div>
 
@@ -761,7 +596,7 @@ export const GeneratorFloatingControls: React.FC<
           </div>
 
           {/* Collapsible Categorized Shortcuts Section */}
-          {currentShortcuts.length > 0 && (
+          {shortcutGroups.length > 0 && (
             <div
               style={{
                 borderTop: '1px solid rgba(255, 255, 255, 0.08)',
@@ -821,8 +656,8 @@ export const GeneratorFloatingControls: React.FC<
                     Tip: Click the map pane to give it keyboard focus.
                   </div>
 
-                  {currentShortcuts.map((cat, idx) => (
-                    <div key={idx}>
+                  {shortcutGroups.map((cat) => (
+                    <div key={cat.group}>
                       <div
                         style={{
                           fontSize: '0.65rem',
@@ -833,7 +668,7 @@ export const GeneratorFloatingControls: React.FC<
                           marginBottom: '0.25rem',
                         }}
                       >
-                        {cat.category}
+                        {cat.label}
                       </div>
                       <div
                         style={{
@@ -843,8 +678,8 @@ export const GeneratorFloatingControls: React.FC<
                           alignItems: 'center',
                         }}
                       >
-                        {cat.items.map((item, itemIdx) => (
-                          <React.Fragment key={itemIdx}>
+                        {cat.items.map((item) => (
+                          <React.Fragment key={item.id}>
                             <kbd
                               style={{
                                 background: 'rgba(255, 255, 255, 0.08)',
@@ -858,9 +693,9 @@ export const GeneratorFloatingControls: React.FC<
                                 textAlign: 'center',
                               }}
                             >
-                              {item.key}
+                              {item.keyLabel}
                             </kbd>
-                            <span style={{ color: '#d1d5db' }}>{item.desc}</span>
+                            <span style={{ color: '#d1d5db' }}>{item.description}</span>
                           </React.Fragment>
                         ))}
                       </div>

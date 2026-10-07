@@ -142,9 +142,9 @@
         try {
           dispatchKeyEvent(data.keyCode, data.code, data.key, data.shiftKey);
 
-          if ([13, 83, 67, 84, 80, 65, 66, 68, 69, 76].includes(data.keyCode)) {
-            setTimeout(triggerExport, 800);
-          }
+          // Re-export after every action: any toggle/preset can change the map, and
+          // the parent caches the last export for "Add to Scene".
+          setTimeout(triggerExport, 800);
         } catch (e) {
           console.warn('City Bridge: Action dispatch error:', e);
         }

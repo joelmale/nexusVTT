@@ -133,9 +133,9 @@
         try {
           dispatchKeyEvent(data.keyCode, data.code, data.key, data.shiftKey);
 
-          if ([13, 32, 83, 71, 70, 77, 78, 82, 84, 87].includes(data.keyCode)) {
-            setTimeout(triggerExport, 800);
-          }
+          // Re-export after every action: any toggle/preset can change the map, and
+          // the parent caches the last export for "Add to Scene".
+          setTimeout(triggerExport, 800);
         } catch (e) {
           console.warn('Cave Bridge: Action dispatch error:', e);
         }

@@ -132,9 +132,9 @@
         try {
           dispatchKeyEvent(data.keyCode, data.code, data.key, data.shiftKey);
 
-          if ([13, 83, 32, 49, 50, 51, 52, 53].includes(data.keyCode)) {
-            setTimeout(triggerExport, 800);
-          }
+          // Re-export after every action: any toggle/preset can change the map, and
+          // the parent caches the last export for "Add to Scene".
+          setTimeout(triggerExport, 800);
         } catch (e) {
           console.warn('Dwellings Bridge: Action dispatch error:', e);
         }

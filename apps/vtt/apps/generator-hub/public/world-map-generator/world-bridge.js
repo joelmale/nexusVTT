@@ -116,9 +116,9 @@
       try {
         dispatchKeyEvent(data.keyCode, data.code, data.key, data.shiftKey);
 
-        if ([13, 83, 71, 49, 50, 51, 52, 53, 65, 67, 70, 76, 77, 78, 82].includes(data.keyCode)) {
-          setTimeout(() => triggerWorldExport(0), 1000);
-        }
+        // Re-export after every action: any toggle/preset can change the map, and
+        // the parent caches the last export for "Add to Scene".
+        setTimeout(() => triggerWorldExport(0), 1000);
       } catch (e) {
         console.warn('World Generator Bridge: Action dispatch error:', e);
       }

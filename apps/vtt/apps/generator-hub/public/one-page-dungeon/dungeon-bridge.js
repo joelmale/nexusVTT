@@ -139,10 +139,9 @@
         try {
           dispatchKeyEvent(data.keyCode, data.code, data.key, data.shiftKey);
 
-          // If action rerolls or changes visuals, refresh the export after layout settles
-          if ([13, 32, 83, 71, 77, 82].includes(data.keyCode)) {
-            setTimeout(triggerExport, 800);
-          }
+          // Re-export after every action: any toggle/preset can change the map, and
+          // the parent caches the last export for "Add to Scene".
+          setTimeout(triggerExport, 800);
         } catch (e) {
           console.warn('Dungeon Bridge: Action dispatch error:', e);
         }
