@@ -219,7 +219,7 @@ export function PanelDock<T extends string = string>({
                   <Icon
                     id={panel.id.startsWith('panel:') ? panel.id : `panel:${panel.id}`}
                     fallback={panel.icon}
-                    size={24}
+                    size={28}
                   />
                 </span>
               </button>

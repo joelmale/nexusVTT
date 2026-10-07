@@ -99,10 +99,7 @@ export const GameToolbar: React.FC = () => {
   const { onPointerDown, isCollapsed, toggleCollapsed, panelRef } =
     useDraggablePanel({
       id: 'gameToolbar',
-      defaultPosition: {
-        x: window.innerWidth / 2 - 200,
-        y: window.innerHeight - 80,
-      },
+      defaultAnchor: 'bottom-center',
     });
 
   const zIndex = useStackZIndex('gameToolbar');
