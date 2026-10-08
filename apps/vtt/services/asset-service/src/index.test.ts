@@ -159,6 +159,65 @@ describe('asset-service user asset routes', () => {
     });
   });
 
+  describe('PATCH /user/:userId/asset/:assetId', () => {
+    const upload = async () =>
+      (
+        await request(app)
+          .post(`/user/${userId}/upload`)
+          .set('x-nexus-auth', SECRET)
+          .field('name', 'Original')
+          .attach('file', pngBuffer(), 'patch-me.png')
+      ).body.asset as { id: string; createdAt?: string };
+    const patch = (id: string, body: unknown) =>
+      request(app)
+        .patch(`/user/${userId}/asset/${id}`)
+        .set('x-nexus-auth', SECRET)
+        .send(body as object);
+
+    it('records createdAt on new uploads', async () => {
+      const asset = await upload();
+      expect(Number.isNaN(Date.parse(asset.createdAt ?? ''))).toBe(false);
+    });
+
+    it('renames and retags, trimming and de-duplicating tags', async () => {
+      const asset = await upload();
+      const res = await patch(asset.id, {
+        name: '  Dragon Keep ',
+        tags: [' keep', 'keep', 'dragon', ''],
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.asset).toMatchObject({
+        id: asset.id,
+        name: 'Dragon Keep',
+        tags: ['keep', 'dragon'],
+      });
+      const listed = await request(app).get(`/user/${userId}/assets`);
+      expect(listed.body.assets[0]).toMatchObject({ name: 'Dragon Keep' });
+    });
+
+    it('requires the shared secret', async () => {
+      const asset = await upload();
+      const res = await request(app)
+        .patch(`/user/${userId}/asset/${asset.id}`)
+        .send({ name: 'x' });
+      expect(res.status).toBe(401);
+    });
+
+    it('rejects invalid names and tags, and unknown assets', async () => {
+      const asset = await upload();
+      expect((await patch(asset.id, { name: '   ' })).status).toBe(400);
+      expect((await patch(asset.id, { name: 'x'.repeat(121) })).status).toBe(400);
+      expect((await patch(asset.id, { tags: 'nope' })).status).toBe(400);
+      expect((await patch(asset.id, { tags: [1] })).status).toBe(400);
+      expect(
+        (await patch(asset.id, { tags: Array.from({ length: 21 }, (_, i) => `t${i}`) })).status,
+      ).toBe(400);
+      expect((await patch(asset.id, { tags: ['x'.repeat(41)] })).status).toBe(400);
+      expect((await patch(asset.id, {})).status).toBe(400);
+      expect((await patch('missing-id', { name: 'ok' })).status).toBe(404);
+    });
+  });
+
   describe('DELETE /user/:userId/asset/:assetId', () => {
     it('deletes an uploaded asset (full flow: upload then delete)', async () => {
       const uploadRes = await request(app)

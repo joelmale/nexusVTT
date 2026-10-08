@@ -38,6 +38,7 @@ export interface GeneratedMapManifestEntry {
   thumbnail: string;
   size: number;
   source: 'user';
+  createdAt?: string;
 }
 
 const GENERATORS = new Set(['dungeon', 'world', 'cave', 'city', 'dwelling']);
@@ -135,6 +136,7 @@ export function setupGeneratedMapRoute(
             thumbnail: relativePath, // no thumbnail generation yet
             size: req.file.size,
             source: 'user',
+            createdAt: new Date().toISOString(),
           });
         } catch (error) {
           // Do not leave a file that no asset id points at.

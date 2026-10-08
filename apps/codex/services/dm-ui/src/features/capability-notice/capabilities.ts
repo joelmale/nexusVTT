@@ -154,9 +154,10 @@ export const CAPABILITY_REGISTRY: Record<CapabilityId, PrototypeCapability> = {
   'map.asset.replace': {
     id: 'map.asset.replace',
     label: 'Replace map asset',
-    status: 'planned',
+    status: 'implemented',
     targetPhase: 'Asset service',
-    description: 'Replace this map image through the shared asset service.',
+    description:
+      'Replace this map image with one of your assets or a new upload (Replace image on the map).',
   },
   'encounter.deploy': {
     id: 'encounter.deploy',

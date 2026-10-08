@@ -25,11 +25,18 @@ interface PrepObjectRecord {
   title: string;
 }
 
-interface UserAsset {
+export interface UserAsset {
   id: string;
   name: string;
   /** Path under the asset root, for example users/<id>/<file>. */
   fullImage?: string;
+  category?: string;
+  tags?: string[];
+  thumbnail?: string;
+  size?: number;
+  source?: string;
+  /** ISO timestamp; absent on assets uploaded before it was recorded. */
+  createdAt?: string;
 }
 
 interface AuthoredObjectResponse {
@@ -152,12 +159,12 @@ export async function ensureSession(): Promise<UserProfile> {
   throw new Error(message);
 }
 
-async function uploadAsset(
+export async function uploadAsset(
   userId: string,
   name: string,
   content: Blob,
   fileName: string,
-  category: 'documents' | 'maps',
+  category: string,
 ): Promise<UserAsset> {
   const form = new FormData();
   form.append('file', new File([content], fileName, { type: content.type }));

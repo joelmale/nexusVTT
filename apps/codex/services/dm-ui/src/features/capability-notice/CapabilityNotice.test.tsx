@@ -50,7 +50,8 @@ describe('capability registry', () => {
         id === 'encounter.deploy' ||
         id === 'map.pin.create' ||
         id === 'map.object.link' ||
-        id === 'map.scene.create'
+        id === 'map.scene.create' ||
+        id === 'map.asset.replace'
       ) {
         expect(capability.status).toBe('implemented');
       } else if (id === 'encounter.deploy.demo') {
