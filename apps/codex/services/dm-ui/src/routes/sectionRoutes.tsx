@@ -3,8 +3,10 @@ import type { ReactElement } from 'react';
 import { LegacyLoreRedirect } from './LegacyLoreRedirect';
 import { MapPreparationRoute } from './MapPreparationRoute';
 import { SessionPlanRoute } from './SessionPlanRoute';
+import { AssetsSectionRoute } from './sections/AssetsSectionRoute';
 import { EncountersSectionRoute } from './sections/EncountersSectionRoute';
 import { FactionsSectionRoute } from './sections/FactionsSectionRoute';
+import { ItemsSectionRoute } from './sections/ItemsSectionRoute';
 import { MapsSectionRoute } from './sections/MapsSectionRoute';
 import { NotesSectionRoute } from './sections/NotesSectionRoute';
 import { NpcsSectionRoute } from './sections/NpcsSectionRoute';
@@ -30,8 +32,10 @@ export const SECTION_ROUTES: SectionRouteDefinition[] = [
   { path: 'factions/:factionId?', element: <FactionsSectionRoute /> },
   { path: 'quests/:questId?', element: <QuestsSectionRoute /> },
   { path: 'encounters/:encounterId?', element: <EncountersSectionRoute /> },
+  { path: 'items/:itemId?', element: <ItemsSectionRoute /> },
   { path: 'maps', element: <MapsSectionRoute /> },
   { path: 'maps/:mapId', element: <MapPreparationRoute /> },
+  { path: 'assets/:assetId?', element: <AssetsSectionRoute /> },
   { path: 'notes/:noteId?', element: <NotesSectionRoute /> },
   { path: 'lore/:tab?/:itemId?', element: <LegacyLoreRedirect /> },
   { path: 'handouts/:handoutId?', element: <LegacyLoreRedirect /> },

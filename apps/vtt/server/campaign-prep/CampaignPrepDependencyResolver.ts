@@ -50,6 +50,7 @@ const CAMPAIGN_ENTRY_KINDS = new Set([
   'encounter',
   'party-member',
   'homebrew-monster',
+  'item',
 ]);
 
 function campaignObjectType(kind: string): PrepDependencyObjectType {

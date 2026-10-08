@@ -14,6 +14,7 @@ export type EntityKind =
   | 'clue'
   | 'handout'
   | 'note'
+  | 'item'
   | 'scene';
 
 export interface EntityRef {
@@ -103,6 +104,14 @@ function buildIndex(bundle: CampaignFixtureBundle): EntityIndex {
   }
   for (const h of bundle.handouts) {
     add({ id: h.id, kind: 'handout', label: h.title, href: noteHref(h.id) });
+  }
+  for (const item of bundle.items ?? []) {
+    add({
+      id: item.id,
+      kind: 'item',
+      label: item.name,
+      href: `/items/${item.id}`,
+    });
   }
   for (const t of bundle.sceneTemplates) {
     add({ id: t.id, kind: 'scene', label: t.title });
@@ -194,6 +203,9 @@ function buildIndex(bundle: CampaignFixtureBundle): EntityIndex {
   for (const m of bundle.maps) {
     link(m.id, m.locationIds);
   }
+  for (const item of bundle.items ?? []) {
+    link(item.id, [item.holder.id, ...item.questIds]);
+  }
 
   // `@` mentions in free text count as links from the object that holds them.
   for (const [sourceId, texts] of mentionSources(bundle)) {
@@ -231,6 +243,10 @@ export function mentionSources(
     ...bundle.encounters.map((e): [string, string[]] => [
       e.id,
       text(e.trigger, e.intendedUse, e.tactics),
+    ]),
+    ...(bundle.items ?? []).map((item): [string, string[]] => [
+      item.id,
+      text(item.description, item.mechanics),
     ]),
   ];
 }

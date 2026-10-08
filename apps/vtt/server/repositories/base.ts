@@ -170,6 +170,7 @@ export type CampaignPrepObjectKind =
   | 'encounter'
   | 'party-member'
   | 'homebrew-monster'
+  | 'item'
   | 'scene-template'
   | 'campaign-map'
   | 'session-plan';

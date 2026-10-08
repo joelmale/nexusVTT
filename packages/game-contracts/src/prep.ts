@@ -15,6 +15,7 @@ export const campaignEntryKindSchema = z.enum([
   'encounter',
   'party-member',
   'homebrew-monster',
+  'item',
 ]);
 export type CampaignEntryKind = z.infer<typeof campaignEntryKindSchema>;
 
