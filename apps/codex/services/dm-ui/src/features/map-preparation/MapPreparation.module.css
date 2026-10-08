@@ -1,64 +1,17 @@
 .layout {
   display: grid;
   grid-template-columns:
-    var(--studio-map-rail) var(--studio-layers-width)
-    minmax(420px, 1fr) var(--studio-inspector-width);
+    var(--studio-layers-width) minmax(420px, 1fr)
+    var(--studio-inspector-width);
   height: 100%;
   min-height: 0;
 }
 
-.appRail,
 .layersPanel,
 .inspector,
 .mapWorkspace {
   min-height: 0;
   min-width: 0;
-}
-
-.appRail {
-  background: var(--studio-chrome);
-  border-right: 1px solid var(--studio-chrome-border);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  overflow: hidden;
-  padding: 8px 6px;
-}
-
-.appRailScroll {
-  min-height: 0;
-  overflow-y: auto;
-}
-
-.appRailFooter {
-  border-top: 1px solid var(--studio-chrome-border);
-  padding-top: 6px;
-}
-
-.appRailItem {
-  align-items: center;
-  background: transparent;
-  border: 0;
-  border-radius: var(--studio-radius-control);
-  color: var(--studio-text-on-chrome-muted);
-  cursor: pointer;
-  display: flex;
-  font-size: 11px;
-  gap: 9px;
-  min-height: 34px;
-  padding: 0 9px;
-  text-decoration: none;
-  width: 100%;
-}
-
-.appRailItem:hover,
-.activeRailItem {
-  background: var(--studio-chrome-raised);
-  color: var(--studio-text-on-chrome);
-}
-
-.activeRailItem {
-  box-shadow: inset 2px 0 0 var(--studio-focus);
 }
 
 .layersPanel {
@@ -78,6 +31,7 @@
 }
 
 .eyebrow {
+  display: block;
   color: var(--studio-text-subtle);
   font-size: 9px;
   font-weight: 750;
@@ -564,7 +518,7 @@
 
 @media (max-width: 1250px) {
   .layout {
-    grid-template-columns: 104px 230px minmax(380px, 1fr);
+    grid-template-columns: 230px minmax(380px, 1fr);
   }
 
   .inspector {
@@ -574,20 +528,11 @@
 
 @media (max-width: 840px) {
   .layout {
-    grid-template-columns: 82px 1fr;
+    grid-template-columns: 1fr;
   }
 
   .layersPanel {
     display: none;
-  }
-
-  .appRailItem {
-    flex-direction: column;
-    font-size: 8px;
-    gap: 2px;
-    justify-content: center;
-    min-height: 44px;
-    padding: 3px;
   }
 
   .mapImage {
@@ -617,44 +562,43 @@
   }
 }
 
-.saveButton {
+.backLink {
   align-items: center;
-  background: var(--studio-positive);
-  border: 0;
-  border-radius: var(--studio-radius-control);
-  color: #fff;
-  cursor: pointer;
-  display: inline-flex;
+  margin-bottom: 4px;
+  color: var(--studio-text-muted);
+  display: flex;
   font-size: 11px;
-  font-weight: 600;
-  gap: 5px;
-  height: 28px;
-  padding: 0 10px;
-  transition: opacity 150ms ease;
+  gap: 4px;
+  text-decoration: none;
 }
 
-.saveButton:hover:not(:disabled) {
-  opacity: 0.9;
+.backLink:hover {
+  color: var(--studio-text);
 }
 
-.saveButton:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.saveStatus {
+  color: var(--studio-text-muted);
+  font-size: 11px;
+}
+
+.saveStatusError {
+  color: var(--studio-danger);
+}
+
+.saveStatus button {
+  background: transparent;
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-control);
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+  padding: 1px 6px;
 }
 
 .headerActions {
   align-items: center;
   display: flex;
   gap: 8px;
-}
-
-.dirtyDot {
-  background: var(--studio-warning, #f59e0b);
-  border-radius: 50%;
-  display: inline-block;
-  height: 7px;
-  margin-left: 6px;
-  width: 7px;
 }
 
 .crosshairCursor {

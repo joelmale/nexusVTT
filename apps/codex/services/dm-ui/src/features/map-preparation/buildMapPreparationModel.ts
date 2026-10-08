@@ -9,7 +9,11 @@ import type {
 export function resolvePublicAsset(path: string): string {
   // The gateway serves the VTT asset library at the origin root, while
   // Studio's own public files live beneath its configured base path.
-  if (path.startsWith('/assets/') || path.startsWith('/library-assets/')) {
+  if (
+    path.startsWith('/assets/') ||
+    path.startsWith('/library-assets/') ||
+    path.startsWith('/users/')
+  ) {
     return path;
   }
   if (
@@ -122,6 +126,17 @@ export function resolveLinkedObject(
       title: handout.title,
     };
   }
+  const campaignItem = (bundle.items ?? []).find(
+    (item) => item.id === objectId,
+  );
+  if (campaignItem) {
+    return {
+      id: campaignItem.id,
+      kind: 'Item',
+      subtitle: campaignItem.rarity.replace('_', ' '),
+      title: campaignItem.name,
+    };
+  }
   const scene = bundle.sceneTemplates.find((item) => item.id === objectId);
   return {
     id: objectId,
@@ -202,6 +217,12 @@ export function buildMapPreparationModel(
       title: h.title,
       subtitle: h.visibility === 'shared' ? 'Player ready' : 'DM only',
     })),
+    ...(bundle.items ?? []).map((item) => ({
+      id: item.id,
+      kind: 'Item',
+      title: item.name,
+      subtitle: item.rarity.replace('_', ' '),
+    })),
     ...bundle.sceneTemplates.map((s) => ({
       id: s.id,
       kind: 'Scene',
@@ -212,6 +233,7 @@ export function buildMapPreparationModel(
 
   return {
     id: map.id,
+    campaignId: bundle.campaignId,
     title: map.title,
     description: map.description,
     imagePath: resolveMapImage(map),

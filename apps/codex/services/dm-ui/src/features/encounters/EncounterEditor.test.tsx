@@ -61,7 +61,7 @@ describe('EncounterEditor', () => {
       screen.getByText(/Calculated difficulty: .* XP vs\. \d+ characters/),
     ).toBeVisible();
 
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() => expect(store.updateItem).toHaveBeenCalled());
     expect(store.updateItem).toHaveBeenCalledWith(
       'encounter',
@@ -133,7 +133,7 @@ describe('EncounterEditor', () => {
     expect(within(rows).getByText('Gloomwing')).toBeVisible();
     expect(within(rows).getByText(/Homebrew/)).toBeVisible();
 
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() => expect(store.updateItem).toHaveBeenCalled());
     expect(store.updateItem).toHaveBeenCalledWith(
       'encounter',
@@ -188,15 +188,18 @@ describe('EncounterEditor', () => {
       'Jam gears with iron spikes; solve zodiac runes',
     );
 
-    // Save
-    await user.click(screen.getByRole('button', { name: 'Save' }));
-    await waitFor(() => expect(store.updateItem).toHaveBeenCalled());
+    // Autosave sends each change as it is committed; Done flushes the rest.
+    await user.click(screen.getByRole('button', { name: 'Done' }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole('form', { name: 'Edit form' }),
+      ).not.toBeInTheDocument(),
+    );
 
     expect(store.updateItem).toHaveBeenCalledWith(
       'encounter',
       'enc-1',
       expect.objectContaining({
-        kind: 'trap',
         trapDetails: expect.objectContaining({
           complexity: 'complex',
           detectionDc: 16,

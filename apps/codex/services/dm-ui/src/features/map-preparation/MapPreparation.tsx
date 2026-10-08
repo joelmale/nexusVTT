@@ -1,30 +1,27 @@
-import Archive from 'lucide-react/dist/esm/icons/archive';
-import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import Boxes from 'lucide-react/dist/esm/icons/boxes';
 import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
 import CircleDot from 'lucide-react/dist/esm/icons/circle-dot';
 import Compass from 'lucide-react/dist/esm/icons/compass';
 import Eye from 'lucide-react/dist/esm/icons/eye';
 import EyeOff from 'lucide-react/dist/esm/icons/eye-off';
-import FileText from 'lucide-react/dist/esm/icons/file-text';
 import Link2 from 'lucide-react/dist/esm/icons/link-2';
-import MapIcon from 'lucide-react/dist/esm/icons/map';
 import MapPin from 'lucide-react/dist/esm/icons/map-pin';
 import Minus from 'lucide-react/dist/esm/icons/minus';
 import MoreHorizontal from 'lucide-react/dist/esm/icons/more-horizontal';
 import MousePointer2 from 'lucide-react/dist/esm/icons/mouse-pointer-2';
-import NotebookPen from 'lucide-react/dist/esm/icons/notebook-pen';
-import Package from 'lucide-react/dist/esm/icons/package';
 import Plus from 'lucide-react/dist/esm/icons/plus';
 import RotateCcw from 'lucide-react/dist/esm/icons/rotate-ccw';
-import Save from 'lucide-react/dist/esm/icons/save';
-import Settings from 'lucide-react/dist/esm/icons/settings';
 import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
-import Swords from 'lucide-react/dist/esm/icons/swords';
 import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
-import UserRound from 'lucide-react/dist/esm/icons/user-round';
 import X from 'lucide-react/dist/esm/icons/x';
-import { useMemo, useRef, useState } from 'react';
+import {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+  type ReactNode,
+} from 'react';
 import { Link } from 'react-router-dom';
 
 import type { CapabilityId } from '@/features/capability-notice';
@@ -51,6 +48,8 @@ interface MapPreparationProps {
     name: string,
   ) => Promise<{ id: string; title: string }> | { id: string; title: string };
   editable?: boolean;
+  /** Extra header buttons (e.g. Remove) rendered in the editor header. */
+  headerActions?: ReactNode;
 }
 
 type InspectorTab = 'details' | 'objects' | 'notes';
@@ -65,18 +64,44 @@ const PRESET_COLORS = [
   '#f97316',
 ];
 
-const APP_NAV_ITEMS = [
-  { icon: BookOpen, label: 'Campaign', target: 'campaign' },
-  { icon: MapIcon, label: 'Maps', target: 'maps' },
-  { icon: MapPin, label: 'Locations', target: 'locations' },
-  { icon: UserRound, label: 'NPCs', target: 'npcs' },
-  { icon: Swords, label: 'Encounters', target: 'encounters' },
-  { icon: Package, label: 'Items', target: 'items' },
-  { icon: Sparkles, label: 'Scenes', target: 'scenes' },
-  { icon: FileText, label: 'Notes', target: 'notes' },
-  { icon: Archive, label: 'Assets', target: 'assets' },
-  { icon: NotebookPen, label: 'Journal', target: 'journal' },
-] as const;
+type SaveStatus = 'idle' | 'unsaved' | 'saving' | 'saved' | 'error';
+
+/** Delay between the last edit and the autosave. */
+const AUTOSAVE_DELAY_MS = 800;
+
+function buildMapPayload(
+  model: MapPreparationViewModel,
+  pins: MapPinViewModel[],
+  visibleLayers: Record<string, boolean>,
+): Record<string, unknown> {
+  return {
+    title: model.title,
+    description: model.description,
+    imageAssetRef: model.imageAssetRef,
+    dimensions: model.dimensions,
+    layers: model.layers.map((l) => ({
+      id: l.id,
+      label: l.label,
+      visibleByDefault: visibleLayers[l.id] ?? true,
+      order: l.order,
+    })),
+    pins: pins.map((p, index) => ({
+      id: p.id,
+      label: p.label,
+      x: p.x,
+      y: p.y,
+      order: index + 1,
+      layerIds: p.layerIds,
+      locationId: p.locationId,
+      icon: p.icon,
+      color: p.color,
+      visibility: p.visibility ?? 'players',
+      notes: p.notes,
+      linkedObjectRefs: p.linkedObjectRefs,
+      linkedObjectIds: p.linkedObjects?.map((o) => o.id) ?? [],
+    })),
+  };
+}
 
 export function MapPreparation({
   model,
@@ -86,6 +111,7 @@ export function MapPreparation({
   onCreateScene,
   onCreateLocation,
   editable = true,
+  headerActions,
 }: MapPreparationProps) {
   const [pins, setPins] = useState<MapPinViewModel[]>(model.pins);
   const [selectedPinId, setSelectedPinId] = useState(model.selectedPinId);
@@ -95,8 +121,7 @@ export function MapPreparation({
   const [zoom, setZoom] = useState(1);
   const [mode, setMode] = useState<'select' | 'visibility' | 'add-pin'>('select');
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('details');
-  const [isDirty, setIsDirty] = useState(false);
-  const [isSaving, setIsSaving] = useState(false);
+  const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
   const [isObjectModalOpen, setIsObjectModalOpen] = useState(false);
   const [objectSearch, setObjectSearch] = useState('');
   const [sceneCreatedMessage, setSceneCreatedMessage] = useState<string | null>(null);
@@ -106,6 +131,73 @@ export function MapPreparation({
   const [isSubmittingLocation, setIsSubmittingLocation] = useState(false);
 
   const mapTransformRef = useRef<HTMLDivElement>(null);
+
+  // Autosave: edits bump `changeVersion`; `persist` saves until
+  // `savedVersion` catches up, never running two onSave calls at once.
+  const latest = useRef({ model, pins, visibleLayers, onSave });
+  const changeVersion = useRef(0);
+  const savedVersion = useRef(0);
+  const saving = useRef(false);
+  const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    latest.current = { model, pins, visibleLayers, onSave };
+  });
+
+  const persist = useCallback(async () => {
+    if (timer.current) {
+      clearTimeout(timer.current);
+      timer.current = null;
+    }
+    if (saving.current || !latest.current.onSave) return;
+    if (savedVersion.current >= changeVersion.current) return;
+    saving.current = true;
+    try {
+      while (savedVersion.current < changeVersion.current) {
+        const version = changeVersion.current;
+        const { model: m, pins: p, visibleLayers: v, onSave: save } =
+          latest.current;
+        setSaveStatus('saving');
+        try {
+          await save?.(buildMapPayload(m, p, v));
+        } catch (err) {
+          console.error('Failed to save map', err);
+          setSaveStatus('error');
+          return;
+        }
+        savedVersion.current = version;
+      }
+      setSaveStatus('saved');
+    } finally {
+      saving.current = false;
+    }
+  }, []);
+
+  const markDirty = useCallback(() => {
+    changeVersion.current += 1;
+    setSaveStatus((current) => (current === 'saving' ? current : 'unsaved'));
+    if (timer.current) clearTimeout(timer.current);
+    timer.current = setTimeout(() => void persist(), AUTOSAVE_DELAY_MS);
+  }, [persist]);
+
+  // Flush edits made just before leaving the map.
+  useEffect(
+    () => () => {
+      if (savedVersion.current < changeVersion.current) void persist();
+      else if (timer.current) clearTimeout(timer.current);
+    },
+    [persist],
+  );
+
+  useEffect(() => {
+    if (saveStatus === 'idle' || saveStatus === 'saved') return;
+    const guard = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = '';
+    };
+    window.addEventListener('beforeunload', guard);
+    return () => window.removeEventListener('beforeunload', guard);
+  }, [saveStatus]);
 
   const selectedPin =
     pins.find((pin) => pin.id === selectedPinId) ?? pins[0];
@@ -152,7 +244,7 @@ export function MapPreparation({
     setPins((prev) => [...prev, newPin]);
     setSelectedPinId(newPinId);
     setMode('select');
-    setIsDirty(true);
+    markDirty();
   }
 
   function handlePinPointerDown(e: React.PointerEvent, pinId: string) {
@@ -172,7 +264,7 @@ export function MapPreparation({
       setPins((current) =>
         current.map((p) => (p.id === pinId ? { ...p, x, y } : p)),
       );
-      setIsDirty(true);
+      markDirty();
     };
 
     const onPointerUp = () => {
@@ -211,7 +303,7 @@ export function MapPreparation({
         return { ...p, x, y };
       }),
     );
-    setIsDirty(true);
+    markDirty();
   }
 
   function handleDeletePin(pinId: string) {
@@ -221,7 +313,7 @@ export function MapPreparation({
       const remaining = pins.filter((p) => p.id !== pinId);
       setSelectedPinId(remaining[0]?.id ?? '');
     }
-    setIsDirty(true);
+    markDirty();
   }
 
   function updateSelectedPin(patch: Partial<MapPinViewModel>) {
@@ -229,7 +321,7 @@ export function MapPreparation({
     setPins((current) =>
       current.map((p) => (p.id === selectedPin.id ? { ...p, ...patch } : p)),
     );
-    setIsDirty(true);
+    markDirty();
   }
 
   function handleAddLinkedObject(obj: LinkedObjectViewModel) {
@@ -238,9 +330,20 @@ export function MapPreparation({
     if (existing.some((item) => item.id === obj.id)) return;
 
     const updated = [...existing, obj];
+    // A campaign-object reference pins the object's revision; the store
+    // refreshes it to the current one when the map is saved.
     const updatedRefs = [
       ...(selectedPin.linkedObjectRefs ?? []),
-      { target: 'campaign-object', id: obj.id, kind: obj.kind.toLowerCase() },
+      ...(model.campaignId
+        ? [
+            {
+              target: 'campaign-object',
+              campaignId: model.campaignId,
+              id: obj.id,
+              revision: 1,
+            },
+          ]
+        : []),
     ];
     updateSelectedPin({
       linkedObjects: updated,
@@ -261,44 +364,6 @@ export function MapPreparation({
       linkedObjects: updated,
       linkedObjectRefs: updatedRefs,
     });
-  }
-
-  async function handleSave() {
-    if (!onSave || !isDirty || isSaving) return;
-    setIsSaving(true);
-    try {
-      const updatedMap: Record<string, unknown> = {
-        title: model.title,
-        description: model.description,
-        imageAssetRef: model.imageAssetRef,
-        dimensions: model.dimensions,
-        layers: model.layers.map((l) => ({
-          id: l.id,
-          label: l.label,
-          visibleByDefault: visibleLayers[l.id] ?? true,
-          order: l.order,
-        })),
-        pins: pins.map((p, index) => ({
-          id: p.id,
-          label: p.label,
-          x: p.x,
-          y: p.y,
-          order: index + 1,
-          layerIds: p.layerIds,
-          locationId: p.locationId,
-          icon: p.icon,
-          color: p.color,
-          visibility: p.visibility ?? 'players',
-          notes: p.notes,
-          linkedObjectRefs: p.linkedObjectRefs,
-          linkedObjectIds: p.linkedObjects?.map((o) => o.id) ?? [],
-        })),
-      };
-      await onSave(updatedMap);
-      setIsDirty(false);
-    } finally {
-      setIsSaving(false);
-    }
   }
 
   async function handleCreateScene() {
@@ -356,72 +421,15 @@ export function MapPreparation({
 
   return (
     <div className={styles.layout}>
-      <nav className={styles.appRail} aria-label="Campaign Studio tools">
-        <div className={styles.appRailScroll}>
-          <Link className={styles.appRailItem} to={`${basePath}/maps`}>
-            <ChevronLeft size={17} />
-            <span>Back to Maps</span>
-          </Link>
-          {APP_NAV_ITEMS.map((item) => {
-            const Icon = item.icon;
-            const active = item.target === 'maps';
-            const sectionRouteMap: Record<string, string> = {
-              'campaign': `${basePath}/overview`,
-              'locations': `${basePath}/world`,
-              'npcs': `${basePath}/npcs`,
-              'encounters': `${basePath}/encounters`,
-              'notes': `${basePath}/notes`,
-            };
-            const targetRoute = sectionRouteMap[item.target];
-            if (targetRoute) {
-              return (
-                <Link
-                  className={styles.appRailItem}
-                  key={item.target}
-                  to={targetRoute}
-                  aria-current={active ? 'page' : undefined}
-                >
-                  <Icon size={17} />
-                  <span>{item.label}</span>
-                </Link>
-              );
-            }
-            return (
-              <button
-                aria-current={active ? 'page' : undefined}
-                className={`${styles.appRailItem} ${active ? styles.activeRailItem : ''}`}
-                key={item.target}
-                onClick={() => !active && onCapability('campaign.section.open')}
-                type="button"
-              >
-                <Icon size={17} />
-                <span>{item.label}</span>
-              </button>
-            );
-          })}
-        </div>
-        <div className={styles.appRailFooter}>
-          <button
-            className={styles.appRailItem}
-            onClick={() => onCapability('campaign.settings.open')}
-            type="button"
-          >
-            <Settings size={17} />
-            <span>Settings</span>
-          </button>
-          <button className={styles.appRailItem} type="button">
-            <ChevronLeft size={17} />
-            <span>Collapse</span>
-          </button>
-        </div>
-      </nav>
-
       <aside className={styles.layersPanel}>
         <div className={styles.panelHeader}>
           <div>
+            <Link className={styles.backLink} to={`${basePath}/maps`}>
+              <ChevronLeft size={14} />
+              <span>Back to Maps</span>
+            </Link>
             <span className={styles.eyebrow}>
               Map preparation
-              {isDirty && <span className={styles.dirtyDot} title="Unsaved changes" />}
               {sceneCreatedMessage && (
                 <span className={styles.sceneNotice}>{sceneCreatedMessage}</span>
               )}
@@ -429,26 +437,25 @@ export function MapPreparation({
             <h1>{model.title}</h1>
           </div>
           <div className={styles.headerActions}>
-            {onSave && isDirty && (
-              <button
-                className={styles.saveButton}
-                disabled={isSaving}
-                onClick={handleSave}
-                type="button"
+            {onSave && saveStatus !== 'idle' ? (
+              <span
+                className={`${styles.saveStatus} ${saveStatus === 'error' ? styles.saveStatusError : ''}`}
+                role="status"
               >
-                <Save size={13} />
-                <span>{isSaving ? 'Saving...' : 'Save'}</span>
-              </button>
-            )}
-            <button
-              aria-label="Map options"
-              className={styles.iconButton}
-              onClick={() => onCapability('map.options.open')}
-              title="Map options"
-              type="button"
-            >
-              <MoreHorizontal size={17} />
-            </button>
+                {saveStatus === 'saving' && 'Saving…'}
+                {saveStatus === 'saved' && 'Saved'}
+                {saveStatus === 'unsaved' && 'Unsaved changes'}
+                {saveStatus === 'error' && (
+                  <>
+                    Could not save{' '}
+                    <button onClick={() => void persist()} type="button">
+                      Retry
+                    </button>
+                  </>
+                )}
+              </span>
+            ) : null}
+            {headerActions}
           </div>
         </div>
 
@@ -464,12 +471,13 @@ export function MapPreparation({
                 aria-pressed={visible}
                 className={styles.layerRow}
                 key={layer.id}
-                onClick={() =>
+                onClick={() => {
                   setVisibleLayers((current) => ({
                     ...current,
                     [layer.id]: !current[layer.id],
-                  }))
-                }
+                  }));
+                  if (editable) markDirty();
+                }}
                 type="button"
               >
                 <span className={styles.layerSwatch} />
@@ -653,6 +661,7 @@ export function MapPreparation({
         onOpenLinkModal={() => setIsObjectModalOpen(true)}
         onRemoveLinkedObject={handleRemoveLinkedObject}
         onTabChange={setInspectorTab}
+        onCommitPin={() => void persist()}
         onUpdatePin={updateSelectedPin}
         pin={selectedPin}
         selectedTab={inspectorTab}
@@ -764,6 +773,8 @@ interface LocationInspectorProps {
   onCapability: (capabilityId: CapabilityId) => void;
   onTabChange: (tab: InspectorTab) => void;
   onUpdatePin: (patch: Partial<MapPinViewModel>) => void;
+  /** Save now (text fields call it on blur). */
+  onCommitPin: () => void;
   onDeletePin: () => void;
   onOpenLinkModal: () => void;
   onRemoveLinkedObject: (objectId: string) => void;
@@ -778,6 +789,7 @@ function LocationInspector({
   onCapability,
   onTabChange,
   onUpdatePin,
+  onCommitPin,
   onDeletePin,
   onOpenLinkModal,
   onRemoveLinkedObject,
@@ -838,6 +850,7 @@ function LocationInspector({
                   <input
                     className={styles.formInput}
                     id="pin-label-input"
+                    onBlur={onCommitPin}
                     onChange={(e) => onUpdatePin({ label: e.target.value })}
                     type="text"
                     value={pin.label}
@@ -997,6 +1010,7 @@ function LocationInspector({
             <textarea
               aria-label="Map notes"
               disabled={!editable}
+              onBlur={onCommitPin}
               onChange={(e) => onUpdatePin({ notes: e.target.value })}
               rows={10}
               value={pin?.notes ?? location?.notes ?? ''}

@@ -11,6 +11,7 @@ import { diffDraft } from '@/features/section-shell/draftUtils';
 import { EmptyState } from '@/features/section-shell/EmptyState';
 import { EntityList } from '@/features/section-shell/EntityList';
 import { FilterBar } from '@/features/section-shell/FilterBar';
+import { HeldItems } from '@/features/items/HeldItems';
 import { RelatedGroups } from '@/features/section-shell/RelatedGroups';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
 import { SectionLayout } from '@/features/section-shell/SectionLayout';
@@ -208,6 +209,7 @@ function EncounterDetail({ encounter }: { encounter: CampaignEncounter }) {
 
   return (
     <EditableSection
+      listPath="encounters"
       headerExtras={
         <span className={styles.badges}>
           <StatusBadge tone="neutral">
@@ -390,6 +392,8 @@ function EncounterDetail({ encounter }: { encounter: CampaignEncounter }) {
             <p>{encounter.rulesetNotes}</p>
           </section>
         ) : null}
+
+        <HeldItems heading="Loot" holderId={encounter.id} />
 
         <RelatedGroups
           entityId={encounter.id}

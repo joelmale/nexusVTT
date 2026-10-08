@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 
 import type { TrapComplexity, TrapDetails } from '@/demo/fixture-registry';
+import { useEditableCommit } from '@/features/section-shell/EditableCommitContext';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
 import { humanize } from '@/features/section-shell/statusTones';
 
@@ -53,6 +54,7 @@ export function EncounterEditor({
   setDraft: (next: Draft) => void;
 }) {
   const { bundle } = useSectionBundle();
+  const commit = useEditableCommit();
   const { catalog, rating, party, edition } = useDraftRating(bundle, draft);
   const composition = compositionOf(draft);
 
@@ -317,9 +319,10 @@ export function EncounterEditor({
                 </label>
                 <button
                   aria-label={`Remove ${row.name}`}
-                  onClick={() =>
-                    setComposition(composition.filter((_, at) => at !== index))
-                  }
+                  onClick={() => {
+                    setComposition(composition.filter((_, at) => at !== index));
+                    commit();
+                  }}
                   type="button"
                 >
                   Remove
@@ -335,9 +338,10 @@ export function EncounterEditor({
         />
         <MonsterPicker
           catalog={catalog}
-          onAdd={(monster) =>
-            setComposition([...composition, componentFromMonster(monster)])
-          }
+          onAdd={(monster) => {
+            setComposition([...composition, componentFromMonster(monster)]);
+            commit();
+          }}
         />
       </fieldset>
 

@@ -218,7 +218,7 @@ describe('FactionsSection', () => {
       expect(within(form).getByLabelText('Leader')).toBeInTheDocument();
 
       await user.selectOptions(within(form).getByLabelText('Status'), 'ally');
-      await user.click(screen.getByRole('button', { name: 'Save' }));
+      await user.click(screen.getByRole('button', { name: 'Done' }));
 
       expect(updateItem).toHaveBeenCalledWith(
         'faction',

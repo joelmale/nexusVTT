@@ -68,6 +68,7 @@ function NoteDetail({ note }: { note: CampaignNote }) {
 
   return (
     <EditableSection
+      listPath="notes"
       heading={note.title}
       id={note.id}
       initialDraft={draft as unknown as Record<string, unknown>}

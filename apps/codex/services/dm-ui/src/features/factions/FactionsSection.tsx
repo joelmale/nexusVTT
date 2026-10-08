@@ -150,6 +150,7 @@ export function FactionsSection() {
 
   const detail = selectedFaction ? (
     <EditableSection
+      listPath="factions"
       kind="faction"
       id={selectedFaction.id}
       heading={selectedFaction.name}

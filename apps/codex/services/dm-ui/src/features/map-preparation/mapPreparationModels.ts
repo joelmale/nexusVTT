@@ -41,6 +41,8 @@ export interface LocationViewModel {
 
 export interface MapPreparationViewModel {
   id: string;
+  /** Owning campaign; needed to build valid campaign-object references. */
+  campaignId?: string;
   title: string;
   description?: string;
   imagePath: string;

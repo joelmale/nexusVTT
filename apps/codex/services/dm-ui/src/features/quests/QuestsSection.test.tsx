@@ -104,7 +104,7 @@ describe('QuestsSection', () => {
       screen.getByLabelText(`Objective ${count + 1} title`),
       'New step',
     );
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Done' }));
     expect(updateItem.mock.calls[0][0]).toBe('quest');
     const patch = updateItem.mock.calls[0][2];
     expect(patch.objectives.at(-1)).toMatchObject({

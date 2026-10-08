@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
@@ -139,11 +139,12 @@ describe('MapPreparation', () => {
     await user.clear(input);
     await user.type(input, 'Renamed Customs House');
 
-    const saveButton = screen.getByRole('button', { name: /save/i });
-    expect(saveButton).toBeInTheDocument();
-    await user.click(saveButton);
+    expect(screen.queryByRole('button', { name: /^save$/i })).toBeNull();
+    expect(screen.getByText('Unsaved changes')).toBeInTheDocument();
+    // leaving the field saves immediately
+    await user.tab();
 
-    expect(onSave).toHaveBeenCalledTimes(1);
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
     const savedPayload = onSave.mock.calls[0][0];
     expect(savedPayload.pins[0].label).toBe('Renamed Customs House');
   });
@@ -164,12 +165,82 @@ describe('MapPreparation', () => {
     // ArrowRight nudges X by +0.01 (from 0.400 to 0.410)
     fireEvent.keyDown(pinButton, { key: 'ArrowRight' });
 
-    const saveButton = screen.getByRole('button', { name: /save/i });
-    await userEvent.click(saveButton);
-
-    expect(onSave).toHaveBeenCalled();
+    // debounced autosave
+    await waitFor(() => expect(onSave).toHaveBeenCalled(), { timeout: 3000 });
     const savedPin = onSave.mock.calls[0][0].pins[0];
     expect(savedPin.x).toBe(0.41);
+  });
+
+  it('serializes saves made while one is in flight', async () => {
+    const user = userEvent.setup();
+    const resolvers: Array<() => void> = [];
+    const onSave = vi.fn(() => new Promise<void>((r) => resolvers.push(r)));
+    render(
+      <MemoryRouter>
+        <MapPreparation model={model} onCapability={vi.fn()} onSave={onSave} />
+      </MemoryRouter>,
+    );
+    const input = screen.getByLabelText('Pin Label');
+    await user.type(input, 'A');
+    await user.tab();
+    expect(onSave).toHaveBeenCalledTimes(1);
+
+    await user.click(input);
+    await user.type(input, 'B');
+    await user.tab();
+    expect(onSave).toHaveBeenCalledTimes(1);
+
+    resolvers[0]();
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(2));
+    expect(onSave.mock.calls[1][0].pins[0].label).toMatch(/AB$/);
+    resolvers[1]();
+    expect(await screen.findByText('Saved')).toBeInTheDocument();
+  });
+
+  it('flushes unsaved edits on unmount', async () => {
+    const user = userEvent.setup();
+    const onSave = vi.fn().mockResolvedValue(undefined);
+    const { unmount } = render(
+      <MemoryRouter>
+        <MapPreparation model={model} onCapability={vi.fn()} onSave={onSave} />
+      </MemoryRouter>,
+    );
+    await user.type(screen.getByLabelText('Pin Label'), '!');
+    expect(onSave).not.toHaveBeenCalled();
+    unmount();
+    expect(onSave).toHaveBeenCalledTimes(1);
+  });
+
+  it('shows an error with retry when saving fails', async () => {
+    const user = userEvent.setup();
+    const onSave = vi
+      .fn()
+      .mockRejectedValueOnce(new Error('offline'))
+      .mockResolvedValue(undefined);
+    vi.spyOn(console, 'error').mockImplementation(() => undefined);
+    render(
+      <MemoryRouter>
+        <MapPreparation model={model} onCapability={vi.fn()} onSave={onSave} />
+      </MemoryRouter>,
+    );
+    await user.type(screen.getByLabelText('Pin Label'), '!');
+    await user.tab();
+    await user.click(await screen.findByRole('button', { name: 'Retry' }));
+    expect(await screen.findByText('Saved')).toBeInTheDocument();
+    expect(onSave).toHaveBeenCalledTimes(2);
+  });
+
+  it('renders headerActions in the editor header', () => {
+    render(
+      <MemoryRouter>
+        <MapPreparation
+          headerActions={<button type="button">Remove map</button>}
+          model={model}
+          onCapability={vi.fn()}
+        />
+      </MemoryRouter>,
+    );
+    expect(screen.getByRole('button', { name: 'Remove map' })).toBeVisible();
   });
 
   it('deletes selected pin when delete button is clicked', async () => {

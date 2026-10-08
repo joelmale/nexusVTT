@@ -5,6 +5,7 @@ import type { CampaignQuest } from '@/demo/fixture-registry';
 import { MentionTextarea } from '@/features/mentions/MentionTextarea';
 import { MentionText } from '@/features/mentions/MentionText';
 import { AddRow, EditableSection } from '@/features/section-shell/EditableSection';
+import { useEditableCommit } from '@/features/section-shell/EditableCommitContext';
 import { EmptyState } from '@/features/section-shell/EmptyState';
 import { EntityLink } from '@/features/section-shell/EntityLink';
 import { EntityList } from '@/features/section-shell/EntityList';
@@ -225,6 +226,7 @@ function QuestDetail({ quest }: { quest: CampaignQuest }) {
 
   return (
     <EditableSection
+      listPath="quests"
       headerExtras={
         <span className={styles.badges}>
           <StatusBadge value={quest.status}>
@@ -335,6 +337,7 @@ function QuestForm({
   setDraft: (next: Record<string, unknown>) => void;
 }) {
   const { bundle } = useSectionBundle();
+  const commit = useEditableCommit();
   const update = (patch: Partial<QuestDraft>) => setDraft({ ...draft, ...patch });
   const setObjective = (index: number, patch: Partial<ObjectiveDraft>) =>
     update({
@@ -342,7 +345,7 @@ function QuestForm({
         i === index ? { ...objective, ...patch } : objective,
       ),
     });
-  const addObjective = () =>
+  const addObjective = () => {
     update({
       objectives: [
         ...draft.objectives,
@@ -354,6 +357,8 @@ function QuestForm({
         },
       ],
     });
+    commit();
+  };
 
   return (
     <>
@@ -436,11 +441,12 @@ function QuestForm({
             </label>
             <button
               aria-label={`Remove objective ${index + 1}`}
-              onClick={() =>
+              onClick={() => {
                 update({
                   objectives: draft.objectives.filter((_, i) => i !== index),
-                })
-              }
+                });
+                commit();
+              }}
               type="button"
             >
               Remove
