@@ -52,6 +52,9 @@
  *   encounterIds) are derived on load. Session-plan objects not attached to
  *   a session still list as sessions. Encounters are fixture-shaped for now
  *   and become EncounterTemplate-backed in the encounter authoring phase.
+ * - item (loot and treasure) is an entry-shaped kind with title `name`. Its
+ *   `holder` ({kind, id}) names the party member / NPC / location / encounter
+ *   that carries it; the reverse "carries" lists are derived on load.
  * - Never persisted: derived links elsewhere, mapId, pinId, sceneTemplateId.
  * - Bundle ids are the server object ids, so tracking is id -> revision.
  * - Seeding pre-generates UUIDs for every copied fixture item and rewrites
@@ -78,6 +81,7 @@ import type {
   CampaignHandout,
   CampaignNote,
   CampaignSession,
+  CampaignItem,
   HomebrewMonster,
   PlayerCharacter,
   NoteAudience,
@@ -93,6 +97,11 @@ import type {
   NpcCombatSummary,
   NpcStatBlockRef,
   QuestObjective,
+} from '../demo/fixture-registry/types';
+import {
+  ITEM_HOLDER_KINDS,
+  ITEM_RARITIES,
+  ITEM_TYPES,
 } from '../demo/fixture-registry/types';
 import type {
   ActivityLink,
@@ -113,6 +122,7 @@ export type EditableKind =
   | 'encounter'
   | 'party-member'
   | 'homebrew-monster'
+  | 'item'
   | 'campaign-map';
 
 /** Handouts and folders are both stored as server kind `lore`. */
@@ -156,9 +166,25 @@ export interface SeedResult {
   skipped: string[];
 }
 
+/** An item whose current revision references another (a backlink). */
+export interface BacklinkRef {
+  id: string;
+  kind: EditableKind | 'session-plan' | 'other';
+  title: string;
+}
+
 export interface ServerBundleStore {
   load(): Promise<CampaignFixtureBundle>;
   reload(): Promise<CampaignFixtureBundle>;
+  /**
+   * Soft-deletes (archives) an item. The item leaves the bundle immediately
+   * and returns if the server rejects the change. Undo with `restoreItem`.
+   */
+  removeItem(kind: EditableKind, id: string): Promise<SaveResult>;
+  /** Un-archives an item removed earlier in this session. */
+  restoreItem(kind: EditableKind, id: string): Promise<SaveResult>;
+  /** Items that reference `id`. */
+  getBacklinks(id: string): Promise<BacklinkRef[]>;
   updateItem(
     kind: EditableKind,
     id: string,
@@ -225,6 +251,7 @@ const EDITABLE_KINDS: string[] = [
   'encounter',
   'party-member',
   'homebrew-monster',
+  'item',
   'campaign-map',
 ];
 
@@ -335,7 +362,8 @@ function titleKey(kind: EditableKind): 'name' | 'title' {
     kind === 'faction' ||
     kind === 'location' ||
     kind === 'party-member' ||
-    kind === 'homebrew-monster'
+    kind === 'homebrew-monster' ||
+    kind === 'item'
     ? 'name'
     : 'title';
 }
@@ -348,10 +376,16 @@ function oneOf<T extends string>(
   return allowed.includes(value as T) ? (value as T) : fallback;
 }
 
+function optionalNumber(value: unknown): number | undefined {
+  if (value === '' || value == null) return undefined;
+  const parsed = typeof value === 'string' ? Number(value) : value;
+  return typeof parsed === 'number' && Number.isFinite(parsed) && parsed >= 0
+    ? parsed
+    : undefined;
+}
+
 function num(value: unknown, fallback: number): number {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? value
-    : fallback;
+  return typeof value === 'number' && Number.isFinite(value) ? value : fallback;
 }
 
 // ------------------------------------------------------- entity normalizing
@@ -594,7 +628,13 @@ function normalize(
         title: str(raw.title),
         kind: oneOf(
           raw.kind,
-          ['combat', 'social', 'combat-hazard', 'combat-exploration', 'trap'] as const,
+          [
+            'combat',
+            'social',
+            'combat-hazard',
+            'combat-exploration',
+            'trap',
+          ] as const,
           'combat',
         ),
         difficulty: oneOf(
@@ -633,18 +673,32 @@ function normalize(
                 ['simple', 'complex', 'puzzle'] as const,
                 'simple',
               ),
-              ...(raw.trapDetails.detectionDc != null && raw.trapDetails.detectionDc !== ''
+              ...(raw.trapDetails.detectionDc != null &&
+              raw.trapDetails.detectionDc !== ''
                 ? { detectionDc: num(raw.trapDetails.detectionDc, 10) }
                 : {}),
-              ...(raw.trapDetails.disarmDc != null && raw.trapDetails.disarmDc !== ''
+              ...(raw.trapDetails.disarmDc != null &&
+              raw.trapDetails.disarmDc !== ''
                 ? { disarmDc: num(raw.trapDetails.disarmDc, 10) }
                 : {}),
-              ...(raw.trapDetails.trigger ? { trigger: str(raw.trapDetails.trigger) } : {}),
-              ...(raw.trapDetails.initiativeOrTimer ? { initiativeOrTimer: str(raw.trapDetails.initiativeOrTimer) } : {}),
-              ...(raw.trapDetails.saveOrAttack ? { saveOrAttack: str(raw.trapDetails.saveOrAttack) } : {}),
-              ...(raw.trapDetails.effect ? { effect: str(raw.trapDetails.effect) } : {}),
-              ...(raw.trapDetails.countermeasures ? { countermeasures: str(raw.trapDetails.countermeasures) } : {}),
-              ...(raw.trapDetails.reset ? { reset: str(raw.trapDetails.reset) } : {}),
+              ...(raw.trapDetails.trigger
+                ? { trigger: str(raw.trapDetails.trigger) }
+                : {}),
+              ...(raw.trapDetails.initiativeOrTimer
+                ? { initiativeOrTimer: str(raw.trapDetails.initiativeOrTimer) }
+                : {}),
+              ...(raw.trapDetails.saveOrAttack
+                ? { saveOrAttack: str(raw.trapDetails.saveOrAttack) }
+                : {}),
+              ...(raw.trapDetails.effect
+                ? { effect: str(raw.trapDetails.effect) }
+                : {}),
+              ...(raw.trapDetails.countermeasures
+                ? { countermeasures: str(raw.trapDetails.countermeasures) }
+                : {}),
+              ...(raw.trapDetails.reset
+                ? { reset: str(raw.trapDetails.reset) }
+                : {}),
             }
           : undefined,
       } satisfies CampaignEncounter;
@@ -675,8 +729,47 @@ function normalize(
         notes: str(raw.notes),
       } satisfies HomebrewMonster;
     }
+    case 'item': {
+      const holder = isRecord(raw.holder) ? raw.holder : {};
+      const holderKind = oneOf(holder.kind, ITEM_HOLDER_KINDS, 'none');
+      const holderId = str(holder.id);
+      const valueGp = optionalNumber(raw.valueGp);
+      const weightLb = optionalNumber(raw.weightLb);
+      const attunementNote = str(raw.attunementNote).trim();
+      const mechanics = str(raw.mechanics);
+      return {
+        ...base,
+        name: str(raw.name),
+        itemType: oneOf(raw.itemType, ITEM_TYPES, 'other'),
+        rarity: oneOf(raw.rarity, ITEM_RARITIES, 'none'),
+        requiresAttunement: raw.requiresAttunement === true,
+        ...(attunementNote ? { attunementNote } : {}),
+        ...(valueGp !== undefined ? { valueGp } : {}),
+        ...(weightLb !== undefined ? { weightLb } : {}),
+        quantity: Math.max(1, Math.round(num(raw.quantity, 1))),
+        description: str(raw.description),
+        ...(mechanics ? { mechanics } : {}),
+        holder:
+          holderKind === 'none'
+            ? { kind: 'none' }
+            : { kind: holderKind, ...(holderId ? { id: holderId } : {}) },
+        discovered: raw.discovered === true,
+        identified: raw.identified === true,
+        questIds: strings(raw.questIds),
+        ...(isRecord(raw.source) && raw.source.entityId
+          ? {
+              source: {
+                ruleset: str(raw.source.ruleset),
+                entityId: str(raw.source.entityId),
+              },
+            }
+          : {}),
+      } satisfies CampaignItem;
+    }
     case 'campaign-map': {
-      const pins = Array.isArray(raw.pins) ? (raw.pins as unknown as MapPin[]) : [];
+      const pins = Array.isArray(raw.pins)
+        ? (raw.pins as unknown as MapPin[])
+        : [];
       const locationIds = [
         ...new Set(
           pins
@@ -685,7 +778,8 @@ function normalize(
         ),
       ];
       const imageAssetRef =
-        isRecord(raw.imageAssetRef) && typeof raw.imageAssetRef.assetId === 'string'
+        isRecord(raw.imageAssetRef) &&
+        typeof raw.imageAssetRef.assetId === 'string'
           ? { target: 'asset' as const, assetId: raw.imageAssetRef.assetId }
           : undefined;
       const dimensions =
@@ -706,7 +800,9 @@ function normalize(
             : undefined,
         imageAssetRef,
         dimensions,
-        layers: Array.isArray(raw.layers) ? (raw.layers as unknown as CampaignMap['layers']) : [],
+        layers: Array.isArray(raw.layers)
+          ? (raw.layers as unknown as CampaignMap['layers'])
+          : [],
         pins,
         locationIds,
       } satisfies CampaignMap;
@@ -779,6 +875,8 @@ function plainLines(kind: EditableKind, entity: Entity): string[] {
       return [str(entity.hook)];
     case 'homebrew-monster':
       return [str(entity.notes)];
+    case 'item':
+      return [str(entity.description)];
     case 'campaign-map':
       return [str(entity.description)];
   }
@@ -864,6 +962,35 @@ function storableImageUrl(value: unknown): string | undefined {
   return url;
 }
 
+/**
+ * Campaign-object refs with the campaign id filled in and the revision set to
+ * the object's current one (kept as-is for objects this store does not track,
+ * such as scene templates).
+ */
+function currentObjectRefs(
+  campaignId: string,
+  refs: unknown[],
+  revisionOf: (id: string) => number | undefined,
+): unknown[] {
+  return refs.map((ref) => {
+    if (
+      !isRecord(ref) ||
+      ref.target !== 'campaign-object' ||
+      typeof ref.id !== 'string'
+    ) {
+      return ref;
+    }
+    const kept =
+      typeof ref.revision === 'number' && ref.revision >= 1 ? ref.revision : 1;
+    return {
+      target: 'campaign-object',
+      campaignId,
+      id: ref.id,
+      revision: revisionOf(ref.id) ?? kept,
+    };
+  });
+}
+
 function buildData(
   campaignId: string,
   kind: EditableKind,
@@ -875,7 +1002,8 @@ function buildData(
 ): Record<string, unknown> {
   if (kind === 'campaign-map') {
     const rawImage =
-      isRecord(entity.imageAssetRef) && typeof entity.imageAssetRef.assetId === 'string'
+      isRecord(entity.imageAssetRef) &&
+      typeof entity.imageAssetRef.assetId === 'string'
         ? entity.imageAssetRef
         : {
             target: 'asset',
@@ -898,7 +1026,20 @@ function buildData(
         ? entity.dimensions
         : { width: 1920, height: 1080 },
       layers: Array.isArray(entity.layers) ? entity.layers : [],
-      pins: Array.isArray(entity.pins) ? entity.pins : [],
+      pins: Array.isArray(entity.pins)
+        ? entity.pins.map((pin) =>
+            isRecord(pin) && Array.isArray(pin.linkedObjectRefs)
+              ? {
+                  ...pin,
+                  linkedObjectRefs: currentObjectRefs(
+                    campaignId,
+                    pin.linkedObjectRefs,
+                    revisionOf,
+                  ),
+                }
+              : pin,
+          )
+        : [],
       createdAt,
       updatedAt: now,
     };
@@ -1007,6 +1148,7 @@ function entityFromData(
     if (kind === 'session' || kind === 'act') raw.summary = text.join('\n');
     if (kind === 'party-member') raw.hook = text.join('\n');
     if (kind === 'homebrew-monster') raw.notes = text.join('\n');
+    if (kind === 'item') raw.description = text.join('\n');
     if (kind === 'npc' || kind === 'location') raw.tags = record.tags;
   }
   raw.id = id;
@@ -1094,6 +1236,9 @@ function buildBundle(
   const homebrewMonsters = list<HomebrewMonster>('homebrew-monster').sort(
     (a, b) => a.name.localeCompare(b.name),
   );
+  const campaignItems = list<CampaignItem>('item').sort((a, b) =>
+    a.name.localeCompare(b.name),
+  );
   const linkedPlanIds = new Set(
     authoredSessions.flatMap((session) =>
       session.planId ? [session.planId] : [],
@@ -1103,23 +1248,24 @@ function buildBundle(
   const planSessions = extras.plans
     .filter((plan) => !linkedPlanIds.has(plan.id))
     .map((plan, index) => ({
-    id: plan.id,
-    campaignId: summary.id,
-    actId: '',
-    number: authoredSessions.length + index + 1,
-    title: plan.title,
-    status: plan.status === 'ready' ? ('planned' as const) : ('draft' as const),
-    summary: '',
-    partyLevel: 1,
-    tags: [],
-    questIds: [],
-    npcIds: [],
-    factionIds: [],
-    locationIds: [],
-    encounterIds: [],
-    clueIds: [],
-    handoutIds: [],
-  }));
+      id: plan.id,
+      campaignId: summary.id,
+      actId: '',
+      number: authoredSessions.length + index + 1,
+      title: plan.title,
+      status:
+        plan.status === 'ready' ? ('planned' as const) : ('draft' as const),
+      summary: '',
+      partyLevel: 1,
+      tags: [],
+      questIds: [],
+      npcIds: [],
+      factionIds: [],
+      locationIds: [],
+      encounterIds: [],
+      clueIds: [],
+      handoutIds: [],
+    }));
   const sessions: CampaignSession[] = [...authoredSessions, ...planSessions];
   const sessionIdsFor = (field: 'questIds' | 'npcIds' | 'encounterIds') => {
     const index = new Map<string, string[]>();
@@ -1173,7 +1319,8 @@ function buildBundle(
           folderCount(items) -
           acts.length -
           playerCharacters.length -
-          homebrewMonsters.length +
+          homebrewMonsters.length -
+          campaignItems.length +
           extras.sceneTemplates.length,
         scenes: extras.sceneTemplates.length,
         encounters: encounters.length,
@@ -1212,6 +1359,7 @@ function buildBundle(
     sessions,
     sceneTemplates: extras.sceneTemplates,
     homebrewMonsters,
+    items: campaignItems,
     source: 'server',
   });
 }
@@ -1300,6 +1448,8 @@ export function createServerBundleStore(
   campaign: CampaignSummary,
 ): ServerBundleStore {
   const items = new Map<string, Tracked>();
+  /** Items archived this session, kept so Undo can restore them. */
+  const removed = new Map<string, Tracked>();
   let extras: Extras = { sceneTemplates: [], maps: [], plans: [] };
   let bundle: CampaignFixtureBundle = createEmptyBundle(campaign);
   const listeners = new Set<(bundle: CampaignFixtureBundle) => void>();
@@ -1318,6 +1468,7 @@ export function createServerBundleStore(
     );
 
     items.clear();
+    removed.clear();
     extras = {
       sceneTemplates: live
         .filter((item) => item.kind === 'scene-template')
@@ -1456,6 +1607,97 @@ export function createServerBundleStore(
     return { ok: true };
   }
 
+  async function setStatus(
+    action: 'archive' | 'restore',
+    id: string,
+    revision: number,
+  ): Promise<SaveResult> {
+    const result = await http(`${objectsPath(campaign.id)}/${id}/${action}`, {
+      method: 'POST',
+      body: JSON.stringify({ expectedRevision: revision, requestId: newId() }),
+    });
+    if (result.ok) return { ok: true };
+    const conflict = result.status === 409;
+    return {
+      ok: false,
+      ...(conflict ? { conflict: true } : {}),
+      error: conflict
+        ? 'This item changed elsewhere. Reload the latest version.'
+        : (result.error ?? 'Request failed.'),
+    };
+  }
+
+  async function removeItem(
+    kind: EditableKind,
+    id: string,
+  ): Promise<SaveResult> {
+    const tracked = items.get(id);
+    if (!tracked || tracked.kind !== kind) {
+      return { ok: false, error: 'not-found' };
+    }
+    // Optimistic: drop it from the bundle, put it back if the server says no.
+    items.delete(id);
+    publish();
+    const result = await setStatus('archive', id, tracked.revision);
+    if (!result.ok) {
+      items.set(id, tracked);
+      publish();
+      return result;
+    }
+    removed.set(id, { ...tracked, status: 'archived' });
+    return { ok: true };
+  }
+
+  async function restoreItem(
+    kind: EditableKind,
+    id: string,
+  ): Promise<SaveResult> {
+    const tracked = removed.get(id);
+    if (!tracked || tracked.kind !== kind) {
+      return { ok: false, error: 'not-found' };
+    }
+    const result = await setStatus('restore', id, tracked.revision);
+    if (!result.ok) return result;
+    removed.delete(id);
+    items.set(id, { ...tracked, status: 'draft' });
+    publish();
+    return { ok: true };
+  }
+
+  async function getBacklinks(id: string): Promise<BacklinkRef[]> {
+    const result = await http(
+      `/api/campaigns/${encodeURIComponent(campaign.id)}/prep/backlinks/${encodeURIComponent(id)}`,
+    );
+    if (!result.ok) {
+      throw new Error(result.error ?? 'Failed to load backlinks.');
+    }
+    const links =
+      isRecord(result.body) && Array.isArray(result.body.links)
+        ? result.body.links.filter(isRecord)
+        : [];
+    const seen = new Set<string>();
+    const refs: BacklinkRef[] = [];
+    for (const link of links) {
+      const sourceId = str(link.sourceObjectId);
+      if (!sourceId || sourceId === id || seen.has(sourceId)) continue;
+      seen.add(sourceId);
+      const tracked = items.get(sourceId);
+      if (tracked) {
+        refs.push({
+          id: sourceId,
+          kind: tracked.kind,
+          title: str(tracked.entity[titleKey(tracked.kind)]) || 'Untitled',
+        });
+        continue;
+      }
+      const plan = extras.plans.find((item) => item.id === sourceId);
+      if (plan) {
+        refs.push({ id: sourceId, kind: 'session-plan', title: plan.title });
+      }
+    }
+    return refs;
+  }
+
   function nextOrder(kind: EditableKind, entity: Entity): number {
     const orders = [...items.values()]
       .filter(
@@ -1553,6 +1795,9 @@ export function createServerBundleStore(
     reload: load,
     updateItem,
     addItem,
+    removeItem,
+    restoreItem,
+    getBacklinks,
     seedFromFixture,
     reorderNotes,
     getBundle: () => bundle,
@@ -1746,7 +1991,12 @@ export async function seedFromFixture(slug: string): Promise<SeedResult> {
     const newNoteId = idMap.get(note.id)!;
     const entity = normalize(
       'note',
-      { ...note, id: newNoteId, anchor: { type: 'campaign' }, order: noteIndex },
+      {
+        ...note,
+        id: newNoteId,
+        anchor: { type: 'campaign' },
+        order: noteIndex,
+      },
       created.id,
     );
     const failure = await postNew(created.id, 'note', entity);
@@ -1764,8 +2014,15 @@ export async function seedFromFixture(slug: string): Promise<SeedResult> {
       const sourceMap = source as unknown as CampaignMap;
       const mapPins = fixture.pins.filter((pin) => pin.mapId === sourceMap.id);
       const remappedPins = mapPins.map((pin) => {
-        const remappedLocationId = pin.locationId ? idMap.get(pin.locationId) ?? '' : '';
-        const linkedRefs: Array<{ target: 'campaign-object'; campaignId: string; id: string; revision: number }> = [];
+        const remappedLocationId = pin.locationId
+          ? (idMap.get(pin.locationId) ?? '')
+          : '';
+        const linkedRefs: Array<{
+          target: 'campaign-object';
+          campaignId: string;
+          id: string;
+          revision: number;
+        }> = [];
         for (const targetId of pin.linkedObjectIds ?? []) {
           const mappedTargetId = idMap.get(targetId);
           if (mappedTargetId) {

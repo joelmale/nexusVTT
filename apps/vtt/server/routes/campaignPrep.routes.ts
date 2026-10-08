@@ -12,6 +12,7 @@ import {
 } from '../repositories/CampaignPrepRepository.js';
 import type {
   CampaignPrepObjectKind,
+  CampaignPrepObjectRecord,
   CampaignPrepObjectStatus,
 } from '../repositories/base.js';
 import {
@@ -62,6 +63,16 @@ interface CampaignPrepAuthor {
     principalId: string;
     requestId: string;
   }): Promise<CampaignPrepAuthoringResult>;
+  archive(request: {
+    campaignId: string;
+    objectId: string;
+    expectedRevision: number;
+  }): Promise<{ object: CampaignPrepObjectRecord }>;
+  restore(request: {
+    campaignId: string;
+    objectId: string;
+    expectedRevision: number;
+  }): Promise<{ object: CampaignPrepObjectRecord }>;
 }
 
 export interface CampaignPrepRouterOptions {
@@ -83,6 +94,7 @@ const OBJECT_KINDS = new Set<CampaignPrepObjectKind>([
   'encounter',
   'party-member',
   'homebrew-monster',
+  'item',
   'scene-template',
   'campaign-map',
   'session-plan',
@@ -344,6 +356,40 @@ export function createCampaignPrepRouter({
       }
     },
   );
+
+  for (const [action, method] of [
+    ['archive', 'archive'],
+    ['restore', 'restore'],
+  ] as const) {
+    router.post(
+      `/campaigns/:campaignId/prep/objects/:objectId/${action}`,
+      async (req: Request, res: Response) => {
+        const body = req.body as {
+          expectedRevision?: unknown;
+          requestId?: unknown;
+        };
+        if (
+          !isExpectedRevision(body?.expectedRevision) ||
+          !isUuid(body?.requestId)
+        ) {
+          return res.status(400).json({
+            error:
+              'expectedRevision must be positive and requestId must be a UUID',
+          });
+        }
+        try {
+          const result = await author[method]({
+            campaignId: routeParameter(req.params.campaignId),
+            objectId: routeParameter(req.params.objectId),
+            expectedRevision: body.expectedRevision,
+          });
+          return res.json(result);
+        } catch (error) {
+          return handleAuthoringError(error, res);
+        }
+      },
+    );
+  }
 
   router.post(
     '/campaigns/:campaignId/prep/objects/:objectId/publish',

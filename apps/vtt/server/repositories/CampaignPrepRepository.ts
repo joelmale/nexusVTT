@@ -124,7 +124,46 @@ function mainTrackSteps(plan: SessionPlan): SessionPlan['steps'] {
   return (plan.steps ?? []).filter((step) => step.track !== 'parallel');
 }
 
+export interface AssetReference {
+  campaignId: string;
+  campaignName: string;
+  objectId: string;
+  kind: CampaignPrepObjectKind;
+  title: string;
+}
+
 export class CampaignPrepRepository extends BaseRepository {
+  /**
+   * Non-archived prep objects, in campaigns the user owns, whose current
+   * revision points at the asset: by `imageAssetRef.assetId`, or by an
+   * `imageUrl` / `imagePath` that contains the asset id (uploads are stored as
+   * `users/{userId}/{assetId}.{ext}`).
+   */
+  async findAssetReferences(
+    ownerUserId: string,
+    assetId: string,
+    client?: PoolClient,
+  ): Promise<AssetReference[]> {
+    const result = await this.getExecutor(client).query<AssetReference>(
+      `SELECT c.id AS "campaignId", c.name AS "campaignName",
+              o.id AS "objectId", o.kind, o.title
+         FROM campaigns c
+         INNER JOIN campaign_objects o
+           ON o."campaignId" = c.id AND o.status <> 'archived'
+         INNER JOIN campaign_object_revisions r
+           ON r."objectId" = o.id AND r.revision = o."currentRevision"
+        WHERE c."dmId" = $1
+          AND (
+            r.data #>> '{imageAssetRef,assetId}' = $2
+            OR strpos(COALESCE(r.data ->> 'imageUrl', ''), $2) > 0
+            OR strpos(COALESCE(r.data ->> 'imagePath', ''), $2) > 0
+          )
+        ORDER BY c.name, o.title`,
+      [ownerUserId, assetId],
+    );
+    return result.rows;
+  }
+
   async getObject(
     campaignId: string,
     objectId: string,
@@ -170,6 +209,9 @@ export class CampaignPrepRepository extends BaseRepository {
     if (filter.status) {
       params.push(filter.status);
       conditions.push(`status = $${params.length}`);
+    } else {
+      // Archived objects are soft-deleted: hidden unless asked for explicitly.
+      conditions.push(`status <> 'archived'`);
     }
 
     const result = await this.getExecutor(
@@ -181,6 +223,32 @@ export class CampaignPrepRepository extends BaseRepository {
       params,
     );
     return result.rows;
+  }
+
+  /**
+   * Compare-and-swap status change that does not create a new revision. Used
+   * for archive/restore (soft delete). Returns null on revision mismatch or
+   * when the object does not exist.
+   */
+  async setObjectStatus(
+    campaignId: string,
+    objectId: string,
+    expectedRevision: number,
+    status: CampaignPrepObjectStatus,
+    client?: PoolClient,
+  ): Promise<CampaignPrepObjectRecord | null> {
+    const result = await this.getExecutor(
+      client,
+    ).query<CampaignPrepObjectRecord>(
+      `UPDATE campaign_objects
+         SET status = $4, "updatedAt" = NOW()
+       WHERE "campaignId" = $1
+         AND id = $2
+         AND "currentRevision" = $3
+       RETURNING *`,
+      [campaignId, objectId, expectedRevision, status],
+    );
+    return result.rows[0] ?? null;
   }
 
   async getBacklinks(
@@ -195,6 +263,7 @@ export class CampaignPrepRepository extends BaseRepository {
            ON objects.id = links."sourceObjectId"
           AND objects."currentRevision" = links."sourceRevision"
          WHERE links."targetKey" = $1
+           AND objects.status <> 'archived'
          ORDER BY links."createdAt" DESC`,
       [campaignObjectRefKey(reference)],
     );

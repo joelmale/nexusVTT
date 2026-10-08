@@ -45,6 +45,8 @@ describe('campaign prep routes', () => {
   let author: {
     create: ReturnType<typeof vi.fn>;
     revise: ReturnType<typeof vi.fn>;
+    archive: ReturnType<typeof vi.fn>;
+    restore: ReturnType<typeof vi.fn>;
   };
 
   beforeEach(async () => {
@@ -81,7 +83,12 @@ describe('campaign prep routes', () => {
       addRevision: vi.fn(),
     };
     publisher = { publish: vi.fn() };
-    author = { create: vi.fn(), revise: vi.fn() };
+    author = {
+      create: vi.fn(),
+      revise: vi.fn(),
+      archive: vi.fn(),
+      restore: vi.fn(),
+    };
 
     app = express();
     app.use(express.json());
@@ -234,6 +241,62 @@ describe('campaign prep routes', () => {
     expect(author.revise).toHaveBeenCalledWith(
       expect.objectContaining({ objectId: PLAN_ID, expectedRevision: 1 }),
     );
+  });
+
+  it('archives and restores objects with a revision compare-and-swap', async () => {
+    const url = (action: string) =>
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/objects/${PLAN_ID}/${action}`;
+    const post = (action: string, body: unknown) =>
+      fetch(url(action), {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      });
+
+    author.archive.mockResolvedValue({
+      object: { id: PLAN_ID, status: 'archived' },
+    });
+    let response = await post('archive', {
+      expectedRevision: 3,
+      requestId: REQUEST_ID,
+    });
+    expect(response.status).toBe(200);
+    expect(author.archive).toHaveBeenCalledWith({
+      campaignId: CAMPAIGN_ID,
+      objectId: PLAN_ID,
+      expectedRevision: 3,
+    });
+
+    author.restore.mockResolvedValue({
+      object: { id: PLAN_ID, status: 'draft' },
+    });
+    response = await post('restore', {
+      expectedRevision: 3,
+      requestId: REQUEST_ID,
+    });
+    expect(response.status).toBe(200);
+    expect(author.restore).toHaveBeenCalledTimes(1);
+
+    author.archive.mockRejectedValue(
+      new CampaignPrepRevisionConflictError(PLAN_ID, 3),
+    );
+    response = await post('archive', {
+      expectedRevision: 3,
+      requestId: REQUEST_ID,
+    });
+    expect(response.status).toBe(409);
+
+    author.archive.mockRejectedValue(
+      new CampaignPrepAuthoringError('not-found', 'missing'),
+    );
+    response = await post('archive', {
+      expectedRevision: 3,
+      requestId: REQUEST_ID,
+    });
+    expect(response.status).toBe(404);
+
+    response = await post('archive', { expectedRevision: 0, requestId: 'x' });
+    expect(response.status).toBe(400);
   });
 
   it('returns structured authoring validation errors', async () => {

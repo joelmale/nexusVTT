@@ -21,6 +21,15 @@ export async function loadServerBundleBackend(): Promise<ServerBundleBackend> {
           const result = await store.addItem(kind, draft);
           return { ...result, bundle: store.getBundle() };
         },
+        async removeItem(kind, id) {
+          const result = await store.removeItem(kind, id);
+          return { ...result, bundle: store.getBundle() };
+        },
+        async restoreItem(kind, id) {
+          const result = await store.restoreItem(kind, id);
+          return { ...result, bundle: store.getBundle() };
+        },
+        getBacklinks: (id) => store.getBacklinks(id),
         async reorderNotes(orderedIds) {
           const result = await store.reorderNotes(orderedIds);
           return { ...result, bundle: store.getBundle() };

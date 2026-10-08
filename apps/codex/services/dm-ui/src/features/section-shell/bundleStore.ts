@@ -15,12 +15,20 @@ export type EditableKind =
   | 'encounter'
   | 'party-member'
   | 'homebrew-monster'
+  | 'item'
   | 'campaign-map';
 
 export interface SaveResult {
   ok: boolean;
   conflict?: boolean;
   error?: string;
+}
+
+/** An item that references another one. */
+export interface BacklinkRef {
+  id: string;
+  kind: EditableKind | 'session-plan' | 'other';
+  title: string;
 }
 
 /**
@@ -45,6 +53,12 @@ export interface BundleStore {
   ): Promise<SaveResult & { id?: string }>;
   /** Persist a new note order (whole board or a filtered subset). */
   reorderNotes(orderedIds: string[]): Promise<SaveResult>;
+  /** Soft-delete (archive) an item; reversible with `restoreItem`. */
+  removeItem(kind: EditableKind, id: string): Promise<SaveResult>;
+  /** Undo a `removeItem` made earlier in this session. */
+  restoreItem(kind: EditableKind, id: string): Promise<SaveResult>;
+  /** Items that reference `id`, for the remove confirmation. */
+  getBacklinks(id: string): Promise<BacklinkRef[]>;
 }
 
 export const READ_ONLY_ERROR = 'read-only';
@@ -61,6 +75,9 @@ export function createReadOnlyStore(
     updateItem: () => Promise.resolve({ ok: false, error: READ_ONLY_ERROR }),
     addItem: () => Promise.resolve({ ok: false, error: READ_ONLY_ERROR }),
     reorderNotes: () => Promise.resolve({ ok: false, error: READ_ONLY_ERROR }),
+    removeItem: () => Promise.resolve({ ok: false, error: READ_ONLY_ERROR }),
+    restoreItem: () => Promise.resolve({ ok: false, error: READ_ONLY_ERROR }),
+    getBacklinks: () => Promise.resolve([]),
   };
 }
 
@@ -84,6 +101,15 @@ export interface ServerBundleStoreController {
   reorderNotes?(
     orderedIds: string[],
   ): Promise<SaveResult & { bundle?: CampaignFixtureBundle }>;
+  removeItem?(
+    kind: EditableKind,
+    id: string,
+  ): Promise<SaveResult & { bundle?: CampaignFixtureBundle }>;
+  restoreItem?(
+    kind: EditableKind,
+    id: string,
+  ): Promise<SaveResult & { bundle?: CampaignFixtureBundle }>;
+  getBacklinks?(id: string): Promise<BacklinkRef[]>;
   /** False when the current user may only read. Defaults to true. */
   canEdit?: boolean;
 }

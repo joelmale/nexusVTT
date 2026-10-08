@@ -1,0 +1,68 @@
+.trigger {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--studio-border);
+  border-radius: 6px;
+  color: inherit;
+  cursor: pointer;
+  display: inline-flex;
+  height: 32px;
+  justify-content: center;
+  width: 32px;
+}
+
+.trigger:hover,
+.trigger:focus-visible {
+  border-color: var(--studio-danger, #c0392b);
+  color: var(--studio-danger, #c0392b);
+}
+
+.refs {
+  display: grid;
+  font-size: 0.9rem;
+  gap: 4px;
+  margin: 0;
+}
+
+.refs ul {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.blocked,
+.error {
+  color: var(--studio-danger, #c0392b);
+  margin: 0;
+}
+
+.toast {
+  align-items: center;
+  background: var(--studio-surface-raised, #222);
+  border: 1px solid var(--studio-border, #555);
+  border-radius: 8px;
+  bottom: 24px;
+  box-shadow: 0 6px 24px rgb(0 0 0 / 0.35);
+  color: inherit;
+  display: flex;
+  gap: 12px;
+  left: 50%;
+  max-width: calc(100vw - 32px);
+  padding: 10px 14px;
+  position: fixed;
+  transform: translateX(-50%);
+  z-index: 1000;
+}
+
+.undo,
+.dismiss {
+  background: transparent;
+  border: 0;
+  color: inherit;
+  cursor: pointer;
+  font: inherit;
+}
+
+.undo {
+  font-weight: 600;
+  text-decoration: underline;
+}

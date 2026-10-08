@@ -46,6 +46,8 @@ class FakeServer {
   campaigns: { id: string; name: string; description?: string }[] = [];
   failTitles = new Set<string>();
   bump409 = false;
+  failArchive = false;
+  backlinks: Record<string, string[]> = {};
   calls: { method: string; path: string; body?: Record<string, unknown> }[] =
     [];
 
@@ -70,6 +72,31 @@ class FakeServer {
           ...created,
           createdAt: CAMPAIGN.createdAt,
           updatedAt: CAMPAIGN.updatedAt,
+        });
+      }
+      const action = path.match(
+        /^\/api\/campaigns\/[^/]+\/prep\/objects\/([^/]+)\/(archive|restore)$/,
+      );
+      if (action && method === 'POST') {
+        const object = this.objects.get(action[1]);
+        if (!object) return json({ error: 'not found' }, 404);
+        if (
+          this.failArchive ||
+          object.currentRevision !== body?.expectedRevision
+        ) {
+          return json({ error: 'Campaign object revision conflict' }, 409);
+        }
+        object.status = action[2] === 'archive' ? 'archived' : 'draft';
+        return json({ object: stripData(object) });
+      }
+      const links = path.match(
+        /^\/api\/campaigns\/[^/]+\/prep\/backlinks\/([^/]+)$/,
+      );
+      if (links) {
+        return json({
+          links: (this.backlinks[links[1]] ?? []).map((sourceObjectId) => ({
+            sourceObjectId,
+          })),
         });
       }
       const match = path.match(
@@ -338,7 +365,15 @@ describe('load + mapping round-trip', () => {
       description: 'The regional frontier',
       imageAssetRef: { target: 'asset', assetId: 'library:sword-coast' },
       dimensions: { width: 2000, height: 1200 },
-      layers: [{ id: 'l1', label: 'Landmarks', visibleByDefault: true, order: 0, locationIds: [] }],
+      layers: [
+        {
+          id: 'l1',
+          label: 'Landmarks',
+          visibleByDefault: true,
+          order: 0,
+          locationIds: [],
+        },
+      ],
       pins: [
         {
           id: 'p1',
@@ -400,6 +435,113 @@ describe('load + mapping round-trip', () => {
     expect(reloaded.pins).toHaveLength(2);
   });
 
+  it('round-trips an item with its holder, quests and flags', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const npc = await store.addItem('npc', { name: 'Mira' });
+    const quest = await store.addItem('quest', { title: 'Find the key' });
+    const added = await store.addItem('item', {
+      name: 'Flame Tongue',
+      itemType: 'weapon',
+      rarity: 'rare',
+      requiresAttunement: true,
+      attunementNote: 'by a fighter',
+      valueGp: '5000',
+      weightLb: 3,
+      quantity: 2,
+      description: 'Burns bright.',
+      mechanics: '+2d6 fire',
+      holder: { kind: 'npc', id: npc.id },
+      discovered: true,
+      questIds: [quest.id],
+      source: { ruleset: '2024', entityId: 'srd-1' },
+    });
+    expect(added.ok).toBe(true);
+    const stored = server.objects.get(added.id!)!;
+    expect(stored.kind).toBe('item');
+    expect(stored.title).toBe('Flame Tongue');
+    expect(
+      (stored.data.content as { value: { nexusStudio: { fields: unknown } } })
+        .value.nexusStudio.fields,
+    ).toMatchObject({
+      itemType: 'weapon',
+      valueGp: 5000,
+      holder: { kind: 'npc', id: npc.id },
+    });
+
+    const bundle = await createServerBundleStore(CAMPAIGN).load();
+    expect(bundle.items).toEqual([
+      expect.objectContaining({
+        id: added.id,
+        name: 'Flame Tongue',
+        itemType: 'weapon',
+        rarity: 'rare',
+        requiresAttunement: true,
+        attunementNote: 'by a fighter',
+        valueGp: 5000,
+        weightLb: 3,
+        quantity: 2,
+        description: 'Burns bright.',
+        mechanics: '+2d6 fire',
+        holder: { kind: 'npc', id: npc.id },
+        discovered: true,
+        identified: false,
+        questIds: [quest.id],
+        source: { ruleset: '2024', entityId: 'srd-1' },
+      }),
+    ]);
+    // Items are not counted with the library objects.
+    expect(bundle.campaign.objectCounts.all).toBe(2);
+  });
+
+  it('completes pin object refs with the campaign id and current revision', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const item = await store.addItem('item', { name: 'Gem' });
+    await store.updateItem('item', item.id!, { quantity: 3 });
+    const map = await store.addItem('campaign-map', { title: 'Harbor' });
+    const saved = await store.updateItem('campaign-map', map.id!, {
+      pins: [
+        {
+          id: 'p1',
+          label: 'Dock',
+          x: 0.1,
+          y: 0.2,
+          layerIds: [],
+          linkedObjectRefs: [{ target: 'campaign-object', id: item.id }],
+        },
+      ],
+    });
+    expect(saved.ok).toBe(true);
+    const pins = server.objects.get(map.id!)!.data.pins as {
+      linkedObjectRefs: unknown[];
+    }[];
+    expect(pins[0].linkedObjectRefs).toEqual([
+      {
+        target: 'campaign-object',
+        campaignId: CAMPAIGN.id,
+        id: item.id,
+        revision: 2,
+      },
+    ]);
+  });
+
+  it('defaults a bare item and clears optional numbers', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const added = await store.addItem('item', { name: 'Gem', valueGp: 10 });
+    await store.updateItem('item', added.id!, { valueGp: '' });
+    const [item] = (await createServerBundleStore(CAMPAIGN).load()).items!;
+    expect(item).toMatchObject({
+      itemType: 'other',
+      rarity: 'none',
+      quantity: 1,
+      holder: { kind: 'none' },
+      discovered: false,
+    });
+    expect(item).not.toHaveProperty('valueGp');
+  });
+
   it('round-trips acts, sessions, encounters and party members', async () => {
     const store = createServerBundleStore(CAMPAIGN);
     await store.load();
@@ -413,9 +555,7 @@ describe('load + mapping round-trip', () => {
       title: 'Dock ambush',
       kind: 'combat',
       difficulty: 'high',
-      composition: [
-        { name: 'Thug', count: 3, ruleset: '2024', role: 'brute' },
-      ],
+      composition: [{ name: 'Thug', count: 3, ruleset: '2024', role: 'brute' }],
       trigger: 'Players enter the pier',
     });
     const session = await store.addItem('session', {
@@ -442,7 +582,10 @@ describe('load + mapping round-trip', () => {
 
     const bundle = await createServerBundleStore(CAMPAIGN).load();
     expect(bundle.acts).toHaveLength(1);
-    expect(bundle.acts[0]).toMatchObject({ title: 'Act I', summary: 'The harbor' });
+    expect(bundle.acts[0]).toMatchObject({
+      title: 'Act I',
+      summary: 'The harbor',
+    });
     expect(bundle.sessions).toHaveLength(1);
     expect(bundle.sessions[0]).toMatchObject({
       id: session.id,
@@ -483,11 +626,17 @@ describe('load + mapping round-trip', () => {
       pins: [],
     });
     expect(added.ok).toBe(true);
-    const stored = server.objects.get(String(added.id))!.data as Record<string, unknown>;
+    const stored = server.objects.get(String(added.id))!.data as Record<
+      string,
+      unknown
+    >;
     expect(stored.imageUrl).toBe(
       '/assets/defaults/base_maps/10. DoS2 - Fort Joy Docks.webp',
     );
-    expect(stored.imageAssetRef).toEqual({ target: 'asset', assetId: 'default-map-1' });
+    expect(stored.imageAssetRef).toEqual({
+      target: 'asset',
+      assetId: 'default-map-1',
+    });
 
     const reloaded = await createServerBundleStore(CAMPAIGN).load();
     expect(reloaded.maps[0].imagePath).toBe(
@@ -504,7 +653,10 @@ describe('load + mapping round-trip', () => {
       imageAssetRef: { target: 'asset', assetId: 'asset-1' },
       dimensions: { width: 10, height: 10 },
     });
-    const stored = server.objects.get(String(added.id))!.data as Record<string, unknown>;
+    const stored = server.objects.get(String(added.id))!.data as Record<
+      string,
+      unknown
+    >;
     expect(stored).not.toHaveProperty('imageUrl');
     expect(JSON.stringify(stored)).not.toContain('data:image');
   });
@@ -523,7 +675,10 @@ describe('load + mapping round-trip', () => {
       pins: [{ id: 'p1', label: 'Docks', x: 0.2, y: 0.4, layerIds: [] }],
     });
     expect(saved.ok).toBe(true);
-    const stored = server.objects.get(String(added.id))!.data as Record<string, unknown>;
+    const stored = server.objects.get(String(added.id))!.data as Record<
+      string,
+      unknown
+    >;
     expect(stored.imageUrl).toBe('/assets/defaults/base_maps/x.webp');
     expect((stored.pins as unknown[]).length).toBe(1);
   });
@@ -579,7 +734,9 @@ describe('load + mapping round-trip', () => {
       title: 'Prep',
       body: `Ask @[Mira](ref:${npc.id}) twice: @[Mira](ref:${npc.id}), and @[Gone](ref:missing-id).`,
     });
-    const links = (server.objects.get(String(note.id))!.data as { links: unknown[] }).links;
+    const links = (
+      server.objects.get(String(note.id))!.data as { links: unknown[] }
+    ).links;
     // One link per distinct mention; the unknown target is skipped but stays in the text.
     expect(links).toEqual([
       {
@@ -595,7 +752,10 @@ describe('load + mapping round-trip', () => {
   it('never links an object to itself and keeps links empty without mentions', async () => {
     const store = createServerBundleStore(CAMPAIGN);
     await store.load();
-    const note = await store.addItem('note', { title: 'Solo', body: 'No mentions.' });
+    const note = await store.addItem('note', {
+      title: 'Solo',
+      body: 'No mentions.',
+    });
     expect(
       (server.objects.get(String(note.id))!.data as { links: unknown[] }).links,
     ).toEqual([]);
@@ -616,9 +776,11 @@ describe('load + mapping round-trip', () => {
       summary: `Start at @[Docks](ref:${loc.id}).`,
     });
     expect(
-      (server.objects.get(String(quest.id))!.data as { links: { id: string }[] }).links.map(
-        (link) => link.id,
-      ),
+      (
+        server.objects.get(String(quest.id))!.data as {
+          links: { id: string }[];
+        }
+      ).links.map((link) => link.id),
     ).toEqual([loc.id]);
   });
 
@@ -1002,6 +1164,64 @@ describe('updateItem', () => {
   });
 });
 
+describe('removeItem / restoreItem', () => {
+  it('archives with the tracked revision, drops the item, and restores it', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const added = await store.addItem('npc', { name: 'Mira' });
+    expect(store.getBundle().npcs).toHaveLength(1);
+
+    expect((await store.removeItem('npc', added.id!)).ok).toBe(true);
+    expect(store.getBundle().npcs).toHaveLength(0);
+    const archive = server.calls.find((call) =>
+      call.path.endsWith('/archive'),
+    )!;
+    expect(archive.body?.expectedRevision).toBe(1);
+    expect(archive.body?.requestId).toMatch(/^[0-9a-f-]{36}$/);
+    expect(server.objects.get(added.id!)!.status).toBe('archived');
+
+    expect((await store.restoreItem('npc', added.id!)).ok).toBe(true);
+    expect(store.getBundle().npcs).toHaveLength(1);
+    expect(server.objects.get(added.id!)!.status).toBe('draft');
+  });
+
+  it('rolls the item back into the bundle when the server rejects', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const added = await store.addItem('npc', { name: 'Mira' });
+    const seen: number[] = [];
+    store.subscribe((bundle) => seen.push(bundle.npcs.length));
+    server.failArchive = true;
+    const result = await store.removeItem('npc', added.id!);
+    expect(result.ok).toBe(false);
+    expect(result.conflict).toBe(true);
+    // Optimistic removal, then rollback.
+    expect(seen).toEqual([0, 1]);
+    expect(store.getBundle().npcs).toHaveLength(1);
+    expect((await store.restoreItem('npc', added.id!)).error).toBe('not-found');
+  });
+
+  it('rejects unknown ids and does not list archived objects on load', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    expect((await store.removeItem('npc', 'nope')).error).toBe('not-found');
+    server.put('npc', { id: crypto.randomUUID(), name: 'Gone' }, 'archived');
+    await store.reload();
+    expect(store.getBundle().npcs).toHaveLength(0);
+  });
+
+  it('resolves backlink titles from tracked items and plans', async () => {
+    const store = createServerBundleStore(CAMPAIGN);
+    await store.load();
+    const target = await store.addItem('npc', { name: 'Mira' });
+    const source = await store.addItem('faction', { name: 'Guild' });
+    server.backlinks[target.id!] = [source.id!, target.id!, 'unknown'];
+    await expect(store.getBacklinks(target.id!)).resolves.toEqual([
+      { id: source.id, kind: 'faction', title: 'Guild' },
+    ]);
+  });
+});
+
 describe('seedFromFixture', () => {
   describe.each([
     'ashes-of-veyra',
@@ -1030,7 +1250,9 @@ describe('seedFromFixture', () => {
       expect(byKind('session-plan')).toHaveLength(
         fixture.sessions.filter((session) => session.plan).length,
       );
-      expect(byKind('note').length).toBeGreaterThanOrEqual(fixture.notes.length);
+      expect(byKind('note').length).toBeGreaterThanOrEqual(
+        fixture.notes.length,
+      );
       // Lore and handouts are notes; maps are copied as real campaign-map objects.
       expect(byKind('lore')).toHaveLength(0);
       expect(byKind('campaign-map')).toHaveLength(fixture.maps.length);
@@ -1188,7 +1410,12 @@ describe('seedFromFixture', () => {
       for (const plan of plans) {
         const data = plan.data as {
           status: string;
-          steps: { type: string; title: string; text?: string; entryRef?: { id: string; campaignId: string } }[];
+          steps: {
+            type: string;
+            title: string;
+            text?: string;
+            entryRef?: { id: string; campaignId: string };
+          }[];
         };
         expect(data.status).toBe('draft');
         expect(data.steps.length).toBeGreaterThan(0);
@@ -1212,14 +1439,20 @@ describe('seedFromFixture', () => {
       for (const session of sessions) {
         const fields = (
           session.data as {
-            content: { value: { nexusStudio: { fields: { planId?: string } } } };
+            content: {
+              value: { nexusStudio: { fields: { planId?: string } } };
+            };
           }
         ).content.value.nexusStudio.fields;
         if (fields.planId) {
           expect(server.objects.get(fields.planId)?.kind).toBe('session-plan');
         }
       }
-      if (fixture.sessions.some((session) => session.plan?.steps.some((step) => step.kind === 'scene'))) {
+      if (
+        fixture.sessions.some((session) =>
+          session.plan?.steps.some((step) => step.kind === 'scene'),
+        )
+      ) {
         expect(
           plans.some((plan) =>
             (plan.data as { steps: { text?: string }[] }).steps.some((step) =>
@@ -1237,7 +1470,9 @@ describe('seedFromFixture', () => {
         ...CAMPAIGN,
         id: result.campaignId,
       }).load();
-      const parts = seeded.encounters.flatMap((encounter) => encounter.composition);
+      const parts = seeded.encounters.flatMap(
+        (encounter) => encounter.composition,
+      );
       const sourceNames = fixture.encounters.flatMap((encounter) =>
         encounter.composition.map((part) => part.name),
       );
@@ -1346,7 +1581,10 @@ describe('seedFromFixture', () => {
     const fixture = getFixtureBundle('ashes-of-veyra')!;
     expect(fixture.notes).toHaveLength(fixture.handouts.length);
     fixture.notes.forEach((note, index) => {
-      expect(note).toMatchObject({ anchor: { type: 'campaign' }, order: index });
+      expect(note).toMatchObject({
+        anchor: { type: 'campaign' },
+        order: index,
+      });
       const source = fixture.handouts.find((item) => item.id === note.id)!;
       expect(note.audience).toBe(source.kind === 'handout' ? 'all' : 'none');
     });

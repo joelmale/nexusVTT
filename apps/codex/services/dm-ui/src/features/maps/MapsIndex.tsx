@@ -4,6 +4,8 @@ import { Link } from 'react-router-dom';
 import type { CampaignFixtureBundle } from '@/demo/fixture-registry';
 import { resolveMapThumbnail } from '@/features/map-preparation/buildMapPreparationModel';
 
+import { RemoveItemButton } from '@/features/section-shell/RemoveItemButton';
+
 import styles from './MapsIndex.module.css';
 
 interface MapsIndexProps {
@@ -30,7 +32,7 @@ export function MapsIndex({ bundle, basePath }: MapsIndexProps) {
           .filter((name): name is string => Boolean(name));
         const thumbnail = resolveMapThumbnail(map);
         return (
-          <li key={map.id}>
+          <li className={styles.item} key={map.id}>
             <Link className={styles.card} to={`${basePath}/maps/${map.id}`}>
               <div className={styles.thumb}>
                 {thumbnail ? (
@@ -55,6 +57,13 @@ export function MapsIndex({ bundle, basePath }: MapsIndexProps) {
                 ) : null}
               </div>
             </Link>
+            <span className={styles.remove}>
+              <RemoveItemButton
+                id={map.id}
+                kind="campaign-map"
+                label={map.title}
+              />
+            </span>
           </li>
         );
       })}
