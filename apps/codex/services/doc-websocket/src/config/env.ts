@@ -14,6 +14,10 @@ const envSchema = z.object({
   REDIS_URL: z.string(),
   SESSION_TTL: z.string().default('86400').transform(Number), // 24 hours in seconds
 
+  // Auth: required, with no default, so a missing secret fails startup
+  // instead of silently accepting tokens signed with a well-known key.
+  JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
+
   // ElasticSearch (logging)
   ELASTICSEARCH_URL: z.string().default('http://localhost:9200'),
 
