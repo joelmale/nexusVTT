@@ -332,7 +332,7 @@
     {
       "name": "shared-package-document-contracts",
       "paths": ["packages/document-contracts/**"],
-      "targets": ["vtt", "forge", "codex-doc-api"]
+      "targets": ["vtt", "forge", "codex-doc-api", "codex-doc-processor"]
     },
     {
       "name": "shared-package-rules-contracts",

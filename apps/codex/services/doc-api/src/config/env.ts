@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import { DEFAULT_DOCUMENT_QUEUE_NAME } from '@nexus/document-contracts';
 
 dotenv.config();
 
@@ -18,7 +19,7 @@ const envSchema = z.object({
   ELASTICSEARCH_INDEX: z.string().default('documents'),
 
   // Queue
-  QUEUE_NAME: z.string().default('document-processing'),
+  QUEUE_NAME: z.string().default(DEFAULT_DOCUMENT_QUEUE_NAME),
 
   // S3/MinIO
   S3_ENDPOINT: z.string(),

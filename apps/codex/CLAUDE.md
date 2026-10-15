@@ -527,7 +527,7 @@ Extracted data is stored in the `StructuredData` Prisma model and searchable via
 
 ## Schema Management
 
-The Prisma schema is defined in `services/doc-api/prisma/schema.prisma`. **Important**: `services/doc-processor/prisma/schema.prisma` is a **symlink** to the doc-api schema to ensure consistency. Both services share the same database and schema.
+The Prisma schema is defined in `services/doc-api/prisma/schema.prisma`. **Important**: doc-processor has no schema of its own. Its `prisma:generate` script reads the doc-api schema (`--schema=../doc-api/prisma/schema.prisma`), so both services always generate from one file. Queue names and the `ProcessDocumentJob` type live in `@nexus/document-contracts`, shared by doc-api (producer) and doc-processor (consumer).
 
 When modifying the schema:
 1. Edit only `services/doc-api/prisma/schema.prisma`
@@ -805,7 +805,7 @@ services/
 │   │   │   ├── content-hash.service.ts  # File hashing for duplicates
 │   │   │   └── logging.service.ts       # Log processing steps
 │   │   └── workers/        # BullMQ job handlers
-│   └── prisma/schema.prisma  # Symlink to doc-api schema
+│   └── (no prisma/ dir; generates from doc-api's schema)
 ├── doc-websocket/
 │   ├── src/
 │   │   ├── handlers/       # WebSocket event handlers (session, navigation, push, annotation)

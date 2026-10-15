@@ -66,3 +66,25 @@ export type CreateDocumentInput = z.infer<typeof CreateDocumentSchema>;
 export type UpdateDocumentInput = z.infer<typeof UpdateDocumentSchema>;
 export type ListDocumentsQuery = z.infer<typeof ListDocumentsQuerySchema>;
 export type BulkCreateDocumentInput = z.infer<typeof BulkCreateDocumentSchema>;
+
+// Document-processing queue contract, shared by doc-api (producer) and
+// doc-processor (consumer) so the job shape and queue names cannot drift.
+export const DEFAULT_DOCUMENT_QUEUE_NAME = 'document-processing';
+export const DEFAULT_ASSET_QUEUE_NAME = 'document-assets';
+
+export const PROCESS_DOCUMENT_STAGES = [
+  'ingest',
+  'render',
+  'ocr',
+  'layout',
+  'extract',
+  'index',
+  'assets',
+] as const;
+
+export type ProcessDocumentStage = (typeof PROCESS_DOCUMENT_STAGES)[number];
+
+export interface ProcessDocumentJob {
+  documentId: string;
+  stage?: ProcessDocumentStage;
+}

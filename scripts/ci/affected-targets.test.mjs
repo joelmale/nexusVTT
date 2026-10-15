@@ -218,7 +218,7 @@ describe('representative Stage 3A change classes', () => {
     ],
     [
       'packages/document-contracts/src/index.ts',
-      ['vtt', 'forge', 'codex-doc-api', 'gateway'],
+      ['vtt', 'forge', 'codex-doc-api', 'codex-doc-processor', 'gateway'],
     ],
     [
       'packages/rules-contracts/src/index.ts',

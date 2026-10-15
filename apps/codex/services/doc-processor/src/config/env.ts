@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import {
+  DEFAULT_ASSET_QUEUE_NAME,
+  DEFAULT_DOCUMENT_QUEUE_NAME,
+} from '@nexus/document-contracts';
 
 dotenv.config();
 
@@ -30,8 +34,8 @@ const envSchema = z.object({
     .transform((val) => val === 'true'),
 
   // Processing Configuration
-  QUEUE_NAME: z.string().default('document-processing'),
-  ASSET_QUEUE_NAME: z.string().default('document-assets'),
+  QUEUE_NAME: z.string().default(DEFAULT_DOCUMENT_QUEUE_NAME),
+  ASSET_QUEUE_NAME: z.string().default(DEFAULT_ASSET_QUEUE_NAME),
   WORKER_CONCURRENCY: z.string().default('1').transform(Number),
   ASSET_WORKER_CONCURRENCY: z.string().default('1').transform(Number),
   THUMBNAIL_WIDTH: z.string().default('300').transform(Number),

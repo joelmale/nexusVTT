@@ -50,8 +50,8 @@ published ports and must not be connected to the existing reverse proxy or
 For a real rehearsal, populate only `REHEARSAL_*` variables with disposable
 values and restored/sanitized data. Do not provide production OAuth, database,
 Redis, MinIO, JWT, session, asset-service, or metrics credentials. The
-`doc-api` startup command still runs `prisma db push`; inspect its candidate
-schema against restored data before any non-disposable deployment.
+`doc-api` startup command runs `prisma migrate deploy`; inspect its candidate
+migrations against restored data before any non-disposable deployment.
 
 Run `./deploy/homelab/validate-rehearsal-isolation.ps1` immediately before any
 resource creation. The rehearsal override uses `pull_policy: never` for MinIO
