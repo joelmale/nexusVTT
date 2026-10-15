@@ -21,7 +21,7 @@ describe('service catalog', () => {
     expect(validateServiceCatalog(catalog)).toBe(catalog);
     expect(validateCatalogRepository(catalog).failures).toEqual([]);
     expect(checkCatalog()).toEqual({
-      images: 11,
+      images: 9,
       services: 6,
       targets: 13,
     });
@@ -29,8 +29,8 @@ describe('service catalog', () => {
 
   test('generates complete and affected matrices from one source', () => {
     const all = catalogMatrices(catalog);
-    expect(all.allReleaseImages).toHaveLength(11);
-    expect(all.releaseImages).toHaveLength(11);
+    expect(all.allReleaseImages).toHaveLength(9);
+    expect(all.releaseImages).toHaveLength(9);
     expect(all.codexDocApi).toBe(true);
     expect(all.codexNodeServices.map((entry) => entry.service)).toEqual([
       'doc-processor',

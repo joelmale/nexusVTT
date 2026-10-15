@@ -19,7 +19,7 @@ example file.
 The Compose configuration is modularized by domain and consolidated:
 - `compose.infra.yaml`: Shared infrastructure (`postgres`, `redis`, `codex-elasticsearch`, `codex-minio`, networks, volumes).
 - `compose.vtt.yaml`: Nexus VTT domain services (`frontend`, `backend`, `asset-server`).
-- `compose.codex.yaml`: Nexus Codex document services (`doc-api`, `doc-processor`, `doc-websocket`, `admin-ui`, `dm-ui`).
+- `compose.codex.yaml`: Nexus Codex document services (`doc-api`, `doc-processor`, `doc-websocket`; the admin and DM UIs are bundled into the gateway image).
 - `compose.yaml`: Root Compose file stitching the domain modules together via `include:`.
 
 ### Shared Datastores (Postgres & Redis)

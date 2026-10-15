@@ -118,8 +118,6 @@ describe('representative Stage 3A change classes', () => {
       'codex-doc-processor',
       'codex-ocr',
       'codex-doc-websocket',
-      'codex-admin-ui',
-      'codex-dm-ui',
       'frontend',
     ]);
 

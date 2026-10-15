@@ -240,15 +240,6 @@
           "lint": true,
           "build": true
         }
-      },
-      "releaseImage": {
-        "name": "codex-admin-ui",
-        "context": ".",
-        "file": "./apps/codex/services/admin-ui/Dockerfile",
-        "target": "",
-        "repository": "ghcr.io/joelmale/nexuscodex-admin-ui",
-        "platforms": "linux/amd64",
-        "securityScan": true
       }
     },
     "codex-dm-ui": {
@@ -269,15 +260,6 @@
           "lint": true,
           "build": true
         }
-      },
-      "releaseImage": {
-        "name": "codex-dm-ui",
-        "context": ".",
-        "file": "./apps/codex/services/dm-ui/Dockerfile",
-        "target": "",
-        "repository": "ghcr.io/joelmale/nexuscodex-dm-ui",
-        "platforms": "linux/amd64",
-        "securityScan": true
       }
     },
     "docs": {
