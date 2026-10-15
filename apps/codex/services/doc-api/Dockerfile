@@ -81,5 +81,7 @@ LABEL org.opencontainers.image.title="Nexus Codex Document API" \
       org.opencontainers.image.version="$VERSION" \
       org.opencontainers.image.revision="$COMMIT_SHA"
 
-# Run database migrations and start the compiled server.
-CMD ["sh", "-c", "npx prisma migrate deploy && node dist/server.js"]
+# Run database migrations and start the compiled server. `exec` makes node PID 1
+# explicitly, so SIGTERM from `docker stop` reaches the server's shutdown handler
+# whatever the shell does (Alpine's busybox ash already execs the last command).
+CMD ["sh", "-c", "npx prisma migrate deploy && exec node dist/server.js"]

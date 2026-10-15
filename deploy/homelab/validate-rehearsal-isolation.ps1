@@ -185,9 +185,7 @@ $applicationServices = @(
   'control-api',
   'doc-api',
   'doc-processor',
-  'doc-websocket',
-  'admin-ui',
-  'dm-ui'
+  'doc-websocket'
 )
 
 if ($null -ne $services) {

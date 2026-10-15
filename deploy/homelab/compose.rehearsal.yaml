@@ -54,6 +54,7 @@ services:
     networks: !override [rehearsal-net]
   control-api:
     environment:
+      CODEX_REDIS_URL: redis://:${REHEARSAL_REDIS_PASSWORD:-nexus-rehearsal}@redis:6379/1
       CONTROL_DATABASE_URL: postgresql://${REHEARSAL_POSTGRES_USER:-nexus_rehearsal}:${REHEARSAL_POSTGRES_PASSWORD:-nexus-rehearsal}@postgres:5432/${REHEARSAL_POSTGRES_DB:-nexus_rehearsal}
       ADMIN_ORIGIN: ${REHEARSAL_ADMIN_ORIGIN:-http://nexus-migration-phase3-e078895.invalid}
       GOOGLE_CLIENT_ID: ${REHEARSAL_GOOGLE_CLIENT_ID:-rehearsal-disabled}
@@ -70,13 +71,37 @@ services:
     volumes: !override
       - rehearsal-codex-elasticsearch-data:/usr/share/elasticsearch/data
     networks: !override [rehearsal-net]
-  codex-minio:
+  garage-init-config:
+    container_name: nexus-migration-phase3-e078895-garage-init-config
+    pull_policy: never
+    volumes: !override
+      - rehearsal-garage-config:/etc/garage
+      - rehearsal-garage-data:/var/lib/garage/data
+    networks: !override [rehearsal-net]
+  codex-garage:
+    container_name: nexus-migration-phase3-e078895-codex-garage
+    hostname: nexus-migration-phase3-e078895-codex-garage
     pull_policy: never
     environment:
-      MINIO_ROOT_USER: ${REHEARSAL_CODEX_MINIO_ROOT_USER:-nexus-rehearsal}
-      MINIO_ROOT_PASSWORD: ${REHEARSAL_CODEX_MINIO_ROOT_PASSWORD:-nexus-rehearsal}
+      GARAGE_DEFAULT_ACCESS_KEY: ${REHEARSAL_CODEX_MINIO_ROOT_USER:-nexus-rehearsal}
+      GARAGE_DEFAULT_SECRET_KEY: ${REHEARSAL_CODEX_MINIO_ROOT_PASSWORD:-nexus-rehearsal}
     volumes: !override
-      - rehearsal-codex-minio-data:/data
+      - rehearsal-garage-config:/etc/garage:ro
+      - rehearsal-garage-meta:/var/lib/garage/meta
+      - rehearsal-garage-data:/var/lib/garage/data
+    networks: !override
+      rehearsal-net:
+        aliases:
+          - codex-minio
+  codex-ocr:
+    container_name: nexus-migration-phase3-e078895-codex-ocr
+    hostname: nexus-migration-phase3-e078895-codex-ocr
+    pull_policy: never
+    environment:
+      S3_ACCESS_KEY: ${REHEARSAL_CODEX_MINIO_ROOT_USER:-nexus-rehearsal}
+      S3_SECRET_KEY: ${REHEARSAL_CODEX_MINIO_ROOT_PASSWORD:-nexus-rehearsal}
+    volumes: !override
+      - rehearsal-codex-ocr-models:/models
     networks: !override [rehearsal-net]
   doc-api:
     environment:
@@ -114,7 +139,9 @@ networks:
 
 volumes:
   codex-elasticsearch-data: !reset {}
-  codex-minio-data: !reset {}
+  codex-ocr-models: !reset {}
+  garage-config: !reset {}
+  garage-meta: !reset {}
   rehearsal-vtt-postgres-data: { name: nexus-migration-phase3-e078895-vtt-postgres-data }
   rehearsal-vtt-redis-data: { name: nexus-migration-phase3-e078895-vtt-redis-data }
   rehearsal-assets: { name: nexus-migration-phase3-e078895-assets }
@@ -122,4 +149,7 @@ volumes:
   rehearsal-library-assets: { name: nexus-migration-phase3-e078895-library-assets }
   rehearsal-tmt-seed: { name: nexus-migration-phase3-e078895-tmt-seed }
   rehearsal-codex-elasticsearch-data: { name: nexus-migration-phase3-e078895-codex-elasticsearch-data }
-  rehearsal-codex-minio-data: { name: nexus-migration-phase3-e078895-codex-minio-data }
+  rehearsal-codex-ocr-models: { name: nexus-migration-phase3-e078895-codex-ocr-models }
+  rehearsal-garage-config: { name: nexus-migration-phase3-e078895-garage-config }
+  rehearsal-garage-meta: { name: nexus-migration-phase3-e078895-garage-meta }
+  rehearsal-garage-data: { name: nexus-migration-phase3-e078895-garage-data }
