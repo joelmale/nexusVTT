@@ -60,6 +60,22 @@ ELASTICSEARCH_PING_TIMEOUT=3000
 ELASTICSEARCH_MAX_RETRIES=3
 ```
 
+### Search engine and logs
+
+Document search runs on Elasticsearch or on Postgres full-text search, chosen by `SEARCH_PROVIDER` (set it the same for doc-api and doc-processor; the homelab stack exposes it as `CODEX_SEARCH_PROVIDER`):
+
+```bash
+# elastic (default) | postgres | both
+# "both": Elasticsearch answers; Postgres runs alongside it and the overlap is recorded in
+# the codex_doc_api_search_shadow_* metrics.
+SEARCH_PROVIDER=elastic
+
+# Operational logs live in the Postgres log_events table; older rows are pruned daily.
+LOG_RETENTION_DAYS=30
+```
+
+Postgres search needs the `add_postgres_search_and_log_events` migration (apply migrations with `prisma migrate deploy`, not `db push`). To compare the two engines on a real query set, see `apps/codex/scripts/compare-search.js`.
+
 ### S3 Storage
 
 ```bash

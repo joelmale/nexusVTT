@@ -977,17 +977,21 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
         console.log(`[Worker] Indexing document in ElasticSearch`);
         await loggingService.logInfo(jobId, 'Indexing document in ElasticSearch');
         const indexStart = Date.now();
-        const searchIndex = await elasticService.indexDocument({
-          documentId: document.id,
-          title: document.title,
-          description: document.description,
-          content: text,
-          tags: document.tags,
-          type: document.type,
-          campaigns: document.campaigns,
-          collections: document.collections,
-          uploadedAt: document.uploadedAt,
-        });
+        // Postgres search needs no write here: triggers index document_chunks and
+        // the document row. The document id is stored as the "indexed" marker.
+        const searchIndex = env.SEARCH_PROVIDER === 'postgres'
+          ? document.id
+          : await elasticService.indexDocument({
+              documentId: document.id,
+              title: document.title,
+              description: document.description,
+              content: text,
+              tags: document.tags,
+              type: document.type,
+              campaigns: document.campaigns,
+              collections: document.collections,
+              uploadedAt: document.uploadedAt,
+            });
         const indexDurationMs = Date.now() - indexStart;
         await loggingService.logInfo(jobId, `Document indexed with ID: ${searchIndex} in ${indexDurationMs}ms`);
         if (version === 'v2') {

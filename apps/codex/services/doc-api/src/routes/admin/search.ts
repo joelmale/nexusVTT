@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../../services/database.service';
-import { elasticService } from '../../services/elastic.service';
+import { searchProvider } from '../../services/search';
 import { z } from 'zod';
 
 // Advanced search request schema
@@ -86,7 +86,7 @@ export async function adminSearchRoutes(fastify: FastifyInstance) {
         let elasticDocIds: string[] | null = null;
         if (query.contentQuery) {
           try {
-            const elasticResults = await elasticService.search({
+            const elasticResults = await searchProvider.search({
               query: query.contentQuery,
               size: 1000, // Get up to 1000 results from elastic
             });

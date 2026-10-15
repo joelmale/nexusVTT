@@ -1,7 +1,7 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../../services/database.service';
 import { s3Service } from '../../services/s3.service';
-import { elasticService } from '../../services/elastic.service';
+import { searchProvider } from '../../services/search';
 import { enqueueDocumentProcessing, getQueueStats } from '../../services/queue.service';
 import {
   AdminListDocumentsQuerySchema,
@@ -202,7 +202,7 @@ export async function adminDocumentRoutes(fastify: FastifyInstance) {
         // Delete from ElasticSearch if indexed
         if (document.searchIndex) {
           try {
-            await elasticService.deleteDocument(document.searchIndex);
+            await searchProvider.removeFromIndex(document.searchIndex);
           } catch (error) {
             fastify.log.warn(`Failed to delete from ElasticSearch: ${error}`);
           }
@@ -757,7 +757,7 @@ export async function adminDocumentRoutes(fastify: FastifyInstance) {
             // Delete from ElasticSearch if indexed
             if (document.searchIndex) {
               try {
-                await elasticService.deleteDocument(document.searchIndex);
+                await searchProvider.removeFromIndex(document.searchIndex);
               } catch (error) {
                 fastify.log.warn(`Failed to delete from ElasticSearch: ${error}`);
               }

@@ -1,5 +1,6 @@
-import { Client } from '@elastic/elasticsearch';
+import { Prisma } from '@prisma/client';
 import { env } from '../config/env';
+import { prisma } from './database.service';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'critical';
 
@@ -11,47 +12,36 @@ export interface LogEntry {
   meta?: Record<string, unknown>;
 }
 
+/**
+ * Writes operational logs to the log_events table that doc-api reads for the
+ * admin Logs page and per-job logs. Replaces the Elasticsearch nexus-logs index.
+ */
 class CentralLoggingService {
-  private client?: Client;
   private enabled: boolean;
-  private index: string;
   private serviceName: string;
 
   constructor() {
     this.enabled = env.LOGGING_ENABLED;
-    this.index = env.LOGGING_INDEX;
     this.serviceName = env.LOGGING_SERVICE_NAME;
-    if (this.enabled) {
-      this.client = new Client({ node: env.ELASTICSEARCH_URL });
-    }
   }
 
   async log(level: LogLevel, message: string, meta?: Record<string, unknown>): Promise<void> {
-    if (!this.enabled || !this.client) {
+    if (!this.enabled) {
       return;
     }
 
-    const entry: LogEntry = {
-      timestamp: new Date().toISOString(),
-      level,
-      service: this.serviceName,
-      message,
-      meta,
-    };
-
     try {
-      await this.client.index({
-        index: this.index,
-        document: {
-          '@timestamp': entry.timestamp,
-          level: entry.level,
-          service: entry.service,
-          message: entry.message,
-          meta: entry.meta,
+      await prisma.logEvent.create({
+        data: {
+          level,
+          service: this.serviceName,
+          message,
+          meta: meta === undefined ? undefined : (meta as Prisma.InputJsonValue),
+          jobId: typeof meta?.jobId === 'string' ? meta.jobId : undefined,
         },
       });
     } catch (error) {
-      console.error('Failed to send log to Elasticsearch', error);
+      console.error('Failed to write log event', error);
     }
   }
 }

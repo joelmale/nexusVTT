@@ -32,10 +32,12 @@ async function start() {
   }
 
   try {
-    // Initialize ElasticSearch index
-    console.log('Initializing ElasticSearch index...');
-    await centralLoggingService.log('info', 'Initializing ElasticSearch index');
-    await elasticService.initializeIndex();
+    // Initialize ElasticSearch index (not needed once search runs on Postgres)
+    if (env.SEARCH_PROVIDER !== 'postgres') {
+      console.log('Initializing ElasticSearch index...');
+      await centralLoggingService.log('info', 'Initializing ElasticSearch index');
+      await elasticService.initializeIndex();
+    }
 
     // Create and start worker
     const worker = createWorker(processDocumentWorker);

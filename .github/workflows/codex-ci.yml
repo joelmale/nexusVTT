@@ -188,8 +188,10 @@ jobs:
       - name: Generate Prisma client
         run: npm run prisma:generate
 
+      # migrate deploy, not db push: full-text search relies on triggers, GIN indexes and
+      # the pg_trgm extension that only exist in the SQL migrations.
       - name: Initialize isolated test database
-        run: npx prisma db push --skip-generate
+        run: npx prisma migrate deploy
 
       - name: Run API integration tests
         run: npm run test:integration -- --reporter=verbose

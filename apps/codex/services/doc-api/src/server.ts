@@ -182,6 +182,7 @@ const start = async () => {
 
     fastify.log.info(`Server running on http://0.0.0.0:${env.PORT}`);
     fastify.log.info(`Environment: ${env.NODE_ENV}`);
+    loggingService.startRetention();
     await loggingService.log('info', 'doc-api started', { port: env.PORT });
   } catch (err) {
     fastify.log.error(err);

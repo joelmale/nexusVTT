@@ -21,6 +21,9 @@ const envSchema = z.object({
   // ElasticSearch
   ELASTICSEARCH_URL: z.string(),
   ELASTICSEARCH_INDEX: z.string().default('documents'),
+  // Must match doc-api. With 'postgres' the document is searchable through the
+  // database triggers alone, so this service stops writing to Elasticsearch.
+  SEARCH_PROVIDER: z.enum(['elastic', 'postgres', 'both']).default('elastic'),
 
   // S3/MinIO
   S3_ENDPOINT: z.string(),

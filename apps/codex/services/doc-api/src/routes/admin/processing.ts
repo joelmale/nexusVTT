@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyReply, FastifyRequest } from 'fastify';
 import { prisma } from '../../services/database.service';
-import { elasticService } from '../../services/elastic.service';
+import { searchProvider } from '../../services/search';
 import {
   buildProcessingIssues,
   buildProcessingSummary,
@@ -143,12 +143,12 @@ export async function adminProcessingRoutes(fastify: FastifyInstance) {
       }
 
       try {
-        const exists = await elasticService.documentExists(request.params.id);
+        const exists = await searchProvider.documentExists(request.params.id);
         if (!exists) {
           return reply.status(404).send({ error: 'Document not indexed' });
         }
 
-        const results = await elasticService.searchWithinDocument({
+        const results = await searchProvider.searchWithinDocument({
           documentId: request.params.id,
           query,
           size: 5,

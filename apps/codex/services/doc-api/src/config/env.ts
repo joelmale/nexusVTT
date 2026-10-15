@@ -17,6 +17,9 @@ const envSchema = z.object({
   // ElasticSearch
   ELASTICSEARCH_URL: z.string(),
   ELASTICSEARCH_INDEX: z.string().default('documents'),
+  // Which engine answers document search: Elasticsearch, Postgres full-text, or
+  // both (Elasticsearch answers, Postgres runs in shadow for comparison).
+  SEARCH_PROVIDER: z.enum(['elastic', 'postgres', 'both']).default('elastic'),
 
   // Queue
   QUEUE_NAME: z.string().default(DEFAULT_DOCUMENT_QUEUE_NAME),
@@ -39,6 +42,8 @@ const envSchema = z.object({
   LOGGING_ENABLED: z.string().default('true').transform(val => val === 'true'),
   LOGGING_INDEX: z.string().default('nexus-logs'),
   LOGGING_SERVICE_NAME: z.string().default('doc-api'),
+  // Rows in log_events older than this are pruned daily.
+  LOG_RETENTION_DAYS: z.string().default('30').transform(Number),
 
   // Auth
   AUTH_DISABLED: z.string().default('false').transform(val => val === 'true'),

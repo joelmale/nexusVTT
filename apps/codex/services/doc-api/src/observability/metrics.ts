@@ -40,6 +40,29 @@ export const elasticsearchSearchDurationSeconds = new client.Histogram({
   registers: [registry],
 });
 
+export const postgresSearchDurationSeconds = new client.Histogram({
+  name: 'codex_doc_api_postgres_search_duration_seconds',
+  help: 'Postgres full-text search duration in seconds, labeled by operation.',
+  labelNames: ['operation'] as const,
+  buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
+  registers: [registry],
+});
+
+export const searchShadowTotal = new client.Counter({
+  name: 'codex_doc_api_search_shadow_total',
+  help: 'Shadow comparisons of Postgres search against Elasticsearch (SEARCH_PROVIDER=both), by result.',
+  labelNames: ['operation', 'result'] as const,
+  registers: [registry],
+});
+
+export const searchShadowOverlap = new client.Histogram({
+  name: 'codex_doc_api_search_shadow_overlap',
+  help: 'Top-10 result overlap between Elasticsearch and Postgres search (1 = identical).',
+  labelNames: ['operation'] as const,
+  buckets: [0, 0.2, 0.4, 0.6, 0.8, 0.9, 1],
+  registers: [registry],
+});
+
 // Sampled cheaply on scrape: BullMQ's getJobCounts() is a small pipelined
 // Redis read, not an aggregate database query, per the "instrument at the
 // source, no expensive aggregate queries per scrape" constraint.

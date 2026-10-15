@@ -3,6 +3,7 @@ import { randomUUID } from 'crypto';
 import { Readable } from 'stream';
 import { prisma } from '../services/database.service';
 import { s3Service } from '../services/s3.service';
+import { searchProvider } from '../services/search';
 import { FilePreviewService } from '../services/file-preview.service';
 import {
   CreateDocumentSchema,
@@ -516,6 +517,13 @@ export async function documentRoutes(fastify: FastifyInstance) {
 
         if (!document) {
           return reply.status(404).send({ error: 'Document not found' });
+        }
+
+        // Drop the search index entry too, so a deleted document cannot linger in results
+        try {
+          await searchProvider.removeFromIndex(document.searchIndex);
+        } catch (error) {
+          fastify.log.warn(`Failed to delete from search index: ${error}`);
         }
 
         // Delete from S3

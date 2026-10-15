@@ -15,6 +15,7 @@ import * as fs from 'fs';
 import * as path from 'path';
 import { prisma } from '../services/database.service';
 import { elasticService } from '../services/elastic.service';
+import { searchProvider } from '../services/search';
 import { getParser, getSupportedContentTypes } from './parsers';
 
 // Command line argument parsing
@@ -280,8 +281,8 @@ class SRDImporter {
           });
         }
 
-        // Update ElasticSearch if indexed
-        if (existing.searchIndex) {
+        // Update ElasticSearch if indexed (Postgres search follows the rows via triggers)
+        if (existing.searchIndex && searchProvider.writesToElastic) {
           try {
             await elasticService.updateDocument(existing.searchIndex, {
               title: parsed.title,
@@ -326,9 +327,11 @@ class SRDImporter {
           },
         });
 
-        // Index in ElasticSearch
+        // Index in ElasticSearch; Postgres search follows the rows via triggers, so in
+        // postgres mode the document id itself marks it as indexed.
         try {
-          const esId = await elasticService.indexDocument({
+          const esId = !searchProvider.writesToElastic ? doc.id : await elasticService.indexDocument({
+            documentId: doc.id,
             title: parsed.title,
             content: parsed.structuredData.searchText,
             type: parsed.type,
