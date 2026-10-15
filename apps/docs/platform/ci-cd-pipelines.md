@@ -142,8 +142,8 @@ which pass an empty image matrix. The advisory OCR image is scanned in weekly,
 release, and Delivery validation.
 
 `security-reusable.yml` reports SARIF, verifies image source provenance, and
-enforces Trivy HIGH/CRITICAL and Grype high-severity policies. Trivy includes
-unfixed vulnerabilities; Grype gates only findings with fixes. Images marked
+enforces the Trivy HIGH/CRITICAL policy, which gates only findings with fixes
+(`ignore-unfixed`). Images marked
 `securityAdvisory` (currently `codex-ocr`) allow vulnerability-enforcement steps
 to fail; build, scan infrastructure, and provenance errors can still fail jobs.
 CycloneDX SBOM generation runs outside PR events.
@@ -231,7 +231,7 @@ and chaos:
 - VTT PostgreSQL and Redis integration through Docker Compose;
 - production-stack Playwright smoke tests;
 - Codex API integration with PostgreSQL, Redis, and Elasticsearch;
-- full CodeQL, Trivy, Grype, container scans, and SBOM generation;
+- full CodeQL, Trivy, container scans, and SBOM generation;
 - OCR and embedding model initialization;
 - managed multiplayer soak with database and coordinator disruption.
 

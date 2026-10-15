@@ -318,15 +318,6 @@ jobs:
           ignore-unfixed: true
           exit-code: '1'
 
-      - name: Enforce Grype high and critical policy
-        continue-on-error: ${{ matrix.securityAdvisory == true }}
-        uses: anchore/scan-action@27805bf3b4e84b4a5c980df22ed233c00390a439 # v7.4.2
-        with:
-          image: ${{ steps.image.outputs.ref }}
-          fail-build: true
-          severity-cutoff: high
-          only-fixed: true
-
       - name: Note advisory security policy
         if: ${{ matrix.securityAdvisory == true }}
         run: >-

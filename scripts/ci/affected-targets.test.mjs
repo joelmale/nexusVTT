@@ -199,7 +199,6 @@ describe('representative Stage 3A change classes', () => {
     'package-lock.json',
     '.npmrc',
     '.prettierrc',
-    '.grype.yaml',
   ])('fans root dependency or tooling input %s out to every target', (path) => {
     const decision = decide(path);
     expect(decision.mode).toBe('targeted');

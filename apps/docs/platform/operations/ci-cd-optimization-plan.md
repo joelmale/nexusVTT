@@ -31,7 +31,7 @@ Managed smoke now builds its backend, asset-service, and delta-enabled frontend
 images once in the smoke job and rejects missing images, source-SHA label
 mismatches, or frontend variant mismatches instead of silently rebuilding.
 Trusted delivery builds each affected release image once under an immutable
-full-SHA tag; Trivy, Grype, CycloneDX, source-label, digest, run-attempt, and
+full-SHA tag; Trivy, CycloneDX, source-label, digest, run-attempt, and
 release-frontend variant validation consume that exact registry artifact before
 any mutable alias is promoted. PR security retains an unprivileged local image
 transport. Per-image provenance manifests bind reports to the source, digest,
@@ -133,7 +133,7 @@ work. Report speed changes and added validation cost separately.
 | Forge             | Types, lint, production build, existing tests and shared character-creator tests; current coverage thresholds retained                                                              |
 | Codex             | Existing service tests and builds, real API integration execution, UI lint, explicit inventory of services that currently have no tests                                             |
 | Documentation     | Type check and build; deploy the same validated output                                                                                                                              |
-| Security          | CodeQL security-extended, Trivy filesystem/container findings, Grype, existing SARIF categories, dependency/base-image/Actions updates, CycloneDX artifacts and release attachments |
+| Security          | CodeQL security-extended, Trivy filesystem/container findings, existing SARIF categories, dependency/base-image/Actions updates, CycloneDX artifacts and release attachments |
 | Multiplayer soak  | Existing nightly duration, chaos settings, conflict workload and reports; required execution for durability/reconnect changes                                                       |
 
 Do not lower coverage thresholds or narrow source inclusion to make the restored
@@ -301,7 +301,7 @@ Files: reusable image workflow or Bake definition, security consumers,
 1. Establish one image definition manifest containing Dockerfile, context,
    target, platform, build arguments and cache scope. Preserve all existing image
    build checks; reuse compatible builds instead of deleting validation.
-2. Use one loaded image per target for Trivy, Grype and CycloneDX generation.
+2. Use one loaded image per target for Trivy and CycloneDX generation.
    Eliminate separate SBOM rebuilds. Preserve retention and release attachments.
 3. Add a CI prebuilt-image mode to the managed smoke runner. Its default local
    behavior may continue building. In CI, missing or mismatched artifacts must

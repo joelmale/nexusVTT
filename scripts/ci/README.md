@@ -92,7 +92,7 @@ npm run test:ci-report
 Delivery requires a successful `CI Pipeline` run for the exact source SHA. It
 then builds affected images once under immutable full-SHA tags and makes the
 reusable security workflow pull those exact registry artifacts for Trivy,
-Grype, CycloneDX, source-label, digest, run-attempt, and release-frontend
+CycloneDX, source-label, digest, run-attempt, and release-frontend
 variant validation. Only successfully scanned digests can reach mutable release
 aliases. Push delivery
 accepts only `push` validation evidence. Manual candidates accept only a prior

@@ -18,8 +18,8 @@ RUN apk upgrade --no-cache && \
     adduser -S nodejs -u 1001 && \
     chown nodejs:nodejs /workspace
 
-# npm's own bundled undici/brace-expansion carry High advisories (Grype
-# --only-fixed) that even the latest npm release still ships. Swap in patched
+# npm's own bundled undici/brace-expansion carry High advisories (Trivy
+# --ignore-unfixed) that even the latest npm release still ships. Swap in patched
 # copies of the same major so the scanned runtime image is clean.
 RUN set -e; cd /tmp; N=/usr/local/lib/node_modules/npm/node_modules; \
     for spec in undici@^6.28.1 brace-expansion@^5.0.11; do \
