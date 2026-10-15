@@ -52,7 +52,7 @@ const envSchema = z.object({
   OCR_SERVICE_URL: z.string().optional(),
   OCR_SERVICE_TIMEOUT_MS: z.string().default('15000').transform(Number),
 
-  // Ingestion pipeline v2 (apps/docs/codex/ingestion-pipeline-v2-plan.md).
+  // Ingestion pipeline v2.
   // New documents take PIPELINE_VERSION; a document keeps the version it was
   // first processed with (metadata.processing.pipelineVersion).
   PIPELINE_VERSION: z.enum(['v1', 'v2']).default('v1'),

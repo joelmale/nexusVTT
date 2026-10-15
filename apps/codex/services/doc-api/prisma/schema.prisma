@@ -150,7 +150,7 @@ model DocumentText {
   @@map("document_texts")
 }
 
-// Ingestion v2 page model (apps/docs/codex/ingestion-pipeline-v2-plan.md#page-model).
+// Ingestion v2 page model.
 // One row per PDF page (or Markdown heading section). `blocks` holds
 // LayoutBlock[] with bboxes normalized to 0..1, the same convention future
 // annotation positions use. Written by the layout stage with upsert, so

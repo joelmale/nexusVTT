@@ -1,8 +1,7 @@
 #!/usr/bin/env node
 /**
  * Gold-set scorecard for the Codex ingestion pipeline
- * (apps/docs/codex/ingestion-pipeline-v2-plan.md#gold-set-benchmark-harness,
- * reviewer guide: apps/docs/codex/goldset-review.md).
+ * (reviewer guide: apps/docs/codex/goldset-review.md).
  *
  * Usage:
  *   node scripts/eval-pipeline.js --goldset 1 --pipeline v2 --vlm qwen2.5vl:7b [--api http://localhost:3005]

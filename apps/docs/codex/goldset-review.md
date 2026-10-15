@@ -2,7 +2,7 @@
 
 How to build, verify and use the ingestion v2 gold set: a small, fixed set of rulebook
 pages with human-verified answers that every engine, model, prompt or rule change is
-scored against. Background: [Ingestion Pipeline v2 Plan](ingestion-pipeline-v2-plan.md#gold-set-benchmark-harness).
+scored against.
 
 The rule that matters most: **labels are drafted by the pipeline and verified by a
 person.** A label a model wrote and nobody checked measures agreement with the model,
