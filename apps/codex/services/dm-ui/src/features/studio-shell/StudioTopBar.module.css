@@ -77,6 +77,12 @@
   padding-right: 12px;
 }
 
+/* Opens the campaign navigation drawer; only used where the rail is hidden. */
+.menuButton {
+  display: none;
+}
+
+.menuButton,
 .iconButton,
 .avatar,
 .restoreButton {
@@ -91,6 +97,7 @@
   width: var(--studio-icon-button);
 }
 
+.menuButton:hover,
 .iconButton:hover,
 .avatar:hover,
 .restoreButton:hover {
@@ -113,6 +120,10 @@
 }
 
 @media (max-width: 820px) {
+  .menuButton {
+    display: inline-flex;
+  }
+
   .mobileSwitcher {
     display: flex;
   }

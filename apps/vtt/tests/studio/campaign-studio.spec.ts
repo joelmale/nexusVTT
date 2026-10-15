@@ -33,8 +33,15 @@ const EXAMPLE_CAMPAIGNS = [
 // Demo routes need no backend, but the shell still asks for the server campaign
 // list and the runtime config; answer both locally so nothing 404s or 500s.
 test.beforeEach(async ({ page }) => {
+  // Only API calls: source files under .../src/api/ must still reach Vite.
   await page.route('**/api/**', (route) =>
-    route.fulfill({ status: 200, contentType: 'application/json', body: '[]' }),
+    ['fetch', 'xhr'].includes(route.request().resourceType())
+      ? route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: '[]',
+        })
+      : route.fallback(),
   );
   await page.route('**/config.js', (route) =>
     route.fulfill({ status: 200, contentType: 'text/javascript', body: '' }),

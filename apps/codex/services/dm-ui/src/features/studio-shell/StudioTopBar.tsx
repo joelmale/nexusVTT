@@ -1,5 +1,6 @@
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
+import Menu from 'lucide-react/dist/esm/icons/menu';
 import Moon from 'lucide-react/dist/esm/icons/moon';
 import Search from 'lucide-react/dist/esm/icons/search';
 import Settings from 'lucide-react/dist/esm/icons/settings';
@@ -17,6 +18,8 @@ interface StudioTopBarProps {
   onSettings?: () => void;
   onTheme?: () => void;
   onRestoreNavigation?: () => void;
+  /** Opens the campaign navigation drawer (shown at tablet-portrait widths). */
+  onOpenNavigation?: () => void;
 }
 
 export function StudioTopBar({
@@ -25,6 +28,7 @@ export function StudioTopBar({
   onSettings,
   onTheme,
   onRestoreNavigation,
+  onOpenNavigation,
 }: StudioTopBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -51,6 +55,16 @@ export function StudioTopBar({
   return (
     <header className={styles.topBar}>
       <div className={styles.brandGroup}>
+        {onOpenNavigation ? (
+          <button
+            aria-label="Open campaign navigation"
+            className={styles.menuButton}
+            onClick={onOpenNavigation}
+            type="button"
+          >
+            <Menu size={18} />
+          </button>
+        ) : null}
         <Link
           aria-label="Campaign Studio overview"
           className={styles.brand}

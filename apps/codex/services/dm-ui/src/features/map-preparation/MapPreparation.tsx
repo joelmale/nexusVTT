@@ -4,12 +4,14 @@ import CircleDot from 'lucide-react/dist/esm/icons/circle-dot';
 import Compass from 'lucide-react/dist/esm/icons/compass';
 import Eye from 'lucide-react/dist/esm/icons/eye';
 import EyeOff from 'lucide-react/dist/esm/icons/eye-off';
+import Layers from 'lucide-react/dist/esm/icons/layers';
 import Link2 from 'lucide-react/dist/esm/icons/link-2';
 import MapPin from 'lucide-react/dist/esm/icons/map-pin';
 import Minus from 'lucide-react/dist/esm/icons/minus';
 import MoreHorizontal from 'lucide-react/dist/esm/icons/more-horizontal';
 import MousePointer2 from 'lucide-react/dist/esm/icons/mouse-pointer-2';
 import Plus from 'lucide-react/dist/esm/icons/plus';
+import PanelRight from 'lucide-react/dist/esm/icons/panel-right';
 import RotateCcw from 'lucide-react/dist/esm/icons/rotate-ccw';
 import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 import Trash2 from 'lucide-react/dist/esm/icons/trash-2';
@@ -119,6 +121,8 @@ export function MapPreparation({
     Object.fromEntries(model.layers.map((layer) => [layer.id, layer.visible])),
   );
   const [zoom, setZoom] = useState(1);
+  // Tablet widths turn the layers/inspector panels into slide-over drawers.
+  const [drawer, setDrawer] = useState<'layers' | 'inspector' | null>(null);
   const [mode, setMode] = useState<'select' | 'visibility' | 'add-pin'>('select');
   const [inspectorTab, setInspectorTab] = useState<InspectorTab>('details');
   const [saveStatus, setSaveStatus] = useState<SaveStatus>('idle');
@@ -270,10 +274,12 @@ export function MapPreparation({
     const onPointerUp = () => {
       window.removeEventListener('pointermove', onPointerMove);
       window.removeEventListener('pointerup', onPointerUp);
+      window.removeEventListener('pointercancel', onPointerUp);
     };
 
     window.addEventListener('pointermove', onPointerMove);
     window.addEventListener('pointerup', onPointerUp);
+    window.addEventListener('pointercancel', onPointerUp);
   }
 
   function handlePinKeyDown(e: React.KeyboardEvent, pinId: string) {
@@ -421,7 +427,17 @@ export function MapPreparation({
 
   return (
     <div className={styles.layout}>
-      <aside className={styles.layersPanel}>
+      {drawer ? (
+        <button
+          aria-label="Close panel"
+          className={styles.drawerBackdrop}
+          onClick={() => setDrawer(null)}
+          type="button"
+        />
+      ) : null}
+      <aside
+        className={`${styles.layersPanel} ${drawer === 'layers' ? styles.drawerOpen : ''}`}
+      >
         <div className={styles.panelHeader}>
           <div>
             <Link className={styles.backLink} to={`${basePath}/maps`}>
@@ -498,7 +514,13 @@ export function MapPreparation({
               aria-label={`Open ${pin.label} details`}
               className={`${styles.locationRow} ${pin.id === selectedPinId ? styles.selectedLocation : ''}`}
               key={pin.id}
-              onClick={() => setSelectedPinId(pin.id)}
+              onClick={() => {
+                setSelectedPinId(pin.id);
+                // Where the layers panel is a drawer, jump to the details.
+                if (window.matchMedia?.('(max-width: 840px)').matches) {
+                  setDrawer('inspector');
+                }
+              }}
               type="button"
             >
               <span className={styles.pinIndex}>
@@ -564,6 +586,24 @@ export function MapPreparation({
           <div className={styles.compass} aria-label="Map compass">
             <Compass size={21} />
             <span>N</span>
+          </div>
+          <div className={styles.drawerToggles}>
+            <button
+              aria-expanded={drawer === 'layers'}
+              onClick={() => setDrawer((d) => (d === 'layers' ? null : 'layers'))}
+              type="button"
+            >
+              <Layers size={15} /> <span>Layers</span>
+            </button>
+            <button
+              aria-expanded={drawer === 'inspector'}
+              onClick={() =>
+                setDrawer((d) => (d === 'inspector' ? null : 'inspector'))
+              }
+              type="button"
+            >
+              <PanelRight size={15} /> <span>Details</span>
+            </button>
           </div>
           <div className={styles.zoomControls}>
             <button
@@ -661,6 +701,7 @@ export function MapPreparation({
         onOpenLinkModal={() => setIsObjectModalOpen(true)}
         onRemoveLinkedObject={handleRemoveLinkedObject}
         onTabChange={setInspectorTab}
+        isDrawerOpen={drawer === 'inspector'}
         onCommitPin={() => void persist()}
         onUpdatePin={updateSelectedPin}
         pin={selectedPin}
@@ -778,6 +819,7 @@ interface LocationInspectorProps {
   onDeletePin: () => void;
   onOpenLinkModal: () => void;
   onRemoveLinkedObject: (objectId: string) => void;
+  isDrawerOpen: boolean;
   selectedTab: InspectorTab;
 }
 
@@ -793,14 +835,16 @@ function LocationInspector({
   onDeletePin,
   onOpenLinkModal,
   onRemoveLinkedObject,
+  isDrawerOpen,
   selectedTab,
 }: LocationInspectorProps) {
-  if (!location && !pin) return <aside className={styles.inspector} />;
+  const inspectorClass = `${styles.inspector} ${isDrawerOpen ? styles.drawerOpen : ''}`;
+  if (!location && !pin) return <aside className={inspectorClass} />;
 
   const linkedObjects = pin?.linkedObjects ?? location?.linkedObjects ?? [];
 
   return (
-    <aside className={styles.inspector} aria-label="Selected location details">
+    <aside className={inspectorClass} aria-label="Selected location details">
       <div className={styles.inspectorTabs}>
         {(
           [
