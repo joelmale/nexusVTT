@@ -180,7 +180,6 @@ if ($null -eq $volumes) {
 $applicationServices = @(
   'postgres',
   'asset-server',
-  'nexus-forge',
   'frontend',
   'backend',
   'control-api',

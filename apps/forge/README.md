@@ -118,39 +118,11 @@ npm run dev
 npm run build
 ```
 
-### Docker Deployment
+### Deployment
 
-The repository ships a production `Dockerfile` and Compose definitions for
-local container validation.
-
-**Quick Start with Docker:**
-
-```bash
-# Build the image
-docker build -t nexus-forge .
-
-# Run locally
-docker run -p 8080:80 nexus-forge
-
-# Deploy
-docker compose -f docker-compose.yml up -d
-```
-
-**🚀 Build Optimizations:**
-
-- **90% smaller build context** (~30MB vs 352MB)
-- **Multi-platform support** (AMD64 + ARM64)
-- **BuildKit optimizations** with cache mounts
-- **GitHub Actions CI/CD** with automated builds
-- **Development mode** with `docker-compose.dev.yml`
-
-**🏗️ CI/CD Pipeline:**
-
-- **Automated builds** on push to master/main
-- **Multi-platform images** for all architectures
-- **Quality gates** with linting, testing, and security scans
-- **PR validation** with build checks
-- **Release automation** with GitHub releases
+Forge no longer ships its own container image. The Nexus VTT gateway image
+(`apps/vtt/docker/frontend.Dockerfile`) builds Forge and serves it under
+`/forge/`, so deploying the gateway deploys Forge.
 
 **Live Demo:** https://character.nexusvtt.com
 
@@ -197,11 +169,6 @@ NexusForge/
 │   ├── App.tsx                         # Main React application
 │   ├── main.tsx                        # Application entry point
 │   └── index.css                       # Tailwind CSS styles
-├── .github/workflows/
-│   └── deploy.yml                      # CI/CD pipeline
-├── Dockerfile                          # Multi-stage Docker build
-├── nginx.conf                          # Nginx configuration for SPA
-├── docker-compose.yml                  # Docker Compose stack definition
 ├── vite.config.ts                      # Vite build configuration
 ├── tailwind.config.js                  # Tailwind CSS configuration
 ├── package.json                        # Dependencies and scripts

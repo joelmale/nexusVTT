@@ -10,13 +10,7 @@
     "preview": "vite preview",
     "lint": "eslint .",
     "test": "vitest",
-    "test:ui": "vitest --ui",
-    "docker:build": "bash ./scripts/fast-build.sh",
-    "docker:build-push": "bash ./scripts/docker-build-push.sh",
-    "docker:run": "docker stop nexus-forge 2>/dev/null || true && docker rm nexus-forge 2>/dev/null || true && docker run -d --name nexus-forge -p 8080:8080 joelmale/nexus-forge:latest && echo '✅ Container started at http://localhost:8080'",
-    "docker:stop": "docker stop nexus-forge && docker rm nexus-forge && echo '✅ Container stopped and removed'",
-    "docker:logs": "docker logs -f nexus-forge",
-    "docker:restart": "docker restart nexus-forge && echo '✅ Container restarted'"
+    "test:ui": "vitest --ui"
   },
   "dependencies": {
     "@3d-dice/dice-box": "^1.1.4",

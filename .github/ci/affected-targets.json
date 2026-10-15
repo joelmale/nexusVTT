@@ -87,16 +87,7 @@
       "ciGroup": "forge",
       "lanes": ["pr", "delivery", "nightly"],
       "paths": ["apps/forge/**"],
-      "dependsOn": [],
-      "releaseImage": {
-        "name": "forge",
-        "context": ".",
-        "file": "./apps/forge/Dockerfile",
-        "target": "",
-        "repository": "ghcr.io/joelmale/nexus-forge",
-        "platforms": "linux/amd64",
-        "securityScan": true
-      }
+      "dependsOn": []
     },
     "control-api": {
       "description": "Control API service (private admin control plane)",

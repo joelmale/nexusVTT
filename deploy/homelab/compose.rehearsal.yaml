@@ -32,10 +32,6 @@ services:
       - rehearsal-library-assets:/app/assets-data
       - rehearsal-tmt-seed:/seed/tmt:ro
     networks: !override [rehearsal-net]
-  nexus-forge:
-    container_name: nexus-migration-phase3-e078895-forge
-    hostname: nexus-migration-phase3-e078895-forge
-    networks: !override [rehearsal-net]
   frontend:
     container_name: nexus-migration-phase3-e078895-frontend
     hostname: nexus-migration-phase3-e078895-frontend

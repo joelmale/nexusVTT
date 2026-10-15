@@ -113,7 +113,6 @@ describe('representative Stage 3A change classes', () => {
       'asset-service',
       'postgres',
       'backend',
-      'forge',
       'control-api',
       'codex-doc-api',
       'codex-doc-processor',

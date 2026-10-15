@@ -75,14 +75,6 @@ services:
       timeout: 5s
       retries: 3
     restart: unless-stopped
-  nexus-forge:
-    image: ${NEXUS_FORGE_IMAGE:-ghcr.io/joelmale/nexus-forge:latest}
-    pull_policy: always
-    container_name: nexus-vtt2-forge
-    hostname: nexus-vtt2-forge
-    networks:
-      - homelab-net
-    restart: unless-stopped
   frontend:
     image: ${FRONTEND_IMAGE:-ghcr.io/joelmale/nexusvtt/frontend:latest}
     pull_policy: always
