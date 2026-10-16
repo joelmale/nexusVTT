@@ -1,6 +1,6 @@
 # Dockerfile for the standalone Nexus VTT asset service
 
-FROM node:26.10.0-alpine
+FROM node:26.11.1-alpine
 
 WORKDIR /workspace
 
