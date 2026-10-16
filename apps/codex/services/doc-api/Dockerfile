@@ -1,4 +1,4 @@
-FROM node:26.10.0-alpine AS base
+FROM node:26.11.1-alpine AS base
 
 # npm's own bundled undici/brace-expansion carry High advisories (Trivy
 # --ignore-unfixed) that even the latest npm release still ships. Swap in patched
