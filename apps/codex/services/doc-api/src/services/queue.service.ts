@@ -1,5 +1,8 @@
 import { Queue } from 'bullmq';
 import Redis from 'ioredis';
+import {
+  type ProcessDocumentJob,
+} from '@nexus/document-contracts';
 import { env } from '../config/env';
 
 // Create Redis connection
@@ -7,10 +10,7 @@ const connection = new Redis(env.REDIS_URL, {
   maxRetriesPerRequest: null,
 });
 
-export interface ProcessDocumentJob {
-  documentId: string;
-  stage?: 'ingest' | 'render' | 'ocr' | 'extract' | 'index' | 'assets';
-}
+export type { ProcessDocumentJob };
 
 // Create queue instance for adding jobs
 export const documentQueue = new Queue<ProcessDocumentJob>(env.QUEUE_NAME, {

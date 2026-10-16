@@ -19,17 +19,15 @@ import type {
   CampaignPrepObjectKind,
   CampaignPrepObjectRecord,
   CampaignPrepObjectRevisionRecord,
+  CampaignPrepObjectStatus,
 } from '../repositories/base.js';
 
 type AuthoredPrepObject =
-  | CampaignEntry
-  | SceneTemplate
-  | SessionPlan
-  | CampaignMap;
+  CampaignEntry | SceneTemplate | SessionPlan | CampaignMap;
 
 type AuthoringRepository = Pick<
   CampaignPrepRepository,
-  'addRevision' | 'createObject' | 'getObject'
+  'addRevision' | 'createObject' | 'getObject' | 'setObjectStatus'
 >;
 
 export type CampaignPrepAuthoringErrorCode =
@@ -70,6 +68,12 @@ export interface ReviseCampaignPrepObjectRequest {
   data: unknown;
   principalId: string;
   requestId: string;
+}
+
+export interface SetCampaignPrepObjectStatusRequest {
+  campaignId: string;
+  objectId: string;
+  expectedRevision: number;
 }
 
 export interface CampaignPrepAuthoringResult {
@@ -252,5 +256,54 @@ export class CampaignPrepAuthoringService {
       },
     );
     return { data, ...saved };
+  }
+
+  /** Soft delete: marks the object archived without creating a revision. */
+  async archive(
+    request: SetCampaignPrepObjectStatusRequest,
+  ): Promise<{ object: CampaignPrepObjectRecord }> {
+    return this.setStatus(request, 'archived');
+  }
+
+  /** Reverses archive(); restored objects return as drafts. */
+  async restore(
+    request: SetCampaignPrepObjectStatusRequest,
+  ): Promise<{ object: CampaignPrepObjectRecord }> {
+    return this.setStatus(request, 'draft');
+  }
+
+  private async setStatus(
+    request: SetCampaignPrepObjectStatusRequest,
+    status: CampaignPrepObjectStatus,
+  ): Promise<{ object: CampaignPrepObjectRecord }> {
+    const object = await this.repository.getObject(
+      request.campaignId,
+      request.objectId,
+    );
+    if (!object) {
+      throw new CampaignPrepAuthoringError(
+        'not-found',
+        `Campaign object ${request.objectId} was not found`,
+      );
+    }
+    if (object.currentRevision !== request.expectedRevision) {
+      throw new CampaignPrepRevisionConflictError(
+        request.objectId,
+        request.expectedRevision,
+      );
+    }
+    const updated = await this.repository.setObjectStatus(
+      request.campaignId,
+      request.objectId,
+      request.expectedRevision,
+      status,
+    );
+    if (!updated) {
+      throw new CampaignPrepRevisionConflictError(
+        request.objectId,
+        request.expectedRevision,
+      );
+    }
+    return { object: updated };
   }
 }

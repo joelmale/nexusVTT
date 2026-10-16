@@ -315,7 +315,7 @@ probe 80 GET /control-api/v1/me --status '200|404' --not-upstream control-api --
 echo '== :80 public gateway: Phase 0 admin denials'
 for path in \
   /codex-admin /codex-admin/ /codex-admin/index.html /codex-admin/assets/index.js \
-  /api/admin/users /api/admin/elasticsearch/reindex \
+  /api/admin/users /api/admin/queue/clean \
   /api/documents/bulk /api/documents/bulk/upload /api/documents/abc/process \
   /api/deduplication/duplicates /api/processing/queue \
   /api/references/abc /api/annotations/abc \

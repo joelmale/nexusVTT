@@ -9,6 +9,7 @@ import { handleVttEntityPush, handleVttRegister, handleVttStateUpdate } from '..
 import { handleAnnotationCreate, handleAnnotationUpdate, handleAnnotationDelete } from '../handlers/annotation.handler';
 import { sessionService } from '../services/session.service';
 import { loggingService } from '../services/logging.service';
+import { env } from '../config/env';
 
 interface ExtendedWebSocket extends WebSocket {
   sessionId?: string;
@@ -45,7 +46,7 @@ export class DocumentWebSocketServer {
           return;
         }
 
-        const decoded = jwt.verify(token, process.env.JWT_SECRET || 'your-secret-key') as any;
+        const decoded = jwt.verify(token, env.JWT_SECRET) as any;
         ws.userId = decoded.userId;
         ws.isAlive = true;
 

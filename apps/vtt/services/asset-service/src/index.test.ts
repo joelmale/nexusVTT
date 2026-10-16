@@ -159,6 +159,65 @@ describe('asset-service user asset routes', () => {
     });
   });
 
+  describe('PATCH /user/:userId/asset/:assetId', () => {
+    const upload = async () =>
+      (
+        await request(app)
+          .post(`/user/${userId}/upload`)
+          .set('x-nexus-auth', SECRET)
+          .field('name', 'Original')
+          .attach('file', pngBuffer(), 'patch-me.png')
+      ).body.asset as { id: string; createdAt?: string };
+    const patch = (id: string, body: unknown) =>
+      request(app)
+        .patch(`/user/${userId}/asset/${id}`)
+        .set('x-nexus-auth', SECRET)
+        .send(body as object);
+
+    it('records createdAt on new uploads', async () => {
+      const asset = await upload();
+      expect(Number.isNaN(Date.parse(asset.createdAt ?? ''))).toBe(false);
+    });
+
+    it('renames and retags, trimming and de-duplicating tags', async () => {
+      const asset = await upload();
+      const res = await patch(asset.id, {
+        name: '  Dragon Keep ',
+        tags: [' keep', 'keep', 'dragon', ''],
+      });
+      expect(res.status).toBe(200);
+      expect(res.body.asset).toMatchObject({
+        id: asset.id,
+        name: 'Dragon Keep',
+        tags: ['keep', 'dragon'],
+      });
+      const listed = await request(app).get(`/user/${userId}/assets`);
+      expect(listed.body.assets[0]).toMatchObject({ name: 'Dragon Keep' });
+    });
+
+    it('requires the shared secret', async () => {
+      const asset = await upload();
+      const res = await request(app)
+        .patch(`/user/${userId}/asset/${asset.id}`)
+        .send({ name: 'x' });
+      expect(res.status).toBe(401);
+    });
+
+    it('rejects invalid names and tags, and unknown assets', async () => {
+      const asset = await upload();
+      expect((await patch(asset.id, { name: '   ' })).status).toBe(400);
+      expect((await patch(asset.id, { name: 'x'.repeat(121) })).status).toBe(400);
+      expect((await patch(asset.id, { tags: 'nope' })).status).toBe(400);
+      expect((await patch(asset.id, { tags: [1] })).status).toBe(400);
+      expect(
+        (await patch(asset.id, { tags: Array.from({ length: 21 }, (_, i) => `t${i}`) })).status,
+      ).toBe(400);
+      expect((await patch(asset.id, { tags: ['x'.repeat(41)] })).status).toBe(400);
+      expect((await patch(asset.id, {})).status).toBe(400);
+      expect((await patch('missing-id', { name: 'ok' })).status).toBe(404);
+    });
+  });
+
   describe('DELETE /user/:userId/asset/:assetId', () => {
     it('deletes an uploaded asset (full flow: upload then delete)', async () => {
       const uploadRes = await request(app)
@@ -188,6 +247,126 @@ describe('asset-service user asset routes', () => {
     it('rejects an unauthenticated delete with 401', async () => {
       const res = await request(app).delete(`/user/${userId}/asset/some-id`);
       expect(res.status).toBe(401);
+    });
+  });
+
+  describe('POST /user/:userId/generated-map', () => {
+    const post = () =>
+      request(app)
+        .post(`/user/${userId}/generated-map`)
+        .set('x-nexus-auth', SECRET);
+
+    it('rejects an unauthenticated upload', async () => {
+      const res = await request(app)
+        .post(`/user/${userId}/generated-map`)
+        .field('importId', 'imp-1')
+        .attach('file', pngBuffer(), 'map.png');
+      expect(res.status).toBe(401);
+    });
+
+    it('stores the map and lists it in the user manifest so its id resolves', async () => {
+      const res = await post()
+        .field('importId', 'imp-1')
+        .field('width', '2000')
+        .field('height', '1500')
+        .field('name', 'Mourningfen Cave')
+        .field('generator', 'cave')
+        .attach('file', pngBuffer(), 'cave.png');
+
+      expect(res.status).toBe(200);
+      expect(res.body).toMatchObject({
+        importId: 'imp-1',
+        width: 2000,
+        height: 1500,
+      });
+      expect(res.body.sceneUrl).toBe(
+        `/users/${userId}/generated/${res.body.assetId}.png`,
+      );
+      const file = path.join(
+        tmpAssetsPath,
+        'users',
+        userId,
+        'generated',
+        `${res.body.assetId}.png`,
+      );
+      expect(fs.existsSync(file)).toBe(true);
+
+      // The listing the dependency resolver reads must include the new id.
+      const listed = await request(app).get(`/user/${userId}/assets`);
+      expect(listed.body.assets).toEqual([
+        expect.objectContaining({
+          id: res.body.assetId,
+          name: 'Mourningfen Cave',
+          category: 'maps',
+          tags: ['generated', 'cave'],
+          fullImage: `users/${userId}/generated/${res.body.assetId}.png`,
+          source: 'user',
+        }),
+      ]);
+    });
+
+    it('names the asset after the generator when no name is given and ignores unknown generators', async () => {
+      const res = await post()
+        .field('importId', 'imp-2')
+        .field('generator', 'not-a-generator')
+        .attach('file', pngBuffer(), 'm.png');
+      expect(res.status).toBe(200);
+      const [asset] = (await request(app).get(`/user/${userId}/assets`)).body.assets;
+      expect(asset.name).toBe('Generated map');
+      expect(asset.tags).toEqual(['generated']);
+
+      const named = await post()
+        .field('importId', 'imp-3')
+        .field('generator', 'city')
+        .attach('file', pngBuffer(), 'm.png');
+      expect(named.status).toBe(200);
+      const assets = (await request(app).get(`/user/${userId}/assets`)).body.assets;
+      expect(assets.find((a: { id: string }) => a.id === named.body.assetId).name).toBe(
+        'Generated city',
+      );
+    });
+
+    it('rejects a missing file, a missing importId and a bad file type, registering nothing', async () => {
+      expect((await post().field('importId', 'x')).status).toBe(400);
+      expect((await post().attach('file', pngBuffer(), 'm.png')).status).toBe(400);
+      expect(
+        (await post().field('importId', 'x').attach('file', pngBuffer(), 'm.gif')).status,
+      ).toBe(400);
+      const listed = await request(app).get(`/user/${userId}/assets`);
+      expect(listed.body.assets).toEqual([]);
+    });
+
+    it('refuses an SVG with scripts or external references', async () => {
+      const res = await post()
+        .field('importId', 'x')
+        .attach(
+          'file',
+          Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"><script>alert(1)</script></svg>'),
+          { filename: 'm.svg', contentType: 'image/svg+xml' },
+        );
+      expect(res.status).toBe(400);
+      expect((await request(app).get(`/user/${userId}/assets`)).body.assets).toEqual([]);
+    });
+
+    it('deletes a generated map from the generated folder and the manifest', async () => {
+      const created = await post()
+        .field('importId', 'imp-del')
+        .attach('file', pngBuffer(), 'm.png');
+      const file = path.join(
+        tmpAssetsPath,
+        'users',
+        userId,
+        'generated',
+        `${created.body.assetId}.png`,
+      );
+      expect(fs.existsSync(file)).toBe(true);
+
+      const res = await request(app)
+        .delete(`/user/${userId}/asset/${created.body.assetId}`)
+        .set('x-nexus-auth', SECRET);
+      expect(res.status).toBe(200);
+      expect(fs.existsSync(file)).toBe(false);
+      expect((await request(app).get(`/user/${userId}/assets`)).body.assets).toEqual([]);
     });
   });
 

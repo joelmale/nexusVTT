@@ -78,8 +78,6 @@ describe('browser security controls', () => {
   describe('recent authentication', () => {
     const cases = [
       ['codex delete', 'DELETE', '/control-api/v1/codex/admin/documents/abc', undefined],
-      ['index recreate', 'POST', '/control-api/v1/codex/admin/elasticsearch/recreate-index', undefined],
-      ['index clear', 'DELETE', '/control-api/v1/codex/admin/elasticsearch/clear', undefined],
       ['grant role', 'POST', '/control-api/v1/administrators/grants', { email: 'x@example.com', role: 'auditor' }],
       ['revoke role', 'POST', '/control-api/v1/administrators/revocations', { userId: '0b6f1c1e-3b7a-4d7e-9a51-4a4a2d6f9c11', role: 'auditor' }],
       ['asset permanent delete', 'POST', '/control-api/v1/assets/assets/adm-1/permanent-delete', { expectedVersion: 3, confirm: true }],

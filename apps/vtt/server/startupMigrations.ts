@@ -50,6 +50,11 @@ export const STARTUP_MIGRATIONS: StartupMigration[] = [
         'homebrew-monster',
       ),
   },
+  {
+    fileName: '2026-10-07-add-item-kind.sql',
+    isApplied: (client) =>
+      constraintMentions(client, 'campaign_objects_kind_check', 'item'),
+  },
 ];
 
 export interface NonStartupMigration {

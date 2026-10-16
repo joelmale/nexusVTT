@@ -7,7 +7,6 @@ import Search from './pages/Search'
 import Deduplication from './pages/Deduplication'
 import DataQuality from './pages/DataQuality'
 import BulkUpload from './pages/BulkUpload'
-import ElasticSearch from './pages/ElasticSearch'
 import Operations from './pages/Operations'
 import DatabaseExplorer from './pages/DatabaseExplorer'
 import Reader from './pages/Reader'
@@ -55,7 +54,6 @@ function App() {
               <Route path="/deduplication" element={<RequirePermission action="viewDocuments"><Deduplication /></RequirePermission>} />
               <Route path="/data-quality" element={<RequirePermission action="viewDocuments"><DataQuality /></RequirePermission>} />
               <Route path="/bulk-upload" element={<RequirePermission action="viewDocuments"><BulkUpload /></RequirePermission>} />
-              <Route path="/elasticsearch" element={<RequirePermission action="viewDocuments"><ElasticSearch /></RequirePermission>} />
               <Route path="/logs" element={<RequirePermission action="viewDocuments"><Logs /></RequirePermission>} />
               <Route path="/reader/:id" element={<RequirePermission action="viewDocuments"><Reader /></RequirePermission>} />
               {/* Rules registry */}

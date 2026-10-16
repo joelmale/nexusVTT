@@ -2,7 +2,9 @@ import MapPin from 'lucide-react/dist/esm/icons/map-pin';
 import { Link } from 'react-router-dom';
 
 import type { CampaignFixtureBundle } from '@/demo/fixture-registry';
-import { resolvePublicAsset } from '@/features/map-preparation/buildMapPreparationModel';
+import { resolveMapThumbnail } from '@/features/map-preparation/buildMapPreparationModel';
+
+import { RemoveItemButton } from '@/features/section-shell/RemoveItemButton';
 
 import styles from './MapsIndex.module.css';
 
@@ -28,12 +30,13 @@ export function MapsIndex({ bundle, basePath }: MapsIndexProps) {
               bundle.locations.find((location) => location.id === id)?.name,
           )
           .filter((name): name is string => Boolean(name));
+        const thumbnail = resolveMapThumbnail(map);
         return (
-          <li key={map.id}>
+          <li className={styles.item} key={map.id}>
             <Link className={styles.card} to={`${basePath}/maps/${map.id}`}>
               <div className={styles.thumb}>
-                {map.imagePath ? (
-                  <img alt="" src={resolvePublicAsset(map.imagePath)} />
+                {thumbnail ? (
+                  <img alt="" loading="lazy" src={thumbnail} />
                 ) : (
                   <span data-testid="map-card-placeholder" aria-hidden="true">
                     <MapPin size={32} />
@@ -54,6 +57,13 @@ export function MapsIndex({ bundle, basePath }: MapsIndexProps) {
                 ) : null}
               </div>
             </Link>
+            <span className={styles.remove}>
+              <RemoveItemButton
+                id={map.id}
+                kind="campaign-map"
+                label={map.title}
+              />
+            </span>
           </li>
         );
       })}

@@ -1,0 +1,551 @@
+/*
+ * Map Studio sidebar. A sibling of the generator iframe inside
+ * .generator-panel (a flex row), never an overlay on the map.
+ * Dock side, width and collapsed state are driven by data attributes.
+ */
+
+.sidebar {
+  position: relative;
+  flex: 0 0 var(--studio-width, 340px);
+  width: var(--studio-width, 340px);
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  background: var(--surface-primary, rgba(20, 22, 27, 0.96));
+  color: var(--text-primary, #fff);
+  border-right: 1px solid var(--border-primary, rgba(255, 255, 255, 0.12));
+  order: 0;
+  overflow: hidden;
+}
+
+.sidebar[data-dock='right'] {
+  order: 2;
+  border-right: none;
+  border-left: 1px solid var(--border-primary, rgba(255, 255, 255, 0.12));
+}
+
+.sidebar[data-collapsed='true'] {
+  flex-basis: 52px;
+  width: 52px;
+}
+
+/* ── Width handle ── */
+.resizeHandle {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 5;
+  touch-action: none;
+}
+.sidebar[data-dock='left'] .resizeHandle {
+  right: -3px;
+}
+.sidebar[data-dock='right'] .resizeHandle {
+  left: -3px;
+}
+.resizeHandle:hover,
+.resizeHandle:focus-visible {
+  background: var(--color-primary, #6366f1);
+  opacity: 0.5;
+  outline: none;
+}
+
+/* ── Header ── */
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.75rem 0.875rem;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+  flex-shrink: 0;
+}
+/* Leave room for the overlay's own close button in the top-right corner. */
+.sidebar[data-dock='right'] .header {
+  padding-right: 3.25rem;
+}
+.title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+.headerActions {
+  display: flex;
+  gap: 0.125rem;
+}
+.iconButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--text-secondary, #9ca3af);
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    color 0.15s ease;
+}
+.iconButton:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.iconButton:focus-visible,
+.chip:focus-visible,
+.actionButton:focus-visible,
+.tab:focus-visible,
+.genButton:focus-visible,
+.primaryButton:focus-visible,
+.railButton:focus-visible {
+  outline: 2px solid var(--color-primary, #6366f1);
+  outline-offset: 2px;
+}
+
+/* ── Scrollable body ── */
+.body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  padding: 0.875rem;
+}
+
+.sectionLabel {
+  margin-bottom: 0.375rem;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-secondary, #9ca3af);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* ── Generator picker ── */
+.picker {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.25rem;
+  padding: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+.genButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.125rem;
+  padding: 0.375rem 0.125rem;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: #9ca3af;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.genButton:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: #fff;
+}
+.genButton[aria-pressed='true'] {
+  background: var(--indigo-600, #4f46e5);
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.4);
+}
+.genIcon {
+  font-size: 0.95rem;
+  line-height: 1;
+}
+.genLabel {
+  font-size: 0.625rem;
+  font-weight: 500;
+}
+
+/* ── Buttons ── */
+.primaryButton {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #fff;
+  background: linear-gradient(
+    135deg,
+    var(--indigo-600, #4f46e5) 0%,
+    var(--purple-600, #9333ea) 100%
+  );
+  border: 1px solid rgba(165, 180, 252, 0.35);
+  border-radius: 8px;
+  box-shadow: 0 4px 16px rgba(79, 70, 229, 0.35);
+  cursor: pointer;
+  transition:
+    transform 0.15s ease,
+    box-shadow 0.15s ease,
+    opacity 0.15s ease;
+}
+.primaryButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.5);
+}
+.primaryButton:disabled {
+  background: rgba(255, 255, 255, 0.06);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.actionButton {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  min-width: 0;
+  padding: 0.4rem 0.5rem;
+  font-size: 0.75rem;
+  color: #fff;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+.actionButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+}
+.actionButton:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.actionLabel {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.kbd {
+  flex-shrink: 0;
+  padding: 0.0625rem 0.3rem;
+  font-family: monospace;
+  font-size: 0.625rem;
+  color: #e0e7ff;
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 4px;
+  white-space: nowrap;
+}
+.dialogMark {
+  opacity: 0.55;
+}
+
+.actionGrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.375rem;
+}
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.375rem;
+}
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.72rem;
+  color: #e5e7eb;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 999px;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+.chip:hover:not(:disabled) {
+  background: rgba(99, 102, 241, 0.25);
+  border-color: rgba(165, 180, 252, 0.5);
+}
+.chip:disabled {
+  opacity: 0.6;
+  cursor: progress;
+}
+.hint {
+  margin-top: 0.375rem;
+  font-size: 0.675rem;
+  color: var(--text-secondary, #9ca3af);
+  line-height: 1.35;
+}
+
+/* ── Search ── */
+.search {
+  width: 100%;
+  padding: 0.4rem 0.6rem;
+  font-size: 0.75rem;
+  color: #fff;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 6px;
+}
+.search::placeholder {
+  color: #6b7280;
+}
+.search:focus-visible {
+  outline: 2px solid var(--color-primary, #6366f1);
+  outline-offset: 1px;
+}
+
+/* ── Tabs ── */
+.tabs {
+  display: flex;
+  gap: 0.125rem;
+  padding: 3px;
+  background: rgba(0, 0, 0, 0.3);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  border-radius: 8px;
+}
+.tab {
+  flex: 1;
+  padding: 0.35rem 0.25rem;
+  font-size: 0.72rem;
+  font-weight: 500;
+  color: #9ca3af;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.tab:hover {
+  color: #fff;
+}
+.tab[aria-selected='true'] {
+  color: #fff;
+  background: rgba(255, 255, 255, 0.1);
+}
+.tabPanel {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+.empty {
+  font-size: 0.75rem;
+  color: var(--text-secondary, #9ca3af);
+}
+
+/* ── Options ── */
+.options {
+  display: flex;
+  flex-direction: column;
+  gap: 0.375rem;
+}
+.checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  font-size: 0.725rem;
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+/* ── Shortcuts ── */
+.shortcutToggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 0.25rem 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary, #9ca3af);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+}
+.shortcutToggle:hover {
+  color: #fff;
+}
+.shortcutList {
+  display: flex;
+  flex-direction: column;
+  gap: 0.625rem;
+  margin-top: 0.5rem;
+  font-size: 0.725rem;
+}
+.shortcutGroupLabel {
+  margin-bottom: 0.25rem;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #6b7280;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+.shortcutGrid {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.25rem 0.5rem;
+  align-items: center;
+}
+.shortcutDesc {
+  color: #d1d5db;
+}
+
+/* ── Sticky footer ── */
+.footer {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  flex-shrink: 0;
+  padding: 0.75rem 0.875rem;
+  background: rgba(0, 0, 0, 0.25);
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+.scenePill {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+  color: var(--emerald-400, #34d399);
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  border-radius: 8px;
+}
+.scenePill[data-active='false'] {
+  color: var(--amber-400, #fbbf24);
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.3);
+}
+.sceneName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 500;
+}
+.previewRow {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+}
+.thumb {
+  flex: 0 0 auto;
+  width: 56px;
+  height: 56px;
+  object-fit: cover;
+  background: #111;
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+}
+.previewText {
+  min-width: 0;
+  font-size: 0.675rem;
+  color: var(--text-secondary, #9ca3af);
+  line-height: 1.35;
+}
+.error {
+  font-size: 0.72rem;
+  color: #fca5a5;
+}
+
+/* ── Collapsed rail ── */
+.rail {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.625rem 0;
+  height: 100%;
+}
+.railSpacer {
+  flex: 1;
+}
+.railButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  font-size: 1rem;
+  color: #d1d5db;
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.railButton:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+}
+.railButton[aria-pressed='true'] {
+  background: var(--indigo-600, #4f46e5);
+  color: #fff;
+}
+.railButton:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+/* ── Narrow screens: bottom sheet under the map ── */
+@media (max-width: 720px) {
+  .sidebar,
+  .sidebar[data-dock='right'],
+  .sidebar[data-collapsed='true'] {
+    flex: 0 0 auto;
+    width: 100%;
+    max-height: 55%;
+    order: 2;
+    border-left: none;
+    border-right: none;
+    border-top: 1px solid var(--border-primary, rgba(255, 255, 255, 0.12));
+  }
+  .sidebar[data-collapsed='true'] {
+    max-height: 56px;
+  }
+  .sidebar[data-collapsed='true'] .rail {
+    flex-direction: row;
+    justify-content: center;
+    padding: 0.5rem;
+  }
+  .sidebar[data-collapsed='true'] .railSpacer {
+    display: none;
+  }
+  .resizeHandle {
+    display: none;
+  }
+  .sidebar[data-dock='right'] .header {
+    padding-right: 0.875rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .primaryButton,
+  .actionButton,
+  .chip,
+  .tab,
+  .genButton,
+  .railButton {
+    transition: none;
+  }
+  .primaryButton:hover:not(:disabled) {
+    transform: none;
+  }
+}

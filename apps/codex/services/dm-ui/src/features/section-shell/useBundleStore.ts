@@ -7,6 +7,7 @@ import { useCampaignContext } from '@/features/campaigns/CampaignContext';
 import {
   createReadOnlyStore,
   READ_ONLY_ERROR,
+  type BacklinkRef,
   type BundleStore,
   type EditableKind,
   type SaveResult,
@@ -178,6 +179,56 @@ export function useBundleStore(): BundleStoreState {
     [applyResult, reload],
   );
 
+  const removeItem = useCallback(
+    async (kind: EditableKind, id: string): Promise<SaveResult> => {
+      const current = controllerRef.current;
+      if (!current?.removeItem) return { ok: false, error: READ_ONLY_ERROR };
+      try {
+        const result = await current.removeItem(kind, id);
+        // On conflict the controller already rolled back; refetch the truth.
+        if (result.conflict) await reload();
+        else await applyResult(current, result);
+        return {
+          ok: result.ok,
+          conflict: result.conflict,
+          error: result.error,
+        };
+      } catch (error) {
+        await reload();
+        return { ok: false, error: errorMessage(error) };
+      }
+    },
+    [applyResult, reload],
+  );
+
+  const restoreItem = useCallback(
+    async (kind: EditableKind, id: string): Promise<SaveResult> => {
+      const current = controllerRef.current;
+      if (!current?.restoreItem) return { ok: false, error: READ_ONLY_ERROR };
+      try {
+        const result = await current.restoreItem(kind, id);
+        if (result.conflict) await reload();
+        else await applyResult(current, result);
+        return {
+          ok: result.ok,
+          conflict: result.conflict,
+          error: result.error,
+        };
+      } catch (error) {
+        return { ok: false, error: errorMessage(error) };
+      }
+    },
+    [applyResult, reload],
+  );
+
+  const getBacklinks = useCallback(
+    async (id: string): Promise<BacklinkRef[]> => {
+      const current = controllerRef.current;
+      return current?.getBacklinks ? current.getBacklinks(id) : [];
+    },
+    [],
+  );
+
   const baseBundle = base.status === 'ready' ? base.bundle : undefined;
   const store = useMemo<BundleStore | undefined>(() => {
     if (!baseBundle) return undefined;
@@ -192,6 +243,9 @@ export function useBundleStore(): BundleStoreState {
       updateItem,
       addItem,
       reorderNotes,
+      removeItem,
+      restoreItem,
+      getBacklinks,
     };
   }, [
     baseBundle,
@@ -201,6 +255,9 @@ export function useBundleStore(): BundleStoreState {
     updateItem,
     addItem,
     reorderNotes,
+    removeItem,
+    restoreItem,
+    getBacklinks,
   ]);
 
   if (base.status !== 'ready') return base;

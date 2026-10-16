@@ -114,6 +114,50 @@ describe('CampaignPrepRepository', () => {
     );
   });
 
+  it('hides archived objects unless a status is requested and CASes status changes', async () => {
+    poolQuery.mockResolvedValue({ rows: [] });
+    await repository.listObjects(IDS.campaign, {});
+    expect(poolQuery).toHaveBeenLastCalledWith(
+      expect.stringContaining(`status <> 'archived'`),
+      [IDS.campaign],
+    );
+    await repository.listObjects(IDS.campaign, { status: 'archived' });
+    expect(poolQuery).toHaveBeenLastCalledWith(
+      expect.not.stringContaining(`status <> 'archived'`),
+      [IDS.campaign, 'archived'],
+    );
+
+    await expect(
+      repository.setObjectStatus(IDS.campaign, IDS.object, 2, 'archived'),
+    ).resolves.toBeNull();
+    expect(poolQuery).toHaveBeenLastCalledWith(
+      expect.stringContaining('"currentRevision" = $3'),
+      [IDS.campaign, IDS.object, 2, 'archived'],
+    );
+  });
+
+  it('finds non-archived current-revision objects that reference an asset', async () => {
+    const reference = {
+      campaignId: IDS.campaign,
+      campaignName: 'Ashes of Veyra',
+      objectId: IDS.object,
+      kind: 'campaign-map',
+      title: 'Harbor',
+    };
+    poolQuery.mockResolvedValue({ rows: [reference] });
+    await expect(
+      repository.findAssetReferences(IDS.user, 'asset-1'),
+    ).resolves.toEqual([reference]);
+    const [sql, params] = poolQuery.mock.calls.at(-1) as [string, unknown[]];
+    expect(params).toEqual([IDS.user, 'asset-1']);
+    expect(sql).toContain('c."dmId" = $1');
+    expect(sql).toContain(`o.status <> 'archived'`);
+    expect(sql).toContain('r.revision = o."currentRevision"');
+    expect(sql).toContain(`r.data #>> '{imageAssetRef,assetId}' = $2`);
+    expect(sql).toContain(`r.data ->> 'imageUrl'`);
+    expect(sql).toContain(`r.data ->> 'imagePath'`);
+  });
+
   it('returns null when an object or revision does not exist', async () => {
     poolQuery.mockResolvedValue({ rows: [] });
 

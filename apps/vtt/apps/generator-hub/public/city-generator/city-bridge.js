@@ -16,6 +16,18 @@
   let lastExportTime = 0;
   let exportPending = false;
 
+  // Tell the hub an EXECUTE_ACTION finished, once the post-action re-export
+  // has had time to settle, so the parent can clear its pending state.
+  function reportActionResult(requestId, status, error) {
+    if (!requestId || window.parent === window) return;
+    setTimeout(function () {
+      window.parent.postMessage(
+        { type: 'ACTION_RESULT', requestId: requestId, status: status, error: error },
+        '*',
+      );
+    }, status === 'done' ? 1200 : 0);
+  }
+
   function dispatchKeyEvent(keyCode, code, key, shiftKey = false) {
     const targetCanvas =
       document.querySelector('#openfl-content canvas') ||
@@ -52,17 +64,19 @@
     }
   }
 
-  function captureCanvas() {
+  let lastExportAttempt = 0;
+
+  function captureCanvas(retryCount = 0) {
     try {
       const canvas =
         document.querySelector('#openfl-content canvas') ||
         document.querySelector('canvas');
       if (canvas && canvas.width > 0 && canvas.height > 0) {
         canvas.toBlob(function (blob) {
+          exportPending = false;
           if (blob && blob.size > 0 && window.parent !== window) {
             console.log('City Bridge: Canvas export captured', canvas.width, canvas.height);
             lastExportTime = Date.now();
-            exportPending = false;
             window.parent.postMessage(
               {
                 type: 'CITY_EXPORT_READY',
@@ -74,8 +88,15 @@
               },
               '*',
             );
+          } else if (retryCount < 10) {
+            setTimeout(() => triggerExport(retryCount + 1), 600);
           }
         }, 'image/png');
+      } else {
+        exportPending = false;
+        if (retryCount < 10) {
+          setTimeout(() => triggerExport(retryCount + 1), 600);
+        }
       }
     } catch (e) {
       console.warn('City Bridge: Canvas capture failed:', e);
@@ -83,10 +104,11 @@
     }
   }
 
-  function triggerExport() {
-    if (exportPending) return;
+  function triggerExport(retryCount = 0) {
+    if (exportPending && retryCount === 0 && Date.now() - lastExportAttempt < 2000) return;
     exportPending = true;
-    setTimeout(captureCanvas, 50);
+    lastExportAttempt = Date.now();
+    setTimeout(() => captureCanvas(retryCount), 50);
   }
 
   function initializeBridge() {
@@ -132,11 +154,13 @@
         try {
           dispatchKeyEvent(data.keyCode, data.code, data.key, data.shiftKey);
 
-          if ([13, 83, 67, 84, 80, 65, 66, 68, 69, 76].includes(data.keyCode)) {
-            setTimeout(triggerExport, 800);
-          }
+          // Re-export after every action: any toggle/preset can change the map, and
+          // the parent caches the last export for "Add to Scene".
+          setTimeout(triggerExport, 800);
+          reportActionResult(data.requestId, 'done');
         } catch (e) {
           console.warn('City Bridge: Action dispatch error:', e);
+          reportActionResult(data.requestId, 'error', String(e && e.message || e));
         }
       }
     });
@@ -152,8 +176,8 @@
       false,
     );
 
-    // Initial auto-export after render
-    setTimeout(triggerExport, 1200);
+    // Initial auto-export after render with retry support
+    setTimeout(() => triggerExport(0), 1500);
   }
 
   // Set up bridge immediately

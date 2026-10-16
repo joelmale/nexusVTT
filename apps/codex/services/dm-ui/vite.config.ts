@@ -32,6 +32,11 @@ export default defineConfig({
         target: process.env.VITE_VTT_API_URL || 'http://localhost:5001',
         changeOrigin: true
       },
+      // User-uploaded and generated assets are served by the VTT gateway.
+      '/users': {
+        target: process.env.VITE_VTT_API_URL || 'http://localhost:5001',
+        changeOrigin: true
+      },
       '/auth': {
         target: process.env.VITE_VTT_API_URL || 'http://localhost:5001',
         changeOrigin: true

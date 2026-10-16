@@ -1,3 +1,4 @@
+import { DEFAULT_MAPS, findDefaultMap } from '@/data/defaultMaps';
 import type { CampaignFixtureBundle } from '@/demo/fixture-registry';
 
 import type {
@@ -6,6 +7,15 @@ import type {
 } from './mapPreparationModels';
 
 export function resolvePublicAsset(path: string): string {
+  // The gateway serves the VTT asset library at the origin root, while
+  // Studio's own public files live beneath its configured base path.
+  if (
+    path.startsWith('/assets/') ||
+    path.startsWith('/library-assets/') ||
+    path.startsWith('/users/')
+  ) {
+    return path;
+  }
   if (
     path.startsWith('data:') ||
     path.startsWith('blob:') ||
@@ -17,20 +27,46 @@ export function resolvePublicAsset(path: string): string {
   return `${import.meta.env.BASE_URL}${path.replace(/^\//, '')}`;
 }
 
-export function resolveMapImage(map: { imagePath?: string; imageAssetRef?: { assetId: string } }): string {
+interface MapImageSource {
+  imagePath?: string;
+  imageAssetRef?: { assetId: string };
+}
+
+/**
+ * The full-size image for a map, or '' when it cannot be located. A saved map
+ * keeps a display URL when it has one; older maps keep only an asset id, so
+ * bundled battle maps ("default-map-N") are looked up in the generated index.
+ * An id nothing can serve returns '' (callers show a placeholder) rather than a
+ * URL that is certain to 404.
+ */
+export function resolveMapImage(map: MapImageSource): string {
   if (map.imagePath) return resolvePublicAsset(map.imagePath);
   const assetId = map.imageAssetRef?.assetId;
   if (!assetId) return '';
   if (assetId.startsWith('http://') || assetId.startsWith('https://') || assetId.startsWith('/')) {
     return assetId;
   }
+  const bundled = findDefaultMap(assetId);
+  if (bundled) return resolvePublicAsset(bundled.path);
   if (assetId.startsWith('demo-')) {
     return resolvePublicAsset('/campaigns/ashes-of-veyra/maps/glass-harbor.png');
   }
   if (assetId.startsWith('library:')) {
     return `/library-assets/${assetId.slice('library:'.length)}`;
   }
-  return `/api/assets/${assetId}`;
+  return '';
+}
+
+/** A small preview for cards: the bundled thumbnail when there is one. */
+export function resolveMapThumbnail(map: MapImageSource): string {
+  const assetId = map.imageAssetRef?.assetId;
+  const bundled = assetId ? findDefaultMap(assetId) : undefined;
+  if (bundled && !map.imagePath) return resolvePublicAsset(bundled.thumbnail);
+  if (map.imagePath) {
+    const byPath = DEFAULT_MAPS.find((item) => item.path === map.imagePath);
+    if (byPath) return resolvePublicAsset(byPath.thumbnail);
+  }
+  return resolveMapImage(map);
 }
 
 export function resolveLinkedObject(
@@ -88,6 +124,17 @@ export function resolveLinkedObject(
       kind: handout.kind === 'lore' ? 'Lore' : 'Handout',
       subtitle: handout.visibility === 'shared' ? 'Player ready' : 'DM only',
       title: handout.title,
+    };
+  }
+  const campaignItem = (bundle.items ?? []).find(
+    (item) => item.id === objectId,
+  );
+  if (campaignItem) {
+    return {
+      id: campaignItem.id,
+      kind: 'Item',
+      subtitle: campaignItem.rarity.replace('_', ' '),
+      title: campaignItem.name,
     };
   }
   const scene = bundle.sceneTemplates.find((item) => item.id === objectId);
@@ -170,6 +217,12 @@ export function buildMapPreparationModel(
       title: h.title,
       subtitle: h.visibility === 'shared' ? 'Player ready' : 'DM only',
     })),
+    ...(bundle.items ?? []).map((item) => ({
+      id: item.id,
+      kind: 'Item',
+      title: item.name,
+      subtitle: item.rarity.replace('_', ' '),
+    })),
     ...bundle.sceneTemplates.map((s) => ({
       id: s.id,
       kind: 'Scene',
@@ -180,6 +233,7 @@ export function buildMapPreparationModel(
 
   return {
     id: map.id,
+    campaignId: bundle.campaignId,
     title: map.title,
     description: map.description,
     imagePath: resolveMapImage(map),

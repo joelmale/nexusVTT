@@ -75,14 +75,6 @@ services:
       timeout: 5s
       retries: 3
     restart: unless-stopped
-  nexus-forge:
-    image: ${NEXUS_FORGE_IMAGE:-ghcr.io/joelmale/nexus-forge:latest}
-    pull_policy: always
-    container_name: nexus-vtt2-forge
-    hostname: nexus-vtt2-forge
-    networks:
-      - homelab-net
-    restart: unless-stopped
   frontend:
     image: ${FRONTEND_IMAGE:-ghcr.io/joelmale/nexusvtt/frontend:latest}
     pull_policy: always
@@ -195,22 +187,6 @@ services:
       doc-api:
         condition: service_started
     restart: unless-stopped
-  codex-elasticsearch:
-    image: ${CODEX_ELASTICSEARCH_IMAGE:-docker.elastic.co/elasticsearch/elasticsearch:9.5.3}
-    pull_policy: if_not_present
-    environment:
-      discovery.type: single-node
-      xpack.security.enabled: 'false'
-      ES_JAVA_OPTS: -Xms512m -Xmx512m
-    volumes:
-      - codex-elasticsearch-data:/usr/share/elasticsearch/data
-    networks:
-      - nexus-internal-net
-    deploy:
-      resources:
-        limits:
-          memory: 1G
-    restart: on-failure
   garage-init-config:
     image: alpine:latest
     container_name: nexus-vtt2-garage-init-config
@@ -282,7 +258,6 @@ services:
       PORT: 3000
       DATABASE_URL: postgresql://${POSTGRES_USER:-nexus}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required, see deploy/homelab/.env.example}@postgres:5432/${CODEX_POSTGRES_DB:-doclib}
       REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required, see deploy/homelab/.env.example}@redis:6379/1
-      ELASTICSEARCH_URL: http://codex-elasticsearch:9200
       S3_ENDPOINT: ${CODEX_S3_ENDPOINT:-http://codex-garage:9000}
       S3_PUBLIC_ENDPOINT: ${CODEX_S3_PUBLIC_ENDPOINT:-http://localhost:9000}
       S3_ACCESS_KEY: ${CODEX_S3_ACCESS_KEY:-${CODEX_MINIO_ROOT_USER:-minioadmin}}
@@ -306,8 +281,8 @@ services:
     # every other homelab service (media stack, dashboards, the npm edge
     # proxy, etc.) -- any of them could otherwise resolve http://doc-api:3000
     # with zero authentication. nexus-internal-net is docker-internal (no
-    # external connectivity) and is enough for postgres/redis/elasticsearch/
-    # minio and the frontend gateway (see frontend's networks below) to reach
+    # external connectivity) and is enough for postgres/redis/
+    # garage and the frontend gateway (see frontend's networks below) to reach
     # it. Do not add homelab-net back here without re-enabling AUTH_DISABLED.
     # nexus-codex-egress-net gives outbound internet (doc-api downloads its
     # Prisma engine at startup and crash-loops on an internal-only network);
@@ -320,8 +295,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      codex-elasticsearch:
-        condition: service_started
       codex-garage:
         condition: service_started
     restart: on-failure
@@ -333,7 +306,6 @@ services:
       PORT: null
       DATABASE_URL: postgresql://${POSTGRES_USER:-nexus}:${POSTGRES_PASSWORD:?POSTGRES_PASSWORD is required, see deploy/homelab/.env.example}@postgres:5432/${CODEX_POSTGRES_DB:-doclib}
       REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required, see deploy/homelab/.env.example}@redis:6379/1
-      ELASTICSEARCH_URL: http://codex-elasticsearch:9200
       S3_ENDPOINT: ${CODEX_S3_ENDPOINT:-http://codex-garage:9000}
       S3_PUBLIC_ENDPOINT: ${CODEX_S3_PUBLIC_ENDPOINT:-http://localhost:9000}
       S3_ACCESS_KEY: ${CODEX_S3_ACCESS_KEY:-${CODEX_MINIO_ROOT_USER:-minioadmin}}
@@ -375,8 +347,6 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-      codex-elasticsearch:
-        condition: service_started
       codex-garage:
         condition: service_started
       codex-ocr:
@@ -392,7 +362,6 @@ services:
       REDIS_URL: redis://:${REDIS_PASSWORD:?REDIS_PASSWORD is required, see deploy/homelab/.env.example}@redis:6379/1
       SESSION_TTL: 3600
       JWT_SECRET: ${CODEX_JWT_SECRET:?CODEX_JWT_SECRET is required, see deploy/homelab/.env.example}
-      ELASTICSEARCH_URL: http://codex-elasticsearch:9200
     networks:
       - homelab-net
       - nexus-internal-net
@@ -456,8 +425,6 @@ networks:
   # control-api only (Google OAuth needs outbound internet); never homelab-net.
   nexus-control-egress-net: {}
 volumes:
-  codex-elasticsearch-data:
-    name: nexus-vtt2-codex-elasticsearch-data
   codex-ocr-models:
     name: nexus-vtt2-codex-ocr-models
   garage-config:

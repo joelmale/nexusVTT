@@ -177,7 +177,7 @@ describe('PipelineGraph component', () => {
 
     // Click Search Index node
     fireEvent.click(screen.getByTestId('node-index'))
-    expect(screen.getByText(/Elasticsearch:/i)).toBeDefined()
-    expect(screen.getAllByText(/documents/i).length).toBeGreaterThan(0)
+    expect(screen.getByText(/Search:/i)).toBeDefined()
+    expect(screen.getAllByText(/Postgres full-text/i).length).toBeGreaterThan(0)
   })
 })

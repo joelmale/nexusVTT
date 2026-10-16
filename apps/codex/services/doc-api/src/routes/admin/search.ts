@@ -1,6 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../../services/database.service';
-import { elasticService } from '../../services/elastic.service';
+import { searchProvider } from '../../services/search';
 import { z } from 'zod';
 
 // Advanced search request schema
@@ -82,19 +82,19 @@ export async function adminSearchRoutes(fastify: FastifyInstance) {
 
         const skip = (query.page - 1) * query.limit;
 
-        // If content search is requested, use ElasticSearch
-        let elasticDocIds: string[] | null = null;
+        // If content search is requested, use full-text search
+        let contentDocIds: string[] | null = null;
         if (query.contentQuery) {
           try {
-            const elasticResults = await elasticService.search({
+            const contentResults = await searchProvider.search({
               query: query.contentQuery,
-              size: 1000, // Get up to 1000 results from elastic
+              size: 1000, // Get up to 1000 content matches
             });
-            elasticDocIds = elasticResults.hits.map((r: any) => r.documentId);
+            contentDocIds = contentResults.hits.map((r: any) => r.documentId);
 
-            // Add elastic results to where clause
-            if (elasticDocIds.length > 0) {
-              where.id = { in: elasticDocIds };
+            // Restrict the metadata search to the content matches
+            if (contentDocIds.length > 0) {
+              where.id = { in: contentDocIds };
             } else {
               // No results from content search
               return reply.send({
@@ -106,7 +106,7 @@ export async function adminSearchRoutes(fastify: FastifyInstance) {
               });
             }
           } catch (error) {
-            fastify.log.error(`ElasticSearch error: ${error}`);
+            fastify.log.error(`Content search error: ${error}`);
             // Continue with database search only
           }
         }

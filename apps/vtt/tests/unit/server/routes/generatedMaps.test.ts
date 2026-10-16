@@ -134,6 +134,48 @@ describe('setupGeneratedMapsRoute', () => {
     );
   });
 
+  it('forwards the map name and generator so the asset is listed with them', async () => {
+    let forwarded: FormData | undefined;
+    vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
+      const urlStr = typeof input === 'string' ? input : input instanceof URL ? input.href : (input as { url: string }).url;
+      if (urlStr.includes('/user/user-123/generated-map')) {
+        forwarded = init?.body as FormData;
+        return Promise.resolve({
+          ok: true,
+          status: 200,
+          json: async () => ({ assetId: 'a1' }),
+          text: async () => '',
+        } as unknown as Response);
+      }
+      return realFetch(input, init);
+    });
+
+    const boundary = '----TestBoundaryMeta';
+    const field = (name: string, value: string) =>
+      [`--${boundary}`, `Content-Disposition: form-data; name="${name}"`, '', value];
+    const multipartBody = [
+      `--${boundary}`,
+      'Content-Disposition: form-data; name="file"; filename="m.png"',
+      'Content-Type: image/png',
+      '',
+      'fake image content',
+      ...field('importId', 'imp-9'),
+      ...field('name', 'Dwelling at dusk'),
+      ...field('generator', 'dwelling'),
+      `--${boundary}--`,
+    ].join('\r\n');
+    const res = await realFetch(`${baseUrl}/api/generated-maps`, {
+      method: 'POST',
+      headers: { 'Content-Type': `multipart/form-data; boundary=${boundary}` },
+      body: multipartBody,
+    });
+
+    expect(res.status).toBe(200);
+    expect(forwarded?.get('name')).toBe('Dwelling at dusk');
+    expect(forwarded?.get('generator')).toBe('dwelling');
+    expect(forwarded?.get('importId')).toBe('imp-9');
+  });
+
   it('handles upstream asset service failure with 500', async () => {
     vi.spyOn(globalThis, 'fetch').mockImplementation((input, init) => {
       const urlStr =

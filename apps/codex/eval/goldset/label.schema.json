@@ -2,7 +2,7 @@
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "$id": "https://nexus.local/codex/goldset/label.schema.json",
   "title": "Codex gold-set page label",
-  "description": "Human-verified answer key for one rulebook page (apps/docs/codex/ingestion-pipeline-v2-plan.md#gold-set-benchmark-harness). Coordinates are normalized 0..1 like DocumentPage.blocks. Entity data uses the extraction schemas in apps/codex/services/doc-processor/src/extraction/schemas.ts.",
+  "description": "Human-verified answer key for one rulebook page (see apps/docs/codex/goldset-review.md). Coordinates are normalized 0..1 like DocumentPage.blocks. Entity data uses the extraction schemas in apps/codex/services/doc-processor/src/extraction/schemas.ts.",
   "type": "object",
   "required": ["id", "goldsetVersion", "source", "category", "heldOut", "status", "review", "text", "regions", "entities"],
   "additionalProperties": false,

@@ -44,7 +44,6 @@ admin-ui/
 │   │   ├── Search.tsx
 │   │   ├── DataQuality.tsx
 │   │   ├── Deduplication.tsx
-│   │   ├── ElasticSearch.tsx
 │   │   ├── Health.tsx
 │   │   ├── BulkUpload.tsx
 │   │   └── Documents.tsx
@@ -82,7 +81,6 @@ doc-api/
 │   │   │   ├── tags.ts         # Tag management
 │   │   │   ├── validation.ts   # Data quality
 │   │   │   ├── users.ts        # User management
-│   │   │   ├── elasticsearch.ts # Search index mgmt
 │   │   │   └── health.ts       # System health
 │   │   ├── auth.ts             # Authentication
 │   │   ├── documents.ts        # Document CRUD
@@ -95,14 +93,13 @@ doc-api/
 │   │   ├── auth.service.ts     # User auth
 │   │   ├── database.service.ts # DB operations
 │   │   ├── s3.service.ts       # File storage
-│   │   ├── elastic.service.ts  # Search operations
+│   │   ├── search/             # Postgres full-text search provider
 │   │   ├── queue.service.ts    # Job queuing
 │   │   ├── health.service.ts   # System monitoring
 │   │   ├── metrics.service.ts  # Performance metrics
 │   │   ├── alerts.service.ts   # Alert system
 │   │   ├── content-hash.service.ts # Duplicate detection
 │   │   ├── logging.service.ts  # Job logging
-│   │   ├── elasticsearch-management.service.ts
 │   │   ├── file-preview.service.ts
 │   │   └── validation.service.ts
 │   ├── types/          # TypeScript type definitions
@@ -142,7 +139,6 @@ doc-processor/
 │   │   ├── ocr.service.ts           # OCR processing
 │   │   ├── thumbnail.service.ts     # Image thumbnails
 │   │   ├── content-hash.service.ts  # File hashing
-│   │   ├── elastic.service.ts       # Search indexing
 │   │   ├── database.service.ts      # DB operations
 │   │   ├── logging.service.ts       # Processing logs
 │   │   ├── queue.service.ts         # Job management
@@ -264,7 +260,7 @@ import { AuthService } from '../../services/auth.service';
 
 Each service has its own `.env` file with service-specific configuration:
 
-- **doc-api**: Database, Redis, ElasticSearch, S3, JWT secrets
+- **doc-api**: Database, Redis, S3, JWT secrets
 - **doc-processor**: Same as doc-api (shared infrastructure)
 - **doc-websocket**: Database, Redis, session settings
 - **admin-ui**: API endpoint URL, development settings

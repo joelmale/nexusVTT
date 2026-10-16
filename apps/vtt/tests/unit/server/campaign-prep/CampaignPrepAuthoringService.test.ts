@@ -121,6 +121,7 @@ function repository() {
     addRevision: vi.fn(),
     createObject: vi.fn(),
     getObject: vi.fn(),
+    setObjectStatus: vi.fn(),
   };
 }
 
@@ -141,7 +142,9 @@ describe('CampaignPrepAuthoringService', () => {
       requestId: REQUEST_ID,
     });
 
-    expect('title' in result.data && result.data.title).toBe("Harbormaster's Warning");
+    expect('title' in result.data && result.data.title).toBe(
+      "Harbormaster's Warning",
+    );
     expect(repo.createObject).toHaveBeenCalledWith(
       expect.objectContaining({
         id: IDS.note,
@@ -162,27 +165,25 @@ describe('CampaignPrepAuthoringService', () => {
     'encounter',
     'party-member',
     'homebrew-monster',
-  ] as const)(
-    'creates a %s as a validated campaign entry',
-    async (kind) => {
-      const repo = repository();
-      repo.createObject.mockResolvedValue({ object: {}, revision: {} });
-      const service = new CampaignPrepAuthoringService(repo);
+    'item',
+  ] as const)('creates a %s as a validated campaign entry', async (kind) => {
+    const repo = repository();
+    repo.createObject.mockResolvedValue({ object: {}, revision: {} });
+    const service = new CampaignPrepAuthoringService(repo);
 
-      await service.create({
-        campaignId: IDS.campaign,
-        kind,
-        data: { ...note(), kind, title: `A ${kind}` },
-        principalId: PRINCIPAL_ID,
-        requestId: REQUEST_ID,
-      });
+    await service.create({
+      campaignId: IDS.campaign,
+      kind,
+      data: { ...note(), kind, title: `A ${kind}` },
+      principalId: PRINCIPAL_ID,
+      requestId: REQUEST_ID,
+    });
 
-      expect(repo.createObject).toHaveBeenCalledWith(
-        expect.objectContaining({ kind, title: `A ${kind}` }),
-        expect.objectContaining({ revision: 1 }),
-      );
-    },
-  );
+    expect(repo.createObject).toHaveBeenCalledWith(
+      expect.objectContaining({ kind, title: `A ${kind}` }),
+      expect.objectContaining({ revision: 1 }),
+    );
+  });
 
   it('rejects a new-kind payload whose entry kind does not match', async () => {
     const service = new CampaignPrepAuthoringService(repository());
@@ -255,7 +256,10 @@ describe('CampaignPrepAuthoringService', () => {
       service.create({
         campaignId: IDS.campaign,
         kind: 'campaign-map',
-        data: { ...campaignMap(), pins: [{ ...campaignMap().pins[0], x: 1.5 }] },
+        data: {
+          ...campaignMap(),
+          pins: [{ ...campaignMap().pins[0], x: 1.5 }],
+        },
         principalId: PRINCIPAL_ID,
         requestId: REQUEST_ID,
       }),
@@ -373,5 +377,58 @@ describe('CampaignPrepAuthoringService', () => {
         requestId: REQUEST_ID,
       }),
     ).rejects.toBeInstanceOf(CampaignPrepRevisionConflictError);
+  });
+
+  describe('archive and restore', () => {
+    const request = {
+      campaignId: IDS.campaign,
+      objectId: IDS.note,
+      expectedRevision: 2,
+    };
+
+    it('archives at the expected revision and restores as draft', async () => {
+      const repo = repository();
+      repo.getObject.mockResolvedValue({ id: IDS.note, currentRevision: 2 });
+      repo.setObjectStatus.mockImplementation(
+        async (_c, _o, _r, status: string) => ({ id: IDS.note, status }),
+      );
+      const service = new CampaignPrepAuthoringService(repo);
+
+      await expect(service.archive(request)).resolves.toEqual({
+        object: { id: IDS.note, status: 'archived' },
+      });
+      await expect(service.restore(request)).resolves.toEqual({
+        object: { id: IDS.note, status: 'draft' },
+      });
+      expect(repo.setObjectStatus).toHaveBeenNthCalledWith(
+        1,
+        IDS.campaign,
+        IDS.note,
+        2,
+        'archived',
+      );
+    });
+
+    it('rejects missing objects and stale revisions', async () => {
+      const repo = repository();
+      const service = new CampaignPrepAuthoringService(repo);
+
+      repo.getObject.mockResolvedValue(null);
+      await expect(service.archive(request)).rejects.toMatchObject({
+        code: 'not-found',
+      });
+
+      repo.getObject.mockResolvedValue({ id: IDS.note, currentRevision: 5 });
+      await expect(service.archive(request)).rejects.toBeInstanceOf(
+        CampaignPrepRevisionConflictError,
+      );
+
+      repo.getObject.mockResolvedValue({ id: IDS.note, currentRevision: 2 });
+      repo.setObjectStatus.mockResolvedValue(null);
+      await expect(service.restore(request)).rejects.toBeInstanceOf(
+        CampaignPrepRevisionConflictError,
+      );
+      expect(repo.setObjectStatus).toHaveBeenCalledTimes(1);
+    });
   });
 });

@@ -121,6 +121,69 @@ export interface HomebrewMonster {
   notes: string;
 }
 
+export const ITEM_TYPES = [
+  'weapon',
+  'armor',
+  'shield',
+  'wondrous_item',
+  'potion',
+  'scroll',
+  'spellbook',
+  'tool',
+  'ammunition',
+  'adventuring_gear',
+  'treasure',
+  'other',
+] as const;
+export type CampaignItemType = (typeof ITEM_TYPES)[number];
+
+export const ITEM_RARITIES = [
+  'none',
+  'common',
+  'uncommon',
+  'rare',
+  'very_rare',
+  'legendary',
+  'artifact',
+] as const;
+export type CampaignItemRarity = (typeof ITEM_RARITIES)[number];
+
+export const ITEM_HOLDER_KINDS = [
+  'none',
+  'party-member',
+  'npc',
+  'location',
+  'encounter',
+] as const;
+export type CampaignItemHolderKind = (typeof ITEM_HOLDER_KINDS)[number];
+
+/** A piece of loot or treasure authored for the campaign. */
+export interface CampaignItem {
+  id: FixtureId;
+  campaignId: FixtureId;
+  name: string;
+  itemType: CampaignItemType;
+  rarity: CampaignItemRarity;
+  requiresAttunement: boolean;
+  attunementNote?: string;
+  valueGp?: number;
+  weightLb?: number;
+  quantity: number;
+  /** Supports `@` mentions. */
+  description: string;
+  /** Rules text, kept apart from the description. */
+  mechanics?: string;
+  /** Who carries it, or where it lies. `id` is unset for `none`. */
+  holder: { kind: CampaignItemHolderKind; id?: FixtureId };
+  /** The party has found it. */
+  discovered: boolean;
+  /** The party knows what it is. */
+  identified: boolean;
+  questIds: FixtureId[];
+  /** Set when started from an SRD catalog entry. */
+  source?: { ruleset: string; entityId: string };
+}
+
 export type BundleSource =
   'fixture' | 'catalog-only' | 'server-empty' | 'server';
 
@@ -134,4 +197,6 @@ export interface CampaignFixtureBundle extends CampaignCollections {
   features: { publishSessionPlans: boolean };
   /** Server campaigns only; fixtures have no homebrew monsters. */
   homebrewMonsters?: HomebrewMonster[];
+  /** Server campaigns only; fixtures have no authored items. */
+  items?: CampaignItem[];
 }

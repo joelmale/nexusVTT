@@ -54,7 +54,7 @@ This repo uses a minimal GitHub Actions setup to keep feedback fast and focused.
 
 **Jobs**
 - CodeQL Analysis (JavaScript/TypeScript).
-- Container Security Scan (frontend, backend) with Trivy and Grype.
+- Container Security Scan (frontend, backend) with Trivy.
 
 ## Updating Workflow Behavior
 

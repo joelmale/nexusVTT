@@ -7,6 +7,18 @@
   overflow: hidden;
 }
 
+/* Map Studio: controls sidebar beside the generator iframe (a row), turning
+   into a bottom sheet under it on narrow screens. */
+.generator-panel.studio-layout {
+  flex-direction: row;
+}
+
+@media (max-width: 720px) {
+  .generator-panel.studio-layout {
+    flex-direction: column;
+  }
+}
+
 /* Generator Overlay - full-viewport overlay for the generator.
    There is no header row to carve out any more (see .game-layout in
    layout-consolidated.css), so this covers the whole viewport. */

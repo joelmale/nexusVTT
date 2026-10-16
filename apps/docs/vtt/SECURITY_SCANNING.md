@@ -7,10 +7,9 @@ This project includes comprehensive security scanning via GitHub Actions. Here's
 1. **CodeQL** - GitHub's code analysis (✅ No setup needed)
 2. **Snyk** - Vulnerability scanning (⚙️ Requires token)
 3. **Trivy** - Container scanning (✅ No setup needed)
-4. **Grype** - Additional container scanning (✅ No setup needed)
-5. **OWASP Dependency Check** - Dependency vulnerabilities (✅ No setup needed)
-6. **TruffleHog** - Secret scanning (✅ No setup needed)
-7. **Gitleaks** - Secret detection (✅ No setup needed)
+4. **OWASP Dependency Check** - Dependency vulnerabilities (✅ No setup needed)
+5. **TruffleHog** - Secret scanning (✅ No setup needed)
+6. **Gitleaks** - Secret detection (✅ No setup needed)
 
 ## Quick Setup: Snyk Token
 
@@ -62,13 +61,6 @@ Once the token is added, the security scans will pass.
 - **Coverage:** OS packages, application dependencies
 - **Setup:** None required
 - **Reports:** GitHub Security tab
-
-### Grype
-
-- **What:** Alternative container scanner (broader coverage)
-- **Coverage:** Vulnerabilities in container images
-- **Setup:** None required
-- **Reports:** Job logs
 
 ### OWASP Dependency Check
 

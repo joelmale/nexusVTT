@@ -69,7 +69,6 @@ vi.mock('../../services/logging.service', () => ({
 }));
 vi.mock('../../services/s3.service', () => ({ s3Service: { downloadFile: vi.fn(async () => Buffer.from('%PDF')) } }));
 vi.mock('../../services/pdf.service', () => ({ pdfService: { getPageCount: vi.fn(async () => 7) } }));
-vi.mock('../../services/elastic.service', () => ({ elasticService: {} }));
 vi.mock('../../services/thumbnail.service', () => ({ thumbnailService: {} }));
 vi.mock('../../services/page-image.service', () => ({ pageImageService: {} }));
 vi.mock('../../services/ocr.service', () => ({ ocrService: {} }));

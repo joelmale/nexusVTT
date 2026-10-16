@@ -37,8 +37,8 @@ export const ScenePill: React.FC<ScenePillProps> = ({
   const [isExpanded, setIsExpanded] = useState(false);
 
   const { onPointerDown, panelRef } = useDraggablePanel({
-    // Fresh id — ensures no stale localStorage position
-    id: 'sceneDock_v5',
+    // Fresh id — ensures no stale localStorage position from horizontal layout
+    id: 'sceneDock_v6',
     defaultPosition: { x: 550, y: 84 },
   });
 
@@ -103,65 +103,73 @@ export const ScenePill: React.FC<ScenePillProps> = ({
       role="region"
       aria-label="Scene Manager"
     >
-      {/* Drag handle — exactly like PlayerClusterFloating */}
-      <div
-        className={styles.dragHandle}
-        aria-hidden="true"
-        title="Drag Scene Dock"
-        onPointerDown={(e) => {
-          e.stopPropagation();
-          onPointerDown(e);
-        }}
-      >
-        ⠿
-      </div>
+      {/* Top Header: Drag handle + active scene + expand chevron */}
+      <div className={styles.headerRow}>
+        <div
+          className={styles.dragHandle}
+          aria-hidden="true"
+          title="Drag Scene Dock"
+          onPointerDown={(e) => {
+            e.stopPropagation();
+            onPointerDown(e);
+          }}
+        >
+          ⠿
+        </div>
 
-      {/* Compact: active scene name */}
-      <div className={styles.compactView}>
-        <span className={styles.icon} aria-hidden="true">🗺️</span>
-        <span className={styles.sceneName}>
-          {activeScene?.name || 'No scene'}
+        {/* Compact: active scene name */}
+        <div className={styles.compactView}>
+          <span className={styles.icon} aria-hidden="true">🗺️</span>
+          <span className={styles.sceneName}>
+            {activeScene?.name || 'No scene'}
+          </span>
+        </div>
+
+        <span className={styles.chevron} aria-hidden="true">
+          ▾
         </span>
       </div>
 
-      {/* Divider between compact and expanded */}
+      {/* Horizontal divider between header and expanded vertical list */}
       <div className={styles.separator} />
 
-      {/* Expanded: scene chips + add button */}
+      {/* Expanded: vertical scene stack + add button */}
       <div className={styles.expandedView}>
-        {scenes.map((scene) => (
-          <button
-            key={scene.id}
-            type="button"
-            className={
-              scene.id === activeSceneId
-                ? styles.sceneChipActive
-                : styles.sceneChip
-            }
-            onClick={() => setActiveScene(scene.id)}
-            title={scene.description || scene.name}
-          >
-            {scene.name}
-            {scenes.length > 1 && (
-              <span
-                className={styles.deleteBtn}
-                role="button"
-                tabIndex={0}
-                onClick={(e) => handleDeleteScene(scene.id, e)}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' || e.key === ' ') {
-                    e.preventDefault();
-                    handleDeleteScene(scene.id, e as unknown as React.MouseEvent);
-                  }
-                }}
-                title="Delete scene"
-                aria-label={`Delete ${scene.name}`}
-              >
-                ×
-              </span>
-            )}
-          </button>
-        ))}
+        <div className={styles.scenesList}>
+          {scenes.map((scene) => (
+            <button
+              key={scene.id}
+              type="button"
+              className={
+                scene.id === activeSceneId
+                  ? styles.sceneChipActive
+                  : styles.sceneChip
+              }
+              onClick={() => setActiveScene(scene.id)}
+              title={scene.description || scene.name}
+            >
+              <span className={styles.chipName}>{scene.name}</span>
+              {scenes.length > 1 && (
+                <span
+                  className={styles.deleteBtn}
+                  role="button"
+                  tabIndex={0}
+                  onClick={(e) => handleDeleteScene(scene.id, e)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                      e.preventDefault();
+                      handleDeleteScene(scene.id, e as unknown as React.MouseEvent);
+                    }
+                  }}
+                  title="Delete scene"
+                  aria-label={`Delete ${scene.name}`}
+                >
+                  ×
+                </span>
+              )}
+            </button>
+          ))}
+        </div>
 
         {/* Add new scene */}
         <button
@@ -171,7 +179,8 @@ export const ScenePill: React.FC<ScenePillProps> = ({
           title="Create new scene"
           aria-label="Create new scene"
         >
-          +
+          <span className={styles.addIcon} aria-hidden="true">+</span>
+          <span>New Scene</span>
         </button>
       </div>
     </div>

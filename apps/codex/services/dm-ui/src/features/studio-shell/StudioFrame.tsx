@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react';
 import type { ReactNode } from 'react';
+import { useLocation } from 'react-router-dom';
 
 import type { CapabilityId } from '@/features/capability-notice';
 
@@ -25,10 +27,27 @@ export function StudioFrame({
   onCapability,
 }: StudioFrameProps) {
   const { expandCampaignRail, isCampaignRailExpanded } = useStudioNavigation();
+  const { pathname } = useLocation();
+  // Below 820px the rail is hidden; this opens it as a drawer instead.
+  const [isNavDrawerOpen, setNavDrawerOpen] = useState(false);
+
+  useEffect(() => {
+    setNavDrawerOpen(false);
+  }, [pathname]);
+
+  useEffect(() => {
+    if (!isNavDrawerOpen) return undefined;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setNavDrawerOpen(false);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, [isNavDrawerOpen]);
 
   const compactTopBar = (
     <StudioTopBar
       contextLabel={contextLabel}
+      onOpenNavigation={() => setNavDrawerOpen(true)}
       onRestoreNavigation={expandCampaignRail}
       onSearch={onSearch}
       onSettings={onSettings}
@@ -40,7 +59,7 @@ export function StudioFrame({
     <div className={styles.frame}>
       {isCampaignRailExpanded ? (
         <div className={styles.expandedFrame}>
-          <StudioCampaignRail onCapability={onCapability} />
+          <StudioCampaignRail onCapability={onCapability} onSearch={onSearch} />
           <div className={styles.expandedMain}>
             <div className={styles.mobileTopBar}>{compactTopBar}</div>
             <div className={styles.content}>{children}</div>
@@ -52,6 +71,26 @@ export function StudioFrame({
           <div className={styles.content}>{children}</div>
         </>
       )}
+      {isNavDrawerOpen ? (
+        <div className={styles.navDrawerLayer}>
+          <button
+            aria-label="Close campaign navigation"
+            className={styles.navDrawerBackdrop}
+            onClick={() => setNavDrawerOpen(false)}
+            type="button"
+          />
+          <div
+            className={styles.navDrawer}
+            onClick={(event) => {
+              if ((event.target as HTMLElement).closest('nav button')) {
+                setNavDrawerOpen(false);
+              }
+            }}
+          >
+            <StudioCampaignRail onCapability={onCapability} onSearch={onSearch} />
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }

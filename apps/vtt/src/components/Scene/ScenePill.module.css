@@ -1,7 +1,8 @@
 /*
  * ScenePill — CSS Module.
- * A premium floating dock for scene management that expands on hover.
+ * A vertical floating dock for scene management that expands on hover.
  * Uses hardware-accelerated transforms for position (via useDraggablePanel).
+ * In accordance with ADR-0006, all colors consume var(--token) from design-tokens.css.
  */
 
 .container {
@@ -10,9 +11,10 @@
   left: 0;
 
   display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
-  padding: var(--spacing-2) var(--spacing-3);
+  flex-direction: column;
+  align-items: stretch;
+  width: 200px;
+  padding: var(--spacing-1) var(--spacing-2);
 
   background: var(--surface-primary);
   -webkit-backdrop-filter: var(--glass-blur);
@@ -21,22 +23,33 @@
   border-radius: var(--border-radius-lg);
   box-shadow: var(--shadow-glass-lg);
 
-  /* Smooth expansion via max-width on the container */
-  max-width: 260px;
+  /* Smooth vertical expansion via max-height on the container */
+  max-height: 42px;
   overflow: hidden;
   transition:
-    max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
-    background-color 0.2s ease;
+    max-height 0.35s cubic-bezier(0.16, 1, 0.3, 1),
+    background-color 0.2s ease,
+    box-shadow 0.2s ease;
 }
 
 .container:hover,
 .container.expanded {
-  max-width: 900px;
+  max-height: min(60vh, 460px);
   background: var(--surface-secondary);
+  box-shadow: var(--shadow-glass-xl, 0 12px 32px rgba(0, 0, 0, 0.5));
 }
 
 /* Needed so CSS Modules exports this class name for JS toggling */
 .expanded {}
+
+/* ── Top Header Row ── */
+.headerRow {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-1_5);
+  min-height: 32px;
+  flex-shrink: 0;
+}
 
 /* ── Drag Handle ── */
 .dragHandle {
@@ -45,12 +58,11 @@
   align-items: center;
   justify-content: center;
   /* Make it a proper touch target (44×44 is the WCAG minimum) */
-  min-width: 44px;
-  min-height: 44px;
-  /* Pull negative margin so it doesn't add visual bulk to the pill */
-  margin: calc(-1 * var(--spacing-2)) 0;
-  margin-left: calc(-1 * var(--spacing-3));
-  padding: var(--spacing-2);
+  min-width: 32px;
+  min-height: 32px;
+  margin: calc(-1 * var(--spacing-1)) 0;
+  margin-left: calc(-1 * var(--spacing-2));
+  padding: var(--spacing-1);
 
   color: var(--text-muted);
   font-size: 10px;
@@ -60,7 +72,6 @@
   touch-action: none;
   user-select: none;
   -webkit-user-select: none;
-  /* Ensure pointer events always reach the handle */
   pointer-events: auto;
   position: relative;
   z-index: 10;
@@ -76,12 +87,12 @@
   opacity: 1;
 }
 
-/* ── Compact View (always visible) ── */
+/* ── Compact View (always visible in header) ── */
 .compactView {
   display: flex;
   align-items: center;
-  gap: var(--spacing-2);
-  flex-shrink: 0;
+  gap: var(--spacing-1_5);
+  flex: 1 1 auto;
   white-space: nowrap;
   min-width: 0;
 }
@@ -89,6 +100,7 @@
 .icon {
   flex: 0 0 auto;
   line-height: 1;
+  font-size: var(--text-sm);
 }
 
 .sceneName {
@@ -101,12 +113,27 @@
   font-weight: 500;
 }
 
-/* ── Separator bar ── */
+.chevron {
+  font-size: 10px;
+  color: var(--text-muted);
+  margin-left: auto;
+  transition: transform 0.25s ease;
+  line-height: 1;
+  user-select: none;
+}
+
+.container:hover .chevron,
+.container.expanded .chevron {
+  transform: rotate(180deg);
+}
+
+/* ── Separator divider ── */
 .separator {
-  width: 1px;
-  height: 20px;
+  width: 100%;
+  height: 1px;
   background: var(--border-primary);
   flex-shrink: 0;
+  margin: var(--spacing-1) 0;
   opacity: 0;
   transition: opacity 0.2s ease;
 }
@@ -116,34 +143,59 @@
   opacity: 1;
 }
 
-/* ── Expanded View (slides in on hover) ── */
+/* ── Expanded View (reveals vertical stack) ── */
 .expandedView {
   display: flex;
-  align-items: center;
-  gap: var(--spacing-2);
+  flex-direction: column;
+  gap: var(--spacing-1_5);
   opacity: 0;
-  transform: translateX(-8px);
+  transform: translateY(-4px);
   pointer-events: none;
   transition:
-    opacity 0.25s ease-out 0.1s,
-    transform 0.25s ease-out 0.1s;
-  white-space: nowrap;
-  flex-shrink: 0;
+    opacity 0.25s ease-out 0.08s,
+    transform 0.25s ease-out 0.08s;
+  min-height: 0;
+  flex: 1 1 auto;
 }
 
 .container:hover .expandedView,
 .container.expanded .expandedView {
   opacity: 1;
-  transform: translateX(0);
+  transform: translateY(0);
   pointer-events: auto;
 }
 
-/* ── Scene tab chips inside the expanded dock ── */
+/* ── Vertical Scenes List ── */
+.scenesList {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-1);
+  overflow-y: auto;
+  overflow-x: hidden;
+  max-height: calc(60vh - 100px);
+  padding-right: 2px;
+}
+
+.scenesList::-webkit-scrollbar {
+  width: 4px;
+}
+
+.scenesList::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scenesList::-webkit-scrollbar-thumb {
+  background: var(--border-primary);
+  border-radius: 4px;
+}
+
+/* ── Scene items inside the vertical dock ── */
 .sceneChip {
   display: flex;
   align-items: center;
-  gap: var(--spacing-1);
-  padding: var(--spacing-1) var(--spacing-3);
+  justify-content: space-between;
+  width: 100%;
+  padding: var(--spacing-1_5) var(--spacing-2);
   border-radius: var(--border-radius);
   border: 1px solid var(--border-primary);
   background: var(--surface-primary);
@@ -151,7 +203,7 @@
   font-size: var(--text-sm);
   font-weight: 500;
   cursor: pointer;
-  white-space: nowrap;
+  text-align: left;
   transition:
     background-color 0.15s ease,
     color 0.15s ease,
@@ -162,6 +214,7 @@
 .sceneChip:hover {
   background: var(--surface-hover);
   color: var(--text-primary);
+  border-color: var(--border-secondary, var(--border-primary));
 }
 
 .sceneChipActive {
@@ -177,33 +230,41 @@
   color: white;
 }
 
+.chipName {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex: 1 1 auto;
+  margin-right: var(--spacing-1);
+}
+
 .deleteBtn {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 16px;
-  height: 16px;
+  width: 18px;
+  height: 18px;
   border: none;
   background: none;
   color: inherit;
-  opacity: 0;
-  font-size: 12px;
+  opacity: 0.4;
+  font-size: 14px;
   line-height: 1;
   padding: 0;
-  margin-left: var(--spacing-1);
   cursor: pointer;
-  border-radius: 50%;
+  border-radius: 4px;
+  flex-shrink: 0;
   transition: opacity 0.15s ease, background-color 0.15s ease;
 }
 
 .sceneChip:hover .deleteBtn,
 .sceneChipActive:hover .deleteBtn {
-  opacity: 0.6;
+  opacity: 0.7;
 }
 
 .deleteBtn:hover {
   opacity: 1 !important;
-  background: rgba(255, 255, 255, 0.15);
+  background: rgba(255, 255, 255, 0.2);
 }
 
 /* ── Add Scene Button ── */
@@ -211,33 +272,36 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
+  gap: var(--spacing-1_5);
+  width: 100%;
+  padding: var(--spacing-1_5) var(--spacing-2);
+  border-radius: var(--border-radius);
   border: 1px dashed var(--border-primary);
   background: transparent;
   color: var(--text-muted);
-  font-size: 16px;
-  line-height: 1;
-  padding: 0;
+  font-size: var(--text-xs);
+  font-weight: 600;
   cursor: pointer;
   flex-shrink: 0;
   transition:
     background-color 0.2s ease,
     border-color 0.2s ease,
     color 0.2s ease,
-    transform 0.2s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    border-style 0.2s ease;
 }
 
 .addButton:hover {
-  background: var(--color-primary);
+  background: rgba(99, 102, 241, 0.15);
   border-color: var(--color-primary);
   border-style: solid;
-  color: white;
-  transform: scale(1.15);
-  box-shadow: 0 0 12px rgba(0, 188, 212, 0.35);
+  color: var(--text-primary);
 }
 
 .addButton:active {
-  transform: scale(0.95);
+  transform: scale(0.98);
+}
+
+.addIcon {
+  font-size: 14px;
+  line-height: 1;
 }

@@ -11,11 +11,9 @@ NexusCodex is a microservices platform for document ingestion, OCR, indexing, an
 
 Supporting infrastructure:
 
-- PostgreSQL (system-of-record)
+- PostgreSQL (system-of-record, full-text search and operational logs)
 - Redis (queues + session state)
-- ElasticSearch (full-text search)
 - S3-compatible storage (MinIO in dev)
-- Kibana (log browsing)
 
 ## 2. Service Catalog
 
@@ -32,7 +30,7 @@ Supporting infrastructure:
 - **Primary Dependencies**:
   - PostgreSQL (Prisma)
   - Redis (BullMQ producer)
-  - ElasticSearch (search)
+  - PostgreSQL full-text search (`src/services/search/`)
   - S3/MinIO (signed URLs)
 
 ### 2.2 doc-processor (BullMQ Worker)
@@ -46,12 +44,11 @@ Supporting infrastructure:
   - Layout-aware PDF extraction + OCR
   - Structured data extraction + entity resolution
   - Chunking + embeddings
-  - Search indexing
+  - Mark documents searchable (no external index)
   - Asset generation (thumbnails, page images)
 - **Primary Dependencies**:
   - PostgreSQL (Prisma)
   - Redis (BullMQ consumer)
-  - ElasticSearch (indexing)
   - S3/MinIO (document + assets)
 
 ### 2.3 doc-websocket (WebSocket)
@@ -87,10 +84,13 @@ Supporting infrastructure:
   - `entities`, `entity_aliases`, `entity_links`, `entity_mentions`
   - `document_references`, `document_annotations`
 
-### 3.2 ElasticSearch
+### 3.2 Search (PostgreSQL full-text)
 
-- Full-text index for documents (document-level content).
-- Used by keyword search and admin health checks.
+- Three sources ranked together: document metadata (`documents.searchVector`, title weight A, description/tags weight B), extracted text chunks (`document_chunks.searchVector`, ~1500 characters each) and SRD entries (`structured_data.searchVector`).
+- Triggers from the `add_postgres_search_and_log_events` migration keep the vectors current whichever service writes.
+- Query terms are OR'd (`to_tsquery`), ranked with `ts_rank_cd`; `ts_headline` produces `<em>`-wrapped snippets; `pg_trgm` similarity tolerates typos in titles only.
+- Filters: type, campaigns, tags, uploadedBy, uploadedAt range.
+- Migrations must be applied with `prisma migrate deploy` (triggers, GIN indexes and `pg_trgm` exist only in SQL migrations).
 
 ### 3.3 Redis
 
@@ -123,7 +123,7 @@ Supporting infrastructure:
    - Entity resolution + mention linking
    - Chunking + embeddings
 5. **index**
-   - ElasticSearch indexing
+   - Mark the document searchable (`documents.searchIndex` is set to the document id)
 6. **assets**
    - Thumbnail generation
    - Page images (WebP)
@@ -196,9 +196,8 @@ Checkpoint metadata is persisted in `documents.metadata.processing` with per-sta
 
 ## 7. Logging & Observability
 
-- Central logging written to ElasticSearch.
+- Central logging written to the Postgres `log_events` table (doc-api, doc-processor, doc-websocket), pruned after `LOG_RETENTION_DAYS` (default 30).
 - `doc-api` exposes `/api/admin/logs` for UI.
-- Kibana exposes full log search.
 - Ingestion logs per stage include durations and checkpoints.
 
 ## 8. Failure Modes & Recovery
@@ -212,7 +211,7 @@ Checkpoint metadata is persisted in `documents.metadata.processing` with per-sta
 
 Common:
 
-- `DATABASE_URL`, `REDIS_URL`, `ELASTICSEARCH_URL`
+- `DATABASE_URL`, `REDIS_URL`
 - `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`
 
 doc-processor:

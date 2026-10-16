@@ -26,8 +26,8 @@ interface ValidationResult {
     }>
     total: number
   }
-  elasticIssues: {
-    elasticIssues: Array<{
+  searchIndexIssues: {
+    searchIndexIssues: Array<{
       id: string
       title: string
       issue: string
@@ -39,7 +39,7 @@ interface ValidationResult {
   summary: {
     totalOrphaned: number
     totalMetadataIssues: number
-    totalElasticIssues: number
+    totalSearchIndexIssues: number
     totalIssues: number
   }
 }
@@ -247,11 +247,11 @@ export default function DataQuality() {
               <Search className="h-4 w-4 text-blue-500" />
             </CardHeader>
             <CardContent>
-              <div className={`text-2xl font-bold ${getSeverityColor(validation.summary.totalElasticIssues)}`}>
-                {validation.summary.totalElasticIssues}
+              <div className={`text-2xl font-bold ${getSeverityColor(validation.summary.totalSearchIndexIssues)}`}>
+                {validation.summary.totalSearchIndexIssues}
               </div>
               <p className="text-xs text-muted-foreground">
-                ElasticSearch inconsistencies
+                Marked indexed but not searchable
               </p>
             </CardContent>
           </Card>
@@ -320,7 +320,7 @@ export default function DataQuality() {
                 {processingSummary.indexed}
               </div>
               <p className="text-xs text-muted-foreground">
-                Searchable in ElasticSearch
+                Searchable
               </p>
               {processingSummary.embeddingModels && Object.keys(processingSummary.embeddingModels).length > 0 && (
                 <p
@@ -544,13 +544,13 @@ export default function DataQuality() {
         </Card>
       )}
 
-      {/* ElasticSearch Issues */}
-      {validation && validation.elasticIssues.total > 0 && (
+      {/* Search index issues */}
+      {validation && validation.searchIndexIssues.total > 0 && (
         <Card>
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <Search className="h-5 w-5 text-blue-500" />
-              Search Index Issues ({validation.elasticIssues.total})
+              Search Index Issues ({validation.searchIndexIssues.total})
             </CardTitle>
           </CardHeader>
           <CardContent>
@@ -563,7 +563,7 @@ export default function DataQuality() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {validation.elasticIssues.elasticIssues.map((issue) => (
+                {validation.searchIndexIssues.searchIndexIssues.map((issue) => (
                   <TableRow key={issue.id}>
                     <TableCell className="font-medium">{issue.title}</TableCell>
                     <TableCell>

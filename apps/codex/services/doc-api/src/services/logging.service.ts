@@ -1,10 +1,12 @@
-import { Client } from '@elastic/elasticsearch';
+import { Prisma } from '@prisma/client';
 import { env } from '../config/env';
+import { prisma } from './database.service';
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'critical';
 
 export interface LogEntry {
   timestamp: string;
+  '@timestamp': string;
   level: LogLevel;
   service: string;
   message: string;
@@ -12,50 +14,41 @@ export interface LogEntry {
   requestId?: string;
 }
 
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/**
+ * Operational logs stored in the log_events table (shared by doc-api,
+ * doc-processor and doc-websocket).
+ */
 class LoggingService {
-  private client?: Client;
   private enabled: boolean;
-  private index: string;
   private serviceName: string;
+  private retentionTimer?: NodeJS.Timeout;
 
   constructor() {
     this.enabled = env.LOGGING_ENABLED;
-    this.index = env.LOGGING_INDEX;
     this.serviceName = env.LOGGING_SERVICE_NAME;
-    if (this.enabled) {
-      this.client = new Client({ node: env.ELASTICSEARCH_URL });
-    }
   }
 
   async log(level: LogLevel, message: string, meta?: Record<string, unknown>, requestId?: string): Promise<void> {
-    const entry: LogEntry = {
-      timestamp: new Date().toISOString(),
-      level,
-      service: this.serviceName,
-      message,
-      meta,
-      requestId,
-    };
-
-    if (!this.enabled || !this.client) {
+    if (!this.enabled) {
       return;
     }
 
     try {
-      await this.client.index({
-        index: this.index,
-        document: {
-          '@timestamp': entry.timestamp,
-          level: entry.level,
-          service: entry.service,
-          message: entry.message,
-          meta: entry.meta,
-          requestId: entry.requestId,
+      await prisma.logEvent.create({
+        data: {
+          level,
+          service: this.serviceName,
+          message,
+          meta: meta === undefined ? undefined : (meta as Prisma.InputJsonValue),
+          requestId,
+          jobId: typeof meta?.jobId === 'string' ? meta.jobId : undefined,
         },
       });
     } catch (error) {
       // Swallow logging errors to avoid crashing the service
-      console.error('Failed to send log to Elasticsearch', error);
+      console.error('Failed to write log event', error);
     }
   }
 
@@ -68,73 +61,80 @@ class LoggingService {
     limit?: number;
     offset?: number;
   }) {
-    if (!this.client) {
-      return { total: 0, hits: [] };
-    }
+    const timestamp: Prisma.DateTimeFilter = {};
+    if (params.from) timestamp.gte = new Date(params.from);
+    if (params.to) timestamp.lte = new Date(params.to);
 
-    const filters: any[] = [];
-    if (params.services?.length) {
-      filters.push({ terms: { 'service.keyword': params.services } });
-    }
-    if (params.levels?.length) {
-      filters.push({ terms: { 'level.keyword': params.levels } });
-    }
-    if (params.from || params.to) {
-      const range: Record<string, string> = {};
-      if (params.from) range.gte = params.from;
-      if (params.to) range.lte = params.to;
-      filters.push({ range: { '@timestamp': range } });
-    }
+    // Every term must appear in the message (the old simple_query_string AND behaviour).
+    const terms = (params.query ?? '').split(/\s+/).filter(Boolean);
 
-    const must: any[] = [];
-    if (params.query) {
-      must.push({
-        simple_query_string: {
-          query: params.query,
-          fields: ['message'],
-          default_operator: 'and',
-        },
-      });
-    }
+    const where: Prisma.LogEventWhereInput = {
+      ...(params.services?.length ? { service: { in: params.services } } : {}),
+      ...(params.levels?.length ? { level: { in: params.levels } } : {}),
+      ...(Object.keys(timestamp).length ? { timestamp } : {}),
+      ...(terms.length
+        ? { AND: terms.map((term) => ({ message: { contains: term, mode: 'insensitive' as const } })) }
+        : {}),
+    };
 
-    const response = await this.client.search({
-      index: this.index,
-      from: params.offset || 0,
-      size: params.limit || 100,
-      sort: [{ '@timestamp': { order: 'desc' } }],
-      query: {
-        bool: {
-          filter: filters.length ? filters : undefined,
-          must: must.length ? must : undefined,
-        },
-      },
-    });
+    const [total, rows] = await Promise.all([
+      prisma.logEvent.count({ where }),
+      prisma.logEvent.findMany({
+        where,
+        orderBy: { timestamp: 'desc' },
+        skip: params.offset || 0,
+        take: params.limit || 100,
+      }),
+    ]);
 
-    const hits = response.hits.hits.map((hit: any) => ({
-      id: hit._id,
-      ...hit._source,
-    }));
-
-    const total = typeof response.hits.total === 'object' ? response.hits.total.value : response.hits.total;
-
-    return { total, hits };
+    return {
+      total,
+      hits: rows.map((row) => ({
+        id: String(row.id),
+        '@timestamp': row.timestamp.toISOString(),
+        level: row.level,
+        service: row.service,
+        message: row.message,
+        meta: row.meta ?? undefined,
+        requestId: row.requestId ?? undefined,
+      })),
+    };
   }
 
   async getLogs(jobId: string): Promise<LogEntry[]> {
-    if (!this.client) {
-      return [];
-    }
-
-    const response = await this.client.search({
-      index: this.index,
-      size: 100,
-      sort: [{ '@timestamp': { order: 'asc' } }],
-      query: {
-        term: { 'meta.jobId.keyword': jobId },
-      },
+    const rows = await prisma.logEvent.findMany({
+      where: { jobId },
+      orderBy: { timestamp: 'asc' },
+      take: 100,
     });
 
-    return response.hits.hits.map((hit) => hit._source as LogEntry);
+    return rows.map((row) => ({
+      timestamp: row.timestamp.toISOString(),
+      '@timestamp': row.timestamp.toISOString(),
+      level: row.level as LogLevel,
+      service: row.service,
+      message: row.message,
+      meta: (row.meta ?? undefined) as Record<string, unknown> | undefined,
+      requestId: row.requestId ?? undefined,
+    }));
+  }
+
+  /** Delete log rows older than LOG_RETENTION_DAYS; returns how many were removed. */
+  async pruneOldLogs(retentionDays = env.LOG_RETENTION_DAYS): Promise<number> {
+    const cutoff = new Date(Date.now() - retentionDays * DAY_MS);
+    const { count } = await prisma.logEvent.deleteMany({ where: { timestamp: { lt: cutoff } } });
+    return count;
+  }
+
+  /** Prune once now and then daily. Safe to call once at startup. */
+  startRetention(): void {
+    if (this.retentionTimer) return;
+    const run = () => {
+      this.pruneOldLogs().catch((error) => console.error('Failed to prune log events', error));
+    };
+    run();
+    this.retentionTimer = setInterval(run, DAY_MS);
+    this.retentionTimer.unref();
   }
 }
 

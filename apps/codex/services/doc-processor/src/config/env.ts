@@ -1,5 +1,9 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import {
+  DEFAULT_ASSET_QUEUE_NAME,
+  DEFAULT_DOCUMENT_QUEUE_NAME,
+} from '@nexus/document-contracts';
 
 dotenv.config();
 
@@ -14,10 +18,6 @@ const envSchema = z.object({
   // Redis
   REDIS_URL: z.string(),
 
-  // ElasticSearch
-  ELASTICSEARCH_URL: z.string(),
-  ELASTICSEARCH_INDEX: z.string().default('documents'),
-
   // S3/MinIO
   S3_ENDPOINT: z.string(),
   S3_ACCESS_KEY: z.string(),
@@ -30,8 +30,8 @@ const envSchema = z.object({
     .transform((val) => val === 'true'),
 
   // Processing Configuration
-  QUEUE_NAME: z.string().default('document-processing'),
-  ASSET_QUEUE_NAME: z.string().default('document-assets'),
+  QUEUE_NAME: z.string().default(DEFAULT_DOCUMENT_QUEUE_NAME),
+  ASSET_QUEUE_NAME: z.string().default(DEFAULT_ASSET_QUEUE_NAME),
   WORKER_CONCURRENCY: z.string().default('1').transform(Number),
   ASSET_WORKER_CONCURRENCY: z.string().default('1').transform(Number),
   THUMBNAIL_WIDTH: z.string().default('300').transform(Number),
@@ -48,7 +48,7 @@ const envSchema = z.object({
   OCR_SERVICE_URL: z.string().optional(),
   OCR_SERVICE_TIMEOUT_MS: z.string().default('15000').transform(Number),
 
-  // Ingestion pipeline v2 (apps/docs/codex/ingestion-pipeline-v2-plan.md).
+  // Ingestion pipeline v2.
   // New documents take PIPELINE_VERSION; a document keeps the version it was
   // first processed with (metadata.processing.pipelineVersion).
   PIPELINE_VERSION: z.enum(['v1', 'v2']).default('v1'),
@@ -102,7 +102,6 @@ const envSchema = z.object({
     .string()
     .default('true')
     .transform((val) => val === 'true'),
-  LOGGING_INDEX: z.string().default('nexus-logs'),
   LOGGING_SERVICE_NAME: z.string().default('doc-processor'),
 
   // Observability (Phase 3, see apps/docs/platform/observability-runbook.md).

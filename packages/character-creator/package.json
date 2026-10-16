@@ -38,7 +38,7 @@
     "@testing-library/react": "^16.3.3",
     "@vitejs/plugin-react": "^5.2.0",
     "jsdom": "^27.4.0",
-    "postcss": "^8.4.49",
+    "postcss": "^8.5.30",
     "typescript": "^5.7.2",
     "vitest": "^4.1.11"
   }

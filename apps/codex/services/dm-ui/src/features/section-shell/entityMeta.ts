@@ -2,6 +2,7 @@ import CalendarDays from 'lucide-react/dist/esm/icons/calendar-days';
 import CheckSquare from 'lucide-react/dist/esm/icons/check-square';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
 import ImageIcon from 'lucide-react/dist/esm/icons/image';
+import Gem from 'lucide-react/dist/esm/icons/gem';
 import MapIcon from 'lucide-react/dist/esm/icons/map';
 import MapPin from 'lucide-react/dist/esm/icons/map-pin';
 import Search from 'lucide-react/dist/esm/icons/search';
@@ -26,6 +27,7 @@ export const ENTITY_ICONS: Record<EntityKind, LucideIcon> = {
   clue: Search,
   handout: FileText,
   note: StickyNote,
+  item: Gem,
   scene: ImageIcon,
 };
 
@@ -41,5 +43,6 @@ export const ENTITY_KIND_LABELS: Record<EntityKind, string> = {
   clue: 'Clues',
   handout: 'Handouts',
   note: 'Notes',
+  item: 'Items',
   scene: 'Scenes',
 };

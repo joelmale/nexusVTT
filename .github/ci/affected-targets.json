@@ -87,16 +87,7 @@
       "ciGroup": "forge",
       "lanes": ["pr", "delivery", "nightly"],
       "paths": ["apps/forge/**"],
-      "dependsOn": [],
-      "releaseImage": {
-        "name": "forge",
-        "context": ".",
-        "file": "./apps/forge/Dockerfile",
-        "target": "",
-        "repository": "ghcr.io/joelmale/nexus-forge",
-        "platforms": "linux/amd64",
-        "securityScan": true
-      }
+      "dependsOn": []
     },
     "control-api": {
       "description": "Control API service (private admin control plane)",
@@ -249,15 +240,6 @@
           "lint": true,
           "build": true
         }
-      },
-      "releaseImage": {
-        "name": "codex-admin-ui",
-        "context": ".",
-        "file": "./apps/codex/services/admin-ui/Dockerfile",
-        "target": "",
-        "repository": "ghcr.io/joelmale/nexuscodex-admin-ui",
-        "platforms": "linux/amd64",
-        "securityScan": true
       }
     },
     "codex-dm-ui": {
@@ -278,15 +260,6 @@
           "lint": true,
           "build": true
         }
-      },
-      "releaseImage": {
-        "name": "codex-dm-ui",
-        "context": ".",
-        "file": "./apps/codex/services/dm-ui/Dockerfile",
-        "target": "",
-        "repository": "ghcr.io/joelmale/nexuscodex-dm-ui",
-        "platforms": "linux/amd64",
-        "securityScan": true
       }
     },
     "docs": {
@@ -332,8 +305,7 @@
         "scripts/**",
         ".gitattributes",
         ".prettierrc",
-        ".prettierignore",
-        ".grype.yaml"
+        ".prettierignore"
       ],
       "targets": "all"
     },
@@ -360,7 +332,7 @@
     {
       "name": "shared-package-document-contracts",
       "paths": ["packages/document-contracts/**"],
-      "targets": ["vtt", "forge", "codex-doc-api"]
+      "targets": ["vtt", "forge", "codex-doc-api", "codex-doc-processor"]
     },
     {
       "name": "shared-package-rules-contracts",

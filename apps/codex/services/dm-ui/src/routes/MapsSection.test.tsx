@@ -187,6 +187,29 @@ describe('Maps section', () => {
     expect(screen.getByText('Add Campaign Map')).toBeInTheDocument();
   });
 
+  it('puts Upload map and Add Map side by side, each opening its own tab', async () => {
+    const userEvent = (await import('@testing-library/user-event')).default;
+    renderSection('/campaigns/campaign-blank/maps');
+    const upload = screen.getByRole('button', { name: 'Upload map' });
+    const add = screen.getByRole('button', { name: 'Add Map' });
+    expect(upload.nextElementSibling).toBe(add);
+
+    await userEvent.click(add);
+    expect(screen.getByLabelText(/filter library maps/i)).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Close' }));
+
+    await userEvent.click(screen.getByRole('button', { name: 'Upload map' }));
+    expect(screen.queryByLabelText(/filter library maps/i)).toBeNull();
+  });
+
+  it('keeps Add Map right beside the heading once maps exist', () => {
+    renderSection('/demo/ashes-of-veyra/maps');
+    const heading = screen.getByRole('heading', { level: 1, name: 'Maps' });
+    expect(heading.nextElementSibling).toBe(
+      screen.getByRole('button', { name: /add map/i }),
+    );
+  });
+
   it('opens map picker modal from empty state upload button', async () => {
     const userEvent = (await import('@testing-library/user-event')).default;
     renderSection('/campaigns/campaign-blank/maps');

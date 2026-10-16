@@ -113,14 +113,11 @@ describe('representative Stage 3A change classes', () => {
       'asset-service',
       'postgres',
       'backend',
-      'forge',
       'control-api',
       'codex-doc-api',
       'codex-doc-processor',
       'codex-ocr',
       'codex-doc-websocket',
-      'codex-admin-ui',
-      'codex-dm-ui',
       'frontend',
     ]);
 
@@ -199,7 +196,6 @@ describe('representative Stage 3A change classes', () => {
     'package-lock.json',
     '.npmrc',
     '.prettierrc',
-    '.grype.yaml',
   ])('fans root dependency or tooling input %s out to every target', (path) => {
     const decision = decide(path);
     expect(decision.mode).toBe('targeted');
@@ -222,7 +218,7 @@ describe('representative Stage 3A change classes', () => {
     ],
     [
       'packages/document-contracts/src/index.ts',
-      ['vtt', 'forge', 'codex-doc-api', 'gateway'],
+      ['vtt', 'forge', 'codex-doc-api', 'codex-doc-processor', 'gateway'],
     ],
     [
       'packages/rules-contracts/src/index.ts',

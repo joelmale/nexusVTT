@@ -140,7 +140,7 @@ describe('NotesSection real campaign', () => {
     const body = screen.getByLabelText('Note');
     await user.clear(body);
     await user.type(body, 'Rewritten');
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() =>
       expect(updateItem).toHaveBeenCalledWith('note', 'a', {
         body: 'Rewritten',
@@ -160,7 +160,7 @@ describe('NotesSection real campaign', () => {
       screen.getByLabelText('Anchor'),
       `session:${b.sessions[0].id}`,
     );
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() =>
       expect(updateItem).toHaveBeenCalledWith('note', 'a', {
         anchor: { type: 'session', id: b.sessions[0].id },
@@ -181,7 +181,7 @@ describe('NotesSection real campaign', () => {
     expect(share).toHaveValue('none');
     await user.selectOptions(share, 'selected');
     await user.click(screen.getByRole('checkbox', { name: pc.name }));
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() =>
       expect(updateItem).toHaveBeenCalledWith('note', 'a', {
         audience: [pc.id],
@@ -200,7 +200,7 @@ describe('NotesSection real campaign', () => {
       screen.getByLabelText('Share with players'),
       'all',
     );
-    await user.click(screen.getByRole('button', { name: 'Save' }));
+    await user.click(screen.getByRole('button', { name: 'Done' }));
     await waitFor(() =>
       expect(updateItem).toHaveBeenCalledWith('note', 'a', { audience: 'all' }),
     );

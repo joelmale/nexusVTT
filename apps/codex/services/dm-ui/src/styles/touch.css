@@ -1,0 +1,95 @@
+/*
+ * Touch (iPad) adaptations. Everything here is gated on a coarse primary
+ * pointer, so mouse-driven desktop browsers keep the existing dense layout.
+ *
+ * Apple's HIG asks for 44pt targets; the token overrides below move the
+ * shared control sizes there, and the element rules catch the controls that
+ * hard-code their own height. `:root:root` outranks the single/double class
+ * selectors used by the CSS modules without resorting to !important.
+ */
+@media (pointer: coarse) {
+  :root {
+    --studio-touch-target: 44px;
+    --studio-control-height: 44px;
+    --studio-icon-button: 44px;
+    --studio-topbar-height: 56px;
+    --studio-row-height: 56px;
+  }
+
+  html {
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+
+  body {
+    /* No rubber-band scroll of the (non-scrolling) page shell. */
+    overscroll-behavior: none;
+  }
+
+  /* Drop the 300ms double-tap-zoom delay and the grey tap flash. */
+  :root:root
+    :is(
+      button,
+      a,
+      select,
+      summary,
+      label,
+      [role='button'],
+      [role='tab'],
+      [role='option'],
+      [role='menuitem']
+    ):not([class*='mapPin']) {
+    -webkit-tap-highlight-color: transparent;
+    touch-action: manipulation;
+  }
+
+  :root:root
+    :is(
+      button,
+      select,
+      summary,
+      [role='button'],
+      [role='tab'],
+      [role='menuitem'],
+      [role='option']
+    ):not([class*='mapPin']) {
+    min-height: var(--studio-touch-target);
+  }
+
+  /* Only block-level / flex links get a height; inline prose links ignore it. */
+  :root:root a[class] {
+    min-height: var(--studio-touch-target);
+  }
+
+  :root:root
+    :is(
+      input:not([type='checkbox']):not([type='radio']):not([type='range']):not([type='file']),
+      textarea
+    ) {
+    min-height: var(--studio-touch-target);
+  }
+
+  :root:root textarea {
+    min-height: calc(var(--studio-touch-target) * 2);
+  }
+
+  /* Icon-only buttons need width as well. */
+  :root:root button[aria-label]:not([class*='mapPin']) {
+    min-width: var(--studio-touch-target);
+  }
+
+  /* iOS Safari zooms the page when a focused field is under 16px. */
+  :root:root :is(input, select, textarea, [contenteditable='true']) {
+    font-size: 16px;
+  }
+
+  :root:root :is(input[type='checkbox'], input[type='radio']) {
+    height: 24px;
+    width: 24px;
+  }
+
+  /* Keep the scroll position of the app regions under the finger. */
+  :root:root :is(dialog, [role='dialog'], [role='listbox'], [role='menu']) {
+    overscroll-behavior: contain;
+  }
+}

@@ -62,3 +62,13 @@
   font-size: 0.8rem;
   opacity: 0.75;
 }
+
+.item {
+  position: relative;
+}
+
+.remove {
+  position: absolute;
+  right: 8px;
+  top: 8px;
+}

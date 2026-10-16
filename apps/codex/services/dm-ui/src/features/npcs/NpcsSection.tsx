@@ -13,6 +13,7 @@ import {
 import { EntityChip, EntityLink } from '@/features/section-shell/EntityLink';
 import { EntityList } from '@/features/section-shell/EntityList';
 import { FilterBar } from '@/features/section-shell/FilterBar';
+import { HeldItems } from '@/features/items/HeldItems';
 import { RelatedGroups } from '@/features/section-shell/RelatedGroups';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
 import { SectionLayout } from '@/features/section-shell/SectionLayout';
@@ -137,6 +138,7 @@ function NpcDetail({ npc }: { npc: CampaignNpc }) {
 
   return (
     <EditableSection
+      listPath="npcs"
       heading={npc.name}
       headerExtras={
         unused ? <StatusBadge tone="warning">Unused</StatusBadge> : null
@@ -321,6 +323,7 @@ function NpcDetail({ npc }: { npc: CampaignNpc }) {
           </ul>
         </section>
       ) : null}
+      <HeldItems heading="Carries" holderId={npc.id} />
       <RelatedGroups
         entityId={npc.id}
         exclude={['faction']}

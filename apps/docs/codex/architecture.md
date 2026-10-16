@@ -23,7 +23,6 @@ NexusCodex follows a microservices architecture with four main services orchestr
                     │   Databases     │
                     │ • PostgreSQL    │
                     │ • Redis         │
-                    │ • ElasticSearch │
                     │ • S3/MinIO      │
                     └─────────────────┘
 ```
@@ -47,7 +46,7 @@ NexusCodex follows a microservices architecture with four main services orchestr
 - JWT authentication
 - Prisma ORM for PostgreSQL
 - BullMQ for job queuing
-- ElasticSearch client
+- Postgres full-text search (`src/services/search/`)
 
 ### doc-processor (Background Worker)
 
@@ -57,7 +56,7 @@ NexusCodex follows a microservices architecture with four main services orchestr
 - Image OCR processing
 - Thumbnail generation
 - Structured data extraction (D&D content)
-- ElasticSearch indexing
+- Marks documents searchable (text and chunks stored in Postgres)
 - Content hash calculation
 
 **Key Technologies:**
@@ -114,7 +113,6 @@ sequenceDiagram
     participant S3
     participant doc-processor
     participant PostgreSQL
-    participant ElasticSearch
 
     Client->>doc-api: POST /api/documents (metadata)
     doc-api->>S3: Generate pre-signed URL
@@ -125,8 +123,8 @@ sequenceDiagram
     doc-processor->>Redis: Pick up job
     doc-processor->>S3: Download file
     doc-processor->>doc-processor: Extract text/thumbnail
-    doc-processor->>PostgreSQL: Save metadata
-    doc-processor->>ElasticSearch: Index content
+    doc-processor->>PostgreSQL: Save metadata, text and chunks
+    doc-processor->>PostgreSQL: Mark document searchable
     doc-processor->>Redis: Mark job complete
 ```
 
@@ -136,13 +134,11 @@ sequenceDiagram
 sequenceDiagram
     participant Client
     participant doc-api
-    participant ElasticSearch
     participant PostgreSQL
 
     Client->>doc-api: GET /api/search?q=fireball
-    doc-api->>ElasticSearch: Full-text search
-    ElasticSearch->>doc-api: Return document IDs
-    doc-api->>PostgreSQL: Fetch document metadata
+    doc-api->>PostgreSQL: Full-text query (tsvector, ts_rank_cd)
+    PostgreSQL->>doc-api: Ranked documents, chunks, SRD entries, snippets
     doc-api->>Client: Return search results
 ```
 
@@ -181,11 +177,11 @@ sequenceDiagram
 - **Session Storage**: WebSocket session data
 - **Job Logs**: Processing status and errors
 
-### ElasticSearch (Search Index)
+### PostgreSQL Full-Text Search
 
-- **Document Content**: Full-text searchable content
-- **Metadata**: Indexed document properties
-- **Structured Data**: Searchable D&D content
+- **Document Content**: Extracted text chunks (`document_chunks.searchVector`)
+- **Metadata**: `documents.searchVector` (title weight A, description/tags weight B)
+- **Structured Data**: Searchable D&D content (`structured_data.searchVector`)
 
 ### S3/MinIO (File Storage)
 
@@ -224,7 +220,7 @@ sequenceDiagram
 
 ### Performance Optimizations
 
-- ElasticSearch for fast search
+- GIN-indexed `tsvector` columns for fast search
 - Redis caching for session data
 - Background processing for heavy operations
 - CDN-ready static assets

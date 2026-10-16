@@ -22,7 +22,6 @@ This guide covers deploying NexusCodex to production environments, with a focus 
                     │   Databases     │
                     │ • Cloud SQL     │
                     │ • Memorystore   │
-                    │ • Elastic Cloud │
                     │ • Cloud Storage │
                     └─────────────────┘
 ```
@@ -108,12 +107,9 @@ gsutil versioning set on gs://nexus-codex-documents/
 # Create access keys for service account
 ```
 
-#### 5. Elastic Cloud (Optional)
+#### 5. Search
 
-```bash
-# Use Elastic Cloud or deploy ElasticSearch on GCE
-# For production, consider Elastic Cloud managed service
-```
+Document search runs on PostgreSQL full-text search inside `doc-api`, so Cloud SQL covers it and no separate search service is needed. Apply migrations with `prisma migrate deploy` (not `db push`): search relies on triggers, GIN indexes and the `pg_trgm` extension that exist only in SQL migrations.
 
 ### Application Deployment
 
@@ -129,9 +125,6 @@ DATABASE_URL=postgresql://nexus-user:password@cloud-sql-ip:5432/doclib
 
 # Redis
 REDIS_URL=redis://memorystore-ip:6379
-
-# ElasticSearch
-ELASTICSEARCH_URL=https://elastic-cloud-url:9243
 
 # S3 (GCS compatibility)
 S3_ENDPOINT=https://storage.googleapis.com

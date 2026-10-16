@@ -10,6 +10,7 @@ import {
 import { EmptyState } from '@/features/section-shell/EmptyState';
 import { EntityChip } from '@/features/section-shell/EntityLink';
 import { FilterBar } from '@/features/section-shell/FilterBar';
+import { HeldItems } from '@/features/items/HeldItems';
 import { RelatedGroups } from '@/features/section-shell/RelatedGroups';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
 import { SectionLayout } from '@/features/section-shell/SectionLayout';
@@ -74,6 +75,7 @@ function LocationDetail({
 
   return (
     <EditableSection
+      listPath={SECTION}
       headerExtras={
         <>
           <StatusBadge tone="neutral">{humanize(location.type)}</StatusBadge>
@@ -239,6 +241,7 @@ function LocationDetail({
             <p>{location.notes}</p>
           </TextBlock>
         ) : null}
+        <HeldItems heading="Items here" holderId={location.id} />
         <RelatedGroups
           entityId={location.id}
           forwardIds={[

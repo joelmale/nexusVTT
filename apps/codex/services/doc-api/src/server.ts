@@ -24,7 +24,6 @@ import { adminDuplicatesRoutes } from './routes/admin/duplicates';
 import { adminTagRoutes } from './routes/admin/tags';
 import { adminValidationRoutes } from './routes/admin/validation';
 import { usersRoutes as adminUserRoutes } from './routes/admin/users';
-import { elasticsearchRoutes } from './routes/admin/elasticsearch';
 import { healthRoutes } from './routes/admin/health';
 import { adminProcessingRoutes } from './routes/admin/processing';
 import { adminProcessingEventsRoutes } from './routes/admin/processing-events';
@@ -127,7 +126,6 @@ fastify.register(adminDuplicatesRoutes);
 fastify.register(adminTagRoutes);
 fastify.register(adminValidationRoutes);
 fastify.register(adminUserRoutes);
-fastify.register(elasticsearchRoutes);
 fastify.register(healthRoutes);
 fastify.register(adminProcessingRoutes);
 fastify.register(adminProcessingEventsRoutes);
@@ -182,6 +180,7 @@ const start = async () => {
 
     fastify.log.info(`Server running on http://0.0.0.0:${env.PORT}`);
     fastify.log.info(`Environment: ${env.NODE_ENV}`);
+    loggingService.startRetention();
     await loggingService.log('info', 'doc-api started', { port: env.PORT });
   } catch (err) {
     fastify.log.error(err);

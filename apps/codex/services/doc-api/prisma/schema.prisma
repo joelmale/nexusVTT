@@ -109,7 +109,10 @@ model Document {
   campaigns     String[]
 
   // Search & Processing
-  searchIndex   String?  // ElasticSearch document ID
+  searchIndex   String?  // "Indexed" marker: set to the document id once its text is searchable
+  // Maintained by a trigger over title/description/tags (see the
+  // add_postgres_search_and_log_events migration); the GIN index lives in SQL.
+  searchVector  Unsupported("tsvector")?
   contentHash   String?  // SHA-256 hash of file content for deduplication
   ocrStatus     OcrStatus @default(not_required)
 
@@ -150,7 +153,7 @@ model DocumentText {
   @@map("document_texts")
 }
 
-// Ingestion v2 page model (apps/docs/codex/ingestion-pipeline-v2-plan.md#page-model).
+// Ingestion v2 page model.
 // One row per PDF page (or Markdown heading section). `blocks` holds
 // LayoutBlock[] with bboxes normalized to 0..1, the same convention future
 // annotation positions use. Written by the layout stage with upsert, so
@@ -208,6 +211,8 @@ model DocumentChunk {
   content    String
   embedding  Float[] @default([])
   embeddingModel String?
+  // Maintained by a trigger over content; GIN index lives in SQL.
+  searchVector Unsupported("tsvector")?
   createdAt  DateTime            @default(now())
 
   document   Document            @relation(fields: [documentId], references: [id], onDelete: Cascade)
@@ -297,8 +302,10 @@ model StructuredData {
   data          Json                // Full structured data (level, school, components, etc.)
   searchText    String              // Flattened text for search
 
-  // ElasticSearch
-  searchIndex   String?             // ElasticSearch document ID
+  // Search
+  searchIndex   String?             // "Indexed" marker (the document id)
+  // Maintained by a trigger over searchText; GIN index lives in SQL.
+  searchVector  Unsupported("tsvector")?
 
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt
@@ -517,4 +524,20 @@ model RulesCatalogVersion {
   changedEntityIds String[]
 
   @@map("rules_catalog_versions")
+}
+
+// Operational logs from the Codex services. Rows older than LOG_RETENTION_DAYS are pruned by doc-api.
+model LogEvent {
+  id        BigInt   @id @default(autoincrement())
+  timestamp DateTime @default(now()) @db.Timestamptz(3)
+  level     String
+  service   String
+  message   String
+  requestId String?
+  jobId     String?
+  meta      Json?
+
+  @@index([timestamp(sort: Desc)])
+  @@index([service, timestamp(sort: Desc)])
+  @@map("log_events")
 }

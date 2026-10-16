@@ -287,7 +287,9 @@ describe('campaign routes', () => {
       heading: 'Encounters',
       empty: 'No encounters prepared.',
     },
+    { path: 'items', heading: 'Items', empty: 'No items yet.' },
     { path: 'maps', heading: 'Maps' },
+    { path: 'assets', heading: 'Assets' },
     { path: 'notes', heading: 'Notes', empty: 'No notes yet.' },
   ];
 

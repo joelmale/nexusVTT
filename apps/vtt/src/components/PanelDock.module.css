@@ -23,7 +23,9 @@
 
   /* Smooth expansion */
   max-width: 200px;
-  overflow: hidden;
+  /* Visible so the round icon buttons can overhang the dock's edges; the
+     hidden expanded row is opacity 0 and non-interactive while collapsed. */
+  overflow: visible;
   transition:
     max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1),
     opacity var(--transition-base),
@@ -176,13 +178,18 @@
   align-items: center;
   justify-content: center;
 
-  width: var(--spacing-9); /* 36px */
-  height: var(--spacing-9);
+  /* Round "bubble" buttons that stand slightly proud of the dock: the large
+     size is cancelled out by the negative block margin, so the dock stays
+     slim while each button overhangs its top and bottom edges. */
+  width: 48px;
+  height: 48px;
   padding: 0;
+  margin-block: -10px;
 
-  background: transparent;
-  border: none;
+  background: var(--surface-secondary);
+  border: 1px solid var(--border-primary);
   border-radius: var(--radius-full);
+  box-shadow: var(--shadow-glass-lg);
   cursor: pointer;
 
   font-size: var(--text-lg);
@@ -196,7 +203,7 @@
 
 .iconButton:hover {
   background: var(--surface-hover);
-  transform: scale(1.05);
+  transform: scale(1.08);
 }
 
 .iconButton[data-active='true'] {

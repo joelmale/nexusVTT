@@ -1,0 +1,28 @@
+.held h3 {
+  font-size: 0.875rem;
+  font-weight: 500;
+  color: var(--studio-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin: 0 0 var(--studio-gap-xs);
+}
+
+.held ul {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--studio-gap-xs);
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.held li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--studio-gap-xs);
+}
+
+.quantity {
+  font-size: 0.8125rem;
+  color: var(--studio-text-secondary);
+}

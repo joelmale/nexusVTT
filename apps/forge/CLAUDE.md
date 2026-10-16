@@ -478,14 +478,10 @@ The application features an intelligent fantasy name generator with race-specifi
 - Custom theme values defined using `@theme` directive in CSS
 - No `tailwind.config.js` file needed (removed for v4 compatibility)
 
-### Docker Deployment
+### Deployment
 
-```bash
-docker build -t nexus-forge .
-docker run -p 8080:80 nexus-forge
-```
-
-Multi-stage Dockerfile uses nginx to serve static build. Configuration in `nginx.conf` includes SPA fallback to `index.html`.
+There is no standalone Forge image. The Nexus VTT gateway image
+(`apps/vtt/docker/frontend.Dockerfile`) builds Forge and serves it under `/forge/`.
 
 ## Common Patterns
 

@@ -1,4 +1,4 @@
-// Ingestion v2 page model types (apps/docs/codex/ingestion-pipeline-v2-plan.md#page-model).
+// Ingestion v2 page model types.
 // Mirrors the JSON stored in DocumentPage.blocks / DocumentPage.quality and the
 // ocr-service POST /layout/s3 response.
 

@@ -165,7 +165,6 @@ curl -X POST "https://your-portainer.com/api/stacks?type=1&method=repository&end
    - ✅ nexuscodex_dm-ui (1 replica)
    - ✅ nexuscodex_postgres
    - ✅ nexuscodex_redis
-   - ✅ nexuscodex_elasticsearch
    - ✅ nexuscodex_minio
 
 ### Test Endpoints:
@@ -345,7 +344,6 @@ Add Traefik or nginx reverse proxy:
 ### 3. Limit Resources:
 
 Already configured in `docker-compose.prod.yml`:
-- ElasticSearch limited to 1GB RAM
 - 2 replicas for API and processor (high availability)
 
 ### 4. Backup Volumes:

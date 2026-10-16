@@ -1,6 +1,5 @@
 import { canvasBackend } from './utils/canvas';
 import { createWorker, createAssetWorker, enqueueStage } from './services/queue.service';
-import { elasticService } from './services/elastic.service';
 import { prisma } from './services/database.service';
 import { processDocumentWorker } from './workers/process-document.worker';
 import { centralLoggingService } from './services/central-logging.service';
@@ -32,11 +31,6 @@ async function start() {
   }
 
   try {
-    // Initialize ElasticSearch index
-    console.log('Initializing ElasticSearch index...');
-    await centralLoggingService.log('info', 'Initializing ElasticSearch index');
-    await elasticService.initializeIndex();
-
     // Create and start worker
     const worker = createWorker(processDocumentWorker);
     const assetWorker = createAssetWorker(processDocumentWorker);

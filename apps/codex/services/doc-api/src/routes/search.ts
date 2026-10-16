@@ -1,5 +1,5 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
-import { elasticService } from '../services/elastic.service';
+import { searchProvider } from '../services/search';
 import { contentHashService } from '../services/content-hash.service';
 import { searchChunks } from '../services/chunk-search.service';
 import { generateGroundedAnswer } from '../services/llm.service';
@@ -15,7 +15,7 @@ export async function searchRoutes(fastify: FastifyInstance) {
       try {
         const params = SearchQuerySchema.parse(request.query);
 
-        const results = await elasticService.search({
+        const results = await searchProvider.search({
           query: params.query,
           filters: {
             type: params.type,
@@ -52,7 +52,7 @@ export async function searchRoutes(fastify: FastifyInstance) {
       try {
         const params = QuickSearchQuerySchema.parse(request.query);
 
-        const results = await elasticService.search({
+        const results = await searchProvider.search({
           query: params.query,
           filters: params.campaign ? { campaigns: [params.campaign] } : undefined,
           from: 0,
@@ -91,7 +91,7 @@ export async function searchRoutes(fastify: FastifyInstance) {
       try {
         const params = AdvancedSearchQuerySchema.parse(request.query);
 
-        const results = await elasticService.advancedSearch({
+        const results = await searchProvider.advancedSearch({
           query: params.query,
           filters: {
             type: params.type,

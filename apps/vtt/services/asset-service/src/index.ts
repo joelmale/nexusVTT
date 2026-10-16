@@ -357,6 +357,8 @@ interface UserAsset {
   thumbnail: string;
   size: number;
   source: 'user';
+  /** ISO timestamp; absent on assets created before it was recorded. */
+  createdAt?: string;
 }
 
 interface UserAssetManifest {
@@ -459,7 +461,16 @@ function requireNexusAuth(
   next();
 }
 
-setupGeneratedMapRoute(app, requireNexusAuth, ASSETS_PATH);
+setupGeneratedMapRoute(
+  app,
+  requireNexusAuth,
+  ASSETS_PATH,
+  async (userId, entry) => {
+    const manifest = await getUserManifest(userId);
+    manifest.assets.push(entry);
+    await saveUserManifest(userId, manifest);
+  },
+);
 
 // TMT library endpoints (B3) — public reads per ADR-0012; /library/reload is
 // write-ish (forces a re-read from disk) so it's gated the same way uploads are.
@@ -522,6 +533,7 @@ app.post(
       thumbnail: `users/${userId}/${filename}`, // No thumbnail generation yet, use full image
       size: req.file.size,
       source: 'user',
+      createdAt: new Date().toISOString(),
     };
 
     manifest.assets.push(newAsset);
@@ -530,6 +542,74 @@ app.post(
     res.json({ asset: newAsset });
   },
 );
+
+const MAX_ASSET_NAME_LENGTH = 120;
+const MAX_ASSET_TAGS = 20;
+const MAX_ASSET_TAG_LENGTH = 40;
+
+/** Validates a PATCH body; returns the cleaned fields or an error message. */
+function parseAssetPatch(
+  body: unknown,
+): { name?: string; tags?: string[] } | { error: string } {
+  if (typeof body !== 'object' || body === null) {
+    return { error: 'Body must be a JSON object' };
+  }
+  const input = body as Record<string, unknown>;
+  const patch: { name?: string; tags?: string[] } = {};
+  if (input.name !== undefined) {
+    const name = typeof input.name === 'string' ? input.name.trim() : '';
+    if (!name || name.length > MAX_ASSET_NAME_LENGTH) {
+      return { error: `name must be 1-${MAX_ASSET_NAME_LENGTH} characters` };
+    }
+    patch.name = name;
+  }
+  if (input.tags !== undefined) {
+    if (
+      !Array.isArray(input.tags) ||
+      input.tags.some((tag) => typeof tag !== 'string')
+    ) {
+      return { error: 'tags must be an array of strings' };
+    }
+    const tags = [
+      ...new Set(
+        (input.tags as string[]).map((tag) => tag.trim()).filter(Boolean),
+      ),
+    ];
+    if (
+      tags.length > MAX_ASSET_TAGS ||
+      tags.some((tag) => tag.length > MAX_ASSET_TAG_LENGTH)
+    ) {
+      return {
+        error: `tags allow at most ${MAX_ASSET_TAGS} entries of ${MAX_ASSET_TAG_LENGTH} characters`,
+      };
+    }
+    patch.tags = tags;
+  }
+  if (patch.name === undefined && patch.tags === undefined) {
+    return { error: 'Provide name and/or tags' };
+  }
+  return patch;
+}
+
+app.patch('/user/:userId/asset/:assetId', requireNexusAuth, async (req, res) => {
+  const userId = routeParameter(req.params.userId);
+  const assetId = routeParameter(req.params.assetId);
+  if (!/^[a-zA-Z0-9-]+$/.test(userId))
+    return res.status(400).json({ error: 'Invalid userId' });
+
+  const patch = parseAssetPatch(req.body as unknown);
+  if ('error' in patch) return res.status(400).json({ error: patch.error });
+
+  const manifest = await getUserManifest(userId);
+  const asset = manifest.assets.find((entry) => entry.id === assetId);
+  if (!asset) return res.status(404).json({ error: 'Asset not found' });
+
+  if (patch.name !== undefined) asset.name = patch.name;
+  if (patch.tags !== undefined) asset.tags = patch.tags;
+  await saveUserManifest(userId, manifest);
+
+  res.json({ asset });
+});
 
 app.delete(
   '/user/:userId/asset/:assetId',
@@ -550,8 +630,14 @@ app.delete(
     }
 
     const asset = manifest.assets[assetIndex];
-    const filename = path.basename(asset.fullImage);
-    const filePath = path.join(ASSETS_PATH, 'users', userId, filename);
+    // Uploads live in the user's folder; generated maps in its generated/
+    // subfolder. The manifest records the path, so use it when it stays inside
+    // this user's folder.
+    const userRoot = path.join(ASSETS_PATH, 'users', userId);
+    const recorded = path.resolve(ASSETS_PATH, asset.fullImage);
+    const filePath = recorded.startsWith(userRoot + path.sep)
+      ? recorded
+      : path.join(userRoot, path.basename(asset.fullImage));
 
     if (fs.existsSync(filePath)) {
       fs.unlinkSync(filePath);

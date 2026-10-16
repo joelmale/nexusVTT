@@ -21,7 +21,7 @@ describe('service catalog', () => {
     expect(validateServiceCatalog(catalog)).toBe(catalog);
     expect(validateCatalogRepository(catalog).failures).toEqual([]);
     expect(checkCatalog()).toEqual({
-      images: 12,
+      images: 9,
       services: 6,
       targets: 13,
     });
@@ -29,8 +29,8 @@ describe('service catalog', () => {
 
   test('generates complete and affected matrices from one source', () => {
     const all = catalogMatrices(catalog);
-    expect(all.allReleaseImages).toHaveLength(12);
-    expect(all.releaseImages).toHaveLength(12);
+    expect(all.allReleaseImages).toHaveLength(9);
+    expect(all.releaseImages).toHaveLength(9);
     expect(all.codexDocApi).toBe(true);
     expect(all.codexNodeServices.map((entry) => entry.service)).toEqual([
       'doc-processor',
@@ -115,7 +115,7 @@ describe('service catalog', () => {
     expect(() => validateServiceCatalog(badLane)).toThrow('unknown lane');
 
     const duplicateRepository = structuredClone(catalog);
-    duplicateRepository.targets.forge.releaseImage.repository =
+    duplicateRepository.targets['control-api'].releaseImage.repository =
       duplicateRepository.targets.vtt.releaseImage.repository;
     expect(() => validateServiceCatalog(duplicateRepository)).toThrow(
       'duplicate release image repository',

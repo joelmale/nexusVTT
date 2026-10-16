@@ -14,7 +14,6 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { prisma } from '../services/database.service';
-import { elasticService } from '../services/elastic.service';
 import { getParser, getSupportedContentTypes } from './parsers';
 
 // Command line argument parsing
@@ -280,21 +279,6 @@ class SRDImporter {
           });
         }
 
-        // Update ElasticSearch if indexed
-        if (existing.searchIndex) {
-          try {
-            await elasticService.updateDocument(existing.searchIndex, {
-              title: parsed.title,
-              content: parsed.structuredData.searchText,
-              tags: parsed.tags,
-            });
-          } catch (elasticError) {
-            if (this.options.verbose) {
-              console.warn(`    Warning: Failed to update ElasticSearch for ${parsed.title}`);
-            }
-          }
-        }
-
         this.stats.updated++;
       } else {
         // Create new document
@@ -326,26 +310,12 @@ class SRDImporter {
           },
         });
 
-        // Index in ElasticSearch
-        try {
-          const esId = await elasticService.indexDocument({
-            title: parsed.title,
-            content: parsed.structuredData.searchText,
-            type: parsed.type,
-            tags: parsed.tags,
-            metadata: parsed.metadata,
-          });
-
-          // Update document with search index ID
-          await prisma.document.update({
-            where: { id: doc.id },
-            data: { searchIndex: esId },
-          });
-        } catch (elasticError) {
-          if (this.options.verbose) {
-            console.warn(`    Warning: Failed to index in ElasticSearch for ${parsed.title}`);
-          }
-        }
+        // Search follows the rows through database triggers; searchIndex is just the
+        // "indexed" marker the admin pages read.
+        await prisma.document.update({
+          where: { id: doc.id },
+          data: { searchIndex: doc.id },
+        });
 
         this.stats.created++;
       }

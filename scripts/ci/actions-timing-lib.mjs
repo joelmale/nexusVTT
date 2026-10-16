@@ -18,7 +18,7 @@ const STEP_CATEGORIES = [
     /(?:build|compile).*contract|contract.*(?:build|compile)/i,
   ],
   ['install', /npm\s+(?:ci|install)|install.*(?:dependenc|package)/i],
-  ['scan', /codeql|trivy|grype|sarif|vulnerab|security.*scan|scan.*security/i],
+  ['scan', /codeql|trivy|sarif|vulnerab|security.*scan|scan.*security/i],
   ['test', /test|vitest|playwright|smoke|soak/i],
 ];
 

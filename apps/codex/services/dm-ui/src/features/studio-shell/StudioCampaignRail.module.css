@@ -120,6 +120,29 @@
   box-shadow: inset 3px 0 0 var(--studio-positive);
 }
 
+/* Touch devices have no Ctrl+K, so the rail carries a visible search button. */
+.searchButton {
+  align-items: center;
+  background: var(--studio-chrome-raised);
+  border: 1px solid var(--studio-chrome-border);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text-on-chrome-muted);
+  cursor: pointer;
+  display: none;
+  font-size: 13px;
+  gap: 16px;
+  margin-top: 10px;
+  padding: 0 10px;
+  text-align: left;
+  width: 100%;
+}
+
+@media (pointer: coarse) {
+  .searchButton {
+    display: flex;
+  }
+}
+
 .navItem:disabled {
   cursor: not-allowed;
   opacity: 0.45;

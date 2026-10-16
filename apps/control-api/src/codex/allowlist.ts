@@ -41,7 +41,6 @@ import type { Permission } from '../permissions.js';
  */
 
 import {
-  BOOL,
   DATE,
   ID,
   INT,
@@ -150,14 +149,6 @@ export const CODEX_ALLOWLIST: readonly CodexRoute[] = [
   // Deduplication
   read('deduplication/duplicates', 'document'),
   mutate({ method: 'POST', path: 'deduplication/merge', permission: DELETE, recentAuth: true, action: 'codex.document.merge_duplicates', resourceType: 'document', body: json(64 * KB), auditBodyKeys: ['primaryId', 'duplicateIds'] }),
-
-  // Elasticsearch index maintenance
-  read('admin/elasticsearch/health', 'search_index'),
-  read('admin/elasticsearch/stats', 'search_index'),
-  mutate({ method: 'POST', path: 'admin/elasticsearch/reindex', permission: MAINTAIN, recentAuth: true, action: 'codex.index.reindex', resourceType: 'search_index', query: { force: BOOL, batchSize: INT }, timeoutMs: 300_000 }),
-  mutate({ method: 'POST', path: 'admin/elasticsearch/recreate-index', permission: MAINTAIN, recentAuth: true, action: 'codex.index.recreate', resourceType: 'search_index', timeoutMs: 300_000 }),
-  mutate({ method: 'POST', path: 'admin/elasticsearch/optimize', permission: MAINTAIN, recentAuth: true, action: 'codex.index.optimize', resourceType: 'search_index', timeoutMs: 300_000 }),
-  mutate({ method: 'DELETE', path: 'admin/elasticsearch/clear', permission: MAINTAIN, recentAuth: true, action: 'codex.index.clear', resourceType: 'search_index', timeoutMs: 300_000 }),
 
   // Health, metrics, alerts
   read('admin/health', 'health'),

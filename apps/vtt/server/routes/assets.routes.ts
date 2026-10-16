@@ -1,6 +1,11 @@
 import { Router } from 'express';
-import { createProxyMiddleware } from 'http-proxy-middleware';
+import { createProxyMiddleware, fixRequestBody } from 'http-proxy-middleware';
+import {
+  createAssetDeleteGuard,
+  type FindAssetReferences,
+} from '../middleware/assetDeleteGuard.js';
 import { assetWriteGuard } from '../middleware/assetWriteGuard.js';
+import { getAssetServiceSecret } from '../utils/assetServiceSecret.js';
 
 const ASSET_CATEGORIES = {
   Maps: 'Maps',
@@ -13,6 +18,11 @@ const ASSET_CATEGORIES = {
 export interface AssetRouterDependencies {
   /** Base URL of the asset service (ASSET_API_URL). */
   assetApiUrl: string;
+  /**
+   * Reference lookup for the delete guard (CampaignPrepRepository
+   * .findAssetReferences). When omitted, deletes are proxied unchecked.
+   */
+  findAssetReferences?: FindAssetReferences;
 }
 
 /**
@@ -27,6 +37,7 @@ export interface AssetRouterDependencies {
  */
 export function createAssetRouter({
   assetApiUrl,
+  findAssetReferences,
 }: AssetRouterDependencies): Router {
   const router = Router();
 
@@ -63,18 +74,19 @@ export function createAssetRouter({
 
   // ADR-0012: the VTT authenticates the session user (assetWriteGuard) and
   // only then forwards to the asset service with the shared secret. The
-  // asset service itself has no dev-secret fallback (see
-  // services/asset-service/src/index.ts), so a fallback here would only
-  // ever succeed against a local asset-service instance where the
-  // operator deliberately set ASSET_SERVICE_SECRET=dev-secret. It is
-  // gated to non-production and logged so it can't silently ship.
-  const assetServiceSecret = process.env.ASSET_SERVICE_SECRET;
-  if (!assetServiceSecret) {
+  // asset service falls back to DEV_ASSET_SERVICE_SECRET when its own
+  // ASSET_SERVICE_SECRET is unset (see utils/assetServiceSecret.ts, shared
+  // with the generated-map upload). The gateway still refuses to mount the
+  // proxy without an explicit secret so a deployment cannot silently run on
+  // the well-known dev value.
+  if (!process.env.ASSET_SERVICE_SECRET) {
     console.error(
       '❌ ASSET_SERVICE_SECRET must be set. Asset proxy cannot mount securely.',
     );
     process.exit(1);
   }
+
+  const assetServiceSecret = getAssetServiceSecret();
 
   const userAssetProxy = createProxyMiddleware({
     target: assetApiUrl,
@@ -89,8 +101,11 @@ export function createAssetRouter({
         '/user',
       ),
     on: {
-      proxyReq: (proxyReq) => {
+      proxyReq: (proxyReq, req) => {
         proxyReq.setHeader('x-nexus-auth', assetServiceSecret);
+        // express.json() has already consumed JSON bodies (asset PATCH);
+        // re-write them. Multipart uploads are untouched by it.
+        fixRequestBody(proxyReq, req);
       },
     },
   });
@@ -101,7 +116,14 @@ export function createAssetRouter({
   // mount. assetWriteGuard runs first and validates the session before
   // the proxy injects the shared secret; pathRewrite strips the '/api'
   // prefix so the asset service still sees /user/:userId/...
-  router.use('/api/user', assetWriteGuard, userAssetProxy);
+  // The delete guard refuses to hard-delete an asset campaign content still
+  // points at; anything else (and unreferenced deletes) reaches the proxy.
+  router.use(
+    '/api/user',
+    assetWriteGuard,
+    ...(findAssetReferences ? [createAssetDeleteGuard(findAssetReferences)] : []),
+    userAssetProxy,
+  );
 
   router.use((req, res, next) => {
     if (

@@ -31,5 +31,5 @@
 
 ## Security & Configuration Tips
 
-- Node 22+ and npm 10+ are required (see `package.json` engines). Keep JWT secrets, DB URLs, Redis, S3, and Elastic endpoints in `.env`; sync sample values in `.env.example` when adding new config.
+- Node 22+ and npm 10+ are required (see `package.json` engines). Keep JWT secrets, DB URLs, Redis, and S3 endpoints in `.env`; sync sample values in `.env.example` when adding new config.
 - For schema changes, run `npx prisma migrate dev` during development and `npx prisma migrate deploy` in CI/production; regenerate clients with `npm run prisma:generate` afterward in each affected service.

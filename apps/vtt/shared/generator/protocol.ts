@@ -46,11 +46,32 @@ export interface StoredGeneratedMap {
   contentHash: string;
 }
 
+/** Parent -> hub: replay a keypress inside the active generator. */
+export interface GeneratorActionRequest {
+  type: 'generator/action';
+  /** Correlates the later result with this request. */
+  requestId: string;
+  /** Registry action id, for diagnostics. */
+  actionId?: string;
+  keyCode: number;
+  code?: string;
+  key?: string;
+  shiftKey?: boolean;
+}
+
+/** Hub -> parent: the generator has applied (or failed to apply) an action. */
+export interface GeneratorActionResult {
+  requestId: string;
+  status: 'done' | 'error';
+  error?: string;
+}
+
 export type GeneratorHostMessage = 
   | { type: 'generator/ready' }
   | { type: 'host/configure'; payload: { protocolVersion: string; [key: string]: unknown } }
   | { type: 'generator/export-request' }
   | { type: 'generator/export-ready'; payload: GeneratorExportArtifact }
   | { type: 'generator/export-error'; payload: { error: string } }
+  | { type: 'generator/action-result'; payload: GeneratorActionResult }
   | { type: 'host/import-result'; payload: StoredGeneratedMap }
   | { type: 'host/import-cancelled' };

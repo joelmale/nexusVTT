@@ -6,7 +6,7 @@ definition: service names, container identities, NAS mounts, Codex volume
 names, `homelab-net`, and the production reverse-proxy target `frontend:80`
 are deliberate compatibility constraints. It pins the ten application images
 to the verified `candidate-e078895` index digests. PostgreSQL, Redis,
-Elasticsearch, and MinIO are pinned to the exact image digests observed on the
+and the object store are pinned to the exact image digests observed on the
 live host; these infrastructure pins are compatibility evidence, not upgrades.
 
 This directory is a draft only. Do not use it to create, update, or recreate a
@@ -17,9 +17,9 @@ example file.
 ## Modular Compose Structure
 
 The Compose configuration is modularized by domain and consolidated:
-- `compose.infra.yaml`: Shared infrastructure (`postgres`, `redis`, `codex-elasticsearch`, `codex-minio`, networks, volumes).
-- `compose.vtt.yaml`: Nexus VTT domain services (`frontend`, `backend`, `asset-server`, `nexus-forge`).
-- `compose.codex.yaml`: Nexus Codex document services (`doc-api`, `doc-processor`, `doc-websocket`, `admin-ui`, `dm-ui`).
+- `compose.infra.yaml`: Shared infrastructure (`postgres`, `redis`, `codex-garage`, networks, volumes).
+- `compose.vtt.yaml`: Nexus VTT domain services (`frontend`, `backend`, `asset-server`).
+- `compose.codex.yaml`: Nexus Codex document services (`doc-api`, `doc-processor`, `doc-websocket`; the admin and DM UIs are bundled into the gateway image).
 - `compose.yaml`: Root Compose file stitching the domain modules together via `include:`.
 
 ### Shared Datastores (Postgres & Redis)
@@ -50,8 +50,8 @@ published ports and must not be connected to the existing reverse proxy or
 For a real rehearsal, populate only `REHEARSAL_*` variables with disposable
 values and restored/sanitized data. Do not provide production OAuth, database,
 Redis, MinIO, JWT, session, asset-service, or metrics credentials. The
-`doc-api` startup command still runs `prisma db push`; inspect its candidate
-schema against restored data before any non-disposable deployment.
+`doc-api` startup command runs `prisma migrate deploy`; inspect its candidate
+migrations against restored data before any non-disposable deployment.
 
 Run `./deploy/homelab/validate-rehearsal-isolation.ps1` immediately before any
 resource creation. The rehearsal override uses `pull_policy: never` for MinIO

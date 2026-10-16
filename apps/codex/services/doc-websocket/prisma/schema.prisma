@@ -72,7 +72,7 @@ model Document {
   campaigns     String[]
 
   // Search & Processing
-  searchIndex   String?  // ElasticSearch document ID
+  searchIndex   String?  // "Indexed" marker (the document id)
   ocrStatus     OcrStatus @default(not_required)
 
   // Access
@@ -167,8 +167,8 @@ model StructuredData {
   data          Json                // Full structured data (level, school, components, etc.)
   searchText    String              // Flattened text for search
 
-  // ElasticSearch
-  searchIndex   String?             // ElasticSearch document ID
+  // Search
+  searchIndex   String?             // "Indexed" marker (the document id)
 
   createdAt     DateTime            @default(now())
   updatedAt     DateTime            @updatedAt

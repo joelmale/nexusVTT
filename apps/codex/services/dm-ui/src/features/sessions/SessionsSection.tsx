@@ -9,6 +9,7 @@ import {
   type FilterFacet,
 } from '@/features/section-shell/FilterBar';
 import { RelatedGroups } from '@/features/section-shell/RelatedGroups';
+import { RemoveItemButton } from '@/features/section-shell/RemoveItemButton';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
 import { SectionLayout } from '@/features/section-shell/SectionLayout';
 import { StatusBadge } from '@/features/section-shell/StatusBadge';
@@ -100,6 +101,12 @@ function SessionDetail({
         <h2>{session.title}</h2>
         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
           <StatusBadge value={session.status} />
+          <RemoveItemButton
+            id={session.id}
+            kind="session"
+            label={session.title}
+            listPath="sessions"
+          />
           {store?.editable ? (
             <select
               aria-label="Change session status"

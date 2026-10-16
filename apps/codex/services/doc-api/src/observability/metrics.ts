@@ -32,9 +32,9 @@ export const httpRequestsInFlight = new client.Gauge({
   registers: [registry],
 });
 
-export const elasticsearchSearchDurationSeconds = new client.Histogram({
-  name: 'codex_doc_api_elasticsearch_search_duration_seconds',
-  help: 'Elasticsearch search call duration in seconds, labeled by operation.',
+export const postgresSearchDurationSeconds = new client.Histogram({
+  name: 'codex_doc_api_postgres_search_duration_seconds',
+  help: 'Postgres full-text search duration in seconds, labeled by operation.',
   labelNames: ['operation'] as const,
   buckets: [0.005, 0.01, 0.025, 0.05, 0.1, 0.25, 0.5, 1, 2.5, 5],
   registers: [registry],

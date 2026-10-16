@@ -1,5 +1,6 @@
 import type { Request, Response, Application } from 'express';
 import multer from 'multer';
+import { getAssetServiceSecret } from '../utils/assetServiceSecret.js';
 
 const upload = multer({
   limits: { fileSize: 15 * 1024 * 1024 }, // 15MB limit
@@ -36,12 +37,14 @@ export function setupGeneratedMapsRoute(app: Application, requireAuthenticatedNo
         if (req.body.importId) formData.append('importId', req.body.importId);
         if (req.body.width) formData.append('width', req.body.width);
         if (req.body.height) formData.append('height', req.body.height);
+        if (req.body.name) formData.append('name', req.body.name);
+        if (req.body.generator) formData.append('generator', req.body.generator);
 
         const assetServiceUrl = process.env.ASSET_API_URL || 'http://localhost:5003';
         const response = await fetch(`${assetServiceUrl}/user/${userId}/generated-map`, {
           method: 'POST',
           headers: {
-            'x-nexus-auth': process.env.ASSET_SERVICE_SECRET || 'dev-secret-key-123',
+            'x-nexus-auth': getAssetServiceSecret(),
           },
           body: formData,
         });

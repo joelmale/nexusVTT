@@ -14,7 +14,6 @@ browser -> app.nexusvtt.com -> NexusVTT backend -> http://doc-api:3000
 
 doc-api/doc-processor -> codex-postgres
                       -> codex-redis
-                      -> codex-elasticsearch
                       -> codex-minio
 ```
 
@@ -41,7 +40,6 @@ Persistent data uses the following named volumes:
 
 - `nexus-vtt2-codex-postgres-data`
 - `nexus-vtt2-codex-redis-data`
-- `nexus-vtt2-codex-elasticsearch-data`
 - `nexus-vtt2-codex-minio-data`
 
 `DOC_API_URL=http://doc-api:3000` enables the NexusVTT document proxy.

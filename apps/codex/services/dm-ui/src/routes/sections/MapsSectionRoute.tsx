@@ -1,11 +1,13 @@
 import { useState } from 'react';
 import Plus from 'lucide-react/dist/esm/icons/plus';
+import Upload from 'lucide-react/dist/esm/icons/upload';
 import { useNavigate } from 'react-router-dom';
 
 import type { CampaignMap } from '@/demo/fixture-registry';
 import { MapsIndex } from '@/features/maps/MapsIndex';
 import {
   MapPickerModal,
+  type MapPickerTab,
   type MapSubmitPayload,
 } from '@/features/maps/MapPickerModal';
 import { EmptyState } from '@/features/section-shell/EmptyState';
@@ -19,9 +21,12 @@ export function MapsContent() {
   const navigate = useNavigate();
 
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [modalTab, setModalTab] = useState<MapPickerTab>('library');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const handleOpenModal = () => {
+  // Add Map starts on the asset library; Upload map starts on the upload tab.
+  const openModal = (tab: MapPickerTab) => {
+    setModalTab(tab);
     setIsModalOpen(true);
   };
 
@@ -81,28 +86,41 @@ export function MapsContent() {
     <main className={styles.container}>
       <div className={styles.header}>
         <h1>Maps</h1>
-        <button
-          className={styles.addButton}
-          onClick={handleOpenModal}
-          type="button"
-          data-testid="add-map-button"
-        >
-          <Plus size={16} />
-          <span>Add Map</span>
-        </button>
+        {bundle.maps.length > 0 ? (
+          <button
+            className={styles.addButton}
+            data-testid="add-map-button"
+            onClick={() => openModal('library')}
+            type="button"
+          >
+            <Plus size={16} />
+            <span>Add Map</span>
+          </button>
+        ) : null}
       </div>
 
       {bundle.maps.length === 0 ? (
         <EmptyState
           action={
-            <button
-              className={styles.addButton}
-              onClick={handleOpenModal}
-              type="button"
-            >
-              <Plus size={16} />
-              <span>Upload map</span>
-            </button>
+            <div className={styles.actions}>
+              <button
+                className={styles.addButton}
+                onClick={() => openModal('upload')}
+                type="button"
+              >
+                <Upload size={16} />
+                <span>Upload map</span>
+              </button>
+              <button
+                className={styles.addButton}
+                data-testid="add-map-button"
+                onClick={() => openModal('library')}
+                type="button"
+              >
+                <Plus size={16} />
+                <span>Add Map</span>
+              </button>
+            </div>
           }
           title="No maps yet."
         />
@@ -111,6 +129,7 @@ export function MapsContent() {
       )}
 
       <MapPickerModal
+        initialTab={modalTab}
         isOpen={isModalOpen}
         isSubmitting={isSubmitting}
         onClose={() => setIsModalOpen(false)}

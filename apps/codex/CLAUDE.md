@@ -24,7 +24,7 @@ NexusCodex is a document library microservice for a Virtual Tabletop (VTT) syste
 - OCR support for image-based PDFs (Tesseract.js)
 - Markdown processing (remark/unified)
 - Structured data extraction for D&D content (spells, monsters, items)
-- Indexes extracted text in ElasticSearch (NOT in PostgreSQL)
+- Stores extracted text and chunks in PostgreSQL; its `index` stage only marks the document searchable (no external search index)
 - Content hash calculation for duplicate detection
 
 **doc-websocket** (Port 3002)
@@ -46,7 +46,7 @@ NexusCodex is a document library microservice for a Virtual Tabletop (VTT) syste
 
 - **PostgreSQL 16**: Primary datastore (Prisma ORM) for documents, references, annotations, structured data
 - **Redis 7**: BullMQ job queue + WebSocket session storage
-- **ElasticSearch 8**: Full-text search for document content (text NOT stored in Postgres)
+- **PostgreSQL full-text search**: Document search runs inside doc-api on `tsvector` columns (documents, `document_chunks`, `structured_data`); extracted text lives in the `document_texts`, `document_pages` and `document_chunks` tables. No separate search engine.
 - **S3-Compatible Storage**: Document file storage
   - **Development**: MinIO (Docker container)
   - **Production**: Google Cloud Storage (GCS), AWS S3, or Cloudflare R2
@@ -57,18 +57,18 @@ NexusCodex is a document library microservice for a Virtual Tabletop (VTT) syste
 2. Client uploads file directly to S3
 3. doc-api enqueues processing job to BullMQ (Redis)
 4. doc-processor picks up job → extracts text, generates thumbnail, OCR if needed
-5. Extracted text indexed in ElasticSearch (NOT saved to Postgres)
+5. Extracted text, pages and ~1500-character chunks saved to Postgres (`document_texts`, `document_pages`, `document_chunks`); triggers keep the `searchVector` columns current, and the `index` stage marks the document searchable
 6. Structured data (spells, monsters, etc.) extracted and saved to Postgres
 7. Client queries via REST API or WebSocket for real-time collaboration
 
-**CRITICAL**: Text content is stored ONLY in ElasticSearch to keep the primary database lean. The `Document` model has no `textContent` field.
+**NOTE**: Extracted text is stored in Postgres (`document_texts`, `document_pages`, `document_chunks`), not on the `Document` row itself. Search ranks three sources together: document metadata (title weight A, description/tags weight B), text chunks and SRD entries, using `to_tsquery` (OR'd terms), `ts_rank_cd` and `ts_headline` (`<em>` snippets). `pg_trgm` similarity tolerates typos in titles only. Migrations must be applied with `prisma migrate deploy` (not `db push`) because search relies on triggers, GIN indexes and the `pg_trgm` extension that exist only in SQL migrations.
 
 ## Common Commands
 
 ### Start All Services
 
 ```bash
-# Build and start all services (postgres, redis, elasticsearch, minio, all microservices)
+# Build and start all services (postgres, redis, minio, all microservices)
 docker compose up --build
 
 # Start in background
@@ -182,7 +182,7 @@ npm run import:5e-srd:help
 - ✅ **Structured Data** - Creates both `Document` and `StructuredData` records for full system features
 - ✅ **Markdown Formatting** - Converts description arrays to clean Markdown with proper paragraphs
 - ✅ **Auto-tagging** - Intelligent tagging (e.g., spells get level, school, class tags)
-- ✅ **ElasticSearch Indexing** - Full-text search for all imported content
+- ✅ **Postgres Full-Text Search** - Imported content is searchable through the `searchVector` columns
 - ✅ **Idempotent** - Safe to re-run, updates existing entries
 - ✅ **Offline Capability** - Clones repository once, works without internet after
 
@@ -203,8 +203,8 @@ For each SRD entry (e.g., "Fireball" spell):
    - `data`: Full spell JSON (level, components, damage, etc.)
    - `searchText`: Flattened text for search
 
-3. **ElasticSearch Index**
-   - Full-text searchable content
+3. **Search Vectors**
+   - Full-text searchable content (kept current by database triggers)
    - Faceted filtering by type, level, school, etc.
 
 **Supported Content Types:**
@@ -241,7 +241,7 @@ docker compose exec doc-api npm run import:5e-srd -- --types spells
 ```
 
 **Troubleshooting:**
-- ⚠️ **Must run inside Docker container** - Uses env vars (DATABASE_URL, ELASTICSEARCH_URL, etc.)
+- ⚠️ **Must run inside Docker container** - Uses env vars (DATABASE_URL, S3_*, etc.)
 - ⚠️ **Requires git** - Clones repository during import (or use `--repo-path` for pre-cloned repo)
 - ⚠️ **First run takes time** - Cloning repo and indexing 2000+ entries (5-10 minutes)
 - ⚠️ **Subsequent runs faster** - Only updates changed entries
@@ -346,10 +346,6 @@ docker pull postgres:16-alpine
 # Pull latest Redis 7
 docker pull redis:7-alpine
 
-# Pull latest ElasticSearch 9 (must match deploy/homelab/compose.yaml --
-# the v9 client cannot talk to an 8.x server)
-docker pull docker.elastic.co/elasticsearch/elasticsearch:9.5.3
-
 # Rebuild all services with updated base images
 docker compose build --no-cache
 ```
@@ -379,7 +375,6 @@ done
 - `@prisma/client` - Database ORM
 - `@fastify/jwt` - Authentication (security critical)
 - `bullmq` - Job queue
-- `@elastic/elasticsearch` - Search client
 
 **Admin UI:**
 - `vite` - Build tool (requires Node.js 22+)
@@ -501,8 +496,9 @@ The `GET /api/documents/:id/content` endpoint in doc-api **must** support HTTP R
    - Generate thumbnail (first page for PDFs)
    - OCR if image-based PDF detected
    - Extract structured D&D content (spells, monsters, items)
-   - Index text in ElasticSearch
+   - Save text, pages and chunks to Postgres
    - Save structured data to Postgres
+   - Mark the document searchable (`index` stage)
    - Update document status
 
 ### WebSocket Event Flow
@@ -527,7 +523,7 @@ Extracted data is stored in the `StructuredData` Prisma model and searchable via
 
 ## Schema Management
 
-The Prisma schema is defined in `services/doc-api/prisma/schema.prisma`. **Important**: `services/doc-processor/prisma/schema.prisma` is a **symlink** to the doc-api schema to ensure consistency. Both services share the same database and schema.
+The Prisma schema is defined in `services/doc-api/prisma/schema.prisma`. **Important**: doc-processor has no schema of its own. Its `prisma:generate` script reads the doc-api schema (`--schema=../doc-api/prisma/schema.prisma`), so both services always generate from one file. Queue names and the `ProcessDocumentJob` type live in `@nexus/document-contracts`, shared by doc-api (producer) and doc-processor (consumer).
 
 When modifying the schema:
 1. Edit only `services/doc-api/prisma/schema.prisma`
@@ -542,12 +538,11 @@ Each service requires a `.env` file (see `README.md` for full templates). Key va
 **doc-api**:
 - `DATABASE_URL`: PostgreSQL connection string
 - `REDIS_URL`: Redis connection for BullMQ
-- `ELASTICSEARCH_URL`: ElasticSearch endpoint
 - `S3_ENDPOINT`, `S3_ACCESS_KEY`, `S3_SECRET_KEY`, `S3_BUCKET`: S3 config
 - `S3_FORCE_PATH_STYLE=true`: Required for MinIO
 
 **doc-processor**:
-- Same as doc-api (shares database, Redis, ElasticSearch, S3)
+- Same as doc-api (shares database, Redis, S3)
 
 **doc-websocket**:
 - `DATABASE_URL`: PostgreSQL connection string
@@ -572,12 +567,12 @@ The doc-api service includes admin-specific endpoints for system management.
 ### Admin Document Management (`/api/admin/documents`)
 - **GET** `/api/admin/documents` - List documents with enhanced filters (status, type, uploadedBy, date range, tags, pagination)
 - **PATCH** `/api/admin/documents/:id` - Bulk update document metadata
-- **DELETE** `/api/admin/documents/:id` - Delete document + S3 file + ElasticSearch entry
+- **DELETE** `/api/admin/documents/:id` - Delete document + S3 file (search vectors go with the rows)
 - **POST** `/api/admin/documents/:id/reprocess` - Retry failed document processing
 - **GET** `/api/admin/stats` - System statistics (total docs, storage, queue stats, recent uploads)
 - **GET** `/api/admin/validation/orphaned` - Find documents with missing S3 files
 - **GET** `/api/admin/validation/metadata` - Find documents with inconsistent metadata
-- **GET** `/api/admin/validation/elastic` - Find ElasticSearch inconsistencies
+- **GET** `/api/admin/validation/search-index` - Find documents marked indexed that have no chunks and no structured entries
 - **GET** `/api/admin/validation/comprehensive` - Run all validation checks
 
 ### Admin Queue Management (`/api/admin/queue`)
@@ -731,7 +726,6 @@ To restore authentication for production deployment:
 
 ### Other Security Notes
 
-- **ElasticSearch**: Currently `xpack.security.enabled=false` for development. **MUST** be enabled in production.
 - **S3 URLs**: Pre-signed URLs expire (default: 1 hour). Clients must refresh if needed.
 - **WebSocket Auth**: JWT token validation implemented but requires client to pass token in connection URL query parameter.
 - **Docker**: Development `docker-compose.yml` uses weak credentials. Change in production.
@@ -747,7 +741,6 @@ NexusCodex is designed to run on GCP with minimal configuration changes. The AWS
 - **Memorystore for Redis**: Managed Redis service (replaces local Docker Redis)
 - **Google Cloud Storage (GCS)**: Object storage with S3-compatible API (replaces MinIO)
 - **Compute Engine / Cloud Run**: Container deployment for microservices
-- **ElasticSearch**: Deploy on GCE VMs or use Elastic Cloud
 
 **GCS S3 Interoperability Setup:**
 1. Create a GCS bucket via `gsutil mb` or Console
@@ -788,7 +781,8 @@ services/
 │   │   │   │   └── validation.ts  # Data quality validation and auto-fix
 │   │   │   ├── documents.ts, search.ts, references.ts, annotations.ts, structured-data.ts, processing.ts
 │   │   ├── services/       # Business logic
-│   │   │   ├── s3.service.ts, database.service.ts, queue.service.ts, elastic.service.ts
+│   │   │   ├── s3.service.ts, database.service.ts, queue.service.ts
+│   │   │   ├── search/                  # Postgres full-text search provider
 │   │   │   ├── content-hash.service.ts  # Duplicate detection
 │   │   │   └── logging.service.ts       # Processing logs
 │   │   ├── types/          # Zod schemas & TypeScript types
@@ -801,11 +795,10 @@ services/
 │   │   ├── services/
 │   │   │   ├── pdf.service.ts, ocr.service.ts, markdown.service.ts, thumbnail.service.ts
 │   │   │   ├── extraction.service.ts    # D&D content extraction
-│   │   │   ├── elastic.service.ts
 │   │   │   ├── content-hash.service.ts  # File hashing for duplicates
 │   │   │   └── logging.service.ts       # Log processing steps
 │   │   └── workers/        # BullMQ job handlers
-│   └── prisma/schema.prisma  # Symlink to doc-api schema
+│   └── (no prisma/ dir; generates from doc-api's schema)
 ├── doc-websocket/
 │   ├── src/
 │   │   ├── handlers/       # WebSocket event handlers (session, navigation, push, annotation)
@@ -829,7 +822,7 @@ services/
 
 **S3 upload failures**: Verify MinIO is running (`docker compose ps minio`) and credentials match `.env`
 
-**ElasticSearch indexing fails**: Check ElasticSearch health (`curl http://localhost:9200/_cluster/health`), ensure index exists
+**Search returns nothing**: Confirm migrations were applied with `prisma migrate deploy` (triggers, GIN indexes and `pg_trgm` come only from SQL migrations), then check `/api/admin/validation/search-index`
 
 **WebSocket disconnects**: Check Redis is running and `SESSION_TTL` is reasonable (default: 3600s)
 
@@ -845,7 +838,7 @@ The admin interface implementation has **Phases 1-7 complete** with the followin
 - Document listing with filters (status, type, uploadedBy, date range, tags)
 - Single document update, delete, and reprocess operations
 - Dashboard with system statistics
-- Validation endpoints (orphaned files, metadata issues, ElasticSearch inconsistencies)
+- Validation endpoints (orphaned files, metadata issues, search-index inconsistencies)
 
 ### ✅ Phase 2: Processing Queue Management (Complete)
 - Queue monitoring endpoints in `/api/admin/queue`
@@ -856,7 +849,7 @@ The admin interface implementation has **Phases 1-7 complete** with the followin
 - Job log retrieval for debugging
 
 ### ✅ Phase 3: Search, Deduplication & Data Quality (Complete)
-- **Advanced Search**: Multi-field search with ElasticSearch integration, faceted filtering, similarity search
+- **Advanced Search**: Multi-field Postgres full-text search (metadata, chunks, SRD entries), faceted filtering, similarity search
 - **Deduplication**: Content hash-based duplicate detection (exact, likely, possible matches)
 - **Merge Operations**: Merge duplicate documents with metadata consolidation and preview
 - **Duplicate Analytics**: Statistics on duplicate documents and wasted storage
@@ -881,18 +874,16 @@ The admin interface implementation has **Phases 1-7 complete** with the followin
 
 **Note**: The complete authentication system was implemented in Phase 5, but has been temporarily disabled for development purposes. All admin endpoints are currently publicly accessible. See the **Security Notes** section for details on the current state and how to re-enable authentication for production.
 
-### ✅ Phase 6: Bulk Upload, Preview, and ElasticSearch Index Management (Complete)
+### ✅ Phase 6: Bulk Upload, Preview, and Search Index Management (Complete; the Elasticsearch parts were later replaced by Postgres full-text search)
 - **Bulk Upload API**: Batch document uploads with progress tracking and error handling
 - **File Type Detection**: Automatic MIME type and extension detection for uploaded files
 - **Document Previews**: Thumbnail generation for images, text extraction for documents
 - **Preview Endpoints**: Generate and retrieve file previews with metadata
-- **ElasticSearch Management**: Index health monitoring, reindexing, and maintenance tools
-- **Index Operations**: Recreate, optimize, clear, and monitor search indices
+- **Search Index Management** (historical): Originally Elasticsearch index tools; removed when search moved to Postgres full-text search
 - **Admin UI Bulk Upload**: Drag-and-drop interface with batch processing and status tracking
-- **ElasticSearch Dashboard**: Real-time index statistics and management interface
 
 ### ✅ Phase 7: System Health Monitoring and Performance Analytics (Complete)
-- **System Health Monitoring**: Comprehensive health checks for all microservices (doc-api, doc-processor, doc-websocket, admin-ui, PostgreSQL, Redis, ElasticSearch, S3)
+- **System Health Monitoring**: Comprehensive health checks for all microservices (doc-api, doc-processor, doc-websocket, admin-ui, PostgreSQL, Redis, S3)
 - **Health Service**: Real-time service status tracking with response time monitoring (`health.service.ts`)
 - **Performance Metrics**: Collection of API, database, queue, storage, and search metrics (`metrics.service.ts`)
 - **Metrics History**: Time-series data storage in Redis with configurable retention

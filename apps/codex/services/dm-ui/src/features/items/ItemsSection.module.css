@@ -1,0 +1,89 @@
+.row {
+  align-items: center;
+  display: flex;
+  flex: 1;
+  gap: 8px;
+  justify-content: space-between;
+  min-width: 0;
+}
+
+.rowTitle {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.badges {
+  align-items: center;
+  display: inline-flex;
+  flex: none;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.detail {
+  display: grid;
+  gap: var(--studio-gap-md);
+  grid-template-columns: 1fr;
+}
+
+.form {
+  display: grid;
+  gap: var(--studio-gap-sm);
+}
+
+.pair {
+  display: grid;
+  gap: var(--studio-gap-sm);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.heading {
+  color: var(--studio-text-secondary);
+  font-size: 0.875rem;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.facts {
+  display: grid;
+  gap: 4px 16px;
+  grid-template-columns: max-content 1fr;
+  margin: 0;
+}
+
+.facts dt {
+  color: var(--studio-text-secondary);
+}
+
+.facts dd {
+  margin: 0;
+}
+
+.checks {
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  display: grid;
+  gap: 4px;
+  margin: 0;
+  max-height: 180px;
+  overflow-y: auto;
+  padding: 8px;
+}
+
+.check {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--studio-gap-xs);
+}
+
+.text {
+  margin: 0;
+  white-space: pre-wrap;
+}

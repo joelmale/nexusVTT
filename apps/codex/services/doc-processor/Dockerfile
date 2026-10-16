@@ -5,15 +5,15 @@
 # Canvas: @napi-rs/canvas and sharp ship musl prebuilds, so the runtime needs
 # no build tools. node-canvas (the fallback backend in src/utils/canvas.ts) is
 # compiled in the deps stage; its shared libraries are installed at runtime.
-FROM node:26.10.0-alpine AS base
+FROM node:26.11.1-alpine AS base
 # OpenSSL in every stage, not only the runtime: `prisma generate` picks the
 # query engine from the OpenSSL it finds at build time. Without it the builder
 # bundles the plain "linux-musl" engine and the runtime (OpenSSL 3) fails at
 # the first query with "could not locate the Query Engine for
 # linux-musl-openssl-3.0.x".
 RUN apk upgrade --no-cache && apk add --no-cache openssl
-# npm's own bundled undici/brace-expansion carry High advisories (Grype
-# --only-fixed) that even the latest npm release still ships. Swap in patched
+# npm's own bundled undici/brace-expansion carry High advisories (Trivy
+# --ignore-unfixed) that even the latest npm release still ships. Swap in patched
 # copies of the same major so the scanned runtime image is clean.
 RUN set -e; cd /tmp; N=/usr/local/lib/node_modules/npm/node_modules; \
     for spec in undici@^6.28.1 brace-expansion@^5.0.11; do \
@@ -37,7 +37,11 @@ WORKDIR /app
 
 COPY package.json package-lock.json ./
 COPY apps/codex/services/doc-processor/package.json ./apps/codex/services/doc-processor/
-RUN npm ci --workspace=nexus-codex-doc-processor --include-workspace-root
+COPY packages/document-contracts/package.json ./packages/document-contracts/
+RUN npm ci \
+    --workspace=nexus-codex-doc-processor \
+    --workspace=@nexus/document-contracts \
+    --include-workspace-root
 
 # The lockfile does not record @napi-rs/canvas's musl prebuild (npm only
 # resolves the optional dependencies of the platform that generated the lock),
@@ -59,7 +63,9 @@ WORKDIR /app
 
 COPY . .
 
-RUN npm run prisma:generate --workspace=nexus-codex-doc-processor && \
+# The Prisma schema is owned by doc-api; prisma:generate reads it from there.
+RUN node scripts/build-workspace-dependencies.mjs --workspace nexus-codex-doc-processor && \
+    npm run prisma:generate --workspace=nexus-codex-doc-processor && \
     npm run build --workspace=nexus-codex-doc-processor
 
 # Production image, copy all the files and run
@@ -82,15 +88,16 @@ RUN apk add --no-cache \
 RUN addgroup -S -g 1001 nodejs && \
     adduser -S -u 1001 -G nodejs worker
 
-# Dependencies that could not hoist (bullmq@5 here, because doc-api pins
-# bullmq@4 at the root) install into the workspace's own node_modules.
-# Copying only /app/node_modules silently drops them.
+# Dependencies that could not hoist install into the workspace's own
+# node_modules. Copying only /app/node_modules silently drops them.
 COPY --from=builder --chown=worker:nodejs /app/node_modules ./node_modules
 COPY --from=builder --chown=worker:nodejs /app/apps/codex/services/doc-processor/node_modules ./apps/codex/services/doc-processor/node_modules
 COPY --from=builder --chown=worker:nodejs /app/apps/codex/services/doc-processor/dist ./apps/codex/services/doc-processor/dist
-COPY --from=builder --chown=worker:nodejs /app/apps/codex/services/doc-processor/prisma ./apps/codex/services/doc-processor/prisma
 COPY --from=builder --chown=worker:nodejs /app/apps/codex/services/doc-processor/package.json ./apps/codex/services/doc-processor/package.json
 COPY --from=builder --chown=worker:nodejs /app/package.json ./package.json
+# Workspace dependency, symlinked from node_modules/@nexus/document-contracts.
+COPY --from=builder --chown=worker:nodejs /app/packages/document-contracts/package.json ./packages/document-contracts/package.json
+COPY --from=builder --chown=worker:nodejs /app/packages/document-contracts/dist ./packages/document-contracts/dist
 
 USER worker
 WORKDIR /app/apps/codex/services/doc-processor

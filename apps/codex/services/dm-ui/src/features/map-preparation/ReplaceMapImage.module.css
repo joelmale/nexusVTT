@@ -1,0 +1,85 @@
+.trigger,
+.secondary {
+  align-items: center;
+  background: var(--studio-surface-raised, transparent);
+  border: 1px solid var(--studio-border-strong, #444);
+  border-radius: var(--studio-radius-control, 4px);
+  color: var(--studio-text, inherit);
+  cursor: pointer;
+  display: inline-flex;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  min-height: var(--studio-control-height, 32px);
+  padding: 0 12px;
+}
+
+.grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  list-style: none;
+  margin: 12px 0;
+  padding: 0;
+}
+
+.option {
+  background: var(--studio-surface-raised, #1e1e24);
+  border: 1px solid var(--studio-border, #333);
+  border-radius: 6px;
+  color: inherit;
+  cursor: pointer;
+  display: grid;
+  font: inherit;
+  font-size: 12px;
+  gap: 4px;
+  overflow: hidden;
+  padding: 0 0 6px;
+  text-align: left;
+  width: 100%;
+}
+
+.option:hover:not(:disabled),
+.option:focus-visible {
+  border-color: var(--studio-accent, #3b82f6);
+}
+
+.option img {
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+  width: 100%;
+}
+
+.option span {
+  overflow: hidden;
+  padding: 0 8px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 12px;
+}
+
+.hiddenInput {
+  border: 0;
+  clip: rect(0 0 0 0);
+  height: 1px;
+  overflow: hidden;
+  position: absolute;
+  width: 1px;
+}
+
+.muted {
+  color: var(--studio-text-muted, #888);
+  font-size: 13px;
+}
+
+.error {
+  color: var(--studio-danger, #ef4444);
+  font-size: 13px;
+}

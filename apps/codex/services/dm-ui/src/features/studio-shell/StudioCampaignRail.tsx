@@ -1,10 +1,13 @@
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import CalendarDays from 'lucide-react/dist/esm/icons/calendar-days';
 import CheckSquare from 'lucide-react/dist/esm/icons/check-square';
+import Gem from 'lucide-react/dist/esm/icons/gem';
+import Images from 'lucide-react/dist/esm/icons/images';
 import Compass from 'lucide-react/dist/esm/icons/compass';
 import MapIcon from 'lucide-react/dist/esm/icons/map';
 import MapPin from 'lucide-react/dist/esm/icons/map-pin';
 import PanelLeftClose from 'lucide-react/dist/esm/icons/panel-left-close';
+import Search from 'lucide-react/dist/esm/icons/search';
 import Settings from 'lucide-react/dist/esm/icons/settings';
 import Shield from 'lucide-react/dist/esm/icons/shield';
 import Swords from 'lucide-react/dist/esm/icons/swords';
@@ -21,21 +24,28 @@ import styles from './StudioCampaignRail.module.css';
 
 interface StudioCampaignRailProps {
   onCapability: (capabilityId: CapabilityId) => void;
+  /** Opens campaign search. Shown on touch devices, which have no Ctrl+K. */
+  onSearch?: () => void;
 }
 
 const NAVIGATION_ITEMS = [
   { icon: Compass, label: 'Overview', route: 'overview' },
   { icon: CalendarDays, label: 'Sessions', route: 'sessions' },
-  { icon: MapIcon, label: 'World', route: 'world' },
+  { icon: MapIcon, label: 'World & Locations', route: 'world' },
   { icon: UserRound, label: 'NPCs', route: 'npcs' },
   { icon: Shield, label: 'Factions', route: 'factions' },
   { icon: CheckSquare, label: 'Quests', route: 'quests' },
   { icon: Swords, label: 'Encounters', route: 'encounters' },
+  { icon: Gem, label: 'Items', route: 'items' },
   { icon: MapPin, label: 'Maps', route: 'maps' },
+  { icon: Images, label: 'Assets', route: 'assets' },
   { icon: BookOpen, label: 'Notes', route: 'notes' },
 ] as const;
 
-export function StudioCampaignRail({ onCapability }: StudioCampaignRailProps) {
+export function StudioCampaignRail({
+  onCapability,
+  onSearch,
+}: StudioCampaignRailProps) {
   const location = useLocation();
   const navigate = useNavigate();
   const { activeCampaign, isDemoCampaign } = useCampaignContext();
@@ -90,6 +100,17 @@ export function StudioCampaignRail({ onCapability }: StudioCampaignRailProps) {
 
       <span className={styles.campaignLabel}>Campaigns</span>
       <CampaignSwitcher />
+
+      {onSearch ? (
+        <button
+          className={styles.searchButton}
+          onClick={onSearch}
+          type="button"
+        >
+          <Search size={18} />
+          <span>Search</span>
+        </button>
+      ) : null}
 
       <nav className={styles.navigation}>
         {NAVIGATION_ITEMS.map((item) => {

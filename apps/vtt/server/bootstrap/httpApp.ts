@@ -193,6 +193,8 @@ export function createHttpApp({
   app.use(
     createAssetRouter({
       assetApiUrl: process.env.ASSET_API_URL || 'http://localhost:5003',
+      findAssetReferences: (ownerUserId, assetId) =>
+        db.campaignPrep.findAssetReferences(ownerUserId, assetId),
     }),
   );
 

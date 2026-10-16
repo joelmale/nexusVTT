@@ -39,6 +39,19 @@ function getSvgDimensions(
   return null;
 }
 
+function dataUrlToBlob(dataUrl: string): Blob {
+  const parts = dataUrl.split(',');
+  const mimeMatch = parts[0]?.match(/:(.*?);/);
+  const mimeType = mimeMatch ? mimeMatch[1] : 'image/webp';
+  const binaryString = atob(parts[1] || '');
+  const len = binaryString.length;
+  const bytes = new Uint8Array(len);
+  for (let i = 0; i < len; i++) {
+    bytes[i] = binaryString.charCodeAt(i);
+  }
+  return new Blob([bytes], { type: mimeType });
+}
+
 async function getImageDimensions(
   blob: Blob,
 ): Promise<{ width: number; height: number }> {
@@ -159,6 +172,7 @@ function App() {
               code: event.data.code,
               key: event.data.key,
               shiftKey: event.data.shiftKey,
+              requestId: event.data.requestId,
             },
             '*',
           );
@@ -171,11 +185,27 @@ function App() {
         return;
       }
 
+      // A bridge reporting that an EXECUTE_ACTION finished: relay it upward.
+      if (event.data.type === 'ACTION_RESULT') {
+        const msg: GeneratorHostMessage = {
+          type: 'generator/action-result',
+          payload: {
+            requestId: String(event.data.requestId ?? ''),
+            status: event.data.status === 'error' ? 'error' : 'done',
+            error:
+              typeof event.data.error === 'string' ? event.data.error : undefined,
+          },
+        };
+        window.parent.postMessage(msg, '*');
+        return;
+      }
+
       if (
         event.data.type === 'DUNGEON_BRIDGE_READY' ||
         event.data.type === 'CAVE_BRIDGE_READY' ||
         event.data.type === 'CITY_BRIDGE_READY' ||
         event.data.type === 'DWELLINGS_BRIDGE_READY' ||
+        event.data.type === 'WORLD_BRIDGE_READY' ||
         event.data.type === 'VTT_GEN_READY'
       ) {
         setLoading(false);
@@ -183,7 +213,7 @@ function App() {
         window.parent.postMessage({ type: 'generator/ready' }, '*');
       }
 
-      // Handle World Generator
+      // Handle World Generator (legacy/fallback dataUrl payload)
       if (
         event.data.type === 'VTT_MAP_EXPORTED' &&
         event.data.generatorId === 'world'
@@ -192,8 +222,7 @@ function App() {
         const dataUrl = payload.full?.dataUrl;
         if (!dataUrl) return;
 
-        const res = await fetch(dataUrl);
-        const blob = await res.blob();
+        const blob = dataUrlToBlob(dataUrl);
         const dims = await getImageDimensions(blob);
 
         const msg: GeneratorHostMessage = {
@@ -225,7 +254,8 @@ function App() {
         event.data.type === 'DUNGEON_EXPORT_READY' ||
         event.data.type === 'CAVE_EXPORT_READY' ||
         event.data.type === 'CITY_EXPORT_READY' ||
-        event.data.type === 'DWELLINGS_EXPORT_READY'
+        event.data.type === 'DWELLINGS_EXPORT_READY' ||
+        event.data.type === 'WORLD_EXPORT_READY'
       ) {
         const { blob, mimeType, width: hintedWidth, height: hintedHeight } =
           event.data.payload || {};

@@ -279,8 +279,8 @@ telemetry** and must not be treated as production signal until replaced:
 | Queue "Completed", "Failed" | `collectQueueMetrics()` calls `redis.get('bull:document-processing:completed')` / `...:failed`, which are not the keys BullMQ uses (BullMQ tracks completed/failed jobs as sorted sets, not GET-able strings) -- these always read back `null` -> `0` | `codex_doc_processor_jobs_total{outcome="completed"\|"failed"}` (this change's new counter) or `Queue.getJobCounts()` as `queue.service.ts`'s own `getQueueStats()` already does correctly elsewhere in doc-api. |
 | Queue "Throughput" | Hardcoded zero | Derivable from `rate(codex_doc_processor_jobs_total[5m])`. |
 | Storage "Total Size", "Used Size", "File Count", "Upload Rate" | All hardcoded zeros in `collectStorageMetrics()` (comment: "no listObjects method") | Needs either an S3/MinIO bucket-stats call or a Postgres aggregate over `Document.fileSize`; out of scope for this change. |
-| Search "Query Count", "Avg Query Time" | Hardcoded zeros in `collectSearchMetrics()` | `codex_doc_api_elasticsearch_search_duration_seconds` (this change's new histogram) gives both count and latency. |
-| Search "Index Size", "Documents" | Real (`elasticClient.indices.stats()`) | No change needed. |
+| Search "Query Count", "Avg Query Time" | Hardcoded zeros in `collectSearchMetrics()` | `codex_doc_api_postgres_search_duration_seconds` (this change's new histogram, label `operation`; originally added as an Elasticsearch histogram) gives both count and latency. |
+| Search "Index Size", "Documents" | Were real when search ran on Elasticsearch | Search is now Postgres full-text; these are no longer sourced from an external index. |
 
 This inventory does not change `Health.tsx`, `health.service.ts`, or
 `metrics.service.ts` -- swapping the Admin UI over to real metrics (ideally by
@@ -333,9 +333,9 @@ for the existing `NexusVtt*` multiplayer alerts.
 | `NexusPlatformPostgresLongRunningQueries` / `NexusPlatformPostgresBlockedLocks` | Inspect `pg_stat_activity`/`pg_locks` directly; do not kill backends without understanding what they are blocking. |
 | `NexusPlatformRedisDown` | The VTT backend already has its own `NexusVttRealtimeDisconnected` alert for this; this one covers the exporter/Redis pair generally, including Codex's BullMQ queues. |
 | `NexusPlatformRedisMemoryHigh` / `NexusPlatformRedisEvictions` | Check `maxmemory`/`maxmemory-policy`; evictions on the VTT's db 0 vs. Codex's db 1 have different blast radii (session/presence data vs. job queues). |
-| `NexusPlatformContainerRestarting` / `NexusPlatformContainerOOMKilled` | Check the named container's logs and, for OOM, whether it needs a `deploy.resources.limits` adjustment (Elasticsearch already has one). |
+| `NexusPlatformContainerRestarting` / `NexusPlatformContainerOOMKilled` | Check the named container's logs and, for OOM, whether it needs a `deploy.resources.limits` adjustment. |
 | `NexusPlatformHostDiskHigh` | Check the NAS mount (`NEXUS_STORAGE_ROOT`) and Docker's own image/volume disk usage before assuming it's application data growth. |
-| `NexusPlatformDocApiErrorRateHigh` / `NexusPlatformDocApiLatencyHigh` | Correlate with the Nexus Codex dashboard's per-route breakdown; check Elasticsearch/Postgres health first since doc-api depends on both synchronously. |
+| `NexusPlatformDocApiErrorRateHigh` / `NexusPlatformDocApiLatencyHigh` | Correlate with the Nexus Codex dashboard's per-route breakdown; check Postgres health first since doc-api depends on it synchronously (search is Postgres full-text). |
 | `NexusPlatformCodexQueueBacklogged` / `NexusPlatformCodexJobsFailing` | Requires doc-processor's `METRICS_PORT` wiring (see above) to fire at all. Once wired: check OCR throughput and worker concurrency (`WORKER_CONCURRENCY`/`ASSET_WORKER_CONCURRENCY`) before scaling. |
 
 ## Local development

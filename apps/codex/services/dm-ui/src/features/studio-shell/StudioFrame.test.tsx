@@ -46,6 +46,23 @@ describe('StudioFrame navigation', () => {
     ).toBeInTheDocument();
   });
 
+  it('highlights Maps on a nested map editor route', () => {
+    render(
+      <MemoryRouter initialEntries={['/demo/ashes-of-veyra/maps/map-1']}>
+        <CampaignContext.Provider value={campaignContext}>
+          <StudioNavigationProvider>
+            <StudioFrame onCapability={vi.fn()}>
+              <p>Map editor</p>
+            </StudioFrame>
+          </StudioNavigationProvider>
+        </CampaignContext.Provider>
+      </MemoryRouter>,
+    );
+    expect(
+      screen.getByRole('button', { name: 'Maps', current: 'page' }),
+    ).toBeInTheDocument();
+  });
+
   it('collapses into the top bar and restores the rail on overview', async () => {
     const user = userEvent.setup();
     render(
@@ -85,12 +102,14 @@ describe('StudioFrame navigation', () => {
   it.each([
     ['Overview', 'overview'],
     ['Sessions', 'sessions'],
-    ['World', 'world'],
+    ['World & Locations', 'world'],
     ['NPCs', 'npcs'],
     ['Factions', 'factions'],
     ['Quests', 'quests'],
     ['Encounters', 'encounters'],
+    ['Items', 'items'],
     ['Maps', 'maps'],
+    ['Assets', 'assets'],
     ['Notes', 'notes'],
   ])(
     'navigates %s to its section page and marks it current',

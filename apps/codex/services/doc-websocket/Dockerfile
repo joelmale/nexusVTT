@@ -1,5 +1,5 @@
 # Build stage
-FROM node:26.10.0-alpine AS builder
+FROM node:26.11.1-alpine AS builder
 
 # Install OpenSSL for Prisma
 RUN apk add --no-cache openssl
@@ -20,10 +20,10 @@ RUN npm run prisma:generate --workspace=nexus-codex-doc-websocket && \
     npm run build --workspace=nexus-codex-doc-websocket
 
 # Production stage
-FROM node:26.10.0-alpine
+FROM node:26.11.1-alpine
 
-# npm's own bundled undici/brace-expansion carry High advisories (Grype
-# --only-fixed) that even the latest npm release still ships. Swap in patched
+# npm's own bundled undici/brace-expansion carry High advisories (Trivy
+# --ignore-unfixed) that even the latest npm release still ships. Swap in patched
 # copies of the same major so the scanned runtime image is clean.
 RUN set -e; cd /tmp; N=/usr/local/lib/node_modules/npm/node_modules; \
     for spec in undici@^6.28.1 brace-expansion@^5.0.11; do \

@@ -4,6 +4,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import App from './App';
 import './styles/design-tokens.css';
 import './styles/globals.css';
+import './styles/touch.css';
 
 // Configure TanStack Query
 const queryClient = new QueryClient({

@@ -1,8 +1,7 @@
 """
 Per-page text cleanliness metrics (DocumentPage.quality).
 
-See apps/docs/codex/ingestion-pipeline-v2-plan.md#quality-telemetry. These are
-proxies for clean reading, not proof of correctness; badge thresholds are set
+These are proxies for clean reading, not proof of correctness; badge thresholds are set
 from the gold set.
 """
 import re

@@ -27,6 +27,11 @@
   margin-left: auto;
 }
 
+.status {
+  color: var(--studio-text-muted);
+  font-size: 13px;
+}
+
 .editable button,
 .addRow button,
 .banner button {

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
+import { DEFAULT_DOCUMENT_QUEUE_NAME } from '@nexus/document-contracts';
 
 dotenv.config();
 
@@ -13,12 +14,9 @@ const envSchema = z.object({
   // Redis
   REDIS_URL: z.string(),
 
-  // ElasticSearch
-  ELASTICSEARCH_URL: z.string(),
-  ELASTICSEARCH_INDEX: z.string().default('documents'),
 
   // Queue
-  QUEUE_NAME: z.string().default('document-processing'),
+  QUEUE_NAME: z.string().default(DEFAULT_DOCUMENT_QUEUE_NAME),
 
   // S3/MinIO
   S3_ENDPOINT: z.string(),
@@ -36,8 +34,9 @@ const envSchema = z.object({
 
   // Logging
   LOGGING_ENABLED: z.string().default('true').transform(val => val === 'true'),
-  LOGGING_INDEX: z.string().default('nexus-logs'),
   LOGGING_SERVICE_NAME: z.string().default('doc-api'),
+  // Rows in log_events older than this are pruned daily.
+  LOG_RETENTION_DAYS: z.string().default('30').transform(Number),
 
   // Auth
   AUTH_DISABLED: z.string().default('false').transform(val => val === 'true'),

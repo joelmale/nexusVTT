@@ -11,6 +11,12 @@ export interface UseDraggablePanelOptions {
   id: PanelId;
   /** Initial position if no saved state exists */
   defaultPosition?: PanelPosition;
+  /**
+   * When set and the user has no saved position, place the panel from its
+   * measured size (centered along the bottom edge) instead of using
+   * `defaultPosition`. Re-applied on resize until the user drags the panel.
+   */
+  defaultAnchor?: 'bottom-center';
   /** Boundary margin (pixels) to keep the panel inside the viewport */
   edgeMargin?: number;
   /** Snap distance (pixels) */
@@ -51,6 +57,7 @@ export interface UseDraggablePanelResult {
 export function useDraggablePanel({
   id,
   defaultPosition = { x: 0, y: 0 },
+  defaultAnchor,
   edgeMargin = 20,
   snapThreshold = 15,
   resizeAnchor = 'left',
@@ -81,6 +88,8 @@ export function useDraggablePanel({
   });
 
   const positionRef = useRef<PanelPosition>({ ...defaultPosition });
+  // True while an anchored panel has never been moved or saved by the user.
+  const followAnchorRef = useRef(false);
 
   const clampPosition = useCallback(
     (pos: PanelPosition, rect: DOMRect) => {
@@ -96,12 +105,16 @@ export function useDraggablePanel({
 
   // On mount, read saved position and apply it synchronously to the DOM
   useEffect(() => {
+    // An anchored panel with no saved position follows its anchor (and is not
+    // persisted) until the user drags it.
+    followAnchorRef.current = defaultAnchor === 'bottom-center';
     try {
       const saved =
         localStorage.getItem(`nexus-ui-${id}-pos`) ??
         localStorage.getItem(`nexus_ui_${id}_pos`);
       if (saved) {
         positionRef.current = JSON.parse(saved);
+        followAnchorRef.current = false;
       }
     } catch {
       // fallback to default
@@ -110,6 +123,12 @@ export function useDraggablePanel({
     const clampAndApply = () => {
       if (panelRef.current) {
         const rect = panelRef.current.getBoundingClientRect();
+        if (followAnchorRef.current && rect.width > 0) {
+          positionRef.current = {
+            x: (window.innerWidth - rect.width) / 2,
+            y: window.innerHeight - rect.height - edgeMargin,
+          };
+        }
         const clampedPos = clampPosition(positionRef.current, rect);
 
         if (
@@ -117,10 +136,12 @@ export function useDraggablePanel({
           clampedPos.y !== positionRef.current.y
         ) {
           positionRef.current = clampedPos;
-          localStorage.setItem(
-            `nexus-ui-${id}-pos`,
-            JSON.stringify(positionRef.current),
-          );
+          if (!followAnchorRef.current) {
+            localStorage.setItem(
+              `nexus-ui-${id}-pos`,
+              JSON.stringify(positionRef.current),
+            );
+          }
         }
 
         panelRef.current.style.transform = `translate3d(${positionRef.current.x}px, ${positionRef.current.y}px, 0)`;
@@ -145,10 +166,12 @@ export function useDraggablePanel({
             }
             previousWidth = nextWidth;
             clampAndApply();
-            localStorage.setItem(
-              `nexus-ui-${id}-pos`,
-              JSON.stringify(positionRef.current),
-            );
+            if (!followAnchorRef.current) {
+              localStorage.setItem(
+                `nexus-ui-${id}-pos`,
+                JSON.stringify(positionRef.current),
+              );
+            }
           });
     if (panelRef.current && typeof resizeObserver?.observe === 'function') {
       resizeObserver.observe(panelRef.current);
@@ -162,7 +185,7 @@ export function useDraggablePanel({
       }
       window.removeEventListener('resize', clampAndApply);
     };
-  }, [id, clampPosition, resizeAnchor]);
+  }, [id, clampPosition, resizeAnchor, defaultAnchor, edgeMargin]);
 
   const toggleCollapsed = useCallback(() => {
     setIsCollapsed((prev: boolean) => {
@@ -208,6 +231,7 @@ export function useDraggablePanel({
 
   const setPosition = useCallback(
     (pos: PanelPosition) => {
+      followAnchorRef.current = false;
       const rect = panelRef.current?.getBoundingClientRect();
       const next = rect ? clampPosition(pos, rect) : pos;
       positionRef.current = { ...next };
@@ -238,6 +262,7 @@ export function useDraggablePanel({
       const target = e.currentTarget as HTMLElement;
 
       isDragging.current = true;
+      followAnchorRef.current = false;
       target.setPointerCapture(e.pointerId);
 
       pointerStart.current = { x: e.clientX, y: e.clientY };
