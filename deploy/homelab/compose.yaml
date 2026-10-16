@@ -227,7 +227,7 @@ services:
     image: dxflrs/garage:v2.4.1
     container_name: nexus-vtt2-codex-garage
     hostname: codex-garage
-    restart: on-failure
+    restart: unless-stopped
     depends_on:
       garage-init-config:
         condition: service_completed_successfully
@@ -297,7 +297,7 @@ services:
         condition: service_healthy
       codex-garage:
         condition: service_started
-    restart: on-failure
+    restart: unless-stopped
   doc-processor:
     image: ${DOC_PROCESSOR_IMAGE:-ghcr.io/joelmale/nexuscodex-doc-processor:latest}
     pull_policy: always
@@ -352,7 +352,7 @@ services:
       codex-ocr:
         # The image's own HEALTHCHECK (180s start period) gates layout/extract.
         condition: service_healthy
-    restart: on-failure
+    restart: unless-stopped
     # Lets SIGTERM finish the active stage (SHUTDOWN_TIMEOUT_MS, default 120s)
     # instead of being SIGKILLed after Docker's 10s default.
     stop_grace_period: 130s
@@ -384,7 +384,7 @@ services:
         condition: service_healthy
       redis:
         condition: service_healthy
-    restart: on-failure
+    restart: unless-stopped
   codex-ocr:
     image: ${DOC_OCR_IMAGE:-ghcr.io/joelmale/nexuscodex-ocr:latest}
     # Rolling :latest like the other first-party images; if_not_present kept
@@ -392,7 +392,7 @@ services:
     pull_policy: always
     container_name: nexus-vtt2-codex-ocr
     hostname: codex-ocr
-    restart: on-failure
+    restart: unless-stopped
     environment:
       PORT: 8000
       MAX_BATCH_SIZE: 4
