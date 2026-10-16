@@ -33,6 +33,8 @@ const envSchema = z.object({
   QUEUE_NAME: z.string().default(DEFAULT_DOCUMENT_QUEUE_NAME),
   ASSET_QUEUE_NAME: z.string().default(DEFAULT_ASSET_QUEUE_NAME),
   WORKER_CONCURRENCY: z.string().default('1').transform(Number),
+  // How long SIGTERM waits for an active job to finish before exiting anyway.
+  SHUTDOWN_TIMEOUT_MS: z.string().default('120000').transform(Number),
   ASSET_WORKER_CONCURRENCY: z.string().default('1').transform(Number),
   THUMBNAIL_WIDTH: z.string().default('300').transform(Number),
   THUMBNAIL_QUALITY: z.string().default('80').transform(Number),

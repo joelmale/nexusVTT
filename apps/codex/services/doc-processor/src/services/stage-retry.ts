@@ -22,6 +22,22 @@ export function stageJobOptions(stage: Stage): JobsOptions | undefined {
 }
 
 /**
+ * True when BullMQ will not retry this job after `error`: the error is
+ * unrecoverable or the attempt budget is spent. `attemptsMade` counts attempts
+ * already finished, so inside the processor the running attempt is +1; in the
+ * worker 'failed' event it has already been incremented (pass `finished`).
+ */
+export function isFinalAttempt(
+  job: { attemptsMade: number; opts?: { attempts?: number } },
+  error: unknown,
+  finished = false,
+): boolean {
+  if ((error as { name?: string } | null)?.name === 'UnrecoverableError') return true;
+  const attempts = job.opts?.attempts ?? 1;
+  return job.attemptsMade + (finished ? 0 : 1) >= attempts;
+}
+
+/**
  * HTTP statuses a retry cannot fix: the request itself is wrong. 408 and 429
  * are client-class but transient, so they keep retrying like 5xx.
  */

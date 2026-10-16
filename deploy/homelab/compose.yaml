@@ -350,8 +350,22 @@ services:
       codex-garage:
         condition: service_started
       codex-ocr:
-        condition: service_started
+        # The image's own HEALTHCHECK (180s start period) gates layout/extract.
+        condition: service_healthy
     restart: on-failure
+    # Lets SIGTERM finish the active stage (SHUTDOWN_TIMEOUT_MS, default 120s)
+    # instead of being SIGKILLed after Docker's 10s default.
+    stop_grace_period: 130s
+    # Stages buffer whole PDFs; bound the container so an OOM kills only it.
+    mem_limit: ${CODEX_DOC_PROCESSOR_MEM_LIMIT:-4g}
+    # The metrics port is the only listener; a bare TCP connect proves the
+    # event loop is alive without needing the metrics bearer token.
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('net').connect(9464,'127.0.0.1').on('connect',()=>process.exit(0)).on('error',()=>process.exit(1))"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 30s
   doc-websocket:
     image: ${DOC_WEBSOCKET_IMAGE:-ghcr.io/joelmale/nexuscodex-doc-websocket:latest}
     pull_policy: always

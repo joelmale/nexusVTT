@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { GPU_STAGE_JOB_OPTIONS, isPermanentHttpStatus, stageJobOptions } from '../stage-retry';
+import { GPU_STAGE_JOB_OPTIONS, isFinalAttempt, isPermanentHttpStatus, stageJobOptions } from '../stage-retry';
 
 describe('stageJobOptions', () => {
   it('gives GPU stages a long backoff with an extra attempt', () => {
@@ -23,5 +23,30 @@ describe('isPermanentHttpStatus', () => {
 
   it('keeps 5xx retryable', () => {
     expect([500, 502, 503].map(isPermanentHttpStatus)).toEqual([false, false, false]);
+  });
+});
+
+describe('isFinalAttempt', () => {
+  it('is false while attempts remain', () => {
+    expect(isFinalAttempt({ attemptsMade: 0, opts: { attempts: 3 } }, new Error('x'))).toBe(false);
+    expect(isFinalAttempt({ attemptsMade: 1, opts: { attempts: 3 } }, new Error('x'))).toBe(false);
+  });
+
+  it('is true on the last attempt', () => {
+    expect(isFinalAttempt({ attemptsMade: 2, opts: { attempts: 3 } }, new Error('x'))).toBe(true);
+  });
+
+  it('treats a job with no attempts option as a single attempt', () => {
+    expect(isFinalAttempt({ attemptsMade: 0 }, new Error('x'))).toBe(true);
+  });
+
+  it('is final for an UnrecoverableError whatever the budget', () => {
+    const err = Object.assign(new Error('x'), { name: 'UnrecoverableError' });
+    expect(isFinalAttempt({ attemptsMade: 0, opts: { attempts: 3 } }, err)).toBe(true);
+  });
+
+  it('counts attemptsMade as already incremented in the worker failed event', () => {
+    expect(isFinalAttempt({ attemptsMade: 2, opts: { attempts: 3 } }, new Error('x'), true)).toBe(false);
+    expect(isFinalAttempt({ attemptsMade: 3, opts: { attempts: 3 } }, new Error('x'), true)).toBe(true);
   });
 });

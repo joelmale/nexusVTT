@@ -36,7 +36,7 @@ export async function adminQueueRoutes(fastify: FastifyInstance) {
         const { status, limit, offset } = request.query;
 
         const filters: any = {};
-        if (status && ['waiting', 'active', 'completed', 'failed'].includes(status)) {
+        if (status && ['waiting', 'active', 'completed', 'failed', 'delayed'].includes(status)) {
           filters.status = status;
         }
         if (limit) {

@@ -88,3 +88,21 @@ export interface ProcessDocumentJob {
   documentId: string;
   stage?: ProcessDocumentStage;
 }
+
+/**
+ * Retry policy for document-processing jobs. Both producers (doc-api enqueues
+ * `ingest`, doc-processor enqueues later stages) use it so a transient failure
+ * retries no matter who created the job.
+ */
+export const DOCUMENT_JOB_DEFAULT_OPTIONS = {
+  attempts: 3,
+  backoff: { type: 'exponential' as const, delay: 2000 },
+  removeOnComplete: { age: 7 * 24 * 3600, count: 1000 },
+  removeOnFail: { age: 30 * 24 * 3600 },
+};
+
+/**
+ * Deterministic id for a document's ingest job, so a second enqueue while one
+ * is waiting/active/delayed can be detected. No ':' (BullMQ rejects it).
+ */
+export const ingestJobId = (documentId: string): string => `ingest-${documentId}`;

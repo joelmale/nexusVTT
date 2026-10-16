@@ -36,14 +36,14 @@ export async function processingRoutes(fastify: FastifyInstance) {
           });
         }
 
-        // Enqueue processing job
-        const jobId = await enqueueDocumentProcessing(documentId);
-
-        // Update document status
+        // Mark pending before enqueueing: a fast worker sets `processing`
+        // right away, and a later `pending` write would overwrite it.
         await prisma.document.update({
           where: { id: documentId },
           data: { ocrStatus: 'pending' },
         });
+
+        const jobId = await enqueueDocumentProcessing(documentId);
 
         return reply.status(202).send({
           message: 'Document processing queued',

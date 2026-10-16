@@ -1,4 +1,4 @@
-import { Job } from 'bullmq';
+import { Job, UnrecoverableError } from 'bullmq';
 import { ProcessDocumentJob, enqueueStage, enqueueAssetStage } from '../services/queue.service';
 import { prisma } from '../services/database.service';
 import { s3Service } from '../services/s3.service';
@@ -17,6 +17,7 @@ import { ocrHealthService } from '../services/ocr-health.service';
 import { entityResolverService } from '../services/entity-resolver.service';
 import { entityLinkingService } from '../services/entity-linking.service';
 import { env } from '../config/env';
+import { isFinalAttempt } from '../services/stage-retry';
 import { canvasBackend } from '../utils/canvas';
 import {
   Stage,
@@ -50,6 +51,8 @@ type ProcessingMetadata = {
   runId?: string;
   stage?: Stage;
   stageUpdatedAt?: string;
+  /** Startup-reconcile re-runs of this document since it last completed. */
+  reconcileAttempts?: number;
   checkpoints?: ProcessingCheckpoints;
   ocr?: {
     detected?: boolean;
@@ -123,10 +126,19 @@ const buildNextProcessing = (
   const checkpoints = processing.checkpoints || { stages: {} };
   const patchCheckpoints = patch.checkpoints || {};
   const stages = { ...(checkpoints.stages || {}), ...(patchCheckpoints.stages || {}) };
-  stages[stage] = { ...(stages[stage] || {}), ...checkpointUpdate };
+  const completed = Boolean(checkpointUpdate.completedAt) && !checkpointUpdate.error;
+  // A stage that completes drops any error left by an earlier failed attempt;
+  // isStageComplete/getNextStage treat a lingering error as "not done".
+  stages[stage] = {
+    ...(stages[stage] || {}),
+    ...checkpointUpdate,
+    ...(completed ? { error: undefined } : {}),
+  };
   return {
     ...processing,
     ...patch,
+    // The pipeline reaching its last stage ends the startup-reconcile retry budget.
+    ...(completed && stage === 'assets' ? { reconcileAttempts: undefined } : {}),
     stage,
     stageUpdatedAt: new Date().toISOString(),
     checkpoints: {
@@ -148,11 +160,15 @@ const updateProcessing = async (
 ) => {
   const { metadata, processing } = getProcessingState(document);
   const nextProcessing = buildNextProcessing(processing, stage, checkpointUpdate, patch);
+  const completed = Boolean(checkpointUpdate.completedAt) && !checkpointUpdate.error;
   await prisma.document.update({
     where: { id: documentId },
     data: {
       metadata: {
         ...metadata,
+        // Top-level failure markers belong to the failed attempt, not to the
+        // stage that has now succeeded.
+        ...(completed ? { error: undefined, failedAt: undefined, lastError: undefined } : {}),
         ...metadataPatch,
         processing: nextProcessing,
       },
@@ -249,7 +265,8 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
     const document = await prisma.document.findUnique({ where: { id: documentId } });
 
     if (!document) {
-      throw new Error(`Document not found: ${documentId}`);
+      // Retrying cannot bring the row back.
+      throw new UnrecoverableError(`Document not found: ${documentId}`);
     }
 
     const { processing, checkpoints } = getProcessingState(document);
@@ -565,40 +582,23 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
 
         await loggingService.logInfo(jobId, `Running OCR on ${pageKeys.length} pages (pool=${env.OCR_WORKER_POOL_SIZE})`);
         let ocrText = '';
-        let ocrStatus: 'completed' | 'failed' = 'completed';
 
-        try {
-          const ocrResult = await ocrService.extractTextFromKeysWithPool(
-            pageKeys,
-            (key) => s3Service.downloadFile(key),
-            env.OCR_WORKER_POOL_SIZE,
-            async (key) => {
-              try {
-                await s3Service.deleteFile(key);
-              } catch (error: any) {
-                await loggingService.logWarn(jobId, `Failed to delete OCR temp file: ${key}`);
-              }
-            },
-            env.S3_BUCKET
-          );
-          ocrText = ocrResult.results.join('\n');
-          const durations = ocrResult.durations.filter((value) => Number.isFinite(value));
-          const totalDuration = durations.reduce((sum, value) => sum + value, 0);
-          const avgDuration = durations.length ? Math.round(totalDuration / durations.length) : 0;
-          const maxDuration = durations.length ? Math.max(...durations) : 0;
-          await loggingService.logInfo(jobId, `OCR timing: pages=${durations.length} avgMs=${avgDuration} maxMs=${maxDuration}`);
-          await loggingService.logInfo(jobId, `OCR completed, extracted ${ocrText.length} characters`);
-        } catch (ocrError: any) {
-          ocrStatus = 'failed';
-          await loggingService.logError(jobId, `OCR failed: ${ocrError.message}`);
-          for (const key of pageKeys) {
-            try {
-              await s3Service.deleteFile(key);
-            } catch (error: any) {
-              await loggingService.logWarn(jobId, `Failed to delete OCR temp file on error: ${key}`);
-            }
-          }
-        }
+        // A failure here propagates so BullMQ retries the stage. The rendered
+        // page images stay in S3 until the stage succeeds, so a retry finds them.
+        const ocrResult = await ocrService.extractTextFromKeysWithPool(
+          pageKeys,
+          (key) => s3Service.downloadFile(key),
+          env.OCR_WORKER_POOL_SIZE,
+          undefined,
+          env.S3_BUCKET
+        );
+        ocrText = ocrResult.results.join('\n');
+        const durations = ocrResult.durations.filter((value) => Number.isFinite(value));
+        const totalDuration = durations.reduce((sum, value) => sum + value, 0);
+        const avgDuration = durations.length ? Math.round(totalDuration / durations.length) : 0;
+        const maxDuration = durations.length ? Math.max(...durations) : 0;
+        await loggingService.logInfo(jobId, `OCR timing: pages=${durations.length} avgMs=${avgDuration} maxMs=${maxDuration}`);
+        await loggingService.logInfo(jobId, `OCR completed, extracted ${ocrText.length} characters`);
 
         if (ocrText.trim().length > 0) {
           await prisma.documentText.upsert({
@@ -624,11 +624,19 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
           textLength: ocrText.length > 0 ? ocrText.length : processing.textLength,
           ocr: {
             ...(processing.ocr || {}),
-            status: ocrStatus,
-            performed: ocrStatus === 'completed',
+            status: 'completed',
+            performed: true,
             textLength: ocrText.length || undefined,
           },
         });
+
+        for (const key of pageKeys) {
+          try {
+            await s3Service.deleteFile(key);
+          } catch (error: any) {
+            await loggingService.logWarn(jobId, `Failed to delete OCR temp file: ${key}`);
+          }
+        }
 
         await loggingService.logInfo(jobId, 'Stage ocr completed');
         await queueNextStage(documentId, 'ocr', false);
@@ -1096,6 +1104,10 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
       stack: error.stack,
     });
 
+    // Only the last attempt makes the document `failed`. Earlier attempts keep
+    // it `processing` and note the error, so a retry that succeeds leaves no
+    // failure behind.
+    const finalAttempt = isFinalAttempt(job, error);
     const document = await prisma.document.findUnique({ where: { id: documentId } });
     if (document) {
       const { metadata, processing } = getProcessingState(document);
@@ -1106,12 +1118,13 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
       await prisma.document.update({
         where: { id: documentId },
         data: {
-          ocrStatus: stage === 'assets' ? document.ocrStatus : 'failed',
+          ocrStatus: stage === 'assets' ? document.ocrStatus : finalAttempt ? 'failed' : 'processing',
           metadata: {
             ...metadata,
             processing: nextProcessing,
-            error: error.message,
-            failedAt: new Date().toISOString(),
+            ...(finalAttempt
+              ? { error: error.message, failedAt: new Date().toISOString(), lastError: undefined }
+              : { lastError: error.message }),
           },
         },
       });

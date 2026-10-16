@@ -21,6 +21,8 @@ interface QueueStats {
   active: number
   completed: number
   failed: number
+  /** Attempts waiting out a retry backoff; not failed yet. */
+  delayed?: number
 }
 
 interface Job {
@@ -31,6 +33,7 @@ interface Job {
   status: string
   progress: number
   attempts: number
+  maxAttempts?: number
   createdAt: number
   processedAt?: number
   finishedAt?: number
@@ -302,6 +305,7 @@ export default function Processing() {
       active: 'bg-blue-100 text-blue-800',
       completed: 'bg-green-100 text-green-800',
       failed: 'bg-red-100 text-red-800',
+      delayed: 'bg-amber-100 text-amber-800',
     } as const
 
     return (
@@ -398,6 +402,9 @@ export default function Processing() {
             <div className="text-2xl font-bold text-red-600">
               {statsLoading ? '...' : stats?.failed || 0}
             </div>
+            {!statsLoading && (stats?.delayed ?? 0) > 0 && (
+              <div className="text-xs text-gray-500">{stats?.delayed} retrying</div>
+            )}
           </div>
         </div>
       </div>
@@ -552,6 +559,7 @@ export default function Processing() {
             <option value="active">Active</option>
             <option value="completed">Completed</option>
             <option value="failed">Failed</option>
+            <option value="delayed">Retrying</option>
           </select>
         </div>
 
@@ -621,7 +629,7 @@ export default function Processing() {
                           {job.progress}%
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {job.attempts}
+                          {job.attempts}/{job.maxAttempts ?? 1}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {formatDate(job.createdAt)}

@@ -2,6 +2,8 @@ import { Queue } from 'bullmq';
 import Redis from 'ioredis';
 import {
   type ProcessDocumentJob,
+  DOCUMENT_JOB_DEFAULT_OPTIONS,
+  ingestJobId,
 } from '@nexus/document-contracts';
 import { env } from '../config/env';
 
@@ -15,11 +17,25 @@ export type { ProcessDocumentJob };
 // Create queue instance for adding jobs
 export const documentQueue = new Queue<ProcessDocumentJob>(env.QUEUE_NAME, {
   connection,
+  // Same retry policy as the jobs doc-processor enqueues; without it these
+  // ingest jobs got BullMQ's default of a single attempt.
+  defaultJobOptions: DOCUMENT_JOB_DEFAULT_OPTIONS,
 });
 
-// Add a document to the processing queue
+const LIVE_JOB_STATES = new Set(['waiting', 'active', 'delayed', 'prioritized', 'waiting-children']);
+
+// Add a document to the processing queue. If an ingest for it is already
+// waiting, active or delayed, that job's id is returned instead of a duplicate.
 export async function enqueueDocumentProcessing(documentId: string): Promise<string> {
-  const job = await documentQueue.add('process-ingest', { documentId, stage: 'ingest' });
+  const jobId = ingestJobId(documentId);
+  const existing = await documentQueue.getJob(jobId);
+  if (existing) {
+    const state = await existing.getState();
+    if (LIVE_JOB_STATES.has(state)) return jobId;
+    // A finished job holds the id; clear it so BullMQ accepts the new one.
+    await existing.remove().catch(() => undefined);
+  }
+  const job = await documentQueue.add('process-ingest', { documentId, stage: 'ingest' }, { jobId });
   return job.id || '';
 }
 
@@ -47,24 +63,22 @@ export async function getJobStatus(jobId: string) {
 
 // Get queue statistics
 export async function getQueueStats() {
-  const [waiting, active, completed, failed] = await Promise.all([
-    documentQueue.getWaiting(),
-    documentQueue.getActive(),
-    documentQueue.getCompleted(),
-    documentQueue.getFailed(),
-  ]);
+  // getJobCounts is a pipelined count, unlike getX() which loads every job.
+  // `delayed` holds attempts waiting out their retry backoff: not failed yet.
+  const counts = await documentQueue.getJobCounts('waiting', 'active', 'completed', 'failed', 'delayed');
 
   return {
-    waiting: waiting.length,
-    active: active.length,
-    completed: completed.length,
-    failed: failed.length,
+    waiting: counts.waiting ?? 0,
+    active: counts.active ?? 0,
+    completed: counts.completed ?? 0,
+    failed: counts.failed ?? 0,
+    delayed: counts.delayed ?? 0,
   };
 }
 
 // Get jobs with filters
 export async function getJobs(filters: {
-  status?: 'waiting' | 'active' | 'completed' | 'failed';
+  status?: 'waiting' | 'active' | 'completed' | 'failed' | 'delayed';
   limit?: number;
   offset?: number;
 } = {}) {
@@ -84,6 +98,9 @@ export async function getJobs(filters: {
       break;
     case 'failed':
       jobs = await documentQueue.getFailed(offset, limit);
+      break;
+    case 'delayed':
+      jobs = await documentQueue.getDelayed(offset, limit);
       break;
     default:
       // Get all jobs (this is expensive, but for admin use)
@@ -107,7 +124,10 @@ export async function getJobs(filters: {
         documentId: job.data.documentId,
         status: state,
         progress: job.progress,
-        attempts: job.attempts,
+        // BullMQ has no `attempts` property on Job: attemptsMade counts finished
+        // attempts and opts.attempts is the budget.
+        attempts: job.attemptsMade,
+        maxAttempts: job.opts?.attempts ?? 1,
         createdAt: job.timestamp,
         processedAt: job.processedOn,
         finishedAt: job.finishedOn,

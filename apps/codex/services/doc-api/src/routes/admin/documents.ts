@@ -260,6 +260,8 @@ export async function adminDocumentRoutes(fastify: FastifyInstance) {
           processing: {
             ...processing,
             ...(pipelineVersion ? { pipelineVersion } : {}),
+            // A manual reprocess restarts the startup-reconcile retry budget.
+            reconcileAttempts: undefined,
             stage: 'ingest',
             stageUpdatedAt: new Date().toISOString(),
             checkpoints: {

@@ -2,6 +2,8 @@ import { Queue, Worker, Job } from 'bullmq';
 import Redis from 'ioredis';
 import {
   type ProcessDocumentJob,
+  DOCUMENT_JOB_DEFAULT_OPTIONS,
+  ingestJobId,
 } from '@nexus/document-contracts';
 import { env } from '../config/env';
 import { stageJobOptions } from './stage-retry';
@@ -16,20 +18,7 @@ export type { ProcessDocumentJob };
 // Create queue instance
 export const documentQueue = new Queue<ProcessDocumentJob>(env.QUEUE_NAME, {
   connection,
-  defaultJobOptions: {
-    attempts: 3,
-    backoff: {
-      type: 'exponential',
-      delay: 2000,
-    },
-    removeOnComplete: {
-      age: 7 * 24 * 3600, // Keep completed jobs for 7 days
-      count: 1000,
-    },
-    removeOnFail: {
-      age: 30 * 24 * 3600, // Keep failed jobs for 30 days
-    },
-  },
+  defaultJobOptions: DOCUMENT_JOB_DEFAULT_OPTIONS,
 });
 
 export const assetQueue = new Queue<ProcessDocumentJob>(env.ASSET_QUEUE_NAME, {
@@ -72,8 +61,40 @@ export function createAssetWorker(
   });
 }
 
+const LIVE_JOB_STATES = new Set(['waiting', 'active', 'delayed', 'prioritized', 'waiting-children']);
+
+/**
+ * Enqueues a document's ingest unless one is already waiting, active or
+ * delayed, in which case that job's id is returned. A finished ingest job with
+ * the same deterministic id is removed first so BullMQ accepts the new one.
+ */
+export async function enqueueIngestOnce(documentId: string): Promise<string> {
+  const jobId = ingestJobId(documentId);
+  const existing = await documentQueue.getJob(jobId);
+  if (existing) {
+    const state = await existing.getState();
+    if (LIVE_JOB_STATES.has(state)) return jobId;
+    await existing.remove().catch(() => undefined);
+  }
+  const job = await documentQueue.add('process-ingest', { documentId, stage: 'ingest' }, { jobId });
+  return job.id || '';
+}
+
+/** Ids of documents that have a document-processing or asset job in flight. */
+export async function getDocumentIdsWithLiveJobs(): Promise<Set<string>> {
+  const ids = new Set<string>();
+  for (const queue of [documentQueue, assetQueue]) {
+    const jobs = await queue.getJobs(['waiting', 'active', 'delayed', 'prioritized']);
+    for (const job of jobs) {
+      if (job?.data?.documentId) ids.add(job.data.documentId);
+    }
+  }
+  return ids;
+}
+
 export async function enqueueStage(documentId: string, stage: ProcessDocumentJob['stage']): Promise<string> {
-  const job = await documentQueue.add(`process-${stage || 'ingest'}`, { documentId, stage }, stageJobOptions(stage));
+  if ((stage || 'ingest') === 'ingest') return enqueueIngestOnce(documentId);
+  const job = await documentQueue.add(`process-${stage}`, { documentId, stage }, stageJobOptions(stage));
   return job.id || '';
 }
 
@@ -82,17 +103,9 @@ export async function enqueueAssetStage(documentId: string): Promise<string> {
   return job.id || '';
 }
 
-// Graceful shutdown
-process.on('SIGTERM', async () => {
-  console.log('SIGTERM received, closing queue and connection...');
+/** Closes both queues and the shared Redis connection. Workers are closed first by index.ts. */
+export async function closeQueues(): Promise<void> {
   await documentQueue.close();
   await assetQueue.close();
   connection.disconnect();
-});
-
-process.on('SIGINT', async () => {
-  console.log('SIGINT received, closing queue and connection...');
-  await documentQueue.close();
-  await assetQueue.close();
-  connection.disconnect();
-});
+}

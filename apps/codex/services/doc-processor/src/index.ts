@@ -1,5 +1,7 @@
 import { canvasBackend } from './utils/canvas';
-import { createWorker, createAssetWorker, enqueueStage } from './services/queue.service';
+import { createWorker, createAssetWorker, enqueueIngestOnce, getDocumentIdsWithLiveJobs, closeQueues } from './services/queue.service';
+import { isFinalAttempt } from './services/stage-retry';
+import { reconcileDocuments } from './startup-reconcile';
 import { prisma } from './services/database.service';
 import { processDocumentWorker } from './workers/process-document.worker';
 import { centralLoggingService } from './services/central-logging.service';
@@ -11,6 +13,36 @@ import { recordJobOutcome } from './observability/metrics';
 function jobDurationSeconds(job: { processedOn?: number | null; finishedOn?: number | null }): number | undefined {
   if (!job.processedOn || !job.finishedOn) return undefined;
   return (job.finishedOn - job.processedOn) / 1000;
+}
+
+/**
+ * On SIGTERM/SIGINT stop taking jobs and let the running one finish (workers'
+ * close() waits for it), so a deploy does not abandon a job mid-stage and rely
+ * on stall detection to retry it.
+ */
+function installShutdownHandlers(workers: Array<{ close: () => Promise<void> }>) {
+  let shuttingDown = false;
+  const shutdown = async (signal: string) => {
+    if (shuttingDown) return;
+    shuttingDown = true;
+    console.log(`${signal} received, finishing active jobs before exit...`);
+    // Escape hatch: a stuck job must not block the container forever.
+    const force = setTimeout(() => {
+      console.error('Shutdown timed out, exiting');
+      process.exit(1);
+    }, env.SHUTDOWN_TIMEOUT_MS);
+    force.unref();
+    try {
+      await Promise.all(workers.map((w) => w.close()));
+      await closeQueues();
+      await prisma.$disconnect();
+    } catch (err) {
+      console.error('Error during shutdown:', err);
+    }
+    process.exit(0);
+  };
+  process.on('SIGTERM', () => void shutdown('SIGTERM'));
+  process.on('SIGINT', () => void shutdown('SIGINT'));
 }
 
 async function start() {
@@ -41,10 +73,17 @@ async function start() {
       recordJobOutcome(env.QUEUE_NAME, 'completed', jobDurationSeconds(job));
     });
 
+    // 'failed' fires for every attempt. Only the last one is a failed job;
+    // earlier ones are retries and must not inflate the failure metric.
     worker.on('failed', (job, err) => {
-      console.error(`Job ${job?.id} failed:`, err.message);
-      centralLoggingService.log('error', 'Job failed', { jobId: job?.id, error: err.message });
-      recordJobOutcome(env.QUEUE_NAME, 'failed', job ? jobDurationSeconds(job) : undefined);
+      const final = !job || isFinalAttempt(job, err, true);
+      console.error(`Job ${job?.id} ${final ? 'failed' : 'attempt failed, will retry'}:`, err.message);
+      centralLoggingService.log(final ? 'error' : 'warn', final ? 'Job failed' : 'Job attempt failed, retrying', {
+        jobId: job?.id,
+        attempt: job?.attemptsMade,
+        error: err.message,
+      });
+      if (final) recordJobOutcome(env.QUEUE_NAME, 'failed', job ? jobDurationSeconds(job) : undefined);
     });
 
     worker.on('error', (err) => {
@@ -59,9 +98,14 @@ async function start() {
     });
 
     assetWorker.on('failed', (job, err) => {
-      console.error(`Asset job ${job?.id} failed:`, err.message);
-      centralLoggingService.log('error', 'Asset job failed', { jobId: job?.id, error: err.message });
-      recordJobOutcome(env.ASSET_QUEUE_NAME, 'failed', job ? jobDurationSeconds(job) : undefined);
+      const final = !job || isFinalAttempt(job, err, true);
+      console.error(`Asset job ${job?.id} ${final ? 'failed' : 'attempt failed, will retry'}:`, err.message);
+      centralLoggingService.log(final ? 'error' : 'warn', final ? 'Asset job failed' : 'Asset job attempt failed, retrying', {
+        jobId: job?.id,
+        attempt: job?.attemptsMade,
+        error: err.message,
+      });
+      if (final) recordJobOutcome(env.ASSET_QUEUE_NAME, 'failed', job ? jobDurationSeconds(job) : undefined);
     });
 
     assetWorker.on('error', (err) => {
@@ -73,38 +117,25 @@ async function start() {
     console.log('Waiting for jobs...');
     await centralLoggingService.log('info', 'doc-processor ready');
 
-    // Auto-reprocess any documents stuck in failed/incomplete status or with failed stages
+    installShutdownHandlers([worker, assetWorker]);
+
+    // Re-queue documents a previous run left failed/pending without a job.
     try {
-      const allDocs = await prisma.document.findMany({
-        select: { id: true, title: true, ocrStatus: true, metadata: true },
+      const result = await reconcileDocuments({
+        findDocuments: () => prisma.document.findMany({
+          where: { ocrStatus: { in: ['failed', 'pending'] } },
+          select: { id: true, title: true, ocrStatus: true, metadata: true },
+        }),
+        getLiveJobDocumentIds: getDocumentIdsWithLiveJobs,
+        updateMetadata: async (documentId, ocrStatus, metadata) => {
+          await prisma.document.update({ where: { id: documentId }, data: { ocrStatus, metadata: metadata as any } });
+        },
+        enqueueIngest: enqueueIngestOnce,
+        log: (message) => console.log(`[doc-processor] ${message}`),
       });
-      console.log(`[doc-processor] Found ${allDocs.length} total document(s) in database`);
-      for (const doc of allDocs) {
-        const metadata = (doc.metadata as any) || {};
-        const processing = metadata.processing || {};
-        const stages = processing.checkpoints?.stages || {};
-        const hasFailedStage = Object.values(stages).some((s: any) => s?.error || s?.status === 'failed');
-        console.log(`[doc-processor] Doc: "${doc.title}" (${doc.id}), ocrStatus: ${doc.ocrStatus}, hasFailedStage: ${hasFailedStage}`);
-        if (doc.ocrStatus === 'failed' || doc.ocrStatus === 'pending' || hasFailedStage) {
-          console.log(`[doc-processor] Auto-reprocessing document: "${doc.title}" (${doc.id})`);
-          await prisma.document.update({
-            where: { id: doc.id },
-            data: {
-              ocrStatus: 'pending',
-              metadata: {
-                ...metadata,
-                processing: {
-                  ...processing,
-                  stage: 'ingest',
-                  stageUpdatedAt: new Date().toISOString(),
-                  checkpoints: { stages: {} },
-                },
-              },
-            },
-          });
-          await enqueueStage(doc.id, 'ingest');
-        }
-      }
+      console.log(
+        `[doc-processor] Startup reconcile: ${result.requeued.length} re-queued, ${result.skippedLive.length} already queued, ${result.exhausted.length} out of retries`,
+      );
     } catch (reprocessErr: any) {
       console.warn(`[doc-processor] Could not check failed documents on startup: ${reprocessErr.message}`);
     }
