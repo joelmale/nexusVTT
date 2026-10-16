@@ -6,7 +6,7 @@ definition: service names, container identities, NAS mounts, Codex volume
 names, `homelab-net`, and the production reverse-proxy target `frontend:80`
 are deliberate compatibility constraints. It pins the ten application images
 to the verified `candidate-e078895` index digests. PostgreSQL, Redis,
-Elasticsearch, and MinIO are pinned to the exact image digests observed on the
+and the object store are pinned to the exact image digests observed on the
 live host; these infrastructure pins are compatibility evidence, not upgrades.
 
 This directory is a draft only. Do not use it to create, update, or recreate a
@@ -17,7 +17,7 @@ example file.
 ## Modular Compose Structure
 
 The Compose configuration is modularized by domain and consolidated:
-- `compose.infra.yaml`: Shared infrastructure (`postgres`, `redis`, `codex-elasticsearch`, `codex-minio`, networks, volumes).
+- `compose.infra.yaml`: Shared infrastructure (`postgres`, `redis`, `codex-garage`, networks, volumes).
 - `compose.vtt.yaml`: Nexus VTT domain services (`frontend`, `backend`, `asset-server`).
 - `compose.codex.yaml`: Nexus Codex document services (`doc-api`, `doc-processor`, `doc-websocket`; the admin and DM UIs are bundled into the gateway image).
 - `compose.yaml`: Root Compose file stitching the domain modules together via `include:`.

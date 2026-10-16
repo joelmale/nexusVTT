@@ -2,7 +2,6 @@ import Fastify from 'fastify';
 import { structuredDataRoutes } from '../routes/structured-data';
 import { searchRoutes } from '../routes/search';
 import { prisma } from '../services/database.service';
-import { ElasticSearchManagementService } from '../services/elasticsearch-management.service';
 
 describe('Structured Data Routes Integration Tests', () => {
   let app: any;
@@ -12,7 +11,6 @@ describe('Structured Data Routes Integration Tests', () => {
     await app.register(structuredDataRoutes);
     await app.register(searchRoutes);
     await app.ready();
-    await ElasticSearchManagementService.recreateIndex();
   });
 
   afterAll(async () => {

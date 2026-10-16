@@ -18,7 +18,7 @@ const DAY_MS = 24 * 60 * 60 * 1000;
 
 /**
  * Operational logs stored in the log_events table (shared by doc-api,
- * doc-processor and doc-websocket). Replaces the Elasticsearch nexus-logs index.
+ * doc-processor and doc-websocket).
  */
 class LoggingService {
   private enabled: boolean;

@@ -70,7 +70,7 @@ storage or production authorization and is intentionally excluded from
 production builds. See [ADR-0005](/vtt/adr/admin-panel-frozen).
 
 The repository already contains a more capable Codex Admin UI with document,
-processing, validation, search, log, Elasticsearch, and health pages. However,
+processing, validation, search, log, and health pages (an ElasticSearch page existed when this was written; Elasticsearch has since been removed). However,
 the current production gateway configuration serves `/codex-admin/` and proxies
 `/api/admin/` directly to `doc-api`. The homelab configuration also sets
 `AUTH_DISABLED=true` for `doc-api`. That is acceptable only while `doc-api`
@@ -160,7 +160,7 @@ The implementation must preserve these constraints:
 ## Non-goals
 
 - Reviving or extending the frozen VTT `AdminPage` implementation.
-- Exposing PostgreSQL, Redis, Prometheus, MinIO, Elasticsearch, `doc-api`, or the
+- Exposing PostgreSQL, Redis, Prometheus, MinIO, `doc-api`, or the
   asset service directly to a browser.
 - Combining VTT and Codex databases.
 - Moving image assets into Codex or rules entities into the asset manifest.

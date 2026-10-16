@@ -1,9 +1,8 @@
 const MAX_TERMS = 24;
 
 /**
- * Split free text into lowercase alphanumeric terms. Elasticsearch's
- * multi_match ORs the terms, so the Postgres provider does too; ranking then
- * favours documents that match more of them.
+ * Split free text into lowercase alphanumeric terms. The search ORs them so a long
+ * question still finds something; ranking then favours documents that match more of them.
  */
 export function tokenizeQuery(raw: string): string[] {
   const tokens = raw.toLowerCase().match(/[\p{L}\p{N}]+/gu) ?? [];

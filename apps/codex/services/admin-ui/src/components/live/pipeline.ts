@@ -37,8 +37,8 @@ export const V2_STEPS: StepDef[] = [
   { id: 'chunking', label: 'Semantic Chunking', engine: 'page-aware · embeddings', owns: (e) => e.stage === 'index' && stepOf(e) === 'chunking' },
   {
     id: 'indexing',
-    label: 'Vector & Elastic Index',
-    engine: 'pgvector · Elasticsearch',
+    label: 'Vector & Search Index',
+    engine: 'pgvector · Postgres FTS',
     owns: (e) => (e.stage === 'index' && stepOf(e) !== 'chunking') || e.stage === 'assets',
   },
 ]
@@ -48,7 +48,7 @@ export const V1_STEPS: StepDef[] = [
   { id: 'render', label: 'Render pages', engine: 'pdfjs', owns: (e) => e.stage === 'render' },
   { id: 'ocr', label: 'OCR', engine: 'RapidOCR', owns: (e) => e.stage === 'ocr' },
   { id: 'extract', label: 'Extraction', engine: 'text rules', owns: (e) => e.stage === 'extract' },
-  { id: 'index', label: 'Index', engine: 'Elasticsearch', owns: (e) => e.stage === 'index' || e.stage === 'assets' },
+  { id: 'index', label: 'Index', engine: 'Postgres FTS', owns: (e) => e.stage === 'index' || e.stage === 'assets' },
 ]
 
 export const stepsFor = (version: string | undefined) => (version === 'v1' ? V1_STEPS : V2_STEPS)

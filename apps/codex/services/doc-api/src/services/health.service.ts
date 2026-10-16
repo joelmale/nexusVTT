@@ -1,5 +1,5 @@
-import { Client as ElasticClient } from '@elastic/elasticsearch';
 import { env } from '../config/env';
+import { prisma } from './database.service';
 import { MetricsService } from './metrics.service';
 import { AlertsService } from './alerts.service';
 import { buildProcessingSummary, ProcessingDocumentSnapshot } from './processing-quality.service';
@@ -57,9 +57,6 @@ export interface PerformanceMetrics {
 
 export class HealthService {
   private static startTime = Date.now();
-  private static elasticClient = new ElasticClient({
-    node: env.ELASTICSEARCH_URL,
-  });
 
   /**
    * Get comprehensive system health status
@@ -72,7 +69,7 @@ export class HealthService {
       this.checkAdminUiHealth(),
       this.checkDatabaseHealth(),
       this.checkRedisHealth(),
-      this.checkElasticSearchHealth(),
+      this.checkSearchHealth(),
       this.checkProcessingQualityHealth(),
       this.checkStorageHealth(),
     ]);
@@ -85,7 +82,7 @@ export class HealthService {
         'admin-ui',
         'database',
         'redis',
-        'elasticsearch',
+        'search',
         'processing-quality',
         'storage'
       ];
@@ -379,27 +376,40 @@ export class HealthService {
   }
 
   /**
-   * Check ElasticSearch health
+   * Check full-text search health: the Postgres search tables answer and have a
+   * usable GIN index on the chunk text.
    */
-  private static async checkElasticSearchHealth(): Promise<ServiceHealth> {
+  private static async checkSearchHealth(): Promise<ServiceHealth> {
     const startTime = Date.now();
     try {
-      const health = await this.elasticClient.cluster.health();
-      const stats = await this.elasticClient.indices.stats();
+      const [stats] = await prisma.$queryRaw<
+        { searchableDocuments: bigint; chunks: bigint; indexes: bigint }[]
+      >`
+        SELECT
+          (SELECT count(*) FROM "documents" WHERE "searchIndex" IS NOT NULL) AS "searchableDocuments",
+          (SELECT count(*) FROM "document_chunks") AS "chunks",
+          (SELECT count(*) FROM pg_indexes
+            WHERE tablename IN ('documents', 'document_chunks', 'structured_data')
+              AND indexname LIKE '%searchVector_idx') AS "indexes"
+      `;
 
+      const indexes = Number(stats.indexes);
       return {
-        name: 'elasticsearch',
-        status: health.status === 'green' ? 'healthy' : health.status === 'yellow' ? 'healthy' : 'unhealthy',
+        name: 'search',
+        status: indexes >= 3 ? 'healthy' : 'unhealthy',
         responseTime: Date.now() - startTime,
         lastChecked: new Date(),
+        ...(indexes >= 3 ? {} : { error: 'Full-text search indexes are missing; run prisma migrate deploy' }),
         details: {
-          cluster: health,
-          indices: stats.indices,
+          provider: 'postgres',
+          searchableDocuments: Number(stats.searchableDocuments),
+          chunks: Number(stats.chunks),
+          searchIndexes: indexes,
         },
       };
     } catch (error: any) {
       return {
-        name: 'elasticsearch',
+        name: 'search',
         status: 'unhealthy',
         responseTime: Date.now() - startTime,
         lastChecked: new Date(),
@@ -605,15 +615,19 @@ export class HealthService {
 
   private static async collectSearchMetrics() {
     try {
-      const stats = await this.elasticClient.indices.stats();
+      const [stats] = await prisma.$queryRaw<{ indexSize: bigint; documentCount: bigint }[]>`
+        SELECT
+          (pg_total_relation_size('document_chunks')
+            + pg_total_relation_size('structured_data')
+            + pg_total_relation_size('documents')) AS "indexSize",
+          (SELECT count(*) FROM "documents" WHERE "searchIndex" IS NOT NULL) AS "documentCount"
+      `;
 
       return {
         queryCount: 0, // Would need search logging
         averageQueryTime: 0,
-        indexSize: stats.indices ? Object.values(stats.indices).reduce((sum: any, index: any) =>
-          sum + (index.total?.store?.size_in_bytes || 0), 0) : 0,
-        documentCount: stats.indices ? Object.values(stats.indices).reduce((sum: any, index: any) =>
-          sum + (index.total?.docs?.count || 0), 0) : 0,
+        indexSize: Number(stats.indexSize),
+        documentCount: Number(stats.documentCount),
       };
     } catch (error) {
       return {

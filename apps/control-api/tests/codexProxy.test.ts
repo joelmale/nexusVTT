@@ -67,7 +67,7 @@ describe('Codex allowlist table', () => {
       expect(route.action).toMatch(/^codex\./);
       if (route.method !== 'GET' && route.path !== 'search/ask') expect(route.audited).toBe(true);
     }
-    expect(CODEX_ALLOWLIST).toHaveLength(54);
+    expect(CODEX_ALLOWLIST).toHaveLength(48);
   });
 
   it('rejects duplicate entries', () => {
@@ -181,12 +181,12 @@ describe('Codex proxy', () => {
 
   it('normalizes doc-api errors without leaking internals', async () => {
     h.upstream.respond = () =>
-      new Response(JSON.stringify({ error: 'connect ECONNREFUSED elasticsearch:9200', stack: 'Error\n at /app/dist/x.js' }), { status: 500 });
-    const res = await h.request('/control-api/v1/codex/admin/elasticsearch/health', { session: admin });
+      new Response(JSON.stringify({ error: 'connect ECONNREFUSED postgres:5432', stack: 'Error\n at /app/dist/x.js' }), { status: 500 });
+    const res = await h.request('/control-api/v1/codex/admin/queue/stats', { session: admin });
     expect(res.status).toBe(502);
     const text = await res.text();
     expect(JSON.parse(text)).toEqual({ error: 'upstream_error', requestId: res.headers.get('x-request-id') });
-    expect(text).not.toMatch(/elasticsearch|ECONNREFUSED|stack/);
+    expect(text).not.toMatch(/postgres|ECONNREFUSED|stack/);
   });
 
   it('does not follow or expose doc-api redirects', async () => {
@@ -256,7 +256,7 @@ describe('Codex proxy', () => {
   });
 
   it('accepts a body-less POST that still declares a JSON content type', async () => {
-    const res = await h.request('/control-api/v1/codex/admin/elasticsearch/optimize', { method: 'POST', session: admin, headers: { 'content-type': 'application/json' } });
+    const res = await h.request('/control-api/v1/codex/admin/documents/abc/reprocess', { method: 'POST', session: admin, headers: { 'content-type': 'application/json' } });
     expect(res.status).toBe(200);
     expect(h.upstreamCalls[0]!.headers['content-type']).toBeUndefined();
   });

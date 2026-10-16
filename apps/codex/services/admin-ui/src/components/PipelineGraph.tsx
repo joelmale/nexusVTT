@@ -347,7 +347,7 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
       }
     })(),
 
-    // 5. Elasticsearch Index
+    // 5. Search Index (Postgres full-text)
     (() => {
       const { status, durationMs, error } = getStageStatus('index')
       const isIndexed = searchIndex || search?.indexed
@@ -356,13 +356,13 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
         key: 'index',
         number: 5,
         title: 'Search Index',
-        subtitle: 'Elasticsearch Cluster',
+        subtitle: 'Postgres Full-Text Search',
         status,
         durationMs,
         error,
-        tag: { label: 'Elasticsearch', variant: 'slate' },
+        tag: { label: 'Postgres', variant: 'slate' },
         metrics: [
-          { label: 'cluster', value: 'documents' },
+          { label: 'engine', value: 'Postgres FTS' },
           { label: 'indexed', value: isIndexed ? 'Indexed' : 'Pending' },
           { label: 'latency', value: search?.indexDurationMs ? `${search.indexDurationMs}ms` : 'n/a' },
         ],
@@ -840,7 +840,7 @@ export const PipelineGraph: React.FC<PipelineGraphProps> = ({
             ) : selectedStage.key === 'index' ? (
               <div className="text-gray-800 space-y-1">
                 <p>
-                  Elasticsearch: <span className="text-cyan-700 font-semibold">documents</span> index
+                  Search: <span className="text-cyan-700 font-semibold">Postgres full-text</span> (chunks + metadata)
                 </p>
                 <p className="text-[11px] text-gray-500 truncate" title={searchIndex || 'Pending'}>
                   Index ID: {searchIndex || 'Generating...'}

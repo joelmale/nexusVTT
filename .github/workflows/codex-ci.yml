@@ -59,8 +59,6 @@ jobs:
       NODE_ENV: test
       DATABASE_URL: postgresql://postgres:postgres@localhost:5433/nexus_vtt_unit
       REDIS_URL: redis://localhost:6379
-      ELASTICSEARCH_URL: http://localhost:9201
-      ELASTICSEARCH_INDEX: codex-api-unit
       S3_ENDPOINT: http://localhost:9000
       S3_ACCESS_KEY: test
       S3_SECRET_KEY: test
@@ -112,24 +110,6 @@ jobs:
           --health-interval 10s
           --health-timeout 5s
           --health-retries 5
-      elasticsearch:
-        # Must track deploy/homelab/compose.yaml. doc-api and doc-processor use
-        # the @elastic/elasticsearch v9 client, which sends
-        # `compatible-with=9` in its Content-Type. An 8.x server rejects that
-        # with media_type_header_exception, so an 8.11.0 service container here
-        # fails every integration test that touches the index.
-        image: docker.elastic.co/elasticsearch/elasticsearch:9.5.3
-        env:
-          discovery.type: single-node
-          xpack.security.enabled: false
-          ES_JAVA_OPTS: -Xms512m -Xmx512m
-        ports:
-          - 9201:9200
-        options: >-
-          --health-cmd "curl --fail http://localhost:9200/_cluster/health"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 12
       redis:
         image: redis:7-alpine
         ports:
@@ -145,7 +125,6 @@ jobs:
     env:
       NODE_ENV: test
       REDIS_URL: redis://localhost:6380
-      ELASTICSEARCH_URL: http://localhost:9201
       S3_ENDPOINT: http://localhost:9000
       S3_ACCESS_KEY: test
       S3_SECRET_KEY: test
@@ -178,11 +157,9 @@ jobs:
         shell: bash
         run: |
           test_schema="codex_api_${GITHUB_RUN_ID}_${GITHUB_RUN_ATTEMPT}"
-          search_index="codex-api-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
           {
             echo "TEST_SCHEMA=${test_schema}"
             echo "DATABASE_URL=postgresql://postgres:postgres@localhost:5433/nexus_vtt_test?schema=${test_schema}"
-            echo "ELASTICSEARCH_INDEX=${search_index}"
           } >> "${GITHUB_ENV}"
 
       - name: Generate Prisma client
@@ -200,24 +177,13 @@ jobs:
         if: always() && steps.resources.outcome == 'success'
         shell: bash
         run: |
-          if [[ -z "${TEST_SCHEMA:-}" || -z "${ELASTICSEARCH_INDEX:-}" ]]; then
+          if [[ -z "${TEST_SCHEMA:-}" ]]; then
             echo "Isolated resource names were not configured; refusing broad cleanup." >&2
             exit 1
           fi
 
-          database_status=0
-          search_status=0
           printf 'DROP SCHEMA IF EXISTS "%s" CASCADE;\n' "${TEST_SCHEMA}" \
-            | npx prisma db execute --stdin --url "${DATABASE_URL}" \
-            || database_status=$?
-          curl --silent --show-error --request DELETE \
-            "${ELASTICSEARCH_URL}/${ELASTICSEARCH_INDEX}" \
-            || search_status=$?
-
-          if (( database_status != 0 || search_status != 0 )); then
-            echo "Integration cleanup failed (database=${database_status}, search=${search_status})." >&2
-            exit 1
-          fi
+            | npx prisma db execute --stdin --url "${DATABASE_URL}"
 
   verify-services:
     name: '${{ matrix.service }}: validation'

@@ -14,8 +14,6 @@ import { execSync } from 'child_process';
 import * as fs from 'fs';
 import * as path from 'path';
 import { prisma } from '../services/database.service';
-import { elasticService } from '../services/elastic.service';
-import { searchProvider } from '../services/search';
 import { getParser, getSupportedContentTypes } from './parsers';
 
 // Command line argument parsing
@@ -281,21 +279,6 @@ class SRDImporter {
           });
         }
 
-        // Update ElasticSearch if indexed (Postgres search follows the rows via triggers)
-        if (existing.searchIndex && searchProvider.writesToElastic) {
-          try {
-            await elasticService.updateDocument(existing.searchIndex, {
-              title: parsed.title,
-              content: parsed.structuredData.searchText,
-              tags: parsed.tags,
-            });
-          } catch (elasticError) {
-            if (this.options.verbose) {
-              console.warn(`    Warning: Failed to update ElasticSearch for ${parsed.title}`);
-            }
-          }
-        }
-
         this.stats.updated++;
       } else {
         // Create new document
@@ -327,28 +310,12 @@ class SRDImporter {
           },
         });
 
-        // Index in ElasticSearch; Postgres search follows the rows via triggers, so in
-        // postgres mode the document id itself marks it as indexed.
-        try {
-          const esId = !searchProvider.writesToElastic ? doc.id : await elasticService.indexDocument({
-            documentId: doc.id,
-            title: parsed.title,
-            content: parsed.structuredData.searchText,
-            type: parsed.type,
-            tags: parsed.tags,
-            metadata: parsed.metadata,
-          });
-
-          // Update document with search index ID
-          await prisma.document.update({
-            where: { id: doc.id },
-            data: { searchIndex: esId },
-          });
-        } catch (elasticError) {
-          if (this.options.verbose) {
-            console.warn(`    Warning: Failed to index in ElasticSearch for ${parsed.title}`);
-          }
-        }
+        // Search follows the rows through database triggers; searchIndex is just the
+        // "indexed" marker the admin pages read.
+        await prisma.document.update({
+          where: { id: doc.id },
+          data: { searchIndex: doc.id },
+        });
 
         this.stats.created++;
       }

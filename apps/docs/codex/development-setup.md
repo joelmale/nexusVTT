@@ -16,7 +16,6 @@ This guide covers setting up the NexusCodex development environment on your loca
 - **VS Code** with TypeScript and React extensions
 - **Postman** or **Insomnia** for API testing
 - **DBeaver** or **pgAdmin** for database management
-- **Elasticvue** for ElasticSearch management
 
 ## Quick Start
 
@@ -30,7 +29,7 @@ cd nexus-codex
 ### 2. Start Development Environment
 
 ```bash
-# Start all services (PostgreSQL, Redis, ElasticSearch, MinIO)
+# Start all services (PostgreSQL, Redis, MinIO)
 docker compose up --build -d
 
 # Check service status
@@ -92,9 +91,6 @@ DATABASE_URL=postgresql://user:pass@postgres:5432/doclib
 # Redis
 REDIS_URL=redis://redis:6379
 
-# ElasticSearch
-ELASTICSEARCH_URL=http://elasticsearch:9200
-
 # S3 Storage
 S3_ENDPOINT=http://minio:9000
 S3_ACCESS_KEY=admin
@@ -119,7 +115,6 @@ NODE_ENV=development
 # Shared infrastructure
 DATABASE_URL=postgresql://user:pass@postgres:5432/doclib
 REDIS_URL=redis://redis:6379
-ELASTICSEARCH_URL=http://elasticsearch:9200
 S3_ENDPOINT=http://minio:9000
 S3_ACCESS_KEY=admin
 S3_SECRET_KEY=password

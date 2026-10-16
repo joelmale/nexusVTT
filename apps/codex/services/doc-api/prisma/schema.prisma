@@ -109,7 +109,7 @@ model Document {
   campaigns     String[]
 
   // Search & Processing
-  searchIndex   String?  // Search index marker (Elasticsearch _id, or the document id once indexed in Postgres)
+  searchIndex   String?  // "Indexed" marker: set to the document id once its text is searchable
   // Maintained by a trigger over title/description/tags (see the
   // add_postgres_search_and_log_events migration); the GIN index lives in SQL.
   searchVector  Unsupported("tsvector")?
@@ -302,8 +302,8 @@ model StructuredData {
   data          Json                // Full structured data (level, school, components, etc.)
   searchText    String              // Flattened text for search
 
-  // ElasticSearch
-  searchIndex   String?             // ElasticSearch document ID
+  // Search
+  searchIndex   String?             // "Indexed" marker (the document id)
   // Maintained by a trigger over searchText; GIN index lives in SQL.
   searchVector  Unsupported("tsvector")?
 
@@ -526,8 +526,7 @@ model RulesCatalogVersion {
   @@map("rules_catalog_versions")
 }
 
-// Operational logs from the Codex services (replaces the Elasticsearch
-// nexus-logs index). Rows older than LOG_RETENTION_DAYS are pruned by doc-api.
+// Operational logs from the Codex services. Rows older than LOG_RETENTION_DAYS are pruned by doc-api.
 model LogEvent {
   id        BigInt   @id @default(autoincrement())
   timestamp DateTime @default(now()) @db.Timestamptz(3)

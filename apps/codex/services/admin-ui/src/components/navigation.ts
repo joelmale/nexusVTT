@@ -28,7 +28,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { path: '/search', label: 'Search' },
       { path: '/deduplication', label: 'Deduplication' },
       { path: '/data-quality', label: 'Data Quality' },
-      { path: '/elasticsearch', label: 'ElasticSearch' },
       { path: '/logs', label: 'Logs' },
     ],
   },

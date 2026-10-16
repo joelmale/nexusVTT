@@ -1,5 +1,3 @@
-export type SearchProviderName = 'elastic' | 'postgres' | 'both';
-
 export interface SearchFilters {
   type?: string;
   campaigns?: string[];
@@ -35,7 +33,7 @@ export interface SearchResult {
   hits: SearchHit[];
 }
 
-/** The read side of document search; every engine returns this shape. */
+/** The read side of document search. */
 export interface SearchProvider {
   search(params: SearchParams): Promise<SearchResult>;
   advancedSearch(params: AdvancedSearchParams): Promise<SearchResult>;

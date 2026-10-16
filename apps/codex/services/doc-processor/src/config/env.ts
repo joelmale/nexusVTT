@@ -18,13 +18,6 @@ const envSchema = z.object({
   // Redis
   REDIS_URL: z.string(),
 
-  // ElasticSearch
-  ELASTICSEARCH_URL: z.string(),
-  ELASTICSEARCH_INDEX: z.string().default('documents'),
-  // Must match doc-api. With 'postgres' the document is searchable through the
-  // database triggers alone, so this service stops writing to Elasticsearch.
-  SEARCH_PROVIDER: z.enum(['elastic', 'postgres', 'both']).default('elastic'),
-
   // S3/MinIO
   S3_ENDPOINT: z.string(),
   S3_ACCESS_KEY: z.string(),
@@ -109,7 +102,6 @@ const envSchema = z.object({
     .string()
     .default('true')
     .transform((val) => val === 'true'),
-  LOGGING_INDEX: z.string().default('nexus-logs'),
   LOGGING_SERVICE_NAME: z.string().default('doc-processor'),
 
   // Observability (Phase 3, see apps/docs/platform/observability-runbook.md).

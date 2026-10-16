@@ -1,7 +1,6 @@
 import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../../services/database.service';
 import { s3Service } from '../../services/s3.service';
-import { searchProvider } from '../../services/search';
 import { enqueueDocumentProcessing, getQueueStats } from '../../services/queue.service';
 import {
   AdminListDocumentsQuerySchema,
@@ -182,7 +181,7 @@ export async function adminDocumentRoutes(fastify: FastifyInstance) {
   );
 
   /**
-   * DELETE /api/admin/documents/:id - Delete document + S3 file + ElasticSearch entry
+   * DELETE /api/admin/documents/:id - Delete document + S3 file (search rows cascade with the document)
    */
   fastify.delete<{ Params: { id: string } }>(
     '/api/admin/documents/:id',
@@ -197,15 +196,6 @@ export async function adminDocumentRoutes(fastify: FastifyInstance) {
 
         if (!document) {
           return reply.status(404).send({ error: 'Document not found' });
-        }
-
-        // Delete from ElasticSearch if indexed
-        if (document.searchIndex) {
-          try {
-            await searchProvider.removeFromIndex(document.searchIndex);
-          } catch (error) {
-            fastify.log.warn(`Failed to delete from ElasticSearch: ${error}`);
-          }
         }
 
         // Delete from S3
@@ -506,57 +496,41 @@ export async function adminDocumentRoutes(fastify: FastifyInstance) {
   );
 
   /**
-   * GET /api/admin/validation/elastic - Find documents with ElasticSearch inconsistencies
+   * GET /api/admin/validation/search-index - Find documents marked as indexed that have
+   * nothing searchable (no extracted text chunks and no structured entries)
    */
   fastify.get(
-    '/api/admin/validation/elastic',
+    '/api/admin/validation/search-index',
     async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
-        const documents = await prisma.document.findMany({
-          where: { searchIndex: { not: null } },
-          select: {
-            id: true,
-            title: true,
-            searchIndex: true,
-            ocrStatus: true,
-          },
-        });
-
-        const elasticIssues = [];
-
-        for (const doc of documents) {
-          try {
-            // Try to get the document from ElasticSearch
-            // Note: This is a simplified check - in practice you'd want to query ES
-            if (doc.searchIndex) {
-              // Check if searchIndex matches valid ID format (UUID or alphanumeric Elasticsearch ID)
-              if (!doc.searchIndex.match(/^[a-zA-Z0-9_-]{8,}$/)) {
-                elasticIssues.push({
-                  id: doc.id,
-                  title: doc.title,
-                  issue: 'Invalid search index format',
-                  searchIndex: doc.searchIndex,
-                });
-              }
-            }
-          } catch (error: any) {
-            elasticIssues.push({
-              id: doc.id,
-              title: doc.title,
-              issue: 'Failed to validate ElasticSearch entry',
-              error: error.message || 'Unknown error',
-            });
-          }
-        }
+        // Search runs on Postgres, so "indexed" means rows in document_chunks or
+        // structured_data (kept current by triggers). Flag documents marked as indexed
+        // that have neither.
+        const searchIndexIssues = await prisma.$queryRaw<
+          { id: string; title: string; searchIndex: string | null }[]
+        >`
+          SELECT d."id", d."title", d."searchIndex"
+          FROM "documents" d
+          WHERE d."searchIndex" IS NOT NULL
+            AND NOT EXISTS (SELECT 1 FROM "document_chunks" c WHERE c."documentId" = d."id")
+            AND NOT EXISTS (SELECT 1 FROM "structured_data" s WHERE s."documentId" = d."id")
+          ORDER BY d."title"
+          LIMIT 500
+        `;
 
         return reply.send({
-          elasticIssues,
-          total: elasticIssues.length,
+          searchIndexIssues: searchIndexIssues.map((doc) => ({
+            id: doc.id,
+            title: doc.title,
+            issue: 'Marked as indexed but has no searchable text',
+            searchIndex: doc.searchIndex,
+          })),
+          total: searchIndexIssues.length,
         });
       } catch (error: any) {
         fastify.log.error(error);
         return reply.status(500).send({
-          error: 'Failed to check ElasticSearch consistency',
+          error: 'Failed to check search index consistency',
           details: error.message,
         });
       }
@@ -571,25 +545,25 @@ export async function adminDocumentRoutes(fastify: FastifyInstance) {
     async (_request: FastifyRequest, reply: FastifyReply) => {
       try {
         // Run all validation checks in parallel
-        const [orphaned, metadata, elastic] = await Promise.all([
+        const [orphaned, metadata, searchIndex] = await Promise.all([
           fastify.inject({ method: 'GET', url: '/api/admin/validation/orphaned' }),
           fastify.inject({ method: 'GET', url: '/api/admin/validation/metadata' }),
-          fastify.inject({ method: 'GET', url: '/api/admin/validation/elastic' }),
+          fastify.inject({ method: 'GET', url: '/api/admin/validation/search-index' }),
         ]);
 
         const orphanedData = JSON.parse(orphaned.body);
         const metadataData = JSON.parse(metadata.body);
-        const elasticData = JSON.parse(elastic.body);
+        const searchIndexData = JSON.parse(searchIndex.body);
 
         return reply.send({
           orphanedFiles: orphanedData,
           metadataInconsistencies: metadataData,
-          elasticIssues: elasticData,
+          searchIndexIssues: searchIndexData,
           summary: {
             totalOrphaned: orphanedData.total,
             totalMetadataIssues: metadataData.total,
-            totalElasticIssues: elasticData.total,
-            totalIssues: orphanedData.total + metadataData.total + elasticData.total,
+            totalSearchIndexIssues: searchIndexData.total,
+            totalIssues: orphanedData.total + metadataData.total + searchIndexData.total,
           },
         });
       } catch (error: any) {
@@ -752,15 +726,6 @@ export async function adminDocumentRoutes(fastify: FastifyInstance) {
             if (!document) {
               results.failed.push({ id: documentId, error: 'Document not found' });
               continue;
-            }
-
-            // Delete from ElasticSearch if indexed
-            if (document.searchIndex) {
-              try {
-                await searchProvider.removeFromIndex(document.searchIndex);
-              } catch (error) {
-                fastify.log.warn(`Failed to delete from ElasticSearch: ${error}`);
-              }
             }
 
             // Delete from S3

@@ -26,7 +26,7 @@ browser
   -> Nexus VTT frontend
   -> Nexus VTT backend authenticated proxy
   -> doc-api / doc-websocket
-  -> codex-postgres, codex-redis, codex-elasticsearch, codex-minio
+  -> codex-postgres, codex-redis, codex-minio
 ```
 
 `DOC_API_URL=http://doc-api:3000` enables the backend proxy. The document API is

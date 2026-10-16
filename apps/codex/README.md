@@ -39,7 +39,7 @@ A production-ready microservices platform for managing, processing, and collabor
 
 ### 🔍 Intelligent Search
 
-- **Full-Text Search**: ElasticSearch-powered search across all document content
+- **Full-Text Search**: PostgreSQL full-text search across all document content
 - **Quick Lookup**: Fast access to spells, monsters, items, and feats
 - **Structured Data**: Automatically extracted D&D 5e content with searchable fields
 - **Smart Filtering**: Filter by document type, campaign, tags, or content type
@@ -78,7 +78,7 @@ A production-ready microservices platform for managing, processing, and collabor
 - **Processing Quality**: OCR/readability signals, text extraction coverage, and searchability checks
 - **Tag Management**: Tag metadata, usage analytics, merging, and cleanup
 - **User Management**: Full CRUD operations for user accounts with role-based access control
-- **ElasticSearch Management**: Index health monitoring, reindexing, optimization, and maintenance
+- **Search Validation**: Detects documents marked indexed that have no chunks or structured entries
 - **Performance Analytics**: Historical metrics, aggregated summaries, and trend analysis over time periods
 - **Alert System**: Configurable alerts for service health, performance thresholds, and resource usage
 
@@ -111,12 +111,12 @@ NexusCodex is built as a distributed microservices architecture with four micros
 │ (BullMQ)    │ └─────┘   └──────────┘
 └──────┬──────┘
        │
-       ├──────────┬──────────┐
-       ▼          ▼          ▼
-  ┌───────┐ ┌─────────┐ ┌────────────┐
-  │ MinIO │ │  Elastic│ │ PostgreSQL │
-  │  (S3) │ │ Search  │ │            │
-  └───────┘ └─────────┘ └────────────┘
+       ├──────────┐
+       ▼          ▼
+  ┌───────┐ ┌────────────┐
+  │ MinIO │ │ PostgreSQL │
+  │  (S3) │ │            │
+  └───────┘ └────────────┘
 ```
 
 ### Services
@@ -136,7 +136,7 @@ NexusCodex is built as a distributed microservices architecture with four micros
 - Thumbnail generation
 - OCR for image-based documents
 - D&D content extraction (spells, monsters, items)
-- ElasticSearch indexing
+- Stores text, pages and chunks in Postgres and marks the document searchable
 - Job queue consumer (BullMQ)
 
 **doc-websocket** (Real-time Service)
@@ -155,12 +155,11 @@ NexusCodex is built as a distributed microservices architecture with four micros
 - Queue monitoring and job management
 - Search, deduplication, and data quality tools
 - User management and authentication
-- Bulk upload and ElasticSearch index management
+- Bulk upload and search validation
 
 ### Data Stores
 
-- **PostgreSQL**: Document metadata, references, annotations, structured data
-- **ElasticSearch**: Full-text search index (document content NOT in Postgres)
+- **PostgreSQL**: Document metadata, references, annotations, structured data, extracted text/pages/chunks, full-text search vectors (GIN-indexed `tsvector` columns) and operational logs (`log_events`)
 - **Redis**: Job queue + WebSocket session storage
 - **S3-Compatible Storage**: Document file storage (MinIO/GCS/S3/R2)
 
@@ -195,7 +194,6 @@ docker compose up -d
 - Admin Dashboard: http://localhost:3001
 - WebSocket: ws://localhost:3002/ws
 - MinIO Console: http://localhost:9001 (login: admin/password)
-- ElasticSearch: http://localhost:9200
 - **📚 Documentation**: http://localhost:3003 (run `npm run start:docs -- --port 3003` from the repository root)
 
 ### Upload Your First Document
@@ -514,7 +512,7 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" http://localhost:3000/api/admi
 | ------ | -------------------------------- | ------------------------------------ |
 | `GET`  | `/api/admin/validation/orphaned` | Find documents with missing S3 files |
 | `GET`  | `/api/admin/validation/metadata` | Find metadata inconsistencies        |
-| `GET`  | `/api/admin/validation/elastic`  | Find ElasticSearch inconsistencies   |
+| `GET`  | `/api/admin/validation/search-index` | Find indexed documents with no chunks or entries |
 | `GET`  | `/api/admin/validation/issues`   | Find all data quality issues         |
 | `POST` | `/api/admin/validation/fix`      | Auto-fix common issues               |
 | `GET`  | `/api/admin/validation/health`   | Overall system health score          |
@@ -555,16 +553,6 @@ curl -H "Authorization: Bearer YOUR_ACCESS_TOKEN" http://localhost:3000/api/admi
 | `GET`    | `/api/admin/users/:id` | Get user details |
 | `PATCH`  | `/api/admin/users/:id` | Update user      |
 | `DELETE` | `/api/admin/users/:id` | Delete user      |
-
-### Admin ElasticSearch Management
-
-| Method   | Endpoint                            | Description                     |
-| -------- | ----------------------------------- | ------------------------------- |
-| `GET`    | `/api/admin/elasticsearch/health`   | ElasticSearch cluster health    |
-| `POST`   | `/api/admin/elasticsearch/reindex`  | Reindex all documents           |
-| `POST`   | `/api/admin/elasticsearch/recreate` | Recreate index with new mapping |
-| `POST`   | `/api/admin/elasticsearch/optimize` | Optimize index performance      |
-| `DELETE` | `/api/admin/elasticsearch/clear`    | Clear all indexed documents     |
 
 ---
 
@@ -737,7 +725,7 @@ cd services/doc-processor && npm run prisma:generate && cd ../..
 cd services/doc-websocket && npm run prisma:generate && cd ../..
 
 # Start infrastructure (without application services)
-docker compose up -d postgres redis elasticsearch minio
+docker compose up -d postgres redis minio
 
 # Run services in development mode (hot reload)
 cd services/doc-api && npm run dev &
@@ -817,8 +805,6 @@ NODE_ENV=development
 PORT=3000
 DATABASE_URL=postgresql://user:pass@localhost:5432/doclib
 REDIS_URL=redis://localhost:6379
-ELASTICSEARCH_URL=http://localhost:9200
-ELASTICSEARCH_INDEX=documents
 QUEUE_NAME=document-processing
 S3_ENDPOINT=http://localhost:9000
 S3_ACCESS_KEY=admin
@@ -837,8 +823,6 @@ MAX_FILE_SIZE=104857600
 NODE_ENV=development
 DATABASE_URL=postgresql://user:pass@localhost:5432/doclib
 REDIS_URL=redis://localhost:6379
-ELASTICSEARCH_URL=http://localhost:9200
-ELASTICSEARCH_INDEX=documents
 QUEUE_NAME=document-processing
 S3_ENDPOINT=http://localhost:9000
 S3_ACCESS_KEY=admin
@@ -929,7 +913,6 @@ Quick searchability probe (admin API):
 
 **Security:**
 
-- Set `xpack.security.enabled=true` in ElasticSearch (currently disabled for dev)
 - Use strong database credentials (not `user:pass`)
 - Enable S3/CloudFlare R2 authentication
 - Implement WebSocket authentication via shared secret
@@ -940,7 +923,7 @@ Quick searchability probe (admin API):
 - Set `NODE_ENV=production`
 - Use production-grade PostgreSQL (GCP Cloud SQL, AWS RDS, etc.)
 - Use managed Redis (GCP Memorystore, AWS ElastiCache, etc.)
-- Use managed ElasticSearch (AWS OpenSearch, Elastic Cloud)
+- Apply migrations with `prisma migrate deploy` (search relies on triggers, GIN indexes and `pg_trgm`)
 - Use production object storage (GCS, AWS S3, or Cloudflare R2) instead of MinIO
 - See the [deployment guide](../docs/codex/deployment.md) for production configuration
 
@@ -949,14 +932,14 @@ Quick searchability probe (admin API):
 - Run multiple `doc-api` instances behind a load balancer
 - Run multiple `doc-processor` workers for parallel processing
 - Use Redis Cluster for high availability
-- Configure ElasticSearch cluster with replicas
+- Use Postgres read replicas / connection pooling for search load
 
 **Monitoring:**
 
 - Add application logging (Pino, Winston)
 - Set up health check monitoring
 - Monitor BullMQ queue depth and job failures
-- Track ElasticSearch query performance
+- Track Postgres search latency (`codex_doc_api_postgres_search_duration_seconds`)
 - Monitor S3 upload/download metrics
 
 ### Docker Deployment
@@ -983,7 +966,7 @@ NexusCodex/
 │   │   ├── src/
 │   │   │   ├── config/             # Environment configuration
 │   │   │   ├── routes/             # API endpoints
-│   │   │   ├── services/           # Business logic (S3, DB, Queue, ElasticSearch)
+│   │   │   ├── services/           # Business logic (S3, DB, Queue, Search)
 │   │   │   ├── types/              # TypeScript types and Zod schemas
 │   │   │   └── server.ts           # Fastify application
 │   │   ├── prisma/
@@ -1045,7 +1028,6 @@ NexusCodex/
 **Storage:**
 
 - PostgreSQL 16 (metadata)
-- ElasticSearch 8 (full-text search)
 - Redis 7 (queue + sessions)
 - S3-Compatible Storage (MinIO / GCS / S3 / R2)
 

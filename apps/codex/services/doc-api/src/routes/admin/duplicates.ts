@@ -2,7 +2,6 @@ import { FastifyInstance, FastifyRequest, FastifyReply } from 'fastify';
 import { prisma } from '../../services/database.service';
 import { contentHashService } from '../../services/content-hash.service';
 import { s3Service } from '../../services/s3.service';
-import { searchProvider } from '../../services/search';
 import { z } from 'zod';
 
 // Merge duplicates request schema
@@ -241,15 +240,6 @@ export async function adminDuplicatesRoutes(fastify: FastifyInstance) {
 
         // Delete duplicate documents
         for (const duplicate of duplicateDocs) {
-          // Delete from ElasticSearch
-          if (duplicate.searchIndex) {
-            try {
-              await searchProvider.removeFromIndex(duplicate.searchIndex);
-            } catch (error) {
-              fastify.log.warn(`Failed to delete from ElasticSearch: ${error}`);
-            }
-          }
-
           // Delete from S3 (only if not merging references/annotations to avoid orphaning data)
           if (!data.mergeReferences && !data.mergeAnnotations) {
             try {

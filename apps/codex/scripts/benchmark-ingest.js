@@ -145,7 +145,7 @@ const main = async () => {
   const thumbnailStart = findLog(logs, /Generating thumbnail/i);
   const thumbnailEnd = findLog(logs, /Thumbnail uploaded successfully|Thumbnail generation failed/i);
 
-  const indexStart = findLog(logs, /Indexing document in ElasticSearch/i);
+  const indexStart = findLog(logs, /Marking document searchable/i);
   const indexEnd = findLog(logs, /Document indexed with ID/i);
 
   const extractStructuredStart = findLog(logs, /Extracting structured data/i);

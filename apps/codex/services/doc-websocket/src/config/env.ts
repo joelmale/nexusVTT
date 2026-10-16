@@ -18,12 +18,8 @@ const envSchema = z.object({
   // instead of silently accepting tokens signed with a well-known key.
   JWT_SECRET: z.string().min(1, 'JWT_SECRET is required'),
 
-  // ElasticSearch (logging)
-  ELASTICSEARCH_URL: z.string().default('http://localhost:9200'),
-
   // Logging
   LOGGING_ENABLED: z.string().default('true').transform(val => val === 'true'),
-  LOGGING_INDEX: z.string().default('nexus-logs'),
   LOGGING_SERVICE_NAME: z.string().default('doc-websocket'),
 });
 

@@ -58,7 +58,7 @@ Several implementation recommendations no longer fit Nexus:
 | Make `dm-ui` part of the Codex service domain. | Keep the UI temporarily, but make Campaign Studio a VTT sidecar. ADR-0001 keeps NexusCodex an independent document library. |
 | Import `EncounterManager`, `MonsterLibrary`, and `NPCLibrary` directly from `apps/forge`. | Do not import another application's source. The current Forge components own context, CSS, IndexedDB/local-storage behavior, and standalone combat state. Extract reusable, host-injected features only when needed. |
 | Persist campaign state through `apps/control-api`. | `control-api` is the private administrative control plane. VTT PostgreSQL and its authenticated backend own campaigns and runtime state. |
-| Route all references through `doc-api` and Elasticsearch. | Compose search across campaign objects, VTT library objects, the published rules catalog, and Codex documents. `doc-api` remains authoritative only for documents and extracted document content. |
+| Route all references through `doc-api` (Postgres full-text search). | Compose search across campaign objects, VTT library objects, the published rules catalog, and Codex documents. `doc-api` remains authoritative only for documents and extracted document content. |
 | Upload maps through `admin-ui`. | Maps are assets and belong to the VTT asset service. The admin UI is not a DM workflow surface. |
 | Export one large session JSON payload and hydrate the VTT from it. | Persist versioned prep objects and activate a pinned `SessionPlan` revision through VTT APIs and domain commands. JSON export remains backup/portability, not the live integration path. |
 | Send the payload through `doc-websocket`. | `doc-websocket` owns collaborative document sessions. Live game changes use the VTT command, event-journal, and PostgreSQL durability path. |
@@ -313,7 +313,7 @@ appropriate owners:
 4. Documents and extracted content from NexusCodex.
 5. Assets from the asset service where an asset picker is requested.
 
-This powers global search and editor mentions without making Elasticsearch the
+This powers global search and editor mentions without making the Codex search index the
 owner of every result.
 
 ## 7. Capability design

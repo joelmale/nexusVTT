@@ -16,7 +16,7 @@ NexusCodex is a distributed document management system designed specifically for
 
 - **Document Management**: Upload, process, and organize documents
 - **Real-time Collaboration**: WebSocket-based synchronized document viewing
-- **Advanced Search**: Full-text search with ElasticSearch
+- **Advanced Search**: Full-text search with PostgreSQL
 - **Structured Data Extraction**: Automatic parsing of D&D content (spells, monsters, items)
 - **Admin Interface**: React-based dashboard for system management
 - **Scalable Architecture**: Microservices design with Docker orchestration
@@ -34,7 +34,7 @@ The system consists of four main microservices:
 
 - **Backend**: Node.js, TypeScript, Fastify
 - **Database**: PostgreSQL with Prisma ORM
-- **Search**: ElasticSearch
+- **Search**: PostgreSQL full-text search
 - **Queue**: Redis with BullMQ
 - **Storage**: S3-compatible storage (MinIO for dev, GCS/S3 for prod)
 - **Frontend**: React, Vite, TailwindCSS, shadcn/ui

@@ -14,7 +14,7 @@ export interface LogEntry {
 
 /**
  * Writes operational logs to the log_events table that doc-api reads for the
- * admin Logs page and per-job logs. Replaces the Elasticsearch nexus-logs index.
+ * admin Logs page and per-job logs.
  */
 class CentralLoggingService {
   private enabled: boolean;

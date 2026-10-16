@@ -67,10 +67,6 @@ services:
     # the production nexus-control-egress-net or reach real outbound Google
     # endpoints during a rehearsal.
     networks: !override [rehearsal-net]
-  codex-elasticsearch:
-    volumes: !override
-      - rehearsal-codex-elasticsearch-data:/usr/share/elasticsearch/data
-    networks: !override [rehearsal-net]
   garage-init-config:
     container_name: nexus-migration-phase3-e078895-garage-init-config
     pull_policy: never
@@ -138,7 +134,6 @@ networks:
     internal: true
 
 volumes:
-  codex-elasticsearch-data: !reset {}
   codex-ocr-models: !reset {}
   garage-config: !reset {}
   garage-meta: !reset {}
@@ -148,7 +143,6 @@ volumes:
   rehearsal-user-assets: { name: nexus-migration-phase3-e078895-user-assets }
   rehearsal-library-assets: { name: nexus-migration-phase3-e078895-library-assets }
   rehearsal-tmt-seed: { name: nexus-migration-phase3-e078895-tmt-seed }
-  rehearsal-codex-elasticsearch-data: { name: nexus-migration-phase3-e078895-codex-elasticsearch-data }
   rehearsal-codex-ocr-models: { name: nexus-migration-phase3-e078895-codex-ocr-models }
   rehearsal-garage-config: { name: nexus-migration-phase3-e078895-garage-config }
   rehearsal-garage-meta: { name: nexus-migration-phase3-e078895-garage-meta }

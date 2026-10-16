@@ -122,7 +122,7 @@ SHA resolved by `changes`, which also uploads an affected-target report.
 | Codex           | Reusable `codex-ci.yml`: test inventory, catalog-selected Node/Python validation, and doc-api unit/build/integration checks when doc-api is selected             |
 | Docs            | Type-check and Docusaurus build; main-push runs upload the validated Pages artifact                                                                              |
 
-Codex doc-api integration uses PostgreSQL, Redis, and Elasticsearch. The
+Codex doc-api integration uses PostgreSQL and Redis. The
 VTT managed E2E smoke suite and database integration suite run in weekly
 validation. See the [CI test catalog](./ci-test-catalog.md) for individual suite
 details.
@@ -230,7 +230,7 @@ and chaos:
 
 - VTT PostgreSQL and Redis integration through Docker Compose;
 - production-stack Playwright smoke tests;
-- Codex API integration with PostgreSQL, Redis, and Elasticsearch;
+- Codex API integration with PostgreSQL and Redis;
 - full CodeQL, Trivy, container scans, and SBOM generation;
 - OCR and embedding model initialization;
 - managed multiplayer soak with database and coordinator disruption.

@@ -73,7 +73,7 @@ describe('public gateway admin-surface containment', () => {
     '/codex-admin/index.html',
     '/codex-admin/assets/index.js',
     '/api/admin/users',
-    '/api/admin/elasticsearch/reindex',
+    '/api/admin/queue/clean',
     '/api/documents/bulk',
     '/api/documents/bulk/upload',
     '/api/documents/7f1c2d9e-0000-4000-8000-000000000000/process',

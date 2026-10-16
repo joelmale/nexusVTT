@@ -37,7 +37,7 @@ CREATE TABLE documents (
   campaigns TEXT[] DEFAULT '{}',
 
   -- Search & Processing
-  search_index TEXT,                -- ElasticSearch ID
+  search_index TEXT,                -- Set to the document id once searchable (marker, not an external ID)
   content_hash TEXT,                -- SHA-256 for deduplication
   ocr_status ocr_status DEFAULT 'not_required',
 
@@ -175,7 +175,7 @@ CREATE TABLE structured_data (
   search_text TEXT NOT NULL, -- Flattened text for search
 
   -- Search
-  search_index TEXT,        -- ElasticSearch document ID
+  search_index TEXT,        -- Searchable marker
 
   created_at TIMESTAMPTZ DEFAULT NOW(),
   updated_at TIMESTAMPTZ DEFAULT NOW()
@@ -333,15 +333,15 @@ CREATE INDEX idx_tag_metadata_category ON tag_metadata(category);
 1. **Metadata Creation**: Document record created with `status = 'pending'`
 2. **File Upload**: File uploaded to S3 with pre-signed URL
 3. **Processing**: Background job extracts text, generates thumbnail
-4. **Indexing**: Content indexed in ElasticSearch
+4. **Indexing**: Text, pages and ~1500-character chunks saved to Postgres (`document_texts`, `document_pages`, `document_chunks`); triggers update the `searchVector` columns and the document is marked searchable
 5. **Completion**: Document marked as `completed`
 
 ### Search Operations
 
-1. **Query**: Search term sent to ElasticSearch
-2. **Results**: Document IDs returned with relevance scores
-3. **Enrichment**: PostgreSQL queried for full metadata
-4. **Response**: Combined results with highlights
+1. **Query**: Search terms OR'd into a `to_tsquery` and run against `documents`, `document_chunks` and `structured_data` search vectors
+2. **Results**: Rows ranked with `ts_rank_cd` (`pg_trgm` similarity tolerates title typos only)
+3. **Enrichment**: Metadata joined in the same database
+4. **Response**: Combined results with `ts_headline` highlights (`<em>`)
 
 ### Real-time Collaboration
 
@@ -382,8 +382,8 @@ pg_dump -U user -h localhost doclib > backup.sql
 
 ### Search Indexes
 
-- ElasticSearch snapshots to S3
-- Index recreation capability from PostgreSQL data
+- Search vectors live in PostgreSQL, so regular database backups cover search
+- Vectors are maintained by triggers and can be rebuilt from the stored text
 
 ## Performance Considerations
 
@@ -416,6 +416,6 @@ pg_dump -U user -h localhost doclib > backup.sql
 ### Health Checks
 
 - Database connectivity
-- ElasticSearch cluster status
+- Search (Postgres full-text) status
 - Redis availability
 - S3 bucket access

@@ -43,33 +43,11 @@ REDIS_POOL_MAX=5
 REDIS_POOL_IDLE_TIMEOUT=30000
 ```
 
-### ElasticSearch
+### Search and logs
+
+Document search runs on PostgreSQL full-text search inside doc-api; there is no separate search engine and no search-related environment variable. Apply migrations with `prisma migrate deploy` (not `db push`): search relies on triggers, GIN indexes and the `pg_trgm` extension that exist only in SQL migrations.
 
 ```bash
-# ElasticSearch cluster URL
-ELASTICSEARCH_URL=http://localhost:9200
-
-# Index settings
-ELASTICSEARCH_INDEX_PREFIX=nexus_
-ELASTICSEARCH_INDEX_SHARDS=1
-ELASTICSEARCH_INDEX_REPLICAS=0
-
-# Connection settings
-ELASTICSEARCH_REQUEST_TIMEOUT=30000
-ELASTICSEARCH_PING_TIMEOUT=3000
-ELASTICSEARCH_MAX_RETRIES=3
-```
-
-### Search engine and logs
-
-Document search runs on Elasticsearch or on Postgres full-text search, chosen by `SEARCH_PROVIDER` (set it the same for doc-api and doc-processor; the homelab stack exposes it as `CODEX_SEARCH_PROVIDER`):
-
-```bash
-# elastic (default) | postgres | both
-# "both": Elasticsearch answers; Postgres runs alongside it and the overlap is recorded in
-# the codex_doc_api_search_shadow_* metrics.
-SEARCH_PROVIDER=elastic
-
 # Operational logs live in the Postgres log_events table; older rows are pruned daily.
 LOG_RETENTION_DAYS=30
 ```
@@ -286,18 +264,6 @@ services:
       - '6379:6379'
     command: redis-server --appendonly yes
 
-  elasticsearch:
-    # Must match deploy/homelab/compose.yaml; the v9 client cannot talk to 8.x.
-    image: docker.elastic.co/elasticsearch/elasticsearch:9.5.3
-    environment:
-      - discovery.type=single-node
-      - xpack.security.enabled=false
-      - 'ES_JAVA_OPTS=-Xms512m -Xmx512m'
-    ports:
-      - '9200:9200'
-    volumes:
-      - elasticsearch_data:/usr/share/elasticsearch/data
-
   minio:
     image: minio/minio:latest
     environment:
@@ -388,7 +354,6 @@ CORS_ALLOWED_HEADERS=Content-Type,Authorization,X-API-Key
 HEALTH_CHECK_ENABLED=true
 HEALTH_CHECK_DATABASE=true
 HEALTH_CHECK_REDIS=true
-HEALTH_CHECK_ELASTICSEARCH=true
 HEALTH_CHECK_S3=true
 
 # Health check intervals
@@ -574,7 +539,6 @@ JWT_SECRET=production-secret-from-secrets-manager
 const requiredEnvVars = [
   'DATABASE_URL',
   'REDIS_URL',
-  'ELASTICSEARCH_URL',
   'S3_ACCESS_KEY',
   'S3_SECRET_KEY',
   'JWT_SECRET',

@@ -47,7 +47,6 @@ updates:
           - '@types/supertest'
       codex-runtime:
         patterns:
-          - '@elastic/elasticsearch'
           - 'bullmq'
           - 'ioredis'
           - 'zod'

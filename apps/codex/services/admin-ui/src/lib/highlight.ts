@@ -1,7 +1,7 @@
 /**
  * Safe parsing for search highlights.
  *
- * Elasticsearch highlight fragments wrap matches in `<em>...</em>` (the
+ * Search highlight fragments (Postgres ts_headline) wrap matches in `<em>...</em>` (the
  * default tags) but do not HTML-escape the document text around them, so a
  * fragment can carry arbitrary markup from an uploaded document. Nothing here
  * is ever parsed as HTML: the exact marker tags `<em>`, `</em>`, `<mark>` and

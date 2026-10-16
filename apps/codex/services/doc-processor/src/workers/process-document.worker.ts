@@ -6,7 +6,6 @@ import { pdfService } from '../services/pdf.service';
 import { layoutService } from '../services/layout.service';
 import { thumbnailService } from '../services/thumbnail.service';
 import { pageImageService } from '../services/page-image.service';
-import { elasticService } from '../services/elastic.service';
 import { ocrService } from '../services/ocr.service';
 import { markdownService } from '../services/markdown.service';
 import { extractionService } from '../services/extraction.service';
@@ -943,8 +942,6 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
       }
       case 'index': {
         const start = Date.now();
-        const preferOcr = processing.ocr?.status === 'completed';
-        const text = await resolveTextForProcessing(documentId, preferOcr, version);
 
         let chunkSummary: ProcessingMetadata['chunks'];
         if (version === 'v2') {
@@ -971,31 +968,20 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
             `${chunks.length} page-aware chunk${chunks.length === 1 ? '' : 's'} embedded (${embedded.model}) in ${((Date.now() - chunkStart) / 1000).toFixed(1)}s`,
             { count: chunks.length, embeddingModel: embedded.model, durationMs: Date.now() - chunkStart }
           );
-          await emitStep('indexing', 'step_started', 'Indexing in Elasticsearch');
+          await emitStep('indexing', 'step_started', 'Marking searchable');
         }
 
-        console.log(`[Worker] Indexing document in ElasticSearch`);
-        await loggingService.logInfo(jobId, 'Indexing document in ElasticSearch');
+        console.log(`[Worker] Marking document searchable`);
+        await loggingService.logInfo(jobId, 'Marking document searchable');
         const indexStart = Date.now();
-        // Postgres search needs no write here: triggers index document_chunks and
-        // the document row. The document id is stored as the "indexed" marker.
-        const searchIndex = env.SEARCH_PROVIDER === 'postgres'
-          ? document.id
-          : await elasticService.indexDocument({
-              documentId: document.id,
-              title: document.title,
-              description: document.description,
-              content: text,
-              tags: document.tags,
-              type: document.type,
-              campaigns: document.campaigns,
-              collections: document.collections,
-              uploadedAt: document.uploadedAt,
-            });
+        // Search runs on Postgres: database triggers index document_chunks and the
+        // document row as they are written, so there is nothing to push anywhere. The
+        // document id is stored as the "indexed" marker the admin pages read.
+        const searchIndex = document.id;
         const indexDurationMs = Date.now() - indexStart;
         await loggingService.logInfo(jobId, `Document indexed with ID: ${searchIndex} in ${indexDurationMs}ms`);
         if (version === 'v2') {
-          await emitStep('indexing', 'step_completed', `Indexed in Elasticsearch in ${(indexDurationMs / 1000).toFixed(1)}s`, {
+          await emitStep('indexing', 'step_completed', `Marked searchable in ${(indexDurationMs / 1000).toFixed(1)}s`, {
             durationMs: indexDurationMs,
           });
         }
