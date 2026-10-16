@@ -91,7 +91,9 @@ export async function searchRoutes(fastify: FastifyInstance) {
       try {
         const params = AdvancedSearchQuerySchema.parse(request.query);
 
-        const results = await searchProvider.advancedSearch({
+        // In SEARCH_PROVIDER=both mode, x-search-provider lets compare-search.js ask each engine in turn.
+        const provider = searchProvider.forRequest(request.headers['x-search-provider']);
+        const results = await provider.advancedSearch({
           query: params.query,
           filters: {
             type: params.type,

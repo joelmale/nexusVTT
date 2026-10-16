@@ -49,7 +49,13 @@ test('the default query set loads and is non-empty', () => {
 });
 
 test('parseArgs reads both endpoints and thresholds', () => {
-  const options = parseArgs(['--a', 'http://a', '--b', 'http://b', '--top', '5', '--min-overlap', '0.7']);
+  const options = parseArgs([
+    '--a', 'http://a', '--a-provider', 'elastic',
+    '--b', 'http://b', '--b-provider', 'postgres',
+    '--top', '5', '--min-overlap', '0.7',
+  ]);
+  assert.equal(options.aProvider, 'elastic');
+  assert.equal(options.bProvider, 'postgres');
   assert.equal(options.a, 'http://a');
   assert.equal(options.top, 5);
   assert.equal(options.minOverlap, 0.7);

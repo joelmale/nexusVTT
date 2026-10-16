@@ -2,15 +2,17 @@
 /**
  * Compare Elasticsearch and Postgres document search on a real query set.
  *
- * doc-api answers with one engine per process (SEARCH_PROVIDER), so run two
- * instances against the same database and point this script at both:
+ * Against a doc-api running with SEARCH_PROVIDER=both, the x-search-provider
+ * header picks which engine answers /api/search/advanced, so one instance is enough:
  *
- *   SEARCH_PROVIDER=elastic  PORT=3005 npm run dev   # in doc-api
- *   SEARCH_PROVIDER=postgres PORT=3006 npm run dev
  *   node apps/codex/scripts/compare-search.js \
- *     --a http://localhost:3005 --b http://localhost:3006 \
+ *     --a http://doc-api:3000 --a-provider elastic \
+ *     --b http://doc-api:3000 --b-provider postgres \
  *     [--queries apps/codex/eval/search-queries.json] [--top 10] \
  *     [--min-overlap 0.6] [--json report.json]
+ *
+ * Without the provider flags, --a and --b are two separate doc-api instances
+ * (for example one started with SEARCH_PROVIDER=elastic and one with postgres).
  *
  * A is the reference (Elasticsearch), B the candidate (Postgres). For each query
  * it reports top-N overlap, whether the top hit agrees, the reference hits the
@@ -31,6 +33,8 @@ function parseArgs(argv) {
     const flag = argv[i];
     if (flag === '--a') options.a = argv[++i];
     else if (flag === '--b') options.b = argv[++i];
+    else if (flag === '--a-provider') options.aProvider = argv[++i];
+    else if (flag === '--b-provider') options.bProvider = argv[++i];
     else if (flag === '--queries') options.queries = argv[++i];
     else if (flag === '--top') options.top = Number(argv[++i]);
     else if (flag === '--min-overlap') options.minOverlap = Number(argv[++i]);
@@ -84,10 +88,10 @@ function summarize(rows) {
   };
 }
 
-async function search(base, query, top) {
+async function search(base, query, top, provider) {
   const url = `${base.replace(/\/$/, '')}/api/search/advanced?query=${encodeURIComponent(query)}&size=${top}`;
   const started = Date.now();
-  const response = await fetch(url);
+  const response = await fetch(url, provider ? { headers: { 'x-search-provider': provider } } : undefined);
   const durationMs = Date.now() - started;
   if (!response.ok) {
     throw new Error(`${base} answered ${response.status} for "${query}"`);
@@ -106,14 +110,14 @@ async function search(base, query, top) {
 async function main() {
   const options = parseArgs(process.argv.slice(2));
   if (options.help || !options.a || !options.b) {
-    console.log('Usage: compare-search.js --a <elastic-api> --b <postgres-api> [--queries file] [--top N] [--min-overlap X] [--json out]');
+    console.log('Usage: compare-search.js --a <api> [--a-provider elastic] --b <api> [--b-provider postgres] [--queries file] [--top N] [--min-overlap X] [--json out]');
     process.exit(options.help ? 0 : 2);
   }
 
   const queries = loadQueries(options.queries);
   const rows = [];
   for (const { group, query } of queries) {
-    const [a, b] = await Promise.all([search(options.a, query, options.top), search(options.b, query, options.top)]);
+    const [a, b] = await Promise.all([search(options.a, query, options.top, options.aProvider), search(options.b, query, options.top, options.bProvider)]);
     const comparison = compareResults(a.ids, b.ids, options.top);
     const titles = { ...a.titles, ...b.titles };
     rows.push({
