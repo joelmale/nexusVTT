@@ -3,6 +3,7 @@
     "target": "es2022",
     "module": "ESNext",
     "lib": ["es2022"],
+    "types": ["node"],
     "declaration": true,
     "sourceMap": true,
     "outDir": "./dist",
