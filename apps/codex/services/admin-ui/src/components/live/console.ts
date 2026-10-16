@@ -5,14 +5,14 @@ import type { ProcessingEvent } from './types'
 type Tag = { label: string; className: string }
 
 const TAG = {
-  pipeline: 'border-slate-500 text-slate-300',
-  layout: 'border-sky-500/60 text-sky-300',
-  marker: 'border-emerald-500/60 text-emerald-300',
-  worker: 'border-amber-500/60 text-amber-300',
-  vlm: 'border-fuchsia-500/60 text-fuchsia-300',
-  index: 'border-teal-500/60 text-teal-300',
-  gpu: 'border-lime-500/60 text-lime-300',
-  quality: 'border-yellow-500/60 text-yellow-300',
+  pipeline: 'border-gray-300 bg-gray-50 text-gray-600',
+  layout: 'border-sky-300 bg-sky-50 text-sky-700',
+  marker: 'border-emerald-300 bg-emerald-50 text-emerald-700',
+  worker: 'border-amber-300 bg-amber-50 text-amber-800',
+  vlm: 'border-fuchsia-300 bg-fuchsia-50 text-fuchsia-700',
+  index: 'border-teal-300 bg-teal-50 text-teal-700',
+  gpu: 'border-lime-400 bg-lime-50 text-lime-800',
+  quality: 'border-yellow-400 bg-yellow-50 text-yellow-800',
 }
 
 const STAGE_TAGS: Record<string, Tag> = {

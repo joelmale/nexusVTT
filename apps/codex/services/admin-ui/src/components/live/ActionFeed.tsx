@@ -51,17 +51,17 @@ export function ActionFeed({ events, rawLogs, statusLine, filterLabel, onClearFi
   }, [shown.length])
 
   return (
-    <section className="overflow-hidden rounded-lg border border-slate-800 bg-slate-950 text-slate-200" aria-labelledby="action-feed-title">
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-slate-800 px-3 py-2">
+    <section className="overflow-hidden rounded-lg border border-gray-200 bg-white text-gray-800" aria-labelledby="action-feed-title">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-gray-200 bg-gray-50 px-3 py-2">
         <div className="flex items-center gap-2">
-          <h3 id="action-feed-title" className="font-mono text-xs font-semibold uppercase tracking-wider text-slate-300">
+          <h3 id="action-feed-title" className="font-mono text-xs font-semibold uppercase tracking-wider text-gray-600">
             Action console
           </h3>
           {filterLabel && (
             <button
               type="button"
               onClick={onClearFilter}
-              className="rounded border border-indigo-400/60 px-1.5 font-mono text-[10px] text-indigo-300 hover:bg-indigo-500/10"
+              className="rounded border border-indigo-300 px-1.5 font-mono text-[10px] text-indigo-700 hover:bg-indigo-50"
               aria-label={`Showing ${filterLabel} only; show all`}
             >
               {filterLabel} ✕
@@ -73,13 +73,13 @@ export function ActionFeed({ events, rawLogs, statusLine, filterLabel, onClearFi
             type="button"
             aria-pressed={showRaw}
             onClick={() => setShowRaw((value) => !value)}
-            className="rounded border border-slate-600 px-2 py-0.5 text-xs text-slate-300 hover:bg-slate-800"
+            className="rounded border border-gray-300 bg-white px-2 py-0.5 text-xs text-gray-600 hover:bg-gray-100"
           >
             Raw logs
           </button>
         )}
       </div>
-      {statusLine && <div className="border-b border-slate-800 px-3 py-1.5 font-mono text-[11px] text-lime-300">{statusLine}</div>}
+      {statusLine && <div className="border-b border-gray-200 bg-emerald-50/60 px-3 py-1.5 font-mono text-[11px] text-emerald-800">{statusLine}</div>}
       {showRaw && rawLogs ? (
         <div className="max-h-72 overflow-y-auto bg-white p-3 text-gray-900">{rawLogs}</div>
       ) : (
@@ -91,18 +91,18 @@ export function ActionFeed({ events, rawLogs, statusLine, filterLabel, onClearFi
           aria-label="Processing events"
           className="max-h-72 space-y-1 overflow-y-auto p-3 font-mono text-xs"
         >
-          {shown.length === 0 && <li className="text-slate-500">No events yet.</li>}
+          {shown.length === 0 && <li className="text-gray-400">No events yet.</li>}
           {shown.map((event) => {
             const tag = sourceTag(event)
             const mark = KIND_MARK[event.kind]
             return (
               <li key={event.id} className="flex gap-2" data-kind={event.kind}>
-                <time className="shrink-0 text-slate-500" dateTime={event.createdAt}>
+                <time className="shrink-0 text-gray-400" dateTime={event.createdAt}>
                   {time(event.createdAt)}
                 </time>
                 <span className={`shrink-0 whitespace-nowrap rounded border px-1 text-[10px] font-semibold ${tag.className}`}>{tag.label}:</span>
-                {mark && <span className="shrink-0 rounded border border-red-500 px-1 text-[10px] font-semibold text-red-300">{mark}</span>}
-                <span className={event.kind === 'stage_failed' ? 'text-red-300' : event.kind === 'telemetry' ? 'text-lime-200' : 'text-slate-100'}>
+                {mark && <span className="shrink-0 rounded border border-red-300 bg-red-50 px-1 text-[10px] font-semibold text-red-700">{mark}</span>}
+                <span className={event.kind === 'stage_failed' ? 'text-red-700' : event.kind === 'telemetry' ? 'text-emerald-700' : 'text-gray-800'}>
                   {event.message}
                 </span>
               </li>
