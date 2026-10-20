@@ -132,6 +132,11 @@ export const describePageMarkdown = (page: LayoutPage) => {
   return `Page ${page.pageNumber} Markdown: ${plural(words, 'word')}${validity !== undefined ? `, text cleanliness ${percent(validity)}` : ''}`;
 };
 
+/** Long enough for a typical item or spell entry; keeps event payloads bounded. */
+const SUMMARY_DESCRIPTION_LIMIT = 2000;
+const clipDescription = (text: string) =>
+  text.length > SUMMARY_DESCRIPTION_LIMIT ? `${text.slice(0, SUMMARY_DESCRIPTION_LIMIT).trimEnd()}…` : text;
+
 /** The few fields a stat card shows; the full entity lives in StructuredData. */
 export const entitySummary = (type: Candidate['type'], entity: Monster | Spell | Item) => {
   if (type === 'monster') {
@@ -151,10 +156,24 @@ export const entitySummary = (type: Candidate['type'], entity: Monster | Spell |
   }
   if (type === 'spell') {
     const s = entity as Spell;
-    return { level: s.level, school: s.school, castingTime: s.castingTime, range: s.range, components: s.components, duration: s.duration };
+    return {
+      level: s.level,
+      school: s.school,
+      castingTime: s.castingTime,
+      range: s.range,
+      components: s.components,
+      duration: s.duration,
+      description: clipDescription(s.description),
+    };
   }
   const i = entity as Item;
-  return { itemType: i.type, rarity: i.rarity, requiresAttunement: i.requiresAttunement };
+  return {
+    itemType: i.type,
+    rarity: i.rarity,
+    requiresAttunement: i.requiresAttunement,
+    attunementDetail: i.attunementDetail,
+    description: clipDescription(i.description),
+  };
 };
 
 const headline = (type: Candidate['type'], entity: Monster | Spell | Item) => {

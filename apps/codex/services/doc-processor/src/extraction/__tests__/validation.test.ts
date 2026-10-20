@@ -55,6 +55,21 @@ describe('reviewEntity', () => {
     expect(item.reasons).toEqual(expect.arrayContaining(['unknown_rarity:mythic', 'unknown_item_type:Gadget']));
   });
 
+  test('flags an item whose description swallowed another entry, or is empty', () => {
+    const merged = {
+      ...bag,
+      description: `${bag.description}
+
+*Wondrous item, rare*
+A second entry that was read as part of the first.`,
+    };
+    expect(reviewEntity('item', merged, bagCandidate.markdown).reasons).toContain('contains_another_item');
+    expect(reviewEntity('item', { ...bag, description: '  ' }, bagCandidate.markdown).reasons).toContain('empty_description');
+    const clean = reviewEntity('item', bag, bagCandidate.markdown).reasons;
+    expect(clean).not.toContain('contains_another_item');
+    expect(clean).not.toContain('empty_description');
+  });
+
   test('cantrips need no printed level number', () => {
     const cantrip = { ...fireball, level: 0 };
     expect(reviewEntity('spell', cantrip, 'Evocation cantrip ...').reasons.filter((r) => r.startsWith('ungrounded:level'))).toEqual([]);

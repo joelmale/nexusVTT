@@ -1,5 +1,18 @@
+import { useState } from 'react'
 import { AlertTriangle, CheckCircle2, Crosshair } from 'lucide-react'
 import type { ExtractedEntityPayload } from './types'
+
+/** Plain-language versions of the review reasons the pipeline records; unknown reasons show as written. */
+const REASON_LABELS: Record<string, string> = {
+  schema_invalid: 'The model answered, but not in a shape the pipeline can use.',
+  model_repeat_limit: 'The model got stuck repeating itself on this entry, so nothing was extracted. Check the page by hand.',
+  contains_another_item: 'The description includes the start of another item. Two entries may have been read as one.',
+  empty_description: 'No description was extracted for this entry.',
+  no_image_crop: 'No image of the stat block was available, so it was read from text only.',
+  sibling_entity_failed_schema: 'Another entry from the same region could not be read.',
+}
+
+const reasonLabel = (reason: string) => REASON_LABELS[reason] ?? reason
 
 const ABILITIES = ['str', 'dex', 'con', 'int', 'wis', 'cha'] as const
 
@@ -34,6 +47,26 @@ function ReviewBadge({ review }: { review: ExtractedEntityPayload['review'] }) {
       <AlertTriangle className="h-3 w-3" aria-hidden="true" />
       Needs review · {Math.round(review.confidence * 100)}%
     </span>
+  )
+}
+
+const COLLAPSED_CHARS = 280
+
+/** A spell or item's description, clamped until the reader asks for the rest. */
+function Description({ text }: { text: string }) {
+  const [open, setOpen] = useState(false)
+  if (!text.trim()) return null
+  const long = text.length > COLLAPSED_CHARS
+  return (
+    <div className="mt-2 text-xs text-gray-700" data-testid="entity-description">
+      <span className="font-mono text-[10px] font-bold uppercase text-fuchsia-600">Description </span>
+      <span className="whitespace-pre-line">{long && !open ? `${text.slice(0, COLLAPSED_CHARS).trimEnd()}…` : text}</span>
+      {long && (
+        <button type="button" onClick={() => setOpen(!open)} aria-expanded={open} className="ml-1 font-medium text-indigo-600 hover:underline">
+          {open ? 'Show less' : 'Show more'}
+        </button>
+      )}
+    </div>
   )
 }
 
@@ -125,19 +158,21 @@ export function EntityCard({ entity, isNew = false, reducedMotion = false, onSho
           <Pill label="Duration" value={str(s.duration)} />
         </div>
       )}
+      {entity.type === 'spell' && <Description text={str(s.description) === '—' ? '' : str(s.description)} />}
 
       {entity.type === 'item' && (
         <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-3">
           <Pill label="Type" value={str(s.itemType)} />
           <Pill label="Rarity" value={str(s.rarity)} />
-          <Pill label="Attunement" value={s.requiresAttunement ? 'Required' : 'No'} />
+          <Pill label="Attunement" value={s.requiresAttunement ? (s.attunementDetail ? `Required ${str(s.attunementDetail)}` : 'Required') : 'No'} />
         </div>
       )}
+      {entity.type === 'item' && <Description text={str(s.description) === '—' ? '' : str(s.description)} />}
 
       {needsReview && entity.review.reasons.length > 0 && (
         <ul className="mt-2 list-disc pl-5 text-[11px] text-amber-800" aria-label="Review reasons">
           {entity.review.reasons.map((reason) => (
-            <li key={reason}>{reason}</li>
+            <li key={reason} title={reason}>{reasonLabel(reason)}</li>
           ))}
         </ul>
       )}

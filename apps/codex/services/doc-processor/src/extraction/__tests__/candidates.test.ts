@@ -82,6 +82,91 @@ describe('detectCandidates', () => {
   });
 });
 
+describe('item sections holding two entries', () => {
+  // Synthetic text: no rulebook content in the repo. Shaped like a page where an item
+  // and a second item share a section because the second title is not a layout heading.
+  const block = (id: string, markdown: string, bbox: [number, number, number, number], heading = false) => ({
+    id,
+    class: heading ? ('heading' as const) : ('body' as const),
+    markerType: heading ? 'SectionHeader' : 'Text',
+    bbox,
+    markdown,
+  });
+
+  const lamp = [
+    '*Wondrous item, legendary (requires attunement)*',
+    'This brass lamp burns without oil. While you hold it, you shed bright light in a 30-foot radius.',
+  ].join('\n');
+  const cube = [
+    '**Ember Cube**',
+    '*Wondrous item, rare*',
+    'This warm cube of glass can be set down to heat a small room.',
+  ].join('\n');
+
+  test('splits an item and a second item that shares its block', () => {
+    const found = detectCandidates([
+      {
+        pageNumber: 317,
+        markdown: '',
+        blocks: [block('a', '#### Lantern of Dawn', [0.1, 0.1, 0.5, 0.15], true), block('b', `${lamp}
+
+${cube}`, [0.1, 0.16, 0.5, 0.6])],
+      },
+    ]);
+    expect(found.map((c) => [c.type, c.title])).toEqual([
+      ['item', 'Lantern of Dawn'],
+      ['item', 'Ember Cube'],
+    ]);
+    expect(found[0].markdown).toContain('burns without oil');
+    expect(found[0].markdown).not.toContain('Ember Cube');
+    expect(found[1].markdown).toContain('*Wondrous item, rare*');
+    expect(found[1].markdown).not.toContain('Lantern');
+    expect(found[1].key).toBe('item:p317:b~1');
+    expect(new Set(found.map((c) => c.key)).size).toBe(2);
+  });
+
+  test('splits when the second item is its own non-heading block (a sidebar)', () => {
+    const found = detectCandidates([
+      {
+        pageNumber: 1,
+        markdown: '',
+        blocks: [
+          block('a', '#### Lantern of Dawn', [0, 0, 1, 0.1], true),
+          block('b', lamp, [0, 0.1, 0.5, 0.4]),
+          block('c', cube, [0.5, 0.1, 1, 0.4]),
+        ],
+      },
+    ]);
+    expect(found.map((c) => c.title)).toEqual(['Lantern of Dawn', 'Ember Cube']);
+    expect(found[1].blockIds).toEqual(['c']);
+    expect(found[1].regions[0].bbox).toEqual([0.5, 0.1, 1, 0.4]);
+  });
+
+  test('a single item is left alone, and prose mentioning rarity is not a type line', () => {
+    const prose = 'You find a ring that is rare in these parts, and a weapon of legendary make, and nothing else of note here.';
+    const found = detectCandidates([
+      { pageNumber: 1, markdown: '', blocks: [block('a', '#### Lantern of Dawn', [0, 0, 1, 0.1], true), block('b', `${lamp}
+
+${prose}`, [0, 0.1, 1, 0.5])] },
+    ]);
+    expect(found).toHaveLength(1);
+    expect(found[0].key).toBe('item:p1:a');
+  });
+
+  test('does not take the last sentence of the first item for the second items title', () => {
+    const tail = 'It sheds light for one hour.';
+    const found = detectCandidates([
+      { pageNumber: 1, markdown: '', blocks: [block('a', '#### Lantern of Dawn', [0, 0, 1, 0.1], true), block('b', `${lamp}
+${tail}
+*Wondrous item, rare*
+A second thing.`, [0, 0.1, 1, 0.5])] },
+    ]);
+    expect(found).toHaveLength(2);
+    expect(found[0].markdown).toContain(tail);
+    expect(found[1].markdown.startsWith('*Wondrous item, rare*')).toBe(true);
+  });
+});
+
 describe('classifySection', () => {
   test('requires every spell field plus a level line', () => {
     expect(classifySection('Casting Time: 1 action\nRange: 60 feet\nComponents: V\nDuration: 1 minute')).toBeNull();

@@ -1,6 +1,7 @@
 import { createHash } from 'crypto';
 import { LayoutBlock } from '../types/layout';
 import { EntityType } from './schemas';
+import { isItemTypeLine } from './item-lines';
 
 /**
  * Candidate detection (plan: Extraction step 1). Cheap rules over each page's
@@ -135,6 +136,83 @@ const union = (boxes: Array<[number, number, number, number]>): [number, number,
 const titleOf = (units: Unit[]) =>
   units[0].markdown.split('\n')[0].replace(/^#+\s*/, '').replace(/[*_]/g, '').trim().slice(0, 120);
 
+const MAX_TITLE_LENGTH = 80;
+const stripMarkup = (line: string) => line.replace(/[#*_`>|]/g, ' ').replace(/\s+/g, ' ').trim();
+
+/**
+ * A section is cut at headings, but a second magic item can sit under the
+ * first without one (a bold title in the same block, or a sidebar block):
+ * both entries then reach the model as one candidate and the second ends up
+ * inside the first's description. Each item opens with its printed type line
+ * ("Wondrous item, rare"), so cut at the title line just above every type line
+ * after the first. A section with a single type line comes back unchanged.
+ */
+export const splitItemSection = (section: Unit[]): Unit[][] => {
+  const lines = section.flatMap((unit) => unit.markdown.split('\n').map((text) => ({ unit, text })));
+  const typeLines = lines.flatMap((line, index) => (isItemTypeLine(line.text) ? [index] : []));
+  if (typeLines.length < 2) return [section];
+
+  const cuts: number[] = [];
+  for (const index of typeLines.slice(1)) {
+    let above = index - 1;
+    while (above >= 0 && !lines[above].text.trim()) above -= 1;
+    const title = above >= 0 ? stripMarkup(lines[above].text) : '';
+    const looksLikeTitle =
+      above > (cuts[cuts.length - 1] ?? typeLines[0]) &&
+      title.length > 0 &&
+      title.length <= MAX_TITLE_LENGTH &&
+      !/[.!?:;,]$/.test(title) &&
+      !isItemTypeLine(lines[above].text);
+    cuts.push(looksLikeTitle ? above : index);
+  }
+
+  const bounds = [0, ...cuts, lines.length];
+  const groups: Unit[][] = [];
+  for (let g = 0; g < bounds.length - 1; g += 1) {
+    const group: Unit[] = [];
+    let current: { unit: Unit; texts: string[] } | null = null;
+    const flush = () => {
+      if (!current) return;
+      const markdown = current.texts.join('\n').trim();
+      if (markdown) group.push({ ...current.unit, markdown });
+      current = null;
+    };
+    for (const line of lines.slice(bounds[g], bounds[g + 1])) {
+      if (current && current.unit !== line.unit) flush();
+      current = current ?? { unit: line.unit, texts: [] };
+      current.texts.push(line.text);
+    }
+    flush();
+    if (group.length > 0) groups.push(group);
+  }
+  return groups;
+};
+
+const buildCandidate = (type: EntityType, section: Unit[], partIndex: number): Candidate => {
+  const byPage = new Map<number, Unit[]>();
+  for (const unit of section) {
+    byPage.set(unit.pageNumber, [...(byPage.get(unit.pageNumber) || []), unit]);
+  }
+  const regions: CandidateRegion[] = [...byPage.entries()].map(([pageNumber, units]) => ({
+    pageNumber,
+    blockIds: [...new Set(units.map((u) => u.blockId))],
+    bbox: union(units.map((u) => u.bbox)),
+  }));
+  const markdown = section.map((u) => u.markdown).join('\n\n');
+
+  return {
+    // A section split into several items keeps the first key and suffixes the rest.
+    key: `${type}:p${section[0].pageNumber}:${section[0].unitId}${partIndex > 0 ? `~${partIndex}` : ''}`,
+    type,
+    title: titleOf(section),
+    pageNumber: section[0].pageNumber,
+    regions,
+    blockIds: regions.flatMap((r) => r.blockIds),
+    markdown,
+    blockHash: createHash('sha256').update(markdown).digest('hex'),
+  };
+};
+
 export const detectCandidates = (pages: CandidatePage[]): Candidate[] => {
   const candidates: Candidate[] = [];
 
@@ -149,27 +227,8 @@ export const detectCandidates = (pages: CandidatePage[]): Candidate[] => {
       section = section.slice(0, end);
     }
 
-    const byPage = new Map<number, Unit[]>();
-    for (const unit of section) {
-      byPage.set(unit.pageNumber, [...(byPage.get(unit.pageNumber) || []), unit]);
-    }
-    const regions: CandidateRegion[] = [...byPage.entries()].map(([pageNumber, units]) => ({
-      pageNumber,
-      blockIds: [...new Set(units.map((u) => u.blockId))],
-      bbox: union(units.map((u) => u.bbox)),
-    }));
-    const markdown = section.map((u) => u.markdown).join('\n\n');
-
-    candidates.push({
-      key: `${type}:p${section[0].pageNumber}:${section[0].unitId}`,
-      type,
-      title: titleOf(section),
-      pageNumber: section[0].pageNumber,
-      regions,
-      blockIds: regions.flatMap((r) => r.blockIds),
-      markdown,
-      blockHash: createHash('sha256').update(markdown).digest('hex'),
-    });
+    const parts = type === 'item' ? splitItemSection(section) : [section];
+    parts.forEach((part, partIndex) => candidates.push(buildCandidate(type, part, partIndex)));
   }
 
   return candidates;

@@ -2,6 +2,7 @@ import { MonsterParser } from '../parsers/monster-parser';
 import { SpellParser } from '../parsers/spell-parser';
 import { ItemParser } from '../parsers/item-parser';
 import { EntityType, ExtractedEntity, Item, Monster, Spell } from './schemas';
+import { itemTypeLines } from './item-lines';
 
 /**
  * Cross-checks for model output (plan: Extraction step 3). Each failed check
@@ -107,6 +108,9 @@ const itemConsistency = (i: Item): string[] => {
   if (!ITEM_RARITIES.has(i.rarity.toLowerCase().trim())) reasons.push(`unknown_rarity:${i.rarity}`);
   const type = i.type.toLowerCase();
   if (!ITEM_TYPES.some((known) => type.startsWith(known))) reasons.push(`unknown_item_type:${i.type}`);
+  if (!i.description.trim()) reasons.push('empty_description');
+  // Another entry's type line inside this one's description means two items were read as one.
+  if (itemTypeLines(i.description).length > 0) reasons.push('contains_another_item');
   return reasons;
 };
 

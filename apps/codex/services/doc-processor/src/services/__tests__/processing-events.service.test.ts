@@ -60,6 +60,7 @@ import {
   describePageLayout,
   describePageMarkdown,
   describeQuality,
+  entitySummary,
   estimateColumns,
   ProcessingEventsService,
 } from '../processing-events.service';
@@ -228,5 +229,30 @@ describe('ProcessingEventsService', () => {
     await expect(
       new ProcessingEventsService().emit({ documentId: 'd', runId: 'r', stage: 'layout', kind: 'quality', message: 'x' })
     ).resolves.toBeUndefined();
+  });
+});
+
+describe('entitySummary descriptions', () => {
+  const item = { name: 'Ember Cube', type: 'Wondrous item', rarity: 'rare', requiresAttunement: true, attunementDetail: 'by a wizard', description: 'Heats a small room.' };
+
+  it('carries an item description and attunement detail for the card', () => {
+    expect(entitySummary('item', item)).toEqual({
+      itemType: 'Wondrous item',
+      rarity: 'rare',
+      requiresAttunement: true,
+      attunementDetail: 'by a wizard',
+      description: 'Heats a small room.',
+    });
+  });
+
+  it('carries a spell description', () => {
+    const spell = { name: 'Spark', level: 0, school: 'evocation', castingTime: '1 action', range: '30 feet', components: 'V', duration: 'Instantaneous', description: 'A spark leaps out.' };
+    expect(entitySummary('spell', spell)).toMatchObject({ level: 0, description: 'A spark leaps out.' });
+  });
+
+  it('clips very long descriptions so event payloads stay bounded', () => {
+    const summary = entitySummary('item', { ...item, description: 'x'.repeat(5000) }) as { description: string };
+    expect(summary.description.length).toBeLessThanOrEqual(2001);
+    expect(summary.description.endsWith('…')).toBe(true);
   });
 });
