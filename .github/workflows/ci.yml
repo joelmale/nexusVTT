@@ -118,7 +118,7 @@ jobs:
             --github-output "$GITHUB_OUTPUT"
 
       - name: Upload affected-target report
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: affected-targets-${{ steps.source.outputs.sha }}
           path: ci-reports/affected-targets.json
@@ -274,7 +274,7 @@ jobs:
             --output apps/vtt/.vitest-reports/coverage-manifest.json
 
       - name: Upload unit coverage blob
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: vtt-coverage-unit-${{ matrix.shard }}
           path: apps/vtt/.vitest-reports/
@@ -319,7 +319,7 @@ jobs:
 
       - name: Upload Playwright diagnostics
         if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: playwright-ui-report
           path: |
@@ -527,7 +527,7 @@ jobs:
         working-directory: ${{ github.workspace }}
 
       - name: Upload complete coverage report
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7
         with:
           name: vtt-coverage-complete-${{ needs.changes.outputs.source_sha }}
           path: apps/vtt/coverage/
