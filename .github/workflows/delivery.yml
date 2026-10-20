@@ -216,6 +216,15 @@ jobs:
           fi
           echo "tag=$REPOSITORY:$prefix-$SOURCE_SHA" >> "$GITHUB_OUTPUT"
 
+      - name: Weekly package refresh key
+        id: apk-refresh
+        shell: bash
+        # Keys the Dockerfiles' apk layers to the calendar week so the registry
+        # build cache cannot pin packages that have since been fixed. Delivery
+        # and the CI scan compute the same value, so the scan still reads the
+        # cache Delivery writes within a week.
+        run: echo "week=$(date -u +%G-W%V)" >> "$GITHUB_OUTPUT"
+
       - name: Build and push immutable source image
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
         with:
@@ -234,6 +243,7 @@ jobs:
           build-args: |
             VERSION=sha-${{ needs.resolve.outputs.source_sha }}
             COMMIT_SHA=${{ needs.resolve.outputs.source_sha }}
+            APK_REFRESH=${{ steps.apk-refresh.outputs.week }}
 
   promote-release:
     name: Promote immutable image digests

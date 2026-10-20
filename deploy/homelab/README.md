@@ -66,3 +66,20 @@ Dockhand volume browser cannot create nested directories through its current
 file-write endpoint; the rehearsal-only `ASSET_SEED_MANIFEST` and
 `LIBRARY_MANIFEST_PATH` overrides point the unchanged candidate entrypoint and
 service to that location. Production keeps its existing nested NAS paths.
+
+## Checking the deployed stack against this file
+
+Dockhand keeps its own copy of the `nexus-vtt2` compose, and it can drift from
+`compose.yaml` without anyone noticing (it once kept `restart: on-failure` while
+the repo said `unless-stopped`, so the codex services stayed down after a host
+stop). Save the stack's compose from Dockhand (UI, or the `get_stack_compose`
+MCP tool) and run:
+
+```bash
+npm run check:compose-drift -- path/to/live-compose.yaml
+```
+
+It compares image, restart policy, stop grace period, memory limit, healthcheck,
+`depends_on` conditions, networks and environment variable *names* per service,
+and exits non-zero on any difference. Values are never compared. CI cannot reach
+Dockhand, so this is a manual or scheduled check.

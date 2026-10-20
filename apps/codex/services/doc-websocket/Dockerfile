@@ -2,7 +2,11 @@
 FROM node:26.11.1-alpine AS builder
 
 # Install OpenSSL for Prisma
-RUN apk add --no-cache openssl
+# APK_REFRESH keys the apk layers to the calendar week (CI passes it), so a
+# cached "apk add" layer cannot keep shipping packages that have since been
+# fixed. Docker keys layers on the command text, not on the Alpine repository.
+ARG APK_REFRESH=unset
+RUN echo "apk refresh: $APK_REFRESH" && apk add --no-cache openssl
 
 WORKDIR /app
 
@@ -32,7 +36,9 @@ RUN set -e; cd /tmp; N=/usr/local/lib/node_modules/npm/node_modules; \
     done; rm -f /tmp/*.tgz; npm --version
 
 # Install OpenSSL for Prisma
-RUN apk add --no-cache openssl
+# See APK_REFRESH above (an ARG does not carry across stages).
+ARG APK_REFRESH=unset
+RUN echo "apk refresh: $APK_REFRESH" && apk add --no-cache openssl
 
 WORKDIR /app
 

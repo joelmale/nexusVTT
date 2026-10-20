@@ -10,7 +10,11 @@ RUN set -e; cd /tmp; N=/usr/local/lib/node_modules/npm/node_modules; \
     done; rm -f /tmp/*.tgz; npm --version
 
 # Install OpenSSL for Prisma and git for SRD import
-RUN apk add --no-cache openssl git
+# APK_REFRESH keys the apk layers to the calendar week (CI passes it), so a
+# cached "apk add" layer cannot keep shipping packages that have since been
+# fixed. Docker keys layers on the command text, not on the Alpine repository.
+ARG APK_REFRESH=unset
+RUN echo "apk refresh: $APK_REFRESH" && apk add --no-cache openssl git
 
 # Install dependencies only when needed
 FROM base AS deps

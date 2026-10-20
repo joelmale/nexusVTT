@@ -31,7 +31,12 @@ RUN npm ci --omit=dev --workspace=nexus-control-api --include-workspace-root --i
 FROM base AS runner
 ENV NODE_ENV=production \
     PORT=4000
-RUN apk upgrade --no-cache && \
+# APK_REFRESH keys the apk layers to the calendar week (CI passes it), so a
+# cached "apk add" layer cannot keep shipping packages that have since been
+# fixed. Docker keys layers on the command text, not on the Alpine repository.
+ARG APK_REFRESH=unset
+RUN echo "apk refresh: $APK_REFRESH" && \
+    apk upgrade --no-cache && \
     apk add --no-cache dumb-init && \
     addgroup -g 1001 -S nodejs && \
     adduser -S control -u 1001 -G nodejs
