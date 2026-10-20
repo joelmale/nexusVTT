@@ -116,7 +116,7 @@ jobs:
           exit-code: '0'
 
       - name: Upload filesystem SARIF
-        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4
         if: always() && hashFiles('trivy-fs.sarif') != ''
         with:
           sarif_file: trivy-fs.sarif
@@ -311,7 +311,7 @@ jobs:
           exit-code: '0'
 
       - name: Upload container SARIF
-        uses: github/codeql-action/upload-sarif@24c54180a607b1449ed407dd24f251e4e9147c8d # v4
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee # v4
         if: ${{ always() && hashFiles(format('trivy-{0}.sarif', matrix.name)) != '' }}
         with:
           sarif_file: trivy-${{ matrix.name }}.sarif
