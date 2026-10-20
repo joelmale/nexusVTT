@@ -11,7 +11,14 @@ FROM node:26.11.1-alpine AS base
 # bundles the plain "linux-musl" engine and the runtime (OpenSSL 3) fails at
 # the first query with "could not locate the Query Engine for
 # linux-musl-openssl-3.0.x".
-RUN apk upgrade --no-cache && apk add --no-cache openssl
+# APK_REFRESH exists only to invalidate the cached apk layers. CI builds with
+# cache-from the registry buildcache, and Docker keys a layer on the command
+# text and base tag, not on the Alpine repository, so "apk upgrade" and
+# "apk add" stayed CACHED and kept shipping libexpat, libx11 and libxrender
+# versions that Trivy flagged HIGH with fixes available. Change the date to
+# force a fresh package install when a base-package CVE appears.
+ARG APK_REFRESH=2026-10-19
+RUN echo "apk refresh: $APK_REFRESH" && apk upgrade --no-cache && apk add --no-cache openssl
 # npm's own bundled undici/brace-expansion carry High advisories (Trivy
 # --ignore-unfixed) that even the latest npm release still ships. Swap in patched
 # copies of the same major so the scanned runtime image is clean.
@@ -75,7 +82,11 @@ WORKDIR /app
 ENV NODE_ENV=production
 
 # Runtime libraries only: OpenSSL for Prisma, cairo/pango for node-canvas.
-RUN apk add --no-cache \
+# Layers built on base are rebuilt when base changes; the ARG is also kept here
+# (with the same default, since an ARG does not carry across stages) so this
+# layer's own command text changes whenever the date does. See APK_REFRESH above.
+ARG APK_REFRESH=2026-10-19
+RUN echo "apk refresh: $APK_REFRESH" && apk add --no-cache \
     openssl \
     cairo \
     pango \
