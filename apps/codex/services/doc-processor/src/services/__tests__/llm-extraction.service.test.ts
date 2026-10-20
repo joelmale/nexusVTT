@@ -14,7 +14,7 @@ vi.mock('../s3.service', () => ({
 
 import { env } from '../../config/env';
 import { ENTITY_LISTS } from '../../extraction/schemas';
-import { extractionCacheKey, extractWithSchema, LlmExtractionService } from '../llm-extraction.service';
+import { extractionCacheKey, extractWithSchema, LlmExtractionService, OllamaRepeatLimitError } from '../llm-extraction.service';
 
 const recorded = (name: string) =>
   JSON.parse(readFileSync(join(__dirname, '../../extraction/__tests__/fixtures/ollama', name), 'utf8'));
@@ -125,5 +125,51 @@ describe('LlmExtractionService', () => {
     await new LlmExtractionService().unloadModel();
     expect(fetchMock.mock.calls[0][0]).toBe('http://ollama:11434/api/generate');
     expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({ model: env.VLM_MODEL, keep_alive: 0 });
+  });
+
+  describe('repeat-limit aborts', () => {
+    const loop = () => ({
+      ok: false,
+      status: 500,
+      text: vi.fn().mockResolvedValue('{"error":"prediction aborted, token repeat limit reached"}'),
+    });
+
+    it('retries once with sampling noise and uses the retry response', async () => {
+      const fetchMock = vi.fn().mockResolvedValueOnce(loop()).mockResolvedValueOnce({
+        ok: true,
+        json: vi.fn().mockResolvedValue(recorded('spell-fireball.json')),
+      });
+      globalThis.fetch = fetchMock as any;
+
+      const outcome = await new LlmExtractionService().extractCandidate(params);
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(JSON.parse(fetchMock.mock.calls[0][1].body).options.temperature).toBe(0);
+      expect(JSON.parse(fetchMock.mock.calls[1][1].body).options).toMatchObject({ temperature: 0.3, repeat_penalty: 1.15 });
+      expect(outcome.failureReason).toBeUndefined();
+      expect(outcome.entities[0].name).toBe('Fireball');
+      expect(store.size).toBe(1);
+    });
+
+    it('gives up on the candidate, not the stage, when the retry loops too', async () => {
+      const fetchMock = vi.fn().mockResolvedValueOnce(loop()).mockResolvedValueOnce(loop());
+      globalThis.fetch = fetchMock as any;
+
+      const outcome = await new LlmExtractionService().extractCandidate(params);
+
+      expect(fetchMock).toHaveBeenCalledTimes(2);
+      expect(outcome).toMatchObject({ entities: [], parseFailed: true, cached: false, failureReason: 'model_repeat_limit' });
+      expect(store.size).toBe(0); // not cached: a changed model or prompt gets a fresh attempt
+    });
+
+    it('still throws other Ollama errors so the stage retries', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue({ ok: false, status: 500, text: vi.fn().mockResolvedValue('model not found') }) as any;
+      await expect(new LlmExtractionService().extractCandidate(params)).rejects.toThrow('Ollama 500: model not found');
+    });
+
+    it('extractWithSchema raises a typed error for the loop abort', async () => {
+      globalThis.fetch = vi.fn().mockResolvedValue(loop()) as any;
+      await expect(extractWithSchema(ENTITY_LISTS.spell, 's', { text: 't' })).rejects.toBeInstanceOf(OllamaRepeatLimitError);
+    });
   });
 });

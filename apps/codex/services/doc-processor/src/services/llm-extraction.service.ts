@@ -7,6 +7,23 @@ import { localEndpoint, OllamaEndpoint } from './ollama-endpoint';
 
 type ExtractInput = { text: string; images?: Buffer[] };
 
+/**
+ * Ollama aborts a generation that falls into a repetition loop with a 500.
+ * At temperature 0 the same request loops the same way every time, so retrying
+ * it unchanged (BullMQ, or the stage) cannot succeed.
+ */
+export class OllamaRepeatLimitError extends Error {
+  constructor(body: string) {
+    super(`Ollama 500: ${body}`);
+    this.name = 'OllamaRepeatLimitError';
+  }
+}
+
+const isRepeatLimit = (status: number, body: string) => status === 500 && /token repeat limit/i.test(body);
+
+/** Sampling used for the one retry after a repeat-limit abort: breaks the greedy loop. */
+const REPEAT_RETRY_OPTIONS = { temperature: 0.3, repeat_penalty: 1.15 };
+
 const ollamaUrl = (endpoint: OllamaEndpoint, path: string) => `${endpoint.url.replace(/\/$/, '')}${path}`;
 
 /**
@@ -19,6 +36,7 @@ export async function extractWithSchema<T extends z.ZodType>(
   systemPrompt: string,
   input: ExtractInput,
   endpoint: OllamaEndpoint = localEndpoint(),
+  samplingOverrides: Record<string, number> = {},
 ): Promise<{ parsed: z.infer<T> | null; raw: string }> {
   const response = await fetch(ollamaUrl(endpoint, '/api/chat'), {
     method: 'POST',
@@ -29,7 +47,7 @@ export async function extractWithSchema<T extends z.ZodType>(
       stream: false,
       keep_alive: env.OLLAMA_KEEP_ALIVE,
       format: z.toJSONSchema(schema), // Ollama structured outputs
-      options: { temperature: 0, num_ctx: env.OLLAMA_NUM_CTX },
+      options: { temperature: 0, num_ctx: env.OLLAMA_NUM_CTX, ...samplingOverrides },
       messages: [
         { role: 'system', content: systemPrompt },
         {
@@ -41,7 +59,9 @@ export async function extractWithSchema<T extends z.ZodType>(
     }),
   });
   if (!response.ok) {
-    throw new Error(`Ollama ${response.status}: ${await response.text()}`);
+    const body = await response.text();
+    if (isRepeatLimit(response.status, body)) throw new OllamaRepeatLimitError(body);
+    throw new Error(`Ollama ${response.status}: ${body}`);
   }
   const raw = ((await response.json()) as { message: { content: string } }).message.content;
   return { parsed: parseRaw(schema, raw), raw };
@@ -96,6 +116,8 @@ export type ExtractionOutcome = {
   cached: boolean;
   model: string;
   promptVersion: string;
+  /** Set when the model could not produce a response for this candidate (it is then kept for review). */
+  failureReason?: 'model_repeat_limit';
 };
 
 /** sha256(contentHash, candidateBlockHash, model, promptVersion), as in the plan. */
@@ -132,7 +154,31 @@ export class LlmExtractionService {
       raw = (JSON.parse(hit.toString('utf-8')) as CachedExtraction).raw;
       cached = true;
     } else {
-      raw = (await extractWithSchema(list, SYSTEM_PROMPTS[params.type], { text: params.text, images: params.images }, endpoint)).raw;
+      const input = { text: params.text, images: params.images };
+      try {
+        raw = (await extractWithSchema(list, SYSTEM_PROMPTS[params.type], input, endpoint)).raw;
+      } catch (error) {
+        if (!(error instanceof OllamaRepeatLimitError)) throw error;
+        // One retry with sampling noise. If the model still loops, give up on
+        // this candidate only: failing the stage would retry the same loop and
+        // block every other entity in the document. Not cached, so a later
+        // model or prompt change gets a fresh attempt.
+        try {
+          raw = (await extractWithSchema(list, SYSTEM_PROMPTS[params.type], input, endpoint, REPEAT_RETRY_OPTIONS)).raw;
+        } catch (retryError) {
+          if (!(retryError instanceof OllamaRepeatLimitError)) throw retryError;
+          return {
+            entities: [],
+            parseFailed: true,
+            raw: '',
+            cacheKey,
+            cached: false,
+            model,
+            promptVersion,
+            failureReason: 'model_repeat_limit',
+          };
+        }
+      }
       const entry: CachedExtraction = {
         raw,
         model,

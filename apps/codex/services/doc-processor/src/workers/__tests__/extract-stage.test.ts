@@ -192,6 +192,26 @@ describe('runExtractStage (v2)', () => {
     ]);
   });
 
+  it('keeps a spell the model cannot finish for review without failing the stage', async () => {
+    globalThis.fetch = vi.fn(async (url: string, init: any) => {
+      if (url.endsWith('/api/generate')) return { ok: true, json: async () => ({}) };
+      const system: string = JSON.parse(init.body).messages[0].content;
+      if (system.includes('spell descriptions')) {
+        return { ok: false, status: 500, text: async () => '{"error":"prediction aborted, token repeat limit reached"}' };
+      }
+      return { ok: true, json: async () => recorded(system.includes('stat blocks') ? 'monster-gorgon.json' : 'item-bag-of-holding.json') };
+    }) as any;
+
+    const result = await runExtractStage('job-1', document);
+
+    expect(result.counts).toEqual({ spell: 0, monster: 1, item: 1 });
+    expect(result.needsReview).toBe(1);
+    const spell = db.rows.find((r) => r.type === 'spell');
+    expect(spell.data.review.reasons).toEqual(['model_repeat_limit']);
+    expect(spell.data.needsReview).toBe(true);
+    expect(db.rows).toHaveLength(3);
+  });
+
   it('fails the stage when Ollama is unreachable, still unloading the VLM', async () => {
     const generate = vi.fn(async () => ({ ok: true }));
     globalThis.fetch = vi.fn(async (url: string) => {

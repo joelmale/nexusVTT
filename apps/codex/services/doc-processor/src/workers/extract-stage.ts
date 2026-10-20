@@ -213,7 +213,7 @@ export async function runExtractStage(
       // Nothing valid came back: keep the candidate visible for review, with
       // the raw response left in the cache. No entity is resolved for it.
       if (outcome.entities.length === 0 && outcome.parseFailed) {
-        const review: Review = { status: 'needs_review', confidence: 0, reasons: ['schema_invalid'], baseline: 'not_found' };
+        const review: Review = { status: 'needs_review', confidence: 0, reasons: [outcome.failureReason ?? 'schema_invalid'], baseline: 'not_found' };
         rows.push({
           documentId: document.id,
           type: candidate.type,

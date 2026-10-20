@@ -1,4 +1,4 @@
-const loadPdfJs = async () => {
+export const loadPdfJs = async () => {
   const modulePath = 'pdfjs-dist/legacy/build/pdf.mjs';
   const pdfjsLib = await new Function('path', 'return import(path)')(modulePath) as typeof import('pdfjs-dist/legacy/build/pdf.mjs');
   pdfjsLib.GlobalWorkerOptions.workerSrc = require.resolve('pdfjs-dist/legacy/build/pdf.worker.mjs');
