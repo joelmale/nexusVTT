@@ -62,6 +62,15 @@ def batch_sizes() -> Dict[str, int]:
     return {key: int(os.getenv(f"MARKER_{key.upper()}", default)) for key, default in BATCH_SIZE_DEFAULTS.items()}
 
 
+class LayoutCancelled(RuntimeError):
+    """The caller went away before (or while) a batch ran; the result would be discarded."""
+
+
+def raise_if_cancelled(cancel: Optional[threading.Event]) -> None:
+    if cancel is not None and cancel.is_set():
+        raise LayoutCancelled("client disconnected")
+
+
 class LayoutUnavailable(RuntimeError):
     """Marker is not installed or its models failed to load."""
 
@@ -265,13 +274,26 @@ class LayoutEngine:
         page_start: int,
         page_end: int,
         extra_lexicon: Optional[Iterable[str]] = None,
+        cancel: Optional[threading.Event] = None,
     ) -> Tuple[List[Dict[str, Any]], Dict[int, Any]]:
         """
         page_start/page_end are 1-based and inclusive. Returns the per-page
         dicts and {pageNumber: PIL image at Marker's high-res DPI} for previews.
+
+        `cancel` is set when the caller disconnects. Batches are serialized by a
+        lock, so a retry whose predecessor is still running waits here; polling
+        for the lock lets an abandoned request leave the queue instead of
+        running Marker for a result nobody will read. Marker's own
+        build_document call cannot be interrupted, so a batch that has already
+        started runs to completion.
         """
-        with self._lock:
+        while not self._lock.acquire(timeout=0.5):
+            raise_if_cancelled(cancel)
+        try:
+            raise_if_cancelled(cancel)
             return self._convert_range(pdf_path, page_start, page_end, extra_lexicon)
+        finally:
+            self._lock.release()
 
     def _convert_range(self, pdf_path, page_start, page_end, extra_lexicon):
         self.load()

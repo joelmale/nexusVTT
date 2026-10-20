@@ -2,6 +2,7 @@ import { UnrecoverableError } from 'bullmq';
 import { env } from '../config/env';
 import { isPermanentHttpStatus } from './stage-retry';
 import { LayoutBatchResponse } from '../types/layout';
+import { postJson } from '../utils/http-json';
 
 /**
  * Client for ocr-service POST /layout/s3 (Marker on a page range). ocr-service
@@ -22,12 +23,10 @@ export class LayoutClientService {
     }
 
     const baseUrl = env.OCR_SERVICE_URL.replace(/\/$/, '');
-    const response = await fetch(`${baseUrl}/layout/s3`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(params),
-      signal: AbortSignal.timeout(env.LAYOUT_SERVICE_TIMEOUT_MS),
-    });
+    // Not fetch: a page batch can run longer than undici's fixed 5-minute wait
+    // for response headers, which surfaced as "fetch failed" while ocr-service
+    // kept using the GPU. LAYOUT_SERVICE_TIMEOUT_MS is the only limit here.
+    const response = await postJson(`${baseUrl}/layout/s3`, params, env.LAYOUT_SERVICE_TIMEOUT_MS);
 
     if (!response.ok) {
       const detail = await response.text().catch(() => '');

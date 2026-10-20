@@ -2,9 +2,11 @@
 /layout/s3 and layout_engine with Marker mocked. The fakes below mirror the
 marker-pdf 1.10.2 API that layout_engine.py uses.
 """
+import asyncio
 import io
 import json
 import sys
+import threading
 import types
 from pathlib import Path
 
@@ -13,8 +15,15 @@ from fastapi.testclient import TestClient
 from PIL import Image
 
 from src import layout_engine as engine_module
-from src.layout_engine import LayoutUnavailable, layout_engine, mark_sidebars, split_markdown, split_pages
-from src.main import app
+from src.layout_engine import (
+    LayoutCancelled,
+    LayoutUnavailable,
+    layout_engine,
+    mark_sidebars,
+    split_markdown,
+    split_pages,
+)
+from src.main import _run_layout, _watch_disconnect, app
 from src.ocr_engine import ocr_engine
 
 FIXTURE = json.loads((Path(__file__).parent / "fixtures" / "marker_pages_12_13.json").read_text(encoding="utf-8"))
@@ -169,8 +178,8 @@ def fake_layout(monkeypatch):
     s3 = FakeS3()
     seen = {}
 
-    def convert_range(path, start, end, lexicon):
-        seen.update(path=path, start=start, end=end, lexicon=lexicon)
+    def convert_range(path, start, end, lexicon, cancel=None):
+        seen.update(path=path, start=start, end=end, lexicon=lexicon, cancel=cancel)
         pages = split_pages(FIXTURE["markdown"], FIXTURE["json"], {11: "pdftext", 12: "surya"}, lexicon)
         images = {12: Image.new("RGB", (2448, 3168), "white"), 13: Image.new("RGB", (2448, 3168), "white")}
         return pages, images
@@ -221,7 +230,7 @@ def test_layout_s3_rejects_inverted_range():
 
 
 def test_layout_s3_returns_503_when_marker_unavailable(monkeypatch):
-    def unavailable(*args):
+    def unavailable(*args, **kwargs):
         raise LayoutUnavailable("marker-pdf is not installed in this image")
 
     monkeypatch.setattr(ocr_engine, "fetch_s3_bytes", lambda bucket, key: b"%PDF")
@@ -245,3 +254,90 @@ def test_layout_unload_releases_models(monkeypatch):
     assert res.json()["unloaded"] is True
     assert res.json()["layout"]["modelsLoaded"] is False
     assert client.post("/layout/unload").json()["unloaded"] is False
+
+
+def test_layout_s3_passes_a_cancel_event_to_the_engine(fake_layout):
+    _, seen = fake_layout
+    res = client.post("/layout/s3", json={"bucket": "b", "key": "k.pdf", "pageStart": 12, "pageEnd": 13})
+    assert res.status_code == 200
+    assert isinstance(seen["cancel"], threading.Event)
+    assert not seen["cancel"].is_set()
+
+
+def test_layout_s3_returns_499_when_the_batch_was_cancelled(monkeypatch):
+    def cancelled(*args, **kwargs):
+        raise LayoutCancelled("client disconnected")
+
+    monkeypatch.setattr(ocr_engine, "fetch_s3_bytes", lambda bucket, key: b"%PDF")
+    monkeypatch.setattr(layout_engine, "convert_range", cancelled)
+    res = client.post("/layout/s3", json={"bucket": "b", "key": "k.pdf", "pageStart": 1, "pageEnd": 1})
+    assert res.status_code == 499
+
+
+def test_run_layout_does_not_touch_s3_when_already_cancelled(monkeypatch):
+    fetched = []
+    monkeypatch.setattr(ocr_engine, "fetch_s3_bytes", lambda bucket, key: fetched.append(key) or b"%PDF")
+    cancel = threading.Event()
+    cancel.set()
+    request = types.SimpleNamespace(bucket="b", key="k.pdf", pageStart=1, pageEnd=1, lexicon=None, renderPreviews=False)
+    with pytest.raises(LayoutCancelled):
+        _run_layout(request, cancel)
+    assert fetched == []
+
+
+def test_convert_range_leaves_the_queue_when_cancelled_while_waiting_for_the_lock(monkeypatch):
+    monkeypatch.setattr(layout_engine, "_convert_range", lambda *args: pytest.fail("must not run Marker"))
+    cancel = threading.Event()
+    layout_engine._lock.acquire()  # another batch is running
+    try:
+        threading.Timer(0.2, cancel.set).start()
+        with pytest.raises(LayoutCancelled):
+            layout_engine.convert_range("/tmp/book.pdf", 1, 2, cancel=cancel)
+    finally:
+        layout_engine._lock.release()
+    assert layout_engine._lock.acquire(blocking=False)  # lock was not leaked
+    layout_engine._lock.release()
+
+
+def test_convert_range_skips_marker_when_cancelled_before_it_starts(monkeypatch):
+    monkeypatch.setattr(layout_engine, "_convert_range", lambda *args: pytest.fail("must not run Marker"))
+    cancel = threading.Event()
+    cancel.set()
+    with pytest.raises(LayoutCancelled):
+        layout_engine.convert_range("/tmp/book.pdf", 1, 2, cancel=cancel)
+    assert layout_engine._lock.acquire(blocking=False)
+    layout_engine._lock.release()
+
+
+def test_watch_disconnect_sets_cancel_when_the_client_goes_away():
+    class FakeRequest:
+        def __init__(self):
+            self.polls = 0
+
+        async def is_disconnected(self):
+            self.polls += 1
+            return self.polls >= 3
+
+    cancel = threading.Event()
+    fake = FakeRequest()
+    asyncio.run(asyncio.wait_for(_watch_disconnect(fake, cancel, poll_seconds=0.01), timeout=2))
+    assert cancel.is_set()
+    assert fake.polls == 3
+
+
+def test_watch_disconnect_stops_when_the_batch_finishes_first():
+    class Connected:
+        async def is_disconnected(self):
+            return False
+
+    cancel = threading.Event()
+
+    async def run():
+        task = asyncio.create_task(_watch_disconnect(Connected(), cancel, poll_seconds=0.01))
+        await asyncio.sleep(0.05)
+        task.cancel()
+        with pytest.raises(asyncio.CancelledError):
+            await task
+
+    asyncio.run(run())
+    assert not cancel.is_set()

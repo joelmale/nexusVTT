@@ -6,6 +6,7 @@ Supports direct S3 object retrieval, Prometheus metrics, and layout-aware readin
 import asyncio
 import os
 import tempfile
+import threading
 import time
 from contextlib import asynccontextmanager
 from typing import List, Optional
@@ -15,7 +16,7 @@ from pydantic import BaseModel, Field
 from prometheus_client import Counter, Histogram, Gauge, generate_latest, CONTENT_TYPE_LATEST
 
 from .ocr_engine import ocr_engine, EMBED_DIM
-from .layout_engine import LayoutUnavailable, layout_engine, render_preview
+from .layout_engine import LayoutCancelled, LayoutUnavailable, layout_engine, raise_if_cancelled, render_preview
 
 MAX_BATCH_SIZE = int(os.getenv("MAX_BATCH_SIZE", "8"))
 
@@ -390,20 +391,25 @@ async def generate_embeddings(request: EmbedRequest):
         raise HTTPException(status_code=500, detail=f"Embedding generation failed: {str(e)}")
 
 
-def _run_layout(request: LayoutS3Request) -> LayoutS3Response:
+def _run_layout(request: LayoutS3Request, cancel: Optional[threading.Event] = None) -> LayoutS3Response:
     start_time = time.time()
+    raise_if_cancelled(cancel)
     pdf_bytes = ocr_engine.fetch_s3_bytes(request.bucket, request.key)
+    raise_if_cancelled(cancel)
     with tempfile.NamedTemporaryFile(suffix=".pdf", delete=False) as handle:
         handle.write(pdf_bytes)
         pdf_path = handle.name
     try:
-        pages, images = layout_engine.convert_range(pdf_path, request.pageStart, request.pageEnd, request.lexicon)
+        pages, images = layout_engine.convert_range(
+            pdf_path, request.pageStart, request.pageEnd, request.lexicon, cancel=cancel
+        )
     finally:
         os.unlink(pdf_path)
 
     if request.renderPreviews:
         prefix = request.previewPrefix or f"page-previews/{request.key}/"
         for page in pages:
+            raise_if_cancelled(cancel)
             image = images.get(page["pageNumber"])
             if image is None:
                 continue
@@ -423,8 +429,20 @@ def _run_layout(request: LayoutS3Request) -> LayoutS3Response:
     )
 
 
+DISCONNECT_POLL_SECONDS = 1.0
+
+
+async def _watch_disconnect(http_request, cancel: threading.Event, poll_seconds: float = DISCONNECT_POLL_SECONDS) -> None:
+    """Sets `cancel` once the HTTP client has gone away (timeout, restart, retry)."""
+    while not cancel.is_set():
+        if await http_request.is_disconnected():
+            cancel.set()
+            return
+        await asyncio.sleep(poll_seconds)
+
+
 @app.post("/layout/s3", response_model=LayoutS3Response, response_model_by_alias=True)
-async def layout_s3(request: LayoutS3Request):
+async def layout_s3(request: LayoutS3Request, http_request: Request):
     """
     Runs Marker on pages pageStart..pageEnd of a PDF in S3 and returns per-page
     Markdown, layout blocks (normalized bboxes) and quality metrics. Used by the
@@ -434,9 +452,16 @@ async def layout_s3(request: LayoutS3Request):
     if request.pageEnd < request.pageStart:
         raise HTTPException(status_code=400, detail="pageEnd must be >= pageStart")
     start_time = time.time()
+    cancel = threading.Event()
+    watcher = asyncio.create_task(_watch_disconnect(http_request, cancel))
     try:
         # Marker is CPU/GPU bound; keep the event loop free for /health.
-        response = await asyncio.to_thread(_run_layout, request)
+        response = await asyncio.to_thread(_run_layout, request, cancel)
+    except LayoutCancelled:
+        # The client is gone, so nothing reads this response. 499 is the
+        # conventional "client closed request" status.
+        METRIC_REQUESTS_TOTAL.labels(endpoint=endpoint, status="cancelled").inc()
+        raise HTTPException(status_code=499, detail="Client disconnected before the batch ran")
     except LayoutUnavailable as error:
         METRIC_REQUESTS_TOTAL.labels(endpoint=endpoint, status="unavailable").inc()
         raise HTTPException(status_code=503, detail=str(error))
@@ -445,6 +470,8 @@ async def layout_s3(request: LayoutS3Request):
     except Exception as error:
         METRIC_REQUESTS_TOTAL.labels(endpoint=endpoint, status="error").inc()
         raise HTTPException(status_code=500, detail=f"Layout failed: {error}")
+    finally:
+        watcher.cancel()
     METRIC_REQUESTS_TOTAL.labels(endpoint=endpoint, status="success").inc()
     METRIC_DURATION_SECONDS.labels(endpoint=endpoint).observe(time.time() - start_time)
     return response
