@@ -96,7 +96,54 @@ describe('runExtractStage (v2)', () => {
     cache.clear();
     handoff.layoutUnloads = 0;
     (env as any).GPU_HANDOFF = true;
+    // The Ollama preflight has its own tests; the fixtures below only route /api/chat and /api/generate.
+    (env as any).OLLAMA_PREFLIGHT = false;
     vi.mocked(entityLinkingService.linkSpellMentions).mockClear();
+  });
+
+  it('runs the Ollama preflight before the first candidate, then still unloads the VLM', async () => {
+    (env as any).OLLAMA_PREFLIGHT = true;
+    const order: string[] = [];
+    let psCalls = 0;
+    globalThis.fetch = vi.fn(async (url: string, init: any) => {
+      const path = new URL(url).pathname;
+      order.push(path);
+      if (path === '/api/tags') return { ok: true, json: async () => ({ models: [{ name: env.VLM_MODEL }] }) };
+      if (path === '/api/ps') {
+        psCalls += 1;
+        return { ok: true, json: async () => ({ models: psCalls === 1 ? [{ name: 'qwen2.5:7b', size_vram: 200 * 1024 * 1024 }] : [] }) };
+      }
+      if (path === '/api/generate') return { ok: true, json: async () => ({}), text: async () => '' };
+      const system: string = JSON.parse(init.body).messages[0].content;
+      const fixture = system.includes('stat blocks') ? 'monster-gorgon.json' : system.includes('spell') ? 'spell-fireball.json' : 'item-bag-of-holding.json';
+      return { ok: true, json: async () => recorded(fixture) };
+    }) as any;
+    const savedPoll = env.OLLAMA_GPU_WAIT_POLL_MS;
+    (env as any).OLLAMA_GPU_WAIT_POLL_MS = 1;
+    try {
+      const result = await runExtractStage('job-1', document);
+      expect(result.counts).toEqual({ spell: 1, monster: 1, item: 1 });
+    } finally {
+      (env as any).OLLAMA_GPU_WAIT_POLL_MS = savedPoll;
+    }
+    // preflight (tags, ps, ps, warm-up) comes before any /api/chat; the VLM unload (/api/generate) comes last
+    expect(order.indexOf('/api/chat')).toBeGreaterThan(order.lastIndexOf('/api/ps'));
+    expect(order.filter((p) => p === '/api/generate')).toHaveLength(2);
+    expect(order[order.length - 1]).toBe('/api/generate');
+  });
+
+  it('fails the stage, still unloading, when Ollama does not have the model', async () => {
+    (env as any).OLLAMA_PREFLIGHT = true;
+    const generate = vi.fn(async () => ({ ok: true }));
+    globalThis.fetch = vi.fn(async (url: string) => {
+      const path = new URL(url).pathname;
+      if (path === '/api/generate') return generate();
+      if (path === '/api/tags') return { ok: true, json: async () => ({ models: [{ name: 'something-else:1b' }] }) };
+      return { ok: true, json: async () => ({ models: [] }) };
+    }) as any;
+    await expect(runExtractStage('job-1', document)).rejects.toThrow('does not have');
+    expect(generate).toHaveBeenCalledOnce(); // only the VLM unload
+    expect(db.deletes).toBe(0);
   });
 
   it('persists validated entities with review, source and page numbers', async () => {

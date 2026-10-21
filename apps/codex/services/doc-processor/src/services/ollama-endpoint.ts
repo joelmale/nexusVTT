@@ -23,7 +23,7 @@ export const localEndpoint = (): OllamaEndpoint => ({
 const remoteModel = () => env.OLLAMA_REMOTE_MODEL || env.VLM_MODEL;
 
 /** Ollama lists untagged models as `name:latest`. */
-const sameModel = (listed: string, wanted: string) =>
+export const sameModel = (listed: string, wanted: string) =>
   listed === wanted || listed === `${wanted}:latest` || `${listed}:latest` === wanted;
 
 /**

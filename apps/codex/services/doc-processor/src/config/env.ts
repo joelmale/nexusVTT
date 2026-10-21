@@ -87,6 +87,18 @@ const envSchema = z.object({
   // Part of the extraction cache key; bump it when prompts or schemas change.
   EXTRACT_PROMPT_VERSION: z.string().default('1'),
   EXTRACT_CROP_DPI: z.string().default('200').transform(Number),
+  // Ollama preflight before extraction (services/ollama-guard.ts): check the
+  // server is up and has the model, wait for other models to leave the shared
+  // GPU, then load the model once. Waits are bounded; after OLLAMA_GPU_WAIT_MAX_MS
+  // the stage loads the model anyway (Ollama may evict the other one itself).
+  OLLAMA_PREFLIGHT: z
+    .string()
+    .default('true')
+    .transform((val) => val === 'true'),
+  OLLAMA_GPU_WAIT_MAX_MS: z.string().default('300000').transform(Number),
+  OLLAMA_GPU_WAIT_POLL_MS: z.string().default('15000').transform(Number),
+  // Keep under 300000: undici stops waiting for response headers after 5 minutes.
+  OLLAMA_WARMUP_TIMEOUT_MS: z.string().default('240000').transform(Number),
   // The 6 GB RTX A2000 cannot hold Surya and the VLM together: unload the
   // layout models before extract and the VLM after it.
   GPU_HANDOFF: z

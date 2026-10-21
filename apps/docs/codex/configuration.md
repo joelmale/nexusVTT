@@ -152,6 +152,27 @@ OCR_PROCESS_TIMEOUT=120000
 THUMBNAIL_TIMEOUT=30000
 ```
 
+### Ollama Preflight (extract stage)
+
+Before the extract stage's first model call, doc-processor checks the Ollama it
+will use: it is reachable, has `VLM_MODEL`, and (for the local Ollama, which
+shares one GPU with other tenants and with the layout models) no other model is
+loaded. If another model is resident it logs `GPU busy: <model> loaded in the
+shared Ollama. Waiting…` and polls; then it loads the model once with the same
+`num_ctx` the extraction calls use. Waits are bounded, so a model that never
+leaves cannot stall the stage forever.
+
+```bash
+OLLAMA_PREFLIGHT=true           # set false to skip the check
+OLLAMA_GPU_WAIT_MAX_MS=300000   # give up waiting for other models after 5 minutes and load anyway
+OLLAMA_GPU_WAIT_POLL_MS=15000   # how often to re-check /api/ps
+OLLAMA_WARMUP_TIMEOUT_MS=240000 # model load; keep under 300000 (Node stops waiting for headers at 5 minutes)
+```
+
+A missing model fails the document permanently with the `ollama pull` command
+to run; an unreachable server or a GPU that stays full fails the attempt and
+BullMQ retries. A remote Ollama (`OLLAMA_REMOTE_URL`) skips the GPU wait.
+
 ### Content Extraction
 
 ```bash

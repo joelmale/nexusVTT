@@ -2,6 +2,7 @@ import { Prisma } from '@prisma/client';
 import { prisma } from '../services/database.service';
 import { s3Service } from '../services/s3.service';
 import { loggingService } from '../services/logging.service';
+import { prepareOllama } from '../services/ollama-guard';
 import { entityResolverService } from '../services/entity-resolver.service';
 import { entityLinkingService } from '../services/entity-linking.service';
 import { layoutClientService } from '../services/layout-client.service';
@@ -133,6 +134,12 @@ export async function runExtractStage(
   let cachedCalls = 0;
 
   try {
+    if (env.OLLAMA_PREFLIGHT && candidates.length > 0) {
+      await prepareOllama(endpoint, {
+        info: (message) => loggingService.logInfo(jobId, message, 'extract'),
+        warn: (message) => loggingService.logWarn(jobId, message, 'extract'),
+      });
+    }
     for (const candidate of candidates) {
       const candidateCrops = candidate.type === 'monster' ? crops.get(candidate.key) : undefined;
       const images = candidateCrops?.map((crop) => crop.buffer);
