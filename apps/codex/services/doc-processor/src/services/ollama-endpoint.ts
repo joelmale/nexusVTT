@@ -9,7 +9,7 @@ import { env } from '../config/env';
 export type OllamaEndpoint = {
   url: string;
   model: string;
-  where: 'local' | 'remote';
+  where: 'local' | 'remote' | 'deepseek';
   sharesGpu: boolean;
 };
 

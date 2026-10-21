@@ -73,7 +73,7 @@ type ProcessingMetadata = {
     cachedCalls?: number;
     model?: string;
     /** Which Ollama served the stage: the server's own or OLLAMA_REMOTE_URL. */
-    ollama?: 'local' | 'remote';
+    ollama?: 'local' | 'remote' | 'deepseek';
     promptVersion?: string;
   };
   chunks?: {

@@ -330,6 +330,11 @@ services:
       # is reachable and has the model, otherwise OLLAMA_URL is used.
       OLLAMA_REMOTE_URL: ${CODEX_OLLAMA_REMOTE_URL:-}
       OLLAMA_REMOTE_MODEL: ${CODEX_OLLAMA_REMOTE_MODEL:-}
+      # Optional DeepSeek extraction backend (platform.deepseek.com). Text only, so
+      # `auto` sends spells and items there and keeps stat blocks on Ollama. Off
+      # until the key is set; set it as a secret in the stack environment.
+      EXTRACT_PROVIDER: ${CODEX_EXTRACT_PROVIDER:-auto}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
       JWT_SECRET: null
       AUTH_DISABLED: null
       EMBEDDINGS_PROVIDER: null

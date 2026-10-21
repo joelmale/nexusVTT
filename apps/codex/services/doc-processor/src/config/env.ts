@@ -70,6 +70,27 @@ const envSchema = z.object({
   // before every answer.
   VLM_MODEL: z.string().default('qwen3-vl:4b-instruct'),
   OLLAMA_KEEP_ALIVE: z.string().default('10m'),
+  // DeepSeek (platform.deepseek.com) as a cheap second extraction backend. Off
+  // until DEEPSEEK_API_KEY is set (put it in the stack environment as a secret).
+  // It is text-only, so DEEPSEEK_FOR defaults to spells and items; stat blocks
+  // need page crops and stay on the local VLM unless 'monster' is listed.
+  // auto: DeepSeek for DEEPSEEK_FOR, Ollama for the rest. ollama / deepseek send everything to one.
+  // Without a key, every mode uses Ollama.
+  EXTRACT_PROVIDER: z.enum(['auto', 'ollama', 'deepseek']).default('auto'),
+  DEEPSEEK_API_KEY: z.string().default(''),
+  DEEPSEEK_API_URL: z.string().default('https://api.deepseek.com'),
+  DEEPSEEK_MODEL: z.string().default('deepseek-chat'),
+  DEEPSEEK_FOR: z
+    .string()
+    .default('spell,item')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((part) => part.trim())
+        .filter((part): part is 'monster' | 'spell' | 'item' => ['monster', 'spell', 'item'].includes(part)),
+    ),
+  // Caps one answer so a runaway reply cannot spend the balance.
+  DEEPSEEK_MAX_TOKENS: z.string().default('4096').transform(Number),
   // Fixed per request so the host's OLLAMA_CONTEXT_LENGTH cannot inflate the
   // KV cache past what the GPU holds. Monster image crops + schemas + text
   // typically consume ~2-4k tokens, so 8192 accommodates dense stat blocks

@@ -3,6 +3,7 @@ import { prisma } from '../services/database.service';
 import { s3Service } from '../services/s3.service';
 import { loggingService } from '../services/logging.service';
 import { prepareOllama } from '../services/ollama-guard';
+import { deepseekEndpoint, envLlmRouting, providerFor, type LlmRouting } from '../services/deepseek';
 import { entityResolverService } from '../services/entity-resolver.service';
 import { entityLinkingService } from '../services/entity-linking.service';
 import { layoutClientService } from '../services/layout-client.service';
@@ -78,7 +79,8 @@ export type ExtractStageHooks = {
 export async function runExtractStage(
   jobId: string,
   document: ExtractStageDocument,
-  hooks: ExtractStageHooks = {}
+  hooks: ExtractStageHooks = {},
+  routing: LlmRouting = envLlmRouting()
 ): Promise<ExtractStageResult> {
   const pages = await prisma.documentPage.findMany({
     where: { documentId: document.id },
@@ -94,10 +96,26 @@ export async function runExtractStage(
   );
   await loggingService.logInfo(jobId, `Detected ${candidates.length} extraction candidates`, 'extract');
 
-  // Pick the endpoint once per stage; a retry re-probes, so a laptop that
+  // Which backend takes each candidate. DeepSeek only applies when a key is
+  // configured; everything else, including all stat blocks in `auto` mode
+  // (they need page crops), goes to Ollama.
+  const backendOf = (candidate: Candidate) => providerFor(routing, candidate.type);
+  const usesOllama = candidates.some((c) => backendOf(c) === 'ollama');
+  const usesDeepSeek = candidates.some((c) => backendOf(c) === 'deepseek');
+  const deepseek = routing.deepseek && usesDeepSeek ? deepseekEndpoint(routing.deepseek) : null;
+  if (candidates.length > 0) {
+    const toDeepSeek = candidates.filter((c) => backendOf(c) === 'deepseek').length;
+    await loggingService.logInfo(
+      jobId,
+      `Extraction routing (${routing.mode}): ${toDeepSeek} to DeepSeek${deepseek ? ` (${deepseek.model})` : ''}, ${candidates.length - toDeepSeek} to Ollama`,
+      'extract'
+    );
+  }
+
+  // Pick the Ollama endpoint once per stage; a retry re-probes, so a laptop that
   // drops out mid-stage is replaced by the local Ollama on the next attempt.
   let endpoint = localEndpoint();
-  if (candidates.length > 0) {
+  if (usesOllama) {
     const resolved = await resolveOllamaEndpoint();
     endpoint = resolved.endpoint;
     await loggingService.logInfo(
@@ -105,8 +123,10 @@ export async function runExtractStage(
       `Extraction via ${endpoint.where} Ollama ${endpoint.url} (${endpoint.model}): ${resolved.reason}`,
       'extract'
     );
+  } else if (deepseek) {
+    endpoint = deepseek;
   }
-  const handoff = env.GPU_HANDOFF && endpoint.sharesGpu && candidates.length > 0;
+  const handoff = env.GPU_HANDOFF && endpoint.sharesGpu && usesOllama;
   if (hooks.onCandidates) await hooks.onCandidates(candidates, endpoint);
 
   if (handoff) {
@@ -114,7 +134,8 @@ export async function runExtractStage(
     await loggingService.logInfo(jobId, `GPU handoff: layout models ${unloaded ? 'unloaded' : 'not unloaded'}`, 'extract');
   }
 
-  const monsters = candidates.filter((c) => c.type === 'monster');
+  // Only stat blocks that go to a vision model need crops.
+  const monsters = candidates.filter((c) => c.type === 'monster' && backendOf(c) === 'ollama');
   let crops = new Map<string, CropResult[]>();
   if (document.format === 'pdf' && monsters.length > 0) {
     try {
@@ -132,16 +153,22 @@ export async function runExtractStage(
   const counts: Record<EntityType, number> = { spell: 0, monster: 0, item: 0 };
   let needsReview = 0;
   let cachedCalls = 0;
+  let ollamaReady = !(env.OLLAMA_PREFLIGHT && usesOllama);
+  const spend = { calls: 0, promptTokens: 0, cacheHitTokens: 0, completionTokens: 0 };
 
   try {
-    if (env.OLLAMA_PREFLIGHT && candidates.length > 0) {
-      await prepareOllama(endpoint, {
-        info: (message) => loggingService.logInfo(jobId, message, 'extract'),
-        warn: (message) => loggingService.logWarn(jobId, message, 'extract'),
-      });
-    }
     for (const candidate of candidates) {
-      const candidateCrops = candidate.type === 'monster' ? crops.get(candidate.key) : undefined;
+      const viaDeepSeek = backendOf(candidate) === 'deepseek' && deepseek !== null;
+      if (!viaDeepSeek && !ollamaReady) {
+        // First Ollama-bound candidate: check the server and GPU now, not for
+        // a run that is all DeepSeek.
+        await prepareOllama(endpoint, {
+          info: (message) => loggingService.logInfo(jobId, message, 'extract'),
+          warn: (message) => loggingService.logWarn(jobId, message, 'extract'),
+        });
+        ollamaReady = true;
+      }
+      const candidateCrops = candidate.type === 'monster' && !viaDeepSeek ? crops.get(candidate.key) : undefined;
       const images = candidateCrops?.map((crop) => crop.buffer);
       if (hooks.onDispatch) {
         await hooks.onDispatch(candidate, (candidateCrops ?? []).map(({ buffer: _buffer, ...geometry }) => geometry));
@@ -155,9 +182,15 @@ export async function runExtractStage(
         type: candidate.type,
         text: candidate.markdown,
         images,
-        endpoint,
+        endpoint: viaDeepSeek ? deepseek : endpoint,
       });
       if (outcome.cached) cachedCalls += 1;
+      if (outcome.usage) {
+        spend.calls += 1;
+        spend.promptTokens += outcome.usage.promptTokens;
+        spend.cacheHitTokens += outcome.usage.cacheHitTokens;
+        spend.completionTokens += outcome.usage.completionTokens;
+      }
 
       const firstRegion = candidate.regions[0];
       const source = {
@@ -234,6 +267,13 @@ export async function runExtractStage(
 
       results.push(result);
       if (hooks.onCandidate) await hooks.onCandidate(result);
+    }
+    if (spend.calls > 0 && deepseek) {
+      await loggingService.logInfo(
+        jobId,
+        `DeepSeek ${deepseek.model}: ${spend.calls} calls, ${spend.promptTokens} prompt tokens (${spend.cacheHitTokens} cached), ${spend.completionTokens} completion tokens`,
+        'extract'
+      );
     }
   } finally {
     if (handoff) {

@@ -173,6 +173,34 @@ A missing model fails the document permanently with the `ollama pull` command
 to run; an unreachable server or a GPU that stays full fails the attempt and
 BullMQ retries. A remote Ollama (`OLLAMA_REMOTE_URL`) skips the GPU wait.
 
+### DeepSeek extraction backend (optional)
+
+doc-processor can send extraction calls to DeepSeek (platform.deepseek.com)
+instead of, or alongside, the local Ollama. It is inexpensive and does not touch
+the shared GPU, but it is **text-only** and your page text leaves the server.
+
+```bash
+DEEPSEEK_API_KEY=            # unset = off. Set it as a secret in the stack environment
+EXTRACT_PROVIDER=auto        # auto | ollama | deepseek
+DEEPSEEK_FOR=spell,item      # what `auto` sends to DeepSeek
+DEEPSEEK_MODEL=deepseek-chat
+DEEPSEEK_API_URL=https://api.deepseek.com
+DEEPSEEK_MAX_TOKENS=4096     # cap on one answer
+```
+
+- `auto` sends the types in `DEEPSEEK_FOR` to DeepSeek and everything else to
+  Ollama. Stat blocks stay on Ollama by default because they need page crops.
+- `deepseek` sends everything to DeepSeek. A stat block is then read from text
+  alone and flagged `needs_review` (`no_image_crop`).
+- `ollama` ignores the key. With no key, every mode uses Ollama.
+- A run that is all DeepSeek makes no Ollama calls: no preflight, no GPU handoff.
+- Bad key (401/403), no balance (402) and a malformed request (400/422) fail the
+  document permanently with a message that says what to fix. 429 and 5xx retry.
+- The stage log shows the routing and, per run, DeepSeek call and token counts.
+  The key is never logged or stored in results.
+- Results are cached per model, so switching provider re-extracts and switching
+  back reuses the earlier answers.
+
 ### Content Extraction
 
 ```bash

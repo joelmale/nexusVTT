@@ -67,6 +67,8 @@ vi.mock('../../services/monster-crop.service', () => ({
 import { env } from '../../config/env';
 import { entityLinkingService } from '../../services/entity-linking.service';
 import { runExtractStage } from '../extract-stage';
+import { loggingService } from '../../services/logging.service';
+import type { LlmRouting } from '../../services/deepseek';
 import { SRD_PAGES } from '../../extraction/__tests__/fixtures/pages';
 
 const recorded = (name: string) =>
@@ -99,6 +101,101 @@ describe('runExtractStage (v2)', () => {
     // The Ollama preflight has its own tests; the fixtures below only route /api/chat and /api/generate.
     (env as any).OLLAMA_PREFLIGHT = false;
     vi.mocked(entityLinkingService.linkSpellMentions).mockClear();
+  });
+
+  describe('DeepSeek routing', () => {
+    const KEY = 'sk-test-secret-key';
+    const deepseekConfig = { apiKey: KEY, url: 'https://api.deepseek.com', model: 'deepseek-chat', maxTokens: 4096 };
+    const route = (mode: 'auto' | 'ollama' | 'deepseek'): LlmRouting => ({ mode, deepseek: deepseekConfig, for: ['spell', 'item'] });
+
+    /** Routes by host: Ollama fixtures on /api/*, DeepSeek chat completions on api.deepseek.com. */
+    const bothBackends = () => {
+      const calls: Array<{ host: string; path: string; auth?: string }> = [];
+      globalThis.fetch = vi.fn(async (url: string, init: any) => {
+        const target = new URL(url);
+        calls.push({ host: target.host, path: target.pathname, auth: init?.headers?.Authorization });
+        if (target.host === 'api.deepseek.com') {
+          const body = JSON.parse(init.body);
+          const system: string = body.messages[0].content;
+          const fixture = system.includes('stat blocks') ? 'monster-gorgon.json' : system.includes('spell') ? 'spell-fireball.json' : 'item-bag-of-holding.json';
+          return {
+            ok: true,
+            status: 200,
+            json: async () => ({ choices: [{ message: { content: recorded(fixture).message.content } }], usage: { prompt_tokens: 100, completion_tokens: 20, prompt_cache_hit_tokens: 10 } }),
+            text: async () => '',
+          };
+        }
+        if (target.pathname === '/api/generate') return { ok: true, json: async () => ({}) };
+        const system: string = JSON.parse(init.body).messages[0].content;
+        const fixture = system.includes('stat blocks') ? 'monster-gorgon.json' : system.includes('spell') ? 'spell-fireball.json' : 'item-bag-of-holding.json';
+        return { ok: true, json: async () => recorded(fixture) };
+      }) as any;
+      return calls;
+    };
+
+    const logged = () => [...vi.mocked(loggingService.logInfo).mock.calls, ...vi.mocked(loggingService.logWarn).mock.calls].map((call) => String(call[1]));
+
+    beforeEach(() => {
+      vi.mocked(loggingService.logInfo).mockClear();
+      vi.mocked(loggingService.logWarn).mockClear();
+    });
+
+    it('auto: spells and items go to DeepSeek, the stat block stays on Ollama with its crop', async () => {
+      const calls = bothBackends();
+      const result = await runExtractStage('job-1', document, {}, route('auto'));
+
+      expect(result.counts).toEqual({ spell: 1, monster: 1, item: 1 });
+      const deepseekCalls = calls.filter((c) => c.host === 'api.deepseek.com');
+      const ollamaChats = calls.filter((c) => c.path === '/api/chat');
+      expect(deepseekCalls).toHaveLength(2);
+      expect(deepseekCalls.every((c) => c.path === '/chat/completions' && c.auth === `Bearer ${KEY}`)).toBe(true);
+      expect(ollamaChats).toHaveLength(1);
+      expect(ollamaChats[0].auth).toBeUndefined(); // the key never goes to Ollama
+      expect(logged()).toContain('Extraction routing (auto): 2 to DeepSeek (deepseek-chat), 1 to Ollama');
+      expect(logged()).toContain('DeepSeek deepseek-chat: 2 calls, 200 prompt tokens (20 cached), 40 completion tokens');
+      expect(db.rows.find((r) => r.type === 'monster').data.review.reasons).not.toContain('no_image_crop');
+    });
+
+    it('deepseek mode: no Ollama traffic at all, and the stat block is flagged for review without its crop', async () => {
+      (env as any).OLLAMA_PREFLIGHT = true;
+      const calls = bothBackends();
+      const result = await runExtractStage('job-1', document, {}, route('deepseek'));
+
+      expect(calls.every((c) => c.host === 'api.deepseek.com')).toBe(true); // no tags, ps, generate (load/unload) or chat
+      expect(handoff.layoutUnloads).toBe(0);
+      expect(result.counts).toEqual({ spell: 1, monster: 1, item: 1 });
+      expect(result.endpoint.where).toBe('deepseek');
+      const gorgon = db.rows.find((r) => r.type === 'monster').data;
+      expect(gorgon.review.status).toBe('needs_review');
+      expect(gorgon.review.reasons).toContain('no_image_crop');
+    });
+
+    it('ollama mode with a key set sends nothing to DeepSeek', async () => {
+      const calls = bothBackends();
+      await runExtractStage('job-1', document, {}, route('ollama'));
+      expect(calls.some((c) => c.host === 'api.deepseek.com')).toBe(false);
+      expect(calls.filter((c) => c.path === '/api/chat')).toHaveLength(3);
+    });
+
+    it('without a key every mode uses Ollama', async () => {
+      const calls = bothBackends();
+      await runExtractStage('job-1', document, {}, { mode: 'deepseek', deepseek: null, for: ['spell', 'item'] });
+      expect(calls.some((c) => c.host === 'api.deepseek.com')).toBe(false);
+    });
+
+    it('never writes the API key to the processing log', async () => {
+      bothBackends();
+      await runExtractStage('job-1', document, {}, route('auto'));
+      expect(logged().join(' | ')).not.toContain(KEY);
+    });
+
+    it('a rejected key fails the stage permanently and keeps the previous rows', async () => {
+      globalThis.fetch = vi.fn(async () => ({ ok: false, status: 401, text: async () => 'invalid key', json: async () => ({}) })) as any;
+      const error = await runExtractStage('job-1', document, {}, route('deepseek')).catch((e) => e);
+      expect(error.name).toBe('UnrecoverableError');
+      expect(error.message).toContain('rejected the API key');
+      expect(db.deletes).toBe(0);
+    });
   });
 
   it('runs the Ollama preflight before the first candidate, then still unloads the VLM', async () => {

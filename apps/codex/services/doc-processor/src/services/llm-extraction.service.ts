@@ -4,6 +4,7 @@ import { env } from '../config/env';
 import { s3Service } from './s3.service';
 import { ENTITY_LISTS, ENTITY_SCHEMAS, EntityType, ExtractedEntity } from '../extraction/schemas';
 import { localEndpoint, OllamaEndpoint } from './ollama-endpoint';
+import { extractWithDeepSeek, type DeepSeekUsage } from './deepseek';
 
 type ExtractInput = { text: string; images?: Buffer[] };
 
@@ -118,6 +119,8 @@ export type ExtractionOutcome = {
   promptVersion: string;
   /** Set when the model could not produce a response for this candidate (it is then kept for review). */
   failureReason?: 'model_repeat_limit';
+  /** Token usage of a paid API call; absent for Ollama and for cache hits. */
+  usage?: DeepSeekUsage;
 };
 
 /** sha256(contentHash, candidateBlockHash, model, promptVersion), as in the plan. */
@@ -149,13 +152,19 @@ export class LlmExtractionService {
 
     let raw: string;
     let cached = false;
+    let usage: DeepSeekUsage | undefined;
     const hit = await s3Service.downloadFileIfExists(s3Key);
     if (hit) {
       raw = (JSON.parse(hit.toString('utf-8')) as CachedExtraction).raw;
       cached = true;
     } else {
       const input = { text: params.text, images: params.images };
-      try {
+      if (endpoint.where === 'deepseek') {
+        // Text only: DeepSeek takes no images, so a stat block routed here is read without its crop.
+        const answer = await extractWithDeepSeek(list, SYSTEM_PROMPTS[params.type], { text: params.text }, endpoint);
+        raw = answer.raw;
+        usage = answer.usage;
+      } else try {
         raw = (await extractWithSchema(list, SYSTEM_PROMPTS[params.type], input, endpoint)).raw;
       } catch (error) {
         if (!(error instanceof OllamaRepeatLimitError)) throw error;
@@ -205,7 +214,7 @@ export class LlmExtractionService {
       parseFailed = true;
     }
 
-    return { entities, parseFailed, raw, cacheKey, cached, model, promptVersion };
+    return { entities, parseFailed, raw, cacheKey, cached, model, promptVersion, ...(usage ? { usage } : {}) };
   }
 
   /**
