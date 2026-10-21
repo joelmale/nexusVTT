@@ -104,6 +104,10 @@ function stampActor(record: Record<string, unknown>, stamp: ActorStamp, userId: 
     record.userId = userId;
     return;
   }
+  if (stamp === 'updatedBy') {
+    record.updatedBy = userId;
+    return;
+  }
   const documents = record.documents;
   if (!Array.isArray(documents)) return;
   for (const item of documents) {

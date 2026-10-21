@@ -25,7 +25,7 @@ const VALID_ENV = {
 describe('permissions', () => {
   it('matches the ADR role table', () => {
     expect(permissionsFor(['platform_admin'])).toEqual([
-      'codex:read', 'codex:write', 'codex:delete', 'codex:maintain', 'codex:operate', 'audit:read', 'admins:manage',
+      'codex:read', 'codex:write', 'codex:delete', 'codex:maintain', 'codex:operate', 'codex:settings', 'audit:read', 'admins:manage',
       'ops:read', 'assets:read', 'assets:write', 'assets:delete', 'rules:read', 'rules:write', 'rules:publish',
     ]);
     expect(permissionsFor(['content_editor'])).toEqual(['codex:read', 'codex:write', 'assets:read', 'assets:write', 'rules:read', 'rules:write']);

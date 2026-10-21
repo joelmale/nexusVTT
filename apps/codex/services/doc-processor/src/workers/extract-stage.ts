@@ -29,6 +29,8 @@ export type CandidateResult = {
   parseFailed: boolean;
   /** Model call time (0-ish when served from the extraction cache). */
   durationMs?: number;
+  /** The model that read this candidate (differs per candidate when routing is mixed). */
+  model?: string;
   entities: Array<{ name: string; entity: ExtractedEntity; review: Review }>;
 };
 
@@ -72,8 +74,8 @@ export type ExtractStageHooks = {
   onCandidates?: (candidates: Candidate[], endpoint: OllamaEndpoint) => Promise<void>;
   /** After each candidate is extracted and validated. */
   onCandidate?: (result: CandidateResult) => Promise<void>;
-  /** Just before a candidate goes to the model. */
-  onDispatch?: (candidate: Candidate, crops: Array<Omit<CropResult, 'buffer'>>) => Promise<void>;
+  /** Just before a candidate goes to the model; `target` is the backend that will read it. */
+  onDispatch?: (candidate: Candidate, crops: Array<Omit<CropResult, 'buffer'>>, target: OllamaEndpoint) => Promise<void>;
 };
 
 export async function runExtractStage(
@@ -171,7 +173,11 @@ export async function runExtractStage(
       const candidateCrops = candidate.type === 'monster' && !viaDeepSeek ? crops.get(candidate.key) : undefined;
       const images = candidateCrops?.map((crop) => crop.buffer);
       if (hooks.onDispatch) {
-        await hooks.onDispatch(candidate, (candidateCrops ?? []).map(({ buffer: _buffer, ...geometry }) => geometry));
+        await hooks.onDispatch(
+          candidate,
+          (candidateCrops ?? []).map(({ buffer: _buffer, ...geometry }) => geometry),
+          viaDeepSeek ? deepseek : endpoint
+        );
       }
       const callStart = Date.now();
       const outcome = await llmExtractionService.extractCandidate({
@@ -208,6 +214,7 @@ export async function runExtractStage(
         candidate,
         cached: outcome.cached,
         parseFailed: outcome.parseFailed,
+        model: outcome.model,
         entities: [],
         durationMs: Date.now() - callStart,
       };

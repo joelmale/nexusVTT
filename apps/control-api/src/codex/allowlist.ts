@@ -74,6 +74,7 @@ const WRITE: readonly Permission[] = ['codex:write'];
 const DELETE: readonly Permission[] = ['codex:delete'];
 const MAINTAIN: readonly Permission[] = ['codex:maintain'];
 const OPERATE: readonly Permission[] = ['codex:operate'];
+const SETTINGS: readonly Permission[] = ['codex:settings'];
 
 type RouteSpec = Omit<CodexRoute, 'recentAuth' | 'audited' | 'query' | 'body' | 'action' | 'resourceType'> &
   Partial<Pick<CodexRoute, 'recentAuth' | 'audited' | 'query' | 'body' | 'action' | 'resourceType'>>;
@@ -145,6 +146,15 @@ export const CODEX_ALLOWLIST: readonly CodexRoute[] = [
   mutate({ method: 'POST', path: 'admin/queue/jobs/:id/retry', permission: ['codex:write', 'codex:operate'], action: 'codex.queue.job_retry', resourceType: 'queue_job' }),
   mutate({ method: 'DELETE', path: 'admin/queue/jobs/:id', permission: MAINTAIN, action: 'codex.queue.job_remove', resourceType: 'queue_job' }),
   mutate({ method: 'POST', path: 'admin/queue/clean', permission: OPERATE, action: 'codex.queue.clean', resourceType: 'queue', body: json(1 * KB), auditBodyKeys: ['olderThanDays'] }),
+
+  // Settings: which backend reads each kind of entity, and the DeepSeek API key.
+  // platform_admin only. The key is write-only (no route returns it) and its
+  // routes never copy the body into the audit summary.
+  read('admin/settings/llm', 'codex_settings', { permission: SETTINGS }),
+  mutate({ method: 'PUT', path: 'admin/settings/llm', permission: SETTINGS, action: 'codex.settings.llm_update', resourceType: 'codex_settings', body: json(4 * KB), auditBodyKeys: ['mode'], stampActor: 'updatedBy' }),
+  mutate({ method: 'PUT', path: 'admin/settings/llm/key', permission: SETTINGS, recentAuth: true, action: 'codex.settings.llm_key_set', resourceType: 'codex_settings', body: json(1 * KB), stampActor: 'updatedBy' }),
+  mutate({ method: 'DELETE', path: 'admin/settings/llm/key', permission: SETTINGS, recentAuth: true, action: 'codex.settings.llm_key_remove', resourceType: 'codex_settings' }),
+  mutate({ method: 'POST', path: 'admin/settings/llm/test', permission: SETTINGS, action: 'codex.settings.llm_test', resourceType: 'codex_settings' }),
 
   // Deduplication
   read('deduplication/duplicates', 'document'),

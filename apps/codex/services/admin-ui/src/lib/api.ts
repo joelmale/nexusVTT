@@ -34,6 +34,7 @@ export type Permission =
   | 'codex:delete'
   | 'codex:maintain'
   | 'codex:operate'
+  | 'codex:settings'
   | 'ops:read'
   | 'assets:read'
   | 'assets:write'
@@ -204,6 +205,11 @@ export async function controlFetch(
 /** Drop-in replacement for `fetch('/api/...')` against doc-api. */
 export function codexFetch(apiPath: string, init?: RequestInit): Promise<Response> {
   return controlFetch(codexUrl(apiPath), init)
+}
+
+/** `codexFetch` that parses JSON and throws `ApiError` on any non-2xx status. */
+export function codexJson<T>(apiPath: string, init?: RequestInit): Promise<T> {
+  return controlJson<T>(codexUrl(apiPath), init)
 }
 
 /**

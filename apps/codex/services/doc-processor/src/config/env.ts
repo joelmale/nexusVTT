@@ -77,6 +77,9 @@ const envSchema = z.object({
   // auto: DeepSeek for DEEPSEEK_FOR, Ollama for the rest. ollama / deepseek send everything to one.
   // Without a key, every mode uses Ollama.
   EXTRACT_PROVIDER: z.enum(['auto', 'ollama', 'deepseek']).default('auto'),
+  // Passphrase that decrypts a DeepSeek key saved from the admin Settings page.
+  // Must match doc-api's. Unset: only a DEEPSEEK_API_KEY from the environment works.
+  CODEX_SETTINGS_KEY: z.string().optional(),
   DEEPSEEK_API_KEY: z.string().default(''),
   DEEPSEEK_API_URL: z.string().default('https://api.deepseek.com'),
   DEEPSEEK_MODEL: z.string().default('deepseek-chat'),

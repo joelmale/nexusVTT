@@ -106,7 +106,7 @@ describe('runExtractStage (v2)', () => {
   describe('DeepSeek routing', () => {
     const KEY = 'sk-test-secret-key';
     const deepseekConfig = { apiKey: KEY, url: 'https://api.deepseek.com', model: 'deepseek-chat', maxTokens: 4096 };
-    const route = (mode: 'auto' | 'ollama' | 'deepseek'): LlmRouting => ({ mode, deepseek: deepseekConfig, for: ['spell', 'item'] });
+    const route = (mode: 'auto' | 'ollama' | 'deepseek', routes: LlmRouting['routes'] = { monster: 'ollama', spell: 'deepseek', item: 'deepseek' }): LlmRouting => ({ mode, deepseek: deepseekConfig, routes });
 
     /** Routes by host: Ollama fixtures on /api/*, DeepSeek chat completions on api.deepseek.com. */
     const bothBackends = () => {
@@ -179,7 +179,7 @@ describe('runExtractStage (v2)', () => {
 
     it('without a key every mode uses Ollama', async () => {
       const calls = bothBackends();
-      await runExtractStage('job-1', document, {}, { mode: 'deepseek', deepseek: null, for: ['spell', 'item'] });
+      await runExtractStage('job-1', document, {}, { mode: 'deepseek', deepseek: null, routes: { monster: 'ollama', spell: 'deepseek', item: 'deepseek' } });
       expect(calls.some((c) => c.host === 'api.deepseek.com')).toBe(false);
     });
 

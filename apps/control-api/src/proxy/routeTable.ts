@@ -23,8 +23,9 @@ export type ForwardHeader = 'range' | 'if-match' | 'if-none-match';
  * value in a JSON body before it is forwarded.
  * - `userId`: top-level `userId`.
  * - `documents.uploadedBy`: `uploadedBy` on every element of `documents[]`.
+ * - `updatedBy`: top-level `updatedBy` (who last changed a setting).
  */
-export type ActorStamp = 'userId' | 'documents.uploadedBy';
+export type ActorStamp = 'userId' | 'documents.uploadedBy' | 'updatedBy';
 
 export interface ProxyRoute {
   method: HttpMethod;

@@ -581,6 +581,30 @@ Comprehensive system health.
 
 Health of specific service.
 
+### Extraction Settings
+
+Runtime extraction settings managing LLM backends (Ollama VLM vs DeepSeek) and secret API keys.
+
+#### GET /api/admin/settings/llm
+
+Get effective extraction settings, environment defaults, and DeepSeek connection/key status.
+
+#### PUT /api/admin/settings/llm
+
+Update routing preferences (mode: `auto` | `ollama` | `deepseek`, per-entity routes, model and max tokens).
+
+#### PUT /api/admin/settings/llm/key
+
+Save an encrypted DeepSeek API key (encrypted with `CODEX_SETTINGS_KEY`). Requires recent re-authentication when accessed through control-api.
+
+#### DELETE /api/admin/settings/llm/key
+
+Remove the saved DeepSeek API key. Requires recent re-authentication when accessed through control-api.
+
+#### POST /api/admin/settings/llm/test
+
+Test DeepSeek API connectivity and retrieve account balance without exposing the secret key.
+
 ---
 
 ## Error Responses

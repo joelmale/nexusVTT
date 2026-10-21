@@ -541,3 +541,16 @@ model LogEvent {
   @@index([service, timestamp(sort: Desc)])
   @@map("log_events")
 }
+
+/// Runtime settings edited from the admin console (currently the extraction LLM
+/// routing under key "llm"). `secret` holds an AES-256-GCM blob (see
+/// encryptSecret in @nexus/document-contracts) and is never returned by the API.
+model CodexSetting {
+  key       String   @id
+  value     Json     @default("{}")
+  secret    String?
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+
+  @@map("codex_settings")
+}

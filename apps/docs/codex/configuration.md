@@ -173,14 +173,23 @@ A missing model fails the document permanently with the `ollama pull` command
 to run; an unreachable server or a GPU that stays full fails the attempt and
 BullMQ retries. A remote Ollama (`OLLAMA_REMOTE_URL`) skips the GPU wait.
 
-### DeepSeek extraction backend (optional)
+### DeepSeek extraction backend & runtime settings (optional)
 
 doc-processor can send extraction calls to DeepSeek (platform.deepseek.com)
 instead of, or alongside, the local Ollama. It is inexpensive and does not touch
 the shared GPU, but it is **text-only** and your page text leaves the server.
 
+Routing and API keys can be managed directly at runtime via the Admin Console
+(**Documents > Extraction Settings**) without restarting services, or pre-configured
+via environment variables in `compose.yaml`:
+
 ```bash
-DEEPSEEK_API_KEY=            # unset = off. Set it as a secret in the stack environment
+# Passphrase (minimum 24 chars) to encrypt/decrypt stored API keys in the database.
+# Must match across doc-api and doc-processor. Required to store keys from the Admin Console.
+CODEX_SETTINGS_KEY=replace-with-passphrase-at-least-24-characters
+
+# Environment defaults (overridden by settings saved in the Admin Console):
+DEEPSEEK_API_KEY=            # unset = off. If set in env, it overrides any saved DB key.
 EXTRACT_PROVIDER=auto        # auto | ollama | deepseek
 DEEPSEEK_FOR=spell,item      # what `auto` sends to DeepSeek
 DEEPSEEK_MODEL=deepseek-chat
@@ -188,7 +197,11 @@ DEEPSEEK_API_URL=https://api.deepseek.com
 DEEPSEEK_MAX_TOKENS=4096     # cap on one answer
 ```
 
-- `auto` sends the types in `DEEPSEEK_FOR` to DeepSeek and everything else to
+- **Precedence**:
+  1. An environment `DEEPSEEK_API_KEY` always overrides a key saved in the database.
+  2. Routing saved in the Admin Console (`mode`, `routes`) overrides the environment defaults (`EXTRACT_PROVIDER`, `DEEPSEEK_FOR`).
+  3. If a saved key cannot be decrypted (e.g. `CODEX_SETTINGS_KEY` was changed or is unset), doc-processor safely logs a warning and falls back to Ollama without failing the job.
+- `auto` sends the configured entity types to DeepSeek and everything else to
   Ollama. Stat blocks stay on Ollama by default because they need page crops.
 - `deepseek` sends everything to DeepSeek. A stat block is then read from text
   alone and flagged `needs_review` (`no_image_crop`).

@@ -67,7 +67,7 @@ describe('Codex allowlist table', () => {
       expect(route.action).toMatch(/^codex\./);
       if (route.method !== 'GET' && route.path !== 'search/ask') expect(route.audited).toBe(true);
     }
-    expect(CODEX_ALLOWLIST).toHaveLength(48);
+    expect(CODEX_ALLOWLIST).toHaveLength(53);
   });
 
   it('rejects duplicate entries', () => {
@@ -232,6 +232,84 @@ describe('Codex proxy', () => {
     expect(serialized).not.toContain('classified');
     expect(serialized).not.toContain(admin.cookieValue);
     expect(serialized).not.toContain(admin.csrfToken);
+  });
+
+  describe('extraction LLM settings', () => {
+    const KEY = 'sk-live-abcdef1234567890wxyz';
+    const SETTINGS = '/control-api/v1/codex/admin/settings/llm';
+
+    it('is limited to platform_admin: every other role is denied before doc-api is contacted', async () => {
+      for (const role of ['content_editor', 'operator', 'auditor'] as const) {
+        const session = await h.sessionFor([role]);
+        for (const [method, path, body] of [
+          ['GET', SETTINGS, undefined],
+          ['PUT', SETTINGS, json({ mode: 'deepseek' })],
+          ['PUT', `${SETTINGS}/key`, json({ apiKey: KEY })],
+          ['DELETE', `${SETTINGS}/key`, undefined],
+          ['POST', `${SETTINGS}/test`, undefined],
+        ] as const) {
+          const res = await h.request(path, { method, session, ...(body ?? {}) });
+          expect(res.status, `${role} ${method} ${path}`).toBe(403);
+        }
+      }
+      expect(h.upstreamCalls).toHaveLength(0);
+    });
+
+    it('lets platform_admin read the settings', async () => {
+      const res = await h.request(SETTINGS, { session: admin });
+      expect(res.status).toBe(200);
+      expect(h.upstreamCalls[0]).toMatchObject({ method: 'GET', url: expect.stringContaining('/api/admin/settings/llm') });
+    });
+
+    it('stamps the real user over a client-supplied updatedBy and audits only the mode', async () => {
+      const res = await h.request(SETTINGS, {
+        method: 'PUT',
+        session: admin,
+        ...json({ mode: 'deepseek', routes: { monster: 'deepseek' }, updatedBy: 'someone-else' }),
+      });
+      expect(res.status).toBe(200);
+      expect(JSON.parse(h.upstreamCalls[0]!.body!.toString())).toMatchObject({ mode: 'deepseek', updatedBy: admin.user.id });
+      expect(h.store.audit).toHaveLength(1);
+      expect(h.store.audit[0]).toMatchObject({
+        action: 'codex.settings.llm_update',
+        outcome: 'success',
+        summary: { values: { mode: 'deepseek' } },
+      });
+    });
+
+    it('requires a recent login to set or remove the key', async () => {
+      const stale = await h.sessionFor(['platform_admin'], { recentAuthAgoMs: 60 * 60 * 1000 });
+      const set = await h.request(`${SETTINGS}/key`, { method: 'PUT', session: stale, ...json({ apiKey: KEY }) });
+      expect(set.status).toBe(401);
+      expect(await set.json()).toMatchObject({ error: 'reauth_required' });
+      const remove = await h.request(`${SETTINGS}/key`, { method: 'DELETE', session: stale });
+      expect(remove.status).toBe(401);
+      expect(h.upstreamCalls).toHaveLength(0);
+      expect(JSON.stringify(h.store.audit)).not.toContain(KEY);
+    });
+
+    it('forwards the key to doc-api but never writes it to the audit log', async () => {
+      const res = await h.request(`${SETTINGS}/key`, { method: 'PUT', session: admin, ...json({ apiKey: KEY }) });
+      expect(res.status).toBe(200);
+      expect(JSON.parse(h.upstreamCalls[0]!.body!.toString())).toEqual({ apiKey: KEY, updatedBy: admin.user.id });
+      expect(h.store.audit).toHaveLength(1);
+      expect(h.store.audit[0]).toMatchObject({ action: 'codex.settings.llm_key_set', outcome: 'success' });
+      const serialized = JSON.stringify(h.store.audit);
+      expect(serialized).not.toContain(KEY);
+      expect(serialized).not.toContain('sk-live');
+    });
+
+    it('audits removing the key as its own action', async () => {
+      const res = await h.request(`${SETTINGS}/key`, { method: 'DELETE', session: admin });
+      expect(res.status).toBe(200);
+      expect(h.store.audit[0]).toMatchObject({ action: 'codex.settings.llm_key_remove', outcome: 'success' });
+    });
+
+    it('rejects an oversized key body before contacting doc-api', async () => {
+      const res = await h.request(`${SETTINGS}/key`, { method: 'PUT', session: admin, ...json({ apiKey: 'x'.repeat(5000) }) });
+      expect(res.status).toBe(413);
+      expect(h.upstreamCalls).toHaveLength(0);
+    });
   });
 
   it('audits a doc-api conflict as conflict', async () => {

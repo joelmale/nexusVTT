@@ -275,6 +275,15 @@ services:
       # admin requests in production without it.
       RULES_ADMIN_SERVICE_TOKEN: ${RULES_ADMIN_SERVICE_TOKEN:?RULES_ADMIN_SERVICE_TOKEN is required, see deploy/homelab/.env.example}
       METRICS_AUTH_TOKEN: ${CODEX_METRICS_AUTH_TOKEN:?CODEX_METRICS_AUTH_TOKEN is required, see deploy/homelab/.env.example}
+      # Codex runtime extraction settings (Settings page in admin console).
+      # Passphrase to encrypt/decrypt stored DeepSeek API key in PostgreSQL.
+      CODEX_SETTINGS_KEY: ${CODEX_SETTINGS_KEY:-}
+      EXTRACT_PROVIDER: ${CODEX_EXTRACT_PROVIDER:-auto}
+      DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_API_URL: ${CODEX_DEEPSEEK_API_URL:-https://api.deepseek.com}
+      DEEPSEEK_MODEL: ${CODEX_DEEPSEEK_MODEL:-deepseek-chat}
+      DEEPSEEK_MAX_TOKENS: ${CODEX_DEEPSEEK_MAX_TOKENS:-4096}
+      DEEPSEEK_FOR: ${CODEX_DEEPSEEK_FOR:-spell,item}
     # Phase 0 containment (private-admin-control-plane.md invariant 2): doc-api
     # runs with AUTH_DISABLED=true, so it must never sit on a network shared
     # with untrusted containers. homelab-net is the flat bridge shared with
@@ -332,9 +341,15 @@ services:
       OLLAMA_REMOTE_MODEL: ${CODEX_OLLAMA_REMOTE_MODEL:-}
       # Optional DeepSeek extraction backend (platform.deepseek.com). Text only, so
       # `auto` sends spells and items there and keeps stat blocks on Ollama. Off
-      # until the key is set; set it as a secret in the stack environment.
+      # until the key is set; set it as a secret in the stack environment or saved
+      # in the admin console.
+      CODEX_SETTINGS_KEY: ${CODEX_SETTINGS_KEY:-}
       EXTRACT_PROVIDER: ${CODEX_EXTRACT_PROVIDER:-auto}
       DEEPSEEK_API_KEY: ${DEEPSEEK_API_KEY:-}
+      DEEPSEEK_API_URL: ${CODEX_DEEPSEEK_API_URL:-https://api.deepseek.com}
+      DEEPSEEK_MODEL: ${CODEX_DEEPSEEK_MODEL:-deepseek-chat}
+      DEEPSEEK_MAX_TOKENS: ${CODEX_DEEPSEEK_MAX_TOKENS:-4096}
+      DEEPSEEK_FOR: ${CODEX_DEEPSEEK_FOR:-spell,item}
       JWT_SECRET: null
       AUTH_DISABLED: null
       EMBEDDINGS_PROVIDER: null

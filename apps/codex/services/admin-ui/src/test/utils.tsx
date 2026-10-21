@@ -14,6 +14,7 @@ export const ROLE_PERMISSIONS: Record<string, Permission[]> = {
     'codex:delete',
     'codex:maintain',
     'codex:operate',
+    'codex:settings',
     'ops:read',
     'assets:read',
     'assets:write',

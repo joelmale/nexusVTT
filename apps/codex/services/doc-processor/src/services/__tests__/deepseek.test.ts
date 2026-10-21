@@ -12,7 +12,8 @@ import {
 } from '../deepseek';
 
 const config = { apiKey: 'sk-test-secret', url: 'https://api.deepseek.com/', model: 'deepseek-chat', maxTokens: 4096 };
-const routing = (overrides: Partial<LlmRouting> = {}): LlmRouting => ({ mode: 'auto', deepseek: config, for: ['spell', 'item'], ...overrides });
+const SPELLS_AND_ITEMS = { monster: 'ollama', spell: 'deepseek', item: 'deepseek' } as const;
+const routing = (overrides: Partial<LlmRouting> = {}): LlmRouting => ({ mode: 'auto', deepseek: config, routes: SPELLS_AND_ITEMS, ...overrides });
 
 describe('providerFor', () => {
   it('auto: text types go to DeepSeek, stat blocks stay on Ollama', () => {
@@ -21,9 +22,11 @@ describe('providerFor', () => {
     expect(providerFor(routing(), 'monster')).toBe('ollama');
   });
 
-  it('auto follows the configured type list', () => {
-    expect(providerFor(routing({ for: ['monster'] }), 'monster')).toBe('deepseek');
-    expect(providerFor(routing({ for: ['monster'] }), 'spell')).toBe('ollama');
+  it('auto follows the per-type routes, including a stat block sent to DeepSeek', () => {
+    const onlyMonsters = routing({ routes: { monster: 'deepseek', spell: 'ollama', item: 'ollama' } });
+    expect(providerFor(onlyMonsters, 'monster')).toBe('deepseek');
+    expect(providerFor(onlyMonsters, 'spell')).toBe('ollama');
+    expect(providerFor(onlyMonsters, 'item')).toBe('ollama');
   });
 
   it('deepseek mode sends everything there, ollama mode sends nothing', () => {
@@ -63,7 +66,7 @@ describe('envLlmRouting', () => {
     expect(envLlmRouting()).toEqual({
       mode: 'deepseek',
       deepseek: { apiKey: 'sk-abc', url: 'https://api.deepseek.com', model: 'deepseek-chat', maxTokens: 2000 },
-      for: ['spell'],
+      routes: { monster: 'ollama', spell: 'deepseek', item: 'ollama' },
     });
   });
 });

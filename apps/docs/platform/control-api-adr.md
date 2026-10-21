@@ -94,6 +94,7 @@ when it is missing, and control-api refuses to start without it.
 | `codex:delete`    | Delete documents, bulk delete, merge duplicates, delete tags         |
 | `codex:maintain`  | Index recreate/reindex, queue clean, validation auto-fix             |
 | `codex:operate`   | Queue retry/clean and alert acknowledge/resolve (a slice of `codex:maintain`) |
+| `codex:settings`  | Read and change the extraction LLM routing and the DeepSeek API key (`platform_admin` only; setting or removing the key needs recent authentication) |
 | `audit:read`      | Read the audit log                                                   |
 | `admins:manage`   | Grant and revoke roles                                               |
 | `ops:read`        | Read the operations summary                                          |
@@ -111,7 +112,8 @@ when it is missing, and control-api refuses to start without it.
 | `operator`       | `codex:read`, `codex:operate`, `audit:read`, `ops:read`, `assets:read`          |
 | `auditor`        | `codex:read`, `audit:read`, `ops:read`, `assets:read`, `rules:read`             |
 
-`codex:delete`, `codex:maintain` index operations, `admins:manage`, asset
+`codex:delete`, `codex:maintain` index operations, `admins:manage`, setting or
+removing the DeepSeek key (`codex:settings`), asset
 permanent delete, and rules publish/rollback/archive/unarchive also require
 **recent authentication**: a Google login within the last 10 minutes.
 Otherwise the API returns `401` with `{"error":"reauth_required"}`.

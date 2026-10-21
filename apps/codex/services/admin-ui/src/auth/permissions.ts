@@ -40,6 +40,7 @@ export const ACTION_PERMISSIONS = {
   // Control plane
   viewAudit: ['audit:read'],
   manageAdmins: ['admins:manage'],
+  manageSettings: ['codex:settings'],
 } as const satisfies Record<string, readonly Permission[]>
 
 export type AdminAction = keyof typeof ACTION_PERMISSIONS

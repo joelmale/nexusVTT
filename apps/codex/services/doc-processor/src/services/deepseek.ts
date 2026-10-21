@@ -15,7 +15,7 @@ import type { OllamaEndpoint } from './ollama-endpoint';
  * Authorization header and never logged, serialized or stored in results.
  */
 
-/** `auto` = DeepSeek for the types in `for`, Ollama for the rest. */
+/** `auto` = each entity type goes where `routes` says; the other modes send everything to one backend. */
 export type LlmProviderMode = 'auto' | 'ollama' | 'deepseek';
 
 export type DeepSeekConfig = {
@@ -30,9 +30,16 @@ export type LlmRouting = {
   mode: LlmProviderMode;
   /** Null when no API key is configured: DeepSeek is unavailable whatever the mode. */
   deepseek: DeepSeekConfig | null;
-  /** Entity types sent to DeepSeek in `auto` mode. */
-  for: EntityType[];
+  /** Where each entity type goes in `auto` mode. */
+  routes: Record<EntityType, 'ollama' | 'deepseek'>;
 };
+
+/** Per-type routes from the DEEPSEEK_FOR list (the environment's way to say the same thing). */
+export const routesFromList = (types: readonly EntityType[]): LlmRouting['routes'] => ({
+  monster: types.includes('monster') ? 'deepseek' : 'ollama',
+  spell: types.includes('spell') ? 'deepseek' : 'ollama',
+  item: types.includes('item') ? 'deepseek' : 'ollama',
+});
 
 export type DeepSeekUsage = { promptTokens: number; completionTokens: number; cacheHitTokens: number };
 
@@ -44,7 +51,7 @@ export const envLlmRouting = (): LlmRouting => {
     deepseek: apiKey
       ? { apiKey, url: env.DEEPSEEK_API_URL, model: env.DEEPSEEK_MODEL, maxTokens: env.DEEPSEEK_MAX_TOKENS }
       : null,
-    for: env.DEEPSEEK_FOR,
+    routes: routesFromList(env.DEEPSEEK_FOR),
   };
 };
 
@@ -52,7 +59,7 @@ export const envLlmRouting = (): LlmRouting => {
 export const providerFor = (routing: LlmRouting, type: EntityType): 'deepseek' | 'ollama' => {
   if (!routing.deepseek || routing.mode === 'ollama') return 'ollama';
   if (routing.mode === 'deepseek') return 'deepseek';
-  return routing.for.includes(type) ? 'deepseek' : 'ollama';
+  return routing.routes[type];
 };
 
 /** A pseudo endpoint so the stage and the extraction cache treat DeepSeek like any other model. */

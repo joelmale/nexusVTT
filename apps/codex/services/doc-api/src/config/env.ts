@@ -54,6 +54,25 @@ const envSchema = z.object({
   // LLM
   LLM_PROVIDER: z.enum(['none']).default('none'),
   LLM_MODEL: z.string().optional(),
+
+  // Extraction LLM settings page (services/settings.service.ts). doc-processor
+  // reads the same variables; the saved settings override the routing defaults,
+  // but DEEPSEEK_API_KEY from the environment always wins over a saved key.
+  CODEX_SETTINGS_KEY: z.string().optional(),
+  EXTRACT_PROVIDER: z.enum(['auto', 'ollama', 'deepseek']).default('auto'),
+  DEEPSEEK_API_KEY: z.string().default(''),
+  DEEPSEEK_API_URL: z.string().default('https://api.deepseek.com'),
+  DEEPSEEK_MODEL: z.string().default('deepseek-chat'),
+  DEEPSEEK_MAX_TOKENS: z.string().default('4096').transform(Number),
+  DEEPSEEK_FOR: z
+    .string()
+    .default('spell,item')
+    .transform((value) =>
+      value
+        .split(',')
+        .map((part) => part.trim())
+        .filter((part): part is 'monster' | 'spell' | 'item' => ['monster', 'spell', 'item'].includes(part)),
+    ),
 });
 
 export const env = envSchema.parse(process.env);

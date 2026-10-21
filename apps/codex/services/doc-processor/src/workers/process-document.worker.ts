@@ -30,6 +30,7 @@ import {
 } from './stage-utils';
 import { runLayoutStage } from './layout-stage';
 import { runExtractStage } from './extract-stage';
+import { loadLlmRouting } from '../services/llm-settings.service';
 import { detectCandidates } from '../extraction/candidates';
 import {
   processingEvents,
@@ -730,6 +731,9 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
         if (version === 'v2') {
           // The stage picks local or remote Ollama; report the model it chose.
           let model = env.VLM_MODEL;
+          // Saved Settings over the environment; a settings problem never fails the stage.
+          const { routing, notes } = await loadLlmRouting();
+          for (const note of notes) await loggingService.logWarn(jobId, note);
           const result = await runExtractStage(jobId, document, {
             onCandidates: async (candidates, endpoint) => {
               model = endpoint.model;
@@ -755,9 +759,10 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
                 },
               });
             },
-            onDispatch: async (candidate, crops) => {
+            onDispatch: async (candidate, crops, target) => {
               if (!runId) return;
               const crop = crops[0];
+              const backend = target.where === 'deepseek' ? 'DeepSeek' : 'Ollama';
               await processingEvents.emit({
                 documentId,
                 runId,
@@ -767,19 +772,19 @@ export async function processDocumentWorker(job: Job<ProcessDocumentJob>): Promi
                 message: crop
                   ? `Cropped ${candidate.type === 'monster' ? 'stat block' : candidate.type} "${candidate.title}" ` +
                     `[x: ${crop.left}, y: ${crop.top}, w: ${crop.width}, h: ${crop.height}]` +
-                    `${crops.length > 1 ? ` + ${crops.length - 1} more` : ''} -> dispatched to Ollama (${model})`
-                  : `Dispatched ${candidate.type} "${candidate.title}" (p. ${candidate.pageNumber}) as text to Ollama (${model})`,
-                payload: { candidateKey: candidate.key, type: candidate.type, model, crops },
+                    `${crops.length > 1 ? ` + ${crops.length - 1} more` : ''} -> dispatched to ${backend} (${target.model})`
+                  : `Dispatched ${candidate.type} "${candidate.title}" (p. ${candidate.pageNumber}) as text to ${backend} (${target.model})`,
+                payload: { candidateKey: candidate.key, type: candidate.type, model: target.model, crops },
               });
             },
             onCandidate: async (candidateResult) => {
               if (!runId) return;
-              const events = candidateEvents(candidateResult, model)
+              const events = candidateEvents(candidateResult, candidateResult.model ?? model)
                 .map((event) => ({ ...event, documentId, runId: runId as string }));
               await processingEvents.emitMany(events);
               await processingEvents.emitTelemetry(documentId, runId, 'extract', readGpu);
             },
-          });
+          }, routing);
           await loggingService.logInfo(
             jobId,
             `Extracted ${result.counts.spell} spells, ${result.counts.monster} monsters, ${result.counts.item} items ` +

@@ -106,3 +106,5 @@ export const DOCUMENT_JOB_DEFAULT_OPTIONS = {
  * is waiting/active/delayed can be detected. No ':' (BullMQ rejects it).
  */
 export const ingestJobId = (documentId: string): string => `ingest-${documentId}`;
+
+export * from './settings';

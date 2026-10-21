@@ -29,6 +29,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { path: '/deduplication', label: 'Deduplication' },
       { path: '/data-quality', label: 'Data Quality' },
       { path: '/logs', label: 'Logs' },
+      { path: '/settings', label: 'Extraction Settings' },
     ],
   },
   {
@@ -71,11 +72,16 @@ export const NAV_GROUPS: NavGroup[] = [
 ]
 
 export function visibleNavGroups(permissions: readonly string[]): NavGroup[] {
-  return NAV_GROUPS.filter((group) => hasAnyPermission(permissions, ACTION_PERMISSIONS[group.action])).map((group) =>
-    group.id === 'assets' && !hasAnyPermission(permissions, ACTION_PERMISSIONS.editAssets)
-      ? { ...group, items: group.items.filter((item) => item.path !== '/assets/upload') }
-      : group,
-  )
+  return NAV_GROUPS.filter((group) => hasAnyPermission(permissions, ACTION_PERMISSIONS[group.action])).map((group) => {
+    let items = group.items
+    if (group.id === 'assets' && !hasAnyPermission(permissions, ACTION_PERMISSIONS.editAssets)) {
+      items = items.filter((item) => item.path !== '/assets/upload')
+    }
+    if (group.id === 'documents' && !hasAnyPermission(permissions, ACTION_PERMISSIONS.manageSettings)) {
+      items = items.filter((item) => item.path !== '/settings')
+    }
+    return items === group.items ? group : { ...group, items }
+  })
 }
 
 /** The group owning `pathname`: exact item match first, then the longest prefix. */

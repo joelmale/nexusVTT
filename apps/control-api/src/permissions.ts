@@ -21,6 +21,7 @@ export const PERMISSIONS = [
   'codex:delete',
   'codex:maintain',
   'codex:operate',
+  'codex:settings',
   'audit:read',
   'admins:manage',
   'ops:read',
