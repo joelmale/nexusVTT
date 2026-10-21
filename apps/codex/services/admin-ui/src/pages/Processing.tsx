@@ -626,7 +626,7 @@ export default function Processing() {
                           {getStatusBadge(job.status)}
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                          {job.progress}%
+                          {job.status === 'completed' ? 100 : job.progress}%
                         </td>
                         <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
                           {job.attempts}/{job.maxAttempts ?? 1}

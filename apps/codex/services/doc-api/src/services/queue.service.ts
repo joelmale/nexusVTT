@@ -48,7 +48,7 @@ export async function getJobStatus(jobId: string) {
   }
 
   const state = await job.getState();
-  const progress = job.progress;
+  const progress = state === 'completed' ? 100 : (typeof job.progress === 'number' ? job.progress : 0);
   const failedReason = job.failedReason;
 
   return {
@@ -123,7 +123,7 @@ export async function getJobs(filters: {
         stage: job.data?.stage || job.name.replace(/^process-/, ''),
         documentId: job.data.documentId,
         status: state,
-        progress: job.progress,
+        progress: state === 'completed' ? 100 : (typeof job.progress === 'number' ? job.progress : 0),
         // BullMQ has no `attempts` property on Job: attemptsMade counts finished
         // attempts and opts.attempts is the budget.
         attempts: job.attemptsMade,
@@ -163,11 +163,13 @@ export async function removeJob(jobId: string) {
 
 // Clean old jobs
 export async function cleanOldJobs(olderThanDays: number = 7) {
-  const cutoff = Date.now() - (olderThanDays * 24 * 60 * 60 * 1000);
+  // BullMQ queue.clean(grace, limit, type) takes `grace` in milliseconds.
+  // BullMQ computes `timestamp = Date.now() - grace`, deleting jobs finished before that timestamp.
+  const graceMs = olderThanDays * 24 * 60 * 60 * 1000;
 
   const [completedRemoved, failedRemoved] = await Promise.all([
-    documentQueue.clean(cutoff, 1000, 'completed'),
-    documentQueue.clean(cutoff, 1000, 'failed'),
+    documentQueue.clean(graceMs, 1000, 'completed'),
+    documentQueue.clean(graceMs, 1000, 'failed'),
   ]);
 
   return {
