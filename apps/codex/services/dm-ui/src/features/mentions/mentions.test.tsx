@@ -1,6 +1,6 @@
 import { fireEvent, screen, within } from '@testing-library/react';
 import { useState } from 'react';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 
 import { MarkdownBody } from '@/features/notes/MarkdownBody';
 import { renderInSection } from '@/features/section-shell/testUtils';
@@ -108,6 +108,48 @@ describe('MentionTextarea', () => {
     expect(value()).toBe(
       'Meet @[Captain Serin Dhal](ref:npc-captain-serin) soon!',
     );
+  });
+
+  it('offers Create from context when typing an unknown name in editable mode', async () => {
+    const addItem = vi.fn().mockResolvedValue({ ok: true, id: 'npc-new-123' });
+    const { user } = renderInSection(<Field />, {
+      store: { editable: true, addItem },
+    });
+
+    await user.type(body(), 'Speak to @Varis');
+    expect(screen.getByRole('listbox')).toBeVisible();
+
+    const createNpcOption = screen.getByRole('option', {
+      name: /Create NPC “Varis”/i,
+    });
+    expect(createNpcOption).toBeVisible();
+    expect(
+      screen.getByRole('option', { name: /Create Location “Varis”/i }),
+    ).toBeVisible();
+    expect(
+      screen.getByRole('option', { name: /Create Item “Varis”/i }),
+    ).toBeVisible();
+
+    await user.click(createNpcOption);
+
+    expect(addItem).toHaveBeenCalledWith('npc', expect.objectContaining({
+      name: 'Varis',
+    }));
+    expect(value()).toBe('Speak to @[Varis](ref:npc-new-123) ');
+  });
+
+  it('does not offer create options when matching entities exist', async () => {
+    const addItem = vi.fn();
+    const { user } = renderInSection(<Field />, {
+      store: { editable: true, addItem },
+    });
+
+    await user.type(body(), '@serin');
+    expect(screen.getByRole('listbox')).toBeVisible();
+    expect(
+      screen.getByRole('option', { name: /Captain Serin Dhal/i }),
+    ).toBeVisible();
+    expect(screen.queryByRole('option', { name: /Create NPC/i })).toBeNull();
   });
 });
 

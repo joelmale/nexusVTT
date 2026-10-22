@@ -41,3 +41,14 @@
   color: var(--studio-text-muted);
   font-size: 12px;
 }
+
+.createOption {
+  color: var(--studio-primary);
+  font-weight: 500;
+}
+
+.createLabel {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
