@@ -16,6 +16,7 @@ import { registerApiRoutes } from '../routes/api.js';
 import { createAssetRouter } from '../routes/assets.routes.js';
 import { createAuthRouter } from '../routes/auth.routes.js';
 import { createCampaignPrepRouter } from '../routes/campaignPrep.routes.js';
+import { createDashboardRouter } from '../routes/dashboard.routes.js';
 import { createDocumentRoutes } from '../routes/documents.js';
 import { createHealthRouter } from '../routes/health.routes.js';
 import { createMetricsRouter } from '../routes/metrics.routes.js';
@@ -160,6 +161,7 @@ export function createHttpApp({
       ),
     }),
   );
+  app.use('/api', createDashboardRouter({ db }));
   app.use(
     createMetricsRouter({
       deltaSyncMetrics,
