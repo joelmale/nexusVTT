@@ -17,6 +17,10 @@ import { SectionSummary } from '@/features/section-shell/SectionSummary';
 import { StatusBadge } from '@/features/section-shell/StatusBadge';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 
+import { SecretsPane } from '@/features/secrets/SecretsPane';
+import layoutStyles from '@/features/section-shell/SectionLayout.module.css';
+import tabStyles from '@/features/section-shell/SectionTabs.module.css';
+
 import { MarkdownBody } from './MarkdownBody';
 import styles from './NotesSection.module.css';
 import {
@@ -182,12 +186,62 @@ function NoteDetail({ note }: { note: CampaignNote }) {
 export function NotesSection() {
   const { bundle, basePath, store } = useSectionBundle();
   const { noteId } = useParams<{ noteId?: string }>();
-  const { get } = useSectionQuery();
+  const { get, set, clear } = useSectionQuery();
+
+  const currentTab = get('tab') === 'secrets' ? 'secrets' : 'notes';
+  const secretsCount = (bundle.secrets ?? []).length;
+  const unrevealedCount = (bundle.secrets ?? []).filter((s) => !s.revealed).length;
 
   const model = useMemo(
     () => buildNotesModel(bundle, { q: get('q'), anchor: get('anchor') }),
     [bundle, get],
   );
+
+  const tabsElement = (
+    <div aria-label="Notes tabs" className={tabStyles.tablist} role="tablist">
+      <button
+        aria-selected={currentTab === 'notes'}
+        className={`${tabStyles.tab} ${currentTab === 'notes' ? tabStyles.selected : ''}`}
+        onClick={() => clear()}
+        role="tab"
+        type="button"
+      >
+        <span>Notes</span>
+        <span className={tabStyles.count}>{model.total}</span>
+      </button>
+      <button
+        aria-selected={currentTab === 'secrets'}
+        className={`${tabStyles.tab} ${currentTab === 'secrets' ? tabStyles.selected : ''}`}
+        onClick={() => {
+          clear();
+          set('tab', 'secrets');
+        }}
+        role="tab"
+        type="button"
+      >
+        <span>Secrets & Clues</span>
+        <span className={tabStyles.count}>
+          {secretsCount} ({unrevealedCount} unrevealed)
+        </span>
+      </button>
+    </div>
+  );
+
+  if (currentTab === 'secrets') {
+    return (
+      <section className={layoutStyles.section} data-section="secrets">
+        <header className={layoutStyles.header}>
+          <div className={layoutStyles.titleRow}>
+            <h1>Notes & Secrets</h1>
+          </div>
+          <div className={layoutStyles.tabs}>{tabsElement}</div>
+        </header>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <SecretsPane />
+        </div>
+      </section>
+    );
+  }
 
   const selected = noteId
     ? bundle.notes.find((note) => note.id === noteId)
@@ -213,6 +267,7 @@ export function NotesSection() {
   return (
     <SectionLayout
       count={model.total}
+      tabs={tabsElement}
       detail={selected ? <NoteDetail note={selected} /> : undefined}
       empty={
         readOnlyEmpty ? (

@@ -196,7 +196,7 @@ flowchart LR
 ### M6 — Studio toolkit, History & Homebrew — ⏳ IN PROGRESS
 In this order:
 - [x] **#1 Next Session hub & "Use in next session" quick action**: Enriched Next Session model with `strongStart`, planned scenes/beats timeline, unrevealed secrets & clues, full cast, encounters, and scheduled loot rewards. Added live "Export Run Sheet" action opening `RunSheetExportModal` directly from the overview. Built reusable `UseInNextSessionButton` toggle component with real-time bundleStore linking and read-only indicators, integrated into detail headers for NPCs, Encounters, Locations (World), Quests, and Items (`ItemCard`).
-- [ ] **#3 Secrets & clues**
+- [x] **#3 Secrets & clues**: Built full-featured Secrets & Clues manager (`secretsModel.ts`, `SecretRow.tsx`, `SecretModal.tsx`, `SecretsPane.tsx`). Interactive reveal toggling, session linking, entity attachment picker supporting NPCs, Locations, Quests, Encounters, and Items. FilterBar with status/entity facets and live count badges. Integrated into `NotesSection` with WAI-ARIA tab switcher between Notes and Secrets & Clues. 100% test pass rate with >85% line coverage (`SecretRow` 100%, `SecretsPane` 86.5%, `secretsModel` 93.3%, `SecretModal` 81.1%, `NotesSection` 93.3%).
 - [ ] **#5 Create from context**
 - [ ] **#4 Quick-capture inbox**
 - [ ] **#7 Consistent rich rows**
@@ -215,6 +215,11 @@ Plus the polish checklist (empty states, Cmd+K actions, "Saved · 2 s ago" indic
 - `UseInNextSessionButton.tsx`, `UseInNextSessionButton.module.css`, `UseInNextSessionButton.test.tsx`
 - `entityIndex.ts`, `entityMeta.ts`
 - `NpcsSection.tsx`, `EncountersSection.tsx`, `WorldSection.tsx`, `QuestsSection.tsx`, `ItemCard.tsx`
+- `secretsModel.ts`, `secretsModel.test.ts`
+- `SecretRow.tsx`, `SecretRow.module.css`, `SecretRow.test.tsx`
+- `SecretModal.tsx`, `SecretModal.module.css`, `SecretModal.test.tsx`
+- `SecretsPane.tsx`, `SecretsPane.module.css`, `SecretsPane.test.tsx`
+- `NotesSection.tsx`, `NotesSection.test.tsx`
 
 ---
 

@@ -226,4 +226,26 @@ describe('NotesSection real campaign', () => {
     await user.type(screen.getByRole('searchbox'), 'zzz');
     expect(screen.getByText('No notes match these filters.')).toBeVisible();
   });
+
+  it('switches between Notes and Secrets & Clues tabs', async () => {
+    const b = editableBundle();
+    const { user } = renderInSection(ROUTED, {
+      path: NOTES,
+      store: { bundle: b },
+    });
+
+    expect(screen.getByRole('navigation', { name: 'Note list' })).toBeVisible();
+
+    const secretsTab = screen.getByRole('tab', { name: /Secrets & Clues/i });
+    await user.click(secretsTab);
+
+    expect(screen.getByTestId('secrets-pane')).toBeVisible();
+    expect(screen.queryByRole('navigation', { name: 'Note list' })).toBeNull();
+
+    const notesTab = screen.getByRole('tab', { name: /^Notes/i });
+    await user.click(notesTab);
+
+    expect(screen.getByRole('navigation', { name: 'Note list' })).toBeVisible();
+    expect(screen.queryByTestId('secrets-pane')).toBeNull();
+  });
 });

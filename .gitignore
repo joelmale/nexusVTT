@@ -219,7 +219,7 @@ apps/vtt/docker/volumes/
 
 # Security
 .env.secret
-secrets/
+/secrets/
 *.pem
 *.key
 *.crt

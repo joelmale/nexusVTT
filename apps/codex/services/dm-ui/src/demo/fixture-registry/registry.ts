@@ -14,6 +14,7 @@ import type {
   CampaignFixtureBundle,
   CampaignHandout,
   CampaignNote,
+  CampaignSecret,
   LibraryObject,
   SceneTemplateRef,
 } from './types';
@@ -79,6 +80,17 @@ function deriveHandouts(fixture: FixtureModule): CampaignHandout[] {
   });
 }
 
+function deriveSecrets(fixture: FixtureModule): CampaignSecret[] {
+  return fixture.clues.map((clue) => ({
+    id: `secret-${clue.id}`,
+    campaignId: fixture.campaign.id,
+    text: `${clue.title}: ${clue.meaning}`,
+    attachedTo: clue.relatedQuestIds.map((id) => ({ kind: 'quest', id })),
+    revealed: clue.status === 'resolved',
+    revealedInSessionId: undefined,
+  }));
+}
+
 function bundleFromFixture(
   entry: CampaignCatalogEntry,
   fixture: FixtureModule,
@@ -89,6 +101,7 @@ function bundleFromFixture(
       fixture.sceneTemplates ?? deriveSceneTemplates(fixture.libraryObjects),
     handouts: deriveHandouts(fixture),
     notes: deriveNotes(fixture),
+    secrets: deriveSecrets(fixture),
     slug: entry.slug,
     campaignId: fixture.campaign.id,
     lifecycle: entry.lifecycle,
