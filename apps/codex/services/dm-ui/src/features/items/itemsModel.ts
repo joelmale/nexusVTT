@@ -103,47 +103,66 @@ export function holderName(
   }
 }
 
-function matches(item: CampaignItem, query: ItemsQuery): boolean {
+import { searchItems } from './itemSearch';
+
+function matchesFilters(item: CampaignItem, query: ItemsQuery): boolean {
   if (query.rarity && item.rarity !== query.rarity) return false;
   if (query.holder && item.holder.kind !== query.holder) return false;
   if (query.discovery === 'undiscovered' && item.discovered) return false;
   if (query.discovery === 'discovered' && !item.discovered) return false;
-  const q = query.q?.trim().toLowerCase();
-  if (q) {
-    const haystack = [
-      item.name,
-      item.description,
-      ITEM_TYPE_LABELS[item.itemType],
-    ]
-      .join(' ')
-      .toLowerCase();
-    if (!haystack.includes(q)) return false;
-  }
   return true;
 }
 
 export function buildItemsModel(bundle: Bundle, query: ItemsQuery = {}) {
   const all = [...items(bundle)].sort((a, b) => a.name.localeCompare(b.name));
-  const visible = all.filter((item) => matches(item, query));
+
+  // If search query is present, rank via searchItems
+  let pool = all;
+  if (query.q?.trim()) {
+    const scored = searchItems(all, query.q);
+    pool = scored.map((s) => s.item);
+  }
+
+  const visible = pool.filter((item) => matchesFilters(item, query));
+
   const groups: ItemGroup[] = GROUP_ORDER.flatMap((id) => {
     const own = visible.filter((item) => item.holder.kind === id);
     return own.length > 0 ? [{ id, label: HOLDER_LABELS[id], items: own }] : [];
   });
+
+  const placedGp = all
+    .filter((item) => item.holder.kind !== 'none')
+    .reduce((sum, item) => sum + (item.valueGp ?? 0) * (item.quantity || 1), 0);
+
   return {
     groups,
     visibleCount: visible.length,
     totalCount: all.length,
     undiscoveredCount: all.filter((item) => !item.discovered).length,
+    placedGp,
     holderOptions: GROUP_ORDER.map((value) => ({
       value,
       label: HOLDER_LABELS[value],
+      count: all.filter((item) => item.holder.kind === value).length,
     })),
     rarityOptions: (
       Object.keys(RARITY_LABELS) as CampaignItemRarity[]
-    ).map((value) => ({ value, label: RARITY_LABELS[value] })),
+    ).map((value) => ({
+      value,
+      label: RARITY_LABELS[value],
+      count: all.filter((item) => item.rarity === value).length,
+    })),
     discoveryOptions: [
-      { value: 'undiscovered', label: 'Undiscovered' },
-      { value: 'discovered', label: 'Discovered' },
+      {
+        value: 'undiscovered',
+        label: 'Undiscovered',
+        count: all.filter((item) => !item.discovered).length,
+      },
+      {
+        value: 'discovered',
+        label: 'Discovered',
+        count: all.filter((item) => item.discovered).length,
+      },
     ],
   };
 }

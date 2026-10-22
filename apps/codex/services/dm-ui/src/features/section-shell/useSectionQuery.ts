@@ -25,5 +25,9 @@ export function useSectionQuery() {
     [setParams],
   );
 
-  return { params, get, set, search: params.toString() };
+  const clear = useCallback(() => {
+    setParams(new URLSearchParams(), { replace: true });
+  }, [setParams]);
+
+  return { params, get, set, clear, search: params.toString() };
 }

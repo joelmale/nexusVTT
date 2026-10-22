@@ -24,6 +24,7 @@ import { StatusBadge } from '@/features/section-shell/StatusBadge';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 import { mentionIds } from '@/lib/mentions';
 
+import { CompendiumPane } from './CompendiumPane';
 import {
   HOLDER_KIND_OPTIONS,
   ITEM_TYPE_LABELS,
@@ -60,12 +61,13 @@ function holderOptions(
 export function ItemsSection() {
   const { bundle, basePath, store } = useSectionBundle();
   const { itemId } = useParams<{ itemId: string }>();
-  const { get } = useSectionQuery();
+  const { get, set } = useSectionQuery();
 
   const rarity = get('rarity');
   const holder = get('holder');
   const discovery = get('discovery');
   const q = get('q');
+  const activeTab = get('tab') === 'compendium' ? 'compendium' : 'items';
 
   const model = useMemo(
     () => buildItemsModel(bundle, { q, rarity, holder, discovery }),
@@ -112,6 +114,47 @@ export function ItemsSection() {
         selectedId={selected?.id}
       />
     );
+
+  const compendiumEdition =
+    bundle.campaign?.edition === '2014' || bundle.catalog?.edition === '2014'
+      ? '2014'
+      : '2024';
+
+  const tabs = (
+    <div aria-label="Treasury tabs" className={styles.tabs} role="tablist">
+      <button
+        aria-selected={activeTab === 'items'}
+        className={`${styles.tab} ${activeTab === 'items' ? styles.tabActive : ''}`}
+        onClick={() => set('tab', 'items')}
+        role="tab"
+        type="button"
+      >
+        Campaign items
+        <span className={styles.tabCount}>{model.totalCount}</span>
+      </button>
+      <button
+        aria-selected={activeTab === 'compendium'}
+        className={`${styles.tab} ${activeTab === 'compendium' ? styles.tabActive : ''}`}
+        onClick={() => set('tab', 'compendium')}
+        role="tab"
+        type="button"
+      >
+        Compendium ({compendiumEdition})
+      </button>
+    </div>
+  );
+
+  if (activeTab === 'compendium') {
+    return (
+      <SectionLayout
+        empty={<CompendiumPane />}
+        list={null}
+        sectionPath="items"
+        tabs={tabs}
+        title="Items"
+      />
+    );
+  }
 
   return (
     <SectionLayout
@@ -168,6 +211,7 @@ export function ItemsSection() {
           stats={[
             { label: 'Total', value: model.totalCount },
             { label: 'Undiscovered', value: model.undiscoveredCount },
+            { label: 'Placed GP', value: `${model.placedGp.toLocaleString()} gp` },
           ]}
           title="Item Overview"
         >
@@ -177,6 +221,7 @@ export function ItemsSection() {
           </p>
         </SectionSummary>
       }
+      tabs={tabs}
       title="Items"
     />
   );

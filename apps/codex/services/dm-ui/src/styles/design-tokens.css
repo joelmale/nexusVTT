@@ -33,6 +33,7 @@
   --studio-shadow: 0 10px 30px rgb(24 27 27 / 16%);
   --studio-shadow-popover: 0 6px 18px rgb(24 27 27 / 22%);
   --studio-gilt: #b08a3e;
+  --studio-gold: var(--studio-gilt);
 
   /*
    * Aliases for names components already use. They map onto the palette
