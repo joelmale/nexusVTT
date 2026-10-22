@@ -1,4 +1,5 @@
 import ClipboardList from 'lucide-react/dist/esm/icons/clipboard-list';
+import Printer from 'lucide-react/dist/esm/icons/printer';
 import { useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 
@@ -15,6 +16,7 @@ import { SectionLayout } from '@/features/section-shell/SectionLayout';
 import { StatusBadge } from '@/features/section-shell/StatusBadge';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 
+import { RunSheetExportModal } from './export/RunSheetExportModal';
 import { SessionPlannerModal } from './SessionPlannerModal';
 import {
   buildSessionsModel,
@@ -70,10 +72,12 @@ function SessionDetail({
   session,
   canPlan,
   onPlanSession,
+  onExportSession,
 }: {
   session: SessionItem;
   canPlan: boolean;
   onPlanSession: (session: SessionItem) => void;
+  onExportSession: (session: SessionItem) => void;
 }) {
   const { bundle, basePath, store } = useSectionBundle();
   const act = bundle.acts.find((entry) => entry.id === session.actId);
@@ -158,7 +162,14 @@ function SessionDetail({
                 Plan readiness: {readiness.complete} of {readiness.total} ready
               </p>
             ) : null}
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap' }}>
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+              }}
+            >
               <Link
                 className={styles.primary}
                 to={`${basePath}/sessions/${session.id}/plan`}
@@ -175,19 +186,46 @@ function SessionDetail({
                   Edit plan
                 </button>
               ) : null}
+              <button
+                className={styles.secondary}
+                onClick={() => onExportSession(session)}
+                type="button"
+                data-testid={`export-runsheet-btn-${session.id}`}
+              >
+                <Printer size={15} style={{ marginRight: '4px' }} />
+                Export / Print
+              </button>
             </div>
           </>
         ) : canPlan ? (
           <>
             <p className={styles.readiness}>No run sheet yet.</p>
-            <button
-              className={styles.primary}
-              onClick={() => onPlanSession(session)}
-              type="button"
-              data-testid={`plan-this-session-btn-${session.id}`}
+            <div
+              style={{
+                display: 'flex',
+                gap: '8px',
+                alignItems: 'center',
+                flexWrap: 'wrap',
+              }}
             >
-              Plan this session
-            </button>
+              <button
+                className={styles.primary}
+                onClick={() => onPlanSession(session)}
+                type="button"
+                data-testid={`plan-this-session-btn-${session.id}`}
+              >
+                Plan this session
+              </button>
+              <button
+                className={styles.secondary}
+                onClick={() => onExportSession(session)}
+                type="button"
+                data-testid={`export-runsheet-btn-${session.id}`}
+              >
+                <Printer size={15} style={{ marginRight: '4px' }} />
+                Export / Print
+              </button>
+            </div>
           </>
         ) : null}
       </section>
@@ -211,6 +249,8 @@ export function SessionsSection() {
 
   const [isPlannerOpen, setIsPlannerOpen] = useState(false);
   const [planningSession, setPlanningSession] = useState<SessionItem | undefined>(undefined);
+  const [exportingSession, setExportingSession] = useState<SessionItem | null>(null);
+  const [isExportOpen, setIsExportOpen] = useState(false);
 
   const handleOpenPlanner = (session?: SessionItem) => {
     setPlanningSession(session);
@@ -220,6 +260,16 @@ export function SessionsSection() {
   const handleClosePlanner = () => {
     setIsPlannerOpen(false);
     setPlanningSession(undefined);
+  };
+
+  const handleOpenExport = (session: SessionItem) => {
+    setExportingSession(session);
+    setIsExportOpen(true);
+  };
+
+  const handleCloseExport = () => {
+    setIsExportOpen(false);
+    setExportingSession(null);
   };
 
   const planAction = model.canPlan ? (
@@ -284,6 +334,7 @@ export function SessionsSection() {
           selected ? (
             <SessionDetail
               canPlan={model.canPlan}
+              onExportSession={handleOpenExport}
               onPlanSession={handleOpenPlanner}
               session={selected}
             />
@@ -323,6 +374,7 @@ export function SessionsSection() {
           fallback ? (
             <SessionDetail
               canPlan={model.canPlan}
+              onExportSession={handleOpenExport}
               onPlanSession={handleOpenPlanner}
               session={fallback}
             />
@@ -338,6 +390,14 @@ export function SessionsSection() {
           store={store}
           basePath={basePath}
           initialSession={planningSession}
+        />
+      )}
+      {isExportOpen && exportingSession && (
+        <RunSheetExportModal
+          isOpen={isExportOpen}
+          onClose={handleCloseExport}
+          bundle={bundle}
+          session={exportingSession}
         />
       )}
     </>

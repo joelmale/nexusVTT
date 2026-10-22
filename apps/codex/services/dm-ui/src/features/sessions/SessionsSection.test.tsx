@@ -123,4 +123,18 @@ describe('SessionsSection', () => {
     expect(screen.getByRole('dialog')).toBeInTheDocument();
     expect(screen.getByText(new RegExp(`Plan Session #${sessionWithPlan?.number}`))).toBeInTheDocument();
   });
+
+  it('opens RunSheetExportModal when clicking Export / Print button', async () => {
+    const bundle = bundleOf('ashes-of-veyra');
+    const sessionToExport = bundle.sessions[0];
+    const { user } = renderSection(`/demo/ashes-of-veyra/sessions/${sessionToExport?.id}`);
+
+    const exportBtn = screen.getByTestId(`export-runsheet-btn-${sessionToExport?.id}`);
+    expect(exportBtn).toBeInTheDocument();
+    await user.click(exportBtn);
+
+    expect(
+      screen.getByRole('dialog', { name: /Session Run Sheet Export/i }),
+    ).toBeInTheDocument();
+  });
 });

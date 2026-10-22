@@ -234,3 +234,39 @@
 .checkboxLabel input[type='checkbox'] {
   accent-color: var(--studio-gold);
 }
+
+.duplicateBtn {
+  align-items: center;
+  background: transparent;
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  gap: 6px;
+  min-height: var(--studio-touch-target);
+  padding: 0 12px;
+  transition: all 0.15s ease;
+}
+
+.duplicateBtn:hover {
+  border-color: var(--studio-gold);
+  color: var(--studio-gold);
+}
+
+.playerNameTag {
+  background: var(--studio-chrome);
+  border-left: 3px solid var(--studio-gold);
+  border-radius: var(--studio-radius-sm);
+  color: var(--studio-text-secondary);
+  font-size: 0.8125rem;
+  padding: 6px 12px;
+}
+
+.playerNameTag em {
+  color: var(--studio-text);
+  font-style: italic;
+}

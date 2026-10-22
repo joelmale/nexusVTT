@@ -1,5 +1,6 @@
-import { useMemo } from 'react';
-import { useParams } from 'react-router-dom';
+import { useMemo, useState } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 
 import {
   ITEM_RARITIES,
@@ -19,6 +20,7 @@ import { SectionSummary } from '@/features/section-shell/SectionSummary';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 
 import { CompendiumPane } from './CompendiumPane';
+import { HoardBuilderModal } from './hoard/HoardBuilderModal';
 import {
   HOLDER_KIND_OPTIONS,
   ITEM_TYPE_LABELS,
@@ -31,6 +33,8 @@ import { ItemRow } from './ItemRow';
 import { RarityBadge } from './RarityBadge';
 import styles from './ItemsSection.module.css';
 import { SrdItemPicker } from './SrdItemPicker';
+import { useSrdCatalog } from './useSrdCatalog';
+import { evaluatePartyWealth, getPartyAverageLevel } from './wealthTracker';
 
 /** Holder candidates for the entity select, by holder kind. */
 function holderOptions(
@@ -58,20 +62,36 @@ export function ItemsSection() {
   const { bundle, basePath, store } = useSectionBundle();
   const { itemId } = useParams<{ itemId: string }>();
   const { get, set } = useSectionQuery();
+  const [hoardOpen, setHoardOpen] = useState(false);
 
   const rarity = get('rarity');
   const holder = get('holder');
   const discovery = get('discovery');
+  const session = get('session');
   const q = get('q');
   const activeTab = get('tab') === 'compendium' ? 'compendium' : 'items';
 
   const model = useMemo(
-    () => buildItemsModel(bundle, { q, rarity, holder, discovery }),
-    [bundle, q, rarity, holder, discovery],
+    () => buildItemsModel(bundle, { q, rarity, holder, discovery, session }),
+    [bundle, q, rarity, holder, discovery, session],
   );
   const selected = itemId
     ? (bundle.items ?? []).find((item) => item.id === itemId)
     : undefined;
+
+  const compendiumEdition =
+    bundle.campaign?.edition === '2014' || bundle.catalog?.edition === '2014'
+      ? '2014'
+      : '2024';
+
+  const { catalog: compendiumCatalog } = useSrdCatalog(compendiumEdition);
+
+  const averageLevel = getPartyAverageLevel(bundle.campaign.playerCharacters);
+  const wealthEval = evaluatePartyWealth(
+    model.placedGp,
+    bundle.campaign.playerCharacters.length,
+    averageLevel,
+  );
 
   const footer = (
     <>
@@ -102,11 +122,6 @@ export function ItemsSection() {
         selectedId={selected?.id}
       />
     );
-
-  const compendiumEdition =
-    bundle.campaign?.edition === '2014' || bundle.catalog?.edition === '2014'
-      ? '2014'
-      : '2024';
 
   const tabs = (
     <div aria-label="Treasury tabs" className={styles.tabs} role="tablist">
@@ -145,84 +160,127 @@ export function ItemsSection() {
   }
 
   return (
-    <SectionLayout
-      count={model.totalCount}
-      detail={selected ? <ItemDetail item={selected} /> : undefined}
-      empty={
-        model.totalCount === 0 ? (
-          <EmptyState
-            action={footer}
-            description={
-              store.editable
-                ? 'Add loot and treasure, then hand it to a party member, an NPC, a location or an encounter.'
-                : 'Items you add will appear here, grouped by who holds them.'
-            }
-            title="No items yet."
+    <>
+      <SectionLayout
+        actions={
+          <button
+            type="button"
+            className={styles.hoardActionBtn}
+            onClick={() => setHoardOpen(true)}
+            aria-label="Open Hoard Builder"
+          >
+            <Sparkles size={15} />
+            <span>Hoard ✦</span>
+          </button>
+        }
+        count={model.totalCount}
+        detail={selected ? <ItemDetail item={selected} /> : undefined}
+        empty={
+          model.totalCount === 0 ? (
+            <EmptyState
+              action={footer}
+              description={
+                store.editable
+                  ? 'Add loot and treasure, then hand it to a party member, an NPC, a location or an encounter.'
+                  : 'Items you add will appear here, grouped by who holds them.'
+              }
+              title="No items yet."
+            />
+          ) : undefined
+        }
+        filters={
+          <FilterBar
+            facets={[
+              {
+                allLabel: 'Anyone',
+                key: 'holder',
+                label: 'Holder',
+                options: model.holderOptions,
+              },
+              {
+                allLabel: 'All rarities',
+                key: 'rarity',
+                label: 'Rarity',
+                options: model.rarityOptions,
+              },
+              {
+                allLabel: 'All items',
+                key: 'discovery',
+                label: 'Discovery',
+                options: model.discoveryOptions,
+              },
+              ...(model.sessionOptions.length > 0
+                ? [
+                    {
+                      allLabel: 'All sessions',
+                      key: 'session',
+                      label: 'Session',
+                      options: model.sessionOptions,
+                    },
+                  ]
+                : []),
+            ]}
+            plural="items"
+            resultCount={model.visibleCount}
+            searchLabel="Search items"
+            singular="item"
           />
-        ) : undefined
-      }
-      filters={
-        <FilterBar
-          facets={[
-            {
-              allLabel: 'Anyone',
-              key: 'holder',
-              label: 'Holder',
-              options: model.holderOptions,
-            },
-            {
-              allLabel: 'All rarities',
-              key: 'rarity',
-              label: 'Rarity',
-              options: model.rarityOptions,
-            },
-            {
-              allLabel: 'All items',
-              key: 'discovery',
-              label: 'Discovery',
-              options: model.discoveryOptions,
-            },
-          ]}
-          plural="items"
-          resultCount={model.visibleCount}
-          searchLabel="Search items"
-          singular="item"
-        />
-      }
-      list={list}
-      listFooter={footer}
-      notFound={Boolean(itemId) && !selected}
-      sectionPath="items"
-      selectedId={itemId}
-      summary={
-        <SectionSummary
-          stats={[
-            { label: 'Total', value: model.totalCount },
-            { label: 'Undiscovered', value: model.undiscoveredCount },
-            { label: 'Placed GP', value: `${model.placedGp.toLocaleString()} gp` },
-          ]}
-          title="Item Overview"
-        >
-          <p>
-            Select an item to see who holds it, whether the party has found
-            it, and the quests it belongs to.
-          </p>
-        </SectionSummary>
-      }
-      tabs={tabs}
-      title="Items"
-    />
+        }
+        list={list}
+        listFooter={footer}
+        notFound={Boolean(itemId) && !selected}
+        sectionPath="items"
+        selectedId={itemId}
+        summary={
+          <SectionSummary
+            stats={[
+              { label: 'Total', value: model.totalCount },
+              { label: 'Undiscovered', value: model.undiscoveredCount },
+              { label: 'Placed GP', value: `${model.placedGp.toLocaleString()} gp` },
+              { label: 'Wealth', value: wealthEval.label },
+            ]}
+            title="Item Overview"
+          >
+            <p>
+              Select an item to see who holds it, whether the party has found
+              it, and the quests it belongs to.
+            </p>
+          </SectionSummary>
+        }
+        tabs={tabs}
+        title="Items"
+      />
+      <HoardBuilderModal
+        isOpen={hoardOpen}
+        onClose={() => setHoardOpen(false)}
+        bundle={bundle}
+        store={store}
+        compendiumItems={compendiumCatalog}
+      />
+    </>
   );
 }
 
 function ItemDetail({ item }: { item: CampaignItem }) {
-  const { bundle, store } = useSectionBundle();
+  const { bundle, basePath, store } = useSectionBundle();
+  const navigate = useNavigate();
   const heldBy = holderName(bundle, item.holder);
   const partyHolder = item.holder.kind === 'party-member';
 
   const handleQuickUpdate = async (patch: Partial<CampaignItem>) => {
     if (!store.editable) return;
     await store.updateItem('item', item.id, patch);
+  };
+
+  const handleDuplicate = async () => {
+    if (!store.editable) return;
+    const result = await store.addItem('item', {
+      ...item,
+      name: `${item.name} (Copy)`,
+    });
+    if (result.ok && result.id) {
+      navigate(`${basePath}/items/${encodeURIComponent(result.id)}`);
+    }
   };
 
   return (
@@ -232,6 +290,7 @@ function ItemDetail({ item }: { item: CampaignItem }) {
       id={item.id}
       initialDraft={{
         name: item.name,
+        playerName: item.playerName ?? '',
         itemType: item.itemType,
         rarity: item.rarity,
         requiresAttunement: item.requiresAttunement,
@@ -242,6 +301,7 @@ function ItemDetail({ item }: { item: CampaignItem }) {
         description: item.description,
         mechanics: item.mechanics ?? '',
         holder: item.holder,
+        sessionId: item.sessionId ?? '',
         discovered: item.discovered,
         identified: item.identified,
         questIds: item.questIds,
@@ -264,6 +324,17 @@ function ItemDetail({ item }: { item: CampaignItem }) {
                   onChange={(e) => setDraft({ ...draft, name: e.target.value })}
                   type="text"
                   value={String(draft.name ?? '')}
+                />
+              </label>
+              <label>
+                Player-facing Name
+                <input
+                  onChange={(e) =>
+                    setDraft({ ...draft, playerName: e.target.value })
+                  }
+                  placeholder="e.g. Ornate silver blade, Unknown potion"
+                  type="text"
+                  value={String(draft.playerName ?? '')}
                 />
               </label>
               <div className={styles.pair}>
@@ -425,6 +496,25 @@ function ItemDetail({ item }: { item: CampaignItem }) {
                   </label>
                 ) : null}
               </div>
+              <label>
+                Scheduled Session Reward
+                <select
+                  onChange={(e) =>
+                    setDraft({
+                      ...draft,
+                      sessionId: e.target.value || undefined,
+                    })
+                  }
+                  value={String(draft.sessionId ?? '')}
+                >
+                  <option value="">None (unscheduled)</option>
+                  {(bundle.sessions ?? []).map((session) => (
+                    <option key={session.id} value={session.id}>
+                      {session.title || `Session ${session.number ?? session.id}`}
+                    </option>
+                  ))}
+                </select>
+              </label>
               <label className={styles.check}>
                 <input
                   checked={draft.discovered === true}
@@ -478,6 +568,12 @@ function ItemDetail({ item }: { item: CampaignItem }) {
           if (draft[key] !== initial[key]) patch[key] = draft[key];
         }
         if (draft.name !== initial.name) patch.name = text('name');
+        if (draft.playerName !== initial.playerName) {
+          patch.playerName = text('playerName') || undefined;
+        }
+        if (draft.sessionId !== initial.sessionId) {
+          patch.sessionId = text('sessionId') || undefined;
+        }
         for (const key of ['requiresAttunement', 'discovered', 'identified']) {
           if (draft[key] !== initial[key]) patch[key] = draft[key] === true;
         }
@@ -516,6 +612,7 @@ function ItemDetail({ item }: { item: CampaignItem }) {
         heldBy={heldBy}
         hideHeaderTitle
         item={item}
+        onDuplicate={store.editable ? handleDuplicate : undefined}
         onQuickUpdate={handleQuickUpdate}
         partyHolder={partyHolder}
       />

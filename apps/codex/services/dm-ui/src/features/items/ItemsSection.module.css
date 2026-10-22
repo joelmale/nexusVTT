@@ -149,3 +149,24 @@
   text-transform: uppercase;
 }
 
+.hoardActionBtn {
+  align-items: center;
+  background: var(--studio-gold);
+  border: none;
+  border-radius: var(--studio-radius-control);
+  color: #121215;
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  gap: 6px;
+  min-height: var(--studio-touch-target);
+  padding: 0 14px;
+  transition: opacity 0.15s ease;
+}
+
+.hoardActionBtn:hover {
+  opacity: 0.9;
+}
+

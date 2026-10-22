@@ -13,6 +13,7 @@ export interface ItemsQuery {
   rarity?: string;
   holder?: string;
   discovery?: string;
+  session?: string;
 }
 
 export interface ItemGroup {
@@ -110,6 +111,7 @@ function matchesFilters(item: CampaignItem, query: ItemsQuery): boolean {
   if (query.holder && item.holder.kind !== query.holder) return false;
   if (query.discovery === 'undiscovered' && item.discovered) return false;
   if (query.discovery === 'discovered' && !item.discovered) return false;
+  if (query.session && item.sessionId !== query.session) return false;
   return true;
 }
 
@@ -164,5 +166,10 @@ export function buildItemsModel(bundle: Bundle, query: ItemsQuery = {}) {
         count: all.filter((item) => item.discovered).length,
       },
     ],
+    sessionOptions: (bundle.sessions ?? []).map((session) => ({
+      value: session.id,
+      label: session.title || `Session ${session.number ?? session.id}`,
+      count: all.filter((item) => item.sessionId === session.id).length,
+    })),
   };
 }

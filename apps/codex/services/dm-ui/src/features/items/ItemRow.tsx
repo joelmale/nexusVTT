@@ -56,7 +56,10 @@ export function ItemRow({ item, heldBy }: ItemRowProps) {
     >
       <div className={styles.primaryLine}>
         <Icon aria-hidden="true" className={styles.typeIcon} size={15} />
-        <span className={styles.name}>{item.name}</span>
+        <span className={styles.name}>
+          {item.name}
+          {item.playerName ? ` ("${item.playerName}")` : ''}
+        </span>
         {item.quantity > 1 ? (
           <span className={styles.quantity}>x{item.quantity}</span>
         ) : null}

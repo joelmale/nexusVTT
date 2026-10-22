@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 
 import { fetchSrdItems, type SrdItem } from '@/services/srd-items-api';
+export type { SrdItem } from '@/services/srd-items-api';
 
 interface CachedCatalog {
   items: SrdItem[];

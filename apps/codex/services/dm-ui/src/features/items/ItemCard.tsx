@@ -1,4 +1,5 @@
 import Check from 'lucide-react/dist/esm/icons/check';
+import Copy from 'lucide-react/dist/esm/icons/copy';
 import Eye from 'lucide-react/dist/esm/icons/eye';
 import EyeOff from 'lucide-react/dist/esm/icons/eye-off';
 import HelpCircle from 'lucide-react/dist/esm/icons/help-circle';
@@ -24,6 +25,7 @@ export interface ItemCardProps {
   heldBy?: string;
   partyHolder?: boolean;
   onQuickUpdate?: (patch: Partial<CampaignItem>) => Promise<void> | void;
+  onDuplicate?: () => void;
   editable?: boolean;
   hideHeaderTitle?: boolean;
 }
@@ -38,6 +40,7 @@ export function ItemCard({
   heldBy,
   partyHolder,
   onQuickUpdate,
+  onDuplicate,
   editable = false,
   hideHeaderTitle = false,
 }: ItemCardProps) {
@@ -62,11 +65,42 @@ export function ItemCard({
             <h2 className={styles.title}>{item.name}</h2>
             <div className={styles.headerBadges}>
               <RarityBadge rarity={item.rarity} />
+              {onDuplicate ? (
+                <button
+                  type="button"
+                  className={styles.duplicateBtn}
+                  onClick={onDuplicate}
+                  title="Duplicate & customise item"
+                  aria-label="Duplicate & customise item"
+                >
+                  <Copy size={13} />
+                  <span>Duplicate</span>
+                </button>
+              ) : null}
             </div>
+          </div>
+        ) : onDuplicate ? (
+          <div className={styles.headerBadges}>
+            <button
+              type="button"
+              className={styles.duplicateBtn}
+              onClick={onDuplicate}
+              title="Duplicate & customise item"
+              aria-label="Duplicate & customise item"
+            >
+              <Copy size={13} />
+              <span>Duplicate</span>
+            </button>
           </div>
         ) : null}
 
         <p className={styles.subtitle}>{subtitle}</p>
+
+        {item.playerName ? (
+          <div className={styles.playerNameTag}>
+            <span>Player-facing name:</span> <em>"{item.playerName}"</em>
+          </div>
+        ) : null}
 
         {editable && onQuickUpdate ? (
           <div aria-label="Placement quick toggles" className={styles.quickToggles} role="group">
@@ -141,6 +175,19 @@ export function ItemCard({
           <p>Unassigned.</p>
         )}
       </section>
+
+      {item.sessionId ? (
+        <section className={styles.section}>
+          <h3 className={styles.sectionHeading}>Session Reward</h3>
+          <p>
+            Scheduled for{' '}
+            {(() => {
+              const sess = bundle.sessions.find((s) => s.id === item.sessionId);
+              return sess ? `Session ${sess.number}: ${sess.title}` : 'Linked session';
+            })()}
+          </p>
+        </section>
+      ) : null}
 
       {item.description ? (
         <section className={styles.section}>

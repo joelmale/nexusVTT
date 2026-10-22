@@ -1,0 +1,322 @@
+.overlay {
+  position: fixed;
+  inset: 0;
+  background: var(--studio-overlay);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--studio-gap-md);
+}
+
+.modal {
+  background: var(--studio-surface-raised);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-panel);
+  width: 100%;
+  max-width: 720px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: var(--studio-shadow);
+  overflow: hidden;
+  animation: fadeIn 0.15s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--studio-gap-md);
+  border-bottom: 1px solid var(--studio-border);
+}
+
+.titleArea {
+  display: flex;
+  align-items: center;
+  gap: var(--studio-gap-sm);
+}
+
+.titleIcon {
+  color: var(--studio-gold);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--studio-font-display);
+  font-size: 1.25rem;
+  color: var(--studio-text-primary);
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  color: var(--studio-text-secondary);
+  cursor: pointer;
+  padding: var(--studio-gap-xs);
+  border-radius: var(--studio-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.closeButton:hover {
+  color: var(--studio-text-primary);
+  background: var(--studio-surface-hover);
+}
+
+.body {
+  padding: var(--studio-gap-md);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-md);
+}
+
+.controlsGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr auto;
+  gap: var(--studio-gap-md);
+  align-items: end;
+}
+
+.controlField {
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-xs);
+}
+
+.label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--studio-text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.select {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  color: var(--studio-text-primary);
+  padding: var(--studio-gap-sm) var(--studio-gap-md);
+  border-radius: var(--studio-radius-sm);
+  font-size: 0.875rem;
+  min-height: var(--studio-touch-target);
+}
+
+.select:focus {
+  outline: none;
+  border-color: var(--studio-gold);
+}
+
+.rollButton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--studio-gap-sm);
+  background: var(--studio-gold);
+  color: #121215;
+  border: none;
+  border-radius: var(--studio-radius-sm);
+  padding: 0 var(--studio-gap-md);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  cursor: pointer;
+  min-height: var(--studio-touch-target);
+  transition: opacity 0.15s ease;
+}
+
+.rollButton:hover {
+  opacity: 0.9;
+}
+
+.resultsCard {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-panel);
+  padding: var(--studio-gap-md);
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-md);
+}
+
+.resultHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid var(--studio-border);
+  padding-bottom: var(--studio-gap-sm);
+}
+
+.rollBadge {
+  font-size: 0.8125rem;
+  color: var(--studio-text-secondary);
+}
+
+.totalValue {
+  font-family: var(--studio-font-display);
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: var(--studio-gold);
+}
+
+.coinsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-xs);
+}
+
+.coinsGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(90px, 1fr));
+  gap: var(--studio-gap-sm);
+}
+
+.coinBox {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-sm);
+  padding: var(--studio-gap-sm);
+  text-align: center;
+}
+
+.coinLabel {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--studio-text-secondary);
+  text-transform: uppercase;
+}
+
+.coinVal {
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--studio-text-primary);
+}
+
+.valuablesSection,
+.magicItemsSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-xs);
+}
+
+.sectionHeading {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--studio-text-secondary);
+  text-transform: uppercase;
+  margin: 0;
+}
+
+.itemList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-xs);
+}
+
+.itemRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-sm);
+  padding: var(--studio-gap-sm) var(--studio-gap-md);
+}
+
+.itemInfo {
+  display: flex;
+  align-items: center;
+  gap: var(--studio-gap-sm);
+}
+
+.itemName {
+  font-size: 0.875rem;
+  color: var(--studio-text-primary);
+}
+
+.itemValue {
+  font-size: 0.8125rem;
+  color: var(--studio-gold);
+}
+
+.assignmentArea {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--studio-gap-md);
+  padding-top: var(--studio-gap-sm);
+  border-top: 1px solid var(--studio-border);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--studio-gap-md);
+  padding: var(--studio-gap-md);
+  border-top: 1px solid var(--studio-border);
+  background: var(--studio-surface-muted);
+}
+
+.cancelBtn {
+  background: transparent;
+  border: 1px solid var(--studio-border-strong);
+  color: var(--studio-text-secondary);
+  border-radius: var(--studio-radius-sm);
+  padding: 0 var(--studio-gap-md);
+  font-size: 0.875rem;
+  min-height: var(--studio-touch-target);
+  cursor: pointer;
+}
+
+.cancelBtn:hover {
+  color: var(--studio-text-primary);
+  background: var(--studio-surface-hover);
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--studio-gap-sm);
+  background: var(--studio-gold);
+  color: #121215;
+  border: none;
+  border-radius: var(--studio-radius-sm);
+  padding: 0 var(--studio-gap-md);
+  font-weight: 600;
+  font-size: 0.9375rem;
+  min-height: var(--studio-touch-target);
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.addBtn:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.addBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.emptyResults {
+  text-align: center;
+  padding: var(--studio-gap-md);
+  color: var(--studio-text-secondary);
+  font-size: 0.875rem;
+}
