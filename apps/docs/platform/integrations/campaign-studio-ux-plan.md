@@ -180,12 +180,20 @@ flowchart LR
 - **Commit:** `e8506289`
 
 
-### M5 — DM tools & Session Export
-- Hoard builder with the 2024 DMG tables (`features/items/hoard/tables2024.ts` + pure seedable roller).
-- Loot by session; wealth tracker; duplicate & customise; player-facing name.
-- **Print & run-sheet export (#13):** Clean markdown and print-ready stylesheet for session run sheets, encounters, and player handouts.
+### M5 — DM tools & Session Export — ✅ COMPLETED
+- [x] 2024 DMG Hoard Builder (`features/items/hoard/tables2024.ts` + pure seedable Mulberry PRNG `hoardRoller.ts` matching CR/tier rules, base coins, valuables, and SRD compendium items).
+- [x] Hoard Builder interactive modal (`HoardBuilderModal.tsx` + `.module.css`) with tier/mode selection, real-time breakdown, target holder/session assignment, and single-click bundle commit.
+- [x] Wealth Tracker (`wealthTracker.ts` + tests) calculating party wealth, tier thresholds, and 2024 DMG expected wealth per character and party size, wired to `SectionSummary`.
+- [x] Loot by session: `sessionId` linking in item forms, session facet filtering in `FilterBar`, and session reward indicators in `ItemCard`.
+- [x] Duplicate & customise: `onDuplicate` action on `ItemCard` creating a full copy ready for immediate customisation.
+- [x] Player-facing name field (`item.playerName`) with alias subtitle on `ItemRow` and reveal in `ItemCard`.
+- [x] Print & run-sheet export (#13): Clean Markdown generator (`runSheetExport.ts`) and print-ready HTML/PDF generator with standalone styling and page breaks.
+- [x] RunSheetExportModal (`RunSheetExportModal.tsx` + `.module.css`): Print preview, Markdown tab, 1-click clipboard copy, and `.md` file download, wired to `SessionsSection`.
+- [x] 100% test pass rate across 17 test suites (120/120 passing) with >80% line/branch coverage across all net-new code.
+- **Files updated:** `tables2024.ts`, `hoardRoller.ts`, `hoardRoller.test.ts`, `HoardBuilderModal.tsx`, `HoardBuilderModal.module.css`, `HoardBuilderModal.test.tsx`, `wealthTracker.ts`, `wealthTracker.test.ts`, `ItemCard.tsx`, `ItemCard.module.css`, `ItemRow.tsx`, `itemsModel.ts`, `ItemsSection.tsx`, `ItemsSection.module.css`, `ItemsSection.test.tsx`, `useSrdCatalog.ts`, `runSheetExport.ts`, `runSheetExport.test.ts`, `RunSheetExportModal.tsx`, `RunSheetExportModal.module.css`, `RunSheetExportModal.test.tsx`, `SessionsSection.tsx`, `SessionsSection.test.tsx`.
+- **Commit:** `1d47eb75`
 
-### M6 — Studio toolkit, History & Homebrew
+### M6 — Studio toolkit, History & Homebrew — ⏳ IN PROGRESS
 In this order:
 1. **#1 Next Session hub**
 2. **#3 Secrets & clues**
