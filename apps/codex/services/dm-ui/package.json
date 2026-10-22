@@ -24,7 +24,7 @@
     "@nexus/character-creator": "*",
     "@nexus/game-contracts": "*",
     "@nexus/rules-5e": "*",
-    "@tanstack/react-query": "^5.56.2",
+    "@tanstack/react-query": "^5.104.5",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.1",
     "d3": "^7.9.0",
