@@ -247,5 +247,11 @@ describe('NotesSection real campaign', () => {
 
     expect(screen.getByRole('navigation', { name: 'Note list' })).toBeVisible();
     expect(screen.queryByTestId('secrets-pane')).toBeNull();
+
+    const inboxTab = screen.getByRole('tab', { name: /Inbox/i });
+    await user.click(inboxTab);
+
+    expect(screen.getByTestId('inbox-pane')).toBeVisible();
+    expect(screen.queryByRole('navigation', { name: 'Note list' })).toBeNull();
   });
 });

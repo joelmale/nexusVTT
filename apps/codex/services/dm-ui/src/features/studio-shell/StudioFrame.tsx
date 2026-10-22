@@ -13,6 +13,7 @@ interface StudioFrameProps {
   children: ReactNode;
   contextLabel?: string;
   onSearch?: () => void;
+  onQuickCapture?: () => void;
   onSettings?: () => void;
   onTheme?: () => void;
   onCapability: (capabilityId: CapabilityId) => void;
@@ -22,6 +23,7 @@ export function StudioFrame({
   children,
   contextLabel,
   onSearch,
+  onQuickCapture,
   onSettings,
   onTheme,
   onCapability,
@@ -48,6 +50,7 @@ export function StudioFrame({
     <StudioTopBar
       contextLabel={contextLabel}
       onOpenNavigation={() => setNavDrawerOpen(true)}
+      onQuickCapture={onQuickCapture}
       onRestoreNavigation={expandCampaignRail}
       onSearch={onSearch}
       onSettings={onSettings}

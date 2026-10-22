@@ -18,6 +18,8 @@ import { StatusBadge } from '@/features/section-shell/StatusBadge';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 
 import { SecretsPane } from '@/features/secrets/SecretsPane';
+import { InboxPane } from '@/features/inbox/InboxPane';
+import { countUnfiled } from '@/features/inbox/inboxModel';
 import layoutStyles from '@/features/section-shell/SectionLayout.module.css';
 import tabStyles from '@/features/section-shell/SectionTabs.module.css';
 
@@ -188,9 +190,13 @@ export function NotesSection() {
   const { noteId } = useParams<{ noteId?: string }>();
   const { get, set, clear } = useSectionQuery();
 
-  const currentTab = get('tab') === 'secrets' ? 'secrets' : 'notes';
+  const tabParam = get('tab');
+  const currentTab =
+    tabParam === 'secrets' ? 'secrets' : tabParam === 'inbox' ? 'inbox' : 'notes';
   const secretsCount = (bundle.secrets ?? []).length;
   const unrevealedCount = (bundle.secrets ?? []).filter((s) => !s.revealed).length;
+  const inboxNotes = bundle.inboxNotes ?? [];
+  const unfiledInboxCount = countUnfiled(inboxNotes);
 
   const model = useMemo(
     () => buildNotesModel(bundle, { q: get('q'), anchor: get('anchor') }),
@@ -224,6 +230,22 @@ export function NotesSection() {
           {secretsCount} ({unrevealedCount} unrevealed)
         </span>
       </button>
+      <button
+        aria-selected={currentTab === 'inbox'}
+        className={`${tabStyles.tab} ${currentTab === 'inbox' ? tabStyles.selected : ''}`}
+        onClick={() => {
+          clear();
+          set('tab', 'inbox');
+        }}
+        role="tab"
+        type="button"
+      >
+        <span>Inbox</span>
+        <span className={tabStyles.count}>
+          {inboxNotes.length}
+          {unfiledInboxCount > 0 ? ` (${unfiledInboxCount} unfiled)` : ''}
+        </span>
+      </button>
     </div>
   );
 
@@ -238,6 +260,22 @@ export function NotesSection() {
         </header>
         <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
           <SecretsPane />
+        </div>
+      </section>
+    );
+  }
+
+  if (currentTab === 'inbox') {
+    return (
+      <section className={layoutStyles.section} data-section="inbox">
+        <header className={layoutStyles.header}>
+          <div className={layoutStyles.titleRow}>
+            <h1>Notes & Secrets</h1>
+          </div>
+          <div className={layoutStyles.tabs}>{tabsElement}</div>
+        </header>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <InboxPane />
         </div>
       </section>
     );

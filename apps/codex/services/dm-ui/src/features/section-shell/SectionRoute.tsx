@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { useCapabilityNotice } from '@/features/capability-notice';
+import { QuickCaptureModal } from '@/features/inbox/QuickCaptureModal';
 import { CampaignSearchDialog } from '@/features/search/CampaignSearchDialog';
 import { StudioFrame } from '@/features/studio-shell/StudioFrame';
 
@@ -22,11 +23,15 @@ export function SectionRoute({ title, children }: SectionRouteProps) {
   const { notifyCapability } = useCapabilityNotice();
   const state = useBundleStore();
   const [searchOpen, setSearchOpen] = useState(false);
+  const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
 
-  // Ctrl/Cmd+K opens search from anywhere in a campaign.
+  // Ctrl/Cmd+K opens search, Ctrl/Cmd+Shift+N opens quick capture from anywhere in a campaign.
   useEffect(() => {
     const onKey = (event: KeyboardEvent) => {
-      if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
+      if ((event.ctrlKey || event.metaKey) && event.shiftKey && event.key.toLowerCase() === 'n') {
+        event.preventDefault();
+        setQuickCaptureOpen(true);
+      } else if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === 'k') {
         event.preventDefault();
         setSearchOpen(true);
       }
@@ -81,6 +86,7 @@ export function SectionRoute({ title, children }: SectionRouteProps) {
     <StudioFrame
       contextLabel={title ? `${campaignName} · ${title}` : campaignName}
       onCapability={notifyCapability}
+      onQuickCapture={() => setQuickCaptureOpen(true)}
       onSearch={() => setSearchOpen(true)}
       onSettings={() => notifyCapability('campaign.settings.open')}
       onTheme={() => notifyCapability('campaign.theme.change')}
@@ -90,6 +96,10 @@ export function SectionRoute({ title, children }: SectionRouteProps) {
         <CampaignSearchDialog
           onClose={() => setSearchOpen(false)}
           open={searchOpen}
+        />
+        <QuickCaptureModal
+          isOpen={quickCaptureOpen}
+          onClose={() => setQuickCaptureOpen(false)}
         />
       </SectionContext.Provider>
     </StudioFrame>

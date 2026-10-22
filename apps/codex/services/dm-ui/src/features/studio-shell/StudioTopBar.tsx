@@ -1,5 +1,6 @@
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
+import Inbox from 'lucide-react/dist/esm/icons/inbox';
 import Menu from 'lucide-react/dist/esm/icons/menu';
 import Moon from 'lucide-react/dist/esm/icons/moon';
 import Search from 'lucide-react/dist/esm/icons/search';
@@ -15,6 +16,7 @@ import styles from './StudioTopBar.module.css';
 interface StudioTopBarProps {
   contextLabel?: string;
   onSearch?: () => void;
+  onQuickCapture?: () => void;
   onSettings?: () => void;
   onTheme?: () => void;
   onRestoreNavigation?: () => void;
@@ -25,6 +27,7 @@ interface StudioTopBarProps {
 export function StudioTopBar({
   contextLabel,
   onSearch,
+  onQuickCapture,
   onSettings,
   onTheme,
   onRestoreNavigation,
@@ -97,6 +100,17 @@ export function StudioTopBar({
         {resolvedContextLabel && (
           <span className={styles.context}>{resolvedContextLabel}</span>
         )}
+        {onQuickCapture ? (
+          <button
+            aria-label="Quick capture (Ctrl+Shift+N)"
+            className={styles.iconButton}
+            onClick={onQuickCapture}
+            title="Quick capture (Ctrl+Shift+N)"
+            type="button"
+          >
+            <Inbox size={16} />
+          </button>
+        ) : null}
         <button
           aria-label="Search campaign"
           className={styles.iconButton}

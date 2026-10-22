@@ -197,8 +197,7 @@ flowchart LR
 In this order:
 - [x] **#1 Next Session hub & "Use in next session" quick action**: Enriched Next Session model with `strongStart`, planned scenes/beats timeline, unrevealed secrets & clues, full cast, encounters, and scheduled loot rewards. Added live "Export Run Sheet" action opening `RunSheetExportModal` directly from the overview. Built reusable `UseInNextSessionButton` toggle component with real-time bundleStore linking and read-only indicators, integrated into detail headers for NPCs, Encounters, Locations (World), Quests, and Items (`ItemCard`).
 - [x] **#3 Secrets & clues**: Built full-featured Secrets & Clues manager (`secretsModel.ts`, `SecretRow.tsx`, `SecretModal.tsx`, `SecretsPane.tsx`). Interactive reveal toggling, session linking, entity attachment picker supporting NPCs, Locations, Quests, Encounters, and Items. FilterBar with status/entity facets and live count badges. Integrated into `NotesSection` with WAI-ARIA tab switcher between Notes and Secrets & Clues. 100% test pass rate with >85% line coverage (`SecretRow` 100%, `SecretsPane` 86.5%, `secretsModel` 93.3%, `SecretModal` 81.1%, `NotesSection` 93.3%).
-- [x] **#5 Create from context**: Instant creation of unrecognized entities directly from `@` mentions in `MentionTextarea`. When typing an unknown name in editable mode, suggests `+ Create NPC "<name>"`, `+ Create Location "<name>"`, and `+ Create Item "<name>"`. Selecting any option creates the entity stub in `bundleStore` and immediately inserts the formatted mention `@[<name>](ref:<id>)` into text. Excludes create options when matches already exist or in read-only mode. 93.1% line coverage on `features/mentions` with 12/12 tests green.
-- [ ] **#4 Quick-capture inbox**
+- [x] **#4 Quick-capture inbox**: Fast one-click capture anywhere in Campaign Studio into an unfiled inbox (`inboxModel.ts`, `QuickCaptureModal.tsx`, `InboxPane.tsx`). Global `Ctrl+Shift+N` (or `Cmd+Shift+N`) shortcut and top bar inbox button open the rapid capture dialog with live mention linking. Destination selector allows keeping unfiled or immediately converting to NPC, Quest, Secret, or permanent Note. Dedicated "Inbox" tab in `NotesSection` provides a live unfiled counter badge, filter facets, mention chip rendering, and one-click triage buttons (`-> NPC`, `-> Quest`, `-> Secret`, `-> Note`) and note deletion. 100% test pass rate with 97% line coverage across all net-new inbox code.
 - [ ] **#7 Consistent rich rows**
 - [ ] **#2 One-shot mode**
 - [ ] **#9 Balance at a glance**
@@ -221,6 +220,10 @@ Plus the polish checklist (empty states, Cmd+K actions, "Saved · 2 s ago" indic
 - `SecretsPane.tsx`, `SecretsPane.module.css`, `SecretsPane.test.tsx`
 - `NotesSection.tsx`, `NotesSection.test.tsx`
 - `MentionTextarea.tsx`, `MentionTextarea.module.css`, `mentions.test.tsx`
+- `inboxModel.ts`, `inboxModel.test.ts`
+- `QuickCaptureModal.tsx`, `QuickCaptureModal.module.css`, `QuickCaptureModal.test.tsx`
+- `InboxPane.tsx`, `InboxPane.module.css`, `InboxPane.test.tsx`
+- `StudioTopBar.tsx`, `StudioFrame.tsx`, `SectionRoute.tsx`
 
 ---
 
