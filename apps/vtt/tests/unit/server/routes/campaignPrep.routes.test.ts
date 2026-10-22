@@ -26,6 +26,9 @@ describe('campaign prep routes', () => {
     getObject: ReturnType<typeof vi.fn>;
     getRevision: ReturnType<typeof vi.fn>;
     listObjects: ReturnType<typeof vi.fn>;
+    listRevisions: ReturnType<typeof vi.fn>;
+    togglePin: ReturnType<typeof vi.fn>;
+    listPinnedObjectIds: ReturnType<typeof vi.fn>;
     getBacklinks: ReturnType<typeof vi.fn>;
     activateSessionPlan: ReturnType<typeof vi.fn>;
     getActiveSessionPlanActivation: ReturnType<typeof vi.fn>;
@@ -62,6 +65,9 @@ describe('campaign prep routes', () => {
       getObject: vi.fn(),
       getRevision: vi.fn(),
       listObjects: vi.fn().mockResolvedValue([]),
+      listRevisions: vi.fn().mockResolvedValue([]),
+      togglePin: vi.fn().mockResolvedValue(true),
+      listPinnedObjectIds: vi.fn().mockResolvedValue([]),
       getBacklinks: vi.fn().mockResolvedValue([]),
       activateSessionPlan: vi.fn(),
       getActiveSessionPlanActivation: vi.fn(),
@@ -199,6 +205,45 @@ describe('campaign prep routes', () => {
       `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/objects/${PLAN_ID}`,
     );
     expect(missing.status).toBe(404);
+  });
+
+  it('loads revision history for an object', async () => {
+    campaignPrep.getObject.mockResolvedValue({ id: PLAN_ID });
+    campaignPrep.listRevisions.mockResolvedValue([
+      { objectId: PLAN_ID, revision: 2 },
+      { objectId: PLAN_ID, revision: 1 },
+    ]);
+    const response = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/objects/${PLAN_ID}/revisions`,
+    );
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.revisions).toHaveLength(2);
+    expect(body.revisions[0].revision).toBe(2);
+  });
+
+  it('lists and toggles pins for campaign objects', async () => {
+    campaignPrep.listPinnedObjectIds.mockResolvedValue([PLAN_ID]);
+    let response = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/pins`,
+    );
+    expect(response.status).toBe(200);
+    let body = await response.json();
+    expect(body.pinnedObjectIds).toEqual([PLAN_ID]);
+
+    campaignPrep.getObject.mockResolvedValue({ id: PLAN_ID });
+    campaignPrep.togglePin.mockResolvedValue(true);
+    response = await fetch(
+      `${baseUrl}/api/campaigns/${CAMPAIGN_ID}/prep/objects/${PLAN_ID}/pin`,
+      {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pinned: true }),
+      },
+    );
+    expect(response.status).toBe(200);
+    body = await response.json();
+    expect(body).toEqual({ ok: true, pinned: true });
   });
 
   it('creates and revises campaign objects through the authoring service', async () => {

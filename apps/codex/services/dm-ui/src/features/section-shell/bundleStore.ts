@@ -16,7 +16,10 @@ export type EditableKind =
   | 'party-member'
   | 'homebrew-monster'
   | 'item'
-  | 'campaign-map';
+  | 'campaign-map'
+  | 'secret'
+  | 'inbox-note'
+  | 'custom-creature';
 
 export interface SaveResult {
   ok: boolean;

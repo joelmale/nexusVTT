@@ -25,6 +25,8 @@ export interface CampaignFixture {
   premise: string;
   ruleset: string;
   edition: string;
+  mode?: 'campaign' | 'one-shot';
+  mood?: string;
   status: CampaignLifecycle;
   currentSessionId: FixtureId;
   actIds: FixtureId[];
@@ -98,6 +100,7 @@ export interface CampaignSession {
   encounterIds: FixtureId[];
   clueIds: FixtureId[];
   handoutIds: FixtureId[];
+  linkedIds?: FixtureId[];
   plan?: SessionPlan;
 }
 

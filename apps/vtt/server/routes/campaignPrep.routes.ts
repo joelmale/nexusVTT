@@ -98,6 +98,9 @@ const OBJECT_KINDS = new Set<CampaignPrepObjectKind>([
   'scene-template',
   'campaign-map',
   'session-plan',
+  'secret',
+  'inbox-note',
+  'custom-creature',
 ]);
 
 const OBJECT_STATUSES = new Set<CampaignPrepObjectStatus>([
@@ -318,6 +321,77 @@ export function createCampaignPrepRouter({
         return res
           .status(500)
           .json({ error: 'Failed to load campaign object' });
+      }
+    },
+  );
+
+  router.get(
+    '/campaigns/:campaignId/prep/objects/:objectId/revisions',
+    async (req, res) => {
+      try {
+        const campaignId = routeParameter(req.params.campaignId);
+        const objectId = routeParameter(req.params.objectId);
+        const object = await db.campaignPrep.getObject(campaignId, objectId);
+        if (!object) {
+          return res.status(404).json({ error: 'Campaign object not found' });
+        }
+        const revisions = await db.campaignPrep.listRevisions(object.id);
+        return res.json({ revisions });
+      } catch (error) {
+        console.error('Failed to load object revisions:', error);
+        return res
+          .status(500)
+          .json({ error: 'Failed to load object revisions' });
+      }
+    },
+  );
+
+  router.get(
+    '/campaigns/:campaignId/prep/pins',
+    async (req, res) => {
+      try {
+        const campaignId = routeParameter(req.params.campaignId);
+        const userId = sessionUserId(req);
+        if (!userId) {
+          return res.status(401).json({ error: 'Unauthorized' });
+        }
+        const pinnedObjectIds = await db.campaignPrep.listPinnedObjectIds(
+          userId,
+          campaignId,
+        );
+        return res.json({ pinnedObjectIds });
+      } catch (error) {
+        console.error('Failed to list pinned objects:', error);
+        return res.status(500).json({ error: 'Failed to list pinned objects' });
+      }
+    },
+  );
+
+  router.post(
+    '/campaigns/:campaignId/prep/objects/:objectId/pin',
+    async (req, res) => {
+      try {
+        const campaignId = routeParameter(req.params.campaignId);
+        const objectId = routeParameter(req.params.objectId);
+        const userId = sessionUserId(req);
+        if (!userId) {
+          return res.status(401).json({ error: 'Unauthorized' });
+        }
+        const body = req.body as { pinned?: unknown };
+        const pinned = typeof body?.pinned === 'boolean' ? body.pinned : true;
+        const object = await db.campaignPrep.getObject(campaignId, objectId);
+        if (!object) {
+          return res.status(404).json({ error: 'Campaign object not found' });
+        }
+        const isPinned = await db.campaignPrep.togglePin(
+          userId,
+          object.id,
+          pinned,
+        );
+        return res.json({ ok: true, pinned: isPinned });
+      } catch (error) {
+        console.error('Failed to toggle object pin:', error);
+        return res.status(500).json({ error: 'Failed to toggle object pin' });
       }
     },
   );

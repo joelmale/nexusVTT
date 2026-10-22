@@ -194,6 +194,70 @@ export class CampaignPrepRepository extends BaseRepository {
     return result.rows[0] ?? null;
   }
 
+  async listRevisions(
+    objectId: string,
+    client?: PoolClient,
+  ): Promise<CampaignPrepObjectRevisionRecord[]> {
+    const result = await this.getExecutor(
+      client,
+    ).query<CampaignPrepObjectRevisionRecord>(
+      `SELECT * FROM campaign_object_revisions
+         WHERE "objectId" = $1
+         ORDER BY revision DESC`,
+      [objectId],
+    );
+    return result.rows;
+  }
+
+  async togglePin(
+    userId: string,
+    objectId: string,
+    pinned: boolean,
+    client?: PoolClient,
+  ): Promise<boolean> {
+    const executor = this.getExecutor(client);
+    if (pinned) {
+      await executor.query(
+        `INSERT INTO campaign_object_pins ("userId", "objectId")
+         VALUES ($1, $2)
+         ON CONFLICT DO NOTHING`,
+        [userId, objectId],
+      );
+      return true;
+    } else {
+      await executor.query(
+        `DELETE FROM campaign_object_pins
+         WHERE "userId" = $1 AND "objectId" = $2`,
+        [userId, objectId],
+      );
+      return false;
+    }
+  }
+
+  async listPinnedObjectIds(
+    userId: string,
+    campaignId?: string,
+    client?: PoolClient,
+  ): Promise<string[]> {
+    const executor = this.getExecutor(client);
+    if (campaignId) {
+      const result = await executor.query<{ objectId: string }>(
+        `SELECT p."objectId"
+         FROM campaign_object_pins p
+         INNER JOIN campaign_objects o ON o.id = p."objectId"
+         WHERE p."userId" = $1 AND o."campaignId" = $2`,
+        [userId, campaignId],
+      );
+      return result.rows.map((row) => row.objectId);
+    } else {
+      const result = await executor.query<{ objectId: string }>(
+        `SELECT "objectId" FROM campaign_object_pins WHERE "userId" = $1`,
+        [userId],
+      );
+      return result.rows.map((row) => row.objectId);
+    }
+  }
+
   /**
    * Dashboard readiness: live (non-archived) npc/encounter counts and the
    * newest `session` object title, per campaign. Read-only.

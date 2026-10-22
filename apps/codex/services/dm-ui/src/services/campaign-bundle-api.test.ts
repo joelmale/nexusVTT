@@ -5,8 +5,11 @@ import type { CampaignSummary } from './campaign-api';
 import {
   createServerBundleStore,
   describeSeedResult,
+  fetchObjectRevisions,
+  fetchPinnedObjectIds,
   remap,
   seedFromFixture,
+  toggleObjectPin,
 } from './campaign-bundle-api';
 
 const CAMPAIGN: CampaignSummary = {
@@ -97,6 +100,31 @@ class FakeServer {
           links: (this.backlinks[links[1]] ?? []).map((sourceObjectId) => ({
             sourceObjectId,
           })),
+        });
+      }
+      const pinsMatch = path.match(/^\/api\/campaigns\/[^/]+\/prep\/pins$/);
+      if (pinsMatch && method === 'GET') {
+        return json({ pinnedObjectIds: ['item-1', 'npc-1'] });
+      }
+      const pinAction = path.match(
+        /^\/api\/campaigns\/[^/]+\/prep\/objects\/([^/]+)\/pin$/,
+      );
+      if (pinAction && method === 'POST') {
+        return json({ objectId: pinAction[1], pinned: Boolean(body?.pinned) });
+      }
+      const revMatch = path.match(
+        /^\/api\/campaigns\/[^/]+\/prep\/objects\/([^/]+)\/revisions$/,
+      );
+      if (revMatch && method === 'GET') {
+        return json({
+          revisions: [
+            {
+              revision: 1,
+              createdAt: '2026-10-22T00:00:00.000Z',
+              createdBy: 'u1',
+              snapshot: { title: 'Test Object' },
+            },
+          ],
         });
       }
       const match = path.match(
@@ -1635,6 +1663,30 @@ describe('seedFromFixture', () => {
         idMap,
       );
       expect(remapped.clueIds).toEqual(['note-alpha', 'note-beta']);
+    });
+  });
+
+  describe('revisions and pins client methods', () => {
+    it('fetches object revisions correctly', async () => {
+      const revisions = await fetchObjectRevisions(CAMPAIGN.id, 'obj-1');
+      expect(revisions).toEqual([
+        {
+          revision: 1,
+          createdAt: '2026-10-22T00:00:00.000Z',
+          createdBy: 'u1',
+          snapshot: { title: 'Test Object' },
+        },
+      ]);
+    });
+
+    it('fetches pinned object ids', async () => {
+      const pins = await fetchPinnedObjectIds(CAMPAIGN.id);
+      expect(pins).toEqual(['item-1', 'npc-1']);
+    });
+
+    it('toggles object pin status', async () => {
+      const ok = await toggleObjectPin(CAMPAIGN.id, 'item-1', true);
+      expect(ok).toBe(true);
     });
   });
 });

@@ -203,4 +203,14 @@ describe('campaign preparation contracts', () => {
         .success,
     ).toBe(false);
   });
+
+  it('validates secret, inbox-note, and custom-creature campaign entry kinds', () => {
+    for (const kind of ['secret', 'inbox-note', 'custom-creature'] as const) {
+      const entry = campaignEntrySchema.parse({
+        ...glassHarborWarningFixture,
+        kind,
+      });
+      expect(entry.kind).toBe(kind);
+    }
+  });
 });

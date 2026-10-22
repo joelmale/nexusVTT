@@ -162,6 +162,7 @@ export interface CampaignItem {
   id: FixtureId;
   campaignId: FixtureId;
   name: string;
+  playerName?: string;
   itemType: CampaignItemType;
   rarity: CampaignItemRarity;
   requiresAttunement: boolean;
@@ -180,8 +181,28 @@ export interface CampaignItem {
   /** The party knows what it is. */
   identified: boolean;
   questIds: FixtureId[];
+  sessionId?: FixtureId;
   /** Set when started from an SRD catalog entry. */
   source?: { ruleset: string; entityId: string };
+}
+
+/** A campaign secret or clue, revealable to players in a session. */
+export interface CampaignSecret {
+  id: FixtureId;
+  campaignId: FixtureId;
+  text: string;
+  attachedTo: { kind: string; id: FixtureId }[];
+  revealed: boolean;
+  revealedInSessionId?: FixtureId;
+}
+
+/** Quick-capture inbox note waiting to be triaged to a session/quest/npc/etc. */
+export interface InboxNote {
+  id: FixtureId;
+  campaignId: FixtureId;
+  text: string;
+  createdAt: string;
+  triagedTo?: { kind: string; id: FixtureId };
 }
 
 export type BundleSource =
@@ -199,4 +220,7 @@ export interface CampaignFixtureBundle extends CampaignCollections {
   homebrewMonsters?: HomebrewMonster[];
   /** Server campaigns only; fixtures have no authored items. */
   items?: CampaignItem[];
+  secrets?: CampaignSecret[];
+  inboxNotes?: InboxNote[];
+  pinnedObjectIds?: string[];
 }

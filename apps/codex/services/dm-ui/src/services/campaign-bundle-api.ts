@@ -82,6 +82,8 @@ import type {
   CampaignNote,
   CampaignSession,
   CampaignItem,
+  CampaignSecret,
+  InboxNote,
   HomebrewMonster,
   PlayerCharacter,
   NoteAudience,
@@ -123,7 +125,10 @@ export type EditableKind =
   | 'party-member'
   | 'homebrew-monster'
   | 'item'
-  | 'campaign-map';
+  | 'campaign-map'
+  | 'secret'
+  | 'inbox-note'
+  | 'custom-creature';
 
 /** Handouts and folders are both stored as server kind `lore`. */
 function serverKind(kind: EditableKind): string {
@@ -253,6 +258,9 @@ const EDITABLE_KINDS: string[] = [
   'homebrew-monster',
   'item',
   'campaign-map',
+  'secret',
+  'inbox-note',
+  'custom-creature',
 ];
 
 /** Fields that never round-trip because the server has no kind for them. */
@@ -357,15 +365,22 @@ function objectsPath(campaignId: string): string {
   return `/api/campaigns/${encodeURIComponent(campaignId)}/prep/objects`;
 }
 
-function titleKey(kind: EditableKind): 'name' | 'title' {
-  return kind === 'npc' ||
+function titleKey(kind: EditableKind): 'name' | 'title' | 'text' {
+  if (
+    kind === 'npc' ||
     kind === 'faction' ||
     kind === 'location' ||
     kind === 'party-member' ||
     kind === 'homebrew-monster' ||
-    kind === 'item'
-    ? 'name'
-    : 'title';
+    kind === 'item' ||
+    kind === 'custom-creature'
+  ) {
+    return 'name';
+  }
+  if (kind === 'secret' || kind === 'inbox-note') {
+    return 'text';
+  }
+  return 'title';
 }
 
 function oneOf<T extends string>(
@@ -605,6 +620,7 @@ function normalize(
         encounterIds: strings(raw.encounterIds),
         clueIds: strings(raw.clueIds),
         handoutIds: strings(raw.handoutIds),
+        linkedIds: strings(raw.linkedIds),
         // The session's prep plan is a separate server session-plan object.
         ...(raw.planId ? { planId: str(raw.planId) } : {}),
       } satisfies CampaignSession & { planId?: string };
@@ -756,6 +772,8 @@ function normalize(
         discovered: raw.discovered === true,
         identified: raw.identified === true,
         questIds: strings(raw.questIds),
+        ...(raw.playerName ? { playerName: str(raw.playerName) } : {}),
+        ...(raw.sessionId ? { sessionId: str(raw.sessionId) } : {}),
         ...(isRecord(raw.source) && raw.source.entityId
           ? {
               source: {
@@ -806,6 +824,45 @@ function normalize(
         pins,
         locationIds,
       } satisfies CampaignMap;
+    }
+    case 'secret': {
+      const attachedTo = Array.isArray(raw.attachedTo)
+        ? raw.attachedTo.filter(isRecord).map((att) => ({
+            kind: str(att.kind),
+            id: str(att.id),
+          }))
+        : [];
+      return {
+        ...base,
+        text: str(raw.text || raw.title),
+        attachedTo,
+        revealed: raw.revealed === true,
+        ...(raw.revealedInSessionId
+          ? { revealedInSessionId: str(raw.revealedInSessionId) }
+          : {}),
+      } satisfies CampaignSecret;
+    }
+    case 'inbox-note': {
+      return {
+        ...base,
+        text: str(raw.text || raw.title),
+        createdAt: str(raw.createdAt, new Date().toISOString()),
+        ...(isRecord(raw.triagedTo)
+          ? {
+              triagedTo: {
+                kind: str(raw.triagedTo.kind),
+                id: str(raw.triagedTo.id),
+              },
+            }
+          : {}),
+      } satisfies InboxNote;
+    }
+    case 'custom-creature': {
+      return {
+        ...base,
+        name: str(raw.name || raw.title),
+        notes: str(raw.notes),
+      };
     }
   }
 }
@@ -879,6 +936,11 @@ function plainLines(kind: EditableKind, entity: Entity): string[] {
       return [str(entity.description)];
     case 'campaign-map':
       return [str(entity.description)];
+    case 'secret':
+    case 'inbox-note':
+      return [str(entity.text)];
+    case 'custom-creature':
+      return [str(entity.notes)];
   }
 }
 
@@ -1239,6 +1301,10 @@ function buildBundle(
   const campaignItems = list<CampaignItem>('item').sort((a, b) =>
     a.name.localeCompare(b.name),
   );
+  const secrets = list<CampaignSecret>('secret');
+  const inboxNotes = list<InboxNote>('inbox-note').sort((a, b) =>
+    b.createdAt.localeCompare(a.createdAt),
+  );
   const linkedPlanIds = new Set(
     authoredSessions.flatMap((session) =>
       session.planId ? [session.planId] : [],
@@ -1307,6 +1373,14 @@ function buildBundle(
     ...base,
     campaign: {
       ...base.campaign,
+      edition:
+        typeof summary.edition === 'string' && summary.edition
+          ? summary.edition
+          : base.campaign.edition || '2024',
+      mode: summary.mode === 'one-shot' ? ('one-shot' as const) : ('campaign' as const),
+      ...(typeof summary.mood === 'string' && summary.mood
+        ? { mood: summary.mood }
+        : {}),
       status: lifecycle,
       sessionIds: sessions.map((session) => session.id),
       actIds: acts.map((act) => act.id),
@@ -1320,7 +1394,9 @@ function buildBundle(
           acts.length -
           playerCharacters.length -
           homebrewMonsters.length -
-          campaignItems.length +
+          campaignItems.length -
+          secrets.length -
+          inboxNotes.length +
           extras.sceneTemplates.length,
         scenes: extras.sceneTemplates.length,
         encounters: encounters.length,
@@ -1360,6 +1436,8 @@ function buildBundle(
     sceneTemplates: extras.sceneTemplates,
     homebrewMonsters,
     items: campaignItems,
+    secrets,
+    inboxNotes,
     source: 'server',
   });
 }
@@ -2325,4 +2403,59 @@ function seedNotes(fixture: CampaignFixtureBundle): {
     });
   }
   return { notes, clueNoteIds };
+}
+
+export interface ObjectRevisionSummary {
+  revision: number;
+  createdAt: string;
+  createdBy: string;
+  snapshot?: unknown;
+}
+
+export async function fetchObjectRevisions(
+  campaignId: string,
+  objectId: string,
+): Promise<ObjectRevisionSummary[]> {
+  const result = await http(
+    `/api/campaigns/${encodeURIComponent(campaignId)}/prep/objects/${encodeURIComponent(objectId)}/revisions`,
+  );
+  if (
+    !result.ok ||
+    !isRecord(result.body) ||
+    !Array.isArray(result.body.revisions)
+  ) {
+    return [];
+  }
+  return result.body.revisions as ObjectRevisionSummary[];
+}
+
+export async function fetchPinnedObjectIds(
+  campaignId: string,
+): Promise<string[]> {
+  const result = await http(
+    `/api/campaigns/${encodeURIComponent(campaignId)}/prep/pins`,
+  );
+  if (
+    !result.ok ||
+    !isRecord(result.body) ||
+    !Array.isArray(result.body.pinnedObjectIds)
+  ) {
+    return [];
+  }
+  return result.body.pinnedObjectIds as string[];
+}
+
+export async function toggleObjectPin(
+  campaignId: string,
+  objectId: string,
+  pinned: boolean,
+): Promise<boolean> {
+  const result = await http(
+    `/api/campaigns/${encodeURIComponent(campaignId)}/prep/objects/${encodeURIComponent(objectId)}/pin`,
+    {
+      method: 'POST',
+      body: JSON.stringify({ pinned }),
+    },
+  );
+  return result.ok;
 }

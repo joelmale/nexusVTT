@@ -4,11 +4,17 @@ export interface CampaignSummary {
   id: string;
   name: string;
   updatedAt: string;
+  edition?: string;
+  mode?: 'campaign' | 'one-shot';
+  mood?: string | null;
 }
 
 export interface CreateCampaignInput {
   description?: string;
   name: string;
+  edition?: string;
+  mode?: 'campaign' | 'one-shot';
+  mood?: string;
 }
 
 export class CampaignApiError extends Error {
@@ -43,6 +49,9 @@ function parseCampaign(value: unknown): CampaignSummary {
       typeof value.description === 'string' ? value.description : null,
     id: value.id,
     name: value.name,
+    edition: typeof value.edition === 'string' ? value.edition : '2024',
+    mode: value.mode === 'one-shot' ? 'one-shot' : 'campaign',
+    mood: typeof value.mood === 'string' ? value.mood : null,
     updatedAt:
       typeof value.updatedAt === 'string'
         ? value.updatedAt

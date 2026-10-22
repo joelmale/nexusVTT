@@ -35,6 +35,9 @@ export interface CampaignRecord {
   description: string | null;
   dmId: string;
   scenes: unknown;
+  edition?: string;
+  mode?: string;
+  mood?: string | null;
   lastRoomCode: string | null;
   lastRoomCodeUpdatedAt: Date | null;
   createdAt: Date;
@@ -173,7 +176,16 @@ export type CampaignPrepObjectKind =
   | 'item'
   | 'scene-template'
   | 'campaign-map'
-  | 'session-plan';
+  | 'session-plan'
+  | 'secret'
+  | 'inbox-note'
+  | 'custom-creature';
+
+export interface CampaignObjectPinRecord {
+  userId: string;
+  objectId: string;
+  createdAt: Date;
+}
 
 export type CampaignPrepObjectStatus =
   'draft' | 'ready' | 'retired' | 'archived';

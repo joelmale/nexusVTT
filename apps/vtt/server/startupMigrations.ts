@@ -55,6 +55,11 @@ export const STARTUP_MIGRATIONS: StartupMigration[] = [
     isApplied: (client) =>
       constraintMentions(client, 'campaign_objects_kind_check', 'item'),
   },
+  {
+    fileName: '2026-10-22-add-campaign-studio-extensions.sql',
+    isApplied: (client) =>
+      constraintMentions(client, 'campaign_objects_kind_check', 'secret'),
+  },
 ];
 
 export interface NonStartupMigration {
