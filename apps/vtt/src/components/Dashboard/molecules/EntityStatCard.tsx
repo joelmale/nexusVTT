@@ -60,7 +60,7 @@ export const EntityStatCard: React.FC<EntityStatCardProps> = ({
             <h3 className="font-['Cinzel',serif] text-lg font-bold text-[#2C1E16] leading-tight">
               {spell.name}
             </h3>
-            <span className="font-sans text-[10px] text-amber-800 uppercase font-semibold tracking-wider">
+            <span className="font-sans text-[11px] text-amber-800 uppercase font-semibold tracking-wider">
               {spell.level === 0 || spell.level === '0' || String(spell.level).toLowerCase() === 'cantrip'
                 ? `${spell.school} cantrip`
                 : `Level ${spell.level} ${spell.school}`}
@@ -72,25 +72,25 @@ export const EntityStatCard: React.FC<EntityStatCardProps> = ({
 
         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs font-serif text-[#2C1E16]">
           <div>
-            <span className="font-sans text-[9px] font-bold uppercase tracking-wider text-[#2C1E16]/50">
+            <span className="font-sans text-[11px] font-bold uppercase tracking-wider text-[#2C1E16]/75">
               Casting Time
             </span>
             <p className="font-semibold">{spell.castingTime}</p>
           </div>
           <div>
-            <span className="font-sans text-[9px] font-bold uppercase tracking-wider text-[#2C1E16]/50">
+            <span className="font-sans text-[11px] font-bold uppercase tracking-wider text-[#2C1E16]/75">
               Range
             </span>
             <p className="font-semibold">{spell.range}</p>
           </div>
           <div>
-            <span className="font-sans text-[9px] font-bold uppercase tracking-wider text-[#2C1E16]/50">
+            <span className="font-sans text-[11px] font-bold uppercase tracking-wider text-[#2C1E16]/75">
               Components
             </span>
             <p className="font-semibold">{spell.components}</p>
           </div>
           <div>
-            <span className="font-sans text-[9px] font-bold uppercase tracking-wider text-[#2C1E16]/50">
+            <span className="font-sans text-[11px] font-bold uppercase tracking-wider text-[#2C1E16]/75">
               Duration
             </span>
             <p className="font-semibold">{spell.duration}</p>
@@ -114,7 +114,7 @@ export const EntityStatCard: React.FC<EntityStatCardProps> = ({
           <h3 className="font-['Cinzel',serif] text-lg font-bold text-[#2C1E16] leading-tight">
             {monster.name}
           </h3>
-          <span className="font-sans text-[10px] text-[#2C1E16]/60 uppercase font-semibold tracking-wider">
+          <span className="font-sans text-[11px] text-[#2C1E16]/75 uppercase font-semibold tracking-wider">
             {monster.size} {monster.type}, {monster.alignment}
           </span>
         </div>
@@ -123,25 +123,25 @@ export const EntityStatCard: React.FC<EntityStatCardProps> = ({
 
         <div className="grid grid-cols-2 gap-x-4 gap-y-1.5 text-xs font-serif text-[#2C1E16]">
           <div>
-            <span className="font-sans text-[9px] font-bold uppercase tracking-wider text-[#2C1E16]/50">
+            <span className="font-sans text-[11px] font-bold uppercase tracking-wider text-[#2C1E16]/75">
               Armor Class
             </span>
             <p className="font-semibold">{monster.ac}</p>
           </div>
           <div>
-            <span className="font-sans text-[9px] font-bold uppercase tracking-wider text-[#2C1E16]/50">
+            <span className="font-sans text-[11px] font-bold uppercase tracking-wider text-[#2C1E16]/75">
               Hit Points
             </span>
             <p className="font-semibold">{monster.hp}</p>
           </div>
           <div>
-            <span className="font-sans text-[9px] font-bold uppercase tracking-wider text-[#2C1E16]/50">
+            <span className="font-sans text-[11px] font-bold uppercase tracking-wider text-[#2C1E16]/75">
               Speed
             </span>
             <p className="font-semibold">{monster.speed}</p>
           </div>
           <div>
-            <span className="font-sans text-[9px] font-bold uppercase tracking-wider text-[#2C1E16]/50">
+            <span className="font-sans text-[11px] font-bold uppercase tracking-wider text-[#2C1E16]/75">
               Challenge (CR)
             </span>
             <p className="font-semibold">{monster.cr}</p>
@@ -157,13 +157,13 @@ export const EntityStatCard: React.FC<EntityStatCardProps> = ({
                 const modSign = mod >= 0 ? `+${mod}` : `${mod}`;
                 return (
                   <div key={stat} className="bg-[#2c1e16]/5 p-1 rounded-sm">
-                    <span className="font-sans text-[8px] font-bold uppercase text-[#2C1E16]/50 block">
+                    <span className="font-sans text-[11px] font-bold uppercase text-[#2C1E16]/75 block">
                       {stat.slice(0, 3)}
                     </span>
                     <span className="text-xs font-bold font-serif text-[#2C1E16]">
                       {val}
                     </span>
-                    <span className="text-[9px] text-[#2C1E16]/70 block font-mono">
+                    <span className="text-xs text-[#2C1E16]/75 block font-mono">
                       ({modSign})
                     </span>
                   </div>

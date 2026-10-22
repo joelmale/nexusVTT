@@ -7,7 +7,6 @@ import { DocumentType, AskSearchCitation } from '@/services/documentService';
 import BookOpen from 'lucide-react/dist/esm/icons/book-open';
 import Filter from 'lucide-react/dist/esm/icons/filter';
 import AlertCircle from 'lucide-react/dist/esm/icons/alert-circle';
-import File from 'lucide-react/dist/esm/icons/file';
 import Send from 'lucide-react/dist/esm/icons/send';
 import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 import RefreshCw from 'lucide-react/dist/esm/icons/refresh-cw';
@@ -25,6 +24,11 @@ interface ChatMessage {
   text: string;
   citations?: AskSearchCitation[];
 }
+
+const formatFileSize = (bytes: number): string => {
+  if (bytes >= 1024 * 1024) return `${(bytes / 1024 / 1024).toFixed(1)} MB`;
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+};
 
 const getDocTypeIcon = (type: DocumentType): string => {
   switch (type) {
@@ -92,7 +96,7 @@ export const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
     })),
   );
 
-  const [activeTab, setActiveTab] = useState<'library' | 'ask'>('library');
+  const [activeTab, setActiveTab] = useState<'library' | 'ask'>('ask');
   const [searchVal, setSearchVal] = useState('');
   const [showFilter, setShowFilter] = useState(false);
   const [askInputVal, setAskInputVal] = useState('');
@@ -234,10 +238,8 @@ export const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
     askCodexQuestion(prompt);
   };
 
-  // Process 2x3 layouts for matching mock-ups
-  const displayedDocs = documents.slice(0, 6);
-  const placeholdersCount = Math.max(0, 6 - displayedDocs.length);
-  const placeholders = Array.from({ length: placeholdersCount });
+  // Simple list: the most recent documents only.
+  const displayedDocs = documents.slice(0, 12);
 
   return (
     <aside
@@ -254,45 +256,52 @@ export const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
       {/* Tab bar selector */}
       <div className="flex border-b border-[#8c6b4a]/20">
         <button
-          onClick={() => setActiveTab('library')}
-          className={`
-            flex-1 py-2 font-['Oswald',sans-serif] text-xs font-bold uppercase tracking-wider transition-all duration-200 border-b-2 cursor-pointer
-            ${activeTab === 'library'
-              ? 'text-amber-400 border-amber-600'
-              : 'text-[#c4b7a4]/50 border-transparent hover:text-[#c4b7a4]'}
-          `}
-        >
-          📚 Library
-        </button>
-        <button
           onClick={() => setActiveTab('ask')}
-          className={`
+          className={`unstyled 
             flex-1 py-2 font-['Oswald',sans-serif] text-xs font-bold uppercase tracking-wider transition-all duration-200 border-b-2 cursor-pointer
             ${activeTab === 'ask'
               ? 'text-amber-400 border-amber-600'
-              : 'text-[#c4b7a4]/50 border-transparent hover:text-[#c4b7a4]'}
+              : 'text-[#c4b7a4]/75 border-transparent hover:text-[#c4b7a4]'}
           `}
         >
           🔮 Ask Codex
         </button>
+        <button
+          onClick={() => setActiveTab('library')}
+          className={`unstyled 
+            flex-1 py-2 font-['Oswald',sans-serif] text-xs font-bold uppercase tracking-wider transition-all duration-200 border-b-2 cursor-pointer
+            ${activeTab === 'library'
+              ? 'text-amber-400 border-amber-600'
+              : 'text-[#c4b7a4]/75 border-transparent hover:text-[#c4b7a4]'}
+          `}
+        >
+          📚 Library
+        </button>
       </div>
 
-      {/* Warning Banner */}
+      {/* Offline notice: static and calm, with a way to retry */}
       {!documentsAvailable && (
         <div
+          role="status"
           className="
             flex items-center gap-2.5 p-3 rounded-sm
-            bg-[#7f1d1d]/90 border border-red-500/50 text-[#fecaca]
-            shadow-[inset_0_1px_2px_rgba(255,255,255,0.1),0_2px_4px_rgba(0,0,0,0.3)]
-            animate-pulse
+            bg-amber-900/30 border border-amber-600/50 text-amber-200
           "
         >
-          <AlertCircle size={16} className="text-red-300 flex-shrink-0" />
-          <span className="font-['Oswald',sans-serif] font-bold text-xs uppercase tracking-wider">
-            {documentsUnavailableReason?.includes('ECONNREFUSED') || documentsUnavailableReason?.includes('503')
+          <AlertCircle size={16} className="text-amber-400 flex-shrink-0" />
+          <span className="flex-1 font-['Oswald',sans-serif] font-bold text-xs uppercase tracking-wider">
+            {documentsUnavailableReason?.includes('ECONNREFUSED') ||
+            documentsUnavailableReason?.includes('503')
               ? 'NexusCodex offline'
               : 'Document service offline'}
           </span>
+          <button
+            type="button"
+            onClick={() => void loadDocuments()}
+            className="unstyled px-2 py-1 rounded-sm text-xs font-bold uppercase tracking-wider text-amber-100 border border-amber-500/60 hover:bg-amber-700/30 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500"
+          >
+            Retry
+          </button>
         </div>
       )}
 
@@ -309,7 +318,7 @@ export const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
             <button
               onClick={() => setShowFilter(!showFilter)}
               type="button"
-              className={`
+              className={`unstyled 
                 p-2 rounded-sm bg-[#1c1e22] text-[#f1e6d3] border transition-all duration-200 cursor-pointer
                 ${showFilter ? 'border-[#d97706] shadow-vtt-amber-glow' : 'border-[#8c6b4a]/40'}
                 hover:border-[#d97706]
@@ -323,7 +332,7 @@ export const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
           {/* Type Filter Panel */}
           {showFilter && (
             <div className="p-3 rounded-sm bg-[#1b1e22] border border-[#8c6b4a]/40 flex flex-col gap-2">
-              <span className="font-['Oswald',sans-serif] text-[10px] font-bold tracking-widest uppercase text-amber-500">
+              <span className="font-['Oswald',sans-serif] text-[11px] font-bold tracking-widest uppercase text-amber-500">
                 Filter by Type
               </span>
               <select
@@ -346,83 +355,48 @@ export const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
             </div>
           )}
 
-          {/* Grid Container */}
-          <div className="relative flex-1 flex items-center justify-center min-h-[22rem] overflow-hidden rounded-sm bg-[#1c1e22]/50 border border-[#8c6b4a]/20">
-            {/* Magical Rune SVG Background */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-20 select-none">
-              <svg
-                viewBox="0 0 200 200"
-                className="w-72 h-72 text-amber-500/20 animate-[spin_60s_linear_infinite]"
-              >
-                <circle cx="100" cy="100" r="90" fill="none" stroke="currentColor" strokeWidth="1.2" />
-                <circle cx="100" cy="100" r="82" fill="none" stroke="currentColor" strokeWidth="0.8" strokeDasharray="3 4" />
-                <circle cx="100" cy="100" r="64" fill="none" stroke="currentColor" strokeWidth="1.2" />
-                <polygon points="100,15 174,142 26,142" fill="none" stroke="currentColor" strokeWidth="0.6" />
-                <polygon points="100,185 174,58 26,58" fill="none" stroke="currentColor" strokeWidth="0.6" />
-                <circle cx="100" cy="100" r="35" fill="none" stroke="currentColor" strokeWidth="0.8" strokeDasharray="1.5 2" />
-                <line x1="100" y1="0" x2="100" y2="200" stroke="currentColor" strokeWidth="0.4" strokeDasharray="4 4" />
-                <line x1="0" y1="100" x2="200" y2="100" stroke="currentColor" strokeWidth="0.4" strokeDasharray="4 4" />
-              </svg>
-            </div>
-
+          {/* Document list */}
+          <div className="relative flex-1 min-h-[22rem] overflow-y-auto rounded-sm bg-[#1c1e22]/50 border border-[#8c6b4a]/20">
             {isLoadingDocuments ? (
-              <div className="relative z-10 flex flex-col items-center gap-2">
-                <RefreshCw size={24} className="animate-spin text-amber-500" />
-                <span className="font-['Oswald',sans-serif] text-[10px] font-bold tracking-widest text-[#c4b7a4]/50 uppercase">
+              <div className="flex flex-col items-center justify-center gap-2 h-full p-6">
+                <RefreshCw size={24} className="motion-safe:animate-spin text-amber-500" />
+                <span className="font-['Oswald',sans-serif] text-[11px] font-bold tracking-widest text-[#c4b7a4]/75 uppercase">
                   Reading Scrolls...
                 </span>
               </div>
+            ) : displayedDocs.length === 0 ? (
+              <p className="p-6 text-center text-xs font-serif italic text-[#c4b7a4]/75">
+                No documents yet.
+              </p>
             ) : (
-              <div className="relative z-10 grid grid-cols-2 grid-rows-3 gap-3 p-4 w-full h-full">
-                {/* Real Documents */}
+              <ul className="flex flex-col divide-y divide-[#8c6b4a]/20">
                 {displayedDocs.map((doc) => (
-                  <div
-                    key={doc.id}
-                    onClick={() => handleDocumentClick(doc.id)}
-                    className="
-                      flex flex-col justify-between p-2.5 rounded-sm
-                      bg-[#252a31]/80 border border-[#8c6b4a]/40
-                      text-[#cbd5e1] hover:border-amber-600/70 hover:bg-[#252a31] hover:shadow-vtt-amber-glow
-                      transition-all duration-200 cursor-pointer select-none group min-h-[5.5rem]
-                    "
-                  >
-                    <div className="flex items-start gap-1.5 min-w-0">
-                      <span className="text-sm shrink-0">{getDocTypeIcon(doc.type)}</span>
-                      <div className="min-w-0 flex-1">
-                        <h4 className="font-serif text-[10px] font-bold leading-tight line-clamp-2 text-[#f1e6d3] group-hover:text-amber-400 transition-colors">
-                          {doc.title}
-                        </h4>
-                      </div>
-                    </div>
-                    <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-[#8c6b4a]/20">
-                      <span className="font-['Oswald',sans-serif] text-[7.5px] tracking-wider text-[#c4b7a4]/40 uppercase truncate max-w-[50px]">
+                  <li key={doc.id}>
+                    <button
+                      type="button"
+                      onClick={() => handleDocumentClick(doc.id)}
+                      className="unstyled 
+                        flex items-center gap-2 w-full px-3 py-2 text-left cursor-pointer
+                        text-[#cbd5e1] hover:bg-[#252a31] hover:text-amber-400
+                        focus:outline-none focus-visible:ring-2 focus-visible:ring-amber-500 focus-visible:ring-inset
+                      "
+                    >
+                      <span className="text-sm shrink-0" aria-hidden="true">
+                        {getDocTypeIcon(doc.type)}
+                      </span>
+                      <span className="flex-1 min-w-0 font-serif text-xs font-bold text-[#f1e6d3] truncate">
+                        {doc.title}
+                      </span>
+                      <span className="font-['Oswald',sans-serif] text-[11px] tracking-wider text-[#c4b7a4]/75 uppercase shrink-0">
                         {doc.type.replace('_', ' ')}
                       </span>
-                      <span className="text-[7.5px] text-[#c4b7a4]/40 font-mono">
-                        {(doc.fileSize / 1024 / 1024).toFixed(1)}M
+                      <span className="text-[11px] text-[#c4b7a4]/75 font-mono shrink-0">
+                        {formatFileSize(doc.fileSize)}
                       </span>
-                    </div>
-                  </div>
+                    </button>
+                  </li>
                 ))}
-
-                {/* Empty Slots */}
-                {placeholders.map((_, idx) => (
-                  <div
-                    key={`empty-${idx}`}
-                    className="
-                      flex flex-col items-center justify-center p-3 rounded-sm
-                      bg-[#252a31]/40 border border-dashed border-[#8c6b4a]/25
-                      text-[#cbd5e1]/20 hover:border-amber-600/40 hover:text-amber-500/40 hover:bg-[#252a31]/60
-                      transition-all duration-300 select-none min-h-[5.5rem]
-                    "
-                  >
-                    <File size={16} className="stroke-[1.2] mb-1 opacity-40" />
-                    <span className="font-['Oswald',sans-serif] text-[8px] font-bold tracking-widest uppercase opacity-40">
-                      Empty Slot
-                    </span>
-                  </div>
-                ))}
-              </div>
+              </ul>
             )}
           </div>
         </>
@@ -434,12 +408,12 @@ export const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
           {/* Chat history pane */}
           <div className="flex-1 overflow-y-auto max-h-[20rem] p-3 rounded-sm bg-[#1c1e22]/60 border border-[#8c6b4a]/25 flex flex-col gap-3 font-serif text-sm">
             {chatHistory.length === 0 ? (
-              <div className="flex-1 flex flex-col items-center justify-center text-center p-4 text-[#c4b7a4]/40">
+              <div className="flex-1 flex flex-col items-center justify-center text-center p-4 text-[#c4b7a4]/75">
                 <Sparkles size={28} className="text-amber-500/40 mb-2" />
                 <span className="font-['Cinzel',serif] text-xs font-bold text-amber-500/70 mb-1">
                   Ask the Great Library
                 </span>
-                <p className="text-[10px] leading-relaxed max-w-[180px]">
+                <p className="text-xs leading-relaxed max-w-[180px]">
                   Submit questions regarding rules, spells, or monsters to retrieve grounded answers with citations.
                 </p>
 
@@ -447,13 +421,13 @@ export const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
                 <div className="mt-4 flex flex-col gap-1.5 w-full max-w-[180px]">
                   <button
                     onClick={() => handleQuickAsk('What is the casting time of Fireball?')}
-                    className="text-[9px] font-['Oswald',sans-serif] tracking-wider uppercase bg-[#252a31] hover:bg-[#2e343d] border border-[#8c6b4a]/40 text-[#c4b7a4] py-1 px-2 rounded-sm text-left transition-colors"
+                    className="unstyled text-[11px] font-['Oswald',sans-serif] tracking-wider uppercase bg-[#252a31] hover:bg-[#2e343d] border border-[#8c6b4a]/40 text-[#c4b7a4] py-1 px-2 rounded-sm text-left transition-colors"
                   >
                     ☄️ Fireball casting time?
                   </button>
                   <button
                     onClick={() => handleQuickAsk('Tell me about the creature known as a Lich.')}
-                    className="text-[9px] font-['Oswald',sans-serif] tracking-wider uppercase bg-[#252a31] hover:bg-[#2e343d] border border-[#8c6b4a]/40 text-[#c4b7a4] py-1 px-2 rounded-sm text-left transition-colors"
+                    className="unstyled text-[11px] font-['Oswald',sans-serif] tracking-wider uppercase bg-[#252a31] hover:bg-[#2e343d] border border-[#8c6b4a]/40 text-[#c4b7a4] py-1 px-2 rounded-sm text-left transition-colors"
                   >
                     💀 What is a Lich?
                   </button>
@@ -506,7 +480,7 @@ export const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
             <button
               type="submit"
               disabled={isAsking || !askInputVal.trim() || !documentsAvailable}
-              className="
+              className="unstyled 
                 p-2 rounded-sm bg-[#31231c]/70 hover:bg-[#3d2e26] text-amber-400 border border-[#8c6b4a]/50
                 flex items-center justify-center transition-colors cursor-pointer
                 disabled:opacity-40 disabled:cursor-not-allowed
@@ -518,8 +492,8 @@ export const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
               <button
                 type="button"
                 onClick={handleClearChat}
-                className="
-                  p-2 rounded-sm bg-[#1c1e22] hover:bg-[#25282d] text-[#c4b7a4]/60 border border-[#8c6b4a]/40
+                className="unstyled 
+                  p-2 rounded-sm bg-[#1c1e22] hover:bg-[#25282d] text-[#c4b7a4]/75 border border-[#8c6b4a]/40
                   flex items-center justify-center transition-colors cursor-pointer
                 "
                 title="Clear archives log"
@@ -543,7 +517,7 @@ export const DocumentSidebar: React.FC<DocumentSidebarProps> = ({
           >
             <button 
               onClick={() => setSelectedEntityDocId(null)}
-              className="absolute top-3 right-3 text-[#2C1E16]/60 hover:text-[#2C1E16] z-10 font-bold text-sm bg-[#8c6b4a]/10 hover:bg-[#8c6b4a]/20 rounded-full w-6 h-6 flex items-center justify-center transition-colors"
+              className="unstyled absolute top-3 right-3 text-[#2C1E16]/75 hover:text-[#2C1E16] z-10 font-bold text-sm bg-[#8c6b4a]/10 hover:bg-[#8c6b4a]/20 rounded-full w-6 h-6 flex items-center justify-center transition-colors"
             >
               ✕
             </button>

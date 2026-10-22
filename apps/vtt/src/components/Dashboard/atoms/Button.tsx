@@ -93,7 +93,7 @@ export const Button: React.FC<ButtonProps> = ({
       onClick={onClick}
       disabled={disabled}
       title={title}
-      className={`${baseStyle} ${styles[variant]} ${className}`}
+      className={`unstyled ${baseStyle} ${styles[variant]} ${className}`}
     >
       {icon && <span className="flex-shrink-0">{icon}</span>}
       <span>{children}</span>

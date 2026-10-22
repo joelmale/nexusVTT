@@ -71,7 +71,7 @@ export const DiceRoller: React.FC<DiceRollerProps> = ({ className = '' }) => {
             <button
               onClick={clearHistory}
               type="button"
-              className="text-[#cbd5e1]/60 hover:text-red-400 transition-colors text-xs flex items-center gap-1 focus:outline-none"
+              className="unstyled text-[#cbd5e1]/60 hover:text-red-400 transition-colors text-xs flex items-center gap-1 focus:outline-none"
             >
               <Trash2 size={12} /> Clear
             </button>
@@ -100,17 +100,17 @@ export const DiceRoller: React.FC<DiceRollerProps> = ({ className = '' }) => {
                 "
               >
                 <div className="flex items-center gap-1.5 font-sans">
-                  <span className="font-bold text-amber-700 uppercase tracking-wider text-[10px] bg-amber-700/10 px-1 rounded-sm">
+                  <span className="font-bold text-amber-700 uppercase tracking-wider text-[11px] bg-amber-700/10 px-1 rounded-sm">
                     {roll.dieType}
                   </span>
-                  <span className="text-[11px] text-[#362b21]/70">
+                  <span className="text-[11px] text-[#362b21]/75">
                     Rolled:
                   </span>
                   <span className="font-['Oswald',sans-serif] font-bold text-sm">
                     {roll.total}
                   </span>
                 </div>
-                <span className="text-[9px] text-[#362b21]/50 tabular-nums">
+                <span className="text-xs text-[#362b21]/75 tabular-nums">
                   {roll.timestamp}
                 </span>
               </div>

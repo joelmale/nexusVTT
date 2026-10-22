@@ -57,7 +57,7 @@ export const DieButton: React.FC<DieButtonProps> = ({
             <circle cx="35" cy="65" r="4.5" fill="currentColor" />
             <circle cx="65" cy="35" r="4.5" fill="currentColor" />
             <circle cx="50" cy="50" r="4.5" fill="currentColor" />
-            <text x="50" y="52" textAnchor="middle" dominantBaseline="middle" className="font-['Oswald'] font-black text-[10px] bg-slate-900 px-1 rounded-sm text-amber-500" fill="currentColor">D6</text>
+            <text x="50" y="52" textAnchor="middle" dominantBaseline="middle" className="font-['Oswald'] font-black text-xs bg-slate-900 px-1 rounded-sm text-amber-500" fill="currentColor">D6</text>
           </svg>
         );
       case 'd8':
@@ -124,7 +124,7 @@ export const DieButton: React.FC<DieButtonProps> = ({
       onClick={rollDie}
       disabled={isRolling}
       type="button"
-      className={`
+      className={`unstyled 
         relative flex flex-col items-center justify-center p-2
         rounded-sm border border-[#8c6b4a]/40 bg-[#1c1e22] text-[#f1e6d3]
         hover:bg-[#8c6b4a]/25 hover:border-[#d97706] hover:shadow-vtt-amber-glow hover:text-amber-400
@@ -136,7 +136,7 @@ export const DieButton: React.FC<DieButtonProps> = ({
       title={`Roll a ${dieType.toUpperCase()}`}
     >
       {renderDieSVG()}
-      <span className="font-['Oswald'] text-[8px] font-bold uppercase tracking-wider mt-0.5 opacity-60">
+      <span className="font-['Oswald'] text-[11px] font-bold uppercase tracking-wider mt-0.5 opacity-60">
         {dieType.toUpperCase()}
       </span>
     </button>

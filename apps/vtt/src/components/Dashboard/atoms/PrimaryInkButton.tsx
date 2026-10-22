@@ -18,7 +18,7 @@ export const PrimaryInkButton: React.FC<PrimaryInkButtonProps> = ({
 
   return (
     <button
-      className={`
+      className={`unstyled 
         px-4 py-2 font-['Oswald',sans-serif] text-xs font-bold uppercase tracking-wider
         rounded-sm border shadow-sm transition-all duration-200 cursor-pointer
         hover:shadow-md hover:border-amber-600 focus:outline-none focus:ring-1 focus:ring-amber-500

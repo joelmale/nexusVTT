@@ -1,22 +1,15 @@
 import React from 'react';
 import { GothicHeader } from '../atoms/Typography';
-import { StatsBadge } from '../molecules/StatsBadge';
-import Shield from 'lucide-react/dist/esm/icons/shield';
-import Sword from 'lucide-react/dist/esm/icons/sword';
 import ChevronLeft from 'lucide-react/dist/esm/icons/chevron-left';
 
 interface HeaderProps {
   userName: string;
-  campaignCount: number;
-  characterCount: number;
   onBack?: () => void;
   className?: string;
 }
 
 export const Header: React.FC<HeaderProps> = ({
   userName,
-  campaignCount,
-  characterCount,
   onBack,
   className = '',
 }) => {
@@ -30,11 +23,11 @@ export const Header: React.FC<HeaderProps> = ({
       `}
     >
       {/* Welcome Message (Left) */}
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3 min-w-0">
         {onBack && (
           <button
             onClick={onBack}
-            className="
+            className="unstyled 
               group flex items-center gap-1.5 mr-2
               px-3 py-1.5 rounded-sm
               text-amber-400 text-[11px] font-sans tracking-wide uppercase font-bold
@@ -53,29 +46,15 @@ export const Header: React.FC<HeaderProps> = ({
             Lobby
           </button>
         )}
-        <div className="w-1.5 h-8 bg-amber-600 rounded-sm shadow-vtt-amber-glow" />
-        <div>
-          <GothicHeader level={1} variant="cinzel" className="!text-[#f1e6d3] text-2xl tracking-wide">
-            Welcome, {userName}!
+        <div className="hidden sm:block w-1.5 h-8 bg-amber-600 rounded-sm shadow-vtt-amber-glow" />
+        <div className="min-w-0">
+          <GothicHeader level={1} variant="cinzel" className="!text-[#f1e6d3] !text-xl sm:!text-2xl tracking-wide">
+            The Table Awaits, {userName}
           </GothicHeader>
           <p className="text-[11px] font-sans tracking-wide text-amber-500/80 uppercase font-semibold">
-            Player Dashboard &bull; Beta Version
+            Your tables &amp; heroes
           </p>
         </div>
-      </div>
-
-      {/* Stats Widgets (Right) */}
-      <div className="flex flex-wrap items-center gap-3">
-        <StatsBadge
-          label="Campaigns"
-          value={campaignCount}
-          icon={<Shield size={14} className="fill-amber-600/10" />}
-        />
-        <StatsBadge
-          label="Characters"
-          value={characterCount}
-          icon={<Sword size={14} />}
-        />
       </div>
     </header>
   );

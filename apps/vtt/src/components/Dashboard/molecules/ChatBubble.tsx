@@ -46,14 +46,14 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
           {/* Header metadata */}
           <div className="flex justify-between items-center gap-4 mb-1.5 select-none">
             <span
-              className={`font-['Oswald',sans-serif] text-[10px] font-bold uppercase tracking-wider ${
+              className={`font-['Oswald',sans-serif] text-[11px] font-bold uppercase tracking-wider ${
                 isCodex ? 'text-amber-800' : 'text-emerald-800'
               }`}
             >
               {isCodex ? '🔮 Codex Assistant' : '👤 DM Explorer'}
             </span>
             {timestamp && (
-              <span className="font-mono text-[9px] text-[#2C1E16]/40">{timestamp}</span>
+              <span className="font-mono text-xs text-[#2C1E16]/75">{timestamp}</span>
             )}
           </div>
 
@@ -67,7 +67,7 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
             <>
               <SectionDivider className="!my-2" />
               <div className="mt-1.5">
-                <span className="font-sans text-[8px] font-bold uppercase tracking-wider text-[#2C1E16]/50 block mb-1 select-none">
+                <span className="font-sans text-[11px] font-bold uppercase tracking-wider text-[#2C1E16]/75 block mb-1 select-none">
                   Sources & Citations:
                 </span>
                 <div className="flex flex-wrap gap-1.5">
@@ -75,15 +75,15 @@ export const ChatBubble: React.FC<ChatBubbleProps> = ({
                     <button
                       key={`${cite.id}-${cite.pageNumber}-${index}`}
                       onClick={() => onCitationClick?.(cite.id, cite.pageNumber)}
-                      className="inline-flex items-center gap-1 px-2 py-1 rounded-sm border border-[#8c6b4a]/30 
+                      className="unstyled inline-flex items-center gap-1 px-2 py-1 rounded-sm border border-[#8c6b4a]/30 
                         bg-[#FDFBF7] text-[#2C1E16] hover:bg-[#8c6b4a]/10 hover:border-[#8c6b4a]/50
-                        font-['Oswald',sans-serif] text-[9px] font-bold uppercase tracking-wide
+                        font-['Oswald',sans-serif] text-[11px] font-bold uppercase tracking-wide
                         transition-all duration-150 cursor-pointer shadow-sm active:translate-y-[1px]"
                       title={cite.excerpt || `Go to ${cite.documentName} page ${cite.pageNumber}`}
                     >
                       <span className="text-amber-800">📖</span>
                       <span className="truncate max-w-[120px]">{cite.documentName}</span>
-                      <span className="text-[#2C1E16]/50 font-mono text-[8px]">
+                      <span className="text-[#2C1E16]/75 font-mono text-[11px]">
                         p. {cite.pageNumber}
                       </span>
                     </button>
