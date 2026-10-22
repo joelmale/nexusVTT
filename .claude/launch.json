@@ -24,6 +24,12 @@
       "port": 5003
     },
     {
+      "name": "docs-serve",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "serve", "--workspace", "@nexus/docs", "--", "--port", "3010", "--no-open"],
+      "port": 3010
+    },
+    {
       "name": "dm-ui",
       "runtimeExecutable": "npm",
       "runtimeArgs": ["run", "dev", "--workspace", "@nexuscodex/dm-ui"],
