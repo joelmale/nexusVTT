@@ -19,6 +19,29 @@ export function getItemRarityLabel(rarity: string): string {
   return rarity;
 }
 
+/** Formats a classic book-style item subtitle (e.g. "Wondrous item, rare (requires attunement)") */
+export function formatItemSubtitle(item: {
+  itemType: string;
+  rarity: string;
+  requiresAttunement?: boolean;
+  attunementNote?: string;
+}): string {
+  const typeLabel = getItemTypeLabel(item.itemType);
+  const rarityLabel = getItemRarityLabel(item.rarity);
+  const parts: string[] = [typeLabel];
+
+  if (item.rarity && item.rarity !== 'none') {
+    parts.push(rarityLabel);
+  }
+
+  let text = parts.join(', ');
+  if (item.requiresAttunement) {
+    const note = item.attunementNote ? ` ${item.attunementNote}` : '';
+    text += ` (requires attunement${note})`;
+  }
+  return text;
+}
+
 export interface SearchableItemLike {
   id: string;
   name: string;

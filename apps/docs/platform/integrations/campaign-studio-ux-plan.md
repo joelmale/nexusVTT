@@ -152,17 +152,23 @@ flowchart LR
 - [x] Unit test coverage in `design-tokens.test.ts`, `RarityBadge.test.tsx`, and `ItemsSection.test.tsx`.
 - **Files updated:** `design-tokens.css`, `globals.css`, `RarityBadge.tsx`, `RarityBadge.module.css`, `RarityBadge.test.tsx`, `SrdItemPicker.tsx`, `SrdItemPicker.module.css`, `ItemsSection.tsx`, `ItemsSection.test.tsx`, `design-tokens.test.ts`.
 
-### M2 — Items: search + compendium
-- `itemSearch.ts` (tokenise · score · highlight · parse operators), shared by both tabs.
-- `useSrdCatalog` hook (cached per ruleset, retry, catalog version).
-- `CompendiumPane`: tabs, preview then add (holder, quantity, session).
-- FilterBar additions: option counts, chips, group-by, deferred input.
-- Keyboard navigation.
-- **Files:** `itemSearch.ts`, `useSrdCatalog.ts`, `CompendiumPane.tsx` (new); `ItemsSection.tsx`, `itemsModel.ts`, `FilterBar.tsx`, `EntityList.tsx`.
+### M2 — Items: search + compendium — ✅ COMPLETED
+- [x] `itemSearch.ts` pure scoring engine (tokenise · score · highlight · parse operators `rarity:`, `type:`, `attune`, `gp<`, `gp>`), shared by both tabs.
+- [x] `useSrdCatalog` hook (cached per ruleset, retry, catalog version).
+- [x] `CompendiumPane`: tabs, preview then add (holder, quantity, session inline assignment), ruleset toggle ('2024' vs '2014 (legacy)').
+- [x] FilterBar additions: live result counts on facets, active filter chips with remove / clear all, group-by, `/` shortcut.
+- [x] ItemsSection integration: tabbed view (`Campaign items` vs `Compendium`), total placed GP calculation, facet count badges.
+- [x] Full unit test coverage (32/32 tests green in `features/items` and `design-tokens.test.ts`).
+- **Files updated:** `itemSearch.ts`, `itemSearch.test.ts`, `useSrdCatalog.ts`, `useSrdCatalog.test.ts`, `CompendiumPane.tsx`, `CompendiumPane.module.css`, `CompendiumPane.test.tsx`, `ItemsSection.tsx`, `ItemsSection.module.css`, `itemsModel.ts`, `FilterBar.tsx`, `FilterBar.module.css`, `useSectionQuery.ts`, `design-tokens.css`.
 
-### M3 — Items: readability + immersive theme
-- `ItemRow`, `ItemCard`, type icons (direct lucide imports), inline Placement toggles, grouped edit form, parchment/gold/sheen treatments, micro-interactions.
-- **Files:** `ItemRow.tsx`, `ItemCard.tsx` (new) and their CSS modules.
+### M3 — Items: readability + immersive theme — ✅ COMPLETED
+- [x] Item type icons via `getItemTypeIcon` with tree-shakeable direct Lucide imports (`sword`, `shield`, `wand-2`, `gem`, `sparkles`, `scroll`, `flask-conical`, `crosshair`, `wrench`, `package`, `box`).
+- [x] `ItemRow`: Two-line item row with type icon, subtle rarity edge indicator, name, subtitle metadata (`Wondrous item · Rare · Attunement`), holder tag, and veiled styling for undiscovered items.
+- [x] `ItemCard`: Immersive parchment/statblock presentation with Fraunces serif display typography, book-style subtitle ("*Wondrous Item, Rare (Requires Attunement)*"), stats ribbon (Value, Weight, Quantity, Holder, Status), fast inline toggles for Discovered/Identified without entering edit mode, and slow ambient shimmer sheen for Legendary and Artifact items.
+- [x] Form reorganization: Grouped into 4 styled fieldsets (`Basics`, `Rules text`, `Placement`, `Story & Quests`).
+- [x] 100% test coverage across all new components (`ItemRow.test.tsx`, `ItemCard.test.tsx`, `itemTypeIcons.test.ts`) and full suite green (41/41 passing).
+- **Files updated:** `itemTypeIcons.ts`, `itemTypeIcons.test.ts`, `ItemRow.tsx`, `ItemRow.module.css`, `ItemRow.test.tsx`, `ItemCard.tsx`, `ItemCard.module.css`, `ItemCard.test.tsx`, `ItemsSection.tsx`, `ItemsSection.module.css`, `itemSearch.ts`.
+
 
 ### M4 — Data model + backend contracts
 New persisted fields and entities. These need `EditableKind` additions in

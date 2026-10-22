@@ -1,0 +1,236 @@
+.card {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-panel);
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-md);
+  padding: 20px;
+  position: relative;
+}
+
+.legendarySheen {
+  background: linear-gradient(
+    135deg,
+    var(--studio-surface) 0%,
+    var(--studio-rarity-legendary-soft, #f6e4d2) 45%,
+    var(--studio-surface) 90%
+  );
+  border-color: var(--studio-rarity-legendary);
+}
+
+.artifactSheen {
+  background: linear-gradient(
+    135deg,
+    var(--studio-surface) 0%,
+    var(--studio-rarity-artifact-soft, #f4dcd6) 45%,
+    var(--studio-surface) 90%
+  );
+  border-color: var(--studio-rarity-artifact);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .legendarySheen,
+  .artifactSheen {
+    background-size: 200% 200%;
+    animation: slowSheen 8s ease infinite alternate;
+  }
+
+  @keyframes slowSheen {
+    0% {
+      background-position: 0% 50%;
+    }
+    100% {
+      background-position: 100% 50%;
+    }
+  }
+}
+
+.header {
+  border-bottom: 1px solid var(--studio-gold);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding-bottom: 14px;
+}
+
+.headerTop {
+  align-items: flex-start;
+  display: flex;
+  gap: 12px;
+  justify-content: space-between;
+}
+
+.title {
+  color: var(--studio-text);
+  font-family: var(--studio-font-display);
+  font-size: 24px;
+  font-weight: 700;
+  line-height: 1.2;
+  margin: 0;
+}
+
+.headerBadges {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.subtitle {
+  color: var(--studio-text-muted);
+  font-size: 14px;
+  font-style: italic;
+  margin: 0;
+}
+
+.quickToggles {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.quickToggleBtn {
+  align-items: center;
+  background: var(--studio-chrome);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text-muted);
+  cursor: pointer;
+  display: inline-flex;
+  font-family: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  gap: 6px;
+  padding: 4px 10px;
+  transition: all 0.15s ease;
+}
+
+.quickToggleBtn:hover {
+  background: var(--studio-surface-hover);
+  color: var(--studio-text);
+}
+
+.quickToggleBtn:focus-visible {
+  outline: 2px solid var(--studio-focus);
+  outline-offset: 1px;
+}
+
+.quickToggleActive {
+  background: var(--studio-neutral-soft);
+  border-color: var(--studio-positive);
+  color: var(--studio-positive);
+}
+
+.statsRibbon {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--studio-gap-sm);
+}
+
+.statItem {
+  background: var(--studio-chrome);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  display: flex;
+  flex-direction: column;
+  min-width: 90px;
+  padding: 6px 12px;
+}
+
+.statLabel {
+  color: var(--studio-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.statValue {
+  color: var(--studio-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.sectionHeading {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.descriptionText,
+.mechanicsText {
+  color: var(--studio-text);
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 0;
+  white-space: pre-wrap;
+}
+
+.mechanicsText {
+  background: var(--studio-chrome);
+  border-left: 3px solid var(--studio-gold);
+  border-radius: 0 var(--studio-radius-control) var(--studio-radius-control) 0;
+  padding: 10px 14px;
+}
+
+.questChips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+/* Edit form fieldsets */
+.form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-md);
+}
+
+.fieldset {
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-panel);
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-sm);
+  padding: 14px 16px;
+}
+
+.legend {
+  color: var(--studio-gold);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 0 6px;
+  text-transform: uppercase;
+}
+
+.pair {
+  display: grid;
+  gap: var(--studio-gap-sm);
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+}
+
+.checkboxLabel {
+  align-items: center;
+  color: var(--studio-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 500;
+  gap: 8px;
+}
+
+.checkboxLabel input[type='checkbox'] {
+  accent-color: var(--studio-gold);
+}
