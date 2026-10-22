@@ -131,4 +131,28 @@ describe('CampaignOverview panels', () => {
       `/demo/${SLUG}/quests/${questId}`,
     );
   });
+
+  it('renders Next Session hub with strong start, scenes timeline and opens run sheet export modal', async () => {
+    const user = renderOverview();
+
+    // Strong start heading or content visible
+    expect(screen.getByText('Strong Start')).toBeInTheDocument();
+
+    // Planned Scenes & Beats timeline visible
+    expect(
+      screen.getByRole('heading', { level: 3, name: /Planned Scenes & Beats/ }),
+    ).toBeInTheDocument();
+
+    // Export Run Sheet button present
+    const exportBtn = screen.getByRole('button', { name: 'Export Run Sheet' });
+    expect(exportBtn).toBeInTheDocument();
+
+    // Clicking Export Run Sheet opens modal
+    await user.click(exportBtn);
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
+    expect(
+      screen.getByRole('heading', { level: 2, name: /Session Run Sheet Export/ }),
+    ).toBeInTheDocument();
+  });
 });
+

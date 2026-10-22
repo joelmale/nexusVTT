@@ -13,6 +13,7 @@ import { MentionText } from '@/features/mentions/MentionText';
 import { EntityChip, EntityLink } from '@/features/section-shell/EntityLink';
 import { RelatedGroups } from '@/features/section-shell/RelatedGroups';
 import { StatusBadge } from '@/features/section-shell/StatusBadge';
+import { UseInNextSessionButton } from '@/features/section-shell/UseInNextSessionButton';
 import { mentionIds } from '@/lib/mentions';
 
 import { formatItemSubtitle } from './itemSearch';
@@ -65,6 +66,7 @@ export function ItemCard({
             <h2 className={styles.title}>{item.name}</h2>
             <div className={styles.headerBadges}>
               <RarityBadge rarity={item.rarity} />
+              <UseInNextSessionButton kind="item" id={item.id} size="sm" />
               {onDuplicate ? (
                 <button
                   type="button"
@@ -79,20 +81,23 @@ export function ItemCard({
               ) : null}
             </div>
           </div>
-        ) : onDuplicate ? (
+        ) : (
           <div className={styles.headerBadges}>
-            <button
-              type="button"
-              className={styles.duplicateBtn}
-              onClick={onDuplicate}
-              title="Duplicate & customise item"
-              aria-label="Duplicate & customise item"
-            >
-              <Copy size={13} />
-              <span>Duplicate</span>
-            </button>
+            <UseInNextSessionButton kind="item" id={item.id} size="sm" />
+            {onDuplicate ? (
+              <button
+                type="button"
+                className={styles.duplicateBtn}
+                onClick={onDuplicate}
+                title="Duplicate & customise item"
+                aria-label="Duplicate & customise item"
+              >
+                <Copy size={13} />
+                <span>Duplicate</span>
+              </button>
+            ) : null}
           </div>
-        ) : null}
+        )}
 
         <p className={styles.subtitle}>{subtitle}</p>
 

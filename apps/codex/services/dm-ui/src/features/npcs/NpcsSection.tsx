@@ -19,6 +19,7 @@ import { useSectionBundle } from '@/features/section-shell/SectionContext';
 import { SectionLayout } from '@/features/section-shell/SectionLayout';
 import { SectionSummary } from '@/features/section-shell/SectionSummary';
 import { StatusBadge } from '@/features/section-shell/StatusBadge';
+import { UseInNextSessionButton } from '@/features/section-shell/UseInNextSessionButton';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 import { resolveEntity } from '@/demo/fixture-registry';
 import { QuickNpcModal } from './QuickNpcModal';
@@ -143,6 +144,7 @@ function NpcDetail({ npc }: { npc: CampaignNpc }) {
       headerExtras={
         unused ? <StatusBadge tone="warning">Unused</StatusBadge> : null
       }
+      headerActions={<UseInNextSessionButton kind="npc" id={npc.id} />}
       id={npc.id}
       initialDraft={draft}
       kind="npc"

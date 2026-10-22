@@ -18,6 +18,7 @@ import { SectionLayout } from '@/features/section-shell/SectionLayout';
 import { SectionSummary } from '@/features/section-shell/SectionSummary';
 import { DmOnlyBadge, StatusBadge } from '@/features/section-shell/StatusBadge';
 import { humanize } from '@/features/section-shell/statusTones';
+import { UseInNextSessionButton } from '@/features/section-shell/UseInNextSessionButton';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 
 import { compositionOf, useDraftRating } from './encounterDraft';
@@ -235,6 +236,9 @@ function EncounterDetail({ encounter }: { encounter: CampaignEncounter }) {
         </span>
       }
       heading={encounter.title}
+      headerActions={
+        <UseInNextSessionButton kind="encounter" id={encounter.id} />
+      }
       id={encounter.id}
       initialDraft={draft}
       kind="encounter"

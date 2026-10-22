@@ -42,12 +42,30 @@ export interface NextSessionFact {
   record: OverviewRecord;
 }
 
+export interface NextSessionScene {
+  id: string;
+  kind: string;
+  title: string;
+  durationMinutes: number;
+  body?: string;
+}
+
 export interface NextSessionModel {
   sessionId: string;
+  sessionNumber: number;
+  sessionTitle: string;
   heading: string;
   schedule: string[];
   planHref: string;
+  strongStart?: string;
+  scenes: NextSessionScene[];
+  secrets: OverviewRecord[];
+  npcs: OverviewRecord[];
+  encounters: OverviewRecord[];
+  locations: OverviewRecord[];
+  scheduledLoot: OverviewRecord[];
   facts: NextSessionFact[];
+  rawSession?: CampaignSession;
 }
 
 export interface OverviewModel {
@@ -572,8 +590,118 @@ function buildNextSession(
     });
   }
 
+  const scenes: NextSessionScene[] =
+    session.plan?.steps?.map((step) => ({
+      id: step.id,
+      kind: step.kind,
+      title: step.title,
+      durationMinutes: step.durationMinutes,
+      body: step.body,
+    })) ?? [];
+
+  const strongStartStep = session.plan?.steps?.find(
+    (step) => step.body && (step.kind === 'scene' || step.kind === 'recap'),
+  );
+  const strongStart = strongStartStep?.body || session.summary || undefined;
+
+  const secrets: OverviewRecord[] = [
+    ...(bundle.clues
+      ?.filter((c) => session.clueIds?.includes(c.id))
+      .map((clue): OverviewRecord => ({
+        id: clue.id,
+        kind: 'clue',
+        title: clue.title,
+        subtitle: clue.meaning,
+        meta: humanize(clue.status),
+        tone: clue.status === 'resolved' ? 'positive' : priorityTone(clue.priority),
+        href: href(clue.id),
+        details: [],
+      })) ?? []),
+    ...(bundle.secrets
+      ?.filter(
+        (s) =>
+          !s.revealed &&
+          (s.revealedInSessionId === session.id || !s.revealedInSessionId),
+      )
+      .map((secret): OverviewRecord => ({
+        id: secret.id,
+        kind: 'secret',
+        title: secret.text,
+        subtitle: 'Secret to drop',
+        meta: 'Unrevealed',
+        details: [],
+      })) ?? []),
+  ];
+
+  const npcs: OverviewRecord[] =
+    session.npcIds
+      ?.map((id) => bundle.npcs.find((n) => n.id === id))
+      .filter((n): n is NonNullable<typeof n> => Boolean(n))
+      .map((npc): OverviewRecord => ({
+        id: npc.id,
+        kind: 'npc',
+        title: npc.name,
+        subtitle: npc.role,
+        meta: 'Cast',
+        href: href(npc.id),
+        details: [],
+      })) ?? [];
+
+  const encounters: OverviewRecord[] =
+    session.encounterIds
+      ?.map((id) => bundle.encounters.find((e) => e.id === id))
+      .filter((e): e is NonNullable<typeof e> => Boolean(e))
+      .map((encounter): OverviewRecord => {
+        const count = helpers.creatureCount(encounter.composition);
+        return {
+          id: encounter.id,
+          kind: 'encounter',
+          title: encounter.title,
+          subtitle: compact([
+            humanize(encounter.difficulty),
+            count > 0 ? plural(count, 'creature') : undefined,
+          ]).join(' · '),
+          meta: humanize(encounter.difficulty),
+          tone: difficultyTone(encounter.difficulty),
+          href: href(encounter.id),
+          details: [],
+        };
+      }) ?? [];
+
+  const locations: OverviewRecord[] =
+    session.locationIds
+      ?.map((id) => bundle.locations.find((l) => l.id === id))
+      .filter((l): l is NonNullable<typeof l> => Boolean(l))
+      .map((loc): OverviewRecord => ({
+        id: loc.id,
+        kind: 'location',
+        title: loc.name,
+        subtitle: helpers.locationName(loc.parentLocationId) ?? humanize(loc.type),
+        meta: 'Location',
+        href: href(loc.id),
+        details: [],
+      })) ?? [];
+
+  const scheduledLoot: OverviewRecord[] =
+    bundle.items
+      ?.filter((item) => item.sessionId === session.id)
+      .map((item): OverviewRecord => ({
+        id: item.id,
+        kind: 'item',
+        title: item.name,
+        subtitle: compact([
+          humanize(item.rarity),
+          item.valueGp !== undefined ? `${item.valueGp} gp` : undefined,
+        ]).join(' · '),
+        meta: humanize(item.itemType),
+        href: `/items/${item.id}`,
+        details: [],
+      })) ?? [];
+
   return {
     sessionId: session.id,
+    sessionNumber: session.number,
+    sessionTitle: session.title,
     heading: `Session ${session.number} — ${session.title}`,
     schedule: curated
       ? compact([
@@ -583,6 +711,14 @@ function buildNextSession(
         ])
       : scheduleFor(session.plannedDate, now),
     planHref: `/sessions/${session.id}/plan`,
+    strongStart,
+    scenes,
+    secrets,
+    npcs,
+    encounters,
+    locations,
+    scheduledLoot,
     facts,
+    rawSession: session,
   };
 }

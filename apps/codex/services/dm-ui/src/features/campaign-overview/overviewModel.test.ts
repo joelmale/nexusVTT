@@ -155,4 +155,70 @@ describe('buildOverviewModel', () => {
     expect(model.backlinks).toEqual([]);
     expect(model.recentEdits).toEqual([]);
   });
+
+  it('builds Next Session hub with strong start, scenes, linked prep collections and rawSession', () => {
+    const ashes = bundles.find((bundle) => bundle.slug === 'ashes-of-veyra')!;
+    const nextSession = ashes.sessions.find(
+      (s) => s.id === ashes.campaign.nextSession.sessionId,
+    )!;
+
+    const bundleWithLootAndSecrets = {
+      ...ashes,
+      items: [
+        {
+          id: 'item-1',
+          campaignId: ashes.campaignId,
+          name: 'Sunblade of Veyra',
+          itemType: 'weapon' as const,
+          rarity: 'rare' as const,
+          requiresAttunement: true,
+          quantity: 1,
+          description: 'A blade of pure radiant energy',
+          holder: { kind: 'none' as const },
+          discovered: false,
+          identified: true,
+          questIds: [],
+          sessionId: nextSession.id,
+          valueGp: 5000,
+        },
+      ],
+      secrets: [
+        {
+          id: 'sec-1',
+          campaignId: ashes.campaignId,
+          text: 'The grand vizier is actually a rakshasa in disguise.',
+          attachedTo: [{ kind: 'npc', id: 'npc-1' }],
+          revealed: false,
+          revealedInSessionId: nextSession.id,
+        },
+      ],
+    };
+
+    const model = buildOverviewModel(bundleWithLootAndSecrets);
+    expect(model.nextSession).not.toBeNull();
+    expect(model.nextSession?.sessionId).toBe(nextSession.id);
+    expect(model.nextSession?.sessionNumber).toBe(nextSession.number);
+    expect(model.nextSession?.sessionTitle).toBe(nextSession.title);
+    expect(model.nextSession?.rawSession?.id).toBe(nextSession.id);
+
+    // Strong start derived from recap/scene step body or summary
+    expect(model.nextSession?.strongStart).toBeTruthy();
+
+    // Scenes from plan steps
+    expect(model.nextSession?.scenes.length).toBeGreaterThanOrEqual(1);
+    expect(model.nextSession?.scenes[0]).toHaveProperty('title');
+    expect(model.nextSession?.scenes[0]).toHaveProperty('durationMinutes');
+
+    // Prep collections
+    expect(model.nextSession?.scheduledLoot).toHaveLength(1);
+    expect(model.nextSession?.scheduledLoot[0].title).toBe('Sunblade of Veyra');
+
+    expect(model.nextSession?.secrets.length).toBeGreaterThanOrEqual(1);
+    expect(
+      model.nextSession?.secrets.some((s) => s.id === 'sec-1'),
+    ).toBe(true);
+
+    expect(model.nextSession?.npcs.length).toBeGreaterThan(0);
+    expect(model.nextSession?.encounters.length).toBeGreaterThan(0);
+  });
 });

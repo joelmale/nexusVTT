@@ -1,5 +1,6 @@
 import CalendarDays from 'lucide-react/dist/esm/icons/calendar-days';
 import CheckSquare from 'lucide-react/dist/esm/icons/check-square';
+import EyeOff from 'lucide-react/dist/esm/icons/eye-off';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
 import ImageIcon from 'lucide-react/dist/esm/icons/image';
 import Gem from 'lucide-react/dist/esm/icons/gem';
@@ -29,6 +30,7 @@ export const ENTITY_ICONS: Record<EntityKind, LucideIcon> = {
   note: StickyNote,
   item: Gem,
   scene: ImageIcon,
+  secret: EyeOff,
 };
 
 export const ENTITY_KIND_LABELS: Record<EntityKind, string> = {
@@ -45,4 +47,5 @@ export const ENTITY_KIND_LABELS: Record<EntityKind, string> = {
   note: 'Notes',
   item: 'Items',
   scene: 'Scenes',
+  secret: 'Secrets',
 };

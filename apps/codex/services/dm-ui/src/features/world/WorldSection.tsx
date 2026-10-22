@@ -20,6 +20,7 @@ import {
   StatusBadge,
 } from '@/features/section-shell/StatusBadge';
 import { humanize } from '@/features/section-shell/statusTones';
+import { UseInNextSessionButton } from '@/features/section-shell/UseInNextSessionButton';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 
 import { LocationResults, LocationTree } from './LocationTree';
@@ -85,6 +86,9 @@ function LocationDetail({
         </>
       }
       heading={location.name}
+      headerActions={
+        <UseInNextSessionButton kind="location" id={location.id} />
+      }
       id={location.id}
       initialDraft={locationDraft(location)}
       kind="location"

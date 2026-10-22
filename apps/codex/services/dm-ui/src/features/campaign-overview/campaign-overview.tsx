@@ -4,8 +4,12 @@ import ArrowRight from 'lucide-react/dist/esm/icons/arrow-right';
 import CalendarDays from 'lucide-react/dist/esm/icons/calendar-days';
 import CheckSquare from 'lucide-react/dist/esm/icons/check-square';
 import ChevronRight from 'lucide-react/dist/esm/icons/chevron-right';
+import Clock from 'lucide-react/dist/esm/icons/clock';
+import EyeOff from 'lucide-react/dist/esm/icons/eye-off';
 import FileText from 'lucide-react/dist/esm/icons/file-text';
+import Gem from 'lucide-react/dist/esm/icons/gem';
 import LinkIcon from 'lucide-react/dist/esm/icons/link';
+import Printer from 'lucide-react/dist/esm/icons/printer';
 import Search from 'lucide-react/dist/esm/icons/search';
 import Sparkles from 'lucide-react/dist/esm/icons/sparkles';
 import Swords from 'lucide-react/dist/esm/icons/swords';
@@ -15,6 +19,7 @@ import type { LucideIcon } from 'lucide-react';
 import { useCapabilityNotice } from '@/features/capability-notice';
 import { ENTITY_ICONS } from '@/features/section-shell/entityMeta';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
+import { RunSheetExportModal } from '@/features/sessions/export/RunSheetExportModal';
 
 import { OverviewPanel } from './OverviewPanel';
 import {
@@ -91,6 +96,7 @@ export function CampaignOverview() {
       ? collapsedState.value
       : readCollapsed(bundle.campaignId);
 
+  const [exportModalOpen, setExportModalOpen] = useState(false);
   const [focused, setFocused] = useState<OverviewPanelId | null>(null);
   const [selected, setSelected] = useState<OverviewRecord | undefined>();
   const selectedRecord = selected ?? model.backlinks[0];
@@ -151,15 +157,39 @@ export function CampaignOverview() {
                   </div>
                 )}
               </div>
-              <Link
-                className={styles.primaryButton}
-                to={`${basePath}${nextSession?.planHref ?? '/sessions'}`}
-              >
-                <CalendarDays aria-hidden="true" size={18} />
-                <span>{nextSession ? 'Plan Session' : 'Open Sessions'}</span>
-                <ArrowRight aria-hidden="true" size={17} />
-              </Link>
+              <div className={styles.nextActions}>
+                {nextSession?.rawSession ? (
+                  <button
+                    aria-label="Export Run Sheet"
+                    className={styles.exportButton}
+                    onClick={() => setExportModalOpen(true)}
+                    type="button"
+                  >
+                    <Printer aria-hidden="true" size={16} />
+                    <span>Export Run Sheet</span>
+                  </button>
+                ) : null}
+                <Link
+                  className={styles.primaryButton}
+                  to={`${basePath}${nextSession?.planHref ?? '/sessions'}`}
+                >
+                  <CalendarDays aria-hidden="true" size={18} />
+                  <span>{nextSession ? 'Plan Session' : 'Open Sessions'}</span>
+                  <ArrowRight aria-hidden="true" size={17} />
+                </Link>
+              </div>
             </div>
+
+            {nextSession?.strongStart ? (
+              <div className={styles.strongStart}>
+                <div className={styles.strongStartHeader}>
+                  <Sparkles aria-hidden="true" size={16} />
+                  <strong>Strong Start</strong>
+                </div>
+                <p>{nextSession.strongStart}</p>
+              </div>
+            ) : null}
+
             {nextSession && nextSession.facts.length > 0 && (
               <div className={styles.sessionFacts}>
                 {nextSession.facts.map(({ label, record }) => {
@@ -190,6 +220,79 @@ export function CampaignOverview() {
                 })}
               </div>
             )}
+
+            {nextSession?.scenes && nextSession.scenes.length > 0 ? (
+              <div className={styles.timelineSection}>
+                <div className={styles.prepSectionHeader}>
+                  <Clock aria-hidden="true" size={16} />
+                  <h3>Planned Scenes &amp; Beats ({nextSession.scenes.length})</h3>
+                </div>
+                <ol className={styles.scenesList}>
+                  {nextSession.scenes.map((scene, idx) => (
+                    <li key={scene.id} className={styles.sceneItem}>
+                      <span className={styles.sceneIndex}>{idx + 1}</span>
+                      <span className={styles.sceneBadge}>{scene.kind}</span>
+                      <strong className={styles.sceneTitle}>{scene.title}</strong>
+                      <span className={styles.sceneDuration}>
+                        {scene.durationMinutes} min
+                      </span>
+                    </li>
+                  ))}
+                </ol>
+              </div>
+            ) : null}
+
+            {nextSession &&
+            (nextSession.secrets.length > 0 ||
+              nextSession.scheduledLoot.length > 0) ? (
+              <div className={styles.prepGrid}>
+                {nextSession.secrets.length > 0 ? (
+                  <div className={styles.prepCard}>
+                    <h4>
+                      <EyeOff aria-hidden="true" size={15} />
+                      <span>
+                        Secrets &amp; Clues to Drop ({nextSession.secrets.length})
+                      </span>
+                    </h4>
+                    <ul className={styles.prepItemList}>
+                      {nextSession.secrets.map((secret) => (
+                        <li key={secret.id} className={styles.prepItemRow}>
+                          <strong>{secret.title}</strong>
+                          {secret.subtitle ? (
+                            <small>{secret.subtitle}</small>
+                          ) : null}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+
+                {nextSession.scheduledLoot.length > 0 ? (
+                  <div className={styles.prepCard}>
+                    <h4>
+                      <Gem aria-hidden="true" size={15} />
+                      <span>
+                        Scheduled Loot Rewards (
+                        {nextSession.scheduledLoot.length})
+                      </span>
+                    </h4>
+                    <ul className={styles.prepItemList}>
+                      {nextSession.scheduledLoot.map((loot) => (
+                        <li key={loot.id} className={styles.prepItemRow}>
+                          <Link
+                            to={`${basePath}${loot.href}`}
+                            className={styles.prepItemLink}
+                          >
+                            <strong>{loot.title}</strong>
+                            <small>{loot.subtitle}</small>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ) : null}
+              </div>
+            ) : null}
           </section>
 
           <div
@@ -268,6 +371,14 @@ export function CampaignOverview() {
           )}
         </aside>
       </div>
+      {exportModalOpen && nextSession?.rawSession ? (
+        <RunSheetExportModal
+          bundle={bundle}
+          isOpen={exportModalOpen}
+          onClose={() => setExportModalOpen(false)}
+          session={nextSession.rawSession}
+        />
+      ) : null}
     </main>
   );
 }

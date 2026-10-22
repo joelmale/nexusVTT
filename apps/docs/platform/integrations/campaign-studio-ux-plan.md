@@ -195,19 +195,26 @@ flowchart LR
 
 ### M6 — Studio toolkit, History & Homebrew — ⏳ IN PROGRESS
 In this order:
-1. **#1 Next Session hub**
-2. **#3 Secrets & clues**
-3. **#5 Create from context**
-4. **#4 Quick-capture inbox**
-5. **#7 Consistent rich rows**
-6. **#2 One-shot mode**
-7. **#9 Balance at a glance**
-8. **#8 Player-view preview**
-9. **#10 Campaign moods**
-10. **#12 Homebrew encounter monsters**
-11. **#11 Object revision history**
-12. **#6 Relationship web** (loads on demand)
+- [x] **#1 Next Session hub & "Use in next session" quick action**: Enriched Next Session model with `strongStart`, planned scenes/beats timeline, unrevealed secrets & clues, full cast, encounters, and scheduled loot rewards. Added live "Export Run Sheet" action opening `RunSheetExportModal` directly from the overview. Built reusable `UseInNextSessionButton` toggle component with real-time bundleStore linking and read-only indicators, integrated into detail headers for NPCs, Encounters, Locations (World), Quests, and Items (`ItemCard`).
+- [ ] **#3 Secrets & clues**
+- [ ] **#5 Create from context**
+- [ ] **#4 Quick-capture inbox**
+- [ ] **#7 Consistent rich rows**
+- [ ] **#2 One-shot mode**
+- [ ] **#9 Balance at a glance**
+- [ ] **#8 Player-view preview**
+- [ ] **#10 Campaign moods**
+- [ ] **#12 Homebrew encounter monsters**
+- [ ] **#11 Object revision history**
+- [ ] **#6 Relationship web** (loads on demand)
 Plus the polish checklist (empty states, Cmd+K actions, "Saved · 2 s ago" indicators).
+
+**Files updated in M6:**
+- `overviewModel.ts`, `overviewModel.test.ts`
+- `campaign-overview.tsx`, `campaign-overview.module.css`, `campaign-overview.test.tsx`
+- `UseInNextSessionButton.tsx`, `UseInNextSessionButton.module.css`, `UseInNextSessionButton.test.tsx`
+- `entityIndex.ts`, `entityMeta.ts`
+- `NpcsSection.tsx`, `EncountersSection.tsx`, `WorldSection.tsx`, `QuestsSection.tsx`, `ItemCard.tsx`
 
 ---
 

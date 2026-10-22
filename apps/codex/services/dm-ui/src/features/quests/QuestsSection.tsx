@@ -16,6 +16,7 @@ import { SectionLayout } from '@/features/section-shell/SectionLayout';
 import { SectionSummary } from '@/features/section-shell/SectionSummary';
 import { StatusBadge } from '@/features/section-shell/StatusBadge';
 import { humanize } from '@/features/section-shell/statusTones';
+import { UseInNextSessionButton } from '@/features/section-shell/UseInNextSessionButton';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 
 import styles from './QuestsSection.module.css';
@@ -241,6 +242,7 @@ function QuestDetail({ quest }: { quest: CampaignQuest }) {
         </span>
       }
       heading={quest.title}
+      headerActions={<UseInNextSessionButton kind="quest" id={quest.id} />}
       id={quest.id}
       initialDraft={toQuestDraft(bundle, quest)}
       kind="quest"

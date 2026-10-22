@@ -15,7 +15,8 @@ export type EntityKind =
   | 'handout'
   | 'note'
   | 'item'
-  | 'scene';
+  | 'scene'
+  | 'secret';
 
 export interface EntityRef {
   id: string;

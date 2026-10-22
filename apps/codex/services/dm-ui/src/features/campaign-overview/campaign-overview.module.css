@@ -119,10 +119,184 @@
 .primaryButton:hover {
   filter: brightness(0.94);
 }
+.nextActions {
+  display: flex;
+  align-items: center;
+  gap: var(--studio-gap-sm);
+}
+.exportButton {
+  height: 44px;
+  padding: 0 14px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: var(--studio-surface-raised);
+  color: var(--studio-text);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  font: inherit;
+  font-size: 14px;
+  font-weight: 600;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.exportButton:hover {
+  border-color: var(--studio-gold);
+  color: var(--studio-gold);
+  background: var(--studio-surface-hover);
+}
+.strongStart {
+  margin-top: var(--studio-gap-md);
+  padding: 14px 16px;
+  border-radius: var(--studio-radius-control);
+  background: var(--studio-surface-muted);
+  border-left: 3px solid var(--studio-gold);
+}
+.strongStartHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--studio-gap-xs);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--studio-gold);
+  margin-bottom: 6px;
+}
+.strongStart p {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--studio-text);
+  font-style: italic;
+}
 .sessionFacts {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   margin-top: 29px;
+}
+.timelineSection {
+  margin-top: 24px;
+  padding-top: 20px;
+  border-top: 1px solid var(--studio-border);
+}
+.prepSectionHeader {
+  display: flex;
+  align-items: center;
+  gap: var(--studio-gap-xs);
+  color: var(--studio-text-muted);
+  margin-bottom: 12px;
+}
+.prepSectionHeader h3 {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin: 0;
+}
+.scenesList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sceneItem {
+  display: flex;
+  align-items: center;
+  gap: var(--studio-gap-sm);
+  padding: 8px 12px;
+  background: var(--studio-surface-raised);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  font-size: 13px;
+}
+.sceneIndex {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  background: var(--studio-surface-muted);
+  color: var(--studio-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+.sceneBadge {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  border-radius: var(--studio-radius-sm);
+  background: var(--studio-surface-muted);
+  color: var(--studio-text-secondary);
+}
+.sceneTitle {
+  flex: 1;
+  color: var(--studio-text);
+  font-weight: 600;
+}
+.sceneDuration {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  font-variant-numeric: tabular-nums;
+}
+.prepGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  gap: var(--studio-gap-md);
+  margin-top: 20px;
+  padding-top: 20px;
+  border-top: 1px solid var(--studio-border);
+}
+.prepCard {
+  background: var(--studio-surface-raised);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-panel);
+  padding: 14px 16px;
+}
+.prepCard h4 {
+  display: flex;
+  align-items: center;
+  gap: var(--studio-gap-xs);
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--studio-text-secondary);
+  margin: 0 0 10px;
+}
+.prepItemList {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.prepItemRow {
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--studio-text);
+}
+.prepItemRow strong {
+  display: block;
+}
+.prepItemRow small {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+}
+.prepItemLink {
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+.prepItemLink:hover strong {
+  color: var(--studio-gold);
 }
 .fact {
   display: flex;
