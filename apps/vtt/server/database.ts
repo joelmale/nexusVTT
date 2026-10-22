@@ -12,6 +12,7 @@ import { CommandReceiptRepository } from './repositories/CommandReceiptRepositor
 import { LibraryObjectRepository } from './repositories/LibraryObjectRepository.js';
 import { EncounterRunRepository } from './repositories/EncounterRunRepository.js';
 import { CampaignPrepRepository } from './repositories/CampaignPrepRepository.js';
+import { DashboardRepository } from './repositories/DashboardRepository.js';
 import { DomainCommandService } from './commands/DomainCommandService.js';
 import { runStartupMigrations } from './startupMigrations.js';
 import type {
@@ -46,6 +47,7 @@ export class DatabaseService {
   public libraryObjects: LibraryObjectRepository;
   public encounterRuns: EncounterRunRepository;
   public campaignPrep: CampaignPrepRepository;
+  public dashboard: DashboardRepository;
   public domainCommands: DomainCommandService;
 
   constructor(config: DatabaseConfig) {
@@ -78,6 +80,7 @@ export class DatabaseService {
     this.libraryObjects = new LibraryObjectRepository(this.pool);
     this.encounterRuns = new EncounterRunRepository(this.pool);
     this.campaignPrep = new CampaignPrepRepository(this.pool);
+    this.dashboard = new DashboardRepository(this.pool, this.campaignPrep);
     this.domainCommands = new DomainCommandService(this);
 
     console.log('✅ Database connection pool and repositories created');

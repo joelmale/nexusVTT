@@ -194,6 +194,66 @@ export class CampaignPrepRepository extends BaseRepository {
     return result.rows[0] ?? null;
   }
 
+  /**
+   * Dashboard readiness: live (non-archived) npc/encounter counts and the
+   * newest `session` object title, per campaign. Read-only.
+   */
+  async getPrepSummaries(
+    campaignIds: string[],
+    client?: PoolClient,
+  ): Promise<
+    Map<string, { npcs: number; encounters: number; nextSession?: string }>
+  > {
+    const summaries = new Map<
+      string,
+      { npcs: number; encounters: number; nextSession?: string }
+    >();
+    if (campaignIds.length === 0) return summaries;
+    const executor = this.getExecutor(client);
+
+    const counts = await executor.query<{
+      campaignId: string;
+      kind: string;
+      count: number;
+    }>(
+      `SELECT "campaignId", kind, COUNT(*)::int AS count
+       FROM campaign_objects
+       WHERE "campaignId" = ANY($1::uuid[])
+         AND kind IN ('npc', 'encounter') AND status <> 'archived'
+       GROUP BY "campaignId", kind`,
+      [campaignIds],
+    );
+    const sessions = await executor.query<{
+      campaignId: string;
+      title: string;
+    }>(
+      `SELECT DISTINCT ON ("campaignId") "campaignId", title
+       FROM campaign_objects
+       WHERE "campaignId" = ANY($1::uuid[])
+         AND kind = 'session' AND status <> 'archived'
+       ORDER BY "campaignId", "updatedAt" DESC`,
+      [campaignIds],
+    );
+
+    const entry = (id: string) => {
+      let value = summaries.get(id);
+      if (!value) {
+        value = { npcs: 0, encounters: 0 };
+        summaries.set(id, value);
+      }
+      return value;
+    };
+    for (const row of counts.rows) {
+      const value = entry(row.campaignId);
+      if (row.kind === 'npc') value.npcs = row.count;
+      else value.encounters = row.count;
+    }
+    for (const row of sessions.rows) {
+      entry(row.campaignId).nextSession = row.title;
+    }
+    return summaries;
+  }
+
   async listObjects(
     campaignId: string,
     filter: CampaignPrepObjectFilter = {},
