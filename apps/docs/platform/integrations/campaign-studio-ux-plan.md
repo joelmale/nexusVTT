@@ -170,22 +170,15 @@ flowchart LR
 - **Files updated:** `itemTypeIcons.ts`, `itemTypeIcons.test.ts`, `ItemRow.tsx`, `ItemRow.module.css`, `ItemRow.test.tsx`, `ItemCard.tsx`, `ItemCard.module.css`, `ItemCard.test.tsx`, `ItemsSection.tsx`, `ItemsSection.module.css`, `itemSearch.ts`.
 
 
-### M4 — Data model + backend contracts
-New persisted fields and entities. These need `EditableKind` additions in
-`bundleStore.ts`, routes in the VTT `server/routes/campaignPrep.routes.ts`,
-SQL migrations, and transaction tests.
+### M4 — Data model + backend contracts — ✅ COMPLETED
+- [x] `@nexus/game-contracts`: Added `secret`, `inbox-note`, `custom-creature` to `campaignEntryKindSchema` with unit tests (44/44 passing).
+- [x] Database migration: Added `2026-10-22-add-campaign-studio-extensions.sql` introducing `edition`, `mode`, `mood` on `campaigns`, widening `campaign_objects_kind_check`, and creating `campaign_object_pins` table. Registered in `startupMigrations.ts` with test coverage (6/6 passing).
+- [x] VTT Server Repository & Routes: Added `listRevisions`, `togglePin`, and `listPinnedObjectIds` in `CampaignPrepRepository`. Added REST endpoints `GET /prep/objects/:objectId/revisions`, `GET /prep/pins`, and `POST /prep/objects/:objectId/pin` in `campaignPrep.routes.ts` with unit test suite (30/30 passing).
+- [x] Client-side Data Model & Types: Updated `bundleStore.ts` with editable kinds, updated `CampaignFixture` (`mode`, `mood`), `CampaignSession` (`linkedIds`), added `CampaignSecret`, `InboxNote`, and updated `CampaignItem` (`playerName`, `sessionId`).
+- [x] Bundle & Client API: Updated `campaign-api.ts` and `campaign-bundle-api.ts` with `fetchObjectRevisions`, `fetchPinnedObjectIds`, `toggleObjectPin`, and full unit tests (76/76 passing).
+- **Files updated:** `prep.ts`, `prep.test.ts`, `2026-10-22-add-campaign-studio-extensions.sql`, `startupMigrations.ts`, `startupMigrations.test.ts`, `base.ts`, `CampaignPrepRepository.ts`, `campaignPrep.routes.ts`, `campaignPrep.routes.test.ts`, `bundleStore.ts`, `ashes-of-veyra/types.ts`, `fixture-registry/types.ts`, `campaign-api.ts`, `campaign-bundle-api.ts`, `campaign-bundle-api.test.ts`.
+- **Commit:** `e8506289`
 
-| Change | Used by |
-|---|---|
-| `campaign.edition` (`'2014' \| '2024'`, default `'2024'`) and `campaign.mode` (`'campaign' \| 'one-shot'`) | Ruleset default, one-shot mode |
-| `campaign.mood` | Campaign moods |
-| `item.sessionId`, `item.playerName` | Loot by session, player-facing name |
-| `secret` entity: `text`, `attachedTo[]`, `revealed`, `revealedInSessionId` | Secrets & clues |
-| `inboxNote` entity: `text`, `createdAt`, `triagedTo?` | Quick capture |
-| `session.linkedIds[]` (+ order) | Next Session hub |
-| `pinned` flag (per user, per entity) | Rich rows |
-| `customCreature` entity or encounter monster overrides | Homebrew encounter monsters |
-| `revisionHistory` query endpoint | Object revision history |
 
 ### M5 — DM tools & Session Export
 - Hoard builder with the 2024 DMG tables (`features/items/hoard/tables2024.ts` + pure seedable roller).
