@@ -1,3 +1,5 @@
+@import '@fontsource-variable/fraunces';
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;

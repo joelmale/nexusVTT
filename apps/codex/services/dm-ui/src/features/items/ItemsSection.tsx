@@ -31,21 +31,9 @@ import {
   buildItemsModel,
   holderName,
 } from './itemsModel';
+import { RarityBadge } from './RarityBadge';
 import styles from './ItemsSection.module.css';
 import { SrdItemPicker } from './SrdItemPicker';
-
-const RARITY_TONES: Record<
-  CampaignItem['rarity'],
-  'positive' | 'warning' | 'danger' | 'neutral' | 'info'
-> = {
-  none: 'neutral',
-  common: 'neutral',
-  uncommon: 'positive',
-  rare: 'info',
-  very_rare: 'info',
-  legendary: 'warning',
-  artifact: 'danger',
-};
 
 /** Holder candidates for the entity select, by holder kind. */
 function holderOptions(
@@ -114,11 +102,7 @@ export function ItemsSection() {
               {item.quantity > 1 ? ` x${item.quantity}` : ''}
             </span>
             <span className={styles.badges}>
-              {item.rarity !== 'none' ? (
-                <StatusBadge tone={RARITY_TONES[item.rarity]}>
-                  {RARITY_LABELS[item.rarity]}
-                </StatusBadge>
-              ) : null}
+              <RarityBadge rarity={item.rarity} />
               {!item.discovered ? (
                 <StatusBadge tone="warning">Undiscovered</StatusBadge>
               ) : null}
@@ -206,13 +190,7 @@ function ItemDetail({ item }: { item: CampaignItem }) {
   return (
     <EditableSection
       heading={item.name}
-      headerExtras={
-        item.rarity !== 'none' ? (
-          <StatusBadge tone={RARITY_TONES[item.rarity]}>
-            {RARITY_LABELS[item.rarity]}
-          </StatusBadge>
-        ) : null
-      }
+      headerExtras={<RarityBadge rarity={item.rarity} />}
       id={item.id}
       initialDraft={{
         name: item.name,

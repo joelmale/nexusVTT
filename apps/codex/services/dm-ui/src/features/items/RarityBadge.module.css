@@ -1,0 +1,39 @@
+.badge {
+  border-radius: var(--studio-radius-control);
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 1;
+  padding: 4px 7px;
+  white-space: nowrap;
+}
+
+.common {
+  background: var(--studio-rarity-common-soft);
+  color: var(--studio-rarity-common);
+}
+
+.uncommon {
+  background: var(--studio-rarity-uncommon-soft);
+  color: var(--studio-rarity-uncommon);
+}
+
+.rare {
+  background: var(--studio-rarity-rare-soft);
+  color: var(--studio-rarity-rare);
+}
+
+.very_rare {
+  background: var(--studio-rarity-very-rare-soft);
+  color: var(--studio-rarity-very-rare);
+}
+
+.legendary {
+  background: var(--studio-rarity-legendary-soft);
+  color: var(--studio-rarity-legendary);
+}
+
+.artifact {
+  background: var(--studio-rarity-artifact-soft);
+  color: var(--studio-rarity-artifact);
+}

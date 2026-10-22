@@ -4,48 +4,53 @@ import { useNavigate } from 'react-router-dom';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
 import { fetchSrdItems, type SrdItem } from '@/services/srd-items-api';
 
-import { RARITY_LABELS } from './itemsModel';
+import { RarityBadge } from './RarityBadge';
 import styles from './SrdItemPicker.module.css';
-
-const MAX_RESULTS = 25;
 
 /**
  * "Start from SRD": a searchable list of catalog items that creates a campaign
  * item prefilled from the chosen entry. The catalog loads when opened; if it
- * cannot be reached the picker removes itself.
+ * cannot be reached, the picker displays an inline error with a Retry button.
  */
 export function SrdItemPicker() {
-  const { store, basePath } = useSectionBundle();
+  const { bundle, store, basePath } = useSectionBundle();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
-  const [unavailable, setUnavailable] = useState(false);
   const [loading, setLoading] = useState(false);
   const [catalog, setCatalog] = useState<SrdItem[]>();
   const [query, setQuery] = useState('');
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string>();
+  const [fetchError, setFetchError] = useState<string>();
+  const [addError, setAddError] = useState<string>();
   const inputId = useId();
+
+  const ruleset =
+    bundle?.campaign?.edition === '2014' || bundle?.catalog?.edition === '2014'
+      ? '2014'
+      : '2024';
 
   const results = useMemo(() => {
     const needle = query.trim().toLowerCase();
     const pool = catalog ?? [];
-    return (
-      needle
-        ? pool.filter((item) => item.name.toLowerCase().includes(needle))
-        : pool
-    ).slice(0, MAX_RESULTS);
+    if (!needle) return pool;
+    return pool.filter((item) => item.name.toLowerCase().includes(needle));
   }, [catalog, query]);
 
-  if (!store.editable || unavailable) return null;
+  if (!store.editable) return null;
 
-  const show = async () => {
+  const show = async (forceRetry = false) => {
     setOpen(true);
-    if (catalog) return;
+    setFetchError(undefined);
+    if (catalog && !forceRetry) return;
     setLoading(true);
-    const result = await fetchSrdItems();
+    const result = await fetchSrdItems(ruleset);
     setLoading(false);
-    if (!result.ok || result.items.length === 0) {
-      setUnavailable(true);
+    if (!result.ok) {
+      setFetchError(result.error);
+      return;
+    }
+    if (result.items.length === 0) {
+      setFetchError('Catalog is empty.');
       return;
     }
     setCatalog(result.items);
@@ -53,7 +58,7 @@ export function SrdItemPicker() {
 
   const pick = async (item: SrdItem) => {
     setBusy(true);
-    setError(undefined);
+    setAddError(undefined);
     const added = await store.addItem('item', {
       name: item.name,
       itemType: item.itemType,
@@ -67,7 +72,7 @@ export function SrdItemPicker() {
     });
     setBusy(false);
     if (!added.ok) {
-      setError(added.error ?? 'Could not add.');
+      setAddError(added.error ?? 'Could not add.');
       return;
     }
     setOpen(false);
@@ -81,31 +86,63 @@ export function SrdItemPicker() {
         <button onClick={() => void show()} type="button">
           Start from SRD
         </button>
+        {fetchError ? (
+          <div className={styles.error} role="alert">
+            <span>{fetchError}</span>
+            <button onClick={() => void show(true)} type="button">
+              Retry
+            </button>
+          </div>
+        ) : null}
       </div>
     );
   }
+
   return (
     <div aria-label="Start from SRD" className={styles.picker} role="group">
-      <label htmlFor={inputId}>Search SRD items</label>
+      <div className={styles.searchHeader}>
+        <label htmlFor={inputId}>Search SRD items ({ruleset})</label>
+        {catalog ? (
+          <span className={styles.count}>
+            {results.length} of {catalog.length} items
+          </span>
+        ) : null}
+      </div>
       <input
         autoFocus
         id={inputId}
         onChange={(event) => setQuery(event.target.value)}
+        placeholder="Filter by name..."
         type="search"
         value={query}
       />
       {loading ? <p>Loading the SRD catalog...</p> : null}
-      <ul>
-        {results.map((item) => (
-          <li key={item.id}>
-            <button disabled={busy} onClick={() => void pick(item)} type="button">
-              <span>{item.name}</span>
-              <span className={styles.meta}>{RARITY_LABELS[item.rarity]}</span>
-            </button>
-          </li>
-        ))}
-      </ul>
-      {error ? <p role="alert">{error}</p> : null}
+      {fetchError ? (
+        <div className={styles.error} role="alert">
+          <span>{fetchError}</span>
+          <button onClick={() => void show(true)} type="button">
+            Retry
+          </button>
+        </div>
+      ) : null}
+      {catalog && !loading && !fetchError ? (
+        <ul>
+          {results.map((item) => (
+            <li key={item.id}>
+              <button disabled={busy} onClick={() => void pick(item)} type="button">
+                <span>{item.name}</span>
+                <span className={styles.meta}>
+                  <RarityBadge rarity={item.rarity} />
+                </span>
+              </button>
+            </li>
+          ))}
+          {results.length === 0 ? (
+            <li className={styles.empty}>No matching items found.</li>
+          ) : null}
+        </ul>
+      ) : null}
+      {addError ? <p role="alert">{addError}</p> : null}
       <button onClick={() => setOpen(false)} type="button">
         Cancel
       </button>

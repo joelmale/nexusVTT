@@ -197,19 +197,69 @@ describe('ItemsSection', () => {
     expect(screen.getByRole('link', { name: npc.name })).toBeVisible();
   });
 
-  it('hides Start from SRD when the catalog is unavailable', async () => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockResolvedValue({ ok: false, status: 503, json: async () => ({}) }),
-    );
+  it('shows an error and Retry when the catalog is unavailable', async () => {
+    const fetchMock = vi
+      .fn()
+      .mockResolvedValue({ ok: false, status: 503, json: async () => ({}) });
+    vi.stubGlobal('fetch', fetchMock);
     const { user } = renderInSection(ROUTED, {
       path: ITEMS,
       store: { bundle: bundleWith(ITEM_SET), editable: true },
     });
     await user.click(screen.getByRole('button', { name: 'Start from SRD' }));
     await waitFor(() =>
-      expect(screen.queryByRole('button', { name: 'Start from SRD' })).toBeNull(),
+      expect(screen.getByRole('alert')).toHaveTextContent(/Catalog unavailable/i),
     );
+    expect(screen.getByRole('button', { name: 'Retry' })).toBeVisible();
+
+    fetchMock.mockResolvedValueOnce({
+      ok: true,
+      status: 200,
+      json: async () => ({ entities: [] }),
+    });
+    await user.click(screen.getByRole('button', { name: 'Retry' }));
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('requests the campaign edition and displays item counts', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        entities: [
+          {
+            id: 'srd-1',
+            ruleset: '2014',
+            data: { name: 'Item One', category: 'weapon', rarity: 'common' },
+          },
+          {
+            id: 'srd-2',
+            ruleset: '2014',
+            data: { name: 'Item Two', category: 'armor', rarity: 'rare' },
+          },
+        ],
+      }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const editionBundle = {
+      ...bundleWith(ITEM_SET),
+      catalog: { ...bundleWith(ITEM_SET).catalog, edition: '2014' as const },
+    };
+
+    const { user } = renderInSection(ROUTED, {
+      path: ITEMS,
+      store: { bundle: editionBundle, editable: true },
+    });
+
+    await user.click(screen.getByRole('button', { name: 'Start from SRD' }));
+    await waitFor(() => {
+      expect(fetchMock).toHaveBeenCalledWith(
+        expect.stringContaining('ruleset=2014'),
+        expect.any(Object),
+      );
+    });
+    expect(await screen.findByText('2 of 2 items')).toBeVisible();
   });
 
   it('creates an item prefilled from an SRD entry', async () => {

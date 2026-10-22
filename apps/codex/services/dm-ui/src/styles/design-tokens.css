@@ -31,6 +31,36 @@
   --studio-focus: #d7a34f;
   --studio-overlay: rgb(20 24 24 / 72%);
   --studio-shadow: 0 10px 30px rgb(24 27 27 / 16%);
+  --studio-shadow-popover: 0 6px 18px rgb(24 27 27 / 22%);
+  --studio-gilt: #b08a3e;
+
+  /*
+   * Aliases for names components already use. They map onto the palette
+   * above so nothing falls back to an off-palette hardcoded colour.
+   */
+  --studio-accent: var(--studio-positive);
+  --studio-primary: var(--studio-positive);
+  --studio-text-primary: var(--studio-text);
+  --studio-text-secondary: var(--studio-text-muted);
+  --studio-border-hover: var(--studio-border-strong);
+  --studio-surface-accent: var(--studio-surface-hover);
+  --studio-surface-sunken: var(--studio-chrome);
+
+  /* Item rarity scale (grey, green, blue, purple, orange, red-gold). */
+  --studio-rarity-none: #8c8f89;
+  --studio-rarity-none-soft: #ecebe6;
+  --studio-rarity-common: #6b6f6a;
+  --studio-rarity-common-soft: #e6e8e5;
+  --studio-rarity-uncommon: #2f6b45;
+  --studio-rarity-uncommon-soft: #ddecdf;
+  --studio-rarity-rare: #2c5d93;
+  --studio-rarity-rare-soft: #dce7f3;
+  --studio-rarity-very-rare: #6a3f96;
+  --studio-rarity-very-rare-soft: #ebe1f4;
+  --studio-rarity-legendary: #a4561a;
+  --studio-rarity-legendary-soft: #f6e4d2;
+  --studio-rarity-artifact: #9a2f2a;
+  --studio-rarity-artifact-soft: #f4dcd6;
 
   --studio-topbar-height: 48px;
   --studio-overview-rail: 232px;
@@ -41,9 +71,14 @@
   --studio-inspector-width: 392px;
   --studio-control-height: 38px;
   --studio-icon-button: 32px;
+  --studio-touch-target: 44px;
   --studio-radius-control: 4px;
+  --studio-radius-sm: var(--studio-radius-control);
   --studio-radius-panel: 6px;
   --studio-gap: 16px;
+  --studio-gap-xs: 4px;
+  --studio-gap-sm: 8px;
+  --studio-gap-md: 16px;
   --studio-page-gutter: 28px;
   --studio-row-height: 52px;
   --studio-detail-max: 760px;
@@ -53,6 +88,10 @@
   --studio-z-toolbar: 10;
   --studio-z-popover: 30;
   --studio-z-toast: 50;
+
+  /* Display serif for page titles and entity names only; UI stays on Inter. */
+  --studio-font-display:
+    'Fraunces Variable', 'Iowan Old Style', Georgia, 'Times New Roman', serif;
 
   font-family:
     Inter,
