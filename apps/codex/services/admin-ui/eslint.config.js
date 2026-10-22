@@ -12,7 +12,15 @@ export default defineConfig([
     extends: [
       js.configs.recommended,
       tseslint.configs.recommended,
-      reactHooks.configs['recommended-latest'],
+      // The two rules the 5.x preset enabled; the 7.x preset adds React Compiler
+      // rules (set-state-in-effect, ...) that are not adopted here.
+      {
+        plugins: { 'react-hooks': reactHooks },
+        rules: {
+          'react-hooks/rules-of-hooks': 'error',
+          'react-hooks/exhaustive-deps': 'warn',
+        },
+      },
       reactRefresh.configs.vite,
     ],
     languageOptions: {
