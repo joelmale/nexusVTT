@@ -56,7 +56,7 @@ export const RollLog: React.FC<RollLogProps> = ({ rolls }) => {
     <section className={styles.logSection} aria-label="Roll log">
       <button
         type="button"
-        className={styles.logHeader}
+        className={`unstyled ${styles.logHeader}`}
         onClick={toggle}
         aria-expanded={!collapsed}
         aria-controls="dice-roll-log-list"
