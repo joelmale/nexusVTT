@@ -49,3 +49,26 @@ export const ENTITY_KIND_LABELS: Record<EntityKind, string> = {
   scene: 'Scenes',
   secret: 'Secrets',
 };
+
+/**
+ * Re-orders an array of items so that pinned items appear at the top,
+ * preserving existing relative order within the pinned and unpinned subsets.
+ */
+export function sortByPinned<T>(
+  items: T[],
+  getId: (item: T) => string,
+  pinnedIds?: string[],
+): T[] {
+  if (!pinnedIds || pinnedIds.length === 0) return items;
+  const pinnedSet = new Set(pinnedIds);
+  const pinned: T[] = [];
+  const unpinned: T[] = [];
+  for (const item of items) {
+    if (pinnedSet.has(getId(item))) {
+      pinned.push(item);
+    } else {
+      unpinned.push(item);
+    }
+  }
+  return [...pinned, ...unpinned];
+}

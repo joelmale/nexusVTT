@@ -1,7 +1,10 @@
 import { useEffect, useMemo } from 'react';
 import { useLocation, useParams } from 'react-router-dom';
 
+import CheckSquare from 'lucide-react/dist/esm/icons/check-square';
+
 import type { CampaignQuest } from '@/demo/fixture-registry';
+import { resolveEntity } from '@/demo/fixture-registry';
 import { MentionTextarea } from '@/features/mentions/MentionTextarea';
 import { MentionText } from '@/features/mentions/MentionText';
 import { AddRow, EditableSection } from '@/features/section-shell/EditableSection';
@@ -11,11 +14,13 @@ import { EntityLink } from '@/features/section-shell/EntityLink';
 import { EntityList } from '@/features/section-shell/EntityList';
 import { FilterBar } from '@/features/section-shell/FilterBar';
 import { RelatedGroups } from '@/features/section-shell/RelatedGroups';
+import { RichEntityRow } from '@/features/section-shell/RichEntityRow';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
 import { SectionLayout } from '@/features/section-shell/SectionLayout';
 import { SectionSummary } from '@/features/section-shell/SectionSummary';
 import { StatusBadge } from '@/features/section-shell/StatusBadge';
 import { humanize } from '@/features/section-shell/statusTones';
+import { sortByPinned } from '@/features/section-shell/entityMeta';
 import { UseInNextSessionButton } from '@/features/section-shell/UseInNextSessionButton';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 
@@ -158,29 +163,61 @@ export function QuestsSection() {
           groups={model.groups.map((group) => ({
             id: group.id,
             label: `${group.label}${group.items.length ? ` (${group.items.length})` : ''}`,
-            items: group.items,
+            items: sortByPinned(
+              group.items,
+              (item) => item.quest.id,
+              bundle.pinnedObjectIds,
+            ),
           }))}
-          renderRow={(row) => (
-            <span className={styles.row}>
-              <span className={styles.rowTitle}>{row.quest.title}</span>
-              <span className={styles.rowMeta}>
-                <StatusBadge value={row.quest.priority}>
-                  {humanize(row.quest.priority)}
-                </StatusBadge>
-                {row.openThread ? (
-                  <StatusBadge tone="warning">Open thread</StatusBadge>
-                ) : null}
-                {row.total > 0 ? (
+          renderRow={(row) => {
+            const metaParts: Array<{ key: string; content: React.ReactNode }> = [];
+            if (row.quest.giverNpcId) {
+              const giver = resolveEntity(bundle, row.quest.giverNpcId);
+              if (giver) {
+                metaParts.push({ key: 'giver', content: `Giver: ${giver.label}` });
+              }
+            }
+            if (row.quest.locationIds.length > 0) {
+              const loc = resolveEntity(bundle, row.quest.locationIds[0]);
+              if (loc) {
+                metaParts.push({ key: 'loc', content: loc.label });
+              }
+            }
+            if (row.total > 0) {
+              metaParts.push({
+                key: 'progress',
+                content: (
                   <span
                     aria-label={`${row.done} of ${row.total} objectives complete`}
                     className={styles.progress}
                   >
                     {row.done}/{row.total}
                   </span>
+                ),
+              });
+            }
+
+            const badges = (
+              <>
+                <StatusBadge value={row.quest.priority}>
+                  {humanize(row.quest.priority)}
+                </StatusBadge>
+                {row.openThread ? (
+                  <StatusBadge tone="warning">Open thread</StatusBadge>
                 ) : null}
-              </span>
-            </span>
-          )}
+              </>
+            );
+
+            return (
+              <RichEntityRow
+                badges={badges}
+                icon={<CheckSquare size={14} />}
+                isPinned={bundle.pinnedObjectIds?.includes(row.quest.id)}
+                metaParts={metaParts}
+                title={row.quest.title}
+              />
+            );
+          }}
           selectedId={questId}
         />
       }

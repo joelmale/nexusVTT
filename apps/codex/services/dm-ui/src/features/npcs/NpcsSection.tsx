@@ -22,6 +22,8 @@ import { StatusBadge } from '@/features/section-shell/StatusBadge';
 import { UseInNextSessionButton } from '@/features/section-shell/UseInNextSessionButton';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 import { resolveEntity } from '@/demo/fixture-registry';
+import { RichEntityRow } from '@/features/section-shell/RichEntityRow';
+import { sortByPinned } from '@/features/section-shell/entityMeta';
 import { QuickNpcModal } from './QuickNpcModal';
 
 import styles from './NpcsSection.module.css';
@@ -101,21 +103,61 @@ export function npcDraftToPatch(
   return patch;
 }
 
-function NpcRowContent({ row }: { row: NpcRow }) {
-  return (
+function NpcRowContent({
+  row,
+  isPinned,
+}: {
+  row: NpcRow;
+  isPinned?: boolean;
+}) {
+  const { bundle } = useSectionBundle();
+  const fullNpc = bundle.npcs.find((npc) => npc.id === row.id);
+
+  const metaParts: Array<{ key: string; content: React.ReactNode }> = [];
+  if (fullNpc?.ancestry) {
+    metaParts.push({ key: 'ancestry', content: fullNpc.ancestry });
+  }
+  if (fullNpc?.combatSummary) {
+    const { ac, hp, cr } = fullNpc.combatSummary;
+    const combat = [
+      ac ? `AC ${ac}` : null,
+      hp ? `HP ${hp}` : null,
+      cr ? `CR ${cr}` : null,
+    ]
+      .filter(Boolean)
+      .join(' · ');
+    if (combat) {
+      metaParts.push({ key: 'combat', content: combat });
+    }
+  } else if (row.lastAppearance > 0) {
+    metaParts.push({
+      key: 'appearance',
+      content: `Session ${row.lastAppearance}`,
+    });
+  }
+
+  const badges = (
     <>
-      <span aria-hidden="true" className={styles.monogram}>
-        {row.monogram}
-      </span>
-      <span className={styles.rowText}>
-        <span className={styles.rowName}>{row.name}</span>
-        <span className={styles.rowRole}>{row.role}</span>
-      </span>
       {row.unused ? <StatusBadge tone="warning">Unused</StatusBadge> : null}
       {row.factionName ? (
         <span className={styles.factionChip}>{row.factionName}</span>
       ) : null}
     </>
+  );
+
+  return (
+    <RichEntityRow
+      badges={badges}
+      icon={
+        <span aria-hidden="true" className={styles.monogram}>
+          {row.monogram}
+        </span>
+      }
+      isPinned={isPinned}
+      metaParts={metaParts}
+      subtitle={row.role}
+      title={row.name}
+    />
   );
 }
 
@@ -384,6 +426,16 @@ export function NpcsSection() {
     : undefined;
   const readOnlyEmpty = model.total === 0 && !store.editable;
 
+  const pinnedIds = bundle.pinnedObjectIds;
+  const groups = useMemo(
+    () =>
+      model.groups.map((group) => ({
+        ...group,
+        items: sortByPinned(group.items, (item) => item.id, pinnedIds),
+      })),
+    [model.groups, pinnedIds],
+  );
+
   const list =
     model.total === 0 ? (
       <p className={styles.emptyList}>No NPCs yet.</p>
@@ -394,8 +446,13 @@ export function NpcsSection() {
         ariaLabel="NPC list"
         getHref={(row) => `${basePath}/npcs/${encodeURIComponent(row.id)}`}
         getId={(row) => row.id}
-        groups={model.groups}
-        renderRow={(row) => <NpcRowContent row={row} />}
+        groups={groups}
+        renderRow={(row) => (
+          <NpcRowContent
+            isPinned={pinnedIds?.includes(row.id)}
+            row={row}
+          />
+        )}
         selectedId={npcId}
       />
     );

@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { useParams } from 'react-router-dom';
+import Swords from 'lucide-react/dist/esm/icons/swords';
 
 import type { CampaignEncounter } from '@/demo/fixture-registry';
+import { resolveEntity } from '@/demo/fixture-registry';
 import { useCapabilityNotice } from '@/features/capability-notice';
 import {
   AddRow,
@@ -13,11 +15,13 @@ import { EntityList } from '@/features/section-shell/EntityList';
 import { FilterBar } from '@/features/section-shell/FilterBar';
 import { HeldItems } from '@/features/items/HeldItems';
 import { RelatedGroups } from '@/features/section-shell/RelatedGroups';
+import { RichEntityRow } from '@/features/section-shell/RichEntityRow';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
 import { SectionLayout } from '@/features/section-shell/SectionLayout';
 import { SectionSummary } from '@/features/section-shell/SectionSummary';
 import { DmOnlyBadge, StatusBadge } from '@/features/section-shell/StatusBadge';
 import { humanize } from '@/features/section-shell/statusTones';
+import { sortByPinned } from '@/features/section-shell/entityMeta';
 import { UseInNextSessionButton } from '@/features/section-shell/UseInNextSessionButton';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 
@@ -105,6 +109,64 @@ export function EncountersSection() {
   const kinds = Array.from(new Set(bundle.encounters.map((item) => item.kind)));
   const hasNext = Boolean(nextSessionId(bundle));
 
+  const pinnedIds = bundle.pinnedObjectIds;
+  const sortedRows = useMemo(
+    () => sortByPinned(rows, (r) => r.encounter.id, pinnedIds),
+    [rows, pinnedIds],
+  );
+
+  const list = (
+    <EntityList
+      ariaLabel="Encounter list"
+      getHref={(row) =>
+        `${basePath}/encounters/${encodeURIComponent(row.encounter.id)}`
+      }
+      getId={(row) => row.encounter.id}
+      groups={[{ id: 'all', items: sortedRows }]}
+      renderRow={(row) => {
+        const metaParts: Array<{ key: string; content: React.ReactNode }> = [];
+        if (row.encounter.locationIds?.[0]) {
+          const loc = resolveEntity(bundle, row.encounter.locationIds[0]);
+          if (loc) {
+            metaParts.push({ key: 'loc', content: loc.label });
+          }
+        }
+        metaParts.push({
+          key: 'participants',
+          content: (
+            <span
+              aria-label={`${row.total} participants`}
+              className={styles.total}
+            >
+              {row.total} participants
+            </span>
+          ),
+        });
+
+        const badges = (
+          <>
+            {row.inNextSession ? (
+              <StatusBadge tone="info">Next session</StatusBadge>
+            ) : null}
+            <StatusBadge value={row.encounter.difficulty} />
+          </>
+        );
+
+        return (
+          <RichEntityRow
+            badges={badges}
+            icon={<Swords size={15} />}
+            isPinned={pinnedIds?.includes(row.encounter.id)}
+            metaParts={metaParts}
+            subtitle={ENCOUNTER_KIND_LABELS[row.encounter.kind]}
+            title={row.encounter.title}
+          />
+        );
+      }}
+      selectedId={encounterId}
+    />
+  );
+
   return (
     <SectionLayout
       count={bundle.encounters.length}
@@ -140,39 +202,7 @@ export function EncountersSection() {
           ]}
         />
       }
-      list={
-        <EntityList
-          ariaLabel="Encounter list"
-          getHref={(row) =>
-            `${basePath}/encounters/${encodeURIComponent(row.encounter.id)}`
-          }
-          getId={(row) => row.encounter.id}
-          groups={[{ id: 'all', items: rows }]}
-          renderRow={(row) => (
-            <span className={styles.row}>
-              <span className={styles.rowText}>
-                <span className={styles.rowTitle}>{row.encounter.title}</span>
-                <span className={styles.rowKind}>
-                  {ENCOUNTER_KIND_LABELS[row.encounter.kind]}
-                </span>
-              </span>
-              <span className={styles.rowMeta}>
-                {row.inNextSession ? (
-                  <StatusBadge tone="info">Next session</StatusBadge>
-                ) : null}
-                <StatusBadge value={row.encounter.difficulty} />
-                <span
-                  aria-label={`${row.total} participants`}
-                  className={styles.total}
-                >
-                  {row.total}
-                </span>
-              </span>
-            </span>
-          )}
-          selectedId={encounterId}
-        />
-      }
+      list={list}
       listFooter={addRow}
       notFound={Boolean(encounterId) && !selected}
       sectionPath="encounters"

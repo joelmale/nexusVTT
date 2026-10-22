@@ -198,7 +198,8 @@ In this order:
 - [x] **#1 Next Session hub & "Use in next session" quick action**: Enriched Next Session model with `strongStart`, planned scenes/beats timeline, unrevealed secrets & clues, full cast, encounters, and scheduled loot rewards. Added live "Export Run Sheet" action opening `RunSheetExportModal` directly from the overview. Built reusable `UseInNextSessionButton` toggle component with real-time bundleStore linking and read-only indicators, integrated into detail headers for NPCs, Encounters, Locations (World), Quests, and Items (`ItemCard`).
 - [x] **#3 Secrets & clues**: Built full-featured Secrets & Clues manager (`secretsModel.ts`, `SecretRow.tsx`, `SecretModal.tsx`, `SecretsPane.tsx`). Interactive reveal toggling, session linking, entity attachment picker supporting NPCs, Locations, Quests, Encounters, and Items. FilterBar with status/entity facets and live count badges. Integrated into `NotesSection` with WAI-ARIA tab switcher between Notes and Secrets & Clues. 100% test pass rate with >85% line coverage (`SecretRow` 100%, `SecretsPane` 86.5%, `secretsModel` 93.3%, `SecretModal` 81.1%, `NotesSection` 93.3%).
 - [x] **#4 Quick-capture inbox**: Fast one-click capture anywhere in Campaign Studio into an unfiled inbox (`inboxModel.ts`, `QuickCaptureModal.tsx`, `InboxPane.tsx`). Global `Ctrl+Shift+N` (or `Cmd+Shift+N`) shortcut and top bar inbox button open the rapid capture dialog with live mention linking. Destination selector allows keeping unfiled or immediately converting to NPC, Quest, Secret, or permanent Note. Dedicated "Inbox" tab in `NotesSection` provides a live unfiled counter badge, filter facets, mention chip rendering, and one-click triage buttons (`-> NPC`, `-> Quest`, `-> Secret`, `-> Note`) and note deletion. 100% test pass rate with 97% line coverage across all net-new inbox code.
-- [ ] **#7 Consistent rich rows**
+- [x] **#5 Create from context**: Direct `@` mention quick-creation within `MentionTextarea.tsx`. Typing an unrecognised query in editable mode offers `+ Create NPC "<name>"`, `+ Create Location "<name>"`, and `+ Create Item "<name>"`, atomically creating the entity draft via `bundleStore.addItem` and inserting the linkable token. 93.1% line coverage with 12/12 tests green.
+- [x] **#7 Consistent rich rows**: Universal two-line entity row component (`RichEntityRow.tsx` + `.module.css`) providing the Treasury visual style across NPCs, Quests, Encounters, and Factions. Supports leading icons/monograms, primary title, subtitle/alias, right-aligned status badges, pin indicators with gold tint (`--studio-gold`), and middle-dot separated metadata (`·`). Stable `sortByPinned` utility prioritizes pinned entities to the top of list groups. 100% line/branch coverage on `RichEntityRow.tsx` and `entityMeta.ts` with 57/57 tests green across all affected section suites.
 - [ ] **#2 One-shot mode**
 - [ ] **#9 Balance at a glance**
 - [ ] **#8 Player-view preview**
@@ -213,7 +214,8 @@ Plus the polish checklist (empty states, Cmd+K actions, "Saved · 2 s ago" indic
 - `campaign-overview.tsx`, `campaign-overview.module.css`, `campaign-overview.test.tsx`
 - `UseInNextSessionButton.tsx`, `UseInNextSessionButton.module.css`, `UseInNextSessionButton.test.tsx`
 - `entityIndex.ts`, `entityMeta.ts`
-- `NpcsSection.tsx`, `EncountersSection.tsx`, `WorldSection.tsx`, `QuestsSection.tsx`, `ItemCard.tsx`
+- `NpcsSection.tsx`, `EncountersSection.tsx`, `WorldSection.tsx`, `QuestsSection.tsx`, `FactionsSection.tsx`, `ItemCard.tsx`
+- `RichEntityRow.tsx`, `RichEntityRow.module.css`, `RichEntityRow.test.tsx`
 - `secretsModel.ts`, `secretsModel.test.ts`
 - `SecretRow.tsx`, `SecretRow.module.css`, `SecretRow.test.tsx`
 - `SecretModal.tsx`, `SecretModal.module.css`, `SecretModal.test.tsx`

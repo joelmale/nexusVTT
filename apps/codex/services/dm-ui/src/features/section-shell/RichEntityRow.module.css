@@ -1,0 +1,114 @@
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+  position: relative;
+  transition: transform 0.15s ease;
+  width: 100%;
+}
+
+.row:hover {
+  transform: translateY(-1px);
+}
+
+.primaryLine {
+  align-items: center;
+  display: flex;
+  gap: var(--studio-gap-sm);
+  min-width: 0;
+  width: 100%;
+}
+
+.iconWrap {
+  color: var(--studio-text-muted);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.titleWrap {
+  display: flex;
+  align-items: baseline;
+  gap: var(--studio-gap-xs);
+  min-width: 0;
+  overflow: hidden;
+}
+
+.title {
+  color: var(--studio-text);
+  font-size: 14px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.subtitle {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+  font-weight: 400;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.badges {
+  align-items: center;
+  display: inline-flex;
+  gap: 6px;
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.pinBtn {
+  background: transparent;
+  border: 0;
+  color: var(--studio-text-muted);
+  cursor: pointer;
+  padding: 3px;
+  border-radius: var(--studio-radius-sm);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.6;
+  transition: all 0.15s ease;
+}
+
+.pinBtn:hover {
+  opacity: 1;
+  color: var(--studio-gold);
+  background: var(--studio-surface-hover);
+}
+
+.pinned {
+  color: var(--studio-gold) !important;
+  opacity: 1 !important;
+}
+
+.pinIndicator {
+  color: var(--studio-gold);
+  display: inline-flex;
+  align-items: center;
+}
+
+.metaLine {
+  align-items: center;
+  color: var(--studio-text-muted);
+  display: flex;
+  flex-wrap: wrap;
+  font-size: 12px;
+  gap: 4px 6px;
+  line-height: 1.3;
+}
+
+.separator {
+  color: var(--studio-border-strong);
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.veiled {
+  opacity: 0.82;
+}

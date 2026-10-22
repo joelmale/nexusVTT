@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import Dices from 'lucide-react/dist/esm/icons/dices';
 import Network from 'lucide-react/dist/esm/icons/network';
+import Shield from 'lucide-react/dist/esm/icons/shield';
 
 import { EmptyState } from '@/features/section-shell/EmptyState';
 import { EntityList } from '@/features/section-shell/EntityList';
@@ -10,9 +11,11 @@ import { FilterBar } from '@/features/section-shell/FilterBar';
 import { StatusBadge } from '@/features/section-shell/StatusBadge';
 import { RelatedGroups } from '@/features/section-shell/RelatedGroups';
 import { AddRow, EditableSection } from '@/features/section-shell/EditableSection';
+import { RichEntityRow } from '@/features/section-shell/RichEntityRow';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
 import { SectionLayout } from '@/features/section-shell/SectionLayout';
 import { SectionSummary } from '@/features/section-shell/SectionSummary';
+import { sortByPinned } from '@/features/section-shell/entityMeta';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 import { resolveEntity } from '@/demo/fixture-registry';
 
@@ -58,10 +61,15 @@ export function FactionsSection() {
     ? bundle.factions.find((f) => f.id === factionId)
     : undefined;
 
-  const groups = model.groups.map((g) => ({
-    ...g,
-    items: g.factions,
-  }));
+  const pinnedIds = bundle.pinnedObjectIds;
+  const groups = useMemo(
+    () =>
+      model.groups.map((g) => ({
+        ...g,
+        items: sortByPinned(g.factions, (f) => f.id, pinnedIds),
+      })),
+    [model.groups, pinnedIds],
+  );
 
   const addRow = (
     <AddRow
@@ -131,19 +139,32 @@ export function FactionsSection() {
         getId={(faction) => faction.id}
         getHref={(faction) => `${basePath}/factions/${encodeURIComponent(faction.id)}`}
         groups={groups}
-        renderRow={(faction) => (
-          <>
-            <span>{faction.name}</span>
+        renderRow={(faction) => {
+          const metaParts: Array<{ key: string; content: React.ReactNode }> = [];
+          if (faction.leaderNpcId) {
+            const leader = resolveEntity(bundle, faction.leaderNpcId);
+            metaParts.push({
+              key: 'leader',
+              content: leader?.label || 'Unknown leader',
+            });
+          }
+
+          const badges = (
             <StatusBadge tone={statusToneMap[faction.status]}>
               {faction.status.charAt(0).toUpperCase() + faction.status.slice(1)}
             </StatusBadge>
-            {faction.leaderNpcId && (
-              <span style={{ fontSize: '0.875rem', color: 'var(--studio-text-secondary)' }}>
-                {resolveEntity(bundle, faction.leaderNpcId)?.label || 'Unknown leader'}
-              </span>
-            )}
-          </>
-        )}
+          );
+
+          return (
+            <RichEntityRow
+              badges={badges}
+              icon={<Shield size={15} />}
+              isPinned={pinnedIds?.includes(faction.id)}
+              metaParts={metaParts}
+              title={faction.name}
+            />
+          );
+        }}
         selectedId={selectedFaction?.id}
       />
     );
