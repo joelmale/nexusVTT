@@ -96,3 +96,50 @@
   color: var(--studio-positive-contrast);
   font-weight: 650;
 }
+
+.formatGroup {
+  display: grid;
+  font-size: 13px;
+  font-weight: 650;
+  gap: 7px;
+}
+
+.formatOptions {
+  display: grid;
+  gap: 8px;
+  grid-template-columns: 1fr 1fr;
+}
+
+.formatOption {
+  align-items: flex-start;
+  background: var(--studio-canvas);
+  border: 1px solid var(--studio-border-strong);
+  border-radius: var(--studio-radius-control);
+  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  padding: 8px 10px;
+  position: relative;
+  text-align: left;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.formatOptionSelected {
+  background: var(--studio-surface-muted);
+  border-color: var(--studio-gold);
+}
+
+.formatOptionTitle {
+  color: var(--studio-text);
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.formatOptionDesc {
+  color: var(--studio-text-muted);
+  font-size: 11px;
+  font-weight: 400;
+  line-height: 1.3;
+}
+

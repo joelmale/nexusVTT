@@ -1,5 +1,5 @@
 import '@testing-library/jest-dom/vitest';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { beforeAll, describe, expect, it, vi } from 'vitest';
@@ -193,5 +193,43 @@ describe('CampaignSwitcher', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Server unavailable',
     );
+  });
+
+  it('allows creating a one-shot campaign and submits mode: one-shot', async () => {
+    const user = userEvent.setup();
+    const createCampaign = vi.fn().mockResolvedValue({
+      ...campaign,
+      id: 'created-oneshot',
+      mode: 'one-shot' as const,
+      name: 'Single Adventure',
+    });
+    renderSwitcher({ createCampaign });
+    await user.click(screen.getByRole('button', { name: /Shared name/ }));
+    await user.click(
+      screen.getByRole('menuitem', { name: /create campaign/i }),
+    );
+    await user.type(
+      screen.getByRole('textbox', { name: 'Campaign name' }),
+      'Single Adventure',
+    );
+    await user.click(screen.getByRole('radio', { name: /One-Shot/ }));
+    await user.click(screen.getByRole('button', { name: 'Create Campaign' }));
+
+    expect(createCampaign).toHaveBeenCalledWith({
+      description: '',
+      mode: 'one-shot',
+      name: 'Single Adventure',
+    });
+  });
+
+  it('displays One-Shot badge when active campaign mode is one-shot', () => {
+    renderSwitcher({
+      activeCampaign: {
+        ...campaign,
+        mode: 'one-shot' as const,
+      },
+    });
+    const trigger = screen.getByRole('button', { name: /Shared name/ });
+    expect(within(trigger).getByText('One-Shot')).toBeInTheDocument();
   });
 });

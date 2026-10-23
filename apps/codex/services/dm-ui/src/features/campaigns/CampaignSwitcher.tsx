@@ -62,6 +62,10 @@ export function CampaignSwitcher({ compact = false }: CampaignSwitcherProps) {
     navigate(`/campaigns/${encodeURIComponent(campaignId)}/overview`);
   }
 
+  const isOneShot = isDemoCampaign
+    ? activeExample?.campaign.mode === 'one-shot'
+    : activeCampaign?.mode === 'one-shot';
+
   const label = isDemoCampaign
     ? (activeExample?.campaign.name ?? 'Example campaign')
     : (activeCampaign?.name ??
@@ -84,6 +88,7 @@ export function CampaignSwitcher({ compact = false }: CampaignSwitcherProps) {
         type="button"
       >
         <span className={styles.label}>{label}</span>
+        {isOneShot && <span className={styles.oneShotBadge}>One-Shot</span>}
         <ChevronDown aria-hidden="true" size={15} />
       </button>
 

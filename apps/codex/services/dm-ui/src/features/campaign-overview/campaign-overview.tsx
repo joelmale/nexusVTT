@@ -22,6 +22,7 @@ import { useSectionBundle } from '@/features/section-shell/SectionContext';
 import { RunSheetExportModal } from '@/features/sessions/export/RunSheetExportModal';
 
 import { OverviewPanel } from './OverviewPanel';
+import { OneShotHub } from './OneShotHub';
 import {
   buildOverviewModel,
   type OverviewPanelId,
@@ -138,162 +139,174 @@ export function CampaignOverview() {
 
       <div className={styles.contentGrid}>
         <div className={styles.primaryContent}>
-          <section
-            className={styles.nextSession}
-            aria-labelledby="next-session-heading"
-          >
-            <div className={styles.nextTop}>
-              <div>
-                <div className={styles.eyebrow}>Next Session</div>
-                <h2 id="next-session-heading">
-                  {nextSession?.heading ?? 'No session scheduled'}
-                </h2>
-                {nextSession && nextSession.schedule.length > 0 && (
-                  <div className={styles.sessionMeta}>
-                    <CalendarDays aria-hidden="true" size={18} />
-                    {nextSession.schedule.map((part) => (
-                      <span key={part}>{part}</span>
-                    ))}
-                  </div>
-                )}
-              </div>
-              <div className={styles.nextActions}>
-                {nextSession?.rawSession ? (
-                  <button
-                    aria-label="Export Run Sheet"
-                    className={styles.exportButton}
-                    onClick={() => setExportModalOpen(true)}
-                    type="button"
-                  >
-                    <Printer aria-hidden="true" size={16} />
-                    <span>Export Run Sheet</span>
-                  </button>
-                ) : null}
-                <Link
-                  className={styles.primaryButton}
-                  to={`${basePath}${nextSession?.planHref ?? '/sessions'}`}
-                >
-                  <CalendarDays aria-hidden="true" size={18} />
-                  <span>{nextSession ? 'Plan Session' : 'Open Sessions'}</span>
-                  <ArrowRight aria-hidden="true" size={17} />
-                </Link>
-              </div>
-            </div>
-
-            {nextSession?.strongStart ? (
-              <div className={styles.strongStart}>
-                <div className={styles.strongStartHeader}>
-                  <Sparkles aria-hidden="true" size={16} />
-                  <strong>Strong Start</strong>
-                </div>
-                <p>{nextSession.strongStart}</p>
-              </div>
-            ) : null}
-
-            {nextSession && nextSession.facts.length > 0 && (
-              <div className={styles.sessionFacts}>
-                {nextSession.facts.map(({ label, record }) => {
-                  const FactIcon = ENTITY_ICONS[record.kind];
-                  const body = (
-                    <>
-                      <FactIcon aria-hidden="true" size={22} />
-                      <span>
-                        <small>{label}</small>
-                        <strong>{record.title}</strong>
-                        <em>{record.subtitle}</em>
-                      </span>
-                    </>
-                  );
-                  return record.href ? (
-                    <Link
-                      className={styles.fact}
-                      key={label}
-                      to={`${basePath}${record.href}`}
-                    >
-                      {body}
-                    </Link>
-                  ) : (
-                    <div className={styles.fact} key={label}>
-                      {body}
+          {bundle.campaign.mode === 'one-shot' ? (
+            <OneShotHub
+              basePath={basePath}
+              bundle={bundle}
+              onExportRunSheet={
+                nextSession?.rawSession
+                  ? () => setExportModalOpen(true)
+                  : undefined
+              }
+            />
+          ) : (
+            <section
+              className={styles.nextSession}
+              aria-labelledby="next-session-heading"
+            >
+              <div className={styles.nextTop}>
+                <div>
+                  <div className={styles.eyebrow}>Next Session</div>
+                  <h2 id="next-session-heading">
+                    {nextSession?.heading ?? 'No session scheduled'}
+                  </h2>
+                  {nextSession && nextSession.schedule.length > 0 && (
+                    <div className={styles.sessionMeta}>
+                      <CalendarDays aria-hidden="true" size={18} />
+                      {nextSession.schedule.map((part) => (
+                        <span key={part}>{part}</span>
+                      ))}
                     </div>
-                  );
-                })}
-              </div>
-            )}
-
-            {nextSession?.scenes && nextSession.scenes.length > 0 ? (
-              <div className={styles.timelineSection}>
-                <div className={styles.prepSectionHeader}>
-                  <Clock aria-hidden="true" size={16} />
-                  <h3>Planned Scenes &amp; Beats ({nextSession.scenes.length})</h3>
+                  )}
                 </div>
-                <ol className={styles.scenesList}>
-                  {nextSession.scenes.map((scene, idx) => (
-                    <li key={scene.id} className={styles.sceneItem}>
-                      <span className={styles.sceneIndex}>{idx + 1}</span>
-                      <span className={styles.sceneBadge}>{scene.kind}</span>
-                      <strong className={styles.sceneTitle}>{scene.title}</strong>
-                      <span className={styles.sceneDuration}>
-                        {scene.durationMinutes} min
-                      </span>
-                    </li>
-                  ))}
-                </ol>
+                <div className={styles.nextActions}>
+                  {nextSession?.rawSession ? (
+                    <button
+                      aria-label="Export Run Sheet"
+                      className={styles.exportButton}
+                      onClick={() => setExportModalOpen(true)}
+                      type="button"
+                    >
+                      <Printer aria-hidden="true" size={16} />
+                      <span>Export Run Sheet</span>
+                    </button>
+                  ) : null}
+                  <Link
+                    className={styles.primaryButton}
+                    to={`${basePath}${nextSession?.planHref ?? '/sessions'}`}
+                  >
+                    <CalendarDays aria-hidden="true" size={18} />
+                    <span>{nextSession ? 'Plan Session' : 'Open Sessions'}</span>
+                    <ArrowRight aria-hidden="true" size={17} />
+                  </Link>
+                </div>
               </div>
-            ) : null}
 
-            {nextSession &&
-            (nextSession.secrets.length > 0 ||
-              nextSession.scheduledLoot.length > 0) ? (
-              <div className={styles.prepGrid}>
-                {nextSession.secrets.length > 0 ? (
-                  <div className={styles.prepCard}>
-                    <h4>
-                      <EyeOff aria-hidden="true" size={15} />
-                      <span>
-                        Secrets &amp; Clues to Drop ({nextSession.secrets.length})
-                      </span>
-                    </h4>
-                    <ul className={styles.prepItemList}>
-                      {nextSession.secrets.map((secret) => (
-                        <li key={secret.id} className={styles.prepItemRow}>
-                          <strong>{secret.title}</strong>
-                          {secret.subtitle ? (
-                            <small>{secret.subtitle}</small>
-                          ) : null}
-                        </li>
-                      ))}
-                    </ul>
+              {nextSession?.strongStart ? (
+                <div className={styles.strongStart}>
+                  <div className={styles.strongStartHeader}>
+                    <Sparkles aria-hidden="true" size={16} />
+                    <strong>Strong Start</strong>
                   </div>
-                ) : null}
+                  <p>{nextSession.strongStart}</p>
+                </div>
+              ) : null}
 
-                {nextSession.scheduledLoot.length > 0 ? (
-                  <div className={styles.prepCard}>
-                    <h4>
-                      <Gem aria-hidden="true" size={15} />
-                      <span>
-                        Scheduled Loot Rewards (
-                        {nextSession.scheduledLoot.length})
-                      </span>
-                    </h4>
-                    <ul className={styles.prepItemList}>
-                      {nextSession.scheduledLoot.map((loot) => (
-                        <li key={loot.id} className={styles.prepItemRow}>
-                          <Link
-                            to={`${basePath}${loot.href}`}
-                            className={styles.prepItemLink}
-                          >
-                            <strong>{loot.title}</strong>
-                            <small>{loot.subtitle}</small>
-                          </Link>
-                        </li>
-                      ))}
-                    </ul>
+              {nextSession && nextSession.facts.length > 0 && (
+                <div className={styles.sessionFacts}>
+                  {nextSession.facts.map(({ label, record }) => {
+                    const FactIcon = ENTITY_ICONS[record.kind];
+                    const body = (
+                      <>
+                        <FactIcon aria-hidden="true" size={22} />
+                        <span>
+                          <small>{label}</small>
+                          <strong>{record.title}</strong>
+                          <em>{record.subtitle}</em>
+                        </span>
+                      </>
+                    );
+                    return record.href ? (
+                      <Link
+                        className={styles.fact}
+                        key={label}
+                        to={`${basePath}${record.href}`}
+                      >
+                        {body}
+                      </Link>
+                    ) : (
+                      <div className={styles.fact} key={label}>
+                        {body}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
+              {nextSession?.scenes && nextSession.scenes.length > 0 ? (
+                <div className={styles.timelineSection}>
+                  <div className={styles.prepSectionHeader}>
+                    <Clock aria-hidden="true" size={16} />
+                    <h3>Planned Scenes &amp; Beats ({nextSession.scenes.length})</h3>
                   </div>
-                ) : null}
-              </div>
-            ) : null}
-          </section>
+                  <ol className={styles.scenesList}>
+                    {nextSession.scenes.map((scene, idx) => (
+                      <li key={scene.id} className={styles.sceneItem}>
+                        <span className={styles.sceneIndex}>{idx + 1}</span>
+                        <span className={styles.sceneBadge}>{scene.kind}</span>
+                        <strong className={styles.sceneTitle}>{scene.title}</strong>
+                        <span className={styles.sceneDuration}>
+                          {scene.durationMinutes} min
+                        </span>
+                      </li>
+                    ))}
+                  </ol>
+                </div>
+              ) : null}
+
+              {nextSession &&
+              (nextSession.secrets.length > 0 ||
+                nextSession.scheduledLoot.length > 0) ? (
+                <div className={styles.prepGrid}>
+                  {nextSession.secrets.length > 0 ? (
+                    <div className={styles.prepCard}>
+                      <h4>
+                        <EyeOff aria-hidden="true" size={15} />
+                        <span>
+                          Secrets &amp; Clues to Drop ({nextSession.secrets.length})
+                        </span>
+                      </h4>
+                      <ul className={styles.prepItemList}>
+                        {nextSession.secrets.map((secret) => (
+                          <li key={secret.id} className={styles.prepItemRow}>
+                            <strong>{secret.title}</strong>
+                            {secret.subtitle ? (
+                              <small>{secret.subtitle}</small>
+                            ) : null}
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+
+                  {nextSession.scheduledLoot.length > 0 ? (
+                    <div className={styles.prepCard}>
+                      <h4>
+                        <Gem aria-hidden="true" size={15} />
+                        <span>
+                          Scheduled Loot Rewards (
+                          {nextSession.scheduledLoot.length})
+                        </span>
+                      </h4>
+                      <ul className={styles.prepItemList}>
+                        {nextSession.scheduledLoot.map((loot) => (
+                          <li key={loot.id} className={styles.prepItemRow}>
+                            <Link
+                              to={`${basePath}${loot.href}`}
+                              className={styles.prepItemLink}
+                            >
+                              <strong>{loot.title}</strong>
+                              <small>{loot.subtitle}</small>
+                            </Link>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  ) : null}
+                </div>
+              ) : null}
+            </section>
+          )}
 
           <div
             className={`${styles.sectionGrid} ${focused ? styles.sectionGridFocused : ''}`}

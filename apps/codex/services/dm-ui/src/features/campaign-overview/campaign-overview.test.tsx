@@ -5,6 +5,9 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import { getFixtureBundle } from '@/demo/fixture-registry';
+import { CampaignOverview } from './campaign-overview';
+import { createReadOnlyStore } from '@/features/section-shell/bundleStore';
+import { SectionContext } from '@/features/section-shell/SectionContext';
 import {
   CampaignContext,
   type CampaignContextValue,
@@ -124,7 +127,9 @@ describe('CampaignOverview panels', () => {
     const user = renderOverview();
     const link = openLinks(/^Quests/)[0];
     const questId = link.getAttribute('href')!.split('/').pop()!;
-    expect(bundle.quests.some((quest) => quest.id === questId)).toBe(true);
+    expect(
+      bundle.quests.some((quest: { id: string }) => quest.id === questId),
+    ).toBe(true);
 
     await user.click(link);
     expect(screen.getByTestId('location')).toHaveTextContent(
@@ -153,6 +158,35 @@ describe('CampaignOverview panels', () => {
     expect(
       screen.getByRole('heading', { level: 2, name: /Session Run Sheet Export/ }),
     ).toBeInTheDocument();
+  });
+
+  it('renders OneShotHub when campaign mode is one-shot', () => {
+    const oneShotBundle = {
+      ...bundle,
+      campaign: {
+        ...bundle.campaign,
+        mode: 'one-shot' as const,
+      },
+    };
+
+    render(
+      <MemoryRouter>
+        <CapabilityNoticeProvider>
+          <SectionContext.Provider
+            value={{
+              basePath: `/demo/${SLUG}`,
+              bundle: oneShotBundle,
+              store: createReadOnlyStore(oneShotBundle),
+            }}
+          >
+            <CampaignOverview />
+          </SectionContext.Provider>
+        </CapabilityNoticeProvider>
+      </MemoryRouter>,
+    );
+
+    expect(screen.getByLabelText('One-Shot Adventure Hub')).toBeInTheDocument();
+    expect(screen.getByText('One-Shot Mode')).toBeInTheDocument();
   });
 });
 

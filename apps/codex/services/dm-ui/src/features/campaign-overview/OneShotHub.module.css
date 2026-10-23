@@ -1,0 +1,340 @@
+.container {
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-md);
+  width: 100%;
+}
+
+.headerCard {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-panel);
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-md);
+  padding: 16px 20px;
+}
+
+.topRow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--studio-gap-sm);
+  justify-content: space-between;
+}
+
+.badgeGroup {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--studio-gap-sm);
+}
+
+.modeBadge {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-gold);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-gold);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  text-transform: uppercase;
+}
+
+.pacingBadge {
+  border-radius: var(--studio-radius-control);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 3px 8px;
+}
+
+.pacingBalanced {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-positive);
+  color: var(--studio-positive);
+}
+
+.pacingUnder {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-warning);
+  color: var(--studio-warning);
+}
+
+.pacingOver {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-danger);
+  color: var(--studio-danger);
+}
+
+.sceneCountBadge {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text-secondary);
+  font-size: 11px;
+  padding: 3px 8px;
+}
+
+.budgetControl {
+  align-items: center;
+  display: flex;
+  gap: var(--studio-gap-xs);
+}
+
+.budgetLabel {
+  color: var(--studio-text-muted);
+  font-size: 12px;
+}
+
+.budgetSelect {
+  background: var(--studio-surface-sunken);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-sm);
+  color: var(--studio-text);
+  font-size: 12px;
+  padding: 3px 6px;
+}
+
+.budgetSelect:focus-visible {
+  outline: 2px solid var(--studio-focus);
+}
+
+.pacingBarWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.pacingBarHeader {
+  align-items: center;
+  color: var(--studio-text-muted);
+  display: flex;
+  font-size: 12px;
+  justify-content: space-between;
+}
+
+.pacingBar {
+  background: var(--studio-surface-sunken);
+  border-radius: var(--studio-radius-control);
+  display: flex;
+  height: 10px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.segmentHook {
+  background: var(--studio-gold);
+}
+
+.segmentScene {
+  background: var(--studio-focus);
+}
+
+.segmentClimax {
+  background: var(--studio-danger);
+}
+
+.segmentRewards {
+  background: var(--studio-positive);
+}
+
+.pacingLegend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 4px;
+}
+
+.legendItem {
+  align-items: center;
+  color: var(--studio-text-muted);
+  display: flex;
+  font-size: 11px;
+  gap: 4px;
+}
+
+.legendDot {
+  border-radius: 50%;
+  height: 8px;
+  width: 8px;
+}
+
+.actionsRow {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--studio-gap-sm);
+  justify-content: flex-end;
+}
+
+.btnSecondary {
+  align-items: center;
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text);
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 500;
+  gap: var(--studio-gap-xs);
+  padding: 6px 12px;
+  text-decoration: none;
+  transition: background 0.15s ease;
+}
+
+.btnSecondary:hover {
+  background: var(--studio-surface-hover);
+}
+
+.btnPrimary {
+  align-items: center;
+  background: var(--studio-gold);
+  border: 0;
+  border-radius: var(--studio-radius-control);
+  color: #1a1612;
+  cursor: pointer;
+  display: inline-flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: var(--studio-gap-xs);
+  padding: 6px 14px;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.btnPrimary:hover {
+  opacity: 0.9;
+}
+
+.beatsGrid {
+  display: grid;
+  gap: var(--studio-gap-sm);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  width: 100%;
+}
+
+.beatCard {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-panel);
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-xs);
+  padding: 14px 16px;
+  position: relative;
+}
+
+.beatCard[data-phase='hook'] {
+  border-left: 3px solid var(--studio-gold);
+}
+
+.beatCard[data-phase='scene'] {
+  border-left: 3px solid var(--studio-focus);
+}
+
+.beatCard[data-phase='climax'] {
+  border-left: 3px solid var(--studio-danger);
+}
+
+.beatCard[data-phase='rewards'] {
+  border-left: 3px solid var(--studio-positive);
+}
+
+.beatHeader {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.beatPhase {
+  color: var(--studio-text-muted);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.beatDuration {
+  background: var(--studio-surface-muted);
+  border-radius: var(--studio-radius-sm);
+  color: var(--studio-text-secondary);
+  font-size: 11px;
+  padding: 2px 6px;
+}
+
+.beatTitle {
+  color: var(--studio-text);
+  font-size: 14px;
+  font-weight: 600;
+  margin: 0;
+}
+
+.beatDescription {
+  color: var(--studio-text-secondary);
+  font-size: 12px;
+  line-height: 1.4;
+  margin: 0;
+}
+
+.scenesSection {
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-sm);
+  width: 100%;
+}
+
+.scenesList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.sceneItem {
+  align-items: center;
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  display: flex;
+  gap: var(--studio-gap-sm);
+  padding: 10px 14px;
+}
+
+.sceneNumber {
+  align-items: center;
+  background: var(--studio-surface-muted);
+  border-radius: 50%;
+  color: var(--studio-text);
+  display: inline-flex;
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  height: 22px;
+  justify-content: center;
+  width: 22px;
+}
+
+.sceneKind {
+  background: var(--studio-surface-sunken);
+  border-radius: var(--studio-radius-sm);
+  color: var(--studio-text-muted);
+  font-size: 11px;
+  padding: 2px 6px;
+  text-transform: capitalize;
+}
+
+.sceneTitle {
+  color: var(--studio-text);
+  flex: 1;
+  font-size: 13px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sceneDuration {
+  color: var(--studio-text-secondary);
+  font-size: 12px;
+}

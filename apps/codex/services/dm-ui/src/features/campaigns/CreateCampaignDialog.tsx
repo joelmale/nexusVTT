@@ -22,6 +22,7 @@ export function CreateCampaignDialog({
   const titleId = `create-campaign-title-${useId().replace(/:/g, '')}`;
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [mode, setMode] = useState<'campaign' | 'one-shot'>('campaign');
   const [error, setError] = useState<string>();
   const [pending, setPending] = useState(false);
 
@@ -36,6 +37,7 @@ export function CreateCampaignDialog({
     if (pending) return;
     setName('');
     setDescription('');
+    setMode('campaign');
     setError(undefined);
     onClose();
     requestAnimationFrame(() => returnFocusRef.current?.focus());
@@ -54,6 +56,7 @@ export function CreateCampaignDialog({
     try {
       const campaign = await createCampaign({
         description,
+        mode,
         name: trimmedName,
       });
       onClose();
@@ -112,6 +115,42 @@ export function CreateCampaignDialog({
             value={description}
           />
         </label>
+
+        <div
+          className={styles.formatGroup}
+          role="radiogroup"
+          aria-label="Adventure format"
+        >
+          <span>Format</span>
+          <div className={styles.formatOptions}>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={mode === 'campaign'}
+              className={`${styles.formatOption} ${mode === 'campaign' ? styles.formatOptionSelected : ''}`}
+              onClick={() => setMode('campaign')}
+              disabled={pending}
+            >
+              <strong className={styles.formatOptionTitle}>Campaign</strong>
+              <span className={styles.formatOptionDesc}>
+                Multi-session continuous story
+              </span>
+            </button>
+            <button
+              type="button"
+              role="radio"
+              aria-checked={mode === 'one-shot'}
+              className={`${styles.formatOption} ${mode === 'one-shot' ? styles.formatOptionSelected : ''}`}
+              onClick={() => setMode('one-shot')}
+              disabled={pending}
+            >
+              <strong className={styles.formatOptionTitle}>One-Shot</strong>
+              <span className={styles.formatOptionDesc}>
+                Single-session self-contained adventure
+              </span>
+            </button>
+          </div>
+        </div>
 
         <div aria-live="polite" className={styles.message} role="status">
           {error}

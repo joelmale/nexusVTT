@@ -200,7 +200,7 @@ In this order:
 - [x] **#4 Quick-capture inbox**: Fast one-click capture anywhere in Campaign Studio into an unfiled inbox (`inboxModel.ts`, `QuickCaptureModal.tsx`, `InboxPane.tsx`). Global `Ctrl+Shift+N` (or `Cmd+Shift+N`) shortcut and top bar inbox button open the rapid capture dialog with live mention linking. Destination selector allows keeping unfiled or immediately converting to NPC, Quest, Secret, or permanent Note. Dedicated "Inbox" tab in `NotesSection` provides a live unfiled counter badge, filter facets, mention chip rendering, and one-click triage buttons (`-> NPC`, `-> Quest`, `-> Secret`, `-> Note`) and note deletion. 100% test pass rate with 97% line coverage across all net-new inbox code.
 - [x] **#5 Create from context**: Direct `@` mention quick-creation within `MentionTextarea.tsx`. Typing an unrecognised query in editable mode offers `+ Create NPC "<name>"`, `+ Create Location "<name>"`, and `+ Create Item "<name>"`, atomically creating the entity draft via `bundleStore.addItem` and inserting the linkable token. 93.1% line coverage with 12/12 tests green.
 - [x] **#7 Consistent rich rows**: Universal two-line entity row component (`RichEntityRow.tsx` + `.module.css`) providing the Treasury visual style across NPCs, Quests, Encounters, and Factions. Supports leading icons/monograms, primary title, subtitle/alias, right-aligned status badges, pin indicators with gold tint (`--studio-gold`), and middle-dot separated metadata (`·`). Stable `sortByPinned` utility prioritizes pinned entities to the top of list groups. 100% line/branch coverage on `RichEntityRow.tsx` and `entityMeta.ts` with 57/57 tests green across all affected section suites.
-- [ ] **#2 One-shot mode**
+- [x] **#2 One-shot mode**: Guided adventure planning for single-session campaigns. Added `mode: 'campaign' | 'one-shot'` selection directly to `CreateCampaignDialog.tsx` with customized radiogroup options and `CampaignSwitcher.tsx` with dynamic `One-Shot` gold badge. Built `oneShotModel.ts` and `OneShotHub.tsx` (+ `.module.css`) featuring a real-time pacing bar with proportional segments (Hook -> Scenes 3–5 -> Climax -> Rewards), scene count recommendations (<3 under-planned, 3–5 ideal, >5 risk of overrun), target time budget selector (2h to 6h), adventure beat cards, and 1-click Run Sheet export integration. 95.5% line coverage on `OneShotHub.tsx` and 98.6% on `oneShotModel.ts` with 16/16 tests passing.
 - [ ] **#9 Balance at a glance**
 - [ ] **#8 Player-view preview**
 - [ ] **#10 Campaign moods**
@@ -212,6 +212,10 @@ Plus the polish checklist (empty states, Cmd+K actions, "Saved · 2 s ago" indic
 **Files updated in M6:**
 - `overviewModel.ts`, `overviewModel.test.ts`
 - `campaign-overview.tsx`, `campaign-overview.module.css`, `campaign-overview.test.tsx`
+- `oneShotModel.ts`, `oneShotModel.test.ts`
+- `OneShotHub.tsx`, `OneShotHub.module.css`, `OneShotHub.test.tsx`
+- `CreateCampaignDialog.tsx`, `CreateCampaignDialog.module.css`
+- `CampaignSwitcher.tsx`, `CampaignSwitcher.module.css`, `CampaignSwitcher.test.tsx`
 - `UseInNextSessionButton.tsx`, `UseInNextSessionButton.module.css`, `UseInNextSessionButton.test.tsx`
 - `entityIndex.ts`, `entityMeta.ts`
 - `NpcsSection.tsx`, `EncountersSection.tsx`, `WorldSection.tsx`, `QuestsSection.tsx`, `FactionsSection.tsx`, `ItemCard.tsx`
