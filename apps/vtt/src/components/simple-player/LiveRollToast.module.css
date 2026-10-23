@@ -1,0 +1,39 @@
+.toast {
+  position: absolute;
+  top: 100%;
+  left: 50%;
+  z-index: var(--z-tooltip);
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  max-width: calc(100% - 24px);
+  margin-top: 6px;
+  padding: 8px 8px 8px 14px;
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--radius-full);
+  background: var(--glass-surface-strong);
+  box-shadow: var(--shadow-glass-lg);
+  color: var(--glass-text);
+  pointer-events: none;
+  transform: translateX(-50%);
+}
+
+.text {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.dismiss {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: transparent;
+  color: var(--glass-text-muted);
+  pointer-events: auto;
+  cursor: pointer;
+}

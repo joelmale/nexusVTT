@@ -1,0 +1,46 @@
+.spotlight {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-top-modal);
+  display: flex;
+  flex-direction: column;
+  padding: max(8px, env(safe-area-inset-top)) 8px
+    max(8px, env(safe-area-inset-bottom));
+  background: var(--glass-dark-strong);
+  color: var(--glass-text);
+}
+
+.header {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 4px 8px;
+}
+
+.header h2 {
+  overflow: hidden;
+  margin: 0;
+  font-size: var(--text-lg);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.close {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: none;
+  border-radius: var(--radius-full);
+  background: var(--glass-surface-strong);
+  color: var(--glass-text);
+  cursor: pointer;
+}
+
+.image {
+  flex: 1 1 auto;
+  min-height: 0;
+  object-fit: contain;
+}

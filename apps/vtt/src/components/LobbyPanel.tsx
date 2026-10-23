@@ -15,6 +15,7 @@ import {
 } from '@/stores/gameStore';
 import { webSocketService } from '@/services/websocket';
 import { buildSimpleInviteUrl } from '@/utils/simplePlayerMode';
+import { SimpleInviteCard } from './simple-player/SimpleInviteCard';
 import type { Player } from '@/types/game';
 
 interface PlayerCardProps {
@@ -257,6 +258,8 @@ export const LobbyPanel: React.FC = () => {
             </div>
           </div>
         </div>
+
+        {isHost && roomCode && <SimpleInviteCard roomCode={roomCode} />}
 
         {/* Online Game Controls */}
         {!isConnectedToRoom ? (

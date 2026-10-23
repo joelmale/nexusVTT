@@ -10,10 +10,18 @@
 import React, { useState, useEffect, Suspense } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useGameStore } from '@/stores/gameStore';
+import { useSimplePlayerMode } from '@/hooks/useSimplePlayerMode';
 
 // Lazy load the heavy GameUI component
 const GameUI = React.lazy(() =>
   import('./GameUI').then((module) => ({ default: module.GameUI })),
+);
+
+// Phone/tablet player view; the full GameUI is untouched when this is off.
+const SimplePlayerShell = React.lazy(() =>
+  import('./simple-player/SimplePlayerShell').then((module) => ({
+    default: module.SimplePlayerShell,
+  })),
 );
 
 export const LinearGameLayout: React.FC = () => {
@@ -25,6 +33,10 @@ export const LinearGameLayout: React.FC = () => {
   const user = useGameStore((state) => state.user);
   const [isRecovering, setIsRecovering] = useState(true);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const simpleMode = useSimplePlayerMode({
+    isHost: user.type === 'host',
+    roleKnown: session !== null,
+  });
 
   useEffect(() => {
     const recoverSession = async () => {
@@ -100,7 +112,11 @@ export const LinearGameLayout: React.FC = () => {
         </div>
       }
     >
-      <GameUI />
+      {simpleMode.isSimpleMode ? (
+        <SimplePlayerShell mode={simpleMode} />
+      ) : (
+        <GameUI />
+      )}
     </Suspense>
   );
 };

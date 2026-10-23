@@ -3,6 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import React from 'react';
 import { PlayerClusterFloating } from '@/components/PlayerClusterFloating';
 import { useGameStore } from '@/stores/gameStore';
+import { useUiModeStore } from '@/hooks/useSimplePlayerMode';
 
 // Mock child components that have external dependencies
 vi.mock('@/components/ConnectionStatus', () => ({
@@ -93,5 +94,14 @@ describe('PlayerClusterFloating', () => {
     fireEvent.click(leaveBtn);
 
     expect(mockLeaveRoom).toHaveBeenCalledTimes(1);
+  });
+
+  it('switches the game into Simple Mode', () => {
+    useUiModeStore.setState({ explicitMode: null });
+    render(<PlayerClusterFloating leaveRoom={mockLeaveRoom} />);
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Switch to Simple Mode' }),
+    );
+    expect(useUiModeStore.getState().explicitMode).toBe('simple');
   });
 });

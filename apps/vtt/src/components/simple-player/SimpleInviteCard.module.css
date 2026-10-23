@@ -1,0 +1,41 @@
+.card {
+  display: grid;
+  gap: 8px;
+  margin-top: 12px;
+  padding: 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-lg);
+  background: var(--glass-surface-subtle);
+}
+
+.card h4 {
+  margin: 0;
+}
+
+.help,
+.tip {
+  margin: 0;
+  color: var(--glass-text-secondary);
+  font-size: var(--text-sm);
+}
+
+.tip {
+  color: var(--glass-text-muted);
+}
+
+.link {
+  width: 100%;
+  padding: 6px 8px;
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--radius-md);
+  background: var(--glass-surface);
+  color: var(--glass-text);
+  font-family: var(--font-mono);
+  font-size: var(--text-sm);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}

@@ -49,6 +49,7 @@ import { createPlacedProp } from '@/types/prop';
 import { CameraGestureEngine, isZoomWheelEvent } from '@/utils/cameraGestureEngine';
 import { FogGestureEngine } from '@/utils/fogGestureEngine';
 import { sceneUtils } from '@/utils/sceneUtils';
+import { isTap, startTap, trackTap, type TapTracker } from '@/utils/tapGesture';
 import { hitTestDrawings, createHitTestContext } from './inkHitTest';
 import { getDrawingsBounds } from './drawingBounds';
 import type { ViewportRect } from './anchoredPanelPosition';
@@ -63,6 +64,14 @@ import type {
 
 interface SceneCanvasProps {
   scene: Scene;
+  /**
+   * 'simple' is Simple Player Mode: no tools, no token/prop dragging, one
+   * finger pans and a tap reports a scene point through `onSceneTap`.
+   * Defaults to 'full', which behaves exactly as before.
+   */
+  interactionProfile?: 'full' | 'simple';
+  /** Simple profile only: a tap (no drag) in world coordinates. */
+  onSceneTap?: (point: { x: number; y: number }) => void;
 }
 
 const SPELL_TYPES = new Set([
@@ -79,7 +88,12 @@ const SPELL_TYPES = new Set([
 // the toolbar's other single-purpose tools (e.g. eraser's fixed radius).
 const FOG_BRUSH_SIZE = 60;
 
-const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
+const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({
+  scene,
+  interactionProfile = 'full',
+  onSceneTap,
+}) => {
+  const isSimpleProfile = interactionProfile === 'simple';
   // Actions from store. A5 fix: the old `useGameStore()` call (no selector)
   // subscribed to the ENTIRE store, so every set() — including every token
   // move — re-rendered SceneCanvas. Action functions have stable identity
@@ -145,7 +159,11 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   const camera = useCamera();
   const followDM = useFollowDM();
   const isHost = useIsHost();
-  const activeTool = useActiveTool() as SceneCanvasActiveTool;
+  const storeActiveTool = useActiveTool() as SceneCanvasActiveTool;
+  // Simple Player Mode is pan-only: no drawing, selection, spell or fog tools.
+  const activeTool: SceneCanvasActiveTool = isSimpleProfile
+    ? 'pan'
+    : storeActiveTool;
   const bringToFront = useUIStackStore((state) => state.bringToFront);
 
   const roomCode = useServerRoomCode();
@@ -605,6 +623,31 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     };
   }, [activeTool, isHost, followDM, cameraGestureEngine]);
 
+  // Simple profile tap reporting. Latest camera/viewport/callback live in a
+  // ref so the native touch listeners below don't re-bind on every pan frame.
+  const sceneTapContextRef = useRef({ camera, viewportSize, onSceneTap });
+  useEffect(() => {
+    sceneTapContextRef.current = { camera, viewportSize, onSceneTap };
+  }, [camera, viewportSize, onSceneTap]);
+
+  const emitSceneTap = useCallback((clientX: number, clientY: number) => {
+    const svgEl = svgRef.current;
+    const context = sceneTapContextRef.current;
+    if (!svgEl || !context.onSceneTap) return;
+    const rect = svgEl.getBoundingClientRect();
+    context.onSceneTap(
+      sceneUtils.screenToWorld(
+        clientX - rect.left,
+        clientY - rect.top,
+        context.camera,
+        context.viewportSize.width,
+        context.viewportSize.height,
+      ),
+    );
+  }, []);
+
+  const mouseTapRef = useRef<TapTracker | null>(null);
+
   // Two-finger pinch/pan for touch devices.
   //
   // Deliberately native TouchEvents with `{ passive: false }` rather than a
@@ -617,14 +660,39 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   // Unlike wheel zoom this is not gated on the active tool - two fingers are
   // unambiguous, and a tablet user must be able to zoom while a drawing tool
   // is selected.
+  //
+  // Simple profile only: one finger also pans (and a short, still touch is a
+  // tap reported through onSceneTap). preventDefault there suppresses the
+  // mouse-compat events, which is fine because that profile has no tools.
   useEffect(() => {
     const svgEl = svgRef.current;
     if (!svgEl) return;
 
     let pinching = false;
+    let singleTouch: TapTracker | null = null;
+    const canMoveCamera = isHost || !followDM;
+
+    const endSingleTouch = (emitTap: boolean) => {
+      if (!singleTouch) return;
+      if (emitTap && isTap(singleTouch, Date.now())) {
+        emitSceneTap(singleTouch.startX, singleTouch.startY);
+      }
+      singleTouch = null;
+      if (canMoveCamera) cameraGestureEngine.endPan();
+    };
 
     const handleTouchStart = (e: TouchEvent) => {
+      if (isSimpleProfile && e.touches.length === 1) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        singleTouch = startTap(touch.clientX, touch.clientY, Date.now());
+        if (canMoveCamera) {
+          cameraGestureEngine.startPan(touch.clientX, touch.clientY);
+        }
+        return;
+      }
       if (e.touches.length !== 2) return;
+      endSingleTouch(false);
       if (!isHost && followDM) return; // Players can't move the camera when following DM
 
       e.preventDefault();
@@ -633,6 +701,15 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
     };
 
     const handleTouchMove = (e: TouchEvent) => {
+      if (singleTouch && e.touches.length === 1) {
+        e.preventDefault();
+        const touch = e.touches[0];
+        trackTap(singleTouch, touch.clientX, touch.clientY);
+        if (canMoveCamera) {
+          cameraGestureEngine.movePan(touch.clientX, touch.clientY);
+        }
+        return;
+      }
       if (!pinching || e.touches.length !== 2) return;
       e.preventDefault();
       cameraGestureEngine.pinchMove(e.touches[0], e.touches[1]);
@@ -644,22 +721,36 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
       cameraGestureEngine.pinchEnd();
     };
 
+    const handleTouchEnd = () => {
+      endSingleTouch(true);
+      endPinch();
+    };
+
+    const handleTouchCancel = () => {
+      endSingleTouch(false);
+      endPinch();
+    };
+
     svgEl.addEventListener('touchstart', handleTouchStart, { passive: false });
     svgEl.addEventListener('touchmove', handleTouchMove, { passive: false });
-    svgEl.addEventListener('touchend', endPinch);
-    svgEl.addEventListener('touchcancel', endPinch);
+    svgEl.addEventListener('touchend', handleTouchEnd);
+    svgEl.addEventListener('touchcancel', handleTouchCancel);
 
     return () => {
       svgEl.removeEventListener('touchstart', handleTouchStart);
       svgEl.removeEventListener('touchmove', handleTouchMove);
-      svgEl.removeEventListener('touchend', endPinch);
-      svgEl.removeEventListener('touchcancel', endPinch);
+      svgEl.removeEventListener('touchend', handleTouchEnd);
+      svgEl.removeEventListener('touchcancel', handleTouchCancel);
+      endSingleTouch(false);
       endPinch();
     };
-  }, [isHost, followDM, cameraGestureEngine]);
+  }, [isHost, followDM, cameraGestureEngine, isSimpleProfile, emitSceneTap]);
 
   const handleMouseDown = useCallback(
     (e: React.MouseEvent) => {
+      if (isSimpleProfile && e.button === 0) {
+        mouseTapRef.current = startTap(e.clientX, e.clientY, Date.now());
+      }
       if (e.button === 0) {
         // Left mouse button
         if (activeTool === 'pan' || (activeTool === 'select' && e.altKey)) {
@@ -735,11 +826,15 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
       setSelection,
       inkHitTestCtx,
       bringToFront,
+      isSimpleProfile,
     ],
   );
 
   const handleMouseMove = useCallback(
     (e: React.MouseEvent) => {
+      if (mouseTapRef.current) {
+        trackTap(mouseTapRef.current, e.clientX, e.clientY);
+      }
       if (isPanning) {
         cameraGestureEngine.movePan(e.clientX, e.clientY);
       }
@@ -748,11 +843,17 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
   );
 
   const handleMouseUp = useCallback(() => {
+    const tap = mouseTapRef.current;
+    mouseTapRef.current = null;
+    if (tap && isTap(tap, Date.now())) {
+      emitSceneTap(tap.startX, tap.startY);
+    }
     setIsPanning(false);
     cameraGestureEngine.endPan();
-  }, [cameraGestureEngine]);
+  }, [cameraGestureEngine, emitSceneTap]);
 
   const handleMouseLeave = useCallback(() => {
+    mouseTapRef.current = null;
     setIsPanning(false);
     cameraGestureEngine.endPan();
   }, [cameraGestureEngine]);
@@ -1386,7 +1487,10 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
                   TokenRenderer self-subscribes to its own record, so a move
                   of token A re-renders only token A's component. */}
               <TokenErrorBoundary>
-                <g id="tokens-layer">
+                <g
+                  id="tokens-layer"
+                  pointerEvents={isSimpleProfile ? 'none' : undefined}
+                >
                   {assetsReady &&
                     tokenIds.map((tokenId) => (
                       <TokenRenderer
@@ -1406,7 +1510,10 @@ const SceneCanvasComponent: React.FC<SceneCanvasProps> = ({ scene }) => {
 
               {/* Props layer - same id-list pattern as tokens (A5). */}
               <TokenErrorBoundary>
-                <g id="props-layer">
+                <g
+                  id="props-layer"
+                  pointerEvents={isSimpleProfile ? 'none' : undefined}
+                >
                   {assetsReady &&
                     propIds.map((propId) => (
                       <PropRenderer

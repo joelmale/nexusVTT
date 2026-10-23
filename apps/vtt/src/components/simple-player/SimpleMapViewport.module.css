@@ -1,0 +1,91 @@
+.viewport {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  touch-action: none;
+  overscroll-behavior: none;
+  user-select: none;
+  -webkit-user-select: none;
+  background: var(--bg-primary);
+}
+
+.hud {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: var(--z-tool-ui);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.hud button {
+  display: grid;
+  place-items: center;
+  width: 52px;
+  height: 52px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
+  background: var(--glass-surface-strong);
+  box-shadow: var(--shadow-glass);
+  color: var(--glass-text);
+  cursor: pointer;
+}
+
+.hud button[aria-pressed='true'] {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--button-text-color);
+}
+
+.hud button:disabled {
+  opacity: 0.5;
+}
+
+.hint,
+.confirm {
+  position: absolute;
+  left: 50%;
+  bottom: 16px;
+  z-index: var(--z-tool-ui);
+  max-width: calc(100% - 96px);
+  transform: translateX(-50%);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-full);
+  background: var(--glass-surface-strong);
+  box-shadow: var(--shadow-glass);
+  color: var(--glass-text);
+}
+
+.hint {
+  margin: 0;
+  padding: 10px 16px;
+  white-space: nowrap;
+}
+
+.confirm {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  justify-content: center;
+  padding: 8px 12px;
+}
+
+.confirm button {
+  min-height: 44px;
+  padding: 0 14px;
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--radius-full);
+  background: var(--glass-surface-subtle);
+  color: var(--glass-text);
+  font-weight: var(--font-semibold);
+  cursor: pointer;
+}
+
+.confirm .primary {
+  border-color: var(--color-primary);
+  background: var(--color-primary);
+  color: var(--button-text-color);
+}

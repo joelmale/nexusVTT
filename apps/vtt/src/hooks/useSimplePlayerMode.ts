@@ -1,4 +1,5 @@
 import { useCallback, useState } from 'react';
+import { create } from 'zustand';
 import { useDeviceDetection } from '@/hooks/useDeviceDetection';
 import {
   buildSimpleInviteUrl,
@@ -53,6 +54,39 @@ function prefersCoarsePointer(): boolean {
   }
 }
 
+/** URL parameter (persisted) beats the stored preference. */
+function initialExplicitMode(): PlayerUiMode | null {
+  const urlMode = readUrlMode();
+  if (urlMode) {
+    writeStoredUiMode(urlMode);
+    return urlMode;
+  }
+  return readStoredUiMode();
+}
+
+interface UiModeState {
+  /** An explicit choice (URL, stored, or toggled); null means auto-detect. */
+  explicitMode: PlayerUiMode | null;
+  setUiMode: (mode: PlayerUiMode) => void;
+}
+
+/**
+ * Shared so the full VTT's "Simple Mode" button and the Simple Mode settings
+ * sheet both flip the same switch that LinearGameLayout reads.
+ */
+export const useUiModeStore = create<UiModeState>()((set) => ({
+  explicitMode: initialExplicitMode(),
+  setUiMode: (mode) => {
+    writeStoredUiMode(mode);
+    set({ explicitMode: mode });
+  },
+}));
+
+/** Re-reads URL and storage; for tests and fresh page loads. */
+export function resetUiModeStore(): void {
+  useUiModeStore.setState({ explicitMode: initialExplicitMode() });
+}
+
 /**
  * Resolves Simple Player Mode vs the full VTT.
  *
@@ -67,25 +101,14 @@ export function useSimplePlayerMode({
   const { viewport } = useDeviceDetection();
   const canSplitView = viewport.width >= TABLET_SPLIT_MIN_WIDTH;
 
-  const [explicitMode, setExplicitMode] = useState<PlayerUiMode | null>(() => {
-    const urlMode = readUrlMode();
-    if (urlMode) {
-      writeStoredUiMode(urlMode);
-      return urlMode;
-    }
-    return readStoredUiMode();
-  });
+  const explicitMode = useUiModeStore((s) => s.explicitMode);
+  const setUiMode = useUiModeStore((s) => s.setUiMode);
   const [activeTab, setActiveTab] = useState<SimpleTabId>('map');
   const [splitPreferred, setSplitPreferred] = useState(true);
 
   const autoMode: PlayerUiMode =
     roleKnown && !isHost && prefersCoarsePointer() ? 'simple' : 'full';
   const uiMode = explicitMode ?? autoMode;
-
-  const setUiMode = useCallback((mode: PlayerUiMode) => {
-    writeStoredUiMode(mode);
-    setExplicitMode(mode);
-  }, []);
 
   const toggleUiMode = useCallback(() => {
     setUiMode(uiMode === 'simple' ? 'full' : 'simple');

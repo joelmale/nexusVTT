@@ -8,6 +8,7 @@ import type { DomainCommand } from '@nexus/game-contracts';
 interface AppContext {
   baseUrl: string;
   broadcastToRoom: ReturnType<typeof vi.fn>;
+  resolveHandoutUrl: ReturnType<typeof vi.fn>;
   server: Server;
   db: {
     campaignActors: {
@@ -22,6 +23,7 @@ interface AppContext {
 
 async function startApp(): Promise<AppContext> {
   const broadcastToRoom = vi.fn();
+  const resolveHandoutUrl = vi.fn().mockResolvedValue(undefined);
   const db = {
     campaignActors: {
       getActorsByCampaign: vi.fn(),
@@ -43,9 +45,12 @@ async function startApp(): Promise<AppContext> {
     next();
   });
 
-  registerCampaignActorRoutes(app, db as unknown as DatabaseService, () => ({
-    broadcastToRoom,
-  }));
+  registerCampaignActorRoutes(
+    app,
+    db as unknown as DatabaseService,
+    () => ({ broadcastToRoom }),
+    resolveHandoutUrl,
+  );
 
   const server = app.listen(0, '127.0.0.1');
   await new Promise<void>((resolve, reject) => {
@@ -61,6 +66,7 @@ async function startApp(): Promise<AppContext> {
   return {
     baseUrl: `http://127.0.0.1:${address.port}`,
     broadcastToRoom,
+    resolveHandoutUrl,
     server,
     db,
   };
@@ -268,6 +274,63 @@ describe('campaignActors routes', () => {
           data: expect.objectContaining({
             name: 'handout/revealed',
             title: 'Harbor Map',
+          }),
+        }),
+      );
+      const broadcast = ctx.broadcastToRoom.mock.calls[0][1] as {
+        data: Record<string, unknown>;
+      };
+      expect(broadcast.data).not.toHaveProperty('url');
+    });
+
+    it('includes a viewable image url when the handout asset resolves', async () => {
+      ctx = await startApp();
+      ctx.resolveHandoutUrl.mockResolvedValueOnce('/users/u1/harbor.webp');
+      ctx.db.domainCommands.execute.mockResolvedValueOnce({
+        receipt: {
+          commandId: validCommandId,
+          principalId: 'test-user-1',
+          campaignId: validCampaignId,
+          payloadHash: 'hash-handout',
+          committedAt: new Date().toISOString(),
+          result: { success: true },
+        },
+        duplicate: false,
+      });
+
+      const response = await fetch(
+        `${ctx.baseUrl}/api/campaigns/${validCampaignId}/commands`,
+        {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-room-id': 'ROOM42' },
+          body: JSON.stringify({
+            commandId: validCommandId,
+            protocolVersion: '1.0',
+            campaignId: validCampaignId,
+            issuerUserId: 'test-user-1',
+            timestamp: new Date().toISOString(),
+            expectedActorVersions: {},
+            payload: {
+              type: 'RevealHandout',
+              assetRef: { target: 'asset', assetId: 'harbor-map' },
+              stepId: validActorId,
+              title: 'Harbor Map',
+            },
+          }),
+        },
+      );
+
+      expect(response.status).toBe(200);
+      expect(ctx.resolveHandoutUrl).toHaveBeenCalledWith(
+        'test-user-1',
+        'harbor-map',
+      );
+      expect(ctx.broadcastToRoom).toHaveBeenCalledWith(
+        'ROOM42',
+        expect.objectContaining({
+          data: expect.objectContaining({
+            name: 'handout/revealed',
+            url: '/users/u1/harbor.webp',
           }),
         }),
       );

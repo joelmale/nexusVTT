@@ -4,6 +4,7 @@ import { useGameStore } from '@/stores/gameStore';
 import { commandClient } from '@/services/commandClient';
 import { calculatePassivePerception } from '@nexus/character-contracts';
 import type { Character, AbilityKey } from '@nexus/character-contracts';
+import { formatModifier, savingThrowBonus } from '@/utils/characterRolls';
 
 const formatSlug = (slug: string): string =>
   slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
@@ -35,10 +36,8 @@ const AbilityScore: React.FC<AbilityScoreProps> = ({
     (state) => state.updateSavingThrowProficiency,
   );
   const abilityData = character.abilities[ability];
-  const profBonus = character.proficiencyBonus ?? 2;
   const isProficient = character.savingThrowProficiencies?.[ability] ?? false;
-  const saveValue = abilityData.modifier + (isProficient ? profBonus : 0);
-  const saveDisplay = `${saveValue >= 0 ? '+' : ''}${saveValue}`;
+  const saveDisplay = formatModifier(savingThrowBonus(character, ability));
 
   return (
     <div className="ability-score">

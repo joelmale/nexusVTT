@@ -4,6 +4,8 @@ import {
   isForwardedPlayerIntent,
   isPlayerIntent,
   isPlayerIntentMessage,
+  isSubmittedCharacter,
+  MAX_SUBMITTED_CHARACTER_BYTES,
   MAX_HP_DELTA,
 } from '../../../shared/events/playerIntent';
 
@@ -35,6 +37,35 @@ describe('player intent contract', () => {
     { kind: 'death-save', characterId: 'c1', result: 'maybe' },
   ])('rejects malformed intent %#', (intent) => {
     expect(isPlayerIntent(intent)).toBe(false);
+  });
+
+  describe('submitted characters', () => {
+    const base = { id: 'c9', name: 'Pip', hitPoints: 9, abilities: {} };
+
+    it('accepts a well-formed character', () => {
+      expect(isSubmittedCharacter(base)).toBe(true);
+      expect(
+        isPlayerIntent({ kind: 'submit-character', character: base }),
+      ).toBe(true);
+    });
+
+    it.each([
+      null,
+      { ...base, id: '' },
+      { ...base, name: ' ' },
+      { ...base, name: 'x'.repeat(101) },
+      { ...base, hitPoints: -1 },
+      { ...base, abilities: null },
+      { ...base, notes: 'x'.repeat(MAX_SUBMITTED_CHARACTER_BYTES) },
+    ])('rejects malformed character %#', (character) => {
+      expect(isSubmittedCharacter(character)).toBe(false);
+    });
+
+    it('rejects values that cannot be serialized', () => {
+      const cyclic: Record<string, unknown> = { ...base };
+      cyclic.self = cyclic;
+      expect(isSubmittedCharacter(cyclic)).toBe(false);
+    });
   });
 
   it('requires an intent id on messages', () => {

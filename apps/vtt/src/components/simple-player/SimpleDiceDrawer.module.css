@@ -1,0 +1,166 @@
+.drawer {
+  display: grid;
+  gap: 16px;
+  padding: 12px 12px calc(16px + env(safe-area-inset-bottom));
+  color: var(--glass-text);
+}
+
+.pad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+}
+
+.die {
+  position: relative;
+  min-height: 56px;
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--glass-surface);
+  color: var(--glass-text);
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+}
+
+.count {
+  position: absolute;
+  top: 4px;
+  right: 6px;
+  color: var(--color-primary);
+  font-size: var(--text-xs);
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+
+.stepper {
+  display: flex;
+  align-items: center;
+  overflow: hidden;
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--radius-lg);
+}
+
+.stepper button {
+  width: 48px;
+  height: 48px;
+  border: none;
+  background: var(--glass-surface-subtle);
+  color: var(--glass-text);
+  font-size: var(--text-xl);
+  cursor: pointer;
+}
+
+.stepper button:disabled {
+  opacity: 0.4;
+}
+
+.stepper output {
+  min-width: 3rem;
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-bold);
+  text-align: center;
+}
+
+.clear,
+.roll {
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: var(--radius-lg);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+}
+
+.clear {
+  border: 1px solid var(--glass-border);
+  background: transparent;
+  color: var(--glass-text);
+}
+
+.roll {
+  flex: 1 1 auto;
+  border: none;
+  background: var(--color-primary);
+  color: var(--button-text-color);
+}
+
+.clear:disabled,
+.roll:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.section h3 {
+  margin: 0 0 8px;
+  font-size: var(--text-base);
+}
+
+.list {
+  display: grid;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.handout {
+  display: block;
+  width: 100%;
+  min-height: 44px;
+  padding: 10px 12px;
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-md);
+  background: var(--glass-surface);
+  color: var(--glass-text);
+  text-align: left;
+}
+
+button.handout {
+  cursor: pointer;
+}
+
+.rollItem {
+  display: grid;
+  grid-template-columns: minmax(0, 6rem) minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: center;
+  padding: 8px 10px;
+  border-radius: var(--radius-md);
+  background: var(--glass-surface);
+}
+
+.who,
+.expr {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.expr {
+  color: var(--glass-text-muted);
+  font-size: var(--text-sm);
+}
+
+.total {
+  font-size: var(--text-lg);
+  font-variant-numeric: tabular-nums;
+  font-weight: var(--font-bold);
+}
+
+.crit .total {
+  color: var(--color-success);
+}
+
+.fumble .total {
+  color: var(--color-error);
+}
+
+.muted {
+  margin: 0;
+  color: var(--glass-text-muted);
+}

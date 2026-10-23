@@ -2,6 +2,10 @@ import type express from 'express';
 import { domainCommandSchema } from '@nexus/game-contracts';
 import type { DatabaseService } from '../database.js';
 import type { SocketManager } from '../socket/SocketManager.js';
+import {
+  createHandoutUrlResolver,
+  type HandoutUrlResolver,
+} from './handoutAssetUrl.js';
 
 type SocketManagerProvider = () => Pick<SocketManager, 'broadcastToRoom'>;
 
@@ -11,12 +15,13 @@ function requestRoomId(
   return Array.isArray(value) ? value[0] : value;
 }
 
-function broadcastRevealHandout(
+async function broadcastRevealHandout(
   getSocketManager: SocketManagerProvider | undefined,
   roomId: string | undefined,
   command: ReturnType<typeof domainCommandSchema.parse>,
   duplicate: boolean | undefined,
-): void {
+  resolveHandoutUrl: HandoutUrlResolver,
+): Promise<void> {
   if (
     !getSocketManager ||
     !roomId ||
@@ -25,6 +30,12 @@ function broadcastRevealHandout(
   ) {
     return;
   }
+
+  // Simple Player Mode shows the handout image; full mode keeps the toast.
+  const url = await resolveHandoutUrl(
+    command.issuerUserId,
+    command.payload.assetRef.assetId,
+  );
 
   getSocketManager().broadcastToRoom(roomId, {
     type: 'event',
@@ -35,6 +46,7 @@ function broadcastRevealHandout(
       revealedBy: command.issuerUserId,
       stepId: command.payload.stepId,
       title: command.payload.title,
+      ...(url ? { url } : {}),
     },
     timestamp: Date.now(),
   });
@@ -44,6 +56,7 @@ export function registerCampaignActorRoutes(
   app: express.Application,
   db: DatabaseService,
   getSocketManager?: SocketManagerProvider,
+  resolveHandoutUrl: HandoutUrlResolver = createHandoutUrlResolver(),
 ): void {
   /**
    * GET /api/campaigns/:campaignId/actors
@@ -127,11 +140,12 @@ export function registerCampaignActorRoutes(
         });
       }
 
-      broadcastRevealHandout(
+      await broadcastRevealHandout(
         getSocketManager,
         requestRoomId(req.headers['x-room-id']),
         command,
         duplicate,
+        resolveHandoutUrl,
       );
 
       res.status(200).json({
@@ -181,11 +195,12 @@ export function registerCampaignActorRoutes(
         });
       }
 
-      broadcastRevealHandout(
+      await broadcastRevealHandout(
         getSocketManager,
         requestRoomId(req.headers['x-room-id']),
         command,
         duplicate,
+        resolveHandoutUrl,
       );
 
       res.status(200).json({

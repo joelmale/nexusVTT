@@ -5,9 +5,10 @@ export type SimpleConnectionState = 'connected' | 'reconnecting' | 'offline';
 export interface UseMobileSessionLifecycleOptions {
   /** Hold a screen wake lock while mounted (where supported). */
   wakeLock: boolean;
-  /** Current socket connection, from the game store's connection state. */
-  isConnected: boolean;
-  /** True when the underlying socket is open right now. */
+  /**
+   * True when the underlying socket is open right now. Polled, like
+   * ConnectionStatus does: the store's connection flag is not kept current.
+   */
   isSocketOpen: () => boolean;
   /**
    * Re-establish the session. Wire this to the existing
@@ -30,6 +31,8 @@ function getWakeLock(): WakeLockLike | null {
   return nav.wakeLock ?? null;
 }
 
+export const CONNECTION_POLL_MS = 2000;
+
 function isOnline(): boolean {
   return typeof navigator.onLine === 'boolean' ? navigator.onLine : true;
 }
@@ -42,13 +45,13 @@ function isOnline(): boolean {
  */
 export function useMobileSessionLifecycle({
   wakeLock,
-  isConnected,
   isSocketOpen,
   onResumeSession,
 }: UseMobileSessionLifecycleOptions): {
   connectionState: SimpleConnectionState;
 } {
   const [online, setOnline] = useState(isOnline);
+  const [socketOpen, setSocketOpen] = useState(isSocketOpen);
   const resumeRef = useRef(onResumeSession);
   const socketOpenRef = useRef(isSocketOpen);
   useEffect(() => {
@@ -68,12 +71,17 @@ export function useMobileSessionLifecycle({
         })
         .finally(() => {
           resuming = false;
+          setSocketOpen(socketOpenRef.current());
         });
     };
 
     const handleVisibility = () => {
       if (document.visibilityState === 'visible') resume();
     };
+    const poll = setInterval(
+      () => setSocketOpen(socketOpenRef.current()),
+      CONNECTION_POLL_MS,
+    );
     const handleOnline = () => {
       setOnline(true);
       resume();
@@ -85,6 +93,7 @@ export function useMobileSessionLifecycle({
     window.addEventListener('online', handleOnline);
     window.addEventListener('offline', handleOffline);
     return () => {
+      clearInterval(poll);
       document.removeEventListener('visibilitychange', handleVisibility);
       window.removeEventListener('pageshow', resume);
       window.removeEventListener('online', handleOnline);
@@ -126,7 +135,7 @@ export function useMobileSessionLifecycle({
 
   const connectionState: SimpleConnectionState = !online
     ? 'offline'
-    : isConnected
+    : socketOpen
       ? 'connected'
       : 'reconnecting';
 

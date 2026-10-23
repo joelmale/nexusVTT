@@ -3,12 +3,14 @@ import { PlayerBar, PlayerActions } from './PlayerBar';
 import ConnectionStatus from './ConnectionStatus';
 import { useDraggablePanel } from '@/hooks/useDraggablePanel';
 import { useUIStackStore, useStackZIndex, useFocusMode } from '@/stores/uiStackStore';
+import { useUiModeStore } from '@/hooks/useSimplePlayerMode';
 
 interface PlayerClusterFloatingProps {
   leaveRoom: () => void;
 }
 
 export const PlayerClusterFloating: React.FC<PlayerClusterFloatingProps> = ({ leaveRoom }) => {
+  const setUiMode = useUiModeStore((state) => state.setUiMode);
   const {
     onPointerDown,
     isCollapsed,
@@ -121,6 +123,14 @@ export const PlayerClusterFloating: React.FC<PlayerClusterFloatingProps> = ({ le
             </div>
           </div>
 
+          <button
+            onClick={() => setUiMode('simple')}
+            className="glass-button secondary small"
+            title="Simple Mode (phone & tablet view)"
+            aria-label="Switch to Simple Mode"
+          >
+            📱
+          </button>
           <button
             onClick={leaveRoom}
             className="glass-button secondary small"

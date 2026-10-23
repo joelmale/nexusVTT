@@ -1,6 +1,7 @@
 import { act, renderHook, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import {
+  CONNECTION_POLL_MS,
   useMobileSessionLifecycle,
   type UseMobileSessionLifecycleOptions,
 } from '@/hooks/useMobileSessionLifecycle';
@@ -41,7 +42,6 @@ function options(
 ): UseMobileSessionLifecycleOptions {
   return {
     wakeLock: false,
-    isConnected: true,
     isSocketOpen: () => false,
     onResumeSession: vi.fn(),
     ...overrides,
@@ -58,15 +58,17 @@ describe('useMobileSessionLifecycle', () => {
     vi.restoreAllMocks();
   });
 
-  it('reports connection state', () => {
-    const { result, rerender } = renderHook(
-      (props: { isConnected: boolean }) =>
-        useMobileSessionLifecycle(options({ isConnected: props.isConnected })),
-      { initialProps: { isConnected: true } },
+  it('polls the socket for connection state', () => {
+    vi.useFakeTimers();
+    let open = true;
+    const { result } = renderHook(() =>
+      useMobileSessionLifecycle(options({ isSocketOpen: () => open })),
     );
     expect(result.current.connectionState).toBe('connected');
-    rerender({ isConnected: false });
+    open = false;
+    act(() => vi.advanceTimersByTime(CONNECTION_POLL_MS));
     expect(result.current.connectionState).toBe('reconnecting');
+    vi.useRealTimers();
     act(() => {
       window.dispatchEvent(new Event('offline'));
     });
@@ -112,7 +114,7 @@ describe('useMobileSessionLifecycle', () => {
     act(() => {
       window.dispatchEvent(new Event('online'));
     });
-    expect(result.current.connectionState).toBe('connected');
+    expect(result.current.connectionState).toBe('reconnecting');
     await waitFor(() => expect(onResumeSession).toHaveBeenCalledTimes(2));
   });
 

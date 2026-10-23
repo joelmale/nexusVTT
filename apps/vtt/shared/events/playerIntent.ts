@@ -21,11 +21,28 @@ export type PlayerIntent =
   | { kind: 'condition-toggle'; characterId: string; condition: string }
   | { kind: 'end-turn'; combatantId: string }
   | { kind: 'claim-character'; characterId: string }
+  /**
+   * A character the player built on their own device with the shared creator.
+   * Typed loosely here (shared code can't depend on the client contracts);
+   * the host checks its shape before adopting it.
+   */
+  | { kind: 'submit-character'; character: SubmittedCharacter }
   | {
       kind: 'death-save';
       characterId: string;
       result: 'success' | 'failure';
     };
+
+export interface SubmittedCharacter {
+  id: string;
+  name: string;
+  hitPoints: number;
+  abilities: Record<string, unknown>;
+  [key: string]: unknown;
+}
+
+/** Upper bound on a submitted character's serialized size. */
+export const MAX_SUBMITTED_CHARACTER_BYTES = 64 * 1024;
 
 export type PlayerIntentKind = PlayerIntent['kind'];
 
@@ -83,6 +100,27 @@ function isBoundedInteger(value: unknown, min: number, max: number): boolean {
   );
 }
 
+export function isSubmittedCharacter(
+  value: unknown,
+): value is SubmittedCharacter {
+  if (!isRecord(value)) return false;
+  if (
+    !isId(value.id) ||
+    typeof value.name !== 'string' ||
+    value.name.trim().length === 0 ||
+    value.name.length > 100 ||
+    !isBoundedInteger(value.hitPoints, 0, 9999) ||
+    !isRecord(value.abilities)
+  ) {
+    return false;
+  }
+  try {
+    return JSON.stringify(value).length <= MAX_SUBMITTED_CHARACTER_BYTES;
+  } catch {
+    return false;
+  }
+}
+
 export function isPlayerIntent(value: unknown): value is PlayerIntent {
   if (!isRecord(value)) return false;
   switch (value.kind) {
@@ -107,6 +145,8 @@ export function isPlayerIntent(value: unknown): value is PlayerIntent {
       return isId(value.combatantId);
     case 'claim-character':
       return isId(value.characterId);
+    case 'submit-character':
+      return isSubmittedCharacter(value.character);
     case 'death-save':
       return (
         isId(value.characterId) &&

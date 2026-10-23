@@ -226,6 +226,56 @@ describe('playerIntentApplier', () => {
     });
   });
 
+  describe('submit-character', () => {
+    const submitted = {
+      id: 'new-1',
+      name: 'Pip',
+      hitPoints: 9,
+      abilities: {},
+      playerId: 'someone-else',
+    };
+
+    it('adopts a new character, owned by the submitter', () => {
+      const result = applyPlayerIntent(
+        forward({ kind: 'submit-character', character: submitted }),
+      );
+      expect(result.status).toBe('applied');
+      expect(getCharacter('new-1')).toMatchObject({
+        name: 'Pip',
+        playerId: 'p1',
+      });
+    });
+
+    it('replaces a character the submitter already owns', () => {
+      applyPlayerIntent(
+        forward({
+          kind: 'submit-character',
+          character: { ...submitted, id: 'c1', name: 'Aria II' },
+        }),
+      );
+      expect(getCharacter('c1')?.name).toBe('Aria II');
+      expect(useCharacterStore.getState().characters).toHaveLength(3);
+    });
+
+    it("refuses to overwrite another player's character", () => {
+      const result = applyPlayerIntent(
+        forward({
+          kind: 'submit-character',
+          character: { ...submitted, id: 'c2' },
+        }),
+      );
+      expect(result.reason).toBe('not-owner');
+      expect(getCharacter('c2')?.name).toBe('Bram');
+    });
+
+    it('describes the submission to the DM', async () => {
+      await handleForwardedPlayerIntent(
+        forward({ kind: 'submit-character', character: submitted }),
+      );
+      expect(toastInfo).toHaveBeenCalledWith('Mia joined as Pip');
+    });
+  });
+
   describe('end-turn', () => {
     it('advances the turn when it is the owner’s turn', () => {
       const mine = addEntry('c1');

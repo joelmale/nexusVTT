@@ -895,6 +895,13 @@ export const eventHandlers: Record<string, EventHandler> = {
         console.warn('Failed to apply player intent:', error);
       });
   },
+  'handout/revealed': (_state, data) => {
+    void import('@/stores/handoutFeedStore')
+      .then(({ recordRevealedHandout }) => recordRevealedHandout(data))
+      .catch((error) => {
+        console.warn('Failed to record revealed handout:', error);
+      });
+  },
   'player/intent-result': (_state, data) => {
     void import('@/services/playerIntentClient')
       .then(({ handlePlayerIntentResult }) => {

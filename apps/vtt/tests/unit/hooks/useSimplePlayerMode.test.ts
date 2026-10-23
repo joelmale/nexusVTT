@@ -1,6 +1,9 @@
 import { act, renderHook } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { useSimplePlayerMode } from '@/hooks/useSimplePlayerMode';
+import {
+  resetUiModeStore,
+  useSimplePlayerMode,
+} from '@/hooks/useSimplePlayerMode';
 import { UI_MODE_STORAGE_KEY } from '@/utils/simplePlayerMode';
 
 const viewport = vi.hoisted(() => ({ width: 390, height: 844 }));
@@ -21,6 +24,13 @@ function setUrl(search: string) {
   window.history.replaceState({}, '', `/lobby/game/ABCD${search}`);
 }
 
+// The mode store reads URL/storage when (re)initialised, so each render
+// starts from the state the test just arranged.
+const renderModeHook: typeof renderHook = (callback, options) => {
+  resetUiModeStore();
+  return renderHook(callback, options);
+};
+
 describe('useSimplePlayerMode', () => {
   beforeEach(() => {
     localStorage.clear();
@@ -33,7 +43,7 @@ describe('useSimplePlayerMode', () => {
   });
 
   it('auto-selects simple mode for a player on a touch device', () => {
-    const { result } = renderHook(() =>
+    const { result } = renderModeHook(() =>
       useSimplePlayerMode({ isHost: false, roleKnown: true }),
     );
     expect(result.current.uiMode).toBe('simple');
@@ -41,7 +51,7 @@ describe('useSimplePlayerMode', () => {
   });
 
   it('keeps hosts in full mode on touch devices', () => {
-    const { result } = renderHook(() =>
+    const { result } = renderModeHook(() =>
       useSimplePlayerMode({ isHost: true, roleKnown: true }),
     );
     expect(result.current.uiMode).toBe('full');
@@ -49,14 +59,14 @@ describe('useSimplePlayerMode', () => {
 
   it('keeps players on a fine pointer in full mode', () => {
     setCoarsePointer(false);
-    const { result } = renderHook(() =>
+    const { result } = renderModeHook(() =>
       useSimplePlayerMode({ isHost: false, roleKnown: true }),
     );
     expect(result.current.uiMode).toBe('full');
   });
 
   it('does not auto-detect before the role is known', () => {
-    const { result, rerender } = renderHook(
+    const { result, rerender } = renderModeHook(
       (props: { roleKnown: boolean }) =>
         useSimplePlayerMode({ isHost: false, roleKnown: props.roleKnown }),
       { initialProps: { roleKnown: false } },
@@ -70,7 +80,7 @@ describe('useSimplePlayerMode', () => {
     window.matchMedia = vi.fn(() => {
       throw new Error('unsupported');
     }) as unknown as typeof window.matchMedia;
-    const { result } = renderHook(() =>
+    const { result } = renderModeHook(() =>
       useSimplePlayerMode({ isHost: false, roleKnown: true }),
     );
     expect(result.current.uiMode).toBe('full');
@@ -79,7 +89,7 @@ describe('useSimplePlayerMode', () => {
   it('lets the URL parameter win and persists it', () => {
     localStorage.setItem(UI_MODE_STORAGE_KEY, 'simple');
     setUrl('?mode=full');
-    const { result } = renderHook(() =>
+    const { result } = renderModeHook(() =>
       useSimplePlayerMode({ isHost: false, roleKnown: true }),
     );
     expect(result.current.uiMode).toBe('full');
@@ -88,7 +98,7 @@ describe('useSimplePlayerMode', () => {
 
   it('ignores an unknown URL mode', () => {
     setUrl('?mode=weird');
-    const { result } = renderHook(() =>
+    const { result } = renderModeHook(() =>
       useSimplePlayerMode({ isHost: true, roleKnown: true }),
     );
     expect(result.current.uiMode).toBe('full');
@@ -96,14 +106,14 @@ describe('useSimplePlayerMode', () => {
 
   it('uses the stored preference over auto-detection', () => {
     localStorage.setItem(UI_MODE_STORAGE_KEY, 'simple');
-    const { result } = renderHook(() =>
+    const { result } = renderModeHook(() =>
       useSimplePlayerMode({ isHost: true, roleKnown: true }),
     );
     expect(result.current.uiMode).toBe('simple');
   });
 
   it('switches and persists modes', () => {
-    const { result } = renderHook(() =>
+    const { result } = renderModeHook(() =>
       useSimplePlayerMode({ isHost: false, roleKnown: true }),
     );
     act(() => result.current.toggleUiMode());
@@ -120,7 +130,7 @@ describe('useSimplePlayerMode', () => {
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => {
       throw new Error('blocked');
     });
-    const { result } = renderHook(() =>
+    const { result } = renderModeHook(() =>
       useSimplePlayerMode({ isHost: false, roleKnown: true }),
     );
     act(() => result.current.setUiMode('full'));
@@ -128,7 +138,7 @@ describe('useSimplePlayerMode', () => {
   });
 
   it('only offers split view on wide screens and lets it toggle', () => {
-    const phone = renderHook(() =>
+    const phone = renderModeHook(() =>
       useSimplePlayerMode({ isHost: false, roleKnown: true }),
     );
     expect(phone.result.current.canSplitView).toBe(false);
@@ -136,7 +146,7 @@ describe('useSimplePlayerMode', () => {
     expect(phone.result.current.activeTab).toBe('map');
 
     viewport.width = 1024;
-    const tablet = renderHook(() =>
+    const tablet = renderModeHook(() =>
       useSimplePlayerMode({ isHost: false, roleKnown: true }),
     );
     expect(tablet.result.current.isTabletSplitView).toBe(true);
@@ -150,7 +160,7 @@ describe('useSimplePlayerMode', () => {
   });
 
   it('builds the invite URL', () => {
-    const { result } = renderHook(() =>
+    const { result } = renderModeHook(() =>
       useSimplePlayerMode({ isHost: true, roleKnown: true }),
     );
     expect(result.current.buildSimpleInviteUrl('wxyz')).toBe(

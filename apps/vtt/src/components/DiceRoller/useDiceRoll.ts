@@ -19,8 +19,15 @@ export const useDiceRoll = ({ isPrivate }: { isPrivate: boolean }) => {
   const sendChatMessage = useGameStore((state) => state.sendChatMessage);
   const [, startRollTransition] = useTransition();
 
-  /** Returns an error message, or null when the roll was dispatched. */
-  const roll = (expression: string, mode: RollMode = 'none'): string | null => {
+  /**
+   * Returns an error message, or null when the roll was dispatched. An
+   * optional label (e.g. "Stealth") is shown in the chat roll message.
+   */
+  const roll = (
+    expression: string,
+    mode: RollMode = 'none',
+    label?: string,
+  ): string | null => {
     const cleanExpr = expression.replace(/^\/r\s+/i, '').trim();
     if (!cleanExpr) {
       return 'Please provide a dice expression';
@@ -70,7 +77,9 @@ export const useDiceRoll = ({ isPrivate }: { isPrivate: boolean }) => {
       };
 
       sendChatMessage(
-        `rolled ${result.expression}`,
+        label
+          ? `rolled ${label} (${result.expression})`
+          : `rolled ${result.expression}`,
         'dice-roll',
         undefined,
         diceData,

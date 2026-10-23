@@ -133,6 +133,27 @@ export function applyPlayerIntent(
       }
       return applied;
     }
+    case 'submit-character': {
+      // A character built on the player's device. It always belongs to the
+      // submitter, and may only replace a character they already own.
+      const existing = findCharacter(intent.character.id);
+      if (existing && existing.playerId !== fromUserId) {
+        return reject('not-owner');
+      }
+      const owned = {
+        ...(intent.character as unknown as Character),
+        playerId: fromUserId,
+      };
+      useCharacterStore.setState((state) => {
+        const index = state.characters.findIndex((c) => c.id === owned.id);
+        if (index >= 0) {
+          state.characters[index] = owned;
+        } else {
+          state.characters.push(owned);
+        }
+      });
+      return applied;
+    }
     case 'end-turn': {
       const initiative = useInitiativeStore.getState();
       const entry = initiative.entries.find((e) => e.id === intent.combatantId);
@@ -167,6 +188,8 @@ function describeIntent(forwarded: ForwardedPlayerIntent): string {
       return `${who}: death save ${intent.result}`;
     case 'claim-character':
       return `${who} claimed a character`;
+    case 'submit-character':
+      return `${who} joined as ${intent.character.name}`;
     case 'end-turn':
       return `${who} ended their turn`;
   }
