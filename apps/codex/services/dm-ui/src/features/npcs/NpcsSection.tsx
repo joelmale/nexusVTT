@@ -137,8 +137,23 @@ function NpcRowContent({
     });
   }
 
+  const isNextSession = useMemo(() => {
+    const nextSessionId =
+      bundle.campaign.nextSession?.sessionId ||
+      bundle.campaign.currentSessionId ||
+      bundle.catalog.selectedSessionId;
+    const session = bundle.sessions.find((s) => s.id === nextSessionId);
+    return (
+      (session?.npcIds?.includes(row.id) ?? false) ||
+      bundle.campaign.nextSession?.npcId === row.id
+    );
+  }, [bundle, row.id]);
+
   const badges = (
     <>
+      {isNextSession ? (
+        <StatusBadge tone="info">Next session</StatusBadge>
+      ) : null}
       {row.unused ? <StatusBadge tone="warning">Unused</StatusBadge> : null}
       {row.factionName ? (
         <span className={styles.factionChip}>{row.factionName}</span>

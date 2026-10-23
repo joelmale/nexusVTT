@@ -220,10 +220,10 @@ describe('UseInNextSessionButton', () => {
     expect(screen.getByText('Next session')).toBeInTheDocument();
   });
 
-  it('renders nothing in read-only mode when entity is not linked', () => {
+  it('renders disabled "Use in next session" in read-only mode when entity is not linked', () => {
     const nextSession = baseBundle.sessions[0];
 
-    const { container } = renderWithContext({
+    renderWithContext({
       bundle: {
         ...baseBundle,
         campaign: {
@@ -242,6 +242,35 @@ describe('UseInNextSessionButton', () => {
       editable: false,
     });
 
-    expect(container.firstChild).toBeNull();
+    const button = screen.getByRole('button', { name: /Example campaign is read-only/ });
+    expect(button).toBeInTheDocument();
+    expect(button).toBeDisabled();
+    expect(button).toHaveTextContent('Use in next session');
+  });
+
+  it('resolves fallback session from currentSessionId when campaign.nextSession is not curated', () => {
+    const session = baseBundle.sessions[0];
+
+    renderWithContext({
+      bundle: {
+        ...baseBundle,
+        campaign: {
+          ...baseBundle.campaign,
+          nextSession: undefined as unknown as typeof baseBundle.campaign.nextSession,
+          currentSessionId: session.id,
+        },
+        sessions: [
+          {
+            ...session,
+            npcIds: ['npc-fallback'],
+          },
+        ],
+      },
+      id: 'npc-fallback',
+      kind: 'npc',
+      editable: false,
+    });
+
+    expect(screen.getByText('Next session')).toBeInTheDocument();
   });
 });

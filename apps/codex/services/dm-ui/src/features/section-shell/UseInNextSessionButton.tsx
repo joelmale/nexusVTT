@@ -24,10 +24,27 @@ export function UseInNextSessionButton({
   const [isUpdating, setIsUpdating] = useState(false);
 
   const nextSession = useMemo(() => {
+    if (!bundle) return null;
     const curatedId = bundle.campaign.nextSession?.sessionId;
-    return curatedId
-      ? bundle.sessions.find((s) => s.id === curatedId)
-      : pickUpcomingSession(bundle.sessions, Date.now());
+    if (curatedId) {
+      const match = bundle.sessions.find((s) => s.id === curatedId);
+      if (match) return match;
+    }
+    const currentId =
+      bundle.campaign.currentSessionId || bundle.catalog.selectedSessionId;
+    if (currentId) {
+      const match = bundle.sessions.find((s) => s.id === currentId);
+      if (match) return match;
+    }
+    const upcoming = pickUpcomingSession(bundle.sessions, Date.now());
+    if (upcoming) return upcoming;
+    const open = bundle.sessions.filter(
+      (s) => s.status !== 'complete' && s.status !== 'completed',
+    );
+    if (open.length > 0) {
+      return [...open].sort((a, b) => a.number - b.number)[0];
+    }
+    return [...bundle.sessions].sort((a, b) => b.number - a.number)[0] ?? null;
   }, [bundle]);
 
   const isLinked = useMemo(() => {
@@ -47,32 +64,70 @@ export function UseInNextSessionButton({
       );
     }
     if (kind === 'npc') {
-      return nextSession.npcIds?.includes(id) ?? false;
+      return (
+        (nextSession.npcIds?.includes(id) ?? false) ||
+        bundle.campaign.nextSession?.npcId === id
+      );
     }
     if (kind === 'encounter') {
-      return nextSession.encounterIds?.includes(id) ?? false;
+      return (
+        (nextSession.encounterIds?.includes(id) ?? false) ||
+        bundle.campaign.nextSession?.encounterId === id
+      );
     }
     if (kind === 'location') {
-      return nextSession.locationIds?.includes(id) ?? false;
+      return (
+        (nextSession.locationIds?.includes(id) ?? false) ||
+        bundle.campaign.nextSession?.locationId === id
+      );
     }
     if (kind === 'quest') {
-      return nextSession.questIds?.includes(id) ?? false;
+      return (
+        (nextSession.questIds?.includes(id) ?? false) ||
+        bundle.campaign.nextSession?.questId === id
+      );
     }
     return false;
   }, [bundle, id, kind, nextSession]);
 
-  if (!nextSession) return null;
+  if (!nextSession) {
+    return (
+      <button
+        aria-label="No sessions found. Create a session to link entities."
+        className={`${styles.button} ${size === 'sm' ? styles.sm : styles.md} ${className ?? ''}`}
+        disabled
+        title="No sessions found. Create a session to link entities."
+        type="button"
+      >
+        <CalendarPlus size={size === 'sm' ? 12 : 14} aria-hidden="true" />
+        <span>Use in next session</span>
+      </button>
+    );
+  }
 
   if (!store.editable) {
-    if (!isLinked) return null;
+    if (isLinked) {
+      return (
+        <span
+          className={`${styles.readOnlyBadge} ${className ?? ''}`}
+          title={`Linked to Session ${nextSession.number}: ${nextSession.title}`}
+        >
+          <CalendarCheck size={12} aria-hidden="true" />
+          <span>Next session</span>
+        </span>
+      );
+    }
     return (
-      <span
-        className={`${styles.readOnlyBadge} ${className ?? ''}`}
-        title={`Linked to Session ${nextSession.number}: ${nextSession.title}`}
+      <button
+        aria-label="Example campaign is read-only. Clone this campaign to customize session prep."
+        className={`${styles.button} ${size === 'sm' ? styles.sm : styles.md} ${className ?? ''}`}
+        disabled
+        title="Example campaign is read-only. Clone this campaign to customize session prep."
+        type="button"
       >
-        <CalendarCheck size={12} aria-hidden="true" />
-        <span>Next session</span>
-      </span>
+        <CalendarPlus size={size === 'sm' ? 12 : 14} aria-hidden="true" />
+        <span>Use in next session</span>
+      </button>
     );
   }
 
@@ -111,6 +166,8 @@ export function UseInNextSessionButton({
     ? `In Session ${nextSession.number} prep (${nextSession.title}) — click to remove`
     : `Add to Session ${nextSession.number} prep (${nextSession.title})`;
 
+  const iconSize = size === 'sm' ? 12 : 14;
+
   return (
     <button
       aria-label={title}
@@ -122,11 +179,11 @@ export function UseInNextSessionButton({
       type="button"
     >
       {isUpdating ? (
-        <Loader2 className={styles.spinner} size={14} aria-hidden="true" />
+        <Loader2 className={styles.spinner} size={iconSize} aria-hidden="true" />
       ) : isLinked ? (
-        <CalendarCheck size={14} aria-hidden="true" />
+        <CalendarCheck size={iconSize} aria-hidden="true" />
       ) : (
-        <CalendarPlus size={14} aria-hidden="true" />
+        <CalendarPlus size={iconSize} aria-hidden="true" />
       )}
       <span>{isLinked ? 'In next session' : 'Use in next session'}</span>
     </button>
