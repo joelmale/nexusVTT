@@ -10,11 +10,14 @@ import {
 } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+import History from 'lucide-react/dist/esm/icons/history';
+
 import {
   PlayerViewBanner,
   PlayerViewContext,
   PlayerViewToggle,
 } from '@/features/player-view';
+import { RevisionHistoryModal } from '@/features/revisions/RevisionHistoryModal';
 
 import type {
   BundleStore,
@@ -161,6 +164,7 @@ export function EditableSection({
   const { store } = useSectionBundle();
   const [playerView, setPlayerView] = useState(false);
   const [editing, setEditing] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
   const [draft, setDraftState] = useState<Draft>(initialDraft);
   const [state, setState] = useState<SaveState>('idle');
   const [error, setError] = useState<string>();
@@ -413,6 +417,17 @@ export function EditableSection({
             </span>
           ) : null}
           {allowPlayerView && !editing ? <PlayerViewToggle /> : null}
+          {!playerView && !editing ? (
+            <button
+              aria-label="View revision history"
+              onClick={() => setHistoryOpen(true)}
+              title="View revision history"
+              type="button"
+            >
+              <History size={14} style={{ verticalAlign: 'middle', marginRight: '4px' }} />
+              <span>History</span>
+            </button>
+          ) : null}
           {!playerView ? headerActions : null}
           {listPath && !playerView ? (
             <RemoveItemButton
@@ -472,6 +487,17 @@ export function EditableSection({
       ) : (
         children
       )}
+      <RevisionHistoryModal
+        currentDraft={draft}
+        isOpen={historyOpen}
+        kind={kind}
+        objectId={id}
+        onClose={() => setHistoryOpen(false)}
+        onRestore={(restored) => {
+          setDraft(restored);
+        }}
+        title={typeof heading === 'string' ? heading : 'this item'}
+      />
       </article>
     </PlayerViewContext.Provider>
   );
