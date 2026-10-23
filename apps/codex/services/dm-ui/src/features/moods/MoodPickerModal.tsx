@@ -3,7 +3,7 @@ import Check from 'lucide-react/dist/esm/icons/check';
 import X from 'lucide-react/dist/esm/icons/x';
 
 import { useCampaignContext } from '@/features/campaigns/CampaignContext';
-import { useCampaignMood } from './MoodContext';
+import { useCampaignMood } from './moodState';
 import { CAMPAIGN_MOODS, type CampaignMood } from './moodModel';
 import styles from './MoodPickerModal.module.css';
 

@@ -1,7 +1,5 @@
 import {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useState,
@@ -15,21 +13,9 @@ import {
   resolveCampaignMood,
   saveLocalMood,
   type CampaignMood,
-  type MoodOption,
 } from './moodModel';
 import { updateCampaign } from '@/services/campaign-api';
-
-export interface MoodContextValue {
-  currentMood: CampaignMood;
-  activeOption: MoodOption;
-  setMood: (mood: CampaignMood, persistToCampaign?: boolean) => Promise<void>;
-  isMoodPickerOpen: boolean;
-  openMoodPicker: () => void;
-  closeMoodPicker: () => void;
-  toggleMoodPicker: () => void;
-}
-
-export const MoodContext = createContext<MoodContextValue | null>(null);
+import { MoodContext, type MoodContextValue } from './moodState';
 
 export interface MoodProviderProps {
   children: ReactNode;
@@ -105,21 +91,4 @@ export function MoodProvider({
   );
 
   return <MoodContext.Provider value={value}>{children}</MoodContext.Provider>;
-}
-
-export function useCampaignMood(): MoodContextValue {
-  const ctx = useContext(MoodContext);
-  if (!ctx) {
-    const fallbackMood = resolveCampaignMood(null, loadLocalMood());
-    return {
-      currentMood: fallbackMood,
-      activeOption: getMoodOption(fallbackMood),
-      setMood: () => Promise.resolve(),
-      isMoodPickerOpen: false,
-      openMoodPicker: () => {},
-      closeMoodPicker: () => {},
-      toggleMoodPicker: () => {},
-    };
-  }
-  return ctx;
 }

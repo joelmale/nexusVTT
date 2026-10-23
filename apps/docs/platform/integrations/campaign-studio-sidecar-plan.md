@@ -33,7 +33,7 @@ The first delivery is a faithful representative frontend for the approved
 campaign overview, session-plan authoring, and map-preparation concepts. It
 uses a detailed Ashes of Veyra demo campaign and registered placeholders for
 future capabilities. The implementation-ready specification is in the
-[Campaign Studio visual prototype plan](campaign-studio-visual-prototype-plan.md).
+[Campaign Studio UX plan](campaign-studio-ux-plan.md).
 
 After visual acceptance, the first functional vertical slice is a session plan
 containing a prepared scene, an existing `EncounterTemplate`, and linked DM
@@ -526,7 +526,7 @@ in Nexus VTT,” with no manual export, duplicate state, or re-entry.
 
 These generated concepts are the visual sources of truth for Phase A. Their
 screen anatomy and acceptance criteria are defined in the
-[Campaign Studio visual prototype plan](campaign-studio-visual-prototype-plan.md).
+[Campaign Studio UX plan](campaign-studio-ux-plan.md).
 They remain product-direction references rather than raster assets to trace or
 embed as interface backgrounds.
 
