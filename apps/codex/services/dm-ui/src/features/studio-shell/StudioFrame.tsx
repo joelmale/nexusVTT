@@ -16,6 +16,7 @@ interface StudioFrameProps {
   onQuickCapture?: () => void;
   onSettings?: () => void;
   onTheme?: () => void;
+  onRelationshipWeb?: () => void;
   onCapability: (capabilityId: CapabilityId) => void;
 }
 
@@ -26,6 +27,7 @@ export function StudioFrame({
   onQuickCapture,
   onSettings,
   onTheme,
+  onRelationshipWeb,
   onCapability,
 }: StudioFrameProps) {
   const { expandCampaignRail, isCampaignRailExpanded } = useStudioNavigation();
@@ -51,6 +53,7 @@ export function StudioFrame({
       contextLabel={contextLabel}
       onOpenNavigation={() => setNavDrawerOpen(true)}
       onQuickCapture={onQuickCapture}
+      onRelationshipWeb={onRelationshipWeb}
       onRestoreNavigation={expandCampaignRail}
       onSearch={onSearch}
       onSettings={onSettings}

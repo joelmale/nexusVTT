@@ -3,6 +3,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useCapabilityNotice } from '@/features/capability-notice';
 import { QuickCaptureModal } from '@/features/inbox/QuickCaptureModal';
 import { MoodPickerModal, MoodProvider } from '@/features/moods';
+import { RelationshipWebModal } from '@/features/relationship-web/RelationshipWebModal';
 import { CampaignSearchDialog } from '@/features/search/CampaignSearchDialog';
 import { StudioFrame } from '@/features/studio-shell/StudioFrame';
 
@@ -26,6 +27,7 @@ export function SectionRoute({ title, children }: SectionRouteProps) {
   const [searchOpen, setSearchOpen] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
   const [moodPickerOpen, setMoodPickerOpen] = useState(false);
+  const [relationshipWebOpen, setRelationshipWebOpen] = useState(false);
 
   // Ctrl/Cmd+K opens search, Ctrl/Cmd+Shift+N opens quick capture from anywhere in a campaign.
   useEffect(() => {
@@ -94,6 +96,7 @@ export function SectionRoute({ title, children }: SectionRouteProps) {
         contextLabel={title ? `${campaignName} · ${title}` : campaignName}
         onCapability={notifyCapability}
         onQuickCapture={() => setQuickCaptureOpen(true)}
+        onRelationshipWeb={() => setRelationshipWebOpen(true)}
         onSearch={() => setSearchOpen(true)}
         onSettings={() => notifyCapability('campaign.settings.open')}
         onTheme={() => setMoodPickerOpen(true)}
@@ -111,6 +114,10 @@ export function SectionRoute({ title, children }: SectionRouteProps) {
           <MoodPickerModal
             isOpen={moodPickerOpen}
             onClose={() => setMoodPickerOpen(false)}
+          />
+          <RelationshipWebModal
+            isOpen={relationshipWebOpen}
+            onClose={() => setRelationshipWebOpen(false)}
           />
         </SectionContext.Provider>
       </StudioFrame>

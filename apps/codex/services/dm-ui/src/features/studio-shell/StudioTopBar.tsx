@@ -3,6 +3,7 @@ import ChevronDown from 'lucide-react/dist/esm/icons/chevron-down';
 import Inbox from 'lucide-react/dist/esm/icons/inbox';
 import Menu from 'lucide-react/dist/esm/icons/menu';
 import Moon from 'lucide-react/dist/esm/icons/moon';
+import Network from 'lucide-react/dist/esm/icons/network';
 import Search from 'lucide-react/dist/esm/icons/search';
 import Settings from 'lucide-react/dist/esm/icons/settings';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
@@ -24,6 +25,7 @@ interface StudioTopBarProps {
   onRestoreNavigation?: () => void;
   /** Opens the campaign navigation drawer (shown at tablet-portrait widths). */
   onOpenNavigation?: () => void;
+  onRelationshipWeb?: () => void;
 }
 
 export function StudioTopBar({
@@ -34,6 +36,7 @@ export function StudioTopBar({
   onTheme,
   onRestoreNavigation,
   onOpenNavigation,
+  onRelationshipWeb,
 }: StudioTopBarProps) {
   const location = useLocation();
   const navigate = useNavigate();
@@ -123,6 +126,17 @@ export function StudioTopBar({
         >
           <Search size={16} />
         </button>
+        {onRelationshipWeb ? (
+          <button
+            aria-label="Open relationship web"
+            className={styles.iconButton}
+            onClick={onRelationshipWeb}
+            title="Open relationship web"
+            type="button"
+          >
+            <Network size={16} />
+          </button>
+        ) : null}
         <button
           aria-label={`Change theme (${activeOption.label})`}
           className={styles.iconButton}
