@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 
 import type { CampaignFixtureBundle } from '@/demo/fixture-registry';
 import { RunSheetExportModal } from '../sessions/export/RunSheetExportModal';
+import { BalanceGlance } from './BalanceGlance';
 import {
   buildOneShotModel,
   DEFAULT_TARGET_BUDGET_MINUTES,
@@ -280,6 +281,8 @@ export function OneShotHub({
           </p>
         </article>
       </div>
+
+      <BalanceGlance bundle={bundle} sessionId={session?.id} />
 
       {internalExportModalOpen && session && (
         <RunSheetExportModal

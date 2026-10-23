@@ -23,6 +23,7 @@ import { RunSheetExportModal } from '@/features/sessions/export/RunSheetExportMo
 
 import { OverviewPanel } from './OverviewPanel';
 import { OneShotHub } from './OneShotHub';
+import { BalanceGlance } from './BalanceGlance';
 import {
   buildOverviewModel,
   type OverviewPanelId,
@@ -305,6 +306,11 @@ export function CampaignOverview() {
                   ) : null}
                 </div>
               ) : null}
+
+              <BalanceGlance
+                bundle={bundle}
+                sessionId={nextSession?.rawSession?.id}
+              />
             </section>
           )}
 

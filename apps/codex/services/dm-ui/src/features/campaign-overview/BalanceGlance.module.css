@@ -1,0 +1,291 @@
+.container {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-panel);
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-md);
+  padding: 16px 20px;
+  width: 100%;
+}
+
+.header {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--studio-gap-sm);
+  justify-content: space-between;
+}
+
+.titleArea {
+  align-items: center;
+  display: flex;
+  gap: var(--studio-gap-xs);
+}
+
+.titleIcon {
+  color: var(--studio-gold);
+}
+
+.titleText {
+  color: var(--studio-text);
+  font-size: 15px;
+  font-weight: 700;
+  margin: 0;
+}
+
+.metaGroup {
+  align-items: center;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--studio-gap-xs);
+}
+
+.partyBadge {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  color: var(--studio-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+}
+
+.statusPill {
+  border-radius: var(--studio-radius-control);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  padding: 2px 8px;
+  text-transform: uppercase;
+}
+
+.statusBalanced {
+  background: var(--studio-positive-soft);
+  border: 1px solid var(--studio-positive);
+  color: var(--studio-positive);
+}
+
+.statusCaution {
+  background: var(--studio-warning-soft);
+  border: 1px solid var(--studio-warning);
+  color: var(--studio-warning);
+}
+
+.statusDanger {
+  background: var(--studio-danger-soft);
+  border: 1px solid var(--studio-danger);
+  color: var(--studio-danger);
+}
+
+.grid {
+  display: grid;
+  gap: var(--studio-gap-md);
+  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+  width: 100%;
+}
+
+.column {
+  background: var(--studio-surface-muted);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-sm);
+  padding: 12px 14px;
+}
+
+.columnHeader {
+  align-items: center;
+  display: flex;
+  justify-content: space-between;
+}
+
+.columnTitle {
+  align-items: center;
+  color: var(--studio-text);
+  display: flex;
+  font-size: 13px;
+  font-weight: 600;
+  gap: 6px;
+  margin: 0;
+}
+
+.metricBadge {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-sm);
+  color: var(--studio-text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  padding: 1px 6px;
+}
+
+.xpMeterWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.xpMeterLabels {
+  align-items: center;
+  color: var(--studio-text-muted);
+  display: flex;
+  font-size: 11px;
+  justify-content: space-between;
+}
+
+.xpBar {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-control);
+  display: flex;
+  height: 8px;
+  overflow: hidden;
+  width: 100%;
+}
+
+.xpBarFill {
+  background: var(--studio-gold);
+  border-radius: var(--studio-radius-control);
+  height: 100%;
+  transition: width 0.2s ease;
+}
+
+.xpBarFillDanger {
+  background: var(--studio-danger);
+}
+
+.budgetRow {
+  align-items: center;
+  color: var(--studio-text-muted);
+  display: flex;
+  font-size: 11px;
+  gap: 8px;
+}
+
+.encounterList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+}
+
+.encounterRow {
+  align-items: center;
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: var(--studio-radius-sm);
+  display: flex;
+  gap: var(--studio-gap-xs);
+  justify-content: space-between;
+  padding: 6px 10px;
+}
+
+.encounterTitle {
+  color: var(--studio-text);
+  font-size: 12px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.difficultyTag {
+  border-radius: var(--studio-radius-control);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 2px 6px;
+  text-transform: uppercase;
+}
+
+.diffTrivial {
+  background: var(--studio-surface-muted);
+  color: var(--studio-text-muted);
+}
+
+.diffLow {
+  background: var(--studio-positive-soft);
+  color: var(--studio-positive);
+}
+
+.diffModerate {
+  background: var(--studio-warning-soft);
+  color: var(--studio-warning);
+}
+
+.diffHigh {
+  background: var(--studio-danger-soft);
+  color: var(--studio-danger);
+}
+
+.diffDeadly {
+  background: var(--studio-danger);
+  color: #ffffff;
+}
+
+.wealthDetails {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.wealthRow {
+  align-items: center;
+  display: flex;
+  font-size: 12px;
+  justify-content: space-between;
+}
+
+.wealthLabel {
+  color: var(--studio-text-muted);
+}
+
+.wealthValue {
+  color: var(--studio-text);
+  font-weight: 600;
+}
+
+.warningsSection {
+  background: var(--studio-surface-muted);
+  border-left: 3px solid var(--studio-warning);
+  border-radius: var(--studio-radius-control);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 10px 14px;
+}
+
+.warningsHeader {
+  align-items: center;
+  color: var(--studio-warning);
+  display: flex;
+  font-size: 12px;
+  font-weight: 700;
+  gap: 6px;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+.warningsList {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  margin: 0;
+  padding-left: 18px;
+}
+
+.warningItem {
+  color: var(--studio-text);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.disclaimer {
+  color: var(--studio-text-subtle);
+  font-size: 11px;
+  font-style: italic;
+  margin: 0;
+}
