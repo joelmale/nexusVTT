@@ -1046,7 +1046,7 @@ const CampaignBackupSection: React.FC = () => {
         description="Download a backup file containing all your campaign data (scenes, characters, settings)"
       >
         <button
-          className="setting-button primary"
+          className="unstyled setting-button primary"
           onClick={handleExport}
           disabled={isExporting}
         >
@@ -1066,7 +1066,7 @@ const CampaignBackupSection: React.FC = () => {
         description="Restore from a backup file (will replace current campaign data)"
       >
         <button
-          className="setting-button secondary"
+          className="unstyled setting-button secondary"
           onClick={handleImport}
           disabled={isImporting}
         >
@@ -1086,7 +1086,7 @@ const CampaignBackupSection: React.FC = () => {
         description="Immediately save all pending changes to IndexedDB"
       >
         <button
-          className="setting-button tertiary"
+          className="unstyled setting-button tertiary"
           onClick={() => storage.forceSave()}
         >
           💾 Force Save

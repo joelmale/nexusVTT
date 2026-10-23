@@ -258,7 +258,7 @@ export const DiceRoller: React.FC = () => {
               <button
                 key={theme.id}
                 type="button"
-                className={`${styles.themeItem} ${
+                className={`unstyled ${styles.themeItem} ${
                   diceTheme === theme.id ? styles.themeItemActive : ''
                 }`}
                 onClick={(e) => {
@@ -279,7 +279,7 @@ export const DiceRoller: React.FC = () => {
 
           <button
             type="button"
-            className={styles.iconButton}
+            className={`unstyled ${styles.iconButton}`}
             onClick={handleToggleSound}
             title={isSoundMuted ? 'Unmute dice sounds' : 'Mute dice sounds'}
             aria-label={isSoundMuted ? 'Unmute dice sounds' : 'Mute dice sounds'}
@@ -294,7 +294,7 @@ export const DiceRoller: React.FC = () => {
         <section className={styles.engine} aria-label="d20 engine">
           <button
             type="button"
-            className={`${styles.wing} ${styles.wingAdv}`}
+            className={`unstyled ${styles.wing} ${styles.wingAdv}`}
             onClick={() => dispatchRoll(d20Expression(modifier), 'advantage')}
             aria-label="Roll d20 with advantage"
             data-testid="advantage-button"
@@ -305,7 +305,7 @@ export const DiceRoller: React.FC = () => {
 
           <button
             type="button"
-            className={styles.d20Button}
+            className={`unstyled ${styles.d20Button}`}
             onClick={() => dispatchRoll(d20Expression(modifier), 'none')}
             aria-label="Roll d20"
             data-testid="roll-d20-button"
@@ -316,7 +316,7 @@ export const DiceRoller: React.FC = () => {
 
           <button
             type="button"
-            className={`${styles.wing} ${styles.wingDis}`}
+            className={`unstyled ${styles.wing} ${styles.wingDis}`}
             onClick={() =>
               dispatchRoll(d20Expression(modifier), 'disadvantage')
             }
@@ -344,7 +344,7 @@ export const DiceRoller: React.FC = () => {
                 type="button"
                 role="radio"
                 aria-checked={modifier === value}
-                className={`${styles.modChip} ${
+                className={`unstyled ${styles.modChip} ${
                   modifier === value ? styles.modChipActive : ''
                 }`}
                 onClick={() => handleModifierChange(value)}
@@ -363,7 +363,7 @@ export const DiceRoller: React.FC = () => {
               <button
                 key={die}
                 type="button"
-                className={styles.dieButton}
+                className={`unstyled ${styles.dieButton}`}
                 onClick={() => adjustDie(die, 1)}
                 onContextMenu={(e) => {
                   e.preventDefault();
@@ -405,7 +405,7 @@ export const DiceRoller: React.FC = () => {
           />
           <button
             type="button"
-            className={styles.rollPoolButton}
+            className={`unstyled ${styles.rollPoolButton}`}
             onClick={handleRollPool}
             disabled={!notation.trim()}
           >
@@ -425,7 +425,7 @@ export const DiceRoller: React.FC = () => {
             <span className={styles.sectionHeading}>Macros</span>
             <button
               type="button"
-              className={styles.customizeButton}
+              className={`unstyled ${styles.customizeButton}`}
               onClick={() => setIsMacroModalOpen(true)}
               title="Customize which macros appear for your character"
               aria-label="Customize macros"
@@ -440,7 +440,7 @@ export const DiceRoller: React.FC = () => {
                 <button
                   key={macro.id}
                   type="button"
-                  className={styles.macroPill}
+                  className={`unstyled ${styles.macroPill}`}
                   onClick={() => dispatchRoll(macro.formula, 'none')}
                   title={`Roll ${macro.formula}`}
                 >
@@ -453,7 +453,7 @@ export const DiceRoller: React.FC = () => {
             {visibleMacros.length === 0 && (
               <button
                 type="button"
-                className={styles.macroPill}
+                className={`unstyled ${styles.macroPill}`}
                 onClick={() => setIsMacroModalOpen(true)}
               >
                 + No active macros. Click here to choose actions.

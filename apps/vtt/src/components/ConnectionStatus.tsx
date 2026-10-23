@@ -141,7 +141,7 @@ const ConnectionStatus: React.FC<ConnectionStatusProps> = ({
           <button
             onClick={handleReconnect}
             disabled={isReconnecting}
-            className="px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+            className="unstyled px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
             title="Attempt to reconnect"
           >
             {isReconnecting ? 'Reconnecting…' : 'Reconnect'}

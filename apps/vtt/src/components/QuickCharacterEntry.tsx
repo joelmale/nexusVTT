@@ -514,7 +514,7 @@ export const QuickCharacterEntry: React.FC<QuickCharacterEntryProps> = ({
             <button
               type="submit"
               disabled={!isValid || isCreating}
-              className="glass-button primary"
+              className="unstyled glass-button primary"
               style={{
                 padding: '0.75rem 2rem',
                 background: isValid && !isCreating

@@ -45,7 +45,7 @@ export const MacroCustomizeModal: React.FC<MacroCustomizeModalProps> = ({
           </div>
           <button
             type="button"
-            className={styles.iconButton}
+            className={`unstyled ${styles.iconButton}`}
             onClick={onClose}
             aria-label="Close macro modal"
           >
@@ -96,7 +96,7 @@ export const MacroCustomizeModal: React.FC<MacroCustomizeModalProps> = ({
               />
               <button
                 type="submit"
-                className={styles.primaryButton}
+                className={`unstyled ${styles.primaryButton}`}
                 disabled={!name.trim() || !formula.trim()}
               >
                 Add
@@ -108,7 +108,7 @@ export const MacroCustomizeModal: React.FC<MacroCustomizeModalProps> = ({
         <div className={styles.modalFooter}>
           <button
             type="button"
-            className={styles.primaryButton}
+            className={`unstyled ${styles.primaryButton}`}
             onClick={onClose}
           >
             Done
