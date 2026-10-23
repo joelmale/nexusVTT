@@ -38,9 +38,7 @@ export function UseInNextSessionButton({
     }
     const upcoming = pickUpcomingSession(bundle.sessions, Date.now());
     if (upcoming) return upcoming;
-    const open = bundle.sessions.filter(
-      (s) => s.status !== 'complete' && s.status !== 'completed',
-    );
+    const open = bundle.sessions.filter((s) => s.status !== 'complete');
     if (open.length > 0) {
       return [...open].sort((a, b) => a.number - b.number)[0];
     }
