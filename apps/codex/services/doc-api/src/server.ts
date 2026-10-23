@@ -35,6 +35,7 @@ import { s3Service } from './services/s3.service';
 import { prisma } from './services/database.service';
 import { AlertsService } from './services/alerts.service';
 import { loggingService } from './services/logging.service';
+import { rulesSeederService } from './services/rules/rules-seeder.service';
 import { registerMetrics } from './observability/metrics';
 
 const fastify = Fastify({
@@ -173,6 +174,19 @@ const start = async () => {
     // Initialize alert rules
     fastify.log.info('Initializing alert rules...');
     await AlertsService.initializeRules();
+
+    // Initialize baseline Rules SRD seed if empty
+    try {
+      fastify.log.info('Checking baseline Rules SRD seed...');
+      const seedResult = await rulesSeederService.seedBaselineIfEmpty();
+      if (!seedResult.skipped) {
+        fastify.log.info(
+          `Baseline Rules SRD seeded: ${seedResult.total} items (${seedResult.seeded2024} 2024, ${seedResult.seeded2014} 2014) at catalog v${seedResult.catalogVersion}`,
+        );
+      }
+    } catch (seedErr) {
+      fastify.log.warn({ err: seedErr }, 'Failed to check/seed baseline Rules SRD on boot');
+    }
 
     // Start server
     await fastify.listen({

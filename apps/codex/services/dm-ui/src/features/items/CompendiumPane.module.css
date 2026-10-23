@@ -269,10 +269,10 @@
 }
 
 .errorNotice {
-  background: var(--studio-negative-soft, #f8d7da);
-  border: 1px solid var(--studio-negative, #d9534f);
+  background: var(--studio-danger-soft);
+  border: 1px solid var(--studio-danger);
   border-radius: var(--studio-radius-control, 4px);
-  color: var(--studio-negative-strong, #842029);
+  color: var(--studio-danger);
   display: flex;
   flex-direction: column;
   gap: 8px;

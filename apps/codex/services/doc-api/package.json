@@ -9,7 +9,7 @@
     },
     "scripts": {
         "dev": "tsx watch src/server.ts",
-        "build": "tsc",
+        "build": "tsc && node -e \"const fs=require('fs'); if(fs.existsSync('src/data')) fs.cpSync('src/data', 'dist/data', { recursive: true });\"",
         "start": "node dist/server.js",
         "prisma:generate": "prisma generate",
         "prisma:migrate": "prisma migrate dev",
@@ -26,7 +26,8 @@
         "import:5e-srd:spells": "tsx src/scripts/import-5e-srd.ts --types spells",
         "import:5e-srd:monsters": "tsx src/scripts/import-5e-srd.ts --types monsters",
         "import:5e-srd:help": "tsx src/scripts/import-5e-srd.ts --help",
-        "rules:srd-compare": "tsx src/scripts/rules-srd-compare.ts"
+        "rules:srd-compare": "tsx src/scripts/rules-srd-compare.ts",
+        "seed:rules-srd": "tsx src/scripts/seed-rules-srd.ts"
     },
     "keywords": [
         "nexus",

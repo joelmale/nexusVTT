@@ -161,11 +161,14 @@ export function convertSpell2024(raw: Raw): ConvertedEntity {
 const TOOL_CATEGORIES = ['artisans-tools', 'tools', 'gaming-sets', 'musical-instruments', 'other-tools'];
 const FOCUS_CATEGORIES = ['arcane-foci', 'druidic-foci', 'holy-symbols'];
 
-function itemCategory(categories: Set<string>): string {
+function itemCategory(categories: Set<string>, name = ''): string {
   if (categories.has('weapons')) return 'weapon';
   if (categories.has('shields')) return 'shield';
   if (categories.has('armor')) return 'armor';
   if (categories.has('ammunition')) return 'ammunition';
+  const lowerName = name.toLowerCase();
+  if (lowerName.startsWith('potion') || lowerName.includes('potion of')) return 'potion';
+  if (lowerName.startsWith('spell scroll') || lowerName.startsWith('scroll')) return 'scroll';
   if (TOOL_CATEGORIES.some((c) => categories.has(c))) return 'tool';
   if (FOCUS_CATEGORIES.some((c) => categories.has(c))) return 'spellcasting_focus';
   if (categories.has('equipment-packs')) return 'equipment_pack';
@@ -184,7 +187,7 @@ export function convertItem2024(raw: Raw): ConvertedEntity {
   const categories = new Set<string>(
     (raw.equipment_categories ?? []).map((c: Raw | undefined) => c?.index).filter(Boolean),
   );
-  const category = itemCategory(categories);
+  const category = itemCategory(categories, String(raw.name ?? ''));
   const properties: string[] = (raw.properties ?? []).map((p: Raw) => String(p.index).replace(/-/g, '_'));
   let weapon: Record<string, unknown> | undefined;
   if (category === 'weapon') {
@@ -232,6 +235,279 @@ export function convertItem2024(raw: Raw): ConvertedEntity {
       weapon,
       armor,
       text: typeof raw.description === 'string' ? raw.description : '',
+    }),
+  };
+}
+
+export function convertItem2014(raw: Raw): ConvertedEntity {
+  const warnings: string[] = [];
+  const cat = raw.equipment_category?.index || '';
+  let category = 'adventuring_gear';
+  if (cat === 'weapon') {
+    category = 'weapon';
+  } else if (raw.armor_category === 'Shield' || String(raw.name ?? '').toLowerCase().includes('shield')) {
+    category = 'shield';
+  } else if (cat === 'armor') {
+    category = 'armor';
+  } else if (cat === 'ammunition') {
+    category = 'ammunition';
+  } else if (cat === 'tools') {
+    category = 'tool';
+  } else if (
+    raw.gear_category?.index === 'holy-symbols' ||
+    raw.gear_category?.index === 'arcane-foci' ||
+    raw.gear_category?.index === 'druidic-foci'
+  ) {
+    category = 'spellcasting_focus';
+  } else if (raw.gear_category?.index === 'equipment-packs') {
+    category = 'equipment_pack';
+  } else if (raw.gear_category?.index === 'mounts-and-vehicles' || cat === 'mounts-and-vehicles') {
+    category = 'mount_vehicle';
+  }
+
+  const cost = raw.cost ? { amount: raw.cost.quantity, unit: raw.cost.unit } : undefined;
+  let text = '';
+  if (Array.isArray(raw.desc)) text = raw.desc.join('\n\n');
+  else if (typeof raw.desc === 'string') text = raw.desc;
+
+  let weapon: Record<string, unknown> | undefined;
+  if (category === 'weapon') {
+    const isMartial = String(raw.weapon_category || '').toLowerCase().includes('martial');
+    const isRanged = String(raw.weapon_range || '').toLowerCase().includes('ranged');
+    const props = (raw.properties || []).map((p: Raw) => (p.index || p.name || '').toLowerCase().replace(/-/g, '_'));
+    const uniqueProps = Array.from(
+      new Set(
+        props.filter((p: string) =>
+          [
+            'ammunition',
+            'finesse',
+            'heavy',
+            'light',
+            'loading',
+            'range',
+            'reach',
+            'special',
+            'thrown',
+            'two_handed',
+            'versatile',
+          ].includes(p),
+        ),
+      ),
+    );
+
+    let damage = { dice: '1d4', type: 'bludgeoning' };
+    if (raw.damage?.damage_dice && raw.damage?.damage_type?.index) {
+      damage = { dice: String(raw.damage.damage_dice).replace(/\s+/g, ''), type: raw.damage.damage_type.index };
+    }
+
+    let versatileDamage: Record<string, unknown> | undefined;
+    if (uniqueProps.includes('versatile')) {
+      if (raw['2h_damage']?.damage_dice && raw['2h_damage']?.damage_type?.index) {
+        versatileDamage = {
+          dice: String(raw['2h_damage'].damage_dice).replace(/\s+/g, ''),
+          type: raw['2h_damage'].damage_type.index,
+        };
+      } else {
+        versatileDamage = damage;
+      }
+    }
+
+    let range: Record<string, unknown> | undefined;
+    if (raw.range?.normal) {
+      range = { normal: raw.range.normal, long: raw.range.long || undefined };
+    } else if (isRanged || uniqueProps.includes('thrown')) {
+      range = { normal: 20, long: 60 };
+    }
+
+    weapon = compact({
+      category: isMartial ? 'martial' : 'simple',
+      kind: isRanged ? 'ranged' : 'melee',
+      damage,
+      versatileDamage,
+      properties: uniqueProps,
+      range,
+    });
+  }
+
+  let armor: Record<string, unknown> | undefined;
+  if (category === 'armor' || category === 'shield') {
+    let armorCat = String(raw.armor_category || '').toLowerCase();
+    if (category === 'shield' || armorCat === 'shield') {
+      armorCat = 'shield';
+    } else if (!['light', 'medium', 'heavy', 'shield'].includes(armorCat)) {
+      armorCat = 'medium';
+    }
+
+    armor = compact({
+      category: armorCat,
+      baseAc: raw.armor_class?.base || (armorCat === 'shield' ? 2 : 10),
+      dexBonus: raw.armor_class?.dex_bonus ?? (armorCat === 'light' || armorCat === 'medium'),
+      maxDexBonus: raw.armor_class?.max_bonus ?? undefined,
+      strengthRequirement: raw.str_minimum > 0 ? raw.str_minimum : undefined,
+      stealthDisadvantage: Boolean(raw.stealth_disadvantage),
+    });
+  }
+
+  const slug = raw.index || slugify(String(raw.name ?? ''));
+  return {
+    entityType: 'item',
+    ruleset: '2014',
+    slug,
+    sourceId: raw.index ?? raw.name,
+    warnings,
+    data: compact({
+      ruleset: '2014',
+      name: raw.name,
+      category,
+      rarity: 'mundane',
+      attunement: { required: false },
+      cost,
+      weight: typeof raw.weight === 'number' ? raw.weight : undefined,
+      weapon,
+      armor,
+      text,
+    }),
+  };
+}
+
+export function convertMagicItem(raw: Raw, ruleset: Ruleset): ConvertedEntity {
+  const warnings: string[] = [];
+  const cat = raw.equipment_category?.index || 'wondrous-items';
+  let category = 'wondrous';
+  if (cat === 'potion') category = 'potion';
+  else if (cat === 'ring') category = 'ring';
+  else if (cat === 'rod') category = 'rod';
+  else if (cat === 'scroll') category = 'scroll';
+  else if (cat === 'staff') category = 'staff';
+  else if (cat === 'wand') category = 'wand';
+  else if (cat === 'ammunition') category = 'ammunition';
+  else if (cat === 'weapon') category = 'weapon';
+  else if (cat === 'armor') {
+    category = String(raw.name ?? '').toLowerCase().includes('shield') ? 'shield' : 'armor';
+  }
+
+  let rawRarity = String(raw.rarity?.name || 'common').toLowerCase().replace(/\s+/g, '_');
+  if (!['common', 'uncommon', 'rare', 'very_rare', 'legendary', 'artifact', 'varies'].includes(rawRarity)) {
+    rawRarity = 'uncommon';
+  }
+
+  const text = Array.isArray(raw.desc) ? raw.desc.join('\n\n') : (typeof raw.desc === 'string' ? raw.desc : '');
+  const firstLine = Array.isArray(raw.desc) && raw.desc.length > 0 ? String(raw.desc[0]) : '';
+  const attuneMatch =
+    /requires attunement(?:\s+by\s+([^)]+))?/i.exec(firstLine) ||
+    /requires attunement(?:\s+by\s+([^)]+))?/i.exec(text);
+
+  const attunement = {
+    required: Boolean(attuneMatch),
+    requirement: attuneMatch?.[1] ? `by ${attuneMatch[1].trim()}` : undefined,
+  };
+
+  let weapon: Record<string, unknown> | undefined;
+  if (category === 'weapon') {
+    const lowerName = String(raw.name ?? '').toLowerCase();
+    const isRanged =
+      lowerName.includes('bow') ||
+      lowerName.includes('sling') ||
+      lowerName.includes('dart') ||
+      lowerName.includes('javelin');
+    const isDagger = lowerName.includes('dagger');
+    const isSword = lowerName.includes('sword') || lowerName.includes('blade') || lowerName.includes('scimitar');
+    const isAxe = lowerName.includes('axe');
+    const isHammer = lowerName.includes('hammer');
+    const isMace = lowerName.includes('mace') || lowerName.includes('flail') || lowerName.includes('morningstar');
+    const isSpear = lowerName.includes('spear') || lowerName.includes('trident') || lowerName.includes('pike');
+
+    let damage = { dice: '1d8', type: 'slashing' };
+    let props: string[] = [];
+    let versatileDamage: Record<string, unknown> | undefined;
+    let range: Record<string, unknown> | undefined;
+    const kind = isRanged ? 'ranged' : 'melee';
+
+    if (isDagger) {
+      damage = { dice: '1d4', type: 'piercing' };
+      props = ['finesse', 'light', 'thrown'];
+      range = { normal: 20, long: 60 };
+    } else if (isRanged) {
+      damage = { dice: '1d8', type: 'piercing' };
+      props = ['range', 'two_handed'];
+      range = { normal: 150, long: 600 };
+    } else if (isSword || isAxe) {
+      damage = { dice: '1d8', type: 'slashing' };
+      props = ['versatile'];
+      versatileDamage = { dice: '1d10', type: 'slashing' };
+    } else if (isHammer || isMace) {
+      damage = { dice: '1d8', type: 'bludgeoning' };
+      props = ['versatile'];
+      versatileDamage = { dice: '1d10', type: 'bludgeoning' };
+    } else if (isSpear) {
+      damage = { dice: '1d6', type: 'piercing' };
+      props = ['thrown', 'versatile'];
+      range = { normal: 20, long: 60 };
+      versatileDamage = { dice: '1d8', type: 'piercing' };
+    } else {
+      damage = { dice: '1d8', type: 'slashing' };
+      props = ['versatile'];
+      versatileDamage = { dice: '1d10', type: 'slashing' };
+    }
+
+    let bonus: number | undefined;
+    if (raw.name?.includes('+1')) bonus = 1;
+    else if (raw.name?.includes('+2')) bonus = 2;
+    else if (raw.name?.includes('+3')) bonus = 3;
+
+    weapon = compact({
+      category: 'martial',
+      kind,
+      damage,
+      versatileDamage,
+      properties: props,
+      range,
+      bonus,
+    });
+  }
+
+  let armor: Record<string, unknown> | undefined;
+  if (category === 'armor' || category === 'shield') {
+    const isShield = category === 'shield';
+    let armorCat = isShield ? 'shield' : 'medium';
+    const lowerName = String(raw.name ?? '').toLowerCase();
+    if (lowerName.includes('plate') || lowerName.includes('chain mail') || lowerName.includes('splint')) {
+      armorCat = 'heavy';
+    } else if (lowerName.includes('leather') || lowerName.includes('padded')) {
+      armorCat = 'light';
+    }
+
+    let bonus: number | undefined;
+    if (raw.name?.includes('+1')) bonus = 1;
+    else if (raw.name?.includes('+2')) bonus = 2;
+    else if (raw.name?.includes('+3')) bonus = 3;
+
+    armor = compact({
+      category: armorCat,
+      baseAc: isShield ? 2 : armorCat === 'heavy' ? 18 : armorCat === 'light' ? 12 : 14,
+      dexBonus: isShield ? false : armorCat !== 'heavy',
+      maxDexBonus: armorCat === 'medium' ? 2 : undefined,
+      stealthDisadvantage: armorCat === 'heavy',
+      bonus,
+    });
+  }
+
+  const slug = raw.index || slugify(String(raw.name ?? ''));
+  return {
+    entityType: 'item',
+    ruleset,
+    slug,
+    sourceId: raw.index ?? raw.name,
+    warnings,
+    data: compact({
+      ruleset,
+      name: raw.name,
+      category,
+      rarity: rawRarity,
+      attunement,
+      weapon,
+      armor,
+      text,
     }),
   };
 }
