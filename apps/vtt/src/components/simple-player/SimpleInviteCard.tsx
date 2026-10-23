@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { buildSimpleInviteUrl } from '@/utils/simplePlayerMode';
+import { QrCode } from './QrCode';
 import styles from './SimpleInviteCard.module.css';
 
 export interface SimpleInviteCardProps {
@@ -15,6 +16,7 @@ export const SimpleInviteCard: React.FC<SimpleInviteCardProps> = ({
 }) => {
   const url = buildSimpleInviteUrl(roomCode);
   const [copied, setCopied] = useState(false);
+  const [largeQr, setLargeQr] = useState(false);
   const canShare = typeof navigator.share === 'function';
 
   const copy = async () => {
@@ -39,6 +41,20 @@ export const SimpleInviteCard: React.FC<SimpleInviteCardProps> = ({
         Send this link. Players tap it, type their name and land in a simple
         view with the map, their character, turn order and dice.
       </p>
+      <div className={styles.qrRow}>
+        <button
+          type="button"
+          className={styles.qrButton}
+          aria-label="Show the QR code larger"
+          onClick={() => setLargeQr(true)}
+        >
+          <QrCode value={url} size={128} label="QR code for the player link" />
+        </button>
+        <p className={styles.help}>
+          Or share your screen on the video call and let players scan this with
+          their phone camera.
+        </p>
+      </div>
       <input
         className={styles.link}
         readOnly
@@ -64,6 +80,25 @@ export const SimpleInviteCard: React.FC<SimpleInviteCardProps> = ({
         Tip: on an iPad, players can keep the video call and Nexus side by side
         in Split View.
       </p>
+      {largeQr && (
+        <div
+          className={styles.overlay}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Scan to join"
+          onClick={() => setLargeQr(false)}
+        >
+          <QrCode value={url} size={320} label="QR code for the player link" />
+          <p>Scan to join game {roomCode.toUpperCase()}</p>
+          <button
+            type="button"
+            className="glass-button"
+            onClick={() => setLargeQr(false)}
+          >
+            Close
+          </button>
+        </div>
+      )}
     </section>
   );
 };

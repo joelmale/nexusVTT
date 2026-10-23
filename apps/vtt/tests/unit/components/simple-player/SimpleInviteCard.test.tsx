@@ -60,3 +60,31 @@ describe('SimpleInviteCard', () => {
     });
   });
 });
+
+describe('SimpleInviteCard QR code', () => {
+  it('shows a QR code and an enlarged view for screen sharing', () => {
+    render(<SimpleInviteCard roomCode="abcd" />);
+    expect(
+      screen.getByRole('img', { name: 'QR code for the player link' }),
+    ).toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Show the QR code larger' }),
+    );
+    const dialog = screen.getByRole('dialog', { name: 'Scan to join' });
+    expect(dialog).toHaveTextContent('Scan to join game ABCD');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Close' }));
+    expect(
+      screen.queryByRole('dialog', { name: 'Scan to join' }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Show the QR code larger' }),
+    );
+    fireEvent.click(screen.getByRole('dialog', { name: 'Scan to join' }));
+    expect(
+      screen.queryByRole('dialog', { name: 'Scan to join' }),
+    ).not.toBeInTheDocument();
+  });
+});

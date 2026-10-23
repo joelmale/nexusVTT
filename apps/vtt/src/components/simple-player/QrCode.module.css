@@ -1,0 +1,13 @@
+.qr {
+  display: block;
+  border-radius: var(--radius-md);
+}
+
+/* Fixed palette tokens, not theme tokens: a QR must stay dark-on-light. */
+.background {
+  fill: var(--slate-50);
+}
+
+.modules {
+  fill: var(--slate-900);
+}

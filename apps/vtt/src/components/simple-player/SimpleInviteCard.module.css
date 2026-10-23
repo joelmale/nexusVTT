@@ -39,3 +39,31 @@
   flex-wrap: wrap;
   gap: 8px;
 }
+
+.qrRow {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.qrButton {
+  flex: none;
+  padding: 0;
+  border: none;
+  background: transparent;
+  cursor: zoom-in;
+}
+
+.overlay {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-top-modal);
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  align-items: center;
+  justify-content: center;
+  background: var(--glass-dark-strong);
+  color: var(--glass-text);
+  font-size: var(--text-lg);
+}
