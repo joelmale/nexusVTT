@@ -3,11 +3,18 @@ import {
   useEffect,
   useId,
   useRef,
+  useMemo,
   useState,
   type FormEvent,
   type ReactNode,
 } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+import {
+  PlayerViewBanner,
+  PlayerViewContext,
+  PlayerViewToggle,
+} from '@/features/player-view';
 
 import type {
   BundleStore,
@@ -95,6 +102,9 @@ interface EditableSectionProps {
    * button that archives the item and returns to the section list.
    */
   listPath?: string;
+  allowPlayerView?: boolean;
+  playerHeading?: ReactNode;
+  playerHeaderExtras?: ReactNode;
 }
 
 /**
@@ -144,8 +154,12 @@ export function EditableSection({
   headerExtras,
   headerActions,
   listPath,
+  allowPlayerView = true,
+  playerHeading,
+  playerHeaderExtras,
 }: EditableSectionProps) {
   const { store } = useSectionBundle();
+  const [playerView, setPlayerView] = useState(false);
   const [editing, setEditing] = useState(false);
   const [draft, setDraftState] = useState<Draft>(initialDraft);
   const [state, setState] = useState<SaveState>('idle');
@@ -325,6 +339,7 @@ export function EditableSection({
     setDirty(false);
     setState('idle');
     setError(undefined);
+    setPlayerView(false);
     setEditing(true);
   };
 
@@ -372,19 +387,34 @@ export function EditableSection({
   else if (dirty) status = 'Unsaved changes';
   else if (state === 'saved') status = 'Saved';
 
+  const playerViewValue = useMemo(
+    () => ({
+      isPlayerView: playerView,
+      setPlayerView,
+      togglePlayerView: () => setPlayerView((prev) => !prev),
+    }),
+    [playerView],
+  );
+
   return (
+    <PlayerViewContext.Provider value={playerViewValue}>
     <article aria-labelledby={headingId} className={styles.editable}>
       <header className={styles.header}>
-        <h2 id={headingId}>{heading}</h2>
-        {headerExtras}
+        <h2 id={headingId}>
+          {playerView && playerHeading !== undefined ? playerHeading : heading}
+        </h2>
+        {playerView && playerHeaderExtras !== undefined
+          ? playerHeaderExtras
+          : headerExtras}
         <div className={styles.actions}>
           {editing && status ? (
             <span className={styles.status} role="status">
               {status}
             </span>
           ) : null}
-          {headerActions}
-          {listPath ? (
+          {allowPlayerView && !editing ? <PlayerViewToggle /> : null}
+          {!playerView ? headerActions : null}
+          {listPath && !playerView ? (
             <RemoveItemButton
               id={id}
               kind={kind}
@@ -392,7 +422,7 @@ export function EditableSection({
               listPath={listPath}
             />
           ) : null}
-          {store.editable ? (
+          {store.editable && !playerView ? (
             editing ? (
               <button onClick={() => void done()} type="button">
                 Done
@@ -411,6 +441,9 @@ export function EditableSection({
         onReload={reloadLatest}
         state={state === 'conflict' || state === 'error' ? state : 'idle'}
       />
+      {playerView ? (
+        <PlayerViewBanner onExit={() => setPlayerView(false)} />
+      ) : null}
       {editing ? (
         <EditableCommitContext.Provider value={commit}>
           <form
@@ -439,7 +472,8 @@ export function EditableSection({
       ) : (
         children
       )}
-    </article>
+      </article>
+    </PlayerViewContext.Provider>
   );
 }
 

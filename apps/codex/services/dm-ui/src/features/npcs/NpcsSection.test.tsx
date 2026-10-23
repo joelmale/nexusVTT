@@ -64,6 +64,33 @@ describe('NpcsSection', () => {
       expect(screen.getByRole('heading', { name: 'NPCs' })).toBeVisible(),
     );
   });
+
+  it('toggles player view preview on an NPC detail and hides DM connections', async () => {
+    const { user } = renderSection('/demo/ashes-of-veyra/npcs/npc-captain-serin');
+    expect(
+      screen.getByRole('heading', { level: 2, name: 'Captain Serin Dhal' }),
+    ).toBeVisible();
+
+    const toggle = screen.getByRole('button', {
+      name: 'Preview what players see',
+    });
+    expect(toggle).toBeVisible();
+
+    await user.click(toggle);
+
+    expect(
+      screen.getByRole('region', { name: 'Player view preview notice' }),
+    ).toBeInTheDocument();
+
+    const exitBtn = screen.getByRole('button', {
+      name: 'Exit player view preview',
+    });
+    await user.click(exitBtn);
+
+    expect(
+      screen.queryByRole('region', { name: 'Player view preview notice' }),
+    ).toBeNull();
+  });
 });
 
 describe('npcDraftToPatch', () => {

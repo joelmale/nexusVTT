@@ -270,3 +270,29 @@
   color: var(--studio-text);
   font-style: italic;
 }
+
+.concealedNotice {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  gap: var(--studio-gap-sm);
+  padding: 40px var(--studio-gap-md);
+  color: var(--studio-text-muted);
+}
+
+.concealedNotice h3 {
+  font-family: var(--studio-font-display);
+  font-size: 1.25rem;
+  color: var(--studio-text);
+  margin: 0;
+}
+
+.concealedNotice p {
+  font-size: 0.875rem;
+  color: var(--studio-text-muted);
+  max-width: 380px;
+  margin: 0;
+}
+

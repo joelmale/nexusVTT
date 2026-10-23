@@ -1,11 +1,12 @@
 import '@testing-library/jest-dom/vitest';
-import { screen, fireEvent } from '@testing-library/react';
+import { screen, fireEvent, render } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 
 import {
   getFixtureBundle,
   type CampaignItem,
 } from '@/demo/fixture-registry';
+import { PlayerViewProvider } from '@/features/player-view';
 import { renderInSection } from '@/features/section-shell/testUtils';
 
 import { ItemCard } from './ItemCard';
@@ -101,5 +102,68 @@ describe('ItemCard', () => {
 
     const card = screen.getByTestId('item-card-item-1');
     expect(card.getAttribute('data-rarity')).toBe('legendary');
+  });
+
+  it('renders concealed state when viewed in Player View and undiscovered', () => {
+    const concealedItem: CampaignItem = {
+      ...testItem,
+      discovered: false,
+    };
+    render(
+      <PlayerViewProvider initialActive>
+        <ItemCard bundle={baseBundle} item={concealedItem} />
+      </PlayerViewProvider>,
+    );
+
+    expect(
+      screen.getByRole('region', { name: 'Concealed item' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Concealed from Players')).toBeInTheDocument();
+    expect(screen.queryByText('Sun Blade')).toBeNull();
+  });
+
+  it('renders player-facing name and masked mechanics in Player View when discovered but unidentified', () => {
+    const unidentifiedItem: CampaignItem = {
+      ...testItem,
+      discovered: true,
+      identified: false,
+      playerName: 'Golden Hilt',
+    };
+    render(
+      <PlayerViewProvider initialActive>
+        <ItemCard bundle={baseBundle} item={unidentifiedItem} />
+      </PlayerViewProvider>,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'Golden Hilt' }),
+    ).toBeInTheDocument();
+    expect(screen.getByText('Unknown Rarity')).toBeInTheDocument();
+    expect(
+      screen.getByText(/Magical properties remain latent/),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('+2 to attack and damage rolls')).toBeNull();
+  });
+
+  it('renders true name and mechanics in Player View when identified', () => {
+    const identifiedItem: CampaignItem = {
+      ...testItem,
+      discovered: true,
+      identified: true,
+      sessionId: 'session-1',
+    };
+    render(
+      <PlayerViewProvider initialActive>
+        <ItemCard bundle={baseBundle} item={identifiedItem} />
+      </PlayerViewProvider>,
+    );
+
+    expect(
+      screen.getByRole('heading', { name: 'Sun Blade' }),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText('Deals 1d8 radiant damage.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByText('Session Reward')).toBeNull();
   });
 });

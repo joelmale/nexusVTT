@@ -24,6 +24,7 @@ import { humanize } from '@/features/section-shell/statusTones';
 import { sortByPinned } from '@/features/section-shell/entityMeta';
 import { UseInNextSessionButton } from '@/features/section-shell/UseInNextSessionButton';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
+import { usePlayerView } from '@/features/player-view';
 
 import { compositionOf, useDraftRating } from './encounterDraft';
 import { DifficultyHint, EncounterEditor } from './EncounterEditor';
@@ -265,6 +266,13 @@ function EncounterDetail({ encounter }: { encounter: CampaignEncounter }) {
           ) : null}
         </span>
       }
+      playerHeaderExtras={
+        <span className={styles.badges}>
+          <StatusBadge tone="neutral">
+            {ENCOUNTER_KIND_LABELS[encounter.kind]}
+          </StatusBadge>
+        </span>
+      }
       heading={encounter.title}
       headerActions={
         <UseInNextSessionButton kind="encounter" id={encounter.id} />
@@ -288,147 +296,181 @@ function EncounterDetail({ encounter }: { encounter: CampaignEncounter }) {
         return patch;
       }}
     >
-      <div className={styles.body}>
-        {encounter.kind === 'trap' || encounter.trapDetails ? (
-          <section aria-label="Trap specification" className={styles.trapCard}>
-            <h3>Trap & Puzzle Specification</h3>
-            <div className={styles.trapPills}>
-              <StatusBadge tone="neutral">
-                {TRAP_COMPLEXITY_LABELS[encounter.trapDetails?.complexity ?? 'simple']}
-              </StatusBadge>
-              {encounter.trapDetails?.detectionDc ? (
-                <span className={styles.statPill}>
-                  Detection: DC {encounter.trapDetails.detectionDc}
-                </span>
-              ) : null}
-              {encounter.trapDetails?.disarmDc ? (
-                <span className={styles.statPill}>
-                  Disarm: DC {encounter.trapDetails.disarmDc}
-                </span>
-              ) : null}
-              {encounter.trapDetails?.initiativeOrTimer ? (
-                <span className={styles.statPill}>
-                  Timer/Initiative: {encounter.trapDetails.initiativeOrTimer}
-                </span>
-              ) : null}
-              {encounter.trapDetails?.saveOrAttack ? (
-                <span className={styles.statPill}>
-                  Attack/Save: {encounter.trapDetails.saveOrAttack}
-                </span>
-              ) : null}
+      <EncounterDetailContent
+        catalog={catalog}
+        draft={draft}
+        edition={edition}
+        encounter={encounter}
+        party={party}
+        rating={rating}
+        total={total}
+      />
+    </EditableSection>
+  );
+}
+
+function EncounterDetailContent({
+  catalog,
+  draft,
+  edition,
+  encounter,
+  party,
+  rating,
+  total,
+}: {
+  catalog: ReturnType<typeof useDraftRating>['catalog'];
+  draft: Record<string, unknown>;
+  edition: ReturnType<typeof useDraftRating>['edition'];
+  encounter: CampaignEncounter;
+  party: ReturnType<typeof useDraftRating>['party'];
+  rating: ReturnType<typeof useDraftRating>['rating'];
+  total: number;
+}) {
+  const { isPlayerView } = usePlayerView();
+
+  return (
+    <div className={styles.body}>
+      {encounter.kind === 'trap' || encounter.trapDetails ? (
+        <section aria-label="Trap specification" className={styles.trapCard}>
+          <h3>Trap & Puzzle Specification</h3>
+          <div className={styles.trapPills}>
+            <StatusBadge tone="neutral">
+              {TRAP_COMPLEXITY_LABELS[encounter.trapDetails?.complexity ?? 'simple']}
+            </StatusBadge>
+            {encounter.trapDetails?.detectionDc ? (
+              <span className={styles.statPill}>
+                Detection: DC {encounter.trapDetails.detectionDc}
+              </span>
+            ) : null}
+            {encounter.trapDetails?.disarmDc ? (
+              <span className={styles.statPill}>
+                Disarm: DC {encounter.trapDetails.disarmDc}
+              </span>
+            ) : null}
+            {encounter.trapDetails?.initiativeOrTimer ? (
+              <span className={styles.statPill}>
+                Timer/Initiative: {encounter.trapDetails.initiativeOrTimer}
+              </span>
+            ) : null}
+            {encounter.trapDetails?.saveOrAttack ? (
+              <span className={styles.statPill}>
+                Attack/Save: {encounter.trapDetails.saveOrAttack}
+              </span>
+            ) : null}
+          </div>
+          {encounter.trapDetails?.trigger ? (
+            <div className={styles.trapField}>
+              <strong>Trigger:</strong>
+              <p>{encounter.trapDetails.trigger}</p>
             </div>
-            {encounter.trapDetails?.trigger ? (
-              <div className={styles.trapField}>
-                <strong>Trigger:</strong>
-                <p>{encounter.trapDetails.trigger}</p>
-              </div>
-            ) : null}
-            {encounter.trapDetails?.effect ? (
-              <div className={styles.trapField}>
-                <strong>Harm / Effect:</strong>
-                <p>{encounter.trapDetails.effect}</p>
-              </div>
-            ) : null}
-            {encounter.trapDetails?.countermeasures ? (
-              <div className={styles.trapField}>
-                <strong>Countermeasures & Puzzle Solution:</strong>
-                <p>{encounter.trapDetails.countermeasures}</p>
-              </div>
-            ) : null}
-            {encounter.trapDetails?.reset ? (
-              <div className={styles.trapField}>
-                <strong>Reset:</strong>
-                <p>{encounter.trapDetails.reset}</p>
-              </div>
-            ) : null}
-          </section>
-        ) : null}
-
-        {encounter.trigger ? (
-          <section>
-            <h3>Trigger</h3>
-            <p>{encounter.trigger}</p>
-          </section>
-        ) : null}
-        {encounter.intendedUse ? (
-          <section>
-            <h3>Intended use</h3>
-            <p>{encounter.intendedUse}</p>
-          </section>
-        ) : null}
-
-        <section>
-          <h3>Composition</h3>
-          {encounter.composition.length === 0 ? (
-            <p className={styles.muted}>
-              {encounter.kind === 'trap'
-                ? 'Mechanical / environmental hazard with no hostile creatures.'
-                : 'No participants listed.'}
-            </p>
-          ) : (
-            <table className={styles.table}>
-              <caption className={styles.srOnly}>
-                Composition of {encounter.title}
-              </caption>
-              <thead>
-                <tr>
-                  <th scope="col">Name</th>
-                  <th scope="col">Count</th>
-                  <th scope="col">Role</th>
-                  <th scope="col">Ruleset</th>
-                </tr>
-              </thead>
-              <tbody>
-                {encounter.composition.map((part, index) => (
-                  <tr key={`${part.name}-${index}`}>
-                    <th scope="row">{part.name}</th>
-                    <td>{part.count}</td>
-                    <td>{part.role}</td>
-                    <td>
-                      {part.nonCreature
-                        ? 'Hazard'
-                        : part.monsterKey?.startsWith('homebrew:')
-                          ? 'Homebrew'
-                          : (RULESET_LABELS[part.ruleset] ?? part.ruleset)}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-              <tfoot>
-                <tr>
-                  <th scope="row">Total participants</th>
-                  <td>{total}</td>
-                  <td colSpan={2} />
-                </tr>
-              </tfoot>
-            </table>
-          )}
-          {catalog.length > 0 && compositionOf(draft).length > 0 ? (
-            <DifficultyHint
-              edition={edition}
-              party={party.length}
-              rating={rating}
-            />
+          ) : null}
+          {encounter.trapDetails?.effect ? (
+            <div className={styles.trapField}>
+              <strong>Harm / Effect:</strong>
+              <p>{encounter.trapDetails.effect}</p>
+            </div>
+          ) : null}
+          {encounter.trapDetails?.countermeasures && !isPlayerView ? (
+            <div className={styles.trapField}>
+              <strong>Countermeasures & Puzzle Solution:</strong>
+              <p>{encounter.trapDetails.countermeasures}</p>
+            </div>
+          ) : null}
+          {encounter.trapDetails?.reset && !isPlayerView ? (
+            <div className={styles.trapField}>
+              <strong>Reset:</strong>
+              <p>{encounter.trapDetails.reset}</p>
+            </div>
           ) : null}
         </section>
+      ) : null}
 
-        {encounter.tactics ? (
-          <section>
-            <h3>
-              Tactics <DmOnlyBadge />
-            </h3>
-            <p>{encounter.tactics}</p>
-          </section>
+      {encounter.trigger ? (
+        <section>
+          <h3>Trigger</h3>
+          <p>{encounter.trigger}</p>
+        </section>
+      ) : null}
+      {encounter.intendedUse ? (
+        <section>
+          <h3>Intended use</h3>
+          <p>{encounter.intendedUse}</p>
+        </section>
+      ) : null}
+
+      <section>
+        <h3>Composition</h3>
+        {encounter.composition.length === 0 ? (
+          <p className={styles.muted}>
+            {encounter.kind === 'trap'
+              ? 'Mechanical / environmental hazard with no hostile creatures.'
+              : 'No participants listed.'}
+          </p>
+        ) : (
+          <table className={styles.table}>
+            <caption className={styles.srOnly}>
+              Composition of {encounter.title}
+            </caption>
+            <thead>
+              <tr>
+                <th scope="col">Name</th>
+                <th scope="col">Count</th>
+                <th scope="col">Role</th>
+                <th scope="col">Ruleset</th>
+              </tr>
+            </thead>
+            <tbody>
+              {encounter.composition.map((part, index) => (
+                <tr key={`${part.name}-${index}`}>
+                  <th scope="row">{part.name}</th>
+                  <td>{part.count}</td>
+                  <td>{part.role}</td>
+                  <td>
+                    {part.nonCreature
+                      ? 'Hazard'
+                      : part.monsterKey?.startsWith('homebrew:')
+                        ? 'Homebrew'
+                        : (RULESET_LABELS[part.ruleset] ?? part.ruleset)}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+            <tfoot>
+              <tr>
+                <th scope="row">Total participants</th>
+                <td>{total}</td>
+                <td colSpan={2} />
+              </tr>
+            </tfoot>
+          </table>
+        )}
+        {!isPlayerView && catalog.length > 0 && compositionOf(draft).length > 0 ? (
+          <DifficultyHint
+            edition={edition}
+            party={party.length}
+            rating={rating}
+          />
         ) : null}
-        {encounter.rulesetNotes ? (
-          <section>
-            <h3>Ruleset notes</h3>
-            <p>{encounter.rulesetNotes}</p>
-          </section>
-        ) : null}
+      </section>
 
-        <HeldItems heading="Loot" holderId={encounter.id} />
+      {encounter.tactics && !isPlayerView ? (
+        <section>
+          <h3>
+            Tactics <DmOnlyBadge />
+          </h3>
+          <p>{encounter.tactics}</p>
+        </section>
+      ) : null}
+      {encounter.rulesetNotes && !isPlayerView ? (
+        <section>
+          <h3>Ruleset notes</h3>
+          <p>{encounter.rulesetNotes}</p>
+        </section>
+      ) : null}
 
+      <HeldItems heading="Loot" holderId={encounter.id} />
+
+      {!isPlayerView ? (
         <RelatedGroups
           entityId={encounter.id}
           forwardIds={[
@@ -438,8 +480,8 @@ function EncounterDetail({ encounter }: { encounter: CampaignEncounter }) {
           ]}
           kinds={['location', 'faction', 'session']}
         />
-      </div>
-    </EditableSection>
+      ) : null}
+    </div>
   );
 }
 

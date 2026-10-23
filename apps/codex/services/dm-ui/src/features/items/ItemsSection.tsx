@@ -14,10 +14,12 @@ import { AddRow, EditableSection } from '@/features/section-shell/EditableSectio
 import { EmptyState } from '@/features/section-shell/EmptyState';
 import { EntityList } from '@/features/section-shell/EntityList';
 import { FilterBar } from '@/features/section-shell/FilterBar';
+import { StatusBadge } from '@/features/section-shell/StatusBadge';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
 import { SectionLayout } from '@/features/section-shell/SectionLayout';
 import { SectionSummary } from '@/features/section-shell/SectionSummary';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
+import { filterPlayerViewItem } from '@/features/player-view';
 
 import { CompendiumPane } from './CompendiumPane';
 import { HoardBuilderModal } from './hoard/HoardBuilderModal';
@@ -283,10 +285,20 @@ function ItemDetail({ item }: { item: CampaignItem }) {
     }
   };
 
+  const playerFiltered = filterPlayerViewItem(item);
+
   return (
     <EditableSection
       heading={item.name}
+      playerHeading={playerFiltered.name}
       headerExtras={<RarityBadge rarity={item.rarity} />}
+      playerHeaderExtras={
+        playerFiltered.visibility === 'concealed' ? null : playerFiltered.visibility === 'unidentified' ? (
+          <StatusBadge tone="neutral">Unknown Rarity</StatusBadge>
+        ) : (
+          <RarityBadge rarity={item.rarity} />
+        )
+      }
       id={item.id}
       initialDraft={{
         name: item.name,

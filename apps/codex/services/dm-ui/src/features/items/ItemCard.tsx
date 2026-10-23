@@ -19,6 +19,7 @@ import { mentionIds } from '@/lib/mentions';
 import { formatItemSubtitle } from './itemSearch';
 import { RarityBadge } from './RarityBadge';
 import styles from './ItemCard.module.css';
+import { filterPlayerViewItem, usePlayerView } from '@/features/player-view';
 
 export interface ItemCardProps {
   item: CampaignItem;
@@ -45,7 +46,30 @@ export function ItemCard({
   editable = false,
   hideHeaderTitle = false,
 }: ItemCardProps) {
-  const subtitle = formatItemSubtitle(item);
+  const { isPlayerView } = usePlayerView();
+  const playerFiltered = filterPlayerViewItem(item);
+
+  if (isPlayerView && playerFiltered.visibility === 'concealed') {
+    return (
+      <div
+        className={styles.card}
+        data-testid={`item-card-${item.id}`}
+      >
+        <div className={styles.concealedNotice} role="region" aria-label="Concealed item">
+          <EyeOff size={32} />
+          <h3>Concealed from Players</h3>
+          <p>{playerFiltered.description}</p>
+        </div>
+      </div>
+    );
+  }
+
+  const isUnidentified = isPlayerView && playerFiltered.visibility === 'unidentified';
+  const displayTitle = isPlayerView ? playerFiltered.name : item.name;
+  const subtitle = isUnidentified
+    ? playerFiltered.subtitle
+    : formatItemSubtitle(item);
+  const displayMechanics = isPlayerView ? playerFiltered.mechanics : item.mechanics;
 
   const cardRarityClass =
     item.rarity === 'legendary'
@@ -63,11 +87,17 @@ export function ItemCard({
       <header className={styles.header}>
         {!hideHeaderTitle ? (
           <div className={styles.headerTop}>
-            <h2 className={styles.title}>{item.name}</h2>
+            <h2 className={styles.title}>{displayTitle}</h2>
             <div className={styles.headerBadges}>
-              <RarityBadge rarity={item.rarity} />
-              <UseInNextSessionButton kind="item" id={item.id} size="sm" />
-              {onDuplicate ? (
+              {isUnidentified ? (
+                <StatusBadge tone="neutral">Unknown Rarity</StatusBadge>
+              ) : (
+                <RarityBadge rarity={item.rarity} />
+              )}
+              {!isPlayerView ? (
+                <UseInNextSessionButton kind="item" id={item.id} size="sm" />
+              ) : null}
+              {onDuplicate && !isPlayerView ? (
                 <button
                   type="button"
                   className={styles.duplicateBtn}
@@ -83,8 +113,13 @@ export function ItemCard({
           </div>
         ) : (
           <div className={styles.headerBadges}>
-            <UseInNextSessionButton kind="item" id={item.id} size="sm" />
-            {onDuplicate ? (
+            {isUnidentified ? (
+              <StatusBadge tone="neutral">Unknown Rarity</StatusBadge>
+            ) : null}
+            {!isPlayerView ? (
+              <UseInNextSessionButton kind="item" id={item.id} size="sm" />
+            ) : null}
+            {onDuplicate && !isPlayerView ? (
               <button
                 type="button"
                 className={styles.duplicateBtn}
@@ -101,59 +136,65 @@ export function ItemCard({
 
         <p className={styles.subtitle}>{subtitle}</p>
 
-        {item.playerName ? (
+        {item.playerName && !isPlayerView ? (
           <div className={styles.playerNameTag}>
             <span>Player-facing name:</span> <em>"{item.playerName}"</em>
           </div>
         ) : null}
 
-        {editable && onQuickUpdate ? (
-          <div aria-label="Placement quick toggles" className={styles.quickToggles} role="group">
-            <button
-              aria-label={`Mark as ${item.discovered ? 'undiscovered' : 'discovered'}`}
-              className={`${styles.quickToggleBtn} ${item.discovered ? styles.quickToggleActive : ''}`}
-              onClick={() => onQuickUpdate({ discovered: !item.discovered })}
-              type="button"
-            >
-              {item.discovered ? (
-                <Eye aria-hidden="true" size={14} />
-              ) : (
-                <EyeOff aria-hidden="true" size={14} />
-              )}
-              <span>{item.discovered ? 'Discovered' : 'Undiscovered'}</span>
-            </button>
+        {!isPlayerView ? (
+          editable && onQuickUpdate ? (
+            <div aria-label="Placement quick toggles" className={styles.quickToggles} role="group">
+              <button
+                aria-label={`Mark as ${item.discovered ? 'undiscovered' : 'discovered'}`}
+                className={`${styles.quickToggleBtn} ${item.discovered ? styles.quickToggleActive : ''}`}
+                onClick={() => onQuickUpdate({ discovered: !item.discovered })}
+                type="button"
+              >
+                {item.discovered ? (
+                  <Eye aria-hidden="true" size={14} />
+                ) : (
+                  <EyeOff aria-hidden="true" size={14} />
+                )}
+                <span>{item.discovered ? 'Discovered' : 'Undiscovered'}</span>
+              </button>
 
-            <button
-              aria-label={`Mark as ${item.identified ? 'unidentified' : 'identified'}`}
-              className={`${styles.quickToggleBtn} ${item.identified ? styles.quickToggleActive : ''}`}
-              onClick={() => onQuickUpdate({ identified: !item.identified })}
-              type="button"
-            >
-              {item.identified ? (
-                <Check aria-hidden="true" size={14} />
-              ) : (
-                <HelpCircle aria-hidden="true" size={14} />
-              )}
-              <span>{item.identified ? 'Identified' : 'Unidentified'}</span>
-            </button>
-          </div>
-        ) : (
-          <div className={styles.quickToggles}>
-            <StatusBadge tone={item.discovered ? 'positive' : 'warning'}>
-              {item.discovered ? 'Discovered' : 'Undiscovered'}
-            </StatusBadge>
-            <StatusBadge tone={item.identified ? 'positive' : 'neutral'}>
-              {item.identified ? 'Identified' : 'Unidentified'}
-            </StatusBadge>
-          </div>
-        )}
+              <button
+                aria-label={`Mark as ${item.identified ? 'unidentified' : 'identified'}`}
+                className={`${styles.quickToggleBtn} ${item.identified ? styles.quickToggleActive : ''}`}
+                onClick={() => onQuickUpdate({ identified: !item.identified })}
+                type="button"
+              >
+                {item.identified ? (
+                  <Check aria-hidden="true" size={14} />
+                ) : (
+                  <HelpCircle aria-hidden="true" size={14} />
+                )}
+                <span>{item.identified ? 'Identified' : 'Unidentified'}</span>
+              </button>
+            </div>
+          ) : (
+            <div className={styles.quickToggles}>
+              <StatusBadge tone={item.discovered ? 'positive' : 'warning'}>
+                {item.discovered ? 'Discovered' : 'Undiscovered'}
+              </StatusBadge>
+              <StatusBadge tone={item.identified ? 'positive' : 'neutral'}>
+                {item.identified ? 'Identified' : 'Unidentified'}
+              </StatusBadge>
+            </div>
+          )
+        ) : null}
       </header>
 
       <div aria-label="Item statistics" className={styles.statsRibbon} role="region">
         <div className={styles.statItem}>
           <span className={styles.statLabel}>Value</span>
           <span className={styles.statValue}>
-            {item.valueGp !== undefined ? `${item.valueGp.toLocaleString()} gp` : '—'}
+            {isUnidentified
+              ? '—'
+              : item.valueGp !== undefined
+                ? `${item.valueGp.toLocaleString()} gp`
+                : '—'}
           </span>
         </div>
         <div className={styles.statItem}>
@@ -181,7 +222,7 @@ export function ItemCard({
         )}
       </section>
 
-      {item.sessionId ? (
+      {item.sessionId && !isPlayerView ? (
         <section className={styles.section}>
           <h3 className={styles.sectionHeading}>Session Reward</h3>
           <p>
@@ -203,14 +244,14 @@ export function ItemCard({
         </section>
       ) : null}
 
-      {item.mechanics ? (
+      {displayMechanics ? (
         <section className={styles.section}>
           <h3 className={styles.sectionHeading}>Mechanics</h3>
-          <p className={styles.mechanicsText}>{item.mechanics}</p>
+          <p className={styles.mechanicsText}>{displayMechanics}</p>
         </section>
       ) : null}
 
-      {item.questIds.length > 0 ? (
+      {item.questIds.length > 0 && !isPlayerView ? (
         <section className={styles.section}>
           <h3 className={styles.sectionHeading}>Quests</h3>
           <div className={styles.questChips}>
@@ -222,11 +263,13 @@ export function ItemCard({
         </section>
       ) : null}
 
-      <RelatedGroups
-        entityId={item.id}
-        exclude={['quest', 'item']}
-        forwardIds={mentionIds(`${item.description}\n${item.mechanics ?? ''}`)}
-      />
+      {!isPlayerView ? (
+        <RelatedGroups
+          entityId={item.id}
+          exclude={['quest', 'item']}
+          forwardIds={mentionIds(`${item.description}\n${item.mechanics ?? ''}`)}
+        />
+      ) : null}
     </div>
   );
 }

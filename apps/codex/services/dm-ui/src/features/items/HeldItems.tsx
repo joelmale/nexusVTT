@@ -1,5 +1,6 @@
 import { EntityLink } from '@/features/section-shell/EntityLink';
 import { useSectionBundle } from '@/features/section-shell/SectionContext';
+import { filterPlayerViewHeldItems, usePlayerView } from '@/features/player-view';
 
 import { itemsHeldBy } from './itemsModel';
 import styles from './HeldItems.module.css';
@@ -14,7 +15,9 @@ interface HeldItemsProps {
 /** Items whose holder is `holderId`, as links; nothing when there are none. */
 export function HeldItems({ holderId, heading }: HeldItemsProps) {
   const { bundle } = useSectionBundle();
-  const held = itemsHeldBy(bundle, holderId);
+  const { isPlayerView } = usePlayerView();
+  const allHeld = itemsHeldBy(bundle, holderId);
+  const held = isPlayerView ? filterPlayerViewHeldItems(allHeld) : allHeld;
   if (held.length === 0) return null;
   return (
     <section aria-label={heading} className={styles.held}>

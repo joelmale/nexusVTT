@@ -272,4 +272,32 @@ describe('AddRow', () => {
     await user.click(screen.getByRole('button', { name: 'Add' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('nope');
   });
+
+  it('toggles player view preview and hides the edit button', async () => {
+    const { user } = renderInSection(<Section />, {
+      store: { editable: true },
+    });
+
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeVisible();
+    const toggleBtn = screen.getByRole('button', {
+      name: 'Preview what players see',
+    });
+    expect(toggleBtn).toBeVisible();
+
+    await user.click(toggleBtn);
+
+    expect(screen.queryByRole('button', { name: 'Edit' })).toBeNull();
+    expect(
+      screen.getByRole('region', { name: 'Player view preview notice' }),
+    ).toBeInTheDocument();
+
+    await user.click(
+      screen.getByRole('button', { name: 'Exit player view preview' }),
+    );
+
+    expect(screen.getByRole('button', { name: 'Edit' })).toBeVisible();
+    expect(
+      screen.queryByRole('region', { name: 'Player view preview notice' }),
+    ).toBeNull();
+  });
 });

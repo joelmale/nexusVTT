@@ -201,8 +201,7 @@ In this order:
 - [x] **#5 Create from context**: Direct `@` mention quick-creation within `MentionTextarea.tsx`. Typing an unrecognised query in editable mode offers `+ Create NPC "<name>"`, `+ Create Location "<name>"`, and `+ Create Item "<name>"`, atomically creating the entity draft via `bundleStore.addItem` and inserting the linkable token. 93.1% line coverage with 12/12 tests green.
 - [x] **#7 Consistent rich rows**: Universal two-line entity row component (`RichEntityRow.tsx` + `.module.css`) providing the Treasury visual style across NPCs, Quests, Encounters, and Factions. Supports leading icons/monograms, primary title, subtitle/alias, right-aligned status badges, pin indicators with gold tint (`--studio-gold`), and middle-dot separated metadata (`·`). Stable `sortByPinned` utility prioritizes pinned entities to the top of list groups. 100% line/branch coverage on `RichEntityRow.tsx` and `entityMeta.ts` with 57/57 tests green across all affected section suites.
 - [x] **#2 One-shot mode**: Guided adventure planning for single-session campaigns. Added `mode: 'campaign' | 'one-shot'` selection directly to `CreateCampaignDialog.tsx` with customized radiogroup options and `CampaignSwitcher.tsx` with dynamic `One-Shot` gold badge. Built `oneShotModel.ts` and `OneShotHub.tsx` (+ `.module.css`) featuring a real-time pacing bar with proportional segments (Hook -> Scenes 3–5 -> Climax -> Rewards), scene count recommendations (<3 under-planned, 3–5 ideal, >5 risk of overrun), target time budget selector (2h to 6h), adventure beat cards, and 1-click Run Sheet export integration. 95.5% line coverage on `OneShotHub.tsx` and 98.6% on `oneShotModel.ts` with 16/16 tests passing.
-- [x] **#9 Balance at a glance**: Real-time combat difficulty & wealth pacing summary displayed on Next Session and One-Shot adventure hubs. Pure `balanceModel.ts` computes 2024 DMG encounter XP budgets (Low, Moderate, High), party-wide daily XP thresholds, lethality detection, and party wealth tier comparison (min/max expected GP). `BalanceGlance.tsx` (+ `.module.css`) renders a party breakdown badge (`PCs · Level · 2024 DMG`), health status pill (`Balanced` · `Pacing Caution` · `Lethal Risk`), daily XP progress gauge bar, encounter difficulty tags (`trivial`, `low`, `moderate`, `high`, `deadly`), campaign placed wealth vs tier range, and non-blocking advisory notices for DMs. 85.7% line coverage on `BalanceGlance.tsx` and 93.9% on `balanceModel.ts` with 10/10 tests passing.
-- [ ] **#8 Player-view preview**
+- [x] **#8 Player-view preview**: One-click preview toggle across all entity detail panes (`playerViewModel.ts`, `PlayerViewContext.tsx`, `PlayerViewToggle.tsx`, `PlayerViewBanner.tsx`). Filters out unrevealed DM knowledge in real time: undiscovered items show concealed cards, unidentified items show masked player-facing names (`Unknown Rarity`, masked properties), NPCs hide combat stat badges (HP, AC, CR, statblock slugs) and `dm:*` tags, Encounters hide tactics, DM countermeasures, and VTT deploy/next session actions, Locations hide DM notes (`DmOnlyBadge`) and scene creation, and loot/held items filter out undiscovered treasures. Integrated into `EditableSection.tsx` with top banner notice and 1-click Exit action. 100% line coverage and 96% branch coverage on player-view with 13/13 unit tests and full section integration test suite passing.
 - [ ] **#10 Campaign moods**
 - [ ] **#12 Homebrew encounter monsters**
 - [ ] **#11 Object revision history**
@@ -232,6 +231,12 @@ Plus the polish checklist (empty states, Cmd+K actions, "Saved · 2 s ago" indic
 - `QuickCaptureModal.tsx`, `QuickCaptureModal.module.css`, `QuickCaptureModal.test.tsx`
 - `InboxPane.tsx`, `InboxPane.module.css`, `InboxPane.test.tsx`
 - `StudioTopBar.tsx`, `StudioFrame.tsx`, `SectionRoute.tsx`
+- `playerViewModel.ts`, `playerViewModel.test.ts`
+- `PlayerViewContext.tsx`, `PlayerViewToggle.tsx`, `PlayerViewToggle.module.css`, `PlayerViewBanner.tsx`, `PlayerViewBanner.module.css`, `PlayerView.test.tsx`
+- `EditableSection.tsx`, `EditableSection.test.tsx`
+- `HeldItems.tsx`
+- `ItemsSection.tsx`
+- `WorldSection.tsx`
 
 ---
 

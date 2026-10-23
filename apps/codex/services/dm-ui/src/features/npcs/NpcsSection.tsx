@@ -22,6 +22,7 @@ import { StatusBadge } from '@/features/section-shell/StatusBadge';
 import { UseInNextSessionButton } from '@/features/section-shell/UseInNextSessionButton';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 import { resolveEntity } from '@/demo/fixture-registry';
+import { usePlayerView } from '@/features/player-view';
 import { RichEntityRow } from '@/features/section-shell/RichEntityRow';
 import { sortByPinned } from '@/features/section-shell/entityMeta';
 import { QuickNpcModal } from './QuickNpcModal';
@@ -296,11 +297,38 @@ function NpcDetail({ npc }: { npc: CampaignNpc }) {
       )}
       toPatch={(current, initial) => npcDraftToPatch(current, initial, npc)}
     >
+      <NpcDetailContent
+        factions={factions}
+        forwardIds={forwardIds}
+        npc={npc}
+      />
+    </EditableSection>
+  );
+}
+
+function NpcDetailContent({
+  npc,
+  factions,
+  forwardIds,
+}: {
+  npc: CampaignNpc;
+  factions: Array<{ id: string; leads: boolean }>;
+  forwardIds: string[];
+}) {
+  const { bundle } = useSectionBundle();
+  const { isPlayerView } = usePlayerView();
+
+  const visibleTags = isPlayerView
+    ? npc.tags.filter((tag) => !tag.toLowerCase().startsWith('dm:'))
+    : npc.tags;
+
+  return (
+    <>
       <p className={styles.subtitle}>
         {[npc.role, npc.ancestry].filter(Boolean).join(' · ') ||
           'No role or ancestry yet'}
       </p>
-      {npc.combatSummary || npc.statBlockRef ? (
+      {!isPlayerView && (npc.combatSummary || npc.statBlockRef) ? (
         <div aria-label="Combat summary" className={styles.combatBadges}>
           {npc.combatSummary ? (
             <>
@@ -338,9 +366,9 @@ function NpcDetail({ npc }: { npc: CampaignNpc }) {
           </dd>
         </div>
       </dl>
-      {npc.tags.length > 0 ? (
+      {visibleTags.length > 0 ? (
         <ul aria-label="Tags" className={styles.tags}>
-          {npc.tags.map((tag) => (
+          {visibleTags.map((tag) => (
             <li key={tag}>{tag}</li>
           ))}
         </ul>
@@ -368,13 +396,15 @@ function NpcDetail({ npc }: { npc: CampaignNpc }) {
         </section>
       ) : null}
       <HeldItems heading="Carries" holderId={npc.id} />
-      <RelatedGroups
-        entityId={npc.id}
-        exclude={['faction']}
-        forwardIds={forwardIds}
-        kinds={['location', 'quest', 'session', 'encounter', 'handout']}
-      />
-    </EditableSection>
+      {!isPlayerView ? (
+        <RelatedGroups
+          entityId={npc.id}
+          exclude={['faction']}
+          forwardIds={forwardIds}
+          kinds={['location', 'quest', 'session', 'encounter', 'handout']}
+        />
+      ) : null}
+    </>
   );
 }
 

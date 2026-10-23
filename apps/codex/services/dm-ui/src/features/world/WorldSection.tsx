@@ -22,6 +22,7 @@ import {
 import { humanize } from '@/features/section-shell/statusTones';
 import { UseInNextSessionButton } from '@/features/section-shell/UseInNextSessionButton';
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
+import { usePlayerView } from '@/features/player-view';
 
 import { LocationResults, LocationTree } from './LocationTree';
 import styles from './World.module.css';
@@ -67,7 +68,6 @@ function LocationDetail({
   isNextSession: boolean;
 }) {
   const { bundle } = useSectionBundle();
-  const { notifyCapability } = useCapabilityNotice();
   const maps = mapChipsFor(bundle, location);
   const template = location.sceneTemplateId
     ? bundle.sceneTemplates.find((item) => item.id === location.sceneTemplateId)
@@ -178,74 +178,97 @@ function LocationDetail({
       }}
       toPatch={locationPatch}
     >
-      <div className={styles.detailBody}>
-        {location.imagePath ? (
-          <img alt="" className={styles.image} src={location.imagePath} />
-        ) : null}
-        {location.shortDescription ? (
-          <p className={styles.lead}>{location.shortDescription}</p>
-        ) : null}
-        {location.overview ? (
-          <TextBlock title="World Overview / Background">
-            <p style={{ whiteSpace: 'pre-wrap' }}>{location.overview}</p>
-          </TextBlock>
-        ) : null}
-        {location.description.length > 0 ? (
-          <div className={styles.fieldBlock}>
-            {location.description.map((paragraph, index) => (
-              <p key={index}>{paragraph}</p>
+      <LocationDetailContent
+        location={location}
+        maps={maps}
+        template={template}
+      />
+    </EditableSection>
+  );
+}
+
+function LocationDetailContent({
+  location,
+  maps,
+  template,
+}: {
+  location: CampaignLocation;
+  maps: ReturnType<typeof mapChipsFor>;
+  template: ReturnType<typeof useSectionBundle>['bundle']['sceneTemplates'][number] | undefined;
+}) {
+  const { notifyCapability } = useCapabilityNotice();
+  const { isPlayerView } = usePlayerView();
+
+  return (
+    <div className={styles.detailBody}>
+      {location.imagePath ? (
+        <img alt="" className={styles.image} src={location.imagePath} />
+      ) : null}
+      {location.shortDescription ? (
+        <p className={styles.lead}>{location.shortDescription}</p>
+      ) : null}
+      {location.overview ? (
+        <TextBlock title="World Overview / Background">
+          <p style={{ whiteSpace: 'pre-wrap' }}>{location.overview}</p>
+        </TextBlock>
+      ) : null}
+      {location.description.length > 0 ? (
+        <div className={styles.fieldBlock}>
+          {location.description.map((paragraph, index) => (
+            <p key={index}>{paragraph}</p>
+          ))}
+        </div>
+      ) : null}
+      {location.tags.length > 0 ? (
+        <ul aria-label="Tags" className={styles.tags}>
+          {location.tags.map((tag) => (
+            <li key={tag}>{tag}</li>
+          ))}
+        </ul>
+      ) : null}
+      {maps.length > 0 ? (
+        <TextBlock title={maps.length > 1 ? 'Pinned on maps' : 'On map'}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+            {maps.map((map) => (
+              <div key={`${map.mapId}:${map.pinLabel ?? ''}`} className={styles.row}>
+                <EntityChip
+                  entity={{
+                    id: map.mapId,
+                    kind: 'map',
+                    label: map.title,
+                    href: map.href,
+                  }}
+                />
+                {map.pinLabel ? (
+                  <span className={styles.mapPin}>Pin: {map.pinLabel}</span>
+                ) : null}
+              </div>
             ))}
           </div>
-        ) : null}
-        {location.tags.length > 0 ? (
-          <ul aria-label="Tags" className={styles.tags}>
-            {location.tags.map((tag) => (
-              <li key={tag}>{tag}</li>
-            ))}
-          </ul>
-        ) : null}
-        {maps.length > 0 ? (
-          <TextBlock title={maps.length > 1 ? 'Pinned on maps' : 'On map'}>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-              {maps.map((map) => (
-                <div key={`${map.mapId}:${map.pinLabel ?? ''}`} className={styles.row}>
-                  <EntityChip
-                    entity={{
-                      id: map.mapId,
-                      kind: 'map',
-                      label: map.title,
-                      href: map.href,
-                    }}
-                  />
-                  {map.pinLabel ? (
-                    <span className={styles.mapPin}>Pin: {map.pinLabel}</span>
-                  ) : null}
-                </div>
-              ))}
-            </div>
-          </TextBlock>
-        ) : null}
-        {location.sceneTemplateId ? (
-          <TextBlock title="Scene template">
-            <div className={styles.row}>
-              <span>{template?.title ?? 'Unknown scene template'}</span>
-              <button
-                className={styles.stub}
-                onClick={() => notifyCapability('map.scene.create')}
-                type="button"
-              >
-                Create scene
-              </button>
-            </div>
-          </TextBlock>
-        ) : null}
-        {location.notes ? (
-          <TextBlock title="Notes">
-            <DmOnlyBadge />
-            <p>{location.notes}</p>
-          </TextBlock>
-        ) : null}
-        <HeldItems heading="Items here" holderId={location.id} />
+        </TextBlock>
+      ) : null}
+      {location.sceneTemplateId && !isPlayerView ? (
+        <TextBlock title="Scene template">
+          <div className={styles.row}>
+            <span>{template?.title ?? 'Unknown scene template'}</span>
+            <button
+              className={styles.stub}
+              onClick={() => notifyCapability('map.scene.create')}
+              type="button"
+            >
+              Create scene
+            </button>
+          </div>
+        </TextBlock>
+      ) : null}
+      {location.notes && !isPlayerView ? (
+        <TextBlock title="Notes">
+          <DmOnlyBadge />
+          <p>{location.notes}</p>
+        </TextBlock>
+      ) : null}
+      <HeldItems heading="Items here" holderId={location.id} />
+      {!isPlayerView ? (
         <RelatedGroups
           entityId={location.id}
           forwardIds={[
@@ -266,8 +289,8 @@ function LocationDetail({
             'location',
           ]}
         />
-      </div>
-    </EditableSection>
+      ) : null}
+    </div>
   );
 }
 
