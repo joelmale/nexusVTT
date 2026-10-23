@@ -40,6 +40,15 @@ Thank you for your interest in contributing to Nexus VTT! This document provides
     npm run start:all
     ```
 
+### Git worktrees
+
+A fresh `git worktree add` has no `node_modules`. Run `npm ci` at the worktree
+root before committing: the husky pre-commit hook runs `eslint --fix` through
+lint-staged, and without an install ESLint can resolve plugins from a parent
+checkout's `node_modules` instead of the worktree's own. The lockfile pins a
+single `eslint-plugin-react-hooks` (7.x), hoisted to the root; keep workspace
+`package.json` ranges aligned with it so it stays that way.
+
 ## Project Structure
 
 - `src/` - React application organized by UI, state, services, and domains
