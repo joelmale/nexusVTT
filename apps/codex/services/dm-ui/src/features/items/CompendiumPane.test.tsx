@@ -251,4 +251,56 @@ describe('CompendiumPane', () => {
       expect(screen.getByText('Potion of Healing')).toBeInTheDocument();
     });
   });
+
+  it('gracefully falls back to bundled catalog and allows search when server entities array is empty', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ entities: [] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderInSection(<CompendiumPane />, {
+      path: '/demo/ashes-of-veyra/items?tab=compendium',
+      store: { editable: true },
+    });
+
+    // Should NOT show the error alert with "No items found in the 2024 catalog."
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByText(/Using bundled 2024 SRD catalog/)).toBeInTheDocument();
+    });
+
+    // Bundled items should be loaded and selectable
+    expect(screen.getByText('Longsword')).toBeInTheDocument();
+    expect(screen.getByText('Plate Armor')).toBeInTheDocument();
+  });
+
+  it('recovers from fetch error when clicking Use bundled catalog', async () => {
+    const user = userEvent.setup();
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({}),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    renderInSection(<CompendiumPane />, {
+      path: '/demo/ashes-of-veyra/items?tab=compendium',
+      store: { editable: true },
+    });
+
+    await waitFor(() => {
+      expect(screen.getByRole('alert')).toBeInTheDocument();
+    });
+
+    const useBundledBtn = screen.getByRole('button', { name: 'Use bundled catalog' });
+    await user.click(useBundledBtn);
+
+    await waitFor(() => {
+      expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+      expect(screen.getByText(/Using bundled 2024 SRD catalog/)).toBeInTheDocument();
+      expect(screen.getByText('Longsword')).toBeInTheDocument();
+    });
+  });
 });

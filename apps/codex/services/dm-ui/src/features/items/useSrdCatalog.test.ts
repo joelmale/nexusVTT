@@ -86,4 +86,51 @@ describe('useSrdCatalog', () => {
     expect(result.current.catalog[0].name).toBe('Recovered Item');
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
+
+  it('falls back to bundled SRD items when server catalog returns empty entities array', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ entities: [] }),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() => useSrdCatalog('2024'));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    // Should NOT error with 'No items found in the 2024 catalog'
+    expect(result.current.error).toBeUndefined();
+    expect(result.current.isFallback).toBe(true);
+    expect(result.current.catalog.length).toBeGreaterThan(10);
+    expect(result.current.catalog.some((item) => item.name === 'Longsword')).toBe(true);
+    expect(result.current.catalog.some((item) => item.name === 'Bag of Holding')).toBe(true);
+  });
+
+  it('allows manual recovery to bundled catalog via useFallbackCatalog when server is down', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 503,
+      json: async () => ({}),
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    const { result } = renderHook(() => useSrdCatalog('2024'));
+
+    await waitFor(() => {
+      expect(result.current.loading).toBe(false);
+    });
+
+    expect(result.current.error).toBeDefined();
+
+    act(() => {
+      result.current.useFallbackCatalog();
+    });
+
+    expect(result.current.error).toBeUndefined();
+    expect(result.current.isFallback).toBe(true);
+    expect(result.current.catalog.length).toBeGreaterThan(10);
+  });
 });

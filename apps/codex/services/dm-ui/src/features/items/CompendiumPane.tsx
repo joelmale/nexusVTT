@@ -34,7 +34,7 @@ export function CompendiumPane({ onAddedItem }: CompendiumPaneProps) {
       : '2024';
 
   const [ruleset, setRuleset] = useState<string>(get('ruleset') || campaignEdition);
-  const { catalog, loading, error, reload } = useSrdCatalog(ruleset);
+  const { catalog, loading, error, isFallback, reload, useFallbackCatalog } = useSrdCatalog(ruleset);
 
   const [selectedId, setSelectedId] = useState<string | undefined>();
   const [adding, setAdding] = useState(false);
@@ -173,10 +173,32 @@ export function CompendiumPane({ onAddedItem }: CompendiumPaneProps) {
       {loading ? <p>Loading compendium...</p> : null}
 
       {error ? (
-        <div role="alert">
+        <div className={styles.errorNotice} role="alert">
           <p>{error}</p>
-          <button onClick={() => void reload()} type="button">
-            Retry
+          <div className={styles.errorActions}>
+            <button onClick={() => void reload()} type="button">
+              Retry
+            </button>
+            <button
+              className={styles.secondaryBtn}
+              onClick={useFallbackCatalog}
+              type="button"
+            >
+              Use bundled catalog
+            </button>
+          </div>
+        </div>
+      ) : null}
+
+      {isFallback && !error ? (
+        <div className={styles.fallbackNotice}>
+          <span>Using bundled {ruleset} SRD catalog (live rules service has no published items).</span>
+          <button
+            className={styles.checkServerBtn}
+            onClick={() => void reload()}
+            type="button"
+          >
+            Check server
           </button>
         </div>
       ) : null}

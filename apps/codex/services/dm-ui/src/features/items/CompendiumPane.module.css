@@ -267,3 +267,64 @@
   height: 200px;
   justify-content: center;
 }
+
+.errorNotice {
+  background: var(--studio-negative-soft, #f8d7da);
+  border: 1px solid var(--studio-negative, #d9534f);
+  border-radius: var(--studio-radius-control, 4px);
+  color: var(--studio-negative-strong, #842029);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px 14px;
+}
+
+.errorNotice p {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.errorActions {
+  display: flex;
+  gap: 8px;
+}
+
+.errorActions button {
+  background: var(--studio-surface, #fff);
+  border: 1px solid var(--studio-border, #ccc);
+  border-radius: var(--studio-radius-control, 4px);
+  color: var(--studio-text, #111);
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+  padding: 4px 10px;
+}
+
+.secondaryBtn {
+  background: var(--studio-surface-raised, #e5e8e8) !important;
+}
+
+.fallbackNotice {
+  align-items: center;
+  background: var(--studio-surface-raised, #f0f2f2);
+  border: 1px solid var(--studio-border, #ccc);
+  border-radius: var(--studio-radius-control, 4px);
+  color: var(--studio-text-secondary, #555);
+  display: flex;
+  font-size: 12px;
+  gap: 12px;
+  justify-content: space-between;
+  padding: 6px 12px;
+}
+
+.checkServerBtn {
+  background: var(--studio-surface, #fff);
+  border: 1px solid var(--studio-border, #ccc);
+  border-radius: var(--studio-radius-control, 4px);
+  color: var(--studio-text, #111);
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 8px;
+}
