@@ -14,6 +14,7 @@ import {
   useIsConnected,
 } from '@/stores/gameStore';
 import { webSocketService } from '@/services/websocket';
+import { buildSimpleInviteUrl } from '@/utils/simplePlayerMode';
 import type { Player } from '@/types/game';
 
 interface PlayerCardProps {
@@ -140,7 +141,7 @@ export const LobbyPanel: React.FC = () => {
   const handleShareRoom = () => {
     if (!roomCode) return;
 
-    const url = `${window.location.origin}/game/${roomCode}`;
+    const url = buildSimpleInviteUrl(roomCode);
 
     // Try to use Web Share API if available
     if (navigator.share) {

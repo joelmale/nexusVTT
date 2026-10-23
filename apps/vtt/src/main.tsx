@@ -24,6 +24,11 @@ const DMSetupPage = React.lazy(() =>
     default: module.DMSetupPage,
   })),
 );
+const SimpleJoinPage = React.lazy(() =>
+  import('./components/simple-player/SimpleJoinPage').then((module) => ({
+    default: module.SimpleJoinPage,
+  })),
+);
 const LinearGameLayout = React.lazy(() =>
   import('./components/LinearGameLayout').then((module) => ({
     default: module.LinearGameLayout,
@@ -93,6 +98,15 @@ ReactDOM.createRoot(document.getElementById('root')!).render(
               element={
                 <Suspense fallback={<LoadingScreen message="Loading setup…" />}>
                   <DMSetupPage />
+                </Suspense>
+              }
+            />
+            {/* Simple Player Mode invite link (phones and tablets) */}
+            <Route
+              path="/play/:roomCode"
+              element={
+                <Suspense fallback={<LoadingScreen message="Loading…" />}>
+                  <SimpleJoinPage />
                 </Suspense>
               }
             />

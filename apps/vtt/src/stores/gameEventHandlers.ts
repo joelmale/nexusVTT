@@ -884,6 +884,27 @@ export const eventHandlers: Record<string, EventHandler> = {
     }
   },
 
+  // Simple Player Mode intents. The applier ignores intents unless this
+  // client is the host; the client ignores results addressed to others.
+  'player/intent': (_state, data) => {
+    void import('@/services/playerIntentApplier')
+      .then(({ handleForwardedPlayerIntent }) =>
+        handleForwardedPlayerIntent(data),
+      )
+      .catch((error) => {
+        console.warn('Failed to apply player intent:', error);
+      });
+  },
+  'player/intent-result': (_state, data) => {
+    void import('@/services/playerIntentClient')
+      .then(({ handlePlayerIntentResult }) => {
+        handlePlayerIntentResult(data);
+      })
+      .catch((error) => {
+        console.warn('Failed to handle player intent result:', error);
+      });
+  },
+
   // Combat Integration Events
   'combat/sync-hp': (state, data) => {
     // Handle remote HP sync from peers

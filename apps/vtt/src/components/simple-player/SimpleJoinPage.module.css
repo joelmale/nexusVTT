@@ -1,0 +1,95 @@
+.page {
+  display: grid;
+  place-items: center;
+  min-height: 100dvh;
+  padding: max(16px, env(safe-area-inset-top)) 16px
+    max(16px, env(safe-area-inset-bottom));
+  background: var(--bg-primary);
+  color: var(--glass-text);
+}
+
+.card {
+  display: grid;
+  gap: var(--spacing-3);
+  width: min(100%, 24rem);
+  padding: var(--spacing-6);
+  border: 1px solid var(--glass-border);
+  border-radius: var(--radius-xl);
+  background: var(--glass-surface);
+  box-shadow: var(--shadow-glass);
+}
+
+.eyebrow {
+  margin: 0;
+  color: var(--glass-text-muted);
+  font-size: var(--text-sm);
+  text-align: center;
+}
+
+.code {
+  margin: 0 0 var(--spacing-2);
+  font-family: var(--font-mono);
+  font-size: var(--text-4xl);
+  letter-spacing: 0.2em;
+  text-align: center;
+}
+
+.title {
+  margin: 0;
+  font-size: var(--text-2xl);
+  text-align: center;
+}
+
+.hint {
+  margin: 0;
+  color: var(--glass-text-muted);
+  text-align: center;
+}
+
+.label {
+  font-weight: var(--font-semibold);
+}
+
+.input {
+  min-height: 48px;
+  padding: 0 var(--spacing-3);
+  border: 1px solid var(--glass-border-strong);
+  border-radius: var(--radius-lg);
+  background: var(--glass-surface-subtle);
+  color: var(--glass-text);
+  font-size: var(--text-lg);
+}
+
+.checkbox {
+  display: flex;
+  gap: var(--spacing-2);
+  align-items: center;
+  min-height: 44px;
+  color: var(--glass-text-secondary);
+}
+
+.checkbox input {
+  width: 22px;
+  height: 22px;
+}
+
+.error {
+  margin: 0;
+  color: var(--color-error);
+}
+
+.join {
+  min-height: 52px;
+  border: none;
+  border-radius: var(--radius-lg);
+  background: var(--color-primary);
+  color: var(--button-text-color);
+  font-size: var(--text-lg);
+  font-weight: var(--font-bold);
+  cursor: pointer;
+}
+
+.join:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

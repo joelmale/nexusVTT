@@ -13,6 +13,7 @@ import { DiceHandler } from '../socket/handlers/DiceHandler.js';
 import { DocumentSyncHandler } from '../socket/handlers/DocumentSyncHandler.js';
 import { EntitySyncHandler } from '../socket/handlers/EntitySyncHandler.js';
 import { HostHandler } from '../socket/handlers/HostHandler.js';
+import { PlayerIntentHandler } from '../socket/handlers/PlayerIntentHandler.js';
 import { SceneHandler } from '../socket/handlers/SceneHandler.js';
 import { SocketManager } from '../socket/SocketManager.js';
 import { attachWebSocketUpgrade, registerWebSocketConnections } from '../socket/websocketUpgrade.js';
@@ -43,6 +44,7 @@ export function createRealtimeRuntime({
   new EntitySyncHandler(socketManager, db);
   new CharacterHandler(socketManager, db);
   new CombatHandler(socketManager, db);
+  new PlayerIntentHandler(socketManager, db);
 
   socketManager.on('event:game-state-update', ({ connection, room, message }) => {
     if (room.host !== connection.id && !room.coHosts.has(connection.id)) {
