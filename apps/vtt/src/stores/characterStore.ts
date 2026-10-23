@@ -139,8 +139,13 @@ interface CharacterStore extends CharacterState {
 
   // Import/Export
   importCharacter: (source: string, data: unknown) => Promise<string>;
+  /**
+   * `unassigned` leaves the characters with no owner so any player can claim
+   * them (a DM preparing the party); otherwise the importer owns them.
+   */
   importCharactersFromFiles: (
     files: File[] | FileList,
+    options?: { unassigned?: boolean },
   ) => Promise<{ successful: number; failed: number; errors: string[] }>;
   exportCharacter: (characterId: string, format: string) => Promise<string>;
 
@@ -898,7 +903,7 @@ export const useCharacterStore = create<CharacterStore>()(
       return character.id;
     },
 
-    importCharactersFromFiles: async (files) => {
+    importCharactersFromFiles: async (files, options) => {
       const { characterImportService } =
         await import('@/services/characterImport');
       const { userId, isAuthenticated } = getGameStoreContext();
@@ -915,7 +920,9 @@ export const useCharacterStore = create<CharacterStore>()(
         if (result.success && result.character) {
           const character = {
             ...(result.character as Character),
-            playerId: (result.character as Character).playerId || userId,
+            playerId: options?.unassigned
+              ? undefined
+              : (result.character as Character).playerId || userId,
           };
 
           // Add to store

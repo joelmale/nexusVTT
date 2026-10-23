@@ -8,6 +8,7 @@ import type { CampaignCatalogEntry } from '../campaign-catalog/types';
 import { crownOfCinders } from '../crown-of-cinders';
 import { lanternsOfMourningfen } from '../lanterns-of-mourningfen';
 import { starsBelowKharad } from '../stars-below-kharad';
+import { tidesOfBetrayal } from '../tides-of-betrayal';
 import type {
   CampaignCollections,
   CampaignFixture,
@@ -29,6 +30,7 @@ const FIXTURES: Record<string, FixtureModule> = {
   'crown-of-cinders': crownOfCinders,
   'lanterns-of-mourningfen': lanternsOfMourningfen,
   'stars-below-kharad': starsBelowKharad,
+  'tides-of-betrayal': tidesOfBetrayal,
 };
 
 /** Only Ashes has live publish/activate wiring for session plans. */

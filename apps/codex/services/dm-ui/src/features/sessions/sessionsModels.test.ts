@@ -17,6 +17,7 @@ const SLUGS = [
   'crown-of-cinders',
   'lanterns-of-mourningfen',
   'stars-below-kharad',
+  'tides-of-betrayal',
 ];
 
 function bundleOf(slug: string): CampaignFixtureBundle {

@@ -1,0 +1,23 @@
+{
+  "id": "simple-e2e-aria",
+  "name": "Aria Quickfoot",
+  "class": "Rogue",
+  "level": 3,
+  "hitPoints": 24,
+  "maxHitPoints": 30,
+  "temporaryHitPoints": 0,
+  "armorClass": 15,
+  "proficiencyBonus": 2,
+  "abilities": {
+    "STR": { "score": 10, "modifier": 0 },
+    "DEX": { "score": 16, "modifier": 3 },
+    "CON": { "score": 12, "modifier": 1 },
+    "INT": { "score": 10, "modifier": 0 },
+    "WIS": { "score": 12, "modifier": 1 },
+    "CHA": { "score": 8, "modifier": -1 }
+  },
+  "skills": {
+    "Stealth": { "value": 5, "proficient": true }
+  },
+  "inventory": [{ "equipmentSlug": "dagger", "equipped": true, "quantity": 1 }]
+}

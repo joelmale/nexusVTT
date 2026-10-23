@@ -1256,6 +1256,7 @@ describe('seedFromFixture', () => {
     'crown-of-cinders',
     'lanterns-of-mourningfen',
     'stars-below-kharad',
+    'tides-of-betrayal',
   ])('full clone of %s', (slug) => {
     const byKind = (kind: string) =>
       [...server.objects.values()].filter((object) => object.kind === kind);

@@ -11,12 +11,13 @@ import { buildOverviewModel, pickUpcomingSession } from './overviewModel';
 const bundles = listFixtureBundles('test');
 
 describe('buildOverviewModel', () => {
-  it('covers all four example campaigns', () => {
+  it('covers all five example campaigns', () => {
     expect(bundles.map((bundle) => bundle.slug).sort()).toEqual([
       'ashes-of-veyra',
       'crown-of-cinders',
       'lanterns-of-mourningfen',
       'stars-below-kharad',
+      'tides-of-betrayal',
     ]);
   });
 

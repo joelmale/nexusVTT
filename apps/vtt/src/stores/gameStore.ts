@@ -179,11 +179,15 @@ export const useGameStore = create<GameStore>()(
       applyEvent: (event) => {
         console.log('Applying event:', event.type, event.data); // Debug log
 
-        // Check if this event is confirming an optimistic update
+        // Check if this event is confirming an optimistic update. Only our
+        // own pending updateIds count: the server relays a peer's move with
+        // the peer's updateId attached, and that move must still be applied.
         if (event.type === 'token/move') {
           const tokenMoveData = event.data as TokenMoveEvent['data'];
-          if (tokenMoveData.updateId) {
-            // This is a confirmation of our optimistic update
+          if (
+            tokenMoveData.updateId &&
+            pendingUpdates.has(tokenMoveData.updateId)
+          ) {
             get().confirmUpdate(tokenMoveData.updateId);
             return; // Don't apply the event since we already applied it optimistically
           }

@@ -16,12 +16,15 @@ interface CharacterImportModalProps {
   isOpen: boolean;
   onClose: () => void;
   onImportComplete?: (result: { successful: number; failed: number }) => void;
+  /** Import as unclaimed party characters any player can claim (DM use). */
+  unassigned?: boolean;
 }
 
 export const CharacterImportModal: React.FC<CharacterImportModalProps> = ({
   isOpen,
   onClose,
   onImportComplete,
+  unassigned = false,
 }) => {
   const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
   const [totalCharacters, setTotalCharacters] = useState<number>(0);
@@ -92,7 +95,9 @@ export const CharacterImportModal: React.FC<CharacterImportModalProps> = ({
     setResult(null);
 
     try {
-      const importResult = await importCharactersFromFiles(selectedFiles);
+      const importResult = await importCharactersFromFiles(selectedFiles, {
+        unassigned,
+      });
 
       setResult(importResult);
 

@@ -1,5 +1,7 @@
 import { campaign as ashesCampaign } from '../ashes-of-veyra/campaign';
 import { sessions as ashesSessions } from '../ashes-of-veyra/sessions';
+import { tidesCampaign } from '../tides-of-betrayal/campaign';
+import { tidesSessions } from '../tides-of-betrayal/sessions';
 import type {
   CampaignSession,
   PlayerCharacter,
@@ -770,6 +772,28 @@ export const campaignCatalog: CampaignCatalogEntry[] = [
     playerCharacters: kharadCharacters,
     selectedSessionId: kharadSessions[2].id,
     showcaseSessions: kharadSessions,
+    fixtureSource: 'catalog',
+  },
+  {
+    slug: 'tides-of-betrayal',
+    campaign: {
+      id: tidesCampaign.id,
+      name: tidesCampaign.title,
+      description:
+        'A level 1–5 port-city mystery about a sunken fleet, a sea shanty that hides a pirate cove and a traitor on the Merchant Council.',
+      createdAt: '2024-10-01T18:35:00.000Z',
+      updatedAt: '2026-10-23T15:00:00.000Z',
+    },
+    subtitle: tidesCampaign.subtitle,
+    premise: tidesCampaign.premise,
+    ruleset: 'D&D 5e',
+    edition: '2014/2024 compatible',
+    lifecycle: 'active',
+    tier: 'tier-1',
+    tags: ['High seas', 'Port intrigue', 'Mystery'],
+    playerCharacters: tidesCampaign.playerCharacters,
+    selectedSessionId: tidesCampaign.currentSessionId,
+    showcaseSessions: tidesSessions.slice(0, 3),
     fixtureSource: 'catalog',
   },
 ];

@@ -255,6 +255,11 @@ async function main() {
       `http://127.0.0.1:${backendPort},http://127.0.0.1:${backendPeerPort}`,
       '--ready-file',
       readyFile,
+      // Player intents are transient by design: injected outages drop some.
+      // Under chaos only duplicates and misaddressed results fail the run.
+      ...(chaosEnabled && !userArguments.includes('--intent-min-success')
+        ? ['--intent-min-success', '0.5']
+        : []),
       ...userArguments,
     ];
     const soakPromise = runCommand(process.execPath, argumentsForHarness).then(

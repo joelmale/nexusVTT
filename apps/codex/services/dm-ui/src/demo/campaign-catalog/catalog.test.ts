@@ -10,16 +10,17 @@ import {
 } from './index';
 
 describe('campaign catalog fixtures', () => {
-  it('contains four campaigns with bounded showcase session sets', () => {
-    expect(campaignCatalog).toHaveLength(4);
+  it('contains five campaigns with bounded showcase session sets', () => {
+    expect(campaignCatalog).toHaveLength(5);
     expect(
       campaignCatalog.map((entry) => entry.showcaseSessions.length),
-    ).toEqual([3, 1, 2, 3]);
+    ).toEqual([3, 1, 2, 3, 3]);
     expect(campaignCatalog.map((entry) => entry.lifecycle)).toEqual([
       'active',
       'draft',
       'paused',
       'complete',
+      'active',
     ]);
   });
 
@@ -61,9 +62,9 @@ describe('campaign catalog fixtures', () => {
     ).toBe('Lanterns of Mourningfen');
   });
 
-  it('exposes all four example campaigns in every mode', () => {
+  it('exposes all five example campaigns in every mode', () => {
     for (const mode of ['test', 'development', 'production']) {
-      expect(getVisibleCampaignCatalog(mode)).toHaveLength(4);
+      expect(getVisibleCampaignCatalog(mode)).toHaveLength(5);
     }
   });
 

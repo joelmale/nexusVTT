@@ -3,6 +3,7 @@ import { useCharacterStore } from '@/stores/characterStore';
 import { useGameStore } from '@/stores/gameStore';
 import { useInitiativeStore } from '@/stores/initiativeStore';
 import { CharacterCard } from './CharacterCard';
+import { CharacterImportModal } from './CharacterImportModal';
 import './CharacterPanel.css';
 
 type FilterType = 'all' | 'in-combat' | 'not-in-combat' | 'has-token';
@@ -12,18 +13,21 @@ export const CharacterPanel: React.FC = () => {
   const session = useGameStore((s) => s.session);
   const scenes = useGameStore((s) => s.sceneState.scenes);
   const initiativeEntries = useInitiativeStore((s) => s.entries);
+  const isHost = useGameStore((s) => s.user.type === 'host');
+  const [importOpen, setImportOpen] = useState(false);
 
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Filter to session players ONLY
+  // Session players' characters, plus (for the DM) unclaimed party
+  // characters waiting for a player to pick them.
   const sessionCharacters = useMemo(() => {
     if (!session) return [];
     const playerIds = session.players.map((p) => p.id);
-    return characters.filter(
-      (c) => c.playerId && playerIds.includes(c.playerId),
+    return characters.filter((c) =>
+      c.playerId ? playerIds.includes(c.playerId) : isHost,
     );
-  }, [characters, session]);
+  }, [characters, session, isHost]);
 
   // Enrich with token/initiative data
   const enrichedCharacters = useMemo(() => {
@@ -82,7 +86,24 @@ export const CharacterPanel: React.FC = () => {
       <div className="character-panel-header">
         <h2>Characters</h2>
         <span className="character-count">{filteredCharacters.length}</span>
+        {isHost && (
+          <button
+            type="button"
+            className="filter-btn"
+            onClick={() => setImportOpen(true)}
+            title="Import party characters players can claim"
+          >
+            📥 Import
+          </button>
+        )}
       </div>
+      {isHost && (
+        <CharacterImportModal
+          isOpen={importOpen}
+          onClose={() => setImportOpen(false)}
+          unassigned
+        />
+      )}
 
       {/* Search */}
       <div className="character-search">

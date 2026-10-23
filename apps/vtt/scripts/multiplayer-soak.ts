@@ -17,7 +17,7 @@ import {
 import { hashSync } from '../shared/sync/hashSync.js';
 import { MultiplayerSoakOrderedEvents } from './multiplayerSoakOrderedEvents.js';
 
-type OperationKind = 'chat' | 'dice' | 'scene' | 'token' | 'state';
+type OperationKind = 'chat' | 'dice' | 'scene' | 'token' | 'state' | 'intent';
 
 interface WireMessage {
   type: string;
@@ -49,6 +49,7 @@ interface SoakConfig {
   ackP95Ms: number;
   reconnectP95Ms: number;
   reconnectEveryMs: number;
+  intentMinSuccess: number;
   messagePack: boolean;
   conflictProbe: boolean;
   reportPath: string;
@@ -84,6 +85,24 @@ interface LoadStats {
   stateAckLatenciesMs: number[];
   reconnectLatenciesMs: number[];
   operations: Record<OperationKind, number>;
+  /**
+   * Simple Player Mode intents: a player asks the host's client to apply a
+   * change. They are transient by design (never journaled), so a timeout
+   * during an outage is acceptable; a duplicated or misaddressed result is not.
+   */
+  intents: IntentStats;
+}
+
+interface IntentStats {
+  sent: number;
+  applied: number;
+  rejected: number;
+  timedOut: number;
+  forwardedToHost: number;
+  duplicateForwards: number;
+  duplicateResults: number;
+  unknownResults: number;
+  latenciesMs: number[];
 }
 
 interface ServerMetrics {
@@ -183,6 +202,7 @@ function parseArguments(): SoakConfig {
     ackP95Ms: parseDuration(args.get('--ack-p95') ?? '1s'),
     reconnectP95Ms: parseDuration(args.get('--reconnect-p95') ?? '10s'),
     reconnectEveryMs: parseDuration(args.get('--reconnect-every') ?? '30s'),
+    intentMinSuccess: Number(args.get('--intent-min-success') ?? '0.9'),
     messagePack: args.get('--message-pack') === 'true',
     conflictProbe: args.get('--conflict-probe') !== 'false',
     reportPath:
@@ -253,7 +273,18 @@ function emptyStats(): LoadStats {
     eventAckLatenciesMs: [],
     stateAckLatenciesMs: [],
     reconnectLatenciesMs: [],
-    operations: { chat: 0, dice: 0, scene: 0, token: 0, state: 0 },
+    operations: { chat: 0, dice: 0, scene: 0, token: 0, state: 0, intent: 0 },
+    intents: {
+      sent: 0,
+      applied: 0,
+      rejected: 0,
+      timedOut: 0,
+      forwardedToHost: 0,
+      duplicateForwards: 0,
+      duplicateResults: 0,
+      unknownResults: 0,
+      latenciesMs: [],
+    },
   };
 }
 
@@ -282,6 +313,16 @@ class LoadClient {
   );
   public stateVersion = 0;
   public readonly observedEventIds = new Set<string>();
+  private pendingIntents = new Map<
+    string,
+    {
+      startedAt: number;
+      resolve: (status: string) => void;
+      timer: NodeJS.Timeout;
+    }
+  >();
+  private settledIntentIds = new Set<string>();
+  private forwardedIntentIds = new Set<string>();
 
   constructor(
     private readonly config: SoakConfig,
@@ -420,6 +461,14 @@ class LoadClient {
 
     if (message.type === 'event') {
       const name = String(message.data.name ?? '');
+      if (name === 'player/intent') {
+        this.handleForwardedIntent(message.data);
+        return;
+      }
+      if (name === 'player/intent-result') {
+        this.handleIntentResult(message.data);
+        return;
+      }
       if (
         name === 'session/created' ||
         name === 'session/joined' ||
@@ -705,6 +754,97 @@ class LoadClient {
     });
   }
 
+  /** Host side: answer a forwarded intent the way the real DM client does. */
+  private handleForwardedIntent(data: Record<string, unknown>): void {
+    if (this.role !== 'host') return;
+    const intentId = String(data.intentId ?? '');
+    if (this.forwardedIntentIds.has(intentId)) {
+      this.stats.intents.duplicateForwards += 1;
+      return;
+    }
+    this.forwardedIntentIds.add(intentId);
+    this.stats.intents.forwardedToHost += 1;
+    try {
+      this.send({
+        type: 'event',
+        data: {
+          name: 'player/intent-result',
+          intentId,
+          targetUserId: data.fromUserId,
+          status: 'applied',
+        },
+        timestamp: Date.now(),
+      });
+    } catch {
+      // Host socket is mid-reconnect; the player times out, as in the app.
+    }
+  }
+
+  /** Player side: results fan out to the whole room; keep only ours. */
+  private handleIntentResult(data: Record<string, unknown>): void {
+    if (data.targetUserId !== this.identity.id) return;
+    const intentId = String(data.intentId ?? '');
+    const pending = this.pendingIntents.get(intentId);
+    if (!pending) {
+      if (this.settledIntentIds.has(intentId)) {
+        this.stats.intents.duplicateResults += 1;
+      } else {
+        this.stats.intents.unknownResults += 1;
+      }
+      return;
+    }
+    clearTimeout(pending.timer);
+    this.pendingIntents.delete(intentId);
+    this.settledIntentIds.add(intentId);
+    this.stats.intents.latenciesMs.push(Date.now() - pending.startedAt);
+    pending.resolve(String(data.status ?? 'rejected'));
+  }
+
+  /**
+   * Sends one HP intent and waits for the host's answer. A timeout is
+   * recorded, not thrown: intents are transient by design.
+   */
+  public async sendIntent(): Promise<void> {
+    await this.ensureConnected();
+    const intentId = randomUUID();
+    this.stats.intents.sent += 1;
+    this.stats.operations.intent += 1;
+    const status = await new Promise<string>((resolve) => {
+      const timer = setTimeout(() => {
+        this.pendingIntents.delete(intentId);
+        this.settledIntentIds.add(intentId);
+        resolve('timeout');
+      }, this.config.ackTimeoutMs);
+      this.pendingIntents.set(intentId, {
+        startedAt: Date.now(),
+        resolve,
+        timer,
+      });
+      try {
+        this.send({
+          type: 'event',
+          data: {
+            name: 'player/intent',
+            intentId,
+            intent: {
+              kind: 'hp-adjust',
+              characterId: 'soak-character',
+              delta: -1,
+            },
+          },
+          timestamp: Date.now(),
+        });
+      } catch {
+        clearTimeout(timer);
+        this.pendingIntents.delete(intentId);
+        resolve('timeout');
+      }
+    });
+    if (status === 'applied') this.stats.intents.applied += 1;
+    else if (status === 'timeout') this.stats.intents.timedOut += 1;
+    else this.stats.intents.rejected += 1;
+  }
+
   private send(message: WireMessage): void {
     if (this.socket?.readyState !== WebSocket.OPEN) {
       throw new Error(`${this.identity.name} is not connected`);
@@ -863,7 +1003,7 @@ class LoadRoom {
 
   private async executeOperation(index: number): Promise<void> {
     const client = this.clients[index % this.clients.length];
-    const operation = index % 5;
+    const operation = index % 6;
     if (operation === 0) {
       await client.sendOrdered('chat', 'chat-message', {
         content: `soak:${this.code}:${index}:${Date.now()}`,
@@ -896,6 +1036,12 @@ class LoadRoom {
         x: index % 100,
         y: (index * 3) % 100,
       });
+      return;
+    }
+
+    if (operation === 5) {
+      const player = this.clients[1 + (index % (this.clients.length - 1))];
+      await player.sendIntent();
       return;
     }
 
@@ -1247,6 +1393,23 @@ async function main(): Promise<void> {
       `reconnect p95 ${reconnectP95Ms}ms exceeded ${config.reconnectP95Ms}ms`,
     );
   }
+  const intentSuccess =
+    stats.intents.sent === 0 ? 1 : stats.intents.applied / stats.intents.sent;
+  if (stats.intents.duplicateForwards > 0) {
+    failures.push(
+      `${stats.intents.duplicateForwards} player intents reached a host twice`,
+    );
+  }
+  if (stats.intents.duplicateResults + stats.intents.unknownResults > 0) {
+    failures.push(
+      `${stats.intents.duplicateResults} duplicate and ${stats.intents.unknownResults} unknown player intent results`,
+    );
+  }
+  if (intentSuccess < config.intentMinSuccess) {
+    failures.push(
+      `player intent success ${(intentSuccess * 100).toFixed(1)}% below ${(config.intentMinSuccess * 100).toFixed(0)}%`,
+    );
+  }
   if (deltas?.durableCommitFailures) {
     failures.push(`${deltas.durableCommitFailures} durable commit failures`);
   }
@@ -1273,6 +1436,8 @@ async function main(): Promise<void> {
       convergenceFailures: convergenceFailures.length,
       lostEvents,
       duplicateEventDeliveries: stats.duplicateDeliveries,
+      intentSuccessRate: intentSuccess,
+      intentP95Ms: percentile(stats.intents.latenciesMs, 0.95),
     },
     stats,
     serverMetricDeltas: deltas,

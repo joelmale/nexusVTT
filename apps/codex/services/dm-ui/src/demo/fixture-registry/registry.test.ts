@@ -15,6 +15,7 @@ const SLUGS = [
   'crown-of-cinders',
   'lanterns-of-mourningfen',
   'stars-below-kharad',
+  'tides-of-betrayal',
 ];
 
 describe('fixture registry', () => {
@@ -33,7 +34,7 @@ describe('fixture registry', () => {
     expect(inspectFixtureIntegrity()).toEqual([]);
   });
 
-  it('registers all four campaigns as full fixtures with matching lifecycles', () => {
+  it('registers all five campaigns as full fixtures with matching lifecycles', () => {
     for (const bundle of listFixtureBundles('test')) {
       expect(bundle.source).toBe('fixture');
       expect(bundle.campaign.status).toBe(bundle.lifecycle);
@@ -83,6 +84,7 @@ describe('fixture registry', () => {
       'crown-of-cinders',
       'lanterns-of-mourningfen',
       'stars-below-kharad',
+      'tides-of-betrayal',
     ]);
     expect(getFixtureBundle('crown-of-cinders', 'production')).toBeDefined();
     expect(getFixtureBundle('crown-of-cinders', 'development')).toBeDefined();

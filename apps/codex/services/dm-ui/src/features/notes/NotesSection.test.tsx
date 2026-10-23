@@ -60,6 +60,7 @@ describe('NotesSection examples', () => {
     'crown-of-cinders',
     'lanterns-of-mourningfen',
     'stars-below-kharad',
+    'tides-of-betrayal',
   ])('renders %s notes read-only, including shared handouts', (slug) => {
     const fixture = getFixtureBundle(slug)!;
     const shared = fixture.notes.filter((note) => note.audience === 'all');
