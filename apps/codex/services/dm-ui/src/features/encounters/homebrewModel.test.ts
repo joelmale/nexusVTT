@@ -6,8 +6,6 @@ import {
   filterHomebrewMonsters,
   formatModifier,
   xpForCr,
-  CR_OPTIONS,
-  CR_XP_MAP,
 } from './homebrewModel';
 
 const mockMonsters: HomebrewMonster[] = [
