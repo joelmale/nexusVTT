@@ -1,7 +1,10 @@
 /**
  * Pure seedable treasure hoard roller adhering to the 2024 DMG tables.
  */
-import type { ItemRarity, ItemType } from '../../../demo/fixture-registry/types';
+import type {
+  CampaignItemRarity as ItemRarity,
+  CampaignItemType as ItemType,
+} from '../../../demo/fixture-registry/types';
 import type { SrdItem } from '../useSrdCatalog';
 import {
   HOARD_BASE_COINS,
@@ -97,50 +100,50 @@ function resolveCoins(coinMap: CoinDiceMap, rand: () => number): RolledCoins {
   return { cp, sp, ep, gp, pp, totalGp };
 }
 
-const DEFAULT_MAGIC_ITEMS_BY_RARITY: Record<ItemRarity, Array<{ name: string; type: ItemType; valueGp: number }>> = {
+const DEFAULT_MAGIC_ITEMS_BY_RARITY: Record<Exclude<ItemRarity, 'none'>, Array<{ name: string; type: ItemType; valueGp: number }>> = {
   common: [
     { name: 'Potion of Healing', type: 'potion', valueGp: 50 },
     { name: 'Spell Scroll (1st Level)', type: 'scroll', valueGp: 75 },
-    { name: 'Candle of the Deep', type: 'wondrous', valueGp: 50 },
-    { name: 'Cloak of Many Fashions', type: 'wondrous', valueGp: 50 },
+    { name: 'Candle of the Deep', type: 'wondrous_item', valueGp: 50 },
+    { name: 'Cloak of Many Fashions', type: 'wondrous_item', valueGp: 50 },
   ],
   uncommon: [
-    { name: 'Bag of Holding', type: 'wondrous', valueGp: 400 },
-    { name: 'Boots of Elvenkind', type: 'wondrous', valueGp: 350 },
-    { name: 'Cloak of Protection', type: 'wondrous', valueGp: 450 },
+    { name: 'Bag of Holding', type: 'wondrous_item', valueGp: 400 },
+    { name: 'Boots of Elvenkind', type: 'wondrous_item', valueGp: 350 },
+    { name: 'Cloak of Protection', type: 'wondrous_item', valueGp: 450 },
     { name: 'Potion of Greater Healing', type: 'potion', valueGp: 150 },
     { name: '+1 Weapon', type: 'weapon', valueGp: 500 },
-    { name: '+1 Shield', type: 'armor', valueGp: 400 },
-    { name: 'Wand of Magic Missiles', type: 'wand', valueGp: 450 },
+    { name: '+1 Shield', type: 'shield', valueGp: 400 },
+    { name: 'Wand of Magic Missiles', type: 'wondrous_item', valueGp: 450 },
   ],
   rare: [
-    { name: 'Cloak of the Bat', type: 'wondrous', valueGp: 3000 },
+    { name: 'Cloak of the Bat', type: 'wondrous_item', valueGp: 3000 },
     { name: 'Flame Tongue', type: 'weapon', valueGp: 4000 },
-    { name: 'Ring of Protection', type: 'ring', valueGp: 3500 },
+    { name: 'Ring of Protection', type: 'wondrous_item', valueGp: 3500 },
     { name: 'Potion of Superior Healing', type: 'potion', valueGp: 450 },
-    { name: 'Amulet of Health', type: 'wondrous', valueGp: 4000 },
+    { name: 'Amulet of Health', type: 'wondrous_item', valueGp: 4000 },
     { name: '+2 Weapon', type: 'weapon', valueGp: 4000 },
     { name: '+1 Armor', type: 'armor', valueGp: 3500 },
   ],
-  'very-rare': [
-    { name: 'Belt of Giant Strength (Fire)', type: 'wondrous', valueGp: 20000 },
-    { name: 'Staff of Power', type: 'staff', valueGp: 25000 },
-    { name: 'Manual of Bodily Health', type: 'wondrous', valueGp: 22000 },
+  very_rare: [
+    { name: 'Belt of Giant Strength (Fire)', type: 'wondrous_item', valueGp: 20000 },
+    { name: 'Staff of Power', type: 'wondrous_item', valueGp: 25000 },
+    { name: 'Manual of Bodily Health', type: 'wondrous_item', valueGp: 22000 },
     { name: 'Potion of Supreme Healing', type: 'potion', valueGp: 1350 },
     { name: '+3 Weapon', type: 'weapon', valueGp: 20000 },
     { name: '+2 Armor', type: 'armor', valueGp: 18000 },
   ],
   legendary: [
     { name: 'Holy Avenger', type: 'weapon', valueGp: 80000 },
-    { name: 'Staff of the Magi', type: 'staff', valueGp: 90000 },
-    { name: 'Ring of Three Wishes', type: 'ring', valueGp: 100000 },
+    { name: 'Staff of the Magi', type: 'wondrous_item', valueGp: 90000 },
+    { name: 'Ring of Three Wishes', type: 'wondrous_item', valueGp: 100000 },
     { name: 'Vorpal Sword', type: 'weapon', valueGp: 85000 },
-    { name: 'Cloak of Invisibility', type: 'wondrous', valueGp: 75000 },
+    { name: 'Cloak of Invisibility', type: 'wondrous_item', valueGp: 75000 },
   ],
   artifact: [
-    { name: 'Eye of Vecna', type: 'wondrous', valueGp: 150000 },
-    { name: 'Hand of Vecna', type: 'wondrous', valueGp: 150000 },
-    { name: 'Book of Exalted Deeds', type: 'wondrous', valueGp: 200000 },
+    { name: 'Eye of Vecna', type: 'wondrous_item', valueGp: 150000 },
+    { name: 'Hand of Vecna', type: 'wondrous_item', valueGp: 150000 },
+    { name: 'Book of Exalted Deeds', type: 'wondrous_item', valueGp: 200000 },
   ],
 };
 
@@ -199,7 +202,7 @@ export function rollTreasure(options: RollTreasureOptions): RolledTreasureResult
         // Find matching candidates in compendium
         const candidates = compendiumItems.filter((item) => {
           if (item.rarity !== drop.rarity) return false;
-          if (drop.types && drop.types.length > 0 && !drop.types.includes(item.type)) {
+          if (drop.types && drop.types.length > 0 && !drop.types.includes(item.itemType)) {
             return false;
           }
           return true;
@@ -210,15 +213,15 @@ export function rollTreasure(options: RollTreasureOptions): RolledTreasureResult
           magicItems.push({
             name: picked.name,
             rarity: picked.rarity,
-            type: picked.type,
+            type: picked.itemType,
             description: picked.description,
             sourceCompendiumId: picked.id,
             valueGp: picked.valueGp,
-            attunement: picked.attunement,
+            attunement: picked.requiresAttunement,
           });
         } else {
           // Fallback
-          const defaults = DEFAULT_MAGIC_ITEMS_BY_RARITY[drop.rarity] || DEFAULT_MAGIC_ITEMS_BY_RARITY.common;
+          const defaults = (drop.rarity !== 'none' && DEFAULT_MAGIC_ITEMS_BY_RARITY[drop.rarity]) || DEFAULT_MAGIC_ITEMS_BY_RARITY.common;
           const picked = defaults[Math.floor(rand() * defaults.length)];
           magicItems.push({
             name: picked.name,

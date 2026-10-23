@@ -22,8 +22,8 @@ const sidebars: SidebarsConfig = {
       type: 'category',
       label: 'Integrations',
       items: [
+        'integrations/campaign-studio-ux-plan',
         'integrations/campaign-studio-sidecar-plan',
-        'integrations/campaign-studio-visual-prototype-plan',
         'integrations/campaign-studio-session-planner-plan',
         'integrations/forge-vtt-object-integration-plan',
         'integrations/NEXUSCODEX_INTEGRATION',

@@ -63,6 +63,11 @@ export function EncountersSection() {
     () => buildEncountersModel(bundle, { q, kind, difficulty, sort }),
     [bundle, q, kind, difficulty, sort],
   );
+  const pinnedIds = bundle.pinnedObjectIds;
+  const sortedRows = useMemo(
+    () => sortByPinned(rows, (r) => r.encounter.id, pinnedIds),
+    [rows, pinnedIds],
+  );
 
   const addRow = (
     <AddRow
@@ -109,12 +114,6 @@ export function EncountersSection() {
     : undefined;
   const kinds = Array.from(new Set(bundle.encounters.map((item) => item.kind)));
   const hasNext = Boolean(nextSessionId(bundle));
-
-  const pinnedIds = bundle.pinnedObjectIds;
-  const sortedRows = useMemo(
-    () => sortByPinned(rows, (r) => r.encounter.id, pinnedIds),
-    [rows, pinnedIds],
-  );
 
   const list = (
     <EntityList

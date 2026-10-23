@@ -11,6 +11,8 @@ import { getVisibleCampaignCatalog } from '@/demo/campaign-catalog';
 import { useCampaignContext } from '@/features/campaigns/CampaignContext';
 import { CampaignSwitcher } from '@/features/campaigns/CampaignSwitcher';
 
+import { useCampaignMood } from '@/features/moods';
+
 import styles from './StudioTopBar.module.css';
 
 interface StudioTopBarProps {
@@ -36,6 +38,7 @@ export function StudioTopBar({
   const location = useLocation();
   const navigate = useNavigate();
   const { activeCampaign, isDemoCampaign } = useCampaignContext();
+  const { activeOption } = useCampaignMood();
   const activeExample = getVisibleCampaignCatalog().find((entry) =>
     location.pathname.startsWith(`/demo/${entry.slug}/`),
   );
@@ -121,10 +124,10 @@ export function StudioTopBar({
           <Search size={16} />
         </button>
         <button
-          aria-label="Change theme"
+          aria-label={`Change theme (${activeOption.label})`}
           className={styles.iconButton}
           onClick={onTheme}
-          title="Change theme"
+          title={`Change theme (${activeOption.label})`}
           type="button"
         >
           <Moon size={16} />

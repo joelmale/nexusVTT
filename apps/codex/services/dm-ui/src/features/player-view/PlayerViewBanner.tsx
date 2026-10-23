@@ -1,6 +1,6 @@
 import Eye from 'lucide-react/dist/esm/icons/eye';
 
-import { usePlayerView } from './PlayerViewContext';
+import { usePlayerView } from './playerViewState';
 import styles from './PlayerViewBanner.module.css';
 
 export interface PlayerViewBannerProps {

@@ -4,7 +4,8 @@ import userEvent from '@testing-library/user-event';
 import { describe, expect, it, vi } from 'vitest';
 
 import { PlayerViewBanner } from './PlayerViewBanner';
-import { PlayerViewProvider, usePlayerView } from './PlayerViewContext';
+import { PlayerViewProvider } from './PlayerViewContext';
+import { usePlayerView } from './playerViewState';
 import { PlayerViewToggle } from './PlayerViewToggle';
 
 function TestConsumer() {

@@ -8,6 +8,7 @@ import { HomePage } from './pages/HomePage';
 import { SessionsPage } from './pages/SessionsPage';
 import { WorldsPage } from './pages/WorldsPage';
 import { CapabilityNoticeProvider } from './features/capability-notice';
+import { MoodProvider } from './features/moods';
 import { StudioNavigationProvider } from './features/studio-shell/StudioNavigationProvider';
 import { CampaignOverviewRoute } from './routes/CampaignOverviewRoute';
 import { CampaignLandingRoute } from './routes/CampaignLandingRoute';
@@ -27,7 +28,8 @@ function App() {
       <CapabilityNoticeProvider>
         <CampaignProvider>
           <StudioNavigationProvider>
-            <Routes>
+            <MoodProvider>
+              <Routes>
               <Route path="/" element={<CampaignRootRoute />} />
               <Route path="campaigns" element={<CampaignLandingRoute />} />
               <Route
@@ -78,7 +80,8 @@ function App() {
               </Route>
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
-          </StudioNavigationProvider>
+          </MoodProvider>
+        </StudioNavigationProvider>
         </CampaignProvider>
       </CapabilityNoticeProvider>
     </BrowserRouter>

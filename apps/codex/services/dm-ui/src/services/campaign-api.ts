@@ -124,3 +124,14 @@ export async function createCampaign(
     }),
   );
 }
+
+export async function updateCampaign(
+  id: string,
+  updates: Partial<Pick<CampaignSummary, 'name' | 'description' | 'edition' | 'mode' | 'mood'>>,
+): Promise<void> {
+  await campaignRequest(`/api/campaigns/${encodeURIComponent(id)}`, {
+    body: JSON.stringify(updates),
+    method: 'PATCH',
+  });
+}
+

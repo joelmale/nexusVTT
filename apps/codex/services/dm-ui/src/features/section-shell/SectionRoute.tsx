@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react';
 
 import { useCapabilityNotice } from '@/features/capability-notice';
 import { QuickCaptureModal } from '@/features/inbox/QuickCaptureModal';
+import { MoodPickerModal, MoodProvider } from '@/features/moods';
 import { CampaignSearchDialog } from '@/features/search/CampaignSearchDialog';
 import { StudioFrame } from '@/features/studio-shell/StudioFrame';
 
@@ -24,6 +25,7 @@ export function SectionRoute({ title, children }: SectionRouteProps) {
   const state = useBundleStore();
   const [searchOpen, setSearchOpen] = useState(false);
   const [quickCaptureOpen, setQuickCaptureOpen] = useState(false);
+  const [moodPickerOpen, setMoodPickerOpen] = useState(false);
 
   // Ctrl/Cmd+K opens search, Ctrl/Cmd+Shift+N opens quick capture from anywhere in a campaign.
   useEffect(() => {
@@ -83,25 +85,35 @@ export function SectionRoute({ title, children }: SectionRouteProps) {
 
   const campaignName = context.bundle.catalog.campaign.name;
   return (
-    <StudioFrame
-      contextLabel={title ? `${campaignName} · ${title}` : campaignName}
-      onCapability={notifyCapability}
-      onQuickCapture={() => setQuickCaptureOpen(true)}
-      onSearch={() => setSearchOpen(true)}
-      onSettings={() => notifyCapability('campaign.settings.open')}
-      onTheme={() => notifyCapability('campaign.theme.change')}
+    <MoodProvider
+      campaignId={context.bundle.catalog.campaign.id}
+      campaignMood={context.bundle.catalog.campaign.mood}
+      isEditable={context.store.editable}
     >
-      <SectionContext.Provider value={context}>
-        {children}
-        <CampaignSearchDialog
-          onClose={() => setSearchOpen(false)}
-          open={searchOpen}
-        />
-        <QuickCaptureModal
-          isOpen={quickCaptureOpen}
-          onClose={() => setQuickCaptureOpen(false)}
-        />
-      </SectionContext.Provider>
-    </StudioFrame>
+      <StudioFrame
+        contextLabel={title ? `${campaignName} · ${title}` : campaignName}
+        onCapability={notifyCapability}
+        onQuickCapture={() => setQuickCaptureOpen(true)}
+        onSearch={() => setSearchOpen(true)}
+        onSettings={() => notifyCapability('campaign.settings.open')}
+        onTheme={() => setMoodPickerOpen(true)}
+      >
+        <SectionContext.Provider value={context}>
+          {children}
+          <CampaignSearchDialog
+            onClose={() => setSearchOpen(false)}
+            open={searchOpen}
+          />
+          <QuickCaptureModal
+            isOpen={quickCaptureOpen}
+            onClose={() => setQuickCaptureOpen(false)}
+          />
+          <MoodPickerModal
+            isOpen={moodPickerOpen}
+            onClose={() => setMoodPickerOpen(false)}
+          />
+        </SectionContext.Provider>
+      </StudioFrame>
+    </MoodProvider>
   );
 }

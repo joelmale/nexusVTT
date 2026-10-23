@@ -4,6 +4,7 @@ import {
   CampaignApiError,
   createCampaign,
   listCampaigns,
+  updateCampaign,
 } from './campaign-api';
 
 function json(body: unknown, status = 200): Response {
@@ -90,9 +91,25 @@ describe('campaign-api', () => {
       json({ error: 'Authentication required' }, 401),
     );
 
-    await expect(listCampaigns()).rejects.toMatchObject<CampaignApiError>({
+    await expect(listCampaigns()).rejects.toMatchObject({
       message: 'Authentication required',
       status: 401,
     });
+  });
+
+  it('updates a campaign via PATCH request', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(
+      json({ success: true }),
+    );
+
+    await updateCampaign('camp-123', { mood: 'feywild' });
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      '/api/campaigns/camp-123',
+      expect.objectContaining({
+        body: JSON.stringify({ mood: 'feywild' }),
+        method: 'PATCH',
+      }),
+    );
   });
 });

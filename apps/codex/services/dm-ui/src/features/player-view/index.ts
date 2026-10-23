@@ -11,10 +11,11 @@ export {
 
 export {
   PlayerViewContext,
-  PlayerViewProvider,
   usePlayerView,
   type PlayerViewContextValue,
-} from './PlayerViewContext';
+} from './playerViewState';
+
+export { PlayerViewProvider } from './PlayerViewContext';
 
 export {
   PlayerViewToggle,

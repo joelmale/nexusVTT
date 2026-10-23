@@ -3,7 +3,6 @@ import { getFixtureBundle } from '@/demo/fixture-registry';
 import {
   buildOneShotModel,
   formatDuration,
-  DEFAULT_TARGET_BUDGET_MINUTES,
 } from './oneShotModel';
 
 describe('oneShotModel', () => {

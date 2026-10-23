@@ -1,7 +1,7 @@
 import Eye from 'lucide-react/dist/esm/icons/eye';
 import EyeOff from 'lucide-react/dist/esm/icons/eye-off';
 
-import { usePlayerView } from './PlayerViewContext';
+import { usePlayerView } from './playerViewState';
 import styles from './PlayerViewToggle.module.css';
 
 export interface PlayerViewToggleProps {

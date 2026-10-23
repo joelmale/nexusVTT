@@ -55,9 +55,7 @@ describe('RichEntityRow', () => {
       />,
     );
 
-    expect(screen.getByTestId('badge')).toHaveLength
-      ? undefined
-      : expect(screen.getByTestId('badge')).toBeInTheDocument();
+    expect(screen.getByTestId('badge')).toBeInTheDocument();
   });
 
   it('renders a static pin indicator when isPinned is true and no onTogglePin is passed', () => {

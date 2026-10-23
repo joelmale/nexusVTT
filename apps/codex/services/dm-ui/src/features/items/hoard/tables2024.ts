@@ -2,7 +2,10 @@
  * 2024 Dungeon Master's Guide Treasure Tables & Hoard Rules.
  * Pure static data definitions for individual treasure and treasure hoards across tiers.
  */
-import type { ItemRarity, ItemType } from '../../../demo/fixture-registry/types';
+import type {
+  CampaignItemRarity as ItemRarity,
+  CampaignItemType as ItemType,
+} from '../../../demo/fixture-registry/types';
 
 export type TreasureTier = '0-4' | '5-10' | '11-16' | '17+';
 export type TreasureType = 'individual' | 'hoard';
@@ -367,7 +370,7 @@ export const HOARD_TABLES: Record<TreasureTier, HoardTableRow[]> = {
       },
       magicItems: [
         { rarity: 'rare', dice: { count: 1, sides: 4 } },
-        { rarity: 'very-rare', dice: { count: 1, sides: 1 } },
+        { rarity: 'very_rare', dice: { count: 1, sides: 1 } },
       ],
     },
   ],
@@ -423,7 +426,7 @@ export const HOARD_TABLES: Record<TreasureTier, HoardTableRow[]> = {
         dice: { count: 3, sides: 6 },
         examples: ['Black Opal', 'Blue Sapphire', 'Fiery Yellow Corundum', 'Star Ruby', 'Star Sapphire', 'Yellow Sapphire'],
       },
-      magicItems: [{ rarity: 'rare', dice: { count: 1, sides: 4 } }, { rarity: 'very-rare', dice: { count: 1, sides: 1 } }],
+      magicItems: [{ rarity: 'rare', dice: { count: 1, sides: 4 } }, { rarity: 'very_rare', dice: { count: 1, sides: 1 } }],
     },
     {
       min: 73,
@@ -434,7 +437,7 @@ export const HOARD_TABLES: Record<TreasureTier, HoardTableRow[]> = {
         dice: { count: 2, sides: 4 },
         examples: ['Silver Chalice with lapis lazuli', 'Small Gold Idol', 'Gold Dragon Comb with red garnets'],
       },
-      magicItems: [{ rarity: 'very-rare', dice: { count: 1, sides: 4 } }],
+      magicItems: [{ rarity: 'very_rare', dice: { count: 1, sides: 4 } }],
     },
     {
       min: 91,
@@ -445,7 +448,7 @@ export const HOARD_TABLES: Record<TreasureTier, HoardTableRow[]> = {
         dice: { count: 3, sides: 6 },
         examples: ['Black Opal', 'Blue Sapphire', 'Star Ruby', 'Star Sapphire'],
       },
-      magicItems: [{ rarity: 'very-rare', dice: { count: 1, sides: 4 } }, { rarity: 'legendary', dice: { count: 1, sides: 1 } }],
+      magicItems: [{ rarity: 'very_rare', dice: { count: 1, sides: 4 } }, { rarity: 'legendary', dice: { count: 1, sides: 1 } }],
     },
   ],
   '17+': [
@@ -470,7 +473,7 @@ export const HOARD_TABLES: Record<TreasureTier, HoardTableRow[]> = {
         dice: { count: 1, sides: 10 },
         examples: ['Fine Gold Chain set with fire opals', 'Old Masterpiece Painting', 'Embroidered Silk and Velvet Mantle with moonstones', 'Platinum Ring set with emerald'],
       },
-      magicItems: [{ rarity: 'very-rare', dice: { count: 1, sides: 6 } }],
+      magicItems: [{ rarity: 'very_rare', dice: { count: 1, sides: 6 } }],
     },
     {
       min: 26,
@@ -481,7 +484,7 @@ export const HOARD_TABLES: Record<TreasureTier, HoardTableRow[]> = {
         dice: { count: 1, sides: 8 },
         examples: ['Black Sapphire', 'Diamond (large, clear)', 'Jacinth', 'Ruby', 'Star Emerald'],
       },
-      magicItems: [{ rarity: 'very-rare', dice: { count: 1, sides: 6 } }],
+      magicItems: [{ rarity: 'very_rare', dice: { count: 1, sides: 6 } }],
     },
     {
       min: 56,
@@ -504,7 +507,7 @@ export const HOARD_TABLES: Record<TreasureTier, HoardTableRow[]> = {
         examples: ['Jeweled Platinum Crown', 'Jeweled Gold Scepter', 'Gold Cup set with emeralds'],
       },
       magicItems: [
-        { rarity: 'very-rare', dice: { count: 1, sides: 4 } },
+        { rarity: 'very_rare', dice: { count: 1, sides: 4 } },
         { rarity: 'legendary', dice: { count: 1, sides: 4 } },
       ],
     },

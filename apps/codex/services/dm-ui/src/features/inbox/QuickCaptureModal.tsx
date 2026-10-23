@@ -52,6 +52,10 @@ export function QuickCaptureModal({
   targetRef.current = target;
   const isSavingRef = useRef(isSaving);
   isSavingRef.current = isSaving;
+  const keyHandlersRef = useRef<{
+    onClose: () => void;
+    executeSave: () => Promise<void>;
+  } | null>(null);
 
   useEffect(() => {
     if (!isOpen) return undefined;
@@ -61,10 +65,10 @@ export function QuickCaptureModal({
 
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key === 'Escape') {
-        onClose();
+        keyHandlersRef.current?.onClose();
       } else if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
         e.preventDefault();
-        void executeSave();
+        void keyHandlersRef.current?.executeSave();
       }
     };
 
@@ -125,6 +129,7 @@ export function QuickCaptureModal({
       setIsSaving(false);
     }
   };
+  keyHandlersRef.current = { onClose, executeSave };
 
   if (!isOpen) return null;
 

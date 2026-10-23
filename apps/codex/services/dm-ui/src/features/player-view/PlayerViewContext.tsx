@@ -1,23 +1,5 @@
-import {
-  createContext,
-  useCallback,
-  useContext,
-  useMemo,
-  useState,
-  type ReactNode,
-} from 'react';
-
-export interface PlayerViewContextValue {
-  isPlayerView: boolean;
-  setPlayerView: (active: boolean) => void;
-  togglePlayerView: () => void;
-}
-
-export const PlayerViewContext = createContext<PlayerViewContextValue>({
-  isPlayerView: false,
-  setPlayerView: () => {},
-  togglePlayerView: () => {},
-});
+import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { PlayerViewContext } from './playerViewState';
 
 export function PlayerViewProvider({
   children,
@@ -46,11 +28,4 @@ export function PlayerViewProvider({
       {children}
     </PlayerViewContext.Provider>
   );
-}
-
-/**
- * Hook to access and control the Player View preview state.
- */
-export function usePlayerView(): PlayerViewContextValue {
-  return useContext(PlayerViewContext);
 }

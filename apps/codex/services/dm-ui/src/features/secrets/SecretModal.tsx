@@ -45,7 +45,9 @@ export function SecretModal({
   const [revealedInSessionId, setRevealedInSessionId] = useState<string>('');
   const [attachedTo, setAttachedTo] = useState<Array<{ kind: string; id: string }>>([]);
   const [selectedKind, setSelectedKind] = useState<string>('npc');
-  const [selectedEntityId, setSelectedEntityId] = useState<string>('');
+  const [selectedEntityId, setSelectedEntityId] = useState<string>(
+    () => bundle.npcs[0]?.id ?? '',
+  );
 
   useEffect(() => {
     if (initialSecret) {
@@ -61,9 +63,9 @@ export function SecretModal({
     }
   }, [initialSecret, isOpen]);
 
-  // Compute available entities for chosen kind
-  const availableEntities: Array<{ id: string; label: string }> = (() => {
-    switch (selectedKind) {
+  // Compute available entities for a kind
+  const entitiesForKind = (kind: string): Array<{ id: string; label: string }> => {
+    switch (kind) {
       case 'npc':
         return bundle.npcs.map((n) => ({ id: n.id, label: n.name }));
       case 'location':
@@ -77,16 +79,14 @@ export function SecretModal({
       default:
         return [];
     }
-  })();
+  };
+  const availableEntities = entitiesForKind(selectedKind);
 
   // Keep selectedEntityId valid when kind changes
-  useEffect(() => {
-    if (availableEntities.length > 0) {
-      setSelectedEntityId(availableEntities[0].id);
-    } else {
-      setSelectedEntityId('');
-    }
-  }, [selectedKind]);
+  const handleKindChange = (kind: string) => {
+    setSelectedKind(kind);
+    setSelectedEntityId(entitiesForKind(kind)[0]?.id ?? '');
+  };
 
   if (!isOpen) return null;
 
@@ -160,7 +160,7 @@ export function SecretModal({
               <select
                 aria-label="Attachment entity kind"
                 className={styles.select}
-                onChange={(e) => setSelectedKind(e.target.value)}
+                onChange={(e) => handleKindChange(e.target.value)}
                 value={selectedKind}
               >
                 {ATTACHABLE_KINDS.map((k) => (
