@@ -173,6 +173,7 @@ export const Dashboard: React.FC = () => {
 
   // Create Campaign Modal State
   const [campaignModalOpen, setCampaignModalOpen] = useState(false);
+  const [renamingTable, setRenamingTable] = useState<TableRecord | null>(null);
 
   // Auth guard — wait for the initial /auth/me probe to resolve before deciding.
   // Redirect only when auth is confirmed resolved AND the user is not signed in,
@@ -214,6 +215,25 @@ export const Dashboard: React.FC = () => {
       : null;
     await joinRoomWithCode(code, hero as unknown as PlayerCharacter);
     navigate(`/lobby/game/${code}`);
+  };
+
+  // Inline code entry. With no heroes there is nothing to pick, so join
+  // straight away instead of opening the modal to confirm the same code.
+  const handleJoinWithCode = async (roomCode: string) => {
+    if ((summary?.heroes.length ?? 0) > 0) {
+      setJoinModal({ roomCode });
+      return;
+    }
+    try {
+      await handleModalJoin(roomCode, null);
+    } catch (error) {
+      console.error('Failed to join table:', error);
+      alert(
+        error instanceof Error
+          ? error.message
+          : 'Failed to join the table. Please try again.',
+      );
+    }
   };
 
   // "Play as {name}": open the join flow with this hero preselected.
@@ -305,6 +325,24 @@ export const Dashboard: React.FC = () => {
         alert('Failed to delete campaign');
       }
     }
+  };
+
+  const handleRenameSubmit = async (name: string, description: string) => {
+    if (!renamingTable) return;
+    const res = await fetch(`/api/campaigns/${renamingTable.id}`, {
+      method: 'PUT',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, description }),
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(
+        body.error || `Failed to save campaign (HTTP ${res.status})`,
+      );
+    }
+    setRenamingTable(null);
+    await fetchDashboardData();
   };
 
   const handleCreateCampaign = () => {
@@ -404,11 +442,12 @@ export const Dashboard: React.FC = () => {
         onBack={() => navigate('/lobby')}
         onCreateCharacter={handleCreateCharacter}
         onJoinGame={() => setJoinModal({})}
-        onJoinWithCode={(code) => setJoinModal({ roomCode: code })}
+        onJoinWithCode={(code) => void handleJoinWithCode(code)}
         onClearAll={devToolsEnabled ? handleClearAll : undefined}
         onSeedData={devToolsEnabled ? handleSeedData : undefined}
         seeding={seeding}
         onOpenTable={handleOpenTable}
+        onEditTable={setRenamingTable}
         onDeleteTable={handleDeleteCampaign}
         onOpenCampaignStudio={() =>
           window.location.assign(getCampaignStudioUrl())
@@ -440,6 +479,18 @@ export const Dashboard: React.FC = () => {
         <NewCampaignModal
           onCreate={handleCampaignSubmit}
           onClose={() => setCampaignModalOpen(false)}
+        />
+      )}
+
+      {/* Rename Campaign */}
+      {renamingTable && (
+        <NewCampaignModal
+          campaign={{
+            name: renamingTable.name,
+            description: renamingTable.subtitle,
+          }}
+          onCreate={handleRenameSubmit}
+          onClose={() => setRenamingTable(null)}
         />
       )}
     </>

@@ -18,6 +18,8 @@ interface TableCardProps {
   heroName?: string;
   /** Opens the table (DM) or rejoins it (player). */
   onAction?: (table: TableRecord) => void;
+  /** Rename / edit description. Offered to DMs only. */
+  onEdit?: (table: TableRecord) => void;
   /** Offered to DMs only. */
   onDelete?: (table: TableRecord) => void;
   className?: string;
@@ -35,6 +37,7 @@ export const TableCard: React.FC<TableCardProps> = ({
   table,
   heroName,
   onAction,
+  onEdit,
   onDelete,
   className = '',
 }) => {
@@ -45,10 +48,17 @@ export const TableCard: React.FC<TableCardProps> = ({
   const shown = table.roster.slice(0, MAX_AVATARS);
   const extra = table.roster.length - shown.length;
 
-  const menuItems: OverflowMenuItem[] =
-    isDm && onDelete
-      ? [{ label: 'Delete', danger: true, onSelect: () => onDelete(table) }]
-      : [];
+  const menuItems: OverflowMenuItem[] = [];
+  if (isDm && onEdit) {
+    menuItems.push({ label: 'Rename', onSelect: () => onEdit(table) });
+  }
+  if (isDm && onDelete) {
+    menuItems.push({
+      label: 'Delete',
+      danger: true,
+      onSelect: () => onDelete(table),
+    });
+  }
 
   return (
     <article

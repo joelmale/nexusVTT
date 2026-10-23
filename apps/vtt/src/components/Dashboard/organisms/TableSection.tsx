@@ -10,6 +10,7 @@ interface TableSectionProps {
   /** Heroes, used to name the hero a player brings to each table. */
   heroes?: CharacterRecord[];
   onAction?: (table: TableRecord) => void;
+  onEdit?: (table: TableRecord) => void;
   onDelete?: (table: TableRecord) => void;
   /** Buttons shown on the right of the section header. */
   actions?: React.ReactNode;
@@ -27,6 +28,7 @@ export const TableSection: React.FC<TableSectionProps> = ({
   tables,
   heroes = [],
   onAction,
+  onEdit,
   onDelete,
   actions,
   emptyContent,
@@ -69,6 +71,7 @@ export const TableSection: React.FC<TableSectionProps> = ({
               table={table}
               heroName={heroName(table)}
               onAction={onAction}
+              onEdit={onEdit}
               onDelete={onDelete}
             />
           ))}

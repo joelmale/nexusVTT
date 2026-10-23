@@ -314,7 +314,35 @@ describe('TableCard by role and status', () => {
         name: 'More actions for Curse of Strahd',
       }),
     );
+    expect(screen.getByRole('menuitem', { name: 'Rename' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Delete' })).toBeInTheDocument();
+  });
+
+  it('renames a DM table through the overflow menu', async () => {
+    const fetchMock = mockFetch(fullSummary);
+    renderDashboard();
+    await screen.findByRole('heading', { name: 'Curse of Strahd', level: 3 });
+    fireEvent.click(
+      within(cardFor('Curse of Strahd')).getByRole('button', {
+        name: 'More actions for Curse of Strahd',
+      }),
+    );
+    fireEvent.click(screen.getByRole('menuitem', { name: 'Rename' }));
+
+    const dialog = within(screen.getByRole('dialog'));
+    const nameInput = dialog.getByLabelText('Campaign Name');
+    expect(nameInput).toHaveValue('Curse of Strahd');
+    fireEvent.change(nameInput, { target: { value: 'Curse of Strahd II' } });
+    fireEvent.click(dialog.getByRole('button', { name: 'Save Changes' }));
+
+    await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    const put = (
+      fetchMock.mock.calls as unknown as Array<[string, RequestInit?]>
+    ).find(([, init]) => init?.method === 'PUT');
+    expect(put?.[0]).toBe('/api/campaigns/run-1');
+    expect(JSON.parse(String(put?.[1]?.body))).toMatchObject({
+      name: 'Curse of Strahd II',
+    });
   });
 
   it('rejoins an open player table with the bound hero', async () => {
@@ -505,6 +533,24 @@ describe('ContinueBand', () => {
     await waitFor(() => expect(joinRoomWithCode).toHaveBeenCalledTimes(1));
     expect(joinRoomWithCode.mock.calls[0][0]).toBe('AB12');
     expect(joinRoomWithCode.mock.calls[0][1]).toMatchObject({ id: 'ch-2' });
+    await waitFor(() =>
+      expect(navigate).toHaveBeenCalledWith('/lobby/game/AB12'),
+    );
+  });
+
+  it('joins straight away when there are no heroes to choose from', async () => {
+    mockFetch({ ...fullSummary, heroes: [], lastTable: undefined });
+    renderDashboard();
+    const band = within(await screen.findByRole('region', { name: 'Continue' }));
+    fireEvent.change(band.getByLabelText('Room code character 1 of 4'), {
+      target: { value: 'ab12' },
+    });
+    fireEvent.click(band.getByRole('button', { name: 'Find table' }));
+
+    await waitFor(() => expect(joinRoomWithCode).toHaveBeenCalledTimes(1));
+    expect(joinRoomWithCode.mock.calls[0][0]).toBe('AB12');
+    expect(joinRoomWithCode.mock.calls[0][1]).toBeNull();
+    expect(screen.queryByRole('dialog')).toBeNull();
     await waitFor(() =>
       expect(navigate).toHaveBeenCalledWith('/lobby/game/AB12'),
     );

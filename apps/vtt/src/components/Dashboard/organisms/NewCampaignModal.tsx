@@ -3,9 +3,14 @@ import { Button } from '../atoms/Button';
 import { ModalShell } from './ModalShell';
 
 interface NewCampaignModalProps {
-  /** Create the campaign. Resolves on success; rejects with the failure reason. */
+  /**
+   * Save the campaign (create, or update when `campaign` is given). Resolves on
+   * success; rejects with the failure reason.
+   */
   onCreate: (name: string, description: string) => Promise<void>;
   onClose: () => void;
+  /** Existing campaign to rename; omit to create a new one. */
+  campaign?: { name: string; description: string };
 }
 
 const inputClass = `
@@ -18,9 +23,11 @@ const inputClass = `
 export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({
   onCreate,
   onClose,
+  campaign,
 }) => {
-  const [name, setName] = useState('');
-  const [description, setDescription] = useState('');
+  const isEdit = Boolean(campaign);
+  const [name, setName] = useState(campaign?.name ?? '');
+  const [description, setDescription] = useState(campaign?.description ?? '');
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -36,7 +43,9 @@ export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({
       await onCreate(trimmed, description.trim());
     } catch (err) {
       setError(
-        err instanceof Error ? err.message : 'Failed to create campaign',
+        err instanceof Error
+          ? err.message
+          : `Failed to ${isEdit ? 'save' : 'create'} campaign`,
       );
     } finally {
       setCreating(false);
@@ -44,9 +53,14 @@ export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({
   };
 
   return (
-    <ModalShell title="New Campaign" onClose={onClose}>
+    <ModalShell
+      title={isEdit ? 'Rename Campaign' : 'New Campaign'}
+      onClose={onClose}
+    >
       <p className="text-xs text-[#cbd5e1]/80 mb-4 font-serif italic">
-        Name your campaign to begin chronicling a new adventure.
+        {isEdit
+          ? 'Update the name and summary your players see.'
+          : 'Name your campaign to begin chronicling a new adventure.'}
       </p>
 
       <label
@@ -104,7 +118,13 @@ export const NewCampaignModal: React.FC<NewCampaignModalProps> = ({
           onClick={() => void submit()}
           disabled={creating || !name.trim()}
         >
-          {creating ? 'Creating…' : 'Create Campaign'}
+          {creating
+            ? isEdit
+              ? 'Saving…'
+              : 'Creating…'
+            : isEdit
+              ? 'Save Changes'
+              : 'Create Campaign'}
         </Button>
       </div>
     </ModalShell>

@@ -42,6 +42,7 @@ interface DashboardLayoutProps {
 
   /** Open Table (DM) or Rejoin (player). */
   onOpenTable?: (table: TableRecord) => void;
+  onEditTable?: (table: TableRecord) => void;
   onDeleteTable?: (table: TableRecord) => void;
   onCreateCampaign?: () => void;
   onOpenCampaignStudio?: () => void;
@@ -72,6 +73,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
   seeding = false,
 
   onOpenTable,
+  onEditTable,
   onDeleteTable,
   onCreateCampaign,
   onOpenCampaignStudio,
@@ -168,6 +170,7 @@ export const DashboardLayout: React.FC<DashboardLayoutProps> = ({
                 tables={runs}
                 heroes={heroes}
                 onAction={onOpenTable}
+                onEdit={onEditTable}
                 onDelete={onDeleteTable}
                 actions={
                   <>
