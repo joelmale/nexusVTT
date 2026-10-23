@@ -1,0 +1,238 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.65);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: var(--studio-gap-md);
+  -webkit-backdrop-filter: blur(3px);
+  backdrop-filter: blur(3px);
+}
+
+.modal {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: 8px;
+  width: 100%;
+  max-width: 680px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--studio-gap-md);
+  border-bottom: 1px solid var(--studio-border);
+  background: var(--studio-surface-muted);
+}
+
+.titleGroup {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.title {
+  margin: 0;
+  font-family: var(--studio-font-display);
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: var(--studio-text);
+}
+
+.subtitle {
+  font-size: 0.85rem;
+  color: var(--studio-text-muted);
+}
+
+.closeButton {
+  background: transparent;
+  border: none;
+  color: var(--studio-text-muted);
+  cursor: pointer;
+  padding: var(--studio-gap-xs);
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: color 0.15s ease, background 0.15s ease;
+}
+
+.closeButton:hover {
+  color: var(--studio-text);
+  background: var(--studio-surface-raised);
+}
+
+.form {
+  padding: var(--studio-gap-md);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-md);
+}
+
+.fieldset {
+  border: 1px solid var(--studio-border);
+  border-radius: 6px;
+  padding: var(--studio-gap-md);
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--studio-gap-sm);
+  background: var(--studio-surface-raised);
+}
+
+.legend {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--studio-gold);
+  padding: 0 var(--studio-gap-xs);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--studio-gap-sm);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  font-size: 0.85rem;
+  color: var(--studio-text);
+}
+
+.field input,
+.field select,
+.field textarea {
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: 4px;
+  padding: 6px 10px;
+  color: var(--studio-text);
+  font-size: 0.9rem;
+  font-family: inherit;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none;
+  border-color: var(--studio-primary);
+  box-shadow: 0 0 0 1px var(--studio-primary);
+}
+
+.abilitiesGrid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: var(--studio-gap-xs);
+}
+
+@media (max-width: 600px) {
+  .abilitiesGrid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+.abilityCard {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--studio-surface);
+  border: 1px solid var(--studio-border);
+  border-radius: 4px;
+  padding: 6px 4px;
+  gap: 2px;
+}
+
+.abilityLabel {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--studio-gold);
+  text-transform: uppercase;
+}
+
+.abilityInput {
+  width: 100%;
+  max-width: 50px;
+  text-align: center;
+  font-size: 0.95rem;
+  font-weight: 600;
+  background: transparent;
+  border: 1px solid var(--studio-border);
+  border-radius: 3px;
+  color: var(--studio-text);
+  padding: 2px;
+}
+
+.abilityModifier {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--studio-text-muted);
+}
+
+.footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--studio-gap-sm);
+  padding: var(--studio-gap-md);
+  border-top: 1px solid var(--studio-border);
+  background: var(--studio-surface-muted);
+}
+
+.cancelButton {
+  background: transparent;
+  border: 1px solid var(--studio-border);
+  border-radius: 4px;
+  padding: 8px 16px;
+  color: var(--studio-text);
+  cursor: pointer;
+  font-size: 0.9rem;
+  transition: background 0.15s ease;
+}
+
+.cancelButton:hover {
+  background: var(--studio-surface-raised);
+}
+
+.submitButton {
+  background: var(--studio-primary);
+  border: none;
+  border-radius: 4px;
+  padding: 8px 18px;
+  color: var(--studio-positive-contrast);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: opacity 0.15s ease;
+}
+
+.submitButton:hover:not(:disabled) {
+  opacity: 0.9;
+}
+
+.submitButton:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.errorBanner {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid var(--studio-danger);
+  border-radius: 4px;
+  padding: 8px 12px;
+  color: var(--studio-danger);
+  font-size: 0.85rem;
+  margin: 0;
+}

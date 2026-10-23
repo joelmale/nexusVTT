@@ -26,6 +26,9 @@ import { UseInNextSessionButton } from '@/features/section-shell/UseInNextSessio
 import { useSectionQuery } from '@/features/section-shell/useSectionQuery';
 import { usePlayerView } from '@/features/player-view';
 
+import layoutStyles from '@/features/section-shell/SectionLayout.module.css';
+import tabStyles from '@/features/section-shell/SectionTabs.module.css';
+import { HomebrewMonstersPane } from './HomebrewMonstersPane';
 import { compositionOf, useDraftRating } from './encounterDraft';
 import { DifficultyHint, EncounterEditor } from './EncounterEditor';
 import styles from './EncountersSection.module.css';
@@ -53,7 +56,11 @@ const DIFFICULTIES = ['low', 'moderate', 'high'];
 export function EncountersSection() {
   const { bundle, basePath, store } = useSectionBundle();
   const { encounterId } = useParams();
-  const { get } = useSectionQuery();
+  const { get, set, clear } = useSectionQuery();
+
+  const tabParam = get('tab');
+  const currentTab = tabParam === 'bestiary' ? 'bestiary' : 'encounters';
+  const homebrewCount = (bundle.homebrewMonsters ?? []).length;
 
   const q = get('q');
   const kind = get('kind');
@@ -68,6 +75,50 @@ export function EncountersSection() {
     () => sortByPinned(rows, (r) => r.encounter.id, pinnedIds),
     [rows, pinnedIds],
   );
+
+  const tabsElement = (
+    <div aria-label="Encounter tabs" className={tabStyles.tablist} role="tablist">
+      <button
+        aria-selected={currentTab === 'encounters'}
+        className={`${tabStyles.tab} ${currentTab === 'encounters' ? tabStyles.selected : ''}`}
+        onClick={() => clear()}
+        role="tab"
+        type="button"
+      >
+        <span>Encounters</span>
+        <span className={tabStyles.count}>{bundle.encounters.length}</span>
+      </button>
+      <button
+        aria-selected={currentTab === 'bestiary'}
+        className={`${tabStyles.tab} ${currentTab === 'bestiary' ? tabStyles.selected : ''}`}
+        onClick={() => {
+          clear();
+          set('tab', 'bestiary');
+        }}
+        role="tab"
+        type="button"
+      >
+        <span>Homebrew Bestiary</span>
+        <span className={tabStyles.count}>{homebrewCount}</span>
+      </button>
+    </div>
+  );
+
+  if (currentTab === 'bestiary') {
+    return (
+      <section className={layoutStyles.section} data-section="bestiary">
+        <header className={layoutStyles.header}>
+          <div className={layoutStyles.titleRow}>
+            <h1>Encounters</h1>
+          </div>
+          {tabsElement}
+        </header>
+        <div style={{ flex: 1, minHeight: 0, overflowY: 'auto' }}>
+          <HomebrewMonstersPane />
+        </div>
+      </section>
+    );
+  }
 
   const addRow = (
     <AddRow
@@ -104,6 +155,7 @@ export function EncountersSection() {
         }
         listFooter={addRow}
         sectionPath="encounters"
+        tabs={tabsElement}
         title="Encounters"
       />
     );
@@ -213,6 +265,7 @@ export function EncountersSection() {
           title="Encounters at a glance"
         />
       }
+      tabs={tabsElement}
       title="Encounters"
     />
   );

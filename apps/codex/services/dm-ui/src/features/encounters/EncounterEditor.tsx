@@ -404,6 +404,7 @@ function MonsterPicker({
   const [source, setSource] = useState<MonsterSource | 'all'>('all');
   const [sort, setSort] = useState<MonsterSort>('name');
   const [creating, setCreating] = useState(false);
+  const [customisingMonster, setCustomisingMonster] = useState<CatalogMonster | undefined>();
   const results = useMemo(
     () => filterMonsters(catalog, { query, source, sort }),
     [catalog, query, source, sort],
@@ -462,13 +463,25 @@ function MonsterPicker({
             >
               {monster.source === 'homebrew' ? 'Homebrew' : 'SRD'}
             </span>
-            <button
-              aria-label={`Add ${monster.name}`}
-              onClick={() => onAdd(monster)}
-              type="button"
-            >
-              Add
-            </button>
+            <div style={{ display: 'flex', gap: '4px' }}>
+              <button
+                aria-label={`Add ${monster.name}`}
+                onClick={() => onAdd(monster)}
+                type="button"
+              >
+                Add
+              </button>
+              <button
+                aria-label={`Customise ${monster.name}`}
+                onClick={() => {
+                  setCustomisingMonster(monster);
+                  setCreating(true);
+                }}
+                type="button"
+              >
+                Customise
+              </button>
+            </div>
           </li>
         ))}
       </ul>
@@ -481,14 +494,25 @@ function MonsterPicker({
       ) : null}
       {creating ? (
         <HomebrewForm
-          onCancel={() => setCreating(false)}
+          initialMonster={customisingMonster}
+          onCancel={() => {
+            setCreating(false);
+            setCustomisingMonster(undefined);
+          }}
           onCreated={(monster) => {
             onAdd(monster);
             setCreating(false);
+            setCustomisingMonster(undefined);
           }}
         />
       ) : (
-        <button onClick={() => setCreating(true)} type="button">
+        <button
+          onClick={() => {
+            setCustomisingMonster(undefined);
+            setCreating(true);
+          }}
+          type="button"
+        >
           Create homebrew monster
         </button>
       )}
@@ -500,26 +524,30 @@ const ABILITY_LABELS = ['STR', 'DEX', 'CON', 'INT', 'WIS', 'CHA'];
 
 /** Not a <form>: it lives inside the encounter edit form. */
 function HomebrewForm({
+  initialMonster,
   onCancel,
   onCreated,
 }: {
+  initialMonster?: Partial<CatalogMonster>;
   onCancel: () => void;
   onCreated: (monster: CatalogMonster) => void;
 }) {
   const { store, bundle } = useSectionBundle();
   const edition = editionOfBundle(bundle);
   const [fields, setFields] = useState({
-    name: '',
-    cr: '1',
-    size: 'Medium',
-    type: 'humanoid',
-    ac: '12',
-    hp: '20',
-    speed: '30',
-    notes: '',
+    name: initialMonster?.name ? `${initialMonster.name} (Custom)` : '',
+    cr: initialMonster?.cr || '1',
+    size: initialMonster?.size || 'Medium',
+    type: initialMonster?.type || 'humanoid',
+    ac: String(initialMonster?.ac ?? 12),
+    hp: String(initialMonster?.hp ?? 20),
+    speed: String(initialMonster?.speed ?? 30),
+    notes: (initialMonster as unknown as { notes?: string })?.notes || '',
   });
-  const [abilities, setAbilities] = useState<string[]>(
-    ABILITY_LABELS.map(() => '10'),
+  const [abilities, setAbilities] = useState<string[]>(() =>
+    initialMonster?.abilities && initialMonster.abilities.length === 6
+      ? initialMonster.abilities.map(String)
+      : ABILITY_LABELS.map(() => '10'),
   );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
