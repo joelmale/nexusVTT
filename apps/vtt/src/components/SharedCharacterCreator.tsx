@@ -1,9 +1,14 @@
-import React, { useCallback } from 'react';
+import React, { useCallback, useState } from 'react';
 import {
   CharacterCreator,
   createdCharacterToNexus,
+  createDraftStorageKey,
+  saveDraftToStorage,
+  loadDraftFromStorage,
+  clearDraftFromStorage,
   type CharacterCreationResult,
   type CreationMode,
+  type CreationDraft,
 } from '@nexus/character-creator';
 import '@nexus/character-creator/styles.css';
 import type { Character } from '@nexus/character-contracts';
@@ -49,6 +54,18 @@ interface SharedCharacterCreatorProps {
  * Errors thrown here propagate back into the wizard, which shows them inline
  * and stays open with the player's answers intact.
  */
+function getSessionTabId(): string {
+  if (typeof window === 'undefined' || !window.sessionStorage) {
+    return 'default-tab';
+  }
+  let id = window.sessionStorage.getItem('nexus_tab_id');
+  if (!id) {
+    id = Math.random().toString(36).substring(2, 9);
+    window.sessionStorage.setItem('nexus_tab_id', id);
+  }
+  return id;
+}
+
 export const SharedCharacterCreator: React.FC<SharedCharacterCreatorProps> = ({
   playerId,
   onComplete,
@@ -57,6 +74,26 @@ export const SharedCharacterCreator: React.FC<SharedCharacterCreatorProps> = ({
 }) => {
   const { saveCreatedCharacter } = useCharacterCreation();
   const theme = useTheme();
+
+  const storageKey = createDraftStorageKey('vtt', playerId);
+  const [clientTabId] = useState(getSessionTabId);
+
+  const [initialDraft, setInitialDraft] = useState<CreationDraft | undefined>(() => {
+    const loaded = loadDraftFromStorage(storageKey, { clientTabId: getSessionTabId() });
+    return loaded?.record.draft;
+  });
+
+  const handleDraftChange = useCallback(
+    (draft: CreationDraft) => {
+      saveDraftToStorage(storageKey, draft, { clientTabId });
+    },
+    [storageKey, clientTabId],
+  );
+
+  const handleDraftDiscard = useCallback(() => {
+    clearDraftFromStorage(storageKey);
+    setInitialDraft(undefined);
+  }, [storageKey]);
 
   const handleComplete = useCallback(
     async (result: CharacterCreationResult) => {
@@ -72,9 +109,11 @@ export const SharedCharacterCreator: React.FC<SharedCharacterCreatorProps> = ({
       character.rulesCatalogVersion = await getRulesCatalogVersion();
 
       const characterId = await saveCreatedCharacter(character);
+      // Clear durable draft on successful save
+      clearDraftFromStorage(storageKey);
       onComplete(characterId, character);
     },
-    [playerId, saveCreatedCharacter, onComplete],
+    [playerId, saveCreatedCharacter, onComplete, storageKey],
   );
 
   return (
@@ -85,6 +124,9 @@ export const SharedCharacterCreator: React.FC<SharedCharacterCreatorProps> = ({
     <CharacterCreator
       isOpen
       initialMode={initialMode}
+      initialDraft={initialDraft}
+      onDraftChange={handleDraftChange}
+      onDraftDiscard={handleDraftDiscard}
       allowModeSwitch
       theme={resolveCreatorTheme(theme)}
       onCancel={onCancel}

@@ -1,5 +1,5 @@
 import { CharacterCreationData, Character, AbilityName, SkillName } from '../types/dnd';
-import { getAllSpecies, loadClasses, BACKGROUNDS, PROFICIENCY_BONUSES, getModifier, SKILL_TO_ABILITY, ALL_SKILLS, getHitDieForClass } from '../services/dataService';
+import { getAllSpecies, loadClasses, loadEquipment, BACKGROUNDS, PROFICIENCY_BONUSES, getModifier, SKILL_TO_ABILITY, ALL_SKILLS, getHitDieForClass } from '../services/dataService';
 import { migrateSpellSelectionToCharacter } from '../utils/spellUtils';
 import { addItemToInventoryByName } from '../utils/equipmentMatching';
 import { parseCoinString } from '../services/equipmentService';
@@ -10,9 +10,12 @@ import { log } from './logger';
  * Calculate final character stats from character creation data
  */
 export const calculateCharacterStats = (data: CharacterCreationData): Character => {
-  const speciesData = getAllSpecies().find(s => s.slug === data.speciesSlug);
-  const classData = loadClasses().find(c => c.slug === data.classSlug);
-  const backgroundData = BACKGROUNDS.find(bg => bg.slug === data.background); // Fetch background data here
+  const edition = data.edition || '2024';
+  const speciesData = getAllSpecies(edition).find(s => s.slug === data.speciesSlug || (s.legacySlugs && s.legacySlugs.includes(data.speciesSlug)) || s.name.toLowerCase() === data.speciesSlug?.toLowerCase()) ||
+    getAllSpecies().find(s => s.slug === data.speciesSlug || (s.legacySlugs && s.legacySlugs.includes(data.speciesSlug)) || s.name.toLowerCase() === data.speciesSlug?.toLowerCase());
+  const classData = loadClasses(edition).find(c => c.slug === data.classSlug) || loadClasses().find(c => c.slug === data.classSlug);
+  const backgroundData = BACKGROUNDS.find(bg => (bg.slug === data.background || bg.slug === `${data.background}-2024`) && (!data.edition || bg.edition === data.edition)) ||
+    BACKGROUNDS.find(bg => bg.slug === data.background || bg.slug === `${data.background}-2024` || bg.name.toLowerCase() === data.background?.toLowerCase());
 
   log.debug('Character creation data lookup', {
     species: speciesData ? { name: speciesData.name, slug: speciesData.slug } : null,
@@ -31,13 +34,36 @@ export const calculateCharacterStats = (data: CharacterCreationData): Character 
 
   const finalAbilities: Character['abilities'] = {} as Character['abilities'];
 
+  const SUBRACE_BONUSES_2014: Record<string, Partial<Record<AbilityName, number>>> = {
+    'high-elf': { INT: 1 },
+    'wood-elf': { WIS: 1 },
+    'drow': { CHA: 1 },
+    'dark-elf': { CHA: 1 },
+    'hill-dwarf': { WIS: 1 },
+    'mountain-dwarf': { STR: 2 },
+    'lightfoot-halfling': { CHA: 1 },
+    'lightfoot': { CHA: 1 },
+    'stout-halfling': { CON: 1 },
+    'stout': { CON: 1 },
+    'forest-gnome': { DEX: 1 },
+    'rock-gnome': { CON: 1 },
+  };
+
   // 1. Calculate Abilities with Bonuses
   (Object.keys(data.abilities) as AbilityName[]).forEach((ability) => {
     let rawScore = data.abilities[ability];
 
     if (data.edition === '2014') {
       // 2014: Apply Species Ability Bonuses
-      rawScore += (speciesData.ability_bonuses?.[ability] || 0);
+      if (speciesData.slug === 'human' && (!data.variantSlug || data.variantSlug === 'standard')) {
+        rawScore += 1;
+      } else {
+        rawScore += (speciesData.ability_bonuses?.[ability] || 0);
+        const subraceKey = data.selectedLineage || data.selectedSpeciesVariant || data.variantSlug;
+        if (subraceKey && SUBRACE_BONUSES_2014[subraceKey]?.[ability]) {
+          rawScore += SUBRACE_BONUSES_2014[subraceKey]![ability]!;
+        }
+      }
     } else if (data.edition === '2024') {
       // 2024: Apply Background Ability Bonuses
       if (data.backgroundAbilityChoices?.bonuses?.[ability]) {
@@ -103,9 +129,19 @@ export const calculateCharacterStats = (data: CharacterCreationData): Character 
   // Add racial bonuses (like Dwarf toughness)
   maxHitPoints += (speciesData.slug === 'dwarf' ? level : 0);
 
+  // Tough feat: adds 2 HP per level
+  const hasTough = data.originFeat === 'tough' ||
+    data.speciesFeat === 'tough' ||
+    data.humanVersatileFeat === 'tough' ||
+    (data.selectedFeats && data.selectedFeats.includes('tough'));
+  if (hasTough) {
+    maxHitPoints += level * 2;
+  }
+
   // 3. Calculate Skills (from selected skills + background skills + expertise)
   const backgroundSkills = backgroundData?.skill_proficiencies || [];
-  const allProficientSkills = [...data.selectedSkills, ...backgroundSkills.map(s => s as SkillName)];
+  const selectedSkills = data.selectedSkills || (data as unknown as { skills?: SkillName[] }).skills || [];
+  const allProficientSkills = [...selectedSkills, ...backgroundSkills.map(s => s as SkillName)];
 
   const finalSkills: Character['skills'] = {} as Character['skills'];
   ALL_SKILLS.forEach((skillName) => {
@@ -271,13 +307,63 @@ export const calculateCharacterStats = (data: CharacterCreationData): Character 
 
   // Future: apply lineage spells if we surface them in spell lists
 
-  const effectiveSpeed = lineageData?.baseSpeed || speciesData.speed || 30;
+  let effectiveSpeed = lineageData?.baseSpeed || speciesData.speed || 30;
+  if (data.edition === '2014' && (data.selectedLineage === 'wood-elf' || data.selectedSpeciesVariant === 'wood-elf')) {
+    effectiveSpeed = 35;
+  }
 
-  // 6. Calculate Armor Class (simple calculation)
-  const armorClass = BASE_ARMOR_CLASS + finalAbilities.DEX.modifier;
+  // 6. Calculate Armor Class
+  const allEquipment = loadEquipment();
+  const dexMod = finalAbilities.DEX.modifier;
 
-  // 7. Calculate Initiative
-  const initiative = finalAbilities.DEX.modifier;
+  let equippedArmorItem = undefined;
+  let hasShield = false;
+
+  for (const item of inventory) {
+    const equip = allEquipment.find(e => e.slug === item.equipmentSlug || e.name.toLowerCase() === item.equipmentSlug.toLowerCase());
+    if (!equip) continue;
+
+    if (equip.armor_category === 'Shield') {
+      hasShield = true;
+    } else if (equip.armor_class?.base) {
+      if (item.equipped || !equippedArmorItem) {
+        equippedArmorItem = equip;
+      }
+    }
+  }
+
+  let armorClass = BASE_ARMOR_CLASS + dexMod;
+  const isWearingArmor = !!equippedArmorItem;
+
+  if (equippedArmorItem?.armor_class?.base) {
+    const base = equippedArmorItem.armor_class.base;
+    if (equippedArmorItem.armor_category === 'Light') {
+      armorClass = base + dexMod;
+    } else if (equippedArmorItem.armor_category === 'Medium') {
+      armorClass = base + Math.min(2, Math.max(0, dexMod));
+    } else if (equippedArmorItem.armor_category === 'Heavy') {
+      armorClass = base;
+    } else {
+      armorClass = base + (equippedArmorItem.armor_class.dex_bonus ? dexMod : 0);
+    }
+  }
+
+  if (hasShield) {
+    armorClass += 2;
+  }
+
+  // Fighting Style Defense: +1 AC while wearing armor
+  const hasDefenseStyle = data.fightingStyle === 'defense' || data.selectedFightingStyle === 'defense';
+  if (hasDefenseStyle && isWearingArmor) {
+    armorClass += 1;
+  }
+
+  // 7. Calculate Initiative (DEX modifier + Alert feat bonus if applicable)
+  const hasAlert = data.originFeat === 'alert' ||
+    data.speciesFeat === 'alert' ||
+    data.humanVersatileFeat === 'alert' ||
+    (data.selectedFeats && data.selectedFeats.includes('alert'));
+  const initiative = finalAbilities.DEX.modifier + (hasAlert ? pb : 0);
 
   // 8. Load Features and Traits
   const featuresAndTraits: Character['featuresAndTraits'] = {

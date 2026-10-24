@@ -17,6 +17,8 @@ import { GuidedCharacterCreator } from './guided/GuidedCharacterCreator';
  */
 export type CreationMode = 'guided' | 'full';
 
+import type { CreationDraft } from '../types/draft';
+
 export interface CharacterCreatorProps {
   isOpen: boolean;
   edition?: Edition;
@@ -32,6 +34,12 @@ export interface CharacterCreatorProps {
    * chooser up front (Nexus Forge) pass `false` and drive the mode themselves.
    */
   allowModeSwitch?: boolean;
+  /** Initial draft to resume from (CC-501). */
+  initialDraft?: CreationDraft;
+  /** Callback fired whenever the draft updates (CC-501). */
+  onDraftChange?: (draft: CreationDraft) => void;
+  /** Callback fired when the player discards the draft (CC-501). */
+  onDraftDiscard?: () => void;
   submitLabel?: string;
   onCancel: () => void;
   onComplete: CharacterCreationCompleteHandler;
@@ -50,6 +58,9 @@ export const CharacterCreator: React.FC<CharacterCreatorProps> = ({
   theme,
   initialMode = 'guided',
   allowModeSwitch = true,
+  initialDraft,
+  onDraftChange,
+  onDraftDiscard,
   submitLabel,
   onCancel,
   onComplete,
@@ -70,6 +81,9 @@ export const CharacterCreator: React.FC<CharacterCreatorProps> = ({
         isOpen
         edition={edition}
         theme={theme}
+        initialDraft={initialDraft}
+        onDraftChange={onDraftChange}
+        onDraftDiscard={onDraftDiscard}
         onCancel={onCancel}
         onComplete={onComplete}
         onSwitchToFullWizard={
@@ -84,6 +98,9 @@ export const CharacterCreator: React.FC<CharacterCreatorProps> = ({
       isOpen
       edition={edition}
       theme={theme}
+      initialDraft={initialDraft}
+      onDraftChange={onDraftChange}
+      onDraftDiscard={onDraftDiscard}
       submitLabel={submitLabel}
       onCancel={onCancel}
       onComplete={onComplete}

@@ -1,16 +1,22 @@
-import React, { useCallback, useEffect, useRef } from 'react';
+import React, { useState, useCallback, useEffect, useRef } from 'react';
 import { createPortal } from 'react-dom';
 import { CHARACTER_CREATOR_ROOT_CLASS } from '../../api/types';
 import type { CharacterCreationCompleteHandler } from '../../api/types';
 import type { CharacterCreationData, Edition } from '../../types/dnd';
 import { useCreationSubmission } from '../CharacterCreationWizard/hooks/useCreationSubmission';
 import PersonalityWizard from './PersonalityWizard';
+import { FourScreenNewcomerFlow } from './FourScreenNewcomerFlow';
+
+import type { CreationDraft } from '../../types/draft';
 
 export interface GuidedCharacterCreatorProps {
   isOpen: boolean;
   edition?: Edition;
   /** Written to `data-theme` on the creator root — the explicit theme boundary. */
   theme?: string;
+  initialDraft?: CreationDraft;
+  onDraftChange?: (draft: CreationDraft) => void;
+  onDraftDiscard?: () => void;
   onCancel: () => void;
   /**
    * Receives the finished character, exactly as the full wizard does, so a host
@@ -38,6 +44,9 @@ export const GuidedCharacterCreator: React.FC<GuidedCharacterCreatorProps> = ({
   isOpen,
   edition,
   theme,
+  initialDraft,
+  onDraftChange,
+  onDraftDiscard,
   onCancel,
   onComplete,
   onSwitchToFullWizard,
@@ -71,6 +80,8 @@ export const GuidedCharacterCreator: React.FC<GuidedCharacterCreatorProps> = ({
     dialog?.focus();
     return () => previouslyFocused?.focus?.();
   }, [isOpen]);
+
+  const [flowMode, setFlowMode] = useState<'four-screen' | 'quiz'>('four-screen');
 
   const handleGuidedComplete = useCallback(
     (data: CharacterCreationData) => {
@@ -121,21 +132,33 @@ export const GuidedCharacterCreator: React.FC<GuidedCharacterCreatorProps> = ({
           </div>
         )}
 
-        <PersonalityWizard
-          isOpen
-          edition={edition ?? '2024'}
-          onClose={handleCancel}
-          // Back means different things per host: a chooser modal in Forge, the
-          // full wizard where switching is offered. Say which, so an advanced
-          // player can see the escape hatch rather than guess at it.
-          onBack={onSwitchToFullWizard ?? handleCancel}
-          backLabel={
-            onSwitchToFullWizard
-              ? 'Choose everything myself'
-              : 'Back to Options'
-          }
-          onComplete={handleGuidedComplete}
-        />
+        {flowMode === 'four-screen' ? (
+          <FourScreenNewcomerFlow
+            isOpen
+            edition={edition ?? '2024'}
+            initialDraft={initialDraft}
+            onDraftChange={onDraftChange}
+            onDraftDiscard={onDraftDiscard}
+            onClose={handleCancel}
+            onComplete={handleGuidedComplete}
+            onSwitchToFullWizard={onSwitchToFullWizard}
+            onSwitchToQuiz={() => setFlowMode('quiz')}
+            backLabel={
+              onSwitchToFullWizard
+                ? 'Choose everything myself'
+                : 'Back to Options'
+            }
+          />
+        ) : (
+          <PersonalityWizard
+            isOpen
+            edition={edition ?? '2024'}
+            onClose={handleCancel}
+            onBack={() => setFlowMode('four-screen')}
+            backLabel="Back to Quick Build"
+            onComplete={handleGuidedComplete}
+          />
+        )}
 
         {isSubmitting && (
           <div

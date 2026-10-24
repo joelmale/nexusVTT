@@ -252,6 +252,45 @@ export const Step4Spells: React.FC<StepProps> = ({ data, updateData, nextStep, p
     return messages;
   };
 
+  const handleRandomizeSpells = () => {
+    // Pick random legal cantrips
+    const shuffledCantrips = [...availableCantrips].sort(() => Math.random() - 0.5);
+    const selectedCantrips = shuffledCantrips.slice(0, cantripsKnownAtLevel).map(s => s.slug);
+
+    let updatedSelection = {
+      ...data.spellSelection,
+      selectedCantrips,
+    };
+
+    if (spellcastingType === 'wizard') {
+      const shuffledSpells = [...availableSpells].sort(() => Math.random() - 0.5);
+      const spellbook = shuffledSpells.slice(0, 6).map(s => s.slug);
+      const prepCount = Math.min(maxPreparedSpellsAtLevel || 4, spellbook.length);
+      const prepared = spellbook.slice(0, prepCount);
+      updatedSelection = {
+        ...updatedSelection,
+        spellbook,
+        preparedSpells: prepared,
+      };
+    } else if (spellcastingType === 'prepared') {
+      const shuffledSpells = [...availableSpells].sort(() => Math.random() - 0.5);
+      const preparedSpells = shuffledSpells.slice(0, maxPreparedSpellsAtLevel).map(s => s.slug);
+      updatedSelection = {
+        ...updatedSelection,
+        preparedSpells,
+      };
+    } else {
+      const shuffledSpells = [...availableSpells].sort(() => Math.random() - 0.5);
+      const knownSpells = shuffledSpells.slice(0, maxPreparedSpellsAtLevel).map(s => s.slug);
+      updatedSelection = {
+        ...updatedSelection,
+        knownSpells,
+      };
+    }
+
+    updateData({ spellSelection: updatedSelection });
+  };
+
   const validationMessages = getValidationMessages();
 
   // Spell mode description

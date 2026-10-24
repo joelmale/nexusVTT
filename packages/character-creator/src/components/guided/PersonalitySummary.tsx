@@ -24,6 +24,9 @@ interface PersonalitySummaryProps {
   onContinue: () => void;
   onBack: () => void;
   edition: Edition; // Added edition
+  onClassSelect?: (cls: string) => void;
+  onSpeciesSelect?: (species: string) => void;
+  onBackgroundSelect?: (bg: string) => void;
 }
 
 const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
@@ -39,7 +42,10 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
   onAbilitiesChange,
   onContinue,
   onBack,
-  edition // Added edition
+  edition, // Added edition
+  onClassSelect,
+  onSpeciesSelect,
+  onBackgroundSelect,
 }) => {
 
 
@@ -241,7 +247,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
             {editingClass ? (
               <select
                 value={currentClass}
-                onChange={(e) => setCurrentClass(e.target.value)}
+                onChange={(e) => { setCurrentClass(e.target.value); onClassSelect?.(e.target.value); }}
                 className="w-full p-2 bg-theme-tertiary border border-theme-primary rounded text-white"
               >
                 {availableClasses.map(cls => (
@@ -273,7 +279,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
             {editingSpecies ? (
               <select
                 value={currentSpecies}
-                onChange={(e) => setCurrentSpecies(e.target.value)}
+                onChange={(e) => { setCurrentSpecies(e.target.value); onSpeciesSelect?.(e.target.value); }}
                 className="w-full p-2 bg-theme-tertiary border border-theme-primary rounded text-white"
               >
                 {availableSpecies.map(species => (
@@ -305,7 +311,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
             {editingBackground ? (
               <select
                 value={currentBackground}
-                onChange={(e) => setCurrentBackground(e.target.value)}
+                onChange={(e) => { setCurrentBackground(e.target.value); onBackgroundSelect?.(e.target.value); }}
                 className="w-full p-2 bg-theme-tertiary border border-theme-primary rounded text-white"
               >
                 {availableBackgrounds.map(bg => (
@@ -533,7 +539,7 @@ const PersonalitySummary: React.FC<PersonalitySummaryProps> = ({
             onClick={handleContinue}
             className="px-6 py-3 bg-accent-purple hover:bg-accent-purple-light rounded-lg text-white font-semibold transition-colors flex items-center"
           >
-            Continue to Customization
+            Review Character
             <ArrowRight className="w-4 h-4 ml-2" />
           </button>
         </div>

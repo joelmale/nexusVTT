@@ -101,3 +101,37 @@ a reason.
 - Quick/manual entry and JSON import are unchanged and remain the fast paths.
 - The VTT's "Character Forge" option on the player setup page now opens the creator in-app
   instead of linking out to a separately hosted site.
+
+## Implementation status note — 2026-10-24
+
+The accepted decision and historical text above are preserved. This note records
+the current local character-creation candidate on top of `edd07ca9`; it is not a
+release or deployment claim. The maintained description is now the
+[shared character creation engineering guide](../../platform/integrations/character-creation.md),
+with evidence and open defects in the
+[review record](../../platform/integrations/character-creation-review.md).
+
+The build-time package, one converter and explicit style/theme boundaries still
+apply. The candidate adds a four-screen guided flow, `CreationDraft` adapters,
+recommendation/evaluation services and optional draft callbacks. These additions
+are incomplete: the presentations retain separate state, switching modes does not
+transfer the latest edits, and real UI completion still uses
+`useCreationSubmission()` plus `calculateCharacterStats()` rather than the draft
+evaluator. Candidate support-manifest labels do not establish independent rules
+certification.
+
+There is also an implementation deviation from the original storage-free package
+boundary: the candidate exports helpers that accept browser `Storage` and default
+to `localStorage`. VTT wires them for partial draft persistence; Forge does not
+wire draft callbacks. This note records the deviation without treating it as an
+accepted replacement architecture. Account identity, saved-character persistence
+and multiplayer authority remain host-owned. The draft migration, conflict and
+worker-boundary gaps need resolution before claiming durable cross-mode resume.
+
+Finally, the submission guard prevents concurrent calls only. It creates a new
+UUID on each attempt and resets after completion, so neither the guard nor the
+draft type establishes durable duplicate prevention. Hosts must separately verify
+retry identity, durable save and session acknowledgement. Existing-character
+repair, a controlled newcomer rollout, phone/assistive-technology certification
+and the implementation plan's release gates remain unverified or incomplete; see
+the review record for their current status.

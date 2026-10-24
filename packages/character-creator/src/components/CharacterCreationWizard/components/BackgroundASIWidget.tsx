@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { AbilityName, CharacterCreationData } from '../../../types/dnd';
 
 interface BackgroundASIWidgetProps {
@@ -14,11 +14,15 @@ export const BackgroundASIWidget: React.FC<BackgroundASIWidgetProps> = ({
 }) => {
   const [method, setMethod] = useState<'2/1' | '1/1/1'>(data.backgroundAbilityChoices?.method || '2/1');
   const [bonuses, setBonuses] = useState<Partial<Record<AbilityName, number>>>(data.backgroundAbilityChoices?.bonuses || {});
+  const prevMethodRef = useRef(method);
 
-  // Reset bonuses when method changes
+  // Reset bonuses only when method actually changes (avoid wiping existing bonuses on initial mount)
   useEffect(() => {
-    setBonuses({});
-    updateData({ backgroundAbilityChoices: { method, bonuses: {} } });
+    if (prevMethodRef.current !== method) {
+      prevMethodRef.current = method;
+      setBonuses({});
+      updateData({ backgroundAbilityChoices: { method, bonuses: {} } });
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [method]);
 

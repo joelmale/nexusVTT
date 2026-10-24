@@ -1,6 +1,8 @@
 import { CharacterCreationData, Edition } from '../../../types/dnd';
 import type { CharacterCreationCompleteHandler } from '../../../api/types';
 
+import type { CreationDraft } from '../../../types/draft';
+
 export interface WizardProps {
   isOpen: boolean;
   edition?: Edition;
@@ -8,6 +10,12 @@ export interface WizardProps {
   theme?: string;
   /** Overrides the final button label (defaults to "Create Character"). */
   submitLabel?: string;
+  /** Initial draft to resume from (CC-501). */
+  initialDraft?: CreationDraft;
+  /** Callback fired when draft updates (CC-501). */
+  onDraftChange?: (draft: CreationDraft) => void;
+  /** Callback fired when draft is discarded (CC-501). */
+  onDraftDiscard?: () => void;
   onCancel: () => void;
   /**
    * Receives the finished character. The host owns persistence; throwing or

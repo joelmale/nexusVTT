@@ -1,63 +1,86 @@
 # @nexus/character-creator
 
-The single maintained D&D 5e character creation experience, shared by **Nexus Forge** and
-**Nexus VTT**.
+The shared D&D 5e creation package used by Nexus Forge and Nexus VTT. Both hosts
+import its TypeScript source at build time. Keep one creator, calculator surface
+and VTT converter; see [ADR-0002](../../apps/docs/vtt/adr/0002-shared-character-creator.md).
 
-Both apps import this package at build time (tsconfig `paths` + Vite aliases). It is
-deliberately *not* a federated remote: see
-[ADR-0002](../../apps/docs/vtt/adr/0002-shared-character-creator.md).
+The maintained [engineering guide](../../apps/docs/platform/integrations/character-creation.md)
+covers public props, result types, draft/evaluation services, host integration,
+styling and contributor checks. The
+[review record](../../apps/docs/platform/integrations/character-creation-review.md)
+distinguishes the current candidate from released/deployed behavior.
 
-## What this package owns
+## Current implementation status
 
-- The 14-step creation wizard (2014 and 2024 rulesets).
-- The 5e rules data: species, classes, subclasses, backgrounds, feats, spells, equipment.
-- The character calculators (`calculateCharacterStats`) and the rules engine.
-- Its own scoped stylesheet.
+Reviewed 2026-10-24 against `edd07ca9` plus local changes. The candidate adds a
+four-screen guided presentation, draft APIs, recommendation/evaluation services
+and storage helpers. These are not evidence of a deployed release or completed
+class/edition certification.
 
-## What it does not own
+- `CharacterCreator` selects guided/full; Forge currently uses individual modal
+  exports and VTT uses this selector. Presentations still own separate local
+  state, so switching modes does not transfer all edits.
+- Actual modal submission calls `calculateCharacterStats()` through
+  `useCreationSubmission()`. It does not yet use the exported draft evaluator or
+  enforce its issues as final validation.
+- Hosts own character persistence, identity, ownership and session state. The
+  candidate package also exports optional browser `Storage` helpers; VTT wires
+  them for partial draft resume, while standalone Forge has no draft wiring.
+- Save rejection keeps mounted answers available and displays an error. The
+  submission guard blocks concurrent calls; it creates a new character UUID per
+  attempt, so it does not establish durable idempotency or duplicate-free retries.
+- `CERTIFIED_SUPPORT_MANIFEST` contains candidate assertions. Its booleans and
+  service tests do not replace independent rules or real-host verification.
 
-Persistence, account identity, ownership and multiplayer state. The creator computes a
-character and hands it to the host application.
+Do not treat draft migration, provenance, reconciliation, loadout equality,
+accessibility or rollout gating as complete. Details and recovery limits are in
+the engineering guide.
 
-## Usage
+## Minimal host integration
 
 ```tsx
+import { useState } from 'react';
 import {
-  CharacterCreationWizard,
+  CharacterCreator,
   type CharacterCreationResult,
+  type CreatedCharacter,
 } from '@nexus/character-creator';
 import '@nexus/character-creator/styles.css';
 
-<CharacterCreationWizard
-  isOpen={isOpen}
-  edition="2014"
-  theme={resolvedHostTheme}      // written to data-theme on the creator root
-  onCancel={() => setIsOpen(false)}
-  onComplete={async (result: CharacterCreationResult) => {
-    await saveSomewhere(result.character); // throwing keeps the wizard open
+interface HostCharacterCreationProps {
+  saveCharacter: (character: CreatedCharacter) => Promise<void>;
+}
+
+export function HostCharacterCreation({
+  saveCharacter,
+}: HostCharacterCreationProps) {
+  const [isOpen, setIsOpen] = useState(true);
+
+  async function complete(result: CharacterCreationResult): Promise<void> {
+    await saveCharacter(result.character);
     setIsOpen(false);
-  }}
-/>;
+  }
+
+  return (
+    <CharacterCreator
+      isOpen={isOpen}
+      edition="2024"
+      initialMode="full"
+      allowModeSwitch={false}
+      theme="dark-colorful"
+      onCancel={() => setIsOpen(false)}
+      onComplete={complete}
+    />
+  );
+}
 ```
 
-`CharacterCreationResult` carries:
+`CharacterCreationResult` carries `character`, `creationData`, `edition`,
+`createdAt` and optional candidate `combatGuidance`. The current UI submission
+does not set that optional guidance field. Await host persistence before closing;
+throw/reject to surface a save failure inside the modal.
 
-| field          | meaning                                                      |
-| -------------- | ------------------------------------------------------------ |
-| `character`    | the fully calculated sheet, in this package's model           |
-| `creationData` | the raw wizard answers, for auditing or replaying a creation  |
-| `edition`      | `'2014'` or `'2024'`                                          |
-| `createdAt`    | ISO timestamp                                                 |
-
-`onComplete` may be async. A rejection is surfaced inside the wizard and the wizard stays open
-with the player's answers intact, so the host owns retry semantics. The wizard also refuses
-concurrent or repeated submissions, so a double click cannot create two characters.
-
-## Converting to the VTT contract
-
-`toNexusCharacter()` is the **single** conversion into the `@nexus/character-contracts`
-`Character` model. Both the live creator and the Forge JSON import path use it, so a field
-preserved for one is preserved for both.
+For the VTT character model, use the shared conversion:
 
 ```ts
 import { createdCharacterToNexus } from '@nexus/character-creator';
@@ -65,40 +88,28 @@ import { createdCharacterToNexus } from '@nexus/character-creator';
 const character = createdCharacterToNexus(result.character, { playerId });
 ```
 
-Fields deliberately not carried across are listed in `UNMAPPED_CREATOR_FIELDS`, each with a
-reason. Adding a creator field without deciding what happens to it should fail review.
+The live VTT and Forge JSON import use the same underlying `toNexusCharacter()`.
+Review conversion tests and `UNMAPPED_CREATOR_FIELDS` when changing fields.
 
-## Styling
+## Styling and commands
 
-`src/styles/creator-theme.source.css` is the single source for the creator's palette and its
-`.bg-theme-*` / `.text-accent-*` helper classes.
+`src/styles/creator-theme.source.css` is the creator palette source. Forge imports
+it globally as its app theme; the package build emits `dist/creator.css` scoped to
+`.nexus-character-creator` for VTT. Hosts generate the existing utility classes
+from package source. Guard blanket VTT global rules against entering this subtree.
 
-- **Forge** `@import`s that source file globally (its app-wide theme, unchanged).
-- **The VTT** imports `@nexus/character-creator/styles.css`, which is `dist/creator.css` —
-  the same source with every selector scoped to `.nexus-character-creator`.
-
-Scoping matters: the creator and the VTT both define `--color-text-primary` and
-`--color-border-primary` with different meanings, so an unscoped import would collide.
-
-Rebuild the scoped stylesheet after editing the source:
+Run from the repository root:
 
 ```bash
 npm run build --workspace=@nexus/character-creator
-```
-
-Tailwind utility classes come from each host app's own Tailwind build; both apps declare
-`@source` pointing at this package so those utilities are generated.
-
-## Tests
-
-Tests live beside their source and run from Forge's Vitest project:
-
-```bash
+npm run type-check --workspace=@nexus/character-creator
+npm run test:character-creator
 npm run test --workspace=nexus-forge -- --run
-```
-
-Conversion and data-preservation tests live in the VTT, which is the consumer of the adapter:
-
-```bash
 npm run test:unit --workspace=nexus-vtt
 ```
+
+The creator's `build` regenerates scoped CSS; its `test` script owns a separate
+Vitest project with colocated source tests. Host tests cover conversion,
+persistence and bindings. See the engineering guide for required content-change
+tests and broader host/docs validation commands, and the review record for actual
+results rather than assuming this candidate passes.

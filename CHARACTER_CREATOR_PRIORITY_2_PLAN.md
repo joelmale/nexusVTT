@@ -1,5 +1,10 @@
 # Implementation Plan: Character Creator & Onboarding (Priority 2)
 
+The broader [shared character creation implementation plan](apps/docs/platform/integrations/character-creation-implementation-plan.md)
+builds on the Priority 2 changes landed in `edd07ca9`. Use that plan for the
+remaining rules, onboarding, accessibility, recovery and host-handoff work;
+verify these landed changes before assigning duplicate fixes.
+
 ## Overview & Context
 
 Following the completion of **Priority 1** (resolved in [`4afa1831`](file:///c:/Users/nelso/Documents/Coding/nexusVTT/packages/character-creator/src/utils/characterCreationUtils.ts) covering 2024 Background Ability Score Increases, ability modifier double-dipping prevention, background slug/name lookup tolerance, and Level 1 Fighter fighting style unlocks), **Priority 2** focuses on onboarding ergonomics for players joining without characters, currency parsing robustness in equipment assignment, alignment state consistency, and comprehensive test coverage.

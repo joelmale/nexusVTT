@@ -84,11 +84,11 @@ describe('guided creation hand-off', () => {
     expect(character.abilities.CHA.modifier).toBe(2);
   });
 
-  it('rejects a background passed as a display name', () => {
-    // This is the exact failure the guided flow used to hit on every run.
-    expect(() => calculateCharacterStats(buildGuidedPayload('Noble'))).toThrow(
-      /Incomplete creation data/,
-    );
+  it('accepts a background passed as a display name', () => {
+    // calculateCharacterStats resolves backgrounds by slug or case-insensitive display name
+    const character = calculateCharacterStats(buildGuidedPayload('Noble'));
+    expect(character).toBeDefined();
+    expect(character.background).toBe('Noble');
   });
 
   it('parses background coin strings into character currency and avoids unknown inventory items', () => {

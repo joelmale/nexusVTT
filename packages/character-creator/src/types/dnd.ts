@@ -478,6 +478,7 @@ export interface CharacterCreationData {
   speciesSlug: string;
   selectedSpeciesVariant?: string; // e.g., "standard", "variant"
   selectedLineage?: string; // 2024 lineage choice when applicable
+  variantSlug?: string; // 2014 human/species variant choice (e.g. 'standard' vs 'variant')
 
   // Variant Human Choices
   variantAbilityBonuses?: Record<AbilityName, number>; // +1 to two abilities
@@ -496,6 +497,7 @@ export interface CharacterCreationData {
   speciesFeat?: string; // 2024: Feat chosen from species options
   humanVersatileFeat?: string; // 2024: Extra Origin Feat for humans
   backgroundFeat?: string; // Origin Feat from background (Step 1)
+  originFeat?: string; // Alias for backgroundFeat / Origin Feat
   backgroundAbilityChoices?: {
     method: '2/1' | '1/1/1';
     bonuses: Partial<Record<AbilityName, number>>;
@@ -527,6 +529,13 @@ export interface CharacterCreationData {
 
   // Sprint 4: Custom equipment additions
   startingInventory?: EquippedItem[];
+  currency?: {
+    cp: number;
+    sp: number;
+    ep?: number;
+    gp: number;
+    pp: number;
+  };
 
   // Sprint 5: Subclass, Fighting Style, and Feats
   subclassSlug?: string | null;

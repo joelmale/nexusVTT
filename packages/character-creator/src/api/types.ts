@@ -11,8 +11,10 @@ import type {
   CharacterCreationData,
   Edition,
 } from '../types/dnd';
+import type { CreationDraft } from '../types/draft';
+import type { FirstTurnGuidance } from '../services/recommendationService';
 
-export type { CreatedCharacter, CharacterCreationData, Edition };
+export type { CreatedCharacter, CharacterCreationData, Edition, CreationDraft, FirstTurnGuidance };
 
 /**
  * The value handed to `onComplete` when a player finishes the wizard.
@@ -20,12 +22,14 @@ export type { CreatedCharacter, CharacterCreationData, Edition };
  * `character` is the fully calculated sheet in the creator's canonical model.
  * `creationData` is the raw set of wizard answers, retained so hosts can audit
  * or replay a creation without re-deriving choices from the finished sheet.
+ * `combatGuidance` provides the first-turn combat card (CC-504).
  */
 export interface CharacterCreationResult {
   character: CreatedCharacter;
   creationData: CharacterCreationData;
   edition: Edition;
   createdAt: string;
+  combatGuidance?: FirstTurnGuidance;
 }
 
 /**
@@ -51,6 +55,16 @@ export interface CharacterCreatorProps {
    * the creator's scoped stylesheet never restyles the host.
    */
   theme?: string;
+  /** Which flow to open first. Defaults to 'guided'. */
+  initialMode?: 'guided' | 'full';
+  /** Whether the user can switch between guided flow and full wizard. */
+  allowModeSwitch?: boolean;
+  /** Initial draft to resume from (CC-501). */
+  initialDraft?: CreationDraft;
+  /** Callback fired whenever the current draft updates (CC-501). */
+  onDraftChange?: (draft: CreationDraft) => void;
+  /** Callback fired when the player discards or resets a draft (CC-501). */
+  onDraftDiscard?: () => void;
   /** Optional label for the final submit button (defaults to "Create Character"). */
   submitLabel?: string;
   /** Called when the player dismisses the wizard without creating anything. */

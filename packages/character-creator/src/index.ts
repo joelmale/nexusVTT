@@ -85,4 +85,75 @@ export {
   type FactionWebResult,
   type FactionGeneratorOptions,
 } from './generators/factionGenerator';
+export {
+  type CreationDraft,
+  type DraftIssue,
+  type DraftEvaluationResult,
+  type ResolvedLoadout,
+  type ResolvedEquipmentItem,
+  type ResolvedCurrency,
+  type DraftProvenance,
+} from './types/draft';
+
+export {
+  creationDataToDraft,
+  draftToCreationData,
+  type DraftAdapterOptions,
+} from './adapters/draftAdapter';
+
+export {
+  resolveCatalogEntitlements,
+  type CatalogValidationOptions,
+} from './services/catalogResolver';
+
+export {
+  resolveLoadout,
+  calculateTotalCurrencyGp,
+} from './services/loadoutResolver';
+
+export {
+  evaluateDraft,
+  toCharacterCreationResult,
+} from './services/draftEvaluator';
+
+export {
+  getRecommendation,
+  intentToClass,
+  type CombatIntent,
+  type RecommendationRequest,
+  type RecommendationResult,
+  type FirstTurnGuidance,
+} from './services/recommendationService';
+
+export {
+  CERTIFIED_SUPPORT_MANIFEST,
+  type ClassSupportCertification,
+} from './data/supportManifest';
+
+export {
+  FourScreenNewcomerFlow,
+  type FourScreenNewcomerFlowProps,
+} from './components/guided/FourScreenNewcomerFlow';
+
+export {
+  createDraftStorageKey,
+  saveDraftToStorage,
+  loadDraftFromStorage,
+  clearDraftFromStorage,
+  migrateDraft,
+  CURRENT_DRAFT_VERSION,
+  type DurableDraftRecord,
+  type LoadDraftResult,
+} from './services/draftStorage';
+
+export {
+  studyRecorder,
+  type StudyEvent,
+  type StudyEventType,
+  type StudySessionMetrics,
+} from './services/studyRecorder';
+
+export {
+  generateFirstTurnGuidance,
+} from './services/guidanceService';
 

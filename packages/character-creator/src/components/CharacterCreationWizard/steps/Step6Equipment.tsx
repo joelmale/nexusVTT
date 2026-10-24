@@ -407,36 +407,23 @@ export const Step6Equipment: React.FC<StepProps & { skipToStep?: (step: number) 
            classSlug={data.classSlug}
            backgroundName={data.background}
            onAccept={() => {
-             let startingInventory: Array<{equipmentSlug: string, quantity: number, equipped: boolean}>;
+              // Commit the exact loadout displayed to the user: class and background equipment + currency
+              const quickStartEquipment = generateQuickStartEquipment(data.classSlug, data.background);
+              const startingInventory = quickStartEquipment.items.map(item => ({
+                equipmentSlug: item.equipmentSlug,
+                quantity: item.quantity,
+                equipped: item.equipped || false
+              }));
 
-             if (data.equipmentChoice === 'background' && data.edition === '2024') {
-               // Use only background equipment for 2024 background choice
-                const background = BACKGROUNDS.find(bg => bg.slug === data.background);
-               if (background?.equipment) {
-                 startingInventory = background.equipment.map(itemName => {
-                   // Try to find the equipment item by name
-                   const equipmentItem = EQUIPMENT_PACKAGES.flatMap(pkg => pkg.items)
-                     .find(item => item.name.toLowerCase() === itemName.toLowerCase());
-                   return {
-                     equipmentSlug: equipmentItem?.slug || `custom-${itemName.toLowerCase().replace(/\s+/g, '-')}`,
-                     quantity: 1,
-                     equipped: false
-                   };
-                 });
-               } else {
-                 startingInventory = [];
-               }
-             } else {
-               // Generate and save QuickStart equipment to startingInventory
-               const quickStartEquipment = generateQuickStartEquipment(data.classSlug, data.background);
-               startingInventory = quickStartEquipment.items.map(item => ({
-                 equipmentSlug: item.equipmentSlug,
-                 quantity: item.quantity,
-                 equipped: item.equipped || false
-               }));
-             }
-
-             updateData({ startingInventory });
+              updateData({
+                startingInventory,
+                currency: {
+                  cp: quickStartEquipment.currency.cp || 0,
+                  sp: quickStartEquipment.currency.sp || 0,
+                  gp: quickStartEquipment.currency.gp || 0,
+                  pp: 0,
+                }
+              });
 
              // Skip to traits/finalize step
              if (skipToStep) {

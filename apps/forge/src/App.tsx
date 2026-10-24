@@ -319,6 +319,7 @@ const App: React.FC = () => {
       await loadCharacters();
       setIsWizardOpen(false);
       setCreationMethod(null);
+      setSelectedCharacterId(result.character.id);
       setRollResult({
         text: `${result.character.name} created.`,
         value: null,

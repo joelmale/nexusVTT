@@ -761,9 +761,23 @@ export function loadSRDSpecies(): Species[] {
 export function getAllSpecies(edition?: Edition): Species[] {
   let allSpecies = SPECIES_CATEGORIES.flatMap(category => category.species);
 
+  // Include 2014 SRD species for 2014 queries
+  if (edition === '2014' || !edition) {
+    const srdSpecies = loadSRDSpecies();
+    const existingSlugs = new Set(allSpecies.map(s => s.slug));
+    srdSpecies.forEach(s => {
+      if (!existingSlugs.has(s.slug)) {
+        allSpecies.push(s);
+      }
+    });
+  }
+
   // Filter by edition if specified
   if (edition) {
-    allSpecies = allSpecies.filter(species => species.edition === edition);
+    allSpecies = allSpecies.filter(species =>
+      species.edition === edition ||
+      (edition === '2014' && (species.edition === '2014' || species.legacy || !species.edition))
+    );
 
     // For 2024 edition, filter out "Half-Elf" and "Half-Orc"
     if (edition === '2024') {

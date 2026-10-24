@@ -26,6 +26,7 @@ const sidebars: SidebarsConfig = {
         'integrations/campaign-studio-sidecar-plan',
         'integrations/campaign-studio-session-planner-plan',
         'integrations/forge-vtt-object-integration-plan',
+        'integrations/character-creation-implementation-plan',
         'integrations/NEXUSCODEX_INTEGRATION',
         'integrations/INTEGRATED_SETUP',
       ],

@@ -480,5 +480,477 @@
     "ideals": [],
     "bonds": [],
     "flaws": []
+  },
+  {
+    "slug": "acolyte-2014",
+    "name": "Acolyte",
+    "edition": "2014",
+    "description": "You have spent your life in the service of a temple to a specific god or pantheon of gods. You act as an intermediary between the realm of the holy and the mortal world.",
+    "details": "You have spent your life in the service of a temple to a specific god or pantheon of gods. You act as an intermediary between the realm of the holy and the mortal world.",
+    "feature": "Shelter of the Faithful",
+    "feature_description": "As an acolyte, you command the respect of those who share your faith, and you can perform the religious ceremonies of your deity. You and your adventuring companions can expect to receive free healing and care at a temple or shrine.",
+    "skill_proficiencies": [
+      "Insight",
+      "Religion"
+    ],
+    "languages": [
+      "Two of your choice"
+    ],
+    "tool_proficiencies": [],
+    "equipment": [
+      "Holy Symbol",
+      "Prayer Book",
+      "5 Sticks of Incense",
+      "Vestments",
+      "Common Clothes",
+      "15 gp"
+    ],
+    "personality_traits": [
+      "I idolize a particular hero of my faith, and constantly refer to that person's deeds and example."
+    ],
+    "ideals": [
+      "Tradition: The ancient traditions of worship and sacrifice must be preserved. (Lawful)"
+    ],
+    "bonds": [
+      "I would die to recover an ancient relic of my faith that was lost long ago."
+    ],
+    "flaws": [
+      "I judge others harshly, and myself even more severely."
+    ]
+  },
+  {
+    "slug": "charlatan-2014",
+    "name": "Charlatan",
+    "edition": "2014",
+    "description": "You have always had a way with people. You know what makes them tick, you can tease out their hearts desires after a few minutes of conversation.",
+    "details": "You have always had a way with people. You know what makes them tick.",
+    "feature": "False Identity",
+    "feature_description": "You have created a second identity that includes documentation, established acquaintances, and disguises that allow you to assume that persona.",
+    "skill_proficiencies": [
+      "Deception",
+      "Sleight of Hand"
+    ],
+    "tool_proficiencies": [
+      "Disguise Kit",
+      "Forgery Kit"
+    ],
+    "equipment": [
+      "Fine Clothes",
+      "Disguise Kit",
+      "Con Tools",
+      "15 gp"
+    ],
+    "personality_traits": [
+      "I fall in and out of love easily, and am always pursuing someone."
+    ],
+    "ideals": [
+      "Independence: I am a free spirit—no one tells me what to do. (Chaotic)"
+    ],
+    "bonds": [
+      "I owe everything to my mentor, a horrible person who is probably rotting in jail."
+    ],
+    "flaws": [
+      "I cannot resist a pretty face."
+    ]
+  },
+  {
+    "slug": "criminal-2014",
+    "name": "Criminal",
+    "edition": "2014",
+    "description": "You are an experienced criminal with a history of breaking the law. You have spent plenty of time among other criminals and still have contacts within the criminal underworld.",
+    "details": "You are an experienced criminal with a history of breaking the law.",
+    "feature": "Criminal Contact",
+    "feature_description": "You have a reliable and trustworthy contact who acts as your liaison to a network of other criminals.",
+    "skill_proficiencies": [
+      "Deception",
+      "Stealth"
+    ],
+    "tool_proficiencies": [
+      "Thieves' Tools",
+      "Gaming Set (one choice)"
+    ],
+    "equipment": [
+      "Crowbar",
+      "Dark Common Clothes with Hood",
+      "15 gp"
+    ],
+    "personality_traits": [
+      "The best way to get me to do something is to tell me I cannot do it."
+    ],
+    "ideals": [
+      "Freedom: Chains are meant to be broken, as are those who would forge them. (Chaotic)"
+    ],
+    "bonds": [
+      "My ill-gotten gains go to support my family."
+    ],
+    "flaws": [
+      "When I see something valuable, I can think of nothing else but how to steal it."
+    ]
+  },
+  {
+    "slug": "entertainer-2014",
+    "name": "Entertainer",
+    "edition": "2014",
+    "description": "You thrive in front of an audience. You know how to entrance them, entertain them, and inspire them.",
+    "details": "You thrive in front of an audience.",
+    "feature": "By Popular Demand",
+    "feature_description": "You can always find a place to perform, usually in an inn or tavern. In exchange, you receive free lodging and food.",
+    "skill_proficiencies": [
+      "Acrobatics",
+      "Performance"
+    ],
+    "tool_proficiencies": [
+      "Disguise Kit",
+      "Musical Instrument (one choice)"
+    ],
+    "equipment": [
+      "Musical Instrument",
+      "Costume",
+      "15 gp"
+    ],
+    "personality_traits": [
+      "I know a story relevant to almost every situation."
+    ],
+    "ideals": [
+      "Beauty: When I perform, I make the world better than it was. (Good)"
+    ],
+    "bonds": [
+      "My instrument is my most treasured possession, and it reminds me of someone I love."
+    ],
+    "flaws": [
+      "A scandal once almost ruined my reputation, and I am terrified of facing another."
+    ]
+  },
+  {
+    "slug": "folk-hero-2014",
+    "name": "Folk Hero",
+    "edition": "2014",
+    "description": "You come from a humble social rank, but you are destined for so much more. Already the people of your home village regard you as their champion.",
+    "details": "You come from a humble social rank, but you are destined for so much more.",
+    "feature": "Rustic Hospitality",
+    "feature_description": "Since you come from the ranks of the common folk, you fit in among them with ease. You can find a place to hide, rest, or recuperate among commoners.",
+    "skill_proficiencies": [
+      "Animal Handling",
+      "Survival"
+    ],
+    "tool_proficiencies": [
+      "Artisan's Tools (one choice)",
+      "Vehicles (land)"
+    ],
+    "equipment": [
+      "Artisan's Tools",
+      "Shovel",
+      "Iron Pot",
+      "Common Clothes",
+      "10 gp"
+    ],
+    "personality_traits": [
+      "I judge people by their actions, not their words."
+    ],
+    "ideals": [
+      "Respect: People deserve to be treated with dignity and respect. (Good)"
+    ],
+    "bonds": [
+      "I protect those who cannot protect themselves."
+    ],
+    "flaws": [
+      "The tyrant who rules my land will stop at nothing to see me killed."
+    ]
+  },
+  {
+    "slug": "guild-artisan-2014",
+    "name": "Guild Artisan",
+    "edition": "2014",
+    "description": "You are a member of an artisan guild, skilled in a particular field and closely associated with other artisans.",
+    "details": "You are a member of an artisan guild.",
+    "feature": "Guild Membership",
+    "feature_description": "As an established and respected member of a guild, you can rely on certain benefits that membership provides.",
+    "skill_proficiencies": [
+      "Insight",
+      "Persuasion"
+    ],
+    "languages": [
+      "One of your choice"
+    ],
+    "tool_proficiencies": [
+      "Artisan's Tools (one choice)"
+    ],
+    "equipment": [
+      "Artisan's Tools",
+      "Letter of Introduction",
+      "Traveler's Clothes",
+      "15 gp"
+    ],
+    "personality_traits": [
+      "I believe that anything worth doing is worth doing right."
+    ],
+    "ideals": [
+      "Community: It is the duty of all civilized people to strengthen the bonds of community. (Lawful)"
+    ],
+    "bonds": [
+      "The workshop where I learned my trade is the most important place in the world to me."
+    ],
+    "flaws": [
+      "I am horribly jealous of anyone who can outshine my handiwork."
+    ]
+  },
+  {
+    "slug": "hermit-2014",
+    "name": "Hermit",
+    "edition": "2014",
+    "description": "You lived in seclusion—either in a sheltered community such as a monastery, or entirely alone—for a formative part of your life.",
+    "details": "You lived in seclusion.",
+    "feature": "Discovery",
+    "feature_description": "The quiet seclusion of your extended hermitage gave you access to a unique and powerful discovery.",
+    "skill_proficiencies": [
+      "Medicine",
+      "Religion"
+    ],
+    "languages": [
+      "One of your choice"
+    ],
+    "tool_proficiencies": [
+      "Herbalism Kit"
+    ],
+    "equipment": [
+      "Scroll Case",
+      "Winter Blanket",
+      "Common Clothes",
+      "Herbalism Kit",
+      "5 gp"
+    ],
+    "personality_traits": [
+      "I have been isolated for so long that I rarely speak, preferring gestures and the occasional grunt."
+    ],
+    "ideals": [
+      "Inquiry: The path to enlightenment begins with asking questions. (Neutral)"
+    ],
+    "bonds": [
+      "My isolation gave me great insight into a great evil that only I can destroy."
+    ],
+    "flaws": [
+      "Now that I have returned to the world, I enjoy its pleasures a little too much."
+    ]
+  },
+  {
+    "slug": "noble-2014",
+    "name": "Noble",
+    "edition": "2014",
+    "description": "You understand wealth, power, and privilege. You carry a noble title, and your family owns land, collects taxes, and wields significant political influence.",
+    "details": "You understand wealth, power, and privilege.",
+    "feature": "Position of Privilege",
+    "feature_description": "Thanks to your noble birth, people are inclined to think the best of you. You are welcome in high society and people assume you have the right to be wherever you are.",
+    "skill_proficiencies": [
+      "History",
+      "Persuasion"
+    ],
+    "languages": [
+      "One of your choice"
+    ],
+    "tool_proficiencies": [
+      "Gaming Set (one choice)"
+    ],
+    "equipment": [
+      "Fine Clothes",
+      "Signet Ring",
+      "Scroll of Pedigree",
+      "25 gp"
+    ],
+    "personality_traits": [
+      "My eloquent flattery makes everyone I talk to feel like the most important person in the world."
+    ],
+    "ideals": [
+      "Noble Obligation: It is my duty to protect and care for the people beneath me. (Good)"
+    ],
+    "bonds": [
+      "I will face any challenge to win the approval of my family."
+    ],
+    "flaws": [
+      "I secretly believe that everyone is beneath me."
+    ]
+  },
+  {
+    "slug": "outlander-2014",
+    "name": "Outlander",
+    "edition": "2014",
+    "description": "You grew up in the wilds, far from civilization and the comforts of town and technology.",
+    "details": "You grew up in the wilds, far from civilization.",
+    "feature": "Wanderer",
+    "feature_description": "You have an excellent memory for maps and geography, and you can always recall the general layout of terrain, settlements, and other features around you. In addition, you can find fresh food and water for yourself and up to five other people each day.",
+    "skill_proficiencies": [
+      "Athletics",
+      "Survival"
+    ],
+    "languages": [
+      "One of your choice"
+    ],
+    "tool_proficiencies": [
+      "Musical Instrument (one choice)"
+    ],
+    "equipment": [
+      "Staff",
+      "Hunting Trap",
+      "Trophy from Animal",
+      "Traveler's Clothes",
+      "10 gp"
+    ],
+    "personality_traits": [
+      "I am driven by a wanderlust that led me away from home."
+    ],
+    "ideals": [
+      "Nature: The natural world is more important than all the constructs of civilization. (Neutral)"
+    ],
+    "bonds": [
+      "My family, clan, or tribe is the most important thing in my life, even when they are far from me."
+    ],
+    "flaws": [
+      "I am too enamored of ale, wine, and other intoxicants."
+    ]
+  },
+  {
+    "slug": "sage-2014",
+    "name": "Sage",
+    "edition": "2014",
+    "description": "You spent years learning the lore of the multiverse. You scoured manuscripts, studied scrolls, and listened to the greatest experts on the subjects that interest you.",
+    "details": "You spent years learning the lore of the multiverse.",
+    "feature": "Researcher",
+    "feature_description": "When you attempt to learn or recall a piece of lore, if you do not know that information, you often know where and from whom you can obtain it.",
+    "skill_proficiencies": [
+      "Arcana",
+      "History"
+    ],
+    "languages": [
+      "Two of your choice"
+    ],
+    "tool_proficiencies": [],
+    "equipment": [
+      "Bottle of Ink",
+      "Quill",
+      "Small Knife",
+      "Letter from Colleague",
+      "Common Clothes",
+      "10 gp"
+    ],
+    "personality_traits": [
+      "I use polysyllabic words that convey the impression of great erudition."
+    ],
+    "ideals": [
+      "Knowledge: The path to power and self-improvement is through knowledge. (Neutral)"
+    ],
+    "bonds": [
+      "I have an ancient text that holds terrible secrets that must not fall into the wrong hands."
+    ],
+    "flaws": [
+      "I speak without really thinking through my words, invariably insulting others."
+    ]
+  },
+  {
+    "slug": "sailor-2014",
+    "name": "Sailor",
+    "edition": "2014",
+    "description": "You sailed on a seagoing vessel for years. In that time, you faced down mighty storms, monsters of the deep, and those who wanted to sink your craft.",
+    "details": "You sailed on a seagoing vessel for years.",
+    "feature": "Bad Reputation",
+    "feature_description": "No matter where you go, people are afraid of you due to your reputation. When you are in a civilized settlement, you can get away with minor criminal offenses.",
+    "skill_proficiencies": [
+      "Athletics",
+      "Perception"
+    ],
+    "tool_proficiencies": [
+      "Navigator's Tools",
+      "Vehicles (water)"
+    ],
+    "equipment": [
+      "Belaying Pin (Club)",
+      "50 feet of Silk Rope",
+      "Lucky Charm",
+      "Common Clothes",
+      "10 gp"
+    ],
+    "personality_traits": [
+      "My friends know they can rely on me, no matter what."
+    ],
+    "ideals": [
+      "Freedom: The sea is freedom—the freedom to go anywhere and do anything. (Chaotic)"
+    ],
+    "bonds": [
+      "I was cheated of my fair share of the profits, and I want to get even."
+    ],
+    "flaws": [
+      "My pride will probably lead to my destruction."
+    ]
+  },
+  {
+    "slug": "soldier-2014",
+    "name": "Soldier",
+    "edition": "2014",
+    "description": "War has been your life for as long as you care to remember. You trained as a youth, studied the use of weapons and armor, and learned basic survival techniques.",
+    "details": "War has been your life for as long as you care to remember.",
+    "feature": "Military Rank",
+    "feature_description": "You have a military rank from your career as a soldier. Soldiers loyal to your former military organization still recognize your authority and influence.",
+    "skill_proficiencies": [
+      "Athletics",
+      "Intimidation"
+    ],
+    "tool_proficiencies": [
+      "Gaming Set (one choice)",
+      "Vehicles (land)"
+    ],
+    "equipment": [
+      "Insignia of Rank",
+      "Trophy from Fallen Enemy",
+      "Bone Dice",
+      "Common Clothes",
+      "10 gp"
+    ],
+    "personality_traits": [
+      "I can stare down a hell hound without flinching."
+    ],
+    "ideals": [
+      "Greater Good: Our lot is to lay down our lives in defense of others. (Good)"
+    ],
+    "bonds": [
+      "Those who fight beside me are those worth dying for."
+    ],
+    "flaws": [
+      "The monstrous enemy we faced in battle still leaves me quivering with fear."
+    ]
+  },
+  {
+    "slug": "urchin-2014",
+    "name": "Urchin",
+    "edition": "2014",
+    "description": "You grew up on the streets alone, orphaned, and poor. You had no one to watch over you or to provide for you, so you learned to provide for yourself.",
+    "details": "You grew up on the streets alone, orphaned, and poor.",
+    "feature": "City Secrets",
+    "feature_description": "You know the secret patterns and flow to cities and can find passages through the urban sprawl that others would miss.",
+    "skill_proficiencies": [
+      "Sleight of Hand",
+      "Stealth"
+    ],
+    "tool_proficiencies": [
+      "Disguise Kit",
+      "Thieves' Tools"
+    ],
+    "equipment": [
+      "Small Knife",
+      "Map of Home City",
+      "Pet Mouse",
+      "Token of Parents",
+      "Common Clothes",
+      "10 gp"
+    ],
+    "personality_traits": [
+      "I hide scraps of food and trinkets away in my pockets."
+    ],
+    "ideals": [
+      "Community: We have to take care of each other, because no one else is going to do it. (Lawful)"
+    ],
+    "bonds": [
+      "No one else should have to endure the hardships I have been through."
+    ],
+    "flaws": [
+      "Gold seems like a lot of money to me, and I will do just about anything for more of it."
+    ]
   }
 ]

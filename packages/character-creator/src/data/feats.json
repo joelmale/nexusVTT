@@ -27,7 +27,7 @@
     "name": "Alert",
     "source": "PHB",
     "year": 2014,
-    "category": "general",
+    "category": "origin",
     "prerequisite": null,
     "prerequisites": {
       "level": 1
@@ -617,22 +617,6 @@
     }
   },
   {
-    "slug": "athlete",
-    "name": "Athlete",
-    "source": "PHB",
-    "year": 2014,
-    "category": "general",
-    "prerequisite": null,
-    "prerequisites": {
-      "level": 4
-    },
-    "benefits": [
-      "Climb and swim speed increases",
-      "Running long jump and high jump distances increase"
-    ],
-    "description": "You have undergone extensive physical training to gain the following benefits:\n\n• Increase your Strength or Dexterity score by 1, to a maximum of 20.\n• When you are prone, standing up uses only 5 feet of your movement.\n• Climbing doesn't cost you extra movement.\n• You can make a running long jump or a running high jump after moving only 5 feet on foot, rather than 10 feet."
-  },
-  {
     "slug": "heavily-armored",
     "name": "Heavily Armored",
     "source": "PHB",
@@ -817,38 +801,6 @@
     "prerequisites": {
       "level": 4
     }
-  },
-  {
-    "slug": "fighting-initiate",
-    "name": "Fighting Initiate",
-    "source": "TCoE",
-    "year": 2014,
-    "category": "general",
-    "prerequisite": null,
-    "prerequisites": {
-      "level": 4
-    },
-    "benefits": [
-      "Learn one Fighting Style from fighter class",
-      "Can change fighting style when leveling"
-    ],
-    "description": "Your martial training has helped you develop a particular style of fighting. As a result, you learn one Fighting Style option of your choice from the fighter class. If you already have a style, the one you choose must be different.\n\nWhenever you reach a level that grants the Ability Score Improvement feature, you can replace this feat's fighting style with another one from the fighter class that you don't have."
-  },
-  {
-    "slug": "artificer-initiate",
-    "name": "Artificer Initiate",
-    "source": "FToD",
-    "year": 2014,
-    "category": "general",
-    "prerequisite": null,
-    "prerequisites": {
-      "level": 4
-    },
-    "benefits": [
-      "Learn two artificer infusions",
-      "Create artificer infusions using your own spellcasting ability"
-    ],
-    "description": "You have learned some of an artificer's inventive magic. You gain the following benefits:\n\n• You learn two artificer infusions of your choice from the Artificer Infusions section of the artificer class in the Player's Handbook or another source. You can use each of the infusions once per long rest.\n\n• Whenever you gain a level, you can replace one of your infusions with another one from the same source.\n\n• You can use your spellcasting ability instead of your Intelligence for the infusions."
   },
   {
     "slug": "medium-armor-master",
@@ -1113,199 +1065,12 @@
       "You have advantage on all attack rolls"
     ],
     "description": "You have advantage on all attack rolls.",
-    "category": "origin",
+    "category": "epic_boon",
     "prerequisites": {
-      "level": 1
+      "level": 19
     }
   },
   {
-    "slug": "actor",
-    "name": "Actor",
-    "source": "PHB",
-    "year": 2024,
-    "category": "origin",
-    "prerequisite": null,
-    "prerequisites": {
-      "level": 1
-    },
-    "benefits": [
-      "+1 Charisma",
-      "Advantage on Deception and Performance checks when mimicking",
-      "Can mimic speech and sounds after hearing them for 1 minute"
-    ],
-    "description": "Skilled at mimicry and dramatics, you gain the following benefits:\n\n• Increase your Charisma score by 1, to a maximum of 20.\n• You have advantage on Charisma (Deception) and Charisma (Performance) checks when trying to pass yourself off as a different person.\n• You can mimic the speech of another person or the sounds made by other creatures. You must have heard the person speaking, or heard the creature make the sound, for at least 1 minute. A successful Wisdom (Insight) check contested by your Charisma (Deception) check allows a listener to determine that the effect is faked."
-  },
-  {
-    "slug": "chef",
-    "name": "Chef",
-    "source": "PHB",
-    "year": 2024,
-    "category": "origin",
-    "prerequisite": null,
-    "prerequisites": {
-      "level": 1
-    },
-    "benefits": [
-      "Cook's utensils proficiency",
-      "Can prepare special meals that grant benefits",
-      "Can prepare a feast for up to 12 people"
-    ],
-    "description": "Time and effort spent mastering the culinary arts has paid off. You gain the following benefits:\n\n• You gain proficiency with cook's utensils if you don't already have it.\n• As an action, you can inspect a drink or plate of food within 5 feet of you and determine whether it is poisoned, provided that you can see and smell it.\n• During a short rest, you can prepare a special meal that helps you and your companions. You and up to five other creatures can eat the meal to gain benefits. The meal takes 1 hour to prepare and requires 10 gp of ingredients. After eating, each creature gains one of the following benefits of your choice: a +2 bonus to a saving throw, resistance to poison damage for 1 hour, or advantage on Wisdom (Perception) checks for 1 hour."
-  },
-  {
-    "slug": "criminal",
-    "name": "Criminal",
-    "source": "PHB",
-    "year": 2024,
-    "category": "origin",
-    "prerequisite": null,
-    "prerequisites": {
-      "level": 1
-    },
-    "benefits": [
-      "Thieves' tools proficiency",
-      "Criminal contact in any city",
-      "Can find fences and underworld contacts"
-    ],
-    "description": "You are a member of the criminal underworld. You gain the following benefits:\n\n• You gain proficiency with thieves' tools if you don't already have it.\n• You have a contact in the criminal underworld who can provide information about criminal activities in any city. You know how to contact this individual and how to send and receive messages through them.\n• You are able to find a fence (someone who buys stolen goods) in any city, provided that the city has a population of at least 1,000."
-  },
-  {
-    "slug": "entertainer",
-    "name": "Entertainer",
-    "source": "PHB",
-    "year": 2024,
-    "category": "origin",
-    "prerequisite": null,
-    "prerequisites": {
-      "level": 1
-    },
-    "benefits": [
-      "Musical instrument proficiency",
-      "Can perform for free lodging and food",
-      "Local figure status in towns where you've performed"
-    ],
-    "description": "You are a gifted performer. You gain the following benefits:\n\n• You gain proficiency with one musical instrument of your choice.\n• You can always find a place to perform, usually in an inn or tavern but possibly with a circus, at a theater, or even in a noble's court. At such a place, you receive free lodging and food of a modest or comfortable standard (depending on the quality of the establishment), as long as you perform each night. In addition, your performance makes you something of a local figure. When strangers recognize you in a town where you have performed, they typically take a liking to you."
-  },
-  {
-    "slug": "guild-artisan",
-    "name": "Guild Artisan",
-    "source": "PHB",
-    "year": 2024,
-    "category": "origin",
-    "prerequisite": null,
-    "prerequisites": {
-      "level": 1
-    },
-    "benefits": [
-      "Artisan's tools proficiency",
-      "Guild membership with contacts and resources",
-      "Can find guild-sponsored lodging"
-    ],
-    "description": "You are a member of a guild. You gain the following benefits:\n\n• You gain proficiency with one type of artisan's tools of your choice.\n• You have a guild letter of introduction that indicates your membership. Presenting this letter gains you access to guild facilities and guild members who can provide assistance. Guild members will provide food and lodging, and will expedite any tasks related to your profession.\n• You can find a place to stay in any city that has a guildhall for your profession. You and your companions can stay at the guildhall for free for up to 3 days."
-  },
-  {
-    "slug": "noble",
-    "name": "Noble",
-    "source": "PHB",
-    "year": 2024,
-    "category": "origin",
-    "prerequisite": null,
-    "prerequisites": {
-      "level": 1
-    },
-    "benefits": [
-      "Position of privilege in society",
-      "Can secure audience with local nobility",
-      "Retainers available for service"
-    ],
-    "description": "You are a member of the nobility. You gain the following benefits:\n\n• You have a position of privilege in society. You are welcome in high society, and people assume you have the right to be wherever you are. The common folk make every effort to accommodate you and avoid your displeasure, and other people of high birth treat you as a member of the same social sphere. You can secure an audience with a local noble if you need to.\n• You gain proficiency in one language of your choice.\n• You have a retainer: a loyal servant who attends to your needs. Your retainer is a commoner who bears a signet ring emblazoned with your family crest. While in a city or town, you can direct your retainer to purchase goods or hire workers on your behalf."
-  },
-  {
-    "slug": "outlander",
-    "name": "Outlander",
-    "source": "PHB",
-    "year": 2024,
-    "category": "origin",
-    "prerequisite": null,
-    "prerequisites": {
-      "level": 1
-    },
-    "benefits": [
-      "Wanderer - can find food and fresh water",
-      "Favored Enemy - choose a creature type for advantage on attacks and checks",
-      "Can always recall the general layout of terrain and settlements"
-    ],
-    "description": "You grew up in the wilds, far from civilization and the comforts of town and technology. You gain the following benefits:\n\n• You are proficient in one skill of your choice from among Animal Handling, Athletics, Nature, Stealth, or Survival.\n• You can find food and fresh water for yourself and up to five other people each day, provided that the land offers berries, small game, water, and so forth.\n• You can recall the general layout of terrain, settlements, and other features nearby. In addition, you can find hidden water sources in deserts or wastelands."
-  },
-  {
-    "slug": "sage",
-    "name": "Sage",
-    "source": "PHB",
-    "year": 2024,
-    "category": "origin",
-    "prerequisite": null,
-    "prerequisites": {
-      "level": 1
-    },
-    "benefits": [
-      "Researcher - can find lore in libraries",
-      "Arcane Recovery - regain expended spell slot",
-      "Can decipher ancient scripts and languages"
-    ],
-    "description": "You have studied extensively and are an expert on a particular field of knowledge. You gain the following benefits:\n\n• You gain proficiency in two skills of your choice from among Arcana, History, Nature, Religion, or Investigation.\n• You can identify the properties of any magic item you examine (such as whether it's cursed, what its properties are, and so on) after examining it for 1 minute.\n• You can cast the Identify spell twice per long rest without expending a spell slot."
-  },
-  {
-    "slug": "sailor",
-    "name": "Sailor",
-    "source": "PHB",
-    "year": 2024,
-    "category": "origin",
-    "prerequisite": null,
-    "prerequisites": {
-      "level": 1
-    },
-    "benefits": [
-      "Bad Reputation - advantage on Intimidation checks",
-      "Ship's Passage - can secure free passage on ships",
-      "Can always find work on a ship"
-    ],
-    "description": "You have spent time at sea on a sailing ship or naval vessel. You gain the following benefits:\n\n• You gain proficiency with vehicles (water) and navigator's tools if you don't already have them.\n• You have advantage on Dexterity (Acrobatics) checks made to keep your balance while on a slippery deck and on Strength (Athletics) checks made to climb a ship's rigging.\n• You can always find a place on a ship willing to take you and your companions on a voyage. In return for your work as a crew member, you and your companions receive free passage and food for the voyage."
-  },
-  {
-    "slug": "soldier",
-    "name": "Soldier",
-    "source": "PHB",
-    "year": 2024,
-    "category": "origin",
-    "prerequisite": null,
-    "prerequisites": {
-      "level": 1
-    },
-    "benefits": [
-      "Military Rank - can exert authority over lower-ranking soldiers",
-      "Weapon Proficiency - martial weapons and armor",
-      "Can requisition simple equipment from military allies"
-    ],
-    "description": "You have military training and discipline. You gain the following benefits:\n\n• You gain proficiency with two weapons of your choice from among the martial weapons.\n• You gain proficiency with one type of armor of your choice from among light, medium, or heavy armor.\n• You have advantage on initiative rolls.\n• You can requisition simple equipment or horses for temporary use during your adventures by providing an official-looking document from your military."
-  },
-  {
-    "slug": "urchin",
-    "name": "Urchin",
-    "source": "PHB",
-    "year": 2024,
-    "category": "origin",
-    "prerequisite": null,
-    "prerequisites": {
-      "level": 1
-    },
-    "benefits": [
-      "City Secrets - know hidden paths and passages in cities",
-      "Sneak Attack - extra damage when attacking with advantage or when enemy is flanked",
-      "Can find food and shelter in cities"
-    ],
-    "description": "You grew up on the streets, surviving by your wits and cunning. You gain the following benefits:\n\n• You gain proficiency in two skills of your choice from among Deception, Sleight of Hand, Stealth, or Persuasion.\n• You can find secret entrances, hidden passages, and areas to hide in any city you visit. In addition, you can find food and shelter for yourself and up to four other people for free in any city, provided that the city has a population of at least 1,000."
-  },
-   {
     "slug": "versatile",
     "name": "Versatile",
     "source": "PHB",
@@ -1441,7 +1206,7 @@
     "name": "Magic Initiate",
     "source": "PHB",
     "year": 2014,
-    "category": "general",
+    "category": "origin",
     "prerequisite": null,
     "prerequisites": {
       "level": 1

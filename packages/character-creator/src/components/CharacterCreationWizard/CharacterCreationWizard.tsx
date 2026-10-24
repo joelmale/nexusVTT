@@ -24,12 +24,16 @@ import {
 } from './steps';
 import { StepHighLevelSetup } from './steps/StepHighLevelSetup';
 import { StepCumulativeASI } from './steps/StepCumulativeASI';
+import { draftToCreationData, creationDataToDraft } from '../../adapters/draftAdapter';
 
 export const CharacterCreationWizard: React.FC<WizardProps> = ({
   isOpen,
   edition,
   theme,
   submitLabel,
+  initialDraft,
+  onDraftChange,
+  onDraftDiscard,
   onCancel,
   onComplete
 }) => {
@@ -61,12 +65,28 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
   const visibleStepCount = visibleStepIndices.length || stepTitles.length;
   const stepPosition = Math.max(visibleStepIndices.indexOf(currentStep) + 1, 1);
 
-  // Reset wizard when it opens
+  // Reset wizard when it opens (or restore from initialDraft)
   useEffect(() => {
     if (isOpen) {
-      resetWizard({ edition });
+      if (initialDraft) {
+        resetWizard(draftToCreationData(initialDraft));
+      } else {
+        resetWizard({ edition });
+      }
     }
-  }, [isOpen, resetWizard, edition]);
+  }, [isOpen, resetWizard, edition, initialDraft]);
+
+  const handleUpdateData = useCallback(
+    (updates: Partial<typeof creationData>) => {
+      updateData(updates);
+      if (onDraftChange) {
+        const nextData = { ...creationData, ...updates };
+        const draft = creationDataToDraft(nextData, { provenance: 'player' });
+        onDraftChange(draft);
+      }
+    },
+    [updateData, creationData, onDraftChange]
+  );
 
   // Never dismiss the wizard while a save is in flight.
   const handleCancel = useCallback(() => {
@@ -114,7 +134,7 @@ export const CharacterCreationWizard: React.FC<WizardProps> = ({
   if (!isOpen) return null;
 
   const renderStep = () => {
-    const commonProps = { data: creationData, updateData, nextStep, prevStep, stepIndex: currentStep, getNextStepLabel, openTraitModal };
+    const commonProps = { data: creationData, updateData: handleUpdateData, nextStep, prevStep, stepIndex: currentStep, getNextStepLabel, openTraitModal };
 
     // Dynamic Step Rendering based on Edition
     // 2024 Order: Level -> Class -> Identity -> Species -> Abilities...
