@@ -46,17 +46,12 @@ export const Step4Abilities: React.FC<StepProps> = ({ data, updateData, nextStep
 
   // Helper to get bonus based on edition
   const getBonus = (ability: AbilityName) => {
-    // Species bonuses apply in both editions
-    const speciesBonus = speciesData?.ability_bonuses?.[ability] || 0;
-
     if (data.edition === '2024') {
-      // In 2024, bonuses come from Species + Background (User Selected)
-      const userBonus = data.backgroundAbilityChoices?.bonuses?.[ability] || 0;
-      // Background bonuses are in addition to species bonuses
-      return speciesBonus + userBonus;
+      // In 2024, bonuses come from Background (User Selected) only
+      return data.backgroundAbilityChoices?.bonuses?.[ability] || 0;
     } else {
       // In 2014, bonuses come from Species only
-      return speciesBonus;
+      return speciesData?.ability_bonuses?.[ability] || 0;
     }
   };
 

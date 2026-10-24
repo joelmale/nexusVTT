@@ -134,7 +134,7 @@ const shouldShowStep = (stepIndex: number, data: CharacterCreationData): boolean
         case 4: return true; // Abilities
         case 5: return data.level >= 2; // High Level
         case 6: return data.level >= 4; // ASI
-        case 7: return ['fighter', 'paladin', 'ranger'].includes(data.classSlug) && data.level >= 2; // Fighting Style
+        case 7: return (data.classSlug === 'fighter' && data.level >= 1) || (['paladin', 'ranger'].includes(data.classSlug) && data.level >= 2); // Fighting Style
         case 8: return hasSpellcastingAtLevel(data.classSlug, data.level); // Spells
         case 9: return calculateFeatAvailability(data) > 0; // Feats
         default: return true; // Rest are usually always shown
@@ -155,7 +155,7 @@ const shouldShowStep = (stepIndex: number, data: CharacterCreationData): boolean
         case 4: return true;
         case 5: return data.level >= 2;
         case 6: return data.level >= 4;
-        case 7: return ['fighter', 'paladin', 'ranger'].includes(data.classSlug) && data.level >= 2;
+        case 7: return (data.classSlug === 'fighter' && data.level >= 1) || (['paladin', 'ranger'].includes(data.classSlug) && data.level >= 2);
         case 8: return hasSpellcastingAtLevel(data.classSlug, data.level);
         case 9: return calculateFeatAvailability(data) > 0;
         default: return true;

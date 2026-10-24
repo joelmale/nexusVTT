@@ -39,11 +39,11 @@ export const calculateCharacterStats = (data: CharacterCreationData): Character 
       rawScore += (speciesData.ability_bonuses?.[ability] || 0);
     } else if (data.edition === '2024') {
       // 2024: Apply Background Ability Bonuses
-      // Fixed bonuses first
-      rawScore += (backgroundData.abilityScores?.fixed?.[ability] || 0);
-      // Then chosen options (assuming `data.abilities` already includes chosen options from wizard step)
-      // This part might need further refinement based on how the wizard handles chosen background ASIs
-      // For now, we assume rawScore already contains the chosen +1/+2
+      if (data.backgroundAbilityChoices?.bonuses?.[ability]) {
+        rawScore += data.backgroundAbilityChoices.bonuses[ability]!;
+      } else if (backgroundData.abilityScores?.fixed?.[ability]) {
+        rawScore += backgroundData.abilityScores.fixed[ability]!;
+      }
     }
 
     // Apply cumulative ASI increases for high-level characters

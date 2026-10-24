@@ -66,6 +66,24 @@ describe('guided creation hand-off', () => {
     expect(character.maxHitPoints).toBeGreaterThan(0);
   });
 
+  it('applies 2024 background ability bonuses when backgroundAbilityChoices is provided', () => {
+    const noble = BACKGROUNDS.find((bg) => bg.name === 'Noble');
+    expect(noble).toBeDefined();
+
+    const payload = buildGuidedPayload(noble!.slug);
+    payload.backgroundAbilityChoices = {
+      method: '2/1',
+      bonuses: { STR: 2, CHA: 1 },
+    };
+
+    const character = calculateCharacterStats(payload);
+    // Base was STR 15, CHA 13
+    expect(character.abilities.STR.score).toBe(17);
+    expect(character.abilities.STR.modifier).toBe(3);
+    expect(character.abilities.CHA.score).toBe(14);
+    expect(character.abilities.CHA.modifier).toBe(2);
+  });
+
   it('rejects a background passed as a display name', () => {
     // This is the exact failure the guided flow used to hit on every run.
     expect(() => calculateCharacterStats(buildGuidedPayload('Noble'))).toThrow(

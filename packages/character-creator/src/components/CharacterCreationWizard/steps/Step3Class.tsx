@@ -195,14 +195,14 @@ export const Step3Class: React.FC<StepProps> = ({ data, updateData, nextStep, pr
 
           {/* Background Skills (Auto-granted) */}
           {(() => {
-            const backgroundData = BACKGROUNDS.find(bg => bg.name === data.background);
+            const backgroundData = BACKGROUNDS.find(bg => bg.slug === data.background || bg.name === data.background);
             const backgroundSkills = backgroundData?.skill_proficiencies || [];
 
             if (backgroundSkills.length > 0) {
               return (
                 <div className="p-3 bg-accent-green-darker/20 border border-accent-green-dark rounded-lg">
                   <div className="text-xs font-semibold text-accent-green-light mb-2">
-                    Background Skills (Auto-granted from {data.background}):
+                    Background Skills (Auto-granted from {backgroundData?.name || data.background}):
                   </div>
                   <div className="flex flex-wrap gap-2">
                     {backgroundSkills.map(skill => (
@@ -220,7 +220,7 @@ export const Step3Class: React.FC<StepProps> = ({ data, updateData, nextStep, pr
           {/* Class Skill Selection */}
           <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
             {selectedClass.skill_proficiencies.map(skill => {
-              const backgroundData = BACKGROUNDS.find(bg => bg.name === data.background);
+              const backgroundData = BACKGROUNDS.find(bg => bg.slug === data.background || bg.name === data.background);
               const backgroundSkills = backgroundData?.skill_proficiencies || [];
               const isBackgroundSkill = backgroundSkills.includes(skill);
               const isSelected = data.selectedSkills.includes(skill as SkillName);

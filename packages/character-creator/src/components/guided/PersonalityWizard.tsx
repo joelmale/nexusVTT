@@ -3,7 +3,7 @@ import { ArrowLeft, ArrowRight, Heart, Shield, Zap, Sparkles } from 'lucide-reac
 import { generateCharacterProfile, CharacterProfile } from '../../data/characterProfiles';
 import PersonalitySummary from './PersonalitySummary';
 import CharacterFinalization from './CharacterFinalization';
-import { loadClasses, getAllSpecies, BACKGROUNDS, getCantripsByClass, getLeveledSpellsByClass } from '../../services/dataService';
+import { loadClasses, getAllSpecies, BACKGROUNDS, getCantripsByClass, getLeveledSpellsByClass, randomizeBackgroundAbilityChoices } from '../../services/dataService';
 import { CharacterCreationData, SpellSelectionData, SkillName, Edition } from '../../types/dnd';
 import { getSpellcastingType } from '../../utils/spellUtils';
 import { SPELL_LEARNING_RULES } from '../../data/spellLearning';
@@ -231,8 +231,8 @@ const PersonalityWizard: React.FC<PersonalityWizardProps> = ({ isOpen, onClose: 
       return parenIndex > 0 ? fullName.substring(0, parenIndex) : fullName;
     };
 
-    const allClasses = loadClasses();
-    const allSpecies = getAllSpecies();
+    const allClasses = loadClasses(edition);
+    const allSpecies = getAllSpecies(edition);
 
     const baseClassName = extractBaseName(selectedClass || '');
     const baseSpeciesName = extractBaseName(selectedSpecies || '');
@@ -242,9 +242,9 @@ const PersonalityWizard: React.FC<PersonalityWizardProps> = ({ isOpen, onClose: 
 
     // Backgrounds are chosen by display name ("Noble") but every downstream
     // consumer keys off the slug ("noble-2024"), so resolve the record here.
-    const selectedBackgroundData = BACKGROUNDS.find(
-      bg => bg.name === selectedBackground,
-    );
+    const selectedBackgroundData =
+      BACKGROUNDS.find(bg => bg.name === selectedBackground && (edition ? bg.edition === edition : true)) ||
+      BACKGROUNDS.find(bg => bg.name === selectedBackground);
 
     if (!selectedClassData || !selectedSpeciesData || !selectedBackgroundData) {
       log.error('PersonalityWizard missing class/species/background data', {
@@ -283,6 +283,9 @@ const PersonalityWizard: React.FC<PersonalityWizardProps> = ({ isOpen, onClose: 
     // Roll for a random trinket
     const randomTrinket = rollRandomTrinket();
 
+    // Generate 2024 background ability choices
+    const backgroundASI = randomizeBackgroundAbilityChoices(selectedBackgroundData.slug, edition ?? '2024');
+
     // Create complete CharacterCreationData structure
     const characterData: CharacterCreationData = {
       name: finalizationData.name,
@@ -292,8 +295,9 @@ const PersonalityWizard: React.FC<PersonalityWizardProps> = ({ isOpen, onClose: 
       abilities,
       abilityScoreMethod: 'standard-array' as const,
       background: selectedBackgroundData.slug,
+      backgroundAbilityChoices: backgroundASI,
       alignment: finalizationData.alignment,
-      edition: '2024',
+      edition: edition ?? '2024',
 
        selectedSkills: selectedSkills as SkillName[],
        selectedMusicalInstruments: [],
