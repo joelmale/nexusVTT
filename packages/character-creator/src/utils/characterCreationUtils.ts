@@ -2,6 +2,7 @@ import { CharacterCreationData, Character, AbilityName, SkillName } from '../typ
 import { getAllSpecies, loadClasses, BACKGROUNDS, PROFICIENCY_BONUSES, getModifier, SKILL_TO_ABILITY, ALL_SKILLS, getHitDieForClass } from '../services/dataService';
 import { migrateSpellSelectionToCharacter } from '../utils/spellUtils';
 import { addItemToInventoryByName } from '../utils/equipmentMatching';
+import { parseCoinString } from '../services/equipmentService';
 import { BASE_ARMOR_CLASS } from '../constants/combat';
 import { log } from './logger';
 
@@ -128,8 +129,15 @@ export const calculateCharacterStats = (data: CharacterCreationData): Character 
   });
 
 
-  // 3.5. Calculate Inventory from Equipment Choices
+  // 3.5. Calculate Inventory and Currency from Equipment Choices
   const inventory: Character['inventory'] = [];
+  const currency: { cp: number; sp: number; ep: number; gp: number; pp: number } = {
+    cp: 0,
+    sp: 0,
+    ep: 0,
+    gp: 0,
+    pp: 0,
+  };
 
   // Add items from class equipment choices
   if (data.equipmentChoices) {
@@ -137,6 +145,12 @@ export const calculateCharacterStats = (data: CharacterCreationData): Character 
       if (choice.selected !== null && choice.selected !== undefined) {
         const selectedBundle = choice.options[choice.selected];
         selectedBundle.forEach(item => {
+          const coin = parseCoinString(item.name);
+          if (coin) {
+            currency[coin.denomination] += coin.amount * (item.quantity || 1);
+            return;
+          }
+
           // Use the equipment matching utility to find and add items
           const results = addItemToInventoryByName(item.name, item.quantity);
 
@@ -173,6 +187,12 @@ export const calculateCharacterStats = (data: CharacterCreationData): Character 
       : [backgroundData.equipment];
     
     backgroundEquipment.forEach(itemName => {
+      const coin = parseCoinString(itemName);
+      if (coin) {
+        currency[coin.denomination] += coin.amount;
+        return;
+      }
+
       // Try to match the background equipment name to equipment database
       const results = addItemToInventoryByName(itemName, 1);
       
@@ -364,10 +384,10 @@ export const calculateCharacterStats = (data: CharacterCreationData): Character 
      eldritchInvocations: data.eldritchInvocations,
      originFeat: backgroundData?.originFeat, // 2024 Origin Feat reference
     currency: {
-      cp: 0,
-      sp: 0,
-      gp: 0,
-      pp: 0,
+      cp: currency.cp,
+      sp: currency.sp,
+      gp: currency.gp,
+      pp: currency.pp,
     },
 
     equippedArmor: undefined,

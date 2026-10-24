@@ -1,6 +1,10 @@
-import { render, screen } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { GameUI } from '@/components/GameUI';
+import { useCharacterStore } from '@/stores/characterStore';
+
+let mockCurrentUser = { id: 'host-1', name: 'Host', type: 'host', isSpectator: false };
+const mockSelectPanel = vi.fn();
 
 // Mock dependencies
 vi.mock('@/stores/gameStore', () => ({
@@ -9,7 +13,7 @@ vi.mock('@/stores/gameStore', () => ({
   useSettings: vi.fn(() => ({ enableGlassmorphism: false })),
   useColorScheme: vi.fn(() => ({ primary: '#000000', secondary: '#000000', background: '#000000', surface: '#000000', text: '#000000' })),
   useIsHost: vi.fn(() => true),
-  useSession: vi.fn(() => ({ user: { id: 'host-1', name: 'Host' } })),
+  useSession: vi.fn(() => ({ user: mockCurrentUser })),
   useSceneState: vi.fn(() => ({ scenes: [{ id: 'scene-1', name: 'Test Scene' }], activeSceneId: 'scene-1' })),
   // Selector-aware: the real useGameStore is `useGameStore(selector)`, so a
   // stub that ignores the selector and returns its whole fake state hands
@@ -18,7 +22,7 @@ vi.mock('@/stores/gameStore', () => ({
   useGameStore: Object.assign(
     vi.fn((selector?: (state: unknown) => unknown) => {
       const state = {
-        user: { id: 'host-1', name: 'Host', type: 'host' },
+        user: mockCurrentUser,
         activeSceneId: 'scene-1',
         leaveRoom: vi.fn(),
         syncGameStateToServer: vi.fn(),
@@ -53,6 +57,7 @@ vi.mock('@/stores/uiStackStore', async (importOriginal) => ({
     const selectorStr = selector.toString();
     if (selectorStr.includes('activePanels')) return ['dice'];
     if (selectorStr.includes('togglePanel')) return vi.fn();
+    if (selectorStr.includes('selectPanel')) return mockSelectPanel;
     return vi.fn();
   }),
   useStackZIndex: vi.fn(() => 70),
@@ -123,4 +128,32 @@ describe('GameUI Component', () => {
     // which traps the 3D dice behind floating panels (z-index: 70).
     expect(sceneContent?.contains(diceBox)).toBe(false);
   });
+
+  it('renders onboarding banner when player has no character', async () => {
+    mockCurrentUser = { id: 'p1', name: 'Mia', type: 'player', isSpectator: false };
+    useCharacterStore.setState({ characters: [] });
+
+    render(<GameUI />);
+
+    const banner = await screen.findByTestId('desktop-onboarding-banner');
+    expect(banner).toBeInTheDocument();
+    expect(
+      screen.getByText("You don't have a character assigned to this game yet."),
+    ).toBeInTheDocument();
+
+    const openBtn = screen.getByRole('button', { name: /Open Characters/i });
+    fireEvent.click(openBtn);
+    expect(mockSelectPanel).toHaveBeenCalledWith('characters');
+
+    const dismissBtn = screen.getByRole('button', { name: /Dismiss banner/i });
+    fireEvent.click(dismissBtn);
+    expect(screen.queryByTestId('desktop-onboarding-banner')).not.toBeInTheDocument();
+  });
+
+  it('does not render onboarding banner for host or player with character', async () => {
+    mockCurrentUser = { id: 'host-1', name: 'Host', type: 'host', isSpectator: false };
+    render(<GameUI />);
+    expect(screen.queryByTestId('desktop-onboarding-banner')).not.toBeInTheDocument();
+  });
 });
+

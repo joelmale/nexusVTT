@@ -1,6 +1,8 @@
 import React, {
   useCallback,
   useEffect,
+  useState,
+  useMemo,
   Suspense,
 } from 'react';
 import {
@@ -11,6 +13,7 @@ import {
   useGameStore,
   useServerRoomCode,
 } from '@/stores/gameStore';
+import { useCharacterStore } from '@/stores/characterStore';
 import { SceneCanvas } from './Scene/SceneCanvas';
 import { ScenePill } from './Scene/ScenePill';
 import { GeneratorOverlay } from './Generator/GeneratorOverlay';
@@ -61,6 +64,15 @@ export const GameUI: React.FC = () => {
   const roomCode = useServerRoomCode();
 
   const isHost = user.type === 'host';
+
+  const characters = useCharacterStore((state) => state.characters);
+  const myCharacters = useMemo(
+    () => characters.filter((c) => c.playerId === user.id),
+    [characters, user.id],
+  );
+  const [onboardingDismissed, setOnboardingDismissed] = useState(false);
+  const showOnboardingBanner =
+    !isHost && !user.isSpectator && myCharacters.length === 0 && !onboardingDismissed;
 
   const activePanels = useUIStackStore(state => state.activePanels);
   const togglePanel = useUIStackStore(state => state.togglePanel);
@@ -180,6 +192,32 @@ export const GameUI: React.FC = () => {
 
   return (
     <div className="game-layout">
+      {showOnboardingBanner && (
+        <div
+          className="desktop-onboarding-banner"
+          role="status"
+          data-testid="desktop-onboarding-banner"
+        >
+          <span>You don't have a character assigned to this game yet.</span>
+          <div className="onboarding-banner-actions">
+            <button
+              type="button"
+              className="glass-button primary small"
+              onClick={() => selectPanel('characters')}
+            >
+              Open Characters
+            </button>
+            <button
+              type="button"
+              className="glass-button small"
+              onClick={() => setOnboardingDismissed(true)}
+              aria-label="Dismiss banner"
+            >
+              ✕
+            </button>
+          </div>
+        </div>
+      )}
       {/* Dock region hosts. Docked FloatingPanels portal into these, which is
           what makes a dock reserve real layout space and reflow the canvas
           (see .game-layout's --dock-* grid tracks). Empty regions collapse. */}

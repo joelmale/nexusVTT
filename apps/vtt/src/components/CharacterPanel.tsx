@@ -1,9 +1,13 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useContext } from 'react';
 import { useCharacterStore } from '@/stores/characterStore';
 import { useGameStore } from '@/stores/gameStore';
 import { useInitiativeStore } from '@/stores/initiativeStore';
 import { CharacterCard } from './CharacterCard';
 import { CharacterImportModal } from './CharacterImportModal';
+import { CharacterClaimModal } from './simple-player/CharacterClaimModal';
+import { CharacterCreationContext } from './CharacterCreationContext';
+import { sendPlayerIntent } from '@/services/playerIntentClient';
+import type { SubmittedCharacter } from '../../shared/events/playerIntent';
 import './CharacterPanel.css';
 
 type FilterType = 'all' | 'in-combat' | 'not-in-combat' | 'has-token';
@@ -14,10 +18,42 @@ export const CharacterPanel: React.FC = () => {
   const scenes = useGameStore((s) => s.sceneState.scenes);
   const initiativeEntries = useInitiativeStore((s) => s.entries);
   const isHost = useGameStore((s) => s.user.type === 'host');
+  const user = useGameStore((s) => s.user);
   const [importOpen, setImportOpen] = useState(false);
+  const [claimOpen, setClaimOpen] = useState(false);
+  const creationContext = useContext(CharacterCreationContext);
+  const startCharacterCreation = creationContext?.startCharacterCreation;
+  const LauncherComponent = creationContext?.LauncherComponent;
 
   const [filter, setFilter] = useState<FilterType>('all');
   const [searchQuery, setSearchQuery] = useState('');
+
+  // Current user's characters and unclaimed characters in the room
+  const myCharacters = useMemo(
+    () => characters.filter((c) => c.playerId === user.id),
+    [characters, user.id],
+  );
+  const unclaimedCharacters = useMemo(
+    () => characters.filter((c) => !c.playerId),
+    [characters],
+  );
+
+  const handleStartCreate = () => {
+    if (!startCharacterCreation) return;
+    startCharacterCreation(
+      user.id,
+      'modal',
+      async (characterId, character) => {
+        if (character && !isHost) {
+          await sendPlayerIntent({
+            kind: 'submit-character',
+            character: character as unknown as SubmittedCharacter,
+          });
+        }
+        useCharacterStore.getState().setActiveCharacter(characterId);
+      },
+    );
+  };
 
   // Session players' characters, plus (for the DM) unclaimed party
   // characters waiting for a player to pick them.
@@ -86,7 +122,7 @@ export const CharacterPanel: React.FC = () => {
       <div className="character-panel-header">
         <h2>Characters</h2>
         <span className="character-count">{filteredCharacters.length}</span>
-        {isHost && (
+        {isHost ? (
           <button
             type="button"
             className="filter-btn"
@@ -94,6 +130,15 @@ export const CharacterPanel: React.FC = () => {
             title="Import party characters players can claim"
           >
             📥 Import
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="filter-btn create-btn"
+            onClick={handleStartCreate}
+            title="Create a new character"
+          >
+            ➕ Create
           </button>
         )}
       </div>
@@ -148,8 +193,39 @@ export const CharacterPanel: React.FC = () => {
       <div className="character-list">
         {filteredCharacters.length === 0 ? (
           <div className="character-panel-empty">
-            <p>No characters found</p>
-            {searchQuery && <p className="hint">Try adjusting your search</p>}
+            {searchQuery ? (
+              <>
+                <p>No characters found</p>
+                <p className="hint">Try adjusting your search</p>
+              </>
+            ) : !isHost && myCharacters.length === 0 ? (
+              <div className="character-panel-onboarding">
+                <p className="onboarding-title">No Character Assigned</p>
+                <p className="hint">
+                  You don't have an active character in this game yet.
+                </p>
+                <div className="onboarding-actions">
+                  <button
+                    type="button"
+                    className="action-button primary-action"
+                    onClick={handleStartCreate}
+                  >
+                    ➕ Create a Character
+                  </button>
+                  {unclaimedCharacters.length > 0 && (
+                    <button
+                      type="button"
+                      className="action-button secondary-action"
+                      onClick={() => setClaimOpen(true)}
+                    >
+                      Select Existing Character
+                    </button>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <p>No characters found</p>
+            )}
           </div>
         ) : (
           filteredCharacters.map((ec) => (
@@ -162,6 +238,28 @@ export const CharacterPanel: React.FC = () => {
           ))
         )}
       </div>
+      {claimOpen && (
+        <CharacterClaimModal
+          characters={characters}
+          userId={user.id}
+          onClaim={async (characterId) => {
+            const result = await sendPlayerIntent({
+              kind: 'claim-character',
+              characterId,
+            });
+            if (result.status === 'applied') {
+              useCharacterStore.getState().setActiveCharacter(characterId);
+            }
+            return result;
+          }}
+          onCreateNew={() => {
+            setClaimOpen(false);
+            handleStartCreate();
+          }}
+          onClose={() => setClaimOpen(false)}
+        />
+      )}
+      {LauncherComponent}
     </div>
   );
 };

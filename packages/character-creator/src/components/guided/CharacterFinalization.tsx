@@ -50,7 +50,7 @@ const CharacterFinalization: React.FC<CharacterFinalizationProps> = ({
   onBack
 }) => {
   const [name, setName] = useState(() => generateAllCharacterDetails(selectedSpecies, edition).name);
-  const [alignment, setAlignment] = useState('Neutral');
+  const [alignment, setAlignment] = useState('True Neutral');
   const [personality, setPersonality] = useState(() => generateAllCharacterDetails(selectedSpecies, edition).personality);
   const [ideals, setIdeals] = useState(() => generateAllCharacterDetails(selectedSpecies, edition).ideals);
   const [bonds, setBonds] = useState(() => generateAllCharacterDetails(selectedSpecies, edition).bonds);

@@ -1525,3 +1525,31 @@ html[data-theme='light'] .type-filter-select option {
   font-size: 0.85rem;
   opacity: 0.7;
 }
+
+/* Desktop Onboarding Banner */
+.desktop-onboarding-banner {
+  position: absolute;
+  top: 1rem;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: var(--z-panel, 70);
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.6rem 1.25rem;
+  background: rgba(23, 23, 30, 0.88);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(59, 130, 246, 0.35);
+  border-radius: 9999px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.45);
+  color: var(--text-color, #e0e0e0);
+  font-size: 0.875rem;
+}
+
+.onboarding-banner-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+

@@ -90,4 +90,21 @@ describe('guided creation hand-off', () => {
       /Incomplete creation data/,
     );
   });
+
+  it('parses background coin strings into character currency and avoids unknown inventory items', () => {
+    const acolyte = BACKGROUNDS.find((bg) => bg.name === 'Acolyte') || BACKGROUNDS[0];
+    const payload = buildGuidedPayload(acolyte.slug);
+    const character = calculateCharacterStats(payload);
+
+    expect(character.inventory).toBeDefined();
+    expect(character.currency).toBeDefined();
+
+    const unknownCoinItems = character.inventory!.filter(
+      (inv) => inv.equipmentSlug.includes('gp') && inv.equipmentSlug.startsWith('unknown'),
+    );
+    expect(unknownCoinItems).toHaveLength(0);
+    expect(typeof character.currency!.gp).toBe('number');
+    expect(character.currency!.gp).toBeGreaterThan(0);
+  });
 });
+

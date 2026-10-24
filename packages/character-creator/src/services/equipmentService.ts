@@ -3,6 +3,51 @@ import { loadQuickStartEquipment, loadStartingWealthRules, loadNewPlayerShop, lo
 import { Equipment } from '../types/dnd';
 import { log } from '../utils/logger';
 
+export const COIN_REGEX = /^\s*(\d+)\s*(cp|sp|ep|gp|pp)\s*$/i;
+
+export type CoinDenomination = 'cp' | 'sp' | 'ep' | 'gp' | 'pp';
+
+export interface ParsedCoin {
+  amount: number;
+  denomination: CoinDenomination;
+}
+
+/**
+ * Checks if a string represents a coin value (e.g. "50 gp", "24 gp", "8 gp", "15 sp")
+ * and extracts the numerical amount and denomination.
+ */
+export function parseCoinString(text: string): ParsedCoin | null {
+  if (!text || typeof text !== 'string') return null;
+  const match = text.match(COIN_REGEX);
+  if (!match) return null;
+  return {
+    amount: parseInt(match[1], 10),
+    denomination: match[2].toLowerCase() as CoinDenomination,
+  };
+}
+
+/**
+ * Scans an array of equipment names and splits them into item names and accumulated coin denominations.
+ */
+export function extractCurrencyFromEquipmentList(equipmentNames: string[]): {
+  items: string[];
+  currencies: { cp: number; sp: number; ep: number; gp: number; pp: number };
+} {
+  const currencies = { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 };
+  const items: string[] = [];
+
+  for (const name of equipmentNames) {
+    const coin = parseCoinString(name);
+    if (coin) {
+      currencies[coin.denomination] += coin.amount;
+    } else {
+      items.push(name);
+    }
+  }
+
+  return { items, currencies };
+}
+
 /**
  * Generate quick start equipment for a character based on class and background
  */

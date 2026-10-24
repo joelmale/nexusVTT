@@ -6,6 +6,7 @@
  */
 
 import { loadEquipment } from '../services/dataService';
+import { parseCoinString } from '../services/equipmentService';
 import type { Equipment } from '../types/dnd';
 import { log } from './logger';
 
@@ -289,6 +290,11 @@ export function addItemToInventoryByName(
   itemName: string,
   quantity: number = 1
 ): InventoryAddResult[] {
+  // If this item is pure currency (e.g. "50 gp", "15 sp"), skip inventory creation
+  if (parseCoinString(itemName)) {
+    return [];
+  }
+
   const foundEquipment = findEquipmentByName(itemName);
 
   if (!foundEquipment) {

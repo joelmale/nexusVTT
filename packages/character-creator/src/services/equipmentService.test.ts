@@ -4,7 +4,9 @@ import {
   rollStartingWealth,
   getAverageStartingWealth,
   calculatePurchaseCost,
-  canAffordPurchase
+  canAffordPurchase,
+  parseCoinString,
+  extractCurrencyFromEquipmentList,
 } from '../services/equipmentService';
 import { loadQuickStartEquipment, loadStartingWealthRules } from '../services/dataService';
 
@@ -201,4 +203,34 @@ describe('Equipment Service', () => {
       expect(result).toBe(false);
     });
   });
-});
+
+  describe('currency parsing', () => {
+    it('should parse standard coin notations', () => {
+      expect(parseCoinString('50 gp')).toEqual({ amount: 50, denomination: 'gp' });
+      expect(parseCoinString('15 sp')).toEqual({ amount: 15, denomination: 'sp' });
+      expect(parseCoinString('8 cp')).toEqual({ amount: 8, denomination: 'cp' });
+      expect(parseCoinString('2 ep')).toEqual({ amount: 2, denomination: 'ep' });
+      expect(parseCoinString('100 pp')).toEqual({ amount: 100, denomination: 'pp' });
+      expect(parseCoinString('  24 GP  ')).toEqual({ amount: 24, denomination: 'gp' });
+    });
+
+    it('should return null for non-coin items', () => {
+      expect(parseCoinString('Longsword')).toBeNull();
+      expect(parseCoinString('Holy Symbol')).toBeNull();
+      expect(parseCoinString('Potion of Healing')).toBeNull();
+      expect(parseCoinString('')).toBeNull();
+    });
+
+    it('should extract currency and filter non-currency items from equipment list', () => {
+      const list = ['A holy symbol', 'Prayer book', '5 sticks of incense', '15 gp', '8 sp'];
+      const result = extractCurrencyFromEquipmentList(list);
+
+      expect(result.items).toEqual(['A holy symbol', 'Prayer book', '5 sticks of incense']);
+      expect(result.currencies.gp).toBe(15);
+      expect(result.currencies.sp).toBe(8);
+      expect(result.currencies.cp).toBe(0);
+      expect(result.currencies.ep).toBe(0);
+      expect(result.currencies.pp).toBe(0);
+    });
+  });
+});
