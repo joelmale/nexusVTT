@@ -11,7 +11,12 @@ FROM node:26.11.1-alpine
 WORKDIR /workspace
 
 # Install runtime tools, upgrade base OS packages, upgrade global npm (fixes bundled CVEs within engine range), and create non-root user.
-RUN apk upgrade --no-cache && \
+# APK_REFRESH keys the apk layers to the calendar week (CI passes it), so a
+# cached "apk upgrade" layer cannot keep shipping packages that have since been
+# fixed. Docker keys layers on the command text, not on the Alpine repository.
+ARG APK_REFRESH=unset
+RUN echo "apk refresh: $APK_REFRESH" && \
+    apk upgrade --no-cache && \
     apk add --no-cache dumb-init curl netcat-openbsd postgresql-client && \
     npm install -g npm@^11.20.0 && \
     addgroup -g 1001 -S nodejs && \

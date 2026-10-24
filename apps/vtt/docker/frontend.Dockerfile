@@ -164,7 +164,12 @@ RUN node scripts/build-workspace-dependencies.mjs --workspace admin-ui && \
 FROM nginx:alpine AS production
 
 # Upgrade base OS packages and purge unused image-filter module and its dependencies (removes tiff CVEs)
-RUN apk upgrade --no-cache && \
+# APK_REFRESH keys the apk layers to the calendar week (CI passes it), so a
+# cached "apk upgrade" layer cannot keep shipping packages that have since been
+# fixed. Docker keys layers on the command text, not on the Alpine repository.
+ARG APK_REFRESH=unset
+RUN echo "apk refresh: $APK_REFRESH" && \
+    apk upgrade --no-cache && \
     apk del nginx-module-image-filter libgd tiff
 
 COPY apps/vtt/docker/nginx.conf /etc/nginx/nginx.conf
