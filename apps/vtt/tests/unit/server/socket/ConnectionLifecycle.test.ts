@@ -1,11 +1,21 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { WebSocket } from 'ws';
 
-import type { DatabaseService, SessionRecord } from '../../../../server/database.js';
+import type {
+  DatabaseService,
+  SessionRecord,
+} from '../../../../server/database.js';
 import { ConnectionLifecycle } from '../../../../server/socket/ConnectionLifecycle.js';
 import type { SocketManager } from '../../../../server/socket/SocketManager.js';
-import type { Connection, Room, ServerMessage } from '../../../../server/types.js';
-import { createEmptySyncableGameState, type JsonValue } from '../../../../shared/sync/contracts.js';
+import type {
+  Connection,
+  Room,
+  ServerMessage,
+} from '../../../../server/types.js';
+import {
+  createEmptySyncableGameState,
+  type JsonValue,
+} from '../../../../shared/sync/contracts.js';
 import { hashSync } from '../../../../shared/sync/hashSync.js';
 
 class MockSocket {
@@ -144,7 +154,9 @@ function createHarness(): {
     deleteCampaign: vi.fn().mockResolvedValue(undefined),
     deleteSession: vi.fn().mockResolvedValue(undefined),
     getCampaignById: vi.fn(),
-    getHostsBySession: vi.fn().mockResolvedValue([{ userId: 'host-id', isPrimary: true }]),
+    getHostsBySession: vi
+      .fn()
+      .mockResolvedValue([{ userId: 'host-id', isPrimary: true }]),
     getSessionByJoinCode: vi.fn().mockResolvedValue(null),
     getUserById: vi.fn().mockResolvedValue({ id: 'host-id', name: 'Host' }),
     repairGameStateMetadata: vi.fn().mockResolvedValue(null),
@@ -180,10 +192,13 @@ describe('ConnectionLifecycle', () => {
     vi.mocked(db.getSessionByJoinCode).mockResolvedValue(session);
     vi.mocked(db.activateSessionByJoinCode).mockResolvedValue(session);
 
-    await lifecycle.handleConnection(socket as unknown as WebSocket, {
-      url: '/ws?host=room&campaignId=campaign-id',
-      session: { passport: { user: 'host-id' } },
-    } as never);
+    await lifecycle.handleConnection(
+      socket as unknown as WebSocket,
+      {
+        url: '/ws?host=room&campaignId=campaign-id',
+        session: { passport: { user: 'host-id' } },
+      } as never,
+    );
 
     expect(db.activateSessionByJoinCode).toHaveBeenCalledWith(
       'ROOM',
@@ -221,10 +236,13 @@ describe('ConnectionLifecycle', () => {
       updatedAt: new Date(),
     });
 
-    await lifecycle.handleConnection(socket as unknown as WebSocket, {
-      url: '/ws?host=room&campaignId=campaign-id',
-      session: { passport: { user: 'intruder-id' } },
-    } as never);
+    await lifecycle.handleConnection(
+      socket as unknown as WebSocket,
+      {
+        url: '/ws?host=room&campaignId=campaign-id',
+        session: { passport: { user: 'intruder-id' } },
+      } as never,
+    );
 
     expect(socket.close).toHaveBeenCalledWith(4403, 'Unauthorized');
     expect(parseMessages(socket)[0]).toMatchObject({
@@ -240,10 +258,13 @@ describe('ConnectionLifecycle', () => {
     vi.mocked(socketManager.addConnection).mockReturnValue(connection);
     vi.mocked(db.getCampaignById).mockResolvedValue(null);
 
-    await lifecycle.handleConnection(socket as unknown as WebSocket, {
-      url: '/ws?host=room&campaignId=missing-campaign',
-      session: { passport: { user: 'host-id' } },
-    } as never);
+    await lifecycle.handleConnection(
+      socket as unknown as WebSocket,
+      {
+        url: '/ws?host=room&campaignId=missing-campaign',
+        session: { passport: { user: 'host-id' } },
+      } as never,
+    );
 
     expect(socketManager.rooms.size).toBe(0);
     expect(parseMessages(socket)[0]).toMatchObject({
@@ -258,10 +279,13 @@ describe('ConnectionLifecycle', () => {
     const connection = createConnection('host-id', socket);
     vi.mocked(socketManager.addConnection).mockReturnValue(connection);
 
-    await lifecycle.handleConnection(socket as unknown as WebSocket, {
-      url: '/ws?connectionInstanceId=socket-1&lastSeenSequence=7',
-      session: { passport: { user: 'host-id' } },
-    } as never);
+    await lifecycle.handleConnection(
+      socket as unknown as WebSocket,
+      {
+        url: '/ws?connectionInstanceId=socket-1&lastSeenSequence=7',
+        session: { passport: { user: 'host-id' } },
+      } as never,
+    );
 
     const room = socketManager.rooms.get('ROOM');
     expect(room).toBeDefined();
@@ -297,10 +321,13 @@ describe('ConnectionLifecycle', () => {
     vi.mocked(db.getUserById).mockResolvedValue(null);
     vi.mocked(socketManager.addConnection).mockReturnValue(connection);
 
-    await lifecycle.handleConnection(socket as unknown as WebSocket, {
-      url: '/ws?host=ROOM',
-      session: {},
-    } as never);
+    await lifecycle.handleConnection(
+      socket as unknown as WebSocket,
+      {
+        url: '/ws?host=ROOM',
+        session: {},
+      } as never,
+    );
 
     expect(db.createCampaign).not.toHaveBeenCalled();
     expect(socket.close).toHaveBeenCalledWith(4403, 'Unauthorized');
@@ -319,10 +346,13 @@ describe('ConnectionLifecycle', () => {
       false,
     );
 
-    await lifecycle.handleConnection(socket as unknown as WebSocket, {
-      url: '/ws?host=room',
-      session: { passport: { user: 'host-id' } },
-    } as never);
+    await lifecycle.handleConnection(
+      socket as unknown as WebSocket,
+      {
+        url: '/ws?host=room',
+        session: { passport: { user: 'host-id' } },
+      } as never,
+    );
 
     const room = socketManager.rooms.get('ROOM');
     expect(room?.connections.has('host-id')).toBe(false);
@@ -355,10 +385,13 @@ describe('ConnectionLifecycle', () => {
       createSession({ campaignId: 'other-campaign' }),
     );
 
-    await lifecycle.handleConnection(socket as unknown as WebSocket, {
-      url: '/ws?host=room&campaignId=campaign-id',
-      session: { passport: { user: 'host-id' } },
-    } as never);
+    await lifecycle.handleConnection(
+      socket as unknown as WebSocket,
+      {
+        url: '/ws?host=room&campaignId=campaign-id',
+        session: { passport: { user: 'host-id' } },
+      } as never,
+    );
 
     expect(db.createSession).toHaveBeenCalledWith('campaign-id', 'host-id');
     expect(db.createSessionWithJoinCode).not.toHaveBeenCalled();
@@ -374,10 +407,13 @@ describe('ConnectionLifecycle', () => {
     const connection = createConnection('host-id', socket);
     vi.mocked(socketManager.addConnection).mockReturnValue(connection);
 
-    await lifecycle.handleConnection(socket as unknown as WebSocket, {
-      url: '/ws',
-      session: { passport: { user: 'host-id' } },
-    } as never);
+    await lifecycle.handleConnection(
+      socket as unknown as WebSocket,
+      {
+        url: '/ws',
+        session: { passport: { user: 'host-id' } },
+      } as never,
+    );
 
     // Uniqueness is decided by the database insert, never a process-local probe.
     expect(db.getSessionByJoinCode).not.toHaveBeenCalled();
@@ -395,10 +431,13 @@ describe('ConnectionLifecycle', () => {
     const connection = createConnection('host-id', socket);
     vi.mocked(socketManager.addConnection).mockReturnValue(connection);
 
-    await lifecycle.handleConnection(socket as unknown as WebSocket, {
-      url: '/ws?campaignTitle=%20Goblin%20Ambush%20&campaignDescription=One-shot%20at%20level%203',
-      session: { passport: { user: 'host-id' } },
-    } as never);
+    await lifecycle.handleConnection(
+      socket as unknown as WebSocket,
+      {
+        url: '/ws?campaignTitle=%20Goblin%20Ambush%20&campaignDescription=One-shot%20at%20level%203',
+        session: { passport: { user: 'host-id' } },
+      } as never,
+    );
 
     expect(db.createCampaign).toHaveBeenCalledWith(
       'host-id',
@@ -414,10 +453,13 @@ describe('ConnectionLifecycle', () => {
     const connection = createConnection('host-id', socket);
     vi.mocked(socketManager.addConnection).mockReturnValue(connection);
 
-    await lifecycle.handleConnection(socket as unknown as WebSocket, {
-      url: '/ws',
-      session: { passport: { user: 'host-id' } },
-    } as never);
+    await lifecycle.handleConnection(
+      socket as unknown as WebSocket,
+      {
+        url: '/ws',
+        session: { passport: { user: 'host-id' } },
+      } as never,
+    );
 
     expect(db.createCampaign).toHaveBeenCalledWith(
       'host-id',
@@ -435,12 +477,17 @@ describe('ConnectionLifecycle', () => {
       syncToken: 'stale-token',
       stateVersion: 3,
     });
-    vi.mocked(db.getUserById).mockResolvedValue({ id: 'player-id', name: 'Player' });
+    vi.mocked(db.getUserById).mockResolvedValue({
+      id: 'player-id',
+      name: 'Player',
+    });
     vi.mocked(db.getSessionByJoinCode).mockResolvedValue(session);
     vi.mocked(db.repairGameStateMetadata).mockResolvedValue({
       ...session,
       gameState: createEmptySyncableGameState(),
-      syncToken: hashSync(createEmptySyncableGameState() as unknown as JsonValue),
+      syncToken: hashSync(
+        createEmptySyncableGameState() as unknown as JsonValue,
+      ),
     });
     vi.mocked(socketManager.addConnection).mockReturnValue(connection);
     vi.mocked(socketManager.getRoomReplayWindow).mockResolvedValue({
@@ -449,10 +496,13 @@ describe('ConnectionLifecycle', () => {
       truncated: false,
     });
 
-    await lifecycle.handleConnection(socket as unknown as WebSocket, {
-      url: '/ws?join=room&lastSeenSequence=2',
-      session: { passport: { user: 'player-id' } },
-    } as never);
+    await lifecycle.handleConnection(
+      socket as unknown as WebSocket,
+      {
+        url: '/ws?join=room&lastSeenSequence=2',
+        session: { passport: { user: 'player-id' } },
+      } as never,
+    );
 
     const recoveredRoom = socketManager.rooms.get('ROOM');
     expect(recoveredRoom).toBeDefined();
@@ -484,6 +534,147 @@ describe('ConnectionLifecycle', () => {
         data: expect.objectContaining({ name: 'session/join' }),
       }),
       'player-id',
+    );
+  });
+
+  it('keeps simultaneous replica joins in one recovered room and preserves both sockets', async () => {
+    const { db, lifecycle, socketManager } = createHarness();
+    const socketA = new MockSocket();
+    const socketB = new MockSocket();
+    const playerA = createConnection('player-a', socketA);
+    const playerB = createConnection('player-b', socketB);
+    vi.mocked(socketManager.addConnection)
+      .mockReturnValueOnce(playerA)
+      .mockReturnValueOnce(playerB);
+    vi.mocked(db.getSessionByJoinCode).mockResolvedValue(createSession());
+    let releaseHosts!: (
+      hosts: Awaited<ReturnType<DatabaseService['getHostsBySession']>>,
+    ) => void;
+    const hosts = new Promise<
+      Awaited<ReturnType<DatabaseService['getHostsBySession']>>
+    >((resolve) => {
+      releaseHosts = resolve;
+    });
+    vi.mocked(db.getHostsBySession).mockReturnValue(hosts);
+    const joins = [
+      lifecycle.handleConnection(
+        socketA as unknown as WebSocket,
+        {
+          url: '/ws?join=ROOM',
+          session: { passport: { user: 'player-a' } },
+        } as never,
+      ),
+      lifecycle.handleConnection(
+        socketB as unknown as WebSocket,
+        {
+          url: '/ws?join=ROOM',
+          session: { passport: { user: 'player-b' } },
+        } as never,
+      ),
+    ];
+    await vi.waitFor(() => expect(db.getHostsBySession).toHaveBeenCalled());
+    releaseHosts([{ userId: 'host-id', isPrimary: true }]);
+    await Promise.all(joins);
+    const room = socketManager.rooms.get('ROOM')!;
+    expect(db.getHostsBySession).toHaveBeenCalledTimes(1);
+    expect(room.connections.get('player-a')).toBe(playerA.ws);
+    expect(room.connections.get('player-b')).toBe(playerB.ws);
+    expect(room.players).toEqual(new Set(['player-a', 'player-b']));
+    expect(
+      vi
+        .mocked(socketManager.registerDistributedConnection)
+        .mock.calls.every(([registered]) => registered === room),
+    ).toBe(true);
+  });
+
+  it.each([3, 9])(
+    'preserves sockets in a live room installed during recovery at committed version %i',
+    async (version) => {
+      const { db, lifecycle, socketManager } = createHarness();
+      const socket = new MockSocket();
+      const player = createConnection('player-id', socket);
+      vi.mocked(socketManager.addConnection).mockReturnValue(player);
+      vi.mocked(db.getSessionByJoinCode).mockResolvedValue(
+        createSession({ stateVersion: 4 }),
+      );
+      let releaseHosts!: (
+        hosts: Awaited<ReturnType<DatabaseService['getHostsBySession']>>,
+      ) => void;
+      vi.mocked(db.getHostsBySession).mockImplementation(
+        () =>
+          new Promise((resolve) => {
+            releaseHosts = resolve;
+          }),
+      );
+      const join = lifecycle.handleConnection(
+        socket as unknown as WebSocket,
+        {
+          url: '/ws?join=ROOM',
+          session: { passport: { user: 'player-id' } },
+        } as never,
+      );
+      await vi.waitFor(() => expect(db.getHostsBySession).toHaveBeenCalled());
+      const host = createConnection('host-id');
+      const liveState = {
+        ...createEmptySyncableGameState(),
+        scenes: [{ id: 'live-scene' }],
+        characters: [],
+        activeSceneId: 'live-scene',
+      };
+      const live = createRoom({
+        sessionId: 'session-id',
+        stateVersion: version,
+        gameState: liveState,
+        syncToken: hashSync(liveState as unknown as JsonValue),
+        connections: new Map([[host.id, host.ws]]),
+      });
+      const token = live.syncToken;
+      const state = live.gameState;
+      socketManager.rooms.set('ROOM', live);
+      releaseHosts([{ userId: 'host-id', isPrimary: true }]);
+      await join;
+      expect(socketManager.rooms.get('ROOM')).toBe(live);
+      expect(live.connections.get(host.id)).toBe(host.ws);
+      expect(live.connections.get(player.id)).toBe(player.ws);
+      if (version === 9) {
+        expect(live.stateVersion).toBe(9);
+        expect(live.syncToken).toBe(token);
+        expect(live.gameState).toBe(state);
+        expect(live.gameState?.activeSceneId).toBe('live-scene');
+      } else {
+        expect(live.stateVersion).toBe(4);
+        expect(live.gameState?.activeSceneId).toBeNull();
+      }
+    },
+  );
+
+  it('retires an unavailable recovery so a later join can retry', async () => {
+    const { db, lifecycle, socketManager } = createHarness();
+    const unavailable = new MockSocket();
+    const retrySocket = new MockSocket();
+    vi.mocked(socketManager.addConnection)
+      .mockReturnValueOnce(createConnection('first', unavailable))
+      .mockReturnValueOnce(createConnection('second', retrySocket));
+    vi.mocked(db.getSessionByJoinCode)
+      .mockResolvedValueOnce(null)
+      .mockResolvedValue(createSession());
+    await lifecycle.handleConnection(
+      unavailable as unknown as WebSocket,
+      {
+        url: '/ws?join=ROOM',
+        session: { passport: { user: 'first' } },
+      } as never,
+    );
+    expect(socketManager.rooms.has('ROOM')).toBe(false);
+    await lifecycle.handleConnection(
+      retrySocket as unknown as WebSocket,
+      {
+        url: '/ws?join=ROOM',
+        session: { passport: { user: 'second' } },
+      } as never,
+    );
+    expect(socketManager.rooms.get('ROOM')?.connections.has('second')).toBe(
+      true,
     );
   });
 
@@ -524,10 +715,13 @@ describe('ConnectionLifecycle', () => {
         truncated: false,
       });
 
-    await lifecycle.handleConnection(socket as unknown as WebSocket, {
-      url: '/ws?reconnect=room&campaignId=campaign-id&lastSeenSequence=3',
-      session: { passport: { user: 'host-id' } },
-    } as never);
+    await lifecycle.handleConnection(
+      socket as unknown as WebSocket,
+      {
+        url: '/ws?reconnect=room&campaignId=campaign-id&lastSeenSequence=3',
+        session: { passport: { user: 'host-id' } },
+      } as never,
+    );
 
     const room = socketManager.rooms.get('ROOM');
     expect(room?.host).toBe('host-id');
@@ -536,16 +730,10 @@ describe('ConnectionLifecycle', () => {
       'ROOM',
       'host-id',
     );
-    expect(db.addPlayerToSession).toHaveBeenCalledWith(
-      'host-id',
-      'session-id',
-    );
-    expect(socketManager.registerDistributedConnection).toHaveBeenLastCalledWith(
-      room,
-      connection,
-      'host',
-      5,
-    );
+    expect(db.addPlayerToSession).toHaveBeenCalledWith('host-id', 'session-id');
+    expect(
+      socketManager.registerDistributedConnection,
+    ).toHaveBeenLastCalledWith(room, connection, 'host', 5);
     expect(socketManager.deliverRoomReplay).toHaveBeenCalledTimes(2);
     expect(socketManager.deliverRoomReplay).toHaveBeenLastCalledWith(
       connection,
@@ -607,10 +795,13 @@ describe('ConnectionLifecycle', () => {
       updatedAt: new Date(),
     });
 
-    await lifecycle.handleConnection(socket as unknown as WebSocket, {
-      url,
-      session: { passport: { user: 'host-id' } },
-    } as never);
+    await lifecycle.handleConnection(
+      socket as unknown as WebSocket,
+      {
+        url,
+        session: { passport: { user: 'host-id' } },
+      } as never,
+    );
 
     expect(socket.close).toHaveBeenCalled();
     expect(parseMessages(socket)[0]).toMatchObject({
@@ -634,10 +825,13 @@ describe('ConnectionLifecycle', () => {
       new Error('journal unavailable'),
     );
 
-    await lifecycle.handleConnection(socket as unknown as WebSocket, {
-      url: '/ws?join=room',
-      session: { passport: { user: 'player-id' } },
-    } as never);
+    await lifecycle.handleConnection(
+      socket as unknown as WebSocket,
+      {
+        url: '/ws?join=room',
+        session: { passport: { user: 'player-id' } },
+      } as never,
+    );
 
     expect(room.players.has('player-id')).toBe(false);
     expect(parseMessages(socket)[0]).toMatchObject({
@@ -665,10 +859,13 @@ describe('ConnectionLifecycle', () => {
     vi.mocked(socketManager.addConnection).mockReturnValue(connection);
     vi.mocked(db.getSessionByJoinCode).mockResolvedValue(createSession());
 
-    await lifecycle.handleConnection(socket as unknown as WebSocket, {
-      url: '/ws?join=room',
-      session: { passport: { user: 'player-id' } },
-    } as never);
+    await lifecycle.handleConnection(
+      socket as unknown as WebSocket,
+      {
+        url: '/ws?join=room',
+        session: { passport: { user: 'player-id' } },
+      } as never,
+    );
 
     expect(room.status).toBe('active');
     expect(room.hibernationTimer).toBeUndefined();
@@ -690,9 +887,7 @@ describe('ConnectionLifecycle', () => {
     const connection = createConnection('player-id', socket, 'ROOM');
     const room = createRoom({
       players: new Set(['host-id', 'player-id']),
-      connections: new Map([
-        ['player-id', socket as unknown as WebSocket],
-      ]),
+      connections: new Map([['player-id', socket as unknown as WebSocket]]),
     });
     socketManager.rooms.set('ROOM', room);
     socketManager.connections.set('player-id', connection);
@@ -724,13 +919,15 @@ describe('ConnectionLifecycle', () => {
     const oldSocket = new MockSocket();
     const replacementSocket = new MockSocket();
     const oldConnection = createConnection('player-id', oldSocket, 'ROOM');
-    const replacement = createConnection('player-id', replacementSocket, 'ROOM');
+    const replacement = createConnection(
+      'player-id',
+      replacementSocket,
+      'ROOM',
+    );
     replacement.instanceId = 'replacement-instance';
     const room = createRoom({
       players: new Set(['host-id', 'player-id']),
-      connections: new Map([
-        ['player-id', oldSocket as unknown as WebSocket],
-      ]),
+      connections: new Map([['player-id', oldSocket as unknown as WebSocket]]),
     });
     socketManager.rooms.set('ROOM', room);
     socketManager.connections.set('player-id', oldConnection);

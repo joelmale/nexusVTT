@@ -13,7 +13,7 @@ export const cleric2024Progression: ClassProgression = {
   edition: '2024',
   hitDie: 'd8',
   asiLevels: [4, 8, 12, 16, 19],
-  subclassLevel: 1,
+  subclassLevel: 3,
   features: [
     // LEVEL 1
     {
@@ -23,9 +23,9 @@ export const cleric2024Progression: ClassProgression = {
       automatic: true
     },
     {
-      level: 1,
+      level: 3,
       name: 'Divine Domain',
-      description: 'Choose one domain related to your deity. Your domain grants you domain spells and other features when you choose it at 1st level. It also grants you additional ways to use Channel Divinity when you gain levels in this class, and a Divine Domain feature at 2nd level and a potent ability at 8th, 14th, and 17th levels.',
+      description: 'Choose a Cleric subclass and apply its level-three features.',
       automatic: false,
       choices: [
         {

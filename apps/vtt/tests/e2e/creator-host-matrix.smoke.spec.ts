@@ -94,14 +94,12 @@ for (const host of ['forge', 'vtt'] as const)
                       'characterDrafts',
                       'readwrite',
                     );
-                    transaction
-                      .objectStore('characterDrafts')
-                      .put({
-                        id: key,
-                        value: JSON.stringify(record),
-                        revision: 1,
-                        clientTabId: 'matrix',
-                      });
+                    transaction.objectStore('characterDrafts').put({
+                      id: key,
+                      value: JSON.stringify(record),
+                      revision: 1,
+                      clientTabId: 'matrix',
+                    });
                     transaction.oncomplete = () => {
                       db.close();
                       resolve();
@@ -241,6 +239,10 @@ for (const host of ['forge', 'vtt'] as const)
             expect(saved.name).toBe(draft.name);
             expect(saved.maxHitPoints).toBe(oracle.expected.hp);
             expect(saved.armorClass).toBe(oracle.expected.ac);
+            expect(saved.initiative).toBe(oracle.expected.initiative);
+            expect(saved.speed).toBe(oracle.expected.speed);
+            if (oracle.expected.currency)
+              expect(saved.currency).toMatchObject(oracle.expected.currency);
             for (const [ability, score] of Object.entries(
               oracle.expected.abilities,
             ))
@@ -255,6 +257,32 @@ for (const host of ['forge', 'vtt'] as const)
                 oracle.creationData.spellSelection.dailyPrepared ??
                   oracle.creationData.spellSelection.preparedSpells,
               );
+            }
+            if (oracle.expected.spells) {
+              expect(saved.spellcasting?.spellSaveDC).toBe(
+                oracle.expected.spells.spellSaveDC,
+              );
+              expect(saved.spellcasting?.spellAttackBonus).toBe(
+                oracle.expected.spells.spellAttackBonus,
+              );
+            }
+            if (oracle.creationData.classSlug === 'warlock') {
+              expect(saved.spellcasting?.cantripsKnown).toEqual(
+                oracle.creationData.spellSelection.selectedCantrips,
+              );
+              expect(saved.spellcasting?.spellSlots?.[1]).toBe(1);
+              if (oracle.edition === '2024') {
+                expect(saved.eldritchInvocations).toEqual(
+                  oracle.creationData.eldritchInvocations,
+                );
+                expect(saved.spellcasting?.preparedSpells).toEqual(
+                  oracle.creationData.spellSelection.preparedSpells,
+                );
+              } else {
+                expect(saved.spellcasting?.spellsKnown).toEqual(
+                  oracle.creationData.spellSelection.knownSpells,
+                );
+              }
             }
             expect(diagnostics.pageErrors).toEqual([]);
             expect(

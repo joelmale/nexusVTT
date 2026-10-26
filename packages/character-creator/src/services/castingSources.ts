@@ -2,7 +2,7 @@ import type { CharacterCastingSource } from '@nexus/character-contracts';
 import type { AbilityName, CharacterCreationData } from '../types/dnd';
 import { BACKGROUNDS, loadSpells } from './dataService';
 import { choiceId, humanOriginFeat } from './originChoices';
-import { INVOCATIONS_2024 } from './invocations';
+import { INVOCATIONS_2024, invocationFeatGrants } from './invocations';
 
 export interface CastingGrant {
   source: CharacterCastingSource;
@@ -47,6 +47,7 @@ export function resolveCastingGrants(
         ? humanOriginFeat(data)
         : data.speciesFeat,
       ...(data.selectedFeats ?? []),
+      ...invocationFeatGrants(data),
     ].filter((feat): feat is string => Boolean(feat)),
   );
   for (const feat of feats) {

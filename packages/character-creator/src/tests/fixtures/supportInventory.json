@@ -1,0 +1,2781 @@
+{
+  "schemaVersion": 1,
+  "baseline": "248fedf9",
+  "scope": "Working-tree validation candidate; independent source review pending",
+  "multiclass": {
+    "creatorAuthoring": false,
+    "separateRulesEngineExists": true,
+    "importedPreservationAcceptance": "not run"
+  },
+  "classes": [
+    {
+      "id": "barbarian-2014",
+      "classSlug": "barbarian",
+      "edition": "2014",
+      "source": "SRD 2014",
+      "hitDie": 12,
+      "subclassLevel": 3,
+      "catalogCasting": null,
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "bard-2014",
+      "classSlug": "bard",
+      "edition": "2014",
+      "source": "SRD 2014",
+      "hitDie": 8,
+      "subclassLevel": 3,
+      "catalogCasting": {
+        "level": 1,
+        "ability": "CHA",
+        "type": "known",
+        "cantripsKnown": 2,
+        "spellsKnownOrPrepared": 4,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "cleric-2014",
+      "classSlug": "cleric",
+      "edition": "2014",
+      "source": "SRD 2014",
+      "hitDie": 8,
+      "subclassLevel": 1,
+      "catalogCasting": {
+        "level": 1,
+        "ability": "WIS",
+        "type": "prepared",
+        "cantripsKnown": 3,
+        "spellsKnownOrPrepared": 2,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "druid-2014",
+      "classSlug": "druid",
+      "edition": "2014",
+      "source": "SRD 2014",
+      "hitDie": 8,
+      "subclassLevel": 2,
+      "catalogCasting": {
+        "level": 1,
+        "ability": "WIS",
+        "type": "prepared",
+        "cantripsKnown": 2,
+        "spellsKnownOrPrepared": 0,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "fighter-2014",
+      "classSlug": "fighter",
+      "edition": "2014",
+      "source": "SRD 2014",
+      "hitDie": 10,
+      "subclassLevel": 3,
+      "catalogCasting": null,
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "monk-2014",
+      "classSlug": "monk",
+      "edition": "2014",
+      "source": "SRD 2014",
+      "hitDie": 8,
+      "subclassLevel": 3,
+      "catalogCasting": null,
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "paladin-2014",
+      "classSlug": "paladin",
+      "edition": "2014",
+      "source": "SRD 2014",
+      "hitDie": 10,
+      "subclassLevel": 3,
+      "catalogCasting": {
+        "level": 2,
+        "ability": "CHA",
+        "type": "prepared",
+        "cantripsKnown": 0,
+        "spellsKnownOrPrepared": 0,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "ranger-2014",
+      "classSlug": "ranger",
+      "edition": "2014",
+      "source": "SRD 2014",
+      "hitDie": 10,
+      "subclassLevel": 3,
+      "catalogCasting": {
+        "level": 2,
+        "ability": "WIS",
+        "type": "known",
+        "cantripsKnown": 0,
+        "spellsKnownOrPrepared": 0,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "rogue-2014",
+      "classSlug": "rogue",
+      "edition": "2014",
+      "source": "SRD 2014",
+      "hitDie": 8,
+      "subclassLevel": 3,
+      "catalogCasting": null,
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "sorcerer-2014",
+      "classSlug": "sorcerer",
+      "edition": "2014",
+      "source": "SRD 2014",
+      "hitDie": 6,
+      "subclassLevel": 1,
+      "catalogCasting": {
+        "level": 1,
+        "ability": "CHA",
+        "type": "known",
+        "cantripsKnown": 4,
+        "spellsKnownOrPrepared": 2,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "warlock-2014",
+      "classSlug": "warlock",
+      "edition": "2014",
+      "source": "SRD 2014",
+      "hitDie": 8,
+      "subclassLevel": 1,
+      "catalogCasting": {
+        "level": 1,
+        "ability": "CHA",
+        "type": "known",
+        "cantripsKnown": 2,
+        "spellsKnownOrPrepared": 2,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "wizard-2014",
+      "classSlug": "wizard",
+      "edition": "2014",
+      "source": "SRD 2014",
+      "hitDie": 6,
+      "subclassLevel": 2,
+      "catalogCasting": {
+        "level": 1,
+        "ability": "INT",
+        "type": "wizard",
+        "cantripsKnown": 3,
+        "spellsKnownOrPrepared": 6,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "artificer-2014",
+      "classSlug": "artificer",
+      "edition": "2014",
+      "source": "Unverified supplemental 2014",
+      "hitDie": 8,
+      "subclassLevel": 3,
+      "catalogCasting": {
+        "level": 1,
+        "ability": "INT",
+        "type": "prepared",
+        "cantripsKnown": 0,
+        "spellsKnownOrPrepared": 0,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "barbarian-2024",
+      "classSlug": "barbarian",
+      "edition": "2024",
+      "source": "SRD 2024",
+      "hitDie": 12,
+      "subclassLevel": 3,
+      "catalogCasting": null,
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "bard-2024",
+      "classSlug": "bard",
+      "edition": "2024",
+      "source": "SRD 2024",
+      "hitDie": 8,
+      "subclassLevel": 3,
+      "catalogCasting": {
+        "level": 1,
+        "ability": "CHA",
+        "type": "known",
+        "cantripsKnown": 2,
+        "spellsKnownOrPrepared": 4,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "cleric-2024",
+      "classSlug": "cleric",
+      "edition": "2024",
+      "source": "SRD 2024",
+      "hitDie": 8,
+      "subclassLevel": 3,
+      "catalogCasting": {
+        "level": 1,
+        "ability": "WIS",
+        "type": "prepared",
+        "cantripsKnown": 3,
+        "spellsKnownOrPrepared": 2,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "druid-2024",
+      "classSlug": "druid",
+      "edition": "2024",
+      "source": "SRD 2024",
+      "hitDie": 8,
+      "subclassLevel": 3,
+      "catalogCasting": {
+        "level": 1,
+        "ability": "WIS",
+        "type": "prepared",
+        "cantripsKnown": 2,
+        "spellsKnownOrPrepared": 0,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "fighter-2024",
+      "classSlug": "fighter",
+      "edition": "2024",
+      "source": "SRD 2024",
+      "hitDie": 10,
+      "subclassLevel": 3,
+      "catalogCasting": null,
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "monk-2024",
+      "classSlug": "monk",
+      "edition": "2024",
+      "source": "SRD 2024",
+      "hitDie": 8,
+      "subclassLevel": 3,
+      "catalogCasting": null,
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "paladin-2024",
+      "classSlug": "paladin",
+      "edition": "2024",
+      "source": "SRD 2024",
+      "hitDie": 10,
+      "subclassLevel": 3,
+      "catalogCasting": {
+        "level": 2,
+        "ability": "CHA",
+        "type": "prepared",
+        "cantripsKnown": 0,
+        "spellsKnownOrPrepared": 0,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "ranger-2024",
+      "classSlug": "ranger",
+      "edition": "2024",
+      "source": "SRD 2024",
+      "hitDie": 10,
+      "subclassLevel": 3,
+      "catalogCasting": {
+        "level": 2,
+        "ability": "WIS",
+        "type": "known",
+        "cantripsKnown": 0,
+        "spellsKnownOrPrepared": 0,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "rogue-2024",
+      "classSlug": "rogue",
+      "edition": "2024",
+      "source": "SRD 2024",
+      "hitDie": 8,
+      "subclassLevel": 3,
+      "catalogCasting": null,
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "sorcerer-2024",
+      "classSlug": "sorcerer",
+      "edition": "2024",
+      "source": "SRD 2024",
+      "hitDie": 6,
+      "subclassLevel": 3,
+      "catalogCasting": {
+        "level": 1,
+        "ability": "CHA",
+        "type": "known",
+        "cantripsKnown": 4,
+        "spellsKnownOrPrepared": 2,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "warlock-2024",
+      "classSlug": "warlock",
+      "edition": "2024",
+      "source": "SRD 2024",
+      "hitDie": 8,
+      "subclassLevel": 3,
+      "catalogCasting": {
+        "level": 1,
+        "ability": "CHA",
+        "type": "known",
+        "cantripsKnown": 2,
+        "spellsKnownOrPrepared": 2,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "wizard-2024",
+      "classSlug": "wizard",
+      "edition": "2024",
+      "source": "SRD 2024",
+      "hitDie": 6,
+      "subclassLevel": 3,
+      "catalogCasting": {
+        "level": 1,
+        "ability": "INT",
+        "type": "wizard",
+        "cantripsKnown": 3,
+        "spellsKnownOrPrepared": 6,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    },
+    {
+      "id": "artificer-2024",
+      "classSlug": "artificer",
+      "edition": "2024",
+      "source": "Unverified supplemental 2024",
+      "hitDie": 8,
+      "subclassLevel": 3,
+      "catalogCasting": {
+        "level": 1,
+        "ability": "INT",
+        "type": "prepared",
+        "cantripsKnown": 0,
+        "spellsKnownOrPrepared": 0,
+        "spellSlots": [
+          0,
+          2,
+          3,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4,
+          4
+        ]
+      },
+      "certified": false,
+      "independentReview": "not run"
+    }
+  ],
+  "catalogs": [
+    {
+      "edition": "2014",
+      "species": [
+        {
+          "id": "half-elf",
+          "source": "PHB"
+        },
+        {
+          "id": "half-orc",
+          "source": "PHB"
+        },
+        {
+          "id": "firbolg",
+          "source": "VGtM"
+        },
+        {
+          "id": "kenku",
+          "source": "VGtM"
+        },
+        {
+          "id": "tabaxi",
+          "source": "VGtM"
+        },
+        {
+          "id": "triton",
+          "source": "VGtM"
+        },
+        {
+          "id": "bugbear",
+          "source": "VGtM"
+        },
+        {
+          "id": "goblin",
+          "source": "VGtM"
+        },
+        {
+          "id": "hobgoblin",
+          "source": "VGtM"
+        },
+        {
+          "id": "kobold",
+          "source": "VGtM"
+        },
+        {
+          "id": "yuan-ti-pureblood",
+          "source": "VGtM"
+        },
+        {
+          "id": "fairy",
+          "source": "WGtE"
+        },
+        {
+          "id": "harengon",
+          "source": "WGtE"
+        },
+        {
+          "id": "loxodon",
+          "source": "GGtR"
+        },
+        {
+          "id": "owlin",
+          "source": "Strixhaven"
+        },
+        {
+          "id": "githyanki",
+          "source": "MToF"
+        },
+        {
+          "id": "genasi",
+          "source": "EE"
+        },
+        {
+          "id": "dwarf",
+          "source": "SRD 2014"
+        },
+        {
+          "id": "elf",
+          "source": "SRD 2014"
+        },
+        {
+          "id": "halfling",
+          "source": "SRD 2014"
+        },
+        {
+          "id": "human",
+          "source": "SRD 2014"
+        },
+        {
+          "id": "dragonborn",
+          "source": "SRD 2014"
+        },
+        {
+          "id": "gnome",
+          "source": "SRD 2014"
+        },
+        {
+          "id": "tiefling",
+          "source": "SRD 2014"
+        }
+      ],
+      "backgrounds": [
+        {
+          "id": "acolyte-2014",
+          "source": "PHB 2014"
+        },
+        {
+          "id": "charlatan-2014",
+          "source": "PHB 2014"
+        },
+        {
+          "id": "criminal-2014",
+          "source": "PHB 2014"
+        },
+        {
+          "id": "entertainer-2014",
+          "source": "PHB 2014"
+        },
+        {
+          "id": "folk-hero-2014",
+          "source": "PHB 2014"
+        },
+        {
+          "id": "guild-artisan-2014",
+          "source": "PHB 2014"
+        },
+        {
+          "id": "hermit-2014",
+          "source": "PHB 2014"
+        },
+        {
+          "id": "noble-2014",
+          "source": "PHB 2014"
+        },
+        {
+          "id": "outlander-2014",
+          "source": "PHB 2014"
+        },
+        {
+          "id": "sage-2014",
+          "source": "PHB 2014"
+        },
+        {
+          "id": "sailor-2014",
+          "source": "PHB 2014"
+        },
+        {
+          "id": "soldier-2014",
+          "source": "PHB 2014"
+        },
+        {
+          "id": "urchin-2014",
+          "source": "PHB 2014"
+        }
+      ],
+      "spells": [
+        "acid-arrow",
+        "acid-splash",
+        "aid",
+        "alarm",
+        "alter-self",
+        "animal-friendship",
+        "animal-messenger",
+        "animal-shapes",
+        "animate-dead",
+        "animate-objects",
+        "antilife-shell",
+        "antimagic-field",
+        "antipathy-sympathy",
+        "arcane-eye",
+        "arcane-hand",
+        "arcane-lock",
+        "arcane-sword",
+        "arcanists-magic-aura",
+        "astral-projection",
+        "augury",
+        "awaken",
+        "bane",
+        "banishment",
+        "barkskin",
+        "beacon-of-hope",
+        "bestow-curse",
+        "black-tentacles",
+        "blade-barrier",
+        "bless",
+        "blight",
+        "blindness-deafness",
+        "blink",
+        "blur",
+        "branding-smite",
+        "burning-hands",
+        "call-lightning",
+        "calm-emotions",
+        "chain-lightning",
+        "charm-person",
+        "chill-touch",
+        "circle-of-death",
+        "clairvoyance",
+        "clone",
+        "cloudkill",
+        "color-spray",
+        "command",
+        "commune",
+        "commune-with-nature",
+        "comprehend-languages",
+        "compulsion",
+        "cone-of-cold",
+        "confusion",
+        "conjure-animals",
+        "conjure-celestial",
+        "conjure-elemental",
+        "conjure-fey",
+        "conjure-minor-elementals",
+        "conjure-woodland-beings",
+        "contact-other-plane",
+        "contagion",
+        "contingency",
+        "continual-flame",
+        "control-water",
+        "control-weather",
+        "counterspell",
+        "create-food-and-water",
+        "create-or-destroy-water",
+        "create-undead",
+        "creation",
+        "cure-wounds",
+        "dancing-lights",
+        "darkness",
+        "darkvision",
+        "daylight",
+        "death-ward",
+        "delayed-blast-fireball",
+        "demiplane",
+        "detect-evil-and-good",
+        "detect-magic",
+        "detect-poison-and-disease",
+        "detect-thoughts",
+        "dimension-door",
+        "disguise-self",
+        "disintegrate",
+        "dispel-evil-and-good",
+        "dispel-magic",
+        "divination",
+        "divine-favor",
+        "divine-word",
+        "dominate-beast",
+        "dominate-monster",
+        "dominate-person",
+        "dream",
+        "druidcraft",
+        "earthquake",
+        "eldritch-blast",
+        "enhance-ability",
+        "enlarge-reduce",
+        "entangle",
+        "enthrall",
+        "etherealness",
+        "expeditious-retreat",
+        "eyebite",
+        "fabricate",
+        "faerie-fire",
+        "faithful-hound",
+        "false-life",
+        "fear",
+        "feather-fall",
+        "feeblemind",
+        "find-familiar",
+        "find-steed",
+        "find-the-path",
+        "find-traps",
+        "finger-of-death",
+        "fire-bolt",
+        "fire-shield",
+        "fire-storm",
+        "fireball",
+        "flame-blade",
+        "flame-strike",
+        "flaming-sphere",
+        "flesh-to-stone",
+        "floating-disk",
+        "fly",
+        "fog-cloud",
+        "forbiddance",
+        "forcecage",
+        "foresight",
+        "freedom-of-movement",
+        "freezing-sphere",
+        "gaseous-form",
+        "gate",
+        "geas",
+        "gentle-repose",
+        "giant-insect",
+        "glibness",
+        "globe-of-invulnerability",
+        "glyph-of-warding",
+        "goodberry",
+        "grease",
+        "greater-invisibility",
+        "greater-restoration",
+        "guardian-of-faith",
+        "guards-and-wards",
+        "guidance",
+        "guiding-bolt",
+        "gust-of-wind",
+        "hallow",
+        "hallucinatory-terrain",
+        "harm",
+        "haste",
+        "heal",
+        "healing-word",
+        "heat-metal",
+        "hellish-rebuke",
+        "heroes-feast",
+        "heroism",
+        "hideous-laughter",
+        "hold-monster",
+        "hold-person",
+        "holy-aura",
+        "hunters-mark",
+        "hypnotic-pattern",
+        "ice-storm",
+        "identify",
+        "illusory-script",
+        "imprisonment",
+        "incendiary-cloud",
+        "inflict-wounds",
+        "insect-plague",
+        "instant-summons",
+        "invisibility",
+        "irresistible-dance",
+        "jump",
+        "knock",
+        "legend-lore",
+        "lesser-restoration",
+        "levitate",
+        "light",
+        "lightning-bolt",
+        "locate-animals-or-plants",
+        "locate-creature",
+        "locate-object",
+        "longstrider",
+        "mage-armor",
+        "mage-hand",
+        "magic-circle",
+        "magic-jar",
+        "magic-missile",
+        "magic-mouth",
+        "magic-weapon",
+        "magnificent-mansion",
+        "major-image",
+        "mass-cure-wounds",
+        "mass-heal",
+        "mass-healing-word",
+        "mass-suggestion",
+        "maze",
+        "meld-into-stone",
+        "mending",
+        "message",
+        "meteor-swarm",
+        "mind-blank",
+        "minor-illusion",
+        "mirage-arcane",
+        "mirror-image",
+        "mislead",
+        "misty-step",
+        "modify-memory",
+        "moonbeam",
+        "move-earth",
+        "nondetection",
+        "pass-without-trace",
+        "passwall",
+        "phantasmal-killer",
+        "phantom-steed",
+        "planar-ally",
+        "planar-binding",
+        "plane-shift",
+        "plant-growth",
+        "poison-spray",
+        "polymorph",
+        "power-word-kill",
+        "power-word-stun",
+        "prayer-of-healing",
+        "prestidigitation",
+        "prismatic-spray",
+        "prismatic-wall",
+        "private-sanctum",
+        "produce-flame",
+        "programmed-illusion",
+        "project-image",
+        "protection-from-energy",
+        "protection-from-evil-and-good",
+        "protection-from-poison",
+        "purify-food-and-drink",
+        "raise-dead",
+        "ray-of-enfeeblement",
+        "ray-of-frost",
+        "regenerate",
+        "reincarnate",
+        "remove-curse",
+        "resilient-sphere",
+        "resistance",
+        "resurrection",
+        "reverse-gravity",
+        "revivify",
+        "rope-trick",
+        "sacred-flame",
+        "sanctuary",
+        "scorching-ray",
+        "scrying",
+        "secret-chest",
+        "see-invisibility",
+        "seeming",
+        "sending",
+        "sequester",
+        "shapechange",
+        "shatter",
+        "shield",
+        "shield-of-faith",
+        "shillelagh",
+        "shocking-grasp",
+        "silence",
+        "silent-image",
+        "simulacrum",
+        "sleep",
+        "sleet-storm",
+        "slow",
+        "spare-the-dying",
+        "speak-with-animals",
+        "speak-with-dead",
+        "speak-with-plants",
+        "spider-climb",
+        "spike-growth",
+        "spirit-guardians",
+        "spiritual-weapon",
+        "stinking-cloud",
+        "stone-shape",
+        "stoneskin",
+        "storm-of-vengeance",
+        "suggestion",
+        "sunbeam",
+        "sunburst",
+        "symbol",
+        "telekinesis",
+        "telepathic-bond",
+        "teleport",
+        "teleportation-circle",
+        "thaumaturgy",
+        "thunderwave",
+        "time-stop",
+        "tiny-hut",
+        "tongues",
+        "transport-via-plants",
+        "tree-stride",
+        "true-polymorph",
+        "true-resurrection",
+        "true-seeing",
+        "true-strike",
+        "unseen-servant",
+        "vampiric-touch",
+        "vicious-mockery",
+        "wall-of-fire",
+        "wall-of-force",
+        "wall-of-ice",
+        "wall-of-stone",
+        "wall-of-thorns",
+        "warding-bond",
+        "water-breathing",
+        "water-walk",
+        "web",
+        "weird",
+        "wind-walk",
+        "wind-wall",
+        "wish",
+        "word-of-recall",
+        "zone-of-truth"
+      ]
+    },
+    {
+      "edition": "2024",
+      "species": [
+        {
+          "id": "human-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "dwarf-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "elf-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "halfling-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "gnome-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "dragonborn-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "orc-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "tiefling-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "aasimar-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "goliath-2024",
+          "source": "PHB 2024"
+        }
+      ],
+      "backgrounds": [
+        {
+          "id": "acolyte-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "charlatan-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "criminal-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "entertainer-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "guild-artisan-2024",
+          "source": "Legacy background adapted to 2024"
+        },
+        {
+          "id": "hermit-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "noble-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "outlander-2024",
+          "source": "Legacy background adapted to 2024"
+        },
+        {
+          "id": "sage-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "sailor-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "soldier-2024",
+          "source": "PHB 2024"
+        },
+        {
+          "id": "wayfarer-2024",
+          "source": "PHB 2024"
+        }
+      ],
+      "spells": [
+        "acid-arrow",
+        "acid-splash",
+        "aid",
+        "alarm",
+        "alter-self",
+        "animal-friendship",
+        "animal-messenger",
+        "animal-shapes",
+        "animate-dead",
+        "animate-objects",
+        "antilife-shell",
+        "antimagic-field",
+        "antipathy/sympathy",
+        "arcane-eye",
+        "arcane-hand",
+        "arcane-lock",
+        "arcane-sword",
+        "arcanist's-magic-aura",
+        "astral-projection",
+        "augury",
+        "aura-of-life",
+        "awaken",
+        "bane",
+        "banishment",
+        "barkskin",
+        "beacon-of-hope",
+        "befuddlement",
+        "bestow-curse",
+        "black-tentacles",
+        "blade-barrier",
+        "bless",
+        "blight",
+        "blindness/deafness",
+        "blink",
+        "blur",
+        "burning-hands",
+        "call-lightning",
+        "calm-emotions",
+        "chain-lightning",
+        "charm-monster",
+        "charm-person",
+        "chill-touch",
+        "chromatic-orb",
+        "circle-of-death",
+        "clairvoyance",
+        "clone",
+        "cloudkill",
+        "color-spray",
+        "command",
+        "commune",
+        "commune-with-nature",
+        "comprehend-languages",
+        "compulsion",
+        "cone-of-cold",
+        "confusion",
+        "conjure-animals",
+        "conjure-celestial",
+        "conjure-elemental",
+        "conjure-fey",
+        "conjure-minor-elementals",
+        "conjure-woodland-beings",
+        "contact-other-plane",
+        "contagion",
+        "contingency",
+        "continual-flame",
+        "control-water",
+        "control-weather",
+        "counterspell",
+        "create-food-and-water",
+        "create-or-destroy-water",
+        "create-undead",
+        "creation",
+        "cure-wounds",
+        "dancing-lights",
+        "darkness",
+        "darkvision",
+        "daylight",
+        "death-ward",
+        "delayed-blast-fireball",
+        "demiplane",
+        "detect-evil-and-good",
+        "detect-magic",
+        "detect-poison-and-disease",
+        "detect-thoughts",
+        "dimension-door",
+        "disguise-self",
+        "disintegrate",
+        "dispel-evil-and-good",
+        "dispel-magic",
+        "dissonant-whispers",
+        "divination",
+        "divine-favor",
+        "divine-smite",
+        "divine-word",
+        "dominate-beast",
+        "dominate-monster",
+        "dominate-person",
+        "dragon's-breath",
+        "dream",
+        "druidcraft",
+        "earthquake",
+        "eldritch-blast",
+        "elementalism",
+        "enhance-ability",
+        "enlarge/reduce",
+        "ensnaring-strike",
+        "entangle",
+        "enthrall",
+        "etherealness",
+        "expeditious-retreat",
+        "eyebite",
+        "fabricate",
+        "faerie-fire",
+        "faithful-hound",
+        "false-life",
+        "fear",
+        "feather-fall",
+        "find-familiar",
+        "find-steed",
+        "find-the-path",
+        "find-traps",
+        "finger-of-death",
+        "fire-bolt",
+        "fire-shield",
+        "fire-storm",
+        "fireball",
+        "flame-blade",
+        "flame-strike",
+        "flaming-sphere",
+        "flesh-to-stone",
+        "floating-disk",
+        "fly",
+        "fog-cloud",
+        "forbiddance",
+        "forcecage",
+        "foresight",
+        "freedom-of-movement",
+        "freezing-sphere",
+        "gaseous-form",
+        "gate",
+        "geas",
+        "gentle-repose",
+        "giant-insect",
+        "glibness",
+        "globe-of-invulnerability",
+        "glyph-of-warding",
+        "goodberry",
+        "grease",
+        "greater-invisibility",
+        "greater-restoration",
+        "guardian-of-faith",
+        "guards-and-wards",
+        "guidance",
+        "guiding-bolt",
+        "gust-of-wind",
+        "hallow",
+        "hallucinatory-terrain",
+        "harm",
+        "haste",
+        "heal",
+        "healing-word",
+        "heat-metal",
+        "hellish-rebuke",
+        "heroes'-feast",
+        "heroism",
+        "hex",
+        "hideous-laughter",
+        "hold-monster",
+        "hold-person",
+        "holy-aura",
+        "hunter's-mark",
+        "hypnotic-pattern",
+        "ice-knife",
+        "ice-storm",
+        "identify",
+        "illusory-script",
+        "imprisonment",
+        "incendiary-cloud",
+        "inflict-wounds",
+        "insect-plague",
+        "instant-summons",
+        "invisibility",
+        "irresistible-dance",
+        "jump",
+        "knock",
+        "legend-lore",
+        "lesser-restoration",
+        "levitate",
+        "light",
+        "lightning-bolt",
+        "locate-animals-or-plants",
+        "locate-creature",
+        "locate-object",
+        "longstrider",
+        "mage-armor",
+        "mage-hand",
+        "magic-circle",
+        "magic-jar",
+        "magic-missile",
+        "magic-mouth",
+        "magic-weapon",
+        "magnificent-mansion",
+        "major-image",
+        "mass-cure-wounds",
+        "mass-heal",
+        "mass-healing-word",
+        "mass-suggestion",
+        "maze",
+        "meld-into-stone",
+        "mending",
+        "message",
+        "meteor-swarm",
+        "mind-blank",
+        "mind-spike",
+        "minor-illusion",
+        "mirage-arcane",
+        "mirror-image",
+        "mislead",
+        "misty-step",
+        "modify-memory",
+        "moonbeam",
+        "move-earth",
+        "nondetection",
+        "pass-without-trace",
+        "passwall",
+        "phantasmal-force",
+        "phantasmal-killer",
+        "phantom-steed",
+        "planar-ally",
+        "planar-binding",
+        "plane-shift",
+        "plant-growth",
+        "poison-spray",
+        "polymorph",
+        "power-word-heal",
+        "power-word-kill",
+        "power-word-stun",
+        "prayer-of-healing",
+        "prestidigitation",
+        "prismatic-spray",
+        "prismatic-wall",
+        "private-sanctum",
+        "produce-flame",
+        "programmed-illusion",
+        "project-image",
+        "protection-from-energy",
+        "protection-from-evil-and-good",
+        "protection-from-poison",
+        "purify-food-and-drink",
+        "raise-dead",
+        "ray-of-enfeeblement",
+        "ray-of-frost",
+        "ray-of-sickness",
+        "regenerate",
+        "reincarnate",
+        "remove-curse",
+        "resilient-sphere",
+        "resistance",
+        "resurrection",
+        "reverse-gravity",
+        "revivify",
+        "rope-trick",
+        "sacred-flame",
+        "sanctuary",
+        "scorching-ray",
+        "scrying",
+        "searing-smite",
+        "secret-chest",
+        "see-invisibility",
+        "seeming",
+        "sending",
+        "sequester",
+        "shapechange",
+        "shatter",
+        "shield",
+        "shield-of-faith",
+        "shillelagh",
+        "shining-smite",
+        "shocking-grasp",
+        "silence",
+        "silent-image",
+        "simulacrum",
+        "sleep",
+        "sleet-storm",
+        "slow",
+        "sorcerous-burst",
+        "spare-the-dying",
+        "speak-with-animals",
+        "speak-with-dead",
+        "speak-with-plants",
+        "spider-climb",
+        "spike-growth",
+        "spirit-guardians",
+        "spiritual-weapon",
+        "starry-wisp",
+        "stinking-cloud",
+        "stone-shape",
+        "stoneskin",
+        "storm-of-vengeance",
+        "suggestion",
+        "summon-dragon",
+        "sunbeam",
+        "sunburst",
+        "symbol",
+        "telekinesis",
+        "telepathic-bond",
+        "teleport",
+        "teleportation-circle",
+        "thaumaturgy",
+        "thunderwave",
+        "time-stop",
+        "tiny-hut",
+        "tongues",
+        "transport-via-plants",
+        "tree-stride",
+        "true-polymorph",
+        "true-resurrection",
+        "true-seeing",
+        "true-strike",
+        "tsunami",
+        "unseen-servant",
+        "vampiric-touch",
+        "vicious-mockery",
+        "vitriolic-sphere",
+        "wall-of-fire",
+        "wall-of-force",
+        "wall-of-ice",
+        "wall-of-stone",
+        "wall-of-thorns",
+        "warding-bond",
+        "water-breathing",
+        "water-walk",
+        "web",
+        "weird",
+        "wind-walk",
+        "wind-wall",
+        "wish",
+        "word-of-recall",
+        "zone-of-truth"
+      ]
+    }
+  ],
+  "feats": [
+    {
+      "id": "actor",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "alert",
+      "source": "PHB",
+      "year": 2014,
+      "category": "origin"
+    },
+    {
+      "id": "artificer-initiate",
+      "source": "TCoE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "athlete",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "bountiful-luck",
+      "source": "XGtE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "charger",
+      "source": "PHB",
+      "year": 2014,
+      "category": "fighting_style"
+    },
+    {
+      "id": "chef",
+      "source": "TCoE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "crossbow-expert",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "crusher",
+      "source": "TCoE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "defensive-duelist",
+      "source": "PHB",
+      "year": 2014,
+      "category": "fighting_style"
+    },
+    {
+      "id": "dragon-fear",
+      "source": "XGtE",
+      "year": 2014,
+      "category": "origin"
+    },
+    {
+      "id": "dragon-hide",
+      "source": "XGtE",
+      "year": 2014,
+      "category": "origin"
+    },
+    {
+      "id": "drow-high-magic",
+      "source": "XGtE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "dual-wielder",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "dungeon-delver",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "durable",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "dwarf-fortitude",
+      "source": "XGtE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "eldritch-adept",
+      "source": "TCoE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "elemental-adept",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "elven-accuracy",
+      "source": "XGtE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "fade-away",
+      "source": "XGtE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "fey-teleportation",
+      "source": "XGtE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "fey-touched",
+      "source": "TCoE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "fighting-initiate",
+      "source": "TCoE",
+      "year": 2014,
+      "category": "fighting_style"
+    },
+    {
+      "id": "flames-of-phlegethos",
+      "source": "XGtE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "gift-of-the-chromatic-dragon",
+      "source": "FToD",
+      "year": 2014,
+      "category": "origin"
+    },
+    {
+      "id": "gift-of-the-gem-dragon",
+      "source": "FToD",
+      "year": 2014,
+      "category": "origin"
+    },
+    {
+      "id": "gift-of-the-metallic-dragon",
+      "source": "FToD",
+      "year": 2014,
+      "category": "origin"
+    },
+    {
+      "id": "grappler",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "great-weapon-master",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "gunner",
+      "source": "TCoE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "heavily-armored",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "heavy-armor-master",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "infernal-constitution",
+      "source": "XGtE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "inspiring-leader",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "keen-mind",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "lightly-armored",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "linguist",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "lucky",
+      "source": "PHB",
+      "year": 2014,
+      "category": "origin"
+    },
+    {
+      "id": "mage-slayer",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "medium-armor-master",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "metamagic-adept",
+      "source": "TCoE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "mobile",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "moderately-armored",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "mounted-combatant",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "observant",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "orcish-fury",
+      "source": "XGtE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "piercer",
+      "source": "TCoE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "poisoner",
+      "source": "TCoE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "polearm-master",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "prodigy",
+      "source": "XGtE",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "resilient",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "ritual-caster",
+      "source": "PHB",
+      "year": 2014,
+      "category": "general"
+    },
+    {
+      "id": "boon-of-combat-prowess",
+      "source": "DMG",
+      "year": 2014,
+      "category": "epic_boon"
+    },
+    {
+      "id": "versatile",
+      "source": "PHB",
+      "year": 2024,
+      "category": "species"
+    },
+    {
+      "id": "skilled",
+      "source": "PHB",
+      "year": 2024,
+      "category": "origin"
+    },
+    {
+      "id": "musician",
+      "source": "PHB",
+      "year": 2024,
+      "category": "origin"
+    },
+    {
+      "id": "crafter",
+      "source": "PHB",
+      "year": 2024,
+      "category": "origin"
+    },
+    {
+      "id": "healer",
+      "source": "PHB",
+      "year": 2024,
+      "category": "origin"
+    },
+    {
+      "id": "tough",
+      "source": "PHB",
+      "year": 2024,
+      "category": "origin"
+    },
+    {
+      "id": "tavern-brawler",
+      "source": "PHB",
+      "year": 2024,
+      "category": "origin"
+    },
+    {
+      "id": "savage-attacker",
+      "source": "PHB",
+      "year": 2024,
+      "category": "origin"
+    },
+    {
+      "id": "magic-initiate",
+      "source": "PHB",
+      "year": 2014,
+      "category": "origin"
+    },
+    {
+      "id": "relentless-endurance",
+      "source": "species",
+      "year": 2014,
+      "category": "species"
+    },
+    {
+      "id": "magic-resistance",
+      "source": "species",
+      "year": 2014,
+      "category": "species"
+    },
+    {
+      "id": "poison-immunity",
+      "source": "species",
+      "year": 2014,
+      "category": "species"
+    }
+  ],
+  "subclasses": [
+    {
+      "id": "berserker",
+      "classSlug": "barbarian",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "lore",
+      "classSlug": "bard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "life",
+      "classSlug": "cleric",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "land",
+      "classSlug": "druid",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "champion",
+      "classSlug": "fighter",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "battle-master",
+      "classSlug": "fighter",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "eldritch-knight",
+      "classSlug": "fighter",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "open-hand",
+      "classSlug": "monk",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "devotion",
+      "classSlug": "paladin",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "hunter",
+      "classSlug": "ranger",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "thief",
+      "classSlug": "rogue",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "draconic",
+      "classSlug": "sorcerer",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "fiend",
+      "classSlug": "warlock",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "evocation",
+      "classSlug": "wizard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "abjuration",
+      "classSlug": "wizard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "conjuration",
+      "classSlug": "wizard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "divination",
+      "classSlug": "wizard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "enchantment",
+      "classSlug": "wizard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "illusion",
+      "classSlug": "wizard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "necromancy",
+      "classSlug": "wizard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "transmutation",
+      "classSlug": "wizard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "totem-warrior",
+      "classSlug": "barbarian",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "valor",
+      "classSlug": "bard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "knowledge",
+      "classSlug": "cleric",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "light",
+      "classSlug": "cleric",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "nature",
+      "classSlug": "cleric",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "tempest",
+      "classSlug": "cleric",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "trickery",
+      "classSlug": "cleric",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "war",
+      "classSlug": "cleric",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "moon",
+      "classSlug": "druid",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "four-elements",
+      "classSlug": "monk",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "shadow",
+      "classSlug": "monk",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "ancients",
+      "classSlug": "paladin",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "vengeance",
+      "classSlug": "paladin",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "beast-master",
+      "classSlug": "ranger",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "arcane-trickster",
+      "classSlug": "rogue",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "assassin",
+      "classSlug": "rogue",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "wild-magic",
+      "classSlug": "sorcerer",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "archfey",
+      "classSlug": "warlock",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "great-old-one",
+      "classSlug": "warlock",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "war-magic",
+      "classSlug": "wizard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "ancestral-guardian",
+      "classSlug": "barbarian",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "storm-herald",
+      "classSlug": "barbarian",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "zealot",
+      "classSlug": "barbarian",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "glamour",
+      "classSlug": "bard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "swords",
+      "classSlug": "bard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "whispers",
+      "classSlug": "bard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "forge",
+      "classSlug": "cleric",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "grave",
+      "classSlug": "cleric",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "dreams",
+      "classSlug": "druid",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "shepherd",
+      "classSlug": "druid",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "arcane-archer",
+      "classSlug": "fighter",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "cavalier",
+      "classSlug": "fighter",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "samurai",
+      "classSlug": "fighter",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "drunken-master",
+      "classSlug": "monk",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "kensei",
+      "classSlug": "monk",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "sun-soul",
+      "classSlug": "monk",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "conquest",
+      "classSlug": "paladin",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "redemption",
+      "classSlug": "paladin",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "gloom-stalker",
+      "classSlug": "ranger",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "horizon-walker",
+      "classSlug": "ranger",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "monster-slayer",
+      "classSlug": "ranger",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "inquisitive",
+      "classSlug": "rogue",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "mastermind",
+      "classSlug": "rogue",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "scout",
+      "classSlug": "rogue",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "swashbuckler",
+      "classSlug": "rogue",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "divine-soul",
+      "classSlug": "sorcerer",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "shadow-magic",
+      "classSlug": "sorcerer",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "storm-sorcery",
+      "classSlug": "sorcerer",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "celestial",
+      "classSlug": "warlock",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "hexblade",
+      "classSlug": "warlock",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "order-of-scribes",
+      "classSlug": "wizard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "bladesinging",
+      "classSlug": "wizard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "alchemist",
+      "classSlug": "artificer",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "armorer",
+      "classSlug": "artificer",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "artillerist",
+      "classSlug": "artificer",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "battle-smith",
+      "classSlug": "artificer",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "beast",
+      "classSlug": "barbarian",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "wild-magic-barb",
+      "classSlug": "barbarian",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "creation",
+      "classSlug": "bard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "eloquence",
+      "classSlug": "bard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "order",
+      "classSlug": "cleric",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "peace",
+      "classSlug": "cleric",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "twilight",
+      "classSlug": "cleric",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "spores",
+      "classSlug": "druid",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "stars",
+      "classSlug": "druid",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "wildfire",
+      "classSlug": "druid",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "psi-warrior",
+      "classSlug": "fighter",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "rune-knight",
+      "classSlug": "fighter",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "astral-self",
+      "classSlug": "monk",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "mercy",
+      "classSlug": "monk",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "glory",
+      "classSlug": "paladin",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "watchers",
+      "classSlug": "paladin",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "fey-wanderer",
+      "classSlug": "ranger",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "swarmkeeper",
+      "classSlug": "ranger",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "phantom",
+      "classSlug": "rogue",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "soulknife",
+      "classSlug": "rogue",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "aberrant-mind",
+      "classSlug": "sorcerer",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "clockwork-soul",
+      "classSlug": "sorcerer",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "fathomless",
+      "classSlug": "warlock",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "genie",
+      "classSlug": "warlock",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "bladesinging",
+      "classSlug": "wizard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "order-of-scribes",
+      "classSlug": "wizard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "chronurgy-magic",
+      "classSlug": "wizard",
+      "source": null,
+      "edition": null
+    },
+    {
+      "id": "graviturgy-magic",
+      "classSlug": "wizard",
+      "source": null,
+      "edition": null
+    }
+  ],
+  "equipment": [
+    "abacus",
+    "acid",
+    "alchemist-supplies",
+    "alchemists-fire",
+    "alms-box",
+    "amulet",
+    "antitoxin",
+    "arrows",
+    "backpack",
+    "bagpipes",
+    "ball-bearings",
+    "barrel",
+    "basket",
+    "battleaxe",
+    "bedroll",
+    "bell",
+    "blanket",
+    "block-and-tackle",
+    "blowgun",
+    "blowgun-needles",
+    "bolts",
+    "book",
+    "bottle-glass",
+    "breastplate",
+    "brewers-supplies",
+    "bucket",
+    "bullets-firearm",
+    "bullets-sling",
+    "burglars-pack",
+    "calligrapher-supplies",
+    "caltrops",
+    "camel",
+    "candle",
+    "carpenters-tools",
+    "cartographer-tools",
+    "case-crossbow-bolt",
+    "case-map-or-scroll",
+    "censer",
+    "chain",
+    "chain-mail",
+    "chain-shirt",
+    "chest",
+    "climbers-kit",
+    "clothes-fine",
+    "clothes-travelers",
+    "club",
+    "cobblers-tools",
+    "common-clothes",
+    "component-pouch",
+    "cooks-utensils",
+    "costume",
+    "crossbow-bolts",
+    "crowbar",
+    "crystal",
+    "dagger",
+    "dart",
+    "dice",
+    "diplomat-pack",
+    "disguise-kit",
+    "dragonchess",
+    "drum",
+    "dulcimer",
+    "dungeoneer-pack",
+    "emblem",
+    "fine-clothes",
+    "fishing-tackle",
+    "flail",
+    "flask",
+    "flute",
+    "forgery-kit",
+    "glaive",
+    "glassblowers-tools",
+    "grappling-hook",
+    "greataxe",
+    "greatclub",
+    "greatsword",
+    "halberd",
+    "half-plate-armor",
+    "hammer",
+    "hand-crossbow",
+    "handaxe",
+    "healers-kit",
+    "heavy-crossbow",
+    "hempen-rope-50-feet",
+    "herbalism-kit",
+    "hide-armor",
+    "holy-symbol",
+    "holy-water",
+    "hooded-lantern",
+    "horn",
+    "horse",
+    "hunting-trap",
+    "incense",
+    "ink",
+    "ink-1-ounce-bottle",
+    "ink-pen",
+    "javelin",
+    "jewelers-tools",
+    "jug",
+    "ladder",
+    "lamp",
+    "lance",
+    "lantern-bullseye",
+    "lantern-hooded",
+    "leather-armor",
+    "leatherworkers-tools",
+    "light-crossbow",
+    "light-hammer",
+    "lock",
+    "longbow",
+    "longsword",
+    "lute",
+    "lyre",
+    "mace",
+    "magnifying-glass",
+    "manacles",
+    "map",
+    "map-or-scroll-case",
+    "masons-tools",
+    "maul",
+    "mess-kit",
+    "mirror",
+    "morningstar",
+    "musket",
+    "navigators-tools",
+    "needles",
+    "net",
+    "oil",
+    "oil-flask",
+    "orb",
+    "padded-armor",
+    "painters-supplies",
+    "pan-flute",
+    "paper",
+    "paper-one-sheet",
+    "parchment",
+    "parchment-10-sheets",
+    "perfume",
+    "perfume-vial",
+    "pike",
+    "pistol",
+    "plate-armor",
+    "playing-cards",
+    "poison-basic",
+    "poisoners-kit",
+    "pole",
+    "pony",
+    "pot-iron",
+    "potion-of-healing",
+    "potters-tools",
+    "pouch",
+    "prayer-book",
+    "priests-pack",
+    "quarterstaff",
+    "quiver",
+    "ram-portable",
+    "rapier",
+    "rations",
+    "rations-1-day",
+    "reliquary",
+    "ring-mail",
+    "robe",
+    "rod",
+    "rope",
+    "sack",
+    "scale-mail",
+    "scholars-pack",
+    "scimitar",
+    "sealing-wax",
+    "shawm",
+    "shield",
+    "shortbow",
+    "shortsword",
+    "shovel",
+    "sickle",
+    "signal-whistle",
+    "sling",
+    "sling-bullets",
+    "smiths-tools",
+    "soap",
+    "spear",
+    "spell-scroll-cantrip",
+    "spell-scroll-level-1",
+    "spikes-iron",
+    "splint-armor",
+    "sprig-of-mistletoe",
+    "spyglass",
+    "staff",
+    "stick-of-incense",
+    "string",
+    "studded-leather-armor",
+    "tent",
+    "thieves-tools",
+    "three-dragon-ante",
+    "tinderbox",
+    "tinkers-tools",
+    "torch",
+    "trident",
+    "trophy-from-animal",
+    "trophy-from-fallen-enemy",
+    "vestments",
+    "vial",
+    "viol",
+    "wand",
+    "war-pick",
+    "warhammer",
+    "waterskin",
+    "weavers-tools",
+    "whip",
+    "winter-blanket",
+    "woodcarvers-tools",
+    "yew-wand",
+    null
+  ]
+}

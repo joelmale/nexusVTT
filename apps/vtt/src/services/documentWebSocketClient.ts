@@ -352,7 +352,7 @@ class DocumentWebSocketClient extends EventTarget {
         try {
           cb(message.data);
         } catch (err) {
-          console.error(`Error in doc-websocket subscriber callback for ${message.type}:`, err);
+          console.error('Error in doc-websocket subscriber callback:', err);
         }
       });
     }

@@ -69,7 +69,7 @@ export function filterInboxNotes(
 export function extractFirstLineTitle(text: string, maxLength = 60): string {
   const trimmed = text.trim();
   if (!trimmed) return 'Untitled';
-  const firstLine = trimmed.split('\n')[0].replace(/^[#*->\s]+/, '').trim();
+  const firstLine = trimmed.split('\n')[0].replace(/^[#*\->\s]+/, '').trim();
   if (!firstLine) return 'Untitled';
   if (firstLine.length <= maxLength) return firstLine;
   return `${firstLine.slice(0, maxLength - 1)}…`;

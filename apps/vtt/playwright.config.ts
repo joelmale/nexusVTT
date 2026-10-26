@@ -46,6 +46,8 @@ export default defineConfig({
       testDir: './tests/e2e',
       use: {
         ...devices['Desktop Chrome'],
+        // APIRequestContext does not add browser Origin metadata itself.
+        extraHTTPHeaders: { Origin: new URL(baseURL).origin },
       },
     },
     {

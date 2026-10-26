@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import {
-  CERTIFIED_SUPPORT_MANIFEST,
-} from '../data/supportManifest';
+import { CERTIFIED_SUPPORT_MANIFEST } from '../data/supportManifest';
 import { loadClasses } from '../services/dataService';
 import { getRecommendation } from '../services/recommendationService';
 
 describe('CC-304: Broader Support Certification Matrix', () => {
-  it('manifest contains 12 certified classes', () => {
-    expect(CERTIFIED_SUPPORT_MANIFEST).toHaveLength(12);
+  it('manifest inventories all 13 selectable classes without certifying them', () => {
+    expect(CERTIFIED_SUPPORT_MANIFEST).toHaveLength(13);
+    expect(
+      CERTIFIED_SUPPORT_MANIFEST.every((entry) => !entry.level1Certified),
+    ).toBe(true);
   });
 
   CERTIFIED_SUPPORT_MANIFEST.forEach((cert) => {
@@ -16,8 +17,16 @@ describe('CC-304: Broader Support Certification Matrix', () => {
         const classes2014 = loadClasses('2014');
         const classes2024 = loadClasses('2024');
 
-        const found14 = classes2014.find((c) => c.slug === cert.classSlug || c.name.toLowerCase() === cert.name.toLowerCase());
-        const found24 = classes2024.find((c) => c.slug === cert.classSlug || c.name.toLowerCase() === cert.name.toLowerCase());
+        const found14 = classes2014.find(
+          (c) =>
+            c.slug === cert.classSlug ||
+            c.name.toLowerCase() === cert.name.toLowerCase(),
+        );
+        const found24 = classes2024.find(
+          (c) =>
+            c.slug === cert.classSlug ||
+            c.name.toLowerCase() === cert.name.toLowerCase(),
+        );
 
         expect(found14, `Missing 2014 class for ${cert.name}`).toBeDefined();
         expect(found24, `Missing 2024 class for ${cert.name}`).toBeDefined();
@@ -34,7 +43,7 @@ describe('CC-304: Broader Support Certification Matrix', () => {
           expect(rec24.draft.classSlug).toBe(cert.classSlug);
           expect(rec24.evaluation.isValid).toBe(true);
           expect(
-            rec24.evaluation.issues.filter((i) => i.severity === 'error')
+            rec24.evaluation.issues.filter((i) => i.severity === 'error'),
           ).toHaveLength(0);
         });
 
@@ -48,7 +57,7 @@ describe('CC-304: Broader Support Certification Matrix', () => {
           expect(rec14.draft.classSlug).toBe(cert.classSlug);
           expect(rec14.evaluation.isValid).toBe(true);
           expect(
-            rec14.evaluation.issues.filter((i) => i.severity === 'error')
+            rec14.evaluation.issues.filter((i) => i.severity === 'error'),
           ).toHaveLength(0);
         });
       }

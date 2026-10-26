@@ -2,7 +2,13 @@ import type { CharacterCreationData } from '../types/dnd';
 import { masteryCount, masteryOptions } from '../services/classGrantChoices';
 import { choiceId } from '../services/originChoices';
 import styles from './CastingGrantChoices.module.css';
-import { INVOCATIONS_2024 } from '../services/invocations';
+import {
+  INVOCATIONS_2024,
+  invocationCount,
+  invocationTargets,
+  selectedInvocationCount,
+} from '../services/invocations';
+import { invocationTargetOptions } from '../services/invocationChoices';
 
 export function ClassGrantChoices({
   data,
@@ -20,27 +26,81 @@ export function ClassGrantChoices({
   return (
     <section className={styles.grants} aria-label="Class grant choices">
       <h3>Class choices</h3>
-      {warlock && data.level === 1 && (
-        <label>
-          Eldritch Invocation{' '}
-          <select
-            value={data.eldritchInvocations?.[0] ?? ''}
-            onChange={(event) =>
-              onChange({ eldritchInvocations: [event.target.value] })
-            }
-          >
-            <option value="">Choose an invocation</option>
-            {INVOCATIONS_2024.map((entry) => (
-              <option
-                key={entry.id}
-                value={entry.id}
-                disabled={data.level < entry.level}
-              >
-                {entry.name} (level {entry.level})
-              </option>
-            ))}
-          </select>
-        </label>
+      {warlock && (
+        <fieldset>
+          <legend>
+            Eldritch Invocations ({selectedInvocationCount(data)}/
+            {invocationCount(data.level)})
+          </legend>
+          {INVOCATIONS_2024.map((entry) => {
+            const selected =
+              data.eldritchInvocations?.includes(entry.id) ?? false;
+            const unavailable =
+              data.level < entry.level ||
+              Boolean(
+                entry.requires &&
+                !data.eldritchInvocations?.includes(entry.requires),
+              );
+            return (
+              <div key={entry.id}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={selected}
+                    disabled={!selected && unavailable}
+                    onChange={() =>
+                      onChange({
+                        eldritchInvocations: selected
+                          ? data.eldritchInvocations?.filter(
+                              (id) => id !== entry.id,
+                            )
+                          : [...(data.eldritchInvocations ?? []), entry.id],
+                      })
+                    }
+                  />
+                  {entry.name} (level {entry.level}
+                  {entry.requires ? `; requires ${entry.requires}` : ''})
+                </label>
+                {selected && entry.choice && (
+                  <fieldset>
+                    <legend>
+                      {entry.name}: choose different{' '}
+                      {entry.choice === 'origin-feat'
+                        ? 'Origin feats'
+                        : 'cantrips'}
+                      ; each uses one invocation
+                    </legend>
+                    {invocationTargetOptions(data, entry).map((option) => {
+                      const targets = invocationTargets(data, entry.id);
+                      const checked = targets.includes(option.id);
+                      return (
+                        <label key={option.id}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={() =>
+                              onChange({
+                                featChoices: {
+                                  ...data.featChoices,
+                                  [`invocation:${entry.id}`]: {
+                                    targets: checked
+                                      ? targets.filter((id) => id !== option.id)
+                                      : [...targets, option.id],
+                                  },
+                                },
+                              })
+                            }
+                          />
+                          {option.name}
+                        </label>
+                      );
+                    })}
+                  </fieldset>
+                )}
+              </div>
+            );
+          })}
+        </fieldset>
       )}
       {(cleric || druid) && (
         <label>
@@ -73,7 +133,9 @@ export function ClassGrantChoices({
       )}
       {count > 0 && (
         <fieldset>
-          <legend>Weapon masteries ({count} at level 1)</legend>
+          <legend>
+            Weapon masteries ({count} at level {data.level})
+          </legend>
           <div className={styles.options}>
             {masteryOptions(data).map((weapon) => {
               const selected = (data.weaponMastery ?? []).some(

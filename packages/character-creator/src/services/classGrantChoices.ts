@@ -1,18 +1,38 @@
 import type { CharacterCreationData } from '../types/dnd';
-import { loadClasses, loadEquipment } from './dataService';
-import { choiceId } from './originChoices';
-import { INVOCATIONS_2024 } from './invocations';
+import { BACKGROUNDS, loadClasses, loadEquipment } from './dataService';
+import { choiceId, humanOriginFeat } from './originChoices';
+import {
+  INVOCATIONS_2024,
+  invocationCount,
+  invocationTargets,
+  selectedInvocationCount,
+} from './invocations';
+import { invocationTargetOptions } from './invocationChoices';
 
 export const masteryCount = (
-  data: Pick<CharacterCreationData, 'edition' | 'classSlug'>,
+  data: Pick<CharacterCreationData, 'edition' | 'classSlug'> & {
+    level?: number;
+  },
 ) =>
   data.edition !== '2024'
     ? 0
     : data.classSlug === 'fighter'
-      ? 3
-      : ['barbarian', 'paladin', 'ranger', 'rogue'].includes(data.classSlug)
-        ? 2
-        : 0;
+      ? (data.level ?? 1) >= 16
+        ? 6
+        : (data.level ?? 1) >= 10
+          ? 5
+          : (data.level ?? 1) >= 4
+            ? 4
+            : 3
+      : data.classSlug === 'barbarian'
+        ? (data.level ?? 1) >= 10
+          ? 4
+          : (data.level ?? 1) >= 4
+            ? 3
+            : 2
+        : ['barbarian', 'paladin', 'ranger', 'rogue'].includes(data.classSlug)
+          ? 2
+          : 0;
 
 export function masteryOptions(
   data: Pick<CharacterCreationData, 'edition' | 'classSlug'>,
@@ -43,17 +63,57 @@ export function classGrantErrors(data: CharacterCreationData): string[] {
   const errors: string[] = [];
   if (data.classSlug === 'warlock') {
     const choices = data.eldritchInvocations ?? [];
-    if (data.level === 1 && choices.length !== 1)
-      errors.push('Choose one Eldritch Invocation at level 1.');
+    const count = invocationCount(data.level);
+    if (!count || selectedInvocationCount(data) !== count)
+      errors.push(
+        `Choose ${count} Eldritch Invocation${count === 1 ? '' : 's'} at Warlock level ${data.level}.`,
+      );
     if (new Set(choices).size !== choices.length)
       errors.push('Choose different Eldritch Invocations.');
     for (const id of choices) {
       const invocation = INVOCATIONS_2024.find((entry) => entry.id === id);
-      if (
-        (!invocation && data.level === 1) ||
-        (invocation && data.level < invocation.level)
-      )
+      if (!invocation || (invocation && data.level < invocation.level))
         errors.push(`Invocation '${id}' is not available at this level.`);
+      if (invocation?.requires && !choices.includes(invocation.requires))
+        errors.push(`${invocation.name} requires ${invocation.requires}.`);
+      if (invocation?.choice) {
+        const targets = invocationTargets(data, id);
+        const options = invocationTargetOptions(data, invocation);
+        if (
+          !targets.length ||
+          new Set(targets).size !== targets.length ||
+          targets.some(
+            (target) => !options.some((option) => option.id === target),
+          )
+        )
+          errors.push(
+            `Choose different eligible targets for ${invocation.name}.`,
+          );
+        if (invocation.choice === 'origin-feat') {
+          const background = BACKGROUNDS.find(
+            (entry) =>
+              entry.edition === data.edition &&
+              [data.background, `${data.background}-${data.edition}`].includes(
+                entry.slug,
+              ),
+          );
+          const otherFeats = [
+            background?.originFeat,
+            data.originFeat,
+            data.speciesSlug === 'human-2024'
+              ? humanOriginFeat(data)
+              : data.speciesFeat,
+            ...(data.selectedFeats ?? []),
+            ...(data.cumulativeASI ?? []).flatMap((choice) =>
+              choice.featSlug ? [choice.featSlug] : [],
+            ),
+          ];
+          if (targets.some((target) => otherFeats.includes(target)))
+            errors.push(
+              'Lessons of the First Ones requires a different Origin feat; repeated Magic Initiate spell-list choices need separate grants and are not supported here.',
+            );
+        }
+      }
     }
   }
   if (
@@ -70,12 +130,11 @@ export function classGrantErrors(data: CharacterCreationData): string[] {
   const selections = data.weaponMastery ?? [];
   if (
     count &&
-    (selections.length < count ||
-      (data.level === 1 && selections.length !== count) ||
+    (selections.length !== count ||
       new Set(selections.map(choiceId)).size !== selections.length)
   )
     errors.push(
-      `Choose ${count} different weapon masteries${data.level > 1 ? ' or the number granted by your level' : ''}.`,
+      `Choose ${count} different weapon masteries at level ${data.level}.`,
     );
   if (
     count &&

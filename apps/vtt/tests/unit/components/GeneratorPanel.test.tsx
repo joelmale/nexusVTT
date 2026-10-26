@@ -11,17 +11,26 @@ import { GeneratorPanel } from '@/components/Generator/GeneratorPanel';
 
 // Mock child components
 vi.mock('@/components/Generator/DungeonGenerator', () => ({
-   
-  DungeonGenerator: ({ onMapGenerated }: { onMapGenerated: (data: string, format: string) => void }) => (
+  DungeonGenerator: ({
+    onMapGenerated,
+  }: {
+    onMapGenerated: (data: string, format: string) => void;
+  }) => (
     <div data-testid="dungeon-generator">
-      <button onClick={() => onMapGenerated('{"grid":true}', 'png')}>Generate JSON</button>
-      <button onClick={() => onMapGenerated('data:image/png;base64,...', 'png')}>Generate Image</button>
+      <button onClick={() => onMapGenerated('{"grid":true}', 'png')}>
+        Generate JSON
+      </button>
+      <button
+        onClick={() => onMapGenerated('data:image/png;base64,...', 'png')}
+      >
+        Generate Image
+      </button>
     </div>
-  )
+  ),
 }));
 
 vi.mock('@/components/Generator/WorldGenerator', () => ({
-  WorldGenerator: () => <div data-testid="world-generator" />
+  WorldGenerator: () => <div data-testid="world-generator" />,
 }));
 
 const mockUpdateScene = vi.fn();
@@ -221,6 +230,8 @@ describe('GeneratorPanel Containment (S0.3)', () => {
     window.dispatchEvent(
       new MessageEvent('message', {
         origin: hubOrigin,
+        source: (screen.getByTitle('Generator Hub') as HTMLIFrameElement)
+          .contentWindow,
         data: {
           type: 'generator/export-ready',
           payload: {
@@ -272,9 +283,8 @@ describe('GeneratorPanel Containment (S0.3)', () => {
   });
 
   it('maintains widescreen dimensions and centered offsets when falling back to local data URL', async () => {
-    const { BaseMapImporter, UploadAuthRequiredError } = await import(
-      '@/services/baseMapImporter'
-    );
+    const { BaseMapImporter, UploadAuthRequiredError } =
+      await import('@/services/baseMapImporter');
     vi.mocked(BaseMapImporter.importGeneratedMap).mockRejectedValue(
       new UploadAuthRequiredError('Sign in required'),
     );
@@ -290,6 +300,8 @@ describe('GeneratorPanel Containment (S0.3)', () => {
     window.dispatchEvent(
       new MessageEvent('message', {
         origin: hubOrigin,
+        source: (screen.getByTitle('Generator Hub') as HTMLIFrameElement)
+          .contentWindow,
         data: {
           type: 'generator/export-ready',
           payload: {
@@ -355,7 +367,8 @@ describe('GeneratorPanel Containment (S0.3)', () => {
         type: 'generator/action',
         keyCode: 13,
       }),
-      '*',
+      new URL((screen.getByTitle('Generator Hub') as HTMLIFrameElement).src)
+        .origin,
     );
   });
 
@@ -377,6 +390,8 @@ describe('GeneratorPanel Containment (S0.3)', () => {
     window.dispatchEvent(
       new MessageEvent('message', {
         origin: hubOrigin,
+        source: (screen.getByTitle('Generator Hub') as HTMLIFrameElement)
+          .contentWindow,
         data: {
           type: 'generator/export-ready',
           payload: {
@@ -438,6 +453,8 @@ describe('GeneratorPanel Containment (S0.3)', () => {
     window.dispatchEvent(
       new MessageEvent('message', {
         origin: hubOrigin,
+        source: (screen.getByTitle('Generator Hub') as HTMLIFrameElement)
+          .contentWindow,
         data: {
           type: 'generator/export-ready',
           payload: {
@@ -527,6 +544,8 @@ describe('GeneratorPanel Containment (S0.3)', () => {
       window.dispatchEvent(
         new MessageEvent('message', {
           origin: hubOrigin(),
+          source: (screen.getByTitle('Generator Hub') as HTMLIFrameElement)
+            .contentWindow,
           data: {
             type: 'generator/action-result',
             payload: { requestId: sent.requestId, status: 'done' },
@@ -548,6 +567,8 @@ describe('GeneratorPanel Containment (S0.3)', () => {
       window.dispatchEvent(
         new MessageEvent('message', {
           origin: hubOrigin(),
+          source: (screen.getByTitle('Generator Hub') as HTMLIFrameElement)
+            .contentWindow,
           data: {
             type: 'generator/action-result',
             payload: { requestId, status: 'error', error: 'boom' },
@@ -594,6 +615,8 @@ describe('GeneratorPanel Containment (S0.3)', () => {
       const exportMessage = (exportId: string) =>
         new MessageEvent('message', {
           origin: hubOrigin(),
+          source: (screen.getByTitle('Generator Hub') as HTMLIFrameElement)
+            .contentWindow,
           data: {
             type: 'generator/export-ready',
             payload: {
@@ -628,6 +651,8 @@ describe('GeneratorPanel Containment (S0.3)', () => {
       window.dispatchEvent(
         new MessageEvent('message', {
           origin: hubOrigin(),
+          source: (screen.getByTitle('Generator Hub') as HTMLIFrameElement)
+            .contentWindow,
           data: {
             type: 'generator/action-result',
             payload: { requestId, status: 'done' },
@@ -669,6 +694,45 @@ describe('GeneratorPanel Containment (S0.3)', () => {
       );
 
       expect(reroll).toBeDisabled();
+    });
+
+    it('ignores same-origin messages from another window and malformed trusted messages', async () => {
+      render(<GeneratorPanel />);
+      const postMessageSpy = setupIframe();
+      const reroll = screen.getByTitle('Reroll new map (Enter)');
+      fireEvent.click(reroll);
+      const { requestId } = postMessageSpy.mock.calls[0][0];
+      window.dispatchEvent(
+        new MessageEvent('message', {
+          origin: hubOrigin(),
+          source: window,
+          data: {
+            type: 'generator/action-result',
+            payload: { requestId, status: 'done' },
+          },
+        }),
+      );
+      for (const data of [
+        null,
+        { type: 'generator/action-result' },
+        {
+          type: 'generator/export-ready',
+          payload: { exportId: 'bad', payload: { blob: 'bad' } },
+        },
+      ]) {
+        window.dispatchEvent(
+          new MessageEvent('message', {
+            origin: hubOrigin(),
+            source: (screen.getByTitle('Generator Hub') as HTMLIFrameElement)
+              .contentWindow,
+            data,
+          }),
+        );
+      }
+      expect(reroll).toBeDisabled();
+      expect(
+        screen.getByText('🗺️ Add to Scene').closest('button'),
+      ).toBeDisabled();
     });
   });
 });

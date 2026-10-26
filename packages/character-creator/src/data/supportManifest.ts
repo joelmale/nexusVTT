@@ -20,6 +20,17 @@ export interface ClassSupportCertification {
 
 export const CERTIFIED_SUPPORT_MANIFEST: ClassSupportCertification[] = [
   {
+    classSlug: 'artificer',
+    name: 'Artificer',
+    editions: ['2014', '2024'],
+    level1Certified: false,
+    spellcaster: true,
+    recommendationSupported: true,
+    subclassLevels: [3],
+    notes:
+      'Selectable supplemental class, outside the core SRD reference matrix. Both edition catalogs require source-specific independent review; the 2024 label does not establish revised rules provenance.',
+  },
+  {
     classSlug: 'fighter',
     name: 'Fighter',
     editions: ['2014', '2024'],
@@ -68,7 +79,7 @@ export const CERTIFIED_SUPPORT_MANIFEST: ClassSupportCertification[] = [
     name: 'Paladin',
     editions: ['2014', '2024'],
     level1Certified: false,
-    spellcaster: false, // spellcasting begins at level 2 in 2014, level 1 in 2024
+    spellcaster: true, // Begins at level 2 in 2014, level 1 in 2024.
     recommendationSupported: true,
     subclassLevels: [3],
     notes:
@@ -79,7 +90,7 @@ export const CERTIFIED_SUPPORT_MANIFEST: ClassSupportCertification[] = [
     name: 'Ranger',
     editions: ['2014', '2024'],
     level1Certified: false,
-    spellcaster: false, // spellcasting begins at level 2
+    spellcaster: true, // Begins at level 2 in 2014, level 1 in 2024.
     recommendationSupported: true,
     subclassLevels: [3],
     notes:
@@ -152,3 +163,11 @@ export const CERTIFIED_SUPPORT_MANIFEST: ClassSupportCertification[] = [
       'Implemented paths awaiting independent and host verification: Pact Magic (1 slot at L1) and Eldritch Blast availability.',
   },
 ];
+
+/** Edition-specific subclass entry; certification is tracked separately. */
+export function getSubclassLevel(classSlug: string, edition: Edition): number {
+  const levels = CERTIFIED_SUPPORT_MANIFEST.find(
+    (entry) => entry.classSlug === classSlug,
+  )?.subclassLevels;
+  return (edition === '2014' ? levels?.[0] : levels?.[levels.length - 1]) ?? 3;
+}

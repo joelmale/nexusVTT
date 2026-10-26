@@ -1,7 +1,7 @@
 import { AbilityName, CharacterCreationData } from '../../types/dnd';
 
 export interface ReferenceBuildOracle {
-  id: 'F14' | 'F24' | 'R14' | 'R24' | 'W14' | 'W24';
+  id: 'F14' | 'F24' | 'R14' | 'R24' | 'W14' | 'W24' | 'WL14' | 'WL24';
   title: string;
   edition: '2014' | '2024';
   creationData: CharacterCreationData;
@@ -225,12 +225,24 @@ export const REFERENCE_BUILDS: Record<string, ReferenceBuildOracle> = {
       ],
       expertiseSkills: ['stealth', 'sleight_of_hand'],
       alignment: 'True Neutral',
-      equipmentChoices: [],
-      startingInventory: [
-        { equipmentSlug: 'leather-armor', quantity: 1, equipped: true },
-        { equipmentSlug: 'shortbow', quantity: 1, equipped: false },
-        { equipmentSlug: 'arrows-20', quantity: 1, equipped: false },
-        { equipmentSlug: 'dagger', quantity: 2, equipped: false },
+      equipmentChoices: [
+        {
+          choiceId: 'rogue-kit',
+          description: '2014 Rogue starting equipment choices',
+          selected: 0,
+          options: [
+            [
+              { name: 'Leather Armor', quantity: 1, type: 'armor' },
+              { name: 'Dagger', quantity: 2, type: 'weapon' },
+              { name: 'Shortsword', quantity: 1, type: 'weapon' },
+              { name: 'Shortbow', quantity: 1, type: 'weapon' },
+              { name: 'Arrow', quantity: 20, type: 'gear' },
+              { name: 'Quiver', quantity: 1, type: 'gear' },
+              { name: "Thieves' Tools", quantity: 1, type: 'gear' },
+              { name: "Burglar's Pack", quantity: 1, type: 'gear' },
+            ],
+          ],
+        },
       ],
       selectedMusicalInstruments: [],
       spellSelection: {
@@ -306,12 +318,25 @@ export const REFERENCE_BUILDS: Record<string, ReferenceBuildOracle> = {
       ],
       expertiseSkills: ['stealth', 'sleight_of_hand'],
       alignment: 'True Neutral',
-      equipmentChoices: [],
-      startingInventory: [
-        { equipmentSlug: 'leather-armor', quantity: 1, equipped: true },
-        { equipmentSlug: 'shortbow', quantity: 1, equipped: false },
-        { equipmentSlug: 'arrows-20', quantity: 1, equipped: false },
-        { equipmentSlug: 'dagger', quantity: 2, equipped: false },
+      equipmentChoices: [
+        {
+          choiceId: 'rogue-kit',
+          description: 'SRD 5.2.1 p61 Rogue package A',
+          selected: 0,
+          options: [
+            [
+              { name: 'Leather Armor', quantity: 1, type: 'armor' },
+              { name: 'Dagger', quantity: 2, type: 'weapon' },
+              { name: 'Shortsword', quantity: 1, type: 'weapon' },
+              { name: 'Shortbow', quantity: 1, type: 'weapon' },
+              { name: 'Arrow', quantity: 20, type: 'gear' },
+              { name: 'Quiver', quantity: 1, type: 'gear' },
+              { name: "Thieves' Tools", quantity: 1, type: 'gear' },
+              { name: "Burglar's Pack", quantity: 1, type: 'gear' },
+              { name: '8 gp', quantity: 1, type: 'gear' },
+            ],
+          ],
+        },
       ],
       selectedMusicalInstruments: [],
       spellSelection: {
@@ -353,7 +378,7 @@ export const REFERENCE_BUILDS: Record<string, ReferenceBuildOracle> = {
         'Darkvision',
         'Fey Ancestry',
       ],
-      currency: { gp: 16 },
+      currency: { gp: 23 }, // Class package A (8) + Criminal package A (15).
     },
   },
 
@@ -455,7 +480,23 @@ export const REFERENCE_BUILDS: Record<string, ReferenceBuildOracle> = {
       selectedSkills: ['Insight', 'Investigation'],
       alignment: 'True Neutral',
       abilityScoreMethod: 'standard-array',
-      equipmentChoices: [],
+      equipmentChoices: [
+        {
+          choiceId: 'wizard-kit',
+          description: 'SRD 5.2.1 p77 Wizard package A',
+          selected: 0,
+          options: [
+            [
+              { name: 'Dagger', quantity: 2, type: 'weapon' },
+              { name: 'Quarterstaff', quantity: 1, type: 'weapon' },
+              { name: 'Robe', quantity: 1, type: 'gear' },
+              { name: 'Spellbook', quantity: 1, type: 'gear' },
+              { name: "Scholar's Pack", quantity: 1, type: 'gear' },
+              { name: '5 gp', quantity: 1, type: 'gear' },
+            ],
+          ],
+        },
+      ],
       selectedMusicalInstruments: [],
       spellSelection: {
         selectedCantrips: ['fire-bolt', 'mage-hand', 'ray-of-frost'],
@@ -509,5 +550,131 @@ export const REFERENCE_BUILDS: Record<string, ReferenceBuildOracle> = {
       ],
       currency: { gp: 13 },
     },
+  },
+};
+
+// Additional fixed-input references. Numeric expectations are calculated below
+// from SRD 5.1 Warlock/Human and SRD 5.2.1 pp70–74,86, not evaluator output.
+// Independent human sign-off remains open in the acceptance ledger.
+REFERENCE_BUILDS.WL14 = {
+  id: 'WL14',
+  title: 'Standard Human Warlock/Soldier (2014)',
+  edition: '2014',
+  creationData: {
+    ...REFERENCE_BUILDS.F14.creationData,
+    name: 'Human Warlock 2014',
+    classSlug: 'warlock',
+    subclassSlug: 'fiend',
+    abilities: { STR: 8, DEX: 13, CON: 14, INT: 12, WIS: 10, CHA: 15 },
+    selectedSkills: ['Arcana', 'Deception'],
+    fightingStyle: undefined,
+    equipmentChoices: [
+      {
+        choiceId: 'warlock-kit',
+        description: 'Warlock starting gear',
+        selected: 0,
+        options: [
+          [
+            { name: 'Leather Armor', quantity: 1, type: 'armor' },
+            { name: 'Dagger', quantity: 3, type: 'weapon' },
+            { name: 'Quarterstaff', quantity: 1, type: 'weapon' },
+            { name: 'Crystal', quantity: 1, type: 'gear' },
+            { name: "Scholar's Pack", quantity: 1, type: 'gear' },
+          ],
+        ],
+      },
+    ],
+    spellSelection: {
+      selectedCantrips: ['eldritch-blast', 'minor-illusion'],
+      knownSpells: ['charm-person', 'comprehend-languages'],
+    },
+  },
+  expected: {
+    abilities: { STR: 9, DEX: 14, CON: 15, INT: 13, WIS: 11, CHA: 16 },
+    hp: 10,
+    ac: 13,
+    initiative: 2,
+    speed: 30,
+    saves: { proficient: ['WIS', 'CHA'], bonuses: { WIS: 2, CHA: 5 } },
+    attacks: [
+      { name: 'Dagger', attackBonus: 4, damage: '1d4+2' },
+      { name: 'Eldritch Blast', attackBonus: 5, damage: '1d10' },
+    ],
+    skills: { arcana: { bonus: 3 }, deception: { bonus: 5 } },
+    spells: {
+      cantripsCount: 2,
+      knownOrBookCount: 2,
+      preparedCount: 0,
+      spellAttackBonus: 5,
+      spellSaveDC: 13,
+    },
+    features: ['Pact Magic'],
+    currency: { gp: 10 },
+  },
+};
+
+REFERENCE_BUILDS.WL24 = {
+  id: 'WL24',
+  title: 'Human Warlock/Soldier (2024)',
+  edition: '2024',
+  creationData: {
+    ...REFERENCE_BUILDS.F24.creationData,
+    name: 'Human Warlock 2024',
+    classSlug: 'warlock',
+    abilities: { STR: 8, DEX: 13, CON: 14, INT: 12, WIS: 10, CHA: 15 },
+    backgroundAbilityChoices: { method: '2/1', bonuses: { DEX: 2, CON: 1 } },
+    selectedSkills: ['Arcana', 'Deception'],
+    fightingStyle: undefined,
+    weaponMastery: undefined,
+    eldritchInvocations: ['eldritch-mind'],
+    equipmentChoices: [
+      {
+        choiceId: 'warlock-kit',
+        description: 'Warlock starting gear',
+        selected: 0,
+        options: [
+          [
+            { name: 'Leather Armor', quantity: 1, type: 'armor' },
+            { name: 'Sickle', quantity: 1, type: 'weapon' },
+            { name: 'Dagger', quantity: 2, type: 'weapon' },
+            { name: 'Orb', quantity: 1, type: 'gear' },
+            { name: 'Book', quantity: 1, type: 'gear' },
+            { name: "Scholar's Pack", quantity: 1, type: 'gear' },
+            { name: '15 gp', quantity: 1, type: 'gear' },
+          ],
+        ],
+      },
+    ],
+    spellSelection: {
+      selectedCantrips: ['eldritch-blast', 'minor-illusion'],
+      knownSpells: ['charm-person', 'hex'],
+      preparedSpells: ['charm-person', 'hex'],
+    },
+  },
+  expected: {
+    abilities: { STR: 8, DEX: 15, CON: 15, INT: 12, WIS: 10, CHA: 15 },
+    hp: 12,
+    ac: 13,
+    initiative: 2,
+    speed: 30,
+    saves: { proficient: ['WIS', 'CHA'], bonuses: { WIS: 2, CHA: 4 } },
+    attacks: [
+      { name: 'Dagger', attackBonus: 4, damage: '1d4+2' },
+      { name: 'Eldritch Blast', attackBonus: 4, damage: '1d10' },
+    ],
+    skills: {
+      arcana: { bonus: 3 },
+      deception: { bonus: 4 },
+      perception: { bonus: 2 },
+    },
+    spells: {
+      cantripsCount: 2,
+      knownOrBookCount: 2,
+      preparedCount: 2,
+      spellAttackBonus: 4,
+      spellSaveDC: 12,
+    },
+    features: ['Pact Magic', 'Eldritch Invocation: Eldritch Mind'],
+    currency: { gp: 29 },
   },
 };

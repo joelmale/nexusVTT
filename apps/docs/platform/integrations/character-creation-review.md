@@ -28,6 +28,10 @@ does not close a ticket below.
 
 ## Implementation checkpoint
 
+The remaining rules and acceptance work is sequenced in the
+[validation completion plan](character-creation-validation-plan.md), based on
+the repair commit `248fedf9` pushed to `main`.
+
 Follow-up verified **2026-10-25** on `codex/creator-studio-repairs`.
 This checkpoint records the repair implementation and its verification; it does
 not certify a deployed release. The user/developer documentation refresh remains

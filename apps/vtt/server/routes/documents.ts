@@ -699,7 +699,9 @@ export function createDocumentRoutes(
         topK,
       });
 
-      // Post-filter citations & corresponding snippets to ensure user is authorized
+      // The answer was derived from every retrieved source. Removing citations
+      // cannot remove private facts from generated prose; reject the entire
+      // response if any source cannot be authorized.
       const filteredCitations = [];
       const filteredSnippets = [];
 
@@ -712,9 +714,11 @@ export function createDocumentRoutes(
             if (result.snippets[i] !== undefined) {
               filteredSnippets.push(result.snippets[i]);
             }
+          } else {
+            return res.status(403).json({ error: 'Answer sources are not accessible' });
           }
         } catch {
-          // Exclude citation and snippet if we fail to fetch or verify
+          return res.status(403).json({ error: 'Answer sources are not accessible' });
         }
       }
 

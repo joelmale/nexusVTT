@@ -5,6 +5,7 @@ import type { GeneratorAction } from './generatorActions';
 import { useGameStore, useActiveScene } from '@/stores/gameStore';
 import './GeneratorPanel.css';
 import { GeneratorHostClient } from '@/services/generatorHostClient';
+import { isGeneratorExportArtifact } from '@/services/generatorMessageValidation';
 import type { GeneratorHostMessage } from '../../../shared/generator/protocol';
 import { openNexusDB } from '@/services/nexusDb';
 import { toast } from '@/utils/notifications';
@@ -299,10 +300,15 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
     const client = new GeneratorHostClient(hubOrigin);
 
     const handleHostMessage = (event: MessageEvent) => {
-      if (event.origin !== hubOrigin) return;
+      if (event.origin !== hubOrigin || !iframeRef.current?.contentWindow ||
+          event.source !== iframeRef.current.contentWindow ||
+          !event.data || typeof event.data !== 'object') return;
       const msg = event.data as GeneratorHostMessage;
 
       if (msg.type === 'generator/action-result') {
+        if (!msg.payload || typeof msg.payload.requestId !== 'string' ||
+            !['done', 'error'].includes(msg.payload.status) ||
+            (msg.payload.error !== undefined && typeof msg.payload.error !== 'string')) return;
         const { requestId, status, error } = msg.payload;
         clearPending(requestId);
         if (status === 'done') awaitingExportSinceRef.current = Date.now();
@@ -317,6 +323,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
       }
 
       if (msg.type === 'generator/export-ready') {
+        if (!isGeneratorExportArtifact(msg.payload)) return;
         awaitingExportSinceRef.current = null;
         const artifact = msg.payload;
         const innerPayload = artifact.payload;
@@ -421,7 +428,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
         key: action.key,
         shiftKey: action.shiftKey,
       },
-      '*',
+      hubOrigin,
     );
   };
 
@@ -473,7 +480,10 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
           }, 3500);
 
           const onExport = (event: MessageEvent) => {
+            if (event.origin !== hubOrigin || !iframeRef.current?.contentWindow ||
+                event.source !== iframeRef.current.contentWindow) return;
             if (event.data?.type === 'generator/export-ready') {
+              if (!isGeneratorExportArtifact(event.data.payload)) return;
               clearTimeout(timeout);
               window.removeEventListener('message', onExport);
               const artifact = event.data.payload;
@@ -501,7 +511,7 @@ export const GeneratorPanel: React.FC<GeneratorPanelProps> = ({
 
           iframeRef.current?.contentWindow?.postMessage(
             { type: 'generator/export-request' },
-            '*',
+            hubOrigin,
           );
         });
 

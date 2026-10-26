@@ -480,6 +480,27 @@ describe('enabled document routes CRUD and authorization', () => {
     expect(askData.citations[0].documentId).toBe('doc-public');
   });
 
+  it.each(['doc-private', 'doc-unavailable'])('rejects an entire derived answer when source %s cannot be authorized', async (documentId) => {
+    const baseUrl = await startCustomApp({
+      clientOverrides: {
+        ask: async () => ({
+          answer: 'Private answer text must never reach the caller',
+          citations: [
+            { documentId: mockPublicDoc.id, sourceIndex: 1 },
+            { documentId, sourceIndex: 2 },
+          ],
+          snippets: ['Public text', 'Private source text'],
+        }),
+      },
+    });
+    const response = await fetch(`${baseUrl}/api/search/ask`, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ question: 'A question without campaign filters' }),
+    });
+    expect(response.status).toBe(403);
+    expect(await response.json()).toEqual({ error: 'Answer sources are not accessible' });
+  });
+
   it('filters semantic, quick, and structured-data responses through document access', async () => {
     const baseUrl = await startCustomApp();
     const semantic = await fetch(`${baseUrl}/api/search/semantic?query=dragon&campaigns=campaign-allowed`);

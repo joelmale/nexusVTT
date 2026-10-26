@@ -2,6 +2,7 @@ import type { Character, CharacterCreationData } from '../types/dnd';
 import { FEAT_DATABASE } from './dataService';
 import { humanOriginFeat } from './originChoices';
 import { featProficiencyErrors } from './featProficiencies';
+import { invocationFeatGrants } from './invocations';
 import {
   calculateFeatAvailability,
   getFeatAvailability,
@@ -14,6 +15,7 @@ export function featEntitlementErrors(
   allowedSources?: string[],
 ): string[] {
   const selected = [
+    ...invocationFeatGrants(data),
     ...(data.selectedFeats ?? []),
     ...(data.cumulativeASI ?? []).flatMap((choice) =>
       choice.featSlug ? [choice.featSlug] : [],

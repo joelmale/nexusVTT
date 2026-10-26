@@ -1,0 +1,3976 @@
+{
+  "barbarian-2014": {
+    "name": "Hero",
+    "edition": "2014",
+    "level": 1,
+    "speciesSlug": "human",
+    "classSlug": "barbarian",
+    "background": "soldier-2014",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 15,
+      "DEX": 13,
+      "CON": 14,
+      "INT": 8,
+      "WIS": 12,
+      "CHA": 10
+    },
+    "abilityScoreMethod": "standard-array",
+    "selectedSkills": [
+      "Animal Handling",
+      "Nature"
+    ],
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [],
+      "knownSpells": [],
+      "spellbook": [],
+      "preparedSpells": [],
+      "dailyPrepared": []
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {},
+    "startingInventory": [
+      {
+        "equipmentSlug": "greataxe",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "handaxe",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bedroll",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "mess-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "torch",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "waterskin",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hempen-rope-50-feet",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "javelin",
+        "quantity": 4,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "insignia-of-rank",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "trophy-from-fallen-enemy",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bone-dice",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "common-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 10,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "bard-2014": {
+    "name": "Hero",
+    "edition": "2014",
+    "level": 1,
+    "speciesSlug": "human",
+    "classSlug": "bard",
+    "background": "soldier-2014",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 8,
+      "DEX": 14,
+      "CON": 13,
+      "INT": 10,
+      "WIS": 12,
+      "CHA": 15
+    },
+    "abilityScoreMethod": "standard-array",
+    "selectedSkills": [
+      "Acrobatics",
+      "Animal Handling",
+      "Arcana"
+    ],
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [
+      "Lute",
+      "Flute",
+      "Drum"
+    ],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [
+        "vicious-mockery",
+        "minor-illusion"
+      ],
+      "knownSpells": [
+        "healing-word",
+        "thunderwave",
+        "animal-friendship",
+        "bane"
+      ],
+      "spellbook": [
+        "healing-word",
+        "thunderwave",
+        "animal-friendship",
+        "bane"
+      ],
+      "preparedSpells": [
+        "healing-word",
+        "thunderwave",
+        "animal-friendship",
+        "bane"
+      ],
+      "dailyPrepared": [
+        "healing-word",
+        "thunderwave",
+        "animal-friendship",
+        "bane"
+      ]
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {},
+    "startingInventory": [
+      {
+        "equipmentSlug": "rapier",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "diplomats-pack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "lute",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "leather-armor",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "dagger",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "insignia-of-rank",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "trophy-from-fallen-enemy",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bone-dice",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "common-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 10,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "cleric-2014": {
+    "name": "Hero",
+    "edition": "2014",
+    "level": 1,
+    "speciesSlug": "human",
+    "classSlug": "cleric",
+    "background": "acolyte-2014",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 13,
+      "DEX": 8,
+      "CON": 14,
+      "INT": 10,
+      "WIS": 15,
+      "CHA": 12
+    },
+    "abilityScoreMethod": "standard-array",
+    "selectedSkills": [
+      "History",
+      "Medicine"
+    ],
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [
+        "sacred-flame",
+        "guidance",
+        "thaumaturgy"
+      ],
+      "knownSpells": [
+        "cure-wounds",
+        "healing-word"
+      ],
+      "spellbook": [
+        "cure-wounds",
+        "healing-word"
+      ],
+      "preparedSpells": [
+        "cure-wounds",
+        "healing-word"
+      ],
+      "dailyPrepared": [
+        "cure-wounds",
+        "healing-word"
+      ]
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {},
+    "startingInventory": [
+      {
+        "equipmentSlug": "mace",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "scale-mail",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "shield",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "light-crossbow",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "crossbow-bolt",
+        "quantity": 20,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "blanket",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "candle",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "alms-box",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "block-of-incense",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "censer",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "vestments",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "waterskin",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "holy-symbol",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "prayer-book",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "5-sticks-of-incense",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "common-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 15,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "druid-2014": {
+    "name": "Hero",
+    "edition": "2014",
+    "level": 1,
+    "speciesSlug": "human",
+    "classSlug": "druid",
+    "background": "soldier-2014",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 10,
+      "DEX": 13,
+      "CON": 14,
+      "INT": 12,
+      "WIS": 15,
+      "CHA": 8
+    },
+    "abilityScoreMethod": "standard-array",
+    "selectedSkills": [
+      "Arcana",
+      "Animal Handling"
+    ],
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [
+        "shillelagh",
+        "produce-flame"
+      ],
+      "knownSpells": [],
+      "spellbook": [],
+      "preparedSpells": [],
+      "dailyPrepared": []
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {},
+    "startingInventory": [
+      {
+        "equipmentSlug": "leather-armor",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "quarterstaff",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "druids-focus",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bedroll",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "mess-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "torch",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "waterskin",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hempen-rope-50-feet",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "herbalism-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "insignia-of-rank",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "trophy-from-fallen-enemy",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bone-dice",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "common-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 10,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "fighter-2014": {
+    "name": "Hero",
+    "edition": "2014",
+    "level": 1,
+    "speciesSlug": "human",
+    "classSlug": "fighter",
+    "background": "soldier-2014",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 15,
+      "DEX": 13,
+      "CON": 14,
+      "INT": 8,
+      "WIS": 12,
+      "CHA": 10
+    },
+    "abilityScoreMethod": "standard-array",
+    "selectedSkills": [
+      "Acrobatics",
+      "Animal Handling"
+    ],
+    "expertiseSkills": [],
+    "selectedFightingStyle": "Defense",
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [],
+      "knownSpells": [],
+      "spellbook": [],
+      "preparedSpells": [],
+      "dailyPrepared": []
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {},
+    "fightingStyle": "Defense",
+    "startingInventory": [
+      {
+        "equipmentSlug": "chain-mail",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "longsword",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "shield",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "light-crossbow",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "crossbow-bolt",
+        "quantity": 20,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "crowbar",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hammer",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "piton",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "torch",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "waterskin",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hempen-rope-50-feet",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "insignia-of-rank",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "trophy-from-fallen-enemy",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bone-dice",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "common-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 10,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "monk-2014": {
+    "name": "Hero",
+    "edition": "2014",
+    "level": 1,
+    "speciesSlug": "human",
+    "classSlug": "monk",
+    "background": "soldier-2014",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 12,
+      "DEX": 15,
+      "CON": 13,
+      "INT": 10,
+      "WIS": 14,
+      "CHA": 8
+    },
+    "abilityScoreMethod": "standard-array",
+    "selectedSkills": [
+      "Acrobatics",
+      "History"
+    ],
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [],
+      "knownSpells": [],
+      "spellbook": [],
+      "preparedSpells": [],
+      "dailyPrepared": []
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {},
+    "startingInventory": [
+      {
+        "equipmentSlug": "shortsword",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "crowbar",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hammer",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "piton",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "torch",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "waterskin",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hempen-rope-50-feet",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "dart",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "insignia-of-rank",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "trophy-from-fallen-enemy",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bone-dice",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "common-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 10,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "paladin-2014": {
+    "name": "Hero",
+    "edition": "2014",
+    "level": 1,
+    "speciesSlug": "human",
+    "classSlug": "paladin",
+    "background": "soldier-2014",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 15,
+      "DEX": 10,
+      "CON": 13,
+      "INT": 8,
+      "WIS": 12,
+      "CHA": 14
+    },
+    "abilityScoreMethod": "standard-array",
+    "selectedSkills": [
+      "Insight",
+      "Medicine"
+    ],
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [],
+      "knownSpells": [],
+      "spellbook": [],
+      "preparedSpells": [],
+      "dailyPrepared": []
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {},
+    "startingInventory": [
+      {
+        "equipmentSlug": "longsword",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "shield",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "javelin",
+        "quantity": 5,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "blanket",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "candle",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "alms-box",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "block-of-incense",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "censer",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "vestments",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "waterskin",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "chain-mail",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "holy-symbol",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "insignia-of-rank",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "trophy-from-fallen-enemy",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bone-dice",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "common-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 10,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "ranger-2014": {
+    "name": "Hero",
+    "edition": "2014",
+    "level": 1,
+    "speciesSlug": "human",
+    "classSlug": "ranger",
+    "background": "soldier-2014",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 12,
+      "DEX": 15,
+      "CON": 13,
+      "INT": 10,
+      "WIS": 14,
+      "CHA": 8
+    },
+    "abilityScoreMethod": "standard-array",
+    "selectedSkills": [
+      "Animal Handling",
+      "Insight",
+      "Investigation"
+    ],
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [],
+      "knownSpells": [],
+      "spellbook": [],
+      "preparedSpells": [],
+      "dailyPrepared": []
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {},
+    "startingInventory": [
+      {
+        "equipmentSlug": "longbow",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "arrow",
+        "quantity": 20,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "shortsword",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "leather-armor",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "crowbar",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hammer",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "piton",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "torch",
+        "quantity": 20,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 20,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "waterskin",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hempen-rope-50-feet",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bedroll",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "mess-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "insignia-of-rank",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "trophy-from-fallen-enemy",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bone-dice",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "common-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 10,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "rogue-2014": {
+    "name": "Hero",
+    "edition": "2014",
+    "level": 1,
+    "speciesSlug": "human",
+    "classSlug": "rogue",
+    "background": "criminal-2014",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 8,
+      "DEX": 15,
+      "CON": 14,
+      "INT": 13,
+      "WIS": 12,
+      "CHA": 10
+    },
+    "abilityScoreMethod": "standard-array",
+    "selectedSkills": [
+      "Acrobatics",
+      "Athletics",
+      "Insight",
+      "Intimidation"
+    ],
+    "expertiseSkills": [
+      "Stealth",
+      "Acrobatics"
+    ],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [],
+      "knownSpells": [],
+      "spellbook": [],
+      "preparedSpells": [],
+      "dailyPrepared": []
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {},
+    "startingInventory": [
+      {
+        "equipmentSlug": "rapier",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "shortbow",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "arrow",
+        "quantity": 20,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "leather-armor",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "dagger",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "thieves-tools",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "ball-bearings-(bag-of-1,000)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "string-(10-feet)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bell",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "candle",
+        "quantity": 5,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "crowbar",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hammer",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "piton",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hooded-lantern",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "oil-flask",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 5,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "waterskin",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hempen-rope-50-feet",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "dark-common-clothes-with-hood",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 15,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "sorcerer-2014": {
+    "name": "Hero",
+    "edition": "2014",
+    "level": 1,
+    "speciesSlug": "human",
+    "classSlug": "sorcerer",
+    "background": "soldier-2014",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 8,
+      "DEX": 13,
+      "CON": 14,
+      "INT": 10,
+      "WIS": 12,
+      "CHA": 15
+    },
+    "abilityScoreMethod": "standard-array",
+    "selectedSkills": [
+      "Arcana",
+      "Deception"
+    ],
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [
+        "fire-bolt",
+        "ray-of-frost",
+        "shocking-grasp",
+        "prestidigitation"
+      ],
+      "knownSpells": [
+        "magic-missile",
+        "shield"
+      ],
+      "spellbook": [
+        "magic-missile",
+        "shield"
+      ],
+      "preparedSpells": [
+        "magic-missile",
+        "shield"
+      ],
+      "dailyPrepared": [
+        "magic-missile",
+        "shield"
+      ]
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {},
+    "startingInventory": [
+      {
+        "equipmentSlug": "dagger",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "arcane-focus",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "crowbar",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hammer",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "piton",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "torch",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "waterskin",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hempen-rope-50-feet",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "dart",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "insignia-of-rank",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "trophy-from-fallen-enemy",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bone-dice",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "common-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 10,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "warlock-2014": {
+    "name": "Hero",
+    "edition": "2014",
+    "level": 1,
+    "speciesSlug": "human",
+    "classSlug": "warlock",
+    "background": "soldier-2014",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 8,
+      "DEX": 13,
+      "CON": 14,
+      "INT": 12,
+      "WIS": 10,
+      "CHA": 15
+    },
+    "abilityScoreMethod": "standard-array",
+    "selectedSkills": [
+      "Arcana",
+      "Deception"
+    ],
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [
+        "eldritch-blast",
+        "minor-illusion"
+      ],
+      "knownSpells": [
+        "charm-person",
+        "comprehend-languages"
+      ],
+      "spellbook": [
+        "charm-person",
+        "comprehend-languages"
+      ],
+      "preparedSpells": [
+        "charm-person",
+        "comprehend-languages"
+      ],
+      "dailyPrepared": [
+        "charm-person",
+        "comprehend-languages"
+      ]
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {},
+    "startingInventory": [
+      {
+        "equipmentSlug": "dagger",
+        "quantity": 2,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "arcane-focus",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "book-of-lore",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "ink-(1-ounce-bottle)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "ink-pen",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "parchment-10-sheets",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "little-bag-of-sand",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "small-knife",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "leather-armor",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "insignia-of-rank",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "trophy-from-fallen-enemy",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bone-dice",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "common-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 10,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "wizard-2014": {
+    "name": "Hero",
+    "edition": "2014",
+    "level": 1,
+    "speciesSlug": "human",
+    "classSlug": "wizard",
+    "background": "sage-2014",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 8,
+      "DEX": 14,
+      "CON": 13,
+      "INT": 15,
+      "WIS": 12,
+      "CHA": 10
+    },
+    "abilityScoreMethod": "standard-array",
+    "selectedSkills": [
+      "Insight",
+      "Investigation"
+    ],
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [
+        "fire-bolt",
+        "mage-hand",
+        "prestidigitation"
+      ],
+      "knownSpells": [
+        "magic-missile",
+        "shield",
+        "mage-armor",
+        "detect-magic",
+        "sleep",
+        "feather-fall"
+      ],
+      "spellbook": [
+        "magic-missile",
+        "shield",
+        "mage-armor",
+        "detect-magic",
+        "sleep",
+        "feather-fall"
+      ],
+      "preparedSpells": [
+        "magic-missile",
+        "shield",
+        "mage-armor",
+        "detect-magic"
+      ],
+      "dailyPrepared": [
+        "magic-missile",
+        "shield",
+        "mage-armor",
+        "detect-magic"
+      ]
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {},
+    "startingInventory": [
+      {
+        "equipmentSlug": "quarterstaff",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "spellbook",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "book-of-lore",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "ink-(1-ounce-bottle)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "ink-pen",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "parchment-10-sheets",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "little-bag-of-sand",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "small-knife",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "arcane-focus",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bottle-of-ink",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "quill",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "letter-from-colleague",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "common-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 10,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "artificer-2014": {
+    "name": "Hero",
+    "edition": "2014",
+    "level": 1,
+    "speciesSlug": "human",
+    "classSlug": "artificer",
+    "background": "soldier-2014",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 15,
+      "DEX": 13,
+      "CON": 14,
+      "INT": 8,
+      "WIS": 12,
+      "CHA": 10
+    },
+    "abilityScoreMethod": "standard-array",
+    "selectedSkills": [
+      "Arcana",
+      "History"
+    ],
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [],
+      "knownSpells": [],
+      "spellbook": [],
+      "preparedSpells": [],
+      "dailyPrepared": []
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {},
+    "startingInventory": [
+      {
+        "equipmentSlug": "insignia-of-rank",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "trophy-from-fallen-enemy",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bone-dice",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "common-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 10,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "barbarian-2024": {
+    "name": "Hero",
+    "edition": "2024",
+    "level": 1,
+    "speciesSlug": "human-2024",
+    "classSlug": "barbarian",
+    "background": "soldier-2024",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 15,
+      "DEX": 13,
+      "CON": 14,
+      "INT": 8,
+      "WIS": 12,
+      "CHA": 10
+    },
+    "abilityScoreMethod": "standard-array",
+    "backgroundAbilityChoices": {
+      "method": "2/1",
+      "bonuses": {
+        "STR": 2,
+        "CON": 1
+      }
+    },
+    "selectedSkills": [
+      "Animal Handling",
+      "Nature"
+    ],
+    "speciesSkillProficiency": "Perception",
+    "humanOriginFeat": "tough",
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [
+      "Battleaxe",
+      "Club"
+    ],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [],
+      "knownSpells": [],
+      "spellbook": [],
+      "preparedSpells": [],
+      "dailyPrepared": []
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {
+      "STR": 2,
+      "CON": 1
+    },
+    "speciesFeat": "tough",
+    "startingInventory": [
+      {
+        "equipmentSlug": "greataxe",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "handaxe",
+        "quantity": 4,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bedroll",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "mess-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "torch",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "waterskin",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hempen-rope-50-feet",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "spear",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "shortbow",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "arrows-(20)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "gaming-set-(matching-choice)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "healers-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "quiver",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "traveler's-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 29,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "bard-2024": {
+    "name": "Hero",
+    "edition": "2024",
+    "level": 1,
+    "speciesSlug": "human-2024",
+    "classSlug": "bard",
+    "background": "soldier-2024",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 8,
+      "DEX": 14,
+      "CON": 13,
+      "INT": 10,
+      "WIS": 12,
+      "CHA": 15
+    },
+    "abilityScoreMethod": "standard-array",
+    "backgroundAbilityChoices": {
+      "method": "2/1",
+      "bonuses": {
+        "STR": 2,
+        "CON": 1
+      }
+    },
+    "selectedSkills": [
+      "Acrobatics",
+      "Animal Handling",
+      "Arcana"
+    ],
+    "speciesSkillProficiency": "Perception",
+    "humanOriginFeat": "tough",
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [
+      "Lute",
+      "Flute",
+      "Drum"
+    ],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [
+        "vicious-mockery",
+        "minor-illusion"
+      ],
+      "knownSpells": [
+        "healing-word",
+        "dissonant-whispers",
+        "faerie-fire",
+        "thunderwave"
+      ],
+      "spellbook": [
+        "healing-word",
+        "dissonant-whispers",
+        "faerie-fire",
+        "thunderwave"
+      ],
+      "preparedSpells": [
+        "healing-word",
+        "dissonant-whispers",
+        "faerie-fire",
+        "thunderwave"
+      ],
+      "dailyPrepared": [
+        "healing-word",
+        "dissonant-whispers",
+        "faerie-fire",
+        "thunderwave"
+      ]
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {
+      "STR": 2,
+      "CON": 1
+    },
+    "speciesFeat": "tough",
+    "startingInventory": [
+      {
+        "equipmentSlug": "leather-armor",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "dagger",
+        "quantity": 2,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "lute",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "entertainer's-pack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "spear",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "shortbow",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "arrows-(20)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "gaming-set-(matching-choice)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "healers-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "quiver",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "traveler's-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 33,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "cleric-2024": {
+    "name": "Hero",
+    "edition": "2024",
+    "level": 1,
+    "speciesSlug": "human-2024",
+    "classSlug": "cleric",
+    "background": "acolyte-2024",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 13,
+      "DEX": 8,
+      "CON": 14,
+      "INT": 10,
+      "WIS": 15,
+      "CHA": 12
+    },
+    "abilityScoreMethod": "standard-array",
+    "backgroundAbilityChoices": {
+      "method": "2/1",
+      "bonuses": {
+        "WIS": 2,
+        "CHA": 1
+      }
+    },
+    "selectedSkills": [
+      "History",
+      "Medicine"
+    ],
+    "speciesSkillProficiency": "Perception",
+    "humanOriginFeat": "tough",
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "divineOrder": "protector",
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [
+        "sacred-flame",
+        "guidance",
+        "thaumaturgy"
+      ],
+      "knownSpells": [
+        "cure-wounds",
+        "healing-word",
+        "bless",
+        "guiding-bolt"
+      ],
+      "spellbook": [
+        "cure-wounds",
+        "healing-word",
+        "bless",
+        "guiding-bolt"
+      ],
+      "preparedSpells": [
+        "cure-wounds",
+        "healing-word",
+        "bless",
+        "guiding-bolt"
+      ],
+      "dailyPrepared": [
+        "cure-wounds",
+        "healing-word",
+        "bless",
+        "guiding-bolt"
+      ]
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {
+      "WIS": 2,
+      "CHA": 1
+    },
+    "speciesFeat": "tough",
+    "startingInventory": [
+      {
+        "equipmentSlug": "chain-shirt",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "shield",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "mace",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "holy-symbol",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "blanket",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "holy-water",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "lamp",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 7,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "robe",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "calligrapher-supplies",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "book-(prayers)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "parchment-10-sheets",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 15,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "druid-2024": {
+    "name": "Hero",
+    "edition": "2024",
+    "level": 1,
+    "speciesSlug": "human-2024",
+    "classSlug": "druid",
+    "background": "soldier-2024",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 10,
+      "DEX": 13,
+      "CON": 14,
+      "INT": 12,
+      "WIS": 15,
+      "CHA": 8
+    },
+    "abilityScoreMethod": "standard-array",
+    "backgroundAbilityChoices": {
+      "method": "2/1",
+      "bonuses": {
+        "STR": 2,
+        "CON": 1
+      }
+    },
+    "selectedSkills": [
+      "Arcana",
+      "Animal Handling"
+    ],
+    "speciesSkillProficiency": "Perception",
+    "humanOriginFeat": "tough",
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "primalOrder": "warden",
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [
+        "shillelagh",
+        "produce-flame"
+      ],
+      "knownSpells": [
+        "cure-wounds",
+        "entangle",
+        "healing-word",
+        "thunderwave"
+      ],
+      "spellbook": [
+        "cure-wounds",
+        "entangle",
+        "healing-word",
+        "thunderwave"
+      ],
+      "preparedSpells": [
+        "cure-wounds",
+        "entangle",
+        "healing-word",
+        "thunderwave"
+      ],
+      "dailyPrepared": [
+        "cure-wounds",
+        "entangle",
+        "healing-word",
+        "thunderwave"
+      ]
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {
+      "STR": 2,
+      "CON": 1
+    },
+    "speciesFeat": "tough",
+    "startingInventory": [
+      {
+        "equipmentSlug": "leather-armor",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "shield",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "sickle",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "quarterstaff",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bedroll",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "mess-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "torch",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "waterskin",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hempen-rope-50-feet",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "herbalism-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "spear",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "shortbow",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "arrows-(20)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "gaming-set-(matching-choice)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "healers-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "quiver",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "traveler's-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 23,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "fighter-2024": {
+    "name": "Hero",
+    "edition": "2024",
+    "level": 1,
+    "speciesSlug": "human-2024",
+    "classSlug": "fighter",
+    "background": "soldier-2024",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 15,
+      "DEX": 13,
+      "CON": 14,
+      "INT": 8,
+      "WIS": 12,
+      "CHA": 10
+    },
+    "abilityScoreMethod": "standard-array",
+    "backgroundAbilityChoices": {
+      "method": "2/1",
+      "bonuses": {
+        "STR": 2,
+        "CON": 1
+      }
+    },
+    "selectedSkills": [
+      "Acrobatics",
+      "Animal Handling"
+    ],
+    "speciesSkillProficiency": "Perception",
+    "humanOriginFeat": "tough",
+    "expertiseSkills": [],
+    "selectedFightingStyle": "Defense",
+    "weaponMastery": [
+      "Greatsword",
+      "Flail",
+      "Javelin"
+    ],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [],
+      "knownSpells": [],
+      "spellbook": [],
+      "preparedSpells": [],
+      "dailyPrepared": []
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {
+      "STR": 2,
+      "CON": 1
+    },
+    "fightingStyle": "Defense",
+    "speciesFeat": "tough",
+    "startingInventory": [
+      {
+        "equipmentSlug": "chain-mail",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "greatsword",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "flail",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "javelin",
+        "quantity": 8,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "crowbar",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hammer",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "piton",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "torch",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "waterskin",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hempen-rope-50-feet",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "spear",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "shortbow",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "arrows-(20)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "gaming-set-(matching-choice)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "healers-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "quiver",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "traveler's-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 18,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "monk-2024": {
+    "name": "Hero",
+    "edition": "2024",
+    "level": 1,
+    "speciesSlug": "human-2024",
+    "classSlug": "monk",
+    "background": "soldier-2024",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 12,
+      "DEX": 15,
+      "CON": 13,
+      "INT": 10,
+      "WIS": 14,
+      "CHA": 8
+    },
+    "abilityScoreMethod": "standard-array",
+    "backgroundAbilityChoices": {
+      "method": "2/1",
+      "bonuses": {
+        "STR": 2,
+        "CON": 1
+      }
+    },
+    "selectedSkills": [
+      "Acrobatics",
+      "History"
+    ],
+    "speciesSkillProficiency": "Perception",
+    "humanOriginFeat": "tough",
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [],
+      "knownSpells": [],
+      "spellbook": [],
+      "preparedSpells": [],
+      "dailyPrepared": []
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {
+      "STR": 2,
+      "CON": 1
+    },
+    "speciesFeat": "tough",
+    "startingInventory": [
+      {
+        "equipmentSlug": "spear",
+        "quantity": 2,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "dagger",
+        "quantity": 5,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "lute",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bedroll",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "mess-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "torch",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "waterskin",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hempen-rope-50-feet",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "shortbow",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "arrows-(20)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "gaming-set-(matching-choice)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "healers-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "quiver",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "traveler's-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 25,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "paladin-2024": {
+    "name": "Hero",
+    "edition": "2024",
+    "level": 1,
+    "speciesSlug": "human-2024",
+    "classSlug": "paladin",
+    "background": "soldier-2024",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 15,
+      "DEX": 10,
+      "CON": 13,
+      "INT": 8,
+      "WIS": 12,
+      "CHA": 14
+    },
+    "abilityScoreMethod": "standard-array",
+    "backgroundAbilityChoices": {
+      "method": "2/1",
+      "bonuses": {
+        "STR": 2,
+        "CON": 1
+      }
+    },
+    "selectedSkills": [
+      "Insight",
+      "Medicine"
+    ],
+    "speciesSkillProficiency": "Perception",
+    "humanOriginFeat": "tough",
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [
+      "Battleaxe",
+      "Blowgun"
+    ],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [],
+      "knownSpells": [
+        "bless",
+        "command"
+      ],
+      "spellbook": [
+        "bless",
+        "command"
+      ],
+      "preparedSpells": [
+        "bless",
+        "command"
+      ],
+      "dailyPrepared": [
+        "bless",
+        "command"
+      ]
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {
+      "STR": 2,
+      "CON": 1
+    },
+    "speciesFeat": "tough",
+    "startingInventory": [
+      {
+        "equipmentSlug": "chain-mail",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "shield",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "longsword",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "javelin",
+        "quantity": 6,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "holy-symbol",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "blanket",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "holy-water",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "lamp",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 7,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "robe",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "spear",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "shortbow",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "arrows-(20)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "gaming-set-(matching-choice)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "healers-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "quiver",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "traveler's-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 23,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "ranger-2024": {
+    "name": "Hero",
+    "edition": "2024",
+    "level": 1,
+    "speciesSlug": "human-2024",
+    "classSlug": "ranger",
+    "background": "soldier-2024",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 12,
+      "DEX": 15,
+      "CON": 13,
+      "INT": 10,
+      "WIS": 14,
+      "CHA": 8
+    },
+    "abilityScoreMethod": "standard-array",
+    "backgroundAbilityChoices": {
+      "method": "2/1",
+      "bonuses": {
+        "STR": 2,
+        "CON": 1
+      }
+    },
+    "selectedSkills": [
+      "Animal Handling",
+      "Insight",
+      "Investigation"
+    ],
+    "speciesSkillProficiency": "Perception",
+    "humanOriginFeat": "tough",
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [
+      "Battleaxe",
+      "Blowgun"
+    ],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [],
+      "knownSpells": [
+        "alarm",
+        "animal-friendship"
+      ],
+      "spellbook": [
+        "alarm",
+        "animal-friendship"
+      ],
+      "preparedSpells": [
+        "alarm",
+        "animal-friendship"
+      ],
+      "dailyPrepared": [
+        "alarm",
+        "animal-friendship"
+      ]
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {
+      "STR": 2,
+      "CON": 1
+    },
+    "speciesFeat": "tough",
+    "startingInventory": [
+      {
+        "equipmentSlug": "studded-leather-armor",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "scimitar",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "shortsword",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "longbow",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "arrow",
+        "quantity": 20,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "quiver",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "sprig-of-mistletoe",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bedroll",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "mess-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "torch",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "waterskin",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hempen-rope-50-feet",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "spear",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "shortbow",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "arrows-(20)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "gaming-set-(matching-choice)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "healers-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "traveler's-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 21,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "rogue-2024": {
+    "name": "Hero",
+    "edition": "2024",
+    "level": 1,
+    "speciesSlug": "human-2024",
+    "classSlug": "rogue",
+    "background": "criminal-2024",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 8,
+      "DEX": 15,
+      "CON": 14,
+      "INT": 13,
+      "WIS": 12,
+      "CHA": 10
+    },
+    "abilityScoreMethod": "standard-array",
+    "backgroundAbilityChoices": {
+      "method": "2/1",
+      "bonuses": {
+        "DEX": 2,
+        "CON": 1
+      }
+    },
+    "selectedSkills": [
+      "Acrobatics",
+      "Athletics",
+      "Deception",
+      "Insight"
+    ],
+    "speciesSkillProficiency": "Perception",
+    "humanOriginFeat": "tough",
+    "expertiseSkills": [
+      "Stealth",
+      "Sleight of Hand"
+    ],
+    "selectedFightingStyle": null,
+    "weaponMastery": [
+      "Shortbow",
+      "Dagger"
+    ],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [],
+      "knownSpells": [],
+      "spellbook": [],
+      "preparedSpells": [],
+      "dailyPrepared": []
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {
+      "DEX": 2,
+      "CON": 1
+    },
+    "speciesFeat": "tough",
+    "startingInventory": [
+      {
+        "equipmentSlug": "leather-armor",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "dagger",
+        "quantity": 4,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "shortsword",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "shortbow",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "arrow",
+        "quantity": 20,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "quiver",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "thieves-tools",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "ball-bearings-(bag-of-1,000)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "string-(10-feet)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "bell",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "candle",
+        "quantity": 5,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "crowbar",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hammer",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "piton",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hooded-lantern",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "oil-flask",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 5,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "waterskin",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hempen-rope-50-feet",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "pouch",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "dark-common-clothes-with-hood",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 23,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "sorcerer-2024": {
+    "name": "Hero",
+    "edition": "2024",
+    "level": 1,
+    "speciesSlug": "human-2024",
+    "classSlug": "sorcerer",
+    "background": "soldier-2024",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 8,
+      "DEX": 13,
+      "CON": 14,
+      "INT": 10,
+      "WIS": 12,
+      "CHA": 15
+    },
+    "abilityScoreMethod": "standard-array",
+    "backgroundAbilityChoices": {
+      "method": "2/1",
+      "bonuses": {
+        "STR": 2,
+        "CON": 1
+      }
+    },
+    "selectedSkills": [
+      "Arcana",
+      "Deception"
+    ],
+    "speciesSkillProficiency": "Perception",
+    "humanOriginFeat": "tough",
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [
+        "fire-bolt",
+        "ray-of-frost",
+        "shocking-grasp",
+        "prestidigitation"
+      ],
+      "knownSpells": [
+        "magic-missile",
+        "shield"
+      ],
+      "spellbook": [
+        "magic-missile",
+        "shield"
+      ],
+      "preparedSpells": [
+        "magic-missile",
+        "shield"
+      ],
+      "dailyPrepared": [
+        "magic-missile",
+        "shield"
+      ]
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {
+      "STR": 2,
+      "CON": 1
+    },
+    "speciesFeat": "tough",
+    "startingInventory": [
+      {
+        "equipmentSlug": "spear",
+        "quantity": 2,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "dagger",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "crystal",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "crowbar",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hammer",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "piton",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "torch",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "rations-1-day",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "waterskin",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "hempen-rope-50-feet",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "shortbow",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "arrows-(20)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "gaming-set-(matching-choice)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "healers-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "quiver",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "traveler's-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 42,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "warlock-2024": {
+    "name": "Hero",
+    "edition": "2024",
+    "level": 1,
+    "speciesSlug": "human-2024",
+    "classSlug": "warlock",
+    "background": "soldier-2024",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 8,
+      "DEX": 13,
+      "CON": 14,
+      "INT": 12,
+      "WIS": 10,
+      "CHA": 15
+    },
+    "abilityScoreMethod": "standard-array",
+    "backgroundAbilityChoices": {
+      "method": "2/1",
+      "bonuses": {
+        "STR": 2,
+        "CON": 1
+      }
+    },
+    "selectedSkills": [
+      "Arcana",
+      "Deception"
+    ],
+    "speciesSkillProficiency": "Perception",
+    "humanOriginFeat": "tough",
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "eldritchInvocations": [
+      "eldritch-mind"
+    ],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [
+        "eldritch-blast",
+        "minor-illusion"
+      ],
+      "knownSpells": [
+        "hex",
+        "bane"
+      ],
+      "spellbook": [
+        "hex",
+        "bane"
+      ],
+      "preparedSpells": [
+        "hex",
+        "bane"
+      ],
+      "dailyPrepared": [
+        "hex",
+        "bane"
+      ]
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {
+      "STR": 2,
+      "CON": 1
+    },
+    "speciesFeat": "tough",
+    "startingInventory": [
+      {
+        "equipmentSlug": "leather-armor",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "sickle",
+        "quantity": 1,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "dagger",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "orb",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "book",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "ink-(1-ounce-bottle)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "ink-pen",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "lamp",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "oil-flask",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "parchment-10-sheets",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "spear",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "shortbow",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "arrows-(20)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "gaming-set-(matching-choice)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "healers-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "quiver",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "traveler's-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 29,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "wizard-2024": {
+    "name": "Hero",
+    "edition": "2024",
+    "level": 1,
+    "speciesSlug": "human-2024",
+    "classSlug": "wizard",
+    "background": "sage-2024",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 8,
+      "DEX": 14,
+      "CON": 13,
+      "INT": 15,
+      "WIS": 12,
+      "CHA": 10
+    },
+    "abilityScoreMethod": "standard-array",
+    "backgroundAbilityChoices": {
+      "method": "2/1",
+      "bonuses": {
+        "INT": 2,
+        "CON": 1
+      }
+    },
+    "selectedSkills": [
+      "Insight",
+      "Investigation"
+    ],
+    "speciesSkillProficiency": "Perception",
+    "humanOriginFeat": "tough",
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [
+        "fire-bolt",
+        "mage-hand",
+        "prestidigitation"
+      ],
+      "knownSpells": [
+        "magic-missile",
+        "shield",
+        "mage-armor",
+        "detect-magic",
+        "sleep",
+        "feather-fall"
+      ],
+      "spellbook": [
+        "magic-missile",
+        "shield",
+        "mage-armor",
+        "detect-magic",
+        "sleep",
+        "feather-fall"
+      ],
+      "preparedSpells": [
+        "magic-missile",
+        "shield",
+        "mage-armor",
+        "detect-magic"
+      ],
+      "dailyPrepared": [
+        "magic-missile",
+        "shield",
+        "mage-armor",
+        "detect-magic"
+      ]
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {
+      "INT": 2,
+      "CON": 1
+    },
+    "speciesFeat": "tough",
+    "startingInventory": [
+      {
+        "equipmentSlug": "dagger",
+        "quantity": 2,
+        "equipped": true
+      },
+      {
+        "equipmentSlug": "quarterstaff",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "robe",
+        "quantity": 2,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "spellbook",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "backpack",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "book",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "ink-(1-ounce-bottle)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "ink-pen",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "lamp",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "oil-flask",
+        "quantity": 10,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "parchment-10-sheets",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "tinderbox",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "calligrapher-supplies",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "book-(history)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "parchment-(8-sheets)",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 13,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  },
+  "artificer-2024": {
+    "name": "Hero",
+    "edition": "2024",
+    "level": 1,
+    "speciesSlug": "human-2024",
+    "classSlug": "artificer",
+    "background": "soldier-2024",
+    "alignment": "Neutral Good",
+    "abilities": {
+      "STR": 15,
+      "DEX": 13,
+      "CON": 14,
+      "INT": 8,
+      "WIS": 12,
+      "CHA": 10
+    },
+    "abilityScoreMethod": "standard-array",
+    "backgroundAbilityChoices": {
+      "method": "2/1",
+      "bonuses": {
+        "STR": 2,
+        "CON": 1
+      }
+    },
+    "selectedSkills": [
+      "Arcana",
+      "History"
+    ],
+    "speciesSkillProficiency": "Perception",
+    "humanOriginFeat": "tough",
+    "expertiseSkills": [],
+    "selectedFightingStyle": null,
+    "weaponMastery": [],
+    "equipmentChoices": [],
+    "selectedMusicalInstruments": [],
+    "hpCalculationMethod": "max",
+    "spellSelection": {
+      "selectedCantrips": [],
+      "knownSpells": [],
+      "spellbook": [],
+      "preparedSpells": [],
+      "dailyPrepared": []
+    },
+    "personality": "Prepared and dependable.",
+    "ideals": "Courage: Never back down from protecting others.",
+    "bonds": "My companions can count on me in battle.",
+    "flaws": "I sometimes underestimate unknown hazards.",
+    "featChoices": {},
+    "subclassSlug": null,
+    "variantAbilityBonuses": {
+      "STR": 2,
+      "CON": 1
+    },
+    "speciesFeat": "tough",
+    "startingInventory": [
+      {
+        "equipmentSlug": "spear",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "shortbow",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "arrows-(20)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "gaming-set-(matching-choice)",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "healers-kit",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "quiver",
+        "quantity": 1,
+        "equipped": false
+      },
+      {
+        "equipmentSlug": "traveler's-clothes",
+        "quantity": 1,
+        "equipped": false
+      }
+    ],
+    "loadoutResolved": true,
+    "currency": {
+      "cp": 0,
+      "sp": 0,
+      "ep": 0,
+      "gp": 14,
+      "pp": 0
+    },
+    "knownLanguages": [],
+    "backgroundTools": []
+  }
+}

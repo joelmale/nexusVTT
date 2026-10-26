@@ -9,6 +9,7 @@ import { FeatureChoice, ClassLevelFeature, ResourceTracker } from '../data/class
 import { getClassProgression } from './levelUpUtils';
 import { PROFICIENCY_BONUSES, CANTRIPS_KNOWN_BY_CLASS } from '../services/dataService';
 import { SPELL_SLOTS_BY_CLASS } from '../data/spellSlots';
+import { getSubclassLevel } from '../data/supportManifest';
 
 /**
  * Represents a choice that must be made during high-level character creation
@@ -438,20 +439,10 @@ export function requiresSubclass(
   edition: '2014' | '2024',
   targetLevel: number
 ): { required: boolean; subclassLevel: number } {
-  const progression = getClassProgression(classSlug, edition);
-
-  if (!progression) {
-    // Fallback for classes without progression data
-    const defaultSubclassLevel = 3;
-    return {
-      required: targetLevel >= defaultSubclassLevel,
-      subclassLevel: defaultSubclassLevel
-    };
-  }
-
+  const subclassLevel = getSubclassLevel(classSlug, edition);
   return {
-    required: targetLevel >= progression.subclassLevel,
-    subclassLevel: progression.subclassLevel
+    required: targetLevel >= subclassLevel,
+    subclassLevel
   };
 }
 

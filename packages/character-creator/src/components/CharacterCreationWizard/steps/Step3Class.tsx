@@ -9,6 +9,8 @@ import { AnySkillPickerModal } from '../AnySkillPickerModal';
 import ChooseSubclassModal from '../../ChooseSubclassModal';
 import { SmartNavigationButton } from '../components';
 import { useStepValidation } from '../hooks';
+import { ClassGrantChoices } from '../../ClassGrantChoices';
+import { getSubclassLevel } from '../../../data/supportManifest';
 
 interface RandomizeButtonProps {
   onClick: () => void;
@@ -348,7 +350,9 @@ export const Step3Class: React.FC<StepProps> = ({ data, updateData, nextStep, pr
       {/* Level 1 Features (Widget System) */}
       {selectedClass && selectedClass.level_1_features && selectedClass.level_1_features.length > 0 && (
         <div className="space-y-4">
-          {selectedClass.level_1_features.map((feature: Level1Feature) => {
+          {selectedClass.level_1_features.filter((feature: Level1Feature) =>
+            data.edition !== '2024' || !['eldritch_invocations', 'weapon_mastery', 'divine_order', 'primal_order'].includes(feature.id)
+          ).map((feature: Level1Feature) => {
             // Render appropriate widget based on widget_type
             switch (feature.widget_type) {
               case 'selection_pool':
@@ -444,6 +448,8 @@ export const Step3Class: React.FC<StepProps> = ({ data, updateData, nextStep, pr
         </div>
       )}
 
+      <ClassGrantChoices data={data} onChange={updateData} />
+
       {/* Subclass Selection */}
       {selectedClass && (() => {
         const availableSubclasses = getSubclassesByClass(data.classSlug);
@@ -452,7 +458,7 @@ export const Step3Class: React.FC<StepProps> = ({ data, updateData, nextStep, pr
 
         // Determine subclass level requirement based on class and edition
         // 2014 Cleric gets Divine Domain at Level 1, 2024 Cleric at Level 3
-        const subclassLevel = (data.classSlug === 'cleric' && data.edition === '2014') ? 1 : 3;
+        const subclassLevel = getSubclassLevel(data.classSlug, data.edition);
         const hasSubclassUnlocked = data.level >= subclassLevel;
 
         return (

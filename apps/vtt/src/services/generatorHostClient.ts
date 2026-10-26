@@ -24,7 +24,7 @@ export class GeneratorHostClient {
   }
 
   private handleMessage(event: MessageEvent) {
-    if (event.origin !== this.targetOrigin) {
+    if (event.origin !== this.targetOrigin || event.source !== this.targetWindow) {
       return;
     }
     const message = event.data as GeneratorHostMessage;

@@ -559,8 +559,8 @@
         "failures": 0
       },
       "conditions": [],
-      "createdAt": "2026-10-25T16:17:22.123Z",
-      "updatedAt": "2026-10-25T16:17:22.123Z"
+      "createdAt": "2026-10-26T06:43:39.693Z",
+      "updatedAt": "2026-10-26T06:43:39.693Z"
     }
   },
   "F24": {
@@ -1359,8 +1359,8 @@
         "failures": 0
       },
       "conditions": [],
-      "createdAt": "2026-10-25T16:17:22.141Z",
-      "updatedAt": "2026-10-25T16:17:22.141Z"
+      "createdAt": "2026-10-26T06:43:39.720Z",
+      "updatedAt": "2026-10-26T06:43:39.720Z"
     }
   },
   "R14": {
@@ -1396,27 +1396,55 @@
           "sleight_of_hand"
         ],
         "alignment": "True Neutral",
-        "equipmentChoices": [],
-        "startingInventory": [
+        "equipmentChoices": [
           {
-            "equipmentSlug": "leather-armor",
-            "quantity": 1,
-            "equipped": true
-          },
-          {
-            "equipmentSlug": "shortbow",
-            "quantity": 1,
-            "equipped": false
-          },
-          {
-            "equipmentSlug": "arrows-20",
-            "quantity": 1,
-            "equipped": false
-          },
-          {
-            "equipmentSlug": "dagger",
-            "quantity": 2,
-            "equipped": false
+            "choiceId": "rogue-kit",
+            "description": "2014 Rogue starting equipment choices",
+            "selected": 0,
+            "options": [
+              [
+                {
+                  "name": "Leather Armor",
+                  "quantity": 1,
+                  "type": "armor"
+                },
+                {
+                  "name": "Dagger",
+                  "quantity": 2,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Shortsword",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Shortbow",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Arrow",
+                  "quantity": 20,
+                  "type": "gear"
+                },
+                {
+                  "name": "Quiver",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Thieves' Tools",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Burglar's Pack",
+                  "quantity": 1,
+                  "type": "gear"
+                }
+              ]
+            ]
           }
         ],
         "selectedMusicalInstruments": [],
@@ -1472,22 +1500,6 @@
         "items": [
           {
             "id": "loadout-1",
-            "slug": "crowbar",
-            "name": "Crowbar",
-            "quantity": 1,
-            "equipped": false,
-            "source": "background"
-          },
-          {
-            "id": "loadout-2",
-            "slug": "dark-common-clothes-with-hood",
-            "name": "Dark Common Clothes with Hood",
-            "quantity": 1,
-            "equipped": false,
-            "source": "background"
-          },
-          {
-            "id": "loadout-3",
             "slug": "leather-armor",
             "name": "Leather Armor",
             "quantity": 1,
@@ -1496,7 +1508,25 @@
             "armorType": "light",
             "ac": 11,
             "stealthDisadvantage": false,
-            "source": "custom"
+            "source": "class"
+          },
+          {
+            "id": "loadout-2",
+            "slug": "dagger",
+            "name": "Dagger",
+            "quantity": 2,
+            "equipped": true,
+            "slot": "main_hand",
+            "source": "class"
+          },
+          {
+            "id": "loadout-3",
+            "slug": "shortsword",
+            "name": "Shortsword",
+            "quantity": 1,
+            "equipped": false,
+            "slot": "main_hand",
+            "source": "class"
           },
           {
             "id": "loadout-4",
@@ -1505,24 +1535,151 @@
             "quantity": 1,
             "equipped": false,
             "slot": "two_handed",
-            "source": "custom"
+            "source": "class"
           },
           {
             "id": "loadout-5",
-            "slug": "arrows-20",
-            "name": "arrows-20",
-            "quantity": 1,
+            "slug": "arrow",
+            "name": "Arrow",
+            "quantity": 20,
             "equipped": false,
-            "source": "custom"
+            "source": "class"
           },
           {
             "id": "loadout-6",
-            "slug": "dagger",
-            "name": "Dagger",
+            "slug": "quiver",
+            "name": "Quiver",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-7",
+            "slug": "thieves-tools",
+            "name": "Thieves' Tools",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-8",
+            "slug": "backpack",
+            "name": "Backpack",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-9",
+            "slug": "ball-bearings-(bag-of-1,000)",
+            "name": "Ball Bearings (bag of 1,000)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-10",
+            "slug": "string-(10-feet)",
+            "name": "String (10 feet)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-11",
+            "slug": "bell",
+            "name": "Bell",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-12",
+            "slug": "candle",
+            "name": "Candle",
+            "quantity": 5,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-13",
+            "slug": "crowbar",
+            "name": "Crowbar",
             "quantity": 2,
             "equipped": false,
-            "slot": "main_hand",
-            "source": "custom"
+            "source": "class"
+          },
+          {
+            "id": "loadout-14",
+            "slug": "hammer",
+            "name": "Hammer",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-15",
+            "slug": "piton",
+            "name": "Piton",
+            "quantity": 10,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-16",
+            "slug": "hooded-lantern",
+            "name": "Hooded Lantern",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-17",
+            "slug": "oil-flask",
+            "name": "Oil (flask)",
+            "quantity": 2,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-18",
+            "slug": "rations-1-day",
+            "name": "Rations (1 day)",
+            "quantity": 5,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-19",
+            "slug": "tinderbox",
+            "name": "Tinderbox",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-20",
+            "slug": "waterskin",
+            "name": "Waterskin",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-21",
+            "slug": "hempen-rope-50-feet",
+            "name": "Hempen Rope (50 feet)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-22",
+            "slug": "dark-common-clothes-with-hood",
+            "name": "Dark Common Clothes with Hood",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
           }
         ],
         "currency": {
@@ -1581,27 +1738,55 @@
           "sleight_of_hand"
         ],
         "alignment": "True Neutral",
-        "equipmentChoices": [],
-        "startingInventory": [
+        "equipmentChoices": [
           {
-            "equipmentSlug": "leather-armor",
-            "quantity": 1,
-            "equipped": true
-          },
-          {
-            "equipmentSlug": "shortbow",
-            "quantity": 1,
-            "equipped": false
-          },
-          {
-            "equipmentSlug": "arrows-20",
-            "quantity": 1,
-            "equipped": false
-          },
-          {
-            "equipmentSlug": "dagger",
-            "quantity": 2,
-            "equipped": false
+            "choiceId": "rogue-kit",
+            "description": "2014 Rogue starting equipment choices",
+            "selected": 0,
+            "options": [
+              [
+                {
+                  "name": "Leather Armor",
+                  "quantity": 1,
+                  "type": "armor"
+                },
+                {
+                  "name": "Dagger",
+                  "quantity": 2,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Shortsword",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Shortbow",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Arrow",
+                  "quantity": 20,
+                  "type": "gear"
+                },
+                {
+                  "name": "Quiver",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Thieves' Tools",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Burglar's Pack",
+                  "quantity": 1,
+                  "type": "gear"
+                }
+              ]
+            ]
           }
         ],
         "selectedMusicalInstruments": [],
@@ -1872,19 +2057,19 @@
       "castingSources": [],
       "inventory": [
         {
-          "equipmentSlug": "crowbar",
-          "quantity": 1,
-          "equipped": false
-        },
-        {
-          "equipmentSlug": "dark-common-clothes-with-hood",
-          "quantity": 1,
-          "equipped": false
-        },
-        {
           "equipmentSlug": "leather-armor",
           "quantity": 1,
           "equipped": true
+        },
+        {
+          "equipmentSlug": "dagger",
+          "quantity": 2,
+          "equipped": true
+        },
+        {
+          "equipmentSlug": "shortsword",
+          "quantity": 1,
+          "equipped": false
         },
         {
           "equipmentSlug": "shortbow",
@@ -1892,13 +2077,93 @@
           "equipped": false
         },
         {
-          "equipmentSlug": "arrows-20",
+          "equipmentSlug": "arrow",
+          "quantity": 20,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "quiver",
           "quantity": 1,
           "equipped": false
         },
         {
-          "equipmentSlug": "dagger",
+          "equipmentSlug": "thieves-tools",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "backpack",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "ball-bearings-(bag-of-1,000)",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "string-(10-feet)",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "bell",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "candle",
+          "quantity": 5,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "crowbar",
           "quantity": 2,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "hammer",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "piton",
+          "quantity": 10,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "hooded-lantern",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "oil-flask",
+          "quantity": 2,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "rations-1-day",
+          "quantity": 5,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "tinderbox",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "waterskin",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "hempen-rope-50-feet",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "dark-common-clothes-with-hood",
+          "quantity": 1,
           "equipped": false
         }
       ],
@@ -1915,8 +2180,8 @@
         "failures": 0
       },
       "conditions": [],
-      "createdAt": "2026-10-25T16:17:22.156Z",
-      "updatedAt": "2026-10-25T16:17:22.156Z"
+      "createdAt": "2026-10-26T06:43:39.739Z",
+      "updatedAt": "2026-10-26T06:43:39.739Z"
     }
   },
   "R24": {
@@ -1965,27 +2230,60 @@
           "sleight_of_hand"
         ],
         "alignment": "True Neutral",
-        "equipmentChoices": [],
-        "startingInventory": [
+        "equipmentChoices": [
           {
-            "equipmentSlug": "leather-armor",
-            "quantity": 1,
-            "equipped": true
-          },
-          {
-            "equipmentSlug": "shortbow",
-            "quantity": 1,
-            "equipped": false
-          },
-          {
-            "equipmentSlug": "arrows-20",
-            "quantity": 1,
-            "equipped": false
-          },
-          {
-            "equipmentSlug": "dagger",
-            "quantity": 2,
-            "equipped": false
+            "choiceId": "rogue-kit",
+            "description": "SRD 5.2.1 p61 Rogue package A",
+            "selected": 0,
+            "options": [
+              [
+                {
+                  "name": "Leather Armor",
+                  "quantity": 1,
+                  "type": "armor"
+                },
+                {
+                  "name": "Dagger",
+                  "quantity": 2,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Shortsword",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Shortbow",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Arrow",
+                  "quantity": 20,
+                  "type": "gear"
+                },
+                {
+                  "name": "Quiver",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Thieves' Tools",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Burglar's Pack",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "8 gp",
+                  "quantity": 1,
+                  "type": "gear"
+                }
+              ]
+            ]
           }
         ],
         "selectedMusicalInstruments": [],
@@ -2050,47 +2348,6 @@
         "items": [
           {
             "id": "loadout-1",
-            "slug": "dagger",
-            "name": "Dagger",
-            "quantity": 4,
-            "equipped": false,
-            "slot": "main_hand",
-            "source": "background"
-          },
-          {
-            "id": "loadout-2",
-            "slug": "thieves-tools",
-            "name": "Thieves' Tools",
-            "quantity": 1,
-            "equipped": false,
-            "source": "background"
-          },
-          {
-            "id": "loadout-3",
-            "slug": "crowbar",
-            "name": "Crowbar",
-            "quantity": 1,
-            "equipped": false,
-            "source": "background"
-          },
-          {
-            "id": "loadout-4",
-            "slug": "pouch",
-            "name": "Pouch",
-            "quantity": 2,
-            "equipped": false,
-            "source": "background"
-          },
-          {
-            "id": "loadout-5",
-            "slug": "dark-common-clothes-with-hood",
-            "name": "Dark Common Clothes with Hood",
-            "quantity": 1,
-            "equipped": false,
-            "source": "background"
-          },
-          {
-            "id": "loadout-6",
             "slug": "leather-armor",
             "name": "Leather Armor",
             "quantity": 1,
@@ -2099,34 +2356,196 @@
             "armorType": "light",
             "ac": 11,
             "stealthDisadvantage": false,
-            "source": "custom"
+            "source": "class"
           },
           {
-            "id": "loadout-7",
+            "id": "loadout-2",
+            "slug": "dagger",
+            "name": "Dagger",
+            "quantity": 4,
+            "equipped": true,
+            "slot": "main_hand",
+            "source": "class"
+          },
+          {
+            "id": "loadout-3",
+            "slug": "shortsword",
+            "name": "Shortsword",
+            "quantity": 1,
+            "equipped": false,
+            "slot": "main_hand",
+            "source": "class"
+          },
+          {
+            "id": "loadout-4",
             "slug": "shortbow",
             "name": "Shortbow",
             "quantity": 1,
             "equipped": false,
             "slot": "two_handed",
-            "source": "custom"
+            "source": "class"
+          },
+          {
+            "id": "loadout-5",
+            "slug": "arrow",
+            "name": "Arrow",
+            "quantity": 20,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-6",
+            "slug": "quiver",
+            "name": "Quiver",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-7",
+            "slug": "thieves-tools",
+            "name": "Thieves' Tools",
+            "quantity": 2,
+            "equipped": false,
+            "source": "class"
           },
           {
             "id": "loadout-8",
-            "slug": "arrows-20",
-            "name": "arrows-20",
+            "slug": "backpack",
+            "name": "Backpack",
             "quantity": 1,
             "equipped": false,
-            "source": "custom"
+            "source": "class"
+          },
+          {
+            "id": "loadout-9",
+            "slug": "ball-bearings-(bag-of-1,000)",
+            "name": "Ball Bearings (bag of 1,000)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-10",
+            "slug": "string-(10-feet)",
+            "name": "String (10 feet)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-11",
+            "slug": "bell",
+            "name": "Bell",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-12",
+            "slug": "candle",
+            "name": "Candle",
+            "quantity": 5,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-13",
+            "slug": "crowbar",
+            "name": "Crowbar",
+            "quantity": 2,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-14",
+            "slug": "hammer",
+            "name": "Hammer",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-15",
+            "slug": "piton",
+            "name": "Piton",
+            "quantity": 10,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-16",
+            "slug": "hooded-lantern",
+            "name": "Hooded Lantern",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-17",
+            "slug": "oil-flask",
+            "name": "Oil (flask)",
+            "quantity": 2,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-18",
+            "slug": "rations-1-day",
+            "name": "Rations (1 day)",
+            "quantity": 5,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-19",
+            "slug": "tinderbox",
+            "name": "Tinderbox",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-20",
+            "slug": "waterskin",
+            "name": "Waterskin",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-21",
+            "slug": "hempen-rope-50-feet",
+            "name": "Hempen Rope (50 feet)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-22",
+            "slug": "pouch",
+            "name": "Pouch",
+            "quantity": 2,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-23",
+            "slug": "dark-common-clothes-with-hood",
+            "name": "Dark Common Clothes with Hood",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
           }
         ],
         "currency": {
           "cp": 0,
           "sp": 0,
           "ep": 0,
-          "gp": 15,
+          "gp": 23,
           "pp": 0
         },
-        "totalValueGp": 15
+        "totalValueGp": 23
       },
       "alignment": "True Neutral",
       "personality": "Calm and observant.",
@@ -2188,27 +2607,60 @@
           "sleight_of_hand"
         ],
         "alignment": "True Neutral",
-        "equipmentChoices": [],
-        "startingInventory": [
+        "equipmentChoices": [
           {
-            "equipmentSlug": "leather-armor",
-            "quantity": 1,
-            "equipped": true
-          },
-          {
-            "equipmentSlug": "shortbow",
-            "quantity": 1,
-            "equipped": false
-          },
-          {
-            "equipmentSlug": "arrows-20",
-            "quantity": 1,
-            "equipped": false
-          },
-          {
-            "equipmentSlug": "dagger",
-            "quantity": 2,
-            "equipped": false
+            "choiceId": "rogue-kit",
+            "description": "SRD 5.2.1 p61 Rogue package A",
+            "selected": 0,
+            "options": [
+              [
+                {
+                  "name": "Leather Armor",
+                  "quantity": 1,
+                  "type": "armor"
+                },
+                {
+                  "name": "Dagger",
+                  "quantity": 2,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Shortsword",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Shortbow",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Arrow",
+                  "quantity": 20,
+                  "type": "gear"
+                },
+                {
+                  "name": "Quiver",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Thieves' Tools",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Burglar's Pack",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "8 gp",
+                  "quantity": 1,
+                  "type": "gear"
+                }
+              ]
+            ]
           }
         ],
         "selectedMusicalInstruments": [],
@@ -2271,7 +2723,7 @@
           "Fey Ancestry"
         ],
         "currency": {
-          "gp": 16
+          "gp": 23
         }
       }
     },
@@ -2499,17 +2951,107 @@
       ],
       "inventory": [
         {
-          "equipmentSlug": "dagger",
-          "quantity": 4,
-          "equipped": false
+          "equipmentSlug": "leather-armor",
+          "quantity": 1,
+          "equipped": true
         },
         {
-          "equipmentSlug": "thieves-tools",
+          "equipmentSlug": "dagger",
+          "quantity": 4,
+          "equipped": true
+        },
+        {
+          "equipmentSlug": "shortsword",
           "quantity": 1,
           "equipped": false
         },
         {
+          "equipmentSlug": "shortbow",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "arrow",
+          "quantity": 20,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "quiver",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "thieves-tools",
+          "quantity": 2,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "backpack",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "ball-bearings-(bag-of-1,000)",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "string-(10-feet)",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "bell",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "candle",
+          "quantity": 5,
+          "equipped": false
+        },
+        {
           "equipmentSlug": "crowbar",
+          "quantity": 2,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "hammer",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "piton",
+          "quantity": 10,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "hooded-lantern",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "oil-flask",
+          "quantity": 2,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "rations-1-day",
+          "quantity": 5,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "tinderbox",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "waterskin",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "hempen-rope-50-feet",
           "quantity": 1,
           "equipped": false
         },
@@ -2522,21 +3064,6 @@
           "equipmentSlug": "dark-common-clothes-with-hood",
           "quantity": 1,
           "equipped": false
-        },
-        {
-          "equipmentSlug": "leather-armor",
-          "quantity": 1,
-          "equipped": true
-        },
-        {
-          "equipmentSlug": "shortbow",
-          "quantity": 1,
-          "equipped": false
-        },
-        {
-          "equipmentSlug": "arrows-20",
-          "quantity": 1,
-          "equipped": false
         }
       ],
       "equippedWeapons": [],
@@ -2544,7 +3071,7 @@
         "cp": 0,
         "sp": 0,
         "ep": 0,
-        "gp": 15,
+        "gp": 23,
         "pp": 0
       },
       "deathSaves": {
@@ -2552,8 +3079,8 @@
         "failures": 0
       },
       "conditions": [],
-      "createdAt": "2026-10-25T16:17:22.168Z",
-      "updatedAt": "2026-10-25T16:17:22.168Z"
+      "createdAt": "2026-10-26T06:43:39.750Z",
+      "updatedAt": "2026-10-26T06:43:39.750Z"
     }
   },
   "W14": {
@@ -3119,8 +3646,8 @@
         "failures": 0
       },
       "conditions": [],
-      "createdAt": "2026-10-25T16:17:22.179Z",
-      "updatedAt": "2026-10-25T16:17:22.179Z"
+      "createdAt": "2026-10-26T06:43:39.760Z",
+      "updatedAt": "2026-10-26T06:43:39.760Z"
     }
   },
   "W24": {
@@ -3159,7 +3686,47 @@
         ],
         "alignment": "True Neutral",
         "abilityScoreMethod": "standard-array",
-        "equipmentChoices": [],
+        "equipmentChoices": [
+          {
+            "choiceId": "wizard-kit",
+            "description": "SRD 5.2.1 p77 Wizard package A",
+            "selected": 0,
+            "options": [
+              [
+                {
+                  "name": "Dagger",
+                  "quantity": 2,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Quarterstaff",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Robe",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Spellbook",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Scholar's Pack",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "5 gp",
+                  "quantity": 1,
+                  "type": "gear"
+                }
+              ]
+            ]
+          }
+        ],
         "selectedMusicalInstruments": [],
         "spellSelection": {
           "selectedCantrips": [
@@ -3246,15 +3813,104 @@
         "items": [
           {
             "id": "loadout-1",
-            "slug": "quarterstaff",
-            "name": "Quarterstaff",
-            "quantity": 1,
-            "equipped": false,
+            "slug": "dagger",
+            "name": "Dagger",
+            "quantity": 2,
+            "equipped": true,
             "slot": "main_hand",
-            "source": "background"
+            "source": "class"
           },
           {
             "id": "loadout-2",
+            "slug": "quarterstaff",
+            "name": "Quarterstaff",
+            "quantity": 2,
+            "equipped": false,
+            "slot": "main_hand",
+            "source": "class"
+          },
+          {
+            "id": "loadout-3",
+            "slug": "robe",
+            "name": "Robe",
+            "quantity": 2,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-4",
+            "slug": "spellbook",
+            "name": "Spellbook",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-5",
+            "slug": "backpack",
+            "name": "Backpack",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-6",
+            "slug": "book",
+            "name": "Book",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-7",
+            "slug": "ink-(1-ounce-bottle)",
+            "name": "Ink (1 ounce bottle)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-8",
+            "slug": "ink-pen",
+            "name": "Ink Pen",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-9",
+            "slug": "lamp",
+            "name": "Lamp",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-10",
+            "slug": "oil-flask",
+            "name": "Oil (flask)",
+            "quantity": 10,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-11",
+            "slug": "parchment-10-sheets",
+            "name": "Parchment (10 sheets)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-12",
+            "slug": "tinderbox",
+            "name": "Tinderbox",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-13",
             "slug": "calligrapher-supplies",
             "name": "Calligrapher's Supplies",
             "quantity": 1,
@@ -3262,7 +3918,7 @@
             "source": "background"
           },
           {
-            "id": "loadout-3",
+            "id": "loadout-14",
             "slug": "book-(history)",
             "name": "Book (history)",
             "quantity": 1,
@@ -3270,17 +3926,9 @@
             "source": "background"
           },
           {
-            "id": "loadout-4",
+            "id": "loadout-15",
             "slug": "parchment-(8-sheets)",
             "name": "Parchment (8 sheets)",
-            "quantity": 1,
-            "equipped": false,
-            "source": "background"
-          },
-          {
-            "id": "loadout-5",
-            "slug": "robe",
-            "name": "Robe",
             "quantity": 1,
             "equipped": false,
             "source": "background"
@@ -3290,10 +3938,10 @@
           "cp": 0,
           "sp": 0,
           "ep": 0,
-          "gp": 8,
+          "gp": 13,
           "pp": 0
         },
-        "totalValueGp": 8
+        "totalValueGp": 13
       },
       "alignment": "True Neutral",
       "personality": "Calm and observant.",
@@ -3345,7 +3993,47 @@
         ],
         "alignment": "True Neutral",
         "abilityScoreMethod": "standard-array",
-        "equipmentChoices": [],
+        "equipmentChoices": [
+          {
+            "choiceId": "wizard-kit",
+            "description": "SRD 5.2.1 p77 Wizard package A",
+            "selected": 0,
+            "options": [
+              [
+                {
+                  "name": "Dagger",
+                  "quantity": 2,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Quarterstaff",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Robe",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Spellbook",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Scholar's Pack",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "5 gp",
+                  "quantity": 1,
+                  "type": "gear"
+                }
+              ]
+            ]
+          }
+        ],
         "selectedMusicalInstruments": [],
         "spellSelection": {
           "selectedCantrips": [
@@ -3710,7 +4398,62 @@
       ],
       "inventory": [
         {
+          "equipmentSlug": "dagger",
+          "quantity": 2,
+          "equipped": true
+        },
+        {
           "equipmentSlug": "quarterstaff",
+          "quantity": 2,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "robe",
+          "quantity": 2,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "spellbook",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "backpack",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "book",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "ink-(1-ounce-bottle)",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "ink-pen",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "lamp",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "oil-flask",
+          "quantity": 10,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "parchment-10-sheets",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "tinderbox",
           "quantity": 1,
           "equipped": false
         },
@@ -3728,9 +4471,732 @@
           "equipmentSlug": "parchment-(8-sheets)",
           "quantity": 1,
           "equipped": false
+        }
+      ],
+      "equippedWeapons": [],
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 13,
+        "pp": 0
+      },
+      "deathSaves": {
+        "successes": 0,
+        "failures": 0
+      },
+      "conditions": [],
+      "createdAt": "2026-10-26T06:43:39.770Z",
+      "updatedAt": "2026-10-26T06:43:39.770Z"
+    }
+  },
+  "WL14": {
+    "draft": {
+      "draftVersion": 1,
+      "revision": 0,
+      "attemptId": "WL14",
+      "creationData": {
+        "name": "Human Warlock 2014",
+        "level": 1,
+        "edition": "2014",
+        "speciesSlug": "human",
+        "variantSlug": "standard",
+        "classSlug": "warlock",
+        "background": "soldier",
+        "abilities": {
+          "STR": 8,
+          "DEX": 13,
+          "CON": 14,
+          "INT": 12,
+          "WIS": 10,
+          "CHA": 15
+        },
+        "abilityScoreMethod": "standard-array",
+        "selectedSkills": [
+          "Arcana",
+          "Deception"
+        ],
+        "alignment": "True Neutral",
+        "equipmentChoices": [
+          {
+            "choiceId": "warlock-kit",
+            "description": "Warlock starting gear",
+            "selected": 0,
+            "options": [
+              [
+                {
+                  "name": "Leather Armor",
+                  "quantity": 1,
+                  "type": "armor"
+                },
+                {
+                  "name": "Dagger",
+                  "quantity": 3,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Quarterstaff",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Crystal",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Scholar's Pack",
+                  "quantity": 1,
+                  "type": "gear"
+                }
+              ]
+            ]
+          }
+        ],
+        "selectedMusicalInstruments": [],
+        "spellSelection": {
+          "selectedCantrips": [
+            "eldritch-blast",
+            "minor-illusion"
+          ],
+          "knownSpells": [
+            "charm-person",
+            "comprehend-languages"
+          ]
+        },
+        "hpCalculationMethod": "max",
+        "personality": "Calm and observant.",
+        "ideals": "Protect others.",
+        "bonds": "The party.",
+        "flaws": "Too curious.",
+        "subclassSlug": "fiend"
+      },
+      "draftId": "WL14",
+      "characterId": "WL14",
+      "edition": "2014",
+      "level": 1,
+      "name": "Human Warlock 2014",
+      "speciesSlug": "human",
+      "classSlug": "warlock",
+      "subclassSlug": "fiend",
+      "backgroundSlug": "soldier",
+      "rawAbilityScores": {
+        "STR": 8,
+        "DEX": 13,
+        "CON": 14,
+        "INT": 12,
+        "WIS": 10,
+        "CHA": 15
+      },
+      "abilityMethod": "standard",
+      "abilityBonuses": {
+        "bonuses": {}
+      },
+      "skills": [
+        "Arcana",
+        "Deception"
+      ],
+      "expertise": [],
+      "languages": [],
+      "toolProficiencies": [],
+      "spells": {
+        "cantrips": [
+          "eldritch-blast",
+          "minor-illusion"
+        ],
+        "knownOrBook": [
+          "charm-person",
+          "comprehend-languages"
+        ],
+        "prepared": []
+      },
+      "loadout": {
+        "items": [
+          {
+            "id": "loadout-1",
+            "slug": "leather-armor",
+            "name": "Leather Armor",
+            "quantity": 1,
+            "equipped": true,
+            "slot": "armor",
+            "armorType": "light",
+            "ac": 11,
+            "stealthDisadvantage": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-2",
+            "slug": "dagger",
+            "name": "Dagger",
+            "quantity": 3,
+            "equipped": true,
+            "slot": "main_hand",
+            "source": "class"
+          },
+          {
+            "id": "loadout-3",
+            "slug": "quarterstaff",
+            "name": "Quarterstaff",
+            "quantity": 1,
+            "equipped": false,
+            "slot": "main_hand",
+            "source": "class"
+          },
+          {
+            "id": "loadout-4",
+            "slug": "crystal",
+            "name": "Crystal",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-5",
+            "slug": "backpack",
+            "name": "Backpack",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-6",
+            "slug": "book-of-lore",
+            "name": "Book of Lore",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-7",
+            "slug": "ink-(1-ounce-bottle)",
+            "name": "Ink (1 ounce bottle)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-8",
+            "slug": "ink-pen",
+            "name": "Ink Pen",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-9",
+            "slug": "parchment-10-sheets",
+            "name": "Parchment (10 sheets)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-10",
+            "slug": "little-bag-of-sand",
+            "name": "Little Bag of Sand",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-11",
+            "slug": "small-knife",
+            "name": "Small Knife",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-12",
+            "slug": "insignia-of-rank",
+            "name": "Insignia of Rank",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-13",
+            "slug": "trophy-from-fallen-enemy",
+            "name": "Trophy from Fallen Enemy",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-14",
+            "slug": "bone-dice",
+            "name": "Bone Dice",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-15",
+            "slug": "common-clothes",
+            "name": "Common Clothes",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          }
+        ],
+        "currency": {
+          "cp": 0,
+          "sp": 0,
+          "ep": 0,
+          "gp": 10,
+          "pp": 0
+        },
+        "totalValueGp": 10
+      },
+      "alignment": "True Neutral",
+      "personality": "Calm and observant.",
+      "ideals": "Protect others.",
+      "bonds": "The party.",
+      "flaws": "Too curious.",
+      "provenance": {
+        "species": "player",
+        "class": "player",
+        "background": "player",
+        "abilities": "player",
+        "skills": "player",
+        "spells": "player",
+        "equipment": "player"
+      }
+    },
+    "oracle": {
+      "id": "WL14",
+      "title": "Standard Human Warlock/Soldier (2014)",
+      "edition": "2014",
+      "creationData": {
+        "name": "Human Warlock 2014",
+        "level": 1,
+        "edition": "2014",
+        "speciesSlug": "human",
+        "variantSlug": "standard",
+        "classSlug": "warlock",
+        "background": "soldier",
+        "abilities": {
+          "STR": 8,
+          "DEX": 13,
+          "CON": 14,
+          "INT": 12,
+          "WIS": 10,
+          "CHA": 15
+        },
+        "abilityScoreMethod": "standard-array",
+        "selectedSkills": [
+          "Arcana",
+          "Deception"
+        ],
+        "alignment": "True Neutral",
+        "equipmentChoices": [
+          {
+            "choiceId": "warlock-kit",
+            "description": "Warlock starting gear",
+            "selected": 0,
+            "options": [
+              [
+                {
+                  "name": "Leather Armor",
+                  "quantity": 1,
+                  "type": "armor"
+                },
+                {
+                  "name": "Dagger",
+                  "quantity": 3,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Quarterstaff",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Crystal",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Scholar's Pack",
+                  "quantity": 1,
+                  "type": "gear"
+                }
+              ]
+            ]
+          }
+        ],
+        "selectedMusicalInstruments": [],
+        "spellSelection": {
+          "selectedCantrips": [
+            "eldritch-blast",
+            "minor-illusion"
+          ],
+          "knownSpells": [
+            "charm-person",
+            "comprehend-languages"
+          ]
+        },
+        "hpCalculationMethod": "max",
+        "personality": "",
+        "ideals": "",
+        "bonds": "",
+        "flaws": "",
+        "subclassSlug": "fiend"
+      },
+      "expected": {
+        "abilities": {
+          "STR": 9,
+          "DEX": 14,
+          "CON": 15,
+          "INT": 13,
+          "WIS": 11,
+          "CHA": 16
+        },
+        "hp": 10,
+        "ac": 13,
+        "initiative": 2,
+        "speed": 30,
+        "saves": {
+          "proficient": [
+            "WIS",
+            "CHA"
+          ],
+          "bonuses": {
+            "WIS": 2,
+            "CHA": 5
+          }
+        },
+        "attacks": [
+          {
+            "name": "Dagger",
+            "attackBonus": 4,
+            "damage": "1d4+2"
+          },
+          {
+            "name": "Eldritch Blast",
+            "attackBonus": 5,
+            "damage": "1d10"
+          }
+        ],
+        "skills": {
+          "arcana": {
+            "bonus": 3
+          },
+          "deception": {
+            "bonus": 5
+          }
+        },
+        "spells": {
+          "cantripsCount": 2,
+          "knownOrBookCount": 2,
+          "preparedCount": 0,
+          "spellAttackBonus": 5,
+          "spellSaveDC": 13
+        },
+        "features": [
+          "Pact Magic"
+        ],
+        "currency": {
+          "gp": 10
+        }
+      }
+    },
+    "character": {
+      "id": "",
+      "name": "Human Warlock 2014",
+      "species": "Human",
+      "race": "Human",
+      "class": "Warlock",
+      "classSlug": "warlock",
+      "subclass": "fiend",
+      "background": "soldier",
+      "alignment": "True Neutral",
+      "edition": "2014",
+      "level": 1,
+      "proficiencyBonus": 2,
+      "armorClass": 13,
+      "hitPoints": 10,
+      "maxHitPoints": 10,
+      "temporaryHitPoints": 0,
+      "hitDice": {
+        "current": 1,
+        "max": 1,
+        "dieType": 8
+      },
+      "speed": 30,
+      "initiative": 2,
+      "inspiration": false,
+      "experiencePoints": 0,
+      "abilities": {
+        "STR": {
+          "score": 9,
+          "modifier": -1
+        },
+        "DEX": {
+          "score": 14,
+          "modifier": 2
+        },
+        "CON": {
+          "score": 15,
+          "modifier": 2
+        },
+        "INT": {
+          "score": 13,
+          "modifier": 1
+        },
+        "WIS": {
+          "score": 11,
+          "modifier": 0
+        },
+        "CHA": {
+          "score": 16,
+          "modifier": 3
+        }
+      },
+      "skills": {
+        "Acrobatics": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Animal Handling": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Arcana": {
+          "proficient": true,
+          "value": 3,
+          "expertise": false
+        },
+        "Athletics": {
+          "proficient": true,
+          "value": 1,
+          "expertise": false
+        },
+        "Deception": {
+          "proficient": true,
+          "value": 5,
+          "expertise": false
+        },
+        "History": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Insight": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Intimidation": {
+          "proficient": true,
+          "value": 5,
+          "expertise": false
+        },
+        "Investigation": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Medicine": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Nature": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Perception": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Performance": {
+          "proficient": false,
+          "value": 3,
+          "expertise": false
+        },
+        "Persuasion": {
+          "proficient": false,
+          "value": 3,
+          "expertise": false
+        },
+        "Religion": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Sleight of Hand": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Stealth": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Survival": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        }
+      },
+      "languages": [],
+      "proficiencies": {
+        "armor": [
+          "Light Armor"
+        ],
+        "weapons": [
+          "Simple Weapons"
+        ],
+        "tools": [
+          "Gaming Set (one choice)",
+          "Vehicles (land)"
+        ]
+      },
+      "expertiseSkills": [],
+      "featuresAndTraits": {
+        "personality": "Calm and observant.",
+        "ideals": "Protect others.",
+        "bonds": "The party.",
+        "flaws": "Too curious.",
+        "classFeatures": [],
+        "racialTraits": [],
+        "speciesTraits": [],
+        "backgroundFeatures": [
+          {
+            "name": "Military Rank",
+            "description": "You have a military rank from your career as a soldier. Soldiers loyal to your former military organization still recognize your authority and influence."
+          }
+        ],
+        "musicalInstrumentProficiencies": []
+      },
+      "srdFeatures": {
+        "classFeatures": [],
+        "subclassFeatures": []
+      },
+      "selectedFeats": [],
+      "feats": [],
+      "selectedFightingStyle": null,
+      "spellcasting": {
+        "ability": "CHA",
+        "spellSaveDC": 13,
+        "spellAttackBonus": 5,
+        "cantripsKnown": [
+          "eldritch-blast",
+          "minor-illusion"
+        ],
+        "spellSlots": [
+          2,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "usedSpellSlots": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "spellcastingType": "known",
+        "cantripChoicesByLevel": {
+          "1": "eldritch-blast,minor-illusion"
+        },
+        "spellsKnown": [
+          "charm-person",
+          "comprehend-languages"
+        ]
+      },
+      "castingSources": [],
+      "inventory": [
+        {
+          "equipmentSlug": "leather-armor",
+          "quantity": 1,
+          "equipped": true
         },
         {
-          "equipmentSlug": "robe",
+          "equipmentSlug": "dagger",
+          "quantity": 3,
+          "equipped": true
+        },
+        {
+          "equipmentSlug": "quarterstaff",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "crystal",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "backpack",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "book-of-lore",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "ink-(1-ounce-bottle)",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "ink-pen",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "parchment-10-sheets",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "little-bag-of-sand",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "small-knife",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "insignia-of-rank",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "trophy-from-fallen-enemy",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "bone-dice",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "common-clothes",
           "quantity": 1,
           "equipped": false
         }
@@ -3740,7 +5206,7 @@
         "cp": 0,
         "sp": 0,
         "ep": 0,
-        "gp": 8,
+        "gp": 10,
         "pp": 0
       },
       "deathSaves": {
@@ -3748,8 +5214,885 @@
         "failures": 0
       },
       "conditions": [],
-      "createdAt": "2026-10-25T16:17:22.191Z",
-      "updatedAt": "2026-10-25T16:17:22.191Z"
+      "createdAt": "2026-10-26T06:43:39.776Z",
+      "updatedAt": "2026-10-26T06:43:39.776Z"
+    }
+  },
+  "WL24": {
+    "draft": {
+      "draftVersion": 1,
+      "revision": 0,
+      "attemptId": "WL24",
+      "creationData": {
+        "name": "Human Warlock 2024",
+        "level": 1,
+        "edition": "2024",
+        "speciesSlug": "human-2024",
+        "classSlug": "warlock",
+        "background": "soldier-2024",
+        "abilities": {
+          "STR": 8,
+          "DEX": 13,
+          "CON": 14,
+          "INT": 12,
+          "WIS": 10,
+          "CHA": 15
+        },
+        "backgroundAbilityChoices": {
+          "method": "2/1",
+          "bonuses": {
+            "DEX": 2,
+            "CON": 1
+          }
+        },
+        "originFeat": "savage-attacker",
+        "humanOriginFeat": "tough",
+        "speciesSkillProficiency": "Perception",
+        "alignment": "True Neutral",
+        "abilityScoreMethod": "standard-array",
+        "selectedSkills": [
+          "Arcana",
+          "Deception"
+        ],
+        "selectedMusicalInstruments": [],
+        "spellSelection": {
+          "selectedCantrips": [
+            "eldritch-blast",
+            "minor-illusion"
+          ],
+          "knownSpells": [
+            "charm-person",
+            "hex"
+          ],
+          "preparedSpells": [
+            "charm-person",
+            "hex"
+          ]
+        },
+        "hpCalculationMethod": "max",
+        "personality": "Calm and observant.",
+        "ideals": "Protect others.",
+        "bonds": "The party.",
+        "flaws": "Too curious.",
+        "equipmentChoices": [
+          {
+            "choiceId": "warlock-kit",
+            "description": "Warlock starting gear",
+            "selected": 0,
+            "options": [
+              [
+                {
+                  "name": "Leather Armor",
+                  "quantity": 1,
+                  "type": "armor"
+                },
+                {
+                  "name": "Sickle",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Dagger",
+                  "quantity": 2,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Orb",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Book",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Scholar's Pack",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "15 gp",
+                  "quantity": 1,
+                  "type": "gear"
+                }
+              ]
+            ]
+          }
+        ],
+        "eldritchInvocations": [
+          "eldritch-mind"
+        ]
+      },
+      "draftId": "WL24",
+      "characterId": "WL24",
+      "edition": "2024",
+      "level": 1,
+      "name": "Human Warlock 2024",
+      "speciesSlug": "human-2024",
+      "classSlug": "warlock",
+      "backgroundSlug": "soldier-2024",
+      "rawAbilityScores": {
+        "STR": 8,
+        "DEX": 13,
+        "CON": 14,
+        "INT": 12,
+        "WIS": 10,
+        "CHA": 15
+      },
+      "abilityMethod": "standard",
+      "abilityBonuses": {
+        "method": "2/1",
+        "bonuses": {
+          "DEX": 2,
+          "CON": 1
+        }
+      },
+      "skills": [
+        "Arcana",
+        "Deception"
+      ],
+      "expertise": [],
+      "originFeat": "savage-attacker",
+      "speciesFeat": "tough",
+      "languages": [],
+      "toolProficiencies": [],
+      "spells": {
+        "cantrips": [
+          "eldritch-blast",
+          "minor-illusion"
+        ],
+        "knownOrBook": [
+          "charm-person",
+          "hex"
+        ],
+        "prepared": [
+          "charm-person",
+          "hex"
+        ]
+      },
+      "loadout": {
+        "items": [
+          {
+            "id": "loadout-1",
+            "slug": "leather-armor",
+            "name": "Leather Armor",
+            "quantity": 1,
+            "equipped": true,
+            "slot": "armor",
+            "armorType": "light",
+            "ac": 11,
+            "stealthDisadvantage": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-2",
+            "slug": "sickle",
+            "name": "Sickle",
+            "quantity": 1,
+            "equipped": true,
+            "slot": "main_hand",
+            "source": "class"
+          },
+          {
+            "id": "loadout-3",
+            "slug": "dagger",
+            "name": "Dagger",
+            "quantity": 2,
+            "equipped": false,
+            "slot": "main_hand",
+            "source": "class"
+          },
+          {
+            "id": "loadout-4",
+            "slug": "orb",
+            "name": "Orb",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-5",
+            "slug": "book",
+            "name": "Book",
+            "quantity": 2,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-6",
+            "slug": "backpack",
+            "name": "Backpack",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-7",
+            "slug": "ink-(1-ounce-bottle)",
+            "name": "Ink (1 ounce bottle)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-8",
+            "slug": "ink-pen",
+            "name": "Ink Pen",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-9",
+            "slug": "lamp",
+            "name": "Lamp",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-10",
+            "slug": "oil-flask",
+            "name": "Oil (flask)",
+            "quantity": 10,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-11",
+            "slug": "parchment-10-sheets",
+            "name": "Parchment (10 sheets)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-12",
+            "slug": "tinderbox",
+            "name": "Tinderbox",
+            "quantity": 1,
+            "equipped": false,
+            "source": "class"
+          },
+          {
+            "id": "loadout-13",
+            "slug": "spear",
+            "name": "Spear",
+            "quantity": 1,
+            "equipped": false,
+            "slot": "main_hand",
+            "source": "background"
+          },
+          {
+            "id": "loadout-14",
+            "slug": "shortbow",
+            "name": "Shortbow",
+            "quantity": 1,
+            "equipped": false,
+            "slot": "two_handed",
+            "source": "background"
+          },
+          {
+            "id": "loadout-15",
+            "slug": "arrows-(20)",
+            "name": "Arrows (20)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-16",
+            "slug": "gaming-set-(matching-choice)",
+            "name": "Gaming Set (matching choice)",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-17",
+            "slug": "healers-kit",
+            "name": "Healer's Kit",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-18",
+            "slug": "quiver",
+            "name": "Quiver",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          },
+          {
+            "id": "loadout-19",
+            "slug": "traveler's-clothes",
+            "name": "Traveler's Clothes",
+            "quantity": 1,
+            "equipped": false,
+            "source": "background"
+          }
+        ],
+        "currency": {
+          "cp": 0,
+          "sp": 0,
+          "ep": 0,
+          "gp": 29,
+          "pp": 0
+        },
+        "totalValueGp": 29
+      },
+      "alignment": "True Neutral",
+      "personality": "Calm and observant.",
+      "ideals": "Protect others.",
+      "bonds": "The party.",
+      "flaws": "Too curious.",
+      "provenance": {
+        "species": "player",
+        "class": "player",
+        "background": "player",
+        "abilities": "player",
+        "skills": "player",
+        "spells": "player",
+        "equipment": "player"
+      }
+    },
+    "oracle": {
+      "id": "WL24",
+      "title": "Human Warlock/Soldier (2024)",
+      "edition": "2024",
+      "creationData": {
+        "name": "Human Warlock 2024",
+        "level": 1,
+        "edition": "2024",
+        "speciesSlug": "human-2024",
+        "classSlug": "warlock",
+        "background": "soldier-2024",
+        "abilities": {
+          "STR": 8,
+          "DEX": 13,
+          "CON": 14,
+          "INT": 12,
+          "WIS": 10,
+          "CHA": 15
+        },
+        "backgroundAbilityChoices": {
+          "method": "2/1",
+          "bonuses": {
+            "DEX": 2,
+            "CON": 1
+          }
+        },
+        "originFeat": "savage-attacker",
+        "humanOriginFeat": "tough",
+        "speciesSkillProficiency": "Perception",
+        "alignment": "True Neutral",
+        "abilityScoreMethod": "standard-array",
+        "selectedSkills": [
+          "Arcana",
+          "Deception"
+        ],
+        "selectedMusicalInstruments": [],
+        "spellSelection": {
+          "selectedCantrips": [
+            "eldritch-blast",
+            "minor-illusion"
+          ],
+          "knownSpells": [
+            "charm-person",
+            "hex"
+          ],
+          "preparedSpells": [
+            "charm-person",
+            "hex"
+          ]
+        },
+        "hpCalculationMethod": "max",
+        "personality": "",
+        "ideals": "",
+        "bonds": "",
+        "flaws": "",
+        "equipmentChoices": [
+          {
+            "choiceId": "warlock-kit",
+            "description": "Warlock starting gear",
+            "selected": 0,
+            "options": [
+              [
+                {
+                  "name": "Leather Armor",
+                  "quantity": 1,
+                  "type": "armor"
+                },
+                {
+                  "name": "Sickle",
+                  "quantity": 1,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Dagger",
+                  "quantity": 2,
+                  "type": "weapon"
+                },
+                {
+                  "name": "Orb",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Book",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "Scholar's Pack",
+                  "quantity": 1,
+                  "type": "gear"
+                },
+                {
+                  "name": "15 gp",
+                  "quantity": 1,
+                  "type": "gear"
+                }
+              ]
+            ]
+          }
+        ],
+        "eldritchInvocations": [
+          "eldritch-mind"
+        ]
+      },
+      "expected": {
+        "abilities": {
+          "STR": 8,
+          "DEX": 15,
+          "CON": 15,
+          "INT": 12,
+          "WIS": 10,
+          "CHA": 15
+        },
+        "hp": 12,
+        "ac": 13,
+        "initiative": 2,
+        "speed": 30,
+        "saves": {
+          "proficient": [
+            "WIS",
+            "CHA"
+          ],
+          "bonuses": {
+            "WIS": 2,
+            "CHA": 4
+          }
+        },
+        "attacks": [
+          {
+            "name": "Dagger",
+            "attackBonus": 4,
+            "damage": "1d4+2"
+          },
+          {
+            "name": "Eldritch Blast",
+            "attackBonus": 4,
+            "damage": "1d10"
+          }
+        ],
+        "skills": {
+          "arcana": {
+            "bonus": 3
+          },
+          "deception": {
+            "bonus": 4
+          },
+          "perception": {
+            "bonus": 2
+          }
+        },
+        "spells": {
+          "cantripsCount": 2,
+          "knownOrBookCount": 2,
+          "preparedCount": 2,
+          "spellAttackBonus": 4,
+          "spellSaveDC": 12
+        },
+        "features": [
+          "Pact Magic",
+          "Eldritch Invocation: Eldritch Mind"
+        ],
+        "currency": {
+          "gp": 29
+        }
+      }
+    },
+    "character": {
+      "id": "",
+      "name": "Human Warlock 2024",
+      "species": "Human",
+      "race": "Human",
+      "class": "Warlock",
+      "classSlug": "warlock",
+      "subclass": null,
+      "background": "soldier-2024",
+      "alignment": "True Neutral",
+      "edition": "2024",
+      "level": 1,
+      "proficiencyBonus": 2,
+      "armorClass": 13,
+      "hitPoints": 12,
+      "maxHitPoints": 12,
+      "temporaryHitPoints": 0,
+      "hitDice": {
+        "current": 1,
+        "max": 1,
+        "dieType": 8
+      },
+      "speed": 30,
+      "initiative": 2,
+      "inspiration": false,
+      "experiencePoints": 0,
+      "abilities": {
+        "STR": {
+          "score": 8,
+          "modifier": -1
+        },
+        "DEX": {
+          "score": 15,
+          "modifier": 2
+        },
+        "CON": {
+          "score": 15,
+          "modifier": 2
+        },
+        "INT": {
+          "score": 12,
+          "modifier": 1
+        },
+        "WIS": {
+          "score": 10,
+          "modifier": 0
+        },
+        "CHA": {
+          "score": 15,
+          "modifier": 2
+        }
+      },
+      "skills": {
+        "Acrobatics": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Animal Handling": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Arcana": {
+          "proficient": true,
+          "value": 3,
+          "expertise": false
+        },
+        "Athletics": {
+          "proficient": true,
+          "value": 1,
+          "expertise": false
+        },
+        "Deception": {
+          "proficient": true,
+          "value": 4,
+          "expertise": false
+        },
+        "History": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Insight": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Intimidation": {
+          "proficient": true,
+          "value": 4,
+          "expertise": false
+        },
+        "Investigation": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Medicine": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        },
+        "Nature": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Perception": {
+          "proficient": true,
+          "value": 2,
+          "expertise": false
+        },
+        "Performance": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Persuasion": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Religion": {
+          "proficient": false,
+          "value": 1,
+          "expertise": false
+        },
+        "Sleight of Hand": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Stealth": {
+          "proficient": false,
+          "value": 2,
+          "expertise": false
+        },
+        "Survival": {
+          "proficient": false,
+          "value": 0,
+          "expertise": false
+        }
+      },
+      "languages": [],
+      "proficiencies": {
+        "armor": [
+          "Light Armor"
+        ],
+        "weapons": [
+          "Simple Weapons"
+        ],
+        "tools": [
+          "Gaming Set (choose one)"
+        ]
+      },
+      "expertiseSkills": [],
+      "featuresAndTraits": {
+        "personality": "Calm and observant.",
+        "ideals": "Protect others.",
+        "bonds": "The party.",
+        "flaws": "Too curious.",
+        "classFeatures": [
+          "Eldritch Invocation: Eldritch Mind"
+        ],
+        "racialTraits": [
+          "Resourceful",
+          "Skillful",
+          "Versatile"
+        ],
+        "speciesTraits": [
+          "Resourceful",
+          "Skillful",
+          "Versatile"
+        ],
+        "backgroundFeatures": [
+          {
+            "name": "Background Feature",
+            "description": "A feature from your background."
+          }
+        ],
+        "musicalInstrumentProficiencies": []
+      },
+      "srdFeatures": {
+        "classFeatures": [],
+        "subclassFeatures": []
+      },
+      "selectedFeats": [
+        "savage-attacker",
+        "tough"
+      ],
+      "feats": [
+        "savage-attacker",
+        "tough"
+      ],
+      "originFeat": "savage-attacker",
+      "selectedFightingStyle": null,
+      "eldritchInvocations": [
+        "eldritch-mind"
+      ],
+      "spellcasting": {
+        "ability": "CHA",
+        "spellSaveDC": 12,
+        "spellAttackBonus": 4,
+        "cantripsKnown": [
+          "eldritch-blast",
+          "minor-illusion"
+        ],
+        "spellSlots": [
+          2,
+          1,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "usedSpellSlots": [
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        "spellcastingType": "prepared",
+        "cantripChoicesByLevel": {
+          "1": "eldritch-blast,minor-illusion"
+        },
+        "spellsKnown": [
+          "bane",
+          "charm-person",
+          "comprehend-languages",
+          "detect-magic",
+          "expeditious-retreat",
+          "hellish-rebuke",
+          "hideous-laughter",
+          "illusory-script",
+          "protection-from-evil-and-good",
+          "speak-with-animals",
+          "unseen-servant",
+          "hex"
+        ],
+        "preparedSpells": [
+          "charm-person",
+          "hex"
+        ]
+      },
+      "castingSources": [],
+      "inventory": [
+        {
+          "equipmentSlug": "leather-armor",
+          "quantity": 1,
+          "equipped": true
+        },
+        {
+          "equipmentSlug": "sickle",
+          "quantity": 1,
+          "equipped": true
+        },
+        {
+          "equipmentSlug": "dagger",
+          "quantity": 2,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "orb",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "book",
+          "quantity": 2,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "backpack",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "ink-(1-ounce-bottle)",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "ink-pen",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "lamp",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "oil-flask",
+          "quantity": 10,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "parchment-10-sheets",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "tinderbox",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "spear",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "shortbow",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "arrows-(20)",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "gaming-set-(matching-choice)",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "healers-kit",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "quiver",
+          "quantity": 1,
+          "equipped": false
+        },
+        {
+          "equipmentSlug": "traveler's-clothes",
+          "quantity": 1,
+          "equipped": false
+        }
+      ],
+      "equippedWeapons": [],
+      "currency": {
+        "cp": 0,
+        "sp": 0,
+        "ep": 0,
+        "gp": 29,
+        "pp": 0
+      },
+      "deathSaves": {
+        "successes": 0,
+        "failures": 0
+      },
+      "conditions": [],
+      "createdAt": "2026-10-26T06:43:39.786Z",
+      "updatedAt": "2026-10-26T06:43:39.786Z"
     }
   }
 }

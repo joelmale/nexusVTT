@@ -2,6 +2,7 @@ import equipment from '../data/equipment.json';
 import type { CharacterCreationData } from '../types/dnd';
 import { ALL_SKILLS, BACKGROUNDS, loadClasses } from './dataService';
 import { humanOriginFeat, skillId } from './originChoices';
+import { invocationFeatGrants } from './invocations';
 
 const CHOICE_FEATS = ['skilled', 'crafter', 'musician'] as const;
 export function featProficiencyGrants(data: CharacterCreationData) {
@@ -21,6 +22,7 @@ export function featProficiencyGrants(data: CharacterCreationData) {
     origin,
     human,
     data.variantFeat,
+    ...invocationFeatGrants(data),
     ...new Set(
       [
         ...(data.selectedFeats ?? []),

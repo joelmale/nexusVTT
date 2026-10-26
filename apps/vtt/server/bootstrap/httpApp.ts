@@ -26,6 +26,7 @@ import type { AssetManifestStore } from '../services/assetManifestStore.js';
 import type { DocumentServiceClient } from '../services/documentServiceClient.js';
 import { createRulesCatalogUpstreamClient } from '../services/rulesCatalogClient.js';
 import { UserAssetCatalogClient } from '../services/userAssetCatalogClient.js';
+import { createBrowserMutationGuard, createRequestRateLimiter } from './requestSecurity.js';
 import type { GameStateCommitService } from '../socket/GameStateCommitService.js';
 import type { SocketManager } from '../socket/SocketManager.js';
 
@@ -124,6 +125,8 @@ export function createHttpApp({
   app.set('trust proxy', 1);
   app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
   app.use(compression());
+  app.use(['/api', '/auth'], createRequestRateLimiter());
+  app.use(createBrowserMutationGuard(allowedOrigins));
   app.use(
     cors({
       origin: createCorsOriginValidator(allowedOrigins),

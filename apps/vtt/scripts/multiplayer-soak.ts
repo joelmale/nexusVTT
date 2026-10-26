@@ -103,6 +103,7 @@ interface IntentStats {
   duplicateResults: number;
   unknownResults: number;
   latenciesMs: number[];
+  failures: Array<{ room: string; client: string; status: string }>;
 }
 
 interface ServerMetrics {
@@ -284,6 +285,7 @@ function emptyStats(): LoadStats {
       duplicateResults: 0,
       unknownResults: 0,
       latenciesMs: [],
+      failures: [],
     },
   };
 }
@@ -841,8 +843,14 @@ class LoadClient {
       }
     });
     if (status === 'applied') this.stats.intents.applied += 1;
-    else if (status === 'timeout') this.stats.intents.timedOut += 1;
-    else this.stats.intents.rejected += 1;
+    else {
+      if (status === 'timeout') this.stats.intents.timedOut += 1;
+      else this.stats.intents.rejected += 1;
+      // Synthetic test identities only; never print cookies or intent payloads.
+      const failure = { room: this.room.code, client: this.identity.name, status };
+      this.stats.intents.failures.push(failure);
+      console.warn('Player intent did not apply:', JSON.stringify(failure));
+    }
   }
 
   private send(message: WireMessage): void {

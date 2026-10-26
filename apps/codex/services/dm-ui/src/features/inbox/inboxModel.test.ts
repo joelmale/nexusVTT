@@ -126,6 +126,11 @@ describe('inboxModel', () => {
   });
 
   describe('extractFirstLineTitle', () => {
+    it('preserves leading digits and punctuation that are not Markdown list markers', () => {
+      expect(extractFirstLineTitle('123: The Lost Tower')).toBe('123: The Lost Tower');
+      expect(extractFirstLineTitle('= A clue')).toBe('= A clue');
+      expect(extractFirstLineTitle('> - A clue')).toBe('A clue');
+    });
     it('returns Untitled on empty or blank input', () => {
       expect(extractFirstLineTitle('')).toBe('Untitled');
       expect(extractFirstLineTitle('   \n  ')).toBe('Untitled');

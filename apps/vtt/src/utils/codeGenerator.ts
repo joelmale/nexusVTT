@@ -199,7 +199,7 @@ export const CHARACTER_BACKGROUNDS: CharacterBackground[] = ${this.generateArray
     }
 
     if (typeof obj === 'string') {
-      return `'${obj.replace(/'/g, "\\'")}'`;
+      return JSON.stringify(obj);
     }
 
     if (typeof obj === 'number' || typeof obj === 'boolean') {
@@ -227,7 +227,10 @@ export const CHARACTER_BACKGROUNDS: CharacterBackground[] = ${this.generateArray
             typeof value === 'object'
               ? this.generateObjectLiteral(value, indent + 2)
               : this.generateObjectLiteral(value);
-          return `${key}: ${formattedValue}`;
+          const property = key === '__proto__'
+            ? `[${JSON.stringify(key)}]`
+            : JSON.stringify(key);
+          return `${property}: ${formattedValue}`;
         });
 
       if (entries.length === 0) return '{}';

@@ -22,6 +22,11 @@ import { resolveCastingGrants } from '../services/castingSources';
 import { choiceId, humanOriginFeat } from '../services/originChoices';
 import { BASE_ARMOR_CLASS } from '../constants/combat';
 import { grantedFeatProficiencies } from '../services/featProficiencies';
+import {
+  INVOCATIONS_2024,
+  invocationFeatGrants,
+  invocationTargets,
+} from '../services/invocations';
 import { log } from './logger';
 
 /**
@@ -222,7 +227,9 @@ export const calculateCharacterStats = (
       : 0;
 
   // Tough feat: adds 2 HP per level
+  const invocationFeats = invocationFeatGrants(data);
   const hasTough =
+    invocationFeats.includes('tough') ||
     backgroundData?.originFeat === 'tough' ||
     data.variantFeat === 'tough' ||
     data.cumulativeASI?.some(
@@ -415,6 +422,7 @@ export const calculateCharacterStats = (
 
   // 7. Calculate Initiative (DEX modifier + Alert feat bonus if applicable)
   const hasAlert =
+    invocationFeats.includes('alert') ||
     backgroundData?.originFeat === 'alert' ||
     data.variantFeat === 'alert' ||
     data.cumulativeASI?.some(
@@ -435,7 +443,21 @@ export const calculateCharacterStats = (
     ideals: data.ideals || '',
     bonds: data.bonds || '',
     flaws: data.flaws || '',
-    classFeatures: classData.class_features || [],
+    classFeatures: [
+      ...(classData.class_features || []),
+      ...(edition === '2024' && data.classSlug === 'warlock'
+        ? (data.eldritchInvocations ?? []).flatMap((id) => {
+            const invocation = INVOCATIONS_2024.find(
+              (entry) => entry.id === id,
+            );
+            if (!invocation) return [];
+            const targets = invocationTargets(data, id);
+            return [
+              `Eldritch Invocation: ${invocation.name}${targets.length ? ` (${targets.join(', ')})` : ''}`,
+            ];
+          })
+        : []),
+    ],
     speciesTraits: mergedTraits,
     backgroundFeatures: backgroundData
       ? [
@@ -458,7 +480,7 @@ export const calculateCharacterStats = (
 
   // 10. Create final character object
   // Collect all feats (level 1 + cumulative ASI feats)
-  const allFeats = [...(data.selectedFeats || [])];
+  const allFeats = [...(data.selectedFeats || []), ...invocationFeats];
   if (edition === '2014' && data.variantFeat) allFeats.push(data.variantFeat);
 
   // Add 2024 Background Origin Feat

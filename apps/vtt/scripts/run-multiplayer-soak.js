@@ -23,6 +23,8 @@ const backendPeerPort = process.env.E2E_BACKEND_PEER_PORT ?? '15002';
 const toxiproxyPort = process.env.SOAK_TOXIPROXY_PORT ?? '18474';
 const keepStack = process.env.SOAK_KEEP_STACK === '1';
 const chaosEnabled = process.argv.includes('--chaos');
+// Match the managed browser harness when testing already verified local images.
+const buildMode = process.env.E2E_NO_BUILD === '1' ? '--no-build' : '--build';
 const userArguments = process.argv
   .slice(2)
   .filter((value) => value !== '--chaos');
@@ -217,7 +219,7 @@ async function main() {
       'docker',
       composeArgs(
         'up',
-        '--build',
+        buildMode,
         '--detach',
         '--wait',
         '--wait-timeout',
@@ -234,7 +236,7 @@ async function main() {
       'docker',
       composeArgs(
         'up',
-        '--build',
+        buildMode,
         '--detach',
         '--wait',
         '--wait-timeout',

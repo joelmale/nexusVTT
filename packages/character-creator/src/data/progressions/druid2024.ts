@@ -13,7 +13,7 @@ export const druid2024Progression: ClassProgression = {
   edition: '2024',
   hitDie: 'd8',
   asiLevels: [4, 8, 12, 16, 19],
-  subclassLevel: 2,
+  subclassLevel: 3,
   features: [
     // LEVEL 1
     {
@@ -53,9 +53,9 @@ export const druid2024Progression: ClassProgression = {
       ]
     },
     {
-      level: 2,
+      level: 3,
       name: 'Druid Circle',
-      description: 'At 2nd level, you choose to identify with a circle of druids. Your choice grants you features at 2nd level and again at 6th, 10th, and 14th level.',
+      description: 'Choose a Druid subclass and apply its level-three features.',
       automatic: false,
       choices: [
         {

@@ -17,7 +17,7 @@ import { calculateCharacterStats } from '../utils/characterCreationUtils';
 import { loadClasses, loadSpells, SPELLS_KNOWN_BY_CLASS } from './dataService';
 import cantripsData from '../data/cantrips.json';
 
-const EVALUATOR_VERSION = '1.0.0';
+const EVALUATOR_VERSION = '1.1.0';
 
 /**
  * Validates edition-specific spellcasting limits (CC-205)

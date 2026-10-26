@@ -67,6 +67,7 @@ export interface ConnectionLifecycleDependencies {
 export class ConnectionLifecycle {
   private readonly socketManager: SocketManager;
   private readonly db: DatabaseService;
+  private readonly roomRecoveries = new Map<string, Promise<Room | undefined>>();
 
   // Session timeouts (72 hours = 259200000 ms)
   private readonly HIBERNATION_TIMEOUT = 72 * 60 * 60 * 1000; // 72 hours before abandoning inactive session
@@ -1250,7 +1251,19 @@ export class ConnectionLifecycle {
    * or when a player hit a different instance). This is a best-effort recovery;
    * host connections are not restored here.
    */
-  private async recoverRoomFromSession(
+  private recoverRoomFromSession(roomCode: string): Promise<Room | undefined> {
+    const normalized = roomCode.toUpperCase();
+    const pending = this.roomRecoveries.get(normalized);
+    if (pending) return pending;
+    const recovery = this.hydrateRoomFromSession(normalized).finally(() => {
+      if (this.roomRecoveries.get(normalized) === recovery)
+        this.roomRecoveries.delete(normalized);
+    });
+    this.roomRecoveries.set(normalized, recovery);
+    return recovery;
+  }
+
+  private async hydrateRoomFromSession(
     roomCode: string,
   ): Promise<Room | undefined> {
     try {
@@ -1284,7 +1297,7 @@ export class ConnectionLifecycle {
         }
       }
 
-      const recoveredRoom: Room = {
+      let recoveredRoom: Room = {
         code: session.joinCode,
         host: session.primaryHostId,
         coHosts: coHostsSet,
@@ -1305,7 +1318,20 @@ export class ConnectionLifecycle {
         syncToken: recoveredToken,
       };
 
-      this.socketManager.rooms.set(roomCode, recoveredRoom);
+      // A host can install a room while database recovery is in flight. Keep
+      // that object's socket maps and any newer committed projection intact.
+      const liveRoom = this.socketManager.rooms.get(roomCode);
+      if (liveRoom) {
+        liveRoom.sessionId ??= session.id;
+        if (liveRoom.stateVersion <= session.stateVersion) {
+          liveRoom.gameState = recoveredRoom.gameState;
+          liveRoom.syncToken = recoveredRoom.syncToken;
+          liveRoom.stateVersion = recoveredRoom.stateVersion;
+        }
+        recoveredRoom = liveRoom;
+      } else {
+        this.socketManager.rooms.set(roomCode, recoveredRoom);
+      }
       await this.socketManager.hydrateDistributedPresence(recoveredRoom);
       console.log(
         `🔄 Recovered room ${roomCode} from session; status: ${recoveredRoom.status}`,

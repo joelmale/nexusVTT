@@ -13,7 +13,7 @@ export const sorcerer2024Progression: ClassProgression = {
   edition: '2024',
   hitDie: 'd6',
   asiLevels: [4, 8, 12, 16, 19],
-  subclassLevel: 1,
+  subclassLevel: 3,
   features: [
     // LEVEL 1
     {
@@ -23,9 +23,9 @@ export const sorcerer2024Progression: ClassProgression = {
       automatic: true
     },
     {
-      level: 1,
+      level: 3,
       name: 'Sorcerous Origin',
-      description: 'Choose a sorcerous origin, which describes the source of your innate magical power. Choose one of the following options.',
+      description: 'Choose a Sorcerer subclass and apply its level-three features.',
       automatic: false,
       choices: [
         {

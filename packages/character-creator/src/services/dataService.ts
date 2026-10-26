@@ -666,7 +666,10 @@ export function transformClass(srdClass: SRDClass, year: number = 2014): Class {
   return {
     slug: srdClass.index,
     name: srdClass.name,
-    source: `SRD ${year}`,
+    source:
+      srdClass.index === 'artificer'
+        ? `Unverified supplemental ${year}`
+        : `SRD ${year}`,
     edition, // Add edition field
     hit_die: srdClass.hit_die,
     primary_stat: 'Varies', // SRD doesn't specify, would need manual mapping

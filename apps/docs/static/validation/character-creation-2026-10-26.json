@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "recordedDate": "2026-10-26",
+  "baselineCommit": "248fedf9fde329c318ed7d0245324851b09766c9",
+  "branch": "codex/creator-studio-repairs",
+  "candidate": "Uncommitted working tree; not deployed or certified",
+  "changedCodeSha256": "93e31a47d5b70878669b7000e4202d4067948827b9c84791904c9a3393a336ab",
+  "files": {
+    "apps/codex/services/dm-ui/src/features/inbox/inboxModel.test.ts": "34d4f7ef13b112baa7d75bc7252b25b2dbc2bf1f8b35454ad37970e0b2dc0560",
+    "apps/codex/services/dm-ui/src/features/inbox/inboxModel.ts": "547e92fe477f273d8c150a0e8cd09fb881723797f69d188fd4502e627ac64b22",
+    "apps/vtt/playwright.config.ts": "56b9917be03792d9f48de7320c2a453165d136543deb9d5b206218781afd38c2",
+    "apps/vtt/scripts/multiplayer-soak.ts": "ffbab1fa849d5e7faedece0ed8a2ddc47fdc185ad92e3c7bdb044f183e97eaf7",
+    "apps/vtt/scripts/run-multiplayer-soak.js": "1cea055c493512797be332b94c646d8a01afe96d4d67558880cd4f07efc31357",
+    "apps/vtt/server/bootstrap/httpApp.ts": "79650652de86b5a79a01c774bfb974bae8fb41e1bc1da6f3c36a7859edfcb161",
+    "apps/vtt/server/bootstrap/requestSecurity.ts": "3f5e429ff19e31ba2974f0fb7cabbfc9ab41408db444f6626dbf8c956d97441c",
+    "apps/vtt/server/routes/documents.ts": "c04f7c7b83eee7cfe54777a01b4c1ca76683cd5d83af6f72fb47f45c334ea9cb",
+    "apps/vtt/server/socket/ConnectionLifecycle.ts": "c059ff1437a2f00aeefb867e203e83dd4d3f12afd72561758ed048a0af57c76d",
+    "apps/vtt/src/components/ChatPanel.tsx": "e3a44930dc4189d4a33d562bc4cc12d7d32910a87dfc526775ec7cf34c4affb5",
+    "apps/vtt/src/components/Generator/GeneratorPanel.tsx": "f1c2a6c0bf3ac56967e621665592a636c44ae2773d952d719f408626345c437f",
+    "apps/vtt/src/components/Tooltip.tsx": "354b084bd0cc3e30cf9fadaf2f668bc23d9de4594bfd9daf6b20e2a63c327ffc",
+    "apps/vtt/src/services/documentWebSocketClient.ts": "1ec2968ec9fa04e402bce2b761f8b6c5998fd6e69145a1360a02f31a3c10e61b",
+    "apps/vtt/src/services/generatorHostClient.ts": "04a439d0951a394e5b84e4e084224787a614569f09f313d481c44b796c524746",
+    "apps/vtt/src/services/generatorMessageValidation.ts": "9302737bbdab2fd54565ba6132c6f6562af4255c06c60c1c724b2a2e5b9d4c63",
+    "apps/vtt/src/utils/codeGenerator.ts": "b053982fbdc55df2058c696bd0aafd5e91dfe41b7106c0687d536622ce6c4362",
+    "apps/vtt/tests/e2e/creator-host-matrix.smoke.spec.ts": "eb07152057bc8518e19842ac075ec2d573cb0233f909bf23652f7e430aaa421e",
+    "apps/vtt/tests/e2e/fixtures/creator-reference-drafts.json": "6a8f3639868260dc1f2eb84744a777e26dddf7e17f490628bee9fd483ebf02fa",
+    "apps/vtt/tests/e2e/request-security.smoke.spec.ts": "d59a92623b6ba7705c9fc8508bf89a8c9778db4ed17a13be6474aefdbf774389",
+    "apps/vtt/tests/unit/components/GeneratorPanel.test.tsx": "38b4241b64e5f57539be9b05759472856b84a6998b8d965365af937d0bccdc70",
+    "apps/vtt/tests/unit/server/bootstrap/requestSecurity.test.ts": "643c88d81c2ca654d6f7e84679427b83312576e978853dbfe76ea62d305081b7",
+    "apps/vtt/tests/unit/server/routes/documents.test.ts": "860b5f355e61ab18805a07bcca4be33771be6c57f306569a9ad38c16dbbde2b9",
+    "apps/vtt/tests/unit/server/socket/ConnectionLifecycle.test.ts": "ca54f5262e329577fcf6b1d52b2dc801ea1b518c29c6e98616953fef31e20604",
+    "apps/vtt/tests/unit/services/generatorMessageValidation.test.ts": "c62f0064b285de9a6fd46648fd66d217a3c8542efbdfd0d68f95491bb95c6da4",
+    "apps/vtt/tests/unit/utils/codeGenerator.security.test.ts": "04315c5536aec414e796aac73abb2959881ce0f6ba564f726af7e55ac9e15318",
+    "packages/character-creator/scripts/capture-support-inventory.ts": "5868469797a20eea19e1d638c479113c5a3bd2f278bc4a16d778a2a94a80e7b3",
+    "packages/character-creator/scripts/capture-validation-inputs.ts": "cd7ef2b720392b134723758fec89c3f3644b86a48b0332c5a2ba47afcc167763",
+    "packages/character-creator/src/components/CharacterCreationWizard/steps/Step3Class.tsx": "e84d4a55b6511bebc1fd2acd55ccfa2909118ce1e906dc34d82e263dcad7a216",
+    "packages/character-creator/src/components/ClassGrantChoices.tsx": "25d419b0e79a332f3f58cc26468b32a6b3794713fc5b0f2fdf86987237386f63",
+    "packages/character-creator/src/data/progressions/cleric2024.ts": "09654e99bad3d368552677e7c17857cb6e31d3828abd415f1e59079cf5a7b517",
+    "packages/character-creator/src/data/progressions/druid2024.ts": "18812e5ac65b4f33aa7283a4e524dae56dd4f2094ba666bc68817a4760e58a13",
+    "packages/character-creator/src/data/progressions/sorcerer2024.ts": "300082fa362f92c4f777bfaf7d27b8f9132028243513678c2e14ea618aee485d",
+    "packages/character-creator/src/data/progressions/warlock2024.ts": "720e236b302e7231ae20abf64aa5ed3ba96e48983be722f4908cfa5e47eb9ba9",
+    "packages/character-creator/src/data/supportManifest.ts": "0c5f2fc55d6169619854bac24aeb703f2527aaea813a5ba34cf3692cf2ae7e20",
+    "packages/character-creator/src/services/castingSources.ts": "fa8b48bfd5f920c34b16e0ba0ef5769f82de865f70d2d0214a71ae2752af6f99",
+    "packages/character-creator/src/services/classGrantChoices.ts": "181e371cb4ac8c171d4375cd9c4bbd4cbc4ad0ca03e2de63eeb64dc04fe49ef3",
+    "packages/character-creator/src/services/dataService.ts": "d207ee2fdd9af67479899b25550ec40e8967f9b8fedbd0cffcf3a4924d3a3404",
+    "packages/character-creator/src/services/draftEvaluator.ts": "6b898621f2c89bb35be4eb03a5d462b188bf628eb47c750a1e14b68b43dd6a22",
+    "packages/character-creator/src/services/featEntitlements.ts": "c4f18fc4efeaccc6399cef6475b95bbe18578b3c48798682ab55643c1e5ff3db",
+    "packages/character-creator/src/services/featProficiencies.ts": "6755d7e42418269398bf4f1ec683e57b52f01e0f7efbabccc822a8ee53ad23ce",
+    "packages/character-creator/src/services/invocationChoices.ts": "37377222cf4c63c363f18382640a16a42abec8f54424c144e958e184b26f132b",
+    "packages/character-creator/src/services/invocations.test.ts": "3ce58f2e560985c0b99b84656a3ef61112eeef6f3a7f8c75f6417486ffe80fe1",
+    "packages/character-creator/src/services/invocations.ts": "eb1bf60b9ca3b17ed38484d209c472ea7680986d7e922962bd60b6ca1a67fcfe",
+    "packages/character-creator/src/tests/fixedReferenceValues.test.ts": "494be3638def9bdb6ae30a2cf31a02ef0fdc9f6bb38032ede06e9c2476f0e1f6",
+    "packages/character-creator/src/tests/fixtures/classValidationInputs.json": "c641865703a6065eb27e69be385e7682addd277fe79e86c6401f898ad642f74c",
+    "packages/character-creator/src/tests/fixtures/referenceBuilds.ts": "8f64406143c96b0257717b5cd3e2c9fddf17377173eff8f6c769504a611a80b6",
+    "packages/character-creator/src/tests/fixtures/supportInventory.json": "648f3abd57da3e36128cd6905bcfe55e136928c0554e90651740e2b0c1fa1ac0",
+    "packages/character-creator/src/tests/invocationControls.test.tsx": "03f641879afd73b120c0e049e4e5fce62dc84cfa70f4350d698e58fcc67b658b",
+    "packages/character-creator/src/tests/supportCertification.test.ts": "dcb4cac35f62dfe31a30fd73506bef94aded5c51f9a44f00a03b4c33b7c406a1",
+    "packages/character-creator/src/tests/supportInventory.test.ts": "ec6fc828a1e379c6dff22b673e20cefb20187fd635000160459274f53a9086db",
+    "packages/character-creator/src/tests/warlockReferences.test.ts": "c713daf4638422ab09f0508c42decca972cd601327390a80248a6d315de84e11",
+    "packages/character-creator/src/utils/characterCreationUtils.ts": "d2db5b3c1a82406c16838d413079dc4c5782d0944eb0e4827cadf96729edd7af",
+    "packages/character-creator/src/utils/highLevelCreationUtils.ts": "f463dfa9c83f58ffe5b92cf46572376040793037721b9378e01bdc1329fdb1a8"
+  },
+  "tooling": {
+    "codeql": "2.27.3",
+    "queryPack": "codeql/javascript-queries@2.4.8",
+    "suite": "javascript-security-extended",
+    "queries": 105
+  },
+  "images": {
+    "soakBackendBeforeHttpHardening": "sha256:12e970da1ca0ea15d4ca3db01e4b4ceac75eacc5b78e97a9cc7623215aa1b2f0",
+    "finalSmokeBackend": "sha256:a87db6fe28be63799882a73d244836e5c323ed74fa1ec3aba8989bf812ac383f",
+    "finalSmokeFrontend": "sha256:fbfa904d3fecce2697efcc1c206c0e290cf2fe2380229463740cab2b4f34e0a4"
+  },
+  "checks": {
+    "creator": {
+      "passed": true,
+      "tests": 640,
+      "files": 57
+    },
+    "managedBrowser": {
+      "passed": true,
+      "tests": 50,
+      "creatorCases": 36
+    },
+    "postgresAfterRoomRepair": {
+      "passed": true,
+      "tests": 48
+    },
+    "finalVttUnits": {
+      "passed": true,
+      "tests": 2595,
+      "files": 240,
+      "workers": 1,
+      "durationSeconds": 867.63
+    },
+    "requestSecurityCoverage": {
+      "lines": 100,
+      "functions": 100,
+      "branches": 95.91
+    },
+    "generatorPayloadCoverage": {
+      "lines": 100,
+      "functions": 100,
+      "branches": 100
+    }
+  },
+  "soaks": [
+    {
+      "name": "repaired-normal-soak",
+      "filename": "apps/vtt/test-results/validation-repaired-normal-soak.json",
+      "sha256": "1c6ff3178395a85f9a17fce3387fcecc02450c000ffbc83e9aa1a6d10e2544ea",
+      "passed": true,
+      "startedAt": "2026-10-26T07:07:48.991Z",
+      "completedAt": "2026-10-26T07:17:55.980Z",
+      "rooms": 10,
+      "clientsPerRoom": 4,
+      "durationMs": 600000,
+      "conflictProbe": false,
+      "intentMinSuccess": 0.9,
+      "summary": {
+        "rooms": 10,
+        "clients": 40,
+        "eventAckP50Ms": 25,
+        "eventAckP95Ms": 37,
+        "eventAckP99Ms": 53,
+        "stateAckP95Ms": 28,
+        "reconnectP95Ms": 234,
+        "convergenceFailures": 0,
+        "lostEvents": 0,
+        "duplicateEventDeliveries": 0,
+        "intentSuccessRate": 1,
+        "intentP95Ms": 31
+      },
+      "intents": {
+        "sent": 993,
+        "applied": 993,
+        "rejected": 0,
+        "timedOut": 0,
+        "forwardedToHost": 993,
+        "duplicateForwards": 0,
+        "duplicateResults": 0,
+        "unknownResults": 0
+      },
+      "orderingErrors": 0,
+      "serverMetricDeltas": {
+        "durableCommitFailures": 0,
+        "durableCommitConflicts": 0,
+        "resyncs": 0,
+        "orderedEventFailures": 0,
+        "orderedEventDuplicates": 0,
+        "realtimePublishFailures": 0,
+        "realtimeReconnects": 0,
+        "journalCatchUps": 0,
+        "sequenceGaps": 0
+      },
+      "failures": []
+    },
+    {
+      "name": "repaired-chaos-soak",
+      "filename": "apps/vtt/test-results/validation-repaired-chaos-soak.json",
+      "sha256": "9e21b5c81a6537dc17e98e2961d486d3c44fc17919b9e1de2d4bfb337af859d9",
+      "passed": true,
+      "startedAt": "2026-10-26T07:19:17.209Z",
+      "completedAt": "2026-10-26T07:29:23.909Z",
+      "rooms": 10,
+      "clientsPerRoom": 4,
+      "durationMs": 600000,
+      "conflictProbe": true,
+      "intentMinSuccess": 0.5,
+      "summary": {
+        "rooms": 10,
+        "clients": 40,
+        "eventAckP50Ms": 26,
+        "eventAckP95Ms": 42,
+        "eventAckP99Ms": 1779,
+        "stateAckP95Ms": 35,
+        "reconnectP95Ms": 392,
+        "convergenceFailures": 0,
+        "lostEvents": 0,
+        "duplicateEventDeliveries": 0,
+        "intentSuccessRate": 0.9967141292442497,
+        "intentP95Ms": 39
+      },
+      "intents": {
+        "sent": 913,
+        "applied": 910,
+        "rejected": 0,
+        "timedOut": 3,
+        "forwardedToHost": 910,
+        "duplicateForwards": 0,
+        "duplicateResults": 0,
+        "unknownResults": 0
+      },
+      "orderingErrors": 0,
+      "serverMetricDeltas": {
+        "durableCommitFailures": 0,
+        "durableCommitConflicts": 0,
+        "resyncs": 0,
+        "orderedEventFailures": 0,
+        "orderedEventDuplicates": 0,
+        "realtimePublishFailures": 0,
+        "realtimeReconnects": 1,
+        "journalCatchUps": 10,
+        "sequenceGaps": 0
+      },
+      "failures": []
+    }
+  ],
+  "scans": [
+    {
+      "scope": "creator",
+      "extractedFiles": 269,
+      "filename": "nexus-creator-security-20261026.sarif",
+      "sha256": "3002c28bd3f052b4dca9e2a68823b6559d4c32827cc6531e8bae1073a7f20268",
+      "findingCount": 2,
+      "rules": {
+        "js/insecure-randomness": 2
+      }
+    },
+    {
+      "scope": "forge",
+      "extractedFiles": 233,
+      "filename": "nexus-forge-security-20261026.sarif",
+      "sha256": "843efbe22ccd15432bead11af9687129153563ed5fd69eac8126d26906b3d77c",
+      "findingCount": 2,
+      "rules": {
+        "js/clear-text-storage-of-sensitive-data": 2
+      }
+    },
+    {
+      "scope": "server",
+      "extractedFiles": 78,
+      "filename": "nexus-server-hardened-security-20261026.sarif",
+      "sha256": "810cd7615087a7c50380e54e5b6b98aaca702736cc95342861b207e9b493b5c0",
+      "findingCount": 78,
+      "rules": {
+        "js/biased-cryptographic-random": 1,
+        "js/missing-token-validation": 1,
+        "js/missing-rate-limiting": 53,
+        "js/log-injection": 5,
+        "js/user-controlled-bypass": 17,
+        "js/http-to-file-access": 1
+      }
+    },
+    {
+      "scope": "vtt-ui",
+      "extractedFiles": 381,
+      "filename": "nexus-vtt-ui-hardened-security-20261026.sarif",
+      "sha256": "1f4172d271979aabe2fed27be99e62de9780e3e03a1b5d85a8af3e2775f514a9",
+      "findingCount": 0,
+      "rules": {}
+    },
+    {
+      "scope": "studio",
+      "extractedFiles": 379,
+      "filename": "nexus-studio-hardened-security-20261026.sarif",
+      "sha256": "7ae0729acda398f0cb16d2f0e8b0298241b6fb1e4714783c056b3e11faa55483",
+      "findingCount": 0,
+      "rules": {}
+    }
+  ],
+  "limitations": [
+    "18 additional class/edition fixed references remain open",
+    "Full 104-case host matrix and blank authoring are incomplete",
+    "Class resource initialization and remaining progression/effect/source audits remain open",
+    "Manual AT/device tests are not run",
+    "Independent rules/accessibility/security review and participant study remain open",
+    "Application rate budgets are per replica",
+    "Server alerts retained with reviewed mitigations; see evidence ledger",
+    "Soaks predate HTTP/generator hardening; final browser run includes it"
+  ]
+}
